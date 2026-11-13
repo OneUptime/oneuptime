@@ -51843,5 +51843,22 @@
   "Couldn't withdraw the edit.": "ویرایش پس گرفته نشد.",
   "Couldn't load the public notes.": "یادداشت‌های عمومی بارگذاری نشدند.",
   "{{count}} of {{total}} monitors could not be linked: {{errors}}": "{{count}} از {{total}} مانیتور پیوند داده نشد: {{errors}}",
-  "{{count}} of {{total}} monitors could not be linked: {{errors}}_one": "{{count}} از {{total}} مانیتور پیوند داده نشد: {{errors}}"
+  "{{count}} of {{total}} monitors could not be linked: {{errors}}_one": "{{count}} از {{total}} مانیتور پیوند داده نشد: {{errors}}",
+  "Linked Monitors ({{count}})": "مانیتورهای پیوندشده ({{count}})",
+  "Linked {{count}} monitors to this template.": "{{count}} مانیتور به این قالب پیوند داده شد.",
+  "Linked {{count}} monitors to this template._one": "{{count}} مانیتور به این قالب پیوند داده شد.",
+  "Sync Criteria to {{count}} Linked Monitors": "همگام‌سازی معیارها با {{count}} مانیتور پیوندشده",
+  "Sync Criteria to {{count}} Linked Monitors_one": "همگام‌سازی معیارها با {{count}} مانیتور پیوندشده",
+  "Sync Custom Fields to {{count}} Linked Monitors": "همگام‌سازی فیلدهای سفارشی با {{count}} مانیتور پیوندشده",
+  "Sync Custom Fields to {{count}} Linked Monitors_one": "همگام‌سازی فیلدهای سفارشی با {{count}} مانیتور پیوندشده",
+  "Sync Interval to {{count}} Linked Monitors": "همگام‌سازی بازه با {{count}} مانیتور پیوندشده",
+  "Sync Interval to {{count}} Linked Monitors_one": "همگام‌سازی بازه با {{count}} مانیتور پیوندشده",
+  "Sync Labels to {{count}} Linked Monitors": "همگام‌سازی برچسب‌ها با {{count}} مانیتور پیوندشده",
+  "Sync Labels to {{count}} Linked Monitors_one": "همگام‌سازی برچسب‌ها با {{count}} مانیتور پیوندشده",
+  "Synced \"{{monitorName}}\" from this template.": "«{{monitorName}}» از روی این قالب همگام شد.",
+  "This monitor and this template are in different projects.": "این مانیتور و این قالب در پروژه‌های متفاوتی هستند.",
+  "This monitor does not exist in this project, or you do not have access to it.": "این مانیتور در این پروژه وجود ندارد یا به آن دسترسی ندارید.",
+  "This monitor is not linked to this template.": "این مانیتور به این قالب پیوند ندارد.",
+  "This monitor's type is {{monitorType}}, and this template's type is {{templateType}}. Only monitors of the template's type can be linked to it.": "نوع این مانیتور {{monitorType}} است و نوع این قالب {{templateType}}. فقط مانیتورهایی از نوع قالب را می‌توان به آن پیوند داد.",
+  "Unlinked \"{{monitorName}}\" from this template.": "پیوند «{{monitorName}}» از این قالب لغو شد."
 }

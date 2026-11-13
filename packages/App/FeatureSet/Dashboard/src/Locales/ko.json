@@ -51843,5 +51843,22 @@
   "Couldn't withdraw the edit.": "편집을 철회하지 못했습니다.",
   "Couldn't load the public notes.": "공개 노트를 불러오지 못했습니다.",
   "{{count}} of {{total}} monitors could not be linked: {{errors}}": "모니터 {{total}}개 중 {{count}}개를 연결하지 못했습니다: {{errors}}",
-  "{{count}} of {{total}} monitors could not be linked: {{errors}}_one": "모니터 {{total}}개 중 {{count}}개를 연결하지 못했습니다: {{errors}}"
+  "{{count}} of {{total}} monitors could not be linked: {{errors}}_one": "모니터 {{total}}개 중 {{count}}개를 연결하지 못했습니다: {{errors}}",
+  "Linked Monitors ({{count}})": "연결된 모니터({{count}})",
+  "Linked {{count}} monitors to this template.": "모니터 {{count}}개를 이 템플릿에 연결했습니다.",
+  "Linked {{count}} monitors to this template._one": "모니터 {{count}}개를 이 템플릿에 연결했습니다.",
+  "Sync Criteria to {{count}} Linked Monitors": "연결된 모니터 {{count}}개에 기준 동기화",
+  "Sync Criteria to {{count}} Linked Monitors_one": "연결된 모니터 {{count}}개에 기준 동기화",
+  "Sync Custom Fields to {{count}} Linked Monitors": "연결된 모니터 {{count}}개에 사용자 지정 필드 동기화",
+  "Sync Custom Fields to {{count}} Linked Monitors_one": "연결된 모니터 {{count}}개에 사용자 지정 필드 동기화",
+  "Sync Interval to {{count}} Linked Monitors": "연결된 모니터 {{count}}개에 간격 동기화",
+  "Sync Interval to {{count}} Linked Monitors_one": "연결된 모니터 {{count}}개에 간격 동기화",
+  "Sync Labels to {{count}} Linked Monitors": "연결된 모니터 {{count}}개에 레이블 동기화",
+  "Sync Labels to {{count}} Linked Monitors_one": "연결된 모니터 {{count}}개에 레이블 동기화",
+  "Synced \"{{monitorName}}\" from this template.": "'{{monitorName}}'을(를) 이 템플릿에서 동기화했습니다.",
+  "This monitor and this template are in different projects.": "이 모니터와 이 템플릿은 서로 다른 프로젝트에 있습니다.",
+  "This monitor does not exist in this project, or you do not have access to it.": "이 모니터는 이 프로젝트에 없거나 액세스 권한이 없습니다.",
+  "This monitor is not linked to this template.": "이 모니터는 이 템플릿에 연결되어 있지 않습니다.",
+  "This monitor's type is {{monitorType}}, and this template's type is {{templateType}}. Only monitors of the template's type can be linked to it.": "이 모니터는 {{monitorType}} 유형이고 이 템플릿은 {{templateType}} 유형입니다. 템플릿과 같은 유형의 모니터만 이 템플릿에 연결할 수 있습니다.",
+  "Unlinked \"{{monitorName}}\" from this template.": "'{{monitorName}}'을(를) 이 템플릿에서 연결 해제했습니다."
 }

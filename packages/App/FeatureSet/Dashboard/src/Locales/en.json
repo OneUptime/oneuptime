@@ -51843,5 +51843,22 @@
   "Couldn't withdraw the edit.": "Couldn't withdraw the edit.",
   "Couldn't load the public notes.": "Couldn't load the public notes.",
   "{{count}} of {{total}} monitors could not be linked: {{errors}}": "{{count}} of {{total}} monitors could not be linked: {{errors}}",
-  "{{count}} of {{total}} monitors could not be linked: {{errors}}_one": "{{count}} of {{total}} monitors could not be linked: {{errors}}"
+  "{{count}} of {{total}} monitors could not be linked: {{errors}}_one": "{{count}} of {{total}} monitors could not be linked: {{errors}}",
+  "Linked Monitors ({{count}})": "Linked Monitors ({{count}})",
+  "Linked {{count}} monitors to this template.": "Linked {{count}} monitors to this template.",
+  "Linked {{count}} monitors to this template._one": "Linked {{count}} monitor to this template.",
+  "Sync Criteria to {{count}} Linked Monitors": "Sync Criteria to {{count}} Linked Monitors",
+  "Sync Criteria to {{count}} Linked Monitors_one": "Sync Criteria to {{count}} Linked Monitor",
+  "Sync Custom Fields to {{count}} Linked Monitors": "Sync Custom Fields to {{count}} Linked Monitors",
+  "Sync Custom Fields to {{count}} Linked Monitors_one": "Sync Custom Fields to {{count}} Linked Monitor",
+  "Sync Interval to {{count}} Linked Monitors": "Sync Interval to {{count}} Linked Monitors",
+  "Sync Interval to {{count}} Linked Monitors_one": "Sync Interval to {{count}} Linked Monitor",
+  "Sync Labels to {{count}} Linked Monitors": "Sync Labels to {{count}} Linked Monitors",
+  "Sync Labels to {{count}} Linked Monitors_one": "Sync Labels to {{count}} Linked Monitor",
+  "Synced \"{{monitorName}}\" from this template.": "Synced \"{{monitorName}}\" from this template.",
+  "This monitor and this template are in different projects.": "This monitor and this template are in different projects.",
+  "This monitor does not exist in this project, or you do not have access to it.": "This monitor does not exist in this project, or you do not have access to it.",
+  "This monitor is not linked to this template.": "This monitor is not linked to this template.",
+  "This monitor's type is {{monitorType}}, and this template's type is {{templateType}}. Only monitors of the template's type can be linked to it.": "This monitor's type is {{monitorType}}, and this template's type is {{templateType}}. Only monitors of the template's type can be linked to it.",
+  "Unlinked \"{{monitorName}}\" from this template.": "Unlinked \"{{monitorName}}\" from this template."
 }

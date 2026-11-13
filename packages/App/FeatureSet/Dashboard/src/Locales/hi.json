@@ -51843,5 +51843,22 @@
   "Couldn't withdraw the edit.": "संपादन वापस नहीं लिया जा सका।",
   "Couldn't load the public notes.": "सार्वजनिक नोट लोड नहीं हो सके।",
   "{{count}} of {{total}} monitors could not be linked: {{errors}}": "{{total}} में से {{count}} मॉनिटर लिंक नहीं किए जा सके: {{errors}}",
-  "{{count}} of {{total}} monitors could not be linked: {{errors}}_one": "{{total}} में से {{count}} मॉनिटर लिंक नहीं किया जा सका: {{errors}}"
+  "{{count}} of {{total}} monitors could not be linked: {{errors}}_one": "{{total}} में से {{count}} मॉनिटर लिंक नहीं किया जा सका: {{errors}}",
+  "Linked Monitors ({{count}})": "लिंक किए गए मॉनिटर ({{count}})",
+  "Linked {{count}} monitors to this template.": "{{count}} मॉनिटर इस टेम्पलेट से लिंक किए गए।",
+  "Linked {{count}} monitors to this template._one": "{{count}} मॉनिटर इस टेम्पलेट से लिंक किया गया।",
+  "Sync Criteria to {{count}} Linked Monitors": "लिंक किए गए {{count}} मॉनिटर के साथ मानदंड सिंक करें",
+  "Sync Criteria to {{count}} Linked Monitors_one": "लिंक किए गए {{count}} मॉनिटर के साथ मानदंड सिंक करें",
+  "Sync Custom Fields to {{count}} Linked Monitors": "कस्टम फ़ील्ड {{count}} जुड़े मॉनिटर पर सिंक करें",
+  "Sync Custom Fields to {{count}} Linked Monitors_one": "कस्टम फ़ील्ड {{count}} जुड़े मॉनिटर पर सिंक करें",
+  "Sync Interval to {{count}} Linked Monitors": "लिंक किए गए {{count}} मॉनिटर के साथ अंतराल सिंक करें",
+  "Sync Interval to {{count}} Linked Monitors_one": "लिंक किए गए {{count}} मॉनिटर के साथ अंतराल सिंक करें",
+  "Sync Labels to {{count}} Linked Monitors": "लिंक किए गए {{count}} मॉनिटर के साथ लेबल सिंक करें",
+  "Sync Labels to {{count}} Linked Monitors_one": "लिंक किए गए {{count}} मॉनिटर के साथ लेबल सिंक करें",
+  "Synced \"{{monitorName}}\" from this template.": "“{{monitorName}}” को इस टेम्पलेट से सिंक किया गया।",
+  "This monitor and this template are in different projects.": "यह मॉनिटर और यह टेम्पलेट अलग-अलग प्रोजेक्ट में हैं।",
+  "This monitor does not exist in this project, or you do not have access to it.": "यह मॉनिटर इस प्रोजेक्ट में मौजूद नहीं है, या आपके पास इसकी पहुंच नहीं है।",
+  "This monitor is not linked to this template.": "यह मॉनिटर इस टेम्पलेट से लिंक नहीं है।",
+  "This monitor's type is {{monitorType}}, and this template's type is {{templateType}}. Only monitors of the template's type can be linked to it.": "इस मॉनिटर का प्रकार {{monitorType}} है, और इस टेम्पलेट का प्रकार {{templateType}} है। इस टेम्पलेट से केवल इसी प्रकार के मॉनिटर लिंक किए जा सकते हैं।",
+  "Unlinked \"{{monitorName}}\" from this template.": "“{{monitorName}}” को इस टेम्पलेट से अनलिंक किया गया।"
 }

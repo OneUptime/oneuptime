@@ -51843,5 +51843,22 @@
   "Couldn't withdraw the edit.": "无法撤回编辑。",
   "Couldn't load the public notes.": "无法加载公开备注。",
   "{{count}} of {{total}} monitors could not be linked: {{errors}}": "{{total}} 个监视器中有 {{count}} 个无法关联：{{errors}}",
-  "{{count}} of {{total}} monitors could not be linked: {{errors}}_one": "{{total}} 个监视器中有 {{count}} 个无法关联：{{errors}}"
+  "{{count}} of {{total}} monitors could not be linked: {{errors}}_one": "{{total}} 个监视器中有 {{count}} 个无法关联：{{errors}}",
+  "Linked Monitors ({{count}})": "已关联监视器（{{count}}）",
+  "Linked {{count}} monitors to this template.": "已将 {{count}} 个监视器关联到此模板。",
+  "Linked {{count}} monitors to this template._one": "已将 {{count}} 个监视器关联到此模板。",
+  "Sync Criteria to {{count}} Linked Monitors": "将标准同步到 {{count}} 个已关联的监控",
+  "Sync Criteria to {{count}} Linked Monitors_one": "将标准同步到 {{count}} 个已关联的监控",
+  "Sync Custom Fields to {{count}} Linked Monitors": "将自定义字段同步到 {{count}} 个已关联的监视器",
+  "Sync Custom Fields to {{count}} Linked Monitors_one": "将自定义字段同步到 {{count}} 个已关联的监视器",
+  "Sync Interval to {{count}} Linked Monitors": "将间隔同步到 {{count}} 个已关联的监控",
+  "Sync Interval to {{count}} Linked Monitors_one": "将间隔同步到 {{count}} 个已关联的监控",
+  "Sync Labels to {{count}} Linked Monitors": "将标签同步到 {{count}} 个已关联的监控",
+  "Sync Labels to {{count}} Linked Monitors_one": "将标签同步到 {{count}} 个已关联的监控",
+  "Synced \"{{monitorName}}\" from this template.": "已从此模板同步“{{monitorName}}”。",
+  "This monitor and this template are in different projects.": "此监视器和此模板属于不同的项目。",
+  "This monitor does not exist in this project, or you do not have access to it.": "此监视器在此项目中不存在，或者您无权访问。",
+  "This monitor is not linked to this template.": "此监视器未关联到此模板。",
+  "This monitor's type is {{monitorType}}, and this template's type is {{templateType}}. Only monitors of the template's type can be linked to it.": "此监视器的类型为 {{monitorType}}，此模板的类型为 {{templateType}}。只有与模板类型相同的监视器才能关联到此模板。",
+  "Unlinked \"{{monitorName}}\" from this template.": "已从此模板取消关联“{{monitorName}}”。"
 }

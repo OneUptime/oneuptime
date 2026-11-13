@@ -51843,5 +51843,22 @@
   "Couldn't withdraw the edit.": "Det gick inte att dra tillbaka redigeringen.",
   "Couldn't load the public notes.": "Det gick inte att läsa in de offentliga anteckningarna.",
   "{{count}} of {{total}} monitors could not be linked: {{errors}}": "{{count}} av {{total}} övervakare kunde inte länkas: {{errors}}",
-  "{{count}} of {{total}} monitors could not be linked: {{errors}}_one": "{{count}} av {{total}} övervakare kunde inte länkas: {{errors}}"
+  "{{count}} of {{total}} monitors could not be linked: {{errors}}_one": "{{count}} av {{total}} övervakare kunde inte länkas: {{errors}}",
+  "Linked Monitors ({{count}})": "Länkade övervakare ({{count}})",
+  "Linked {{count}} monitors to this template.": "{{count}} övervakare länkades till den här mallen.",
+  "Linked {{count}} monitors to this template._one": "{{count}} övervakare länkades till den här mallen.",
+  "Sync Criteria to {{count}} Linked Monitors": "Synkronisera kriterier till {{count}} länkade övervakare",
+  "Sync Criteria to {{count}} Linked Monitors_one": "Synkronisera kriterier till {{count}} länkad övervakare",
+  "Sync Custom Fields to {{count}} Linked Monitors": "Synkronisera anpassade fält till {{count}} länkade monitorer",
+  "Sync Custom Fields to {{count}} Linked Monitors_one": "Synkronisera anpassade fält till {{count}} länkad monitor",
+  "Sync Interval to {{count}} Linked Monitors": "Synkronisera intervall till {{count}} länkade övervakare",
+  "Sync Interval to {{count}} Linked Monitors_one": "Synkronisera intervall till {{count}} länkad övervakare",
+  "Sync Labels to {{count}} Linked Monitors": "Synkronisera etiketter till {{count}} länkade övervakare",
+  "Sync Labels to {{count}} Linked Monitors_one": "Synkronisera etiketter till {{count}} länkad övervakare",
+  "Synced \"{{monitorName}}\" from this template.": "”{{monitorName}}” har synkroniserats från den här mallen.",
+  "This monitor and this template are in different projects.": "Den här övervakaren och den här mallen finns i olika projekt.",
+  "This monitor does not exist in this project, or you do not have access to it.": "Den här övervakaren finns inte i det här projektet, eller så har du inte åtkomst till den.",
+  "This monitor is not linked to this template.": "Den här övervakaren är inte länkad till den här mallen.",
+  "This monitor's type is {{monitorType}}, and this template's type is {{templateType}}. Only monitors of the template's type can be linked to it.": "Den här övervakaren är av typen {{monitorType}}, och den här mallen är av typen {{templateType}}. Bara övervakare av mallens typ kan länkas till den.",
+  "Unlinked \"{{monitorName}}\" from this template.": "”{{monitorName}}” har avlänkats från den här mallen."
 }

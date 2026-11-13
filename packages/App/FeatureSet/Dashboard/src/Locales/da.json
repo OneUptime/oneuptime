@@ -51843,5 +51843,22 @@
   "Couldn't withdraw the edit.": "Redigeringen kunne ikke trækkes tilbage.",
   "Couldn't load the public notes.": "De offentlige noter kunne ikke indlæses.",
   "{{count}} of {{total}} monitors could not be linked: {{errors}}": "{{count}} af {{total}} overvågninger kunne ikke tilknyttes: {{errors}}",
-  "{{count}} of {{total}} monitors could not be linked: {{errors}}_one": "{{count}} af {{total}} overvågninger kunne ikke tilknyttes: {{errors}}"
+  "{{count}} of {{total}} monitors could not be linked: {{errors}}_one": "{{count}} af {{total}} overvågninger kunne ikke tilknyttes: {{errors}}",
+  "Linked Monitors ({{count}})": "Tilknyttede overvågninger ({{count}})",
+  "Linked {{count}} monitors to this template.": "{{count}} overvågninger blev tilknyttet denne skabelon.",
+  "Linked {{count}} monitors to this template._one": "{{count}} overvågning blev tilknyttet denne skabelon.",
+  "Sync Criteria to {{count}} Linked Monitors": "Synkronisér kriterier til {{count}} tilknyttede overvågninger",
+  "Sync Criteria to {{count}} Linked Monitors_one": "Synkronisér kriterier til {{count}} tilknyttet overvågning",
+  "Sync Custom Fields to {{count}} Linked Monitors": "Synkroniser brugerdefinerede felter til {{count}} tilknyttede monitorer",
+  "Sync Custom Fields to {{count}} Linked Monitors_one": "Synkroniser brugerdefinerede felter til {{count}} tilknyttet monitor",
+  "Sync Interval to {{count}} Linked Monitors": "Synkronisér interval til {{count}} tilknyttede overvågninger",
+  "Sync Interval to {{count}} Linked Monitors_one": "Synkronisér interval til {{count}} tilknyttet overvågning",
+  "Sync Labels to {{count}} Linked Monitors": "Synkronisér etiketter til {{count}} tilknyttede overvågninger",
+  "Sync Labels to {{count}} Linked Monitors_one": "Synkronisér etiketter til {{count}} tilknyttet overvågning",
+  "Synced \"{{monitorName}}\" from this template.": "»{{monitorName}}« er synkroniseret fra denne skabelon.",
+  "This monitor and this template are in different projects.": "Denne overvågning og denne skabelon er i forskellige projekter.",
+  "This monitor does not exist in this project, or you do not have access to it.": "Denne overvågning findes ikke i dette projekt, eller du har ikke adgang til den.",
+  "This monitor is not linked to this template.": "Denne overvågning er ikke tilknyttet denne skabelon.",
+  "This monitor's type is {{monitorType}}, and this template's type is {{templateType}}. Only monitors of the template's type can be linked to it.": "Denne overvågning er af typen {{monitorType}}, og denne skabelon er af typen {{templateType}}. Kun overvågninger af skabelonens type kan tilknyttes den.",
+  "Unlinked \"{{monitorName}}\" from this template.": "»{{monitorName}}« er ikke længere tilknyttet denne skabelon."
 }

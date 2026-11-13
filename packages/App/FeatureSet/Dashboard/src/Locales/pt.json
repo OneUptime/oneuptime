@@ -51843,5 +51843,22 @@
   "Couldn't withdraw the edit.": "Não foi possível retirar a edição.",
   "Couldn't load the public notes.": "Não foi possível carregar as notas públicas.",
   "{{count}} of {{total}} monitors could not be linked: {{errors}}": "Não foi possível vincular {{count}} de {{total}} monitores: {{errors}}",
-  "{{count}} of {{total}} monitors could not be linked: {{errors}}_one": "Não foi possível vincular {{count}} de {{total}} monitores: {{errors}}"
+  "{{count}} of {{total}} monitors could not be linked: {{errors}}_one": "Não foi possível vincular {{count}} de {{total}} monitores: {{errors}}",
+  "Linked Monitors ({{count}})": "Monitores Vinculados ({{count}})",
+  "Linked {{count}} monitors to this template.": "{{count}} monitores vinculados a este modelo.",
+  "Linked {{count}} monitors to this template._one": "{{count}} monitor vinculado a este modelo.",
+  "Sync Criteria to {{count}} Linked Monitors": "Sincronizar Critérios com {{count}} Monitores Vinculados",
+  "Sync Criteria to {{count}} Linked Monitors_one": "Sincronizar Critérios com {{count}} Monitor Vinculado",
+  "Sync Custom Fields to {{count}} Linked Monitors": "Sincronizar campos personalizados com {{count}} monitores vinculados",
+  "Sync Custom Fields to {{count}} Linked Monitors_one": "Sincronizar campos personalizados com {{count}} monitor vinculado",
+  "Sync Interval to {{count}} Linked Monitors": "Sincronizar Intervalo com {{count}} Monitores Vinculados",
+  "Sync Interval to {{count}} Linked Monitors_one": "Sincronizar Intervalo com {{count}} Monitor Vinculado",
+  "Sync Labels to {{count}} Linked Monitors": "Sincronizar Rótulos com {{count}} Monitores Vinculados",
+  "Sync Labels to {{count}} Linked Monitors_one": "Sincronizar Rótulos com {{count}} Monitor Vinculado",
+  "Synced \"{{monitorName}}\" from this template.": "“{{monitorName}}” foi sincronizado a partir deste modelo.",
+  "This monitor and this template are in different projects.": "Este monitor e este modelo estão em projetos diferentes.",
+  "This monitor does not exist in this project, or you do not have access to it.": "Este monitor não existe neste projeto ou você não tem acesso a ele.",
+  "This monitor is not linked to this template.": "Este monitor não está vinculado a este modelo.",
+  "This monitor's type is {{monitorType}}, and this template's type is {{templateType}}. Only monitors of the template's type can be linked to it.": "Este monitor é do tipo {{monitorType}} e este modelo é do tipo {{templateType}}. Só monitores do tipo do modelo podem ser vinculados a ele.",
+  "Unlinked \"{{monitorName}}\" from this template.": "“{{monitorName}}” foi desvinculado deste modelo."
 }
