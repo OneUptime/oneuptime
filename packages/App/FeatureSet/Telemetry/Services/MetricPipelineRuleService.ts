@@ -20,6 +20,7 @@ import {
 } from "Common/Utils/LinearRegExp/PatternCache";
 import { PatternWorkLimitError } from "Common/Utils/LinearRegExp/PatternProblem";
 import { patternWorkRefusesQuestions } from "Common/Utils/LinearRegExp/PatternWork";
+import { writeOwnValue } from "Common/Utils/LookupTable";
 
 export interface MetricRulesForProject {
   projectRules: Array<MetricPipelineRule>;
@@ -286,7 +287,8 @@ export default class MetricPipelineRuleService {
         }
         const attrs: JSONObject = this.getAttributes(row);
         if (Object.prototype.hasOwnProperty.call(attrs, from)) {
-          attrs[to] = attrs[from] as JSONValue;
+          // As the row's own key, even one named __proto__.
+          writeOwnValue(attrs, to, attrs[from] as JSONValue);
           delete attrs[from];
           row.attributes = attrs;
           state.attributeKeysDirty = true;
@@ -300,7 +302,7 @@ export default class MetricPipelineRuleService {
           return row;
         }
         const attrs: JSONObject = this.getAttributes(row);
-        attrs[key] = rule.addAttributeValue ?? "";
+        writeOwnValue(attrs, key, rule.addAttributeValue ?? "");
         row.attributes = attrs;
         state.attributeKeysDirty = true;
         return row;

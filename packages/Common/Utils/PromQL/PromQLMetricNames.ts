@@ -1,5 +1,5 @@
 import { PROMQL_METRIC_NAME_LABEL } from "./PromQLAst";
-import { PromQLLabels } from "./PromQLLabels";
+import { PromQLLabels, promQLLabelValue } from "./PromQLLabels";
 
 /*
  * How OneUptime's OpenTelemetry metrics are named in PromQL (issue #6796).
@@ -98,8 +98,9 @@ export const attributesToPromQLLabels: (
       continue;
     }
 
-    const existing: string | undefined = labels[label];
-    labels[label] = existing === undefined ? value : `${existing};${value}`;
+    // The series' own labels: an attribute may be named constructor.
+    const existing: string = promQLLabelValue(labels, label);
+    labels[label] = existing.length === 0 ? value : `${existing};${value}`;
   }
 
   // job and instance, the way Prometheus derives them from the resource.

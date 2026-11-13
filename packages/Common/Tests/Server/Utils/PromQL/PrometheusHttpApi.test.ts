@@ -459,6 +459,17 @@ describe("series, label names and label values", () => {
     expect(labelValuesOf(series, "job")).toEqual(["api", "web"]);
   });
 
+  test("a label named like an Object member has values only where a series has it", () => {
+    const series: Array<PromQLLabels> = [
+      { __name__: "up", job: "api" },
+      { __name__: "up", job: "web", constructor: "c1" },
+    ];
+
+    expect(labelValuesOf(series, "constructor")).toEqual(["c1"]);
+    expect(labelValuesOf(series, "toString")).toEqual([]);
+    expect(labelValuesOf(series, "__proto__")).toEqual([]);
+  });
+
   test("the series list stops at the limit", async () => {
     expect(
       await listPrometheusSeries({

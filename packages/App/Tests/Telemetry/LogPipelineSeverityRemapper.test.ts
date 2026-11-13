@@ -113,4 +113,49 @@ describe("severity remapper writes only values a filter can match", () => {
     );
     expect(out["severityText"]).toBe(LogSeverity.Unspecified);
   });
+
+  /*
+   * A source key named like an Object member is an attribute the row may or
+   * may not carry: a row without it is left alone, whatever text a mapping
+   * names, here the text a bare object's constructor reads as.
+   */
+  test("a source key named constructor is read from the row's own attributes", () => {
+    const pipelines: Array<LoadedPipeline> = [
+      {
+        pipeline: { name: "test-pipeline" },
+        compiledFilter: { kind: "always-true" },
+        processors: [
+          {
+            name: "remap",
+            processorType: LogPipelineProcessorType.SeverityRemapper,
+            configuration: {
+              sourceKey: "constructor",
+              mappings: [
+                {
+                  matchValue: String(Object),
+                  severityText: LogSeverity.Error,
+                  severityNumber: 17,
+                },
+                {
+                  matchValue: "oops",
+                  severityText: LogSeverity.Warning,
+                  severityNumber: 13,
+                },
+              ],
+            },
+          },
+        ],
+      },
+    ] as unknown as Array<LoadedPipeline>;
+
+    expect(
+      LogPipelineService.processLog(logRow, pipelines)["severityText"],
+    ).toBe(LogSeverity.Unspecified);
+    expect(
+      LogPipelineService.processLog(
+        { ...logRow, attributes: { constructor: "oops" } },
+        pipelines,
+      )["severityText"],
+    ).toBe(LogSeverity.Warning);
+  });
 });

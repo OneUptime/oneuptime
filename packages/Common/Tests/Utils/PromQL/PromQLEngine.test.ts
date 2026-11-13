@@ -371,6 +371,125 @@ describe("instant selectors", () => {
     ).toEqual(['up{instance="host-1:9100", job="node", x="[]"}']);
   });
 
+  /*
+   * No series here has a label named constructor, toString or __proto__, so
+   * each reads "" (Prometheus' Labels.Get), as a label no series has does:
+   * grouping by it, joining it and sorting by it give what they give for
+   * "nolabel".
+   */
+  test("by() a label named like an Object member groups as by a label the series do not have", async () => {
+    expect(await vector("sum by (constructor) (up)")).toEqual({ "{}": 1 });
+    expect(await vector("count by (toString) (http_requests_total)")).toEqual({
+      "{}": 4,
+    });
+    expect(
+      await vector("sum by (job, constructor) (http_requests_total)"),
+    ).toEqual({ '{job="api"}': 160, '{job="web"}': 1000 });
+    expect(
+      await vector("sum by (job, constructor) (http_requests_total)"),
+    ).toEqual(await vector("sum by (job, nolabel) (http_requests_total)"));
+  });
+
+  test("label_join joins a label named like an Object member as an empty one", async () => {
+    expect(
+      Object.keys(
+        await vector(
+          'label_join(up, "joined", "-", "constructor", "job", "toString")',
+        ),
+      ),
+    ).toEqual(['up{instance="host-1:9100", job="node", joined="-node-"}']);
+    expect(
+      Object.keys(
+        await vector('label_join(up, "joined", "-", "__proto__", "job")'),
+      ),
+    ).toEqual(['up{instance="host-1:9100", job="node", joined="-node"}']);
+    // Nothing but empty values to join: the label is left out.
+    expect(
+      Object.keys(await vector('label_join(up, "joined", "-", "constructor")')),
+    ).toEqual(['up{instance="host-1:9100", job="node"}']);
+  });
+
+  test("sort_by_label sorts by a label named like an Object member as by one the series do not have", async () => {
+    const order: (query: string) => Promise<Array<string>> = async (
+      query: string,
+    ): Promise<Array<string>> => {
+      const result: PromQLQueryResult = await instant(query);
+
+      return result.resultType === PromQLResultType.Vector
+        ? result.samples.map((sample: PromQLVectorResultSample): string => {
+            return formatPromQLLabels(sample.labels);
+          })
+        : [];
+    };
+    const byInstanceThenCode: Array<string> = [
+      'http_requests_total{code="200", instance="a", job="api"}',
+      'http_requests_total{code="500", instance="a", job="api"}',
+      'http_requests_total{code="200", instance="b", job="api"}',
+      'http_requests_total{code="200", instance="c", job="web"}',
+    ];
+
+    expect(
+      await order(
+        'sort_by_label(http_requests_total, "constructor", "instance", "code")',
+      ),
+    ).toEqual(byInstanceThenCode);
+    expect(
+      await order(
+        'sort_by_label(http_requests_total, "toString", "instance", "code")',
+      ),
+    ).toEqual(byInstanceThenCode);
+    expect(
+      await order(
+        'sort_by_label(http_requests_total, "__proto__", "instance", "code")',
+      ),
+    ).toEqual(byInstanceThenCode);
+    expect(
+      await order(
+        'sort_by_label_desc(http_requests_total, "constructor", "instance", "code")',
+      ),
+    ).toEqual([...byInstanceThenCode].reverse());
+    expect(
+      await order(
+        'sort_by_label(http_requests_total, "nolabel", "instance", "code")',
+      ),
+    ).toEqual(byInstanceThenCode);
+  });
+
+  test("on() and group_left() read a label named like an Object member from the series' own labels", async () => {
+    // Neither side has the label: every series matches on "", with no labels kept.
+    expect(await vector("up + on (constructor) up")).toEqual({ "{}": 2 });
+    // A series that has the label matches only a series with the same value.
+    expect(
+      await vector(
+        'up + on (constructor) label_replace(up, "constructor", "function Object() { [native code] }", "instance", ".*")',
+      ),
+    ).toEqual({});
+    // The one side has neither label, so neither is copied.
+    expect(
+      await vector(
+        "http_requests_total * on (instance) group_left (constructor, toString) team_info",
+      ),
+    ).toEqual({
+      '{code="200", instance="a", job="api"}': 100,
+      '{code="500", instance="a", job="api"}': 10,
+      '{code="200", instance="b", job="api"}': 50,
+      '{code="200", instance="c", job="web"}': 1000,
+    });
+  });
+
+  test("absent() names a label called constructor that its selector pins", async () => {
+    expect(await vector('absent(nonexistent{constructor="x"})')).toEqual({
+      '{constructor="x"}': 1,
+    });
+    expect(
+      await vector('absent(nonexistent{toString="x", job="api"})'),
+    ).toEqual({ '{job="api", toString="x"}': 1 });
+    // Pinned twice, a label is left out, as Prometheus leaves it out.
+    expect(
+      await vector('absent(nonexistent{constructor="x", constructor="y"})'),
+    ).toEqual({ "{}": 1 });
+  });
+
   test("an offset moves the selector back in time", async () => {
     expect(await single('http_requests_total{instance="c"} offset 2m')).toBe(
       800,

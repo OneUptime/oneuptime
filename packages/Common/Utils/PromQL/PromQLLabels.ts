@@ -73,7 +73,7 @@ export const promQLMatchSignature: (
     let key: string = "";
 
     for (const name of [...names].sort()) {
-      key += `${name}${SEPARATOR}${labels[name] || ""}${SEPARATOR}`;
+      key += `${name}${SEPARATOR}${promQLLabelValue(labels, name)}${SEPARATOR}`;
     }
 
     return key;

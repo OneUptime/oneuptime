@@ -509,7 +509,7 @@ const absentLabels: (expression: PromQLExpression) => PromQLLabels = (
       continue;
     }
 
-    if (labels[matcher.name] !== undefined) {
+    if (Object.prototype.hasOwnProperty.call(labels, matcher.name)) {
       repeated.add(matcher.name);
     }
 
@@ -1039,7 +1039,7 @@ export const evaluatePromQLFunction: (
         samples.map((sample: PromQLSample): PromQLSample => {
           const value: string = sources
             .map((source: string): string => {
-              return sample.labels[source] || "";
+              return promQLLabelValue(sample.labels, source);
             })
             .join(separator);
           const labels: PromQLLabels = { ...sample.labels };
@@ -1072,8 +1072,8 @@ export const evaluatePromQLFunction: (
         [...samples].sort((a: PromQLSample, b: PromQLSample): number => {
           for (const label of labels) {
             const order: number = naturalCompare(
-              a.labels[label] || "",
-              b.labels[label] || "",
+              promQLLabelValue(a.labels, label),
+              promQLLabelValue(b.labels, label),
             );
 
             if (order !== 0) {

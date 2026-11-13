@@ -278,4 +278,34 @@ describe("evaluateFilter — field path resolution", () => {
     expect(evaluateFilter(r, "tags LIKE 'env'")).toBe(true);
     expect(evaluateFilter(r, 'tags = \'{"env":"prod"}\'')).toBe(true);
   });
+
+  /*
+   * A field named like an Object member (constructor, toString) is one a
+   * row may or may not carry: a row without it reads "", as for any field
+   * it lacks, and a row with it reads its own value.
+   */
+  test("a field named like an Object member reads only the row's own value", () => {
+    const plain: JSONObject = row({ body: "x", attributes: { level: "info" } });
+
+    expect(evaluateFilter(plain, "constructor LIKE 'native'")).toBe(false);
+    expect(evaluateFilter(plain, "attributes.toString LIKE 'native'")).toBe(
+      false,
+    );
+    expect(evaluateFilter(plain, "NOT constructor LIKE 'native'")).toBe(true);
+
+    // A bare key reaches the attribute, as for any key the row has no field for.
+    expect(
+      evaluateFilter(
+        row({ attributes: { constructor: "c1" } }),
+        "constructor = 'c1'",
+      ),
+    ).toBe(true);
+    // The resource. fallback applies too.
+    expect(
+      evaluateFilter(
+        row({ attributes: { "resource.constructor": "r1" } }),
+        "attributes.constructor = 'r1'",
+      ),
+    ).toBe(true);
+  });
 });
