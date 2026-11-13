@@ -5,6 +5,13 @@ import {
   ReachMethod,
   ResponderReach,
 } from "./OnCallSetup";
+import {
+  EnabledProjectChannels,
+  ProjectNotificationChannel,
+  ProjectNotificationChannelColumn,
+  getProjectNotificationChannel,
+  readEnabledProjectChannels,
+} from "../../NotificationMethods/ProjectNotificationChannelsCopy";
 import { mayAddEveryNewEventRules } from "../../OnCallPolicy/UseEveryNewEventRulesOffer";
 import {
   SetupReminderStatuses,
@@ -32,6 +39,7 @@ import UserSMS from "Common/Models/DatabaseModels/UserSMS";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
+import Select from "Common/Types/BaseDatabase/Select";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { JSONObject } from "Common/Types/JSON";
@@ -89,6 +97,26 @@ export interface AddedNumber {
   id: string;
   isVerified: boolean;
 }
+
+/*
+ * The project switches the step reads and turns on: SMS and calls, by the
+ * channels' one definition (NotificationMethods/ProjectNotificationChannelsCopy).
+ */
+const PHONE_CHANNELS: ReadonlyArray<ProjectNotificationChannel> = [
+  ProjectNotificationChannel.SMS,
+  ProjectNotificationChannel.Call,
+];
+
+const getPhoneChannelColumns: () => Array<ProjectNotificationChannelColumn> =
+  (): Array<ProjectNotificationChannelColumn> => {
+    return PHONE_CHANNELS.map(
+      (
+        channel: ProjectNotificationChannel,
+      ): ProjectNotificationChannelColumn => {
+        return getProjectNotificationChannel(channel).column;
+      },
+    );
+  };
 
 const READINESS_ROUTE: string = "/on-call-readiness";
 // The readiness route's documented maximum page.
@@ -215,14 +243,18 @@ export default class OnCallSetupApi {
    */
   public static async loadProjectPhoneFacts(): Promise<ProjectPhoneFacts> {
     try {
+      const select: Select<Project> = {};
+
+      for (const column of getPhoneChannelColumns()) {
+        select[column] = true;
+      }
+
+      select.smsOrCallCurrentBalanceInUSDCents = true;
+
       const project: Project | null = await ModelAPI.getItem<Project>({
         modelType: Project,
         id: currentProjectId(),
-        select: {
-          enableSmsNotifications: true,
-          enableCallNotifications: true,
-          smsOrCallCurrentBalanceInUSDCents: true,
-        },
+        select: select,
       });
 
       if (!project) {
@@ -230,10 +262,12 @@ export default class OnCallSetupApi {
       }
 
       const balance: unknown = project.smsOrCallCurrentBalanceInUSDCents;
+      const enabled: EnabledProjectChannels =
+        readEnabledProjectChannels(project);
 
       return {
-        isSmsOn: Boolean(project.enableSmsNotifications),
-        isCallOn: Boolean(project.enableCallNotifications),
+        isSmsOn: enabled[ProjectNotificationChannel.SMS],
+        isCallOn: enabled[ProjectNotificationChannel.Call],
         balanceInUSDCents:
           typeof balance === "number" && Number.isFinite(balance)
             ? balance
@@ -253,20 +287,21 @@ export default class OnCallSetupApi {
    */
   public static async turnOnPhoneChannels(): Promise<void> {
     const projectId: ObjectID = currentProjectId();
+    const columns: Array<ProjectNotificationChannelColumn> =
+      getPhoneChannelColumns();
+    const data: JSONObject = {};
+
+    for (const column of columns) {
+      data[column] = true;
+    }
 
     await ModelAPI.updateById<Project>({
       modelType: Project,
       id: projectId,
-      data: {
-        enableSmsNotifications: true,
-        enableCallNotifications: true,
-      },
+      data: data,
     });
 
-    for (const column of [
-      "enableSmsNotifications",
-      "enableCallNotifications",
-    ]) {
+    for (const column of columns) {
       announceModelSwitchSaved({
         modelType: Project,
         modelId: projectId,
