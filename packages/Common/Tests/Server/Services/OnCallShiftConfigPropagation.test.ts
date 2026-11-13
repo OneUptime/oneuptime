@@ -1132,9 +1132,10 @@ describe("hook wiring: OnCallDutyPolicyUserOverrideService", () => {
       props: { isRoot: true },
     });
 
-    expect(onUpdate.carryForward).toHaveLength(1);
-    expect(onUpdate.carryForward[0].overrideUserId).toBe(USER_A);
-    expect(onUpdate.carryForward[0].routeAlertsToUserId).toBe(USER_C);
+    // The people each override named before the edit (the times, for its feed entry, beside them).
+    expect(onUpdate.carryForward.pairs).toHaveLength(1);
+    expect(onUpdate.carryForward.pairs[0].overrideUserId).toBe(USER_A);
+    expect(onUpdate.carryForward.pairs[0].routeAlertsToUserId).toBe(USER_C);
   });
 
   test("onUpdateSuccess: OLD and NEW overridden users' schedules, all four users named, one propagate per project", async () => {
@@ -1154,13 +1155,16 @@ describe("hook wiring: OnCallDutyPolicyUserOverrideService", () => {
     await (OnCallDutyPolicyUserOverrideService as any).onUpdateSuccess(
       {
         updateBy: { query: { _id: ROW_ID }, data: {}, props: {} },
-        carryForward: [
-          {
-            projectId: PROJECT_ID,
-            overrideUserId: USER_A,
-            routeAlertsToUserId: USER_C,
-          },
-        ],
+        carryForward: {
+          pairs: [
+            {
+              projectId: PROJECT_ID,
+              overrideUserId: USER_A,
+              routeAlertsToUserId: USER_C,
+            },
+          ],
+          before: [],
+        },
       },
       [ROW_ID],
     );
