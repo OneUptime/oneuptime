@@ -62,6 +62,8 @@ flowchart LR
 
 Et skjult produkt er ikke slått av. Det flyttes til **Flere produkter**, den siste raden i menyen **Produkter**: Søk finner det fortsatt, sidene og API-et virker fortsatt, og dataene fortsetter å komme. Den som har festet det, beholder festet.
 
+På en selv-hostet server kan en hovedadministrator også slå av et produkt for alle prosjekter, under **Innstillinger → Produkter** i Admin Dashboard (se [Kjør bare det du trenger](/docs/installation/docker-compose#kjør-bare-det-du-trenger)). Et slikt produkt har ingen bryter her: Det viser **Slått av på denne serveren**, sammen med hvem som kan slå det på.
+
 Et nytt prosjekt starter med det eieren sa på Hjem at det skal brukes til: det grunnleggende, innstillingene og det disse målene trenger, vises, og resten skjules. Et prosjekt som hoppet over spørsmålet, eller som ble opprettet før det, viser alle produkter. Så snart noen endrer listen her, endrer ikke målene den lenger.
 
 Hvert produkt sier hva det er for dette prosjektet: **I bruk**, **Ikke satt opp** eller, i OneUptime Cloud, abonnementet det trenger. Når et skjult produkt begynner å motta data, sier Hjem fra til prosjekteierne og -administratorene og tilbyr **Vis det** eller **Hold skjult**.

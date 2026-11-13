@@ -972,6 +972,10 @@ import { AddMonitorStatusTimelineIsMonitoringOff1809122600000 } from "./18091226
 import { AddProjectProductsAndPins1809122700000 } from "./1809122700000-AddProjectProductsAndPins";
 import { AddProductFeedback1809123000000 } from "./1809123000000-AddProductFeedback";
 import { AddAmazonSesAuthenticationType1809123100000 } from "./1809123100000-AddAmazonSesAuthenticationType";
+import { AddSampleProject1809123500000 } from "./1809123500000-AddSampleProject";
+import { AddSampleProjectUserIndex1809123500001 } from "./1809123500001-AddSampleProjectUserIndex";
+import { AddServerProducts1809123600000 } from "./1809123600000-AddServerProducts";
+import { AddDashboardRecordingSwitches1809123700000 } from "./1809123700000-AddDashboardRecordingSwitches";
 
 export default [
   InitialMigration,
@@ -1948,4 +1952,8 @@ export default [
   AddProjectProductsAndPins1809122700000,
   AddProductFeedback1809123000000,
   AddAmazonSesAuthenticationType1809123100000,
+  AddSampleProject1809123500000,
+  AddSampleProjectUserIndex1809123500001,
+  AddServerProducts1809123600000,
+  AddDashboardRecordingSwitches1809123700000,
 ];

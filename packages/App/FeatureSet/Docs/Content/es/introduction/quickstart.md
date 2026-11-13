@@ -34,6 +34,8 @@ Escribe un **Nombre del proyecto**, por ejemplo el nombre de tu empresa. En OneU
 
 ### Crearlo
 
+![Inicio pregunta «¿Qué quieres hacer primero?», con los tres objetivos de esta guía marcados](screen:home-goals-three)
+
 Haz clic en **Crear proyecto**. Se abre la página de inicio de tu proyecto, con la lista **Te damos la bienvenida a OneUptime 👋** arriba. Primero pregunta **¿Qué quieres hacer primero?**: marca **Saber cuándo cae mi sitio web o mi API**, **Avisar a la persona adecuada cuando algo falle** y **Informar a mis clientes con una página de estado**, y haz clic en **Continuar**.
 :::
 
@@ -58,6 +60,8 @@ Mantén las **Sondas** seleccionadas y el **Intervalo de monitoreo** de **Cada 5
 :::
 
 Para probar la comprobación antes de guardar, haz clic en **Probar monitor** en el segundo paso. Todos los demás tipos de monitor se describen en [Crear un monitor](/docs/monitor/create-monitor).
+
+Para comprobar también una API, elegir a quién se avisa y enviar un aviso de prueba que demuestre que el mensaje te llega, sigue [Saber cuándo tu sitio web o tu API deja de funcionar](/docs/guides/website-down).
 
 ## Recibir un aviso cuando caiga
 
@@ -119,9 +123,13 @@ Abre **Incidentes** y haz clic en **Declarar incidente**. Escribe un **Título**
 
 ### Ver lo que pasa
 
+![«Feed del incidente» de un incidente resuelto: a quién se avisó y cada cambio de estado, del más reciente al más antiguo](screen:incident-feed)
+
 En uno o dos minutos, tu política de guardia te avisa y el incidente aparece en tu página de estado.
 
 ### Resolverlo
+
+![Un incidente en «Reconocido», con «Resolver» resaltado](screen:incident-resolve)
 
 En la página del incidente, haz clic en **Resolver**. Los avisos se detienen y el incidente sale de tu página de estado.
 :::

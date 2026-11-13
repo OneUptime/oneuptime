@@ -102,6 +102,8 @@ window.__ONEUPTIME_SESSION_REPLAY__ = {
   respectDoNotTrack: true, // optional
   debug: false, // optional
   offlineStorage: true, // optional; false keeps offline chunks in memory only
+  maskAllText: false, // optional; true masks all text, whatever the policy says
+  blockSelectors: [], // optional; added to the policy's block selectors
 };
 ```
 
@@ -253,7 +255,7 @@ OneUptimeReplay.identify("user-123", { plan: "pro", tenant: "acme" });
 );
 ```
 
-`grantConsent`、 `revokeConsent`、 `stop`、 `identify`、 `setTags`、 `addTag` はレコーダーの起動前に適用されるため、キュー内の同意の判断が何かをアップロードするかどうかを決め、キュー内の身元は最初のチャンクから送られます。 `track`、 `metric`、 `captureSession`、 `onSessionChange` は起動直後に実行されます。
+`grantConsent`、 `revokeConsent`、 `stop`、 `pause`、 `resume`、 `identify`、 `setTags`、 `addTag` はレコーダーの起動前に適用されるため、キュー内の同意の判断が何かをアップロードするかどうかを決め、キュー内の身元は最初のチャンクから送られます。 `track`、 `metric`、 `captureSession`、 `onSessionChange` は起動直後に実行されます。
 
 | メソッド | 役割 |
 | --- | --- |
@@ -268,6 +270,8 @@ OneUptimeReplay.identify("user-123", { plan: "pro", tenant: "acme" });
 | `getSessionId()` | 現在のセッション ID。何も録画していないときは `null` です。セッションの切り替えも追える `onSessionChange()` を優先してください。 |
 | `getVisitorId()` | [匿名の訪問者 ID](#匿名の訪問者) です。十六進数 32 文字で、ブラウザーのプロファイルごとに一つ、セッションが切り替わっても同じです。レコーダーの起動前、 `stop()` の後、同意が取り消されている間は `""` です。ランダムで身元ではなく、 **エンドユーザーの身元をキャプチャ** には依存しません。 |
 | `stop()` | 最後のチャンクをアップロードし、セッションを封印して、ページの残りの存続期間中は停止します。 |
+| `pause()` | `resume()` まで画面に表示されている内容の記録を止めます。開いているチャンクは _paused_ マーカー付きで送られ、その間はページ、入力、リクエスト、コンソール、クリックのいずれも記録されません。セッションは開いたままで、訪問者の操作では再開しません。ページの一部だけを記録したいページ向けです。レコーダーの読み込み前にキューに入れると、一時停止した状態で始まります。 |
+| `resume()` | `pause()` の後、同じセッションで、現在のページの新しいスナップショットから記録を続けます。プレーヤーは一時停止していた区間をスキップします。 |
 | `setDebug(enabled)` | 以降、レコーダーの判断をコンソールに出力します。 |
 | `getDiagnostics()` | 診断が有効だったかどうかにかかわらず、レコーダーが判断したすべて。下記を参照してください。 |
 
@@ -370,7 +374,12 @@ _Mask all text_ では、リプレイはワイヤーフレームです。テキ�
 
 <!-- Recorded, but input events inside are dropped. -->
 <div class="oneuptime-ignore">...</div>
+
+<!-- Under Mask all text, the text inside is recorded as written. -->
+<div class="oneuptime-unmask">...</div>
 ```
+
+_Mask all text_ では、`oneuptime-unmask` クラスを持つ要素内のテキストはそのまま記録されます。ボタン、見出し、メニューなど、ページ自身のインターフェースの言葉に使ってください。その中にある `oneuptime-mask` 要素や追加のマスクセレクターに一致する要素はテキストを再びマスクし、フォームのフィールドは常にマスクされ、他のマスクモードではこのクラスは何もしません。ページは初期化グローバルで、ポリシーより多くのマスクを求めることもできます。`maskAllText: true` はポリシーにかかわらず _Mask all text_ で記録し、`blockSelectors` はポリシーのブロックするセレクターに追加されます。どちらも記録に表示される内容を増やすことはできません。
 
 マークアップを変えずに、アプリケーションの **リプレイポリシー** ページで **追加のマスクセレクター** と **ブロックするセレクター** を追加することもできます。既定のマスクモードでは、マークアップが機密として宣言していないコンテンツを守るための主な手段です。
 

@@ -138,7 +138,7 @@ Sie können zu beliebig vielen Projekten gehören. Die Projektauswahl oben links
 | --- | --- | --- |
 | **Einrichtungs-Checkliste** | Führt Sie durch alles Weitere und zeigt, was noch zu tun ist. | |
 | **Benachrichtigungsmethoden** | Die E-Mail-Adressen, Telefonnummern, Apps und Webhooks, über die OneUptime Sie erreichen kann. Ihre Anmelde-E-Mail wird für Sie hinzugefügt. | |
-| **Bereitschaftsregeln** | Welche Methode genutzt wird, und nach wie langer Zeit, wenn eine Bereitschaftsrichtlinie Sie alarmiert. | [Eskalationsregeln](/docs/on-call/escalation-rules) |
+| **Wie ich erreichbar bin** | Welche Methode genutzt wird, und nach wie langer Zeit, wenn eine Bereitschaftsrichtlinie Sie alarmiert. | [Eskalationsregeln](/docs/on-call/escalation-rules) |
 | **Benachrichtigungseinstellungen** | Welche Neuigkeiten zu Vorfällen, Warnungen, Monitoren und mehr Sie erhalten, und auf welchem Kanal. | |
 | **E-Mail-Einstellungen** | Wie viele E-Mails Sie erhalten: einzeln oder zusammengefasst. | [Benachrichtigungs-Zusammenfassung](/docs/emails/notification-rollup) |
 | **Bereitschaftsprotokolle** | Jede Alarmierung an Sie und was aus ihr wurde. | |

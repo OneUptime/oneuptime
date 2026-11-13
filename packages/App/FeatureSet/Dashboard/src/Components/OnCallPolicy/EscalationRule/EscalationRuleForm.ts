@@ -20,6 +20,7 @@ import {
   translateText,
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
+import type { ReactElement } from "react";
 
 /*
  * ADDING AN ESCALATION RULE IS ONE SHORT STEP.
@@ -273,7 +274,18 @@ export interface EscalationRuleFormOptions {
   level: number;
   // An edit form starts from the rule's own values: no prefilled wait.
   isEditing?: boolean | undefined;
+  /*
+   * Under Notify (EscalationRuleNotifyNote): that how each person is reached
+   * is their own How to Reach Me, not this rule (#6820), and on a new rule
+   * after the first, when it is paged (#7373).
+   */
+  notifyFooterElement?: ReactElement | undefined;
 }
+
+// "Escalate after": how long THIS level has before the next one is paged.
+export const ESCALATE_AFTER_DESCRIPTION: string = translationKey(
+  "If nobody acknowledges this level within this time, the level after it is paged.",
+);
 
 /*
  * The add and edit forms' fields, in order: Notify (with each schedule's
@@ -296,14 +308,18 @@ export const getEscalationRuleFormFields: <TEntity>(
     });
 
   return [
-    getEscalationRuleNotifyFormField<TEntity>(undefined, {
-      offerNextInRotation: true,
-    }),
+    getEscalationRuleNotifyFormField<TEntity>(
+      options.notifyFooterElement
+        ? { footerElement: options.notifyFooterElement }
+        : undefined,
+      {
+        offerNextInRotation: true,
+      },
+    ),
     {
       field: { escalateAfterInMinutes: true } as SelectFormFields<TEntity>,
       title: "Escalate after (in minutes)",
-      description:
-        "If nobody acknowledges within this time, the next level is paged.",
+      description: ESCALATE_AFTER_DESCRIPTION,
       fieldType: FormFieldSchemaType.Number,
       required: true,
       placeholder: "30",

@@ -2,6 +2,9 @@
 
 Um monitor de site verifica se uma página web responde. A cada verificação, uma sonda requisita a URL da página, e o monitor fica offline e declara um incidente quando a página não responde ou responde com um erro. Para chamar um endpoint com um método, cabeçalhos ou um corpo, use um [monitor de API](/docs/monitor/api-monitor).
 
+> [!TIP]
+> Novo por aqui? Siga primeiro o guia: [Saber quando seu site ou sua API cai](/docs/guides/website-down).
+
 :::cards
 - [Criar o monitor](#criar-um-monitor-de-site): Seis etapas no painel.
 - [Opções de configuração](#opções-de-configuração): Marcadores na URL, redirecionamentos, certificados, tempos limite e novas tentativas.
