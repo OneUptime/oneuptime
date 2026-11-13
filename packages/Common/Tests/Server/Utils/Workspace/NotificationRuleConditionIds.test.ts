@@ -567,9 +567,7 @@ describe("A summary is held to it too", () => {
     )[name]!.bind(WorkspaceNotificationSummaryService);
   }
 
-  function summaryData(
-    filters: Array<unknown>,
-  ): WorkspaceNotificationSummary {
+  function summaryData(filters: Array<unknown>): WorkspaceNotificationSummary {
     const summary: WorkspaceNotificationSummary =
       new WorkspaceNotificationSummary();
     summary.projectId = PROJECT_ID;
