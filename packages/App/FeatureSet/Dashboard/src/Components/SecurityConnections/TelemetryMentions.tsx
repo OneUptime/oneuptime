@@ -40,6 +40,11 @@ import {
 } from "./SecurityConnectionsModel";
 import Route from "Common/Types/API/Route";
 import OneUptimeDate from "Common/Types/Date";
+import {
+  UnexplainedErrorKind,
+  UnexplainedErrorWords,
+  readUnexplainedError,
+} from "Common/Types/Exception/UnexplainedError";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
   SECURITY_TELEMETRY_MESSAGE_PLACE,
@@ -113,6 +118,24 @@ export const TELEMETRY_FAILED_LINE_CLASS_NAME: string =
 
 const TRY_AGAIN_BUTTON_CLASS_NAME: string =
   "rounded font-medium text-indigo-600 hover:text-indigo-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
+
+/*
+ * Why a search that failed whole failed, as its line says it after "Logs
+ * and Traces could not be searched just now.": the server's words - or,
+ * for a failure on the server nobody explained and no reference names
+ * (#6836), its why alone: "The server ran into a problem it could not
+ * explain." The rest of that sentence, "so this did not finish. Try again
+ * in a moment.", is what the line already says and what its Try again
+ * does. Every other such sentence says something more - a reference to
+ * give, a connection to check, a page to reload - and is said whole.
+ */
+const getTelemetryFailedReason: (error: string) => string = (
+  error: string,
+): string => {
+  return readUnexplainedError(error)?.kind === UnexplainedErrorKind.Server
+    ? UnexplainedErrorWords.serverWhy
+    : error;
+};
 
 /*
  * A place's link: where in the lines or spans the value was, and how many,
@@ -444,9 +467,11 @@ const TelemetryMentions: FunctionComponent<ComponentProps> = (
      * The search failed whole: said as a signal that could not be searched
      * is - "Logs and Traces could not be searched just now." - then why, as
      * the server put it (read the way it is written, on a right-to-left
-     * page too), and Try again, on one line under the heading.
+     * page too) or as getTelemetryFailedReason says it, and Try again, on
+     * one line under the heading.
      */
-    const message: string = translator.translateText(error) || error;
+    const reason: string = getTelemetryFailedReason(error);
+    const message: string = translator.translateText(reason) || reason;
 
     body = (
       <p
