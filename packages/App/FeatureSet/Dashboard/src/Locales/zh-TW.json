@@ -32011,6 +32011,7 @@
   "The OpenTelemetry Collector config OneUptime sends to the hosts it manages, by system and label.": "OneUptime 依系統與標籤傳送給其管理之主機的 OpenTelemetry Collector 設定。",
   "The OpenTelemetry Collector config its hosts run. A saved change is checked, becomes a new version and reaches them within a minute.": "其主機執行的 OpenTelemetry Collector 設定。儲存的變更會經過檢查、成為新版本，並在一分鐘內送達主機。",
   "The command says OneUptime refused the key": "命令顯示 OneUptime 拒絕了金鑰",
+  "The command says OneUptime was not found": "命令顯示找不到 OneUptime",
   "The config OneUptime sends to the hosts it manages. A host runs the first one that applies to it; drag to change the order.": "OneUptime 傳送給其管理之主機的設定。主機會執行第一個適用於它的設定；拖曳列即可變更順序。",
   "The first Collector Config that applies": "第一個適用的收集器設定",
   "The host does not appear": "主機沒有出現",

@@ -32011,6 +32011,7 @@
   "The OpenTelemetry Collector config OneUptime sends to the hosts it manages, by system and label.": "OneUptime が管理するホストに送る OpenTelemetry Collector の設定 (システムとラベル別)。",
   "The OpenTelemetry Collector config its hosts run. A saved change is checked, becomes a new version and reaches them within a minute.": "ホストが実行する OpenTelemetry Collector の設定。保存した変更は確認されて新しいバージョンになり、1 分以内にホストに届きます。",
   "The command says OneUptime refused the key": "OneUptime がキーを拒否したとコマンドに表示される",
+  "The command says OneUptime was not found": "OneUptime が見つからないとコマンドに表示される",
   "The config OneUptime sends to the hosts it manages. A host runs the first one that applies to it; drag to change the order.": "OneUptime が管理するホストに送る設定。ホストは当てはまる最初の設定を実行します。行をドラッグして順序を変更できます。",
   "The first Collector Config that applies": "当てはまる最初のコレクター設定",
   "The host does not appear": "ホストが表示されない",

@@ -32011,6 +32011,7 @@
   "The OpenTelemetry Collector config OneUptime sends to the hosts it manages, by system and label.": "OpenTelemetry Collector कॉन्फ़िग जो OneUptime अपने प्रबंधित होस्ट को सिस्टम और लेबल के अनुसार भेजता है।",
   "The OpenTelemetry Collector config its hosts run. A saved change is checked, becomes a new version and reaches them within a minute.": "OpenTelemetry Collector कॉन्फ़िग जो इसके होस्ट चलाते हैं। सहेजा गया बदलाव जाँचा जाता है, नया संस्करण बनता है और एक मिनट में उन तक पहुँचता है।",
   "The command says OneUptime refused the key": "कमांड कहता है कि OneUptime ने कुंजी अस्वीकार कर दी",
+  "The command says OneUptime was not found": "कमांड कहता है कि OneUptime नहीं मिला",
   "The config OneUptime sends to the hosts it manages. A host runs the first one that applies to it; drag to change the order.": "वह कॉन्फ़िग जो OneUptime अपने प्रबंधित होस्ट को भेजता है। होस्ट उस पर लागू होने वाला पहला कॉन्फ़िग चलाता है; क्रम बदलने के लिए पंक्तियाँ खींचें।",
   "The first Collector Config that applies": "लागू होने वाला पहला कलेक्टर कॉन्फ़िग",
   "The host does not appear": "होस्ट दिखाई नहीं देता",

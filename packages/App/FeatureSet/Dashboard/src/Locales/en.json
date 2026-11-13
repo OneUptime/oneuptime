@@ -32011,6 +32011,7 @@
   "The OpenTelemetry Collector config OneUptime sends to the hosts it manages, by system and label.": "The OpenTelemetry Collector config OneUptime sends to the hosts it manages, by system and label.",
   "The OpenTelemetry Collector config its hosts run. A saved change is checked, becomes a new version and reaches them within a minute.": "The OpenTelemetry Collector config its hosts run. A saved change is checked, becomes a new version and reaches them within a minute.",
   "The command says OneUptime refused the key": "The command says OneUptime refused the key",
+  "The command says OneUptime was not found": "The command says OneUptime was not found",
   "The config OneUptime sends to the hosts it manages. A host runs the first one that applies to it; drag to change the order.": "The config OneUptime sends to the hosts it manages. A host runs the first one that applies to it; drag to change the order.",
   "The first Collector Config that applies": "The first Collector Config that applies",
   "The host does not appear": "The host does not appear",

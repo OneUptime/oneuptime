@@ -32011,6 +32011,7 @@
   "The OpenTelemetry Collector config OneUptime sends to the hosts it manages, by system and label.": "پیکربندی OpenTelemetry Collector که OneUptime بر اساس سیستم و برچسب برای میزبان‌هایی که مدیریت می‌کند می‌فرستد.",
   "The OpenTelemetry Collector config its hosts run. A saved change is checked, becomes a new version and reaches them within a minute.": "پیکربندی OpenTelemetry Collector که میزبان‌های آن اجرا می‌کنند. تغییر ذخیره‌شده بررسی می‌شود، به نسخه‌ای جدید تبدیل می‌شود و ظرف یک دقیقه به آن‌ها می‌رسد.",
   "The command says OneUptime refused the key": "فرمان می‌گوید OneUptime کلید را رد کرد",
+  "The command says OneUptime was not found": "فرمان می‌گوید OneUptime پیدا نشد",
   "The config OneUptime sends to the hosts it manages. A host runs the first one that applies to it; drag to change the order.": "پیکربندی‌ای که OneUptime برای میزبان‌هایی که مدیریت می‌کند می‌فرستد. هر میزبان اولین موردی را که برایش صدق می‌کند اجرا می‌کند؛ برای تغییر ترتیب، ردیف‌ها را بکشید.",
   "The first Collector Config that applies": "اولین پیکربندی کالکتوری که صدق می‌کند",
   "The host does not appear": "میزبان نمایش داده نمی‌شود",

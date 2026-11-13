@@ -32011,6 +32011,7 @@
   "The OpenTelemetry Collector config OneUptime sends to the hosts it manages, by system and label.": "OpenTelemetry Collector-konfigurationen som OneUptime skickar till värdarna det hanterar, efter system och etikett.",
   "The OpenTelemetry Collector config its hosts run. A saved change is checked, becomes a new version and reaches them within a minute.": "OpenTelemetry Collector-konfigurationen som dess värdar kör. En sparad ändring kontrolleras, blir en ny version och når dem inom en minut.",
   "The command says OneUptime refused the key": "Kommandot säger att OneUptime avvisade nyckeln",
+  "The command says OneUptime was not found": "Kommandot säger att OneUptime inte hittades",
   "The config OneUptime sends to the hosts it manages. A host runs the first one that applies to it; drag to change the order.": "Konfigurationen som OneUptime skickar till värdarna det hanterar. En värd kör den första som gäller för den; dra raderna för att ändra ordningen.",
   "The first Collector Config that applies": "Den första insamlarkonfigurationen som gäller",
   "The host does not appear": "Värden visas inte",

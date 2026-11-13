@@ -12,6 +12,7 @@
  */
 
 const assert = require("node:assert/strict");
+const crypto = require("node:crypto");
 const fs = require("node:fs");
 const http = require("node:http");
 const net = require("node:net");
@@ -28,6 +29,10 @@ const {
   readNginxConf,
 } = require("./NginxConfigParser");
 const { readDemoAddresses } = require("./HomeShortAddresses");
+const {
+  exampleOf,
+  listPublicAddresses,
+} = require("./TelemetryIngestAddresses");
 
 const template = readTemplate();
 const nginxConf = readNginxConf();
@@ -339,16 +344,16 @@ test(
     assert.equal((rendered.match(/gzip_proxied\s+any;/g) || []).length, 3);
 
     // One per operator-controllable ingest location: /telemetry, /otlp,
-    // /kubernetes-cost, /security-events, /session-replay, /pyroscope and
-    // /source-maps in the primary ingress, plus /otlp and /telemetry in each
-    // of the two status-page servers (GH#3978).
+    // /opamp/, /kubernetes-cost, /security-events, /session-replay,
+    // /pyroscope and /source-maps in the primary ingress, plus /otlp and
+    // /telemetry in each of the two status-page servers (GH#3978).
     assert.equal(
       (
         rendered.match(
           /access_log \/var\/log\/nginx\/access\.log main buffer=64k flush=10s if=\$ingest_access_log;/g,
         ) || []
       ).length,
-      11,
+      12,
     );
 
     // The {8,} repetition quantifier in the immutable location's regex must not
@@ -697,19 +702,36 @@ process.on("exit", () => {
   }
 });
 
-/** A stand-in upstream that answers every request with who it is and what it was asked. */
+/**
+ * A stand-in upstream that answers every request with who it is and what it
+ * was asked, the body it was sent included (its size and SHA-256).
+ */
 function startUpstream(name) {
   const server = http.createServer((request, response) => {
-    response.writeHead(200, { "Content-Type": "application/json" });
-    response.end(
-      JSON.stringify({
-        upstream: name,
-        url: request.url,
-        host: request.headers.host,
-        forwardedFor: request.headers["x-forwarded-for"] || null,
-        forwardedProto: request.headers["x-forwarded-proto"] || null,
-      }),
-    );
+    const chunks = [];
+
+    request.on("data", (chunk) => {
+      chunks.push(chunk);
+    });
+    request.on("end", () => {
+      const body = Buffer.concat(chunks);
+
+      response.writeHead(200, { "Content-Type": "application/json" });
+      response.end(
+        JSON.stringify({
+          upstream: name,
+          method: request.method,
+          url: request.url,
+          host: request.headers.host,
+          forwardedFor: request.headers["x-forwarded-for"] || null,
+          forwardedProto: request.headers["x-forwarded-proto"] || null,
+          contentType: request.headers["content-type"] || null,
+          oneuptimeToken: request.headers["x-oneuptime-token"] || null,
+          bodyBytes: body.length,
+          bodySha256: crypto.createHash("sha256").update(body).digest("hex"),
+        }),
+      );
+    });
   });
 
   return new Promise((resolve, reject) => {
@@ -768,42 +790,67 @@ function wait(milliseconds) {
 
 /** GET a path through the ingress under a given Host; resolves with the upstream's own account of it. */
 function getThroughIngress(port, requestPath, host, extraHeaders = {}) {
+  return sendThroughIngress(port, {
+    method: "GET",
+    requestPath,
+    host,
+    headers: extraHeaders,
+  });
+}
+
+/**
+ * Send a request through the ingress under a given Host, with a body if one
+ * is given; resolves with the upstream's own account of it.
+ */
+function sendThroughIngress(
+  port,
+  { method, requestPath, host, headers = {}, body = null },
+) {
   return new Promise((resolve, reject) => {
     const request = http.request(
       {
         host: "127.0.0.1",
         port,
         path: requestPath,
-        method: "GET",
-        headers: { ...extraHeaders, Host: host },
+        method,
+        headers: {
+          ...headers,
+          ...(body ? { "Content-Length": String(body.length) } : {}),
+          Host: host,
+        },
         agent: false,
       },
       (response) => {
-        let body = "";
+        let text = "";
 
         response.setEncoding("utf8");
         response.on("data", (chunk) => {
-          body += chunk;
+          text += chunk;
         });
         response.on("end", () => {
           let answer = null;
 
           try {
-            answer = JSON.parse(body);
+            answer = JSON.parse(text);
           } catch {
             // Not one of the stand-in upstreams: leave it null.
           }
 
-          resolve({ status: response.statusCode, answer, body });
+          resolve({
+            status: response.statusCode,
+            headers: response.headers,
+            answer,
+            body: text,
+          });
         });
       },
     );
 
     request.setTimeout(10000, () => {
-      request.destroy(new Error(`GET ${requestPath} timed out`));
+      request.destroy(new Error(`${method} ${requestPath} timed out`));
     });
     request.once("error", reject);
-    request.end();
+    request.end(body || undefined);
   });
 }
 
@@ -1620,3 +1667,185 @@ for (const billingEnabled of [true, false]) {
     },
   );
 }
+
+// ---------------------------------------------------------------------------
+// Telemetry routes: every address OneUptime hands out reaches the app
+// ---------------------------------------------------------------------------
+
+/*
+ * TelemetryIngestRouting.test.js reads location precedence from the source;
+ * these ask a real nginx. Every address clients reach a telemetry route at
+ * (TelemetryIngestAddresses.js) goes through it with billing on, as on
+ * oneuptime.com - where a root address that no location names reaches the
+ * marketing site instead, as the host collector's /opamp/v1 did - and with
+ * billing off, as on a self-hosted OneUptime.
+ */
+for (const billingEnabled of [true, false]) {
+  test(
+    `a real nginx sends every telemetry address OneUptime hands out to the app (BILLING_ENABLED=${billingEnabled})`,
+    { skip: runningNginxSkipReason, timeout: 120000 },
+    async () => {
+      await withRunningIngress(billingEnabled, async ({ port }) => {
+        const addresses = listPublicAddresses();
+
+        assert.ok(addresses.length >= 30, `only ${addresses.length} addresses`);
+
+        for (const address of addresses) {
+          const requestPath = exampleOf(address.address);
+          const route = exampleOf(address.route);
+          const isPost = address.method === "POST";
+          const response = await sendThroughIngress(port, {
+            method: address.method,
+            requestPath,
+            host: "oneuptime.example.com",
+            headers: isPost ? { "Content-Type": "application/json" } : {},
+            body: isPost ? Buffer.from('{"probe":true}') : null,
+          });
+          const label = `${address.method} ${requestPath}`;
+
+          assert.equal(response.status, 200, `${label}: ${response.body}`);
+          assert.equal(
+            response.answer?.upstream,
+            "app",
+            `${label} must reach the app: ${response.body}`,
+          );
+          assert.equal(response.answer.method, address.method, label);
+          // The route itself, under /telemetry or not, or rewritten to it.
+          assert.equal(
+            response.answer.url,
+            requestPath === `/telemetry${route}` ? requestPath : route,
+            label,
+          );
+          assert.equal(response.answer.host, "oneuptime.example.com", label);
+
+          if (isPost) {
+            assert.equal(
+              response.answer.bodyBytes,
+              14,
+              `${label} lost its body`,
+            );
+          }
+        }
+      });
+    },
+  );
+}
+
+/*
+ * The host collector's supervisor posts an OpAMP AgentToServer message,
+ * protobuf, with the project's ingestion key, every 30 seconds: at
+ * /telemetry/opamp/v1 from the installers of today, at /opamp/v1 from every
+ * host installed before. Both must reach the app as sent, whatever billing
+ * says, with the key and the addresses the app reads. A busy host's message
+ * carries its effective config, so a large one is sent here too.
+ */
+for (const billingEnabled of [true, false]) {
+  test(
+    `a real nginx hands the app the host collector's OpAMP messages whole, at both addresses (BILLING_ENABLED=${billingEnabled})`,
+    { skip: runningNginxSkipReason, timeout: 60000 },
+    async () => {
+      await withRunningIngress(billingEnabled, async ({ port }) => {
+        for (const size of [64, 512 * 1024, 2 * 1024 * 1024]) {
+          const message = crypto.randomBytes(size);
+          const digest = crypto
+            .createHash("sha256")
+            .update(message)
+            .digest("hex");
+
+          for (const requestPath of ["/telemetry/opamp/v1", "/opamp/v1"]) {
+            for (const host of ["oneuptime.example.com", "localhost"]) {
+              const label = `${size} bytes to ${host}${requestPath}`;
+              const response = await sendThroughIngress(port, {
+                method: "POST",
+                requestPath,
+                host,
+                headers: {
+                  "Content-Type": "application/x-protobuf",
+                  "x-oneuptime-token": "a1b2c3d4-0000-4000-8000-00000000f00d",
+                  "X-Forwarded-Proto": "https",
+                },
+                body: message,
+              });
+
+              assert.equal(response.status, 200, `${label}: ${response.body}`);
+              assert.equal(response.answer?.upstream, "app", label);
+              assert.equal(response.answer.method, "POST", label);
+              assert.equal(response.answer.url, requestPath, label);
+              assert.equal(response.answer.host, host, label);
+              assert.equal(
+                response.answer.contentType,
+                "application/x-protobuf",
+                label,
+              );
+              assert.equal(
+                response.answer.oneuptimeToken,
+                "a1b2c3d4-0000-4000-8000-00000000f00d",
+                label,
+              );
+              assert.equal(response.answer.forwardedProto, "https", label);
+              assert.ok(
+                response.answer.forwardedFor,
+                `${label}: no X-Forwarded-For`,
+              );
+              assert.equal(response.answer.bodyBytes, size, label);
+              assert.equal(response.answer.bodySha256, digest, label);
+            }
+          }
+        }
+
+        // Past the cap /telemetry sets, both addresses answer nginx's 413 alike.
+        const tooLarge = Buffer.alloc(4 * 1024 * 1024 + 1);
+
+        for (const requestPath of ["/telemetry/opamp/v1", "/opamp/v1"]) {
+          const response = await sendThroughIngress(port, {
+            method: "POST",
+            requestPath,
+            host: "oneuptime.example.com",
+            headers: { "Content-Type": "application/x-protobuf" },
+            body: tooLarge,
+          });
+
+          assert.equal(response.status, 413, requestPath);
+          assert.equal(
+            response.answer,
+            null,
+            `${requestPath} reached an upstream`,
+          );
+        }
+      });
+    },
+  );
+}
+
+test(
+  "a real nginx leaves every other address under /opamp where it went before",
+  { skip: runningNginxSkipReason, timeout: 60000 },
+  async () => {
+    await withRunningIngress(true, async ({ port }) => {
+      // Not under /opamp/: still the marketing site's, with billing on.
+      for (const requestPath of ["/opampx", "/opamp-collector", "/opamps/v1"]) {
+        const response = await getThroughIngress(
+          port,
+          requestPath,
+          "oneuptime.example.com",
+        );
+
+        assert.equal(response.answer?.upstream, "home", requestPath);
+        assert.equal(response.answer.url, requestPath);
+      }
+
+      /*
+       * /opamp itself is answered by nginx with a redirect to /opamp/, as
+       * it answers a location ending in a slash. Nothing was ever there.
+       */
+      const bare = await getThroughIngress(
+        port,
+        "/opamp",
+        "oneuptime.example.com",
+      );
+
+      assert.equal(bare.status, 301);
+      assert.match(bare.headers.location, /\/opamp\/$/);
+    });
+  },
+);
