@@ -1,3 +1,4 @@
+import Phone from "Common/Types/Phone";
 import { DOCS_LANGUAGES, readPage } from "./DocsContentSupport";
 import { drawnDashboardLabel } from "./DocsDashboardLabels";
 import {
@@ -27,8 +28,9 @@ import { beforeAll, describe, expect, it } from "@jest/globals";
  *     an example that takes the Auth Token from a sensitive variable, and
  *     what someone managing one from Terraform must know - Terraform sends
  *     `false` for a project default left out, OneUptime sets the defaults
- *     for SMS and calls, numbers are written as Twilio shows them, the API
- *     key must be able to read the token, and what takes a configuration's
+ *     for SMS and calls, a number may be grouped (OneUptime keeps its
+ *     digits, and Terraform reads them as the number written), the API key
+ *     must be able to read the token, and what takes a configuration's
  *     `id`.
  *   - emails/smtp.md, the Terraform paragraph: `oneuptime_smtp_config`, its
  *     sensitive credentials, the API key, and a status page's
@@ -64,6 +66,10 @@ const ROLES: Array<string> = ["Project Owner", "Project Admin"];
 
 // Twilio shows a number as `+`, the country code and the number.
 const E164: RegExp = /^\+[1-9][0-9]{7,14}$/;
+
+// The grouped number the page writes, and what it says OneUptime keeps.
+const GROUPED_NUMBER: string = "+1 415 555 0100";
+const KEPT_NUMBER: string = "+14155550100";
 
 // A Markdown heading, of any level.
 const HEADING: RegExp = /^#{1,6} /;
@@ -456,6 +462,8 @@ describe("the Twilio page's Terraform section", () => {
         "`project_call_sms_config_id`",
         "`id`",
         "`+`",
+        `\`${GROUPED_NUMBER}\``,
+        `\`${KEPT_NUMBER}\``,
         "**Read Call and SMS**",
         "](/docs/terraform/index)",
       ]) {
@@ -469,6 +477,47 @@ describe("the Twilio page's Terraform section", () => {
         lang: lang,
         bullets: 4,
       });
+    }
+  });
+
+  /*
+   * The page says a grouped number applies: OneUptime keeps its digits, and
+   * the provider reads them as the number written (#7777). Before, it had to
+   * tell people to write no spaces.
+   */
+  it("says OneUptime keeps a grouped number as its digits, as it does, and the provider takes them for the number written", () => {
+    expect(new Phone(GROUPED_NUMBER).toString()).toBe(KEPT_NUMBER);
+
+    for (const type of [
+      resource(TWILIO_RESOURCE),
+      provider.dataSources.get(TWILIO_RESOURCE)!,
+    ]) {
+      expect([
+        type.name,
+        attributeOf(type, "twilio_primary_phone_number").isPhone,
+      ]).toEqual([type.name, true]);
+    }
+    expect(
+      attributeOf(resource(TWILIO_RESOURCE), "twilio_primary_phone_number")
+        .settable,
+    ).toBe(true);
+
+    for (const lang of DOCS_LANGUAGES) {
+      const bullet: string | undefined = bulletsOf(
+        terraformSection(lang).body,
+      ).find((candidate: string): boolean => {
+        return candidate.includes("`+`");
+      });
+
+      const grouped: number = (bullet || "").indexOf(`\`${GROUPED_NUMBER}\``);
+      const kept: number = (bullet || "").indexOf(`\`${KEPT_NUMBER}\``);
+
+      // "OneUptime keeps `+1 415 555 0100` as `+14155550100`", in that order.
+      expect({
+        lang: lang,
+        grouped: grouped !== -1,
+        keptAfter: kept > grouped,
+      }).toEqual({ lang: lang, grouped: true, keptAfter: true });
     }
   });
 

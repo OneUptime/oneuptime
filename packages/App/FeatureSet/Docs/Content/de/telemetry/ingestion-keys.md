@@ -36,7 +36,7 @@ Wählen Sie den Typ danach, wo der Schlüssel liegen wird. Der Typ lässt sich n
 | | **Server** | **Browser** |
 | --- | --- | --- |
 | Für | Anwendungen, Collectors und Agenten auf Maschinen, die Sie betreiben | Webseiten, und React Native Session Replay |
-| Sendet | Jede Art von Telemetrie, an jeden Endpunkt | Traces, Protokolle, Metriken und Session Replays |
+| Sendet | Jede Art von Telemetrie, an jeden Endpunkt | Traces, Protokolle, Metriken, Session Replays und [Sentry-Ereignisse](/docs/telemetry/compatible-endpoints#sentry-sdks) |
 | Ein Geheimnis | Ja: halten Sie ihn auf Ihren Servern | Nein: jeder, der die Seite ansieht, kann ihn lesen |
 | Ursprünge | Nicht geprüft | Nur die aufgeführten Ursprünge werden angenommen |
 | Anfragen pro Minute | Kein Limit, außer Sie setzen eines | 6.000, außer Sie setzen ein anderes Limit |

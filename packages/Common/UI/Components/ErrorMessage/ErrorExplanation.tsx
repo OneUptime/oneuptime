@@ -8,7 +8,7 @@ import { Translator } from "../../Utils/TranslateTemplate";
 import User from "../../Utils/User";
 import useTranslator from "../../Utils/UseTranslator";
 import URL from "../../../Types/API/URL";
-import { joinSentences } from "../DeleteConfirmation/DeleteConsequences";
+import { joinSentences } from "../../Utils/SentenceSeparator";
 import {
   getExplanationWords,
   readUnexplainedError,

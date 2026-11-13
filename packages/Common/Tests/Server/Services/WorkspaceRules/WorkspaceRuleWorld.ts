@@ -4,6 +4,8 @@ import Incident from "../../../../Models/DatabaseModels/Incident";
 import IncidentEpisode from "../../../../Models/DatabaseModels/IncidentEpisode";
 import IncidentEpisodeRoleMember from "../../../../Models/DatabaseModels/IncidentEpisodeRoleMember";
 import IncidentMember from "../../../../Models/DatabaseModels/IncidentMember";
+import IncidentOwnerTeam from "../../../../Models/DatabaseModels/IncidentOwnerTeam";
+import IncidentOwnerUser from "../../../../Models/DatabaseModels/IncidentOwnerUser";
 import IncidentRole from "../../../../Models/DatabaseModels/IncidentRole";
 import IncidentSeverity from "../../../../Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "../../../../Models/DatabaseModels/IncidentState";
@@ -20,6 +22,8 @@ import IncidentEpisodeRoleMemberService from "../../../../Server/Services/Incide
 import IncidentEpisodeService from "../../../../Server/Services/IncidentEpisodeService";
 import IncidentFeedService from "../../../../Server/Services/IncidentFeedService";
 import IncidentMemberService from "../../../../Server/Services/IncidentMemberService";
+import IncidentOwnerTeamService from "../../../../Server/Services/IncidentOwnerTeamService";
+import IncidentOwnerUserService from "../../../../Server/Services/IncidentOwnerUserService";
 import IncidentRoleService from "../../../../Server/Services/IncidentRoleService";
 import IncidentService from "../../../../Server/Services/IncidentService";
 import IncidentStateService from "../../../../Server/Services/IncidentStateService";
@@ -278,6 +282,8 @@ export default class WorkspaceRuleWorld {
   // The people on the records.
   public incidentOwnerUsers: Array<ObjectID> = [];
   public incidentOwnerTeams: Array<ObjectID> = [];
+  // How often the incident's owner tables were read (WorkspaceRecordOwners).
+  public ownerTableReads: number = 0;
   public incidentMembers: Array<ObjectID> = [];
   public episodeRoleMembers: Array<ObjectID> = [];
   public pages: Array<UserOnCallLog> = [];
@@ -791,6 +797,38 @@ export default class WorkspaceRuleWorld {
             return this.user(userId);
           });
       });
+
+    /*
+     * Its owners as their tables hold them, one row a person or a team:
+     * what a rule's Incident Owner condition reads (WorkspaceRecordOwners).
+     */
+    jest
+      .spyOn(IncidentOwnerUserService, "findAllBy")
+      .mockImplementation((async (): Promise<Array<IncidentOwnerUser>> => {
+        this.ownerTableReads++;
+        return this.incidentOwnerUsers.map(
+          (userId: ObjectID): IncidentOwnerUser => {
+            const row: IncidentOwnerUser = new IncidentOwnerUser();
+            row.incidentId = INCIDENT_ID;
+            row.userId = userId;
+            return row;
+          },
+        );
+      }) as never);
+
+    jest
+      .spyOn(IncidentOwnerTeamService, "findAllBy")
+      .mockImplementation((async (): Promise<Array<IncidentOwnerTeam>> => {
+        this.ownerTableReads++;
+        return this.incidentOwnerTeams.map(
+          (teamId: ObjectID): IncidentOwnerTeam => {
+            const row: IncidentOwnerTeam = new IncidentOwnerTeam();
+            row.incidentId = INCIDENT_ID;
+            row.teamId = teamId;
+            return row;
+          },
+        );
+      }) as never);
 
     // The people given a role on it.
     jest

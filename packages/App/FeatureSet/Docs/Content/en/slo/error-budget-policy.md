@@ -158,6 +158,7 @@ The message says the change in the words of the SLO's **Feed**: the tier the SLO
 | **SLO Labels** | The SLO's labels: any of the ones you pick, all of them, or none of them. |
 | **SLO Name** | The SLO's name: equal to your text or not, containing it or not, starting or ending with it. |
 | **Error Budget Policy Change** | What changed: **Entered a more severe tier**, **Recovered to a less severe tier**, **Left every tier**, **Deployments frozen** or **Deployments allowed again**. |
+| **SLO Owner** | The people and teams recorded as the SLO's owners: any of the ones you pick, or none of them. Being in a team that owns the SLO does not count. |
 
 A tier change that froze deployments, or allowed them again, is one message that is both changes. So a rule for **Deployments frozen** also posts the change that entered a tier that freezes them: a release channel hears of every freeze.
 
