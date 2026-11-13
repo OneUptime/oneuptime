@@ -501,7 +501,10 @@ describe("PublicDashboardSloHistoryPolicy", () => {
     });
 
     it("reads a missing or null zone as none: the result is the one it always was", () => {
-      for (const requested of [aggregateBy(), aggregateBy({ timezone: null })]) {
+      for (const requested of [
+        aggregateBy(),
+        aggregateBy({ timezone: null }),
+      ]) {
         const result: PublicDashboardSloHistoryPolicyResult = build({
           requestedAggregateBy: requested,
         });

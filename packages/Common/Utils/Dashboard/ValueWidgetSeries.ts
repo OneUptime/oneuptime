@@ -402,10 +402,8 @@ export const fillValueWidgetSeriesGaps: (
   if (
     data.timezone &&
     widthMs % DAY_MS === 0 &&
-    OneUptimeDate.getStartOfDay(
-      new Date(firstMs),
-      data.timezone,
-    ).getTime() === firstMs
+    OneUptimeDate.getStartOfDay(new Date(firstMs), data.timezone).getTime() ===
+      firstMs
   ) {
     const slots: Array<number> | null = getCalendarBucketSlots({
       firstMs: firstMs,

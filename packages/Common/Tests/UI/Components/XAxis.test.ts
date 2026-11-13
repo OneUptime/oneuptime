@@ -288,9 +288,15 @@ describe("XAxisUtil formats in the configured timezone", () => {
     });
 
     /*
-     * 31 Jan 23:00 UTC is already 1 Feb in Auckland (UTC+13). Both halves
-     * of the label have to agree on that.
+     * A week is named by its Monday, the day the server starts a week on
+     * (#7277), and that Monday is found on the same calendar. 1 Feb 16:00
+     * UTC, a Sunday, is already Monday 2 Feb in Auckland (UTC+13): the
+     * first day of a week there, in a month the UTC Sunday's week (from
+     * Monday 26 January) does not start in. Both halves of the label have
+     * to agree on that.
      */
-    expect(formatter(new Date("2026-01-31T23:00:00.000Z"))).toBe("01 Feb");
+    expect(formatter(new Date("2026-02-01T16:00:00.000Z"))).toBe("02 Feb");
+    // 31 Jan 23:00 UTC is Sunday 1 Feb there: the last day of the week from Monday 26 January.
+    expect(formatter(new Date("2026-01-31T23:00:00.000Z"))).toBe("26 Jan");
   });
 });

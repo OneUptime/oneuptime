@@ -258,9 +258,7 @@ describe("AggregationIntervalUtil.withReaderTimezone", () => {
       aggregateColumnName: "value",
     };
 
-    expect(AggregationIntervalUtil.withReaderTimezone(noWindow)).toBe(
-      noWindow,
-    );
+    expect(AggregationIntervalUtil.withReaderTimezone(noWindow)).toBe(noWindow);
     expect(
       AggregationIntervalUtil.withReaderTimezone(
         undefined as unknown as Request,

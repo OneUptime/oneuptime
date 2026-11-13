@@ -1397,15 +1397,12 @@ describe("fillValueWidgetSeriesGaps: days and weeks on the reader's calendar", (
       "2025-06-22T04:00:00.000Z",
     );
 
-    const newYorkClock: Intl.DateTimeFormat = new Intl.DateTimeFormat(
-      "en-GB",
-      {
-        timeZone: "America/New_York",
-        hour: "2-digit",
-        minute: "2-digit",
-        hourCycle: "h23",
-      },
-    );
+    const newYorkClock: Intl.DateTimeFormat = new Intl.DateTimeFormat("en-GB", {
+      timeZone: "America/New_York",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    });
 
     for (const point of filled) {
       expect(newYorkClock.format(point.timestamp)).toBe("00:00");

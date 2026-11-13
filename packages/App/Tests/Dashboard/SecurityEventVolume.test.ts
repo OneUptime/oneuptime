@@ -3,14 +3,17 @@ import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
 import AggregateBy from "Common/Types/BaseDatabase/AggregateBy";
 import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
 import AggregationInterval from "Common/Types/BaseDatabase/AggregationInterval";
+import AggregationIntervalUtil from "Common/Types/BaseDatabase/AggregationIntervalUtil";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import Query from "Common/Types/BaseDatabase/Query";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
 import OcsfSeverity from "Common/Types/SecurityEvent/OcsfSeverity";
+import Timezone from "Common/Types/Timezone";
 import {
   HistogramBucket,
   HistogramSeriesOption,
@@ -188,6 +191,39 @@ describe("buildSecurityEventVolumeAggregateBy", () => {
     expect(aggregateBy.limit).toBe(LIMIT_PER_PROJECT);
     expect(aggregateBy.skip).toBe(0);
     expect(aggregateBy.sort).toEqual({ time: SortOrder.Ascending });
+  });
+
+  /*
+   * The volume lays a day window out on the epoch's day grid and snaps each
+   * row onto it (buildSecurityEventVolume), so it asks for UTC's days. A
+   * reader's zone (#7277), which every other day chart is read in, would
+   * start Kolkata's days at 18:30 UTC the day before: each count would
+   * snap onto the day before its own.
+   */
+  test("asks for UTC's days, which its day grid is laid out on, whatever zone the reader is in", () => {
+    try {
+      for (const reader of [
+        Timezone.AmericaNew_York,
+        Timezone.AsiaKolkata,
+        Timezone.PacificAuckland,
+      ]) {
+        OneUptimeDate.setUserTimezone(reader);
+
+        const month: AggregateBy<SecurityEvent> =
+          buildSecurityEventVolumeAggregateBy({
+            query: query,
+            ...windowOf(30 * DAY_MS),
+          });
+
+        expect(month.timezone).toBe(Timezone.UTC);
+        // What AnalyticsModelAPI.aggregate sends: the zone named is kept.
+        expect(AggregationIntervalUtil.withReaderTimezone(month).timezone).toBe(
+          Timezone.UTC,
+        );
+      }
+    } finally {
+      OneUptimeDate.setUserTimezone(null);
+    }
   });
 
   test("the limit holds every severity in every bucket of the widest grid-aligned window", () => {
@@ -509,6 +545,23 @@ describe("buildSecurityEventVolume", () => {
 
     expect(volume.interval).toBe(AggregationInterval.Day);
     expect(slotTimes(volume)).toHaveLength(31);
+  });
+
+  test("a month window's counts, each at a UTC midnight as the read asks, stay on their own days", () => {
+    const window: { startDate: Date; endDate: Date } = windowOf(30 * DAY_MS);
+    const volume: SecurityEventVolume = buildSecurityEventVolume({
+      rows: [
+        row("2026-08-20T00:00:00.000Z", OcsfSeverity.High, 3),
+        row("2026-09-16T00:00:00.000Z", OcsfSeverity.Low, 2),
+      ],
+      ...window,
+    });
+
+    expect(volume.interval).toBe(AggregationInterval.Day);
+    expect(nonEmpty(volume)).toEqual([
+      { time: "2026-08-20T00:00:00.000Z", series: OcsfSeverity.High, count: 3 },
+      { time: "2026-09-16T00:00:00.000Z", series: OcsfSeverity.Low, count: 2 },
+    ]);
   });
 
   test("calendar-snapped intervals draw the server's buckets as they come, with no filler", () => {

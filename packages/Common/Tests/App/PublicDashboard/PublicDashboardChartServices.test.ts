@@ -107,6 +107,7 @@ import { ExpressRequest, ExpressResponse } from "../../../Server/Utils/Express";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import URL from "../../../Types/API/URL";
+import AggregationIntervalUtil from "../../../Types/BaseDatabase/AggregationIntervalUtil";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import DashboardChartComponent from "../../../Types/Dashboard/DashboardComponents/DashboardChartComponent";
@@ -119,7 +120,9 @@ import { JSONObject, JSONValue } from "../../../Types/JSON";
 import JSONFunctions from "../../../Types/JSONFunctions";
 import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData";
 import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
+import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
+import Timezone from "../../../Types/Timezone";
 import DashboardChartComponentUtil from "../../../Utils/Dashboard/Components/DashboardChartComponent";
 import DashboardViewConfigUtil from "../../../Utils/Dashboard/DashboardViewConfig";
 import StoredDashboardViewConfig from "../../../Utils/Dashboard/StoredDashboardViewConfig";
@@ -691,6 +694,95 @@ describe("a chart added from a view of every service", () => {
     for (const chart of charts) {
       expect(chart.public.reads).toEqual(chart.signedIn.reads);
     }
+  });
+});
+
+/*
+ * A chart over days is read in the viewer's zone, where each day bucket
+ * starts (issue #7277). Signed in, AnalyticsModelAPI.aggregate adds the
+ * zone to the read the chart hands it (mocked here, so the signed-in read
+ * is taken as it would add it); on the public page the chart's code adds it
+ * to the body it posts, and the public route passes it to the store.
+ */
+describe("a chart read over days, in the viewer's zone", () => {
+  afterEach(() => {
+    OneUptimeDate.setUserTimezone(null);
+  });
+
+  async function readBothOver(
+    window: InBetween<Date>,
+  ): Promise<{ signedIn: Array<string>; public: ChartReads }> {
+    const stored: JSONObject = addToDashboard(null, [
+      viewQuery({ metricName: LATENCY, variable: "a", serviceIds: [API] }),
+    ]);
+
+    dashboard.dashboardViewConfig = stored as unknown as DashboardViewConfig;
+
+    setPublicDashboardContext(null);
+    mockAnalyticsAggregate.mockClear();
+    await fetchChart(chartsOf(signedInConfig(stored))[0]!, undefined, window);
+
+    const signedIn: Array<string> = mockAnalyticsAggregate.mock.calls
+      .map((call: Array<unknown>): string => {
+        const sent: unknown = AggregationIntervalUtil.withReaderTimezone(
+          (call[0] as { aggregateBy: never }).aggregateBy,
+        );
+
+        return comparableRead(
+          JSONFunctions.deserialize(
+            JSON.parse(
+              JSON.stringify(JSONFunctions.serialize(sent as JSONObject)),
+            ),
+          ),
+        );
+      })
+      .sort();
+
+    return {
+      signedIn: signedIn,
+      public: await readPublic(
+        chartsOf(publicConfig(stored))[0]!,
+        publicConfig(stored).variables,
+        window,
+      ),
+    };
+  }
+
+  test("a month read in New York reaches the store in New York's days, as it does signed in", async () => {
+    OneUptimeDate.setUserTimezone(Timezone.AmericaNew_York);
+    windowCount++;
+
+    const reads: { signedIn: Array<string>; public: ChartReads } =
+      await readBothOver(
+        new InBetween<Date>(
+          new Date(Date.UTC(2026, 9, 1, 4, 0, windowCount)),
+          new Date(Date.UTC(2026, 10, 1, 4, 0, windowCount)),
+        ),
+      );
+
+    expect(reads.signedIn.length).toBeGreaterThan(0);
+    expect((MetricService.aggregateBy as jest.Mock).mock.calls.length).toBe(
+      reads.signedIn.length,
+    );
+    for (const call of (MetricService.aggregateBy as jest.Mock).mock.calls) {
+      expect((call[0] as JSONObject)["timezone"]).toBe(
+        Timezone.AmericaNew_York,
+      );
+    }
+    expect(reads.public.reads).toEqual(reads.signedIn);
+  });
+
+  test("an hour's read carries no zone on either side", async () => {
+    OneUptimeDate.setUserTimezone(Timezone.AmericaNew_York);
+
+    const reads: { signedIn: Array<string>; public: ChartReads } =
+      await readBothOver(nextWindow());
+
+    expect(reads.signedIn.length).toBeGreaterThan(0);
+    for (const call of (MetricService.aggregateBy as jest.Mock).mock.calls) {
+      expect(call[0] as JSONObject).not.toHaveProperty("timezone");
+    }
+    expect(reads.public.reads).toEqual(reads.signedIn);
   });
 });
 

@@ -551,6 +551,258 @@ describe("which trailing slot gets dropped", () => {
   });
 });
 
+/*
+ * A window that ends earlier in its bucket than it starts (issue #7278):
+ * the walk from its start stops short of the bucket that holds its end, so
+ * that bucket gets a slot of its own, at its start. That slot is on the
+ * bucket's boundary, where the rule above measures it like any other
+ * trailing slot: an empty one the window barely reaches into is still not
+ * drawn, and the alert snapshot grows no blank minute.
+ */
+describe("the slot added for the bucket a window ends in is trimmed like any other", () => {
+  const MID_MINUTE_START: Date = new Date("2026-09-04T13:37:20.000Z");
+
+  const isoOf: (dates: Array<Date>) => Array<string> = (
+    dates: Array<Date>,
+  ): Array<string> => {
+    return dates.map((date: Date): string => {
+      return date.toISOString();
+    });
+  };
+
+  const labelsOf: (rows: Array<ChartDataPoint>) => Array<string> = (
+    rows: Array<ChartDataPoint>,
+  ): Array<string> => {
+    return rows.map((row: ChartDataPoint): string => {
+      return String(row[CHART_DATA_POINT_X_AXIS_KEY]);
+    });
+  };
+
+  test("a snapshot from 20 s into 13:37 to 243 ms past 13:42 walks to 13:41:20, and has a slot at 13:42 for its end", () => {
+    expect(
+      isoOf(
+        XAxisUtil.getPrecisionIntervals({
+          xAxisMin: MID_MINUTE_START,
+          xAxisMax: ALERT_WINDOW_END,
+          precision: XAxisPrecision.EVERY_MINUTE,
+        }),
+      ),
+    ).toEqual([
+      "2026-09-04T13:37:20.000Z",
+      "2026-09-04T13:38:20.000Z",
+      "2026-09-04T13:39:20.000Z",
+      "2026-09-04T13:40:20.000Z",
+      "2026-09-04T13:41:20.000Z",
+      "2026-09-04T13:42:00.000Z",
+    ]);
+  });
+
+  test("with nothing in 13:42, that slot is not drawn: the five rows the server returned fill the chart, and the declared-at marker sits on the last", () => {
+    const xAxis: XAxis = buildXAxis({
+      min: MID_MINUTE_START,
+      max: ALERT_WINDOW_END,
+      precision: XAxisPrecision.EVERY_MINUTE,
+    });
+    // The server's rows start on the minute, the first before the window does.
+    const series: Array<SeriesPoints> = seriesEvery({
+      from: new Date("2026-09-04T13:37:00.000Z"),
+      count: 5,
+      stepMs: MINUTE_IN_MS,
+      value: 0.17,
+    });
+    const rows: Array<ChartDataPoint> = chartRows(xAxis, series);
+
+    expect(labelsOf(rows)).toEqual([
+      "13:37",
+      "13:38",
+      "13:39",
+      "13:40",
+      "13:41",
+    ]);
+    for (const row of rows) {
+      expect(row[SERIES_NAME]).toBe(0.17);
+    }
+
+    const formatted: Array<FormattedTimeReferenceLine> =
+      TimeAnnotationUtil.formatTimeReferenceLines({
+        timeReferenceLines: [{ date: ALERT_WINDOW_END, label: "Declared" }],
+        xAxis: xAxis,
+        seriesPoints: series,
+      });
+
+    expect(formatted).toHaveLength(1);
+    expect(formatted[0]!.bucketIndex).toBe(4);
+    expect(formatted[0]!.formattedX).toBe("13:41");
+  });
+
+  test("with a reading in 13:42, that slot is drawn with it, and the declared-at marker sits on it", () => {
+    const xAxis: XAxis = buildXAxis({
+      min: MID_MINUTE_START,
+      max: ALERT_WINDOW_END,
+      precision: XAxisPrecision.EVERY_MINUTE,
+    });
+    const series: Array<SeriesPoints> = seriesEvery({
+      from: new Date("2026-09-04T13:37:00.000Z"),
+      count: 6,
+      stepMs: MINUTE_IN_MS,
+      value: 0.17,
+    });
+    const rows: Array<ChartDataPoint> = chartRows(xAxis, series);
+
+    expect(labelsOf(rows)).toEqual([
+      "13:37",
+      "13:38",
+      "13:39",
+      "13:40",
+      "13:41",
+      "13:42",
+    ]);
+    expect(rows[5]![SERIES_NAME]).toBe(0.17);
+    expect(rows[5]![CHART_DATA_POINT_DATE_KEY]).toBe(
+      new Date("2026-09-04T13:42:00.000Z").getTime(),
+    );
+
+    const formatted: Array<FormattedTimeReferenceLine> =
+      TimeAnnotationUtil.formatTimeReferenceLines({
+        timeReferenceLines: [{ date: ALERT_WINDOW_END, label: "Declared" }],
+        xAxis: xAxis,
+        seriesPoints: series,
+      });
+
+    expect(formatted[0]!.bucketIndex).toBe(5);
+    expect(formatted[0]!.formattedX).toBe("13:42");
+  });
+
+  test("an hour axis from 10:42 to 15:20: the hour from 15:00, a third of it in the window, is not drawn empty, and is drawn with a reading", () => {
+    const start: Date = new Date("2026-09-04T10:42:00.000Z");
+    const end: Date = new Date("2026-09-04T15:20:00.000Z");
+    const xAxis: XAxis = buildXAxis({
+      min: start,
+      max: end,
+      precision: XAxisPrecision.EVERY_HOUR,
+    });
+
+    expect(
+      isoOf(
+        XAxisUtil.getPrecisionIntervals({
+          xAxisMin: start,
+          xAxisMax: end,
+          precision: XAxisPrecision.EVERY_HOUR,
+        }),
+      ),
+    ).toEqual([
+      "2026-09-04T10:42:00.000Z",
+      "2026-09-04T11:42:00.000Z",
+      "2026-09-04T12:42:00.000Z",
+      "2026-09-04T13:42:00.000Z",
+      "2026-09-04T14:42:00.000Z",
+      "2026-09-04T15:00:00.000Z",
+    ]);
+
+    const fromTen: Date = new Date("2026-09-04T10:00:00.000Z");
+    const empty: Array<ChartDataPoint> = chartRows(
+      xAxis,
+      seriesEvery({ from: fromTen, count: 5, stepMs: HOUR_IN_MS }),
+    );
+    const read: Array<ChartDataPoint> = chartRows(
+      xAxis,
+      seriesEvery({ from: fromTen, count: 6, stepMs: HOUR_IN_MS }),
+    );
+
+    expect(empty).toHaveLength(5);
+    expect(read).toHaveLength(6);
+    expect(hasValue(read[5])).toBe(true);
+    expect(read[5]![CHART_DATA_POINT_DATE_KEY]).toBe(
+      new Date("2026-09-04T15:00:00.000Z").getTime(),
+    );
+  });
+
+  test("an hour axis from 10:42 to 15:40: two thirds of the hour from 15:00 is in the window, so it is drawn even empty", () => {
+    const start: Date = new Date("2026-09-04T10:42:00.000Z");
+    const end: Date = new Date("2026-09-04T15:40:00.000Z");
+    const rows: Array<ChartDataPoint> = chartRows(
+      buildXAxis({
+        min: start,
+        max: end,
+        precision: XAxisPrecision.EVERY_HOUR,
+      }),
+      seriesEvery({
+        from: new Date("2026-09-04T10:00:00.000Z"),
+        count: 5,
+        stepMs: HOUR_IN_MS,
+      }),
+    );
+
+    expect(rows).toHaveLength(6);
+    expect(hasValue(rows[5])).toBe(false);
+    expect(rows[5]![CHART_DATA_POINT_DATE_KEY]).toBe(
+      new Date("2026-09-04T15:00:00.000Z").getTime(),
+    );
+  });
+
+  test("a day axis from 14:42 on 20 October to 09:00 on 10 November: 10 November, nine hours of it in the window, is drawn with its total, and a marker on it sits on it", () => {
+    const start: Date = new Date("2026-10-20T14:42:00.000Z");
+    const end: Date = new Date("2026-11-10T09:00:00.000Z");
+    const xAxis: XAxis = buildXAxis({
+      min: start,
+      max: end,
+      precision: XAxisPrecision.EVERY_DAY,
+      aggregateType: XAxisAggregateType.Sum,
+    });
+    // The server's days, each from midnight: 20 October to 10 November.
+    const everyDay: Array<SeriesPoints> = seriesEvery({
+      from: new Date("2026-10-20T00:00:00.000Z"),
+      count: 22,
+      stepMs: DAY_IN_MS,
+      seriesName: "Incidents",
+    });
+    const rows: Array<ChartDataPoint> = chartRows(xAxis, everyDay);
+
+    expect(rows).toHaveLength(22);
+    expect(rows[0]![CHART_DATA_POINT_X_AXIS_KEY]).toBe("20 Oct");
+    expect(rows[21]![CHART_DATA_POINT_X_AXIS_KEY]).toBe("10 Nov");
+    expect(rows[21]!["Incidents"]).toBe(1);
+    expect(rows[21]![CHART_DATA_POINT_DATE_KEY]).toBe(
+      new Date("2026-11-10T00:00:00.000Z").getTime(),
+    );
+
+    const formatted: Array<FormattedTimeReferenceLine> =
+      TimeAnnotationUtil.formatTimeReferenceLines({
+        timeReferenceLines: [
+          { date: new Date("2026-11-10T05:00:00.000Z"), label: "Incident" },
+        ],
+        xAxis: xAxis,
+        seriesPoints: everyDay,
+      });
+
+    expect(formatted[0]!.bucketIndex).toBe(21);
+    expect(formatted[0]!.formattedX).toBe("10 Nov");
+  });
+
+  test("the same day axis with nothing on 10 November does not draw it: nine hours of 24 is under half", () => {
+    const start: Date = new Date("2026-10-20T14:42:00.000Z");
+    const end: Date = new Date("2026-11-10T09:00:00.000Z");
+    const rows: Array<ChartDataPoint> = chartRows(
+      buildXAxis({
+        min: start,
+        max: end,
+        precision: XAxisPrecision.EVERY_DAY,
+        aggregateType: XAxisAggregateType.Sum,
+      }),
+      seriesEvery({
+        from: new Date("2026-10-20T00:00:00.000Z"),
+        count: 21,
+        stepMs: DAY_IN_MS,
+        seriesName: "Incidents",
+      }),
+    );
+
+    expect(rows).toHaveLength(21);
+    expect(rows[20]![CHART_DATA_POINT_X_AXIS_KEY]).toBe("09 Nov");
+    expect(hasValue(rows[20])).toBe(true);
+  });
+});
+
 describe("the grid step follows the interval the data was bucketed at", () => {
   test.each([
     [AggregationInterval.Minute, XAxisPrecision.EVERY_MINUTE],

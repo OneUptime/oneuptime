@@ -31,13 +31,12 @@ import { describe, expect, it } from "@jest/globals";
 
 const COLUMN: string = "time";
 
-const CALENDAR_UNITS: Array<{ interval: AggregationInterval; unit: string }> =
-  [
-    { interval: AggregationInterval.Day, unit: "DAY" },
-    { interval: AggregationInterval.Week, unit: "WEEK" },
-    { interval: AggregationInterval.Month, unit: "MONTH" },
-    { interval: AggregationInterval.Year, unit: "YEAR" },
-  ];
+const CALENDAR_UNITS: Array<{ interval: AggregationInterval; unit: string }> = [
+  { interval: AggregationInterval.Day, unit: "DAY" },
+  { interval: AggregationInterval.Week, unit: "WEEK" },
+  { interval: AggregationInterval.Month, unit: "MONTH" },
+  { interval: AggregationInterval.Year, unit: "YEAR" },
+];
 
 const NO_ZONE_INTERVALS: Array<AggregationInterval> = [
   AggregationInterval.Minute,
@@ -123,10 +122,7 @@ describe("AggregateUtil.getBucketTimezone", () => {
   });
 
   it("is none for an hour and shorter, and for Total, which no zone moves", () => {
-    for (const interval of [
-      ...NO_ZONE_INTERVALS,
-      AggregationInterval.Total,
-    ]) {
+    for (const interval of [...NO_ZONE_INTERVALS, AggregationInterval.Total]) {
       expect(
         AggregateUtil.getBucketTimezone(interval, Timezone.AsiaKolkata),
       ).toBeNull();
@@ -163,7 +159,10 @@ describe("AggregateUtil.getBucketTimezone", () => {
 
   it("refuses a name not in the list, even for an interval that ignores the zone", () => {
     expect(() => {
-      AggregateUtil.getBucketTimezone(AggregationInterval.Minute, "Nowhere/At_All");
+      AggregateUtil.getBucketTimezone(
+        AggregationInterval.Minute,
+        "Nowhere/At_All",
+      );
     }).toThrow(BadDataException);
   });
 });

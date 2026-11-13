@@ -12,6 +12,7 @@ import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import Timezone from "../../../Types/Timezone";
+import { escapeRegExp } from "../../../Utils/RegExpEscape";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 
 /*
@@ -36,9 +37,8 @@ const END: Date = new Date("2026-03-20T04:00:00.000Z");
 // The bucket of `column` in a zone, its two parameters numbered from any.
 function zoneBucket(unit: string, column: string): RegExp {
   return new RegExp(
-    `toTimeZone\\(toDateTime\\(toStartOfInterval\\(${column.replace(
-      /[()]/g,
-      "\\$&",
+    `toTimeZone\\(toDateTime\\(toStartOfInterval\\(${escapeRegExp(
+      column,
     )}, INTERVAL 1 ${unit}, \\{p(\\d+):String\\}\\), \\{p(\\d+):String\\}\\), 'UTC'\\) as time`,
   );
 }
@@ -230,9 +230,9 @@ describe("MetricService: day, week, month and year buckets in the reader's zone"
           }),
         );
 
-        expect(zoneParameters(compiled, zoneBucket("DAY", path.column))).toEqual(
-          [Timezone.AsiaKolkata, Timezone.AsiaKolkata],
-        );
+        expect(
+          zoneParameters(compiled, zoneBucket("DAY", path.column)),
+        ).toEqual([Timezone.AsiaKolkata, Timezone.AsiaKolkata]);
       });
 
       it("refuses a zone the Timezone list does not name with a 400", () => {
@@ -253,9 +253,10 @@ describe("MetricService: day, week, month and year buckets in the reader's zone"
       aggregateBy({ timezone: Timezone.AsiaTokyo }),
     );
 
-    expect(
-      zoneParameters(compiled, zoneBucket("DAY", "bucketTime")),
-    ).toEqual([Timezone.AsiaTokyo, Timezone.AsiaTokyo]);
+    expect(zoneParameters(compiled, zoneBucket("DAY", "bucketTime"))).toEqual([
+      Timezone.AsiaTokyo,
+      Timezone.AsiaTokyo,
+    ]);
   });
 
   it("a whole window (Total) is no bucket: the zone changes nothing", () => {
@@ -288,7 +289,11 @@ describe("MetricService.aggregateBy: a zone that is not one is refused before an
       }
     ).executeQuery = async (statement: Statement): Promise<unknown> => {
       executed.push(statement.query);
-      return { json: async () => ({ data: [] }) };
+      return {
+        json: async () => {
+          return { data: [] };
+        },
+      };
     };
     jest
       .spyOn(
@@ -342,7 +347,11 @@ describe("MetricService.aggregateBy: a zone that is not one is refused before an
       }
     ).executeQuery = async (statement: Statement): Promise<unknown> => {
       executed.push(statement);
-      return { json: async () => ({ data: [] }) };
+      return {
+        json: async () => {
+          return { data: [] };
+        },
+      };
     };
     jest
       .spyOn(

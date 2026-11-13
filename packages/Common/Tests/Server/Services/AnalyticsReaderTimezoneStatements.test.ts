@@ -1,4 +1,5 @@
 import "../TestingUtils/Init";
+import { findAliasShadows } from "../../Helpers/ClickhouseAliasScan";
 import CloudCost from "../../../Models/AnalyticsModels/CloudCost";
 import SloHistory from "../../../Models/AnalyticsModels/SloHistory";
 import Span from "../../../Models/AnalyticsModels/Span";
@@ -15,11 +16,19 @@ import logger from "../../../Server/Utils/Logger";
 import AggregationInterval from "../../../Types/BaseDatabase/AggregationInterval";
 import AggregationType from "../../../Types/BaseDatabase/AggregationType";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
+import Includes from "../../../Types/BaseDatabase/Includes";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import Timezone from "../../../Types/Timezone";
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 
 /*
  * EVERY ANALYTICS AGGREGATE STARTS ITS DAYS AT THE READER'S MIDNIGHT
@@ -120,7 +129,9 @@ describe("the generic aggregate statement (SLO history)", () => {
       endTimestamp: END,
       limit: 1000,
       skip: 0,
-      sort: { bucketStart: SortOrder.Ascending } as AggregateBy<SloHistory>["sort"],
+      sort: {
+        bucketStart: SortOrder.Ascending,
+      } as AggregateBy<SloHistory>["sort"],
       props: { isRoot: true },
       ...overrides,
     };
@@ -383,6 +394,160 @@ describe("the span projection the trace charts read", () => {
       "date_trunc('day', toStartOfInterval(toStartOfMinute(startTime), INTERVAL 1 day)) as startTime",
     );
   });
+
+  /*
+   * The bucket is aliased startTime, and ClickHouse reads a bare name as the
+   * SELECT's alias before the column: a bare startTime in the WHERE was the
+   * bucket, so the window's first bucket, which starts before the window,
+   * was filtered out whole. The window and every filter name the span's own
+   * columns through the table's alias; GROUP BY and ORDER BY read the bucket.
+   */
+  describe("the window and the filters read the span's columns, not the bucket", () => {
+    const SERVICE: ObjectID = new ObjectID(
+      "10000000-0000-4000-8000-0000000077b1",
+    );
+
+    // Count, Avg and P99, with each filter the projections can serve.
+    const REQUESTS: Array<[string, AggregateBy<Span>]> = [
+      [
+        "a count, with a day in New York",
+        spans({ timezone: Timezone.AmericaNew_York }),
+      ],
+      ["a count, with UTC's days", spans()],
+      [
+        "a count of one service's failed root spans",
+        spans({
+          query: {
+            projectId: PROJECT_ID,
+            startTime: new InBetween<Date>(START, END),
+            primaryEntityId: SERVICE,
+            isRootSpan: true,
+            statusCode: 2,
+          } as unknown as AggregateBy<Span>["query"],
+          timezone: Timezone.AsiaKolkata,
+        }),
+      ],
+      [
+        "a count of some services and statuses",
+        spans({
+          query: {
+            projectId: PROJECT_ID,
+            startTime: new InBetween<Date>(START, END),
+            primaryEntityId: new Includes([SERVICE, PROJECT_ID]),
+            statusCode: new Includes([0, 2]),
+          } as unknown as AggregateBy<Span>["query"],
+          timezone: Timezone.AsiaTokyo,
+        }),
+      ],
+      [
+        "an average of one service",
+        spans({
+          aggregationType: AggregationType.Avg,
+          query: {
+            projectId: PROJECT_ID,
+            startTime: new InBetween<Date>(START, END),
+            primaryEntityId: SERVICE,
+          } as unknown as AggregateBy<Span>["query"],
+          timezone: Timezone.AmericaNew_York,
+        }),
+      ],
+      [
+        "a P99 by the hour",
+        spans(
+          {
+            aggregationType: AggregationType.P99,
+            timezone: Timezone.AmericaNew_York,
+          },
+          new Date(START.getTime() + 5 * 24 * 60 * 60 * 1000),
+        ),
+      ],
+    ];
+
+    const COLUMNS: Array<string> = [
+      "projectId",
+      "startTime",
+      "primaryEntityId",
+      "isRootSpan",
+      "statusCode",
+    ];
+
+    function whereOf(query: string): string {
+      const where: number = query.indexOf(" WHERE ");
+      const groupBy: number = query.indexOf(" GROUP BY ");
+
+      expect(where).toBeGreaterThan(0);
+      expect(groupBy).toBeGreaterThan(where);
+
+      return query.slice(where, groupBy);
+    }
+
+    test.each(REQUESTS)(
+      "%s: the projection compiles it, from the table under the alias s",
+      (_name: string, request: AggregateBy<Span>) => {
+        const query: string = compile(request).statement.query;
+
+        expect(query).toMatch(
+          /^SELECT (count\(\)|avg\(durationUnixNano\)|quantile\(0\.99\)\(durationUnixNano\)) as durationUnixNano, /,
+        );
+        expect(query).toContain(" AS s WHERE s.projectId = {");
+        expect(query).toContain(
+          " AND toStartOfMinute(s.startTime) >= toStartOfMinute({",
+        );
+        expect(query).toContain(
+          " AND toStartOfMinute(s.startTime) <= toStartOfMinute({",
+        );
+      },
+    );
+
+    test.each(REQUESTS)(
+      "%s: no column the WHERE reads is a bare name",
+      (_name: string, request: AggregateBy<Span>) => {
+        const where: string = whereOf(compile(request).statement.query);
+
+        for (const column of COLUMNS) {
+          const bare: RegExp = new RegExp(`(^|[^.\\w])${column}\\b`);
+
+          expect({ column: column, bare: bare.test(where) }).toEqual({
+            column: column,
+            bare: false,
+          });
+        }
+      },
+    );
+
+    test.each(REQUESTS)(
+      "%s: the rows group and sort by the bucket",
+      (_name: string, request: AggregateBy<Span>) => {
+        const query: string = compile(request).statement.query;
+
+        expect(query).toContain(" GROUP BY startTime ORDER BY startTime DESC");
+      },
+    );
+
+    test.each(REQUESTS)(
+      "%s: the alias guard's own reading finds no alias read in place of its column",
+      (_name: string, request: AggregateBy<Span>) => {
+        expect(findAliasShadows(compile(request).statement.query)).toEqual([]);
+      },
+    );
+
+    test("each filter reads its column, with its value bound", () => {
+      const one: Compiled = compile(REQUESTS[2]![1]);
+      const where: string = whereOf(one.statement.query);
+
+      expect(where).toMatch(/ AND s\.primaryEntityId = \{p\d+:\w+\}/);
+      expect(where).toMatch(/ AND s\.isRootSpan = \{p\d+:\w+\}/);
+      expect(where).toMatch(/ AND s\.statusCode = \{p\d+:\w+\}/);
+      expect(Object.values(one.statement.query_params)).toEqual(
+        expect.arrayContaining([SERVICE.toString(), true, 2]),
+      );
+
+      const some: string = whereOf(compile(REQUESTS[3]![1]).statement.query);
+
+      expect(some).toMatch(/ AND s\.primaryEntityId IN \(\{p\d+:[^}]+\}\)/);
+      expect(some).toMatch(/ AND s\.statusCode IN \(\{p\d+:[^}]+\}\)/);
+    });
+  });
 });
 
 describe("cloud costs, by tag and by column", () => {
@@ -453,9 +618,8 @@ describe("cloud costs, by tag and by column", () => {
   }
 
   test("by tag with no zone, its day is what it always was", () => {
-    const query: string = compile(
-      costs({ groupByAttributeKeys: ["team"] }),
-    ).statement.query;
+    const query: string = compile(costs({ groupByAttributeKeys: ["team"] }))
+      .statement.query;
 
     expect(query).toContain(
       "date_trunc('day', toStartOfInterval(day, INTERVAL 1 day)) as day",
