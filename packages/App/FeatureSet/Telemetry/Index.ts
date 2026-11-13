@@ -16,6 +16,9 @@ import SourceMapIngestAPI from "./API/SourceMapIngest";
 import SessionReplayIngestAPI from "./API/SessionReplayIngest";
 import ProductAnalyticsEventIngestAPI from "./API/ProductAnalyticsEventIngest";
 import TelemetryWriterAPI from "./API/TelemetryWriter";
+// Compatible endpoints: other tools' protocols, turned into OTLP.
+import PrometheusRemoteWriteAPI from "./API/PrometheusRemoteWrite";
+import LokiAPI from "./API/Loki";
 // OpAMP: the hosts OneUptime installs and configures (HostCollectorAgent)
 import HostCollectorOpAmpAPI from "./API/HostCollectorOpAmp";
 // ProbeIngest routes
@@ -111,6 +114,14 @@ const TelemetryFeatureSet: FeatureSet = {
       app.use(TELEMETRY_PREFIXES, SyncWebhooksIngestAPI);
       app.use(TELEMETRY_PREFIXES, PyroscopeAPI);
       app.use(TELEMETRY_PREFIXES, SourceMapIngestAPI);
+      /*
+       * The compatible endpoints (Common/Types/Telemetry/CompatibleIngest):
+       * the agents and SDKs a team already runs - Prometheus, Loki's
+       * clients - send here unchanged, and what they send is stored as
+       * OTLP.
+       */
+      app.use(TELEMETRY_PREFIXES, PrometheusRemoteWriteAPI);
+      app.use(TELEMETRY_PREFIXES, LokiAPI);
       /*
        * The supervisor on every host OneUptime manages polls here for the
        * config the host runs: /opamp/v1, and /telemetry/opamp/v1 behind an

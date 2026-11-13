@@ -8,6 +8,7 @@ import { JSONArray, JSONObject } from "Common/Types/JSON";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
 import { TelemetryIngestionBudgetSignal } from "Common/Types/Telemetry/TelemetryIngestionBudget";
 import TelemetryIngestSurface from "Common/Types/Telemetry/TelemetryIngestSurface";
+import { CompatibleQueueUnavailableError } from "../Utils/Compatible/CompatibleIngestFailure";
 import TelemetryQueueService from "./Queue/TelemetryQueueService";
 
 /*
@@ -46,13 +47,6 @@ export interface CompatibleEnqueueResult {
   queuedLogs: boolean;
   queuedMetrics: boolean;
   queuedTraces: boolean;
-}
-
-export class CompatibleQueueUnavailableError extends Error {
-  public constructor() {
-    super("Telemetry queue unavailable. Please retry.");
-    this.name = "CompatibleQueueUnavailableError";
-  }
 }
 
 interface SignalJob {
