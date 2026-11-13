@@ -1,3 +1,5 @@
+import { PRODUCT_FEEDBACK_GITHUB_LABEL } from "./ProductFeedback";
+
 /*
  * A NEW GITHUB ISSUE, FILLED IN FOR A PERSON TO READ BEFORE THEY SEND IT.
  *
@@ -9,7 +11,7 @@
  *
  * Used by "Was this page helpful?" on the docs (#6822,
  * Docs/Utils/DocsFeedback) and by Give feedback and the end of a guided
- * setup in the Dashboard (#6832).
+ * setup in the Dashboard (#6832, getProductFeedbackGitHubIssueUrl below).
  */
 
 export const GITHUB_NEW_ISSUE_URL: string =
@@ -52,4 +54,37 @@ export const getNewGitHubIssueUrl: (data: {
   }
 
   return `${start}${encodeURIComponent(body)}`;
+};
+
+/*
+ * The issue Give feedback and the end of a guided setup fill in, on a
+ * self-hosted server (#6832): the first line of the person's words as the
+ * title, their words, the page and the version. The issue goes to GitHub,
+ * not onto a page, so it is worded here, in English, as the maintainers
+ * read the issues; the words are the person's own.
+ */
+export const getProductFeedbackGitHubIssueUrl: (data: {
+  details: string;
+  page: string;
+  version: string;
+}) => string = (data: {
+  details: string;
+  page: string;
+  version: string;
+}): string => {
+  const firstLine: string = (data.details.split("\n")[0] || "").trim();
+  const title: string =
+    firstLine.length > 60 ? `${firstLine.slice(0, 57)}...` : firstLine;
+
+  return getNewGitHubIssueUrl({
+    title: `Feedback: ${title || "OneUptime"}`,
+    body: [
+      data.details.trim(),
+      "",
+      `Page: ${data.page}`,
+      `Version: ${data.version || "unknown"}`,
+      "",
+    ].join("\n"),
+    labels: [PRODUCT_FEEDBACK_GITHUB_LABEL],
+  });
 };
