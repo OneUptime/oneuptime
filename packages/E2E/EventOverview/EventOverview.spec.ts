@@ -3743,7 +3743,7 @@ const WAITING_ALERT_DESCRIPTION: string =
   "An AI rule makes OneUptime AI wait 10 minutes, so alerts resolved by then are not investigated.";
 // InvestigationRuleWait's refusal when the project's own daily limit is reached.
 const DAILY_LIMIT_REFUSAL: string =
-  "This project has reached its own daily AI limit. It resets at midnight UTC.";
+  "The project reached its daily AI limit. OneUptime AI starts again at midnight UTC. A project owner or someone with Manage Billing can raise or remove the limit in Project Settings → AI → AI Features → More settings.";
 
 function waitingBody(page: Page): Locator {
   return investigationCard(page).getByTestId("investigation-waiting");

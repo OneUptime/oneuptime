@@ -10,6 +10,7 @@ import {
 } from "../AIChat/ActivityFeedRun";
 import AiRunFailureNotice from "./AiRunFailureNotice";
 import { describeAiRunRefusal, formatAiRunTime } from "./AiRunFailureWords";
+import { readAiRunRefusalCode } from "Common/Types/AI/AiRunRefusal";
 import OneUptimeDate from "Common/Types/Date";
 import RemediationStep from "../AutoRemediation/RemediationStep";
 import AiCardStep from "./AiCardStep";
@@ -1326,13 +1327,20 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
           activeSubjectKeyRef.current === startedForSubjectKey
         ) {
           /*
-           * The server's refusal, in the reader's language when the
-           * Dashboard words it (a record's daily AI token limit, #7157).
+           * The server's refusal, in the reader's language: by the code
+           * beside its message, or by the message (describeAiRunRefusal).
            */
           const refusal: string = API.getFriendlyMessage(err);
 
           setStartInvestigationError(
-            (refusal && describeAiRunRefusal(refusal, translator)) ||
+            (refusal &&
+              describeAiRunRefusal(
+                refusal,
+                translator,
+                err instanceof HTTPErrorResponse
+                  ? readAiRunRefusalCode(err.data)
+                  : null,
+              )) ||
               translator.translateText(INVESTIGATE_NOW_FAILED) ||
               INVESTIGATE_NOW_FAILED,
           );

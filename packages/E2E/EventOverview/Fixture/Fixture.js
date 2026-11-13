@@ -9338,13 +9338,19 @@ async function handleApi(method, options) {
   /*
    * Investigate now on a waiting record (issue #5074): started, as
    * InvestigationRuleWait.startNow answers, or refused with the server's
-   * words - the project's daily AI limit, for ?fail=investigate-now.
+   * words and their code beside them (#7359) - the project's daily AI
+   * limit, for ?fail=investigate-now.
    */
   if (url.endsWith("/ai-investigation/investigate-now")) {
     if (failures.has("investigate-now")) {
-      throw fail(
+      throw new HTTPErrorResponse(
         400,
-        "This project has reached its own daily AI limit. It resets at midnight UTC.",
+        {
+          message:
+            "The project reached its daily AI limit. OneUptime AI starts again at midnight UTC. A project owner or someone with Manage Billing can raise or remove the limit in Project Settings → AI → AI Features → More settings.",
+          refusalCode: "project_daily_limit_reached",
+        },
+        {},
       );
     }
     const investigation =

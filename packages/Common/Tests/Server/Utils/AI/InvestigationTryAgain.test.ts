@@ -13,6 +13,11 @@ import ProjectAiDailyLimits from "../../../../Types/AI/ProjectAiDailyLimits";
 import { PROJECT_AI_CREDITS_USED_UP_MESSAGE } from "../../../../Utils/Project/ProjectBalance";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import BadDataException from "../../../../Types/Exception/BadDataException";
+import AiRunRefusalException from "../../../../Types/Exception/AiRunRefusalException";
+import {
+  AI_RUN_REFUSALS,
+  AiRunRefusalCode,
+} from "../../../../Types/AI/AiRunRefusal";
 import ObjectID from "../../../../Types/ObjectID";
 import PositiveNumber from "../../../../Types/PositiveNumber";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
@@ -417,5 +422,157 @@ describe("InvestigationTryAgain.tryAgain", () => {
         notEnqueued: null,
       }),
     ).toBe(INVESTIGATION_NOT_ENQUEUED_MESSAGE);
+  });
+
+  /*
+   * #7359: every refusal carries its code beside its sentence, for the
+   * Dashboard to word in the reader's language. The sentence is the
+   * code's, so the API reads what it read before.
+   */
+  test.each([
+    {
+      name: "never investigated (incident)",
+      code: AiRunRefusalCode.IncidentHasNoInvestigation,
+      subjectType: "incident" as const,
+      arrange: (): void => {
+        lastRunIs(null);
+      },
+    },
+    {
+      name: "never investigated (alert)",
+      code: AiRunRefusalCode.AlertHasNoInvestigation,
+      subjectType: "alert" as const,
+      arrange: (): void => {
+        lastRunIs(null);
+      },
+    },
+    {
+      name: "running already (incident)",
+      code: AiRunRefusalCode.IncidentInvestigationRunning,
+      subjectType: "incident" as const,
+      arrange: (): void => {
+        lastRunIs(AIRunStatus.Running);
+      },
+    },
+    {
+      name: "running already (alert)",
+      code: AiRunRefusalCode.AlertInvestigationRunning,
+      subjectType: "alert" as const,
+      arrange: (): void => {
+        lastRunIs(AIRunStatus.Queued);
+      },
+    },
+    {
+      name: "started by someone else inside the lock",
+      code: AiRunRefusalCode.IncidentInvestigationRunning,
+      subjectType: "incident" as const,
+      arrange: (): void => {
+        lastRunIs(AIRunStatus.Error);
+        liveRunCount.mockResolvedValue(new PositiveNumber(1));
+      },
+    },
+    {
+      name: "finished",
+      code: AiRunRefusalCode.InvestigationFinished,
+      subjectType: "incident" as const,
+      arrange: (): void => {
+        lastRunIs(AIRunStatus.Completed);
+      },
+    },
+    {
+      name: "AI off",
+      code: AiRunRefusalCode.AiOff,
+      subjectType: "incident" as const,
+      arrange: (): void => {
+        lastRunIs(AIRunStatus.Error);
+        disabledReason.mockResolvedValue("ai_disabled");
+      },
+    },
+    {
+      name: "no LLM provider",
+      code: AiRunRefusalCode.NoProviderToInvestigate,
+      subjectType: "alert" as const,
+      arrange: (): void => {
+        lastRunIs(AIRunStatus.Error);
+        disabledReason.mockResolvedValue("provider_missing");
+      },
+    },
+    {
+      name: "AI credits used up",
+      code: AiRunRefusalCode.AiCreditsUsedUp,
+      subjectType: "incident" as const,
+      arrange: (): void => {
+        lastRunIs(AIRunStatus.Error);
+        disabledReason.mockResolvedValue("insufficient_ai_balance");
+      },
+    },
+    {
+      name: "the project's daily AI limit",
+      code: AiRunRefusalCode.ProjectDailyLimitReached,
+      subjectType: "incident" as const,
+      arrange: (): void => {
+        lastRunIs(AIRunStatus.Error);
+        disabledReason.mockResolvedValue("project_daily_limit_reached");
+      },
+    },
+    {
+      name: "the queue gave no reason",
+      code: AiRunRefusalCode.InvestigationNotQueued,
+      subjectType: "incident" as const,
+      arrange: (): void => {
+        lastRunIs(AIRunStatus.Error);
+        enqueue.mockResolvedValue(null);
+      },
+    },
+  ])(
+    "$name: refused with $code beside its sentence",
+    async (data: {
+      name: string;
+      code: AiRunRefusalCode;
+      subjectType: "incident" | "alert";
+      arrange: () => void;
+    }) => {
+      data.arrange();
+
+      const failure: Promise<ObjectID> = InvestigationTryAgain.tryAgain({
+        projectId,
+        subjectType: data.subjectType,
+        subjectId: data.subjectType === "incident" ? incidentId : alertId,
+      });
+
+      await expect(failure).rejects.toBeInstanceOf(AiRunRefusalException);
+      await expect(failure).rejects.toMatchObject({
+        message: AI_RUN_REFUSALS[data.code],
+        refusalCode: data.code,
+        details: { refusalCode: data.code },
+      });
+    },
+  );
+
+  test("a record's own token limit at the queue is refused with that limit's code", () => {
+    expect(
+      InvestigationTryAgain.getNotEnqueuedRefusal({
+        subjectType: "alert",
+        notEnqueued: {
+          code: "daily_budget_exhausted",
+          budget: { exhausted: true, limitInTokens: 0, usedTokensToday: 0 },
+        },
+      }),
+    ).toBe(AiRunRefusalCode.AlertTokenLimitPaused);
+    expect(
+      InvestigationTryAgain.getNotEnqueuedRefusal({
+        subjectType: "incident",
+        notEnqueued: {
+          code: "daily_budget_exhausted",
+          budget: { exhausted: true, limitInTokens: 500, usedTokensToday: 600 },
+        },
+      }),
+    ).toBe(AiRunRefusalCode.IncidentTokenLimitUsedUp);
+    expect(
+      InvestigationTryAgain.getNotEnqueuedRefusal({
+        subjectType: "incident",
+        notEnqueued: { code: "insufficient_ai_balance" },
+      }),
+    ).toBe(AiRunRefusalCode.AiCreditsUsedUp);
   });
 });

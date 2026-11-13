@@ -1,13 +1,17 @@
 import ObjectID from "../../../../Types/ObjectID";
 import AIRunType from "../../../../Types/AI/AIRunType";
 import { AIRunStatusHelper } from "../../../../Types/AI/AIRunStatus";
-import BadDataException from "../../../../Types/Exception/BadDataException";
+import AiRunRefusalException from "../../../../Types/Exception/AiRunRefusalException";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import Query from "../../../../Types/BaseDatabase/Query";
 import { InvestigationNotStartedCode } from "../../../../Types/AI/InvestigationNotStartedReason";
-import ProjectAiDailyLimits from "../../../../Types/AI/ProjectAiDailyLimits";
-import { getRecordAiTokenLimitMessage } from "../../../../Types/AI/RecordAiTokenLimit";
-import { PROJECT_AI_CREDITS_USED_UP_MESSAGE } from "../../../../Utils/Project/ProjectBalance";
+import {
+  AiRunRefusalCode,
+  getAiRunRefusalMessage,
+  getInvestigationRunningRefusal,
+  getNoInvestigationRefusal,
+  getRecordAiTokenLimitRefusal,
+} from "../../../../Types/AI/AiRunRefusal";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import AIRunService from "../../../Services/AIRunService";
 import { AutonomousBudgetStatus } from "../../../Services/AIService";
@@ -38,25 +42,36 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
 export type InvestigationTryAgainSubjectType = "incident" | "alert";
 
 /*
- * What the person reads when it cannot start, by what stopped it. It is said
- * to whoever pressed Try again, who may not be able to change what stopped
+ * Why it cannot start, by what stopped it, as the refusal the person reads
+ * (Types/AI/AiRunRefusal): its code goes beside its sentence, and the
+ * Dashboard words the code in the reader's language (#7359). It is said to
+ * whoever pressed Try again, who may not be able to change what stopped
  * it, so it names who can (the shared wordings for the AI credits and the
  * daily AI limits).
  */
+export const INVESTIGATION_NOT_STARTED_REFUSALS: Partial<
+  Record<InvestigationNotStartedCode, AiRunRefusalCode>
+> = {
+  ai_disabled: AiRunRefusalCode.AiOff,
+  provider_missing: AiRunRefusalCode.NoProviderToInvestigate,
+  insufficient_ai_balance: AiRunRefusalCode.AiCreditsUsedUp,
+  project_daily_limit_reached: AiRunRefusalCode.ProjectDailyLimitReached,
+};
+
+// The same, as the English sentences the API answers with.
 export const INVESTIGATION_NOT_STARTED_MESSAGES: Partial<
   Record<InvestigationNotStartedCode, string>
-> = {
-  ai_disabled:
-    "OneUptime AI is switched off for this project. A project owner or someone with Manage Billing can turn it on in Project Settings > AI > AI Features.",
-  provider_missing:
-    "This project has no LLM provider to investigate with. Add one in Project Settings > AI > LLM Providers, then try again.",
-  insufficient_ai_balance: PROJECT_AI_CREDITS_USED_UP_MESSAGE,
-  project_daily_limit_reached: `The project reached its daily AI limit. OneUptime AI starts again at midnight UTC. ${ProjectAiDailyLimits.getWhoCanChangeSentence()}`,
-};
+> = Object.fromEntries(
+  Object.entries(INVESTIGATION_NOT_STARTED_REFUSALS).map(
+    ([code, refusal]: [string, AiRunRefusalCode]): [string, string] => {
+      return [code, getAiRunRefusalMessage(refusal)];
+    },
+  ),
+);
 
 // What Try again says when the queue gave no reason it could name.
 export const INVESTIGATION_NOT_ENQUEUED_MESSAGE: string =
-  "The investigation could not start: the project may have reached its daily AI limit, which resets at midnight UTC. Try again later.";
+  getAiRunRefusalMessage(AiRunRefusalCode.InvestigationNotQueued);
 
 export default class InvestigationTryAgain {
   /*
@@ -66,15 +81,15 @@ export default class InvestigationTryAgain {
    * for midnight does not lift it (#7157). Anything else the queue named
    * is said as the checks before it say it; the rest as before.
    */
-  public static getNotEnqueuedMessage(data: {
+  public static getNotEnqueuedRefusal(data: {
     subjectType: InvestigationTryAgainSubjectType;
     notEnqueued: {
       code: InvestigationNotStartedCode;
       budget?: AutonomousBudgetStatus | undefined;
     } | null;
-  }): string {
+  }): AiRunRefusalCode {
     if (data.notEnqueued?.code === "daily_budget_exhausted") {
-      return getRecordAiTokenLimitMessage(
+      return getRecordAiTokenLimitRefusal(
         data.subjectType,
         data.notEnqueued.budget,
       );
@@ -82,8 +97,21 @@ export default class InvestigationTryAgain {
 
     return (
       (data.notEnqueued &&
-        INVESTIGATION_NOT_STARTED_MESSAGES[data.notEnqueued.code]) ||
-      INVESTIGATION_NOT_ENQUEUED_MESSAGE
+        INVESTIGATION_NOT_STARTED_REFUSALS[data.notEnqueued.code]) ||
+      AiRunRefusalCode.InvestigationNotQueued
+    );
+  }
+
+  // The same, as its English sentence.
+  public static getNotEnqueuedMessage(data: {
+    subjectType: InvestigationTryAgainSubjectType;
+    notEnqueued: {
+      code: InvestigationNotStartedCode;
+      budget?: AutonomousBudgetStatus | undefined;
+    } | null;
+  }): string {
+    return getAiRunRefusalMessage(
+      InvestigationTryAgain.getNotEnqueuedRefusal(data),
     );
   }
 
@@ -104,7 +132,7 @@ export default class InvestigationTryAgain {
 
   /*
    * Start the subject's investigation again. Returns the new run's id, or
-   * throws a BadDataException that says why it did not start.
+   * throws an AiRunRefusalException that says why it did not start.
    */
   @CaptureSpan()
   public static async tryAgain(data: {
@@ -113,6 +141,9 @@ export default class InvestigationTryAgain {
     subjectId: ObjectID;
   }): Promise<ObjectID> {
     const noun: string = data.subjectType;
+    const isRunningAlready: AiRunRefusalCode = getInvestigationRunningRefusal(
+      data.subjectType,
+    );
 
     const latestRuns: Array<AIRun> = await AIRunService.findBy({
       query: this.buildLatestRunQuery(data),
@@ -126,21 +157,17 @@ export default class InvestigationTryAgain {
     const latestRun: AIRun | undefined = latestRuns[0];
 
     if (!latestRun) {
-      throw new BadDataException(
-        `This ${noun} has no investigation to try again.`,
+      throw new AiRunRefusalException(
+        getNoInvestigationRefusal(data.subjectType),
       );
     }
 
     if (!AIRunStatusHelper.isTerminalStatus(latestRun.status!)) {
-      throw new BadDataException(
-        `This ${noun}'s investigation is queued or running already.`,
-      );
+      throw new AiRunRefusalException(isRunningAlready);
     }
 
     if (!AIRunStatusHelper.didNotFinish(latestRun.status)) {
-      throw new BadDataException(
-        "Only an investigation that did not finish can be tried again.",
-      );
+      throw new AiRunRefusalException(AiRunRefusalCode.InvestigationFinished);
     }
 
     const subject: {
@@ -166,12 +193,12 @@ export default class InvestigationTryAgain {
         },
       });
 
-    const refusal: string | undefined = disabledReason
-      ? INVESTIGATION_NOT_STARTED_MESSAGES[disabledReason]
+    const refusal: AiRunRefusalCode | undefined = disabledReason
+      ? INVESTIGATION_NOT_STARTED_REFUSALS[disabledReason]
       : undefined;
 
     if (refusal) {
-      throw new BadDataException(refusal);
+      throw new AiRunRefusalException(refusal);
     }
 
     /*
@@ -215,14 +242,12 @@ export default class InvestigationTryAgain {
     });
 
     if (!runId && isStartedAlready) {
-      throw new BadDataException(
-        `This ${noun}'s investigation is queued or running already.`,
-      );
+      throw new AiRunRefusalException(isRunningAlready);
     }
 
     if (!runId) {
-      throw new BadDataException(
-        InvestigationTryAgain.getNotEnqueuedMessage({
+      throw new AiRunRefusalException(
+        InvestigationTryAgain.getNotEnqueuedRefusal({
           subjectType: data.subjectType,
           notEnqueued,
         }),

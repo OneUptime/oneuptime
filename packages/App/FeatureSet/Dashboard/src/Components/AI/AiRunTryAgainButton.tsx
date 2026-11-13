@@ -1,4 +1,5 @@
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import { readAiRunRefusalCode } from "Common/Types/AI/AiRunRefusal";
 import IconProp from "Common/Types/Icon/IconProp";
 import Button, {
   ButtonSize,
@@ -80,12 +81,19 @@ const AiRunTryAgainButton: FunctionComponent<ComponentProps> = (
       if (isMountedRef.current) {
         /*
          * The server's refusal says why ("... is queued or running
-         * already"), in the reader's language when the Dashboard words it
-         * (describeAiRunRefusal); anything else gets the button's own words.
+         * already"), in the reader's language: by the code beside its
+         * message, or by the message (describeAiRunRefusal). Anything else
+         * gets the button's own words.
          */
         setError(
           err instanceof HTTPErrorResponse || err instanceof Error
-            ? describeAiRunRefusal(API.getFriendlyMessage(err), translator)
+            ? describeAiRunRefusal(
+                API.getFriendlyMessage(err),
+                translator,
+                err instanceof HTTPErrorResponse
+                  ? readAiRunRefusalCode(err.data)
+                  : null,
+              )
             : (translator.translateText(
                 "The run could not start again. Try again in a moment.",
               ) as string),
