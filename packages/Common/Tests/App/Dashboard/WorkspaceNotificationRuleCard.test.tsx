@@ -1012,7 +1012,7 @@ describe("a rule's updates", () => {
     [
       NotificationRuleEventType.ScheduledMaintenance,
       [],
-      "Only when a scheduled maintenance event is created",
+      "Only when a maintenance event is created",
     ],
   ])(
     "a %s rule's card says what it picked, %j",
