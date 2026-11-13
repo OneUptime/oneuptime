@@ -12,6 +12,7 @@ import {
   VapidPublicKey,
 } from "../../EnvironmentConfig";
 import { SERVER_CHANNEL_SETUP_SELECT } from "../ServerSending/ServerChannelSetup";
+import { toServerEmailSettings } from "../ServerEmailSettings";
 import ServerSendingStatus from "../ServerSending/ServerSendingStatus";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import logger from "../Logger";
@@ -22,6 +23,7 @@ import GlobalConfig, {
   EmailServerType,
 } from "../../../Models/DatabaseModels/GlobalConfig";
 import User from "../../../Models/DatabaseModels/User";
+import Hostname from "../../../Types/API/Hostname";
 import Protocol from "../../../Types/API/Protocol";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import {
@@ -77,16 +79,25 @@ export const SERVER_SETUP_CONFIG_SELECT: Select<GlobalConfig> = {
 /*
  * What takes the server's email: the mail server's host name, or the
  * provider's name (with its Region for Amazon SES). Null when nothing is
- * set up. Never a key, a username or a password.
+ * set up. Never a key, a username or a password. The settings are the ones
+ * the GLOBAL_EMAIL_ environment variables set, once they are (#7738):
+ * whatever the row holds, and none while something is wrong with them.
  */
 export const getEmailSentThrough: (
-  config: Partial<GlobalConfig> | null,
-) => string | null = (config: Partial<GlobalConfig> | null): string | null => {
+  row: Partial<GlobalConfig> | null,
+) => string | null = (row: Partial<GlobalConfig> | null): string | null => {
+  const config: Partial<GlobalConfig> | null = toServerEmailSettings(row);
+
   if (!config) {
     return null;
   }
 
   const text: (value: unknown) => string = (value: unknown): string => {
+    // A host as the row holds it, and as the variables give it: a Hostname.
+    if (value instanceof Hostname) {
+      return value.toString().trim();
+    }
+
     return typeof value === "string" ? value.trim() : "";
   };
 
