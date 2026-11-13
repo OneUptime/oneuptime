@@ -13,11 +13,11 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * boolean column with a constant default: each is added without rewriting
  * its table, and nothing is backfilled.
  */
-export class AddGroupByConnectedServicesToGroupingRules1809123900000
+export class AddGroupByConnectedServicesToGroupingRules1809124000000
   implements MigrationInterface
 {
   public name: string =
-    "AddGroupByConnectedServicesToGroupingRules1809123900000";
+    "AddGroupByConnectedServicesToGroupingRules1809124000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
