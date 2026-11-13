@@ -8,6 +8,7 @@ OneUptime का ईमेल SMTP सर्वर के बजाय किस
 - [Mailgun](#mailgun): एक API कुंजी, भेजने वाला डोमेन और उसका क्षेत्र।
 - [Postmark](#postmark): सर्वर का API टोकन।
 - [Resend](#resend): भेजने की अनुमति वाली API कुंजी।
+- [एनवायरनमेंट वेरिएबल](#सर्वर-का-ईमेल-एनवायरनमेंट-वेरिएबल-से-सेट-करें): Helm values या `config.env` से स्व-होस्टेड सर्वर का ईमेल सेट करें।
 - [समस्या निवारण](#समस्या-निवारण): हर प्रदाता के इनकार का क्या मतलब है।
 :::
 
@@ -17,7 +18,7 @@ OneUptime का ईमेल SMTP सर्वर के बजाय किस
 @tab प्रोजेक्ट
 **प्रोजेक्ट सेटिंग्स > सूचनाएं > सूचना चैनल** पर **और सेटिंग्स** खोलें, फिर **कस्टम SMTP कॉन्फ़िग्स** कार्ड में **SMTP कॉन्फ़िगरेशन बनाएँ** क्लिक करें। **प्रदाता** चरण पर एक **नाम** डालें और प्रदाता चुनें। अगला चरण उस प्रदाता की सेटिंग्स पूछता है, और **प्रेषक** चरण में **प्रेषक ईमेल** और **प्रेषक नाम** पूछे जाते हैं। सहेजने के बाद, कॉन्फ़िगरेशन की पंक्ति पर **परीक्षण ईमेल भेजें** से जाँचें कि वह काम करता है।
 @tab स्व-होस्टेड इंस्टेंस
-Admin Dashboard में **सेटिंग्स** खोलें, फिर **सूचनाएँ > ईमेल**। **ईमेल सर्वर सेटिंग्स** कार्ड में **सर्वर संपादित करें** क्लिक करें और **ईमेल सर्वर प्रकार** के रूप में प्रदाता चुनें। उसके नीचे प्रदाता का कार्ड दिखता है, जैसे **Amazon SES सेटिंग्स**: उसका संपादन बटन क्लिक करें, जैसे **Amazon SES संपादित करें**, और प्रदाता की सेटिंग्स और **प्रेषक** चरण भरें। जब तक ज़रूरी सब कुछ नहीं भरा जाता, कार्ड बताता है कि क्या कमी है, और हर ईमेल यह बताते हुए अस्वीकार किया जाता है कि कौन सी सेटिंग भरनी है।
+Admin Dashboard में **सेटिंग्स** खोलें, फिर **सूचनाएँ > ईमेल**। **ईमेल सर्वर सेटिंग्स** कार्ड में **सर्वर संपादित करें** क्लिक करें और **ईमेल सर्वर प्रकार** के रूप में प्रदाता चुनें। उसके नीचे प्रदाता का कार्ड दिखता है, जैसे **Amazon SES सेटिंग्स**: उसका संपादन बटन क्लिक करें, जैसे **Amazon SES संपादित करें**, और प्रदाता की सेटिंग्स और **प्रेषक** चरण भरें। जब तक ज़रूरी सब कुछ नहीं भरा जाता, कार्ड बताता है कि क्या कमी है, और हर ईमेल यह बताते हुए अस्वीकार किया जाता है कि कौन सी सेटिंग भरनी है। कोड से डिप्लॉय किया गया सर्वर इसके बजाय इन्हें एनवायरनमेंट वेरिएबल से सेट कर सकता है: देखें [सर्वर का ईमेल एनवायरनमेंट वेरिएबल से सेट करें](#सर्वर-का-ईमेल-एनवायरनमेंट-वेरिएबल-से-सेट-करें)।
 :::
 
 | प्रदाता | यह क्या पूछता है | OneUptime कहाँ भेजता है |
@@ -108,6 +109,67 @@ Postmark में वह सर्वर खोलें जो मेल भ�
 ## Resend
 
 Resend में **Domains** के तहत अपना डोमेन जोड़ें और सत्यापित करें, फिर **API Keys** के तहत भेजने की अनुमति वाली API कुंजी बनाएँ। इसे **Resend** चरण पर **API कुंजी** में डालें, और **प्रेषक ईमेल** में अपने सत्यापित डोमेन का पता रखें। Resend का अपना टेस्ट डोमेन केवल आपके अपने पते पर भेजता है।
+
+## सर्वर का ईमेल एनवायरनमेंट वेरिएबल से सेट करें
+
+कोड से डिप्लॉय किया गया स्व-होस्टेड सर्वर शुरू होते ही ईमेल भेज सकता है, बिना कुछ हाथ से सेट किए: उसकी ईमेल सेटिंग्स एनवायरनमेंट वेरिएबल से सेट करें, Terraform से या जो भी OneUptime को डिप्लॉय करता है उससे। जैसे ही `GLOBAL_EMAIL_SERVER_TYPE` सेट होता है, सर्वर अपने ईमेल वैसे ही भेजता है जैसा ये वेरिएबल बताते हैं। Admin Dashboard में **सेटिंग्स**, फिर **सूचनाएँ > ईमेल** में सहेजी गई सेटिंग्स इस्तेमाल नहीं होतीं, और वह पेज इन्हें केवल पढ़ने के लिए दिखाता है, हर फ़ील्ड के साथ वह वेरिएबल जो उसे सेट करता है। इसके बजाय Admin Dashboard में ईमेल सेट करने के लिए `GLOBAL_EMAIL_SERVER_TYPE` खाली छोड़ें। प्रोजेक्ट के SMTP कॉन्फ़िगरेशन पर इसका कोई असर नहीं पड़ता।
+
+| वेरिएबल | Helm मान | इसमें क्या होता है |
+| --- | --- | --- |
+| `GLOBAL_EMAIL_SERVER_TYPE` | `email.serverType` | `custom-smtp`, `sendgrid`, `amazon-ses`, `mailgun`, `postmark` या `resend`। इसके सेट होने पर ही OneUptime बाकी वेरिएबल पढ़ता है |
+| `GLOBAL_EMAIL_FROM_EMAIL` | `email.fromEmail` | वह पता जिससे हर ईमेल आता है |
+| `GLOBAL_EMAIL_FROM_NAME` | `email.fromName` | वह नाम जिससे हर ईमेल आता है। `custom-smtp` और `sendgrid` के लिए ज़रूरी |
+| `GLOBAL_EMAIL_SMTP_TRANSPORT` | `email.smtp.transport` | `smtp` (खाली होने पर भी), या OAuth ऐप के साथ Microsoft Graph से भेजने के लिए `microsoft-graph` |
+| `GLOBAL_EMAIL_SMTP_HOST` | `email.smtp.host` | मेल सर्वर, जैसे `smtp.example.com` |
+| `GLOBAL_EMAIL_SMTP_PORT` | `email.smtp.port` | उसका पोर्ट, जैसे `587` |
+| `GLOBAL_EMAIL_SMTP_REQUIRE_TLS` | `email.smtp.requireTls` | केवल मान्य सर्टिफ़िकेट वाले एन्क्रिप्टेड कनेक्शन से भेजने के लिए `true`, या `false` (खाली होने पर भी) |
+| `GLOBAL_EMAIL_SMTP_AUTH_TYPE` | `email.smtp.authType` | `username-and-password` (खाली होने पर भी), `oauth` या `none` |
+| `GLOBAL_EMAIL_SMTP_USERNAME` | `email.smtp.username` | वह मेलबॉक्स जिससे साइन इन होता है, `oauth` के लिए भी। बिना साइन इन किए भेजने के लिए इसे और पासवर्ड को खाली छोड़ें |
+| `GLOBAL_EMAIL_SMTP_PASSWORD` | `email.smtp.password`, या `email.existingSecret.name` में नामित Secret | उसका पासवर्ड |
+| `GLOBAL_EMAIL_SMTP_OAUTH_PROVIDER_TYPE` | `email.smtp.oauth.providerType` | `client-credentials` (खाली होने पर भी) या `jwt-bearer` |
+| `GLOBAL_EMAIL_SMTP_OAUTH_CLIENT_ID` | `email.smtp.oauth.clientId` | OAuth ऐप का क्लाइंट ID |
+| `GLOBAL_EMAIL_SMTP_OAUTH_CLIENT_SECRET` | `email.smtp.oauth.clientSecret`, या `email.existingSecret.name` में नामित Secret | उसका क्लाइंट सीक्रेट; `jwt-bearer` के लिए, PEM फ़ॉर्मेट में उसकी प्राइवेट कुंजी |
+| `GLOBAL_EMAIL_SMTP_OAUTH_TOKEN_URL` | `email.smtp.oauth.tokenUrl` | उसका टोकन URL |
+| `GLOBAL_EMAIL_SMTP_OAUTH_SCOPE` | `email.smtp.oauth.scope` | उसका scope |
+| `GLOBAL_EMAIL_SENDGRID_API_KEY` | `email.sendgrid.apiKey`, या `email.existingSecret.name` में नामित Secret | SendGrid की API कुंजी |
+| `GLOBAL_EMAIL_AMAZON_SES_AUTHENTICATION_TYPE` | `email.amazonSes.authenticationType` | `access-key` (खाली होने पर भी), या सर्वर की IAM भूमिका से साइन इन करने के लिए `server-iam-role` |
+| `GLOBAL_EMAIL_AMAZON_SES_ACCESS_KEY_ID` | `email.amazonSes.accessKeyId` | एक्सेस कुंजी ID |
+| `GLOBAL_EMAIL_AMAZON_SES_SECRET_ACCESS_KEY` | `email.amazonSes.secretAccessKey`, या `email.existingSecret.name` में नामित Secret | उसकी सीक्रेट एक्सेस कुंजी |
+| `GLOBAL_EMAIL_AMAZON_SES_REGION` | `email.amazonSes.region` | वह क्षेत्र जिसमें आपका प्रेषक सत्यापित है, जैसे `us-east-1` |
+| `GLOBAL_EMAIL_MAILGUN_API_KEY` | `email.mailgun.apiKey`, या `email.existingSecret.name` में नामित Secret | Mailgun की API कुंजी |
+| `GLOBAL_EMAIL_MAILGUN_DOMAIN` | `email.mailgun.domain` | भेजने वाला डोमेन, जैसे `mg.example.com` |
+| `GLOBAL_EMAIL_MAILGUN_REGION` | `email.mailgun.region` | `us` (खाली होने पर भी) या `eu` |
+| `GLOBAL_EMAIL_POSTMARK_SERVER_TOKEN` | `email.postmark.serverToken`, या `email.existingSecret.name` में नामित Secret | Postmark का सर्वर API टोकन |
+| `GLOBAL_EMAIL_RESEND_API_KEY` | `email.resend.apiKey`, या `email.existingSecret.name` में नामित Secret | Resend की API कुंजी |
+
+केवल वही वेरिएबल इस्तेमाल होते हैं जिन्हें सर्वर प्रकार पढ़ता है: `custom-smtp` के लिए `GLOBAL_EMAIL_SMTP_` वाले, और किसी प्रदाता के लिए उसके अपने। सर्वर का लॉग और Admin Dashboard सेट किए गए किसी भी दूसरे वेरिएबल का नाम अप्रयुक्त के रूप में बताते हैं।
+
+Helm के साथ, इन्हें अपनी values में `email` के नीचे सेट करें। पासवर्ड या कुंजी को उन values से बाहर रखने के लिए जिन्हें Helm हर release के साथ सहेजता है, उसे अपने खुद के Secret में रखें और उस Secret का नाम `email.existingSecret.name` में दें। चार्ट उसे `email.existingSecret.key` में दी गई कुंजी से पढ़ता है, नहीं तो उसके नाम वाली कुंजी से: `smtpPassword`, `smtpOAuthClientSecret`, `sendgridApiKey`, `amazonSesSecretAccessKey`, `mailgunApiKey`, `postmarkServerToken` या `resendApiKey`।
+
+```bash
+kubectl create secret generic oneuptime-email --namespace oneuptime \
+  --from-literal=smtpPassword=YOUR_SMTP_PASSWORD
+```
+
+```yaml
+email:
+  serverType: custom-smtp
+  fromEmail: alerts@example.com
+  fromName: OneUptime
+  smtp:
+    host: smtp.example.com
+    port: 587
+    requireTls: true
+    username: alerts@example.com
+  existingSecret:
+    name: oneuptime-email
+```
+
+चार्ट `email.serverType` के बिना दूसरे `email` मान, ऐसी सेटिंग्स जिनमें वह पासवर्ड या कुंजी न हो जिसे वे पढ़ती हैं, values और Secret दोनों में दिया गया पासवर्ड या कुंजी, और ऐसा Secret जिससे सेटिंग्स कुछ नहीं पढ़तीं, अस्वीकार करता है। Terraform के साथ, यही मान किसी `helm_release` पर सेट करें, पासवर्ड या कुंजी को संवेदनशील मान के रूप में।
+
+Docker Compose के साथ, `config.env` में `GLOBAL_EMAIL_` सेटिंग्स सेट करें, फिर कंटेनर दोबारा बनाने के लिए `npm run start` चलाएँ।
+
+OneUptime शुरू होते समय वेरिएबल पढ़ता है। अगर कोई गलत है, जैसे ऐसा पोर्ट जो संख्या नहीं है या पासवर्ड का न होना, तो उसे ठीक किए जाने तक सर्वर कोई ईमेल नहीं भेजता; सर्वर का लॉग, Admin Dashboard की ईमेल सेटिंग्स और `/admin/setup` पर चेकलिस्ट उस वेरिएबल का नाम बताते हैं। पासवर्ड और कुंजियाँ कभी नहीं दिखाई जातीं। सेटिंग्स बदलने के लिए, वेरिएबल बदलें और OneUptime को रीस्टार्ट करें: Admin Dashboard इन्हें नहीं बदलता।
 
 ## समस्या निवारण
 

@@ -74,6 +74,11 @@ describe("an issue's status, as the pill and the filter say it", () => {
     ).toBe("Open");
   });
 
+  /*
+   * The labels are already in the reader's words, so the filter's menu and
+   * its chip draw them as they are - never looked up a second time
+   * (DropdownOption.isUserContent, #7690) - and the page's way.
+   */
   test("the filter offers every status, valued as stored and labelled as the pill", () => {
     const german: Translator = translatorOf("de", {
       Open: "Öffnen",
@@ -88,6 +93,8 @@ describe("an issue's status, as the pill and the filter say it", () => {
           return {
             value: status,
             label: getIssueStatusLabel(german, status),
+            isUserContent: true,
+            isInPageDirection: true,
           };
         },
       ),

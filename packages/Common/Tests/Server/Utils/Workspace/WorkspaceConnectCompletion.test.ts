@@ -217,7 +217,8 @@ describe("a press OneUptime finishes", () => {
       kind: WorkspacePendingActionKind.MarkAsComplete,
       eventType: WorkspaceEventType.ScheduledMaintenance,
       modelType: ScheduledMaintenanceStateTimeline,
-      purpose: "mark this scheduled maintenance event as complete",
+      // A maintenance event, as the model has named it since #6817.
+      purpose: "mark this maintenance event as complete",
       done: "resolve" as const,
       logged: "mark_scheduled_maintenance_as_complete",
     },
@@ -225,7 +226,7 @@ describe("a press OneUptime finishes", () => {
       kind: WorkspacePendingActionKind.MarkAsOngoing,
       eventType: WorkspaceEventType.ScheduledMaintenance,
       modelType: ScheduledMaintenanceStateTimeline,
-      purpose: "mark this scheduled maintenance event as ongoing",
+      purpose: "mark this maintenance event as ongoing",
       done: "markAsOngoing" as const,
       logged: "mark_scheduled_maintenance_as_ongoing",
     },
@@ -357,6 +358,64 @@ describe("a press OneUptime finishes", () => {
       answeredPageCount: 1,
     });
   });
+
+  /*
+   * A policy a person started by hand for an episode goes on until
+   * somebody it paged answers it (OnCallPolicyStartedByHand, #7596): their
+   * Acknowledge on the episode somebody else is on, finished once
+   * connected, answers their page about it too.
+   */
+  test.each([
+    [WorkspaceEventType.IncidentEpisode, "incident episode"],
+    [WorkspaceEventType.AlertEpisode, "alert episode"],
+  ])(
+    "Acknowledge on an %s somebody else is on answers the presser's own page about it",
+    async (eventType: WorkspaceEventType, kind: string) => {
+      const episodeId: ObjectID = ObjectID.generate();
+      const episode: WorkspaceEventRecord = {
+        ...incident(),
+        type: eventType,
+        id: episodeId,
+      };
+      authorize.mockResolvedValue(episode);
+      getStanding.mockResolvedValue(standing({ isAcknowledged: true }));
+      const pagesAnswered: jest.SpyInstance = jest
+        .spyOn(OnCallPersonPageAnswer, "onAcknowledgePressed")
+        .mockResolvedValue(1);
+      const already: jest.SpyInstance = jest
+        .spyOn(WorkspaceActionAnswers, "getAlreadyAnswer")
+        .mockResolvedValue({
+          markdown: "✅ You acknowledged the page, so paging stopped.",
+          text: "You acknowledged the page, so paging stopped",
+        });
+
+      await WorkspaceConnectCompletion.complete({
+        request: request({
+          purpose: `acknowledge this ${kind}`,
+          pendingAction: {
+            kind: WorkspacePendingActionKind.Acknowledge,
+            eventType: eventType,
+            eventId: episodeId,
+          },
+        }),
+        userId: USER_ID,
+      });
+
+      expect(acknowledge).not.toHaveBeenCalled();
+      expect(pagesAnswered).toHaveBeenCalledWith({
+        kind: kind,
+        recordId: episodeId,
+        projectId: PROJECT_ID,
+        pressedByUserId: USER_ID,
+        isResolved: false,
+      });
+      expect(already).toHaveBeenCalledWith({
+        event: episode,
+        press: "Acknowledge",
+        answeredPageCount: 1,
+      });
+    },
+  );
 
   test("Resolve on a resolved incident answers no page: only Acknowledge does", async () => {
     getStanding.mockResolvedValue(

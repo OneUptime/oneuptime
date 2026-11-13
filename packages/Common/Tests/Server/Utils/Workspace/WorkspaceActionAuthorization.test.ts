@@ -598,7 +598,8 @@ describe("WorkspaceActionAuthorization.assertCanCreate", (): void => {
       WorkspaceActionAuthorization.assertCanCreate({
         props: createProps([{ permission: Permission.Viewer }]),
         modelType: ScheduledMaintenance,
-        action: "create a scheduled maintenance event",
+        // A maintenance event, as the model has named it since #6817.
+        action: "create a maintenance event",
       }),
     ).rejects.toBeInstanceOf(NotAuthorizedException);
 
@@ -608,7 +609,7 @@ describe("WorkspaceActionAuthorization.assertCanCreate", (): void => {
           { permission: Permission.ScheduledMaintenanceMember },
         ]),
         modelType: ScheduledMaintenance,
-        action: "create a scheduled maintenance event",
+        action: "create a maintenance event",
       }),
     ).resolves.toBeUndefined();
   });

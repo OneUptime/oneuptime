@@ -1147,3 +1147,91 @@ describe("with nobody known to be signed in", () => {
     expect(createOrUpdateMock).not.toHaveBeenCalled();
   });
 });
+
+/*
+ * Issue #7593: opened at 12:34:56, Starts read "03/03/2026 12:34:56" beside
+ * an Ends of "12:36", and the browser's picker asked for the seconds. It
+ * now reads the minute the dialog was opened in, and what is saved is on
+ * the minute: an override people book is to the minute.
+ */
+describe.each(["global", "policy"] as Array<Page>)(
+  "the %s page's Add User Override, opened seconds into a minute",
+  (page: Page) => {
+    const OPENED: Date = OneUptimeDate.fromString("2026-03-03T12:34:56.789Z");
+
+    beforeEach(() => {
+      jest.spyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(OPENED);
+    });
+
+    test("Starts reads the minute it was opened in, and neither time asks for seconds", async () => {
+      await renderPage(page);
+      const modal: HTMLElement = await openAddDialog();
+
+      expect(timeInput(modal, "Starts").value).toBe("2026-03-03T12:34");
+      expect(timeInput(modal, "Starts")).toHaveAttribute(
+        "type",
+        "datetime-local",
+      );
+      expect(timeInput(modal, "Starts")).not.toHaveAttribute("step");
+      expect(timeInput(modal, "Ends")).not.toHaveAttribute("step");
+    });
+
+    test("saved as it opened, the cover starts at that minute and ends at the minute picked", async () => {
+      await renderPage(page);
+      const modal: HTMLElement = await openAddDialog();
+
+      await pick(modal, "Who covers?", "Choose someone", SAM);
+      // What the browser hands back for an end picked to the minute.
+      fireEvent.change(timeInput(modal, "Ends"), {
+        target: { value: "2026-03-10T09:00" },
+      });
+      expect(timeInput(modal, "Ends").value).toBe("2026-03-10T09:00");
+
+      await submit(modal);
+
+      await waitFor(() => {
+        expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+      });
+
+      const sent: OnCallDutyPolicyUserOverride = sentOverride();
+
+      expect(OneUptimeDate.fromString(sent.startsAt!).toISOString()).toBe(
+        "2026-03-03T12:34:00.000Z",
+      );
+      expect(OneUptimeDate.fromString(sent.endsAt!).toISOString()).toBe(
+        "2026-03-10T09:00:00.000Z",
+      );
+    });
+
+    test("'Get cover' on a shift already under way covers from the minute it was opened in", async () => {
+      await renderPage(
+        page,
+        coverSearch({
+          startsAt: OneUptimeDate.fromString("2026-03-03T09:00:00.000Z"),
+          endsAt: OneUptimeDate.fromString("2026-03-03T17:00:00.000Z"),
+        }),
+      );
+
+      const modal: HTMLElement = await findOpenDialog();
+
+      expect(timeInput(modal, "Starts").value).toBe("2026-03-03T12:34");
+      expect(timeInput(modal, "Ends").value).toBe("2026-03-03T17:00");
+
+      await pick(modal, "Who covers?", "Choose someone", SAM);
+      await submit(modal);
+
+      await waitFor(() => {
+        expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+      });
+
+      const sent: OnCallDutyPolicyUserOverride = sentOverride();
+
+      expect(OneUptimeDate.fromString(sent.startsAt!).toISOString()).toBe(
+        "2026-03-03T12:34:00.000Z",
+      );
+      expect(OneUptimeDate.fromString(sent.endsAt!).toISOString()).toBe(
+        "2026-03-03T17:00:00.000Z",
+      );
+    });
+  },
+);

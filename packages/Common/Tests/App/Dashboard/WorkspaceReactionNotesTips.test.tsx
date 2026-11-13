@@ -36,7 +36,10 @@ jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownViewer", () => {
   };
 });
 
-import WorkspaceReactionNotesTips from "../../../../App/FeatureSet/Dashboard/src/Components/Workspace/WorkspaceReactionNotesTips";
+import WorkspaceReactionNotesTips, {
+  getReactionPrivateNoteLine,
+  REACTION_PRIVATE_NOTE_LINES,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Workspace/WorkspaceReactionNotesTips";
 import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 const LOCALES_DIR: string = path.resolve(
@@ -50,8 +53,21 @@ function readLocale(locale: string): Record<string, string> {
   ) as Record<string, string>;
 }
 
-// Every line the card can show, as en.json keys.
-const PIN: string =
+/*
+ * Every line the card can show, as en.json keys. What a pin saves names who
+ * can read it, the people who can see the record, one line a record: it said
+ * "visible only to your team", which read as one of OneUptime's Teams - or,
+ * on the Microsoft Teams page, as the team in Microsoft Teams (#7595).
+ */
+const PIN_INCIDENT: string =
+  "- 📌 **Pin** (📌, 📍) - React with a pin to save the message as a **private note** (only people who can see the incident can read it).";
+const PIN_EPISODE: string =
+  "- 📌 **Pin** (📌, 📍) - React with a pin to save the message as a **private note** (only people who can see the episode can read it).";
+const PIN_ALERT: string =
+  "- 📌 **Pin** (📌, 📍) - React with a pin to save the message as a **private note** (only people who can see the alert can read it).";
+const PIN_MAINTENANCE: string =
+  "- 📌 **Pin** (📌, 📍) - React with a pin to save the message as a **private note** (only people who can see the maintenance event can read it).";
+const OLD_PIN: string =
   "- 📌 **Pin** (📌, 📍) - React with a pin to save the message as a **private note** (visible only to your team).";
 const PIN_TO_CHANNEL: string =
   "- **Pin to channel** - Pinning the message with Slack's own *Pin to channel* does the same as a pin.";
@@ -71,7 +87,10 @@ const DESCRIPTION: string =
   "You can use emoji reactions in {{workspace}} to save messages as notes on the {{resourceName}}.";
 
 const ALL_LINES: Array<string> = [
-  PIN,
+  PIN_INCIDENT,
+  PIN_EPISODE,
+  PIN_ALERT,
+  PIN_MAINTENANCE,
   PIN_TO_CHANNEL,
   MEGAPHONE,
   SLACK_WHERE,
@@ -131,7 +150,7 @@ describe("the emoji reaction tips, in English", () => {
 
     expect(markdown()).toBe(
       [
-        PIN,
+        PIN_INCIDENT,
         PIN_TO_CHANNEL,
         MEGAPHONE,
         "",
@@ -161,7 +180,7 @@ describe("the emoji reaction tips, in English", () => {
 
     expect(markdown()).toBe(
       [
-        PIN,
+        PIN_ALERT,
         "",
         "This works in the channel OneUptime created for the alert, on messages and on replies. OneUptime picks the reaction up within a minute, saves the message and confirms with a reply in the thread.",
         "",
@@ -184,6 +203,7 @@ describe("the emoji reaction tips, in English", () => {
     );
 
     expect(markdown()).toContain(PIN_TO_CHANNEL);
+    expect(markdown()).toContain(PIN_EPISODE);
     expect(markdown()).not.toContain("Megaphone");
     expect(markdown()).toContain("the channel of the alert episode");
     cleanup();
@@ -197,10 +217,59 @@ describe("the emoji reaction tips, in English", () => {
     );
 
     expect(markdown()).toContain(MEGAPHONE);
+    expect(markdown()).toContain(PIN_MAINTENANCE);
     expect(markdown()).not.toContain("Pin to channel");
     expect(markdown()).toContain(
       "the channel OneUptime created for the scheduled maintenance event",
     );
+  });
+
+  test.each([
+    ["incident", PIN_INCIDENT],
+    ["incident episode", PIN_EPISODE],
+    ["alert", PIN_ALERT],
+    ["alert episode", PIN_EPISODE],
+    ["scheduled maintenance event", PIN_MAINTENANCE],
+  ])(
+    "on the pages of an %s, a pin saves a note only the people who can see it can read",
+    (resourceName: string, line: string) => {
+      for (const workspaceType of [
+        WorkspaceType.Slack,
+        WorkspaceType.MicrosoftTeams,
+      ]) {
+        render(
+          <WorkspaceReactionNotesTips
+            workspaceType={workspaceType}
+            resourceName={resourceName}
+            supportsPublicNotes={false}
+          />,
+        );
+
+        expect(markdown().split("\n")[0]).toBe(line);
+        expect(markdown()).not.toContain("your team");
+        expect(markdown()).not.toContain(OLD_PIN);
+        cleanup();
+      }
+    },
+  );
+
+  test("every record the pages name has its line, and a record not listed reads as an incident's", () => {
+    expect(Object.keys(REACTION_PRIVATE_NOTE_LINES).sort()).toEqual(
+      [
+        "alert",
+        "alert episode",
+        "incident",
+        "incident episode",
+        "scheduled maintenance event",
+      ].sort(),
+    );
+    expect(getReactionPrivateNoteLine("monitor")).toBe(PIN_INCIDENT);
+
+    for (const line of Object.values(REACTION_PRIVATE_NOTE_LINES)) {
+      expect(line).toMatch(
+        /\(only people who can see the [a-z ]+ can read it\)\.$/,
+      );
+    }
   });
 
   test("nobody is told to connect first: a pin before connecting is saved once they have", () => {
@@ -241,6 +310,10 @@ describe("the emoji reaction tips, in German", () => {
       screen.getByText("Tipps: Emoji-Reaktionen verwenden"),
     ).toBeInTheDocument();
     expect(markdown()).toContain("**private Notiz**");
+    expect(markdown()).toContain(
+      "(nur wer den Vorfall sehen kann, kann sie lesen)",
+    );
+    expect(markdown()).not.toContain("Ihr Team");
     expect(markdown()).toContain("**öffentliche Notiz**");
     expect(markdown()).toContain("Wenn Ihr Slack-Konto noch nicht");
     expect(markdown()).toContain("Die Notiz behält die Formatierung");
@@ -270,6 +343,12 @@ describe("the emoji reaction tips, in every language", () => {
       }
     },
   );
+
+  test("the old pin line that said a team sees the note is gone from every file", () => {
+    for (const locale of ["en", ...LOCALES]) {
+      expect(Object.keys(readLocale(locale))).not.toContain(OLD_PIN);
+    }
+  });
 
   test("the old Teams line that said to connect first is gone from every file", () => {
     for (const locale of ["en", ...LOCALES]) {

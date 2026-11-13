@@ -591,6 +591,7 @@ const ProjectSubscription: FunctionComponent = (): ReactElement => {
               fieldType: FormFieldSchemaType.Number,
               required: false,
               placeholder: t("pages.projectSubscription.noMonitorLimit"),
+              isPlaceholderTranslated: true,
               validation: {
                 minValue: 1,
               },
@@ -831,6 +832,7 @@ const ProjectSubscription: FunctionComponent = (): ReactElement => {
                   required: true,
                   fieldType: FormFieldSchemaType.Text,
                   placeholder: t("pages.projectSubscription.reasonPlaceholder"),
+                  isPlaceholderTranslated: true,
                 },
               ],
             }}

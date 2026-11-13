@@ -2675,14 +2675,39 @@ test.describe("a resource's page and an account's Overview", () => {
         await open(page, `${CLOUD}/${SHOP_WEB_1_ID}`, way.query);
         const sizing: Locator = page.getByTestId("cloud-right-sizing");
         await expect(sizing).toHaveAttribute("data-verdict", "overprovisioned");
-        // A size is its cloud's own name, left to right on every page.
-        await expect(
-          sizing.getByTestId("cloud-right-sizing-change"),
-        ).toHaveText("Standard_D8s_v5 → Standard_D4s_v5");
-        await expect(sizing.getByTestId("cloud-right-sizing-change")).toHaveCSS(
-          "direction",
-          "ltr",
+        /*
+         * The line reads the page's way and its arrow points on to the size
+         * it would take (8654ea1ce45): "→", and on a page read from the
+         * right "←", the size it has now at the line's right.
+         */
+        const isReadFromTheRight: boolean = way.name === "fa";
+        const change: Locator = sizing.getByTestId("cloud-right-sizing-change");
+        await expect(change).toHaveText(
+          isReadFromTheRight
+            ? "Standard_D8s_v5 ← Standard_D4s_v5"
+            : "Standard_D8s_v5 → Standard_D4s_v5",
         );
+        await expect(change).toHaveCSS(
+          "direction",
+          isReadFromTheRight ? "rtl" : "ltr",
+        );
+        /*
+         * A size is its cloud's own name, set apart, read left to right on
+         * every page.
+         */
+        const sizes: Locator = change.locator("bdi");
+        await expect(sizes).toHaveText(["Standard_D8s_v5", "Standard_D4s_v5"]);
+        for (const size of await sizes.all()) {
+          await expect(size).toHaveCSS("direction", "ltr");
+        }
+        const [current, recommended] = await boxesInOneFrame([
+          sizes.nth(0),
+          sizes.nth(1),
+        ]);
+        expect(
+          current!.x > recommended!.x,
+          "the size it has now starts the line",
+        ).toBe(isReadFromTheRight);
 
         if (way.name === "de") {
           await expect(

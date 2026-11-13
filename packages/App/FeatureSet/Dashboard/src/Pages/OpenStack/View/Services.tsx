@@ -365,10 +365,7 @@ const OpenStackCloudServices: FunctionComponent<
               onChange={(value: string) => {
                 setSearch(value);
               }}
-              placeholder={
-                translator.translateText("Search by service or host") ||
-                "Search by service or host"
-              }
+              placeholder="Search by service or host"
               ariaLabel={
                 translator.translateText("Search by service or host") ||
                 "Search by service or host"

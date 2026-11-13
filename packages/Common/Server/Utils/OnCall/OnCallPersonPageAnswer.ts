@@ -4,6 +4,7 @@ import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
 import { isOnCallPersonPage } from "../../../Types/OnCallDutyPolicy/OnCallPersonPage";
 import { isOnCallObserverPage } from "../../../Types/OnCallDutyPolicy/OnCallObserverPage";
+import { isOnCallPolicyStartedByHand } from "../../../Types/OnCallDutyPolicy/OnCallPolicyStartedByHand";
 import UserNotificationExecutionStatus from "../../../Types/UserNotification/UserNotificationExecutionStatus";
 import UserOnCallLogService from "../../Services/UserOnCallLogService";
 import UserOnCallLogTimelineService from "../../Services/UserOnCallLogTimelineService";
@@ -18,27 +19,30 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
  * Teams channel, or the incident's Page Someone (OnCallPersonPage) - goes on
  * until somebody it paged answers it, or its record is resolved: somebody
  * else acknowledging the incident does not stop it, since it was them the
- * page was for. Answering it is what its link, a call's 1 or a text do
- * (UserOnCallLogTimelineService.acknowledgePage) - and, just as naturally,
- * acknowledging the incident itself: its button in the channel, the
- * Dashboard, the app. Without this, the person paged who acknowledged the
- * incident from its channel was called ten minutes later, for a page they
- * had not answered.
+ * page was for. So does an on-call policy a person started by hand for an
+ * incident, an alert or an episode (OnCallPolicyStartedByHand), and what
+ * follows answers its pages the same way. Answering it is what its link, a
+ * call's 1 or a text do (UserOnCallLogTimelineService.acknowledgePage) -
+ * and, just as naturally, acknowledging the incident itself: its button in
+ * the channel, the Dashboard, the app. Without this, the person paged who
+ * acknowledged the incident from its channel was called ten minutes later,
+ * for a page they had not answered.
  *
- * So when somebody moves an incident or an alert into a state that counts
- * as acknowledged and is not resolved (a resolve ends every page of it),
- * each of THEIR pages still going out about it from a person's page nobody
- * answered yet is acknowledged, as theirs: their notifications still due
- * stop, the page is answered and ends for everybody it paged, and its
- * message in the channel says they acknowledged. A change somebody else
- * makes answers nothing of theirs, and one OneUptime makes on its own (no
- * person) answers nothing at all. Pressing Acknowledge in Slack or
- * Microsoft Teams on a record somebody else acknowledged already answers
- * the presser's pages too (onAcknowledgePressed): it is the same "I'm on
- * it", though the record's state does not move.
+ * So when somebody moves an incident, an alert or an episode into a state
+ * that counts as acknowledged and is not resolved (a resolve ends every page
+ * of it), each of THEIR pages still going out about it from a person's page
+ * or a policy started by hand nobody answered yet is acknowledged, as
+ * theirs: their notifications still due stop, the page is answered and ends
+ * for everybody it paged, and its message in the channel says they
+ * acknowledged. A change somebody else makes answers nothing of theirs, and
+ * one OneUptime makes on its own (no person) answers nothing at all.
+ * Pressing Acknowledge in Slack, Microsoft Teams or Mattermost on a record
+ * somebody else acknowledged already - an incident, an alert or an episode
+ * - answers the presser's pages too (onAcknowledgePressed): it is the same
+ * "I'm on it", though the record's state does not move.
  *
- * Every state timeline of an incident or an alert tells the one hook every
- * state change reaches (OnCallAcknowledgementTimeout.onRecordStateChanged),
+ * Every state timeline of an incident, an alert or an episode tells the one
+ * hook every state change reaches (OnCallAcknowledgementTimeout.onRecordStateChanged),
  * for the record's current state only - a back-dated row is no answer - and
  * that hook hands the change on to this, with who made it. Imported there
  * rather than by the state timelines themselves, whose own imports load
@@ -47,7 +51,26 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
  * from the page.
  */
 
-export type OnCallPersonPageRecordKind = "incident" | "alert";
+// Every kind of record a page is about, as the clock names it.
+export type OnCallPersonPageRecordKind =
+  | "incident"
+  | "alert"
+  | "incident episode"
+  | "alert episode";
+
+// The column of a person's page that names its record, by its kind.
+const RECORD_COLUMN: Record<
+  OnCallPersonPageRecordKind,
+  | "triggeredByIncidentId"
+  | "triggeredByAlertId"
+  | "triggeredByIncidentEpisodeId"
+  | "triggeredByAlertEpisodeId"
+> = {
+  incident: "triggeredByIncidentId",
+  alert: "triggeredByAlertId",
+  "incident episode": "triggeredByIncidentEpisodeId",
+  "alert episode": "triggeredByAlertEpisodeId",
+};
 
 // The statuses of a person's page still going out to them.
 const OPEN_PAGE_STATUSES: Array<UserNotificationExecutionStatus> = [
@@ -58,15 +81,16 @@ const OPEN_PAGE_STATUSES: Array<UserNotificationExecutionStatus> = [
 
 export default class OnCallPersonPageAnswer {
   /*
-   * Acknowledge pressed on an incident or an alert that is acknowledged
-   * already - in Slack or Microsoft Teams, where the press is answered with
-   * who got there first. It is the press a person paged into an incident
-   * somebody else is on makes in its channel, and the incident's state does
-   * not move, so onRecordStateChanged hears nothing: the press answers the
-   * presser's own person's pages about it all the same, as acknowledging it
-   * would have. Without this, they were called again ten minutes after
-   * pressing Acknowledge. A resolved record answers nothing: resolving it
-   * ended its pages. Returns how many were answered; never throws.
+   * Acknowledge pressed on an incident, an alert or an episode that is
+   * acknowledged already - in Slack, Microsoft Teams or Mattermost, where
+   * the press is answered with who got there first. It is the press a
+   * person paged into an incident somebody else is on makes in its channel,
+   * and the incident's state does not move, so onRecordStateChanged hears
+   * nothing: the press answers the presser's own person's pages about it all
+   * the same, as acknowledging it would have. Without this, they were called
+   * again ten minutes after pressing Acknowledge. A resolved record answers
+   * nothing: resolving it ended its pages. Returns how many were answered;
+   * never throws.
    */
   @CaptureSpan()
   public static async onAcknowledgePressed(data: {
@@ -113,9 +137,7 @@ export default class OnCallPersonPageAnswer {
           projectId: data.projectId,
           userId: data.changedByUserId,
           status: QueryHelper.any(OPEN_PAGE_STATUSES),
-          ...(data.kind === "incident"
-            ? { triggeredByIncidentId: data.recordId }
-            : { triggeredByAlertId: data.recordId }),
+          [RECORD_COLUMN[data.kind]]: data.recordId,
         },
         select: {
           _id: true,
@@ -123,12 +145,17 @@ export default class OnCallPersonPageAnswer {
           onCallDutyPolicyExecutionLogTimelineId: true,
           triggeredByIncidentId: true,
           triggeredByAlertId: true,
+          triggeredByIncidentEpisodeId: true,
+          triggeredByAlertEpisodeId: true,
           onCallDutyPolicyExecutionLog: {
             onCallDutyPolicyId: true,
             triggeredByUserId: true,
             triggeredByWorkflowId: true,
             acknowledgedAt: true,
             isObserverPage: true,
+            // A page again and a test page are no policy started by hand.
+            pageAgainNumber: true,
+            userNotificationEventType: true,
           },
         },
         skip: 0,
@@ -137,14 +164,16 @@ export default class OnCallPersonPageAnswer {
       });
 
       /*
-       * A person's page, or an observer's (OnCallObserverPage) - an observer
-       * who acknowledges the record has seen it - of a run nobody answered
-       * yet, that can be answered.
+       * A person's page, a page of a policy a person started by hand, or an
+       * observer's (OnCallObserverPage) - an observer who acknowledges the
+       * record has seen it - of a run nobody answered yet, that can be
+       * answered.
        */
       const unanswered: Array<UserOnCallLog> = logs.filter(
         (log: UserOnCallLog): boolean => {
           return (
             (isOnCallPersonPage(log.onCallDutyPolicyExecutionLog) ||
+              isOnCallPolicyStartedByHand(log.onCallDutyPolicyExecutionLog) ||
               isOnCallObserverPage(log.onCallDutyPolicyExecutionLog)) &&
             !log.onCallDutyPolicyExecutionLog?.acknowledgedAt &&
             Boolean(log.onCallDutyPolicyExecutionLogId) &&
@@ -166,6 +195,8 @@ export default class OnCallPersonPageAnswer {
               log.onCallDutyPolicyExecutionLogTimelineId,
             triggeredByIncidentId: log.triggeredByIncidentId,
             triggeredByAlertId: log.triggeredByAlertId,
+            triggeredByIncidentEpisodeId: log.triggeredByIncidentEpisodeId,
+            triggeredByAlertEpisodeId: log.triggeredByAlertEpisodeId,
             acknowledgedAt: acknowledgedAt,
           });
           answered++;

@@ -330,7 +330,7 @@ Neben den Tools für jede Art von Datensatz hat der Server Tools speziell für d
 
 - **`acknowledge_incident`** / **`resolve_incident`**: einen Vorfall in den Zustand Acknowledged oder Resolved des Projekts versetzen, wie es die Schaltfläche im Dashboard tut
 - **`acknowledge_alert`** / **`resolve_alert`**: dasselbe für Warnungen
-- **`add_incident_note`**: einem Vorfall eine Notiz hinzufügen, mit `visibility: "internal"` (nur das Team, der Standard) oder `visibility: "public"` (auf der Statusseite veröffentlicht). Markdown wird unterstützt
+- **`add_incident_note`**: einem Vorfall eine Notiz hinzufügen, mit `visibility: "internal"` (nur wer den Vorfall sehen kann, der Standard) oder `visibility: "public"` (auf der Statusseite veröffentlicht). Markdown wird unterstützt
 - **`add_alert_note`**: einer Warnung eine interne Notiz hinzufügen
 
 Ein typischer Ablauf: `list_incidents` → `acknowledge_incident` → mit `list_logs` untersuchen → `add_incident_note` (öffentlich) → `resolve_incident`.

@@ -24,6 +24,7 @@ import {
 import {
   formatUserFlowCount,
   formatUserFlowShare,
+  getUserFlowPathDirection,
   pluralizeSessions,
   truncateUserFlowLabel,
 } from "./UserFlowFormat";
@@ -32,7 +33,13 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { getLineDirection } from "Common/UI/Utils/LineDirection";
+import { joinWithArrowsInDirection } from "Common/Types/DirectionArrow";
+import { LEFT_TO_RIGHT, ReadingDirection } from "Common/Types/ReadingDirection";
+import {
+  getLineDirection,
+  getOneWayLineDirection,
+  LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME,
+} from "Common/UI/Utils/LineDirection";
 
 /*
  * The flow map itself: an SVG Sankey drawn from UserFlowLayout.
@@ -97,6 +104,13 @@ interface Tooltip {
   x: number;
   y: number;
   title: string;
+  /*
+   * The way the title reads on every page when it is a line read one way
+   * everywhere: a band's two pages and the arrow between them, and a
+   * page's path (getUserFlowPathDirection). None for the fold's name, which
+   * reads the way its letters do.
+   */
+  titleDirection?: ReadingDirection | undefined;
   lines: Array<string>;
 }
 
@@ -410,6 +424,12 @@ const UserFlowMap: FunctionComponent<ComponentProps> = (
     return COLORS.continued;
   };
 
+  const tooltipTitleDirection: ReadingDirection | undefined = !tooltip
+    ? undefined
+    : tooltip.titleDirection
+      ? getOneWayLineDirection(tooltip.titleDirection, translator.language)
+      : getLineDirection(tooltip.title, translator.language);
+
   return (
     <div className="relative" data-testid="user-flow-map" ref={containerRef}>
       <div className="overflow-x-auto overflow-y-hidden pb-2">
@@ -559,12 +579,23 @@ const UserFlowMap: FunctionComponent<ComponentProps> = (
 
                     setHoverLinkId(band.link.id);
                     setHoverNodeId(null);
+                    /*
+                     * The map runs left to right on every page, so its
+                     * band is named the map's way, and read that way
+                     * whatever letters its pages are named in:
+                     * "/home → /cart".
+                     */
                     setTooltip({
                       x: at.x,
                       y: at.y,
-                      title: `${source ? labelOf(source.node) : ""} → ${
-                        target ? labelOf(target.node) : ""
-                      }`,
+                      title: joinWithArrowsInDirection(
+                        [
+                          source ? labelOf(source.node) : "",
+                          target ? labelOf(target.node) : "",
+                        ],
+                        LEFT_TO_RIGHT,
+                      ),
+                      titleDirection: LEFT_TO_RIGHT,
                       lines: describeLink(band.link),
                     });
                   }}
@@ -659,6 +690,9 @@ const UserFlowMap: FunctionComponent<ComponentProps> = (
                       x: at.x,
                       y: at.y,
                       title: labelOf(node),
+                      titleDirection: node.isOther
+                        ? undefined
+                        : getUserFlowPathDirection(node.page),
                       lines: describeNode(node),
                     });
                   }}
@@ -753,10 +787,17 @@ const UserFlowMap: FunctionComponent<ComponentProps> = (
           role="tooltip"
           data-testid="user-flow-tooltip"
         >
-          {/* "/cart → /home" reads from the left on any page. */}
+          {/*
+           * A band's "/cart → /home" reads from the left on any page,
+           * whatever letters its pages are named in, and so does a page's
+           * path, "/" first; the fold's name, the way its letters do.
+           * Either starts where the page's lines do, as the lines under it.
+           */}
           <p
-            className="mb-1 break-all font-semibold"
-            dir={getLineDirection(tooltip.title, translator.language)}
+            className={`mb-1 break-all font-semibold ${
+              tooltipTitleDirection ? LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME : ""
+            }`}
+            dir={tooltipTitleDirection}
           >
             {tooltip.title}
           </p>

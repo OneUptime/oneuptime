@@ -1,4 +1,7 @@
 import GlobalConfig from "../../Models/DatabaseModels/GlobalConfig";
+import ServerTwilioEnvironment, {
+  ServerTwilioEnvironmentReading,
+} from "../../Types/CallAndSMS/ServerTwilioEnvironment";
 import TwilioConfig from "../../Types/CallAndSMS/TwilioConfig";
 import TwilioConfigUses, {
   TwilioConfigUse,
@@ -10,47 +13,66 @@ import Phone from "../../Types/Phone";
  * THE ONEUPTIME SERVER'S OWN TWILIO ACCOUNT, AS THE SENDERS TAKE IT.
  *
  * Admin Dashboard > Settings > Call and SMS keeps it in GlobalConfig, read
- * with GLOBAL_TWILIO_CONFIG_SELECT. It is set up once it has an account SID,
- * an auth token and the numbers what it is used for takes
- * (Types/CallAndSMS/TwilioConfigUse): a number to make calls from, unless it
- * is used for SMS only - it then lists the numbers every SMS goes out from.
- * The Notification service sends through it (Notification/Config
- * getTwilioConfig), and the checks made before a verification code is sent
- * ask whether it could (TwilioAccountAvailability) - one reading for both.
+ * with GLOBAL_TWILIO_CONFIG_SELECT - unless the GLOBAL_TWILIO_ environment
+ * variables set it (Types/CallAndSMS/ServerTwilioEnvironment, #7515): once
+ * GLOBAL_TWILIO_ACCOUNT_SID is set, the account is the one they describe,
+ * whatever the row holds, and with something wrong with them it sends
+ * nothing. It is set up once it has an account SID, an auth token and the
+ * numbers what it is used for takes (Types/CallAndSMS/TwilioConfigUse): a
+ * number to make calls from, unless it is used for SMS only - it then lists
+ * the numbers every SMS goes out from. The Notification service sends
+ * through it (Notification/Config getTwilioConfig), and the checks made
+ * before a verification code is sent ask whether it could
+ * (TwilioAccountAvailability), as does the server's sending status
+ * (ServerChannelSetup) - one reading for all of them, so the variables
+ * reach every one.
  *
  * An account used for SMS only makes no calls, and one used for calls only
  * sends no SMS (TwilioPhoneNumbers.canSend): such a message has no account
  * on the server to go through.
  */
-export const toServerTwilioConfig: (
-  globalConfig: GlobalConfig | null | undefined,
+
+// The columns of the account, as the row holds them and the variables give them.
+type ServerTwilioColumns = {
+  [Column in
+    | "twilioUsedFor"
+    | "twilioAccountSID"
+    | "twilioAuthToken"
+    | "twilioPrimaryPhoneNumber"
+    | "twilioSecondaryPhoneNumbers"
+    | "twilioSmsPhoneNumbers"]?: GlobalConfig[Column] | undefined;
+};
+
+/*
+ * The GLOBAL_TWILIO_ variables as this server was started with them, read
+ * again on every call: a test, or a process that sets them, is read as it
+ * is now.
+ */
+export const getServerTwilioEnvironment: () => ServerTwilioEnvironmentReading =
+  (): ServerTwilioEnvironmentReading => {
+    return ServerTwilioEnvironment.read(process.env);
+  };
+
+const toTwilioConfig: (
+  columns: ServerTwilioColumns | null | undefined,
 ) => TwilioConfig | null = (
-  globalConfig: GlobalConfig | null | undefined,
+  columns: ServerTwilioColumns | null | undefined,
 ): TwilioConfig | null => {
-  if (
-    !globalConfig ||
-    !globalConfig.twilioAccountSID ||
-    !globalConfig.twilioAuthToken
-  ) {
+  if (!columns || !columns.twilioAccountSID || !columns.twilioAuthToken) {
     return null;
   }
 
-  const use: TwilioConfigUse = TwilioConfigUses.getUse(
-    globalConfig.twilioUsedFor,
-  );
+  const use: TwilioConfigUse = TwilioConfigUses.getUse(columns.twilioUsedFor);
 
-  if (
-    !globalConfig.twilioPrimaryPhoneNumber &&
-    use !== TwilioConfigUse.SmsOnly
-  ) {
+  if (!columns.twilioPrimaryPhoneNumber && use !== TwilioConfigUse.SmsOnly) {
     return null;
   }
 
   const twilioConfig: TwilioConfig = {
-    accountSid: globalConfig.twilioAccountSID,
-    authToken: globalConfig.twilioAuthToken,
+    accountSid: columns.twilioAccountSID,
+    authToken: columns.twilioAuthToken,
     secondaryPhoneNumbers: TwilioPhoneNumbers.parseList(
-      globalConfig.twilioSecondaryPhoneNumbers,
+      columns.twilioSecondaryPhoneNumbers,
     ),
   };
 
@@ -59,13 +81,13 @@ export const toServerTwilioConfig: (
     twilioConfig.use = use;
   }
 
-  if (globalConfig.twilioPrimaryPhoneNumber) {
-    twilioConfig.primaryPhoneNumber = globalConfig.twilioPrimaryPhoneNumber;
+  if (columns.twilioPrimaryPhoneNumber) {
+    twilioConfig.primaryPhoneNumber = columns.twilioPrimaryPhoneNumber;
   }
 
   // Every SMS goes out from one of these, when the server lists them.
   const smsPhoneNumbers: Array<Phone> = TwilioPhoneNumbers.parseList(
-    globalConfig.twilioSmsPhoneNumbers,
+    columns.twilioSmsPhoneNumbers,
   );
 
   if (smsPhoneNumbers.length > 0) {
@@ -78,6 +100,24 @@ export const toServerTwilioConfig: (
   }
 
   return twilioConfig;
+};
+
+export const toServerTwilioConfig: (
+  globalConfig: GlobalConfig | null | undefined,
+) => TwilioConfig | null = (
+  globalConfig: GlobalConfig | null | undefined,
+): TwilioConfig | null => {
+  const environment: ServerTwilioEnvironmentReading =
+    getServerTwilioEnvironment();
+
+  if (environment.isSet) {
+    // The variables are the whole account, and one with a problem sends nothing.
+    return ServerTwilioEnvironment.isUsable(environment)
+      ? toTwilioConfig(environment.account)
+      : null;
+  }
+
+  return toTwilioConfig(globalConfig);
 };
 
 export default toServerTwilioConfig;

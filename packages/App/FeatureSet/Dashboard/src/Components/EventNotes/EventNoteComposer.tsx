@@ -37,6 +37,7 @@ import React, {
 } from "react";
 import { EventNoteKind } from "./EventNoteKind";
 import {
+  NoteActionFailedCopy,
   NotesCopy,
   applyTemplateToDraft,
   canWriteNoteColumn,
@@ -635,6 +636,11 @@ function EventNoteComposer<TNote extends BaseModel>(
         isPostedAtEditable={isCreatePostedAtEditable}
         isSubmitting={isPosting}
         error={postError}
+        errorWhatFailed={
+          isApprovalRequired
+            ? PublicNoteApprovalCopy.sendFailed
+            : NoteActionFailedCopy.post
+        }
         isAutoFocused={true}
         leadingActions={composerActions}
         submitLabel={isApprovalRequired ? submitLabel : undefined}
@@ -662,28 +668,51 @@ function EventNoteComposer<TNote extends BaseModel>(
     }
 
     if (!isOpen) {
+      /*
+       * The row is laid out by its own width, not the window's. Beside a
+       * record's side menu a 768 px window leaves it some 420 px, where the
+       * prompt sat beside Templates and Draft with AI cut down to its first
+       * word ("Write a…", "Eine …"). Narrower than 36rem the actions go under
+       * the prompt, and they wrap rather than squeeze: side by side on a
+       * German phone, Draft with AI broke its label in two and ran out of its
+       * button. The Private or Public chip joins them on a wide screen, where
+       * the row has room for it and the whole prompt beside it.
+       */
       return (
-        <div
-          className="flex flex-col gap-2 rounded-xl border border-gray-200 bg-white p-2 shadow-sm sm:flex-row sm:items-center"
-          data-testid="note-composer-prompt"
-        >
-          <button
-            type="button"
-            onClick={() => {
-              setIsOpen(true);
-            }}
-            className="flex min-w-0 flex-1 items-center gap-3 rounded-lg px-2 py-1.5 text-left transition hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+        <div className="[container-type:inline-size]">
+          <div
+            className="flex flex-col gap-2 rounded-xl border border-gray-200 bg-white p-2 shadow-sm [@container(min-width:36rem)]:flex-row [@container(min-width:36rem)]:items-center"
+            data-testid="note-composer-prompt"
           >
-            <NoteAvatar userId={safeUserId()} name={safeUserName()} size="sm" />
-            <span className="truncate text-sm text-gray-500">
-              {tx(copy.composerPrompt)}
-            </span>
-          </button>
-          <div className="flex items-center gap-1 pl-10 sm:pl-0">
-            <span className="mr-1 max-xl:hidden xl:inline-flex">
-              <AudienceBadge visibility={kind.visibility} copy={copy} />
-            </span>
-            {composerActions}
+            <button
+              type="button"
+              onClick={() => {
+                setIsOpen(true);
+              }}
+              className="flex min-w-0 flex-1 items-center gap-3 rounded-lg px-2 py-1.5 text-left transition hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+            >
+              <NoteAvatar
+                userId={safeUserId()}
+                name={safeUserName()}
+                size="sm"
+              />
+              <span className="truncate text-sm text-gray-500">
+                {tx(copy.composerPrompt)}
+              </span>
+            </button>
+            <div
+              className="flex flex-wrap items-center gap-1 ps-10 [@container(min-width:36rem)]:ps-0"
+              data-testid="note-composer-prompt-actions"
+            >
+              <span className="me-1 max-xl:hidden xl:inline-flex">
+                <AudienceBadge
+                  visibility={kind.visibility}
+                  copy={copy}
+                  isCompact={true}
+                />
+              </span>
+              {composerActions}
+            </div>
           </div>
         </div>
       );

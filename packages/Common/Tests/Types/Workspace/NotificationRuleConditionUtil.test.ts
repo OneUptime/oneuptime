@@ -308,10 +308,17 @@ describe("NotificationRuleConditionUtil.getCheckOnByEventType", () => {
         NotificationRuleEventType.OnCallDutyPolicy,
       );
 
+    /*
+     * The policies themselves first (#7554) - a new condition starts on
+     * them - then words in their name or description, their labels, and
+     * who owns them (#7583).
+     */
     expect(checkOns).toEqual([
+      NotificationRuleConditionCheckOn.OnCallDutyPolicies,
       NotificationRuleConditionCheckOn.OnCallDutyPolicyName,
       NotificationRuleConditionCheckOn.OnCallDutyPolicyDescription,
       NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels,
+      NotificationRuleConditionCheckOn.OnCallDutyPolicyOwners,
     ]);
     // Incident-only check-ons must not leak into the on-call editor.
     expect(checkOns).not.toContain(

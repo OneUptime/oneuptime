@@ -42,6 +42,7 @@ import AIInsightService, {
   Service as AIInsightServiceType,
 } from "Common/Server/Services/AIInsightService";
 import TelemetryAPI from "Common/Server/API/TelemetryAPI";
+import PrometheusAPI from "Common/Server/API/PrometheusAPI";
 import SessionReplayReadService from "Common/Server/Utils/SessionReplay/SessionReplayReadService";
 import { getRecorderVersion } from "../BrowserRecorder/Manifest";
 import ProbeAPI from "Common/Server/API/ProbeAPI";
@@ -1200,6 +1201,7 @@ import MonitorTimelineStatusService, {
 } from "Common/Server/Services/MonitorStatusTimelineService";
 // user override
 import OnCallDutyPolicyUserOverrideAPI from "Common/Server/API/OnCallDutyPolicyUserOverrideAPI";
+import OnCallDutyPolicyScheduleAPI from "Common/Server/API/OnCallDutyPolicyScheduleAPI";
 import OnCallDutyPolicyCustomFieldService, {
   Service as OnCallDutyPolicyCustomFieldServiceType,
 } from "Common/Server/Services/OnCallDutyPolicyCustomFieldService";
@@ -1244,9 +1246,6 @@ import OnCallDutyPolicyScheduleLayerService, {
 import OnCallDutyPolicyScheduleLayerUserService, {
   Service as OnCallDutyPolicyScheduleLayerUserServiceType,
 } from "Common/Server/Services/OnCallDutyPolicyScheduleLayerUserService";
-import OnCallDutyPolicyScheduleService, {
-  Service as OnCallDutyPolicyScheduleServiceType,
-} from "Common/Server/Services/OnCallDutyPolicyScheduleService";
 import UserOnCallCalendarFeedService, {
   Service as UserOnCallCalendarFeedServiceType,
 } from "Common/Server/Services/UserOnCallCalendarFeedService";
@@ -1790,7 +1789,6 @@ import OnCallDutyPolicyEscalationRuleTeam from "Common/Models/DatabaseModels/OnC
 import OnCallDutyPolicyEscalationRuleUser from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRuleUser";
 import OnCallDutyPolicyExecutionLog from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import OnCallDutyPolicyExecutionLogTimeline from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLogTimeline";
-import OnCallDutyPolicySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
 import UserOnCallCalendarFeed from "Common/Models/DatabaseModels/UserOnCallCalendarFeed";
 import McpOAuthGrant from "Common/Models/DatabaseModels/McpOAuthGrant";
 import OnCallDutyPolicyScheduleCalendarFeed from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleCalendarFeed";
@@ -4303,12 +4301,10 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
+    // on-call schedules, and saving the changes to their layers at once (save-layers)
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<
-        OnCallDutyPolicySchedule,
-        OnCallDutyPolicyScheduleServiceType
-      >(OnCallDutyPolicySchedule, OnCallDutyPolicyScheduleService).getRouter(),
+      new OnCallDutyPolicyScheduleAPI().getRouter(),
     );
 
     app.use(
@@ -7511,6 +7507,9 @@ const BaseAPIFeatureSet: FeatureSet = {
     );
 
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, TelemetryAPI);
+
+    // The Prometheus HTTP API over the project's metrics: PromQL (#6796).
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, PrometheusAPI);
 
     //attach api's
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new UserAPI().getRouter());
