@@ -170,7 +170,7 @@ Tout ce que contient l'extrait est envoyé à vos visiteurs : n'importe qui peut
 | **Expire le** | Après cette date, la clé n'est plus acceptée. |
 | **Activé** | Désactivez-le pour arrêter immédiatement une clé qui a fuité. |
 
-Une clé Navigateur écrit des traces, journaux et métriques OTLP, ainsi que des relectures de session ; toutes les autres voies d'ingestion la refusent. Vous modifiez ces paramètres sur la page de la clé. Le type de clé ne peut plus être changé une fois la clé créée.
+Une clé Navigateur écrit des traces, journaux et métriques OTLP, des relectures de session et des événements d'un [SDK Sentry dans le navigateur](/docs/telemetry/compatible-endpoints#sdk-sentry) ; toutes les autres voies d'ingestion la refusent. Vous modifiez ces paramètres sur la page de la clé. Le type de clé ne peut plus être changé une fois la clé créée.
 
 > [!WARNING]
 > Ne mettez jamais une clé **Serveur** dans une page. Une clé Serveur écrit tout type de télémétrie depuis n'importe où, sans vérification d'origine : quiconque lit votre page pourrait écrire dans votre projet.
