@@ -23,6 +23,12 @@ import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import { ADMIN_DASHBOARD_LANGUAGES } from "Common/Tests/Helpers/TranslatedLanguages";
+import {
+  RouteAttributes,
+  pageRoutesIn,
+  routeMapPath,
+  routesAt,
+} from "../Helpers/PageRoutes";
 
 /*
  * THE INSTANCE ADMIN'S TELEMETRY INGESTION BUDGETS (issue #5917):
@@ -176,15 +182,26 @@ describe("the Admin Dashboard's ingestion budget pages", () => {
         'import ProjectIngestionBudgets from "./Pages/Projects/View/IngestionBudgets";',
       ),
     );
-    expect(app).toContain(
-      compact(
-        'path={RouteMap[PageMap.SETTINGS_INGESTION_BUDGETS]?.toString() || ""} element={<SettingsIngestionBudgets />}',
-      ),
+
+    const routes: Array<RouteAttributes> = pageRoutesIn(
+      path.join(ADMIN_SRC, "App.tsx"),
     );
-    expect(app).toContain(
-      compact(
-        'path={RouteMap[PageMap.PROJECT_INGESTION_BUDGETS]?.toString() || ""} element={<ProjectIngestionBudgets />}',
-      ),
+
+    expect(
+      routesAt(routes, routeMapPath("SETTINGS_INGESTION_BUDGETS")),
+    ).toEqual([
+      {
+        path: routeMapPath("SETTINGS_INGESTION_BUDGETS"),
+        element: "<SettingsIngestionBudgets />",
+      },
+    ]);
+    expect(routesAt(routes, routeMapPath("PROJECT_INGESTION_BUDGETS"))).toEqual(
+      [
+        {
+          path: routeMapPath("PROJECT_INGESTION_BUDGETS"),
+          element: "<ProjectIngestionBudgets />",
+        },
+      ],
     );
   });
 

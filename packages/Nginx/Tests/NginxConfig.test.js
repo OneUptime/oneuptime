@@ -44,6 +44,8 @@ const primaryServerBlock = serverBlocks.find((block) => {
 const INGEST_LOCATIONS = [
   "/telemetry",
   "/otlp",
+  // The host collector's supervisor, from hosts installed before /telemetry.
+  "/opamp/",
   "/kubernetes-cost",
   "/security-events",
   "/session-replay",

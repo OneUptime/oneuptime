@@ -22,6 +22,7 @@ import {
   strayMarkers,
   tableShape,
 } from "./DocsTranslationChecks";
+import { pathWithArrows } from "./DocsPageShape";
 import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
 import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
 import MonitorType from "Common/Types/Monitor/MonitorType";
@@ -601,11 +602,12 @@ describe.each(LANGUAGES)("%s", (language: string) => {
       const translated: string = readPage(language, entry.page);
       const missing: Array<string> = menuPaths(english)
         .map((segments: Array<string>): string => {
-          return segments
-            .map((segment: string): string => {
+          return pathWithArrows(
+            segments.map((segment: string): string => {
               return drawnActionLabel(language, segment);
-            })
-            .join(PATH_SEPARATOR);
+            }),
+            language,
+          );
         })
         .filter((localized: string): boolean => {
           return !translated.includes(`**${localized}**`);

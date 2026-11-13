@@ -36,6 +36,7 @@ import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoade
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import OneUptimeDate from "Common/Types/Date";
+import DirectionArrow from "Common/UI/Components/DirectionArrow/DirectionArrow";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
@@ -131,7 +132,7 @@ import useResizableColumns, {
 } from "Common/UI/Components/Table/ColumnResize/useResizableColumns";
 import ResizableHeaderCell from "Common/UI/Components/Table/ColumnResize/ResizableHeaderCell";
 import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { toLabelTerm, Translator } from "Common/UI/Utils/TranslateTemplate";
 
 interface GoldenStats {
   cpuPercent: number | null;
@@ -2185,9 +2186,9 @@ const ProxmoxClusterOverview: FunctionComponent<
                       )}
                     </td>
                     <td className="px-4 py-2.5 text-sm text-gray-700">
-                      {job.source || "—"}
-                      <span className="text-gray-400"> → </span>
-                      {job.target || "—"}
+                      <bdi>{job.source || "—"}</bdi>{" "}
+                      <DirectionArrow className="text-gray-400" />{" "}
+                      <bdi>{job.target || "—"}</bdi>
                     </td>
                     <td className={`px-4 py-2.5 text-sm ${ageClass}`}>
                       {ageSeconds === null ? "—" : formatAge(ageSeconds)}
@@ -2296,8 +2297,17 @@ const ProxmoxClusterOverview: FunctionComponent<
             </div>
             <div className="min-w-0">
               <div className="truncate text-sm font-medium text-gray-900 group-hover:text-indigo-700">
+                {/*
+                 * A cluster with no name is named by what it is, as a
+                 * label: "Ceph cluster" is a noun of sentences too, and
+                 * five languages word it for the middle of one ("clúster
+                 * de Ceph"); here it starts with a capital.
+                 */}
                 {linkedCephCluster.name ||
-                  translator.translateText("Ceph cluster")}
+                  toLabelTerm(
+                    translator.translateText("Ceph cluster") || "Ceph cluster",
+                    translator.language,
+                  )}
               </div>
               <div className="text-xs text-gray-500">
                 {translator.translateText("View Ceph cluster overview →")}

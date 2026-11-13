@@ -509,8 +509,9 @@ export function getCloudReadIntervalWords(minutes: number): CloudTemplate {
 
 /*
  * The resource types of a connection or a test, most first: "Virtual
- * Machine" and its count. Each label is the catalog's (translated where
- * drawn); a type the catalog does not know is shown as its own name.
+ * Machine" and its count. Each label is the catalog's, a cloud's product
+ * name drawn as written in every language (getCloudResourceTypeText); a
+ * type the catalog does not know is shown in words.
  */
 export function getResourceTypeEntries(data: {
   provider: CloudProvider | string;

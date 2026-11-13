@@ -132,7 +132,7 @@ export function getRuleExceptionWindowDefaults(now: Date): {
   startsAt: Date;
   endsAt: Date;
 } {
-  const startsAt: Date = new Date(Math.floor(now.getTime() / 60000) * 60000);
+  const startsAt: Date = OneUptimeDate.getStartOfMinute(now);
 
   return {
     startsAt,

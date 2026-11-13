@@ -81,7 +81,7 @@ jest.mock(
   () => {
     const actual: Record<string, unknown> = jest.requireActual(
       "../../../../App/FeatureSet/Dashboard/src/Components/Home/HowOneUptimeWorksDialog",
-    );
+    ) as Record<string, unknown>;
 
     return {
       ...actual,
@@ -284,7 +284,7 @@ describe("Delete Sample Project", () => {
 
     expect(
       screen.getByText(
-        "Are you sure you want to delete Sample: Acme Shop? Its made-up monitors, incidents, people and telemetry are deleted for good. You can explore a new sample at any time.",
+        "Are you sure you want to delete Sample: Acme Shop? All its made-up data is deleted for good. You can explore a new sample at any time.",
       ),
     ).toBeInTheDocument();
     expect(deleteMock).not.toHaveBeenCalled();

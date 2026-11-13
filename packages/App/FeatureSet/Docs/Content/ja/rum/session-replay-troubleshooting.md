@@ -252,6 +252,8 @@ Network タブにすぐ `POST /telemetry/session-replay/v1/chunk` が、コン�
 | `session-ended-idle` | ページで 30 分間何も起きなかったため、セッションが終了しました。レコーダーが気付いた時刻ではなく、最後のアクティビティの時刻で終了します ( `idleForMs` がどれだけ前かを示します)。ユーザーが戻るまで、何もアップロードされず、自分のオリジンへのリクエストにはセッション ID が付きません。誰もいない開いたタブが半時間ごとに新しいセッションを始めることはありません。 |
 | `recording-paused-idle` | 5 分間、誰もキーを押さず、クリックせず、マウスを動かさず、スクロールせず、ページに触れなかったため、録画が一時停止しました ( `idleForMs` が経過時間を示します)。次の入力で同じセッションが再開するまで、何もキャプチャもアップロードもされず、自分のオリジンへのリクエストにはセッション ID が付きません。 [アイドル時間](/docs/telemetry/session-replay#アイドル時間) を参照してください。放置されたタブではどれも通常のことです。 |
 | `recording-resumed` | 録画が一時停止している間にユーザーが戻ってきたため、新しいスナップショットから同じセッションで再開しました ( `pausedForMs` が一時停止していた時間を示します)。プレーヤーはその間の区間を飛ばします。 |
+| `recording-paused-page` | ページが `OneUptimeReplay.pause()` で録画を一時停止しました。ページが `OneUptimeReplay.resume()` を呼び出すまで、何もキャプチャされません。訪問者の操作でセッションは開いたままになりますが、録画は再開されません。このページを録画する必要がある場合は、`OneUptimeReplay.pause()` を呼び出している箇所を探してください。 |
+| `recording-resumed-page` | ページが `OneUptimeReplay.resume()` で録画を再開しました。録画は同じセッションで新しいスナップショットから続くか、一時停止中にそのセッションが終了していた場合は新しいセッションで続きます。 |
 | `session-rotated` | 新しいセッションが始まりました (ユーザーが 30 分のアイドルの後に戻った、セッションが 4 時間に達した、 `identify()` がセッションのユーザーとは別のユーザーを指定した ( `rotationReason: "identity-change"`)、または同じ訪問者の別のタブが先に新しいセッションを始めた ( `rotationReason: "adopted"`))。録画は新しい ID で続き、 `onSessionChange` のリスナーに通知され、それ以降、自分のオリジンへのリクエストには新しい ID が付きます。 |
 | `command-queue-not-an-array` | `window.OneUptimeReplayQueue` が配列ではないため、キューのすべてのコマンドが無視されました。 `[command, ...arguments]` エントリの配列である必要があります。 |
 | `command-queue-unknown-command` | キューのコマンド名が認識されませんでした。 [JavaScript API](/docs/telemetry/session-replay#javascript-api) と照らしてつづりを確認してください。 |

@@ -65,7 +65,7 @@ import EventNoteComposer from "./EventNoteComposer";
 import { EventNoteKind } from "./EventNoteKind";
 import NotesVisibilitySwitch from "./NotesVisibilitySwitch";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import { getPrivateEventPublicNotesCopy } from "./PrivateEventNotesCopy";
 import usePublicNoteApproval, {
   UsePublicNoteApprovalResult,
@@ -86,6 +86,28 @@ import {
 export interface ComponentProps<TNote extends BaseModel>
   extends EventNoteKind<TNote> {
   currentProject: Project | null;
+}
+
+/*
+ * What a reader did that read the notes again, with the notes already on
+ * screen: the refresh button (or the re-read after a write), a search, the
+ * sort order, Load more. A failure of one keeps the notes and says so in a
+ * banner over the feed.
+ */
+type NotesAction = "refresh" | "search" | "sort" | "more";
+
+// The banner's first line: what failed.
+const NOTES_ACTION_FAILED: Record<NotesAction, string> = {
+  refresh: translationKey("Couldn't refresh the notes."),
+  search: translationKey("Couldn't search the notes."),
+  sort: translationKey("Couldn't sort the notes."),
+  more: translationKey("Couldn't load more notes."),
+};
+
+interface NotesActionError {
+  action: NotesAction;
+  // API.getFriendlyMessage's answer.
+  message: string;
 }
 
 const toActionGate: (result: PermissionGateResult) => NoteActionGate = (
@@ -258,9 +280,21 @@ function EventNotes<TNote extends BaseModel>(
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
   const [loadError, setLoadError] = useState<string>("");
-  const [actionError, setActionError] = useState<string>("");
+  const [actionError, setActionError] = useState<NotesActionError | null>(null);
   const [searchInput, setSearchInput] = useState<string>("");
+  // The search the reader asked for: the box's words, once typing stops.
   const [searchText, setSearchText] = useState<string>("");
+  /*
+   * The search and the order the notes on screen were read for, which the
+   * toolbar describes: its count of notes or of matches, and the sort
+   * button. A search or an order the reader asks for is taken up when its
+   * notes arrive. They were set as the reader asked, before the read, and a
+   * read that failed left the toolbar describing notes that were not on
+   * screen: the sort button named the order it had failed to read in -
+   * pressing it again read the order on screen, instead of trying again -
+   * and a search that never ran counted its matches.
+   */
+  const [shownSearchText, setShownSearchText] = useState<string>("");
   const [sortOrder, setSortOrder] = useState<NoteSortOrder>("newest");
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
 
@@ -281,11 +315,31 @@ function EventNotes<TNote extends BaseModel>(
   const fetchGeneration: React.MutableRefObject<number> = useRef<number>(0);
   const loadedCount: React.MutableRefObject<number> = useRef<number>(0);
   loadedCount.current = notes.length;
+  // The banner on screen, for a read that answers while it is up.
+  const shownActionError: React.MutableRefObject<NotesActionError | null> =
+    useRef<NotesActionError | null>(null);
+  shownActionError.current = actionError;
+  /*
+   * The order the sort button asked for, until a read answers: a read from
+   * the top started meanwhile - a search, the refresh after a note is
+   * posted - reads in it too, so the sort is not lost to it. A read that
+   * fails drops it, as the button never took it up: the button names the
+   * order on screen, and pressing it asks for the other one again.
+   */
+  const askedSortOrder: React.MutableRefObject<NoteSortOrder | null> =
+    useRef<NoteSortOrder | null>(null);
 
   // The feed's body, and its Try again while a failed load is drawn.
   const feedBodyRef: React.RefObject<HTMLDivElement> =
     useRef<HTMLDivElement>(null);
   const tryAgainButtonRef: React.RefObject<HTMLButtonElement> =
+    useRef<HTMLButtonElement>(null);
+  // The banner of a failed action, Load more, and the refresh button.
+  const actionErrorRef: React.RefObject<HTMLDivElement> =
+    useRef<HTMLDivElement>(null);
+  const loadMoreButtonRef: React.RefObject<HTMLButtonElement> =
+    useRef<HTMLButtonElement>(null);
+  const refreshButtonRef: React.RefObject<HTMLButtonElement> =
     useRef<HTMLButtonElement>(null);
 
   const select: JSONObject = useMemo(() => {
@@ -336,6 +390,31 @@ function EventNotes<TNote extends BaseModel>(
   };
 
   /*
+   * The banner goes away - dismissed, or ended by a read that answered -
+   * and a focus left on it fell to the page: a keyboard or screen reader
+   * user started over from its top. It goes back to where the reader was
+   * instead: to Load more after Load more failed, so trying again is one
+   * key away, and after the others to the feed's body, just before the
+   * notes (the refresh button, when no feed is drawn). A focus that was not
+   * on the banner is left where it is.
+   */
+  const moveFocusOffBanner: (action: NotesAction) => void = (
+    action: NotesAction,
+  ): void => {
+    const banner: HTMLDivElement | null = actionErrorRef.current;
+
+    if (banner && banner.contains(document.activeElement)) {
+      const loadMore: HTMLButtonElement | null = loadMoreButtonRef.current;
+      const target: HTMLElement | null =
+        action === "more" && loadMore && !loadMore.disabled
+          ? loadMore
+          : feedBodyRef.current || refreshButtonRef.current;
+
+      target?.focus();
+    }
+  };
+
+  /*
    * initial: the first load, drawn as a skeleton.
    * replace: a new search or sort; the old results stay up until the new
    *          ones arrive, so the search box keeps its focus.
@@ -348,15 +427,32 @@ function EventNotes<TNote extends BaseModel>(
   type FetchNotesFunction = (options: {
     mode: FetchMode;
     limit?: number | undefined;
+    // What a replace is for - a new search, or the other sort order.
+    replacing?: "search" | "sort" | undefined;
   }) => Promise<void>;
 
   const fetchNotes: FetchNotesFunction = async (options: {
     mode: FetchMode;
     limit?: number | undefined;
+    replacing?: "search" | "sort" | undefined;
   }): Promise<void> => {
     const generation: number = ++fetchGeneration.current;
     const skip: number = options.mode === "more" ? loadedCount.current : 0;
     const limit: number = options.limit || NOTES_PAGE_SIZE;
+    /*
+     * Load more and the background re-read go on with the notes on screen,
+     * for their search and in their order: a page of other notes would be
+     * added to them, or put in their place unasked. Every other read starts
+     * from the top, for the search in the box - after a search failed, the
+     * refresh button tries it again - and in the order the sort button
+     * asked for, while that is on its way.
+     */
+    const isOnScreen: boolean =
+      options.mode === "more" || options.mode === "silent";
+    const readSearchText: string = isOnScreen ? shownSearchText : searchText;
+    const readSortOrder: NoteSortOrder = isOnScreen
+      ? sortOrder
+      : askedSortOrder.current || sortOrder;
 
     if (options.mode === "initial") {
       setIsLoading(true);
@@ -373,12 +469,14 @@ function EventNotes<TNote extends BaseModel>(
           parentIdField: props.parentIdField,
           parentId: props.parentId,
           projectId: ProjectUtil.getCurrentProjectId(),
-          searchText,
+          searchText: readSearchText,
         }) as Query<TNote>,
         select: select as Select<TNote>,
         sort: {
           [timestampField]:
-            sortOrder === "newest" ? SortOrder.Descending : SortOrder.Ascending,
+            readSortOrder === "newest"
+              ? SortOrder.Descending
+              : SortOrder.Ascending,
         } as Sort<TNote>,
         limit,
         skip,
@@ -395,15 +493,53 @@ function EventNotes<TNote extends BaseModel>(
       });
       setTotalCount(result.count);
       setLoadError("");
+      // What they were read for is the notes' own now, and the toolbar's.
+      setShownSearchText(readSearchText);
+      setSortOrder(readSortOrder);
+      askedSortOrder.current = null;
+
+      /*
+       * A read the reader started that answers ends the banner of a
+       * failure before it. The banner holds one failure, the latest - a new
+       * one takes the place of the last - so it answers the reader's latest
+       * read, and left up it said a read had failed over notes a later one
+       * had just brought. A read from the top brings the notes the reader
+       * asks for now: the search in the box, in the order asked for. Load
+       * more brings the next page of the notes on screen alone, so it ends
+       * a Load more's banner alone: after it, a refresh, search or sort that
+       * failed has still not been done. The background re-read ends none:
+       * the reader asked for nothing, and the banner would go before they
+       * had read it.
+       */
+      const banner: NotesActionError | null = shownActionError.current;
+
+      if (
+        banner &&
+        options.mode !== "silent" &&
+        (options.mode !== "more" || banner.action === "more")
+      ) {
+        moveFocusOffBanner(banner.action);
+        setActionError(null);
+      }
     } catch (err) {
       if (generation !== fetchGeneration.current) {
         return;
       }
 
+      askedSortOrder.current = null;
+
       if (options.mode === "initial") {
         setLoadError(API.getFriendlyMessage(err));
       } else if (options.mode !== "silent") {
-        setActionError(API.getFriendlyMessage(err));
+        setActionError({
+          action:
+            options.mode === "more"
+              ? "more"
+              : options.mode === "replace"
+                ? options.replacing || "search"
+                : "refresh",
+          message: API.getFriendlyMessage(err),
+        });
       }
     }
 
@@ -458,13 +594,37 @@ function EventNotes<TNote extends BaseModel>(
     tryAgainButtonRef.current?.focus();
   }, [isLoading, loadError]);
 
+  // Dismiss takes the banner away, moving a focus on it first.
+  const dismissActionError: () => void = (): void => {
+    if (actionError) {
+      moveFocusOffBanner(actionError.action);
+    }
+
+    setActionError(null);
+  };
+
+  /*
+   * The sort button names the order of the notes on screen, and asks for
+   * the other one: after a sort failed, the one that failed, so pressing it
+   * again tries it again. It names the new order once the notes come in it.
+   */
+  const sortTheOtherWay: () => void = (): void => {
+    askedSortOrder.current = sortOrder === "newest" ? "oldest" : "newest";
+
+    fetchNotes({ mode: "replace", replacing: "sort" });
+  };
+
   const hasFetchedOnce: React.MutableRefObject<boolean> =
     useRef<boolean>(false);
 
+  // The first read, then a search's, once typing stops (below).
   useEffect(() => {
-    fetchNotes({ mode: hasFetchedOnce.current ? "replace" : "initial" });
+    fetchNotes({
+      mode: hasFetchedOnce.current ? "replace" : "initial",
+      replacing: "search",
+    });
     hasFetchedOnce.current = true;
-  }, [searchText, sortOrder]);
+  }, [searchText]);
 
   useEffect(() => {
     const timeout: ReturnType<typeof setTimeout> = setTimeout(() => {
@@ -664,7 +824,8 @@ function EventNotes<TNote extends BaseModel>(
   });
 
   const hasMore: boolean = notes.length < totalCount;
-  const isSearching: boolean = searchText.length > 0;
+  // The notes on screen are a search's matches.
+  const isSearching: boolean = shownSearchText.length > 0;
   const audienceStyle: { icon: IconProp } = AUDIENCE_STYLES[props.visibility];
 
   const getFeedBody: () => ReactElement = (): ReactElement => {
@@ -750,7 +911,17 @@ function EventNotes<TNote extends BaseModel>(
             className="mt-3 text-sm font-medium text-indigo-600 hover:text-indigo-500"
             onClick={() => {
               setSearchInput("");
-              setSearchText("");
+
+              if (searchText) {
+                setSearchText("");
+              } else {
+                /*
+                 * The search was cleared already, and that read failed:
+                 * with nothing in the box to change, the notes are read
+                 * again from here.
+                 */
+                fetchNotes({ mode: "replace", replacing: "search" });
+              }
             }}
           >
             {tx("Clear search")}
@@ -913,6 +1084,7 @@ function EventNotes<TNote extends BaseModel>(
         {hasMore && (
           <div className="flex justify-center">
             <button
+              ref={loadMoreButtonRef}
               type="button"
               data-testid="notes-load-more"
               disabled={isLoadingMore}
@@ -988,7 +1160,12 @@ function EventNotes<TNote extends BaseModel>(
                     className="ml-2 rounded-full bg-gray-100 px-2 py-0.5 align-middle text-xs font-semibold text-gray-600"
                     data-testid="notes-count"
                   >
-                    {totalCount}
+                    {/*
+                     * In the reader's digits, as every count the feed draws
+                     * is: a Persian page drew a Latin "2" here, and
+                     * "۲ یادداشت" over its notes.
+                     */}
+                    {translator.formatNumber(totalCount)}
                   </span>
                 )}
               </h2>
@@ -1012,6 +1189,7 @@ function EventNotes<TNote extends BaseModel>(
               />
             )}
             <button
+              ref={refreshButtonRef}
               type="button"
               data-testid="notes-refresh"
               title={tx("Refresh notes")}
@@ -1057,16 +1235,44 @@ function EventNotes<TNote extends BaseModel>(
 
       {actionError && (
         <div
+          ref={actionErrorRef}
           role="alert"
           className="flex items-start justify-between gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-800"
           data-testid="notes-action-error"
         >
-          <span>{actionError}</span>
+          {/*
+           * What failed, then the error's words as the load failure's read
+           * (ErrorMessageText): an error nobody explained says why and what
+           * to do next, with the reference to give when the server failed
+           * (#6836); any other is in the reader's language, read the way it
+           * is written. It was the message as API.getFriendlyMessage words
+           * it, and nothing else: English on every page, on a Persian one
+           * with its full stop at its start, and silent on which of the
+           * refresh, a search, the sort order or Load more had failed.
+           */}
+          <div className="min-w-0">
+            <p
+              className="font-medium"
+              data-testid="notes-action-error-what-failed"
+            >
+              {tx(NOTES_ACTION_FAILED[actionError.action])}
+            </p>
+            <p data-testid="notes-action-error-words">
+              <ErrorMessageText
+                message={actionError.message}
+                hideWhatFailed={true}
+              />
+            </p>
+          </div>
+          {/*
+           * On one line beside the words, however long they are: a Persian
+           * "Dismiss" is two words, which the banner's text broke apart.
+           */}
           <button
             type="button"
-            className="font-medium text-red-700 hover:text-red-900"
+            className="shrink-0 whitespace-nowrap font-medium text-red-700 hover:text-red-900"
             onClick={() => {
-              setActionError("");
+              dismissActionError();
             }}
           >
             {tx("Dismiss")}
@@ -1118,7 +1324,7 @@ function EventNotes<TNote extends BaseModel>(
                   type="button"
                   data-testid="notes-sort"
                   onClick={() => {
-                    setSortOrder(sortOrder === "newest" ? "oldest" : "newest");
+                    sortTheOtherWay();
                   }}
                   className="inline-flex h-8 items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                 >
@@ -1139,7 +1345,8 @@ function EventNotes<TNote extends BaseModel>(
           )}
           {/*
            * Focusable from script alone, without a ring: it holds the focus
-           * while Try again reads the notes again (tryAgain).
+           * while Try again reads the notes again (tryAgain), and takes it
+           * from a banner Dismiss takes away (dismissActionError).
            */}
           <div
             ref={feedBodyRef}

@@ -3,6 +3,7 @@ import {
   BrowserContext,
   Locator,
   Page,
+  Request,
   Route,
   TestInfo,
   expect,
@@ -481,14 +482,32 @@ test.describe("a deploy under the open tab", () => {
     page: Page;
     request: APIRequestContext;
   }) => {
+    const scrollYOf: () => Promise<number> = async (): Promise<number> => {
+      return await page.evaluate((): number => {
+        return Math.round(window.scrollY);
+      });
+    };
+
     await page.goto("/dashboard/home?gap=0#latest");
     await expect(page.getByTestId("page-home")).toBeVisible();
+    /*
+     * Its font in first. Inter landing after the scroll below redraws the
+     * text above the place, and the browser's scroll anchoring moves the
+     * reader with it - on a phone from 1200 to 1180: the place the reader is
+     * at as they press Reload, and the one the new version brings them back
+     * to.
+     */
+    await page.evaluate(async (): Promise<void> => {
+      await document.fonts.ready;
+    });
     await page.evaluate((): void => {
       window.scrollTo(0, 1200);
     });
     await deploy(request);
     await lookNow(page);
     await expect(notice(page)).toBeVisible();
+    // Where the reader is as they press Reload.
+    expect(await scrollYOf()).toBe(1200);
 
     await page.getByTestId("new-version-notice-reload").click();
 
@@ -504,13 +523,7 @@ test.describe("a deploy under the open tab", () => {
       "/dashboard/home?gap=0#latest",
     );
 
-    await expect
-      .poll(async (): Promise<number> => {
-        return await page.evaluate((): number => {
-          return Math.round(window.scrollY);
-        });
-      })
-      .toBe(1200);
+    await expect.poll(scrollYOf).toBe(1200);
   });
 
   test("Dismiss puts the notice away, and the next page still loads the new version", async ({
@@ -1167,6 +1180,14 @@ test.describe("the browser going offline under an open page", () => {
 
     await page.goto(`/dashboard/home?shell=master&${NO_LOOKING}`);
     await expect(page.getByTestId("page-home")).toBeVisible();
+    /*
+     * Its font in first: Inter landing after the scroll below moves the
+     * reader with the text above the place (on a phone to 1180), and the
+     * page comes back to where the reader was as the connection dropped.
+     */
+    await page.evaluate(async (): Promise<void> => {
+      await document.fonts.ready;
+    });
     await page.evaluate((): void => {
       window.scrollTo(0, 1200);
     });
@@ -1243,7 +1264,8 @@ test.describe("the browser going offline under an open page", () => {
  * browser's own error page" - the maintainer. The page carries the real
  * EntryLoadFailure partial after its root, as every frontend's index.ejs
  * does: the app never starts here, and the page still says what is wrong,
- * in the card the app draws, and loads itself once it can.
+ * in the card the app draws, and loads itself once it can - also when the
+ * page's Tailwind did not arrive either, the card then on its own styles.
  */
 const entryCard: (page: Page) => Locator = (page: Page): Locator => {
   return page.getByTestId("entry-load-failure");
@@ -1257,6 +1279,59 @@ const entryStats: (
   const state: FixtureState = await fixture(request, "stats");
 
   return state.stats;
+};
+
+/*
+ * The page itself, and the scripts it asks for as it reads it: in its head
+ * Tailwind's runtime and the config that turns left and right with the
+ * reading direction, in its body the entry.
+ */
+const PAGE_PATH: string = "/dashboard/home";
+const TAILWIND_RUNTIME_PATH: string = "/dashboard/assets/js/tailwind-3.4.5.js";
+const TAILWIND_READING_DIRECTION_PATH: string =
+  "/dashboard/assets/js/tailwind-reading-direction.js";
+const ENTRY_PATH: string = "/dashboard/dist/Index.js";
+
+/*
+ * Resolves once the browser has the whole of the file at this path: what
+ * has arrived when the connection drops is what the page keeps. The
+ * browser asks for the entry as soon as it reads its address, while the
+ * scripts above it may still be on their way - on a slow runner the
+ * connection dropped before Tailwind's runtime arrived, and the card was
+ * drawn without it.
+ */
+const arrival: (page: Page, pathname: string) => Promise<unknown> = (
+  page: Page,
+  pathname: string,
+): Promise<unknown> => {
+  return page.waitForEvent("requestfinished", (request: Request): boolean => {
+    return new URL(request.url()).pathname === pathname;
+  });
+};
+
+// Whether Tailwind's runtime runs on the page.
+const hasTailwind: (page: Page) => Promise<boolean> = async (
+  page: Page,
+): Promise<boolean> => {
+  return await page.evaluate((): boolean => {
+    return Boolean((window as unknown as { tailwind?: unknown }).tailwind);
+  });
+};
+
+/*
+ * How many pixels the page reaches below its window, read once: 0 or less
+ * when it fits. The window's height is the root element's clientHeight -
+ * the window less any scrollbar that takes room.
+ */
+const downwardScrollOf: (page: Page) => Promise<number> = async (
+  page: Page,
+): Promise<number> => {
+  return await page.evaluate((): number => {
+    return (
+      document.documentElement.scrollHeight -
+      document.documentElement.clientHeight
+    );
+  });
 };
 
 test.describe("an app that cannot start", () => {
@@ -1309,17 +1384,22 @@ test.describe("an app that cannot start", () => {
       release = resolve;
     });
 
-    await page.route("**/dashboard/dist/Index.js", async (route: Route) => {
+    await page.route(`**${ENTRY_PATH}`, async (route: Route) => {
       await held;
       await route.abort("internetdisconnected");
     });
 
-    const asked: Promise<unknown> = page.waitForRequest(
-      "**/dashboard/dist/Index.js",
-    );
-    const opened: Promise<unknown> = page.goto(`/dashboard/home?${NO_LOOKING}`);
+    const asked: Promise<unknown> = page.waitForRequest(`**${ENTRY_PATH}`);
+    // The page and its Tailwind arrived; the connection drops before the entry.
+    const arrived: Promise<unknown> = Promise.all([
+      arrival(page, PAGE_PATH),
+      arrival(page, TAILWIND_RUNTIME_PATH),
+      arrival(page, TAILWIND_READING_DIRECTION_PATH),
+    ]);
+    const opened: Promise<unknown> = page.goto(`${PAGE_PATH}?${NO_LOOKING}`);
 
     await asked;
+    await arrived;
     await context.setOffline(true);
     release();
     await opened;
@@ -1331,16 +1411,95 @@ test.describe("an app that cannot start", () => {
     await expect(page.getByTestId("entry-load-failure-action")).toHaveText(
       "Try again",
     );
+    expect(await hasTailwind(page)).toBe(true);
 
     await expectNoSidewaysScroll(page);
     await shoot(page, testInfo, "entry-offline");
 
-    await page.unroute("**/dashboard/dist/Index.js");
+    await page.unroute(`**${ENTRY_PATH}`);
     await context.setOffline(false);
 
     await expect(page.getByTestId("page-home")).toBeVisible({
       timeout: 20000,
     });
+  });
+
+  test("OFFLINE BEFORE ITS TAILWIND ARRIVED: the card, on its own styles, fits the window, and the page loads once the browser is back online", async ({
+    page,
+    context,
+  }: {
+    page: Page;
+    context: BrowserContext;
+  }, testInfo: TestInfo) => {
+    let release: () => void = (): void => {};
+    const held: Promise<void> = new Promise<void>((resolve: () => void) => {
+      release = resolve;
+    });
+    const scripts: Array<string> = [
+      `**${TAILWIND_RUNTIME_PATH}`,
+      `**${TAILWIND_READING_DIRECTION_PATH}`,
+      `**${ENTRY_PATH}`,
+    ];
+
+    // The page arrived; the connection drops before any script it asks for.
+    for (const script of scripts) {
+      await page.route(script, async (route: Route) => {
+        await held;
+        await route.abort("internetdisconnected");
+      });
+    }
+
+    const arrived: Promise<unknown> = arrival(page, PAGE_PATH);
+    const opened: Promise<unknown> = page.goto(`${PAGE_PATH}?${NO_LOOKING}`);
+
+    await arrived;
+    await context.setOffline(true);
+    release();
+    await opened;
+
+    await expect(entryCard(page)).toHaveAttribute("data-step", "offline");
+    await expect(page.getByTestId("entry-load-failure-title")).toHaveText(
+      "You're offline",
+    );
+    await expect(entryCard(page)).toContainText(
+      "This page needs an internet connection to load. It will load as soon as you're back online.",
+    );
+    await expect(page.getByTestId("entry-load-failure-action")).toHaveText(
+      "Try again",
+    );
+    // Nothing but the card's own stylesheet draws it.
+    expect(await hasTailwind(page)).toBe(false);
+
+    await expectNoSidewaysScroll(page);
+    /*
+     * Nor down: the browser's 8 px around the body, which Tailwind's
+     * preflight takes away where it arrived, made the page - its root as
+     * tall as the window - 16 px taller than its window.
+     */
+    await expect
+      .poll(
+        async (): Promise<number> => {
+          return await downwardScrollOf(page);
+        },
+        { message: "how far the card's page reaches below its window" },
+      )
+      .toBeLessThanOrEqual(0);
+    await shoot(page, testInfo, "entry-offline-without-tailwind");
+
+    for (const script of scripts) {
+      await page.unroute(script);
+    }
+
+    await context.setOffline(false);
+
+    await expect(page.getByTestId("page-home")).toBeVisible({
+      timeout: 20000,
+    });
+    expect(await hasTailwind(page)).toBe(true);
+    /*
+     * And nothing escaped as an uncaught error (afterEach): the page's
+     * Tailwind config, with no runtime to go to, was left out.
+     */
   });
 
   test("THE ENTRY GONE FOR GOOD: one reload, then it says the page couldn't be loaded - never a loop", async ({

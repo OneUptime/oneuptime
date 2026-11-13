@@ -2,7 +2,9 @@ import {
   SyncResultSummary,
   buildSyncResultSummary,
 } from "../../../FeatureSet/Dashboard/src/Pages/Monitor/Settings/MonitorTemplateSyncResultUtil";
+import { SYNC_TO_LINKED_MONITORS_TITLES } from "../../../FeatureSet/Dashboard/src/Pages/Monitor/Settings/MonitorTemplateLinkedMonitorsWords";
 import { readPage } from "./DocsContentSupport";
+import { dashboardTranslator } from "./DocsDashboardLabels";
 import MonitorTemplate from "Common/Models/DatabaseModels/MonitorTemplate";
 import MonitorTemplateSyncFieldUtil, {
   MonitorTemplateSyncField,
@@ -655,14 +657,15 @@ describe("what each sync copies", () => {
   );
 
   it("names how many monitors a button reaches as the button does", () => {
-    const count: number = 3;
-
-    expect(view).toContain(
-      '`Sync Criteria to ${linkedMonitorCount} Linked Monitor${linkedMonitorCount === 1 ? "" : "s"}`',
-    );
-    expect(page).toContain(
-      `**Sync Criteria to ${count} Linked Monitor${count === 1 ? "" : "s"}**`,
-    );
+    // The button's title is its count put through the words' plural template.
+    expect(view).toContain("SYNC_TO_LINKED_MONITORS_TITLES.criteria,");
+    expect(
+      dashboardTranslator("en").translatePlural(
+        SYNC_TO_LINKED_MONITORS_TITLES.criteria,
+        3,
+      ),
+    ).toBe("Sync Criteria to 3 Linked Monitors");
+    expect(page).toContain("**Sync Criteria to 3 Linked Monitors**");
   });
 
   it("greys every sync button out while nothing is linked", () => {
