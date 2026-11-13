@@ -274,11 +274,16 @@ export default class UserOverrideOverlap {
     used: UserOverrideTimes,
     other: UserOverrideTimes,
   ): UserOverrideUseReason {
-    if (UserOverrideUtil.getPrecedence(used) < UserOverrideUtil.getPrecedence(other)) {
+    if (
+      UserOverrideUtil.getPrecedence(used) <
+      UserOverrideUtil.getPrecedence(other)
+    ) {
       return UserOverrideUseReason.NamesCover;
     }
 
-    if (new Date(used.startsAt).getTime() < new Date(other.startsAt).getTime()) {
+    if (
+      new Date(used.startsAt).getTime() < new Date(other.startsAt).getTime()
+    ) {
       return UserOverrideUseReason.StartsFirst;
     }
 

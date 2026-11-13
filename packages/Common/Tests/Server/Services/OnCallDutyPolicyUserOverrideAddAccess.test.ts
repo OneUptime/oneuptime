@@ -40,6 +40,7 @@ import {
   matchesQuery,
 } from "../Utils/OnCall/OnCallResolverTestHarness";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import { useUserOverrideTimesInMemory } from "../TestingUtils/UserOverrideTimesInMemory";
 import {
   afterEach,
   beforeEach,
@@ -734,6 +735,16 @@ beforeEach(() => {
         return data;
       },
     } as never);
+
+  // Saved under the project's lock on override times, as overlaps are refused.
+  useUserOverrideTimesInMemory({
+    overrides: (): Array<Record<string, unknown>> => {
+      return db.overrides;
+    },
+    users: (): Array<Record<string, unknown>> => {
+      return db.users;
+    },
+  });
 
   // What a saved override sets off: the policy feed and roster refreshes.
   jest

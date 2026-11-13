@@ -402,8 +402,14 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
       })
       .sort(
         (
-          a: { override: OnCallDutyPolicyUserOverride; record: UserOverrideTimes },
-          b: { override: OnCallDutyPolicyUserOverride; record: UserOverrideTimes },
+          a: {
+            override: OnCallDutyPolicyUserOverride;
+            record: UserOverrideTimes;
+          },
+          b: {
+            override: OnCallDutyPolicyUserOverride;
+            record: UserOverrideTimes;
+          },
         ) => {
           return UserOverrideOverlap.compareUse(a.record, b.record);
         },

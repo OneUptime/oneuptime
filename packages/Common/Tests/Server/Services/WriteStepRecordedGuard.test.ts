@@ -177,9 +177,9 @@ describe("a row's UPDATE held to a rule is written in the rule's transaction", (
     const update: string = methodText(DATABASE_SERVICE, "_updateBy");
 
     expect(text).not.toBe("");
-    expect(Array.from(update.matchAll(UPDATE_WITHIN_UPDATE_LIMIT))).toHaveLength(
-      1,
-    );
+    expect(
+      Array.from(update.matchAll(UPDATE_WITHIN_UPDATE_LIMIT)),
+    ).toHaveLength(1);
     expect(update).toMatch(
       /progress\.write\(\s*true\s*,\s*async \(\): Promise<UpdateResult> => \{\s*return await this\.updateWithinUpdateLimit\(/,
     );

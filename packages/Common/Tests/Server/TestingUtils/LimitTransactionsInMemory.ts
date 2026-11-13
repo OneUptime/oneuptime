@@ -16,9 +16,12 @@ import { DataSource, EntityManager } from "typeorm";
  * already (StatusPageSubscriberService). A suite that drives the whole
  * create with its tables in memory hands this the answers its tables give:
  * the count each statement reads, where a row the transaction saves goes,
- * and - for a check that reads rows - what a find of a table answers.
- * Everything the transactions did is recorded, in order: "lock", each
- * statement, "find <table>" and "save <table>".
+ * and - for a check that reads rows - what a find of a table answers. An
+ * update held to a rule the same way (DatabaseService.getUpdateLimit: a
+ * user override's new times) is written in such a transaction too, where
+ * `update` writes it. Everything the transactions did is recorded, in
+ * order: "lock", each statement, "find <table>", "save <table>" and
+ * "update <table>".
  */
 export interface LimitTransactions {
   events: Array<string>;
@@ -34,6 +37,14 @@ export function useInMemoryLimitTransactions(data: {
   // Reads a table, with the options a repository's find is handed.
   find?:
     | ((tableName: string, options: unknown) => Promise<Array<unknown>>)
+    | undefined;
+  // Writes an UPDATE the transaction makes: the row it names, the values it sets.
+  update?:
+    | ((
+        tableName: string,
+        criteria: unknown,
+        values: unknown,
+      ) => Promise<unknown>)
     | undefined;
 }): LimitTransactions {
   const log: LimitTransactions = { events: [], opened: 0 };
@@ -68,6 +79,20 @@ export function useInMemoryLimitTransactions(data: {
           }
 
           return await data.find(tableName, options);
+        },
+        update: async (
+          criteria: unknown,
+          values: unknown,
+        ): Promise<unknown> => {
+          log.events.push(`update ${tableName}`);
+
+          if (!data.update) {
+            throw new Error(
+              `LimitTransactionsInMemory: no update for ${tableName}`,
+            );
+          }
+
+          return await data.update(tableName, criteria, values);
         },
       };
     },

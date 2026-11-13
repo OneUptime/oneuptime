@@ -474,7 +474,10 @@ describe("what the form refuses", () => {
     expect(byTitle(list, "Who covers?").customValidation?.(values)).toBe(
       USER_OVERRIDE_SAME_PERSON_MESSAGE,
     );
-    expect(byTitle(list, "Starts").customValidation).toBeUndefined();
+    // Adding, Starts has nothing of its own to check: only an edit's start is held.
+    expect(byTitle(list, "Starts").customValidation?.(values) ?? null).toBe(
+      null,
+    );
     expect(byTitle(list, "Ends").customValidation?.(values)).toBe(
       USER_OVERRIDE_ENDS_BEFORE_START_MESSAGE,
     );

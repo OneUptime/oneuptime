@@ -132,9 +132,7 @@ export default class UserOverrideEdit {
     );
 
     // A time a picker can still choose: this minute, or later.
-    const earliest: number = OneUptimeDate.getStartOfMinute(
-      data.now,
-    ).getTime();
+    const earliest: number = OneUptimeDate.getStartOfMinute(data.now).getTime();
 
     if (moved.startsAt) {
       if (UserOverrideEdit.hasStarted(data.saved, data.now)) {

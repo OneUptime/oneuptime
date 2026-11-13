@@ -19,7 +19,10 @@ import Timezone from "../../Types/Timezone";
 import DeleteBy from "../Types/Database/DeleteBy";
 import logger from "../Utils/Logger";
 import { OnCallShiftChangeReason } from "../Utils/OnCall/OnCallShiftChangeListeners";
-import { mdText, MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
+import FeedMarkdown, {
+  mdText,
+  MarkdownText,
+} from "../../Utils/Markdown/FeedMarkdown";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import Permission from "../../Types/Permission";
@@ -46,7 +49,6 @@ import UserOverrideEdit, {
   UserOverrideTimesChange,
 } from "../../Types/OnCallDutyPolicy/UserOverrideEdit";
 import { fillTemplate } from "../../Types/Translator";
-import FeedMarkdown from "../../Utils/Markdown/FeedMarkdown";
 import {
   EntityManager,
   FindOptionsWhere,

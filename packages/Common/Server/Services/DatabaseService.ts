@@ -1646,7 +1646,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   }): Promise<UpdateResult> {
     const tenantColumn: string | null = this.getModel().getTenantColumn();
     const projectId: ObjectID | null = tenantColumn
-      ? ((data.row.getValue(tenantColumn) as ObjectID | undefined) ?? null)
+      ? (data.row.getValue(tenantColumn) as ObjectID | undefined) ?? null
       : null;
 
     if (!projectId || !data.row.id) {
