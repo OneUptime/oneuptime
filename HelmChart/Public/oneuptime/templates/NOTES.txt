@@ -147,9 +147,12 @@ A new installation gets a random password of its own. Details: HelmChart/Docs/Cl
   installation's own: the app refuses every email SendGrid delivers until
   there is one (EnvironmentConfig.getUsableInboundEmailWebhookSecret holds the
   same values to be none: blank, "secret", a config.example.env placeholder,
-  or a placeholder the setup guide prints, in any case).
+  or a placeholder the setup guide prints, in any case). A secret read from
+  the operator's Secret (inboundEmail.existingSecret.name) is not in these
+  values, so there is nothing here to check; the app says so when it starts
+  if that Secret's value is unusable.
 */}}
-{{- if and .Values.inboundEmail .Values.inboundEmail.domain }}
+{{- if and .Values.inboundEmail .Values.inboundEmail.domain (not (include "oneuptime.inboundEmail.existingSecretName" .)) }}
 {{- $inboundEmailSecret := trim (toString (default "" .Values.inboundEmail.webhookSecret)) }}
 {{- $guidePlaceholders := list "your_secret" "your-secret" "replace-with-a-strong-random-secret" }}
 {{- if or (eq $inboundEmailSecret "") (eq $inboundEmailSecret "secret") (contains "please-change-this" $inboundEmailSecret) (has (lower $inboundEmailSecret) $guidePlaceholders) }}

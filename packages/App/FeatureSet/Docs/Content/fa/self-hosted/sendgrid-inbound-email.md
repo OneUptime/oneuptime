@@ -112,6 +112,26 @@ inboundEmail:
   domain: "inbound.yourdomain.com"
   webhookSecret: "replace-with-a-strong-random-secret"
 ```
+
+:::details نگه داشتن راز وب‌هوک در یک Secret
+`inboundEmail.webhookSecret` راز وب‌هوک را در مقدارهای انتشار نگه می‌دارد، که Helm آن‌ها را با هر بازبینی ذخیره می‌کند. برای اینکه راز وب‌هوک در آن‌ها نباشد، آن را در یک Secret در Kubernetes، در namespace مربوط به OneUptime، زیر `webhookSecret`، بگذارید و به‌جایش نام همان Secret را بدهید:
+
+```bash
+kubectl create secret generic oneuptime-inbound-email \
+  --namespace oneuptime \
+  --from-literal=webhookSecret=replace-with-a-strong-random-secret
+```
+
+```yaml title="values.yaml"
+inboundEmail:
+  provider: "SendGrid"
+  domain: "inbound.yourdomain.com"
+  existingSecret:
+    name: oneuptime-inbound-email
+```
+
+`inboundEmail.webhookSecret` یا `inboundEmail.existingSecret.name` را تنظیم کنید، نه هر دو را: چارت این دو را با هم نمی‌پذیرد. اگر Secret شما راز وب‌هوک را زیر کلید دیگری نگه می‌دارد، نام آن کلید را در `inboundEmail.existingSecret.webhookSecretKey` بدهید.
+:::
 :::
 
 `INBOUND_EMAIL_WEBHOOK_SECRET` الزامی است: تا وقتی خالی است یا هنوز یکی از جای‌نگهدارهای همین صفحه است، OneUptime هر ایمیل را رد می‌کند. `openssl rand -hex 32` یک مقدار تصادفی بلند می‌سازد.

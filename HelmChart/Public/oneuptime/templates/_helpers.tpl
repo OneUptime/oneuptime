@@ -586,8 +586,16 @@ the button when it is set; the secret is in oneuptime.env.runtime.
   value: {{ default "SendGrid" $.Values.inboundEmail.provider | quote }}
 - name: INBOUND_EMAIL_DOMAIN
   value: {{ default "" $.Values.inboundEmail.domain | quote }}
+{{- $inboundEmailWebhookSecret := include "oneuptime.inboundEmail.existingSecretName" $ }}
 - name: INBOUND_EMAIL_WEBHOOK_SECRET
+  {{- if $inboundEmailWebhookSecret }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ $inboundEmailWebhookSecret | quote }}
+      key: {{ include "oneuptime.inboundEmail.webhookSecretKey" $ | quote }}
+  {{- else }}
   value: {{ default "" $.Values.inboundEmail.webhookSecret | quote }}
+  {{- end }}
 - name: SERVER_HOME_HOSTNAME
   value: {{ $.Release.Name }}-home.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_APP_HOSTNAME
@@ -762,6 +770,25 @@ that is empty.
 {{- define "oneuptime.vapid.privateKeyKey" -}}
 {{- $vapid := .Values.vapid | default dict -}}
 {{- trim (toString (default "" ($vapid.existingSecret).privateKeyKey)) | default "privateKey" -}}
+{{- end }}
+
+{{- /*
+The Secret the incoming email webhook secret is read from, when the operator
+names one (inboundEmail.existingSecret.name), or nothing: then it is the plain
+inboundEmail.webhookSecret, as before. Naming a Secret and also setting
+webhookSecret is refused rather than one of them quietly winning.
+*/}}
+{{- define "oneuptime.inboundEmail.existingSecretName" -}}
+{{- $inboundEmail := .Values.inboundEmail | default dict -}}
+{{- $existing := trim (toString (default "" ($inboundEmail.existingSecret).name)) -}}
+{{- if and $existing (trim (toString (default "" $inboundEmail.webhookSecret))) -}}
+{{- fail (printf "inboundEmail.webhookSecret and inboundEmail.existingSecret.name are both set. Set one of them: to read the webhook secret from the Secret %s, clear webhookSecret (--set inboundEmail.webhookSecret=\"\")." $existing) -}}
+{{- end -}}
+{{- $existing -}}
+{{- end }}
+{{- define "oneuptime.inboundEmail.webhookSecretKey" -}}
+{{- $inboundEmail := .Values.inboundEmail | default dict -}}
+{{- trim (toString (default "" ($inboundEmail.existingSecret).webhookSecretKey)) | default "webhookSecret" -}}
 {{- end }}
 
 {{- define "oneuptime.env.runtime" }}

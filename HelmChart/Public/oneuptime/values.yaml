@@ -2970,6 +2970,16 @@ inboundEmail:
   # While it is empty, OneUptime refuses every email SendGrid delivers, and
   # helm install / helm upgrade say so.
   webhookSecret:
+  # Read the webhook secret from a Secret you manage instead of webhookSecret,
+  # to keep it out of these values (Helm stores them with every revision).
+  # Create it in the release's namespace:
+  #   kubectl create secret generic oneuptime-inbound-email -n <namespace> \
+  #     --from-literal=webhookSecret=<webhook secret>
+  # Leave webhookSecret empty then: the chart refuses the two together.
+  existingSecret:
+    name:
+    # The key of that Secret that holds the webhook secret.
+    webhookSecretKey: webhookSecret
 
 # BullMQ Queue Dashboard (Bull Board)
 # When enabled, exposes the queue inspector UI at /worker/inspect/queue/<secret>.
