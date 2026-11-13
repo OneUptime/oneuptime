@@ -58,6 +58,7 @@ import {
   LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME,
 } from "Common/UI/Utils/LineDirection";
 import { ReadingDirection } from "Common/Types/ReadingDirection";
+import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
 
 export interface ComponentProps {
   item: BaseModel;
@@ -1036,7 +1037,7 @@ export const DeletionImpactModal: FunctionComponent<
        */
       return translator.translateTemplate(
         "We could not check what this deletes: {{error}} Deleting a notification method also deletes every notification rule that uses it.",
-        { error: state.error },
+        { error: errorInSentence(state.error) },
       );
     }
 

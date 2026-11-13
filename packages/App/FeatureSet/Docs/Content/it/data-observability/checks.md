@@ -8,14 +8,14 @@ Aggiungi un controllo nella scheda **Controlli** di una tabella:
 
 | Controllo | Cosa legge |
 | --- | --- |
-| **Null Percent** | Percentuale di righe la cui colonna è vuota |
-| **Duplicate Percent** | Percentuale di valori che ripetono quello di un'altra riga |
-| **Distinct Count** | Quanti valori diversi contiene la colonna |
+| **Percentuale di NULL** | Percentuale di righe la cui colonna è vuota |
+| **Percentuale di duplicati** | Percentuale di valori che ripetono quello di un'altra riga |
+| **Conteggio dei valori distinti** | Quanti valori diversi contiene la colonna |
 | **Minimo**, **Massimo**, **Media**, **Somma** | Di una colonna numerica (la somma di zero righe è 0) |
-| **Invalid Percent** | Percentuale di valori fuori da un elenco che fornisci tu |
-| **Format Mismatch Percent** | Percentuale di valori che non sono in un formato che scegli, come Email, UUID o Country Code, oppure che non corrispondono a un'espressione regolare tua (tutti i motori tranne SQL Server e Dataverse) |
-| **Orphan Count** | Righe il cui valore non ha corrispondenza nella colonna di un'altra tabella |
-| **Row Count** | Righe nella tabella, utile soprattutto con **Segmenta per** |
+| **Percentuale di valori non validi** | Percentuale di valori fuori da un elenco che fornisci tu |
+| **Percentuale di formato errato** | Percentuale di valori che non sono in un formato che scegli, come Email, UUID o Country Code, oppure che non corrispondono a un'espressione regolare tua (tutti i motori tranne SQL Server e Dataverse) |
+| **Conteggio delle righe orfane** | Righe il cui valore non ha corrispondenza nella colonna di un'altra tabella |
+| **Numero di righe** | Righe nella tabella, utile soprattutto con **Segmenta per** |
 | **SQL personalizzato** | Il numero restituito da una tua SELECT di sola lettura, chiamato `value` (su MongoDB, quello di una pipeline di aggregazione) |
 | **Righe in errore** | Quante righe restituisce una tua SELECT di sola lettura: le righe che non dovrebbero esistere. 0 significa tutto a posto (su MongoDB, i documenti con cui termina una pipeline) |
 
@@ -48,13 +48,13 @@ Lo **Stato** di un controllo, in **Controlli** e nella scheda **Controlli** dell
 
 Un controllo compete con la tua applicazione per il database e, su un warehouse che fattura in base a ciò che una query legge, costa denaro. Tre cose lo tengono sotto controllo:
 
-- **Percentuale di campionamento** legge una parte delle righe invece di tutte, per un controllo che legge una percentuale: Null Percent, Media, Invalid Percent e Format Mismatch Percent. La maggior parte dei motori salta intere pagine della tabella; MySQL, Redshift, ClickHouse e MongoDB leggono comunque ogni riga, e risparmiano il lavoro sul resto. Dataverse non usa il campionamento: lì un controllo legge ogni riga. Una vista può rifiutarla, e il controllo lo segnala.
+- **Percentuale di campionamento** legge una parte delle righe invece di tutte, per un controllo che legge una percentuale: Percentuale di NULL, Media, Percentuale di valori non validi e Percentuale di formato errato. La maggior parte dei motori salta intere pagine della tabella; MySQL, Redshift, ClickHouse e MongoDB leggono comunque ogni riga, e risparmiano il lavoro sul resto. Dataverse non usa il campionamento: lì un controllo legge ogni riga. Una vista può rifiutarla, e il controllo lo segnala.
 - **Massimo che un controllo può leggere (GB)**, in **Impostazioni**, ferma un controllo su BigQuery o Athena prima che legga più di quel numero di gigabyte. Vale 10 finché non lo cambi.
 - **Attendi quando un database è occupato**, in **Impostazioni**, lascia i controlli in scadenza alla raccolta successiva quando un database PostgreSQL, MySQL o SQL Server sembra occupato. È attivo finché non lo disattivi, e il database indica quando i controlli hanno atteso.
 
 ## Righe in errore
 
-Un numero dice che qualcosa non va; poche righe dicono cosa. **Conserva Failing Rows** in **Impostazioni** conserva fino a 20 delle righe trovate da un controllo Failing Rows, Invalid Percent, Format Mismatch Percent o Orphan Count, e **Righe in errore** sul controllo le mostra. È disattivato finché non lo attivi. Le colonne sensibili sono mascherate dove la riga viene letta, in base a ciò che Data Security vi ha trovato o ai loro nomi, quindi ciò che lascia il database, o una sonda, è già mascherato. Una colonna sensibile che nessuna scansione ha trovato e il cui nome non la rivela viene conservata così com'è.
+Un numero dice che qualcosa non va; poche righe dicono cosa. **Conserva Failing Rows** in **Impostazioni** conserva fino a 20 delle righe trovate da un controllo Righe in errore, Percentuale di valori non validi, Percentuale di formato errato o Conteggio delle righe orfane, e **Righe in errore** sul controllo le mostra. È disattivato finché non lo attivi. Le colonne sensibili sono mascherate dove la riga viene letta, in base a ciò che Data Security vi ha trovato o ai loro nomi, quindi ciò che lascia il database, o una sonda, è già mascherato. Una colonna sensibile che nessuna scansione ha trovato e il cui nome non la rivela viene conservata così com'è.
 
 Le righe sono archiviate in OneUptime: sui server di OneUptime con OneUptime Cloud, e sui tuoi con un'installazione self-hosted. Chiunque possa leggere i controlli del progetto può vederle. Un controllo conserva solo le righe della sua ultima esecuzione, e disattivare **Conserva Failing Rows** elimina ciò che ogni controllo aveva conservato.
 
@@ -104,9 +104,9 @@ Le chiavi sono `name`, `table`, `database`, `type`, `column`, `segment`, `accept
 
 Le copie divergono: il data warehouse ha meno ordini del database dell'applicazione, oppure una migrazione ha perso delle righe. Una riconciliazione confronta una misura di due tabelle, nello stesso database o in due diversi, in **Riconciliazioni**:
 
-- **Row Count**
+- **Numero di righe**
 - **Somma** di una colonna
-- **Distinct Count** di una colonna
+- **Conteggio dei valori distinti** di una colonna
 - **SQL personalizzato**: una query di sola lettura che restituisce un numero, chiamato `value`
 
 Ha una tolleranza: un valore fisso (**Assoluta**) oppure una percentuale del valore dell'origine (**Percentuale**). Ogni lato viene letto da un controllo dedicato, che la riconciliazione crea e mantiene, insieme alla raccolta del suo database, così una riconciliazione può confrontare una tabella PostgreSQL nella tua rete con la sua copia in Snowflake. I due valori vengono confrontati non appena entrambi sono stati letti a non più di 15 minuti di distanza l'uno dall'altro. Una riconciliazione scrive:

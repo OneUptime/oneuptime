@@ -9,6 +9,7 @@ import {
   RenderResult,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import fs from "fs";
 import type { SpyInstance } from "jest-mock";
@@ -76,6 +77,13 @@ import {
 import ObjectID from "../../../Types/ObjectID";
 import { OnCallPageChannel } from "../../../Types/OnCallDutyPolicy/OnCallPageChannel";
 import { OnCallTestPageRecordKind } from "../../../Types/OnCallDutyPolicy/OnCallTestPage";
+import {
+  getUnexplainedServerErrorMessage,
+  SERVER_DOWN_MESSAGE,
+  UnexplainedErrorWords,
+} from "../../../Types/Exception/UnexplainedError";
+import { joinSentences } from "../../../UI/Components/DeleteConfirmation/DeleteConsequences";
+import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 
 /*
  * "WHEN THIS GOES DOWN", DRAWN IN THE READER'S LANGUAGE (#7078).
@@ -795,6 +803,119 @@ describe("a person's facts, set off as the reader's language does", () => {
     expect(facts.slice(0, 2)).toEqual(["Ana Lopez", "Team Platform"]);
     expect(facts[2]!.trim()).not.toBe("");
   });
+});
+
+/*
+ * #7307: a read that failed with an error nobody explained - a gateway's
+ * 502 or 504, a server failure with its reference - read half in English
+ * on a German or a Persian card ("... wer benachrichtigt wird. Error
+ * connecting to server. Please try again in few minutes."). The card's
+ * sentence reads wholly in the reader's language now: its own words, then
+ * why it failed and what to do next, the reference in code with a copy
+ * button named in the language, and Try again.
+ */
+describe("a failed read, wholly in the reader's language", () => {
+  const TEMPLATE: string = "Couldn't work out who is told. {{error}}";
+
+  async function drawFailure(
+    language: string,
+    message: string,
+  ): Promise<{ words: Record<string, string>; error: HTMLElement }> {
+    const words: Record<string, string> = readWords(language) as Record<
+      string,
+      string
+    >;
+
+    readIn(language, words);
+    jest
+      .spyOn(WhoIsToldApi, "getForMonitor")
+      .mockRejectedValue(new Error(message));
+
+    render(
+      <MemoryRouter>
+        <MonitorWhoIsToldCard monitorId={MONITOR_ID} />
+      </MemoryRouter>,
+    );
+
+    return {
+      words: words,
+      error: await screen.findByTestId("who-is-told-error"),
+    };
+  }
+
+  test.each(["de", "fa"])(
+    "%s: a gateway's 502 or 504",
+    async (language: string): Promise<void> => {
+      const { words, error } = await drawFailure(language, SERVER_DOWN_MESSAGE);
+
+      expect(words[TEMPLATE]).toBeTruthy();
+      expect(words[TEMPLATE]).not.toBe(TEMPLATE);
+      expect(withoutIsolateMarks(error.textContent || "").trim()).toBe(
+        words[TEMPLATE]!.replace(
+          "{{error}}",
+          joinSentences([
+            words[UnexplainedErrorWords.serverDownWhy]!,
+            words[UnexplainedErrorWords.serverDownNext]!,
+          ]),
+        ).trim(),
+      );
+      expect(error.textContent).not.toContain(SERVER_DOWN_MESSAGE);
+
+      // None of it in English.
+      for (const english of [
+        "Couldn't work out who is told.",
+        UnexplainedErrorWords.serverDownWhy,
+        UnexplainedErrorWords.serverDownNext,
+      ]) {
+        expect(error.textContent).not.toContain(english);
+      }
+
+      // Persian's own script: the only Latin letters are OneUptime's name.
+      if (language === "fa") {
+        expect(
+          (error.textContent || "")
+            .replace(/OneUptime/g, "")
+            .match(/[A-Za-z]+/g),
+        ).toBeNull();
+      }
+      expect(screen.getByTestId("who-is-told-try-again")).toHaveTextContent(
+        words["Try again"]!,
+      );
+    },
+  );
+
+  test.each(["de", "fa"])(
+    "%s: a server failure with its reference, and its copy button",
+    async (language: string): Promise<void> => {
+      const { words, error } = await drawFailure(
+        language,
+        getUnexplainedServerErrorMessage("1f0c9a2b"),
+      );
+      const text: string = withoutIsolateMarks(error.textContent || "");
+
+      expect(text.startsWith(words[TEMPLATE]!.split("{{error}}")[0]!)).toBe(
+        true,
+      );
+      expect(text).toContain(
+        joinSentences([
+          words[UnexplainedErrorWords.serverWhy]!,
+          words[UnexplainedErrorWords.serverNextWithReferenceSelfHosted]!,
+        ]),
+      );
+      expect(text).not.toContain("The server ran into a problem");
+      expect(text).not.toContain("give this reference");
+
+      const reference: HTMLElement =
+        within(error).getByTestId("error-reference");
+      const code: HTMLElement = within(reference).getByText("1f0c9a2b");
+
+      expect(code.tagName).toBe("CODE");
+      expect(code).toHaveAttribute("dir", "ltr");
+      expect(
+        within(reference).getByRole("button", { name: words["Copy"]! }),
+      ).toBeInTheDocument();
+    },
+  );
 });
 
 describe("in German, the rows #7076 and #7077 added", () => {

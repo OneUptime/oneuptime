@@ -7,6 +7,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { composedValue, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 export interface ComponentProps {
   networkPathTrace: NetworkPathTrace;
@@ -103,17 +104,17 @@ const NetworkPathView: FunctionComponent<ComponentProps> = (
             </span>
           ) : (
             <span className="text-red-700">
-              {trace.dnsLookup.errorMessage
-                ? translator.translateTemplate(
-                    "Lookup for {{host}} failed — {{error}}",
-                    {
-                      host: trace.dnsLookup.hostName,
-                      error: trace.dnsLookup.errorMessage,
-                    },
-                  )
-                : translator.translateTemplate("Lookup for {{host}} failed", {
-                    host: trace.dnsLookup.hostName,
-                  })}
+              {trace.dnsLookup.errorMessage ? (
+                <ErrorSentence
+                  template="Lookup for {{host}} failed — {{error}}"
+                  error={trace.dnsLookup.errorMessage}
+                  values={{ host: trace.dnsLookup.hostName }}
+                />
+              ) : (
+                translator.translateTemplate("Lookup for {{host}} failed", {
+                  host: trace.dnsLookup.hostName,
+                })
+              )}
             </span>
           )}
         </div>

@@ -1,5 +1,7 @@
 import DataObservabilityApi from "./DataObservabilityApi";
 import { getDataCheckAlertConditionWords } from "./DataCheckAlertConditionWords";
+import { getDataCheckTypeLabel } from "./DataCheckTypeWords";
+import DataCheckFactsLine from "./DataCheckFactsLine";
 import RecommendationDismissalUtil from "../Recommendations/RecommendationDismissalUtil";
 import DataAsset from "Common/Models/DatabaseModels/DataAsset";
 import DataCheck from "Common/Models/DatabaseModels/DataCheck";
@@ -13,6 +15,7 @@ import {
 } from "Common/Types/DataObservability/DataAssetColumn";
 import {
   DataCheckSuggestion,
+  DataCheckSuggestionWords,
   ExistingDataCheck,
   suggestDataChecks,
   SuggestionTable,
@@ -37,7 +40,6 @@ import React, {
   useEffect,
   useState,
 } from "react";
-import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 export interface ComponentProps {
   dataAssetId: ObjectID;
@@ -51,12 +53,54 @@ export interface ComponentProps {
 // Dismissals of suggested checks are kept per table.
 export const SUGGESTION_RESOURCE_TYPE: string = "DataAsset";
 
-// A suggested check's name, and the line that says why it is suggested.
+/*
+ * A suggested check's name, what it measures and when it alerts, and the
+ * line that says why it is suggested.
+ */
 export const SUGGESTED_CHECK_NAME_TEST_ID: string = "suggested-check-name";
+export const SUGGESTED_CHECK_FACTS_TEST_ID: string = "suggested-check-facts";
 export const SUGGESTED_CHECK_REASON_TEST_ID: string = "suggested-check-reason";
+
+// Why the suggestions could not be read, added or dismissed.
+export const SUGGESTED_CHECKS_ERROR_TEST_ID: string = "suggested-checks-error";
+
+/*
+ * Each suggestion's row: its words, and its Add and Dismiss beside them
+ * once the card is wide enough for both (a container query, 36rem), under
+ * them before that. Keyed to the viewport (md), the buttons stood beside
+ * the words from 768px, where the card beside the table's side menu is
+ * some 430px wide: the words had 150px, a German column's name broke
+ * mid-word ("primary_billing_conta / ct_email") and a reason ran to seven
+ * lines.
+ */
+export const SUGGESTED_CHECKS_LIST_CLASS_NAME: string =
+  "divide-y divide-gray-100 [container-type:inline-size]";
+
+export const SUGGESTED_CHECK_ROW_CLASS_NAME: string =
+  "flex flex-col gap-3 py-3 [@container(min-width:36rem)]:flex-row [@container(min-width:36rem)]:items-center [@container(min-width:36rem)]:justify-between [@container(min-width:36rem)]:gap-4";
+
+/*
+ * The row's buttons, at the start of their line under the words: a NORMAL
+ * button keeps a dialog footer's margin from md up (Button's md:ml-3), and
+ * Add stood 12px in from the words above it. The * covers a button a
+ * tooltip wraps.
+ *
+ * Each button's words stay on one line (whitespace-nowrap). Below md, Add
+ * is as wide as the row (a NORMAL button's w-full) and Dismiss is as wide
+ * as its words, so the two shrank together and Dismiss gave up most of
+ * its width: on a phone, Japanese broke it mid-word ("非表 / 示"), and
+ * Persian's two words stacked in a button half as wide as they are. Add
+ * gives the room now, down to its own words.
+ */
+export const SUGGESTED_CHECK_BUTTONS_CLASS_NAME: string =
+  "flex shrink-0 gap-2 whitespace-nowrap [&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0";
 
 // The most other tables of the store read to find what a reference points at.
 const MAX_OTHER_TABLES: number = 1000;
+
+// The most a check's name and description hold.
+const MAX_CHECK_NAME_LENGTH: number = 100;
+const MAX_CHECK_DESCRIPTION_LENGTH: number = 500;
 
 /*
  * The checks this table's columns call for (DataCheckSuggestions), offered
@@ -74,6 +118,26 @@ const SuggestedDataChecks: FunctionComponent<ComponentProps> = (
   const [readCount, setReadCount] = useState<number>(0);
   const [working, setWorking] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string>("");
+
+  /*
+   * A suggestion's name or reason in the reader's language (#7221), with
+   * the column, table and data type it names as they are. Drawn, each name
+   * is set apart where it could move the words around it; saved, it is
+   * not - the marks are characters, and would be kept in the check.
+   */
+  const wordsOf: (
+    words: DataCheckSuggestionWords,
+    options: { isDrawn: boolean },
+  ) => string = (
+    words: DataCheckSuggestionWords,
+    options: { isDrawn: boolean },
+  ): string => {
+    return translator.translateTemplate(
+      words.template,
+      words.values,
+      options.isDrawn ? { setsValuesApart: true } : undefined,
+    );
+  };
 
   useEffect(() => {
     let isCurrent: boolean = true;
@@ -193,8 +257,14 @@ const SuggestedDataChecks: FunctionComponent<ComponentProps> = (
     }
 
     check.dataAssetId = props.dataAssetId;
-    check.name = suggestion.name.slice(0, 100);
-    check.description = suggestion.reason;
+    // Added as the reader read it: its name and why, in their language.
+    check.name = wordsOf(suggestion.nameWords, { isDrawn: false }).slice(
+      0,
+      MAX_CHECK_NAME_LENGTH,
+    );
+    check.description = wordsOf(suggestion.reasonWords, {
+      isDrawn: false,
+    }).slice(0, MAX_CHECK_DESCRIPTION_LENGTH);
     check.checkType = suggestion.checkType;
     check.intervalInMinutes = DEFAULT_DATA_CHECK_INTERVAL_IN_MINUTES;
     check.alertCondition = suggestion.alertCondition;
@@ -309,45 +379,66 @@ const SuggestedDataChecks: FunctionComponent<ComponentProps> = (
       ]}
     >
       <div>
-        {error ? <p className="mb-3 text-sm text-red-600">{error}</p> : <></>}
-        <ul className="divide-y divide-gray-100">
+        {error ? (
+          /*
+           * Why the suggestions could not be read, added or dismissed, in
+           * the words the server wrote it in - English, whatever the
+           * page's language: a line of its own, read the way its words
+           * are, so on an Arabic or Persian page it keeps its full stop at
+           * its end, as each suggestion's name and reason do.
+           */
+          <IsolatedLine
+            as="p"
+            text={error}
+            className="mb-3 break-words text-sm text-red-600"
+            dataTestId={SUGGESTED_CHECKS_ERROR_TEST_ID}
+          />
+        ) : (
+          <></>
+        )}
+        <ul className={SUGGESTED_CHECKS_LIST_CLASS_NAME}>
           {suggestions.map((suggestion: DataCheckSuggestion): ReactElement => {
             return (
               <li
                 key={suggestion.id}
-                className="flex flex-col gap-2 py-3 md:flex-row md:items-center md:justify-between"
+                className={SUGGESTED_CHECK_ROW_CLASS_NAME}
               >
-                <div className="min-w-0 space-y-1">
+                <div className="min-w-0 space-y-1 [@container(min-width:36rem)]:flex-1">
                   {/*
-                   * The suggestion's name and reason are written in
-                   * English (DataCheckSuggestions): each line reads the way
-                   * it is written, so on an Arabic or Persian page the
-                   * reason keeps its full stop at its end.
+                   * The suggestion's name and reason, in the reader's
+                   * language with the names it gives set apart: each line
+                   * reads the way its words do, so a line the language has
+                   * no words for yet reads as English, its full stop at its
+                   * end, on an Arabic or Persian page too.
                    */}
                   <IsolatedLine
                     as="span"
-                    text={suggestion.name}
+                    text={wordsOf(suggestion.nameWords, { isDrawn: true })}
                     className="block break-words font-medium text-gray-900"
                     dataTestId={SUGGESTED_CHECK_NAME_TEST_ID}
                   />
-                  <span className="block text-xs text-gray-500">
-                    {translator.translateText(suggestion.checkType) ||
-                      suggestion.checkType}
-                    <InlineSeparator />
-                    {getDataCheckAlertConditionWords({
-                      translator: translator,
-                      condition: suggestion.alertCondition,
-                      threshold: suggestion.alertThreshold,
-                    })}
-                  </span>
+                  <DataCheckFactsLine
+                    facts={[
+                      getDataCheckTypeLabel({
+                        translator: translator,
+                        checkType: suggestion.checkType,
+                      }),
+                      getDataCheckAlertConditionWords({
+                        translator: translator,
+                        condition: suggestion.alertCondition,
+                        threshold: suggestion.alertThreshold,
+                      }),
+                    ]}
+                    dataTestId={SUGGESTED_CHECK_FACTS_TEST_ID}
+                  />
                   <IsolatedLine
                     as="span"
-                    text={suggestion.reason}
+                    text={wordsOf(suggestion.reasonWords, { isDrawn: true })}
                     className="block break-words text-sm text-gray-600"
                     dataTestId={SUGGESTED_CHECK_REASON_TEST_ID}
                   />
                 </div>
-                <div className="flex shrink-0 gap-2">
+                <div className={SUGGESTED_CHECK_BUTTONS_CLASS_NAME}>
                   <Button
                     title="Add"
                     buttonStyle={ButtonStyleType.NORMAL}

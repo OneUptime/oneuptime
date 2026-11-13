@@ -65,6 +65,11 @@ import {
   getUsedByRelations,
 } from "../../../Types/UsedBy/UsedBy";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import {
+  getUnexplainedServerErrorMessage,
+  SERVER_DOWN_MESSAGE,
+  UnexplainedErrorWords,
+} from "../../../Types/Exception/UnexplainedError";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import ProductEvents from "../../../UI/Utils/ProductEvents";
 import {
@@ -549,6 +554,41 @@ describe("the card", () => {
 
     expect(await screen.findByTestId("used-by-group")).toBeInTheDocument();
     expect(getSummary).toHaveBeenCalledTimes(2);
+  });
+
+  /*
+   * The card's sentence says an error nobody explained in the reader's
+   * words (#7307): a gateway's 502 never reads "Error connecting to
+   * server.", and a server failure's reference is in code with its copy
+   * button.
+   */
+  test("a gateway's 502 says the server did not answer; a server failure keeps its reference", async () => {
+    getSummary.mockRejectedValueOnce(new Error(SERVER_DOWN_MESSAGE));
+    const first: ReturnType<typeof render> = renderCard();
+
+    const down: HTMLElement = await screen.findByTestId("used-by-error");
+
+    expect(down).toHaveTextContent(
+      `Couldn't load what uses this. ${UnexplainedErrorWords.serverDownWhy} ${UnexplainedErrorWords.serverDownNext}`,
+    );
+    expect(down.textContent).not.toContain(SERVER_DOWN_MESSAGE);
+
+    first.unmount();
+
+    getSummary.mockRejectedValueOnce(
+      new Error(getUnexplainedServerErrorMessage("1f0c9a2b")),
+    );
+    renderCard();
+
+    const failed: HTMLElement = await screen.findByTestId("used-by-error");
+    const reference: HTMLElement =
+      within(failed).getByTestId("error-reference");
+
+    expect(failed).toHaveTextContent(UnexplainedErrorWords.serverWhy);
+    expect(within(reference).getByText("1f0c9a2b").tagName).toBe("CODE");
+    expect(
+      within(reference).getByRole("button", { name: "Copy" }),
+    ).toBeInTheDocument();
   });
 
   test("read again when the page refreshes, and only then", async () => {

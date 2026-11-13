@@ -28,8 +28,12 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ProjectUtil from "Common/UI/Utils/Project";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
 import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
@@ -45,6 +49,14 @@ import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
  */
 
 type FormSide = "source" | "target";
+
+/*
+ * The line under a reconciliation's name - "Row Count against Row Count,
+ * within 0.5%" - small and grey, wrapping between its words: a table's cell
+ * keeps its words on one line (whitespace-nowrap) unless told otherwise.
+ */
+export const RECONCILIATION_MEASURES_LINE_CLASS_NAME: string =
+  "block whitespace-normal break-words text-xs text-gray-500";
 
 const MEASURE_OPTIONS: Array<DropdownOption> = DATA_RECONCILIATION_MEASURES.map(
   (measure: DataReconciliationMeasure): DropdownOption => {
@@ -113,7 +125,7 @@ const DataObservabilityReconciliationsPage: FunctionComponent<
         setSyncError(
           translator.translateTemplate(
             "The reconciliation is saved, but its checks and monitor could not be set up: {{reason}}",
-            { reason: (err as Error).message },
+            { reason: errorInSentence((err as Error).message) },
           ),
         );
       }
@@ -352,12 +364,22 @@ const DataObservabilityReconciliationsPage: FunctionComponent<
                     text={item.name || ""}
                     className="block truncate font-medium text-gray-900"
                   />
-                  <span className="block truncate text-xs text-gray-500">
+                  {/*
+                   * What is compared, wrapping under the name: cut short at
+                   * the column's 20rem, the measures in German ("Anzahl
+                   * eindeutiger Werte gegen Anzahl eindeutiger...") left no
+                   * room for the tolerance, and held the column at its cap.
+                   */}
+                  <span className={RECONCILIATION_MEASURES_LINE_CLASS_NAME}>
                     {translator.translateTemplate(
                       "{{source}} against {{target}}, within {{tolerance}}",
                       {
-                        source: item.sourceMeasure || "",
-                        target: item.targetMeasure || "",
+                        /*
+                         * Each measure by its name, as the Measure dropdown
+                         * draws it in the reader's language (#7223).
+                         */
+                        source: translatableTerm(item.sourceMeasure || ""),
+                        target: translatableTerm(item.targetMeasure || ""),
                         tolerance:
                           item.toleranceType ===
                           DataReconciliationToleranceType.Percent

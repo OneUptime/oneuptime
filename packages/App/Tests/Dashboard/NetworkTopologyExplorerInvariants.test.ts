@@ -358,12 +358,14 @@ describe("nothing is hidden without saying so", () => {
 
   /*
    * A failed background poll keeps the last good level on screen and says
-   * so, rather than replacing a working page with an error.
+   * so, rather than replacing a working page with an error. The error is
+   * said in the reader's language, a server failure's reference with its
+   * copy button (ErrorSentence, #7307).
    */
   test("a refresh failure keeps the level it already has", () => {
     expect(EXPLORER_CODE).toContain(
       squash(
-        'translator.translateTemplate( "{{error}} — showing the last level that loaded.", { error: error }, )',
+        '<ErrorSentence template="{{error}} — showing the last level that loaded." error={error} />',
       ),
     );
   });

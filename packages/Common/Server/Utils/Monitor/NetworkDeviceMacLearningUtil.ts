@@ -88,6 +88,14 @@ export default class NetworkDeviceMacLearningUtil {
     ipBindings: Array<MacLearningIpBinding>;
     // Who a reading is credited to, when that is not the device above.
     reader?: NetworkDeviceDiscoveryReader | undefined;
+    /*
+     * When the table was read: for a walk, when OneUptime received the poll
+     * (OneUptime issue #7389), which can be many minutes before a worker
+     * processes it. Its readings are stamped with it, and a device holding
+     * a reading taken after it is neither corrected nor re-recorded by it.
+     * Undefined, or not a time: now.
+     */
+    now?: Date | undefined;
   }): Promise<MacLearningResult> {
     const addresses: Array<string> = Array.from(
       new Set<string>(
@@ -173,11 +181,17 @@ export default class NetworkDeviceMacLearningUtil {
       }
     }
 
+    const readAt: Date =
+      data.now && !isNaN(data.now.getTime())
+        ? data.now
+        : OneUptimeDate.getCurrentDate();
+
     const plan: Array<MacLearningPlanEntry> =
       DeviceMacLearningUtil.planMacLearning({
         ipBindings: data.ipBindings,
         devices: candidates,
         observingSiteId: data.observingSiteId?.toString(),
+        now: readAt.getTime(),
       });
 
     let plannedCount: number = 0;
@@ -221,6 +235,7 @@ export default class NetworkDeviceMacLearningUtil {
     }
 
     const observationCount: number = await this.recordMacObservations({
+      readAt: readAt,
       projectId: data.projectId,
       observingDeviceId: data.observingDeviceId,
       observingDeviceName: data.observingDeviceName,
@@ -249,6 +264,8 @@ export default class NetworkDeviceMacLearningUtil {
    * Returns how many devices it recorded a reading on.
    */
   private static async recordMacObservations(data: {
+    // When the table was read (see learnFromArpBindings).
+    readAt: Date;
     projectId: ObjectID;
     observingDeviceId: ObjectID;
     observingDeviceName?: string | undefined;
@@ -258,7 +275,7 @@ export default class NetworkDeviceMacLearningUtil {
     reader?: NetworkDeviceDiscoveryReader | undefined;
   }): Promise<number> {
     try {
-      const now: Date = OneUptimeDate.getCurrentDate();
+      const now: Date = data.readAt;
       const observations: Array<MacObservationPlanEntry> =
         DeviceMacLearningUtil.planMacObservations({
           ipBindings: data.ipBindings,

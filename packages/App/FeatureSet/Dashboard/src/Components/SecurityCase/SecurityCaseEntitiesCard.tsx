@@ -34,6 +34,7 @@ import TableEmptyState, {
 } from "Common/UI/Components/Table/TableEmptyState";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
 import useResizableColumns, {
   ResizableColumns,
 } from "Common/UI/Components/Table/ColumnResize/useResizableColumns";
@@ -342,7 +343,7 @@ const SecurityCaseEntitiesCard: FunctionComponent<ComponentProps> = (
             >
               {translator.translateTemplate(
                 "Activity is not available: {{reason}}",
-                { reason: error },
+                { reason: errorInSentence(error) },
               )}
             </p>
           ) : (

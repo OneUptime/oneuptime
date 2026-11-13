@@ -1,11 +1,14 @@
 import { COULD_NOT_LOAD_USED_BY_WITH_ERROR, TRY_AGAIN } from "./UsedByWords";
+import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
  * What uses the record could not be read: the server's sentence (which
- * says what to do), and Try again.
+ * says what to do), and Try again. An error nobody explained (a gateway's
+ * 502, a server failure with its reference) says why and what to do next
+ * in the reader's language, the reference with its copy button (#7307).
  */
 const UsedByError: FunctionComponent<{
   message: string;
@@ -16,9 +19,10 @@ const UsedByError: FunctionComponent<{
   return (
     <div data-testid="used-by-error">
       <p className="text-sm text-gray-600">
-        {translator.translateTemplate(COULD_NOT_LOAD_USED_BY_WITH_ERROR, {
-          error: translator.translateText(props.message) || props.message,
-        })}
+        <ErrorSentence
+          template={COULD_NOT_LOAD_USED_BY_WITH_ERROR}
+          error={props.message}
+        />
       </p>
       <button
         type="button"

@@ -206,6 +206,7 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
+import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * The cluster's AI agent page (AI → Agent): whether OneUptime AI can reach
@@ -1033,8 +1034,6 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
         OneUptimeDate.fromString(status.evaluatedAt),
       )
     : "";
-  // A failed refresh's message, in the reader's language when it has a key.
-  const refreshError: string = translator.translateText(error) || error;
 
   const renderAsk: () => ReactElement = (): ReactElement => {
     return (
@@ -1352,15 +1351,18 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
           type={AlertType.WARNING}
           strongTitle="Could not refresh the AI agent status"
           title={
-            lastCheckedAt
-              ? translator.translateTemplate(
-                  "{{error}} Showing the last status from {{time}}; this page retries on its own.",
-                  { error: refreshError, time: lastCheckedAt },
-                )
-              : translator.translateTemplate(
-                  "{{error}} Showing the last known status; this page retries on its own.",
-                  { error: refreshError },
-                )
+            lastCheckedAt ? (
+              <ErrorSentence
+                template="{{error}} Showing the last status from {{time}}; this page retries on its own."
+                error={error}
+                values={{ time: lastCheckedAt }}
+              />
+            ) : (
+              <ErrorSentence
+                template="{{error}} Showing the last known status; this page retries on its own."
+                error={error}
+              />
+            )
           }
           dataTestId="ai-access-refresh-warning"
         />
