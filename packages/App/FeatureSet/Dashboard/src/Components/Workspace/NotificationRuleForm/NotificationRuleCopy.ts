@@ -274,10 +274,11 @@ export const RULE_PLURAL_NAMES: ByEventType = {
  * Contains Any". How a condition compares is said in the words of a
  * sentence ("is any of": NotificationRuleConditionWords); an operator with
  * none of its own is said by its stored value (ConditionType), whose words
- * are listed below it. A test holds the lists to the enums. They are not imported here, which keeps this module free of
- * the condition module and the UI it reaches. A field whose stored value has
- * words of its own (CHECK_ON_LABELS: "On Call Duty Policy Name" is shown as
- * "On-Call Policy Name") is listed by those words.
+ * are listed below it. A test holds the lists to the enums. They are not
+ * imported here, which keeps this module free of the condition module and
+ * the UI it reaches. A field whose stored value has words of its own
+ * (CHECK_ON_LABELS: "On Call Duty Policy Name" is shown as "On-Call Policy
+ * Name") is listed by those words.
  */
 export const CONDITION_FIELD_WORDS: ReadonlyArray<string> = [
   translationKey("Monitor Name"),
