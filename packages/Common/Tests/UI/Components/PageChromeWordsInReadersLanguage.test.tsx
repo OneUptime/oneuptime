@@ -46,7 +46,9 @@ import {
  * says aloud before anything else on the page - and the skip link's "Skip
  * to main content" (MasterPage). Drawn here from each app's own locale
  * files, as it ships them, in every language it offers: what is drawn is
- * the locale's word, and never the English.
+ * the locale's word, and never the English. So are the words the reveal
+ * button and the ID pill say once clicked: a revealed secret's "Copy" and
+ * "Hide", and "Copied!" or "Copy failed" after a copy.
  */
 
 const REPOSITORY_ROOT: string = path.resolve(__dirname, "../../../../..");
@@ -59,7 +61,19 @@ type Part =
   | "Navigate to"
   | "Click to reveal"
   | "Click to copy"
-  | "Skip to main content";
+  | "Skip to main content"
+  | "Copy"
+  | "Hide"
+  | "Copied!"
+  | "Copy failed";
+
+// What the reveal button and the ID pill say once a person clicks them.
+const AFTER_A_CLICK: ReadonlyArray<Part> = [
+  "Copy",
+  "Hide",
+  "Copied!",
+  "Copy failed",
+];
 
 const EVERY_PART: ReadonlyArray<Part> = [
   "Breadcrumb",
@@ -68,11 +82,16 @@ const EVERY_PART: ReadonlyArray<Part> = [
   "Click to reveal",
   "Click to copy",
   "Skip to main content",
+  ...AFTER_A_CLICK,
 ];
 
 // Every app's forms hold the reveal button and the ID pill (BasicForm >
 // FormSummary > Detail); the dashboards and the Status Page the rest too.
-const FORM_PARTS: ReadonlyArray<Part> = ["Click to reveal", "Click to copy"];
+const FORM_PARTS: ReadonlyArray<Part> = [
+  "Click to reveal",
+  "Click to copy",
+  ...AFTER_A_CLICK,
+];
 
 interface App {
   name: string;
@@ -208,6 +227,34 @@ const menu: () => ReactElement = (): ReactElement => {
 
 const RECORD_ID: string = "6c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f";
 
+// A clipboard that takes the text, or one that refuses it.
+const installClipboard: (accepts: boolean) => void = (
+  accepts: boolean,
+): void => {
+  Object.defineProperty(navigator, "clipboard", {
+    value: {
+      writeText: async (): Promise<void> => {
+        if (!accepts) {
+          throw new DOMException("Clipboard denied", "NotAllowedError");
+        }
+      },
+    },
+    configurable: true,
+  });
+};
+
+// A tooltip's words, read once the pointer has rested on its trigger.
+const tooltipOver: (trigger: HTMLElement) => Promise<string> = async (
+  trigger: HTMLElement,
+): Promise<string> => {
+  fireEvent.mouseEnter(trigger);
+  await act(async () => {
+    jest.advanceTimersByTime(250);
+  });
+
+  return (await screen.findByRole("tooltip")).textContent || "";
+};
+
 /*
  * What a part draws, read off the page: a landmark's name, a button's or a
  * link's words, a tooltip's text.
@@ -281,12 +328,39 @@ const drawPart: (instance: i18n, part: Part) => Promise<string> = async (
       inLocale(instance, <ObjectIDView objectId={RECORD_ID} />);
 
       // The pill around the ID is what the tooltip hangs on.
-      fireEvent.mouseEnter(screen.getByText(RECORD_ID).parentElement!);
+      return tooltipOver(screen.getByText(RECORD_ID).parentElement!);
+    }
+    case "Copy": {
+      // A revealed secret's copy button, named for what it does.
+      inLocale(instance, <HiddenText text="s3cr3t-value" isCopyable={true} />);
+      fireEvent.click(screen.getByRole("hidden-text"));
+
+      return (
+        screen.getByTestId("copy-to-clipboard-icon").getAttribute("aria-label") ||
+        ""
+      );
+    }
+    case "Hide": {
+      inLocale(instance, <HiddenText text="s3cr3t-value" isCopyable={true} />);
+      fireEvent.click(screen.getByRole("hidden-text"));
+
+      return tooltipOver(screen.getByTestId("hide-text-icon"));
+    }
+    case "Copied!":
+    case "Copy failed": {
+      // What the ID pill says to a screen reader once a copy is done.
+      installClipboard(part === "Copied!");
+      inLocale(instance, <ObjectIDView objectId={RECORD_ID} />);
       await act(async () => {
-        jest.advanceTimersByTime(250);
+        fireEvent.click(screen.getByRole("button", { name: RECORD_ID }));
       });
 
-      return (await screen.findByRole("tooltip")).textContent || "";
+      const said: string = screen.getByRole("status").textContent || "";
+
+      window.getSelection()?.removeAllRanges();
+      installClipboard(true);
+
+      return said;
     }
     case "Skip to main content": {
       inLocale(
@@ -355,10 +429,7 @@ const originalExecCommand: PropertyDescriptor | undefined =
 
 beforeEach(() => {
   jest.useFakeTimers();
-  Object.defineProperty(navigator, "clipboard", {
-    value: { writeText: async (): Promise<void> => {} },
-    configurable: true,
-  });
+  installClipboard(true);
   Object.defineProperty(document, "execCommand", {
     value: undefined,
     configurable: true,

@@ -455,6 +455,10 @@
   "Navigation": "Navigering",
   "Breadcrumb": "Sökväg",
   "Skip to main content": "Hoppa till huvudinnehåll",
+  "Copy": "Kopiera",
+  "Copied!": "Kopierat!",
+  "Copy failed": "Kopieringen misslyckades",
+  "Hide": "Dölj",
   "markdownCallouts": {
     "caution": "Försiktighet",
     "danger": "Fara",

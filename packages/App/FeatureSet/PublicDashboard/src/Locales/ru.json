@@ -23,5 +23,9 @@
   "Something went wrong": "Что-то пошло не так",
   "An unexpected error has occurred. Please reload the page to continue": "Произошла непредвиденная ошибка. Перезагрузите страницу, чтобы продолжить",
   "Click to reveal": "Нажмите, чтобы показать",
-  "Click to copy": "Нажмите, чтобы скопировать"
+  "Click to copy": "Нажмите, чтобы скопировать",
+  "Copy": "Скопировать",
+  "Copied!": "Скопировано!",
+  "Copy failed": "Не удалось скопировать",
+  "Hide": "Скрыть"
 }

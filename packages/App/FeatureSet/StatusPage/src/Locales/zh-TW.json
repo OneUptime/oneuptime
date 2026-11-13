@@ -455,6 +455,10 @@
   "Navigation": "導覽",
   "Breadcrumb": "導覽路徑",
   "Skip to main content": "跳至主要內容",
+  "Copy": "複製",
+  "Copied!": "已複製！",
+  "Copy failed": "複製失敗",
+  "Hide": "隱藏",
   "markdownCallouts": {
     "caution": "小心",
     "danger": "危險",

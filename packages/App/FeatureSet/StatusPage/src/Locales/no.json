@@ -455,6 +455,10 @@
   "Navigation": "Navigasjon",
   "Breadcrumb": "Brødsmulesti",
   "Skip to main content": "Hopp til hovedinnhold",
+  "Copy": "Kopier",
+  "Copied!": "Kopiert!",
+  "Copy failed": "Kopiering mislyktes",
+  "Hide": "Skjul",
   "markdownCallouts": {
     "caution": "Forsiktig",
     "danger": "Fare",

@@ -455,6 +455,10 @@
   "Navigation": "नेविगेशन",
   "Breadcrumb": "ब्रेडक्रंब",
   "Skip to main content": "मुख्य सामग्री पर जाएं",
+  "Copy": "कॉपी करें",
+  "Copied!": "कॉपी हो गया!",
+  "Copy failed": "कॉपी नहीं हो सका",
+  "Hide": "छिपाएं",
   "markdownCallouts": {
     "caution": "सावधानी",
     "danger": "खतरा",

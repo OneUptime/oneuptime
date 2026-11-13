@@ -455,6 +455,10 @@
   "Navigation": "Navegación",
   "Breadcrumb": "Ruta de navegación",
   "Skip to main content": "Ir al contenido principal",
+  "Copy": "Copiar",
+  "Copied!": "¡Copiado!",
+  "Copy failed": "Error al copiar",
+  "Hide": "Ocultar",
   "markdownCallouts": {
     "caution": "Precaución",
     "danger": "Peligro",

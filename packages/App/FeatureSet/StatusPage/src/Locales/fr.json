@@ -455,6 +455,10 @@
   "Navigation": "Navigation",
   "Breadcrumb": "Fil d'Ariane",
   "Skip to main content": "Passer au contenu principal",
+  "Copy": "Copier",
+  "Copied!": "Copié !",
+  "Copy failed": "Échec de la copie",
+  "Hide": "Masquer",
   "markdownCallouts": {
     "caution": "Attention",
     "danger": "Danger",

@@ -23,5 +23,9 @@
   "Something went wrong": "कुछ गड़बड़ हो गई",
   "An unexpected error has occurred. Please reload the page to continue": "एक अनपेक्षित त्रुटि हुई। जारी रखने के लिए कृपया पेज फिर से लोड करें",
   "Click to reveal": "दिखाने के लिए क्लिक करें",
-  "Click to copy": "कॉपी करने के लिए क्लिक करें"
+  "Click to copy": "कॉपी करने के लिए क्लिक करें",
+  "Copy": "कॉपी करें",
+  "Copied!": "कॉपी हो गया!",
+  "Copy failed": "कॉपी नहीं हो सका",
+  "Hide": "छिपाएं"
 }

@@ -25,7 +25,9 @@ import {
  *   - the breadcrumbs' name, "Breadcrumb", which a screen reader says on
  *     every page that has a trail;
  *   - the skip link, "Skip to main content" (MasterPage), the first thing a
- *     keyboard reaches.
+ *     keyboard reaches;
+ *   - and, once a person clicks, what the reveal button and the ID pill say
+ *     next: the secret's "Copy" and "Hide", and "Copied!" or "Copy failed".
  *
  * They were English in pages otherwise in the reader's language: the first
  * three in eleven of the Dashboard's and the Admin Dashboard's languages,
@@ -73,6 +75,11 @@ interface ChromePart {
   what: string;
   // The words it draws, each looked up by its English.
   words: ReadonlyArray<string>;
+  /*
+   * The words it draws once a person clicks it, which the dashboards and
+   * the sign-in pages already had among their own.
+   */
+  afterAClick: ReadonlyArray<string>;
 }
 
 const CHROME_PARTS: ReadonlyArray<ChromePart> = [
@@ -80,34 +87,46 @@ const CHROME_PARTS: ReadonlyArray<ChromePart> = [
     file: "HiddenText/HiddenText.tsx",
     what: "a secret's reveal button",
     words: ["Click to reveal"],
+    afterAClick: ["Copy", "Copied!", "Copy failed", "Hide"],
   },
   {
     file: "ObjectID/ObjectIDView.tsx",
     what: "an ID pill's tooltip",
     words: ["Click to copy"],
+    afterAClick: ["Copied!", "Copy failed"],
   },
   {
     file: "SideMenu/SideMenu.tsx",
     what: "the side menu's name and its phone summary",
     words: ["Main navigation", "Navigate to", "Navigation"],
+    afterAClick: [],
   },
   {
     file: "Breadcrumbs/Breadcrumbs.tsx",
     what: "the breadcrumbs' name",
     words: ["Breadcrumb"],
+    afterAClick: [],
   },
   {
     file: "MasterPage/MasterPage.tsx",
     what: "the skip link",
     words: ["Skip to main content"],
+    afterAClick: [],
   },
 ];
 
-const EVERY_WORD: ReadonlyArray<string> = CHROME_PARTS.flatMap(
-  (part: ChromePart): ReadonlyArray<string> => {
-    return part.words;
-  },
-);
+// Every word a part draws, the ones after a click among them, once each.
+function everyWordOf(parts: ReadonlyArray<ChromePart>): Array<string> {
+  return Array.from(
+    new Set<string>(
+      parts.flatMap((part: ChromePart): ReadonlyArray<string> => {
+        return [...part.words, ...part.afterAClick];
+      }),
+    ),
+  );
+}
+
+const EVERY_WORD: ReadonlyArray<string> = everyWordOf(CHROME_PARTS);
 
 /*
  * The words a language writes as English does: "Navigation" is German,
@@ -346,7 +365,13 @@ function partsDrawnBy(app: App): Array<ChromePart> {
   });
 }
 
+// Every word the parts an app draws say, the ones after a click among them.
 function wordsDrawnBy(app: App): Array<string> {
+  return everyWordOf(partsDrawnBy(app));
+}
+
+// The words the parts an app draws say before anyone clicks.
+function chromeWordsDrawnBy(app: App): Array<string> {
   return partsDrawnBy(app).flatMap(
     (part: ChromePart): ReadonlyArray<string> => {
       return part.words;
@@ -373,7 +398,7 @@ describe("the page's shared words", () => {
       "utf8",
     );
 
-    for (const word of part.words) {
+    for (const word of [...part.words, ...part.afterAClick]) {
       expect({
         part: part.what,
         word,
@@ -480,7 +505,7 @@ describe("the page's shared words", () => {
     "%s keeps them together, at one place in every locale, before its markdownCallouts block",
     (app: App) => {
       const englishKeys: Array<string> = Object.keys(readLocale(app, "en"));
-      const words: Array<string> = wordsDrawnBy(app);
+      const words: Array<string> = chromeWordsDrawnBy(app);
       const first: number = englishKeys.indexOf(words[0] as string);
 
       // Side by side, in the parts' order.

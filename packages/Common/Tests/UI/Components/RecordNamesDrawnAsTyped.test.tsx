@@ -215,9 +215,11 @@ describe("a breadcrumb trail", () => {
   test("draws a record's name as typed, and looks the pages up", () => {
     render(<Breadcrumbs links={trail} />);
 
+    // The trail is named in German too (Navigationspfad).
     const nav: HTMLElement = screen.getByRole("navigation", {
-      name: "Breadcrumb",
+      name: GERMAN["Breadcrumb"] as string,
     });
+    expect(GERMAN["Breadcrumb"]).not.toBe("Breadcrumb");
     expect(within(nav).getByText(ROLE_NAME)).toBeInTheDocument();
     expect(within(nav).queryByText(ROLE_NAME_IN_GERMAN)).toBeNull();
     expect(

@@ -23,5 +23,9 @@
   "Something went wrong": "문제가 발생했습니다",
   "An unexpected error has occurred. Please reload the page to continue": "예기치 않은 오류가 발생했습니다. 계속하려면 페이지를 다시 로드하세요",
   "Click to reveal": "표시하려면 클릭",
-  "Click to copy": "복사하려면 클릭"
+  "Click to copy": "복사하려면 클릭",
+  "Copy": "복사",
+  "Copied!": "복사됨!",
+  "Copy failed": "복사 실패",
+  "Hide": "숨기기"
 }

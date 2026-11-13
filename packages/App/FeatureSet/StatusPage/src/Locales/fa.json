@@ -455,6 +455,10 @@
   "Navigation": "ناوبری",
   "Breadcrumb": "مسیر صفحه",
   "Skip to main content": "رفتن به محتوای اصلی",
+  "Copy": "کپی",
+  "Copied!": "کپی شد!",
+  "Copy failed": "کپی ناموفق بود",
+  "Hide": "پنهان کردن",
   "markdownCallouts": {
     "caution": "احتیاط",
     "danger": "خطر",

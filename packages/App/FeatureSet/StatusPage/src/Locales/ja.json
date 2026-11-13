@@ -455,6 +455,10 @@
   "Navigation": "ナビゲーション",
   "Breadcrumb": "ブレッドクラム",
   "Skip to main content": "メインコンテンツにスキップ",
+  "Copy": "コピー",
+  "Copied!": "コピーしました",
+  "Copy failed": "コピーに失敗しました",
+  "Hide": "非表示",
   "markdownCallouts": {
     "caution": "注意",
     "danger": "危険",

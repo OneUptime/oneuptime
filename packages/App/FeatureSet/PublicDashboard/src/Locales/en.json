@@ -23,5 +23,9 @@
   "Something went wrong": "Something went wrong",
   "An unexpected error has occurred. Please reload the page to continue": "An unexpected error has occurred. Please reload the page to continue",
   "Click to reveal": "Click to reveal",
-  "Click to copy": "Click to copy"
+  "Click to copy": "Click to copy",
+  "Copy": "Copy",
+  "Copied!": "Copied!",
+  "Copy failed": "Copy failed",
+  "Hide": "Hide"
 }

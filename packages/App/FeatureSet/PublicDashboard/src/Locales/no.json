@@ -23,5 +23,9 @@
   "Something went wrong": "Noe gikk galt",
   "An unexpected error has occurred. Please reload the page to continue": "Det oppstod en uventet feil. Last inn siden på nytt for å fortsette",
   "Click to reveal": "Klikk for å vise",
-  "Click to copy": "Klikk for å kopiere"
+  "Click to copy": "Klikk for å kopiere",
+  "Copy": "Kopier",
+  "Copied!": "Kopiert!",
+  "Copy failed": "Kopiering mislyktes",
+  "Hide": "Skjul"
 }

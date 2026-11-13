@@ -23,5 +23,9 @@
   "Something went wrong": "Algo salió mal",
   "An unexpected error has occurred. Please reload the page to continue": "Se produjo un error inesperado. Vuelve a cargar la página para continuar",
   "Click to reveal": "Haz clic para mostrar",
-  "Click to copy": "Haz clic para copiar"
+  "Click to copy": "Haz clic para copiar",
+  "Copy": "Copiar",
+  "Copied!": "¡Copiado!",
+  "Copy failed": "Error al copiar",
+  "Hide": "Ocultar"
 }

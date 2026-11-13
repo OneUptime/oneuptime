@@ -455,6 +455,10 @@
   "Navigation": "导航",
   "Breadcrumb": "面包屑",
   "Skip to main content": "跳到主要内容",
+  "Copy": "复制",
+  "Copied!": "已复制！",
+  "Copy failed": "复制失败",
+  "Hide": "隐藏",
   "markdownCallouts": {
     "caution": "小心",
     "danger": "危险",

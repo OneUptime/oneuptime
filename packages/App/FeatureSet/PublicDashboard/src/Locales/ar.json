@@ -23,5 +23,9 @@
   "Something went wrong": "حدث خطأ ما",
   "An unexpected error has occurred. Please reload the page to continue": "حدث خطأ غير متوقع. يُرجى إعادة تحميل الصفحة للمتابعة",
   "Click to reveal": "انقر للإظهار",
-  "Click to copy": "انقر للنسخ"
+  "Click to copy": "انقر للنسخ",
+  "Copy": "نسخ",
+  "Copied!": "تم النسخ!",
+  "Copy failed": "فشل النسخ",
+  "Hide": "إخفاء"
 }

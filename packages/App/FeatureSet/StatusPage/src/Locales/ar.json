@@ -455,6 +455,10 @@
   "Navigation": "التنقل",
   "Breadcrumb": "مسار التنقل",
   "Skip to main content": "انتقل إلى المحتوى الرئيسي",
+  "Copy": "نسخ",
+  "Copied!": "تم النسخ!",
+  "Copy failed": "فشل النسخ",
+  "Hide": "إخفاء",
   "markdownCallouts": {
     "caution": "تنبيه",
     "danger": "خطر",

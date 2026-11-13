@@ -23,5 +23,9 @@
   "Something went wrong": "مشکلی پیش آمد",
   "An unexpected error has occurred. Please reload the page to continue": "خطای غیرمنتظره‌ای رخ داد. برای ادامه، صفحه را دوباره بارگذاری کنید",
   "Click to reveal": "برای نمایش کلیک کنید",
-  "Click to copy": "برای کپی کلیک کنید"
+  "Click to copy": "برای کپی کلیک کنید",
+  "Copy": "کپی",
+  "Copied!": "کپی شد!",
+  "Copy failed": "کپی ناموفق بود",
+  "Hide": "پنهان کردن"
 }
