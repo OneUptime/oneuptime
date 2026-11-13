@@ -14,12 +14,9 @@ import CloudResourceStatusCell, {
   CLOUD_STATUS_COLUMN_CLASS_NAME,
 } from "../../../../Components/Cloud/CloudResourceStatusCell";
 import { CLOUD_HEALTH_FILTER_OPTIONS } from "../../../../Components/Cloud/CloudResourceAttention";
+import { getCloudResourceTypeOptions } from "../../../../Components/Cloud/CloudResourceTypeOptions";
 import OneUptimeDate from "Common/Types/Date";
-import {
-  CLOUD_RESOURCE_TYPES,
-  CloudResourceTypeDescriptor,
-  getCloudResourceTypeDisplayName,
-} from "Common/Types/Cloud/CloudResourceCatalog";
+import { getCloudResourceTypeDisplayName } from "Common/Types/Cloud/CloudResourceCatalog";
 import ObjectID from "Common/Types/ObjectID";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
@@ -89,18 +86,12 @@ const CloudAccountResources: FunctionComponent<
 
   const provider: string = (read.account.provider as string) || "";
 
-  // The types of this account's cloud, for the Type filter.
-  const typeOptions: Array<DropdownOption> = CLOUD_RESOURCE_TYPES.filter(
-    (descriptor: CloudResourceTypeDescriptor): boolean => {
-      return descriptor.provider === provider;
-    },
-  )
-    .map((descriptor: CloudResourceTypeDescriptor): DropdownOption => {
-      return { label: descriptor.label, value: descriptor.type };
-    })
-    .sort((a: DropdownOption, b: DropdownOption): number => {
-      return a.label.localeCompare(b.label);
-    });
+  /*
+   * The types of this account's cloud, for the Type filter: named as the
+   * rows under it name them, in its menu and its chip alike.
+   */
+  const typeOptions: Array<DropdownOption> =
+    getCloudResourceTypeOptions(provider);
 
   const viewRoute: (item: CloudResource) => Route = (
     item: CloudResource,

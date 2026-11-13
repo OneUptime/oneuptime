@@ -565,6 +565,17 @@ then `npm run i18n:validate` from the root.
   [NounKeysDrawnAsLabelsGuard](../../packages/Common/Tests/App/Dashboard/NounKeysDrawnAsLabelsGuard.test.ts)
   and
   [NounLabelsStartWithACapital](../../packages/Common/Tests/App/Dashboard/NounLabelsStartWithACapital.test.tsx).
+- **A cloud's product name is written as the cloud writes it.** A kind of cloud resource is named by
+  the catalog's label, a product's name ("Virtual Machine", "Cloud Run"), in every language and on
+  every page: the rows, the cards, the overview, Topology, a Type filter's menu and its chip. The docs'
+  tables of supported resources write them so too. Never look a label up: some are also Dashboard
+  words, and a Spanish menu said "Máquina virtual" over rows that said "Virtual Machine". A kind the
+  catalog only names in words reads in the reader's words ("Subred"), through
+  `getCloudResourceTypeText`; a Type filter takes its options from `getCloudResourceTypeOptions`.
+  Enforced by
+  [CloudResourceTypeNamesGuard](../../packages/Common/Tests/App/Dashboard/CloudResourceTypeNamesGuard.test.ts)
+  and
+  [CloudResourceTypeNamesInSpanish](../../packages/Common/Tests/App/Dashboard/CloudResourceTypeNamesInSpanish.test.tsx).
 - **Pick words that translate as you mean them.** "About" read "Regarding" in 13 languages, so the
   button says "How it works"; "Uptime" read "runtime", so a share of time up says "Availability". Not
   enforced: use judgement.
