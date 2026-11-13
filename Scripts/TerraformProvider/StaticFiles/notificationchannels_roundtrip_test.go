@@ -23,7 +23,12 @@ package provider
  *     sent: OneUptime sets them, and Terraform reads them;
  *   - two configurations with the same used_for that both set
  *     is_project_default take the default from each other on every apply,
- *     and one for SMS and one for calls are both the default.
+ *     and one for SMS and one for calls are both the default;
+ *   - a phone number applies however it is written: OneUptime keeps
+ *     "+1 415 555 0100" as "+14155550100", and the state keeps the
+ *     configuration's spelling, a refresh and an import plan no change, and
+ *     the number is sent as the string written (phone.go,
+ *     OneUptime/oneuptime#7777).
  *
  * Terraform is driven as monitorstepsvalues_roundtrip_test.go drives it
  * (stepValuesTerraform), with the provider configured against this API.
@@ -66,6 +71,21 @@ var ownChannelsWrapped = map[string]string{
 	"hostname":                 "Hostname",
 	"port":                     "Port",
 	"fromEmail":                "Email",
+}
+
+// How OneUptime keeps each number these tests write (Common/Types/Phone.ts:
+// as written when its E.123 check takes it, otherwise as its digits). It is
+// written out here, not computed with phone.go's rule, which is what these
+// tests check; TestCallAndSMSConfig_PhoneNumbersApplyHoweverTheyAreWritten
+// holds it to the server's own cases.
+var ownChannelsStoredPhones = map[string]string{
+	"+14155550100":     "+14155550100",
+	"+1 415 555 0100":  "+14155550100",
+	"+1 415 555 0101":  "+14155550101",
+	"+44 20 7946 0958": "+442079460958",
+	"14155550100":      "14155550100",
+	"(415) 555-0100":   "(415) 555-0100",
+	"+1-555-123-4567":  "+15551234567",
 }
 
 // ownChannelsAPI is the fake OneUptime API: a project's Twilio configs and
@@ -156,6 +176,27 @@ func (a *ownChannelsAPI) settleDefaults(id string, data map[string]interface{}, 
 	}
 }
 
+// keepPhone is the phone number a write sends, as OneUptime keeps it: "" when
+// it sends none, and false when it is not the string a configuration writes
+// or is a number these tests do not write.
+func (a *ownChannelsAPI) keepPhone(data map[string]interface{}) (string, bool) {
+	value, given := data["twilioPrimaryPhoneNumber"]
+	if !given {
+		return "", true
+	}
+	written, isString := value.(string)
+	if !isString {
+		a.t.Errorf("the phone number was sent as %#v, not as the string a configuration writes", value)
+		return "", false
+	}
+	stored, known := ownChannelsStoredPhones[written]
+	if !known {
+		a.t.Errorf("the phone number %q was sent, which ownChannelsStoredPhones does not name", written)
+		return "", false
+	}
+	return stored, true
+}
+
 // answer is a row as the API answers it.
 func (a *ownChannelsAPI) answer(table, id string) map[string]interface{} {
 	answer := map[string]interface{}{
@@ -197,11 +238,19 @@ func (a *ownChannelsAPI) handle(w http.ResponseWriter, r *http.Request) {
 		rows := a.rows[table]
 		switch {
 		case path == table && r.Method == http.MethodPost:
+			phone, ok := a.keepPhone(data)
+			if !ok {
+				a.reply(w, http.StatusBadRequest, map[string]interface{}{"message": "Phone is not in valid format"})
+				return
+			}
 			a.created++
 			id := fmt.Sprintf("a1000000-0000-4000-8000-%012d", 700+a.created)
 			rows[id] = map[string]interface{}{}
 			for key, value := range data {
 				rows[id][key] = value
+			}
+			if phone != "" {
+				rows[id]["twilioPrimaryPhoneNumber"] = phone
 			}
 			a.sent[table] = append(a.sent[table], data)
 			if table == callSMSConfigTable {
@@ -224,8 +273,16 @@ func (a *ownChannelsAPI) handle(w http.ResponseWriter, r *http.Request) {
 			case r.Method == http.MethodPost && strings.HasSuffix(rest, "/get-item"):
 				a.reply(w, http.StatusOK, map[string]interface{}{"data": a.answer(table, id)})
 			case r.Method == http.MethodPut && id == rest:
+				phone, ok := a.keepPhone(data)
+				if !ok {
+					a.reply(w, http.StatusBadRequest, map[string]interface{}{"message": "Phone is not in valid format"})
+					return
+				}
 				for key, value := range data {
 					row[key] = value
+				}
+				if phone != "" {
+					row["twilioPrimaryPhoneNumber"] = phone
 				}
 				a.sent[table] = append(a.sent[table], data)
 				if table == callSMSConfigTable {
@@ -562,5 +619,125 @@ func TestSMTPConfig_AppliesSendsThePasswordAndPlansNoChange(t *testing.T) {
 		if attribute.Sensitive != containsString(secrets, attribute.Name) {
 			t.Fatalf("%s is sensitive: %v", attribute.Name, attribute.Sensitive)
 		}
+	}
+}
+
+// withPhone is the attributes to write the Twilio account's number this way.
+func withPhone(written string) map[string]tftypes.Value {
+	return map[string]tftypes.Value{"twilio_primary_phone_number": tftypes.NewValue(tftypes.String, written)}
+}
+
+func TestCallAndSMSConfig_PhoneNumbersApplyHoweverTheyAreWritten(t *testing.T) {
+	// The fake API's numbers are the server's: each its cases name is kept
+	// as they say (testdata/phone_numbers.json, from Phone.ts).
+	named := 0
+	for _, tc := range readPhoneCases(t).Cases {
+		stored, known := ownChannelsStoredPhones[tc.Written]
+		if !known {
+			continue
+		}
+		named++
+		if tc.Stored == nil || *tc.Stored != stored {
+			t.Fatalf("the fake API keeps %q as %q, the server as %v", tc.Written, stored, tc.Stored)
+		}
+	}
+	if named < 6 {
+		t.Fatalf("the server's cases name %d of the fake API's numbers, expected 6", named)
+	}
+
+	for _, written := range []string{
+		// Grouped as people say them, which OneUptime keeps as their digits.
+		"+1 415 555 0100",
+		"+44 20 7946 0958",
+		// The spec's own example.
+		"+1-555-123-4567",
+		// Kept as written.
+		"(415) 555-0100",
+		// Digits alone: sent as a string, never as a JSON number.
+		"14155550100",
+	} {
+		t.Run(written, func(t *testing.T) {
+			api := newOwnChannelsAPI(t)
+			tf := newOwnChannelsTerraform(t, api)
+
+			config := twilioConfig(tf, "Production Twilio", "token-one", withPhone(written))
+			if errors := tf.validate(callSMSConfigType, config); len(errors) > 0 {
+				t.Fatalf("terraform validate: %s - %s", errors[0].Summary, errors[0].Detail)
+			}
+
+			// Fails here with "Provider produced inconsistent result after
+			// apply" when the provider compares the number OneUptime
+			// answers as text.
+			created := tf.apply(callSMSConfigType, ownChannelsNothing(tf, callSMSConfigType), config)
+			id := stringAttribute(t, created.state, "id")
+
+			if sent := api.lastSent(t, callSMSConfigTable)["twilioPrimaryPhoneNumber"]; sent != written {
+				t.Fatalf("the create sent the number as %#v, not as the string %q", sent, written)
+			}
+			if got := stringAttribute(t, created.state, "twilio_primary_phone_number"); got != written {
+				t.Fatalf("after the apply, the state's number is %q, not the configuration's", got)
+			}
+
+			refreshed := tf.refresh(callSMSConfigType, created)
+			if got := stringAttribute(t, refreshed.state, "twilio_primary_phone_number"); got != written {
+				t.Fatalf("after a refresh, the state's number is %q, not the configuration's", got)
+			}
+			if changed := tf.changes(callSMSConfigType, refreshed, config); len(changed) > 0 {
+				t.Fatalf("the plan after a refresh changes %v", changed)
+			}
+
+			// An import reads the number as OneUptime keeps it, which is the
+			// configuration's number.
+			imported := tf.importResource(callSMSConfigType, id)
+			if got := stringAttribute(t, imported.state, "twilio_primary_phone_number"); got != ownChannelsStoredPhones[written] {
+				t.Fatalf("after the import, the state's number is %q, not OneUptime's %q", got, ownChannelsStoredPhones[written])
+			}
+			if changed := tf.changes(callSMSConfigType, imported, config); len(changed) > 0 {
+				t.Fatalf("the plan after the import changes %v", changed)
+			}
+
+			if writes := len(api.sentTo(callSMSConfigTable)); writes != 1 {
+				t.Fatalf("the API was written %d times, not once", writes)
+			}
+		})
+	}
+}
+
+func TestCallAndSMSConfig_TheSameNumberWrittenAnotherWayIsNoChange(t *testing.T) {
+	api := newOwnChannelsAPI(t)
+	tf := newOwnChannelsTerraform(t, api)
+
+	created := tf.apply(callSMSConfigType, ownChannelsNothing(tf, callSMSConfigType), twilioConfig(tf, "Production Twilio", "token-one", nil))
+
+	// The number as Twilio shows it, then grouped: the same number.
+	for _, written := range []string{"+1 415 555 0100", " +14155550100", "+1 (415) 555-0100"} {
+		if changed := tf.changes(callSMSConfigType, created, twilioConfig(tf, "Production Twilio", "token-one", withPhone(written))); len(changed) > 0 {
+			t.Fatalf("%q over %q plans %v", written, ownChannelsPhone, changed)
+		}
+	}
+
+	// Another number is a change: sent alone, as the string written, and
+	// applied cleanly.
+	another := twilioConfig(tf, "Production Twilio", "token-one", withPhone("+1 415 555 0101"))
+	if changed := tf.changes(callSMSConfigType, created, another); !containsString(changed, "twilio_primary_phone_number") {
+		t.Fatalf("another number plans %v, not a change of twilio_primary_phone_number", changed)
+	}
+	updated := tf.apply(callSMSConfigType, created, another)
+	if update := api.lastSent(t, callSMSConfigTable); len(update) != 1 || update["twilioPrimaryPhoneNumber"] != "+1 415 555 0101" {
+		t.Fatalf("the update sent %v, not the new number alone", update)
+	}
+	if got := stringAttribute(t, updated.state, "twilio_primary_phone_number"); got != "+1 415 555 0101" {
+		t.Fatalf("after the update, the state's number is %q, not the configuration's", got)
+	}
+	if changed := tf.changes(callSMSConfigType, tf.refresh(callSMSConfigType, updated), another); len(changed) > 0 {
+		t.Fatalf("the plan after the update changes %v", changed)
+	}
+
+	// A number OneUptime refuses fails terraform validate, before anything
+	// is sent.
+	errors := tf.validate(callSMSConfigType, twilioConfig(tf, "Production Twilio", "token-one", withPhone("+1 415 555 CALL")))
+	if len(errors) != 1 || errors[0].Summary != "Invalid Phone Number" ||
+		errors[0].Attribute == nil || !strings.Contains(errors[0].Attribute.String(), "twilio_primary_phone_number") {
+		t.Fatalf("a number OneUptime refuses gives %v", errors)
 	}
 }

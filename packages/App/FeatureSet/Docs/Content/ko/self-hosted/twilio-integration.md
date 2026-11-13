@@ -110,7 +110,7 @@ resource "oneuptime_call_and_sms_config" "production" {
 ```
 
 - **프로젝트 기본값.** Terraform은 `is_project_default = true`일 때만 구성을 프로젝트 기본값으로 만듭니다. 생략하면 Terraform이 `false`를 보내므로, 대시보드에서와 달리 프로젝트의 첫 구성이 기본값이 되지 않습니다. 메시지 종류마다 구성 하나에만 설정하세요. `used_for`가 같은 두 구성에 모두 설정하면 apply할 때마다 서로 기본값을 가져갑니다. `is_project_default_for_sms`와 `is_project_default_for_calls`는 OneUptime이 설정하며, Terraform은 읽기만 합니다.
-- **전화번호.** 각 번호는 Twilio에 표시되는 대로 `+`, 국가 코드, 번호 순으로 공백 없이 쓰세요.
+- **전화번호.** 각 번호는 `+`와 국가 코드를 붙여 쓰세요. 숫자 사이의 공백, 하이픈, 점, 괄호는 괜찮습니다. OneUptime은 `+1 415 555 0100`을 `+14155550100`으로 저장하고, Terraform은 이를 작성한 번호와 같은 번호로 읽으므로 plan에 변경 사항이 나타나지 않습니다.
 - **API 키.** Terraform이 사용하는 키는 구성을 만들고 편집하는 것 외에 Auth Token도 읽을 수 있어야 합니다: **프로젝트 소유자**, **프로젝트 관리자**, 또는 사용자 지정 역할의 **Read Call and SMS**. 읽을 수 없는 키로는 구성 읽기가 실패하며, 오류에 토큰을 읽을 수 있는 사람이 표시됩니다.
 - **참조.** 상태 페이지의 `call_sms_config_id`와 수신 통화 정책의 `project_call_sms_config_id`에는 구성의 `id`를 지정합니다.
 
