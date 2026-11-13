@@ -160,6 +160,7 @@ import LeaveGuard from "../../../UI/Utils/LeaveGuard";
 import Navigation from "../../../UI/Utils/Navigation";
 import UnsavedChanges from "../../../UI/Utils/NewVersion/UnsavedChanges";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
+import { afterHistorySteps } from "../../Helpers/HistorySteps";
 
 const LEAVE_TITLE: string = "Leave without saving?";
 const LEAVE_DESCRIPTION: string =
@@ -298,7 +299,13 @@ async function pressBrowserBack(): Promise<void> {
   await act(async () => {
     window.history.back();
   });
-  // The step, the guard's step back, and React drawing what followed.
+  /*
+   * The step, the guard's step back in the next frame (issue #7404), and
+   * React drawing what followed.
+   */
+  await act(async () => {
+    await afterHistorySteps();
+  });
   await settle();
 }
 
