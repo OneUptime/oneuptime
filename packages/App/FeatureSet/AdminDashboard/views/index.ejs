@@ -134,8 +134,13 @@
     }) -%>
 
     <script type="module" src="/admin/dist/Index.js"></script>
+    <%#
+      Tailwind's runtime is missing when the connection dropped before it
+      arrived: there is nothing to configure, and the card the page draws then
+      (Partials/EntryLoadFailure.ejs) brings its own styles.
+    -%>
     <script>
-      tailwind.config = {
+      if (window.tailwind) tailwind.config = {
         darkMode: 'class',
         theme: {
           extend:

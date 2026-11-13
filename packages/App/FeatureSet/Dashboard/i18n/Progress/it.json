@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 51809,
-    "untranslated": 9465
+    "keys": 51818,
+    "untranslated": 9458
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -244,7 +244,6 @@
     "Powered by OneUptime",
     "Principal",
     "Privacy",
-    "Profiler",
     "Prompt",
     "Provider",
     "Pull request",

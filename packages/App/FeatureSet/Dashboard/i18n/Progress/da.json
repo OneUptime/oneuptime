@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 51809,
-    "untranslated": 9476
+    "keys": 51818,
+    "untranslated": 9469
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -259,7 +259,6 @@
     "Powered by OneUptime",
     "Principal",
     "Problem",
-    "Profiler",
     "Prompt",
     "Pull request",
     "Pull request #{{number}}",

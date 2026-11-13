@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 51809,
-    "untranslated": 9498
+    "keys": 51818,
+    "untranslated": 9491
   },
   "sameAsEnglish": [
     " is",
@@ -345,7 +345,6 @@
     "Processors",
     "Producer",
     "Product",
-    "Profiler",
     "Project",
     "Project: {{accounts}}",
     "Prompt",
