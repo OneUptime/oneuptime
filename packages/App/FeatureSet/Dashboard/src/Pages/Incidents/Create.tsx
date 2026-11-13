@@ -609,7 +609,9 @@ const IncidentCreate: FunctionComponent<
   /*
    * The form, for "Change to Yes" on its summary step to tick the notify
    * box, and that line of the summary, which takes the focus once the link
-   * pressed is gone.
+   * pressed is gone - without a ring, as an event header's value takes it
+   * once its Assign is done (EventPeopleFacts): the line itself turning to
+   * "Yes · Preview" shows where the keyboard is, and Tab goes on from it.
    */
   const formRef: MutableRefObject<FormProps<FormValues<Incident>>> = useRef<
     FormProps<FormValues<Incident>>
@@ -2233,7 +2235,7 @@ const IncidentCreate: FunctionComponent<
                     return (
                       <>
                         <div
-                          className="flex flex-wrap items-center gap-x-3 gap-y-1"
+                          className="flex flex-wrap items-center gap-x-3 gap-y-1 focus:outline-none"
                           data-testid="incident-create-notify-subscribers-line"
                           ref={notifyReviewLineRef}
                           tabIndex={-1}

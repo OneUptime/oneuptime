@@ -424,11 +424,16 @@ const FormSummary: <T extends GenericObject>(
   const getFormStepTitle: (formStep: FormStep<T>) => ReactElement = (
     formStep: FormStep<T>,
   ): ReactElement => {
-    return (
-      <h2 className="text-md font-medium text-gray-900 mb-3">
-        {formStep.title}
-      </h2>
-    );
+    /*
+     * In the reader's language, looked up as the step list and the narrow
+     * "Step 2 of 3" title look it up, so the summary names each step as the
+     * step list beside it does. A product's name is shown as given.
+     */
+    const title: string = formStep.isTitleProductName
+      ? formStep.title
+      : translateText(formStep.title) ?? formStep.title;
+
+    return <h2 className="text-md font-medium text-gray-900 mb-3">{title}</h2>;
   };
 
   const getDetailForFormStep: (formStep: FormStep<T>) => ReactElement = (

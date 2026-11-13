@@ -85,11 +85,11 @@ const ROUTE: string =
 const COLUMN: string = NEW_INCIDENT_NOTIFY_DEFAULT_COLUMN;
 const SWITCH_TITLE: string = "Notify status page subscribers by default";
 const CARD_DESCRIPTION: string =
-  "Choose whether Notify Status Page Subscribers starts ticked when someone declares an incident.";
+  "Choose whether “Notify Status Page Subscribers” starts ticked when someone declares an incident.";
 const ON_DESCRIPTION: string =
-  "Status page subscribers are notified of a new incident unless whoever declares it unticks Notify Status Page Subscribers.";
+  "Status page subscribers are notified of a new incident unless whoever declares it unticks “Notify Status Page Subscribers”.";
 const OFF_DESCRIPTION: string =
-  "Status page subscribers are notified of a new incident only if whoever declares it ticks Notify Status Page Subscribers.";
+  "Status page subscribers are notified of a new incident only if whoever declares it ticks “Notify Status Page Subscribers”.";
 
 const BASE_PERMISSIONS: Array<Permission> = [
   Permission.Public,

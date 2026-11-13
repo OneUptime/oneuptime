@@ -649,6 +649,13 @@ describe("the review's Change to Yes", () => {
         screen.getByTestId("incident-create-notify-subscribers-line"),
       ).toHaveFocus();
     });
+    /*
+     * Without the browser's outline round the whole width of the review, as
+     * an event header's value takes the focus once its Assign is done.
+     */
+    expect(
+      screen.getByTestId("incident-create-notify-subscribers-line"),
+    ).toHaveClass("focus:outline-none");
     // Still on the review: only Declare Incident declares.
     expect(createOrUpdateMock).not.toHaveBeenCalled();
     expect(

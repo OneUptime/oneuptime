@@ -15,7 +15,8 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  *
  * Each state says what it means for subscribers in one sentence, and how the
  * person declaring changes it - the box's own name, as Declare New Incident
- * shows it.
+ * shows it, in quotes, so it reads as the box's label rather than as part of
+ * the sentence (as every translation already quotes it).
  *
  * Declare New Incident's box keeps its question. In a project that starts it
  * unticked, the question says so too, under the box and again on the
@@ -51,14 +52,14 @@ export const NEW_INCIDENT_NOTIFY_DEFAULT_SETTING_COPY: NewIncidentNotifyDefaultS
     column: NEW_INCIDENT_NOTIFY_DEFAULT_COLUMN,
     cardTitle: translationKey("Subscriber Notifications"),
     cardDescription: translationKey(
-      "Choose whether Notify Status Page Subscribers starts ticked when someone declares an incident.",
+      "Choose whether “Notify Status Page Subscribers” starts ticked when someone declares an incident.",
     ),
     switchTitle: translationKey("Notify status page subscribers by default"),
     switchOnDescription: translationKey(
-      "Status page subscribers are notified of a new incident unless whoever declares it unticks Notify Status Page Subscribers.",
+      "Status page subscribers are notified of a new incident unless whoever declares it unticks “Notify Status Page Subscribers”.",
     ),
     switchOffDescription: translationKey(
-      "Status page subscribers are notified of a new incident only if whoever declares it ticks Notify Status Page Subscribers.",
+      "Status page subscribers are notified of a new incident only if whoever declares it ticks “Notify Status Page Subscribers”.",
     ),
     dataTestId: NEW_INCIDENT_NOTIFY_DEFAULT_SWITCH_TEST_ID,
   };
