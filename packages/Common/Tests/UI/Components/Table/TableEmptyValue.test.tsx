@@ -70,6 +70,21 @@ describe("the dash", () => {
     ).toHaveTextContent("No labels attached.");
   });
 
+  test.each(
+    DASH_PLACEHOLDERS.map((dash: string): [string] => {
+      return [dash];
+    }),
+  )(
+    "a dash for words ('%s') says 'Not set', not the dash, to a screen reader (#7264)",
+    (dash: string) => {
+      render(<TableEmptyValue screenReaderText={` ${dash} `} />);
+
+      expect(
+        screen.getByTestId(TABLE_EMPTY_VALUE_TEST_ID).querySelector(".sr-only"),
+      ).toHaveTextContent("Not set");
+    },
+  );
+
   test("blank words fall back to 'Not set'", () => {
     render(<TableEmptyValue screenReaderText="   " />);
 

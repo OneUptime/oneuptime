@@ -1,5 +1,5 @@
 import { useIsDetailValue } from "../Detail/DetailValueContext";
-import PlaceholderText from "../Detail/PlaceholderText";
+import EmptyValue from "../Detail/EmptyValue";
 import { useIsTableCard, useIsTableCell } from "../Table/TableCellContext";
 import TableEmptyValue from "../Table/TableEmptyValue";
 import { showFullValueWhenCutShort } from "../Table/FullValueTitle";
@@ -105,9 +105,11 @@ const TableColumnListComponent: <TGenericObject extends GenericObject>(
      * Under a detail card's field name, nothing to list reads as every
      * empty field there does - its own words in quiet grey - not as dark
      * as a value beside fields that say "No copyright text yet." in grey.
+     * Words that are only a dash ("-") are the card's own dash, as a
+     * field's placeholder is (EmptyValue, #7264).
      */
     if (isDetailValue && props.noItemsMessage) {
-      return <PlaceholderText text={props.noItemsMessage} />;
+      return <EmptyValue placeholder={props.noItemsMessage} />;
     }
 
     /*

@@ -430,7 +430,6 @@ const SecurityWatchlistViewPage: FunctionComponent<
               field: { description: true },
               title: DESCRIPTION_FIELD_TITLE,
               fieldType: FieldType.LongText,
-              placeholder: "-",
             },
           ],
         }}

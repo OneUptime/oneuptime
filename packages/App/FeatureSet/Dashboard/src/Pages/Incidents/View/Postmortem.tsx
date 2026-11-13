@@ -539,7 +539,6 @@ const IncidentPostmortem: FunctionComponent<
               },
               title: "Postmortem Published At",
               fieldType: FieldType.DateTime,
-              placeholder: "-",
               showIf: isPublished,
             },
           ],

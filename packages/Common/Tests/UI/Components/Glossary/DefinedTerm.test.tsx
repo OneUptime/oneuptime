@@ -10,7 +10,7 @@ import {
 } from "@testing-library/react";
 import * as fs from "fs";
 import * as path from "path";
-import React from "react";
+import React, { ReactElement, useRef } from "react";
 import {
   afterEach,
   beforeEach,
@@ -471,6 +471,59 @@ describe("opening the definition", () => {
     });
 
     await waitHidden();
+  });
+
+  /*
+   * A word inside something its words name - a form field's title names
+   * the field (FieldLabel) - is given a place after it for its definition,
+   * so the definition is no part of that name.
+   */
+  test("is drawn in the place its word is given, still named by the word and reached by Tab from it", async () => {
+    const Title: () => ReactElement = (): ReactElement => {
+      const place: React.RefObject<HTMLSpanElement> =
+        useRef<HTMLSpanElement>(null);
+
+      return (
+        <div>
+          <span data-testid="title">
+            <DefinedTerm term={GlossaryTerm.Criteria} popoverPlace={place}>
+              Criteria
+            </DefinedTerm>{" "}
+            (Optional)
+          </span>
+          <span data-testid="place" ref={place} />
+          <button type="button" data-testid="next">
+            Next
+          </button>
+        </div>
+      );
+    };
+
+    render(<Title />);
+
+    fireEvent.mouseEnter(word());
+    await definitionShown();
+
+    const box: HTMLElement = popover() as HTMLElement;
+
+    expect(screen.getByTestId("place")).toContainElement(box);
+    expect(screen.getByTestId("title")).not.toContainElement(box);
+    expect(screen.getByRole("dialog", { name: "Criteria" })).toContainElement(
+      box,
+    );
+
+    const readMore: HTMLElement = screen.getByTestId(
+      DEFINED_TERM_READ_MORE_TEST_ID,
+    );
+
+    expect(
+      word().compareDocumentPosition(readMore) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      readMore.compareDocumentPosition(screen.getByTestId("next")) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 
   test("every word on a page shares one read of the glossary, and sends nothing to analytics", async () => {

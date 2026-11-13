@@ -23,6 +23,7 @@ import {
   renderCustomFieldValue,
 } from "../../../../UI/Components/ModelTable/CustomFieldColumns";
 import FieldType from "../../../../UI/Components/Types/FieldType";
+import { TABLE_EMPTY_VALUE_TEST_ID } from "../../../../UI/Components/Table/TableEmptyValue";
 import FileModel from "../../../../Models/DatabaseModels/File";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import {
@@ -537,7 +538,10 @@ describe("a file field in a table", () => {
         </>,
       );
 
-      expect(container.textContent).toBe("-");
+      // The quiet dash every empty cell is, for a '-' too (#7264).
+      expect(
+        container.querySelector(`[data-testid="${TABLE_EMPTY_VALUE_TEST_ID}"]`),
+      ).not.toBeNull();
       cleanup();
     }
   });

@@ -1,12 +1,14 @@
 import fs from "fs";
 import os from "os";
 import path from "path";
+import { GO_MEMORY_LIMIT } from "../../TerraformProvider/Core/GoCommand";
 import { buildFixtureSpec } from "../../TerraformProvider/Tests/Fixtures";
 import {
   CrossplaneProviderGenerator,
   CrossplaneProviderOptions,
   GoStep,
   goSteps,
+  goStepsEnvironment,
   listFiles,
   STATIC_FILES_DIR,
 } from "../Core/CrossplaneProviderGenerator";
@@ -193,6 +195,32 @@ describe("the Go steps", () => {
     expect(controllerGen.command).toContain(
       "output:artifacts:config=../package/crds",
     );
+  });
+
+  /*
+   * Three of them link the Terraform provider's internal/provider, whose
+   * compile took the compiler to ~15 GB of a 16 GB CI runner without Go's
+   * memory limit (#7559).
+   */
+  test("run with the code generators first on PATH, no C library and Go's memory limit", () => {
+    expect(
+      goStepsEnvironment(options, { PATH: "/usr/bin", HOME: "/home/runner" }),
+    ).toEqual({
+      PATH: [path.join(options.outputDir, "bin"), "/usr/bin"].join(
+        path.delimiter,
+      ),
+      HOME: "/home/runner",
+      CGO_ENABLED: "0",
+      GOMEMLIMIT: GO_MEMORY_LIMIT,
+    });
+  });
+
+  test("a caller's own memory limit wins", () => {
+    expect(
+      goStepsEnvironment(options, { PATH: "/usr/bin", GOMEMLIMIT: "off" })[
+        "GOMEMLIMIT"
+      ],
+    ).toBe("off");
   });
 
   test("the provider is built with its version", () => {

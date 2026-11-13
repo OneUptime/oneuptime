@@ -254,7 +254,9 @@ Failure and Request Timeout say what they are in one line, and the retry rule wa
 Probes' title is a defined term (issue #7543): only a press on the word opens its
 definition, and it stays open once the pointer moves away; a click on the empty end of the
 title's row, under the arrow every title has, leaves it closed. The dropdown is still named
-Probes, and so is the word.
+Probes, and so is the word. While the definition shows, the dropdown is still named Probes
+alone (issue #7561): the definition is drawn by the word but after the title's row, which
+names the dropdown, and Tab goes from the word to Read more and back.
 
 At the plan's limit on active monitors (`?billing=true&monitorLimit=`), a notice above the
 form says which limit, how many active monitors the project has, what to do (with the plan

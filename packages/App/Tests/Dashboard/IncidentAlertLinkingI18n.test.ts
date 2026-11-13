@@ -736,8 +736,13 @@ describe("Linking alerts to incidents: Dashboard translations", () => {
         ["UI", "Components", "Modal", "ConfirmModal.tsx"],
         "translateValue(props.description)",
       ],
+      // ErrorMessage draws its message's words with ErrorMessageText.
       [
         ["UI", "Components", "ErrorMessage", "ErrorMessage.tsx"],
+        "<ErrorMessageText message={props.message}",
+      ],
+      [
+        ["UI", "Components", "ErrorMessage", "ErrorMessageText.tsx"],
         "translateValue(props.message)",
       ],
       [

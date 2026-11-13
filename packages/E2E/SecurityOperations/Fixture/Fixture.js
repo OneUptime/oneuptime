@@ -3764,7 +3764,7 @@ ModelAPI.getList = async (options) => {
   });
   // ?casesetup=fail: the first read of the case fields or templates fails.
   if (caseSetup.failsRead(modelName)) {
-    throw new HTTPErrorResponse(500, { message: "Server Error" }, {});
+    throw new HTTPErrorResponse(500, caseSetup.failedReadAnswer(), {});
   }
   const known = knownTable(options.modelType, "getList", {
     query: serialize(options.query),

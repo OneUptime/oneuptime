@@ -24,6 +24,10 @@ jobs:
     runs-on: ubuntu-latest
     env:
       CI_PIPELINE_ID: ${{ github.run_number }}
+      # Go's soft memory limit, for every step that compiles the provider:
+      # without it the compiler alone took ~15 GB of the runner's 16, and the
+      # job lost its runner (Scripts/TerraformProvider/Core/GoCommand.ts).
+      GOMEMLIMIT: 10GiB
     
     steps:
       - name: Checkout code

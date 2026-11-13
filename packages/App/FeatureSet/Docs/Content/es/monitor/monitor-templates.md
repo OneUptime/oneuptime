@@ -100,7 +100,7 @@ Guarde los cambios. La tarjeta **Criterios**, y la confirmación de las dos sinc
 Use **Sincronizar criterios con los monitores vinculados**, o **Sincronizar desde la plantilla** en un monitor vinculado concreto.
 :::
 
-Por ejemplo, proteja **Monitor destination** y **Encabezados de la solicitud** en una plantilla de API. Los monitores de producción y de staging conservan sus propias URL y encabezados, mientras ambos reciben los criterios actualizados de la plantilla y sus demás ajustes no protegidos.
+Por ejemplo, proteja **Destino del monitor** y **Encabezados de la solicitud** en una plantilla de API. Los monitores de producción y de staging conservan sus propias URL y encabezados, mientras ambos reciben los criterios actualizados de la plantilla y sus demás ajustes no protegidos.
 
 Las opciones disponibles dependen del tipo de monitor. Incluyen destinos y puertos, opciones de solicitud HTTP, conexiones de base de datos, ajustes de DNS, selectores de infraestructura y consultas de telemetría. Las credenciales relacionadas, como un certificado de cliente y su clave privada, se conservan juntas.
 

@@ -27,12 +27,24 @@
  *   fail  the first read of the case fields, and the first of the note
  *         templates, fails as a server error would (a 500); the next read
  *         answers.
+ *   fail-with-reference
+ *         the same, but each failure answers as a server that could not
+ *         explain it does since #6836: its sentence, and the reference of
+ *         its log lines (FAILED_READ_REFERENCE), which the page shows with a
+ *         copy button.
+ *   fail-twice
+ *         as fail, but the first two reads of each fail: a Try again that
+ *         fails once more, then one that answers.
  */
 import Project from "Common/Models/DatabaseModels/Project";
 import SecurityCase from "Common/Models/DatabaseModels/SecurityCase";
 import SecurityCaseCustomField from "Common/Models/DatabaseModels/SecurityCaseCustomField";
 import SecurityCaseNoteTemplate from "Common/Models/DatabaseModels/SecurityCaseNoteTemplate";
 import CustomFieldType from "Common/Types/CustomField/CustomFieldType";
+import {
+  ERROR_REFERENCE_FIELD,
+  getUnexplainedServerErrorMessage,
+} from "Common/Types/Exception/UnexplainedError";
 import { NumberedRecordKind } from "Common/Utils/Project/NextNumber";
 
 export const BUSINESS_UNIT_FIELD = "Business Unit";
@@ -51,7 +63,18 @@ export const HAND_OVER_TEMPLATE_NOTE = [
   "**Next steps:** ",
 ].join("\n\n");
 
-export const CASE_SETUP_SCENARIOS = ["none", "fail"];
+export const CASE_SETUP_SCENARIOS = [
+  "none",
+  "fail",
+  "fail-with-reference",
+  "fail-twice",
+];
+
+// How many of each table's first reads fail, by ?casesetup= scenario.
+const FAILING_READS = { fail: 1, "fail-with-reference": 1, "fail-twice": 2 };
+
+// The reference a ?casesetup=fail-with-reference failure names.
+export const FAILED_READ_REFERENCE = "3f9a2c1b";
 
 export function createCaseSetupFixture(options) {
   const { insert, table, ID, isEmpty, scenario } = options;
@@ -145,17 +168,38 @@ export function createCaseSetupFixture(options) {
     );
   }
 
-  // ?casesetup=fail: each table's first read fails, the next answers.
+  /*
+   * ?casesetup=fail (or fail-with-reference): each table's first read fails,
+   * the next answers; fail-twice: its first two.
+   */
   function failsRead(modelName) {
-    if (scenario !== "fail" || !isCaseSetupTable(modelName)) {
+    const failingReads = FAILING_READS[scenario] || 0;
+
+    if (!failingReads || !isCaseSetupTable(modelName)) {
       return false;
     }
 
     const reads = (readsSoFar.get(modelName) || 0) + 1;
     readsSoFar.set(modelName, reads);
 
-    return reads === 1;
+    return reads <= failingReads;
   }
 
-  return { seed, numbering, isCaseSetupTable, failsRead };
+  /*
+   * The answer of a read that fails: a bare "Server Error", or, with
+   * fail-with-reference, what a server answers for a failure it could not
+   * explain (Common/Server/Utils/UnexplainedServerError).
+   */
+  function failedReadAnswer() {
+    if (scenario !== "fail-with-reference") {
+      return { message: "Server Error" };
+    }
+
+    return {
+      message: getUnexplainedServerErrorMessage(FAILED_READ_REFERENCE),
+      [ERROR_REFERENCE_FIELD]: FAILED_READ_REFERENCE,
+    };
+  }
+
+  return { seed, numbering, isCaseSetupTable, failsRead, failedReadAnswer };
 }
