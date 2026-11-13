@@ -37,7 +37,7 @@ flowchart TB
 Il modello `ScheduledMaintenanceState` ha `name`, `description`, `color` e `order`, più quattro flag: `isScheduledState`, `isOngoingState`, `isEndedState` e `isResolvedState`. OneUptime legge i flag e l'ordine, mai il nome, quindi potete rinominare **Completato** in «Approvato» senza rompere nulla.
 
 > [!TIP]
-> L'elenco si trova in **Manutenzione programmata → Impostazioni → Stato evento**. **Impostazioni** parte chiusa nel menu laterale: apritela prima.
+> L'elenco si trova in **Manutenzione programmata → Impostazioni → Stato della manutenzione**. **Impostazioni** parte chiusa nel menu laterale: apritela prima.
 
 ## Gli stati iniziali
 
@@ -74,7 +74,7 @@ Un evento si avvia quando passa da uno stato in cui è in attesa a **In corso**,
 
 - **I suoi monitor smettono di essere controllati** e passano al suo **Cambia lo stato del monitor in**, se ne ha uno. Anche un monitor che aggiungete all'evento mentre è in corso cambia.
 - **Le sue pagine di stato lo elencano come in corso**, e i suoi iscritti vengono avvisati: alla sua ora se **Quando l'evento inizia** è attivo, e a mano come dice **Notifica gli iscritti alla pagina di stato** nella finestra di dialogo.
-- **I suoi proprietari vengono avvisati**, se hanno attivato la notifica di cambio di stato, e l'evento compare in **Eventi in corso**.
+- **I suoi proprietari vengono avvisati**, se hanno attivato la notifica di cambio di stato, e l'evento compare in **Eventi di manutenzione in corso**.
 
 Un evento termina quando passa da uno stato in cui è in corso a **Terminato**, **Completato** o a uno stato vostro posto dopo **Terminato**. Allora i suoi monitor tornano a essere controllati e tornano «operativi», a meno che un altro evento in corso li trattenga ancora, e i suoi iscritti vengono avvisati allo stesso modo: alla sua ora se **Quando l'evento termina** è attivo, e a mano come dice la finestra di dialogo.
 
@@ -106,7 +106,7 @@ Uno stato che aggiungete è un passo che il vostro team attraversa e che i quatt
 :::steps
 ### Aprire l'elenco degli stati
 
-Andate in **Manutenzione programmata → Impostazioni → Stato evento**. La scheda **Stati della manutenzione programmata** elenca i vostri stati nel loro ordine. Ogni riga mostra il colore e il nome, come conta un evento che vi si trova (colonna **Conta come**) e la descrizione.
+Andate in **Manutenzione programmata → Impostazioni → Stato della manutenzione**. La scheda **Stati della manutenzione programmata** elenca i vostri stati nel loro ordine. Ogni riga mostra il colore e il nome, come conta un evento che vi si trova (colonna **Conta come**) e la descrizione.
 
 ### Creare lo stato
 

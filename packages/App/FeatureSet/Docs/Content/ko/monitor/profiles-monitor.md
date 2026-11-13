@@ -84,7 +84,7 @@ OneUptime은 매분 모니터의 필터와 일치하고 시간 창 안에서 시
 | `attributes` | 속성이 이 값을 가진 프로필. | 비어 있음: 조건 없음 |
 | `lastXSecondsOfProfiles` | 평가 전 이 초 수 안에 시작된 프로필. | 없음: 항상 설정하세요. 그렇지 않으면 저장된 모든 프로필이 세어져 개수가 0으로 떨어지지 않습니다 |
 
-프로필을 읽으려면 설정한 모든 필터와 일치해야 합니다. 양식에서 **함수** 는 `functionName` 을, **분석 대상** 은 `profileTypes` 를(**모든 종류의 프로파일** 이면 비워 둠), **프로파일 모니터링 기간(시간)** 은 `lastXSecondsOfProfiles` 를, **텔레메트리 서비스로 필터링** 과 **인프라 엔터티로 필터링** 은 `telemetryServiceIds` 와 `entityKeys` 를 설정합니다.
+프로필을 읽으려면 설정한 모든 필터와 일치해야 합니다. 양식에서 **함수** 는 `functionName` 을, **분석 대상** 은 `profileTypes` 를(**모든 종류의 프로파일** 이면 비워 둠), **프로파일 모니터링 기간(시간)** 은 `lastXSecondsOfProfiles` 를, **서비스로 필터링** 과 **인프라 엔터티로 필터링** 은 `telemetryServiceIds` 와 `entityKeys` 를 설정합니다.
 
 ## 평가 방식
 

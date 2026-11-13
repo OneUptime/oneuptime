@@ -416,15 +416,15 @@ describe("classifyBackendSignalsFailure", () => {
 
     expect(classifyBackendSignalsFailure(forbidden, "log")).toEqual({
       status: "locked",
-      lockedPermission: "Read Telemetry Service Log",
+      lockedPermission: "Read Logs",
     });
     expect(classifyBackendSignalsFailure(forbidden, "span")).toEqual({
       status: "locked",
-      lockedPermission: "Read Telemetry Service Traces",
+      lockedPermission: "Read Traces",
     });
     expect(classifyBackendSignalsFailure(forbidden, "exception")).toEqual({
       status: "locked",
-      lockedPermission: "Read Telemetry Service Exception",
+      lockedPermission: "Read Exceptions",
     });
     expect(REPLAY_BACKEND_SIGNAL_PERMISSIONS).toEqual({
       log: Permission.ReadTelemetryServiceLog,
@@ -617,7 +617,7 @@ describe("ReplayBackendSignalsStore", () => {
     const slot: ReplayBackendSignalsSlot = store.getSlot("log");
 
     expect(slot.status).toBe("locked");
-    expect(slot.lockedPermission).toBe("Read Telemetry Service Log");
+    expect(slot.lockedPermission).toBe("Read Logs");
     expect(slot.rowCount).toBeNull();
     expect(slot.isTruncated).toBe(false);
   });
@@ -2163,9 +2163,7 @@ describe("ReplayBackendSignalsStore: the trace-id read", () => {
     await logs;
 
     expect(store.getSlot("log").status).toBe("locked");
-    expect(store.getSlot("log").lockedPermission).toBe(
-      "Read Telemetry Service Log",
-    );
+    expect(store.getSlot("log").lockedPermission).toBe("Read Logs");
 
     fetcher.resolveTraceIds(0, [traceIdOf(9)]);
     await settle();

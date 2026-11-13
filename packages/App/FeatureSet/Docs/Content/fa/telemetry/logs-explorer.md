@@ -37,7 +37,7 @@ flowchart TB
 ## پیش از شروع
 
 - **لاگ‌های در حال رسیدن.** آن‌ها را با [OpenTelemetry](/docs/telemetry/open-telemetry)، [Fluent Bit](/docs/telemetry/fluentbit)، [Fluentd](/docs/telemetry/fluentd) یا [Syslog](/docs/telemetry/syslog) بفرستید. زبانهٔ **راهنمای راه‌اندازی** پیکربندی زبان یا کالکتور شما را نشان می‌دهد.
-- **نقشی که تله‌متری را بخواند.** Project Owner، Project Admin، Project Member، Viewer، Telemetry Admin، Telemetry Member یا Telemetry Viewer، یا یک نقش سفارشی با مجوز Read Telemetry Service Log. دامنهٔ آن تعیین می‌کند لاگ‌های چه کسانی را می‌بینید: [تله‌متری](/docs/permissions/index#تلهمتری) را ببینید.
+- **نقشی که تله‌متری را بخواند.** Project Owner، Project Admin، Project Member، Viewer، Telemetry Admin، Telemetry Member یا Telemetry Viewer، یا یک نقش سفارشی با مجوز Read Logs. دامنهٔ آن تعیین می‌کند لاگ‌های چه کسانی را می‌بینید: [تله‌متری](/docs/permissions/index#تلهمتری) را ببینید.
 
 ## یافتن یک خط لاگ
 

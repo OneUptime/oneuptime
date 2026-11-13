@@ -9,6 +9,7 @@ import {
 } from "../OnCallLabelClasses";
 import GlossaryTerm from "Common/Types/Docs/GlossaryTerm";
 import DefinedTerm from "Common/UI/Components/Glossary/DefinedTerm";
+import DefinitionsDrawnAfter from "Common/UI/Components/Glossary/DefinitionsDrawnAfter";
 import LearnMoreLink from "Common/UI/Components/Link/LearnMoreLink";
 import EscalationSummary, {
   EscalationLevelSummary,
@@ -2087,11 +2088,17 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
         {/* Header */}
         <div className="flex flex-col gap-4 border-b border-gray-100 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-gray-900">
-              <DefinedTerm term={GlossaryTerm.EscalationRule}>
-                {translator.translateText("Escalation Rules")}
-              </DefinedTerm>
-            </h2>
+            {/*
+             * Its definition right after the heading, not in it: the
+             * heading stays named "Escalation Rules" while it shows.
+             */}
+            <DefinitionsDrawnAfter>
+              <h2 className="text-lg font-semibold text-gray-900">
+                <DefinedTerm term={GlossaryTerm.EscalationRule}>
+                  {translator.translateText("Escalation Rules")}
+                </DefinedTerm>
+              </h2>
+            </DefinitionsDrawnAfter>
             {/*
              * A div, not a p: the link's icon is drawn in a block of its own.
              */}

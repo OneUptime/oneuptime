@@ -37,7 +37,7 @@ flowchart TB
 ## 始める前に
 
 - **届いているログ。** [OpenTelemetry](/docs/telemetry/open-telemetry)、[Fluent Bit](/docs/telemetry/fluentbit)、[Fluentd](/docs/telemetry/fluentd)、[Syslog](/docs/telemetry/syslog) のいずれかで送ります。**セットアップガイド** タブに、使っている言語やコレクター向けの設定が表示されます。
-- **テレメトリを読み取れるロール。** Project Owner、Project Admin、Project Member、Viewer、Telemetry Admin、Telemetry Member、Telemetry Viewer のいずれか、または Read Telemetry Service Log 権限を持つカスタムロール。ロールのスコープによって、誰のログが見えるかが決まります。[テレメトリー](/docs/permissions/index#テレメトリー) を参照してください。
+- **テレメトリを読み取れるロール。** Project Owner、Project Admin、Project Member、Viewer、Telemetry Admin、Telemetry Member、Telemetry Viewer のいずれか、または Read Logs 権限を持つカスタムロール。ロールのスコープによって、誰のログが見えるかが決まります。[テレメトリー](/docs/permissions/index#テレメトリー) を参照してください。
 
 ## ログの行を探す
 

@@ -11,7 +11,10 @@
  * Scenarios are picked with query parameters, parsed once at load:
  *
  *   ?estate=    busy (default) | calm | new | large | native (Data.js)
- *   ?collector= disconnected: the agent stopped reporting three days ago
+ *   ?collector= disconnected: the agent stopped reporting three days ago |
+ *               unreadable: the agent runs but last read the cluster 25
+ *               minutes ago | waiting: the agent runs and has not read the
+ *               cluster yet (issue #7439)
  *   ?alerts=    none (default) | some (node alerts on) | all | denied (the
  *               role may not read monitors)
  *   ?open=      0 | 1 (default: an incident on pve3, an alert on db-01) |
@@ -93,8 +96,11 @@ const params = new URLSearchParams(window.location.search);
 const ESTATE = ["calm", "new", "large", "native"].includes(params.get("estate"))
   ? params.get("estate")
   : "busy";
-const COLLECTOR =
-  params.get("collector") === "disconnected" ? "disconnected" : "connected";
+const COLLECTOR = ["disconnected", "unreadable", "waiting"].includes(
+  params.get("collector"),
+)
+  ? params.get("collector")
+  : "connected";
 const ALERTS = ["some", "all", "denied"].includes(params.get("alerts"))
   ? params.get("alerts")
   : "none";

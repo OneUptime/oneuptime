@@ -2852,22 +2852,28 @@
     "kind": "page"
   },
   {
-    "title": "All Events",
-    "where": [
-      "Scheduled Maintenance",
-      "Overview"
-    ],
-    "path": "/dashboard/:projectId/scheduled-maintenance-events",
-    "kind": "page"
-  },
-  {
-    "title": "Ongoing Events",
+    "title": "All Maintenance Events",
     "where": [
       "Scheduled Maintenance",
       "Overview"
     ],
     "keywords": [
-      "maintenance in progress"
+      "all events",
+      "scheduled maintenance events",
+      "scheduled events"
+    ],
+    "path": "/dashboard/:projectId/scheduled-maintenance-events",
+    "kind": "page"
+  },
+  {
+    "title": "Ongoing Maintenance Events",
+    "where": [
+      "Scheduled Maintenance",
+      "Overview"
+    ],
+    "keywords": [
+      "maintenance in progress",
+      "ongoing events"
     ],
     "path": "/dashboard/:projectId/scheduled-maintenance-events/ongoing",
     "kind": "page"
@@ -2975,25 +2981,26 @@
     "kind": "page"
   },
   {
-    "title": "Event State",
+    "title": "Maintenance State",
     "where": [
       "Scheduled Maintenance",
       "Settings"
     ],
     "keywords": [
-      "maintenance states"
+      "maintenance states",
+      "event state"
     ],
     "path": "/dashboard/:projectId/scheduled-maintenance-events/settings/state",
     "kind": "page"
   },
   {
-    "title": "Event Templates",
+    "title": "Maintenance Templates",
     "where": [
       "Scheduled Maintenance",
       "Settings"
     ],
     "keywords": [
-      "maintenance templates"
+      "event templates"
     ],
     "path": "/dashboard/:projectId/scheduled-maintenance-events/settings/templates",
     "kind": "page"
@@ -5176,6 +5183,10 @@
     "title": "All Services",
     "where": [
       "Services"
+    ],
+    "keywords": [
+      "service catalog",
+      "telemetry services"
     ],
     "path": "/dashboard/:projectId/service",
     "kind": "page"

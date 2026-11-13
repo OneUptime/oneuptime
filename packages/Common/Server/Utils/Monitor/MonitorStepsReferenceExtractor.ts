@@ -34,7 +34,7 @@ export enum MonitorStepsReferenceModel {
   Team = "Team",
   User = "User",
   IncidentRole = "Incident Role",
-  TelemetryService = "Telemetry Service",
+  TelemetryService = "Service",
   NetworkDevice = "Network Device",
 }
 

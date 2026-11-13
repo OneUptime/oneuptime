@@ -591,7 +591,7 @@ level: high
 
 Um monitor de eventos de segurança conta os eventos que correspondem aos filtros dele em uma janela deslizante e aplica à contagem os critérios habituais de monitor: muda o status do monitor, abre alertas ou incidentes e aciona o plantão. Crie um em **Monitores → Criar monitor**, com **Eventos de segurança** como tipo; ele aparece lá junto com seus outros monitores.
 
-O formulário dele mostra **Monitor events that include this text**, **Monitor Security Events for (time)**, **Event Severity** e **Classe de evento**. **Filtrar por serviço de telemetria**, **Filtrar por atributos** e **Filtrar por listas de observação** ficam em **Mais campos**, cujo cabeçalho mostra os que um monitor usa. **Filtrar por listas de observação** mantém os eventos cujo campo está, ou não está, em uma das suas [listas de observação](#listas-de-observação). Os critérios dele verificam **Quantidade de eventos de segurança**.
+O formulário dele mostra **Monitor events that include this text**, **Monitor Security Events for (time)**, **Event Severity** e **Classe de evento**. **Filtrar por serviço**, **Filtrar por atributos** e **Filtrar por listas de observação** ficam em **Mais campos**, cujo cabeçalho mostra os que um monitor usa. **Filtrar por listas de observação** mantém os eventos cujo campo está, ou não está, em uma das suas [listas de observação](#listas-de-observação). Os critérios dele verificam **Quantidade de eventos de segurança**.
 
 | | Regra de detecção | Monitor de eventos de segurança |
 | --- | --- | --- |

@@ -299,7 +299,7 @@
     "Incoming Request Ingress": "수신 요청 Ingress",
     "Packet Capture": "패킷 캡처",
     "OpenTelemetry": "OpenTelemetry",
-    "Service Catalog": "서비스 카탈로그",
+    "Services": "서비스",
     "Logs Explorer": "로그 탐색기",
     "Traces Explorer": "트레이스 탐색기",
     "Metrics Explorer": "메트릭 탐색기",

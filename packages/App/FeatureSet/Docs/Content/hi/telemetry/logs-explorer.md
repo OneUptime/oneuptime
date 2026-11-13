@@ -37,7 +37,7 @@ flowchart TB
 ## शुरू करने से पहले
 
 - **आते हुए लॉग।** उन्हें [OpenTelemetry](/docs/telemetry/open-telemetry), [Fluent Bit](/docs/telemetry/fluentbit), [Fluentd](/docs/telemetry/fluentd) या [Syslog](/docs/telemetry/syslog) से भेजें। **सेटअप गाइड** टैब आपकी भाषा या कलेक्टर के लिए कॉन्फ़िगरेशन दिखाता है।
-- **टेलीमेट्री पढ़ सकने वाली भूमिका।** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member या Telemetry Viewer, या Read Telemetry Service Log अनुमति वाली कस्टम भूमिका। उसका दायरा तय करता है कि आप किसके लॉग देखते हैं: देखें [टेलीमेट्री](/docs/permissions/index#टेलीमेट्री)।
+- **टेलीमेट्री पढ़ सकने वाली भूमिका।** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member या Telemetry Viewer, या Read Logs अनुमति वाली कस्टम भूमिका। उसका दायरा तय करता है कि आप किसके लॉग देखते हैं: देखें [टेलीमेट्री](/docs/permissions/index#टेलीमेट्री)।
 
 ## लॉग की पंक्ति ढूँढना
 

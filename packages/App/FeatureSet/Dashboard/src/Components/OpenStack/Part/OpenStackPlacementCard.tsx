@@ -6,7 +6,11 @@ import {
 import { OpenStackResourceKind } from "Common/Types/OpenStack/OpenStackResourceKind";
 import Card from "Common/UI/Components/Card/Card";
 import Link from "Common/UI/Components/Link/Link";
-import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  toLabelTerm,
+  Translator,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 import { getOpenStackHostGroupId } from "../../../Pages/OpenStack/Utils/OpenStackPartFacts";
@@ -44,7 +48,17 @@ function usePlacementRow(): (
         className="flex flex-wrap items-center justify-between gap-2 py-1 text-sm"
         data-testid={testId}
       >
-        <span className="text-gray-500">{translator.translateText(label)}</span>
+        {/*
+         * A label: "OpenStack cloud" is worded for the middle of a sentence
+         * in some languages ("nube OpenStack"), and starts with a capital
+         * here.
+         */}
+        <span className="text-gray-500">
+          {toLabelTerm(
+            translator.translateText(label) || label,
+            translator.language,
+          )}
+        </span>
         <span className="min-w-0">{value}</span>
       </div>
     );

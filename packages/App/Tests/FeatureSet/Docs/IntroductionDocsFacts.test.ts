@@ -2255,7 +2255,7 @@ describe("Home Page & Shortcuts", () => {
       "**Incidents → Active Incidents**",
       "**Alerts → Active Alerts**",
       "**Monitors → Not Operational**",
-      "**Scheduled Maintenance → Ongoing Events**",
+      "**Scheduled Maintenance → Ongoing Maintenance Events**",
       "**SLOs**",
     ]);
   });

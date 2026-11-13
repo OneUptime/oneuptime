@@ -37,7 +37,7 @@ flowchart TB
 O modelo `ScheduledMaintenanceState` tem `name`, `description`, `color` e `order`, além de quatro sinalizadores: `isScheduledState`, `isOngoingState`, `isEndedState` e `isResolvedState`. O OneUptime lê os sinalizadores e a ordem, nunca o nome, então você pode renomear **Concluído** para «Aprovado» sem quebrar nada.
 
 > [!TIP]
-> A lista fica em **Manutenção programada → Configurações → Estado do evento**. **Configurações** começa recolhida no menu lateral: expanda-a primeiro.
+> A lista fica em **Manutenção programada → Configurações → Estado da manutenção**. **Configurações** começa recolhida no menu lateral: expanda-a primeiro.
 
 ## Os estados iniciais
 
@@ -74,7 +74,7 @@ Um evento começa quando passa de um estado em que espera para **Em andamento**,
 
 - **Seus monitores deixam de ser verificados** e mudam para o **Alterar status do monitor para** dele, se houver. Um monitor que você adiciona ao evento enquanto ele acontece também muda.
 - **Suas páginas de status o listam como em andamento**, e os assinantes são avisados: no horário se **Quando o evento começa** estiver ativado, e à mão conforme diz **Notificar assinantes da página de status** na caixa de diálogo.
-- **Seus proprietários são avisados**, se ativaram a notificação de mudança de estado, e o evento aparece em **Eventos em andamento**.
+- **Seus proprietários são avisados**, se ativaram a notificação de mudança de estado, e o evento aparece em **Eventos de manutenção em andamento**.
 
 Um evento termina quando passa de um estado em que está em andamento para **Encerrado**, **Concluído** ou um estado próprio colocado depois de **Encerrado**. Então seus monitores voltam a ser verificados e voltam a «operacional», a menos que outro evento em andamento ainda os retenha, e os assinantes são avisados da mesma forma: no horário se **Quando o evento termina** estiver ativado, e à mão conforme diz a caixa de diálogo.
 
@@ -106,7 +106,7 @@ Um estado que você adiciona é uma etapa pela qual sua equipe passa e que os qu
 :::steps
 ### Abrir a lista de estados
 
-Vá em **Manutenção programada → Configurações → Estado do evento**. O cartão **Estados da manutenção programada** lista seus estados na ordem deles. Cada linha mostra a cor e o nome, como conta um evento que está nele (coluna **Conta como**) e a descrição.
+Vá em **Manutenção programada → Configurações → Estado da manutenção**. O cartão **Estados da manutenção programada** lista seus estados na ordem deles. Cada linha mostra a cor e o nome, como conta um evento que está nele (coluna **Conta como**) e a descrição.
 
 ### Criar o estado
 

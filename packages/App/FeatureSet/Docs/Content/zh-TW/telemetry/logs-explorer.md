@@ -37,7 +37,7 @@ flowchart TB
 ## 開始之前
 
 - **正在到達的日誌。** 透過 [OpenTelemetry](/docs/telemetry/open-telemetry)、[Fluent Bit](/docs/telemetry/fluentbit)、[Fluentd](/docs/telemetry/fluentd) 或 [Syslog](/docs/telemetry/syslog) 傳送。**設定指南** 分頁會顯示適合你的語言或收集器的設定。
-- **可以讀取遙測的角色。** Project Owner、Project Admin、Project Member、Viewer、Telemetry Admin、Telemetry Member 或 Telemetry Viewer，或者擁有 Read Telemetry Service Log 權限的自訂角色。角色的範圍決定你能看到誰的日誌：請參閱 [遙測](/docs/permissions/index#遙測)。
+- **可以讀取遙測的角色。** Project Owner、Project Admin、Project Member、Viewer、Telemetry Admin、Telemetry Member 或 Telemetry Viewer，或者擁有 Read Logs 權限的自訂角色。角色的範圍決定你能看到誰的日誌：請參閱 [遙測](/docs/permissions/index#遙測)。
 
 ## 尋找日誌行
 

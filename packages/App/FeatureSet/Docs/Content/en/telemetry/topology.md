@@ -28,7 +28,7 @@ flowchart LR
 ## Before you begin
 
 - **Telemetry arriving.** The service map needs traces: see [OpenTelemetry](/docs/telemetry/open-telemetry). The infrastructure view needs a host or a cluster that reports: see the [Kubernetes Agent](/docs/telemetry/kubernetes-agent). The network view needs network devices: see [Network Device Monitor](/docs/monitor/network-device-monitor).
-- **A role that reads telemetry.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member or Telemetry Viewer, or a custom role with the Read Telemetry Service permission.
+- **A role that reads telemetry.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member or Telemetry Viewer, or a custom role with the Read Inventory Item permission.
 
 ## Open Topology
 
@@ -114,7 +114,7 @@ A very large project reaches the map's limits, and a notice says how many resour
 ## Next steps
 
 :::cards
-- [Service Catalog](/docs/telemetry/services): Everything about one service.
+- [Services](/docs/telemetry/services): Everything about one service.
 - [Traces Explorer](/docs/telemetry/traces-explorer): The requests behind each arrow.
 - [Inventory Overview](/docs/inventory/overview): Every resource the map draws.
 - [Network Device Monitor](/docs/monitor/network-device-monitor): Put your network on the map.

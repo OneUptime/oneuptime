@@ -124,7 +124,7 @@ Vedi [Iscritti e annunci](/docs/status-pages/subscribers).
 
 ### Manutenzione programmata
 
-Lavori previsti, annunciati in anticipo. Un evento passa per **Programmato**, **In corso**, **Terminato** e **Completato**, e le pagine di stato su cui viene mostrato ne informano visitatori e iscritti.
+Lavori previsti, annunciati in anticipo. Ogni evento di manutenzione passa per gli stati della manutenzione **Programmato**, **In corso**, **Terminato** e **Completato**, e le pagine di stato su cui viene mostrato ne informano visitatori e iscritti.
 
 Altri nomi: **Evento di manutenzione programmata**, **Evento pianificato**, **Evento**. Vedi [Panoramica della manutenzione programmata](/docs/scheduled-maintenance/index).
 
@@ -146,7 +146,7 @@ Vedi [Gruppi di monitor](/docs/monitor/monitor-groups).
 
 Un'applicazione o un microservizio che gestisci. OneUptime ne aggiunge uno la prima volta che ne arriva la telemetria, con il nome del suo `service.name`, e riunisce su un'unica pagina i suoi log, le tracce, le metriche, le eccezioni, gli incidenti e i proprietari.
 
-Altri nomi: **Catalogo servizi**, **Servizio di telemetria**. Vedi [Catalogo servizi](/docs/telemetry/services).
+Altri nomi: **Catalogo servizi**, **Servizio di telemetria**. Vedi [Servizi](/docs/telemetry/services).
 
 ### Host
 

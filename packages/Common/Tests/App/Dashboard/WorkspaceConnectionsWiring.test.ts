@@ -73,7 +73,7 @@ const PRODUCTS: Array<Product> = [
   },
   {
     name: "Scheduled Maintenance",
-    crumb: "Scheduled Maintenance Events",
+    crumb: "Scheduled Maintenance",
     segment: "scheduled-maintenance-events",
     routesFile: "Routes/ScheduleMaintenanceEventsRoutes.tsx",
     routePathTable: "ScheduledMaintenanceEventsRoutePath",

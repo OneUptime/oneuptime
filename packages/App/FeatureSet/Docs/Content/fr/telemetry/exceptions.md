@@ -39,7 +39,7 @@ flowchart TB
 ## Avant de commencer
 
 - **Des spans ou des journaux qui arrivent.** Instrumentez vos services avec [OpenTelemetry](/docs/telemetry/open-telemetry). L'onglet **Guide de configuration** montre le code pour votre langage.
-- **Un rôle qui peut lire la télémétrie.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member ou Telemetry Viewer, ou un rôle personnalisé avec la permission Read Telemetry Service Exception. Résoudre et archiver demande Project Owner ou Project Admin, ou la permission Edit Telemetry Service Exception.
+- **Un rôle qui peut lire la télémétrie.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member ou Telemetry Viewer, ou un rôle personnalisé avec la permission Read Exceptions. Résoudre et archiver demande Project Owner ou Project Admin, ou la permission Edit Exceptions.
 
 ## Trier la liste
 

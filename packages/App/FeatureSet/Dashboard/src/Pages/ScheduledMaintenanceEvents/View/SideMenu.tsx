@@ -180,7 +180,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
 
         <SideMenuItem
           link={{
-            title: "Delete Event",
+            title: "Delete Maintenance Event",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW_DELETE] as Route,
               { modelId: props.modelId },
