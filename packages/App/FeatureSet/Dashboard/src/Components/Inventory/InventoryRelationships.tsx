@@ -12,9 +12,11 @@ import { TopologyConnectionSection } from "Common/Types/Topology/TopologyApi";
 import Navigation from "Common/UI/Utils/Navigation";
 import { InventoryTypeBadge } from "./InventoryBadges";
 import {
+  RELATIONSHIP_ITEM_SLOT,
   RelationshipDirection,
   getRelationshipPhrase,
 } from "./InventoryRelationshipLabels";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import {
   AppendedConnectionsPage,
   EntityConnection,
@@ -400,6 +402,19 @@ const InventoryRelationships: FunctionComponent<ComponentProps> = (
   ): ReactElement => {
     const id: string = connectionId(section, row);
     const label: string = row.otherName || row.otherKey.substring(0, 16);
+    const otherItem: ReactElement = row.otherId ? (
+      <AppLink
+        to={RouteUtil.populateRouteParams(
+          RouteMap[PageMap.INVENTORY_VIEW] as Route,
+          { modelId: new ObjectID(row.otherId) },
+        )}
+        className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
+      >
+        {label}
+      </AppLink>
+    ) : (
+      <span className="font-mono text-sm text-gray-700">{label}</span>
+    );
 
     return (
       <li
@@ -415,24 +430,23 @@ const InventoryRelationships: FunctionComponent<ComponentProps> = (
           size={SizeProp.Smaller}
           className="h-4 w-4 shrink-0 text-gray-400"
         />
-        <span className="text-sm text-gray-500">
-          {translator.translateText(
-            getRelationshipPhrase(row.relationshipType, directionOf(row)),
-          )}
-        </span>
-        {row.otherId ? (
-          <AppLink
-            to={RouteUtil.populateRouteParams(
-              RouteMap[PageMap.INVENTORY_VIEW] as Route,
-              { modelId: new ObjectID(row.otherId) },
+        {/*
+         * One sentence about this item with the other item in it ("runs
+         * checkout-pod"), so each language words the edge as a verb and
+         * puts the other item where its grammar wants it.
+         */}
+        <span
+          className="min-w-0 text-sm text-gray-500 [overflow-wrap:anywhere]"
+          data-testid="inventory-connection-sentence"
+        >
+          <TranslatedSentence
+            template={getRelationshipPhrase(
+              row.relationshipType,
+              directionOf(row),
             )}
-            className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
-          >
-            {label}
-          </AppLink>
-        ) : (
-          <span className="font-mono text-sm text-gray-700">{label}</span>
-        )}
+            slots={{ [RELATIONSHIP_ITEM_SLOT]: otherItem }}
+          />
+        </span>
         {row.otherType ? (
           <InventoryTypeBadge entityType={row.otherType} />
         ) : null}

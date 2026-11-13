@@ -20,7 +20,10 @@ import {
   ManualMessageQueueCheck,
   checkManualMessageQueue,
 } from "Common/Types/MessageQueue/MessageQueueManualIdentity";
-import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
+import {
+  translateTemplate,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * How the Queues pages describe a MessageQueue row: the options of the
@@ -74,15 +77,23 @@ export function getMessagingSystemOptions(): Array<MessageQueueOption> {
  * never a messaging.system: it is not well formed (it starts with "_"), so
  * the server would refuse it if it were ever sent, and onBeforeCreate
  * replaces it with the typed value first.
+ *
+ * The label and the description are translation keys: the Dropdown and the
+ * form field translate what they are given, but a plain constant is not a
+ * key the extractor sees, so the option read in English in every language
+ * (#7288). The System field's help quotes the label, in each language as
+ * that language words it.
  */
 export const MESSAGE_QUEUE_OTHER_SYSTEM_VALUE: string = "__other__";
-export const MESSAGE_QUEUE_OTHER_SYSTEM_LABEL: string =
-  "Other messaging system...";
+export const MESSAGE_QUEUE_OTHER_SYSTEM_LABEL: string = translationKey(
+  "Other messaging system...",
+);
 // The form-only field the typed messaging.system value is held in.
 export const MESSAGE_QUEUE_OTHER_SYSTEM_FIELD: string = "otherMessagingSystem";
 
-export const MESSAGE_QUEUE_OTHER_SYSTEM_DESCRIPTION: string =
-  "The messaging.system value your spans report for this broker, exactly as written.";
+export const MESSAGE_QUEUE_OTHER_SYSTEM_DESCRIPTION: string = translationKey(
+  "The messaging.system value your spans report for this broker, exactly as written.",
+);
 
 /**
  * The create form's System dropdown: every catalog system, then the "Other

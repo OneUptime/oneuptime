@@ -163,7 +163,11 @@ const EmailLogsTable: FunctionComponent<EmailLogsTableProps> = (
             buttonStyleType: ButtonStyleType.NORMAL,
             icon: IconProp.List,
             onClick: async (item: EmailLog, onCompleteAction: VoidFunction) => {
-              setModalText(JSON.stringify(item["subject"]) as string);
+              /*
+               * The subject as it was sent, as the SMS log shows its text:
+               * not a JSON string, which wrapped it in quotes and escaped it.
+               */
+              setModalText((item["subject"] as string | undefined) || "");
               setModalTitle("Subject of Email Message");
               setShowModal(true);
               onCompleteAction();

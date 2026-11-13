@@ -13,41 +13,62 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  * So each type declares both readings, and the list picks by direction. The
  * tests pin that every type has both — a missing one falls back to the raw
  * hyphenated string, which is where that inversion would creep back in.
+ *
+ * Each reading is a whole sentence about this item, with the other item in
+ * it as {{item}} ("runs {{item}}": this node runs checkout-pod), drawn with
+ * the link in that slot (TranslatedSentence). A reading used to be a bare
+ * phrase in front of the link, looked up by its English: "runs" and "hosts"
+ * read alone as nouns, "hosts" is the host lists' noun too, so most
+ * languages worded the noun ("exécutions: checkout-pod", "Hosts:
+ * checkout-pod") and said nothing about which way the edge goes (#7326). A
+ * sentence key no noun shares is worded as a verb, and each language puts
+ * the other item where its grammar wants it (Persian and Japanese before
+ * the verb, German inside "führt {{item}} aus").
  */
 
+// The placeholder each reading draws the other item in.
+export const RELATIONSHIP_ITEM_SLOT: string = "item";
+
 export interface RelationshipPhrasing {
-  /** This item is the edge's source: "runs on". */
+  /** This item is the edge's source: "runs on {{item}}". */
   outgoing: string;
-  /** This item is the edge's target: "is run by". */
+  /** This item is the edge's target: "runs {{item}}" (it runs on this). */
   incoming: string;
 }
 
-const PHRASINGS: Record<EntityRelationshipType, RelationshipPhrasing> = {
+export const RELATIONSHIP_PHRASINGS: Readonly<
+  Record<EntityRelationshipType, RelationshipPhrasing>
+> = {
   [EntityRelationshipType.RunsOn]: {
-    outgoing: translationKey("runs on"),
-    incoming: translationKey("runs"),
+    outgoing: translationKey("runs on {{item}}"),
+    incoming: translationKey("runs {{item}}"),
   },
   [EntityRelationshipType.MemberOf]: {
-    outgoing: translationKey("is a member of"),
-    incoming: translationKey("has member"),
+    outgoing: translationKey("is a member of {{item}}"),
+    incoming: translationKey("has member {{item}}"),
   },
   [EntityRelationshipType.HostedOn]: {
-    outgoing: translationKey("is hosted on"),
-    incoming: translationKey("hosts"),
+    outgoing: translationKey("is hosted on {{item}}"),
+    incoming: translationKey("hosts {{item}}"),
   },
   [EntityRelationshipType.PartOf]: {
-    outgoing: translationKey("is part of"),
-    incoming: translationKey("contains"),
+    outgoing: translationKey("is part of {{item}}"),
+    incoming: translationKey("contains {{item}}"),
   },
   [EntityRelationshipType.InstanceOf]: {
-    outgoing: translationKey("is an instance of"),
-    incoming: translationKey("has instance"),
+    outgoing: translationKey("is an instance of {{item}}"),
+    incoming: translationKey("has instance {{item}}"),
   },
   [EntityRelationshipType.DependsOn]: {
-    outgoing: translationKey("depends on"),
-    incoming: translationKey("is depended on by"),
+    outgoing: translationKey("depends on {{item}}"),
+    incoming: translationKey("is depended on by {{item}}"),
   },
 };
+
+// An edge with no type: neutral, and still read in the reader's language.
+export const RELATED_TO_SENTENCE: string = translationKey(
+  "is related to {{item}}",
+);
 
 export type RelationshipDirection = "outgoing" | "incoming";
 
@@ -56,24 +77,36 @@ export type GetRelationshipPhraseFunction = (
   direction: RelationshipDirection,
 ) => string;
 
+// A type's hyphens, and braces that could be read as a placeholder.
+const HYPHENS: RegExp = /-/g;
+const BRACES: RegExp = /[{}]/g;
+
 /**
- * The phrase for an edge as read from this item's end. Unknown types degrade
- * to their raw value with hyphens turned into spaces, which at least reads as
- * words.
+ * The sentence for an edge as read from this item's end, with the other
+ * item as {{item}}. An unknown type (a newer server's) degrades to its raw
+ * value with hyphens turned into spaces, which at least reads as words; it
+ * is no key, so it reads in English with the item after it.
  */
 export const getRelationshipPhrase: GetRelationshipPhraseFunction = (
   relationshipType: string | undefined,
   direction: RelationshipDirection,
 ): string => {
   if (!relationshipType) {
-    return translationKey("is related to");
+    return RELATED_TO_SENTENCE;
   }
 
   const phrasing: RelationshipPhrasing | undefined =
-    PHRASINGS[relationshipType as EntityRelationshipType];
+    RELATIONSHIP_PHRASINGS[relationshipType as EntityRelationshipType];
 
   if (!phrasing) {
-    return relationshipType.replace(/-/g, " ");
+    const words: string = relationshipType
+      .replace(HYPHENS, " ")
+      .replace(BRACES, "")
+      .trim();
+
+    return words
+      ? `${words} {{${RELATIONSHIP_ITEM_SLOT}}}`
+      : RELATED_TO_SENTENCE;
   }
 
   return phrasing[direction];

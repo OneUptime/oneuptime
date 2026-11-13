@@ -35,7 +35,7 @@ import {
   formatCallRate,
   formatDurationMs,
   formatErrorRate,
-  labelForRelationship,
+  sentenceForRelationship,
   metaForEntityType,
 } from "./TopologyMeta";
 import {
@@ -876,11 +876,13 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
     const otherLabel: string =
       row.otherName ||
       (row.otherKnown ? t("Unnamed resource") : t("Undiscovered resource"));
-    const verb: string = t(labelForRelationship(row.relationshipType));
-    const sentence: string =
+    // The stored edge's own sentence, with this resource at its end of it.
+    const sentence: string = translator.translateTemplate(
+      sentenceForRelationship(row.relationshipType),
       row.direction === "out"
-        ? `${displayName} ${verb} ${otherLabel}`
-        : `${otherLabel} ${verb} ${displayName}`;
+        ? { from: displayName, to: otherLabel }
+        : { from: otherLabel, to: displayName },
+    );
     const hasMetrics: boolean = Boolean(
       config.showMetrics && row.callCount && row.callCount > 0,
     );
