@@ -135,6 +135,8 @@ export interface ComponentProps {
   initialValue?: undefined | DropdownOption | Array<DropdownOption>;
   onClick?: undefined | (() => void);
   placeholder?: undefined | string;
+  // In the reader's words already: drawn as given (Field's, #7682).
+  isPlaceholderTranslated?: boolean | undefined;
   className?: undefined | string;
   onChange?:
     | undefined
@@ -1324,7 +1326,11 @@ const Dropdown: FunctionComponent<ComponentProps> = (
           props.onSearchTextChange?.(inputValue);
         }}
         filterOption={filterOption}
-        placeholder={tx(props.placeholder) ?? props.placeholder}
+        placeholder={
+          props.isPlaceholderTranslated
+            ? props.placeholder
+            : tx(props.placeholder) ?? props.placeholder
+        }
         options={props.options as any}
         onChange={(option: any | null) => {
           if (option) {

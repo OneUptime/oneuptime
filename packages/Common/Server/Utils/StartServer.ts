@@ -54,6 +54,7 @@ import {
   CLOUD_STREAM_PATHS,
   CLOUD_STREAM_URL_PREFIX,
 } from "../../Types/CloudConnection/CloudStream";
+import { isCompatibleIngestPath } from "../../Types/Telemetry/CompatibleIngest";
 import { isEmptyErrorPhrase } from "../../Types/Exception/ErrorMessageRule";
 import Exception from "../../Types/Exception/Exception";
 import NotFoundException from "../../Types/Exception/NotFoundException";
@@ -314,12 +315,18 @@ app.use((req: OneUptimeRequest, res: ExpressResponse, next: NextFunction) => {
    * tighter, byte cap would never run at all. (The fast path has its own
    * limits since GHSA-cp58-wc9q-qv53, but they are the generic 50 MiB
    * body-parser numbers, not the 4 MiB these routes are sized for.)
+   *
+   * The compatible endpoints (Prometheus remote write, Loki, Splunk HEC,
+   * Datadog, Sentry - Types/Telemetry/CompatibleIngest) read their own
+   * bodies too: snappy protobuf, concatenated JSON objects and newline-
+   * delimited envelopes are nothing a body parser here can read.
    */
   if (
     req.path.includes("/otlp/v1/") ||
     req.path.includes("/session-replay/v1/") ||
     isVercelLogDrainPath(req.path) ||
-    isCloudStreamPath(req.path)
+    isCloudStreamPath(req.path) ||
+    isCompatibleIngestPath(req.path)
   ) {
     return next();
   }
@@ -360,6 +367,7 @@ app.use((req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     req.path.includes("/session-replay/v1/") ||
     isVercelLogDrainPath(req.path) ||
     isCloudStreamPath(req.path) ||
+    isCompatibleIngestPath(req.path) ||
     headerValueToString(req.headers["content-encoding"])?.includes("gzip")
   ) {
     next();

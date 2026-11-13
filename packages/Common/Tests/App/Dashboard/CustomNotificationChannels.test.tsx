@@ -222,13 +222,13 @@ describe("getCustomChannelReachSentence", () => {
     expect(
       getCustomChannelReachSentence(model(CORPO_APP_ID, "CorpoApp", true)),
     ).toBe(
-      "Already in your on-call rules: your administrator pages everyone through it.",
+      "Already in How to Reach Me: your administrator pages everyone through it.",
     );
   });
 
   test("one people choose is theirs to add", () => {
     expect(getCustomChannelReachSentence(model(PAGER_ID, "Pager", false))).toBe(
-      "Add it to your on-call rules to be paged through it.",
+      "Add it to How to Reach Me to be paged through it.",
     );
   });
 });
@@ -255,11 +255,11 @@ describe("the Custom Channels card", () => {
     expect(screen.getByText("Pager")).toBeInTheDocument();
     expect(
       screen.getByText(
-        "Already in your on-call rules: your administrator pages everyone through it.",
+        "Already in How to Reach Me: your administrator pages everyone through it.",
       ),
     ).toBeInTheDocument();
     expect(
-      screen.getByText("Add it to your on-call rules to be paged through it."),
+      screen.getByText("Add it to How to Reach Me to be paged through it."),
     ).toBeInTheDocument();
   });
 

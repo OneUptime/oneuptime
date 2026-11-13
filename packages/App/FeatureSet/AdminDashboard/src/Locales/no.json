@@ -2859,8 +2859,8 @@
   "Only incident episodes that match conditions": "Bare hendelsesepisoder som oppfyller betingelsene",
   "All alert episodes": "Alle varselepisoder",
   "Only alert episodes that match conditions": "Bare varselepisoder som oppfyller betingelsene",
-  "All scheduled maintenance events": "Alle planlagte vedlikeholdshendelser",
-  "Only scheduled maintenance events that match conditions": "Bare planlagte vedlikeholdshendelser som oppfyller betingelsene",
+  "All maintenance events": "Alle vedlikeholdshendelser",
+  "Only maintenance events that match conditions": "Bare vedlikeholdshendelser som oppfyller betingelsene",
   "All monitors": "Alle overvåkere",
   "Only monitors that match conditions": "Bare overvåkere som oppfyller betingelsene",
   "All status pages": "Alle statussider",
@@ -3000,5 +3000,9 @@
   "You need one of these permissions: {{permissions}}.": "Du trenger en av disse tillatelsene: {{permissions}}.",
   "You need this role: {{role}}.": "Du trenger denne rollen: {{role}}.",
   "You need one of these roles: {{roles}}.": "Du trenger en av disse rollene: {{roles}}.",
-  "You do not have permission to {{action}} this {{itemName}}.": "Du har ikke tillatelse til å utføre «{{action}}» for dette elementet ({{itemName}})."
+  "You do not have permission to {{action}} this {{itemName}}.": "Du har ikke tillatelse til å utføre «{{action}}» for dette elementet ({{itemName}}).",
+  "This monitor does not exist in this project, or you do not have access to it.": "Denne overvåkeren finnes ikke i dette prosjektet, eller du har ikke tilgang til den.",
+  "This monitor and this template are in different projects.": "Denne overvåkeren og denne malen er i forskjellige prosjekter.",
+  "This monitor is not linked to this template.": "Denne overvåkeren er ikke koblet til denne malen.",
+  "This monitor's type is {{monitorType}}, and this template's type is {{templateType}}. Only monitors of the template's type can be linked to it.": "Denne overvåkeren er av typen {{monitorType}}, og denne malen er av typen {{templateType}}. Bare overvåkere av malens type kan kobles til den."
 }

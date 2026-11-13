@@ -2859,8 +2859,8 @@
   "Only incident episodes that match conditions": "Alleen incidentepisodes die aan de voorwaarden voldoen",
   "All alert episodes": "Alle waarschuwingsepisodes",
   "Only alert episodes that match conditions": "Alleen waarschuwingsepisodes die aan de voorwaarden voldoen",
-  "All scheduled maintenance events": "Alle geplande onderhoudsevenementen",
-  "Only scheduled maintenance events that match conditions": "Alleen geplande onderhoudsevenementen die aan de voorwaarden voldoen",
+  "All maintenance events": "Alle onderhoudsgebeurtenissen",
+  "Only maintenance events that match conditions": "Alleen onderhoudsgebeurtenissen die aan de voorwaarden voldoen",
   "All monitors": "Alle monitoren",
   "Only monitors that match conditions": "Alleen monitoren die aan de voorwaarden voldoen",
   "All status pages": "Alle statuspagina's",
@@ -3000,5 +3000,9 @@
   "You need one of these permissions: {{permissions}}.": "U hebt een van deze rechten nodig: {{permissions}}.",
   "You need this role: {{role}}.": "U hebt deze rol nodig: {{role}}.",
   "You need one of these roles: {{roles}}.": "U hebt een van deze rollen nodig: {{roles}}.",
-  "You do not have permission to {{action}} this {{itemName}}.": "U hebt geen toestemming om \"{{action}}\" uit te voeren voor dit item ({{itemName}})."
+  "You do not have permission to {{action}} this {{itemName}}.": "U hebt geen toestemming om \"{{action}}\" uit te voeren voor dit item ({{itemName}}).",
+  "This monitor does not exist in this project, or you do not have access to it.": "Deze monitor bestaat niet in dit project, of u hebt er geen toegang toe.",
+  "This monitor and this template are in different projects.": "Deze monitor en dit sjabloon horen bij verschillende projecten.",
+  "This monitor is not linked to this template.": "Deze monitor is niet gekoppeld aan dit sjabloon.",
+  "This monitor's type is {{monitorType}}, and this template's type is {{templateType}}. Only monitors of the template's type can be linked to it.": "Deze monitor is van het type {{monitorType}} en dit sjabloon van het type {{templateType}}. Alleen monitoren van het type van het sjabloon kunnen eraan worden gekoppeld."
 }

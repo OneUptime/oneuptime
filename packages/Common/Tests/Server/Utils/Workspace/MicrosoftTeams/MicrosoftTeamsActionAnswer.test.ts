@@ -288,13 +288,14 @@ describe("MicrosoftTeamsConnectPrompt.describe", () => {
     ],
     [
       MicrosoftTeamsScheduledMaintenanceActionType.MarkAsOngoing,
-      "mark this scheduled maintenance event as ongoing",
+      // A maintenance event, as the model has named it since #6817.
+      "mark this maintenance event as ongoing",
       WorkspacePendingActionKind.MarkAsOngoing,
       WorkspaceEventType.ScheduledMaintenance,
     ],
     [
       MicrosoftTeamsScheduledMaintenanceActionType.MarkAsComplete,
-      "mark this scheduled maintenance event as complete",
+      "mark this maintenance event as complete",
       WorkspacePendingActionKind.MarkAsComplete,
       WorkspaceEventType.ScheduledMaintenance,
     ],
@@ -353,7 +354,7 @@ describe("MicrosoftTeamsConnectPrompt.describe", () => {
           MicrosoftTeamsScheduledMaintenanceActionType.SubmitNewScheduledMaintenance,
       }),
     ).toEqual({
-      purpose: "create a scheduled maintenance event",
+      purpose: "create a maintenance event",
       again: {
         kind: WorkspaceConnectRequestAgainKind.Command,
         label: "maintenance",
