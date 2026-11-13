@@ -2782,6 +2782,19 @@ export class Service extends ProjectReferencesService<Model> {
     }
   }
 
+  /*
+   * The next incident number of this project, with the project's prefix
+   * for it: the one way an incident is numbered. A create takes it in
+   * onBeforeCreate; the sample project, which writes its incidents without
+   * hooks, takes it here (RecordNumbersTakenInOnePlaceGuard).
+   */
+  @CaptureSpan()
+  public async takeNextIncidentNumber(
+    projectId: ObjectID,
+  ): Promise<{ counter: number; prefix: string | undefined }> {
+    return await ProjectService.incrementAndGetIncidentCounter(projectId);
+  }
+
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
@@ -3439,7 +3452,7 @@ export class Service extends ProjectReferencesService<Model> {
     const incidentCounterResult: {
       counter: number;
       prefix: string | undefined;
-    } = await ProjectService.incrementAndGetIncidentCounter(projectId);
+    } = await this.takeNextIncidentNumber(projectId);
 
     // The state it starts in, and no other name of it to be stored instead.
     RelationIdUtil.stamp(

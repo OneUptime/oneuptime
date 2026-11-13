@@ -1916,6 +1916,21 @@ ${SubscriberMessageText.chatLinks(translator, { statusPageUrl: statusPageURL, un
     return recurringDate;
   }
 
+  /*
+   * The next scheduled maintenance number of this project, with the
+   * project's prefix for it: the one way an event is numbered. A create
+   * takes it in onBeforeCreate; the sample project, which writes its event
+   * without hooks, takes it here (RecordNumbersTakenInOnePlaceGuard).
+   */
+  @CaptureSpan()
+  public async takeNextScheduledMaintenanceNumber(
+    projectId: ObjectID,
+  ): Promise<{ counter: number; prefix: string | undefined }> {
+    return await ProjectService.incrementAndGetScheduledMaintenanceCounter(
+      projectId,
+    );
+  }
+
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
@@ -2018,10 +2033,7 @@ ${SubscriberMessageText.chatLinks(translator, { statusPageUrl: statusPageURL, un
     const scheduledMaintenanceCounterResult: {
       counter: number;
       prefix: string | undefined;
-    } =
-      await ProjectService.incrementAndGetScheduledMaintenanceCounter(
-        projectId,
-      );
+    } = await this.takeNextScheduledMaintenanceNumber(projectId);
 
     createBy.data.scheduledMaintenanceNumber =
       scheduledMaintenanceCounterResult.counter;

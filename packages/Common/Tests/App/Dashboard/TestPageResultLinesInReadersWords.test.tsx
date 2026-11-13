@@ -124,7 +124,7 @@ function worded(
 const SMS_NOT_VERIFIED_KEY: string =
   "This SMS method is not verified, so the test can't use it.";
 const CALLS_OFF_KEY: string =
-  "Phone calls are off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings → Notifications → Notification Settings.";
+  "Phone calls are off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings → Notifications → Notification Channels.";
 const NOT_A_MEMBER_KEY: string = "{{name}} is not a member of this project.";
 const NO_VERIFIED_METHOD_KEY: string =
   "{{name}} has no verified notification method.";

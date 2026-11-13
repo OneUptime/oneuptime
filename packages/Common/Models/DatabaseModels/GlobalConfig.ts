@@ -2782,7 +2782,7 @@ export default class GlobalConfig extends GlobalConfigModel {
     type: TableColumnType.JSON,
     title: "Server Products",
     description:
-      "The products switched off for every project on this server, and who switched them off and when. Empty until an admin saves Settings > Products.",
+      "The products switched off for every project on this server, and who switched them off and when. Empty until an admin saves Admin Dashboard > Settings > Products.",
   })
   @Column({
     type: ColumnType.JSON,

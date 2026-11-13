@@ -164,9 +164,23 @@ import {
   LOGS_TABLE_EMPTY_TITLE,
 } from "../../../UI/Components/LogsViewer/components/LogsTable";
 import { LOGS_VIEWER_TOOLBAR_TEST_ID } from "../../../UI/Components/LogsViewer/components/LogsViewerToolbar";
-import { LOGS_NARROWED_EMPTY_HINT } from "../../../UI/Components/LogsViewer/LogsViewer";
+import {
+  LOGS_NARROWED_EMPTY_HINT,
+  LOGS_TIME_RANGE_EMPTY_HINT,
+} from "../../../UI/Components/LogsViewer/LogsViewer";
+import {
+  getTimeRangeButtonLabel,
+  getTimeRangeLabel,
+} from "../../../UI/Components/Date/TimeRangePickerDropdown";
 import Log from "../../../Models/AnalyticsModels/Log";
+import InBetween from "../../../Types/BaseDatabase/InBetween";
 import Query from "../../../Types/BaseDatabase/Query";
+import OneUptimeDate from "../../../Types/Date";
+import { setDateDisplayLanguage } from "../../../Types/DateLanguage";
+import RangeStartAndEndDateTime from "../../../Types/Time/RangeStartAndEndDateTime";
+import TimeRange from "../../../Types/Time/TimeRange";
+import { dashboardTranslator } from "../../Helpers/DashboardLocales";
+import { isolated, withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 
 const LOCALES_DIR: string = path.resolve(
   __dirname,
@@ -182,6 +196,9 @@ const LOCALES_DIR: string = path.resolve(
 );
 
 const LANGUAGES: Array<string> = ["de", "it", "ja", "fa"];
+
+// The explorer's time range sentence is read in these, Arabic among them.
+const SENTENCE_LANGUAGES: Array<string> = [...LANGUAGES, "ar"];
 
 // The line a host's Logs tab hands over (Pages/Host/View/Logs.tsx).
 const HOST_HINT: string =
@@ -207,7 +224,7 @@ const LOCALES: Record<string, Record<string, string>> = {
   en: readLocale("en"),
 };
 
-for (const language of LANGUAGES) {
+for (const language of SENTENCE_LANGUAGES) {
   LOCALES[language] = readLocale(language);
 }
 
@@ -417,4 +434,272 @@ describe("an embedded logs list with nothing in it", () => {
       expect(words[LOGS_TABLE_EMPTY_HINT]).not.toBe(LOGS_TABLE_EMPTY_HINT);
     });
   }
+});
+
+/*
+ * THE EXPLORER'S TIME RANGE SENTENCE, IN THE READER'S LANGUAGE (issue #7280).
+ *
+ * A list no page hands a line to says what window it searched and what to
+ * try: "Time range: past 1 hour. Try adjusting filters or expanding the time
+ * range." That sentence was English in every language. It is one key now,
+ * worded in each of the Dashboard's languages, with the window as its value:
+ * a preset named as the picker names it, a custom window written as the
+ * picker's button writes it, in the reader's language and digits, and set
+ * apart in a sentence read right to left so its two ends read in order.
+ */
+
+const NO_BREAK_SPACE: string = String.fromCharCode(0x00a0);
+const ANY_SPACE: RegExp = /\s/g;
+const LATIN_DIGIT: RegExp = /[0-9]/;
+
+// A full stop, then another: "ق.ظ.." where the window ended the sentence.
+const TWO_FULL_STOPS: RegExp = /\.\s*\./;
+
+// Today, 08:00 to 09:30 UTC (NOW is 12:00): a window written without years.
+const MORNING_WINDOW: RangeStartAndEndDateTime = {
+  range: TimeRange.CUSTOM,
+  startAndEndDate: new InBetween<Date>(
+    new Date("2026-10-26T08:00:00.000Z"),
+    new Date("2026-10-26T09:30:00.000Z"),
+  ),
+};
+
+function spaced(text: string): string {
+  return text.replace(ANY_SPACE, " ");
+}
+
+// What a reader reads: no isolate marks, any space a space.
+function readAs(text: string): string {
+  return spaced(withoutIsolateMarks(text));
+}
+
+// The preset, as the shipped locale names it inside a sentence.
+function presetIn(language: string, range: TimeRange): string {
+  return dashboardTranslator(language).translateTerm(getTimeRangeLabel(range), {
+    inSentence: true,
+  });
+}
+
+// The sentence the shipped locale words, with `range` in its place.
+function sentenceIn(language: string, range: string): string {
+  const words: string | undefined =
+    LOCALES[language]![LOGS_TIME_RANGE_EMPTY_HINT];
+
+  expect({ language, worded: words !== LOGS_TIME_RANGE_EMPTY_HINT }).toEqual({
+    language,
+    worded: true,
+  });
+
+  return spaced(words!.replace("{{range}}", range));
+}
+
+// The custom window as the picker's button writes it in `language`.
+function buttonLabelIn(
+  language: string,
+  value: RangeStartAndEndDateTime,
+): string {
+  setDateDisplayLanguage(language);
+
+  try {
+    return spaced(getTimeRangeButtonLabel(value));
+  } finally {
+    setDateDisplayLanguage(null);
+  }
+}
+
+// The block of a list no page hands a line to, over `timeRangeOverride`.
+async function mountUnhinted(
+  timeRangeOverride?: RangeStartAndEndDateTime,
+): Promise<HTMLElement> {
+  await act(async () => {
+    render(
+      <DashboardLogsViewer
+        id="explorer-logs"
+        logQuery={HOST_QUERY}
+        showFilters={true}
+        timeRangeOverride={timeRangeOverride}
+      />,
+    );
+  });
+  await waitFor(() => {
+    expect(screen.getByTestId(LOGS_VIEWER_TOOLBAR_TEST_ID)).toBeInTheDocument();
+  });
+  await settle();
+
+  return await screen.findByTestId("logs-table-empty");
+}
+
+// The block's lines as drawn, isolate marks and all.
+function drawnLinesOf(block: HTMLElement): Array<string> {
+  return Array.from(block.querySelectorAll("p")).map(
+    (line: HTMLParagraphElement): string => {
+      return line.textContent || "";
+    },
+  );
+}
+
+describe("the explorer's time range sentence, with the shipped locale files", () => {
+  beforeEach(() => {
+    // A 24-hour reader: "08:00". The 12-hour one is below.
+    jest
+      .spyOn(OneUptimeDate, "getUserPrefers12HourFormat")
+      .mockReturnValue(false);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+    setDateDisplayLanguage(null);
+  });
+
+  test("English is as it was: the preset in English's words", async () => {
+    const block: HTMLElement = await mountUnhinted();
+
+    expect(linesOf(block)).toEqual([
+      LOGS_TABLE_EMPTY_TITLE,
+      "Time range: past 1 hour. Try adjusting filters or expanding the time range.",
+    ]);
+    // The English sentence is the key itself.
+    expect(LOCALES["en"]![LOGS_TIME_RANGE_EMPTY_HINT]).toBe(
+      LOGS_TIME_RANGE_EMPTY_HINT,
+    );
+  });
+
+  test("English, a custom window: its two ends, each kept whole", async () => {
+    const block: HTMLElement = await mountUnhinted(MORNING_WINDOW);
+    const line: string = drawnLinesOf(block)[1]!;
+
+    expect(spaced(line)).toBe(
+      "Time range: Oct 26, 08:00 – Oct 26, 09:30. Try adjusting filters or expanding the time range.",
+    );
+    // A window too long for its line breaks only between its two ends.
+    expect(line).toContain(
+      `Oct${NO_BREAK_SPACE}26,${NO_BREAK_SPACE}08:00${NO_BREAK_SPACE}– Oct${NO_BREAK_SPACE}26,${NO_BREAK_SPACE}09:30`,
+    );
+    // Nothing set apart in a sentence read left to right.
+    expect(line).toBe(withoutIsolateMarks(line));
+  });
+
+  for (const language of SENTENCE_LANGUAGES) {
+    test(`${language}: the sentence and the preset in the reader's language`, async () => {
+      await readIn(language);
+
+      const block: HTMLElement = await mountUnhinted();
+      const lines: Array<string> = drawnLinesOf(block).map(readAs);
+      const preset: string = presetIn(language, TimeRange.PAST_ONE_HOUR);
+
+      expect(lines).toEqual([
+        LOCALES[language]![LOGS_TABLE_EMPTY_TITLE],
+        sentenceIn(language, spaced(preset)),
+      ]);
+      // Neither the English sentence nor the English preset is left.
+      expect(lines[1]).not.toContain("Try adjusting filters");
+      expect(lines[1]).not.toContain("Time range");
+      expect(lines[1]).not.toContain("past 1 hour");
+      expect(preset).not.toBe("past 1 hour");
+    });
+
+    test(`${language}: a custom window as the picker's button writes it, in the sentence`, async () => {
+      await readIn(language);
+
+      const block: HTMLElement = await mountUnhinted(MORNING_WINDOW);
+      const line: string = readAs(drawnLinesOf(block)[1]!);
+
+      expect(line).toBe(
+        sentenceIn(language, buttonLabelIn(language, MORNING_WINDOW)),
+      );
+      expect(line).not.toContain("Try adjusting filters");
+      expect(line).not.toContain("Oct");
+    });
+  }
+
+  test.each<[string, string]>([
+    [
+      "de",
+      "Zeitraum: 26. Okt., 08:00 – 26. Okt., 09:30. Passen Sie die Filter an oder erweitern Sie den Zeitraum.",
+    ],
+    [
+      "it",
+      "Intervallo di tempo: 26 ott, 08:00 – 26 ott, 09:30. Prova a modificare i filtri o ad ampliare l'intervallo di tempo.",
+    ],
+    [
+      "ja",
+      "時間範囲: 10月26日 08:00 – 10月26日 09:30。フィルターを調整するか、時間範囲を広げてみてください。",
+    ],
+  ])("%s, word for word: %s", async (language: string, sentence: string) => {
+    await readIn(language);
+
+    const block: HTMLElement = await mountUnhinted(MORNING_WINDOW);
+
+    expect(readAs(drawnLinesOf(block)[1]!)).toBe(sentence);
+  });
+
+  test("Persian: Persian digits, no Latin one, the window set apart and read start then end", async () => {
+    await readIn("fa");
+
+    const block: HTMLElement = await mountUnhinted(MORNING_WINDOW);
+    const drawn: string = drawnLinesOf(block)[1]!;
+    const read: string = readAs(drawn);
+
+    expect(read.startsWith("بازهٔ زمانی: ")).toBe(true);
+    expect(read).toContain("۰۸:۰۰");
+    expect(read).toContain("۰۹:۳۰");
+    expect(read).not.toMatch(LATIN_DIGIT);
+    expect(read.indexOf("۰۸:۰۰")).toBeLessThan(read.indexOf("۰۹:۳۰"));
+
+    // The whole window, in one isolate: its ends never swap places.
+    const window: string = read.slice("بازهٔ زمانی: ".length).split(". ")[0]!;
+    expect(spaced(drawn)).toContain(spaced(isolated(window)));
+  });
+
+  test("Arabic, on a 12-hour clock: Latin digits, no leading zero, the window set apart", async () => {
+    jest
+      .spyOn(OneUptimeDate, "getUserPrefers12HourFormat")
+      .mockReturnValue(true);
+    await readIn("ar");
+
+    const block: HTMLElement = await mountUnhinted(MORNING_WINDOW);
+    const drawn: string = drawnLinesOf(block)[1]!;
+
+    expect(readAs(drawn)).toBe(
+      "النطاق الزمني: 26 أكتوبر، 8:00 ص – 26 أكتوبر، 9:30 ص. جرّب تعديل عوامل التصفية أو توسيع النطاق الزمني.",
+    );
+    expect(spaced(drawn)).toContain(
+      spaced(isolated("26 أكتوبر، 8:00 ص – 26 أكتوبر، 9:30 ص")),
+    );
+    expect(drawn).not.toContain("08:00");
+  });
+
+  test("Persian, on a 12-hour clock: the window's ق.ظ. ends the sentence, with one full stop", async () => {
+    jest
+      .spyOn(OneUptimeDate, "getUserPrefers12HourFormat")
+      .mockReturnValue(true);
+    await readIn("fa");
+
+    const block: HTMLElement = await mountUnhinted(MORNING_WINDOW);
+    const drawn: string = drawnLinesOf(block)[1]!;
+    const read: string = readAs(drawn);
+
+    // "ق.ظ.." read as a typo: one full stop, then the next sentence.
+    expect(read).not.toMatch(TWO_FULL_STOPS);
+    expect(read).toContain("۹:۳۰ ق.ظ. فیلترها");
+    expect(read).toContain("۸:۰۰ ق.ظ. –");
+    // The window is still set apart, its own letters inside, the stop after.
+    expect(spaced(drawn)).toContain(
+      spaced(`${isolated("۲۶ اکتبر، ۸:۰۰ ق.ظ. – ۲۶ اکتبر، ۹:۳۰ ق.ظ")}.`),
+    );
+  });
+
+  test("the sentence is worded in every language read here, its window kept", () => {
+    for (const language of SENTENCE_LANGUAGES) {
+      const words: string = LOCALES[language]![LOGS_TIME_RANGE_EMPTY_HINT]!;
+
+      expect({ language, words: words !== LOGS_TIME_RANGE_EMPTY_HINT }).toEqual(
+        { language, words: true },
+      );
+      expect({ language, range: words.split("{{range}}").length }).toEqual({
+        language,
+        range: 2,
+      });
+    }
+  });
 });

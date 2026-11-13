@@ -236,6 +236,10 @@ curl -fsSL https://oneuptime.com/docs/static/scripts/host-collector/install.sh |
 HTTP `401`：密钥错误、已过期或已被删除。HTTP `422`：密钥已禁用、是浏览器密钥，或已绑定到单个服务。在 **添加主机** 中选择一个已启用的服务器密钥，然后再次运行命令：它会替换主机上的密钥。
 :::
 
+:::details 命令提示找不到 OneUptime
+HTTP `404`：收集器请求配置的地址（你的 OneUptime URL 加上 `/telemetry/opamp/v1`）没有到达 OneUptime。请检查 `--url`（在 Windows 上为 `-Url`）是否就是你打开 OneUptime 时使用的地址，并且后面没有附加任何内容。如果 OneUptime 前面有你自己的代理或负载均衡器，请让它像转发 `/otlp` 一样把 `/telemetry/opamp/v1` 也转发给 OneUptime。收集器每 30 秒会再请求一次，因此地址一旦可用，主机就会连接上。
+:::
+
 :::details 主机没有出现
 检查主机能否通过 HTTPS 访问你的 OneUptime URL，然后用 [检查主机的收集器](#检查主机的收集器) 中对应系统的命令查看收集器的日志。
 :::

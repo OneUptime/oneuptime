@@ -236,6 +236,10 @@ Der Host bleibt mit seinem Verlauf in OneUptime: Archivieren oder löschen Sie i
 HTTP `401`: Der Schlüssel ist falsch, abgelaufen oder wurde gelöscht. HTTP `422`: Er ist deaktiviert, ein Browser-Schlüssel oder an einen Dienst gebunden. Wählen Sie in **Host hinzufügen** einen aktivierten Server-Schlüssel und führen Sie den Befehl erneut aus: Er ersetzt den Schlüssel auf dem Host.
 :::
 
+:::details Der Befehl meldet, dass OneUptime nicht gefunden wurde
+HTTP `404`: Die Adresse, unter der der Collector nach seiner Konfiguration fragt, Ihre OneUptime-URL gefolgt von `/telemetry/opamp/v1`, erreicht OneUptime nicht. Prüfen Sie, ob `--url` (`-Url` unter Windows) die Adresse ist, unter der Sie OneUptime öffnen, ohne etwas dahinter. Steht ein eigener Proxy oder Load Balancer vor OneUptime, lassen Sie ihn `/telemetry/opamp/v1` an OneUptime weiterleiten, so wie er `/otlp` weiterleitet. Der Collector fragt weiter alle 30 Sekunden nach, sodass sich der Host verbindet, sobald die Adresse funktioniert.
+:::
+
 :::details Der Host erscheint nicht
 Prüfen Sie, ob der Host Ihre OneUptime-URL über HTTPS erreicht, und lesen Sie dann das Log des Collectors mit dem Befehl für sein System unter [Den Collector eines Hosts prüfen](#den-collector-eines-hosts-prüfen).
 :::

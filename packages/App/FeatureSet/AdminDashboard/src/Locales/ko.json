@@ -2009,7 +2009,7 @@
   "Metrics": "메트릭",
   "Traces": "트레이스",
   "Exceptions": "예외",
-  "Profiles": "프로필",
+  "Profiles": "프로파일",
   "Session Replays": "세션 리플레이",
   "Security Events": "보안 이벤트",
   "Spans. Days counted before exceptions were shown apart include their exceptions too.": "스팬. 예외가 따로 표시되기 전에 집계된 날에는 그 예외도 포함됩니다.",
