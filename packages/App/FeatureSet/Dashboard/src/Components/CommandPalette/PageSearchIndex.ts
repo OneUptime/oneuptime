@@ -816,6 +816,18 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             settings: ["Current Balance", "Auto Recharge"],
           },
           {
+            page: PageMap.SETTINGS_AI_RESULTS,
+            title: "AI Results",
+            icon: IconProp.ArrowTrendingUp,
+            keywords: [
+              "pages avoided",
+              "fixes verified",
+              "root causes confirmed",
+              "ai quality",
+              "ai outcomes",
+            ],
+          },
+          {
             page: PageMap.SETTINGS_AI_LOGS,
             title: "AI Logs",
             icon: IconProp.Logs,

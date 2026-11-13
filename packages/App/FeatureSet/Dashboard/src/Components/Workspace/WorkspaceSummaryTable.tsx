@@ -553,7 +553,8 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
             fieldType: FormFieldSchemaType.Text,
             required: true,
             stepId: "basic",
-            placeholder: translator.translateTemplate(copy.namePlaceholder),
+            // In English: the form's control looks it up, once (#7682).
+            placeholder: copy.namePlaceholder,
             validation: {
               minLength: 2,
             },
@@ -566,9 +567,7 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
             title: "Description",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
-            placeholder: translator.translateTemplate(
-              copy.descriptionPlaceholder,
-            ),
+            placeholder: copy.descriptionPlaceholder,
           },
           {
             field: {

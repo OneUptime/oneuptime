@@ -436,6 +436,8 @@ const ConditionEditor: FunctionComponent<ConditionEditorProps> = (
                     compareAsType || ConditionValueType.Text,
                     state.valueToCheck,
                   )}
+                  // A sentence around an example, in the reader's words here.
+                  isPlaceholderTranslated={true}
                   ariaLabel={COMPARE_WITH_LABEL}
                   dataTestId={CONDITION_TEST_IDS.compareWith}
                   error={touched.compareWith ? errors.compareWith : undefined}

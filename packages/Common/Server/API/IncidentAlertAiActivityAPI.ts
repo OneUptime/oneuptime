@@ -9,6 +9,8 @@ import Express, {
 import Response from "../Utils/Response";
 import IncidentAlertAiInsightsReader from "../Utils/AI/IncidentAlertActivity/IncidentAlertAiInsightsReader";
 import IncidentAlertAiLogsReader from "../Utils/AI/IncidentAlertActivity/IncidentAlertAiLogsReader";
+import AiOutcomesReader from "../Utils/AI/Outcomes/AiOutcomesReader";
+import { AI_OUTCOMES_PATH, AiOutcomes } from "../../Types/AI/AiOutcomes";
 import {
   INCIDENT_ALERT_AI_INSIGHTS_PATHS,
   IncidentAlertAiInsights,
@@ -52,6 +54,14 @@ const router: ExpressRouter = Express.getRouter();
  *     failing, how the fixes turned out, and the trend. Same audience as
  *     the logs; what it says follows the caller's own read access
  *     (IncidentAlertAiInsightsReader).
+ *
+ *   POST /ai-activity/outcomes   {}
+ *     What OneUptime AI's work came to across the project (Settings → AI →
+ *     AI Results, issue #6800): the pages it kept from waking people, the
+ *     fixes it verified and the root causes people confirmed, week by week
+ *     (AiOutcomes). For any signed-in user of the project; each part follows
+ *     the caller's own read access, and a part they may not read is left
+ *     out (AiOutcomesReader).
  */
 
 /*
@@ -194,5 +204,38 @@ for (const subjectKind of INCIDENT_ALERT_AI_SUBJECT_KINDS) {
     },
   );
 }
+
+router.post(
+  AI_OUTCOMES_PATH,
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const {
+        projectId,
+        props,
+      }: { projectId: ObjectID; props: DatabaseCommonInteractionProps } =
+        await getTenantProps(req);
+
+      const outcomes: AiOutcomes = await AiOutcomesReader.read({
+        projectId,
+        props,
+      });
+
+      Response.sendJsonObjectResponse(
+        req,
+        res,
+        outcomes as unknown as JSONObject,
+      );
+      return;
+    } catch (err) {
+      next(err);
+      return;
+    }
+  },
+);
 
 export default router;
