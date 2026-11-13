@@ -51841,5 +51841,7 @@
   "Couldn't reject the note.": "Impossibile rifiutare la nota.",
   "Couldn't publish the note.": "Impossibile pubblicare la nota.",
   "Couldn't withdraw the edit.": "Impossibile ritirare la modifica.",
-  "Couldn't load the public notes.": "Impossibile caricare le note pubbliche."
+  "Couldn't load the public notes.": "Impossibile caricare le note pubbliche.",
+  "{{count}} of {{total}} monitors could not be linked: {{errors}}": "Impossibile collegare {{count}} monitor su {{total}}: {{errors}}",
+  "{{count}} of {{total}} monitors could not be linked: {{errors}}_one": "Impossibile collegare {{count}} monitor su {{total}}: {{errors}}"
 }

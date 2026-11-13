@@ -51841,5 +51841,7 @@
   "Couldn't reject the note.": "Kunne ikke avvise notatet.",
   "Couldn't publish the note.": "Kunne ikke publisere notatet.",
   "Couldn't withdraw the edit.": "Kunne ikke trekke tilbake redigeringen.",
-  "Couldn't load the public notes.": "Kunne ikke laste inn de offentlige notatene."
+  "Couldn't load the public notes.": "Kunne ikke laste inn de offentlige notatene.",
+  "{{count}} of {{total}} monitors could not be linked: {{errors}}": "{{count}} av {{total}} overvåkere kunne ikke kobles til: {{errors}}",
+  "{{count}} of {{total}} monitors could not be linked: {{errors}}_one": "{{count}} av {{total}} overvåkere kunne ikke kobles til: {{errors}}"
 }

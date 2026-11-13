@@ -51841,5 +51841,7 @@
   "Couldn't reject the note.": "Die Notiz konnte nicht abgelehnt werden.",
   "Couldn't publish the note.": "Die Notiz konnte nicht veröffentlicht werden.",
   "Couldn't withdraw the edit.": "Die Bearbeitung konnte nicht zurückgezogen werden.",
-  "Couldn't load the public notes.": "Die öffentlichen Notizen konnten nicht geladen werden."
+  "Couldn't load the public notes.": "Die öffentlichen Notizen konnten nicht geladen werden.",
+  "{{count}} of {{total}} monitors could not be linked: {{errors}}": "{{count}} von {{total}} Monitoren konnten nicht verknüpft werden: {{errors}}",
+  "{{count}} of {{total}} monitors could not be linked: {{errors}}_one": "{{count}} von {{total}} Monitoren konnte nicht verknüpft werden: {{errors}}"
 }

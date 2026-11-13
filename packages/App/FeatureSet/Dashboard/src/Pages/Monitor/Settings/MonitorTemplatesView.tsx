@@ -66,10 +66,62 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   ComposedValue,
   composedValue,
+  PluralTemplate,
   translatableTerm,
   translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
+import { getErrorInSentenceText } from "Common/UI/Utils/ErrorInSentence";
+import { joinClauses } from "Common/UI/Utils/ListSeparator";
+
+/*
+ * Link Existing Monitors, when some of the monitors picked could not be
+ * linked: how many of how many, then why - each reason the server gave,
+ * said once.
+ */
+export const LINK_FAILURES_TEMPLATE: PluralTemplate = {
+  one: "{{count}} of {{total}} monitors could not be linked: {{errors}}",
+  other: "{{count}} of {{total}} monitors could not be linked: {{errors}}",
+};
+
+/*
+ * The sentence for `failed` of `total` monitors that could not be linked,
+ * with the reasons (API.getFriendlyMessage's answers) said in the language
+ * the sentence comes out in - the reader's, or English while their language
+ * has no wording of it - as ErrorMessageText says an error: an error nobody
+ * explained says why and what to do next. The reasons are clauses of one
+ * line, set off with that language's semicolon: "; ", "؛ ", " ; ".
+ */
+export const getLinkFailuresText: (data: {
+  errors: ReadonlyArray<string>;
+  total: number;
+  translator: Translator;
+}) => string = (data: {
+  errors: ReadonlyArray<string>;
+  total: number;
+  translator: Translator;
+}): string => {
+  const reasons: Array<string> = Array.from(new Set(data.errors));
+
+  return data.translator.translatePlural(
+    LINK_FAILURES_TEMPLATE,
+    data.errors.length,
+    {
+      total: data.translator.formatNumber(data.total),
+      errors: composedValue((sentence: Translator): string => {
+        return joinClauses(
+          reasons.map((message: string): string => {
+            return getErrorInSentenceText({
+              message: message,
+              translator: sentence,
+            });
+          }),
+          sentence.language,
+        );
+      }),
+    },
+  );
+};
 
 const MonitorTemplatesView: FunctionComponent<
   PageComponentProps
@@ -557,7 +609,11 @@ const MonitorTemplatesView: FunctionComponent<
       setLinkError(
         errors.length === 1
           ? errors[0]!
-          : `${errors.length} of ${monitorIds.length} link operations failed: ${errors.join("; ")}`,
+          : getLinkFailuresText({
+              errors: errors,
+              total: monitorIds.length,
+              translator: translator,
+            }),
       );
       return;
     }
