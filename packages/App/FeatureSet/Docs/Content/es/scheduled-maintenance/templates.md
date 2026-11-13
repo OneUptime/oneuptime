@@ -15,7 +15,7 @@ Una plantilla es un punto de partida. Un evento creado a partir de ella es una c
 
 ```mermaid title="Dos formas en que una plantilla se convierte en un evento"
 flowchart TB
-    template["Una plantilla<br/>en Plantillas de eventos"] --> byhand["Crear desde plantilla<br/>rellena el formulario"]
+    template["Una plantilla<br/>en Plantillas de mantenimiento"] --> byhand["Crear desde plantilla<br/>rellena el formulario"]
     template --> schedule["Recurrente activado<br/>revisado cada minuto"]
     byhand --> event["Un evento nuevo<br/>en Programado"]
     schedule --> event
@@ -31,7 +31,7 @@ flowchart TB
 :::steps
 ### Abrir las plantillas
 
-Ve a **Mantenimiento programado → Ajustes → Plantillas de eventos**. **Ajustes** empieza plegado en el menú lateral: despliégalo primero. Haz clic en **Crear Plantilla de mantenimiento programado**.
+Ve a **Mantenimiento programado → Ajustes → Plantillas de mantenimiento**. **Ajustes** empieza plegado en el menú lateral: despliégalo primero. Haz clic en **Crear Plantilla de mantenimiento programado**.
 
 ### Nombrar la plantilla
 
@@ -68,7 +68,7 @@ Una plantilla pide **Cambiar el estado del monitor a** aunque no nombre ningún 
 :::steps
 ### Elegir la plantilla
 
-En **Mantenimiento programado → Todos los eventos**, haz clic en **Crear desde plantilla** y elige una plantilla en **Seleccionar plantilla de mantenimiento programado**.
+En **Mantenimiento programado → Todos los eventos de mantenimiento**, haz clic en **Crear desde plantilla** y elige una plantilla en **Seleccionar plantilla de mantenimiento programado**.
 
 ### Revisar el formulario
 
@@ -76,10 +76,10 @@ Haz clic en **Crear desde plantilla**. El formulario de creación se abre con la
 
 ### Crear el evento
 
-Recorre los pasos con **Siguiente** y luego haz clic en **Crear evento de mantenimiento programado** en la revisión.
+Recorre los pasos con **Siguiente** y luego haz clic en **Crear evento de mantenimiento** en la revisión.
 :::
 
-Cuando el proyecto aún no tiene ninguna plantilla, **Crear desde plantilla** lo dice y enlaza a **Plantillas de eventos**.
+Cuando el proyecto aún no tiene ninguna plantilla, **Crear desde plantilla** lo dice y enlaza a **Plantillas de mantenimiento**.
 
 ## Eventos recurrentes
 

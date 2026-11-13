@@ -31,7 +31,7 @@ flowchart TB
 :::steps
 ### 開啟表單
 
-前往 **排定維護 → 所有事件** ，點選 **建立排定維護事件** 。表單會在第一個步驟 **事件** 上開啟。
+前往 **排定維護 → 所有維護事件** ，點選 **建立維護事件** 。表單會在第一個步驟 **事件** 上開啟。
 
 ### 說明要做什麼、何時做
 
@@ -47,7 +47,7 @@ flowchart TB
 
 ### 建立它
 
-點選 **下一步** 查看檢閱頁，確認無誤後點選 **建立排定維護事件** 。事件本身的頁面會開啟。
+點選 **下一步** 查看檢閱頁，確認無誤後點選 **建立維護事件** 。事件本身的頁面會開啟。
 :::
 
 在你選擇狀態頁面之前不會傳送任何內容：不顯示在任何狀態頁面上的事件不會通知任何訂閱者。
@@ -75,13 +75,13 @@ flowchart TB
 
 ## 從資源或範本開始
 
-在主機、Kubernetes、Proxmox、Ceph 或 Docker Swarm 叢集、Docker 或 Podman 主機、vCenter、OpenStack 雲端、儲存陣列、IoT 裝置群、資料庫、雲端資源、服務或網路站點的 **排定維護** 分頁上， **建立排定維護事件** 會開啟同一個表單，並已在 **其他受影響的資源** 下選好該資源；該分頁還會列出影響該資源的事件。資產清冊項目的分頁會選擇該項目指向的主機、服務或 Kubernetes 叢集。
+在主機、Kubernetes、Proxmox、Ceph 或 Docker Swarm 叢集、Docker 或 Podman 主機、vCenter、OpenStack 雲端、儲存陣列、IoT 裝置群、資料庫、雲端資源、服務或網路站點的 **排定維護** 分頁上， **建立維護事件** 會開啟同一個表單，並已在 **其他受影響的資源** 下選好該資源；該分頁還會列出影響該資源的事件。資產清冊項目的分頁會選擇該項目指向的主機、服務或 Kubernetes 叢集。
 
 建立按鈕旁邊的 **從範本建立** 會請你 **選擇排定維護範本** ，然後開啟用該範本填好的表單。請參閱 [範本與週期性事件](/docs/scheduled-maintenance/templates)。
 
 ## 建立時會發生什麼
 
-在你點選 **建立排定維護事件** 的那一刻，OneUptime 會依下列順序執行這些步驟：
+在你點選 **建立維護事件** 的那一刻，OneUptime 會依下列順序執行這些步驟：
 
 1. **它取得編號和狀態。** 編號來自每個專案的計數器，並帶上你的前綴顯示（`SM-42`）。無論請求指定什麼狀態，事件都從你的已排定狀態開始。
 2. **你的聊天工具會收到訊息。** **工作區** 下的 Slack 和 Microsoft Teams 規則會把它發佈到各自的頻道，規則也可以為該事件建立頻道。它的動態消息會記錄它已建立。
@@ -90,7 +90,7 @@ flowchart TB
 5. **Runbook 規則啟動** 與該事件相符的運行手冊。
 6. **排定提醒**：當某條提醒規則相符時，為它的擁有者排定提醒。
 
-發布後一分鐘內（除非你選擇了 **發布時間** ，否則會立即發布），它的狀態頁面的訂閱者會收到事件已排定的通知，除非你關閉了 **事件排定時** 。工作流程觸發器 **On Create Scheduled Maintenance Event** 會啟動以它為基礎建立的所有工作流程；若擁有者開啟了相應通知，他們也會收到訊息：請參閱 [通知設定](/docs/notifications/notification-settings)。
+發布後一分鐘內（除非你選擇了 **發布時間** ，否則會立即發布），它的狀態頁面的訂閱者會收到事件已排定的通知，除非你關閉了 **事件排定時** 。工作流程觸發器 **On Create Maintenance Event** 會啟動以它為基礎建立的所有工作流程；若擁有者開啟了相應通知，他們也會收到訊息：請參閱 [通知設定](/docs/notifications/notification-settings)。
 
 ## 稍後發布
 
@@ -155,7 +155,7 @@ curl -X POST https://oneuptime.com/api/scheduled-maintenance \
 | `shouldStatusPageSubscribersBeNotifiedOnEventCreated` | **事件排定時** 開關。另外兩個時間點各有自己的欄位。                                       |
 | `publishOnStatusPageAt`                               | 事件在其狀態頁面上發布、其訂閱者收到事件已排定通知的時間。省略時立即發布。               |
 
-以程式碼表示的同一個事件是 Terraform 資源 `oneuptime_scheduled_maintenance_event` ：請參閱 [範例](/docs/terraform/examples#排定維護)。工作流程透過其 **Create One Scheduled Maintenance Event** 步驟建立事件， `/oneuptime maintenance` 會在 Slack 中開啟表單：請參閱 [Slack](/docs/workspace-connections/slack#從-slack-建立事件和維護)。
+以程式碼表示的同一個事件是 Terraform 資源 `oneuptime_scheduled_maintenance_event` ：請參閱 [範例](/docs/terraform/examples#排定維護)。工作流程透過其 **Create One Maintenance Event** 步驟建立事件， `/oneuptime maintenance` 會在 Slack 中開啟表單：請參閱 [Slack](/docs/workspace-connections/slack#從-slack-建立事件和維護)。
 
 ## 疑難排解
 

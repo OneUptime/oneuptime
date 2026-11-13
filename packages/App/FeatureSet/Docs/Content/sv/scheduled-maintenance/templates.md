@@ -15,7 +15,7 @@ En mall är en utgångspunkt. En händelse som har skapats från den är en kopi
 
 ```mermaid title="Två sätt som en mall blir en händelse på"
 flowchart TB
-    template["En mall i<br/>Händelsemallar"] --> byhand["Skapa från mall<br/>fyller i formuläret"]
+    template["En mall i<br/>Underhållsmallar"] --> byhand["Skapa från mall<br/>fyller i formuläret"]
     template --> schedule["Återkommande<br/>händelse på<br/>kontrolleras varje minut"]
     byhand --> event["En ny händelse<br/>i Schemalagd"]
     schedule --> event
@@ -31,7 +31,7 @@ flowchart TB
 :::steps
 ### Öppna mallarna
 
-Gå till **Schemalagt underhåll → Inställningar → Händelsemallar**. **Inställningar** börjar hopfällt i sidomenyn: fäll ut det först. Klicka på **Skapa Mall för schemalagt underhåll**.
+Gå till **Schemalagt underhåll → Inställningar → Underhållsmallar**. **Inställningar** börjar hopfällt i sidomenyn: fäll ut det först. Klicka på **Skapa Mall för schemalagt underhåll**.
 
 ### Namnge mallen
 
@@ -68,7 +68,7 @@ En mall frågar efter **Ändra övervakningsstatus till** även när den inte n�
 :::steps
 ### Välj mallen
 
-På **Schemalagt underhåll → Alla händelser** klickar du på **Skapa från mall** och väljer en mall under **Välj mall för schemalagt underhåll**.
+På **Schemalagt underhåll → Alla underhållshändelser** klickar du på **Skapa från mall** och väljer en mall under **Välj mall för schemalagt underhåll**.
 
 ### Kontrollera formuläret
 
@@ -76,10 +76,10 @@ Klicka på **Skapa från mall**. Formuläret öppnas med mallens svar redan ifyl
 
 ### Skapa händelsen
 
-Gå igenom stegen med **Nästa** och klicka sedan på **Skapa schemalagt underhållsevenemang** i granskningen.
+Gå igenom stegen med **Nästa** och klicka sedan på **Skapa underhållshändelse** i granskningen.
 :::
 
-När projektet ännu inte har någon mall säger **Skapa från mall** det och länkar till **Händelsemallar**.
+När projektet ännu inte har någon mall säger **Skapa från mall** det och länkar till **Underhållsmallar**.
 
 ## Återkommande händelser
 

@@ -124,7 +124,7 @@ Se [Abonnenter og kunngjøringer](/docs/status-pages/subscribers).
 
 ### Planlagt vedlikehold
 
-Planlagt arbeid, kunngjort på forhånd. En hendelse går gjennom **Planlagt**, **Pågående**, **Avsluttet** og **Fullført**, og statussidene den vises på, forteller besøkende og abonnenter om den.
+Planlagt arbeid, kunngjort på forhånd. Hver vedlikeholdshendelse går gjennom vedlikeholdstilstandene **Planlagt**, **Pågående**, **Avsluttet** og **Fullført**, og statussidene den vises på, forteller besøkende og abonnenter om den.
 
 Også kalt: **Planlagt vedlikeholdshendelse**, **Planlagt hendelse**, **Hendelse**. Se [Planlagt vedlikehold – Oversikt](/docs/scheduled-maintenance/index).
 
@@ -146,7 +146,7 @@ Se [Monitorgrupper](/docs/monitor/monitor-groups).
 
 En applikasjon eller mikrotjeneste du kjører. OneUptime legger den til første gang telemetrien dens kommer inn, navngitt etter `service.name`, og samler loggene, sporene, metrikkene, unntakene, hendelsene og eierne dens på én side.
 
-Også kalt: **Tjenestekatalog**, **Telemetritjeneste**. Se [Tjenestekatalog](/docs/telemetry/services).
+Også kalt: **Tjenestekatalog**, **Telemetritjeneste**. Se [Tjenester](/docs/telemetry/services).
 
 ### Vert
 

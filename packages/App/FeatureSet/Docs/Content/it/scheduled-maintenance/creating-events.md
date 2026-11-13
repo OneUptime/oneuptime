@@ -31,7 +31,7 @@ flowchart TB
 :::steps
 ### Aprire il modulo
 
-Andate in **Manutenzione programmata → Tutti gli eventi** e fate clic su **Crea evento di manutenzione programmata**. Il modulo si apre sul suo primo passo, **Evento**.
+Andate in **Manutenzione programmata → Tutti gli eventi di manutenzione** e fate clic su **Crea evento di manutenzione**. Il modulo si apre sul suo primo passo, **Evento**.
 
 ### Dire cosa succede e quando
 
@@ -47,7 +47,7 @@ Scegliete le pagine di stato in **Mostra evento su queste pagine di stato**. **N
 
 ### Crearlo
 
-Fate clic su **Avanti** per vedere il riepilogo, controllatelo, poi fate clic su **Crea evento di manutenzione programmata**. Si apre la pagina dell'evento.
+Fate clic su **Avanti** per vedere il riepilogo, controllatelo, poi fate clic su **Crea evento di manutenzione**. Si apre la pagina dell'evento.
 :::
 
 Non viene inviato nulla finché non scegliete una pagina di stato: un evento mostrato su nessuna pagina di stato non avvisa nessun iscritto.
@@ -75,13 +75,13 @@ Due cose compilano il modulo per voi strada facendo:
 
 ## Partire da una risorsa o da un modello
 
-Nella scheda **Manutenzione programmata** di un host, un cluster Kubernetes, Proxmox, Ceph o Docker Swarm, un host Docker o Podman, un vCenter, un cloud OpenStack, uno storage array, una flotta IoT, un database, una risorsa cloud, un servizio o un sito di rete, **Crea evento di manutenzione programmata** apre lo stesso modulo con quella risorsa già scelta in **Altre risorse interessate**, e la scheda elenca gli eventi che la riguardano. La scheda di un elemento dell'inventario sceglie l'host, il servizio o il cluster Kubernetes a cui punta l'elemento.
+Nella scheda **Manutenzione programmata** di un host, un cluster Kubernetes, Proxmox, Ceph o Docker Swarm, un host Docker o Podman, un vCenter, un cloud OpenStack, uno storage array, una flotta IoT, un database, una risorsa cloud, un servizio o un sito di rete, **Crea evento di manutenzione** apre lo stesso modulo con quella risorsa già scelta in **Altre risorse interessate**, e la scheda elenca gli eventi che la riguardano. La scheda di un elemento dell'inventario sceglie l'host, il servizio o il cluster Kubernetes a cui punta l'elemento.
 
 **Crea da modello**, accanto al pulsante di creazione, vi chiede di **Seleziona modello di manutenzione programmata**, poi apre il modulo compilato dal modello. Vedere [Modelli ed eventi ricorrenti](/docs/scheduled-maintenance/templates).
 
 ## Cosa succede quando lo create
 
-Nel momento in cui fate clic su **Crea evento di manutenzione programmata**, OneUptime esegue questi passi, in quest'ordine:
+Nel momento in cui fate clic su **Crea evento di manutenzione**, OneUptime esegue questi passi, in quest'ordine:
 
 1. **Riceve un numero e uno stato.** Il numero viene da un contatore per progetto, mostrato con il vostro prefisso (`SM-42`). L'evento parte nel vostro stato programmato, qualunque stato indichi una richiesta.
 2. **I vostri strumenti di chat lo vengono a sapere.** Le regole Slack e Microsoft Teams in **Area di lavoro** lo pubblicano nei loro canali, e una regola può creare un canale per l'evento. Il suo feed registra che è stato creato.
@@ -90,7 +90,7 @@ Nel momento in cui fate clic su **Crea evento di manutenzione programmata**, One
 5. **Le regole di runbook avviano** i runbook che corrispondono all'evento.
 6. **Vengono pianificati i promemoria**, quando corrisponde una regola di promemoria, per i suoi proprietari.
 
-Entro un minuto dalla sua pubblicazione, che è immediata a meno che abbiate scelto un **Pubblica il**, gli iscritti delle sue pagine di stato vengono avvisati che è stato pianificato, a meno che abbiate disattivato **Quando l'evento viene pianificato**. Il trigger di workflow **On Create Scheduled Maintenance Event** avvia qualsiasi workflow costruito su di esso, e i suoi proprietari lo vengono a sapere se hanno attivato quella notifica: vedere [Impostazioni notifiche](/docs/notifications/notification-settings).
+Entro un minuto dalla sua pubblicazione, che è immediata a meno che abbiate scelto un **Pubblica il**, gli iscritti delle sue pagine di stato vengono avvisati che è stato pianificato, a meno che abbiate disattivato **Quando l'evento viene pianificato**. Il trigger di workflow **On Create Maintenance Event** avvia qualsiasi workflow costruito su di esso, e i suoi proprietari lo vengono a sapere se hanno attivato quella notifica: vedere [Impostazioni notifiche](/docs/notifications/notification-settings).
 
 ## Pubblicarlo più tardi
 
@@ -155,7 +155,7 @@ curl -X POST https://oneuptime.com/api/scheduled-maintenance \
 | `shouldStatusPageSubscribersBeNotifiedOnEventCreated` | L'interruttore **Quando l'evento viene pianificato**. Gli altri due momenti hanno campi propri. |
 | `publishOnStatusPageAt`                               | Quando l'evento viene pubblicato sulle sue pagine di stato e i suoi iscritti vengono avvisati che è pianificato. Se omesso, subito. |
 
-Lo stesso evento come codice è la risorsa Terraform `oneuptime_scheduled_maintenance_event`: vedere [Esempi](/docs/terraform/examples#manutenzione-programmata). Un workflow ne crea uno con il suo passo **Create One Scheduled Maintenance Event**, e `/oneuptime maintenance` apre il modulo in Slack: vedere [Slack](/docs/workspace-connections/slack#creare-incidenti-e-manutenzioni-da-slack).
+Lo stesso evento come codice è la risorsa Terraform `oneuptime_scheduled_maintenance_event`: vedere [Esempi](/docs/terraform/examples#manutenzione-programmata). Un workflow ne crea uno con il suo passo **Create One Maintenance Event**, e `/oneuptime maintenance` apre il modulo in Slack: vedere [Slack](/docs/workspace-connections/slack#creare-incidenti-e-manutenzioni-da-slack).
 
 ## Risoluzione dei problemi
 

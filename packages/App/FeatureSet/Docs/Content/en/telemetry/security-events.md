@@ -591,7 +591,7 @@ level: high
 
 A Security Events monitor counts the events that match its filters over a rolling window and runs the usual monitor criteria on the count: it changes the monitor's status, opens alerts or incidents, and pages on-call. Create one under **Monitors → Create Monitor**, with **Security Events** as the type; it is listed there with your other monitors.
 
-Its form shows **Monitor events that include this text**, **Monitor Security Events for (time)**, **Event Severity** and **Event Class**. **Filter by Telemetry Service**, **Filter by Attributes** and **Filter by Watchlists** wait under **More fields**, whose header shows the ones a monitor uses. **Filter by Watchlists** keeps the events whose field is, or is not, on one of your [watchlists](#watchlists). Its criteria check **Security Event Count**.
+Its form shows **Monitor events that include this text**, **Monitor Security Events for (time)**, **Event Severity** and **Event Class**. **Filter by Service**, **Filter by Attributes** and **Filter by Watchlists** wait under **More fields**, whose header shows the ones a monitor uses. **Filter by Watchlists** keeps the events whose field is, or is not, on one of your [watchlists](#watchlists). Its criteria check **Security Event Count**.
 
 | | Detection rule | Security Events monitor |
 | --- | --- | --- |

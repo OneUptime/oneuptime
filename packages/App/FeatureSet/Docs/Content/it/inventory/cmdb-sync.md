@@ -59,7 +59,7 @@ Apri **Impostazioni del progetto → Avanzato → Chiavi API** e fai clic su **C
 
 ### Darle solo ciò che le serve
 
-Un'esportazione in sola lettura ha bisogno di una sola autorizzazione, **Read Telemetry Service**: l'inventario condivide le autorizzazioni della telemetria invece di averne di proprie. Nella pagina della chiave, fai clic su **Aggiungi autorizzazione** e sceglila. Per riscrivere valori, aggiungi anche **Edit Telemetry Service**.
+Un'esportazione in sola lettura ha bisogno di una sola autorizzazione, **Read Inventory Item**: l'inventario condivide le autorizzazioni della telemetria invece di averne di proprie. Nella pagina della chiave, fai clic su **Aggiungi autorizzazione** e sceglila. Per riscrivere valori, aggiungi anche **Edit Inventory Item**.
 
 ### Copiare la chiave
 
@@ -232,9 +232,9 @@ Un elemento che scompare tra due esecuzioni è scaduto (un elemento scoperto rim
 
 ## Riscrivere
 
-Gli stessi endpoint accettano scritture, quindi una sincronizzazione può inviare valori in `customFields`: per esempio il tag dell'asset che il tuo CMDB gestisce già, apposto sull'elemento OneUptime corrispondente. Per questo la chiave ha bisogno di **Edit Telemetry Service**.
+Gli stessi endpoint accettano scritture, quindi una sincronizzazione può inviare valori in `customFields`: per esempio il tag dell'asset che il tuo CMDB gestisce già, apposto sull'elemento OneUptime corrispondente. Per questo la chiave ha bisogno di **Edit Inventory Item**.
 
-Puoi anche aggiungere elementi per cose che OneUptime non può vedere, con `POST /api/inventory-item`, un `entityType` tra `external.service`, `external.database` o `appliance`, e un `displayName`. OneUptime ricava la chiave d'identità per te, e quegli elementi non scadono mai. Per questo la chiave ha bisogno di **Create Telemetry Service**.
+Puoi anche aggiungere elementi per cose che OneUptime non può vedere, con `POST /api/inventory-item`, un `entityType` tra `external.service`, `external.database` o `appliance`, e un `displayName`. OneUptime ricava la chiave d'identità per te, e quegli elementi non scadono mai. Per questo la chiave ha bisogno di **Create Inventory Item**.
 
 ## Risoluzione dei problemi
 
@@ -243,7 +243,7 @@ Su OneUptime Cloud, le chiavi API funzionano solo finché il progetto è sul pia
 :::
 
 :::details Ogni richiesta risponde 422 You do not have permissions
-La chiave non ha alcuna autorizzazione che legga l'inventario. Una chiave creata con **Scegli le autorizzazioni più tardi** non può fare nulla finché non ne riceve una: aggiungi **Read Telemetry Service** sulla sua pagina, come in [Prima di iniziare](#prima-di-iniziare).
+La chiave non ha alcuna autorizzazione che legga l'inventario. Una chiave creata con **Scegli le autorizzazioni più tardi** non può fare nulla finché non ne riceve una: aggiungi **Read Inventory Item** sulla sua pagina, come in [Prima di iniziare](#prima-di-iniziare).
 :::
 
 :::details L'elenco torna senza le colonne che mi servono

@@ -299,7 +299,7 @@
     "Incoming Request Ingress": "入站请求 Ingress",
     "Packet Capture": "抓包",
     "OpenTelemetry": "OpenTelemetry",
-    "Service Catalog": "服务目录",
+    "Services": "服务",
     "Logs Explorer": "日志浏览器",
     "Traces Explorer": "跟踪浏览器",
     "Metrics Explorer": "指标浏览器",

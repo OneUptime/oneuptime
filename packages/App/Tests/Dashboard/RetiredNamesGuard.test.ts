@@ -76,11 +76,46 @@ interface Sighting {
   nowCalled: string;
 }
 
-function sightings(where: string, text: string): Array<Sighting> {
+/*
+ * Names another app keeps, as an API keeps its names: the Slack app's
+ * shortcuts, which a workspace shows as its app was set up from
+ * app-manifest.json ("Create Scheduled Event"). Renaming one there would
+ * leave every installed app showing the old name while the docs and the
+ * prompts said the new one, so the docs and the prompts say what Slack
+ * shows.
+ */
+const SLACK_MANIFEST: string = path.join(
+  PACKAGES,
+  "Common/Server/Utils/Workspace/Slack/app-manifest.json",
+);
+
+function keptExternalNames(): Array<string> {
+  const manifest: {
+    features?: { shortcuts?: Array<{ name: string }> };
+  } = JSON.parse(fs.readFileSync(SLACK_MANIFEST, "utf8"));
+
+  return (manifest.features?.shortcuts || []).map(
+    (shortcut: { name: string }): string => {
+      return shortcut.name;
+    },
+  );
+}
+
+const KEPT_EXTERNAL_NAMES: Array<string> = keptExternalNames();
+
+function sightings(where: string, rawText: string): Array<Sighting> {
+  // A name another app keeps is not a retired name's sighting.
+  const text: string = KEPT_EXTERNAL_NAMES.reduce(
+    (stripped: string, name: string): string => {
+      return stripped.split(name).join("");
+    },
+    rawText,
+  );
+
   return findRetiredNames(text).map((retired: RetiredName): Sighting => {
     return {
       where,
-      text: text.length > 160 ? `${text.slice(0, 157)}...` : text,
+      text: rawText.length > 160 ? `${rawText.slice(0, 157)}...` : rawText,
       retired: retired.name,
       nowCalled: retired.nowCalled,
     };
@@ -488,6 +523,18 @@ describe("what the server sends never uses a retired name", () => {
         text: "On Call Duty Policy Name",
       }),
     ).toBe(true);
+    // The Slack app's shortcut, as every installed app shows it.
+    expect(KEPT_EXTERNAL_NAMES).toContain("Create Scheduled Event");
+    expect(
+      sightings("docs", "The **Create Scheduled Event** shortcut opens it."),
+    ).toEqual([]);
+    expect(
+      sightings("docs", "Open the Scheduled Event.").map(
+        (sighting: Sighting): string => {
+          return sighting.retired;
+        },
+      ),
+    ).toEqual(["Scheduled Event"]);
     // A subscriber's stored event type, which the pages label Maintenance Event.
     expect(
       isStoredValue({

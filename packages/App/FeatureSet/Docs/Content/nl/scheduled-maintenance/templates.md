@@ -15,7 +15,7 @@ Een sjabloon is een vertrekpunt. Een gebeurtenis die ermee is gemaakt, is een ko
 
 ```mermaid title="Twee manieren waarop een sjabloon een gebeurtenis wordt"
 flowchart TB
-    template["Een sjabloon<br/>in Gebeurtenis-sjablonen"] --> byhand["Maken op basis<br/>van sjabloon<br/>vult het formulier in"]
+    template["Een sjabloon<br/>in Onderhoudssjablonen"] --> byhand["Maken op basis<br/>van sjabloon<br/>vult het formulier in"]
     template --> schedule["Terugkerend aan<br/>elke minuut gecontroleerd"]
     byhand --> event["Een nieuwe gebeurtenis<br/>in Gepland"]
     schedule --> event
@@ -31,7 +31,7 @@ flowchart TB
 :::steps
 ### De sjablonen openen
 
-Ga naar **Geplande onderhoud → Instellingen → Gebeurtenis-sjablonen**. **Instellingen** is in het zijmenu eerst ingeklapt: klap het eerst uit. Klik op **Sjabloon voor gepland onderhoud aanmaken**.
+Ga naar **Geplande onderhoud → Instellingen → Onderhoudssjablonen**. **Instellingen** is in het zijmenu eerst ingeklapt: klap het eerst uit. Klik op **Sjabloon voor gepland onderhoud aanmaken**.
 
 ### Het sjabloon een naam geven
 
@@ -68,7 +68,7 @@ Een sjabloon vraagt om **Monitorstatus wijzigen naar**, ook als het geen monitor
 :::steps
 ### Het sjabloon kiezen
 
-Klik op **Geplande onderhoud → Alle gebeurtenissen** op **Maken op basis van sjabloon** en kies een sjabloon onder **Selecteer sjabloon voor geplande onderhoud**.
+Klik op **Geplande onderhoud → Alle onderhoudsgebeurtenissen** op **Maken op basis van sjabloon** en kies een sjabloon onder **Selecteer sjabloon voor geplande onderhoud**.
 
 ### Het formulier nalopen
 
@@ -76,10 +76,10 @@ Klik op **Maken op basis van sjabloon**. Het formulier opent met de antwoorden v
 
 ### De gebeurtenis maken
 
-Loop de stappen door met **Volgende** en klik dan in de controle op **Geplande onderhoudsgebeurtenis aanmaken**.
+Loop de stappen door met **Volgende** en klik dan in de controle op **Onderhoudsgebeurtenis aanmaken**.
 :::
 
-Als het project nog geen sjabloon heeft, zegt **Maken op basis van sjabloon** dat en verwijst het naar **Gebeurtenis-sjablonen**.
+Als het project nog geen sjabloon heeft, zegt **Maken op basis van sjabloon** dat en verwijst het naar **Onderhoudssjablonen**.
 
 ## Terugkerende gebeurtenissen
 

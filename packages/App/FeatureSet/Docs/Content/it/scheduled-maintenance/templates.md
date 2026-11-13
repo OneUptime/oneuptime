@@ -15,7 +15,7 @@ Un modello è un punto di partenza. Un evento creato da esso è una copia con va
 
 ```mermaid title="Due modi in cui un modello diventa un evento"
 flowchart TB
-    template["Un modello<br/>in Modelli di eventi"] --> byhand["Crea da modello<br/>compila il modulo"]
+    template["Un modello<br/>in Modelli di manutenzione"] --> byhand["Crea da modello<br/>compila il modulo"]
     template --> schedule["Ricorrente attivo<br/>controllato ogni minuto"]
     byhand --> event["Un nuovo evento<br/>in Programmato"]
     schedule --> event
@@ -31,7 +31,7 @@ flowchart TB
 :::steps
 ### Aprire i modelli
 
-Andate in **Manutenzione programmata → Impostazioni → Modelli di eventi**. **Impostazioni** parte chiusa nel menu laterale: apritela prima. Fate clic su **Crea: Modello di manutenzione programmata**.
+Andate in **Manutenzione programmata → Impostazioni → Modelli di manutenzione**. **Impostazioni** parte chiusa nel menu laterale: apritela prima. Fate clic su **Crea: Modello di manutenzione programmata**.
 
 ### Dare un nome al modello
 
@@ -68,7 +68,7 @@ Un modello chiede **Cambia lo stato del monitor in** anche quando non nomina alc
 :::steps
 ### Scegliere il modello
 
-In **Manutenzione programmata → Tutti gli eventi**, fate clic su **Crea da modello** e scegliete un modello in **Seleziona modello di manutenzione programmata**.
+In **Manutenzione programmata → Tutti gli eventi di manutenzione**, fate clic su **Crea da modello** e scegliete un modello in **Seleziona modello di manutenzione programmata**.
 
 ### Controllare il modulo
 
@@ -76,10 +76,10 @@ Fate clic su **Crea da modello**. Il modulo di creazione si apre con le risposte
 
 ### Creare l'evento
 
-Percorrete i passi con **Avanti**, poi fate clic su **Crea evento di manutenzione programmata** nel riepilogo.
+Percorrete i passi con **Avanti**, poi fate clic su **Crea evento di manutenzione** nel riepilogo.
 :::
 
-Quando il progetto non ha ancora nessun modello, **Crea da modello** lo dice e rimanda a **Modelli di eventi**.
+Quando il progetto non ha ancora nessun modello, **Crea da modello** lo dice e rimanda a **Modelli di manutenzione**.
 
 ## Eventi ricorrenti
 

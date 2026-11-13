@@ -1,6 +1,6 @@
 # Runbook Rules
 
-Runbook rules start runbooks automatically when an **incident**, **alert**, or **scheduled maintenance event** is created, so nobody has to remember to run them in the middle of an outage. Each product has its own rules page, in its **Rules** menu:
+Runbook rules start runbooks automatically when an **incident**, **alert**, or **maintenance event** is created, so nobody has to remember to run them in the middle of an outage. Each product has its own rules page, in its **Rules** menu:
 
 - Incidents → Rules → **Runbook Rules**
 - Alerts → Rules → **Runbook Rules**

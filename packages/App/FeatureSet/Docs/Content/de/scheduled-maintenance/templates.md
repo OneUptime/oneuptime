@@ -15,7 +15,7 @@ Eine Vorlage ist ein Ausgangspunkt. Ein daraus erstelltes Ereignis ist eine Kopi
 
 ```mermaid title="Zwei Wege, wie aus einer Vorlage ein Ereignis wird"
 flowchart TB
-    template["Eine Vorlage<br/>in Ereignis-Vorlagen"] --> byhand["Aus Vorlage erstellen<br/>füllt das Formular aus"]
+    template["Eine Vorlage<br/>in Wartungsvorlagen"] --> byhand["Aus Vorlage erstellen<br/>füllt das Formular aus"]
     template --> schedule["Wiederkehrend an<br/>jede Minute geprüft"]
     byhand --> event["Ein neues Ereignis<br/>in Geplant"]
     schedule --> event
@@ -31,7 +31,7 @@ flowchart TB
 :::steps
 ### Die Vorlagen öffnen
 
-Gehen Sie zu **Geplante Wartung → Einstellungen → Ereignis-Vorlagen**. **Einstellungen** ist im Seitenmenü zunächst eingeklappt: Klappen Sie es zuerst auf. Klicken Sie auf **Vorlage für geplante Wartung erstellen**.
+Gehen Sie zu **Geplante Wartung → Einstellungen → Wartungsvorlagen**. **Einstellungen** ist im Seitenmenü zunächst eingeklappt: Klappen Sie es zuerst auf. Klicken Sie auf **Vorlage für geplante Wartung erstellen**.
 
 ### Die Vorlage benennen
 
@@ -68,7 +68,7 @@ Eine Vorlage fragt nach **Monitor-Status ändern in**, auch wenn sie keine Monit
 :::steps
 ### Die Vorlage wählen
 
-Klicken Sie unter **Geplante Wartung → Alle Ereignisse** auf **Aus Vorlage erstellen** und wählen Sie eine Vorlage unter **Vorlage für geplante Wartung auswählen**.
+Klicken Sie unter **Geplante Wartung → Alle Wartungsereignisse** auf **Aus Vorlage erstellen** und wählen Sie eine Vorlage unter **Vorlage für geplante Wartung auswählen**.
 
 ### Das Formular prüfen
 
@@ -76,10 +76,10 @@ Klicken Sie auf **Aus Vorlage erstellen**. Das Formular öffnet sich mit den Ant
 
 ### Das Ereignis erstellen
 
-Gehen Sie die Schritte mit **Weiter** durch und klicken Sie dann in der Überprüfung auf **Geplantes Wartungsereignis erstellen**.
+Gehen Sie die Schritte mit **Weiter** durch und klicken Sie dann in der Überprüfung auf **Wartungsereignis erstellen**.
 :::
 
-Hat das Projekt noch keine Vorlage, sagt **Aus Vorlage erstellen** das und verlinkt auf **Ereignis-Vorlagen**.
+Hat das Projekt noch keine Vorlage, sagt **Aus Vorlage erstellen** das und verlinkt auf **Wartungsvorlagen**.
 
 ## Wiederkehrende Ereignisse
 

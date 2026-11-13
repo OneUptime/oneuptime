@@ -39,7 +39,7 @@ flowchart TB
 ## پیش از شروع
 
 - **اسپن‌ها یا لاگ‌های در حال رسیدن.** سرویس‌هایتان را با [OpenTelemetry](/docs/telemetry/open-telemetry) ابزارگذاری کنید. زبانهٔ **راهنمای راه‌اندازی** کد زبان شما را نشان می‌دهد.
-- **نقشی که تله‌متری را بخواند.** Project Owner، Project Admin، Project Member، Viewer، Telemetry Admin، Telemetry Member یا Telemetry Viewer، یا یک نقش سفارشی با مجوز Read Telemetry Service Exception. برطرف کردن و بایگانی کردن به Project Owner یا Project Admin، یا مجوز Edit Telemetry Service Exception نیاز دارد.
+- **نقشی که تله‌متری را بخواند.** Project Owner، Project Admin، Project Member، Viewer، Telemetry Admin، Telemetry Member یا Telemetry Viewer، یا یک نقش سفارشی با مجوز Read Exceptions. برطرف کردن و بایگانی کردن به Project Owner یا Project Admin، یا مجوز Edit Exceptions نیاز دارد.
 
 ## دسته‌بندی فهرست
 

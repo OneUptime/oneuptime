@@ -31,7 +31,7 @@ flowchart TB
 :::steps
 ### 打开表单
 
-前往 **计划维护 → 所有事件** ，点击 **创建计划维护事件** 。表单会在第一步 **事件** 上打开。
+前往 **计划维护 → 所有维护事件** ，点击 **创建维护事件** 。表单会在第一步 **事件** 上打开。
 
 ### 说明要做什么、何时做
 
@@ -47,7 +47,7 @@ flowchart TB
 
 ### 创建它
 
-点击 **下一步** 查看审核页，检查无误后点击 **创建计划维护事件** 。事件自己的页面会打开。
+点击 **下一步** 查看审核页，检查无误后点击 **创建维护事件** 。事件自己的页面会打开。
 :::
 
 在你选择状态页之前不会发送任何内容：不显示在任何状态页上的事件不会通知任何订阅者。
@@ -75,13 +75,13 @@ flowchart TB
 
 ## 从资源或模板开始
 
-在主机、Kubernetes、Proxmox、Ceph 或 Docker Swarm 集群、Docker 或 Podman 主机、vCenter、OpenStack 云、存储阵列、IoT 设备群、数据库、云资源、服务或网络站点的 **计划维护** 选项卡上， **创建计划维护事件** 会打开同一个表单，并已在 **其他受影响的资源** 下选好该资源；该选项卡还会列出影响该资源的事件。资产清单项的选项卡会选择该项指向的主机、服务或 Kubernetes 集群。
+在主机、Kubernetes、Proxmox、Ceph 或 Docker Swarm 集群、Docker 或 Podman 主机、vCenter、OpenStack 云、存储阵列、IoT 设备群、数据库、云资源、服务或网络站点的 **计划维护** 选项卡上， **创建维护事件** 会打开同一个表单，并已在 **其他受影响的资源** 下选好该资源；该选项卡还会列出影响该资源的事件。资产清单项的选项卡会选择该项指向的主机、服务或 Kubernetes 集群。
 
 创建按钮旁边的 **从模板创建** 会让你 **选择计划维护模板** ，然后打开用该模板填好的表单。请参阅 [模板与周期性事件](/docs/scheduled-maintenance/templates)。
 
 ## 创建时会发生什么
 
-在你点击 **创建计划维护事件** 的那一刻，OneUptime 会按以下顺序执行这些步骤：
+在你点击 **创建维护事件** 的那一刻，OneUptime 会按以下顺序执行这些步骤：
 
 1. **它获得编号和状态。** 编号来自每个项目的计数器，并带上你的前缀显示（`SM-42`）。无论请求指定什么状态，事件都从你的已计划状态开始。
 2. **你的聊天工具会收到消息。** **工作区** 下的 Slack 和 Microsoft Teams 规则会把它发布到各自的频道，规则还可以为该事件创建频道。它的信息流会记录它已创建。
@@ -90,7 +90,7 @@ flowchart TB
 5. **Runbook 规则启动** 与该事件匹配的运行手册。
 6. **安排提醒**：当某条提醒规则匹配时，为它的所有者安排提醒。
 
-发布后一分钟内（除非你选择了 **发布时间** ，否则会立即发布），它的状态页的订阅者会收到事件已安排的通知，除非你关闭了 **事件安排时** 。工作流触发器 **On Create Scheduled Maintenance Event** 会启动基于它构建的所有工作流；如果所有者开启了相应通知，他们也会收到消息：请参阅 [通知设置](/docs/notifications/notification-settings)。
+发布后一分钟内（除非你选择了 **发布时间** ，否则会立即发布），它的状态页的订阅者会收到事件已安排的通知，除非你关闭了 **事件安排时** 。工作流触发器 **On Create Maintenance Event** 会启动基于它构建的所有工作流；如果所有者开启了相应通知，他们也会收到消息：请参阅 [通知设置](/docs/notifications/notification-settings)。
 
 ## 稍后发布
 
@@ -155,7 +155,7 @@ curl -X POST https://oneuptime.com/api/scheduled-maintenance \
 | `shouldStatusPageSubscribersBeNotifiedOnEventCreated` | **事件安排时** 开关。另外两个时间点各有自己的字段。                                       |
 | `publishOnStatusPageAt`                               | 事件在其状态页上发布、其订阅者收到事件已安排通知的时间。省略时立即发布。                   |
 
-以代码表示的同一个事件是 Terraform 资源 `oneuptime_scheduled_maintenance_event` ：请参阅 [示例](/docs/terraform/examples#计划维护)。工作流通过其 **Create One Scheduled Maintenance Event** 步骤创建事件， `/oneuptime maintenance` 会在 Slack 中打开表单：请参阅 [Slack](/docs/workspace-connections/slack#从-slack-创建事件和维护)。
+以代码表示的同一个事件是 Terraform 资源 `oneuptime_scheduled_maintenance_event` ：请参阅 [示例](/docs/terraform/examples#计划维护)。工作流通过其 **Create One Maintenance Event** 步骤创建事件， `/oneuptime maintenance` 会在 Slack 中打开表单：请参阅 [Slack](/docs/workspace-connections/slack#从-slack-创建事件和维护)。
 
 ## 故障排除
 

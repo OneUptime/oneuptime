@@ -197,6 +197,63 @@ const FINDABLE: Record<string, Findable> = {
       opens: "/docs/en/telemetry/ingestion-keys",
     },
   },
+  "Service Catalog": {
+    search: { query: "service catalog", offers: "All Services" },
+    product: {
+      titleKey: "navbar.items.servicesTitle",
+      keyword: "service catalog",
+    },
+    glossaryMentions: "Service Catalog",
+    docs: { query: "service catalog", opens: "/docs/en/telemetry/services" },
+  },
+  "Telemetry Service": {
+    search: { query: "telemetry services", offers: "All Services" },
+    product: {
+      titleKey: "navbar.items.servicesTitle",
+      keyword: "telemetry services",
+    },
+    glossaryMentions: "Telemetry Service",
+    docs: { query: "telemetry service", opens: "/docs/en/telemetry/services" },
+  },
+  "Scheduled Maintenance Event": {
+    search: {
+      query: "scheduled maintenance events",
+      offers: "All Maintenance Events",
+    },
+    product: {
+      titleKey: "navbar.items.scheduledMaintenanceTitle",
+      keyword: "scheduled maintenance events",
+    },
+    glossaryMentions: "Scheduled Maintenance Event",
+    docs: {
+      query: "scheduled maintenance event",
+      opens: "/docs/en/scheduled-maintenance/index",
+    },
+  },
+  "Scheduled Event": {
+    search: { query: "scheduled events", offers: "All Maintenance Events" },
+    product: {
+      titleKey: "navbar.items.scheduledMaintenanceTitle",
+      keyword: "scheduled events",
+    },
+    glossaryMentions: "Scheduled Event",
+    docs: {
+      query: "scheduled event",
+      opens: "/docs/en/scheduled-maintenance/index",
+    },
+  },
+  /*
+   * The page of an event's states, not another name of the event: the
+   * glossary's term says the states are maintenance states.
+   */
+  "Event State": {
+    search: { query: "event state", offers: "Maintenance State" },
+    glossaryMentions: "Maintenance State",
+    docs: {
+      query: "event state",
+      opens: "/docs/en/scheduled-maintenance/states",
+    },
+  },
 };
 
 const DASHBOARD_SRC: string = path.resolve(

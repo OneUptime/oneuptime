@@ -15,7 +15,7 @@ En mal er et utgangspunkt. En hendelse som er opprettet fra den, er en kopi med 
 
 ```mermaid title="To måter en mal blir til en hendelse på"
 flowchart TB
-    template["En mal i<br/>Hendelsesmaler"] --> byhand["Opprett fra mal<br/>fyller ut skjemaet"]
+    template["En mal i<br/>Vedlikeholdsmaler"] --> byhand["Opprett fra mal<br/>fyller ut skjemaet"]
     template --> schedule["Gjentakende hendelse på<br/>sjekkes hvert minutt"]
     byhand --> event["En ny hendelse<br/>i Planlagt"]
     schedule --> event
@@ -31,7 +31,7 @@ flowchart TB
 :::steps
 ### Åpne malene
 
-Gå til **Planlagt vedlikehold → Innstillinger → Hendelsesmaler**. **Innstillinger** starter sammenslått i sidemenyen: utvid den først. Klikk på **Opprett Mal for planlagt vedlikehold**.
+Gå til **Planlagt vedlikehold → Innstillinger → Vedlikeholdsmaler**. **Innstillinger** starter sammenslått i sidemenyen: utvid den først. Klikk på **Opprett Mal for planlagt vedlikehold**.
 
 ### Gi malen et navn
 
@@ -68,7 +68,7 @@ En mal spør om **Endre overvåkingsstatus til** selv når den ikke nevner noen 
 :::steps
 ### Velg malen
 
-På **Planlagt vedlikehold → Alle hendelser** klikker du på **Opprett fra mal** og velger en mal under **Velg mal for planlagt vedlikehold**.
+På **Planlagt vedlikehold → Alle vedlikeholdshendelser** klikker du på **Opprett fra mal** og velger en mal under **Velg mal for planlagt vedlikehold**.
 
 ### Sjekk skjemaet
 
@@ -76,10 +76,10 @@ Klikk på **Opprett fra mal**. Skjemaet åpnes med svarene fra malen allerede ut
 
 ### Opprett hendelsen
 
-Gå gjennom trinnene med **Neste**, og klikk deretter på **Opprett planlagt vedlikeholdshendelse** i gjennomgangen.
+Gå gjennom trinnene med **Neste**, og klikk deretter på **Opprett vedlikeholdshendelse** i gjennomgangen.
 :::
 
-Når prosjektet ikke har noen mal ennå, sier **Opprett fra mal** det og lenker til **Hendelsesmaler**.
+Når prosjektet ikke har noen mal ennå, sier **Opprett fra mal** det og lenker til **Vedlikeholdsmaler**.
 
 ## Gjentakende hendelser
 

@@ -31,7 +31,7 @@ flowchart TB
 :::steps
 ### Abrir el formulario
 
-Ve a **Mantenimiento programado → Todos los eventos** y haz clic en **Crear evento de mantenimiento programado**. El formulario se abre en su primer paso, **Evento**.
+Ve a **Mantenimiento programado → Todos los eventos de mantenimiento** y haz clic en **Crear evento de mantenimiento**. El formulario se abre en su primer paso, **Evento**.
 
 ### Decir qué ocurre y cuándo
 
@@ -47,7 +47,7 @@ Elige las páginas de estado en **Mostrar evento en estas páginas de estado**. 
 
 ### Crearlo
 
-Haz clic en **Siguiente** para ver la revisión, compruébala y luego haz clic en **Crear evento de mantenimiento programado**. Se abre la página del evento.
+Haz clic en **Siguiente** para ver la revisión, compruébala y luego haz clic en **Crear evento de mantenimiento**. Se abre la página del evento.
 :::
 
 No se envía nada hasta que eliges una página de estado: un evento que no aparece en ninguna página de estado no avisa a ningún suscriptor.
@@ -75,13 +75,13 @@ Hay dos cosas que rellenan el formulario por ti sobre la marcha:
 
 ## Empezar desde un recurso o una plantilla
 
-En la pestaña **Mantenimiento programado** de un host, un clúster de Kubernetes, Proxmox, Ceph o Docker Swarm, un host de Docker o Podman, un vCenter, una nube OpenStack, una cabina de almacenamiento, una flota IoT, una base de datos, un recurso en la nube, un servicio o un sitio de red, **Crear evento de mantenimiento programado** abre el mismo formulario con ese recurso ya elegido en **Otros recursos afectados**, y la pestaña lista los eventos que lo afectan. La pestaña de un elemento de inventario elige el host, el servicio o el clúster de Kubernetes al que apunta el elemento.
+En la pestaña **Mantenimiento programado** de un host, un clúster de Kubernetes, Proxmox, Ceph o Docker Swarm, un host de Docker o Podman, un vCenter, una nube OpenStack, una cabina de almacenamiento, una flota IoT, una base de datos, un recurso en la nube, un servicio o un sitio de red, **Crear evento de mantenimiento** abre el mismo formulario con ese recurso ya elegido en **Otros recursos afectados**, y la pestaña lista los eventos que lo afectan. La pestaña de un elemento de inventario elige el host, el servicio o el clúster de Kubernetes al que apunta el elemento.
 
 **Crear desde plantilla**, junto al botón de crear, te pide **Seleccionar plantilla de mantenimiento programado** y luego abre el formulario relleno a partir de la plantilla. Consulta [Plantillas y eventos recurrentes](/docs/scheduled-maintenance/templates).
 
 ## Qué pasa al crearlo
 
-En el momento en que haces clic en **Crear evento de mantenimiento programado**, OneUptime recorre estos pasos, en este orden:
+En el momento en que haces clic en **Crear evento de mantenimiento**, OneUptime recorre estos pasos, en este orden:
 
 1. **Recibe un número y un estado.** El número sale de un contador por proyecto y se muestra con tu prefijo (`SM-42`). El evento empieza en tu estado programado, sea cual sea el estado que indique una solicitud.
 2. **Tus herramientas de chat se enteran.** Las reglas de Slack y Microsoft Teams de **Espacio de trabajo** lo publican en sus canales, y una regla puede crear un canal para el evento. Su feed registra que se creó.
@@ -90,7 +90,7 @@ En el momento en que haces clic en **Crear evento de mantenimiento programado**,
 5. **Las reglas de runbook inician** los runbooks que coinciden con el evento.
 6. **Se programan recordatorios**, cuando coincide una regla de recordatorio, para sus propietarios.
 
-En menos de un minuto desde su publicación, que es inmediata salvo que hayas elegido un **Publicar el**, se avisa a los suscriptores de sus páginas de estado de que está programado, salvo que hayas desactivado **Cuando se programa el evento**. El disparador de flujo de trabajo **On Create Scheduled Maintenance Event** inicia cualquier flujo de trabajo construido sobre él, y sus propietarios se enteran si activaron esa notificación: consulta [Ajustes de notificaciones](/docs/notifications/notification-settings).
+En menos de un minuto desde su publicación, que es inmediata salvo que hayas elegido un **Publicar el**, se avisa a los suscriptores de sus páginas de estado de que está programado, salvo que hayas desactivado **Cuando se programa el evento**. El disparador de flujo de trabajo **On Create Maintenance Event** inicia cualquier flujo de trabajo construido sobre él, y sus propietarios se enteran si activaron esa notificación: consulta [Ajustes de notificaciones](/docs/notifications/notification-settings).
 
 ## Publicarlo más tarde
 
@@ -155,7 +155,7 @@ curl -X POST https://oneuptime.com/api/scheduled-maintenance \
 | `shouldStatusPageSubscribersBeNotifiedOnEventCreated` | El interruptor **Cuando se programa el evento**. Los otros dos momentos tienen sus propios campos. |
 | `publishOnStatusPageAt`                               | Cuándo se publica el evento en sus páginas de estado y se avisa a sus suscriptores de que está programado. Si se omite, de inmediato. |
 
-El mismo evento como código es el recurso de Terraform `oneuptime_scheduled_maintenance_event`: consulta [Ejemplos](/docs/terraform/examples#mantenimiento-programado). Un flujo de trabajo crea uno con su paso **Create One Scheduled Maintenance Event**, y `/oneuptime maintenance` abre el formulario en Slack: consulta [Slack](/docs/workspace-connections/slack#crear-incidentes-y-mantenimientos-desde-slack).
+El mismo evento como código es el recurso de Terraform `oneuptime_scheduled_maintenance_event`: consulta [Ejemplos](/docs/terraform/examples#mantenimiento-programado). Un flujo de trabajo crea uno con su paso **Create One Maintenance Event**, y `/oneuptime maintenance` abre el formulario en Slack: consulta [Slack](/docs/workspace-connections/slack#crear-incidentes-y-mantenimientos-desde-slack).
 
 ## Solución de problemas
 

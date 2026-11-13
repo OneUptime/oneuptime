@@ -72,7 +72,8 @@ function getResourceDescription(singularName: string): string {
       "Notifications triggered when monitors detect issues. Configures who gets notified and how.",
     "Status Page":
       "Public-facing page showing the status of your services to your customers.",
-    "Scheduled Maintenance":
+    // Keyed by the model's singularName, as every entry here is (#6817).
+    "Maintenance Event":
       "Planned downtime events that inform users about expected service interruptions.",
     Team: "Groups of users with shared access to project resources.",
     "On-Call Policy":

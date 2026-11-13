@@ -31,7 +31,7 @@ flowchart TB
 :::steps
 ### Open the form
 
-Go to **Scheduled Maintenance → All Events** and click **Create Scheduled Maintenance Event**. The form opens on its first step, **Event**.
+Go to **Scheduled Maintenance → All Maintenance Events** and click **Create Maintenance Event**. The form opens on its first step, **Event**.
 
 ### Say what is happening and when
 
@@ -47,7 +47,7 @@ Pick the status pages under **Show event on these status pages**. **Subscriber N
 
 ### Create it
 
-Click **Next** to see the review, check it, then click **Create Scheduled Maintenance Event**. The event's own page opens.
+Click **Next** to see the review, check it, then click **Create Maintenance Event**. The event's own page opens.
 :::
 
 Nothing is sent until you pick a status page: an event shown on no status page tells no subscriber.
@@ -75,13 +75,13 @@ Two things fill the form in for you as you go:
 
 ## Start from a resource or a template
 
-On the **Scheduled Maintenance** tab of a host, a Kubernetes, Proxmox, Ceph or Docker Swarm cluster, a Docker or Podman host, a vCenter, an OpenStack cloud, a storage array, an IoT fleet, a database, a cloud resource, a service or a network site, **Create Scheduled Maintenance Event** opens the same form with that resource already picked under **Other Affected Resources**, and the tab lists the events that affect it. An inventory item's tab picks the host, service or Kubernetes cluster the item points at.
+On the **Scheduled Maintenance** tab of a host, a Kubernetes, Proxmox, Ceph or Docker Swarm cluster, a Docker or Podman host, a vCenter, an OpenStack cloud, a storage array, an IoT fleet, a database, a cloud resource, a service or a network site, **Create Maintenance Event** opens the same form with that resource already picked under **Other Affected Resources**, and the tab lists the events that affect it. An inventory item's tab picks the host, service or Kubernetes cluster the item points at.
 
 **Create from Template**, beside the create button, asks you to **Select Scheduled Maintenance Template**, then opens the form filled in from the template. See [Templates & Recurring Events](/docs/scheduled-maintenance/templates).
 
 ## What happens when you create it
 
-The moment you click **Create Scheduled Maintenance Event**, OneUptime works through these steps, in this order:
+The moment you click **Create Maintenance Event**, OneUptime works through these steps, in this order:
 
 1. **It gets a number and a state.** The number comes from a per-project counter, shown with your prefix (`SM-42`). The event starts in your scheduled state, whatever state a request names.
 2. **Your chat tools hear of it.** The Slack and Microsoft Teams rules under **Workspace** post it to their channels, and a rule can create a channel for the event. Its feed records that it was created.
@@ -90,7 +90,7 @@ The moment you click **Create Scheduled Maintenance Event**, OneUptime works thr
 5. **Runbook rules start** the runbooks that match the event.
 6. **Reminders are scheduled**, when a reminder rule matches, for its owners.
 
-Within a minute of its publishing, which is right away unless you picked a **Publish At**, the subscribers of its status pages are told that it is scheduled, unless you turned **When the event is scheduled** off. The **On Create Scheduled Maintenance Event** workflow trigger starts any workflow built on it, and its owners hear of it if they turned that notification on: see [Notification Settings](/docs/notifications/notification-settings).
+Within a minute of its publishing, which is right away unless you picked a **Publish At**, the subscribers of its status pages are told that it is scheduled, unless you turned **When the event is scheduled** off. The **On Create Maintenance Event** workflow trigger starts any workflow built on it, and its owners hear of it if they turned that notification on: see [Notification Settings](/docs/notifications/notification-settings).
 
 ## Publish it later
 
@@ -155,7 +155,7 @@ curl -X POST https://oneuptime.com/api/scheduled-maintenance \
 | `shouldStatusPageSubscribersBeNotifiedOnEventCreated` | The **When the event is scheduled** switch. The other two moments have their own fields. |
 | `publishOnStatusPageAt`                               | When the event is published on its status pages and its subscribers are told it is scheduled. Left out, right away. |
 
-The same event as code is the `oneuptime_scheduled_maintenance_event` Terraform resource: see [Examples](/docs/terraform/examples#scheduled-maintenance). A workflow creates one with its **Create One Scheduled Maintenance Event** step, and `/oneuptime maintenance` opens the form in Slack: see [Slack](/docs/workspace-connections/slack#creating-incidents-and-maintenance-from-slack).
+The same event as code is the `oneuptime_scheduled_maintenance_event` Terraform resource: see [Examples](/docs/terraform/examples#scheduled-maintenance). A workflow creates one with its **Create One Maintenance Event** step, and `/oneuptime maintenance` opens the form in Slack: see [Slack](/docs/workspace-connections/slack#creating-incidents-and-maintenance-from-slack).
 
 ## Troubleshooting
 

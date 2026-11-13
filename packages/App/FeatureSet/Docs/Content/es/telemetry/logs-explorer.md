@@ -37,7 +37,7 @@ El explorador tiene cinco pestañas:
 ## Antes de empezar
 
 - **Registros que llegan.** Envíelos con [OpenTelemetry](/docs/telemetry/open-telemetry), [Fluent Bit](/docs/telemetry/fluentbit), [Fluentd](/docs/telemetry/fluentd) o [Syslog](/docs/telemetry/syslog). La pestaña **Guía de configuración** muestra la configuración para su lenguaje o su recolector.
-- **Un rol que pueda leer telemetría.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member o Telemetry Viewer, o un rol personalizado con el permiso Read Telemetry Service Log. Su ámbito decide de quién son los registros que ve: consulte [Telemetría](/docs/permissions/index#telemetría).
+- **Un rol que pueda leer telemetría.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member o Telemetry Viewer, o un rol personalizado con el permiso Read Logs. Su ámbito decide de quién son los registros que ve: consulte [Telemetría](/docs/permissions/index#telemetría).
 
 ## Encontrar una línea de registro
 
