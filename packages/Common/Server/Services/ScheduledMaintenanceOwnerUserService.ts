@@ -184,9 +184,7 @@ export class Service extends ProjectReferencesService<Model> {
    * that now matches one, and creates a channel, opens it
    * (createChannelsForRulesThatNowMatch, which never throws).
    */
-  public static async checkRulesAgain(
-    rows: Array<Model>,
-  ): Promise<void> {
+  public static async checkRulesAgain(rows: Array<Model>): Promise<void> {
     const checked: Set<string> = new Set();
 
     for (const row of rows) {

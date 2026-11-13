@@ -70,10 +70,7 @@ const asService: (service: unknown) => DatabaseService<BaseModel> = (
   return service as DatabaseService<BaseModel>;
 };
 
-/*
- * In the order NotificationFor is read everywhere else: the first key a
- * NotificationFor holds names its record.
- */
+// Each kind of record with owners, and the tables its owners are kept in.
 const OWNER_TABLES: () => Array<OwnerTables> = (): Array<OwnerTables> => {
   return [
     {
@@ -142,32 +139,39 @@ const readId: (row: BaseModel, column: string) => string = (
 
 export default class WorkspaceRecordOwners {
   /*
-   * The record a notification is for, when it is one with owners: the key
-   * that names it, its id and its owners condition.
+   * The record a notification is for, when its kind of record has owners:
+   * the key that names it, its id and its owners condition. The kind is
+   * the rules' event type, as the rules being matched were chosen by it -
+   * never guessed from which ids the notification happens to carry.
    */
-  public static getOwnedRecord(notificationFor: {
-    [key in OwnedRecordKey]?: ObjectID | undefined;
+  public static getOwnedRecord(data: {
+    eventType: NotificationRuleEventType;
+    notificationFor: {
+      [key in OwnedRecordKey]?: ObjectID | undefined;
+    };
   }): {
     recordKey: OwnedRecordKey;
     recordId: ObjectID;
     checkOn: NotificationRuleConditionCheckOn;
   } | null {
-    for (const tables of OWNER_TABLES()) {
-      const recordId: ObjectID | undefined = notificationFor[tables.recordKey];
+    const tables: OwnerTables | undefined = OWNER_TABLES().find(
+      (candidate: OwnerTables): boolean => {
+        return candidate.eventType === data.eventType;
+      },
+    );
+    const checkOn: NotificationRuleConditionCheckOn | undefined =
+      OWNER_CHECK_ON_BY_EVENT_TYPE[data.eventType];
 
-      if (!recordId) {
-        continue;
-      }
-
-      const checkOn: NotificationRuleConditionCheckOn | undefined =
-        OWNER_CHECK_ON_BY_EVENT_TYPE[tables.eventType];
-
-      return checkOn
-        ? { recordKey: tables.recordKey, recordId: recordId, checkOn: checkOn }
-        : null;
+    if (!tables || !checkOn) {
+      return null;
     }
 
-    return null;
+    const recordId: ObjectID | undefined =
+      data.notificationFor[tables.recordKey];
+
+    return recordId
+      ? { recordKey: tables.recordKey, recordId: recordId, checkOn: checkOn }
+      : null;
   }
 
   /*
@@ -178,11 +182,13 @@ export default class WorkspaceRecordOwners {
     recordKey: OwnedRecordKey;
     recordId: ObjectID;
   }): Promise<Array<string>> {
-    const owners: Map<string, Array<string>> =
-      await WorkspaceRecordOwners.getOwnerIdsByRecord({
-        recordKey: data.recordKey,
-        recordIds: [data.recordId],
-      });
+    const owners: Map<
+      string,
+      Array<string>
+    > = await WorkspaceRecordOwners.getOwnerIdsByRecord({
+      recordKey: data.recordKey,
+      recordIds: [data.recordId],
+    });
 
     return owners.get(data.recordId.toString().toLowerCase()) || [];
   }

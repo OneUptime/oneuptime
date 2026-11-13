@@ -146,7 +146,9 @@ export const OWNER_CHECK_ON_BY_EVENT_TYPE: Readonly<
 };
 
 export const OWNER_CHECK_ONS: ReadonlyArray<NotificationRuleConditionCheckOn> =
-  Object.values(OWNER_CHECK_ON_BY_EVENT_TYPE) as Array<NotificationRuleConditionCheckOn>;
+  Object.values(
+    OWNER_CHECK_ON_BY_EVENT_TYPE,
+  ) as Array<NotificationRuleConditionCheckOn>;
 
 /*
  * The words a condition's field is shown with, where they differ from the

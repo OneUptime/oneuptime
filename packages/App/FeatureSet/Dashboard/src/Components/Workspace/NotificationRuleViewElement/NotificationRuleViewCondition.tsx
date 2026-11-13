@@ -172,9 +172,10 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
      * once: a bad row then renders as "nothing selected" instead of throwing
      * and taking the whole rule view down with it.
      */
-    const selectedIds: Array<string> = NotificationRuleConditionUtil.getValueIds(
-      props.notificationRuleCondition,
-    );
+    const selectedIds: Array<string> =
+      NotificationRuleConditionUtil.getValueIds(
+        props.notificationRuleCondition,
+      );
 
     let valueElement: ReactElement | undefined = Array.isArray(
       props.notificationRuleCondition?.value,

@@ -1329,7 +1329,11 @@ describe("An SLO rule's conditions", () => {
     });
     await openDropdown(1);
 
-    expect(listedOptions()).toEqual(["has any of", "has none of", "has all of"]);
+    expect(listedOptions()).toEqual([
+      "has any of",
+      "has none of",
+      "has all of",
+    ]);
 
     await userEvent
       .setup()

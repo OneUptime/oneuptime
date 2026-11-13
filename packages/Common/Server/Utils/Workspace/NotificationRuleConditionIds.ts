@@ -31,8 +31,9 @@ import UUIDColumnFilter, {
  *   hyphenated - as that is how a record's owners and its policy are
  *   matched against it;
  * - records of the project: a team of the project, a member of it
- *   (TeamMember), a policy of it. A rule cannot name another project's
- *   people, and an id that names nothing is a mistake worth saying.
+ *   (TeamMember), a policy of it that is not archived. A rule cannot name
+ *   another project's people, and an id that names nothing is a mistake
+ *   worth saying.
  *
  * An id the rule held before the write is kept as it is, found or not: a
  * person who has since left the project, a team or policy since deleted.
@@ -259,7 +260,12 @@ export default class NotificationRuleConditionIds {
     });
   }
 
-  // Each policy named is one of the project's.
+  /*
+   * Each policy named is one of the project's, and not archived: an archived
+   * policy pages no one, so nothing is posted about it, and no picker offers
+   * it for a new pick (#7582). One a rule held before it was archived is
+   * kept (keptIds), and never looked up.
+   */
   private static async assertPoliciesFound(data: {
     projectId: ObjectID;
     ids: Map<string, NotificationRuleConditionCheckOn>;
@@ -274,6 +280,7 @@ export default class NotificationRuleConditionIds {
           query: {
             projectId: data.projectId,
             _id: QueryHelper.any(Array.from(data.ids.keys())),
+            isArchived: false,
           },
           select: {
             _id: true,
@@ -294,7 +301,7 @@ export default class NotificationRuleConditionIds {
         throw new BadDataException(
           `The "${getCheckOnLabel(
             checkOn,
-          )}" condition names an on-call policy that is not in this project: ${id}. Pick one of the project's on-call policies.`,
+          )}" condition names an on-call policy that is not in this project, or is archived: ${id}. Pick one of the project's on-call policies.`,
         );
       }
     }

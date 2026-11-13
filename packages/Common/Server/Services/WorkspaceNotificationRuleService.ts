@@ -5153,6 +5153,8 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
    */
   private async getValuesBasedOnNotificationFor(data: {
     notificationFor: NotificationFor;
+    // The kind of record the rules being matched are for.
+    eventType: NotificationRuleEventType;
     checkOnsUsed?: Set<NotificationRuleConditionCheckOn> | undefined;
   }): Promise<NotificationRuleConditionValues> {
     const values: NotificationRuleConditionValues =
@@ -5160,7 +5162,10 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         await this.getRecordValues({ notificationFor: data.notificationFor }),
       );
 
-    if (data.notificationFor.onCallDutyPolicyId) {
+    if (
+      data.eventType === NotificationRuleEventType.OnCallDutyPolicy &&
+      data.notificationFor.onCallDutyPolicyId
+    ) {
       values[NotificationRuleConditionCheckOn.OnCallDutyPolicies] = [
         data.notificationFor.onCallDutyPolicyId.toString(),
       ];
@@ -5170,7 +5175,10 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       recordKey: OwnedRecordKey;
       recordId: ObjectID;
       checkOn: NotificationRuleConditionCheckOn;
-    } | null = WorkspaceRecordOwners.getOwnedRecord(data.notificationFor);
+    } | null = WorkspaceRecordOwners.getOwnedRecord({
+      eventType: data.eventType,
+      notificationFor: data.notificationFor,
+    });
 
     if (
       ownedRecord &&
@@ -6096,6 +6104,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     const values: NotificationRuleConditionValues =
       await this.getValuesBasedOnNotificationFor({
         notificationFor: data.notificationFor,
+        eventType: data.notificationRuleEventType,
         // Only what the rules check is read: owners for an owners condition.
         checkOnsUsed: NotificationRuleConditionUtil.getCheckOnsUsed(
           notificationRules.flatMap(

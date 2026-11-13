@@ -223,8 +223,9 @@ const NotificationRuleConditionFormElement: FunctionComponent<
       )
     : [];
 
-  const valueIds: Array<string> =
-    NotificationRuleConditionUtil.getValueIds(notificationRuleCondition);
+  const valueIds: Array<string> = NotificationRuleConditionUtil.getValueIds(
+    notificationRuleCondition,
+  );
 
   const hasValue: boolean = Boolean(
     checkOn &&
@@ -368,32 +369,39 @@ const NotificationRuleConditionFormElement: FunctionComponent<
 
       const picked: Set<string> = toLowerCaseIds(valueIds);
 
+      /*
+       * The test id goes on a wrapper: react-select, under Dropdown, puts
+       * no data-testid it is handed on the page.
+       */
       return (
-        <Dropdown
-          id={`${rowId}-value`}
-          className="relative w-full"
-          ariaLabel={valueAriaLabel}
-          ariaDescribedby={hint ? hintId : undefined}
-          dataTestId={`notification-rule-condition-value-${props.index || 0}`}
-          isMultiSelect={true}
-          placeholder={RuleCriteriaCopy.selectOneOrMore}
-          options={options}
-          value={options.filter((option: DropdownOption): boolean => {
-            return picked.has(option.value.toString().toLowerCase());
-          })}
-          onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
-            if (Array.isArray(value)) {
-              changeValue(
-                value.map((item: DropdownValue) => {
-                  return item.toString();
-                }),
-              );
-              return;
-            }
+        <div
+          data-testid={`notification-rule-condition-value-${props.index || 0}`}
+        >
+          <Dropdown
+            id={`${rowId}-value`}
+            className="relative w-full"
+            ariaLabel={valueAriaLabel}
+            ariaDescribedby={hint ? hintId : undefined}
+            isMultiSelect={true}
+            placeholder={RuleCriteriaCopy.selectOneOrMore}
+            options={options}
+            value={options.filter((option: DropdownOption): boolean => {
+              return picked.has(option.value.toString().toLowerCase());
+            })}
+            onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
+              if (Array.isArray(value)) {
+                changeValue(
+                  value.map((item: DropdownValue) => {
+                    return item.toString();
+                  }),
+                );
+                return;
+              }
 
-            changeValue(value?.toString());
-          }}
-        />
+              changeValue(value?.toString());
+            }}
+          />
+        </div>
       );
     }
 
@@ -421,7 +429,10 @@ const NotificationRuleConditionFormElement: FunctionComponent<
         {renderConnector()}
       </div>
 
-      <div className={RULE_CRITERIA_FIELD_CELL_CLASS_NAME}>
+      <div
+        className={RULE_CRITERIA_FIELD_CELL_CLASS_NAME}
+        data-testid={`notification-rule-condition-field-${props.index || 0}`}
+      >
         <Dropdown
           id={`${rowId}-field`}
           className="relative w-full"
@@ -429,7 +440,6 @@ const NotificationRuleConditionFormElement: FunctionComponent<
             "Criteria for condition {{number}}",
             { number: number },
           )}
-          dataTestId={`notification-rule-condition-field-${props.index || 0}`}
           isClearable={false}
           options={fieldOptions}
           value={fieldOptions.find((option: DropdownOption): boolean => {
@@ -459,7 +469,10 @@ const NotificationRuleConditionFormElement: FunctionComponent<
         />
       </div>
 
-      <div className={RULE_CRITERIA_OPERATOR_CELL_CLASS_NAME}>
+      <div
+        className={RULE_CRITERIA_OPERATOR_CELL_CLASS_NAME}
+        data-testid={`notification-rule-condition-operator-${props.index || 0}`}
+      >
         <Dropdown
           id={`${rowId}-operator`}
           className="relative w-full"
@@ -467,7 +480,6 @@ const NotificationRuleConditionFormElement: FunctionComponent<
             "Operator for condition {{number}}",
             { number: number },
           )}
-          dataTestId={`notification-rule-condition-operator-${props.index || 0}`}
           isClearable={false}
           disabled={!checkOn}
           options={operatorOptions}

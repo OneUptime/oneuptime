@@ -672,7 +672,8 @@ class WorkspaceNotificationSummary extends BaseModel {
   @TableColumn({
     type: TableColumnType.JSON,
     title: "Filters",
-    description: "Filter conditions for which items to include in the summary",
+    description:
+      "Conditions on which items the summary includes. An owner condition, such as Incident Owner, names people and teams by ID, and the IDs must be of this project.",
     required: false,
   })
   @Column({
