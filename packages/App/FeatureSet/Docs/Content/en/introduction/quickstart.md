@@ -34,6 +34,8 @@ Enter a **Project Name**, such as your company's name. On OneUptime Cloud, pick 
 
 ### Create it
 
+![Home asks "What do you want to do first?", with the three goals of this guide ticked](screen:home-goals-three)
+
 Click **Create Project**. Your project's Home page opens, with the **Welcome to OneUptime 👋** checklist at the top. It first asks **What do you want to do first?**: tick **Know when my website or API is down**, **Page the right person when something breaks** and **Tell my customers with a status page**, and click **Continue**.
 :::
 
@@ -121,9 +123,13 @@ Open **Incidents** and click **Declare Incident**. Enter a **Title**, such as `T
 
 ### Watch it happen
 
+![A resolved incident's "Incident Feed": who was paged, then each state change, newest first](screen:incident-feed)
+
 Within a minute or two, your on-call policy pages you, and the incident shows on your status page.
 
 ### Resolve it
+
+![An incident whose state is "Acknowledged", with "Resolve" ringed](screen:incident-resolve)
 
 On the incident's page, click **Resolve**. The paging stops, and the incident leaves your status page.
 :::

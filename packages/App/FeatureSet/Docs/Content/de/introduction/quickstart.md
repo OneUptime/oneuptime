@@ -34,6 +34,8 @@ Geben Sie einen **Projektname** ein, etwa den Namen Ihres Unternehmens. Bei OneU
 
 ### Das Projekt anlegen
 
+![Die Startseite fragt „Was möchten Sie zuerst tun?“, die drei Ziele dieser Anleitung sind angehakt](screen:home-goals-three)
+
 Klicken Sie auf **Projekt erstellen**. Die Startseite Ihres Projekts öffnet sich, oben mit der Checkliste **Willkommen bei OneUptime 👋**. Zuerst fragt sie **Was möchten Sie zuerst tun?**: Haken Sie **Wissen, wenn meine Website oder API ausfällt**, **Die richtige Person alarmieren, wenn etwas ausfällt** und **Meine Kunden über eine Statusseite informieren** an, und klicken Sie auf **Weiter**.
 :::
 
@@ -121,9 +123,13 @@ Melden Sie einen Testvorfall, um die ganze Kette arbeiten zu sehen.
 
 ### Zusehen, was passiert
 
+![Der „Vorfalls-Feed“ eines behobenen Vorfalls: wer alarmiert wurde, dann jede Statusänderung, die neueste zuerst](screen:incident-feed)
+
 Innerhalb von ein, zwei Minuten alarmiert Sie Ihre Bereitschaftsrichtlinie, und der Vorfall erscheint auf Ihrer Statusseite.
 
 ### Den Vorfall beheben
+
+![Ein Vorfall im Status „Bestätigt“, „Beheben“ ist markiert](screen:incident-resolve)
 
 Klicken Sie auf der Seite des Vorfalls auf **Beheben**. Die Alarmierung endet, und der Vorfall verschwindet von Ihrer Statusseite.
 :::

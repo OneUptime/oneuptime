@@ -28,17 +28,25 @@ Uw server heeft een eigen hostnaam nodig met een A-record dat ernaar wijst, zoal
 :::steps
 ### De begeleide installatie openen
 
+![Start vraagt "Wat wil je eerst doen?", met "Mijn klanten informeren met een statuspagina" aangevinkt](screen:home-goal-status-page)
+
 Ga in uw project naar **Start** en klik in de checklist **Welkom bij OneUptime 👋** op **Publiceer een statuspagina**. Bij een nieuw project stelt de startpagina vooraf de vraag **Wat wil je eerst doen?**: vink **Mijn klanten informeren met een statuspagina** aan en klik op **Doorgaan**. Ontbreekt de stap of is hij al klaar, druk dan op `Ctrl+K` (`Cmd+K` op een Mac), typ `status page` en kies **Publiceer een statuspagina**.
 
 ### De pagina een naam geven en kiezen wat ze toont
+
+![De stap "Geef de pagina een naam en kies wat ze toont", met "De statuspagina aanmaken" omcirkeld](screen:status-page-pick)
 
 Behoud onder **Geef de pagina een naam en kies wat ze toont** de voorgestelde **Naam van de statuspagina** of typ een eigen naam. Vink onder **Wat ze toont** de monitoren aan die uw klanten moeten zien, of klik op **Alles selecteren**. Klik op **De statuspagina aanmaken**. Vanaf dit moment is de pagina openbaar via haar link, en toont ze alleen de monitoren die u hebt aangevinkt.
 
 ### Bekijken wat uw klanten zien
 
+![De stap "Dit zien uw klanten", met "Ziet er goed uit" omcirkeld](screen:status-page-review)
+
 Open onder **Dit zien uw klanten** het adres onder **Openbare link**: uw monitoren staan er met hun status. Terug in de begeleide installatie klikt u op **Ziet er goed uit**.
 
 ### Aangepaste domeinen openen
+
+![De samenvatting, met "Uw eigen domein" omcirkeld onder "Pas de pagina aan (optioneel)"](screen:status-page-summary)
 
 De begeleide installatie eindigt met een samenvatting. Klik onder **Pas de pagina aan (optioneel)** op **Uw eigen domein**. De pagina **Aangepaste domeinen** van de statuspagina opent.
 

@@ -26,13 +26,19 @@ O endereço é verificado pela própria sonda do seu servidor, então precisa es
 :::steps
 ### Abrir a configuração guiada
 
+![Início pergunta "O que você quer fazer primeiro?", com "Saber quando meu site ou API cair" marcado](screen:home-goal-website)
+
 A página **Início** de um projeto novo começa perguntando **O que você quer fazer primeiro?**: marque **Saber quando meu site ou API cair** e clique em **Continuar**. Depois clique em **Crie seu primeiro monitor**, na lista **Boas-vindas ao OneUptime 👋**. Se a lista não mostrar esse passo, pressione `Ctrl+K` (`Cmd+K` no Mac), digite `website down` e escolha **Saber quando meu site ou API cair**.
 
 ### Digitar o endereço
 
+![O passo "O que devemos verificar?", com "Começar a verificar" destacado](screen:website-down-address)
+
 Em **O que devemos verificar?**, digite o endereço em **Endereço do site ou da API**. Para um endpoint de API, marque **Este é um endpoint de API**. Clique em **Começar a verificar**: as sondas verificam o endereço na hora, e uma frase diz o que elas encontraram. Clique em **Continuar**.
 
 ### Escolher quem é avisado
+
+![O passo "Quem deve ser avisado?", com "Salvar e continuar" destacado](screen:website-down-who)
 
 Em **Quem deve ser avisado?**, o que você vê depende do projeto:
 
@@ -42,6 +48,8 @@ Em **Quem deve ser avisado?**, o que você vê depende do projeto:
 
 ### Enviar um teste para você mesmo
 
+![O passo "Envie um teste", com "Enviar uma chamada de teste para mim" destacado](screen:website-down-test)
+
 Em **Envie um teste**, clique em **Enviar uma chamada de teste para mim**. Escolha uma **Gravidade** e clique em **Enviar chamada de teste**. O teste chega até você como um acionamento real chegaria, e cada mensagem diz TEST. Nenhum incidente é criado.
 
 ### Confirmar o acionamento de teste
@@ -50,6 +58,8 @@ Abra o link do e-mail e confirme o acionamento ali. Um número de telefone verif
 :::
 
 ## Verificar se funcionou
+
+![O resumo, lido dos registros: "Verificado", "Quando ele cai", "Quem é avisado" e "Testado"](screen:website-down-summary)
 
 - A configuração termina no resumo, com o que foi salvo: **Verificado**, **Quando ele cai**, **Quem é avisado** e **Testado**.
 - Clique em **Abrir o monitor** e depois em **Mostrar a cadeia**, no cartão **Quando cair** dele: isso mostra a cadeia que vai do monitor até as pessoas que ele alcança, e diz **Nada interrompe a cadeia.** quando nada a interromperia.

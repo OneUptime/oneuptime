@@ -34,6 +34,8 @@ Inserisci un **Nome del progetto**, per esempio il nome della tua azienda. Su On
 
 ### Crearlo
 
+![La pagina Home chiede «Cosa vuoi fare per prima cosa?», con i tre obiettivi di questa guida selezionati](screen:home-goals-three)
+
 Fai clic su **Crea progetto**. Si apre la home page del tuo progetto, con l'elenco **Benvenuto in OneUptime 👋** in alto. Prima chiede **Cosa vuoi fare per prima cosa?**: spunta **Sapere quando il mio sito web o la mia API non funziona**, **Avvisare la persona giusta quando qualcosa si guasta** e **Informare i clienti con una pagina di stato**, e fai clic su **Continua**.
 :::
 
@@ -121,9 +123,13 @@ Apri **Incidenti** e fai clic su **Dichiara incidente**. Inserisci un **Titolo**
 
 ### Guardare cosa succede
 
+![«Feed dell'incidente» di un incidente risolto: chi è stato chiamato e ogni cambio di stato, dal più recente](screen:incident-feed)
+
 Entro un paio di minuti, la tua policy di reperibilità ti avvisa e l'incidente compare sulla tua pagina di stato.
 
 ### Risolverlo
+
+![Un incidente nello stato «Riconosciuto», con «Risolvi» evidenziato](screen:incident-resolve)
 
 Nella pagina dell'incidente, fai clic su **Risolvi**. Gli avvisi si fermano e l'incidente lascia la tua pagina di stato.
 :::
