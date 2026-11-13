@@ -28,6 +28,12 @@ export const HIDDEN_PRODUCTS_TITLE: string = translationKey("More products");
 // The heading of a person's pinned products, on a phone.
 export const PINNED_PRODUCTS_LABEL: string = translationKey("Pinned");
 
+/*
+ * The products menu's search box, as a screen reader names it: the words
+ * of its placeholder ("Search products…") without the "…" (#7486).
+ */
+export const PRODUCTS_SEARCH_LABEL: string = translationKey("Search products");
+
 const DashboardNavbar: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -96,6 +102,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       moreMenuCategoriesOpenByDefault={moreMenuCategoriesOpenByDefault}
       moreMenuFooter={moreMenuFooter}
       moreMenuSearchPlaceholder={t("navbar.search.placeholder")}
+      moreMenuSearchLabel={translator.translateText(PRODUCTS_SEARCH_LABEL)}
       moreMenuNoResultsText={t("navbar.search.noResults")}
       moreMenuKeyboardHint={t("navbar.search.hint")}
       moreMenuRecentLabel={t("navbar.search.recent")}

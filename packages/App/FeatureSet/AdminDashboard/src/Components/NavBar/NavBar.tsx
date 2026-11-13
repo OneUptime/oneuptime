@@ -168,6 +168,8 @@ const DashboardNavbar: FunctionComponent = (): ReactElement => {
       moreMenuFooter={moreMenuFooter}
       moreMenuTitle="Menu"
       moreMenuSearchPlaceholder="Search admin…"
+      // The box's name, without the placeholder's "…" (#7486).
+      moreMenuSearchLabel="Search admin"
       moreMenuNoResultsText="No results found."
       moreMenuKeyboardHint="↑↓ navigate · ↵ open · esc close"
       /*

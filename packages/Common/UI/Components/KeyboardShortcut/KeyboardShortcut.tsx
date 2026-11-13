@@ -3,7 +3,9 @@ import PlatformUtil from "../../Utils/Platform";
 import KeyboardKey, {
   KeyboardKeyUtil,
   KeyboardShortcutKey,
+  SpokenKeyNames,
 } from "./KeyboardKey";
+import useSpokenKeyNames from "./SpokenKeyNames";
 
 export enum KeyboardShortcutSize {
   ExtraSmall = "ExtraSmall",
@@ -45,12 +47,14 @@ const VARIANT_CLASS: Record<KeyboardShortcutVariant, string> = {
  *
  * The caps themselves are hidden from assistive tech — glyphs like ⌘ are
  * announced inconsistently — and the shortcut is exposed once, in words, as
- * screen-reader-only text ("Command + I").
+ * screen-reader-only text ("Command + I"), in the reader's language
+ * ("Strg + I" in German, "Ctrl + Стрелка вверх" in Russian: #7484).
  */
 const KeyboardShortcut: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const isApplePlatform: boolean = PlatformUtil.isApplePlatform();
+  const spokenKeyNames: SpokenKeyNames = useSpokenKeyNames();
 
   const size: KeyboardShortcutSize = props.size || KeyboardShortcutSize.Small;
   const variant: KeyboardShortcutVariant =
@@ -70,7 +74,11 @@ const KeyboardShortcut: FunctionComponent<ComponentProps> = (
       }`}
     >
       <span className="sr-only">
-        {KeyboardKeyUtil.getShortcutLabel(props.keys, isApplePlatform)}
+        {KeyboardKeyUtil.getShortcutLabel(
+          props.keys,
+          isApplePlatform,
+          spokenKeyNames,
+        )}
       </span>
       {props.keys.map((key: KeyboardShortcutKey, index: number) => {
         return (

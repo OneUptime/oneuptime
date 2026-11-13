@@ -29,6 +29,58 @@ enum KeyboardKey {
 
 export type KeyboardShortcutKey = KeyboardKey | string;
 
+/*
+ * The words that name each named key where a shortcut is said rather than
+ * drawn: the screen-reader label beside the keycaps, a header button's
+ * tooltip. A front end hands in the reader's own (useSpokenKeyNames, from
+ * the keyboardKeys entries of its locale, #7484); every other caller gets
+ * the English.
+ */
+export interface SpokenKeyNames {
+  // The Apple platform's primary modifier, ⌘.
+  command: string;
+  control: string;
+  // The Apple platform's Alt key, ⌥.
+  option: string;
+  /*
+   * Not `alt`: the Dashboard's extraction reads a property of that name as
+   * an image's alt text, and would make "Alt" a word of its own.
+   */
+  altKey: string;
+  shift: string;
+  enter: string;
+  escape: string;
+  backspace: string;
+  delete: string;
+  tab: string;
+  space: string;
+  arrowUp: string;
+  arrowDown: string;
+  arrowLeft: string;
+  arrowRight: string;
+  // The Windows logo key (Meta on a PC).
+  windows: string;
+}
+
+export const ENGLISH_SPOKEN_KEY_NAMES: Readonly<SpokenKeyNames> = {
+  command: "Command",
+  control: "Control",
+  option: "Option",
+  altKey: "Alt",
+  shift: "Shift",
+  enter: "Enter",
+  escape: "Escape",
+  backspace: "Backspace",
+  delete: "Delete",
+  tab: "Tab",
+  space: "Space",
+  arrowUp: "Up arrow",
+  arrowDown: "Down arrow",
+  arrowLeft: "Left arrow",
+  arrowRight: "Right arrow",
+  windows: "Windows",
+};
+
 /**
  * Renders shortcut keys the way the user's own platform writes them. macOS
  * users read ⌘⇧K; Windows and Linux users read Ctrl Shift K — the same
@@ -81,59 +133,64 @@ export class KeyboardKeyUtil {
 
   /**
    * The spoken name for screen readers — glyphs like ⌘ are announced
-   * inconsistently (or not at all), so shortcuts are labelled in words.
+   * inconsistently (or not at all), so shortcuts are labelled in words: the
+   * reader's own when `names` is given (useSpokenKeyNames: "Strg" and
+   * "Pfeil nach oben" in German), English otherwise.
    */
   public static getSpokenKey(
     key: KeyboardShortcutKey,
     isApplePlatform: boolean = PlatformUtil.isApplePlatform(),
+    names: Readonly<SpokenKeyNames> = ENGLISH_SPOKEN_KEY_NAMES,
   ): string {
     switch (key) {
       case KeyboardKey.Mod:
-        return isApplePlatform ? "Command" : "Control";
+        return isApplePlatform ? names.command : names.control;
       case KeyboardKey.Meta:
-        return isApplePlatform ? "Command" : "Windows";
+        return isApplePlatform ? names.command : names.windows;
       case KeyboardKey.Control:
-        return "Control";
+        return names.control;
       case KeyboardKey.Alt:
-        return isApplePlatform ? "Option" : "Alt";
+        return isApplePlatform ? names.option : names.altKey;
       case KeyboardKey.Shift:
-        return "Shift";
+        return names.shift;
       case KeyboardKey.Enter:
-        return "Enter";
+        return names.enter;
       case KeyboardKey.Escape:
-        return "Escape";
+        return names.escape;
       case KeyboardKey.Backspace:
-        return "Backspace";
+        return names.backspace;
       case KeyboardKey.Delete:
-        return "Delete";
+        return names.delete;
       case KeyboardKey.Tab:
-        return "Tab";
+        return names.tab;
       case KeyboardKey.Space:
-        return "Space";
+        return names.space;
       case KeyboardKey.ArrowUp:
-        return "Up arrow";
+        return names.arrowUp;
       case KeyboardKey.ArrowDown:
-        return "Down arrow";
+        return names.arrowDown;
       case KeyboardKey.ArrowLeft:
-        return "Left arrow";
+        return names.arrowLeft;
       case KeyboardKey.ArrowRight:
-        return "Right arrow";
+        return names.arrowRight;
       default:
         return key.length === 1 ? key.toUpperCase() : key;
     }
   }
 
   /**
-   * A full shortcut written out for tooltips and aria-labels, e.g.
-   * "Command + I" or "Control + I".
+   * A full shortcut written out for tooltips and screen readers, e.g.
+   * "Command + I" or "Control + I" - in the reader's words when `names` is
+   * given ("Strg + I").
    */
   public static getShortcutLabel(
     keys: Array<KeyboardShortcutKey>,
     isApplePlatform: boolean = PlatformUtil.isApplePlatform(),
+    names: Readonly<SpokenKeyNames> = ENGLISH_SPOKEN_KEY_NAMES,
   ): string {
     return keys
       .map((key: KeyboardShortcutKey) => {
-        return this.getSpokenKey(key, isApplePlatform);
+        return this.getSpokenKey(key, isApplePlatform, names);
       })
       .join(" + ");
   }

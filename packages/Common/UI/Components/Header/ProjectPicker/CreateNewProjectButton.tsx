@@ -6,6 +6,13 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
   onCreateButtonClicked: () => void;
+  // The row's own id, unique on the page (aria-activedescendant names it).
+  id: string;
+  // The arrow keys (or the pointer) are on this row.
+  isActive?: boolean | undefined;
+  // The row is drawn as the one the keyboard is on.
+  showsActive?: boolean | undefined;
+  onPointerOver?: (() => void) | undefined;
 }
 
 const CreateNewProjectButton: FunctionComponent<ComponentProps> = (
@@ -15,9 +22,15 @@ const CreateNewProjectButton: FunctionComponent<ComponentProps> = (
 
   return (
     <li
-      className="relative select-none py-2.5 px-3 mx-2 mt-2 cursor-pointer bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors duration-150 border border-indigo-200"
-      id="listbox-option-0"
+      className={`relative select-none py-2.5 px-3 mx-2 mt-2 cursor-pointer hover:bg-indigo-100 rounded-lg transition-colors duration-150 border border-indigo-200 ${
+        props.isActive && props.showsActive ? "bg-indigo-100" : "bg-indigo-50"
+      }`}
+      id={props.id}
       role="option"
+      aria-selected={Boolean(props.isActive)}
+      onMouseMove={() => {
+        props.onPointerOver?.();
+      }}
       onClick={() => {
         props.onCreateButtonClicked();
       }}

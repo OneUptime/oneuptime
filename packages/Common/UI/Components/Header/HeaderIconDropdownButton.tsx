@@ -8,9 +8,12 @@ import KeyboardShortcut, {
 import {
   KeyboardKeyUtil,
   KeyboardShortcutKey,
+  SpokenKeyNames,
 } from "../KeyboardShortcut/KeyboardKey";
+import useSpokenKeyNames from "../KeyboardShortcut/SpokenKeyNames";
 import { HeaderMenuButtonIdContext } from "./HeaderMenuContext";
 import IconProp from "../../../Types/Icon/IconProp";
+import PlatformUtil from "../../Utils/Platform";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -59,6 +62,7 @@ const HeaderIconDropdownButton: FunctionComponent<ComponentProps> = (
   const hasLabel: boolean = Boolean(props.title);
   const hasDropdown: boolean = Boolean(props.children);
   const hasShortcut: boolean = Boolean(props.shortcut?.length);
+  const spokenKeyNames: SpokenKeyNames = useSpokenKeyNames();
 
   /*
    * An id of this button's own, which its menu is named by (see
@@ -116,11 +120,15 @@ const HeaderIconDropdownButton: FunctionComponent<ComponentProps> = (
 
   /*
    * Native tooltip: the label alone on screen, the shortcut spelled out in
-   * words on hover ("Ask AI · Command + I") for anyone who missed the keycaps.
+   * words on hover ("Ask AI · Command + I") for anyone who missed the
+   * keycaps - in the reader's words, as the keycaps' screen-reader label is
+   * ("Поиск · Ctrl + K", never "Поиск · Control + K": #7484).
    */
   const tooltip: string = hasShortcut
     ? `${props.title || props.name} · ${KeyboardKeyUtil.getShortcutLabel(
         props.shortcut!,
+        PlatformUtil.isApplePlatform(),
+        spokenKeyNames,
       )}`
     : props.title || props.name;
 

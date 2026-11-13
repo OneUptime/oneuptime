@@ -86,6 +86,8 @@ export interface ComponentProps {
   moreMenuCategoriesOpenByDefault?: Array<string> | undefined;
   moreMenuTitle?: string; // Title for the more menu (default: "Products")
   moreMenuSearchPlaceholder?: string; // Placeholder for the menu search box
+  // The menu search box's accessible name, without the placeholder's "…".
+  moreMenuSearchLabel?: string | undefined;
   moreMenuNoResultsText?: string; // Empty-state text when search matches nothing
   moreMenuKeyboardHint?: string; // Keyboard hint shown in the menu footer
   moreMenuRecentLabel?: string; // Heading for the recently-visited products row
@@ -716,6 +718,7 @@ const Navbar: FunctionComponent<ComponentProps> = (
             categoriesOpenByDefault={props.moreMenuCategoriesOpenByDefault}
             footer={props.moreMenuFooter}
             searchPlaceholder={props.moreMenuSearchPlaceholder}
+            searchLabel={props.moreMenuSearchLabel}
             noResultsText={props.moreMenuNoResultsText}
             showCommandKShortcutHint={!props.disableCommandKShortcut}
             keyboardHint={props.moreMenuKeyboardHint}

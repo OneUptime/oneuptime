@@ -358,6 +358,7 @@ describe("words that read their own way", () => {
 
     render(
       <ProjectPickerMenuItem
+        id="project-picker-row"
         icon={IconProp.Folder}
         project={project}
         onProjectSelected={() => {}}
