@@ -476,10 +476,11 @@ export const getUserOverrideFormFields: <TEntity>(
     {
       field: { startsAt: true } as SelectFormFields<TEntity>,
       title: "Starts",
+      // Edited before it starts: nothing to say but the time zone.
       description: isStartLocked
         ? USER_OVERRIDE_START_LOCKED_TEXT
         : editing
-          ? undefined
+          ? ""
           : "It starts now unless you pick another time.",
       fieldType: FormFieldSchemaType.DateTime,
       required: true,
@@ -512,14 +513,12 @@ export const getUserOverrideFormFields: <TEntity>(
       },
       // The server's refusal of an overlap is about the times: said here.
       ownsServerError: isUserOverrideOverlapRefusal,
-      getFooterElement: options?.getEndsFooter
-        ? (
-            values: FormValues<TEntity>,
-            error?: string,
-          ): ReactElement | undefined => {
-            return options.getEndsFooter!(values, error);
-          }
-        : undefined,
+      getFooterElement: (
+        values: FormValues<TEntity>,
+        error?: string,
+      ): ReactElement | undefined => {
+        return options?.getEndsFooter?.(values, error);
+      },
     },
   ];
 };

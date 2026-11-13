@@ -144,7 +144,7 @@ describe("the Edit form's rows", () => {
     const starts: OverrideField = byTitle(editFields(UPCOMING), "Starts");
 
     expect(Boolean(starts.disabled)).toBe(false);
-    expect(starts.description).toBeUndefined();
+    expect(starts.description).toBe("");
     expect(byTitle(editFields(UPCOMING), "Ends").description).toBe(
       "From then on, alerts page the person who is away again.",
     );
@@ -308,10 +308,46 @@ describe("Ends and an overlap", () => {
     expect(ends.ownsServerError!(USER_OVERRIDE_STARTED_REFUSAL)).toBe(false);
   });
 
-  test("the footer is drawn only when the dialog hands one in", () => {
-    expect(byTitle(editFields(UPCOMING), "Ends").getFooterElement).toBe(
-      undefined,
+  test("the footer draws nothing unless the dialog hands one in, and then the dialog's, with the values and the error", () => {
+    const values: Record<string, unknown> = {
+      overrideUserId: JANE,
+      startsAt: UPCOMING.startsAt,
+      endsAt: UPCOMING.endsAt,
+    };
+
+    expect(
+      byTitle(editFields(UPCOMING), "Ends").getFooterElement!(
+        values as never,
+        "An error",
+      ),
+    ).toBeUndefined();
+
+    // What the dialog draws: UserOverrideOverlapNotice, in the page.
+    const footer: ReturnType<NonNullable<OverrideField["getFooterElement"]>> = {
+      type: "div",
+      props: {},
+      key: null,
+    } as never;
+    const asked: Array<[unknown, string | undefined]> = [];
+    const getEndsFooter: (values: unknown, error?: string) => typeof footer = (
+      footerValues: unknown,
+      error?: string,
+    ): typeof footer => {
+      asked.push([footerValues, error]);
+      return footer;
+    };
+
+    const ends: OverrideField = byTitle(
+      getUserOverrideFormFields<OnCallDutyPolicyUserOverride>({
+        currentUserId: BOB,
+        editing: { saved: UPCOMING, now: NOW },
+        getEndsFooter: getEndsFooter,
+      }),
+      "Ends",
     );
+
+    expect(ends.getFooterElement!(values as never, "An error")).toBe(footer);
+    expect(asked).toEqual([[values, "An error"]]);
   });
 });
 
