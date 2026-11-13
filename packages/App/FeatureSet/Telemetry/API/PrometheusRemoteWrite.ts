@@ -1,6 +1,5 @@
 import TelemetryIngest from "Common/Server/Middleware/TelemetryIngest";
 import TelemetryIngestionDisabled from "Common/Server/Middleware/TelemetryIngestionDisabled";
-import { PROMETHEUS_REMOTE_WRITE_PATH } from "Common/Types/Telemetry/CompatibleIngest";
 import TelemetryIngestSurface from "Common/Types/Telemetry/TelemetryIngestSurface";
 import Express, {
   ExpressRequest,
@@ -22,8 +21,9 @@ import PrometheusRemoteWriteIngestService from "../Services/PrometheusRemoteWrit
 
 const router: ExpressRouter = Express.getRouter();
 
+// PROMETHEUS_REMOTE_WRITE_PATH (Types/Telemetry/CompatibleIngest).
 router.post(
-  PROMETHEUS_REMOTE_WRITE_PATH,
+  "/prometheus/api/v1/write",
   TelemetryIngestionDisabled.middleware,
   CompatibleIngestCredential.middleware([
     CompatibleCredentialScheme.Bearer,

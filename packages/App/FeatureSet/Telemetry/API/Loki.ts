@@ -1,6 +1,5 @@
 import TelemetryIngest from "Common/Server/Middleware/TelemetryIngest";
 import TelemetryIngestionDisabled from "Common/Server/Middleware/TelemetryIngestionDisabled";
-import { LOKI_PUSH_PATH } from "Common/Types/Telemetry/CompatibleIngest";
 import TelemetryIngestSurface from "Common/Types/Telemetry/TelemetryIngestSurface";
 import Express, {
   ExpressRequest,
@@ -23,8 +22,9 @@ import LokiIngestService from "../Services/LokiIngestService";
 
 const router: ExpressRouter = Express.getRouter();
 
+// LOKI_PUSH_PATH (Types/Telemetry/CompatibleIngest).
 router.post(
-  LOKI_PUSH_PATH,
+  "/loki/api/v1/push",
   TelemetryIngestionDisabled.middleware,
   CompatibleIngestCredential.middleware([
     CompatibleCredentialScheme.Basic,

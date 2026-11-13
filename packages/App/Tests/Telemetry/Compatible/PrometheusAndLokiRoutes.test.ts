@@ -11,6 +11,11 @@ import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
 import TelemetryIngestionKeyService from "Common/Server/Services/TelemetryIngestionKeyService";
 import TelemetryIngestionBudget from "Common/Server/Utils/Telemetry/TelemetryIngestionBudget";
 import { JSONObject } from "Common/Types/JSON";
+import {
+  COMPATIBLE_INGEST_URL_PREFIX,
+  LOKI_PUSH_PATH,
+  PROMETHEUS_REMOTE_WRITE_PATH,
+} from "Common/Types/Telemetry/CompatibleIngest";
 import PrometheusRemoteWriteAPI from "../../../FeatureSet/Telemetry/API/PrometheusRemoteWrite";
 import LokiAPI from "../../../FeatureSet/Telemetry/API/Loki";
 import TelemetryQueueService from "../../../FeatureSet/Telemetry/Services/Queue/TelemetryQueueService";
@@ -163,7 +168,7 @@ const remoteWriteHeaders: (
 describe("Prometheus remote write - POST /prometheus/api/v1/write", () => {
   test("a Prometheus server's write with a bearer token is queued as metrics and answered 204", async () => {
     const response: RouteResponse = await send(
-      `${server.url}/prometheus/api/v1/write`,
+      `${server.url}${PROMETHEUS_REMOTE_WRITE_PATH}`,
       {
         headers: remoteWriteHeaders(`Bearer ${INGESTION_KEY}`),
         body: snappyCompress(writeRequest()),
@@ -194,7 +199,7 @@ describe("Prometheus remote write - POST /prometheus/api/v1/write", () => {
 
   test("basic_auth with the key as the password works under /telemetry too", async () => {
     const response: RouteResponse = await send(
-      `${server.url}/telemetry/prometheus/api/v1/write`,
+      `${server.url}${COMPATIBLE_INGEST_URL_PREFIX}${PROMETHEUS_REMOTE_WRITE_PATH}`,
       {
         headers: remoteWriteHeaders(basicAuth("12345", INGESTION_KEY)),
         body: snappyCompress(writeRequest()),
@@ -207,7 +212,7 @@ describe("Prometheus remote write - POST /prometheus/api/v1/write", () => {
 
   test("a key written as 32 hex digits without hyphens is accepted", async () => {
     const response: RouteResponse = await send(
-      `${server.url}/prometheus/api/v1/write`,
+      `${server.url}${PROMETHEUS_REMOTE_WRITE_PATH}`,
       {
         headers: remoteWriteHeaders(`Bearer ${INGESTION_KEY.replace(/-/g, "")}`),
         body: snappyCompress(writeRequest()),
@@ -224,7 +229,7 @@ describe("Prometheus remote write - POST /prometheus/api/v1/write", () => {
     delete headers["content-encoding"];
 
     const response: RouteResponse = await send(
-      `${server.url}/prometheus/api/v1/write`,
+      `${server.url}${PROMETHEUS_REMOTE_WRITE_PATH}`,
       { headers: headers, body: snappyCompress(writeRequest()) },
     );
 
@@ -256,7 +261,7 @@ describe("Prometheus remote write - POST /prometheus/api/v1/write", () => {
     );
 
     const response: RouteResponse = await send(
-      `${server.url}/prometheus/api/v1/write`,
+      `${server.url}${PROMETHEUS_REMOTE_WRITE_PATH}`,
       {
         headers: remoteWriteHeaders(`Bearer ${INGESTION_KEY}`, {
           "content-type": "application/x-protobuf;proto=io.prometheus.write.v2.Request",
@@ -277,7 +282,7 @@ describe("Prometheus remote write - POST /prometheus/api/v1/write", () => {
 
   test("no key is a 401, and nothing is queued", async () => {
     const response: RouteResponse = await send(
-      `${server.url}/prometheus/api/v1/write`,
+      `${server.url}${PROMETHEUS_REMOTE_WRITE_PATH}`,
       {
         headers: {
           "content-type": "application/x-protobuf",
@@ -293,7 +298,7 @@ describe("Prometheus remote write - POST /prometheus/api/v1/write", () => {
 
   test("an unknown key is a 401", async () => {
     const response: RouteResponse = await send(
-      `${server.url}/prometheus/api/v1/write`,
+      `${server.url}${PROMETHEUS_REMOTE_WRITE_PATH}`,
       {
         headers: remoteWriteHeaders(
           "Bearer 00000000-0000-4000-8000-000000000000",
@@ -308,7 +313,7 @@ describe("Prometheus remote write - POST /prometheus/api/v1/write", () => {
 
   test("a proto it does not read is a 415", async () => {
     const response: RouteResponse = await send(
-      `${server.url}/prometheus/api/v1/write`,
+      `${server.url}${PROMETHEUS_REMOTE_WRITE_PATH}`,
       {
         headers: remoteWriteHeaders(`Bearer ${INGESTION_KEY}`, {
           "content-type": "application/x-protobuf;proto=io.prometheus.write.v3.Request",
@@ -323,7 +328,7 @@ describe("Prometheus remote write - POST /prometheus/api/v1/write", () => {
 
   test("a content coding it cannot undo is a 415", async () => {
     const response: RouteResponse = await send(
-      `${server.url}/prometheus/api/v1/write`,
+      `${server.url}${PROMETHEUS_REMOTE_WRITE_PATH}`,
       {
         headers: remoteWriteHeaders(`Bearer ${INGESTION_KEY}`, {
           "content-encoding": "lz4",
@@ -337,7 +342,7 @@ describe("Prometheus remote write - POST /prometheus/api/v1/write", () => {
 
   test("a body that is not a write request is a plain-text 400", async () => {
     const response: RouteResponse = await send(
-      `${server.url}/prometheus/api/v1/write`,
+      `${server.url}${PROMETHEUS_REMOTE_WRITE_PATH}`,
       {
         headers: remoteWriteHeaders(`Bearer ${INGESTION_KEY}`),
         body: snappyCompress(Buffer.from([0x0a, 0xff, 0xff, 0xff, 0xff, 0x0f])),
@@ -351,7 +356,7 @@ describe("Prometheus remote write - POST /prometheus/api/v1/write", () => {
 
   test("a snappy body that lies about itself is a 400", async () => {
     const response: RouteResponse = await send(
-      `${server.url}/prometheus/api/v1/write`,
+      `${server.url}${PROMETHEUS_REMOTE_WRITE_PATH}`,
       {
         headers: remoteWriteHeaders(`Bearer ${INGESTION_KEY}`),
         body: Buffer.from([0x05, 0x00, 0x61]),
@@ -365,7 +370,7 @@ describe("Prometheus remote write - POST /prometheus/api/v1/write", () => {
     queue.addMetricIngestJob.mockRejectedValue(new Error("redis down") as never);
 
     const response: RouteResponse = await send(
-      `${server.url}/prometheus/api/v1/write`,
+      `${server.url}${PROMETHEUS_REMOTE_WRITE_PATH}`,
       {
         headers: remoteWriteHeaders(`Bearer ${INGESTION_KEY}`),
         body: snappyCompress(writeRequest()),
@@ -390,7 +395,7 @@ describe("Prometheus remote write - POST /prometheus/api/v1/write", () => {
     );
 
     const response: RouteResponse = await send(
-      `${server.url}/prometheus/api/v1/write`,
+      `${server.url}${PROMETHEUS_REMOTE_WRITE_PATH}`,
       {
         headers: remoteWriteHeaders(`Bearer ${INGESTION_KEY}`),
         body: snappyCompress(body),
@@ -402,7 +407,7 @@ describe("Prometheus remote write - POST /prometheus/api/v1/write", () => {
   });
 
   test("an x-oneuptime-service-name header names the service", async () => {
-    await send(`${server.url}/prometheus/api/v1/write`, {
+    await send(`${server.url}${PROMETHEUS_REMOTE_WRITE_PATH}`, {
       headers: remoteWriteHeaders(`Bearer ${INGESTION_KEY}`, {
         "x-oneuptime-service-name": "payments",
       }),
@@ -432,7 +437,7 @@ const lokiJson: string = JSON.stringify({
 describe("Loki - POST /loki/api/v1/push", () => {
   test("a JSON push with basic auth is queued as logs and answered 204", async () => {
     const response: RouteResponse = await send(
-      `${server.url}/loki/api/v1/push`,
+      `${server.url}${LOKI_PUSH_PATH}`,
       {
         headers: {
           authorization: basicAuth("oneuptime", INGESTION_KEY),
@@ -463,7 +468,7 @@ describe("Loki - POST /loki/api/v1/push", () => {
 
   test("a gzipped JSON push under /telemetry, with a bearer token", async () => {
     const response: RouteResponse = await send(
-      `${server.url}/telemetry/loki/api/v1/push`,
+      `${server.url}${COMPATIBLE_INGEST_URL_PREFIX}${LOKI_PUSH_PATH}`,
       {
         headers: {
           authorization: `Bearer ${INGESTION_KEY}`,
@@ -496,7 +501,7 @@ describe("Loki - POST /loki/api/v1/push", () => {
     );
 
     const response: RouteResponse = await send(
-      `${server.url}/loki/api/v1/push`,
+      `${server.url}${LOKI_PUSH_PATH}`,
       {
         headers: {
           "x-oneuptime-token": INGESTION_KEY,
@@ -521,7 +526,7 @@ describe("Loki - POST /loki/api/v1/push", () => {
 
   test("a protobuf push that is not snappy is a plain-text 400", async () => {
     const response: RouteResponse = await send(
-      `${server.url}/loki/api/v1/push`,
+      `${server.url}${LOKI_PUSH_PATH}`,
       {
         headers: {
           "x-oneuptime-token": INGESTION_KEY,
@@ -537,7 +542,7 @@ describe("Loki - POST /loki/api/v1/push", () => {
 
   test("a body that is not JSON is a 400 that says why", async () => {
     const response: RouteResponse = await send(
-      `${server.url}/loki/api/v1/push`,
+      `${server.url}${LOKI_PUSH_PATH}`,
       {
         headers: {
           "x-oneuptime-token": INGESTION_KEY,
@@ -553,7 +558,7 @@ describe("Loki - POST /loki/api/v1/push", () => {
 
   test("no key is a 401", async () => {
     const response: RouteResponse = await send(
-      `${server.url}/loki/api/v1/push`,
+      `${server.url}${LOKI_PUSH_PATH}`,
       { headers: { "content-type": "application/json" }, body: lokiJson },
     );
 
@@ -563,7 +568,7 @@ describe("Loki - POST /loki/api/v1/push", () => {
 
   test("a push with no entries is answered 204 and queues nothing", async () => {
     const response: RouteResponse = await send(
-      `${server.url}/loki/api/v1/push`,
+      `${server.url}${LOKI_PUSH_PATH}`,
       {
         headers: {
           "x-oneuptime-token": INGESTION_KEY,
@@ -587,7 +592,7 @@ describe("Loki - POST /loki/api/v1/push", () => {
     } as never);
 
     const response: RouteResponse = await send(
-      `${server.url}/loki/api/v1/push`,
+      `${server.url}${LOKI_PUSH_PATH}`,
       {
         headers: {
           "x-oneuptime-token": INGESTION_KEY,

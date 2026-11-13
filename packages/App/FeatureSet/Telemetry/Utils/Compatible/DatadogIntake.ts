@@ -719,23 +719,23 @@ export default class DatadogIntake {
       return { entries: [], unreadable: 0 };
     }
 
-    let document: unknown = undefined;
+    let parsedBody: unknown = undefined;
     let isOneDocument: boolean = false;
 
     try {
-      document = JSON.parse(text);
+      parsedBody = JSON.parse(text);
       isOneDocument = true;
     } catch {
       isOneDocument = false;
     }
 
     if (isOneDocument) {
-      if (Array.isArray(document)) {
-        return { entries: document, unreadable: 0 };
+      if (Array.isArray(parsedBody)) {
+        return { entries: parsedBody, unreadable: 0 };
       }
 
-      if (DatadogIntake.isRecord(document)) {
-        return { entries: [document], unreadable: 0 };
+      if (DatadogIntake.isRecord(parsedBody)) {
+        return { entries: [parsedBody], unreadable: 0 };
       }
 
       throw new DatadogIntakeError(
@@ -766,7 +766,11 @@ export default class DatadogIntake {
 
       if (Array.isArray(parsedLine)) {
         readable++;
-        entries.push(...parsedLine);
+
+        // One at a time: spreading a long array into push() overflows the stack.
+        for (const entry of parsedLine) {
+          entries.push(entry);
+        }
       } else if (DatadogIntake.isRecord(parsedLine)) {
         readable++;
         entries.push(parsedLine);
@@ -1767,9 +1771,11 @@ export default class DatadogIntake {
     const fraction: string = match[2] || "";
 
     if (whole.length <= 11) {
-      return OtlpJson.secondsToUnixNano(
+      const seconds: string | null = OtlpJson.secondsToUnixNano(
         fraction ? `${whole || "0"}.${fraction}` : whole || "0",
       );
+
+      return seconds === "0" ? null : seconds;
     }
 
     // Digits of a nanosecond each unit's fraction carries.

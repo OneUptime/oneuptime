@@ -285,7 +285,11 @@ const SPAN_ID_KEYS: ReadonlyArray<string> = ["span_id", "spanId"];
 const HEX_TRACE_ID_LENGTH: number = 32;
 const HEX_SPAN_ID_LENGTH: number = 16;
 
-// The resource's own field: never a record or point attribute.
+/*
+ * The indexed fields that name the service. service.name is the
+ * resource's, never a record or point attribute; service names it too
+ * (when service.name does not), and is kept as an attribute as well.
+ */
 const SERVICE_NAME_FIELD: string = "service.name";
 const SERVICE_FIELD: string = "service";
 const RESOURCE_FIELDS: ReadonlySet<string> = new Set<string>([
@@ -305,8 +309,8 @@ const METRIC_NAME_PREFIX: string = "metric_name:";
 /*
  * Time units past seconds, by size: a value above 1e11 is no time in
  * seconds (that is the year 5138) but one in milliseconds, as some clients
- * send it; above 1e14 microseconds, above 1e17 nanoseconds. Each is the
- * number of places the decimal point moves to make it seconds.
+ * send it; above 1e14 microseconds, above 1e17 nanoseconds. `places` is
+ * how far the decimal point moves left to make the value seconds.
  */
 const TIME_UNITS: ReadonlyArray<{ above: number; places: number }> = [
   { above: 1e17, places: 9 },
@@ -415,7 +419,9 @@ export default class SplunkHec {
 
   /*
    * Events, as parseEvents reads them, as OTLP logs and metrics. An event
-   * parseEvents would refuse (no event, or a blank one) is skipped.
+   * parseEvents would refuse (no event, or a blank one) is skipped, and
+   * keys beside HEC's own (time, host, source, sourcetype, index, event,
+   * fields) are not read.
    *
    * A log's time is its own, else the query string's, else now; its body
    * is its event - a string as it is, a number or boolean as its text, an
@@ -425,6 +431,11 @@ export default class SplunkHec {
    * flattened rather than refused), then an object event's other keys,
    * flattened ("kubernetes.pod_name"); a key in both is the field's. Its
    * severity and trace context are read from its fields, then its event.
+   *
+   * A metric event's measurements are gauge points at its time, its other
+   * fields their attributes (the exporter's metric_type among them), one
+   * metric per name in a resource. A value that is no finite number is
+   * dropped, and counted.
    */
   public static eventsToOtlp(
     events: Array<JSONObject>,
@@ -761,7 +772,7 @@ export default class SplunkHec {
     return -1;
   }
 
-  // Whether text[start, end) is only spaces and tabs (or is empty).
+  // Whether text[start, end) holds nothing but spaces, tabs, CR, VT and FF.
   private static isBlank(text: string, start: number, end: number): boolean {
     for (let index: number = start; index < end; index++) {
       const code: number = text.charCodeAt(index);

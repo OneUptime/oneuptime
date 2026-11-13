@@ -137,6 +137,21 @@ const EXPECTED_WIRING: Array<WiredIngestRoute> = [
     routePath: "/security-events/v1/ingest",
     surfaceMember: "SecurityEvents",
   },
+  /*
+   * The compatible endpoints: other tools' agents and SDKs. Server keys
+   * only, except Sentry's ingest, which a browser SDK posts to with a DSN
+   * published in page JavaScript.
+   */
+  {
+    file: `${TELEMETRY_API_DIRECTORY}/PrometheusRemoteWrite.ts`,
+    routePath: "/prometheus/api/v1/write",
+    surfaceMember: "PrometheusRemoteWrite",
+  },
+  {
+    file: `${TELEMETRY_API_DIRECTORY}/Loki.ts`,
+    routePath: "/loki/api/v1/push",
+    surfaceMember: "Loki",
+  },
   {
     file: `${TELEMETRY_API_DIRECTORY}/SessionReplayIngest.ts`,
     routePath: "/session-replay/v1/chunk",
