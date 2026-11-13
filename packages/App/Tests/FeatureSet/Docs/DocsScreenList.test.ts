@@ -79,10 +79,16 @@ beforeAll(async () => {
     });
   }
 
-  RouteMap = (
-    await import("../../../FeatureSet/Dashboard/src/Utils/RouteMap")
-  ).default;
+  RouteMap = (await import("../../../FeatureSet/Dashboard/src/Utils/RouteMap"))
+    .default;
 });
+
+// Each shot by its name, for the tests that run once per shot.
+const SHOT_CASES: Array<[string, DocsScreen]> = DOCS_SCREENS.map(
+  (shot: DocsScreen): [string, DocsScreen] => {
+    return [shot.name, shot];
+  },
+);
 
 // The Dashboard's English words an action finds on screen, to look up in a language.
 function wordsOf(action: DocsScreenAction): Array<string> {
@@ -140,7 +146,7 @@ describe("the docs' shot list", () => {
     }
   });
 
-  it.each(DOCS_SCREENS.map((shot: DocsScreen) => [shot.name, shot]))(
+  it.each(SHOT_CASES)(
     "%s names a fixture that exists, with its server",
     (_name: string, shot: DocsScreen) => {
       const fixture: DocsScreenFixture | undefined =
@@ -156,7 +162,7 @@ describe("the docs' shot list", () => {
     },
   );
 
-  it.each(DOCS_SCREENS.map((shot: DocsScreen) => [shot.name, shot]))(
+  it.each(SHOT_CASES)(
     "%s names a Dashboard page that exists, at its own address, that its fixture draws",
     (_name: string, shot: DocsScreen) => {
       const pageKey: string | undefined = (
@@ -199,14 +205,14 @@ describe("the docs' shot list", () => {
       expect({
         page: shot.page,
         drawn:
-          sources.includes("Dashboard/src/App\"") ||
+          sources.includes('Dashboard/src/App"') ||
           sources.includes(`PageMap.${shot.page}]`) ||
           sources.includes(`PageMap.${shot.page},`),
       }).toEqual({ page: shot.page, drawn: true });
     },
   );
 
-  it.each(DOCS_SCREENS.map((shot: DocsScreen) => [shot.name, shot]))(
+  it.each(SHOT_CASES)(
     "%s reaches its state and rings its button with the Dashboard's own English words",
     (_name: string, shot: DocsScreen) => {
       const words: Array<string> = [
@@ -223,7 +229,7 @@ describe("the docs' shot list", () => {
     },
   );
 
-  it.each(DOCS_SCREENS.map((shot: DocsScreen) => [shot.name, shot]))(
+  it.each(SHOT_CASES)(
     "%s is cropped to one thing, at a window a docs column can show",
     (_name: string, shot: DocsScreen) => {
       expect(shot.crop.trim().length).toBeGreaterThan(0);
@@ -261,9 +267,8 @@ describe("the docs' shot list", () => {
 });
 
 describe("the fixtures the docs screens run", () => {
-  const fixtures: Array<DocsScreenFixture> = Object.values(
-    DOCS_SCREEN_FIXTURES,
-  );
+  const fixtures: Array<DocsScreenFixture> =
+    Object.values(DOCS_SCREEN_FIXTURES);
 
   it("each on a port of its own, which no suite's config uses", () => {
     const ports: Array<number> = fixtures.map((fixture: DocsScreenFixture) => {
@@ -292,7 +297,11 @@ describe("the fixtures the docs screens run", () => {
     }
   });
 
-  it.each(fixtures.map((fixture: DocsScreenFixture) => [fixture.folder, fixture]))(
+  it.each(
+    fixtures.map((fixture: DocsScreenFixture): [string, DocsScreenFixture] => {
+      return [fixture.folder, fixture];
+    }),
+  )(
     "%s draws the languages it says it draws",
     (_folder: string, fixture: DocsScreenFixture) => {
       const folder: string = path.join(E2E, fixture.folder, "Fixture");
@@ -346,9 +355,10 @@ describe("the screenshots the docs show", () => {
         }),
       );
 
-      expect({ shot: shot.name, languages: Array.from(languages).sort() }).toEqual(
-        { shot: shot.name, languages: [...DOCS_LANGUAGES].sort() },
-      );
+      expect({
+        shot: shot.name,
+        languages: Array.from(languages).sort(),
+      }).toEqual({ shot: shot.name, languages: [...DOCS_LANGUAGES].sort() });
     }
   });
 });

@@ -61,10 +61,7 @@ describe("a screenshot on a docs page", () => {
   });
 
   it("shows the English picture in a language the shot is not drawn in", async () => {
-    const html: string = await render(
-      "![Un écran](screen:english-only)",
-      "fr",
-    );
+    const html: string = await render("![Un écran](screen:english-only)", "fr");
 
     expect(images(html)).toEqual([
       '<img src="/docs/static/images/screens/en/english-only.webp" alt="Un écran" width="500" height="200" class="docs-image docs-screen" loading="lazy" decoding="async" />',
@@ -79,7 +76,9 @@ describe("a screenshot on a docs page", () => {
       "en",
     );
 
-    expect(html).toContain('src="/docs/static/images/screens/en/website-down-who.webp"');
+    expect(html).toContain(
+      'src="/docs/static/images/screens/en/website-down-who.webp"',
+    );
     expect(html).toContain('height="314"');
   });
 
@@ -93,7 +92,9 @@ describe("a screenshot on a docs page", () => {
     expect(images(html)[0]).toContain(' title="Who is told"');
     expect(images(html)[0]).not.toContain("<b>");
     expect(images(html)[0]).toContain("&amp;");
-    expect(images(html)[0]).toContain('src="/docs/static/images/screens/en/website-down-who.webp"');
+    expect(images(html)[0]).toContain(
+      'src="/docs/static/images/screens/en/website-down-who.webp"',
+    );
   });
 
   it("leaves only its words where a shot has no picture at all, never a broken address", async () => {
@@ -144,7 +145,10 @@ describe("the pages that show screenshots, as the docs serve them", () => {
     "show every screenshot in %s from the installation's own files, in that language, with alt text",
     async (lang: string) => {
       for (const page of PAGES) {
-        const body: string = readPage(lang, page).split("\n").slice(1).join("\n");
+        const body: string = readPage(lang, page)
+          .split("\n")
+          .slice(1)
+          .join("\n");
         const html: string = await DocsRender.render(
           DocsPlaceholders.render(body, lang),
           { lang, contentLang: lang },
@@ -160,7 +164,9 @@ describe("the pages that show screenshots, as the docs serve them", () => {
         expect(screens.length).toBeGreaterThanOrEqual(3);
         for (const tag of screens) {
           expect(tag).toMatch(
-            new RegExp(`src="/docs/static/images/screens/${lang}/[a-z0-9-]+\\.webp"`),
+            new RegExp(
+              `src="/docs/static/images/screens/${lang}/[a-z0-9-]+\\.webp"`,
+            ),
           );
           expect(tag).toMatch(/ alt="[^"]{12,}"/);
           expect(tag).toMatch(/ width="\d+" height="\d+"/);

@@ -1,8 +1,5 @@
 import { ContentPath, StaticPath, ViewsPath } from "./Utils/Config";
-import {
-  cachedManifest,
-  withScreenAddresses,
-} from "./Screens/DocsScreenFiles";
+import { cachedManifest, withScreenAddresses } from "./Screens/DocsScreenFiles";
 import {
   addEnglishAnchorAliases,
   getEnglishAnchorAliases,

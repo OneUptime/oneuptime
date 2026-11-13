@@ -295,9 +295,17 @@ export default class ScreenDriver {
           continue;
         }
         const tag: string = node.tagName.toLowerCase();
+        const isHeading: boolean = [
+          "h1",
+          "h2",
+          "h3",
+          "h4",
+          "h5",
+          "h6",
+        ].includes(tag);
         const kind: string = node.getAttribute("role")
           ? (node.getAttribute("role") as string)
-          : (/^h[1-6]$/).test(tag)
+          : isHeading
             ? "heading"
             : tag === "a"
               ? "link"

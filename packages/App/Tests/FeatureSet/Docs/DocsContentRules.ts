@@ -256,7 +256,8 @@ const ABSOLUTE_DOCS_LINK: RegExp =
   /^https?:\/\/(?:www\.)?oneuptime\.com\/docs\//;
 const QUERY_OR_HASH: RegExp = /[?#]/;
 // A screenshot as a page writes it: ![alt text](screen:<shot>).
-const SCREEN_IMAGE: RegExp = /!\[((?:\\.|[^\]\\])*)\]\(\s*(screen:[^)\s]*)\s*\)/g;
+const SCREEN_IMAGE: RegExp =
+  /!\[((?:\\.|[^\]\\])*)\]\(\s*(screen:[^)\s]*)\s*\)/g;
 const NOT_A_WORD: RegExp = /[^a-z0-9]+/;
 // Words any two titles may share without being about the same thing.
 const STOP_WORDS: Array<string> = [

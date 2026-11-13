@@ -184,9 +184,10 @@ describe("the languages a shot is drawn in", () => {
       { drawn: ["en", "de", "fa"], english: ["fr", "ja"] },
     );
     // English is drawn even when a fixture does not list it.
-    expect(planLanguages({ ...FIXTURE, languages: [] }, ["en", "de"])).toEqual(
-      { drawn: ["en"], english: ["de"] },
-    );
+    expect(planLanguages({ ...FIXTURE, languages: [] }, ["en", "de"])).toEqual({
+      drawn: ["en"],
+      english: ["de"],
+    });
   });
 });
 
@@ -212,13 +213,20 @@ describe("going on from the shot before", () => {
     expect(continuesFrom(null, next)).toBe(false);
     expect(continuesFrom(next, SHOT)).toBe(false);
     expect(continuesFrom(SHOT, { ...next, fixture: "Elsewhere" })).toBe(false);
-    expect(continuesFrom(SHOT, { ...next, path: "/dashboard/:projectId/home/" })).toBe(false);
-    expect(continuesFrom(SHOT, { ...next, params: { id: "another" } })).toBe(false);
+    expect(
+      continuesFrom(SHOT, { ...next, path: "/dashboard/:projectId/home/" }),
+    ).toBe(false);
+    expect(continuesFrom(SHOT, { ...next, params: { id: "another" } })).toBe(
+      false,
+    );
     expect(continuesFrom(SHOT, { ...next, query: "?billing=on" })).toBe(false);
     expect(continuesFrom(SHOT, { ...next, width: 390 })).toBe(false);
     expect(continuesFrom(SHOT, { ...next, height: 700 })).toBe(false);
     expect(
-      continuesFrom(SHOT, { ...next, state: [{ press: "Skip" }, { press: "Continue" }] }),
+      continuesFrom(SHOT, {
+        ...next,
+        state: [{ press: "Skip" }, { press: "Continue" }],
+      }),
     ).toBe(false);
   });
 });
@@ -307,7 +315,9 @@ describe("the manifest", () => {
       width: 2400,
       height: 1200,
     });
-    expect(webpSize(Buffer.from("not a picture at all, not at all"))).toBeNull();
+    expect(
+      webpSize(Buffer.from("not a picture at all, not at all")),
+    ).toBeNull();
     const png: Buffer = Buffer.alloc(40);
     png.write("\u0089PNG", 0, "latin1");
     expect(webpSize(png)).toBeNull();
@@ -382,9 +392,9 @@ describe("the manifest", () => {
   });
 
   it("reads as empty where there is none yet", () => {
-    expect(readManifest(path.join(os.tmpdir(), "no-such-manifest.json"))).toEqual(
-      { pixelRatio: SCREEN_PIXEL_RATIO, shots: {} },
-    );
+    expect(
+      readManifest(path.join(os.tmpdir(), "no-such-manifest.json")),
+    ).toEqual({ pixelRatio: SCREEN_PIXEL_RATIO, shots: {} });
   });
 });
 
@@ -428,18 +438,25 @@ describe("the screenshots on disk", () => {
     let total: number = 0;
 
     for (const shot of DOCS_SCREENS) {
-      for (const [lang, size] of Object.entries(manifest.shots[shot.name] || {})) {
+      for (const [lang, size] of Object.entries(
+        manifest.shots[shot.name] || {},
+      )) {
         const data: Buffer = fs.readFileSync(
           path.join(STATIC_FOLDER, screenFile(lang, shot.name)),
         );
         const pixels: { width: number; height: number } | null = webpSize(data);
 
         expect(pixels).not.toBeNull();
-        expect(Math.abs(pixels!.width - size.width * SCREEN_PIXEL_RATIO)).toBeLessThanOrEqual(1);
-        expect(Math.abs(pixels!.height - size.height * SCREEN_PIXEL_RATIO)).toBeLessThanOrEqual(1);
-        expect({ file: screenFile(lang, shot.name), light: data.length <= MAX_PICTURE_BYTES }).toEqual(
-          { file: screenFile(lang, shot.name), light: true },
-        );
+        expect(
+          Math.abs(pixels!.width - size.width * SCREEN_PIXEL_RATIO),
+        ).toBeLessThanOrEqual(1);
+        expect(
+          Math.abs(pixels!.height - size.height * SCREEN_PIXEL_RATIO),
+        ).toBeLessThanOrEqual(1);
+        expect({
+          file: screenFile(lang, shot.name),
+          light: data.length <= MAX_PICTURE_BYTES,
+        }).toEqual({ file: screenFile(lang, shot.name), light: true });
         // Narrow enough to read in the docs' column, shrunk to it.
         expect(size.width).toBeLessThanOrEqual(1100);
         total += data.length;
@@ -472,7 +489,11 @@ describe("the screenshots on disk", () => {
 
       for (const [name, sizes] of Object.entries(manifest.shots)) {
         if (sizes[lang]) {
-          expect({ lang, name, fingerprint: Boolean(fingerprints[name]) }).toEqual({
+          expect({
+            lang,
+            name,
+            fingerprint: Boolean(fingerprints[name]),
+          }).toEqual({
             lang,
             name,
             fingerprint: true,

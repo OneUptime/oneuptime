@@ -116,13 +116,17 @@ describe("a shot whose page changed", () => {
   });
 
   it("is stale when it only grows or narrows past the tolerance: a section opened, a column added", () => {
-    expect(
-      compareFingerprints(DRAWN, { ...DRAWN, width: 1100 }),
-    ).toEqual(["its size went from 780x314 to 1100x314"]);
+    expect(compareFingerprints(DRAWN, { ...DRAWN, width: 1100 })).toEqual([
+      "its size went from 780x314 to 1100x314",
+    ]);
     expect(
       compareFingerprints(DRAWN, {
         ...DRAWN,
-        height: DRAWN.height + SIZE_TOLERANCE_PIXELS + 1 + DRAWN.height * SIZE_TOLERANCE_RATIO,
+        height:
+          DRAWN.height +
+          SIZE_TOLERANCE_PIXELS +
+          1 +
+          DRAWN.height * SIZE_TOLERANCE_RATIO,
       }),
     ).toHaveLength(1);
   });
@@ -155,7 +159,10 @@ describe("the staleness issue", () => {
       {
         name: "website-down-who",
         lang: "en",
-        reasons: ['no longer says "Save and continue"', 'now says "Save and go on"'],
+        reasons: [
+          'no longer says "Save and continue"',
+          'now says "Save and go on"',
+        ],
       },
       {
         name: "website-down-who",
@@ -206,7 +213,9 @@ describe("the staleness issue", () => {
     expect(REGENERATE_COMMAND).toBe("cd packages/E2E && npm run docs-screens");
     expect(body).toContain(`\`\`\`bash\n${REGENERATE_COMMAND}\n\`\`\``);
     expect(body).toContain("It needs no server");
-    expect(body).toContain("packages/App/FeatureSet/Docs/Screens/DocsScreenList.ts");
+    expect(body).toContain(
+      "packages/App/FeatureSet/Docs/Screens/DocsScreenList.ts",
+    );
     expect(body).toContain(
       "Last checked: https://github.com/OneUptime/oneuptime/actions/runs/1",
     );

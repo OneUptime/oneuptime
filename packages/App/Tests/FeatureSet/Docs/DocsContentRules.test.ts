@@ -719,9 +719,9 @@ describe("the rules, on pages written here", () => {
         en: {
           "a/one": md(
             "# One",
-            "![The step \"Who should be told?\"](screen:website-down-who)",
+            '![The step "Who should be told?"](screen:website-down-who)',
             "",
-            "![The step \"Send a test\"](screen:website-down-test)",
+            '![The step "Send a test"](screen:website-down-test)',
             "",
             "![](screen:website-down-address)",
           ),
@@ -731,7 +731,7 @@ describe("the rules, on pages written here", () => {
             "# Eins",
             "![Der Schritt „Wer soll informiert werden?“](screen:website-down-who)",
             "",
-            "![The step \"Send a test\"](screen:website-down-test)",
+            '![The step "Send a test"](screen:website-down-test)',
             "",
             "![   ](screen:website-down-address)",
           ),
