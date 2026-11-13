@@ -79,6 +79,9 @@ const PAGE_CLAUSES_PATTERN: RegExp = new RegExp(
     .join("\\s+"),
 );
 
+// Any run of whitespace, read as one space.
+const WHITESPACE_RUN: RegExp = /\s+/g;
+
 const getRepository: jest.Mock =
   UserOnCallLogTimelineService.getRepository as unknown as jest.Mock;
 const info: jest.Mock = logger.info as jest.Mock;
@@ -274,6 +277,28 @@ describe("what the statement reads and writes", () => {
     expect(sql).toContain('"version" = "notification"."version" + 1');
     expect(sql).toContain('"statusMessage" = $3');
     expect(sql).toContain('"updatedAt" = now()');
+  });
+
+  /*
+   * The planner may drive the write from the partial index of the
+   * notifications that say Sending rather than from the page. Bounded by
+   * the page's own cut-off, that read finds nothing when there is nothing
+   * to settle; unbounded, it read every notification still going out, on
+   * every run of the check (issue #7290; the plan itself is pinned in
+   * OnCallStuckNotificationsPostgres.test.ts).
+   */
+  test("the write is bounded by the page's cut-off too, so it never reads a notification still going out", async () => {
+    await settle();
+
+    const sql: string = statements[0]!.sql.replace(WHITESPACE_RUN, " ");
+    const write: string = sql.slice(sql.indexOf("UPDATE "));
+
+    expect(write).toContain(
+      `"notification"."deletedAt" IS NULL AND "notification"."createdAt" < $1 RETURNING`,
+    );
+    // The same cut-off as the page's, not a second one.
+    expect(statements[0]!.parameters).toHaveLength(3);
+    expect(statements[0]!.parameters[0]).toEqual(CUT_OFF);
   });
 
   test("straight to the table, through the service's repository alone: none of its writes - so none of their hooks - runs", async () => {

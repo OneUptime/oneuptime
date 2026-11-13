@@ -241,6 +241,15 @@ export async function settleNotificationsStuckBeforeTheCheck(data?: {
   const sending: string = UserNotificationStatus.Sending;
   const error: string = UserNotificationStatus.Error;
 
+  /*
+   * The write says the page's cut-off again. It changes nothing it writes -
+   * every notification of the page was written before it - but the planner
+   * may drive the write from the partial index instead of from the page,
+   * and without the cut-off that read every notification still Sending,
+   * those still going out included, on every run (issue #7290). With it,
+   * either way, a run with none to settle reads a page of the index and
+   * finds nothing.
+   */
   for (;;) {
     const rows: Array<SettledPageRow> = (await repository.manager.query(
       `WITH "page" AS (
@@ -252,7 +261,7 @@ export async function settleNotificationsStuckBeforeTheCheck(data?: {
          UPDATE "${tableName}" AS "notification"
          SET "status" = '${error}', "statusMessage" = $3, "version" = "notification"."version" + 1, "updatedAt" = now()
          FROM "page"
-         WHERE "notification"."_id" = "page"."_id" AND "notification"."status" = '${sending}' AND "notification"."deletedAt" IS NULL
+         WHERE "notification"."_id" = "page"."_id" AND "notification"."status" = '${sending}' AND "notification"."deletedAt" IS NULL AND "notification"."createdAt" < $1
          RETURNING "notification"."_id"
        )
        SELECT (SELECT COUNT(*) FROM "page") AS "found", (SELECT COUNT(*) FROM "settled") AS "settled"`,

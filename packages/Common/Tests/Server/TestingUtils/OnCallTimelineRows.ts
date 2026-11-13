@@ -101,12 +101,13 @@ export const ON_CALL_TIMELINE_TABLE_NAME: string = "UserOnCallLogTimeline";
  * What the statement has to say, whitespace aside, for the stand-in to run
  * it: its page - Sending, not deleted, before the cut-off, the oldest
  * first, at most the limit - and its write - Error and the message, over
- * Sending only. Anything else throws, so a changed statement fails loudly.
+ * Sending only, before the same cut-off. Anything else throws, so a changed
+ * statement fails loudly.
  */
 export const SETTLE_STATEMENT_CLAUSES: ReadonlyArray<string> = [
   `SELECT "_id" FROM "${ON_CALL_TIMELINE_TABLE_NAME}" WHERE "status" = '${UserNotificationStatus.Sending}' AND "deletedAt" IS NULL AND "createdAt" < $1 ORDER BY "createdAt" ASC LIMIT $2`,
   `UPDATE "${ON_CALL_TIMELINE_TABLE_NAME}" AS "notification" SET "status" = '${UserNotificationStatus.Error}', "statusMessage" = $3, "version" = "notification"."version" + 1`,
-  `WHERE "notification"."_id" = "page"."_id" AND "notification"."status" = '${UserNotificationStatus.Sending}' AND "notification"."deletedAt" IS NULL`,
+  `WHERE "notification"."_id" = "page"."_id" AND "notification"."status" = '${UserNotificationStatus.Sending}' AND "notification"."deletedAt" IS NULL AND "notification"."createdAt" < $1`,
 ];
 
 // Any run of whitespace, read as one space.

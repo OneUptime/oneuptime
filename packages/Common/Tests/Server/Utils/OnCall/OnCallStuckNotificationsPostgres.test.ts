@@ -29,6 +29,7 @@ import {
   recordSendFailure,
 } from "../../../../Server/Utils/OnCall/OnCallSendFailure";
 import {
+  MAX_SETTLED_BEFORE_THE_CHECK_PER_STATEMENT,
   MAX_STUCK_NOTIFICATIONS_PER_RUN,
   NotificationsSettledBeforeTheCheckSummary,
   runStuckNotificationCheck,
@@ -98,7 +99,9 @@ import { PostgresQueryRunner } from "typeorm/driver/postgres/PostgresQueryRunner
  *     from the last minutes, and leaves the rest; with none that old, its
  *     statement for them reads one page of the partial index and writes
  *     nothing, on a table of tens of thousands of notifications, with the
- *     planner left to choose (issue #7290).
+ *     planner left to choose; and run at the same time as the upgrade's data
+ *     migration, which settles the same ones, each is settled once
+ *     (issue #7290).
  */
 const describePostgres: typeof describe.skip =
   process.env["RUN_POSTGRES_ONCALL_STUCK_NOTIFICATIONS_TESTS"] === "true"
@@ -1434,7 +1437,16 @@ describePostgres(
             await seed({ status: UserNotificationStatus.Sending, age: age });
           }
 
-          await database.query(`ANALYZE "${schema}"."UserOnCallLogTimeline"`);
+          /*
+           * Vacuumed as autovacuum keeps a live table: the earlier tests'
+           * notifications, settled and deleted, leave index entries behind
+           * until a vacuum, and a scan past them would read their pages. So
+           * what is measured is the statement on a table at rest, whichever
+           * tests ran before.
+           */
+          await database.query(
+            `VACUUM ANALYZE "${schema}"."UserOnCallLogTimeline"`,
+          );
 
           const pages: Array<{ pages: string | number }> = await database.query(
             `SELECT pg_relation_size('"${schema}"."UserOnCallLogTimeline"') / current_setting('block_size')::int AS "pages"`,
@@ -1507,12 +1519,111 @@ describePostgres(
               }),
           ).toEqual([]);
 
-          // A page or two of the index, of the table's hundreds.
+          /*
+           * No scan that ran read a notification - not even the three still
+           * going out. The planner drives the write from the page or from
+           * the partial index, run to run as its statistics fall; from the
+           * index, the write's cut-off keeps it off the ones still going
+           * out (an unbounded write read all three here, on about one run
+           * in three).
+           */
+          expect(
+            nodes
+              .filter((node: ExplainedNode) => {
+                return (
+                  SCAN_NODE_TYPES.includes(node["Node Type"]) &&
+                  (node["Actual Rows"] || 0) > 0
+                );
+              })
+              .map((node: ExplainedNode) => {
+                return `${node["Node Type"]}: ${node["Actual Rows"]}`;
+              }),
+          ).toEqual([]);
+
+          /*
+           * A page or two of the index, of the table's hundreds: one lookup
+           * for the page, and one more for the write when the planner drives
+           * it from the index.
+           */
           const read: number =
             (explained.Plan["Shared Hit Blocks"] || 0) +
             (explained.Plan["Shared Read Blocks"] || 0);
 
-          expect(read).toBeLessThanOrEqual(3);
+          expect(read).toBeLessThanOrEqual(4);
+        },
+        120 * 1000,
+      );
+
+      /*
+       * As a server is upgraded, its data migration settles the older ones
+       * (SettleOnCallNotificationsStuckBeforeUpgrade) while the worker job's
+       * run of the check may be settling the same ones. Each statement
+       * writes over Sending only, and Postgres reads a notification again
+       * once the other statement's write lands: none is written twice, and
+       * the one that keeps going settles the rest. Last in this block: the
+       * thousands it settles and deletes leave index entries behind.
+       */
+      test(
+        "run at the same time as the upgrade's data migration, which settles the same ones: each is settled once, and none is left",
+        async () => {
+          const count: number =
+            3 * MAX_SETTLED_BEFORE_THE_CHECK_PER_STATEMENT + 500;
+
+          // A second apart, the newest 25 hours ago.
+          await database.query(
+            `INSERT INTO "${schema}"."UserOnCallLogTimeline"
+         ("_id", "userId", "projectId", "userNotificationLogId", "onCallDutyPolicyId",
+          "onCallDutyPolicyExecutionLogId", "onCallDutyPolicyExecutionLogTimelineId",
+          "userNotificationEventType", "onCallDutyPolicyEscalationRuleId",
+          "statusMessage", "status", "version", "createdAt", "updatedAt")
+         SELECT gen_random_uuid(), $1, $2, gen_random_uuid(), gen_random_uuid(),
+                gen_random_uuid(), gen_random_uuid(), 'Incident Created', gen_random_uuid(),
+                'Sending SMS.', 'Sending', 1,
+                $3::timestamptz - make_interval(secs => n), $3::timestamptz - make_interval(secs => n)
+         FROM generate_series(0, $4::int - 1) AS n`,
+            [
+              userId.toString(),
+              projectId.toString(),
+              new Date(now.getTime() - 25 * HOUR),
+              count,
+            ],
+          );
+
+          const [run, migration]: [
+            StuckNotificationCheckRunSummary,
+            NotificationsSettledBeforeTheCheckSummary,
+          ] = await Promise.all([
+            runTheCheck(),
+            settleNotificationsStuckBeforeTheCheck({ now: now }),
+          ]);
+
+          // Between them, every one: none twice, none left.
+          expect(run.beforeTheLookBack.settled + migration.settled).toBe(count);
+
+          const rows: Array<StoredRow & { count: string }> =
+            await database.query(
+              `SELECT "status", "statusMessage", "version", COUNT(*) AS "count"
+             FROM "${schema}"."UserOnCallLogTimeline"
+             GROUP BY "status", "statusMessage", "version"`,
+            );
+
+          expect(rows).toEqual([
+            {
+              status: UserNotificationStatus.Error,
+              statusMessage: STUCK_NOTIFICATION_STATUS_MESSAGE,
+              version: 2,
+              count: String(count),
+            },
+          ]);
+
+          // The next run finds none.
+          now = new Date(now.getTime() + 5 * MINUTE);
+
+          expect((await runTheCheck()).beforeTheLookBack).toEqual({
+            found: 0,
+            settled: 0,
+            statements: 1,
+          });
         },
         120 * 1000,
       );
@@ -1525,6 +1636,7 @@ interface ExplainedNode {
   "Node Type": string;
   "Index Name"?: string;
   "Actual Loops"?: number;
+  "Actual Rows"?: number;
   "Shared Hit Blocks"?: number;
   "Shared Read Blocks"?: number;
   Plans?: Array<ExplainedNode>;
@@ -1533,6 +1645,15 @@ interface ExplainedNode {
 interface ExplainedStatement {
   Plan: ExplainedNode;
 }
+
+// The plan nodes that read a table, directly or through an index.
+const SCAN_NODE_TYPES: ReadonlyArray<string> = [
+  "Seq Scan",
+  "Index Scan",
+  "Index Only Scan",
+  "Bitmap Heap Scan",
+  "Bitmap Index Scan",
+];
 
 // A plan's nodes, its sub-plans' and CTEs' included.
 function nodesOf(node: ExplainedNode): Array<ExplainedNode> {
