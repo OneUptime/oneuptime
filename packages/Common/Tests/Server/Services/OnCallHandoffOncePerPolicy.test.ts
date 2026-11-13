@@ -34,6 +34,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * A HANDOFF IS POSTED ONCE FOR EACH POLICY, NOT ONCE FOR EACH ESCALATION
@@ -303,7 +304,7 @@ describe("which policies post a handoff, and when", () => {
   });
 
   test("the schedule service writes no feed entry of its own any more", async () => {
-    const create: jest.SpiedFunction<
+    const create: SpyInstance<
       typeof OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem
     > = jest.spyOn(
       OnCallDutyPolicyFeedService,
