@@ -769,6 +769,31 @@ describe("in a right-to-left language", () => {
   );
 });
 
+/*
+ * The variables are server settings, not a record: there is no ID or
+ * creation time to put on a line under the fields, so Detail draws none, and
+ * the card needs no switch to turn it off (showRecordLine={false} is the
+ * custom fields card's alone, by RecordIdLineGuard), as the Twilio card's
+ * (#7775).
+ */
+describe("not a record", () => {
+  test("its fields, with no ID or Created line under them", async () => {
+    environmentAnswer = answerFor(environmentSmtp());
+
+    await renderPage();
+
+    const card: HTMLElement = await environmentCard();
+
+    // The fields are drawn, down to the last one...
+    expect(within(card).getByText("GLOBAL_EMAIL_FROM_NAME")).toBeVisible();
+    // ...and nothing under them.
+    expect(within(card).queryByTestId("detail-record-line")).toBeNull();
+    expect(within(card).queryByTestId("detail-id-line")).toBeNull();
+    expect(within(card).queryByTestId("detail-created-at")).toBeNull();
+    expect(within(card).queryByTestId("detail-updated-at")).toBeNull();
+  });
+});
+
 describe("the field titles", () => {
   test("one for each variable, each a title the Admin Dashboard already shows", () => {
     expect(Object.keys(SERVER_EMAIL_ENVIRONMENT_FIELD_TITLES).sort()).toEqual(
