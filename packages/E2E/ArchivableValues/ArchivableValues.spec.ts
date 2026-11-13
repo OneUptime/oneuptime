@@ -23,7 +23,10 @@ import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 const ROUTE: string =
   "/dashboard/10000000-0000-4000-8000-000000000001/incidents/settings";
 
-// User Settings > On-Call Rules: the page the Archive dialog links to.
+/*
+ * User Settings > How to Reach Me: the page the Archive dialog links to. It
+ * was called On-Call Rules until #6817 and kept its address.
+ */
 const ON_CALL_RULES_ROUTE: string =
   "/dashboard/10000000-0000-4000-8000-000000000001/user-settings/on-call-rules";
 
@@ -621,9 +624,15 @@ test.describe("at a phone's width, and in the dark", () => {
  * every member's own on-call rules - one per severity, kind and method - as
  * the project's settings that keep using it. They are said apart now, by
  * person, as what they are and what they keep doing.
+ *
+ * Since 54937d56ab8 (#6817) they are named by the page they are kept on,
+ * How to Reach Me: "On-call rules" names only the project's rules now, and
+ * "Personal On-Call Rules" is a retired name (Common/Types/Docs/
+ * RetiredNames.ts). The sentences, the link and the Delete lines here are
+ * ArchivableValueCopy.ts's since then, in English, German and Persian.
  */
 test.describe("what really uses a severity", () => {
-  test("Archive lists the project's settings, then how many people have on-call rules for it, which stay", async ({
+  test("Archive lists the project's settings, then how many people have rules for it in How to Reach Me, which stay", async ({
     page,
   }: {
     page: Page;
@@ -643,13 +652,16 @@ test.describe("what really uses a severity", () => {
     );
 
     await expect(people).toHaveText(
-      "11 people have their own on-call rules for this severity. Those rules stay as they are, so incidents with it still page them. See your on-call rules",
+      "11 people have rules for this severity in How to Reach Me. Those rules stay as they are, so incidents with it still page them. Open How to Reach Me",
     );
     await expect(dialog(page)).not.toContainText("Notification Rules");
 
-    // The link opens the reader's own On-Call Rules, on the Incidents tab.
+    /*
+     * The link opens the reader's own How to Reach Me. A severity's rules
+     * for incidents are on its first tab, whose address is the bare one.
+     */
     const link: Locator = dialog(page).getByRole("link", {
-      name: "See your on-call rules",
+      name: "Open How to Reach Me",
     });
 
     await expect(link).toHaveAttribute("href", ON_CALL_RULES_ROUTE);
@@ -657,7 +669,7 @@ test.describe("what really uses a severity", () => {
     await dialogScreenshot(page, "archive-dialog-people-1280-light");
   });
 
-  test("See your on-call rules opens them in a new tab, and the Archive dialog stays open for its answer", async ({
+  test("Open How to Reach Me opens it in a new tab, and the Archive dialog stays open for its answer", async ({
     page,
   }: {
     page: Page;
@@ -668,7 +680,7 @@ test.describe("what really uses a severity", () => {
     await menu.getByRole("menuitem", { name: "Archive" }).click();
 
     const link: Locator = dialog(page).getByRole("link", {
-      name: "See your on-call rules",
+      name: "Open How to Reach Me",
     });
 
     await expect(link).toHaveAttribute("target", "_blank");
@@ -680,6 +692,12 @@ test.describe("what really uses a severity", () => {
 
     await rules.waitForLoadState();
     expect(new URL(rules.url()).pathname).toBe(ON_CALL_RULES_ROUTE);
+    /*
+     * The page the link names. This person's incident episode cards page
+     * nothing, unlike their incident cards, so it opens on the cards, one
+     * per severity, rather than on one ladder (#6820).
+     */
+    await expect(rules.getByTestId("how-to-reach-me")).toBeVisible();
     await expect(
       rules.getByTestId("on-call-rules-severity-title").first(),
     ).toBeVisible();
@@ -702,7 +720,7 @@ test.describe("what really uses a severity", () => {
     await menu.getByRole("menuitem", { name: "Archive" }).click();
 
     await expect(dialog(page)).toContainText(
-      "2 people have their own on-call rules for this severity. Those rules stay as they are, so incidents with it still page them.",
+      "2 people have rules for this severity in How to Reach Me. Those rules stay as they are, so incidents with it still page them.",
     );
     await expect(dialog(page)).not.toContainText(
       "These keep using it until you change them:",
@@ -726,6 +744,11 @@ test.describe("what really uses a severity", () => {
     ]);
   });
 
+  /*
+   * Only each person's rules for the severity go, never their whole How to
+   * Reach Me: the line names the rules, then the page they are kept on
+   * (#7816).
+   */
   test("Delete of a severity only people's rules use says whose rules go with it", async ({
     page,
   }: {
@@ -739,7 +762,7 @@ test.describe("what really uses a severity", () => {
     await expect(dialog(page)).toContainText("Deleting it also changes these:");
     await expect(
       dialog(page).getByTestId("archivable-value-delete-group-Deleted"),
-    ).toHaveText("•Deleted with it: On-call rules of 2 people");
+    ).toHaveText("•Deleted with it: 2 people's rules in How to Reach Me");
 
     await dialogScreenshot(page, "delete-dialog-people-1280-light");
   });
@@ -849,7 +872,7 @@ test.describe("Bulk Actions > Delete of severities", () => {
     // Two values go: what goes is deleted with them.
     await expect(
       changes.getByTestId("archivable-value-delete-group-Deleted"),
-    ).toHaveText("•Deleted with them: On-call rules of 2 people");
+    ).toHaveText("•Deleted with them: 2 people's rules in How to Reach Me");
     await expect(
       changes.getByTestId("archivable-value-delete-group-RemovedFromList"),
     ).toHaveText("•Removed from: Incident Label Rules (1)");
@@ -918,12 +941,12 @@ test.describe("Bulk Actions > Delete of severities", () => {
 });
 
 /*
- * User Settings > On-Call Rules, where the Archive dialog sends people: an
+ * User Settings > How to Reach Me, where the Archive dialog sends people: an
  * archived severity the person still has rules for comes after the live
  * ones, marked Archived, says what its rules still do, and offers no Add -
  * the server refuses a new rule for an archived severity.
  */
-test.describe("an archived severity on the On-Call Rules page", () => {
+test.describe("an archived severity on the How to Reach Me page", () => {
   test("comes last, marked Archived, with its rules and no Add", async ({
     page,
   }: {
@@ -1011,7 +1034,12 @@ interface LanguageCase {
   link: string;
   // The bulk Delete's line about the refused one.
   refused: string;
-  // The archived severity's card on the On-Call Rules page.
+  /*
+   * And its line about what goes with Minor, the one it deletes: the rules
+   * of the 2 people who have rules for it, in their How to Reach Me.
+   */
+  deleted: string;
+  // The archived severity's card on the How to Reach Me page.
   archivedTag: string;
   archivedCard: string;
 }
@@ -1023,10 +1051,12 @@ const LANGUAGES: Array<LanguageCase> = [
     delete: "Löschen",
     bulkActions: "Massenaktionen",
     people:
-      "11 Personen haben eigene Bereitschaftsregeln für diesen Schweregrad. Diese Regeln bleiben, wie sie sind, daher alarmieren Vorfälle mit diesem Schweregrad diese Personen weiterhin.",
-    link: "Ihre Bereitschaftsregeln ansehen",
+      "11 Personen haben in „Wie ich erreichbar bin“ Regeln für diesen Schweregrad. Diese Regeln bleiben, wie sie sind, daher alarmieren Vorfälle mit diesem Schweregrad diese Personen weiterhin.",
+    link: "Wie ich erreichbar bin öffnen",
     refused:
       "Critical kann nicht gelöscht werden, solange Folgendes darauf verweist:",
+    deleted:
+      "Werden mitgelöscht: Regeln von 2 Personen in „Wie ich erreichbar bin“",
     archivedTag: "Archiviert",
     archivedCard:
       "Wie Sie bei Vorfällen benachrichtigt werden, die diesen Schweregrad noch haben.",
@@ -1036,9 +1066,13 @@ const LANGUAGES: Array<LanguageCase> = [
     archive: "بایگانی",
     delete: "حذف",
     bulkActions: "اقدامات گروهی",
-    people: "برای این شدت قواعد آنکال خودشان را دارند",
-    link: "قواعد آنکال خود را ببینید",
+    // From the word after its count, which is drawn in Persian digits.
+    people:
+      "نفر در «راه‌های تماس با من» برای این شدت قاعده دارند. این قواعد همان‌طور که هستند می‌مانند، پس حادثه‌هایی با این شدت همچنان آن‌ها را فرا می‌خوانند.",
+    link: "باز کردن راه‌های تماس با من",
     refused: "نمی‌توان آن را حذف کرد",
+    // Its count in Persian digits.
+    deleted: "همراه آن حذف می‌شوند: قواعد ۲ نفر در «راه‌های تماس با من»",
     archivedTag: "بایگانی‌شده",
     archivedCard: "که هنوز این شدت را دارند",
   },
@@ -1121,6 +1155,11 @@ for (const language of LANGUAGES) {
           await expect(
             dialog(page).getByTestId("archivable-values-bulk-delete-changes"),
           ).toBeVisible();
+          await expect(
+            dialog(page)
+              .getByTestId("archivable-values-bulk-delete-changes")
+              .getByTestId("archivable-value-delete-group-Deleted"),
+          ).toHaveText(`•${language.deleted}`);
 
           const bulkBox: { x: number; width: number } =
             await restingDialogBox(page);
@@ -1134,7 +1173,7 @@ for (const language of LANGUAGES) {
           );
         });
 
-        test(`the On-Call Rules page's archived severity at ${width}px`, async ({
+        test(`the How to Reach Me page's archived severity at ${width}px`, async ({
           page,
         }: {
           page: Page;

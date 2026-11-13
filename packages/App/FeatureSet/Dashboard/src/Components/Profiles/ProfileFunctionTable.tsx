@@ -1,4 +1,5 @@
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import DirectionArrow from "Common/UI/Components/DirectionArrow/DirectionArrow";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -415,11 +416,9 @@ const ProfileFunctionTable: FunctionComponent<ComponentProps> = (
             const isHeavier: boolean = points > 0;
             const beforeAfter: ReactElement = (
               <>
-                {formatProfileShare(before)}{" "}
-                <span className="text-gray-400" aria-hidden="true">
-                  →
-                </span>{" "}
-                {formatProfileShare(after)}
+                <bdi>{formatProfileShare(before)}</bdi>{" "}
+                <DirectionArrow className="text-gray-400" isDecorative={true} />{" "}
+                <bdi>{formatProfileShare(after)}</bdi>
               </>
             );
             const pointsText: string =

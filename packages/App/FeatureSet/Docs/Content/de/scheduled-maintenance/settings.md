@@ -69,7 +69,7 @@ Eine Regel passt nur, wenn jede ausgefüllte Bedingung zutrifft; eine leer gelas
 :::steps
 ### Wählen, an welche Ereignisse erinnert wird
 
-Klicken Sie auf **Erinnerungsregel für geplante Wartungen erstellen**. Lassen Sie unter **Übereinstimmung** die Auswahl **Alle geplanten Wartungsereignisse** stehen, um an jedes Ereignis zu erinnern, oder wählen Sie **Nur geplante Wartungsereignisse, die den Bedingungen entsprechen** und dann die **Beschriftungen**, für die sie gilt.
+Klicken Sie auf **Erinnerungsregel für geplante Wartungen erstellen**. Lassen Sie unter **Übereinstimmung** die Auswahl **Alle Wartungsereignisse** stehen, um an jedes Ereignis zu erinnern, oder wählen Sie **Nur Wartungsereignisse, die den Bedingungen entsprechen** und dann die **Beschriftungen**, für die sie gilt.
 
 ### Das Intervall festlegen
 

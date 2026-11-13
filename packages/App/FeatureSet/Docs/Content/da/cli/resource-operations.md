@@ -182,7 +182,7 @@ Hændelser, advarsler, deres episoder og planlagte vedligeholdelsesbegivenheder 
 | `resolve <id>` | Flytter den til dit projekts løst-tilstand | De samme fire |
 | `start <id>` | Flytter begivenheden til dit projekts igangværende tilstand | `scheduled-maintenance-event` |
 | `end <id>` | Flytter den til dit projekts afsluttet-tilstand | `scheduled-maintenance-event` |
-| `add-note <id> --note <markdown>` | Tilføjer en note, som dit team ser, eller med `--public` en på postens statussider | Alle fem |
+| `add-note <id> --note <markdown>` | Tilføjer en note, som kun dem, der kan se posten, kan læse, eller med `--public` en på postens statussider | Alle fem |
 
 ```bash
 oneuptime incident acknowledge 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11

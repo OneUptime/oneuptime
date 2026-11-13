@@ -291,9 +291,10 @@ export const CAPPED_COUNT: string = translationKey("{{count}}+");
 /*
  * PEOPLE'S OWN SETTINGS THAT NAME A VALUE (ArchivableValueUsageKind.Personal).
  *
- * Every member of a project has on-call rules of their own - one for each
- * severity, kind (incidents, episodes) and notification method, which
- * OneUptime sets up when they join - and their own notification settings.
+ * Every member of a project has rules of their own in How to Reach Me - one
+ * for each severity, kind (incidents, episodes) and notification method,
+ * which OneUptime sets up when they join - and their own notification
+ * settings.
  * The Archive dialog used to list them as "Notification Rules (22)" among
  * the project's settings that keep using a value until someone changes
  * them: nobody recognised them, and the count was of rows. They are said as
@@ -304,11 +305,19 @@ export const CAPPED_COUNT: string = translationKey("{{count}}+");
  * declare to an entry here.
  */
 
-// One line of a list - the Delete dialog's - "11 people's How to Reach Me".
+/*
+ * One line of a list - the Delete dialog's - "11 people's rules in How to
+ * Reach Me": the rows a delete takes or changes, named as what they are,
+ * then whose. Never the page they are kept on alone: "11 people's How to
+ * Reach Me" read as if those people's whole How to Reach Me went, when
+ * only their rules for the deleted value do (#7816). A single and a bulk
+ * Delete share the line ("Deleted with it" / "Deleted with them"), so it
+ * never says "for it".
+ */
 export const PERSONAL_USAGE_ITEMS: Record<string, PluralTemplate> = {
   UserNotificationRule: {
-    one: "{{count}} person's How to Reach Me",
-    other: "{{count}} people's How to Reach Me",
+    one: "{{count}} person's rules in How to Reach Me",
+    other: "{{count}} people's rules in How to Reach Me",
   },
   UserNotificationSetting: {
     one: "Notification settings of {{count}} person",

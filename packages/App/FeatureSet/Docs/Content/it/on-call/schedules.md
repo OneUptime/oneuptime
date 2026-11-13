@@ -69,7 +69,18 @@ flowchart TB
 | **Ora del primo passaggio** | Il primo passaggio alla persona successiva, all'inizio o dopo. I passaggi successivi seguono ogni intervallo di rotazione. |
 | **Restrizioni** | Gli orari in cui il livello è reperibile: **Nessuna restrizione**, **Orari specifici del giorno** o **Orari specifici della settimana**, nel fuso orario della pianificazione. Fuori da questi orari subentrano i livelli inferiori. |
 
-Per cambiare quale livello viene prima, usa **Sposta il livello in alto (priorità più alta)** o **Sposta il livello in basso (priorità più bassa)** nel menu di un livello.
+Per cambiare quale livello viene prima, usa le frecce sulla scheda di un livello: **Sposta il livello in alto (priorità più alta)** o **Sposta il livello in basso (priorità più bassa)**.
+
+Le modifiche a chi si alterna aspettano che tu le salvi, così puoi farne diverse e controllarle prima che il turno di qualcuno cambi. Trascina le persone in un nuovo ordine, aggiungi o rimuovi persone, sposta un livello in alto o in basso o eliminane uno, e la pagina mostra ogni modifica prima che sia salvata:
+
+- Chi hai aggiunto è contrassegnato con **Nuovo**, e chi hai trascinato in un nuovo posto con **Spostato**. Le persone che hai rimosso sono elencate in **Rimossi al salvataggio**, ognuna con **Annulla**.
+- Un livello che elimini indica che verrà eliminato al salvataggio, con **Annulla**.
+- Ogni livello e la pianificazione finale mostrano la rotazione come sarà. La pianificazione finale è contrassegnata con **Include modifiche non salvate**.
+- Una barra in fondo alla pagina elenca le modifiche, con **Salva modifiche** e **Scarta**.
+
+**Salva modifiche** salva tutte le modifiche in una volta. Chi è di turno viene poi calcolato una sola volta, per i livelli come sono stati salvati: chi entra o esce dal turno, o è il prossimo, lo viene a sapere una volta, non una volta per ogni modifica. **Scarta** riporta i livelli a com'erano all'ultimo salvataggio. Lasciare la pagina prima di salvare chiede prima conferma: **Continua a modificare** resta sulla pagina, **Annulla modifiche** la lascia senza salvare.
+
+Se qualcun altro ha modificato i livelli dopo che hai aperto la pagina, le tue modifiche non vengono salvate sopra le sue. La barra lo dice, e **Ricarica livelli** mostra i livelli come sono ora, così puoi rifare le tue modifiche. **Aggiungi livello** aggiunge subito il suo livello, e le impostazioni di un livello si salvano con il suo pulsante **Salva livello**.
 
 Ogni persona mantiene un unico colore ovunque, così puoi seguirla a colpo d'occhio: su ogni livello, nella pianificazione finale e nelle sue sostituzioni, e nella **Cronologia delle reperibilità**.
 

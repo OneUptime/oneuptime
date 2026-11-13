@@ -61,7 +61,12 @@ export interface ComponentProps {
   supportedOperators?: Array<FilterOperator> | undefined;
   /** Icon shown on the chip while it has no value. */
   emptyIcon?: IconProp | undefined;
+  /*
+   * In English, which Input looks up - or, said so, in the reader's words
+   * already: a custom field's "Enter {{name}}" (#7682).
+   */
   placeholder?: string | undefined;
+  isPlaceholderTranslated?: boolean | undefined;
 }
 
 type ReadCommittedValueFunction = (values: Array<string>) => string;
@@ -301,6 +306,12 @@ const FilterChipValueInput: FunctionComponent<ComponentProps> = (
                     translator.translateTemplate("Enter {{label}}", {
                       label: translatableTerm(props.label),
                     })
+                  }
+                  // A sentence around the label is worded here; a given one as said.
+                  isPlaceholderTranslated={
+                    props.placeholder
+                      ? Boolean(props.isPlaceholderTranslated)
+                      : true
                   }
                   outerDivClassName="relative rounded-md w-full"
                   onChange={(changed: string) => {

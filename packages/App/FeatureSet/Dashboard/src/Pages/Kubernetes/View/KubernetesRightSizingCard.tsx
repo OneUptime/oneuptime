@@ -11,6 +11,7 @@ import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import API from "Common/UI/Utils/API/API";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import DirectionArrow from "Common/UI/Components/DirectionArrow/DirectionArrow";
 import React, {
   Fragment,
   FunctionComponent,
@@ -102,7 +103,7 @@ function getRequestChangeElement(
           ? translateText("none")
           : format(resource.current)}
       </span>
-      <span className={arrowClassName}>&rarr;</span>
+      <DirectionArrow className={arrowClassName} />
       <span className="font-medium text-gray-900">
         {format(resource.recommended)}
       </span>

@@ -94,7 +94,7 @@ Medan en händelse pågår behandlar OneUptime avbrottet den planerar som vänta
 
 - **Översikt** — sidhuvudet visar händelsens nummer, titel och tillstånd, hur länge det är kvar tills den börjar eller hur länge den har pågått, vem som äger den, vilka statussidor den visas på och vem som skapade den, och knapparna som flyttar den vidare. Under det visar **Börjar**, **Slutar** och **Varaktighet** det planerade fönstret i din tidszon. **Flöde för schemalagt underhåll** registrerar allt som har hänt med händelsen, bredvid korten **Underhållsdetaljer** och **Berörda resurser**, och korten **Mätningar** och **Anpassade fält** när ditt projekt har några.
 - **Tillståndstidslinje** — varje tillstånd händelsen har varit i, när och hur länge. Se [Underhållsstatusar](/docs/scheduled-maintenance/states#tillståndstidslinjen).
-- **Offentliga anteckningar** — uppdateringar till dina statussidor och deras prenumeranter. **Privata anteckningar** är bara för ditt team.
+- **Offentliga anteckningar** — uppdateringar till dina statussidor och deras prenumeranter. **Privata anteckningar** kan bara läsas av de som kan se händelsen.
 - **Inställningar** — **Synlig på statussidan**, som visar eller döljer händelsen på dess statussidor, och **Skicka påminnelser**, som påminner dess ägare om den tills den är slutförd. Varje reglage sparas i samma stund som du slår om det.
 
 ## Felsökning

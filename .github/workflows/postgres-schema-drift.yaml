@@ -352,6 +352,22 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/EpisodeReferenceWritePostgres.test.ts --forceExit
 
+      # A schedule's Layers page saves its changes all at once (#7575): the
+      # schedule's row locked, the layers read again under the lock, every
+      # change written in one transaction - and a save that waited for
+      # another one's lock refused, since the layers changed under it.
+      - name: Test saving a schedule's layers at once on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_SCHEDULE_LAYERS_SAVE_TESTS: "true"
+          SCHEDULE_LAYERS_SAVE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          SCHEDULE_LAYERS_SAVE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          SCHEDULE_LAYERS_SAVE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/OnCall/ScheduleLayersSavePostgres.test.ts --forceExit
+
       # An episode's members show their incident or alert, and their episode,
       # through joins that run neither one's privacy rules: a member row is
       # listed, counted, read and removed only by someone who may see both.

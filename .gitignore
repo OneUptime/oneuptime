@@ -240,8 +240,11 @@ RFP/
 /.playwright-cli/**
 /output/**
 
-# Sentinel eval harness output (npm run ai-eval)
+# AI eval harness output (npm run ai-eval, npm run ai-eval -- --replay,
+# npm run ai-benchmark)
 eval-corpus.json
+eval-replays.json
+ai-benchmark-results.json
 
 # CycloneDX SBOMs written by Scripts/GHA/generate_sboms.sh
 /sbom/

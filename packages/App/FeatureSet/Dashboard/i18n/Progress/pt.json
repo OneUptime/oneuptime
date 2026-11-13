@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 51296,
-    "untranslated": 9504
+    "keys": 51818,
+    "untranslated": 9449
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -221,6 +221,7 @@
     "PostgreSQL",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
     "Powered by OneUptime",
+    "PromQL",
     "Prompt",
     "Pull Requests",
     "Pull request",
@@ -414,6 +415,7 @@
     "status",
     "storage-01 · RegionOne",
     "storefront-web",
+    "sum by (job) (rate(http_requests_total[5m]))",
     "svc-backup",
     "syslog",
     "thread",

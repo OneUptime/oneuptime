@@ -293,12 +293,14 @@ export const describeWorkingHours: (
   /*
    * Days that keep different hours are clauses of one line, set off with
    * the semicolon of the script their names are written in: "Mon–Thu
-   * 08:30–18:00; Fri 08:30–15:00", "؛ " in Persian, "；" in Chinese.
+   * 08:30–18:00; Fri 08:30–15:00", "؛ " in Persian, "；" in Chinese - and
+   * " ; " in French, whose day names the translator gave.
    */
   const hours: string = joinClauses(
     spans.map((span: WorkingHoursSpan): string => {
       return describeSpan(span, options);
     }),
+    options.translator.language,
   );
 
   return options.withTimezone === false

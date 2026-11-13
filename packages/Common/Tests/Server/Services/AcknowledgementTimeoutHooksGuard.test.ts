@@ -201,23 +201,20 @@ describe.each(STATE_TIMELINES)(
     });
 
     /*
-     * Who changed it: an incident's or an alert's author, paged about it by
-     * a page a person asked for, answers their page by acknowledging it
-     * (OnCallPersonPageAnswer). An episode has no such pages.
+     * Who changed it: the change's author, paged about the record by a page
+     * a person asked for - from a chat, or by a policy they started by hand,
+     * which an episode has too (#7596) - answers their page by acknowledging
+     * it (OnCallPersonPageAnswer).
      */
-    test("names who changed it - the change's author, else the caller - for an incident or an alert", () => {
+    test("names who changed it - the change's author, else the caller", () => {
       const properties: Record<string, string> = argumentProperties(
         calls[0]!,
         source,
       );
 
-      if (hook.kind === "incident" || hook.kind === "alert") {
-        expect(properties["changedByUserId"]).toBe(
-          "createdItem.createdByUserId || onCreate.createBy.props.userId",
-        );
-      } else {
-        expect(properties["changedByUserId"]).toBeUndefined();
-      }
+      expect(properties["changedByUserId"]).toBe(
+        "createdItem.createdByUserId || onCreate.createBy.props.userId",
+      );
     });
   },
 );

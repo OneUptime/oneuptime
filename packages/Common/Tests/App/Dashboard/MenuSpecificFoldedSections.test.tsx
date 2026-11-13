@@ -206,6 +206,7 @@ describe("project Settings: only Basic starts open", () => {
       "Notification Channels",
     ],
     [PageMap.SETTINGS_AI_FEATURES, "AI", "AI Features"],
+    [PageMap.SETTINGS_AI_RESULTS, "AI", "AI Results"],
     [PageMap.SETTINGS_APIKEYS, "Advanced", "API Keys"],
     [PageMap.SETTINGS_IMPORT_FROM_TOOL, "Advanced", "Import from another tool"],
     [PageMap.SETTINGS_SSO, "Security", "SSO"],

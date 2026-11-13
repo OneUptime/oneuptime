@@ -48,6 +48,15 @@ import {
   getOnCallPolicyRepeatsAllowed,
 } from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyRepeat";
 import { isOnCallTestPage } from "Common/Types/OnCallDutyPolicy/OnCallTestPage";
+import {
+  OnCallAcknowledgePageRun,
+  isOnCallPageAnsweredAsAPage,
+  isOnCallPageEndedOnlyByAnAnswer,
+} from "Common/Types/OnCallDutyPolicy/OnCallAcknowledgePage";
+import {
+  getOnCallPolicyStartedOnResolvedRecordMessage,
+  isOnCallPolicyStartedByHand,
+} from "Common/Types/OnCallDutyPolicy/OnCallPolicyStartedByHand";
 import UserNotificationEventType from "Common/Types/UserNotification/UserNotificationEventType";
 import {
   DEFAULT_ON_CALL_ACKNOWLEDGEMENT_TIMEOUT_IN_MINUTES,
@@ -1399,6 +1408,170 @@ describe("paging again when an acknowledged incident or alert is not resolved", 
     );
     expect(english(ON_CALL_POLICIES)).toContain(
       `\`acknowledgementTimeoutInMinutes\` is \`null\` for **Don't page again**, and a whole number of minutes from ${MIN_ON_CALL_ACKNOWLEDGEMENT_TIMEOUT_IN_MINUTES} to ${MAX_ON_CALL_ACKNOWLEDGEMENT_TIMEOUT_IN_MINUTES} for **Page again**. OneUptime refuses anything else.`,
+    );
+  });
+});
+
+// ---- When several policies page ---------------------------------------------------
+
+/*
+ * What #7596 asked: a person on call in two of an incident's policies, what
+ * an acknowledgement stops, and a policy started by hand on an acknowledged
+ * incident. OnCallConcurrentPaging (Common) runs the real paging for each
+ * answer; these hold the page's words to the rules it runs on.
+ */
+describe("when several policies page", () => {
+  const severalPolicies: () => string = (): string => {
+    return section(english(ON_CALL_POLICIES), "## When several policies page");
+  };
+  const troubleshooting: () => string = (): string => {
+    return section(english(ON_CALL_POLICIES), "## Troubleshooting");
+  };
+
+  // Runs as the workers read them: who, or what, started each.
+  const POLICY_ID: string = "a-policy";
+  const PERSON_ID: string = "a-person";
+  const startedByOneUptime: OnCallAcknowledgePageRun = {
+    onCallDutyPolicyId: POLICY_ID,
+  };
+  const startedByAWorkflow: OnCallAcknowledgePageRun = {
+    onCallDutyPolicyId: POLICY_ID,
+    triggeredByUserId: PERSON_ID,
+    triggeredByWorkflowId: "a-workflow",
+  };
+  const aTestPage: OnCallAcknowledgePageRun = {
+    onCallDutyPolicyId: POLICY_ID,
+    triggeredByUserId: PERSON_ID,
+    userNotificationEventType: UserNotificationEventType.TestPage,
+  };
+  const startedByHand: OnCallAcknowledgePageRun = {
+    onCallDutyPolicyId: POLICY_ID,
+    triggeredByUserId: PERSON_ID,
+  };
+
+  // The pages the section names as going on, in its order.
+  const pagesThatGoOn: Array<{ name: string; run: OnCallAcknowledgePageRun }> =
+    [
+      {
+        name: "a page again",
+        run: { onCallDutyPolicyId: POLICY_ID, pageAgainNumber: 1 },
+      },
+      {
+        name: "a page to observers",
+        run: {
+          onCallDutyPolicyId: POLICY_ID,
+          triggeredByUserId: PERSON_ID,
+          isObserverPage: true,
+        },
+      },
+      {
+        name: "a page someone sent to people from Slack or Microsoft Teams",
+        run: { triggeredByUserId: PERSON_ID },
+      },
+      { name: "a policy started by hand", run: startedByHand },
+    ];
+
+  const workers: Array<string> = [
+    "OnCallDutyPolicyExecutionLog/ExecutePendingExecutions.ts",
+    "UserOnCallLog/ExecutePendingExecutions.ts",
+  ];
+
+  it("pages someone on call in two policies once by each, and someone a level names twice once", () => {
+    const levels: string = readCommonSource(
+      "Server/Services/OnCallDutyPolicyEscalationRuleService.ts",
+    );
+    const levelRun: string = levels.slice(
+      levels.indexOf("public async startRuleExecution("),
+    );
+
+    // Each run of a level keeps whom it has paged, and pages each once.
+    expect(levelRun).toContain("const uniqueUserIds: Array<ObjectID> = [];");
+    expect(levelRun).toMatch(
+      /if \(!alreadyNotified\(pagedUserId\)\) \{\s*uniqueUserIds\.push\(pagedUserId\);\s*await startUserNotificationRuleExecution\(/,
+    );
+    expect(severalPolicies()).toContain(
+      "Someone on call in two of them is paged by both, once by each: OneUptime does not merge the pages of different policies. Within one policy, someone a level names twice, in person and through a team or a schedule, is paged once.",
+    );
+    // So the way to page them once is one level of one policy.
+    expect(troubleshooting()).toContain(
+      "They are on call in two of the policies the incident runs, and each policy pages its own people. Acknowledging the incident from either page stops both. To have them paged once, put both teams or schedules in one level of one policy.",
+    );
+  });
+
+  it("stops the policies OneUptime or a workflow started within a minute of an acknowledgement", () => {
+    for (const worker of workers) {
+      expect(readWorkerSource(worker)).toMatch(/schedule:[^,]*EVERY_MINUTE,/);
+    }
+
+    expect(EVERY_MINUTE).toBe("* * * * *");
+
+    for (const run of [startedByOneUptime, startedByAWorkflow]) {
+      expect(isOnCallPageEndedOnlyByAnAnswer(run)).toBe(false);
+    }
+
+    expect(severalPolicies()).toContain(
+      "Acknowledging the incident or alert stops every policy running for it within a minute, wherever it is acknowledged",
+    );
+  });
+
+  it("names the pages that go on after an acknowledgement, as both workers tell them apart", () => {
+    for (const page of pagesThatGoOn) {
+      expect({
+        page: page.name,
+        goesOn: isOnCallPageEndedOnlyByAnAnswer(page.run),
+      }).toEqual({ page: page.name, goesOn: true });
+    }
+
+    for (const worker of workers) {
+      expect(readWorkerSource(worker)).toContain(
+        "isOnCallPageEndedOnlyByAnAnswer(",
+      );
+    }
+
+    const names: Array<string> = pagesThatGoOn.map(
+      (page: { name: string }): string => {
+        return page.name;
+      },
+    );
+
+    expect(severalPolicies()).toContain(
+      `Some pages go on after it is acknowledged, until somebody they paged answers or it is resolved: ${names.slice(0, -1).join(", ")}, and ${names[names.length - 1]}.`,
+    );
+    expect(troubleshooting()).toContain(
+      "It was started by hand, or it is a page again: it goes on until somebody it paged answers, or the incident is resolved.",
+    );
+  });
+
+  it("starts a policy by hand only for a person, offers its people Acknowledge again, and refuses a resolved record", () => {
+    expect(isOnCallPolicyStartedByHand(startedByHand)).toBe(true);
+
+    for (const run of [startedByOneUptime, startedByAWorkflow, aTestPage]) {
+      expect(isOnCallPolicyStartedByHand(run)).toBe(false);
+    }
+
+    // Answered as a page, as a page again is: with Acknowledge again.
+    expect(isOnCallPageAnsweredAsAPage(startedByHand)).toBe(true);
+    expect(
+      readDashboardSource("Components/OnCallPolicy/PassOn/PassOnPage.ts"),
+    ).toContain('button: translationKey("Acknowledge again")');
+
+    // A person's run for a resolved record is refused, and says why.
+    expect(getOnCallPolicyStartedOnResolvedRecordMessage("incident")).toBe(
+      "This incident is resolved, so no on-call policy was started.",
+    );
+    expect(
+      readCommonSource(
+        "Server/Services/OnCallDutyPolicyExecutionLogService.ts",
+      ),
+    ).toContain(
+      "getOnCallPolicyStartedOnResolvedRecordMessage(resolvedRecordKind)",
+    );
+
+    expect(severalPolicies()).toContain(
+      "A policy started by hand is one started with **Execute On-Call Policy**, or by a page from Slack or Microsoft Teams that names it.",
+    );
+    expect(severalPolicies()).toContain(
+      "once the incident is acknowledged, its page offers them **Acknowledge again**. **Escalate** passes it to the next level. On an incident, alert or episode that is resolved, nothing is started, and you are told why.",
     );
   });
 });
