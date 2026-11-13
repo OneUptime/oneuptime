@@ -2470,14 +2470,14 @@ describe("Scheduled maintenance overview page", () => {
       return found!;
     }
 
-    test("walks Event and Status Pages", async () => {
+    test("walks Maintenance Details and Status Pages", async () => {
       const card: EditCard = await editCard();
 
       expect(
         card.formSteps.map((step: { id: string; title: string }): string => {
           return `${step.id}: ${step.title}`;
         }),
-      ).toEqual(["event: Event", "status-pages: Status Pages"]);
+      ).toEqual(["event: Maintenance Details", "status-pages: Status Pages"]);
 
       expect(rowsOn(card, "event")).toEqual([
         "title",
