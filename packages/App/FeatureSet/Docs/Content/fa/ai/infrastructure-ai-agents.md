@@ -384,7 +384,7 @@ OneUptime یک حساب AWS، یک اشتراک Azure یا یک پروژهٔ Goo
 | **امن** | `govc vm.power -on /DC/vm/web-01`، `govc vm.power -r /DC/vm/web-01` (راه‌اندازی دوبارهٔ آرام مهمان از طریق VMware Tools) — یک ماشین مجازی، نام‌برده با مسیر inventory آن |
 | **پرخطرتر** | `govc vm.power -s web-01` (خاموش کردن مهمان)، `govc vm.power -off web-01`، `govc vm.power -reset web-01`، `govc vm.power -suspend web-01` (`-force` فقط با `-off` یا `-reset`)، `govc vm.power -on web-01 web-02` (چند ماشین مجازی)، `govc vm.power -on web-01` (یک نام خالی: هر ماشین مجازی با نام web-01)، `govc host.maintenance.exit esx-01` |
 | **همیشه یک انسان** | `govc vm.migrate -host esx-02 web-01`، `govc host.maintenance.enter esx-01` |
-| **هرگز** | `govc vm.destroy web-01` (و create، clone، change، register)، `govc snapshot.create -vm web-01 before`، `govc guest.run -vm web-01 ls`، `govc vm.info -e web-01`، `govc env`، `govc host.esxcli -host esx-01 system version get`، دستگاه‌ها و دیسک‌ها، دسترسی به فایل‌های datastore، افزودن، حذف، راه‌اندازی دوباره و خاموش کردن میزبان، مجوزها، نقش‌ها، نشست‌ها و مجوزهای استفاده |
+| **هرگز** | `govc vm.destroy web-01` (و create، clone، change، register)، `govc snapshot.create -vm web-01 before`، `govc guest.run -vm web-01 ls`، `govc vm.info -e web-01`، `govc env`، `govc host.esxcli -host esx-01 system version get`، دستگاه‌ها و دیسک‌ها، دسترسی به فایل‌های datastore، افزودن، حذف، راه‌اندازی دوباره و خاموش کردن میزبان، مجوزها، نقش‌ها، نشست‌ها و پروانه‌ها |
 
 ### اصلاح‌ها روی خوشه‌های Ceph
 

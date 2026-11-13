@@ -97,12 +97,29 @@ const wordsOf: (language: string) => Words = (language: string): Words => {
   return words;
 };
 
+// A flat key's value, or a nested one's ("breadcrumbs.enterpriseLicense").
 const word: (language: string, key: string) => string = (
   language: string,
   key: string,
 ): string => {
-  return String(wordsOf(language)[key]);
+  const words: Words = wordsOf(language);
+
+  if (key in words) {
+    return String(words[key]);
+  }
+
+  let node: unknown = words;
+
+  for (const part of key.split(".")) {
+    node =
+      node && typeof node === "object" ? (node as Words)[part] : undefined;
+  }
+
+  return String(node);
 };
+
+// The card's title: the Admin Dashboard's breadcrumb and side menu item.
+const CARD_TITLE: string = "breadcrumbs.enterpriseLicense";
 
 const pluralKeys: (plurals: ReadonlyArray<PluralTemplate>) => string[] = (
   plurals: ReadonlyArray<PluralTemplate>,
@@ -128,6 +145,7 @@ const SHARED_WORDS_ON_THE_PAGE: ReadonlyArray<string> = [
 
 // Every key the page reads, its license cards' among them.
 const KEYS: Array<string> = [
+  CARD_TITLE,
   ...SHARED_WORDS_ON_THE_PAGE,
   ...Object.values(LicenseSettingsCopy),
   ...Object.values(LicenseStatusCopy),
@@ -165,14 +183,13 @@ const englishLeftOn: (drawn: string, language: string) => Array<string> = (
   drawn: string,
   language: string,
 ): Array<string> => {
-  const english: Words = wordsOf("en");
   const worded: Array<string> = KEYS.map((key: string): string => {
     return word(language, key);
   });
   const left: Set<string> = new Set<string>();
 
   for (const key of KEYS) {
-    for (const piece of piecesOf(String(english[key]))) {
+    for (const piece of piecesOf(word("en", key))) {
       if (
         worded.some((sentence: string): boolean => {
           return sentence.includes(piece);
@@ -385,7 +402,12 @@ beforeAll(async () => {
     fallbackLng: "en",
     resources: {},
     interpolation: { escapeValue: false },
-    keySeparator: false,
+    /*
+     * The Admin Dashboard's own i18n setup keeps i18next's "." key
+     * separator: the card's title, t("breadcrumbs.enterpriseLicense"), is
+     * a nested key, and the page's sentences are looked up whole
+     * (useTranslateValue turns the separators off for each of them).
+     */
     nsSeparator: false,
   });
 
@@ -445,6 +467,8 @@ describe("Settings > License in the reader's language", () => {
         "Refresh license",
         "Change license key",
         "The Enterprise license of this installation.",
+        // The card's title.
+        "License",
       ]),
     );
   });
@@ -601,6 +625,78 @@ describe("Settings > License in the reader's language", () => {
         return `دورهٔ آزمایشی Enterprise Edition: ${FIRST_STRONG_ISOLATE}${days} روز مانده${POP_DIRECTIONAL_ISOLATE}`;
       }),
     ).toContain(title);
+  });
+
+  /*
+   * ONE PERSIAN WORD FOR A LICENSE (#7340). The card's title - the Admin
+   * Dashboard's breadcrumb and side menu item, breadcrumbs.enterpriseLicense
+   * - said مجوز, Persian's word for a permission, above a status that said
+   * پروانه فعال است: one page, two words for one license. The page names it
+   * پروانه in every state, and nowhere مجوز.
+   */
+  test.each(STATES)(
+    "Persian (%s): the card's title and the status name a license one way",
+    async (_name: string, payload: () => JSONObject) => {
+      const drawn: string = await drawIn("fa", payload());
+
+      expect(screen.getByTestId("card-details-heading")).toHaveTextContent(
+        /^پروانه$/,
+      );
+      expect(
+        withoutIsolateMarks(
+          screen.getByTestId("license-status").textContent || "",
+        ),
+      ).toContain("پروانه");
+      expect(drawn).not.toContain("مجوز");
+    },
+  );
+
+  test("Persian: licensed, the status reads پروانه فعال است below the title پروانه", async () => {
+    await drawIn("fa", licensed());
+
+    expect(screen.getByTestId("card-details-heading")).toHaveTextContent(
+      /^پروانه$/,
+    );
+    expect(screen.getByTestId("license-status")).toHaveTextContent(
+      "پروانه فعال است",
+    );
+    expect(word("fa", CARD_TITLE)).toBe("پروانه");
+  });
+
+  test.each(LANGUAGES)(
+    "%s: the card's title is the reader's word for a license, as the breadcrumb says it",
+    async (language: string) => {
+      await drawIn(language, licensed());
+
+      expect(word(language, CARD_TITLE)).not.toBe(word("en", CARD_TITLE));
+      expect(screen.getByTestId("card-details-heading")).toHaveTextContent(
+        word(language, CARD_TITLE),
+      );
+      expect(screen.queryByText(CARD_TITLE)).not.toBeInTheDocument();
+    },
+  );
+
+  test("Persian: a card title put back to مجوز is seen (negative control)", async () => {
+    const shipped: Words = wordsOf("fa");
+
+    localeCache.set("fa", {
+      ...shipped,
+      breadcrumbs: {
+        ...(shipped["breadcrumbs"] as Words),
+        enterpriseLicense: "مجوز",
+      },
+    });
+
+    try {
+      const drawn: string = await drawIn("fa", licensed());
+
+      expect(screen.getByTestId("card-details-heading")).toHaveTextContent(
+        /^مجوز$/,
+      );
+      expect(drawn).toContain("مجوز");
+    } finally {
+      localeCache.set("fa", shipped);
+    }
   });
 
   test("the way to a token is a link whose wrapped lines start where the form does", async () => {
