@@ -66,7 +66,7 @@ Eine Vorlage zu bearbeiten ändert nur die Vorlage. Um eine Änderung auf die ve
 | Schaltfläche | Kopiert auf jeden verknüpften Monitor | Lässt unverändert |
 | --- | --- | --- |
 | **Kriterien mit verknüpften Monitoren synchronisieren** | Die Kriterien und die Schritteinstellungen, etwa Ziele und Anfrageoptionen, außer geschützten Feldern | Das Überwachungsintervall, die minimale Sondenübereinstimmung, den Namen, die Beschreibung, die Beschriftungen und die Werte benutzerdefinierter Felder |
-| **Synchronisierungsintervall mit verknüpften Monitoren** | Das Überwachungsintervall und die minimale Sondenübereinstimmung | Die Kriterien, den Namen, die Beschreibung, die Beschriftungen und die Werte benutzerdefinierter Felder |
+| **Intervall mit verknüpften Monitoren synchronisieren** | Das Überwachungsintervall und die minimale Sondenübereinstimmung | Die Kriterien, den Namen, die Beschreibung, die Beschriftungen und die Werte benutzerdefinierter Felder |
 | **Beschriftungen mit verknüpften Monitoren synchronisieren** | Die Beschriftungen, und sonst nichts | Alles andere |
 | **Benutzerdefinierte Felder mit verknüpften Monitoren synchronisieren** | Die benutzerdefinierten Felder, für die die Vorlage einen Standardwert hat, anstelle dessen, was jeder Monitor hatte | Benutzerdefinierte Felder, die die Vorlage leer lässt, und alles andere |
 
