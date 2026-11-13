@@ -155,9 +155,12 @@ const NAMED_AS_CODE: Record<string, string> = {
 const FUNCTION_WITH_BRACKETS: RegExp = /[A-Za-z_][\w.]*\(\)/g;
 
 /*
- * The small apps' texts Arabic writes as English does, on purpose: product
- * and vendor names, example values a person types over, and templates that
- * are only their values.
+ * The small apps' texts Arabic writes as English does, on purpose: product,
+ * vendor and protocol names and the units ARABIC.md keeps in Latin letters,
+ * example values a person types over, and templates that are only their
+ * values. A text the Dashboard shares is kept as the Dashboard's Arabic keeps
+ * it: the Test LLM Provider dialog's HTTP {{status}} and {{count}} ms are in
+ * the Dashboard's own list (i18n/Progress/ar.json).
  */
 const SAME_AS_ENGLISH: Record<string, Array<string>> = {
   Accounts: ["OneUptime"],
@@ -197,6 +200,7 @@ const SAME_AS_ENGLISH: Record<string, Array<string>> = {
     "EAAG...",
     "EU (Frankfurt)",
     "Google Cloud Storage",
+    "HTTP {{status}}",
     "HTTPS",
     "HackerBay, Inc.",
     "IoT",
@@ -217,6 +221,7 @@ const SAME_AS_ENGLISH: Record<string, Array<string>> = {
     "gpt-4o, claude-3-opus, llama-3.3-70b-versatile",
     "test@example.com",
     "vCenter",
+    "{{count}} ms",
     "{{size}} GB",
     "{{size}} KB",
     "{{size}} MB",
