@@ -154,7 +154,7 @@ export const CONDITION_FIELD_HINTS: Readonly<
     "Pick policies from the list. Keeps matching a policy after it is renamed.",
   ),
   [NotificationRuleConditionCheckOn.OnCallDutyPolicyName]: translationKey(
-    "Matches words in a policy's name, such as policies named alike.",
+    "Matches words in a policy's name. To keep matching a policy after it is renamed, use On-Call Policy.",
   ),
   [NotificationRuleConditionCheckOn.OnCallDutyPolicyDescription]:
     translationKey("Matches words in a policy's description."),
@@ -179,9 +179,10 @@ export const getConditionFieldHint: (
 };
 
 /*
- * An id an owners condition holds that names no one now: a person who has
- * left the project, a team since deleted. Shown, so it can be taken out.
+ * What a rule's view says for an id its condition holds that names nothing
+ * now: a person who has left the project, a team or an on-call policy since
+ * deleted. The rule still loads, and the condition can be changed.
  */
-export const OWNER_NOT_FOUND_NAME: string = translationKey(
+export const VALUE_NOT_FOUND_NAME: string = translationKey(
   "No longer in this project",
 );
