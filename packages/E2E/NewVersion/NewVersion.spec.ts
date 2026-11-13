@@ -1318,6 +1318,22 @@ const hasTailwind: (page: Page) => Promise<boolean> = async (
   });
 };
 
+/*
+ * How many pixels the page reaches below its window, read once: 0 or less
+ * when it fits. The window's height is the root element's clientHeight -
+ * the window less any scrollbar that takes room.
+ */
+const downwardScrollOf: (page: Page) => Promise<number> = async (
+  page: Page,
+): Promise<number> => {
+  return await page.evaluate((): number => {
+    return (
+      document.documentElement.scrollHeight -
+      document.documentElement.clientHeight
+    );
+  });
+};
+
 test.describe("an app that cannot start", () => {
   test("THE SERVER DOWN: it says it can't reach the server, and the page loads once the server is back", async ({
     page,
@@ -1455,6 +1471,19 @@ test.describe("an app that cannot start", () => {
     expect(await hasTailwind(page)).toBe(false);
 
     await expectNoSidewaysScroll(page);
+    /*
+     * Nor down: the browser's 8 px around the body, which Tailwind's
+     * preflight takes away where it arrived, made the page - its root as
+     * tall as the window - 16 px taller than its window.
+     */
+    await expect
+      .poll(
+        async (): Promise<number> => {
+          return await downwardScrollOf(page);
+        },
+        { message: "how far the card's page reaches below its window" },
+      )
+      .toBeLessThanOrEqual(0);
     await shoot(page, testInfo, "entry-offline-without-tailwind");
 
     for (const script of scripts) {
