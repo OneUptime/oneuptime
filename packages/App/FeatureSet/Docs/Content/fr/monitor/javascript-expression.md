@@ -29,7 +29,7 @@ Comme les espaces réservés sont remplacés en texte, `{{responseBody.item}}` d
 :::steps
 ### Ouvrir les critères
 
-Sur le moniteur, ouvrez **Configuration → Critères** et cliquez sur **Modifier les critères de surveillance**, ou utilisez l'étape **Critères** de **Créer un moniteur**. Travaillez dans le critère à modifier, ou cliquez sur **Ajouter un critère** pour en créer un.
+Sur le moniteur, ouvrez **Configuration → Critères** et cliquez sur **Modifier les critères**, ou utilisez l'étape **Critères** de **Créer un moniteur**. Travaillez dans le critère à modifier, ou cliquez sur **Ajouter un critère** pour en créer un.
 
 ### Ajouter un filtre
 

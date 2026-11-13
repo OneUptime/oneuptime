@@ -59,7 +59,7 @@ Cliquez sur **Tester le moniteur**, choisissez une sonde sous **Sélectionner la
 
 ### Passer en revue les critères
 
-**Critères du moniteur** commence avec les [critères par défaut](#critères-par-défaut) : hors ligne quand l'API ne répond pas ou répond avec une erreur, en ligne pour tout statut `2xx` ou `3xx`. Pour vérifier aussi ce que l'API renvoie, ajoutez un filtre, puis cliquez sur **Suivant**.
+**Critères** commence avec les [critères par défaut](#critères-par-défaut) : hors ligne quand l'API ne répond pas ou répond avec une erreur, en ligne pour tout statut `2xx` ou `3xx`. Pour vérifier aussi ce que l'API renvoie, ajoutez un filtre, puis cliquez sur **Suivant**.
 
 ### Choisir les sondes et créer
 

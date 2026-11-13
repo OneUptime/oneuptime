@@ -183,6 +183,6 @@ Chaque ligne est un span, pas une requête : avec **Entry spans**, la valeur par
 :::cards
 - [Syntaxe de recherche](/docs/telemetry/search-syntax): Chaque filtre que comprend la zone de recherche.
 - [Surveillance des traces](/docs/monitor/traces-monitor): Être alerté des requêtes en échec ou lentes.
-- [Suivi des exceptions](/docs/telemetry/exceptions): Trier les erreurs que vos spans enregistrent.
+- [Exceptions](/docs/telemetry/exceptions): Trier les erreurs que vos spans enregistrent.
 - [Explorateur de journaux](/docs/telemetry/logs-explorer): Lire les lignes de journal qu'une requête a écrites.
 :::

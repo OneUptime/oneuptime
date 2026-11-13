@@ -178,7 +178,7 @@ Algumas regras rápidas:
 A maioria dos incidentes não deveria precisar de uma pessoa para digitá-los. Os critérios de um monitor podem declarar um no momento em que um filtro corresponde:
 
 :::steps
-1. Abra o monitor, escolha **Critérios** no menu lateral dele e clique em **Editar critérios de monitoramento**. (Um monitor novo pede os mesmos critérios enquanto você o cria.)
+1. Abra o monitor, escolha **Critérios** no menu lateral dele e clique em **Editar critérios**. (Um monitor novo pede os mesmos critérios enquanto você o cria.)
 2. No filtro de critérios que deve declarar, ative **Quando os filtros corresponderem, declarar um incidente.** Aparece uma seção **Criar incidente** com um botão **Adicionar incidente** — um filtro de critérios pode declarar mais de um incidente.
 3. Preencha os campos do incidente (abaixo) e salve. Na próxima vez que o filtro corresponder, o incidente é declarado e aciona suas políticas de plantão.
 :::

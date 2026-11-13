@@ -60,7 +60,7 @@ A new monitor starts on **vCenter Stopped Reporting**, under **What to alert on*
 
 ### Check the criteria
 
-Open each criteria under **Monitor Criteria** and check its **Metric**, **Aggregation**, **Condition** and **Threshold**. A template fills these in. With **Custom Metric** or **Advanced**, the monitor starts with the [default criteria](#default-criteria), which only notice the metric sending no data, so set your own threshold.
+Open each criteria under **Criteria** and check its **Metric**, **Aggregation**, **Condition** and **Threshold**. A template fills these in. With **Custom Metric** or **Advanced**, the monitor starts with the [default criteria](#default-criteria), which only notice the metric sending no data, so set your own threshold.
 
 ### Create the monitor
 
@@ -266,7 +266,7 @@ Only sent for clusters with vSAN, the hosts in them, and the VMs on a vSAN datas
 > [!NOTE]
 > A VM's power state is not a metric. The receiver sends `vcenter.vm.cpu.*` only for powered-on VMs, so OneUptime tells **Powered on** from **Powered off** by whether CPU data arrived in the same collection as the VM's memory and disk data; the vCenter's **Virtual Machines** page shows the result. To alert on powered-off hosts or on how many VMs run, use the `power_state` attribute of `vcenter.datacenter.host.count`, `vcenter.datacenter.vm.count` or `vcenter.cluster.vm.count`.
 
-## Monitoring criteria
+## Criteria
 
 A criteria compares one of the monitor's queries or formulas with a threshold. A VMware monitor's criteria have no **Filter Type**: every rule checks the metric value, with these fields.
 

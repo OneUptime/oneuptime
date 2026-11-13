@@ -86,5 +86,5 @@ Er is niets aangekomen om de oproep mee te bevestigen. Op een zelf gehoste serve
 :::cards
 - [Opgeroepen worden via telefoon, sms of push](/docs/guides/paging): Op uw telefoon opgeroepen worden, en de volgende persoon oproepen als niemand antwoordt.
 - [Een statuspagina publiceren](/docs/guides/status-page): De monitor aan uw klanten laten zien, op uw eigen domein.
-- [Monitorcriteria en statussen](/docs/monitor/criteria-and-statuses): Precies bepalen wanneer een monitor als uitgevallen telt.
+- [Criteria en statussen](/docs/monitor/criteria-and-statuses): Precies bepalen wanneer een monitor als uitgevallen telt.
 :::

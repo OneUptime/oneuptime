@@ -73,7 +73,7 @@ Ein neuer Monitor beginnt mit **Host Stopped Reporting** unter **Worüber benach
 
 ### Die Kriterien prüfen
 
-Öffnen Sie unter **Monitor-Kriterien** jedes Kriterium und prüfen Sie seine **Metrik**, **Aggregation**, **Bedingung** und seinen **Schwellenwert**. Eine Vorlage füllt diese aus. Mit **Custom Metric** oder **Erweitert** beginnt der Monitor mit den [Standardkriterien](#standardkriterien), die nur bemerken, wenn die Metrik keine Daten sendet; legen Sie daher Ihren eigenen Schwellenwert fest.
+Öffnen Sie unter **Kriterien** jedes Kriterium und prüfen Sie seine **Metrik**, **Aggregation**, **Bedingung** und seinen **Schwellenwert**. Eine Vorlage füllt diese aus. Mit **Custom Metric** oder **Erweitert** beginnt der Monitor mit den [Standardkriterien](#standardkriterien), die nur bemerken, wenn die Metrik keine Daten sendet; legen Sie daher Ihren eigenen Schwellenwert fest.
 
 ### Den Monitor erstellen
 

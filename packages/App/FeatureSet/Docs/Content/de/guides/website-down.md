@@ -86,5 +86,5 @@ Es ist nichts angekommen, worüber Sie die Alarmierung bestätigen könnten. Auf
 :::cards
 - [Per Anruf, SMS oder Push alarmiert werden](/docs/guides/paging): Auf Ihrem Telefon alarmiert werden und die nächste Person alarmieren, wenn niemand antwortet.
 - [Eine Statusseite veröffentlichen](/docs/guides/status-page): Ihren Kunden den Monitor zeigen, auf Ihrer eigenen Domain.
-- [Monitorkriterien & Status](/docs/monitor/criteria-and-statuses): Genau festlegen, wann ein Monitor als ausgefallen gilt.
+- [Kriterien & Status](/docs/monitor/criteria-and-statuses): Genau festlegen, wann ein Monitor als ausgefallen gilt.
 :::

@@ -421,7 +421,7 @@ describe("Products menu sections", () => {
         "Logs",
         "Metrics",
         "Traces",
-        "Performance Profiles",
+        "Profiles",
         "Exceptions",
         "AI / LLM",
         "Data Observability",

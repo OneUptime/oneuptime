@@ -26,7 +26,7 @@ flowchart TB
 
 - En webapp, hvis kode du kan ændre og udrulle igen, med afhængigheder installeret via npm.
 - De oprindelser, dine sider serveres fra, for eksempel `https://app.example.com`. En Browser-nøgle accepterer kun forespørgsler fra de oprindelser, du angiver på den.
-- En rolle, der kan oprette indtagelsesnøgler: Projektejere og -administratorer kan, og det kan alle med tilladelsen **Create Telemetry Ingestion Key** også.
+- En rolle, der kan oprette indtagelsesnøgler: Projektejere og -administratorer kan, og det kan alle med tilladelsen Create Ingestion Key også.
 
 ## Sæt det op
 

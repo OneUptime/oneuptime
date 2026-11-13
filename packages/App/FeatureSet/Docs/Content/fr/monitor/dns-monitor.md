@@ -52,7 +52,7 @@ Cliquez sur **Tester le moniteur**, choisissez une sonde sous **Sélectionner la
 
 ### Passer en revue les critères
 
-**Critères du moniteur** commence avec les [critères par défaut](#critères-par-défaut) : hors ligne quand le nom ne se résout pas, en ligne quand il se résout. Pour vérifier ce que disent les enregistrements, ajoutez un filtre **Valeur de l'enregistrement DNS**, puis cliquez sur **Suivant**.
+**Critères** commence avec les [critères par défaut](#critères-par-défaut) : hors ligne quand le nom ne se résout pas, en ligne quand il se résout. Pour vérifier ce que disent les enregistrements, ajoutez un filtre **Valeur de l'enregistrement DNS**, puis cliquez sur **Suivant**.
 
 ### Choisir les sondes et créer
 

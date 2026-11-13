@@ -86,5 +86,5 @@ flowchart TB
 :::cards
 - [電話、SMS、プッシュで呼び出しを受ける](/docs/guides/paging): スマートフォンで呼び出しを受け、誰も応答しなければ次の人を呼び出します。
 - [ステータスページを公開する](/docs/guides/status-page): 自分のドメインで、モニターを顧客に見せます。
-- [モニターの条件とステータス](/docs/monitor/criteria-and-statuses): モニターがどんなときにダウンとみなされるかを、正確に決めます。
+- [条件とステータス](/docs/monitor/criteria-and-statuses): モニターがどんなときにダウンとみなされるかを、正確に決めます。
 :::

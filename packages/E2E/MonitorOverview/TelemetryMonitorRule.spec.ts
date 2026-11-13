@@ -331,7 +331,9 @@ test.describe("A Logs monitor's criteria step", () => {
 
     // The old criteria editor is not on the page.
     await expect(
-      page.getByText("Monitor Criteria", { exact: true }),
+      page
+        .getByTestId("card-details-heading")
+        .getByText("Criteria", { exact: true }),
     ).toHaveCount(0);
 
     await screenshot(page, "telemetry-rule-logs");
@@ -968,9 +970,7 @@ test.describe("A Logs monitor's Criteria page", () => {
     await openCriteriaPage(page);
     await summaryShown(page);
 
-    await page
-      .getByRole("button", { name: "Edit Monitoring Criteria" })
-      .click();
+    await page.getByRole("button", { name: "Edit Criteria" }).click();
 
     const editor: Locator = page.getByTestId("telemetry-rule-editor");
     await expect(editor).toBeVisible({ timeout: 60000 });
@@ -1038,9 +1038,7 @@ test.describe("A Logs monitor's Criteria page", () => {
     await expect(page.getByText("Log Count is above 10").first()).toBeVisible();
     await expect(page.getByTestId("telemetry-rule-summary")).toHaveCount(0);
 
-    await page
-      .getByRole("button", { name: "Edit Monitoring Criteria" })
-      .click();
+    await page.getByRole("button", { name: "Edit Criteria" }).click();
 
     await expect(page.getByTestId("telemetry-rule-shape-problem")).toHaveText(
       "These criteria are more than one rule, so each one is shown in full.",

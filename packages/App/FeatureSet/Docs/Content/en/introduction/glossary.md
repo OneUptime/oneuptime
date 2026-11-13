@@ -42,13 +42,13 @@ See [Creating a Monitor](/docs/monitor/create-monitor).
 
 A monitor's rules: what each check result means. They are checked in order, and the first one that matches can change the monitor's status, declare an incident, create an alert, or all three.
 
-Also called: **Monitoring Criteria**, **Monitor Criteria**, **Monitor Steps**. See [Monitor Criteria & Statuses](/docs/monitor/criteria-and-statuses).
+Also called: **Monitoring Criteria**, **Monitor Criteria**, **Monitor Steps**. See [Criteria & Statuses](/docs/monitor/criteria-and-statuses).
 
 ### Monitor Status
 
 What a monitor is right now. Every new project has three monitor statuses, **Operational**, **Degraded** and **Offline**, and you can add your own.
 
-See [Monitor Criteria & Statuses](/docs/monitor/criteria-and-statuses).
+See [Criteria & Statuses](/docs/monitor/criteria-and-statuses).
 
 ### Probe
 
@@ -262,7 +262,7 @@ See [Label and Owner Rules](/docs/configuration/label-and-owner-rules).
 
 An error your code throws. OneUptime groups every occurrence of the same error into one exception, with its stack trace, its trend and the requests it happened in.
 
-Also called: **Exception Tracking**, `/telemetry-exception`. See [Exception Tracking](/docs/telemetry/exceptions).
+Also called: **Exception Tracking**, `/telemetry-exception`. See [Exceptions](/docs/telemetry/exceptions).
 
 ### AI Insights
 
@@ -306,7 +306,7 @@ See [Traces Explorer](/docs/telemetry/traces-explorer).
 
 How your application spends CPU time and memory, function by function, sent by a profiler that pushes to OneUptime's Pyroscope-compatible API.
 
-Also called: **Performance Profiles**, **Continuous Profiling**. See [Continuous Profiling](/docs/telemetry/profiles).
+Also called: **Performance Profiles**, **Profiler**, **Continuous Profiling**. See [Profiles](/docs/telemetry/profiles).
 
 ### AI / LLM
 

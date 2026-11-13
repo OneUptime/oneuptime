@@ -115,7 +115,7 @@ async function inBothThemes(
 }
 
 /*
- * The page's own title ("Profiler — AI settings"), and the side menu's AI
+ * The page's own title ("Profiles — AI settings"), and the side menu's AI
  * section, open on its own pages.
  */
 async function expectAiSection(
@@ -178,7 +178,7 @@ test.describe("Profiler → AI → Settings", () => {
         );
 
         await expect(advanced).toContainText("AI rules");
-        await expectAiSection(page, testInfo, "Profiler — AI settings");
+        await expectAiSection(page, testInfo, "Profiles — AI settings");
 
         if (isPhone(testInfo)) {
           await expectNoSidewaysScroll(page);
@@ -462,7 +462,7 @@ test.describe("Profiler → AI → Insights", () => {
           expect(isCut).toBe(false);
         }
 
-        await expectAiSection(page, testInfo, "Profiler — AI insights");
+        await expectAiSection(page, testInfo, "Profiles — AI insights");
 
         if (isPhone(testInfo)) {
           await expectNoSidewaysScroll(page);
@@ -587,7 +587,7 @@ test.describe("Profiler → AI → Insights", () => {
     ).toHaveAttribute("aria-checked", "false", { timeout: 60000 });
   });
 
-  test("a finding with no fix yet: its evidence, Open in Profiler, and Fix with AI naming the finding", async ({
+  test("a finding with no fix yet: its evidence, Open in Profiles, and Fix with AI naming the finding", async ({
     page,
   }: {
     page: Page;
@@ -600,7 +600,7 @@ test.describe("Profiler → AI → Insights", () => {
           timeout: 60000,
         });
         await expect(
-          page.getByRole("button", { name: "Open in Profiler" }),
+          page.getByRole("button", { name: "Open in Profiles" }),
         ).toBeVisible();
         await expect(page.getByText("22,200 of 65,400 samples")).toBeVisible();
 
@@ -764,7 +764,7 @@ test.describe("Profiler → AI → Logs", () => {
           automatic.getByTestId("telemetry-ai-log-verdict"),
         ).toHaveCount(0);
 
-        await expectAiSection(page, testInfo, "Profiler — AI logs");
+        await expectAiSection(page, testInfo, "Profiles — AI logs");
 
         if (isPhone(testInfo)) {
           await expectNoSidewaysScroll(page);

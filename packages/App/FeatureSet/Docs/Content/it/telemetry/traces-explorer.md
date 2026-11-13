@@ -183,6 +183,6 @@ Ogni riga è uno span, non una richiesta: con **Entry spans**, l'impostazione pr
 :::cards
 - [Sintassi di ricerca](/docs/telemetry/search-syntax): Ogni filtro che la casella di ricerca comprende.
 - [Monitor tracce](/docs/monitor/traces-monitor): Ricevere un avviso per richieste fallite o lente.
-- [Tracciamento delle eccezioni](/docs/telemetry/exceptions): Smistare gli errori che i vostri span registrano.
+- [Eccezioni](/docs/telemetry/exceptions): Smistare gli errori che i vostri span registrano.
 - [Esploratore log](/docs/telemetry/logs-explorer): Leggere le righe di log scritte da una richiesta.
 :::

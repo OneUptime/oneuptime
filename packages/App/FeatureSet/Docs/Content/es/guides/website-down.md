@@ -86,5 +86,5 @@ No ha llegado ningún mensaje desde el que reconocerlo, lo que en un servidor au
 :::cards
 - [Recibir avisos por llamada, SMS o push](/docs/guides/paging): Recibe avisos en el teléfono, y avisa a la siguiente persona si nadie responde.
 - [Publicar una página de estado](/docs/guides/status-page): Muestra el monitor a tus clientes, en tu propio dominio.
-- [Criterios y estados de monitores](/docs/monitor/criteria-and-statuses): Decide exactamente cuándo un monitor cuenta como caído.
+- [Criterios y estados](/docs/monitor/criteria-and-statuses): Decide exactamente cuándo un monitor cuenta como caído.
 :::

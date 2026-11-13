@@ -36,7 +36,7 @@ flowchart TB
 
 ## Antes de começar
 
-- Um projeto do OneUptime em que você possa criar chaves de ingestão: os proprietários e administradores do projeto podem, assim como qualquer pessoa com a permissão **Create Telemetry Ingestion Key**.
+- Um projeto do OneUptime em que você possa criar chaves de ingestão: os proprietários e administradores do projeto podem, assim como qualquer pessoa com a permissão Create Ingestion Key.
 - Uma aplicação à qual você possa adicionar um SDK do OpenTelemetry, ou um OpenTelemetry Collector.
 - HTTPS de saída (porta 443) da sua aplicação ou do collector para `oneuptime.com`, ou para o seu próprio host do OneUptime.
 
@@ -365,7 +365,7 @@ Por HTTP, cada sinal tem o próprio caminho sob o endpoint. Os SDKs e o collecto
 | Logs | `https://oneuptime.com/otlp/v1/logs` |
 | Perfis | `https://oneuptime.com/otlp/v1/profiles` |
 
-Para o profiling contínuo, a maioria dos profilers envia para o endpoint compatível com o Pyroscope — veja [Profiling contínuo](/docs/telemetry/profiles). Um collector que exporta perfis OTLP precisa definir o `profiles_endpoint` do exportador como `https://oneuptime.com/otlp/v1/profiles`, porque por padrão ele envia perfis para um caminho de desenvolvimento que o OneUptime não atende.
+Para o profiling contínuo, a maioria dos profilers envia para o endpoint compatível com o Pyroscope — veja [Perfis](/docs/telemetry/profiles). Um collector que exporta perfis OTLP precisa definir o `profiles_endpoint` do exportador como `https://oneuptime.com/otlp/v1/profiles`, porque por padrão ele envia perfis para um caminho de desenvolvimento que o OneUptime não atende.
 
 ### OTLP sobre gRPC
 

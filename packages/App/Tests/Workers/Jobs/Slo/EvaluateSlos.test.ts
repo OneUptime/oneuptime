@@ -426,6 +426,9 @@ import ServiceLevelObjectiveService from "Common/Server/Services/ServiceLevelObj
 import SloHistoryService from "Common/Server/Services/SloHistoryService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import logger from "Common/Server/Utils/Logger";
+import CreatedNotificationHold, {
+  OwnersAddedBy,
+} from "Common/Server/Utils/Notification/CreatedNotificationHold";
 import SloMetricUtil from "Common/Server/Utils/Slo/SloMetricUtil";
 import SloWorkspaceNotifications from "Common/Server/Utils/Slo/SloWorkspaceNotifications";
 import SloErrorBudgetPolicyChange from "Common/Types/ServiceLevelObjective/SloErrorBudgetPolicyChange";
@@ -4238,6 +4241,97 @@ describe("Slo:EvaluateSlos worker", () => {
 
       // The rule did not ask for the SLO's owners.
       expect(sloService.findOwners).not.toHaveBeenCalled();
+    });
+
+    /*
+     * The owners' Created email waits for the owners added after the create
+     * (#7210): the worker says it adds owners before the create starts, and
+     * that they are in once it has added them - about the very create it
+     * hands the service, whose hooks hold the email till then.
+     */
+    test("each output's Created email waits for the owners added after its create", async () => {
+      const willAddOwners: jest.SpyInstance = jest.spyOn(
+        CreatedNotificationHold,
+        "willAddOwners",
+      );
+      const ownersAreIn: jest.SpyInstance = jest.spyOn(
+        CreatedNotificationHold,
+        "ownersAreIn",
+      );
+      const rule: ServiceLevelObjectiveBurnRateRule = makeRule({
+        shouldCreateIncident: true,
+      });
+      rule.alertOwnerUsers = [new User(OWNER_ID)];
+      rule.incidentOwnerTeams = teamStubs(TEAM_B_ID);
+
+      sloService.getDueSlos.mockResolvedValue([exhaustedSlo()]);
+      burnRuleService.findBy.mockResolvedValue([rule]);
+      stubFiringBurn();
+
+      await runWorkerTick();
+
+      for (const output of [
+        { create: alertService.create, addOwners: alertRecords.addOwners },
+        {
+          create: incidentService.create,
+          addOwners: incidentRecords.addOwners,
+        },
+      ]) {
+        expect(output.create).toHaveBeenCalledTimes(1);
+        expect(output.addOwners).toHaveBeenCalledTimes(1);
+
+        const createBy: unknown = output.create.mock.calls[0]![0];
+        const said: number = willAddOwners.mock.calls.findIndex(
+          (call: Array<unknown>): boolean => {
+            return call[0] === createBy;
+          },
+        );
+        const saidIn: number = ownersAreIn.mock.calls.findIndex(
+          (call: Array<unknown>): boolean => {
+            return call[0] === createBy;
+          },
+        );
+
+        expect(willAddOwners.mock.calls[said]![1]).toBe(OwnersAddedBy.Caller);
+        expect(ownersAreIn.mock.calls[saidIn]![1]).toBe(OwnersAddedBy.Caller);
+
+        // Said before the create starts; in once the owners are added.
+        expect(willAddOwners.mock.invocationCallOrder[said]!).toBeLessThan(
+          output.create.mock.invocationCallOrder[0]!,
+        );
+        expect(output.addOwners.mock.invocationCallOrder[0]!).toBeLessThan(
+          ownersAreIn.mock.invocationCallOrder[saidIn]!,
+        );
+      }
+    });
+
+    test("a create that fails still says its owners are in: nothing waits on a record that is not there", async () => {
+      const ownersAreIn: jest.SpyInstance = jest.spyOn(
+        CreatedNotificationHold,
+        "ownersAreIn",
+      );
+      jest.spyOn(logger, "error").mockImplementation((() => {
+        // the failed create is logged
+      }) as never);
+      alertService.create.mockRejectedValue(new Error("The database is away"));
+
+      const rule: ServiceLevelObjectiveBurnRateRule = makeRule();
+      rule.alertOwnerUsers = [new User(OWNER_ID)];
+
+      sloService.getDueSlos.mockResolvedValue([exhaustedSlo()]);
+      burnRuleService.findBy.mockResolvedValue([rule]);
+      stubFiringBurn();
+
+      await runWorkerTick();
+
+      const createBy: unknown = alertService.create.mock.calls[0]![0];
+
+      expect(alertRecords.addOwners).not.toHaveBeenCalled();
+      expect(
+        ownersAreIn.mock.calls.filter((call: Array<unknown>): boolean => {
+          return call[0] === createBy && call[1] === OwnersAddedBy.Caller;
+        }),
+      ).toHaveLength(1);
     });
 
     test("a rule with no owners adds none", async () => {

@@ -10,7 +10,7 @@ The agent is two cooperating containers:
 ## Prerequisites
 
 - Docker Engine 20.10+ with the Compose v2 plugin, **on a swarm manager node**. The inventory poller calls manager-only API endpoints, so it must run where the Docker socket belongs to a manager.
-- A **OneUptime Telemetry Ingestion Key** — create one from _Project Settings → Telemetry Ingestion Keys_.
+- A **OneUptime ingestion key** — create one from _Project Settings → Telemetry & APM → Ingestion Keys_.
 
 ### Where to run the agent
 

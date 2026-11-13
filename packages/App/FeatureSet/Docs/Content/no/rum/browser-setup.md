@@ -26,7 +26,7 @@ flowchart TB
 
 - En webapp der du kan endre og rulle ut koden på nytt, med avhengigheter installert gjennom npm.
 - Opprinnelsene sidene dine serveres fra, for eksempel `https://app.example.com`. En Browser-nøkkel godtar bare forespørsler fra opprinnelsene du lister opp på den.
-- En rolle som kan opprette inntaksnøkler: Prosjekteiere og -administratorer kan det, og det kan også alle med tillatelsen **Create Telemetry Ingestion Key**.
+- En rolle som kan opprette inntaksnøkler: Prosjekteiere og -administratorer kan det, og det kan også alle med tillatelsen Create Ingestion Key.
 
 ## Sett det opp
 

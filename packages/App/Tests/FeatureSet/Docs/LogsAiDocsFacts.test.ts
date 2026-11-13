@@ -224,7 +224,7 @@ describe("the Logs Explorer page's section on finding and fixing error, missing 
     ).toHaveLength(0);
   });
 
-  it("sends a message logged with an exception, or with a stack trace in it, to Exception Tracking", () => {
+  it("sends a message logged with an exception, or with a stack trace in it, to Exceptions", () => {
     const detector: string = readSource(
       "Common/Server/Utils/AI/SRE/Insights/Detectors/LogProblemDetector.ts",
     );
@@ -234,7 +234,7 @@ describe("the Logs Explorer page's section on finding and fixing error, missing 
     // ... and a message whose line holds a stack trace is not filed.
     expect(detector).toContain("LogExceptionExtractor.bodyHoldsStackTrace(");
     expect(rows["Error Log"]).toContain(
-      "A message logged with an exception, or with a stack trace in it, is tracked in [Exception Tracking](/docs/telemetry/exceptions) instead.",
+      "A message logged with an exception, or with a stack trace in it, is tracked in [Exceptions](/docs/telemetry/exceptions) instead.",
     );
   });
 

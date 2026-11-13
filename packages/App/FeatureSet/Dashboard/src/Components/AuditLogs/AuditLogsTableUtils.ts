@@ -3,6 +3,7 @@ import { AUDIT_LOG_SESSION_RESOURCE_TYPE } from "Common/Types/AuditLog/AuditLogS
 import Query from "Common/Types/BaseDatabase/Query";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
+import { getScreenSingularName } from "Common/Utils/ModelApiName";
 import { getNameInitials } from "Common/Utils/NameInitials";
 import PageMap from "../../Utils/PageMap";
 
@@ -37,7 +38,9 @@ export interface ResourceMeta {
    * What the resource type is called on screen, when the type an entry is
    * stored under is a name the model kept after it was renamed (#6817:
    * entries about an On-Call Schedule are stored as "On-Call Policy
-   * Schedule", as they always were). Left out, the type is its own name.
+   * Schedule", as they always were). Left out, a kept name is called what
+   * its model is called now (getScreenSingularName), and any other type is
+   * its own name.
    */
   label?: string | undefined;
 }
@@ -456,7 +459,7 @@ export const getResourceTypeLabel: (type: string | undefined) => string = (
   if (!type) {
     return "Resource";
   }
-  return RESOURCE_META[type]?.label || type;
+  return RESOURCE_META[type]?.label || getScreenSingularName(type);
 };
 
 /*

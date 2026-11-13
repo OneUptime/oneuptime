@@ -178,7 +178,7 @@ Några snabba regler:
 De flesta incidenter borde inte behöva skrivas in av en människa. En monitors kriterier kan deklarera en i samma ögonblick som ett filter matchar:
 
 :::steps
-1. Öppna monitorn, välj **Kriterier** i dess sidomeny och klicka på **Redigera övervakningskriterier**. (En ny monitor frågar efter samma kriterier medan du skapar den.)
+1. Öppna monitorn, välj **Kriterier** i dess sidomeny och klicka på **Redigera kriterier**. (En ny monitor frågar efter samma kriterier medan du skapar den.)
 2. Slå på **När filter matchar, deklarera en incident.** i kriteriefiltret som ska deklarera. Ett avsnitt **Skapa incident** visas med en knapp **Lägg till incident** — ett kriteriefilter kan deklarera mer än en incident.
 3. Fyll i incidentens fält (se nedan) och spara. Nästa gång filtret matchar deklareras incidenten och larmar sina jourpolicyer.
 :::

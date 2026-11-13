@@ -240,7 +240,7 @@ O valor de cada atributo de Group By é uma [variável de modelo](/docs/monitor/
 ## Solução de problemas
 
 :::details O monitor está offline, mas meu serviço está registrando logs
-A contagem foi 0, então os filtros não correspondem a nenhum dos logs que o serviço envia. Abra a página **Critérios** do monitor (em **Configuração**) e clique em **Editar critérios de monitoramento**: **Logs correspondentes** mostra o que os filtros selecionam agora, e o gráfico em **Quando alertar** os conta em cada janela. As causas mais comuns são uma severidade escolhida pelo texto que o logger imprime em vez do seu número de severidade (veja [Severidade dos logs](#severidade-dos-logs)), um filtro de serviço ou de atributo que não corresponde, e uma janela de tempo mais curta que o intervalo entre os logs do serviço.
+A contagem foi 0, então os filtros não correspondem a nenhum dos logs que o serviço envia. Abra a página **Critérios** do monitor (em **Configuração**) e clique em **Editar critérios**: **Logs correspondentes** mostra o que os filtros selecionam agora, e o gráfico em **Quando alertar** os conta em cada janela. As causas mais comuns são uma severidade escolhida pelo texto que o logger imprime em vez do seu número de severidade (veja [Severidade dos logs](#severidade-dos-logs)), um filtro de serviço ou de atributo que não corresponde, e uma janela de tempo mais curta que o intervalo entre os logs do serviço.
 :::
 
 :::details Houve um pico, mas nada alertou

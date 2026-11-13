@@ -178,7 +178,7 @@ Et par hurtige regler:
 De fleste hændelser burde ikke kræve, at et menneske skriver dem ind. En monitors kriterier kan erklære en i det øjeblik, et filter matcher:
 
 :::steps
-1. Åbn monitoren, vælg **Kriterier** i dens sidemenu, og klik på **Rediger overvågningskriterier**. (En ny monitor spørger om de samme kriterier, mens du opretter den.)
+1. Åbn monitoren, vælg **Kriterier** i dens sidemenu, og klik på **Rediger kriterier**. (En ny monitor spørger om de samme kriterier, mens du opretter den.)
 2. Slå **Når filtre matcher, erklæres en hændelse.** til i det kriteriefilter, der skal erklære. Et afsnit **Opret hændelse** vises med en knap **Tilføj hændelse** — ét kriteriefilter kan erklære mere end én hændelse.
 3. Udfyld hændelsens felter (se nedenfor), og gem. Næste gang filteret matcher, erklæres hændelsen og tilkalder sine vagtpolitikker.
 :::

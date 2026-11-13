@@ -34,7 +34,7 @@ flowchart TB
 ## Prima di iniziare
 
 - **Per i budget dell'istanza e di un progetto, l'Admin Dashboard.** Su un'installazione self-hosted, solo l'amministratore dell'istanza li imposta. I proprietari e gli amministratori di un progetto ne vedono i budget, ma non possono modificarli.
-- **Per il budget proprio di una chiave, un ruolo che modifica le chiavi di acquisizione.** Project Owner o Project Admin, oppure un ruolo personalizzato con il permesso Edit Telemetry Ingestion Key.
+- **Per il budget proprio di una chiave, un ruolo che modifica le chiavi di acquisizione.** Project Owner o Project Admin, oppure un ruolo personalizzato con il permesso Edit Ingestion Key.
 - **Per vedere i budget, un ruolo che vede l'utilizzo del progetto.** I ruoli che vedono la pagina [Utilizzo della telemetria](/docs/telemetry/usage) vi vedono i budget del progetto.
 
 ## Impostare i budget predefiniti di tutti i progetti

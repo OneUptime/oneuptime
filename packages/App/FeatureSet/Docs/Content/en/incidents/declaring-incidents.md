@@ -178,7 +178,7 @@ A few quick rules:
 Most incidents should not need a human to type them in. A monitor's criteria can declare one the moment a filter matches:
 
 :::steps
-1. Open the monitor, choose **Criteria** in its side menu and click **Edit Monitoring Criteria**. (A new monitor asks for the same criteria while you create it.)
+1. Open the monitor, choose **Criteria** in its side menu and click **Edit Criteria**. (A new monitor asks for the same criteria while you create it.)
 2. In the criteria filter that should declare, turn on **When filters match, declare an incident.** A **Create Incident** section appears with an **Add Incident** button — one criteria filter can declare more than one incident.
 3. Fill in the incident's fields (below) and save. The next time the filter matches, the incident is declared and pages its on-call policies.
 :::

@@ -60,7 +60,7 @@ Klicken Sie auf **Monitor testen**, wählen Sie unter **Sonde auswählen** eine 
 
 ### Die Kriterien prüfen
 
-**Monitor-Kriterien** beginnt mit den [Standardkriterien](#standardkriterien): offline, wenn die Website nicht oder mit einem Fehler antwortet, online bei jedem Status `2xx` oder `3xx`. Ändern Sie sie bei Bedarf und klicken Sie dann auf **Weiter**.
+**Kriterien** beginnt mit den [Standardkriterien](#standardkriterien): offline, wenn die Website nicht oder mit einem Fehler antwortet, online bei jedem Status `2xx` oder `3xx`. Ändern Sie sie bei Bedarf und klicken Sie dann auf **Weiter**.
 
 ### Sonden wählen und erstellen
 

@@ -32,7 +32,7 @@ flowchart TB
 :::steps
 ### Ouvrir les critères du moniteur
 
-Allez dans **Moniteurs**, ouvrez le moniteur, puis cliquez sur **Critères** dans son menu latéral. Cliquez sur **Modifier les critères de surveillance**.
+Allez dans **Moniteurs**, ouvrez le moniteur, puis cliquez sur **Critères** dans son menu latéral. Cliquez sur **Modifier les critères**.
 
 ### Activer l'incident ou l'alerte
 

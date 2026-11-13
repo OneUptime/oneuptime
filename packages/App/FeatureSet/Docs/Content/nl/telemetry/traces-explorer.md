@@ -183,6 +183,6 @@ Elke rij is een span, geen verzoek: met **Entry spans**, de standaardinstelling,
 :::cards
 - [Zoeksyntaxis](/docs/telemetry/search-syntax): Elk filter dat het zoekvak begrijpt.
 - [Traces-monitor](/docs/monitor/traces-monitor): Een melding krijgen bij mislukte of trage verzoeken.
-- [Uitzonderingen volgen](/docs/telemetry/exceptions): De fouten beoordelen die uw spans vastleggen.
+- [Uitzonderingen](/docs/telemetry/exceptions): De fouten beoordelen die uw spans vastleggen.
 - [Logboekverkenner](/docs/telemetry/logs-explorer): De logregels lezen die een verzoek schreef.
 :::

@@ -61,7 +61,7 @@ export const TELEMETRY_EXPLORERS_PAGES: ReadonlyArray<TelemetryExplorersDocsPage
     },
     {
       page: EXCEPTIONS,
-      navTitle: "Exception Tracking",
+      navTitle: "Exceptions",
       navGroup: "Telemetry",
       after: "Metrics Explorer",
     },

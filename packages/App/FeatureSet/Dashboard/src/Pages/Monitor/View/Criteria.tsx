@@ -169,9 +169,9 @@ const MonitorCriteria: FunctionComponent<
     return (
       <CardModelDetail
         name="Monitoring Criteria"
-        editButtonText="Edit Monitoring Criteria"
+        editButtonText="Edit Criteria"
         cardProps={{
-          title: "Monitoring Criteria",
+          title: "Criteria",
           description:
             "The conditions that decide this monitor's status, and the incidents and alerts it creates.",
           rightElement: monitorSteps ? (

@@ -24,7 +24,7 @@ import ProjectUtil from "../../../UI/Utils/Project";
  * Create Monitor's criteria step: its cards are sections of the page's card
  * (and of the edit dialog) at every width, not frames inside its frame.
  *
- * The step drew Monitor Target, Test Monitor and Monitor Criteria as cards
+ * The step drew Monitor Target, Test Monitor and Criteria as cards
  * inside the page's card. On a phone each frame and its padding came off
  * the width of every field in them, and #5482 drew them as sections there;
  * from sm up they were still cards in a card, which the maintainer asked to
@@ -389,11 +389,11 @@ function cardTitles(cards: Array<HTMLElement>): Array<string> {
 
 describe("the criteria step's cards", () => {
   test.each([MonitorType.Website, MonitorType.API, MonitorType.Ping])(
-    "%s: Monitor Target, Test Monitor and Monitor Criteria are sections of the card they are in",
+    "%s: Monitor Target, Test Monitor and Criteria are sections of the card they are in",
     async (monitorType: MonitorType) => {
       render(editor(monitorType));
 
-      await screen.findByText("Monitor Criteria");
+      await screen.findByText("Criteria");
 
       const holder: HTMLElement = screen.getByTestId(
         CARD_FORM_SECTIONS_TEST_ID,
@@ -401,11 +401,7 @@ describe("the criteria step's cards", () => {
       const cards: Array<HTMLElement> = within(holder).getAllByTestId("card");
 
       expect(cardTitles(cards)).toEqual(
-        expect.arrayContaining([
-          "Monitor Target",
-          "Test Monitor",
-          "Monitor Criteria",
-        ]),
+        expect.arrayContaining(["Monitor Target", "Test Monitor", "Criteria"]),
       );
 
       for (const card of cards) {
@@ -454,7 +450,7 @@ describe("the criteria step's cards", () => {
   test("the step spaces its sections as it spaced its cards", async () => {
     render(editor(MonitorType.Website));
 
-    await screen.findByText("Monitor Criteria");
+    await screen.findByText("Criteria");
 
     const holder: HTMLElement = screen.getByTestId(CARD_FORM_SECTIONS_TEST_ID);
 

@@ -34,7 +34,7 @@ flowchart TB
 ## Antes de empezar
 
 - **Para los presupuestos de la instancia y de un proyecto, el Admin Dashboard.** En una instalación autoalojada, solo el administrador de la instancia los fija. Los propietarios y administradores de un proyecto ven sus presupuestos, pero no pueden cambiarlos.
-- **Para el presupuesto propio de una clave, un rol que edite claves de ingesta.** Project Owner o Project Admin, o un rol personalizado con el permiso Edit Telemetry Ingestion Key.
+- **Para el presupuesto propio de una clave, un rol que edite claves de ingesta.** Project Owner o Project Admin, o un rol personalizado con el permiso Edit Ingestion Key.
 - **Para ver los presupuestos, un rol que vea el uso del proyecto.** Los roles que ven la página [Uso de telemetría](/docs/telemetry/usage) ven en ella los presupuestos del proyecto.
 
 ## Fijar los presupuestos predeterminados de todos los proyectos

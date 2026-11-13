@@ -1,4 +1,4 @@
-# Suivi des exceptions
+# Exceptions
 
 Le suivi des exceptions recueille les erreurs que votre code lève et regroupe chaque occurrence d'une même erreur en une seule exception, avec sa stack trace, sa tendance et les requêtes où elle s'est produite. Traitez-les comme une liste de tâches : corrigez, résolvez ou archivez le bruit, et laissez l'IA ouvrir une pull request pour celles qu'elle sait corriger.
 

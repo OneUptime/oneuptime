@@ -55,7 +55,7 @@ Klicka på **Testa monitor**, välj en sond under **Välj sond** och klicka på 
 
 ### Gå igenom kriterierna
 
-**Monitorkriterier** börjar med [standardkriterierna](#standardkriterier): offline när porten inte tar emot en anslutning, online när den gör det. Ändra dem vid behov och klicka sedan på **Nästa**.
+**Kriterier** börjar med [standardkriterierna](#standardkriterier): offline när porten inte tar emot en anslutning, online när den gör det. Ändra dem vid behov och klicka sedan på **Nästa**.
 
 ### Välj sonder och skapa
 

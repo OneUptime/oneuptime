@@ -35,7 +35,7 @@ describe("Inventory detail breadcrumb destinations", () => {
     "Logs",
     "Traces",
     "Metrics",
-    "Performance Profiles",
+    "Profiles",
     "Exceptions",
     "Settings",
     "Delete Item",

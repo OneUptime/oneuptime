@@ -108,10 +108,10 @@ const PAGES: Array<{ fileName: string; monitorType: MonitorType }> = [
 
 describe("Every page describes the criteria a new monitor starts with", () => {
   test.each(PAGES)(
-    "$fileName has a Default Criteria section under Monitoring Criteria",
+    "$fileName has a Default Criteria section under Criteria",
     ({ fileName }: { fileName: string }) => {
       const page: string = readPage(fileName);
-      const criteriaSection: string = sectionOf(page, "## Monitoring Criteria");
+      const criteriaSection: string = sectionOf(page, "## Criteria");
 
       expect(criteriaSection).toContain(`${DEFAULT_CRITERIA_HEADING}\n`);
     },

@@ -222,7 +222,12 @@ test.describe("Monitor summary probe picker", () => {
     await clickNext({ page });
 
     // Step 2: criteria.
-    await expect(page.getByText("Monitor Criteria").first()).toBeVisible({
+    await expect(
+      page
+        .getByTestId("card-details-heading")
+        .getByText("Criteria", { exact: true })
+        .first(),
+    ).toBeVisible({
       timeout: 60000,
     });
     const destination: Locator = page

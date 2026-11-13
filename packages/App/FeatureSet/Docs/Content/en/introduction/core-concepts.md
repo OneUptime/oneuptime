@@ -132,7 +132,7 @@ A **status page** shows your customers whether your services work. You choose wh
 
 ## Telemetry
 
-**Telemetry** is what your systems send OneUptime: logs, metrics, traces, exceptions and profiles. Apps send it with OpenTelemetry, and OneUptime's agents send it from hosts, Kubernetes clusters, Docker hosts and other infrastructure. Every sender uses an **ingestion key**, created under **Project Settings → Telemetry & APM → Ingestion Keys**. You search telemetry, chart it on dashboards, and watch it with telemetry monitors, which raise incidents and alerts like any other monitor. In the menu, **Logs**, **Metrics**, **Traces**, **Performance Profiles** and **Exceptions** each open one kind; **AI / LLM** follows your AI's conversations, **Data Observability** watches the tables in your databases, and **Topology** maps how it all connects.
+**Telemetry** is what your systems send OneUptime: logs, metrics, traces, exceptions and profiles. Apps send it with OpenTelemetry, and OneUptime's agents send it from hosts, Kubernetes clusters, Docker hosts and other infrastructure. Every sender uses an **ingestion key**, created under **Project Settings → Telemetry & APM → Ingestion Keys**. You search telemetry, chart it on dashboards, and watch it with telemetry monitors, which raise incidents and alerts like any other monitor. In the menu, **Logs**, **Metrics**, **Traces**, **Profiles** and **Exceptions** each open one kind; **AI / LLM** follows your AI's conversations, **Data Observability** watches the tables in your databases, and **Topology** maps how it all connects.
 
 :::cards
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Send logs, metrics and traces from your apps.

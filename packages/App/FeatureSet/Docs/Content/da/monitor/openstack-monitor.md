@@ -57,7 +57,7 @@ En ny monitor starter på **Cloud Stopped Reporting** under **Hvad der skal adva
 
 ### Kontrollér kriterierne
 
-Åbn hvert kriterium under **Monitorkriterier**, og kontrollér dets **Metrik**, **Aggregering**, **Betingelse** og **Tærskel**. En skabelon udfylder disse. Med **Custom Metric** eller **Avanceret** starter monitoren med standardkriterierne, som kun opdager, at metrikken ikke sender data, så sæt din egen tærskel.
+Åbn hvert kriterium under **Kriterier**, og kontrollér dets **Metrik**, **Aggregering**, **Betingelse** og **Tærskel**. En skabelon udfylder disse. Med **Custom Metric** eller **Avanceret** starter monitoren med standardkriterierne, som kun opdager, at metrikken ikke sender data, så sæt din egen tærskel.
 
 ### Opret monitoren
 

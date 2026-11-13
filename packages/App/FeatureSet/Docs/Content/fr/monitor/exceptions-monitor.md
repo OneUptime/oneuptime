@@ -193,7 +193,7 @@ Le **Nombre d'exceptions** vaut 3, donc **Plus de** `0` correspond : le moniteur
 ## Dépannage
 
 :::details Des exceptions apparaissent dans l'explorateur, mais le moniteur compte 0
-Comparez la valeur de **Environnements** au filtre `env:` de l'explorateur : la correspondance est exacte et sensible à la casse, et les exceptions sans environnement sont écartées quand le filtre est défini. Vérifiez ensuite si ces exceptions sont résolues ou archivées. Ouvrez la page **Critères** du moniteur (sous **Configuration**) et cliquez sur **Modifier les critères de surveillance** : **Exceptions correspondantes** montre ce que les filtres sélectionnent.
+Comparez la valeur de **Environnements** au filtre `env:` de l'explorateur : la correspondance est exacte et sensible à la casse, et les exceptions sans environnement sont écartées quand le filtre est défini. Vérifiez ensuite si ces exceptions sont résolues ou archivées. Ouvrez la page **Critères** du moniteur (sous **Configuration**) et cliquez sur **Modifier les critères** : **Exceptions correspondantes** montre ce que les filtres sélectionnent.
 :::
 
 :::details L'incident s'est résolu quand j'ai résolu l'exception

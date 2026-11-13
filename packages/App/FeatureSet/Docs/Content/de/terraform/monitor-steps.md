@@ -1,6 +1,6 @@
 # Monitor-Schritte
 
-`monitor_steps` ist das Attribut von `oneuptime_monitor`, das sagt, was ein Monitor prüft und wie jedes Ergebnis beurteilt wird: die zu prüfende Adresse, die zu sendende Anfrage und die Kriterien, die aus einem Ergebnis einen Monitor-Status, einen Vorfall oder eine Warnung machen. Diese Seite erklärt jeden Teil davon.
+`monitor_steps` ist das Attribut von `oneuptime_monitor`, das sagt, was ein Monitor prüft und wie jedes Ergebnis beurteilt wird: die zu prüfende Adresse, die zu sendende Anfrage und die Kriterien, die aus einem Ergebnis einen Monitor-Status, einen Vorfall oder eine Warnung machen. Diese Seite erklärt jeden Teil davon. Das Dashboard zeigt die Kriterien eines Schritts auf der Seite **Kriterien** des Monitors, wie [Kriterien & Status](/docs/monitor/criteria-and-statuses) beschreibt.
 
 :::cards
 - [Wie eine Prüfung beurteilt wird](#wie-eine-prüfung-beurteilt-wird): Kriterien der Reihe nach, und das erste, das passt.

@@ -56,24 +56,34 @@ jest.mock("../../FeatureSet/Docs/Utils/Config", () => {
 });
 
 interface Findable {
-  // What a person types into Search, and the page it should offer.
+  /*
+   * What a person types into Search, and the page it should offer: by its
+   * title, or by its breadcrumb and title ("Profiles › Overview") where
+   * the title alone is every product's.
+   */
   search: { query: string; offers: string };
-  // The products menu's entry that finds the product by its old name.
-  productKeyword?: string | undefined;
+  /*
+   * The products menu's entry, by its title's key, that finds the product
+   * by its old name.
+   */
+  product?: { titleKey: string; keyword: string } | undefined;
   // What the glossary term says about it: the old name, or the new one.
   glossaryMentions: string;
   /*
    * What a person types into the docs' search, and a result it must give
    * among the first ten: the page, or the glossary term that says what the
-   * thing is called now and links to it.
+   * thing is called now and links to the page (`linksTo`).
    */
-  docs: { query: string; opens: string };
+  docs: { query: string; opens: string; linksTo?: string | undefined };
 }
 
 const FINDABLE: Record<string, Findable> = {
   "On-Call Duty": {
     search: { query: "on-call duty policies", offers: "On-Call Policies" },
-    productKeyword: "on-call duty",
+    product: {
+      titleKey: "navbar.items.onCallDutyTitle",
+      keyword: "on-call duty",
+    },
     glossaryMentions: "On-Call Duty",
     docs: { query: "on-call duty", opens: "/docs/en/on-call/index" },
   },
@@ -104,6 +114,7 @@ const FINDABLE: Record<string, Findable> = {
     docs: {
       query: "personal on-call rules",
       opens: "/docs/en/introduction/glossary#how-to-reach-me",
+      linksTo: "/docs/en/notifications/on-call-rules",
     },
   },
   "Project Settings > Notifications > Notification Settings": {
@@ -115,6 +126,75 @@ const FINDABLE: Record<string, Findable> = {
     docs: {
       query: "notification settings balance",
       opens: "/docs/en/configuration/project-settings#notifications",
+    },
+  },
+  "Performance Profiles": {
+    search: { query: "performance profiles", offers: "Profiles › Overview" },
+    product: {
+      titleKey: "navbar.items.performanceProfilesTitle",
+      keyword: "performance profiles",
+    },
+    glossaryMentions: "Performance Profiles",
+    // The page no longer says "performance": its glossary term is found.
+    docs: {
+      query: "performance profiles",
+      opens: "/docs/en/introduction/glossary#profiles",
+      linksTo: "/docs/en/telemetry/profiles",
+    },
+  },
+  Profiler: {
+    search: { query: "profiler", offers: "Profiles › Overview" },
+    product: {
+      titleKey: "navbar.items.performanceProfilesTitle",
+      keyword: "profiler",
+    },
+    glossaryMentions: "Profiler",
+    docs: { query: "profiler", opens: "/docs/en/telemetry/profiles" },
+  },
+  "Continuous Profiling": {
+    search: { query: "continuous profiling", offers: "Profiles › Overview" },
+    product: {
+      titleKey: "navbar.items.performanceProfilesTitle",
+      keyword: "continuous profiling",
+    },
+    glossaryMentions: "Continuous Profiling",
+    docs: {
+      query: "continuous profiling",
+      opens: "/docs/en/telemetry/profiles",
+    },
+  },
+  "Exception Tracking": {
+    search: { query: "exception tracking", offers: "Exceptions" },
+    product: {
+      titleKey: "navbar.items.exceptionsTitle",
+      keyword: "exception tracking",
+    },
+    glossaryMentions: "Exception Tracking",
+    // The page no longer says "tracking": its glossary term is found.
+    docs: {
+      query: "exception tracking",
+      opens: "/docs/en/introduction/glossary#exception",
+      linksTo: "/docs/en/telemetry/exceptions",
+    },
+  },
+  /*
+   * A monitor's Criteria are a page of each monitor, which Search does not
+   * list: the old name offers the monitors, one click from it.
+   */
+  "Monitor Criteria": {
+    search: { query: "monitor criteria", offers: "All Monitors" },
+    glossaryMentions: "Monitor Criteria",
+    docs: {
+      query: "monitor criteria",
+      opens: "/docs/en/monitor/criteria-and-statuses",
+    },
+  },
+  "Telemetry Ingestion Key": {
+    search: { query: "telemetry ingestion keys", offers: "Ingestion Keys" },
+    glossaryMentions: "Telemetry Ingestion Key",
+    docs: {
+      query: "telemetry ingestion key",
+      opens: "/docs/en/telemetry/ingestion-keys",
     },
   },
 };
@@ -166,11 +246,15 @@ const PAGES: Array<PaletteCommand> = buildPageSearchCommandDescriptors({
   };
 });
 
+// The first five results, each by its title and by its breadcrumb and title.
 function offered(query: string): Array<string> {
   return filterPaletteCommands(PAGES, query)
     .slice(0, 5)
-    .map((match: PaletteCommandMatch): string => {
-      return match.command.title;
+    .flatMap((match: PaletteCommandMatch): Array<string> => {
+      return [
+        match.command.title,
+        [...(match.command.breadcrumb || []), match.command.title].join(" › "),
+      ];
     });
 }
 
@@ -219,9 +303,27 @@ describe("Search (Cmd/Ctrl+K) finds the page by its old name", () => {
     expect(offered("zzqx retired name")).toEqual([]);
   });
 
-  test("the products menu finds On-Call by its old name", () => {
-    expect(productKeywords("navbar.items.onCallDutyTitle")).toContain(
-      FINDABLE["On-Call Duty"]!.productKeyword,
+  test.each(
+    Object.entries(FINDABLE).filter(
+      ([, findable]: [string, Findable]): boolean => {
+        return Boolean(findable.product);
+      },
+    ),
+  )(
+    "the products menu finds the product %s named",
+    (_name: string, findable: Findable) => {
+      expect(productKeywords(findable.product!.titleKey)).toContain(
+        findable.product!.keyword,
+      );
+    },
+  );
+
+  test("a product's keywords are read from its own entry", () => {
+    expect(productKeywords("navbar.items.exceptionsTitle")).toContain(
+      "stack traces",
+    );
+    expect(productKeywords("navbar.items.exceptionsTitle")).not.toContain(
+      "flame graph",
     );
   });
 });
@@ -242,15 +344,24 @@ describe("the glossary keeps the old name, or says what it is called now", () =>
       },
     );
     const mentions: string = FINDABLE[name]!.glossaryMentions;
+    /*
+     * The old name itself is one of the term's other names: its definition
+     * may use the same words as ordinary English ("sent by a profiler"),
+     * which says nothing about the Profiler. A term that says what the
+     * thing is called now may say it in its definition.
+     */
+    const where: Array<string> =
+      mentions === name
+        ? entry?.alsoCalled || []
+        : [...(entry?.alsoCalled || []), entry?.definition || ""];
 
     expect(entry).toBeDefined();
-    expect(
-      [...entry!.alsoCalled, entry!.definition].some(
-        (text: string): boolean => {
-          return text.toLowerCase().includes(mentions.toLowerCase());
-        },
-      ),
-    ).toBe(true);
+    expect({
+      name,
+      found: where.some((text: string): boolean => {
+        return text.toLowerCase().includes(mentions.toLowerCase());
+      }),
+    }).toEqual({ name, found: true });
   });
 });
 
@@ -277,26 +388,46 @@ describe("the docs' own search opens the page by its old name", () => {
     const english: string = fs.readFileSync(GLOSSARY_EN, "utf8");
     const entries: Array<DocsGlossaryEntry> =
       parseGlossary(english, english, "en") || [];
-    const anchors: Array<string> = Object.values(FINDABLE)
-      .map((findable: Findable): string => {
-        return findable.docs.opens.split("/introduction/glossary#")[1] || "";
+    const terms: Array<Findable["docs"]> = Object.values(FINDABLE)
+      .map((findable: Findable): Findable["docs"] => {
+        return findable.docs;
       })
-      .filter(Boolean);
+      .filter((docs: Findable["docs"]): boolean => {
+        return docs.opens.includes("/introduction/glossary#");
+      });
 
-    expect(anchors).toEqual(["how-to-reach-me"]);
+    expect(
+      terms.map((docs: Findable["docs"]): string => {
+        return docs.opens.split("/introduction/glossary#")[1] || "";
+      }),
+    ).toEqual(["how-to-reach-me", "profiles", "exception"]);
 
-    for (const anchor of anchors) {
+    for (const docs of terms) {
+      const anchor: string = docs.opens.split("/introduction/glossary#")[1]!;
       const entry: DocsGlossaryEntry | undefined = entries.find(
         (candidate: DocsGlossaryEntry): boolean => {
           return candidate.anchor === anchor;
         },
       );
 
+      expect(docs.linksTo).toBeDefined();
       expect(
         entry?.links.map((link: { url: string }): string => {
           return link.url;
         }),
-      ).toContain("/docs/en/notifications/on-call-rules");
+      ).toContain(docs.linksTo);
+    }
+  });
+
+  test("a docs result found in a glossary term says which page it stands for", () => {
+    for (const findable of Object.values(FINDABLE)) {
+      expect({
+        opens: findable.docs.opens,
+        linksTo: Boolean(findable.docs.linksTo),
+      }).toEqual({
+        opens: findable.docs.opens,
+        linksTo: findable.docs.opens.includes("/introduction/glossary#"),
+      });
     }
   });
 });

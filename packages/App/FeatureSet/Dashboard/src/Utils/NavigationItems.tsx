@@ -266,6 +266,8 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       title: t("navbar.items.performanceProfilesTitle"),
       keywords: [
         "profiling",
+        // Its names before they became Profiles (#6817).
+        "performance profiles",
         "profiler",
         "continuous profiling",
         "flamegraph",
@@ -283,7 +285,15 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     {
       key: ProductKey.Exceptions,
       title: t("navbar.items.exceptionsTitle"),
-      keywords: ["errors", "error tracking", "bugs", "crashes", "stack traces"],
+      keywords: [
+        "errors",
+        "error tracking",
+        // Its name in the docs before it became Exceptions (#6817).
+        "exception tracking",
+        "bugs",
+        "crashes",
+        "stack traces",
+      ],
       description: t("navbar.items.exceptionsDescription"),
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.EXCEPTIONS] as Route,

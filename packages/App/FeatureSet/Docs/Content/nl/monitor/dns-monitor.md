@@ -52,7 +52,7 @@ Klik op **Monitor testen**, kies een sonde onder **Selecteer sonde** en klik op 
 
 ### De criteria nakijken
 
-**Monitorcriteria** begint met de [standaardcriteria](#standaardcriteria): offline wanneer de naam niet wordt omgezet, online wanneer dat wel gebeurt. Om te controleren wat de records zeggen, voegt u een filter **DNS-recordwaarde** toe en klikt u op **Volgende**.
+**Criteria** begint met de [standaardcriteria](#standaardcriteria): offline wanneer de naam niet wordt omgezet, online wanneer dat wel gebeurt. Om te controleren wat de records zeggen, voegt u een filter **DNS-recordwaarde** toe en klikt u op **Volgende**.
 
 ### Sondes kiezen en maken
 

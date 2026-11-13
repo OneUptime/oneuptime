@@ -66,7 +66,7 @@ Klikk på **Test monitor**, velg en sonde under **Velg sonde**, og klikk på **K
 
 ### Gå gjennom kriteriene
 
-**Monitorkriterier** starter med [standardkriteriene](#standardkriterier): frakoblet når kjeden er brutt, tilkoblet når den er gyldig. For å bli varslet før signaturer utløper, legger du til et kriterium (se [Beste praksis](#beste-praksis)), og klikker så på **Neste**.
+**Kriterier** starter med [standardkriteriene](#standardkriterier): frakoblet når kjeden er brutt, tilkoblet når den er gyldig. For å bli varslet før signaturer utløper, legger du til et kriterium (se [Beste praksis](#beste-praksis)), og klikker så på **Neste**.
 
 ### Velg sonder og opprett
 
