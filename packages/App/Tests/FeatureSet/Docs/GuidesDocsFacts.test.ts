@@ -585,7 +585,11 @@ describe("Know When Your Website or API Is Down, against the product", () => {
 
     expect(steps.match(/WebsiteDownStep\.\w+,/g)).toHaveLength(3);
     expect(places).not.toContain(-1);
-    expect([...places].sort((a: number, b: number) => a - b)).toEqual(places);
+    expect(
+      [...places].sort((a: number, b: number) => {
+        return a - b;
+      }),
+    ).toEqual(places);
   });
 
   it("checks every 5 minutes, and counts no answer or an answer outside 200 to 399 as down", () => {
