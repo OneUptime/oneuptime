@@ -51828,5 +51828,18 @@
   "Couldn't search the notes.": "No se pudo buscar en las notas.",
   "Couldn't sort the notes.": "No se pudieron ordenar las notas.",
   "Couldn't load more notes.": "No se pudieron cargar más notas.",
-  "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Intervalo de tiempo: {{range}}. Prueba a ajustar los filtros o a ampliar el intervalo de tiempo."
+  "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Intervalo de tiempo: {{range}}. Prueba a ajustar los filtros o a ampliar el intervalo de tiempo.",
+  "On-Call Policy Created": "Política de guardia creada",
+  "On-Call Schedule Added": "Programación de guardia añadida",
+  "On-Call Schedule Removed": "Programación de guardia quitada",
+  "Couldn't post the note.": "No se pudo añadir la nota.",
+  "Couldn't save your changes.": "No se pudieron guardar tus cambios.",
+  "Couldn't delete the note.": "No se pudo eliminar la nota.",
+  "Couldn't send the note for approval.": "No se pudo enviar la nota para aprobación.",
+  "Couldn't send the edit for approval.": "No se pudo enviar la edición para aprobación.",
+  "Couldn't approve the note.": "No se pudo aprobar la nota.",
+  "Couldn't reject the note.": "No se pudo rechazar la nota.",
+  "Couldn't publish the note.": "No se pudo publicar la nota.",
+  "Couldn't withdraw the edit.": "No se pudo retirar la edición.",
+  "Couldn't load the public notes.": "No se pudieron cargar las notas públicas."
 }

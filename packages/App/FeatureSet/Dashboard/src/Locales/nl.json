@@ -51828,5 +51828,18 @@
   "Couldn't search the notes.": "Kan de notities niet doorzoeken.",
   "Couldn't sort the notes.": "Kan de notities niet sorteren.",
   "Couldn't load more notes.": "Kan geen extra notities laden.",
-  "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Periode: {{range}}. Pas de filters aan of kies een ruimere periode."
+  "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Periode: {{range}}. Pas de filters aan of kies een ruimere periode.",
+  "On-Call Policy Created": "Bereikbaarheidsbeleid aangemaakt",
+  "On-Call Schedule Added": "Bereikbaarheidsschema toegevoegd",
+  "On-Call Schedule Removed": "Bereikbaarheidsschema verwijderd",
+  "Couldn't post the note.": "Kan de notitie niet toevoegen.",
+  "Couldn't save your changes.": "Kan uw wijzigingen niet opslaan.",
+  "Couldn't delete the note.": "Kan de notitie niet verwijderen.",
+  "Couldn't send the note for approval.": "Kan de notitie niet ter goedkeuring versturen.",
+  "Couldn't send the edit for approval.": "Kan de bewerking niet ter goedkeuring versturen.",
+  "Couldn't approve the note.": "Kan de notitie niet goedkeuren.",
+  "Couldn't reject the note.": "Kan de notitie niet afwijzen.",
+  "Couldn't publish the note.": "Kan de notitie niet publiceren.",
+  "Couldn't withdraw the edit.": "Kan de bewerking niet intrekken.",
+  "Couldn't load the public notes.": "Kan de openbare notities niet laden."
 }
