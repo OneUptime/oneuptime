@@ -139,6 +139,12 @@ const LISTED: ReadonlyArray<ListedFile> = [
     builtFrom: "the HTTP method names WEBHOOK_TRIGGER_HTTP_METHODS lists",
   },
   {
+    file: "packages/Common/Utils/AI/MeaningMatch.ts",
+    count: 1,
+    builtFrom:
+      "the outage concepts MEANING_CONCEPTS lists, each a pattern literal of the file, read again with the global flag to count its matches",
+  },
+  {
     file: "packages/Common/Utils/AiRemediation/KubectlOutputRedactor.ts",
     count: 7,
     builtFrom:
