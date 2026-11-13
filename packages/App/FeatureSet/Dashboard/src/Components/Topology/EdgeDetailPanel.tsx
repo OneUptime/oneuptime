@@ -57,6 +57,7 @@ import Route from "Common/Types/API/Route";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import { TopologyEntity, TopologyRelationship } from "./TopologyData";
+import { joinWithArrowsOn } from "Common/Types/DirectionArrow";
 import { getChartGridStepSeconds } from "../NetworkDevice/ChartGridStep";
 import {
   HEALTH_COLORS,
@@ -475,7 +476,7 @@ const EdgeDetailPanel: FunctionComponent<ComponentProps> = (
       {
         id: "edge-calls",
         title: translateString("Calls and errors") || "",
-        description: `${fromName} → ${toName}`,
+        description: joinWithArrowsOn([fromName, toName], translator.language),
         type: ChartType.LINE,
         props: {
           data: withTranslatedSeriesNames(callSeries, translator),
@@ -537,7 +538,7 @@ const EdgeDetailPanel: FunctionComponent<ComponentProps> = (
 
   return (
     <SideOver
-      title={`${fromName} → ${toName}`}
+      title={joinWithArrowsOn([fromName, toName], translator.language)}
       description={
         translateString(
           historyAvailable ? "Service dependency" : "Dependency",

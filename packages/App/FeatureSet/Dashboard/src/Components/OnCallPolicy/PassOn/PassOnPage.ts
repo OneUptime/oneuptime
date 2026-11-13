@@ -202,7 +202,11 @@ export function readOpenPages(json: unknown): Array<OnCallOpenPage> {
         preview: readOnCallPassOnResult(
           item["preview"] as unknown as OnCallPassOnResult,
         ),
-        // A page again: acknowledged as the page it is (PAGE_AGAIN_TEXT).
+        /*
+         * A page again, or a page that goes on until answered about a record
+         * acknowledged already: acknowledged as the page it is
+         * (PAGE_AGAIN_TEXT).
+         */
         ...(item["isPageAgain"] === true ? { isPageAgain: true as const } : {}),
       };
     });
@@ -264,6 +268,11 @@ export async function fetchOpenPages(data: {
  * "Acknowledge again" of their own there, beside Escalate, that answers
  * their page as its link, a call's 1 or a text would: their notifications
  * stop, and the policy counts its time again from now.
+ *
+ * A page a person asked for (OnCallPersonPage) and a policy a person started
+ * by hand (OnCallPolicyStartedByHand) get the same once the record is
+ * acknowledged: they go on until one of their people answers them, and the
+ * record's own Acknowledge, the other way to answer them, is gone.
  *
  * "Again", because the header says the record is Acknowledged already: a
  * bare "Acknowledge" beside that read as a button that did nothing, or as

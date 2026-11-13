@@ -525,6 +525,13 @@ async function guardAnswer(data: {
 
 const WITH_KEY: Record<string, string> = { "x-oneuptime-token": SECRET };
 
+/*
+ * The page for other tools' protocols, and its Sentry SDKs section: a
+ * Browser key carries a browser app's DSN, and the Sends row links there.
+ */
+const COMPATIBLE_ENDPOINTS: string = "telemetry/compatible-endpoints";
+const SENTRY_SDKS_LINK: string = `/docs/${COMPATIBLE_ENDPOINTS}#sentry-sdks`;
+
 describe("Ingestion Keys (telemetry/ingestion-keys)", () => {
   const page: string = english(INGESTION_KEYS);
   const listPage: string = readDashboardSource(
@@ -719,13 +726,15 @@ describe("Ingestion Keys (telemetry/ingestion-keys)", () => {
     expect(page).toContain("x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_KEY");
   });
 
-  it("accepts a Browser key only for traces, logs, metrics and session replays", () => {
+  it("accepts a Browser key only for traces, logs, metrics, session replays and Sentry events", () => {
     expect(Array.from(BROWSER_ALLOWED_INGEST_SURFACES).sort()).toEqual(
       [
         TelemetryIngestSurface.OtelTraces,
         TelemetryIngestSurface.OtelLogs,
         TelemetryIngestSurface.OtelMetrics,
         TelemetryIngestSurface.SessionReplay,
+        // A browser app's Sentry DSN, which is public by design (#7742).
+        TelemetryIngestSurface.Sentry,
       ].sort(),
     );
 
@@ -758,8 +767,12 @@ describe("Ingestion Keys (telemetry/ingestion-keys)", () => {
     expect(rows[1]).toEqual([
       "Sends",
       "Every kind of telemetry, to every endpoint",
-      "Traces, logs, metrics and session replays",
+      `Traces, logs, metrics, session replays and [Sentry events](${SENTRY_SDKS_LINK})`,
     ]);
+    // The link opens the section that gives a browser app's DSN a Browser key.
+    expect(section(english(COMPATIBLE_ENDPOINTS), "## Sentry SDKs")).toContain(
+      "A browser app's DSN is public, so use a **Browser** ingestion key there, with your site's origins on it.",
+    );
     expect(page).toContain(
       "OneUptime refuses a Browser key everywhere else, such as over gRPC and MQTT, for profiles, syslog, Fluent Bit and Fluentd, and for source map uploads.",
     );

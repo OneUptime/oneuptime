@@ -203,8 +203,8 @@ const queryMatches: (
   return true;
 };
 
-const mockMethodTable: (service: object, table: string) => void = (
-  service: object,
+const mockMethodTable: (service: { findBy: unknown }, table: string) => void = (
+  service: { findBy: unknown },
   table: string,
 ): void => {
   jest

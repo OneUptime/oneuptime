@@ -1,9 +1,9 @@
 # Twilio 集成
 
-自托管的 OneUptime 通过您自己的 Twilio 账户发送短信和语音告警，费用由您直接支付给 Twilio。Twilio 凭据保存在 OneUptime 的仪表板中，而不是环境变量中：通知投递读取已保存的配置，Helm Chart 中也没有 Twilio 凭据的值。
+自托管的 OneUptime 通过您自己的 Twilio 账户发送短信和语音告警，费用由您直接支付给 Twilio。Twilio 凭据保存在 OneUptime 的仪表板中，可以只用于一个项目，也可以用于整个安装。从代码部署的安装也可以改为通过环境变量设置整个安装的账户，由 Helm Chart 和 Docker Compose 传入：请参阅[通过环境变量设置整个安装的账户](#通过环境变量设置整个安装的账户)。
 
 > [!NOTE]
-> 一次旧的迁移导入了 `TWILIO_ACCOUNT_SID`、`TWILIO_AUTH_TOKEN` 和 `TWILIO_PHONE_NUMBER`；修改这些变量并不能更新现有安装的凭据。
+> 一次旧的迁移曾导入 `TWILIO_ACCOUNT_SID`、`TWILIO_AUTH_TOKEN` 和 `TWILIO_PHONE_NUMBER`；修改这些变量并不能更新现有安装的凭据。下文的 `GLOBAL_TWILIO_` 变量可以。
 
 :::cards
 - [准备 Twilio 账户](#1-准备-twilio-账户): 凭据、电话号码和账户的限制。
@@ -53,6 +53,66 @@
 :::
 
 如果要设置整个安装的默认配置，管理员可以改为打开 **Admin Dashboard > 设置 > 通话和短信**，选择该账户发送的内容，编辑 Twilio 凭据和电话号码并保存。当成员所在的项目没有默认配置时，发给他们的通知会使用这个全局配置。请对 Auth Token 保密。
+
+### 通过环境变量设置整个安装的账户
+
+新的安装可以一启动就发送短信、拨打电话，无需手动设置：通过环境变量设置整个安装的账户，可以来自 Terraform 或任何部署 OneUptime 的工具。一旦设置了 `GLOBAL_TWILIO_ACCOUNT_SID`，账户就是这些变量所描述的账户。**Admin Dashboard > 设置 > 通话和短信** 中保存的账户不再使用，该页面以只读方式显示此账户，每个字段旁注明设置它的变量。如果要改为在 Admin Dashboard 中设置账户，请将 `GLOBAL_TWILIO_ACCOUNT_SID` 留空。项目配置不受影响。
+
+| 变量 | Helm 值 | 内容 |
+| --- | --- | --- |
+| `GLOBAL_TWILIO_ACCOUNT_SID` | `twilio.accountSid` | Account SID。只有设置了它，OneUptime 才会读取其他变量 |
+| `GLOBAL_TWILIO_AUTH_TOKEN` | `twilio.authToken`，或在 `twilio.existingSecret.name` 中指定的 Secret | Auth Token |
+| `GLOBAL_TWILIO_USED_FOR` | `twilio.usedFor` | `calls-and-sms`（为空时也是如此）、`sms-only` 或 `calls-only` |
+| `GLOBAL_TWILIO_PRIMARY_PHONE_NUMBER` | `twilio.primaryPhoneNumber` | 拨出电话所用的号码，包含国家代码。`sms-only` 不需要 |
+| `GLOBAL_TWILIO_SECONDARY_PHONE_NUMBERS` | `twilio.secondaryPhoneNumbers` | 可选，以逗号分隔：对其所在国家的接收者，用这些号码代替主号码 |
+| `GLOBAL_TWILIO_SMS_PHONE_NUMBERS` | `twilio.smsPhoneNumbers` | 发送每条短信所用的号码，以逗号分隔。`sms-only` 必填 |
+
+使用 Helm 时，在 values 的 `twilio` 下设置它们。为了不让 auth token 出现在 Helm 随每个 release 保存的 values 中，请把它放进您自己的 Secret，并在 `twilio.existingSecret.name` 中指定该 Secret：
+
+```bash
+kubectl create secret generic oneuptime-twilio --namespace oneuptime \
+  --from-literal=authToken=YOUR_TWILIO_AUTH_TOKEN
+```
+
+```yaml
+twilio:
+  accountSid: ACXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+  usedFor: calls-and-sms
+  primaryPhoneNumber: "+14155550100"
+  existingSecret:
+    name: oneuptime-twilio
+```
+
+在 values 文件中给电话号码加上引号，并用 `--set-string` 而不是 `--set` 传入：不加引号时，`+14155550100` 是一个数字，Chart 会拒绝它。Chart 还会拒绝没有 `twilio.accountSid` 的其他 `twilio` 值、没有 auth token 的 Account SID，以及同时在 `twilio.authToken` 和 Secret 中给出的 auth token。使用 Terraform 时，在 `helm_release` 上设置相同的值，并将 auth token 作为敏感值。
+
+使用 Docker Compose 时，在 `config.env` 中填写以 `GLOBAL_TWILIO_` 开头的设置项，然后运行 `npm run start` 重新创建容器。
+
+OneUptime 在启动时读取这些变量。如果其中有错误，例如 OneUptime 无法识别的电话号码或缺少 auth token，在修正之前该账户不会发送短信，也不会拨打电话；服务器日志、**Admin Dashboard > 设置 > 通话和短信** 和 `/admin/setup` 上的检查清单会指出是哪个变量。auth token 永远不会显示。要更改账户，请修改这些变量并重启 OneUptime：Admin Dashboard 不会更改它。
+
+### 使用 Terraform 管理项目配置
+
+项目配置也是 [Terraform 提供程序](/docs/terraform/index) 的 `oneuptime_call_and_sms_config` 资源，同名的数据源可以读取它。Auth Token 是敏感值，因此计划、日志和输出中从不显示它。请通过敏感变量传入：
+
+```hcl
+variable "twilio_auth_token" {
+  type      = string
+  sensitive = true
+}
+
+resource "oneuptime_call_and_sms_config" "production" {
+  name                        = "Production Twilio"
+  used_for                    = "Calls and SMS"
+  twilio_account_sid          = "ACXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+  twilio_auth_token           = var.twilio_auth_token
+  twilio_primary_phone_number = "+14155550100"
+  is_project_default          = true
+}
+```
+
+- **项目默认配置。** 只有设置 `is_project_default = true`，Terraform 才会把配置设为项目默认配置。省略时 Terraform 会发送 `false`，因此与控制台中不同，项目的第一个配置不会成为默认配置。每种消息只在一个配置上设置它：如果 `used_for` 相同的两个配置都设置了它，它们会在每次 apply 时互相夺走默认配置。`is_project_default_for_sms` 和 `is_project_default_for_calls` 由 OneUptime 设置，Terraform 只读取它们。
+- **电话号码。** 每个号码都要写上 `+` 和国家代码。数字之间可以有空格、连字符、句点或括号：OneUptime 会把 `+1 415 555 0100` 存为 `+14155550100`，而 Terraform 会将其视为您写的号码，因此 plan 不会显示任何更改。
+- **API 密钥。** Terraform 使用的密钥除了能创建和编辑配置外，还必须能读取 Auth Token：**项目所有者**、**项目管理员**，或自定义角色中的 **Read Call and SMS**。如果密钥不能读取，读取配置会失败，错误会说明谁可以读取该令牌。
+- **引用。** 状态页的 `call_sms_config_id` 和来电策略的 `project_call_sms_config_id` 取配置的 `id`。
 
 ### 为通话和短信使用不同号码
 

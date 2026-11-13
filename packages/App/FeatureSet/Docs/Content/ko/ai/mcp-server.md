@@ -330,7 +330,7 @@ curl https://oneuptime.com/mcp/tools
 
 - **`acknowledge_incident`** / **`resolve_incident`**: 대시보드의 버튼과 마찬가지로 인시던트를 프로젝트의 Acknowledged 또는 Resolved 상태로 옮깁니다
 - **`acknowledge_alert`** / **`resolve_alert`**: 알림에 대해 같은 일을 합니다
-- **`add_incident_note`**: `visibility: "internal"`(팀만, 기본값) 또는 `visibility: "public"`(상태 페이지에 게시)로 인시던트에 메모를 추가합니다. Markdown을 지원합니다
+- **`add_incident_note`**: `visibility: "internal"`(인시던트를 볼 수 있는 사람만, 기본값) 또는 `visibility: "public"`(상태 페이지에 게시)로 인시던트에 메모를 추가합니다. Markdown을 지원합니다
 - **`add_alert_note`**: 알림에 내부 메모를 추가합니다
 
 일반적인 흐름: `list_incidents` → `acknowledge_incident` → `list_logs` 로 조사 → `add_incident_note`(공개) → `resolve_incident`.

@@ -66,60 +66,52 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   ComposedValue,
   composedValue,
-  PluralTemplate,
   translatableTerm,
   translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
-import { getErrorInSentenceText } from "Common/UI/Utils/ErrorInSentence";
-import { joinClauses } from "Common/UI/Utils/ListSeparator";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
+import {
+  getLinkFailuresText,
+  getLinkFailureText,
+  LINKED_MONITORS_RESULT,
+  LINKED_MONITORS_TITLE,
+  SYNC_TO_LINKED_MONITORS_TITLES,
+  SYNCED_MONITOR_RESULT,
+  UNLINK_MONITOR_CONFIRMATION,
+  UNLINKED_MONITOR_RESULT,
+} from "./MonitorTemplateLinkedMonitorsWords";
 
 /*
- * Link Existing Monitors, when some of the monitors picked could not be
- * linked: how many of how many, then why - each reason the server gave,
- * said once.
+ * A sentence about one monitor, in the reader's language, with the
+ * monitor's name in it as it was written, set apart (IsolatedText) so a
+ * name in another script keeps its own reading inside the sentence: what
+ * Sync from Template and Unlink from Template say when they are done
+ * (#7678), and what Unlink from Template asks first (#7710).
  */
-export const LINK_FAILURES_TEMPLATE: PluralTemplate = {
-  one: "{{count}} of {{total}} monitors could not be linked: {{errors}}",
-  other: "{{count}} of {{total}} monitors could not be linked: {{errors}}",
-};
+const SentenceWithMonitorName: FunctionComponent<{
+  template: string;
+  monitorName: string | undefined;
+}> = (props: {
+  template: string;
+  monitorName: string | undefined;
+}): ReactElement => {
+  if (!props.monitorName) {
+    return (
+      <TranslatedSentence
+        template={props.template}
+        slots={{}}
+        values={{ monitorName: translatableTerm("this monitor") }}
+      />
+    );
+  }
 
-/*
- * The sentence for `failed` of `total` monitors that could not be linked,
- * with the reasons (API.getFriendlyMessage's answers) said in the language
- * the sentence comes out in - the reader's, or English while their language
- * has no wording of it - as ErrorMessageText says an error: an error nobody
- * explained says why and what to do next. The reasons are clauses of one
- * line, set off with that language's semicolon: "; ", "؛ ", " ; ".
- */
-export const getLinkFailuresText: (data: {
-  errors: ReadonlyArray<string>;
-  total: number;
-  translator: Translator;
-}) => string = (data: {
-  errors: ReadonlyArray<string>;
-  total: number;
-  translator: Translator;
-}): string => {
-  const reasons: Array<string> = Array.from(new Set(data.errors));
-
-  return data.translator.translatePlural(
-    LINK_FAILURES_TEMPLATE,
-    data.errors.length,
-    {
-      total: data.translator.formatNumber(data.total),
-      errors: composedValue((sentence: Translator): string => {
-        return joinClauses(
-          reasons.map((message: string): string => {
-            return getErrorInSentenceText({
-              message: message,
-              translator: sentence,
-            });
-          }),
-          sentence.language,
-        );
-      }),
-    },
+  return (
+    <TranslatedSentence
+      template={props.template}
+      slots={{ monitorName: <IsolatedText text={props.monitorName} /> }}
+    />
   );
 };
 
@@ -198,7 +190,9 @@ const MonitorTemplatesView: FunctionComponent<
   const [linkedMonitorCount, setLinkedMonitorCount] = useState<number | null>(
     null,
   );
-  const [syncResultMessage, setSyncResultMessage] = useState<string>("");
+  const [syncResultMessage, setSyncResultMessage] = useState<
+    string | ReactElement
+  >("");
   const [syncResultTitle, setSyncResultTitle] = useState<string>("Done");
 
   const [showCriteriaSyncModal, setShowCriteriaSyncModal] =
@@ -242,6 +236,8 @@ const MonitorTemplatesView: FunctionComponent<
     useState<boolean>(false);
   const [isLinking, setIsLinking] = useState<boolean>(false);
   const [linkError, setLinkError] = useState<string>("");
+  // Bumped to read the monitors that can be linked again, the dialog open.
+  const [eligibleMonitorsReads, setEligibleMonitorsReads] = useState<number>(0);
 
   const [unlinkTarget, setUnlinkTarget] = useState<Monitor | null>(null);
   const [isUnlinking, setIsUnlinking] = useState<boolean>(false);
@@ -329,6 +325,7 @@ const MonitorTemplatesView: FunctionComponent<
         subject: translationKey("criteria"),
         syncedMonitors: synced,
         totalLinkedMonitors: total,
+        translator: translator,
       });
 
       setSyncResultTitle(summary.title);
@@ -372,6 +369,7 @@ const MonitorTemplatesView: FunctionComponent<
         subject: translationKey("monitoring interval"),
         syncedMonitors: synced,
         totalLinkedMonitors: total,
+        translator: translator,
       });
 
       setSyncResultTitle(summary.title);
@@ -415,6 +413,7 @@ const MonitorTemplatesView: FunctionComponent<
         subject: translationKey("labels"),
         syncedMonitors: synced,
         totalLinkedMonitors: total,
+        translator: translator,
       });
 
       setSyncResultTitle(summary.title);
@@ -469,6 +468,7 @@ const MonitorTemplatesView: FunctionComponent<
           subject: translationKey("custom field defaults"),
           syncedMonitors: synced,
           totalLinkedMonitors: total,
+          translator: translator,
         });
 
         setSyncResultTitle(summary.title);
@@ -505,11 +505,16 @@ const MonitorTemplatesView: FunctionComponent<
         return;
       }
 
-      const monitorName: string = singleSyncMonitor.name || "monitor";
+      const monitorName: string | undefined = singleSyncMonitor.name;
       setSingleSyncMonitor(null);
       setIsSyncingSingle(false);
       setSyncResultTitle("Done");
-      setSyncResultMessage(`Synced "${monitorName}" from this template.`);
+      setSyncResultMessage(
+        <SentenceWithMonitorName
+          template={SYNCED_MONITOR_RESULT}
+          monitorName={monitorName}
+        />,
+      );
       setTableRefreshToggle(Math.random().toString());
     } catch (e) {
       setSingleSyncError(API.getFriendlyMessage(e));
@@ -529,8 +534,12 @@ const MonitorTemplatesView: FunctionComponent<
     }
 
     const loadEligible: () => Promise<void> = async (): Promise<void> => {
+      /*
+       * The dialog's error is left as it is: opening the dialog clears it,
+       * and when the list is read again because some monitors could not be
+       * linked, it says which.
+       */
       setIsLoadingEligibleMonitors(true);
-      setLinkError("");
       try {
         const result: ListResult<Monitor> = await ModelAPI.getList<Monitor>({
           modelType: Monitor,
@@ -562,14 +571,16 @@ const MonitorTemplatesView: FunctionComponent<
 
         setEligibleMonitors(eligible);
       } catch (e) {
-        setLinkError(API.getFriendlyMessage(e));
+        setLinkError((current: string): string => {
+          return current || API.getFriendlyMessage(e);
+        });
         setEligibleMonitors([]);
       }
       setIsLoadingEligibleMonitors(false);
     };
 
     loadEligible();
-  }, [showLinkModal, monitorType, modelId]);
+  }, [showLinkModal, monitorType, modelId, eligibleMonitorsReads]);
 
   const onLinkSubmit: (formData: {
     monitorIds: Array<string>;
@@ -605,16 +616,33 @@ const MonitorTemplatesView: FunctionComponent<
 
     setIsLinking(false);
 
+    /*
+     * Whatever was linked is linked, whether or not the rest was: the count
+     * and the Linked Monitors table are read again either way (#7678). A
+     * failure used to return first, and the page went on showing the
+     * template as it was before the monitors that did link.
+     */
+    fetchLinkedMonitorCount();
+    setTableRefreshToggle(Math.random().toString());
+
     if (errors.length > 0) {
+      /*
+       * How many of how many whenever more than one monitor was picked -
+       * "1 of 3" too - and the reason alone for the one monitor picked.
+       */
       setLinkError(
-        errors.length === 1
-          ? errors[0]!
+        monitorIds.length === 1
+          ? getLinkFailureText({ error: errors[0]!, translator: translator })
           : getLinkFailuresText({
               errors: errors,
               total: monitorIds.length,
               translator: translator,
             }),
       );
+      // The dialog stays open: the monitors that were linked leave its list.
+      setEligibleMonitorsReads((reads: number): number => {
+        return reads + 1;
+      });
       return;
     }
 
@@ -622,10 +650,8 @@ const MonitorTemplatesView: FunctionComponent<
     setEligibleMonitors([]);
     setSyncResultTitle("Done");
     setSyncResultMessage(
-      `Linked ${monitorIds.length} monitor${monitorIds.length === 1 ? "" : "s"} to this template.`,
+      translator.translatePlural(LINKED_MONITORS_RESULT, monitorIds.length),
     );
-    fetchLinkedMonitorCount();
-    setTableRefreshToggle(Math.random().toString());
   };
 
   const onUnlinkSubmit: () => Promise<void> = async (): Promise<void> => {
@@ -650,11 +676,16 @@ const MonitorTemplatesView: FunctionComponent<
         return;
       }
 
-      const monitorName: string = unlinkTarget.name || "monitor";
+      const monitorName: string | undefined = unlinkTarget.name;
       setUnlinkTarget(null);
       setIsUnlinking(false);
       setSyncResultTitle("Done");
-      setSyncResultMessage(`Unlinked "${monitorName}" from this template.`);
+      setSyncResultMessage(
+        <SentenceWithMonitorName
+          template={UNLINKED_MONITOR_RESULT}
+          monitorName={monitorName}
+        />,
+      );
       fetchLinkedMonitorCount();
       setTableRefreshToggle(Math.random().toString());
     } catch (e) {
@@ -666,22 +697,34 @@ const MonitorTemplatesView: FunctionComponent<
   const syncCriteriaButtonTitle: string =
     linkedMonitorCount === null
       ? "Sync Criteria to Linked Monitors"
-      : `Sync Criteria to ${linkedMonitorCount} Linked Monitor${linkedMonitorCount === 1 ? "" : "s"}`;
+      : translator.translatePlural(
+          SYNC_TO_LINKED_MONITORS_TITLES.criteria,
+          linkedMonitorCount,
+        );
 
   const syncIntervalButtonTitle: string =
     linkedMonitorCount === null
       ? "Sync Interval to Linked Monitors"
-      : `Sync Interval to ${linkedMonitorCount} Linked Monitor${linkedMonitorCount === 1 ? "" : "s"}`;
+      : translator.translatePlural(
+          SYNC_TO_LINKED_MONITORS_TITLES.interval,
+          linkedMonitorCount,
+        );
 
   const syncLabelsButtonTitle: string =
     linkedMonitorCount === null
       ? "Sync Labels to Linked Monitors"
-      : `Sync Labels to ${linkedMonitorCount} Linked Monitor${linkedMonitorCount === 1 ? "" : "s"}`;
+      : translator.translatePlural(
+          SYNC_TO_LINKED_MONITORS_TITLES.labels,
+          linkedMonitorCount,
+        );
 
   const syncCustomFieldsButtonTitle: string =
     linkedMonitorCount === null
       ? "Sync Custom Fields to Linked Monitors"
-      : `Sync Custom Fields to ${linkedMonitorCount} Linked Monitor${linkedMonitorCount === 1 ? "" : "s"}`;
+      : translator.translatePlural(
+          SYNC_TO_LINKED_MONITORS_TITLES.customFields,
+          linkedMonitorCount,
+        );
 
   /*
    * A template with no defaults set has nothing to push, and a sync that
@@ -705,7 +748,9 @@ const MonitorTemplatesView: FunctionComponent<
   const linkedMonitorsTitle: string =
     linkedMonitorCount === null
       ? "Linked Monitors"
-      : `Linked Monitors (${linkedMonitorCount})`;
+      : translator.translateTemplate(LINKED_MONITORS_TITLE, {
+          count: translator.formatNumber(linkedMonitorCount),
+        });
 
   return (
     <Fragment>
@@ -1510,15 +1555,10 @@ const MonitorTemplatesView: FunctionComponent<
         <ConfirmModal
           title="Unlink Monitor from Template"
           description={
-            <span>
-              {translator.translateTemplate(
-                '"{{monitorName}}" keeps its settings but no longer gets updates from this template.',
-                {
-                  monitorName:
-                    unlinkTarget.name || translatableTerm("this monitor"),
-                },
-              )}
-            </span>
+            <SentenceWithMonitorName
+              template={UNLINK_MONITOR_CONFIRMATION}
+              monitorName={unlinkTarget.name}
+            />
           }
           submitButtonText="Unlink"
           submitButtonType={ButtonStyleType.DANGER}

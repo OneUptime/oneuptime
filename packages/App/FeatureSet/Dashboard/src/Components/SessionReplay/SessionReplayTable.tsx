@@ -66,6 +66,8 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { joinWithArrowsOn } from "Common/Types/DirectionArrow";
+import DirectionArrow from "Common/UI/Components/DirectionArrow/DirectionArrow";
 import Permission from "Common/Types/Permission";
 import { getSessionReplayPermissionTitle } from "./SessionReplayPermissionTitle";
 import Columns from "Common/UI/Components/Table/Types/Columns";
@@ -1371,14 +1373,19 @@ function getSessionReplayCells(
     entryPath,
     routePaths,
   );
-  // The whole journey, entry page first, for the trail's title.
-  const journeyTitle: string = (
-    routePaths[0] === entryPath ? routePaths : [entryPath, ...routePaths]
-  )
-    .filter((path: string): boolean => {
+  /*
+   * The whole journey, entry page first, for the trail's title: each page
+   * set apart, the arrows pointing the way the page reads.
+   */
+  const journeyTitle: string = joinWithArrowsOn(
+    (routePaths[0] === entryPath
+      ? routePaths
+      : [entryPath, ...routePaths]
+    ).filter((path: string): boolean => {
       return path.length > 0;
-    })
-    .join(" → ");
+    }),
+    translator.language,
+  );
   const sessionIdText: string = row.sessionId.slice(0, 8) || "—";
 
   return [
@@ -1428,9 +1435,10 @@ function getSessionReplayCells(
                 return (
                   <Fragment key={`${path}-${index}`}>
                     <span aria-hidden="true" className="text-gray-400">
-                      {index > 0 ? " → " : "→ "}
+                      {index > 0 ? " " : ""}
+                      <DirectionArrow />{" "}
                     </span>
-                    <span className="font-medium text-gray-600">{path}</span>
+                    <bdi className="font-medium text-gray-600">{path}</bdi>
                   </Fragment>
                 );
               })}

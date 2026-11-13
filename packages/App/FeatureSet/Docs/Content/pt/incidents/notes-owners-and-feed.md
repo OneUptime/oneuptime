@@ -99,7 +99,7 @@ Cada nota mostra quem a escreveu, seu horário de publicação, o Markdown rende
 
 ## Publicar uma nota privada
 
-**Notas → Notas privadas** é deliberadamente mais simples. É o mesmo editor, dizendo **Private · Only your team can see this**, com a nota, **Modelos**, **Rascunho com IA** e **Anexar** para arquivos destinados à equipe de resposta ao incidente. **Adicionar nota privada** no menu **Ações** do feed do incidente o abre em uma caixa de diálogo. Pela API, as notas privadas são `/api/incident-internal-note`.
+**Notas → Notas privadas** é deliberadamente mais simples. É o mesmo editor, dizendo **Privado · Só quem pode ver este incidente pode ler isto**, com a nota, **Modelos**, **Rascunho com IA** e **Anexar** para arquivos, que só quem pode ler a nota consegue abrir. **Adicionar nota privada** no menu **Ações** do feed do incidente o abre em uma caixa de diálogo. Pela API, as notas privadas são `/api/incident-internal-note`.
 
 Sem horário de publicação, sem caixa de assinantes — a nota é carimbada quando é criada.
 
@@ -164,7 +164,7 @@ Você os gerencia em **Incidentes → Configurações → Modelos de notas** —
 
 ## Publicar notas pelo Slack ou pelo Microsoft Teams
 
-Se você conectou um espaço de trabalho, os respondedores nunca precisam sair do canal. O Slack e o Microsoft Teams oferecem uma ação de adicionar nota que abre uma caixa de diálogo com uma lista suspensa **Note Type** — **Public Note** (publicada na página de status) ou **Private Note** (visível só para os membros da equipe) — e uma caixa de texto **Note**, e grava o resultado direto no incidente. Num incidente privado, o modal não pede **Note Type** e adiciona uma nota privada: veja [Incidentes privados aceitam apenas notas privadas](#incidentes-privados-aceitam-apenas-notas-privadas).
+Se você conectou um espaço de trabalho, os respondedores nunca precisam sair do canal. O Slack e o Microsoft Teams oferecem uma ação de adicionar nota que abre uma caixa de diálogo com uma lista suspensa **Note Type** — **Public Note** (publicada na página de status) ou **Private Note** (só quem pode ver o incidente pode lê-la) — e uma caixa de texto **Note**, e grava o resultado direto no incidente. Num incidente privado, o modal não pede **Note Type** e adiciona uma nota privada: veja [Incidentes privados aceitam apenas notas privadas](#incidentes-privados-aceitam-apenas-notas-privadas).
 
 Três detalhes que vale conhecer:
 

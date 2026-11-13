@@ -1654,13 +1654,23 @@ export default class QuietChannelsWorld {
     return ended;
   }
 
-  // A run of PolicyX, created as OneUptime creates one, and its first rule.
-  public async startRun(): Promise<void> {
+  /*
+   * A run of PolicyX, created as OneUptime creates one, and its first rule -
+   * or, with startedByUserId, as a person's Execute On-Call Policy creates
+   * it: a policy started by hand (OnCallPolicyStartedByHand).
+   */
+  public async startRun(
+    options?: { startedByUserId?: ObjectID | undefined } | undefined,
+  ): Promise<void> {
     const run: OnCallDutyPolicyExecutionLog =
       new OnCallDutyPolicyExecutionLog();
     run.id = ObjectID.generate();
     run.projectId = PROJECT_ID;
     run.onCallDutyPolicyId = POLICY_ID;
+
+    if (options?.startedByUserId) {
+      run.triggeredByUserId = options.startedByUserId;
+    }
     run.status = OnCallDutyPolicyStatus.Scheduled;
     run.statusMessage = "Scheduled.";
     run.onCallPolicyExecutionRepeatCount = 1;

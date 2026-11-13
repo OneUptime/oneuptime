@@ -1295,6 +1295,44 @@ describe("Paged again, and answering a page from its push", () => {
     ).toBeTruthy();
   });
 
+  /*
+   * Somebody asked for the reader by hand - a page sent from a chat, or a
+   * policy started by hand - about an episode somebody else acknowledged
+   * (#7596): the same buttons as a page again, but the reader never took
+   * it, so they are paged to help, not paged again.
+   */
+  test("paged to help with an episode somebody else acknowledged: the same buttons, and paged - not paged again", async () => {
+    mockPassOnPages.current = [
+      { ...PAGE, isPageAgain: true, isAskedFor: true },
+    ];
+    mockEpisodeQuery.current = acknowledgedEpisode();
+
+    await renderWithPush();
+
+    await screen.findByRole("button", {
+      name: "Acknowledge this alert episode again",
+    });
+    expect(
+      within(screen.getByTestId("response-actions"))
+        .getAllByRole("button")
+        .map((button: { props: { accessibilityLabel?: string } }) => {
+          return button.props.accessibilityLabel;
+        }),
+    ).toEqual([
+      "Acknowledge this alert episode again",
+      "Resolve alert episode",
+      "Escalate this alert episode",
+    ]);
+    expect(screen.getByText("You're being paged")).toBeTruthy();
+    expect(screen.queryByText("You're being paged again")).toBeNull();
+    expect(
+      screen.getByText(
+        "A responder has acknowledged this alert episode, and you're being paged to help. Acknowledge again to answer your page, or escalate it.",
+      ),
+    ).toBeTruthy();
+    expect(screen.queryByText(/still on it/)).toBeNull();
+  });
+
   test("the push's Acknowledge on a page again acknowledges it again, and changes no state", async () => {
     mockPassOnPages.current = [{ ...PAGE, isPageAgain: true }];
     mockEpisodeQuery.current = acknowledgedEpisode();

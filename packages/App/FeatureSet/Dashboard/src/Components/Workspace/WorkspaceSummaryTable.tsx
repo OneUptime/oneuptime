@@ -8,6 +8,7 @@ import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
+import Team from "Common/Models/DatabaseModels/Team";
 import React, {
   Fragment,
   FunctionComponent,
@@ -123,6 +124,8 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
   const [incidentStates, setIncidentStates] = React.useState<
     Array<IncidentState>
   >([]);
+  // Which of the people and teams an owners condition picks are teams.
+  const [teams, setTeams] = React.useState<Array<Team>>([]);
 
   /*
    * A Mattermost project's connection: the teams its bot is a member of,
@@ -208,10 +211,15 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
       setIsLoading(true);
       setError(undefined);
 
+      /*
+       * Each list of values a condition picks from is read with whether each
+       * value is archived: a picker leaves an archived one out for a new
+       * pick, and marks one a summary holds already (#7582).
+       */
       const monitorsResult: ListResult<Monitor> = await ModelAPI.getList({
         modelType: Monitor,
         query: { projectId: ProjectUtil.getCurrentProjectId()! },
-        select: { name: true, _id: true },
+        select: { name: true, _id: true, isArchived: true },
         skip: 0,
         limit: LIMIT_PER_PROJECT,
         sort: { name: SortOrder.Ascending },
@@ -221,7 +229,7 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
       const labelsResult: ListResult<Label> = await ModelAPI.getList({
         modelType: Label,
         query: { projectId: ProjectUtil.getCurrentProjectId()! },
-        select: { name: true, _id: true, color: true },
+        select: { name: true, _id: true, color: true, isArchived: true },
         skip: 0,
         limit: LIMIT_PER_PROJECT,
         sort: { name: SortOrder.Ascending },
@@ -231,7 +239,13 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
       const alertStatesResult: ListResult<AlertState> = await ModelAPI.getList({
         modelType: AlertState,
         query: { projectId: ProjectUtil.getCurrentProjectId()! },
-        select: { name: true, _id: true, color: true, order: true },
+        select: {
+          name: true,
+          _id: true,
+          color: true,
+          order: true,
+          isArchived: true,
+        },
         skip: 0,
         limit: LIMIT_PER_PROJECT,
         sort: {
@@ -243,7 +257,13 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
       const alertSevResult: ListResult<AlertSeverity> = await ModelAPI.getList({
         modelType: AlertSeverity,
         query: { projectId: ProjectUtil.getCurrentProjectId()! },
-        select: { name: true, _id: true, color: true, order: true },
+        select: {
+          name: true,
+          _id: true,
+          color: true,
+          order: true,
+          isArchived: true,
+        },
         skip: 0,
         limit: LIMIT_PER_PROJECT,
         sort: {
@@ -256,7 +276,13 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
         {
           modelType: IncidentSeverity,
           query: { projectId: ProjectUtil.getCurrentProjectId()! },
-          select: { name: true, _id: true, color: true, order: true },
+          select: {
+            name: true,
+            _id: true,
+            color: true,
+            order: true,
+            isArchived: true,
+          },
           skip: 0,
           limit: LIMIT_PER_PROJECT,
           sort: {
@@ -270,7 +296,13 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
         {
           modelType: IncidentState,
           query: { projectId: ProjectUtil.getCurrentProjectId()! },
-          select: { name: true, _id: true, color: true, order: true },
+          select: {
+            name: true,
+            _id: true,
+            color: true,
+            order: true,
+            isArchived: true,
+          },
           skip: 0,
           limit: LIMIT_PER_PROJECT,
           sort: {
@@ -279,6 +311,25 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
         },
       );
       setIncidentStates(incStatesResult.data);
+
+      /*
+       * The project's teams: which of the people and teams an owners
+       * condition picks are teams. A member who may not read them still
+       * edits the summary, and the picks show as people.
+       */
+      try {
+        const teamsResult: ListResult<Team> = await ModelAPI.getList({
+          modelType: Team,
+          query: { projectId: ProjectUtil.getCurrentProjectId()! },
+          select: { name: true, _id: true },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+          sort: { name: SortOrder.Ascending },
+        });
+        setTeams(teamsResult.data);
+      } catch {
+        setTeams([]);
+      }
 
       // A Mattermost summary picks the team of its channels among the bot's.
       if (props.workspaceType === WorkspaceType.Mattermost) {
@@ -553,7 +604,8 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
             fieldType: FormFieldSchemaType.Text,
             required: true,
             stepId: "basic",
-            placeholder: translator.translateTemplate(copy.namePlaceholder),
+            // In English: the form's control looks it up, once (#7682).
+            placeholder: copy.namePlaceholder,
             validation: {
               minLength: 2,
             },
@@ -566,9 +618,7 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
             title: "Description",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
-            placeholder: translator.translateTemplate(
-              copy.descriptionPlaceholder,
-            ),
+            placeholder: copy.descriptionPlaceholder,
           },
           {
             field: {
@@ -945,6 +995,11 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
                   incidentStates={incidentStates}
                   scheduledMaintenanceStates={[]}
                   monitorStatus={[]}
+                  teams={teams}
+                  // "And" or "Or" between the conditions, as Match Condition says.
+                  filterCondition={
+                    value.filterCondition as FilterCondition | undefined
+                  }
                   onChange={(conditions: Array<NotificationRuleCondition>) => {
                     if (elementProps.onChange) {
                       elementProps.onChange(conditions);

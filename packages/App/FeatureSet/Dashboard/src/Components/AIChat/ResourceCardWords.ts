@@ -12,6 +12,7 @@ import {
   isAIActionMoment,
   isAIActionTerm,
   isKnownAIActionCardWords,
+  withCurrentAIActionCardLines,
 } from "Common/Types/AI/AIActionWords";
 import {
   AIChatWidget,
@@ -65,14 +66,19 @@ export interface DrawnResourceCard {
 /*
  * A card's words, when they are the module's sentences and terms - a
  * read's card's, or a write's, as the one who left it says (issue #7175).
+ * A line the module has since reworded reads as its kind's card says it
+ * now: a private note's card saved when it said "for your team only"
+ * (#7595).
  */
 export function getKnownResourceCardWords(
   widget: AIChatWidget,
 ): AIActionCardWords | null {
-  return isKnownAIActionCardWords(widget.data.words, {
+  const words: unknown = withCurrentAIActionCardLines(widget.data.words);
+
+  return isKnownAIActionCardWords(words, {
     isRead: isAIChatReadResourceCard(widget.data),
   })
-    ? widget.data.words
+    ? words
     : null;
 }
 

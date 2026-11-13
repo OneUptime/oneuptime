@@ -2,7 +2,12 @@ import {
   SyncResultSummary,
   buildSyncResultSummary,
 } from "../../../FeatureSet/Dashboard/src/Pages/Monitor/Settings/MonitorTemplateSyncResultUtil";
+import {
+  SYNC_TO_LINKED_MONITORS_TITLES,
+  UNLINK_MONITOR_CONFIRMATION,
+} from "../../../FeatureSet/Dashboard/src/Pages/Monitor/Settings/MonitorTemplateLinkedMonitorsWords";
 import { readPage } from "./DocsContentSupport";
+import { dashboardTranslator } from "./DocsDashboardLabels";
 import MonitorTemplate from "Common/Models/DatabaseModels/MonitorTemplate";
 import MonitorTemplateSyncFieldUtil, {
   MonitorTemplateSyncField,
@@ -567,8 +572,9 @@ describe("the template's page", () => {
       expect(page).toContain(`**${title}**`);
     }
 
-    // Unlinking leaves the monitor's settings as they are.
-    expect(view).toContain(
+    // Unlinking leaves the monitor's settings as they are: the unlink dialog says so.
+    expect(view).toContain("template={UNLINK_MONITOR_CONFIRMATION}");
+    expect(UNLINK_MONITOR_CONFIRMATION).toContain(
       "keeps its settings but no longer gets updates from this template",
     );
     expect(page).toContain(
@@ -655,14 +661,15 @@ describe("what each sync copies", () => {
   );
 
   it("names how many monitors a button reaches as the button does", () => {
-    const count: number = 3;
-
-    expect(view).toContain(
-      '`Sync Criteria to ${linkedMonitorCount} Linked Monitor${linkedMonitorCount === 1 ? "" : "s"}`',
-    );
-    expect(page).toContain(
-      `**Sync Criteria to ${count} Linked Monitor${count === 1 ? "" : "s"}**`,
-    );
+    // The button's title is its count put through the words' plural template.
+    expect(view).toContain("SYNC_TO_LINKED_MONITORS_TITLES.criteria,");
+    expect(
+      dashboardTranslator("en").translatePlural(
+        SYNC_TO_LINKED_MONITORS_TITLES.criteria,
+        3,
+      ),
+    ).toBe("Sync Criteria to 3 Linked Monitors");
+    expect(page).toContain("**Sync Criteria to 3 Linked Monitors**");
   });
 
   it("greys every sync button out while nothing is linked", () => {
@@ -740,11 +747,13 @@ describe("what each sync copies", () => {
       subject: "criteria",
       syncedMonitors: 2,
       totalLinkedMonitors: 3,
+      translator: dashboardTranslator("en"),
     });
     const whole: SyncResultSummary = buildSyncResultSummary({
       subject: "criteria",
       syncedMonitors: 3,
       totalLinkedMonitors: 3,
+      translator: dashboardTranslator("en"),
     });
 
     expect(partial.title).toBe("Partially synced");

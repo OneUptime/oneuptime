@@ -33,7 +33,7 @@ Entrambi registrano un problema, ed entrambi possono chiamare chi è reperibile.
 | -------------------------------- | ------------------------------------------------------ | ------------------------------------------------- |
 | **Che cos'è**                    | Un problema che il vostro team deve esaminare prima che gli utenti ne risentano | Un problema che colpisce i vostri utenti, come un disservizio |
 | **Sulle pagine di stato**        | Mai                                                    | Può comparire, e avvisa gli iscritti              |
-| **Note**                         | Note private, solo per il vostro team                  | Note pubbliche per i clienti, e note private      |
+| **Note**                         | Note private, solo per chi può vedere l'avviso                  | Note pubbliche per i clienti, e note private      |
 | **Stati iniziali**               | **Identificato**, **Riconosciuto**, **Risolto**          | **Identificato**, **Riconosciuto**, **Risolto**     |
 | **Gravità iniziali**             | **Alto**, **Basso**                                      | Critical Incident, Major Incident, Minor Incident |
 | **Numeri in un nuovo progetto**  | `ALT-42`, e `AE-42` per gli episodi                    | `INC-42`, e `IE-42` per gli episodi               |

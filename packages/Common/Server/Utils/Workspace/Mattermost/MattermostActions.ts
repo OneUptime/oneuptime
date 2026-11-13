@@ -58,7 +58,9 @@ import WorkspaceNotificationLogService from "../../../Services/WorkspaceNotifica
 import WorkspaceProjectAuthTokenService from "../../../Services/WorkspaceProjectAuthTokenService";
 import WorkspaceUserAuthTokenService from "../../../Services/WorkspaceUserAuthTokenService";
 import logger from "../../Logger";
-import OnCallPersonPageAnswer from "../../OnCall/OnCallPersonPageAnswer";
+import OnCallPersonPageAnswer, {
+  OnCallPersonPageRecordKind,
+} from "../../OnCall/OnCallPersonPageAnswer";
 import ProductBrandingText from "../../ProductBrandingText";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import WorkspaceActionAnswers, {
@@ -86,6 +88,7 @@ import WorkspaceMemberActions, {
   WorkspaceEventType,
 } from "../WorkspaceMemberActions";
 import WorkspaceNoteForm, {
+  SCHEDULED_MAINTENANCE_NOTE_NOUN,
   WORKSPACE_NOTE_FORM_TEXT,
   WorkspaceNoteFormType,
   WorkspaceSubmittedNote,
@@ -835,23 +838,21 @@ export default class MattermostActions {
       await WorkspaceMemberActions.getStanding(event);
 
     if (MattermostActions.isDoneAlready(data.spec.press, standing)) {
+      /*
+       * Acknowledge on an incident, an alert or an episode somebody else is
+       * on answers the presser's own pages about it, as it does in Slack
+       * and Microsoft Teams (OnCallPersonPageAnswer).
+       */
+      const pageRecordKind: OnCallPersonPageRecordKind | null =
+        WorkspaceMemberActions.getPageRecordKind(event.type);
+
       return await WorkspaceActionAnswers.getAlreadyAnswer({
         event: event,
         press: LATE_PRESSES[data.spec.press] || WorkspaceLatePress.Acknowledge,
-        /*
-         * Acknowledge on an incident or an alert somebody else is on
-         * answers the presser's own pages about it, as it does in Slack
-         * and Microsoft Teams (OnCallPersonPageAnswer).
-         */
         answeredPageCount:
-          data.spec.press === MattermostPress.Acknowledge &&
-          (event.type === WorkspaceEventType.Incident ||
-            event.type === WorkspaceEventType.Alert)
+          data.spec.press === MattermostPress.Acknowledge && pageRecordKind
             ? await OnCallPersonPageAnswer.onAcknowledgePressed({
-                kind:
-                  event.type === WorkspaceEventType.Incident
-                    ? "incident"
-                    : "alert",
+                kind: pageRecordKind,
                 recordId: event.id,
                 projectId: event.projectId,
                 pressedByUserId: data.requester.userId,
@@ -1264,7 +1265,9 @@ export default class MattermostActions {
                 value: WorkspaceNoteFormType.Public,
               },
               {
-                label: WORKSPACE_NOTE_FORM_TEXT.privateOption,
+                label: WorkspaceNoteForm.getPrivateOption(
+                  SCHEDULED_MAINTENANCE_NOTE_NOUN,
+                ),
                 value: WorkspaceNoteFormType.Private,
               },
             ],

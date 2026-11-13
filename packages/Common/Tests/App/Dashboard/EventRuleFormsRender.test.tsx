@@ -1292,7 +1292,7 @@ describe("Scheduled Maintenance > Rules > Reminder Rules", () => {
       expect.stringContaining("Match"),
       expect.stringContaining("Reminders"),
     ]);
-    expectOpensOnMatch("All scheduled maintenance events");
+    expectOpensOnMatch("All maintenance events");
 
     await next();
 

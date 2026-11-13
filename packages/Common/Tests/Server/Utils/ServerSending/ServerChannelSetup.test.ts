@@ -130,6 +130,64 @@ describe("email", () => {
     ).toBe("SMTP: the OAuth Client Secret is not set under Settings > Emails.");
   });
 
+  /*
+   * Over SMTP, OAuth signs in as a mailbox - the user the XOAUTH2 sign-in
+   * names, with either grant - and the sender refuses every email without
+   * one (#7833). Read as set up, the sign-in pages would offer a reset
+   * email that never comes.
+   */
+  test("a mail server that signs in with OAuth needs the mailbox it signs in as; Microsoft Graph does not", () => {
+    // No password: OAuth signs in with a token, as the mailbox.
+    const oauth: ServerChannelSetupSettings = leftBlank(
+      smtp({
+        smtpAuthType: SMTPAuthenticationType.OAuth,
+        smtpUsername: "alerts@example.com",
+        smtpClientId: "client",
+        smtpClientSecret: "client-secret",
+        smtpTokenUrl: "https://login.example.com/token",
+        smtpScope: "https://outlook.office365.com/.default",
+      }),
+      "smtpPassword",
+    );
+
+    expect(ServerChannelSetup.getEmailSetUpProblem(oauth)).toBeNull();
+
+    for (const withoutUsername of [
+      leftBlank(oauth, "smtpUsername"),
+      { ...oauth, smtpUsername: "" },
+    ]) {
+      expect(ServerChannelSetup.getEmailSetUpProblem(withoutUsername)).toBe(
+        "SMTP: the Username is not set under Settings > Emails.",
+      );
+    }
+
+    // Named before the OAuth app, as the form asks for it first.
+    expect(
+      ServerChannelSetup.getEmailSetUpProblem(
+        leftBlank(oauth, "smtpUsername", "smtpClientId"),
+      ),
+    ).toBe("SMTP: the Username is not set under Settings > Emails.");
+
+    // Microsoft Graph sends as the From Email: a username left over is not read.
+    const graph: ServerChannelSetupSettings = {
+      ...leftBlank(oauth, "smtpUsername", "smtpHost", "smtpPort"),
+      smtpTransportType: MailTransportType.MicrosoftGraph,
+    };
+
+    expect(ServerChannelSetup.getEmailSetUpProblem(graph)).toBeNull();
+
+    // Signing in with a password, or not at all, it never asked for OAuth's mailbox.
+    expect(
+      ServerChannelSetup.getEmailSetUpProblem(
+        leftBlank(
+          smtp({ smtpAuthType: SMTPAuthenticationType.None }),
+          "smtpUsername",
+          "smtpPassword",
+        ),
+      ),
+    ).toBeNull();
+  });
+
   test("Microsoft Graph needs no host or port, only its OAuth app and sender", () => {
     const graph: ServerChannelSetupSettings = {
       emailServerType: EmailServerType.CustomSMTP,
@@ -473,14 +531,12 @@ describe("which channels a settings save starts again", () => {
     ).toEqual(emailColumns.sort());
   });
 
-  test("every column the answers read is in the select", () => {
+  test("every column the answers and the settings' fingerprints read is in the select", () => {
     for (const column of [
       ...SERVER_CHANNEL_SETTING_COLUMNS[ServerSendingChannel.SMS],
       "disablePushNotifications",
-      "emailServerType",
-      "smtpHost",
-      "sendgridApiKey",
-      "resendFromEmail",
+      // Every email column: email's fingerprint reads all of its type's (#7803).
+      ...SERVER_CHANNEL_SETTING_COLUMNS[ServerSendingChannel.Email],
     ]) {
       expect(
         (SERVER_CHANNEL_SETUP_SELECT as Record<string, unknown>)[column],

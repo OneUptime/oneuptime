@@ -730,6 +730,11 @@ const DocsNav: NavGroup[] = [
         title: "Zooming Into a Time Range",
         url: "/docs/telemetry/charts-and-time-ranges",
       },
+      // Querying metrics with PromQL, and reading them from Grafana (#6796).
+      {
+        title: "PromQL",
+        url: "/docs/telemetry/promql",
+      },
       {
         title: "Deploys and Changes",
         url: "/docs/telemetry/change-events",
@@ -767,6 +772,14 @@ const DocsNav: NavGroup[] = [
       {
         title: "Source Maps",
         url: "/docs/telemetry/source-maps",
+      },
+      /*
+       * The agents and SDKs a team moving from another tool already runs,
+       * sending unchanged (#6797), before the log shippers OneUptime sets up.
+       */
+      {
+        title: "Prometheus, Loki, Splunk, Datadog & Sentry",
+        url: "/docs/telemetry/compatible-endpoints",
       },
       {
         title: "Serilog (.NET)",
