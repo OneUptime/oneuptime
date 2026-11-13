@@ -114,6 +114,10 @@ import { SubscriberAudienceRequest } from "../../Components/Incident/useSubscrib
 import BooleanValue from "Common/UI/Components/Detail/BooleanValue";
 import SubscriberNotificationPreviewButton from "../../Components/Incident/SubscriberNotificationPreviewButton";
 import { getIncidentCreatedPreviewRequest } from "../../Components/Incident/SubscriberNotificationPreviewRequests";
+import useNewIncidentNotifyDefault, {
+  NewIncidentNotifyDefault,
+} from "../../Components/Incident/useNewIncidentNotifyDefault";
+import { getNotifyBoxDescription } from "../../Components/Incident/NewIncidentNotifyDefaultCopy";
 import IncidentStatusPageScopeCopy from "../../Components/Incident/IncidentStatusPageScopeCopy";
 import {
   StatusPagesNotListingMonitorsWarning,
@@ -246,7 +250,10 @@ const toSeverityForMapping: ToSeverityForMappingFunction = (
 
 type IncidentFormPredicate = (values: FormValues<Incident>) => boolean;
 
-// 'Notify Status Page Subscribers', which starts ticked.
+/*
+ * 'Notify Status Page Subscribers', which starts as the project says
+ * (useNewIncidentNotifyDefault): ticked unless the project turned that off.
+ */
 const isNotifyTicked: IncidentFormPredicate = (
   values: FormValues<Incident>,
 ): boolean => {
@@ -374,8 +381,9 @@ const getPrivateScopeWarning: GetPrivateScopeWarningFunction = (
  * Resources Affected (the maintainer: "Limit to these status pages and
  * notify subscribers should be in advanced"). Folded, the header lists them
  * by name and shows each one that holds something (a template's labels,
- * owners or status pages, a private alert's privacy, notifying switched off)
- * with its value, and it opens by itself when one fails validation. The
+ * owners or status pages, a private alert's privacy, the notify box moved
+ * away from where the project starts it) with its value, and it opens by
+ * itself when one fails validation. The
  * review step lists a folded option only when it is set - except whether
  * subscribers are notified, which it always lists, with who that reaches and
  * a preview of what they will be sent, and the owners, which it always
@@ -582,6 +590,15 @@ const IncidentCreate: FunctionComponent<
   const recordToCreateFrom: RecordToCreateFromState = useRecordToCreateFrom(
     CreatedRecordKind.Incident,
   );
+
+  /*
+   * Whether 'Notify Status Page Subscribers' starts ticked: as the project
+   * says on Incidents > Settings > Subscriber Notifications, read as the
+   * page opens (ticked when it cannot be read). The form waits for it, since
+   * it latches where its boxes start.
+   */
+  const newIncidentNotifyDefault: NewIncidentNotifyDefault =
+    useNewIncidentNotifyDefault();
 
   useEffect(() => {
     loadCustomFieldDefinitions();
@@ -1240,7 +1257,8 @@ const IncidentCreate: FunctionComponent<
   const isPageLoading: boolean =
     isLoading ||
     isLoadingCustomFieldDefinitions ||
-    recordToCreateFrom.isLoading;
+    recordToCreateFrom.isLoading ||
+    newIncidentNotifyDefault.isLoading;
 
   return (
     <Fragment>
@@ -2125,10 +2143,16 @@ const IncidentCreate: FunctionComponent<
 
                   title: "Notify Status Page Subscribers",
                   stepId: "resources-affected",
-                  description:
-                    "Should status page subscribers be notified when this incident is created?",
+                  /*
+                   * Starts as the project says (Incidents > Settings >
+                   * Subscriber Notifications). Where that is unticked, the
+                   * question says so, here and on the summary.
+                   */
+                  description: getNotifyBoxDescription(
+                    newIncidentNotifyDefault.isTickedByDefault,
+                  ),
                   fieldType: FormFieldSchemaType.Checkbox,
-                  defaultValue: true,
+                  defaultValue: newIncidentNotifyDefault.isTickedByDefault,
                   required: false,
                   collapsibleSection: advancedSection,
                   /*

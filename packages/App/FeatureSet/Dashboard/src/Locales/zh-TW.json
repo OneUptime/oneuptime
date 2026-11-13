@@ -51817,5 +51817,11 @@
   "Status page provider": "狀態頁面提供者",
   "Status page retries": "狀態頁面重試次數",
   "Status page timeout": "狀態頁面逾時",
-  "Trace query configuration": "追蹤查詢設定"
+  "Trace query configuration": "追蹤查詢設定",
+  "Choose whether Notify Status Page Subscribers starts ticked when someone declares an incident.": "選擇有人宣告事件時，「通知狀態頁面訂閱者」是否預設勾選。",
+  "Notify Status Page Subscribers of New Incidents by Default": "預設將新事件通知狀態頁面訂閱者",
+  "Notify status page subscribers by default": "預設通知狀態頁面訂閱者",
+  "Should status page subscribers be notified when this incident is created? Unticked by default in this project.": "建立此事件時是否應通知狀態頁面訂閱者？此專案中預設未勾選。",
+  "Status page subscribers are notified of a new incident only if whoever declares it ticks Notify Status Page Subscribers.": "僅當宣告新事件的人勾選「通知狀態頁面訂閱者」時，才會通知狀態頁面訂閱者。",
+  "Status page subscribers are notified of a new incident unless whoever declares it unticks Notify Status Page Subscribers.": "除非宣告新事件的人取消勾選「通知狀態頁面訂閱者」，否則會通知狀態頁面訂閱者。"
 }

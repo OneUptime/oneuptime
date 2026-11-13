@@ -51817,5 +51817,11 @@
   "Status page provider": "状态页提供商",
   "Status page retries": "状态页重试次数",
   "Status page timeout": "状态页超时",
-  "Trace query configuration": "追踪查询配置"
+  "Trace query configuration": "追踪查询配置",
+  "Choose whether Notify Status Page Subscribers starts ticked when someone declares an incident.": "选择有人声明事件时，“通知状态页订阅者”是否默认勾选。",
+  "Notify Status Page Subscribers of New Incidents by Default": "默认将新事件通知状态页订阅者",
+  "Notify status page subscribers by default": "默认通知状态页订阅者",
+  "Should status page subscribers be notified when this incident is created? Unticked by default in this project.": "创建此事件时是否应通知状态页订阅者？此项目中默认未勾选。",
+  "Status page subscribers are notified of a new incident only if whoever declares it ticks Notify Status Page Subscribers.": "仅当声明新事件的人勾选“通知状态页订阅者”时，才会通知状态页订阅者。",
+  "Status page subscribers are notified of a new incident unless whoever declares it unticks Notify Status Page Subscribers.": "除非声明新事件的人取消勾选“通知状态页订阅者”，否则会通知状态页订阅者。"
 }

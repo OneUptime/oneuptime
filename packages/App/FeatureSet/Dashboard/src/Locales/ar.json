@@ -51817,5 +51817,11 @@
   "Status page provider": "موفّر صفحة الحالة",
   "Status page retries": "إعادة محاولات صفحة الحالة",
   "Status page timeout": "مهلة صفحة الحالة",
-  "Trace query configuration": "إعداد استعلام التتبعات"
+  "Trace query configuration": "إعداد استعلام التتبعات",
+  "Choose whether Notify Status Page Subscribers starts ticked when someone declares an incident.": "اختر ما إذا كان «إشعار مشتركي صفحة الحالة» محددًا مسبقًا عندما يعلن أحدهم حادثة.",
+  "Notify Status Page Subscribers of New Incidents by Default": "إشعار مشتركي صفحة الحالة بالحوادث الجديدة افتراضيًا",
+  "Notify status page subscribers by default": "إشعار مشتركي صفحة الحالة افتراضيًا",
+  "Should status page subscribers be notified when this incident is created? Unticked by default in this project.": "هل يجب إبلاغ مشتركي صفحة الحالة عند إنشاء هذه الحادثة؟ غير محدد افتراضيًا في هذا المشروع.",
+  "Status page subscribers are notified of a new incident only if whoever declares it ticks Notify Status Page Subscribers.": "لا يُبلَّغ مشتركو صفحة الحالة بحادثة جديدة إلا إذا حدّد من يعلنها «إشعار مشتركي صفحة الحالة».",
+  "Status page subscribers are notified of a new incident unless whoever declares it unticks Notify Status Page Subscribers.": "يُبلَّغ مشتركو صفحة الحالة بحادثة جديدة ما لم يُلغِ من يعلنها تحديد «إشعار مشتركي صفحة الحالة»."
 }

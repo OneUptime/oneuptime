@@ -51817,5 +51817,11 @@
   "Status page provider": "Fournisseur de la page de statut",
   "Status page retries": "Tentatives de la page de statut",
   "Status page timeout": "Délai d'expiration de la page de statut",
-  "Trace query configuration": "Configuration de la requête de traces"
+  "Trace query configuration": "Configuration de la requête de traces",
+  "Choose whether Notify Status Page Subscribers starts ticked when someone declares an incident.": "Choisissez si « Notifier les abonnés de la page de statut » est déjà coché lorsque quelqu'un déclare un incident.",
+  "Notify Status Page Subscribers of New Incidents by Default": "Notifier par défaut les abonnés de la page de statut des nouveaux incidents",
+  "Notify status page subscribers by default": "Notifier les abonnés de la page de statut par défaut",
+  "Should status page subscribers be notified when this incident is created? Unticked by default in this project.": "Les abonnés à la page de statut doivent-ils être notifiés lorsque cet incident est créé ? Décoché par défaut dans ce projet.",
+  "Status page subscribers are notified of a new incident only if whoever declares it ticks Notify Status Page Subscribers.": "Les abonnés de la page de statut ne sont notifiés d'un nouvel incident que si la personne qui le déclare coche « Notifier les abonnés de la page de statut ».",
+  "Status page subscribers are notified of a new incident unless whoever declares it unticks Notify Status Page Subscribers.": "Les abonnés de la page de statut sont notifiés d'un nouvel incident, sauf si la personne qui le déclare décoche « Notifier les abonnés de la page de statut »."
 }

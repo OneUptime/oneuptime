@@ -51817,5 +51817,11 @@
   "Status page provider": "상태 페이지 공급자",
   "Status page retries": "상태 페이지 재시도",
   "Status page timeout": "상태 페이지 시간 제한",
-  "Trace query configuration": "트레이스 쿼리 구성"
+  "Trace query configuration": "트레이스 쿼리 구성",
+  "Choose whether Notify Status Page Subscribers starts ticked when someone declares an incident.": "누군가 인시던트를 선언할 때 '상태 페이지 구독자에게 알림'이 미리 선택되어 있을지 선택하세요.",
+  "Notify Status Page Subscribers of New Incidents by Default": "새 인시던트를 기본적으로 상태 페이지 구독자에게 알림",
+  "Notify status page subscribers by default": "기본적으로 상태 페이지 구독자에게 알림",
+  "Should status page subscribers be notified when this incident is created? Unticked by default in this project.": "이 인시던트가 생성될 때 상태 페이지 구독자에게 알림을 보내야 합니까? 이 프로젝트에서는 기본적으로 선택 해제되어 있습니다.",
+  "Status page subscribers are notified of a new incident only if whoever declares it ticks Notify Status Page Subscribers.": "새 인시던트를 선언하는 사람이 '상태 페이지 구독자에게 알림'을 선택한 경우에만 상태 페이지 구독자에게 알림이 전송됩니다.",
+  "Status page subscribers are notified of a new incident unless whoever declares it unticks Notify Status Page Subscribers.": "새 인시던트를 선언하는 사람이 '상태 페이지 구독자에게 알림'을 선택 해제하지 않는 한 상태 페이지 구독자에게 알림이 전송됩니다."
 }

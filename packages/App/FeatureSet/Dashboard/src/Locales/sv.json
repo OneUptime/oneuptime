@@ -51817,5 +51817,11 @@
   "Status page provider": "Statussidans leverantör",
   "Status page retries": "Återförsök för statussida",
   "Status page timeout": "Tidsgräns för statussida",
-  "Trace query configuration": "Konfiguration av spårfråga"
+  "Trace query configuration": "Konfiguration av spårfråga",
+  "Choose whether Notify Status Page Subscribers starts ticked when someone declares an incident.": "Välj om ”Meddela statussideprenumeranter” redan är markerad när någon deklarerar en incident.",
+  "Notify Status Page Subscribers of New Incidents by Default": "Meddela statussideprenumeranter om nya incidenter som standard",
+  "Notify status page subscribers by default": "Meddela statussideprenumeranter som standard",
+  "Should status page subscribers be notified when this incident is created? Unticked by default in this project.": "Ska statussidans prenumeranter aviseras när denna incident skapas? Inte markerad som standard i det här projektet.",
+  "Status page subscribers are notified of a new incident only if whoever declares it ticks Notify Status Page Subscribers.": "Statussidans prenumeranter meddelas om en ny incident bara om den som deklarerar den markerar ”Meddela statussideprenumeranter”.",
+  "Status page subscribers are notified of a new incident unless whoever declares it unticks Notify Status Page Subscribers.": "Statussidans prenumeranter meddelas om en ny incident om inte den som deklarerar den avmarkerar ”Meddela statussideprenumeranter”."
 }

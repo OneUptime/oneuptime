@@ -51817,5 +51817,11 @@
   "Status page provider": "ステータスページのプロバイダー",
   "Status page retries": "ステータスページの再試行",
   "Status page timeout": "ステータスページのタイムアウト",
-  "Trace query configuration": "トレースクエリの設定"
+  "Trace query configuration": "トレースクエリの設定",
+  "Choose whether Notify Status Page Subscribers starts ticked when someone declares an incident.": "インシデントを宣言するときに「ステータスページの購読者に通知」を最初からオンにしておくかどうかを選択します。",
+  "Notify Status Page Subscribers of New Incidents by Default": "新しいインシデントをデフォルトでステータスページの購読者に通知",
+  "Notify status page subscribers by default": "デフォルトでステータスページの購読者に通知",
+  "Should status page subscribers be notified when this incident is created? Unticked by default in this project.": "このインシデントが作成されたときにステータスページの購読者へ通知しますか？このプロジェクトではデフォルトでオフになっています。",
+  "Status page subscribers are notified of a new incident only if whoever declares it ticks Notify Status Page Subscribers.": "新しいインシデントは、宣言する人が「ステータスページの購読者に通知」をオンにした場合にのみ、ステータスページの購読者に通知されます。",
+  "Status page subscribers are notified of a new incident unless whoever declares it unticks Notify Status Page Subscribers.": "新しいインシデントは、宣言する人が「ステータスページの購読者に通知」をオフにしない限り、ステータスページの購読者に通知されます。"
 }

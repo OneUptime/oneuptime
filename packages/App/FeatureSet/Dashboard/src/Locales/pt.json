@@ -51817,5 +51817,11 @@
   "Status page provider": "Provedor da página de status",
   "Status page retries": "Tentativas da página de status",
   "Status page timeout": "Tempo limite da página de status",
-  "Trace query configuration": "Configuração da consulta de traces"
+  "Trace query configuration": "Configuração da consulta de traces",
+  "Choose whether Notify Status Page Subscribers starts ticked when someone declares an incident.": "Escolha se \"Notificar assinantes da página de status\" já vem marcado quando alguém declara um incidente.",
+  "Notify Status Page Subscribers of New Incidents by Default": "Notificar por padrão os assinantes da página de status sobre novos incidentes",
+  "Notify status page subscribers by default": "Notificar assinantes da página de status por padrão",
+  "Should status page subscribers be notified when this incident is created? Unticked by default in this project.": "Os assinantes da página de status devem ser notificados quando este incidente for criado? Desmarcado por padrão neste projeto.",
+  "Status page subscribers are notified of a new incident only if whoever declares it ticks Notify Status Page Subscribers.": "Os assinantes da página de status são notificados de um novo incidente somente se quem o declara marcar \"Notificar assinantes da página de status\".",
+  "Status page subscribers are notified of a new incident unless whoever declares it unticks Notify Status Page Subscribers.": "Os assinantes da página de status são notificados de um novo incidente, a menos que quem o declara desmarque \"Notificar assinantes da página de status\"."
 }

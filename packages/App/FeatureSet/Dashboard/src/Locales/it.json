@@ -51817,5 +51817,11 @@
   "Status page provider": "Provider della pagina di stato",
   "Status page retries": "Tentativi della pagina di stato",
   "Status page timeout": "Timeout della pagina di stato",
-  "Trace query configuration": "Configurazione della query delle tracce"
+  "Trace query configuration": "Configurazione della query delle tracce",
+  "Choose whether Notify Status Page Subscribers starts ticked when someone declares an incident.": "Scegli se «Notifica gli iscritti alla pagina di stato» è già selezionato quando qualcuno dichiara un incidente.",
+  "Notify Status Page Subscribers of New Incidents by Default": "Notifica per impostazione predefinita gli iscritti alla pagina di stato dei nuovi incidenti",
+  "Notify status page subscribers by default": "Notifica gli iscritti alla pagina di stato per impostazione predefinita",
+  "Should status page subscribers be notified when this incident is created? Unticked by default in this project.": "Gli iscritti alla pagina di stato devono essere notificati quando questo incidente viene creato? Deselezionato per impostazione predefinita in questo progetto.",
+  "Status page subscribers are notified of a new incident only if whoever declares it ticks Notify Status Page Subscribers.": "Gli iscritti alla pagina di stato vengono avvisati di un nuovo incidente solo se chi lo dichiara seleziona «Notifica gli iscritti alla pagina di stato».",
+  "Status page subscribers are notified of a new incident unless whoever declares it unticks Notify Status Page Subscribers.": "Gli iscritti alla pagina di stato vengono avvisati di un nuovo incidente a meno che chi lo dichiara non deselezioni «Notifica gli iscritti alla pagina di stato»."
 }

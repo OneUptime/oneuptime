@@ -51817,5 +51817,11 @@
   "Status page provider": "Provider van statuspagina",
   "Status page retries": "Nieuwe pogingen voor statuspagina",
   "Status page timeout": "Time-out van statuspagina",
-  "Trace query configuration": "Configuratie van de tracequery"
+  "Trace query configuration": "Configuratie van de tracequery",
+  "Choose whether Notify Status Page Subscribers starts ticked when someone declares an incident.": "Kies of 'Statuspagina-abonnees op de hoogte stellen' al aangevinkt is wanneer iemand een incident meldt.",
+  "Notify Status Page Subscribers of New Incidents by Default": "Statuspagina-abonnees standaard op de hoogte stellen van nieuwe incidenten",
+  "Notify status page subscribers by default": "Statuspagina-abonnees standaard op de hoogte stellen",
+  "Should status page subscribers be notified when this incident is created? Unticked by default in this project.": "Moeten abonnees van de statuspagina worden gewaarschuwd wanneer dit incident wordt aangemaakt? Standaard niet aangevinkt in dit project.",
+  "Status page subscribers are notified of a new incident only if whoever declares it ticks Notify Status Page Subscribers.": "Abonnees van de statuspagina worden alleen op de hoogte gesteld van een nieuw incident als degene die het meldt 'Statuspagina-abonnees op de hoogte stellen' aanvinkt.",
+  "Status page subscribers are notified of a new incident unless whoever declares it unticks Notify Status Page Subscribers.": "Abonnees van de statuspagina worden op de hoogte gesteld van een nieuw incident, tenzij degene die het meldt 'Statuspagina-abonnees op de hoogte stellen' uitvinkt."
 }

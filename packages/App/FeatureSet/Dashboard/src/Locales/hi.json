@@ -51817,5 +51817,11 @@
   "Status page provider": "स्थिति पृष्ठ प्रदाता",
   "Status page retries": "स्थिति पृष्ठ पुनः प्रयास",
   "Status page timeout": "स्थिति पृष्ठ टाइमआउट",
-  "Trace query configuration": "ट्रेस क्वेरी कॉन्फ़िगरेशन"
+  "Trace query configuration": "ट्रेस क्वेरी कॉन्फ़िगरेशन",
+  "Choose whether Notify Status Page Subscribers starts ticked when someone declares an incident.": "चुनें कि कोई घटना घोषित करते समय 'स्थिति पृष्ठ ग्राहकों को सूचित करें' पहले से चेक हो या नहीं।",
+  "Notify Status Page Subscribers of New Incidents by Default": "नई घटनाओं के बारे में स्थिति पृष्ठ के सब्सक्राइबर को डिफ़ॉल्ट रूप से सूचित करें",
+  "Notify status page subscribers by default": "डिफ़ॉल्ट रूप से स्थिति पृष्ठ के सब्सक्राइबर को सूचित करें",
+  "Should status page subscribers be notified when this incident is created? Unticked by default in this project.": "जब यह घटना बनाई जाती है तो क्या स्थिति पृष्ठ के सब्सक्राइबर को सूचित किया जाना चाहिए? इस प्रोजेक्ट में डिफ़ॉल्ट रूप से अनचेक।",
+  "Status page subscribers are notified of a new incident only if whoever declares it ticks Notify Status Page Subscribers.": "स्थिति पृष्ठ के सब्सक्राइबर को नई घटना की सूचना तभी दी जाती है जब उसे घोषित करने वाला 'स्थिति पृष्ठ ग्राहकों को सूचित करें' चेक करता है।",
+  "Status page subscribers are notified of a new incident unless whoever declares it unticks Notify Status Page Subscribers.": "स्थिति पृष्ठ के सब्सक्राइबर को नई घटना की सूचना दी जाती है, जब तक कि उसे घोषित करने वाला 'स्थिति पृष्ठ ग्राहकों को सूचित करें' अनचेक न करे।"
 }

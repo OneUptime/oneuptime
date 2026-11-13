@@ -51817,5 +51817,11 @@
   "Status page provider": "Statusseiten-Anbieter",
   "Status page retries": "Statusseiten-Wiederholungen",
   "Status page timeout": "Statusseiten-Timeout",
-  "Trace query configuration": "Konfiguration der Trace-Abfrage"
+  "Trace query configuration": "Konfiguration der Trace-Abfrage",
+  "Choose whether Notify Status Page Subscribers starts ticked when someone declares an incident.": "Legen Sie fest, ob „Statusseiten-Abonnenten benachrichtigen“ bereits aktiviert ist, wenn jemand einen Vorfall meldet.",
+  "Notify Status Page Subscribers of New Incidents by Default": "Statusseiten-Abonnenten standardmäßig über neue Vorfälle benachrichtigen",
+  "Notify status page subscribers by default": "Statusseiten-Abonnenten standardmäßig benachrichtigen",
+  "Should status page subscribers be notified when this incident is created? Unticked by default in this project.": "Sollen Abonnenten der Statusseite benachrichtigt werden, wenn dieser Vorfall erstellt wird? In diesem Projekt standardmäßig nicht aktiviert.",
+  "Status page subscribers are notified of a new incident only if whoever declares it ticks Notify Status Page Subscribers.": "Abonnenten der Statusseite werden über einen neuen Vorfall nur benachrichtigt, wenn die Person, die ihn meldet, „Statusseiten-Abonnenten benachrichtigen“ aktiviert.",
+  "Status page subscribers are notified of a new incident unless whoever declares it unticks Notify Status Page Subscribers.": "Abonnenten der Statusseite werden über einen neuen Vorfall benachrichtigt, es sei denn, die Person, die ihn meldet, deaktiviert „Statusseiten-Abonnenten benachrichtigen“."
 }

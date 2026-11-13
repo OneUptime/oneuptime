@@ -51817,5 +51817,11 @@
   "Status page provider": "Leverandør av statussiden",
   "Status page retries": "Nye forsøk for statusside",
   "Status page timeout": "Tidsavbrudd for statusside",
-  "Trace query configuration": "Konfigurasjon av sporspørring"
+  "Trace query configuration": "Konfigurasjon av sporspørring",
+  "Choose whether Notify Status Page Subscribers starts ticked when someone declares an incident.": "Velg om «Varsle statussideabonnenter» allerede er avkrysset når noen erklærer en hendelse.",
+  "Notify Status Page Subscribers of New Incidents by Default": "Varsle statussideabonnenter om nye hendelser som standard",
+  "Notify status page subscribers by default": "Varsle statussideabonnenter som standard",
+  "Should status page subscribers be notified when this incident is created? Unticked by default in this project.": "Skal abonnenter på statussiden varsles når denne hendelsen opprettes? Ikke avkrysset som standard i dette prosjektet.",
+  "Status page subscribers are notified of a new incident only if whoever declares it ticks Notify Status Page Subscribers.": "Abonnenter på statussiden varsles om en ny hendelse bare hvis den som erklærer den, krysser av for «Varsle statussideabonnenter».",
+  "Status page subscribers are notified of a new incident unless whoever declares it unticks Notify Status Page Subscribers.": "Abonnenter på statussiden varsles om en ny hendelse med mindre den som erklærer den, fjerner avkrysningen for «Varsle statussideabonnenter»."
 }

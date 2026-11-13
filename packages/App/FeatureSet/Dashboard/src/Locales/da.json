@@ -51817,5 +51817,11 @@
   "Status page provider": "Statussidens udbyder",
   "Status page retries": "Genforsøg for statusside",
   "Status page timeout": "Timeout for statusside",
-  "Trace query configuration": "Konfiguration af sporforespørgsel"
+  "Trace query configuration": "Konfiguration af sporforespørgsel",
+  "Choose whether Notify Status Page Subscribers starts ticked when someone declares an incident.": "Vælg, om \"Underret statussideabonnenter\" allerede er markeret, når nogen erklærer en hændelse.",
+  "Notify Status Page Subscribers of New Incidents by Default": "Underret statussideabonnenter om nye hændelser som standard",
+  "Notify status page subscribers by default": "Underret statussideabonnenter som standard",
+  "Should status page subscribers be notified when this incident is created? Unticked by default in this project.": "Skal abonnenter på statussiden underrettes, når denne hændelse oprettes? Ikke markeret som standard i dette projekt.",
+  "Status page subscribers are notified of a new incident only if whoever declares it ticks Notify Status Page Subscribers.": "Abonnenter på statussiden underrettes kun om en ny hændelse, hvis den, der erklærer den, markerer \"Underret statussideabonnenter\".",
+  "Status page subscribers are notified of a new incident unless whoever declares it unticks Notify Status Page Subscribers.": "Abonnenter på statussiden underrettes om en ny hændelse, medmindre den, der erklærer den, fjerner markeringen i \"Underret statussideabonnenter\"."
 }
