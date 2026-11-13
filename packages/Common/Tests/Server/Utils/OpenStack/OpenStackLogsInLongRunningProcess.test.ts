@@ -11,9 +11,10 @@ import path from "path";
  * on that worker. V8 backtracks on a stack that can grow with every character a quantifier takes,
  * and a process that has been up a while compiles regular expressions unoptimized, so this runs in
  * a node process started with --no-regexp-optimization, the state such a process reaches
- * (AGENTS.md). esbuild bundles the modules there, as ScreenshotEmailInLongRunningProcess.test.ts
- * does: it refuses to load under the jsdom environment Common's jest uses. Only booleans and times
- * come back, so a failure never prints sixteen million characters.
+ * (Docs/notifications/README.md, "Megabyte-long values"). esbuild bundles the modules there, as
+ * ScreenshotEmailInLongRunningProcess.test.ts does: it refuses to load under the jsdom environment
+ * Common's jest uses. Only booleans and times come back, so a failure never prints sixteen million
+ * characters.
  *
  * Two things are held. Nothing throws on sixteen megabytes of each shape. And the time grows with
  * the length: each shape is read at two lengths, and four times the text may cost at most ten times

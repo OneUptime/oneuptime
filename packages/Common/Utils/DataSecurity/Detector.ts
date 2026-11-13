@@ -14,8 +14,8 @@ import DataConfidence from "../../Types/DataSecurity/DataConfidence";
  *
  *  - It is global (g) and every quantifier is bounded ({1,64}, never + or
  *    *), so no candidate runs on without end and V8's backtracking stack
- *    stays shallow on megabyte-long values (AGENTS.md, "Megabyte-long
- *    values"). TextScanner also hands it bounded windows.
+ *    stays shallow on megabyte-long values (Docs/notifications/README.md,
+ *    "Megabyte-long values"). TextScanner also hands it bounded windows.
  *  - It cannot match inside a longer token: it starts and ends with a
  *    look-around (`(?<![A-Za-z0-9])` ... `(?![A-Za-z0-9])`) or a literal that
  *    no token can continue, so 4111111111111111 is not found inside
