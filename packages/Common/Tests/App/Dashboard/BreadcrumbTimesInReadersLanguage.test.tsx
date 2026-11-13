@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom";
 import { afterEach, beforeAll, describe, expect, test } from "@jest/globals";
-import { act, cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, render, screen, within } from "@testing-library/react";
 import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import * as React from "react";
@@ -45,6 +45,13 @@ import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
  * the language's plural. With no reader's translator, or with the English
  * one, each reads word for word as before. The milliseconds ("-880 ms")
  * are #7418's and stay as they were.
+ *
+ * Its filter chips' counts and a folded row's "×2" were written as
+ * JavaScript writes a number, Latin digits beside the Persian ones, and an
+ * event that says nothing about itself read "Event" in English on every
+ * page (#7818). The counts are in the reader's digits now, and such an
+ * event reads the reader's word for it; the rows fold alike in every
+ * language.
  */
 
 const EXCEPTION_TIME: Date = new Date("2026-09-14T11:56:00.000Z");
@@ -453,16 +460,93 @@ describe("the Breadcrumbs card, drawn in the reader's language", () => {
       });
   };
 
-  const renderIn: (language: string) => Promise<void> = async (
+  // The card, drawn for `events` in `language`.
+  const renderIn: (
     language: string,
-  ): Promise<void> => {
+    events?: Array<BreadcrumbEvent>,
+  ) => Promise<HTMLElement> = async (
+    language: string,
+    events: Array<BreadcrumbEvent> = EVENTS,
+  ): Promise<HTMLElement> => {
     await act(async () => {
       await i18next.changeLanguage(language);
     });
 
-    render(
-      <BreadcrumbTimeline events={EVENTS} exceptionTime={EXCEPTION_TIME} />,
-    );
+    return render(
+      <BreadcrumbTimeline events={events} exceptionTime={EXCEPTION_TIME} />,
+    ).container;
+  };
+
+  const EXCEPTION_EVENT: BreadcrumbEvent = event("exception", 0, {
+    "exception.type": "InventoryReservationError",
+    "exception.message": "Could not reserve stock",
+  });
+
+  const QUERY: JSONObject = {
+    "db.system": "postgresql",
+    "db.statement": "SELECT * FROM stock WHERE sku = ?",
+  };
+
+  /*
+   * A chip for each kind of event, and two identical queries folded into
+   * one row. No value holds a digit, so every digit on the card is one the
+   * card writes.
+   */
+  const FOLDED_EVENTS: Array<BreadcrumbEvent> = [
+    event("http.request", -125000, {
+      "http.method": "POST",
+      "http.url": "https://shop.example.com/api/checkout",
+    }),
+    event("db.query", -12500, QUERY),
+    event("db.query", -9000, QUERY),
+    event("cart.loaded", -1234),
+    EXCEPTION_EVENT,
+  ];
+
+  // Two events with no name, message, request or statement, then the exception.
+  const UNNAMED_EVENTS: Array<BreadcrumbEvent> = [
+    event("", -2500),
+    event("", -1500),
+    EXCEPTION_EVENT,
+  ];
+
+  // Each row's one line, top to bottom.
+  const summaries: () => Array<string> = (): Array<string> => {
+    return screen
+      .getAllByTestId("breadcrumb-summary")
+      .map((summary: HTMLElement): string => {
+        return summary.textContent || "";
+      });
+  };
+
+  // Each folded row's count, top to bottom: "×2".
+  const foldCounts: () => Array<string> = (): Array<string> => {
+    return screen
+      .queryAllByTestId("breadcrumb-count")
+      .map((count: HTMLElement): string => {
+        return count.textContent || "";
+      });
+  };
+
+  // The count each filter chip shows after its name: "all", "HTTP", "DB"...
+  const chipCounts: () => Record<string, string> = (): Record<
+    string,
+    string
+  > => {
+    const counts: Record<string, string> = {};
+
+    for (const chip of within(
+      screen.getByTestId("breadcrumb-filters"),
+    ).getAllByRole("button")) {
+      const name: string = (chip.getAttribute("data-testid") || "").replace(
+        "breadcrumb-filter-",
+        "",
+      );
+
+      counts[name] = chip.querySelector(".tabular-nums")?.textContent || "";
+    }
+
+    return counts;
   };
 
   beforeAll(async () => {
@@ -522,5 +606,99 @@ describe("the Breadcrumbs card, drawn in the reader's language", () => {
         );
       }),
     ).toBeInTheDocument();
+  });
+
+  test("English: the chips, the rows and a folded row's count read as before", async () => {
+    await renderIn("en", FOLDED_EVENTS);
+
+    expect(chipCounts()).toEqual({
+      all: "5",
+      EXCEPTION: "1",
+      HTTP: "1",
+      DB: "2",
+      EVENT: "1",
+    });
+    expect(summaries()).toEqual([
+      "POST https://shop.example.com/api/checkout",
+      "SELECT * FROM stock WHERE sku = ?",
+      "cart.loaded",
+      "Could not reserve stock",
+    ]);
+    expect(foldCounts()).toEqual(["×2"]);
+    expect(
+      screen.getByText("5 events in the 2 m 5 s before the exception"),
+    ).toBeInTheDocument();
+  });
+
+  test("Persian: the All chip and each category's chip count in Persian digits", async () => {
+    await renderIn("fa", FOLDED_EVENTS);
+
+    expect(chipCounts()).toEqual({
+      all: "۵",
+      EXCEPTION: "۱",
+      HTTP: "۱",
+      DB: "۲",
+      EVENT: "۱",
+    });
+  });
+
+  test("Persian: a folded row's count in Persian digits", async () => {
+    await renderIn("fa", FOLDED_EVENTS);
+
+    expect(foldCounts()).toEqual(["×۲"]);
+  });
+
+  test("Persian: no Latin digit anywhere on the card", async () => {
+    const card: HTMLElement = await renderIn("fa", FOLDED_EVENTS);
+
+    expect(card.textContent).not.toMatch(LATIN_DIGIT);
+  });
+
+  test("German: an unnamed event - no name, message, request or statement - reads 'Ereignis', in its row and its title", async () => {
+    await renderIn("de", UNNAMED_EVENTS);
+
+    const summary: HTMLElement =
+      screen.getAllByTestId("breadcrumb-summary")[0]!;
+
+    expect(summary.textContent).toBe("Ereignis");
+    expect(summary).toHaveAttribute("title", "Ereignis");
+  });
+
+  test.each([
+    ["English", "en", "Event"],
+    ["German", "de", "Ereignis"],
+  ])(
+    "%s: two unnamed events in a row fold into one row",
+    async (_language: string, code: string, word: string) => {
+      await renderIn(code, UNNAMED_EVENTS);
+
+      expect(summaries()).toEqual([word, "Could not reserve stock"]);
+      expect(foldCounts()).toEqual(["×2"]);
+    },
+  );
+
+  test("German: the rows fold as in English - an unnamed event and one named 'Ereignis' stay two rows", async () => {
+    await renderIn("de", [
+      event("", -2500),
+      event("Ereignis", -1500),
+      EXCEPTION_EVENT,
+    ]);
+
+    expect(summaries()).toEqual([
+      "Ereignis",
+      "Ereignis",
+      "Could not reserve stock",
+    ]);
+    expect(foldCounts()).toEqual([]);
+  });
+
+  test("German: an event's own words are drawn as written, even a Dashboard word", async () => {
+    await renderIn("de", [
+      event("Event", -2500),
+      event("step", -1500, { message: "All" }),
+      EXCEPTION_EVENT,
+    ]);
+
+    expect(summaries()).toEqual(["Event", "All", "Could not reserve stock"]);
   });
 });

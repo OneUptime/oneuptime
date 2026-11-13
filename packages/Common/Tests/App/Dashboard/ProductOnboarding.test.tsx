@@ -85,6 +85,9 @@ jest.mock("../../../UI/Utils/User", () => {
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import Service from "../../../Models/DatabaseModels/Service";
+import TelemetryIngestionKey from "../../../Models/DatabaseModels/TelemetryIngestionKey";
+import TelemetryIngestionKeyType from "../../../Types/Telemetry/TelemetryIngestionKeyType";
+import ObjectID from "../../../Types/ObjectID";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import Route from "../../../Types/API/Route";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
@@ -165,7 +168,8 @@ import StatusPagesPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Stat
  *     only then - a busy project, or a count that fails, sees its list;
  *   - someone who may not take the first step reads it without the button;
  *   - a telemetry product shows it until the first service reports, and its
- *     button is the setup guide, which waits for that data and says so.
+ *     button is the setup guide, which waits for that data and says so -
+ *     for data that names no service, the guide key's first data.
  */
 
 const MONITORS_SHOWCASE: ResourceShowcase =
@@ -175,6 +179,8 @@ const LOGS_SHOWCASE: ResourceShowcase =
 
 let counts: Map<{ new (): BaseModel }, number | Error>;
 let newServices: Array<Service>;
+// The project's ingestion keys: the setup guide's picker and its last step read them.
+let keys: Array<TelemetryIngestionKey>;
 let navigateSpy: ReturnType<typeof jest.spyOn>;
 
 function setCount(
@@ -188,6 +194,7 @@ beforeEach(() => {
   mockPermissions = [Permission.ProjectOwner];
   counts = new Map();
   newServices = [];
+  keys = [];
   PermissionGate.clearPermissionPropsCache();
   TableFilterUrlState.resetClaimedKeys();
   window.localStorage.clear();
@@ -215,7 +222,11 @@ beforeEach(() => {
         limit?: number;
       }): Promise<ListResult<BaseModel>> => {
         const data: Array<BaseModel> =
-          options.modelType === Service ? newServices : [];
+          options.modelType === Service
+            ? newServices
+            : options.modelType === TelemetryIngestionKey
+              ? keys
+              : [];
         return {
           data,
           count: data.length,
@@ -1280,6 +1291,117 @@ describe("a telemetry product's explanation over its explorer", () => {
     expect(screen.getByTestId("logs-first-steps-setup")).toHaveTextContent(
       "Set up logs",
     );
+  });
+
+  /*
+   * FluentBit's logs name no service, so no service registers (#7754). The
+   * dialog's last step watches the key the guide's snippets carry: its
+   * first data finishes the step, the explanation gives way, and View logs
+   * - this very page - closes the dialog over the explorer, which reads
+   * again, so the logs are there without a reload.
+   */
+  test("logs that name no service: the key's first data finishes the dialog's wait, and View logs shows the explorer read again", async () => {
+    jest.useFakeTimers();
+    setCount(Service, 0);
+    // The key the newcomer made in the guide: nothing has been sent with it.
+    const key: TelemetryIngestionKey = new TelemetryIngestionKey();
+    key._id = "90000000-0000-4000-8000-000000000001";
+    key.name = "Logs key";
+    key.secretKey = new ObjectID("90000000-0000-4000-8000-0000000000aa");
+    key.keyType = TelemetryIngestionKeyType.Server;
+    keys = [key];
+
+    let explorerMounts: number = 0;
+    const CountingExplorer: React.FunctionComponent = (): ReactElement => {
+      React.useEffect(() => {
+        explorerMounts++;
+      }, []);
+      return (
+        <TelemetryFirstStepsEmptyState
+          signal={TelemetryFirstStepsSignal.Logs}
+        />
+      );
+    };
+
+    goTo(`/dashboard/${PROJECT_ID}/logs`);
+    await renderInRouter(
+      <TelemetryFirstRunShowcase product={ProductKey.Logs}>
+        <CountingExplorer />
+      </TelemetryFirstRunShowcase>,
+    );
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(RESOURCE_SHOWCASE_ADD_BUTTON_TEST_ID));
+    });
+    await settle();
+
+    const dialog: HTMLElement = screen.getByTestId(
+      TELEMETRY_SETUP_DIALOG_TEST_ID,
+    );
+    expect(dialog).toHaveTextContent(
+      "Waiting for the first data. This step updates by itself.",
+    );
+
+    // FluentBit's first batch: ingest stamps the key, and no service registers.
+    key.lastUsedAt = new Date();
+    await act(async () => {
+      jest.advanceTimersByTime(5000);
+    });
+    await settle();
+
+    expect(dialog).toHaveTextContent(
+      "The first data arrived with the key Logs key. It shows up within a minute or two.",
+    );
+    const viewLogs: HTMLElement = within(dialog).getByRole("link", {
+      name: "View logs",
+    });
+    expect(viewLogs).toHaveAttribute("href", `/dashboard/${PROJECT_ID}/logs`);
+    // Behind the dialog, the page is the explorer alone now.
+    expect(screen.queryByTestId(PRODUCT_SHOWCASE_TEST_ID)).toBeNull();
+    expect(explorerMounts).toBe(1);
+
+    await act(async () => {
+      fireEvent.click(viewLogs);
+    });
+    await settle();
+
+    expect(screen.queryByTestId(TELEMETRY_SETUP_DIALOG_TEST_ID)).toBeNull();
+    expect(explorerMounts).toBe(2);
+  });
+
+  test("a dialog closed before any data arrived leaves the explorer as it was", async () => {
+    setCount(Service, 0);
+    let explorerMounts: number = 0;
+    const CountingExplorer: React.FunctionComponent = (): ReactElement => {
+      React.useEffect(() => {
+        explorerMounts++;
+      }, []);
+      return (
+        <TelemetryFirstStepsEmptyState
+          signal={TelemetryFirstStepsSignal.Logs}
+        />
+      );
+    };
+
+    goTo(`/dashboard/${PROJECT_ID}/logs`);
+    await renderInRouter(
+      <TelemetryFirstRunShowcase product={ProductKey.Logs}>
+        <CountingExplorer />
+      </TelemetryFirstRunShowcase>,
+    );
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(RESOURCE_SHOWCASE_ADD_BUTTON_TEST_ID));
+    });
+    await settle();
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("modal-footer-close-button"));
+    });
+    await settle();
+
+    expect(screen.queryByTestId(TELEMETRY_SETUP_DIALOG_TEST_ID)).toBeNull();
+    expect(screen.getByTestId(PRODUCT_SHOWCASE_TEST_ID)).toBeInTheDocument();
+    expect(explorerMounts).toBe(1);
   });
 
   test("a project whose services have reported: the explorer's own empty state, with its setup button", async () => {

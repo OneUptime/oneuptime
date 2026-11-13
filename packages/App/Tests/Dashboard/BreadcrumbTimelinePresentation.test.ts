@@ -20,6 +20,7 @@ import {
   getBreadcrumbSummary,
   groupBreadcrumbEvents,
   sortBreadcrumbEvents,
+  UNNAMED_EVENT_TEXT,
 } from "../../FeatureSet/Dashboard/src/Utils/BreadcrumbTimelinePresentation";
 
 const EXCEPTION_TIME: Date = new Date("2026-09-14T11:56:00.000Z");
@@ -152,11 +153,12 @@ describe("getBreadcrumbSummary", () => {
     ).toBe("trimmed");
   });
 
-  test("falls back to the event name, then to 'Event'", () => {
+  test("falls back to the event name, then to nothing: the card draws 'Event' in the reader's language", () => {
     expect(getBreadcrumbSummary(event("cart.loaded", { items: 3 }))).toBe(
       "cart.loaded",
     );
-    expect(getBreadcrumbSummary(event(""))).toBe("Event");
+    expect(getBreadcrumbSummary(event(""))).toBe("");
+    expect(UNNAMED_EVENT_TEXT).toBe("Event");
   });
 
   test("truncates very long values", () => {
@@ -346,6 +348,21 @@ describe("sorting and grouping", () => {
     expect(groups[1]!.firstTime.getTime()).toBe(EXCEPTION_TIME.getTime() - 300);
     expect(groups[1]!.lastTime.getTime()).toBe(EXCEPTION_TIME.getTime() - 200);
     expect(groups[3]!.detail).toBe("E");
+  });
+
+  test("folds events that say nothing about themselves on their empty summary, apart from one named Event", () => {
+    const groups: Array<BreadcrumbGroup<BreadcrumbEventInput>> =
+      groupBreadcrumbEvents([
+        event("", {}, -300),
+        event("", {}, -200),
+        event("Event", {}, -100),
+      ]);
+
+    expect(
+      groups.map((group: BreadcrumbGroup<BreadcrumbEventInput>) => {
+        return `${group.category}:${group.summary}:x${group.count}`;
+      }),
+    ).toEqual(["EVENT::x2", "EVENT:Event:x1"]);
   });
 
   test("counts categories", () => {
