@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom";
 import { act, cleanup, render, screen } from "@testing-library/react";
 import React from "react";
+import getJestMockFunction, { MockFunction } from "../../MockType";
 import {
   afterEach,
   beforeEach,
@@ -169,12 +170,16 @@ describe("the email logs table", () => {
 
   test("names nothing SMS: no column, filter, button or empty message", () => {
     const words: Array<string> = [
-      ...capturedTableProps!.columns.map((column: { title?: string }) => {
-        return column.title || "";
-      }),
-      ...capturedTableProps!.filters.map((filter: { title?: string }) => {
-        return filter.title || "";
-      }),
+      ...capturedTableProps!.columns.map(
+        (column: { title?: string | undefined }) => {
+          return column.title || "";
+        },
+      ),
+      ...capturedTableProps!.filters.map(
+        (filter: { title?: string | undefined }) => {
+          return filter.title || "";
+        },
+      ),
       ...capturedTableProps!.actionButtons.map(
         (button: CapturedActionButton) => {
           return button.title;
@@ -198,7 +203,7 @@ describe("the email logs table", () => {
           return button.title === "View Subject";
         },
       )!;
-    const done: jest.Mock = jest.fn();
+    const done: MockFunction = getJestMockFunction();
     const subject: string = 'Disk "data" is 95% full on db-1';
 
     await act(async () => {

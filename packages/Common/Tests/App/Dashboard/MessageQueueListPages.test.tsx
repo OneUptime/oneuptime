@@ -1350,10 +1350,11 @@ describe("the Other option, in the reader's language", () => {
     "%s's help quotes the option as its list words it",
     (language: string) => {
       const translator: Translator = dashboardTranslator(language);
-      const option: string = translator.translateText(otherOption().label);
-      const help: string = translator.translateText(
-        field("Messaging System").description || "",
-      );
+      const option: string =
+        translator.translateText(otherOption().label) || "";
+      const help: string =
+        translator.translateText(field("Messaging System").description || "") ||
+        "";
 
       expect(option).not.toBe(MESSAGE_QUEUE_OTHER_SYSTEM_LABEL);
       expect(optionWords(option).length).toBeGreaterThan(0);
