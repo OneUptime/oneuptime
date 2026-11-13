@@ -641,7 +641,10 @@ the keyboard (`notes-fail-twice`), Try again keeps the focus - on Try again afte
 then just before the notes. A Load more that fails (`?casesetup=notes-more-fail`, #7620) says what
 failed, then why, what to do and its reference, over the notes, in English and Persian at 1280
 and 390, with nothing scrolling sideways; dismissed from the keyboard, its banner leaves the focus
-on Load more, whose next press reads the notes. Its
+on Load more, whose next press reads the notes. A list's Try again pressed from the keyboard
+(`fail-twice` on the Custom Fields list, #7621) keeps the focus - on Try again after another
+failure, then on the list, just before its rows, with no ring around it; once the focus moves on,
+the list is not focusable, and a click on its words leaves the focus with the page. Its
 screenshots are named `case-custom-fields-*`, `case-custom-fields-settings-*`,
 `case-note-templates-*`, `case-note-template-*`, `case-notes-fail-*`, `case-notes-more-fail-*`,
 `case-numbering-*`, `case-overview-custom-fields-390-*` and
