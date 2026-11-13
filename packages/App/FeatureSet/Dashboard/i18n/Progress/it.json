@@ -517,6 +517,7 @@
     "{{count}} volume",
     "{{count}} worker",
     "{{count}} worker down",
+    "{{exceptionType}} in {{serviceName}}",
     "{{gigabytes}} GB",
     "{{in}} in",
     "{{minutes}} min",
