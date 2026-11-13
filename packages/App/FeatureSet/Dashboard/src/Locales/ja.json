@@ -20401,7 +20401,6 @@
   "Browse all resources, {{count}}": "すべてのリソースを参照、{{count}}",
   "Build filter rules to target specific {{entities}}. Conditions are evaluated in order.": "特定の{{entities}}を対象にするフィルタールールを作成します。条件は順番に評価されます。",
   "Capacity {{capacity}}": "容量 {{capacity}}",
-  "Capture what your team learns while working on this {{event}}. Only people in your project can see private notes.": "この{{event}}への対応中にチームが得た知見を記録します。非公開メモはプロジェクトのメンバーだけが閲覧できます。",
   "Captured {{time}}.": "{{time}}に記録。",
   "Charting log volume": "ログ量をグラフ化中",
   "Check connection status and last telemetry times for my {{resources}}, where available. Which resources have stopped reporting?": "{{resources}}の接続ステータスと最終テレメトリ受信時刻を、取得できる範囲で確認してください。報告が止まっているリソースはどれですか？",
@@ -20623,7 +20622,6 @@
   "Install the Database Agent →": "データベースエージェントをインストール →",
   "Integrations with popular DevOps tools through community-maintained connectors.": "コミュニティが管理するコネクターによる、一般的な DevOps ツールとの連携。",
   "Interact with {{itemName}} in your workflow.": "ワークフローで{{itemName}}を操作します。",
-  "Internal notes for your team about this {{event}}. They are never shown on a status page or sent to subscribers.": "この{{event}}に関するチーム向けの内部メモです。ステータスページに表示されたり、購読者に送信されたりすることはありません。",
   "Introduced in {{release}}": "{{release}} で導入",
   "Investigating with OneUptime data only — no kubectl access to cluster \"{{clusterName}}\"": "OneUptime のデータのみで調査中 — クラスター「{{clusterName}}」への kubectl アクセスなし",
   "Investigation status is unavailable": "調査ステータスを取得できません",
@@ -20977,7 +20975,6 @@
   "Settings may have changed since this alert was created; this is not a recorded decision from that time.": "このアラートの作成後に設定が変更されている可能性があります。これは作成時に記録された判断ではありません。",
   "Settings may have changed since this incident was created; this is not a recorded decision from that time.": "このインシデントの作成後に設定が変更されている可能性があります。これは作成時に記録された判断ではありません。",
   "Severity: {{name}}": "重大度: {{name}}",
-  "Share findings, decisions and next steps with your team.": "調査結果、決定事項、次のステップをチームと共有します。",
   "Show as column in the table": "テーブルの列として表示",
   "Show more: {{list}}": "さらに表示: {{list}}",
   "Show the {{window}}": "{{window}}を表示",
@@ -21202,7 +21199,6 @@
   "World map of {{count}} network sites, {{down}} of them down.": "{{count}} か所のネットワークサイトの世界地図（うち {{down}} か所がダウン）。",
   "World map of {{count}} network sites, {{down}} of them down._one": "World map of {{count}} network site, {{down}} of them down.",
   "Wrap the variable name in double braces: {{example}}": "変数名を二重の波括弧で囲んでください: {{example}}",
-  "Write a note for your team…": "チーム向けのメモを書く…",
   "You are about to mark this alert as {{state}}.": "このアラートを「{{state}}」にしようとしています。",
   "You are about to mark this episode as {{state}}. This will also update all alerts in this episode.": "このエピソードを「{{state}}」にしようとしています。このエピソード内のすべてのアラートも更新されます。",
   "You are about to mark this episode as {{state}}. This will also update all incidents in this episode.": "このエピソードを「{{state}}」にしようとしています。このエピソード内のすべてのインシデントも更新されます。",
@@ -52001,5 +51997,9 @@
   "Private note added, only for people who can see the alert": "非公開メモを追加しました（アラートを閲覧できる人のみ）",
   "Private note added, only for people who can see the incident": "非公開メモを追加しました（インシデントを閲覧できる人のみ）",
   "The subscriber never sees it.": "購読者には表示されません。",
-  "This page has no sign-in, so while this is on, only people in your project can add subscribers.": "このページにはサインインがないため、この設定がオンの間、購読者を追加できるのはプロジェクトのメンバーだけです。"
+  "This page has no sign-in, so while this is on, only people in your project can add subscribers.": "このページにはサインインがないため、この設定がオンの間、購読者を追加できるのはプロジェクトのメンバーだけです。",
+  "Internal notes about this {{event}}. They are never shown on a status page or sent to subscribers.": "この{{event}}に関する内部メモです。ステータスページに表示されたり、購読者に送信されたりすることはありません。",
+  "Capture what you learn while working on this {{event}}. Only people who can see it can read these notes.": "この{{event}}への対応中に得た知見を記録します。これらのメモは、この{{event}}を閲覧できる人だけが読めます。",
+  "Share findings, decisions and next steps.": "調査結果、決定事項、次のステップを共有します。",
+  "Write a private note…": "非公開メモを書く…"
 }

@@ -20401,7 +20401,6 @@
   "Browse all resources, {{count}}": "Bla gjennom alle ressurser, {{count}}",
   "Build filter rules to target specific {{entities}}. Conditions are evaluated in order.": "Build filter rules to target specific {{entities}}. Conditions are evaluated in order.",
   "Capacity {{capacity}}": "Capacity {{capacity}}",
-  "Capture what your team learns while working on this {{event}}. Only people in your project can see private notes.": "Skriv ned det teamet ditt lærer mens det jobber med dette elementet ({{event}}). Bare personer i prosjektet ditt kan se private notater.",
   "Captured {{time}}.": "Captured {{time}}.",
   "Charting log volume": "Viser loggvolumet i en graf",
   "Check connection status and last telemetry times for my {{resources}}, where available. Which resources have stopped reporting?": "Sjekk, der det er mulig, tilkoblingsstatus og tidspunktet for siste telemetri for mine {{resources}}. Hvilke ressurser har sluttet å rapportere?",
@@ -20623,7 +20622,6 @@
   "Install the Database Agent →": "Install the Database Agent →",
   "Integrations with popular DevOps tools through community-maintained connectors.": "Integrasjoner med populære DevOps-verktøy gjennom koblinger som fellesskapet vedlikeholder.",
   "Interact with {{itemName}} in your workflow.": "Interact with {{itemName}} in your workflow.",
-  "Internal notes for your team about this {{event}}. They are never shown on a status page or sent to subscribers.": "Interne notater til teamet ditt om dette elementet ({{event}}). De vises aldri på en statusside og sendes aldri til abonnenter.",
   "Introduced in {{release}}": "Introduced in {{release}}",
   "Investigating with OneUptime data only — no kubectl access to cluster \"{{clusterName}}\"": "Investigating with OneUptime data only — no kubectl access to cluster \"{{clusterName}}\"",
   "Investigation status is unavailable": "Status for undersøkelsen er ikke tilgjengelig",
@@ -20977,7 +20975,6 @@
   "Settings may have changed since this alert was created; this is not a recorded decision from that time.": "Innstillingene kan ha endret seg siden dette varselet ble opprettet; dette er ikke en beslutning som ble registrert da.",
   "Settings may have changed since this incident was created; this is not a recorded decision from that time.": "Innstillingene kan ha endret seg siden denne hendelsen ble opprettet; dette er ikke en beslutning som ble registrert da.",
   "Severity: {{name}}": "Severity: {{name}}",
-  "Share findings, decisions and next steps with your team.": "Del funn, beslutninger og neste steg med teamet ditt.",
   "Show as column in the table": "Vis som kolonne i tabellen",
   "Show more: {{list}}": "Show more: {{list}}",
   "Show the {{window}}": "Show the {{window}}",
@@ -21202,7 +21199,6 @@
   "World map of {{count}} network sites, {{down}} of them down.": "World map of {{count}} network sites, {{down}} of them down.",
   "World map of {{count}} network sites, {{down}} of them down._one": "World map of {{count}} network site, {{down}} of them down.",
   "Wrap the variable name in double braces: {{example}}": "Sett navnet på variabelen i doble krøllparenteser: {{example}}",
-  "Write a note for your team…": "Skriv et notat til teamet ditt…",
   "You are about to mark this alert as {{state}}.": "Du er i ferd med å merke dette varselet som {{state}}.",
   "You are about to mark this episode as {{state}}. This will also update all alerts in this episode.": "Du er i ferd med å merke denne episoden som {{state}}. Alle varsler i denne episoden blir også oppdatert.",
   "You are about to mark this episode as {{state}}. This will also update all incidents in this episode.": "Du er i ferd med å merke denne episoden som {{state}}. Alle hendelser i denne episoden blir også oppdatert.",
@@ -52001,5 +51997,9 @@
   "Private note added, only for people who can see the alert": "Privat notat lagt til, bare for de som kan se varselet",
   "Private note added, only for people who can see the incident": "Privat notat lagt til, bare for de som kan se hendelsen",
   "The subscriber never sees it.": "Abonnenten ser det aldri.",
-  "This page has no sign-in, so while this is on, only people in your project can add subscribers.": "Denne siden har ingen pålogging, så mens dette er slått på, kan bare personer i prosjektet ditt legge til abonnenter."
+  "This page has no sign-in, so while this is on, only people in your project can add subscribers.": "Denne siden har ingen pålogging, så mens dette er slått på, kan bare personer i prosjektet ditt legge til abonnenter.",
+  "Internal notes about this {{event}}. They are never shown on a status page or sent to subscribers.": "Interne notater om dette elementet ({{event}}). De vises aldri på en statusside og sendes aldri til abonnenter.",
+  "Capture what you learn while working on this {{event}}. Only people who can see it can read these notes.": "Skriv ned det du lærer mens du jobber med dette elementet ({{event}}). Bare de som kan se det, kan lese disse notatene.",
+  "Share findings, decisions and next steps.": "Del funn, beslutninger og neste steg.",
+  "Write a private note…": "Skriv et privat notat…"
 }

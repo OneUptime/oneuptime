@@ -20401,7 +20401,6 @@
   "Browse all resources, {{count}}": "Browse all resources, {{count}}",
   "Build filter rules to target specific {{entities}}. Conditions are evaluated in order.": "Build filter rules to target specific {{entities}}. Conditions are evaluated in order.",
   "Capacity {{capacity}}": "Capacity {{capacity}}",
-  "Capture what your team learns while working on this {{event}}. Only people in your project can see private notes.": "Capture what your team learns while working on this {{event}}. Only people in your project can see private notes.",
   "Captured {{time}}.": "Captured {{time}}.",
   "Charting log volume": "Charting log volume",
   "Check connection status and last telemetry times for my {{resources}}, where available. Which resources have stopped reporting?": "Check connection status and last telemetry times for my {{resources}}, where available. Which resources have stopped reporting?",
@@ -20623,7 +20622,6 @@
   "Install the Database Agent →": "Install the Database Agent →",
   "Integrations with popular DevOps tools through community-maintained connectors.": "Integrations with popular DevOps tools through community-maintained connectors.",
   "Interact with {{itemName}} in your workflow.": "Interact with {{itemName}} in your workflow.",
-  "Internal notes for your team about this {{event}}. They are never shown on a status page or sent to subscribers.": "Internal notes for your team about this {{event}}. They are never shown on a status page or sent to subscribers.",
   "Introduced in {{release}}": "Introduced in {{release}}",
   "Investigating with OneUptime data only — no kubectl access to cluster \"{{clusterName}}\"": "Investigating with OneUptime data only — no kubectl access to cluster \"{{clusterName}}\"",
   "Investigation status is unavailable": "Investigation status is unavailable",
@@ -20977,7 +20975,6 @@
   "Settings may have changed since this alert was created; this is not a recorded decision from that time.": "Settings may have changed since this alert was created; this is not a recorded decision from that time.",
   "Settings may have changed since this incident was created; this is not a recorded decision from that time.": "Settings may have changed since this incident was created; this is not a recorded decision from that time.",
   "Severity: {{name}}": "Severity: {{name}}",
-  "Share findings, decisions and next steps with your team.": "Share findings, decisions and next steps with your team.",
   "Show as column in the table": "Show as column in the table",
   "Show more: {{list}}": "Show more: {{list}}",
   "Show the {{window}}": "Show the {{window}}",
@@ -21202,7 +21199,6 @@
   "World map of {{count}} network sites, {{down}} of them down.": "World map of {{count}} network sites, {{down}} of them down.",
   "World map of {{count}} network sites, {{down}} of them down._one": "World map of {{count}} network site, {{down}} of them down.",
   "Wrap the variable name in double braces: {{example}}": "Wrap the variable name in double braces: {{example}}",
-  "Write a note for your team…": "Write a note for your team…",
   "You are about to mark this alert as {{state}}.": "You are about to mark this alert as {{state}}.",
   "You are about to mark this episode as {{state}}. This will also update all alerts in this episode.": "You are about to mark this episode as {{state}}. This will also update all alerts in this episode.",
   "You are about to mark this episode as {{state}}. This will also update all incidents in this episode.": "You are about to mark this episode as {{state}}. This will also update all incidents in this episode.",
@@ -52001,5 +51997,9 @@
   "Private note added, only for people who can see the alert": "Private note added, only for people who can see the alert",
   "Private note added, only for people who can see the incident": "Private note added, only for people who can see the incident",
   "The subscriber never sees it.": "The subscriber never sees it.",
-  "This page has no sign-in, so while this is on, only people in your project can add subscribers.": "This page has no sign-in, so while this is on, only people in your project can add subscribers."
+  "This page has no sign-in, so while this is on, only people in your project can add subscribers.": "This page has no sign-in, so while this is on, only people in your project can add subscribers.",
+  "Internal notes about this {{event}}. They are never shown on a status page or sent to subscribers.": "Internal notes about this {{event}}. They are never shown on a status page or sent to subscribers.",
+  "Capture what you learn while working on this {{event}}. Only people who can see it can read these notes.": "Capture what you learn while working on this {{event}}. Only people who can see it can read these notes.",
+  "Share findings, decisions and next steps.": "Share findings, decisions and next steps.",
+  "Write a private note…": "Write a private note…"
 }

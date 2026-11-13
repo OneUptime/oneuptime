@@ -20401,7 +20401,6 @@
   "Browse all resources, {{count}}": "تصفح كل الموارد، {{count}}",
   "Build filter rules to target specific {{entities}}. Conditions are evaluated in order.": "أنشئ قواعد تصفية لاستهداف {{entities}} محددة. تُقيَّم الشروط بالترتيب.",
   "Capacity {{capacity}}": "السعة {{capacity}}",
-  "Capture what your team learns while working on this {{event}}. Only people in your project can see private notes.": "دوّن ما يتعلمه فريقك أثناء العمل على هذا الحدث ({{event}}). لا يرى الملاحظات الخاصة إلا الأشخاص في مشروعك.",
   "Captured {{time}}.": "التُقط {{time}}.",
   "Charting log volume": "جارٍ رسم حجم السجلات",
   "Check connection status and last telemetry times for my {{resources}}, where available. Which resources have stopped reporting?": "تحقق من حالة الاتصال وأوقات آخر قياس عن بُعد لـ {{resources}} لديّ، حيثما توفرت. أي الموارد توقفت عن الإبلاغ؟",
@@ -20623,7 +20622,6 @@
   "Install the Database Agent →": "تثبيت وكيل قاعدة البيانات ←",
   "Integrations with popular DevOps tools through community-maintained connectors.": "تكاملات مع أدوات DevOps الشائعة من خلال موصلات يصونها المجتمع.",
   "Interact with {{itemName}} in your workflow.": "تفاعل مع {{itemName}} في سير العمل.",
-  "Internal notes for your team about this {{event}}. They are never shown on a status page or sent to subscribers.": "ملاحظات داخلية لفريقك حول هذا الحدث ({{event}}). لا تُعرض أبدًا على صفحة حالة ولا تُرسل إلى المشتركين.",
   "Introduced in {{release}}": "ظهر لأول مرة في {{release}}",
   "Investigating with OneUptime data only — no kubectl access to cluster \"{{clusterName}}\"": "جارٍ التحقيق ببيانات OneUptime فقط — لا يوجد وصول kubectl إلى العنقود «{{clusterName}}»",
   "Investigation status is unavailable": "حالة التحقيق غير متاحة",
@@ -20977,7 +20975,6 @@
   "Settings may have changed since this alert was created; this is not a recorded decision from that time.": "ربما تغيرت الإعدادات منذ إنشاء هذا التنبيه؛ وهذا ليس قرارًا مسجّلًا من ذلك الوقت.",
   "Settings may have changed since this incident was created; this is not a recorded decision from that time.": "ربما تغيرت الإعدادات منذ إنشاء هذه الحادثة؛ وهذا ليس قرارًا مسجّلًا من ذلك الوقت.",
   "Severity: {{name}}": "الخطورة: {{name}}",
-  "Share findings, decisions and next steps with your team.": "شارك النتائج والقرارات والخطوات التالية مع فريقك.",
   "Show as column in the table": "العرض كعمود في الجدول",
   "Show more: {{list}}": "إظهار المزيد: {{list}}",
   "Show the {{window}}": "عرض {{window}}",
@@ -21202,7 +21199,6 @@
   "World map of {{count}} network sites, {{down}} of them down.": "خريطة العالم لمواقع الشبكة (العدد: {{count}})، منها {{down}} متوقفة.",
   "World map of {{count}} network sites, {{down}} of them down._one": "خريطة العالم لـ {{count}} موقع شبكة، منها {{down}} متوقف.",
   "Wrap the variable name in double braces: {{example}}": "ضع اسم المتغير بين قوسين معقوفين مزدوجين: {{example}}",
-  "Write a note for your team…": "اكتب ملاحظة لفريقك…",
   "You are about to mark this alert as {{state}}.": "أنت على وشك تعيين حالة هذا التنبيه إلى {{state}}.",
   "You are about to mark this episode as {{state}}. This will also update all alerts in this episode.": "أنت على وشك تعيين حالة هذه الحلقة إلى {{state}}. سيؤدي هذا أيضًا إلى تحديث كل التنبيهات في هذه الحلقة.",
   "You are about to mark this episode as {{state}}. This will also update all incidents in this episode.": "أنت على وشك تعيين حالة هذه الحلقة إلى {{state}}. سيؤدي هذا أيضًا إلى تحديث كل الحوادث في هذه الحلقة.",
@@ -52001,5 +51997,9 @@
   "Private note added, only for people who can see the alert": "أُضيفت ملاحظة خاصة، لمن يمكنه رؤية التنبيه فقط",
   "Private note added, only for people who can see the incident": "أُضيفت ملاحظة خاصة، لمن يمكنه رؤية الحادثة فقط",
   "The subscriber never sees it.": "لا يراها المشترك أبدًا.",
-  "This page has no sign-in, so while this is on, only people in your project can add subscribers.": "لا يوجد تسجيل دخول في هذه الصفحة، لذا ما دام هذا مفعّلًا، لا يمكن إلا للأشخاص في مشروعك إضافة مشتركين."
+  "This page has no sign-in, so while this is on, only people in your project can add subscribers.": "لا يوجد تسجيل دخول في هذه الصفحة، لذا ما دام هذا مفعّلًا، لا يمكن إلا للأشخاص في مشروعك إضافة مشتركين.",
+  "Internal notes about this {{event}}. They are never shown on a status page or sent to subscribers.": "ملاحظات داخلية حول هذا الحدث ({{event}}). لا تُعرض أبدًا على صفحة حالة ولا تُرسل إلى المشتركين.",
+  "Capture what you learn while working on this {{event}}. Only people who can see it can read these notes.": "دوّن ما تتعلمه أثناء العمل على هذا الحدث ({{event}}). لا يقرأ هذه الملاحظات إلا من يمكنه رؤيته.",
+  "Share findings, decisions and next steps.": "شارك النتائج والقرارات والخطوات التالية.",
+  "Write a private note…": "اكتب ملاحظة خاصة…"
 }

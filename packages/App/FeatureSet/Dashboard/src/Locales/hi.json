@@ -20401,7 +20401,6 @@
   "Browse all resources, {{count}}": "सभी संसाधन देखें, {{count}}",
   "Build filter rules to target specific {{entities}}. Conditions are evaluated in order.": "Build filter rules to target specific {{entities}}. Conditions are evaluated in order.",
   "Capacity {{capacity}}": "Capacity {{capacity}}",
-  "Capture what your team learns while working on this {{event}}. Only people in your project can see private notes.": "इस {{event}} पर काम करते हुए आपकी टीम जो सीखती है, उसे दर्ज करें। निजी नोट सिर्फ़ आपके प्रोजेक्ट के लोग देख सकते हैं।",
   "Captured {{time}}.": "Captured {{time}}.",
   "Charting log volume": "लॉग की मात्रा का चार्ट बन रहा है",
   "Check connection status and last telemetry times for my {{resources}}, where available. Which resources have stopped reporting?": "जहाँ उपलब्ध हो, मेरे {{resources}} के कनेक्शन की स्थिति और आखिरी टेलीमेट्री का समय जाँचें। किन संसाधनों ने रिपोर्ट करना बंद कर दिया है?",
@@ -20623,7 +20622,6 @@
   "Install the Database Agent →": "Install the Database Agent →",
   "Integrations with popular DevOps tools through community-maintained connectors.": "कम्युनिटी द्वारा बनाए रखे गए कनेक्टरों के ज़रिए लोकप्रिय DevOps टूल के साथ इंटीग्रेशन।",
   "Interact with {{itemName}} in your workflow.": "Interact with {{itemName}} in your workflow.",
-  "Internal notes for your team about this {{event}}. They are never shown on a status page or sent to subscribers.": "इस {{event}} के बारे में आपकी टीम के लिए आंतरिक नोट। ये कभी स्थिति पृष्ठ पर नहीं दिखते और सब्सक्राइबर को नहीं भेजे जाते।",
   "Introduced in {{release}}": "Introduced in {{release}}",
   "Investigating with OneUptime data only — no kubectl access to cluster \"{{clusterName}}\"": "Investigating with OneUptime data only — no kubectl access to cluster \"{{clusterName}}\"",
   "Investigation status is unavailable": "जांच की स्थिति उपलब्ध नहीं है",
@@ -20977,7 +20975,6 @@
   "Settings may have changed since this alert was created; this is not a recorded decision from that time.": "यह अलर्ट बनने के बाद सेटिंग्स बदल गई हो सकती हैं; यह उस समय दर्ज किया गया फ़ैसला नहीं है।",
   "Settings may have changed since this incident was created; this is not a recorded decision from that time.": "यह घटना बनने के बाद सेटिंग्स बदल गई हो सकती हैं; यह उस समय दर्ज किया गया फ़ैसला नहीं है।",
   "Severity: {{name}}": "Severity: {{name}}",
-  "Share findings, decisions and next steps with your team.": "अपनी टीम के साथ निष्कर्ष, निर्णय और अगले कदम साझा करें।",
   "Show as column in the table": "तालिका में कॉलम के रूप में दिखाएँ",
   "Show more: {{list}}": "Show more: {{list}}",
   "Show the {{window}}": "Show the {{window}}",
@@ -21202,7 +21199,6 @@
   "World map of {{count}} network sites, {{down}} of them down.": "World map of {{count}} network sites, {{down}} of them down.",
   "World map of {{count}} network sites, {{down}} of them down._one": "World map of {{count}} network site, {{down}} of them down.",
   "Wrap the variable name in double braces: {{example}}": "वेरिएबल का नाम दोहरे कर्ली ब्रैकेट में लिखें: {{example}}",
-  "Write a note for your team…": "अपनी टीम के लिए एक नोट लिखें…",
   "You are about to mark this alert as {{state}}.": "आप इस अलर्ट को {{state}} के रूप में चिह्नित करने वाले हैं।",
   "You are about to mark this episode as {{state}}. This will also update all alerts in this episode.": "आप इस एपिसोड को {{state}} के रूप में चिह्नित करने वाले हैं। इस एपिसोड के सभी अलर्ट भी अपडेट होंगे।",
   "You are about to mark this episode as {{state}}. This will also update all incidents in this episode.": "आप इस एपिसोड को {{state}} के रूप में चिह्नित करने वाले हैं। इस एपिसोड की सभी घटनाएं भी अपडेट होंगी।",
@@ -52001,5 +51997,9 @@
   "Private note added, only for people who can see the alert": "निजी नोट जोड़ा गया, केवल उन लोगों के लिए जो अलर्ट देख सकते हैं",
   "Private note added, only for people who can see the incident": "निजी नोट जोड़ा गया, केवल उन लोगों के लिए जो घटना देख सकते हैं",
   "The subscriber never sees it.": "सब्सक्राइबर इसे कभी नहीं देखता।",
-  "This page has no sign-in, so while this is on, only people in your project can add subscribers.": "इस पृष्ठ पर साइन-इन नहीं है, इसलिए जब तक यह चालू है, केवल आपके प्रोजेक्ट के लोग सब्सक्राइबर जोड़ सकते हैं।"
+  "This page has no sign-in, so while this is on, only people in your project can add subscribers.": "इस पृष्ठ पर साइन-इन नहीं है, इसलिए जब तक यह चालू है, केवल आपके प्रोजेक्ट के लोग सब्सक्राइबर जोड़ सकते हैं।",
+  "Internal notes about this {{event}}. They are never shown on a status page or sent to subscribers.": "इस {{event}} के बारे में आंतरिक नोट। ये कभी स्थिति पृष्ठ पर नहीं दिखते और सब्सक्राइबर को नहीं भेजे जाते।",
+  "Capture what you learn while working on this {{event}}. Only people who can see it can read these notes.": "इस {{event}} पर काम करते हुए आप जो सीखते हैं, उसे दर्ज करें। ये नोट सिर्फ़ वे लोग पढ़ सकते हैं जो इसे देख सकते हैं।",
+  "Share findings, decisions and next steps.": "निष्कर्ष, निर्णय और अगले कदम साझा करें।",
+  "Write a private note…": "एक निजी नोट लिखें…"
 }

@@ -20401,7 +20401,6 @@
   "Browse all resources, {{count}}": "Door alle resources bladeren, {{count}}",
   "Build filter rules to target specific {{entities}}. Conditions are evaluated in order.": "Build filter rules to target specific {{entities}}. Conditions are evaluated in order.",
   "Capacity {{capacity}}": "Capacity {{capacity}}",
-  "Capture what your team learns while working on this {{event}}. Only people in your project can see private notes.": "Leg vast wat uw team leert tijdens het werk aan dit item ({{event}}). Alleen mensen in uw project kunnen privénotities zien.",
   "Captured {{time}}.": "Captured {{time}}.",
   "Charting log volume": "Logvolume in een grafiek zetten",
   "Check connection status and last telemetry times for my {{resources}}, where available. Which resources have stopped reporting?": "Controleer, waar beschikbaar, de verbindingsstatus en het tijdstip van de laatste telemetrie van mijn {{resources}}. Welke resources melden zich niet meer?",
@@ -20623,7 +20622,6 @@
   "Install the Database Agent →": "Install the Database Agent →",
   "Integrations with popular DevOps tools through community-maintained connectors.": "Integraties met populaire DevOps-tools via connectors die de community onderhoudt.",
   "Interact with {{itemName}} in your workflow.": "Interact with {{itemName}} in your workflow.",
-  "Internal notes for your team about this {{event}}. They are never shown on a status page or sent to subscribers.": "Interne notities voor uw team over dit item ({{event}}). Ze worden nooit op een statuspagina getoond of naar abonnees gestuurd.",
   "Introduced in {{release}}": "Introduced in {{release}}",
   "Investigating with OneUptime data only — no kubectl access to cluster \"{{clusterName}}\"": "Investigating with OneUptime data only — no kubectl access to cluster \"{{clusterName}}\"",
   "Investigation status is unavailable": "De onderzoeksstatus is niet beschikbaar",
@@ -20977,7 +20975,6 @@
   "Settings may have changed since this alert was created; this is not a recorded decision from that time.": "De instellingen zijn misschien gewijzigd sinds deze waarschuwing werd aangemaakt; dit is geen beslissing die toen is vastgelegd.",
   "Settings may have changed since this incident was created; this is not a recorded decision from that time.": "De instellingen zijn misschien gewijzigd sinds dit incident werd aangemaakt; dit is geen beslissing die toen is vastgelegd.",
   "Severity: {{name}}": "Severity: {{name}}",
-  "Share findings, decisions and next steps with your team.": "Deel bevindingen, beslissingen en volgende stappen met uw team.",
   "Show as column in the table": "Tonen als kolom in de tabel",
   "Show more: {{list}}": "Show more: {{list}}",
   "Show the {{window}}": "Show the {{window}}",
@@ -21202,7 +21199,6 @@
   "World map of {{count}} network sites, {{down}} of them down.": "World map of {{count}} network sites, {{down}} of them down.",
   "World map of {{count}} network sites, {{down}} of them down._one": "World map of {{count}} network site, {{down}} of them down.",
   "Wrap the variable name in double braces: {{example}}": "Zet de naam van de variabele tussen dubbele accolades: {{example}}",
-  "Write a note for your team…": "Schrijf een notitie voor uw team…",
   "You are about to mark this alert as {{state}}.": "U staat op het punt deze waarschuwing als {{state}} te markeren.",
   "You are about to mark this episode as {{state}}. This will also update all alerts in this episode.": "U staat op het punt deze episode als {{state}} te markeren. Alle waarschuwingen in deze episode worden ook bijgewerkt.",
   "You are about to mark this episode as {{state}}. This will also update all incidents in this episode.": "U staat op het punt deze episode als {{state}} te markeren. Alle incidenten in deze episode worden ook bijgewerkt.",
@@ -52001,5 +51997,9 @@
   "Private note added, only for people who can see the alert": "Privénotitie toegevoegd, alleen voor wie de waarschuwing kan zien",
   "Private note added, only for people who can see the incident": "Privénotitie toegevoegd, alleen voor wie het incident kan zien",
   "The subscriber never sees it.": "De abonnee ziet deze nooit.",
-  "This page has no sign-in, so while this is on, only people in your project can add subscribers.": "Deze pagina heeft geen aanmelding, dus zolang dit aan staat, kunnen alleen mensen in uw project abonnees toevoegen."
+  "This page has no sign-in, so while this is on, only people in your project can add subscribers.": "Deze pagina heeft geen aanmelding, dus zolang dit aan staat, kunnen alleen mensen in uw project abonnees toevoegen.",
+  "Internal notes about this {{event}}. They are never shown on a status page or sent to subscribers.": "Interne notities over dit item ({{event}}). Ze worden nooit op een statuspagina getoond of naar abonnees gestuurd.",
+  "Capture what you learn while working on this {{event}}. Only people who can see it can read these notes.": "Leg vast wat u leert tijdens het werk aan dit item ({{event}}). Alleen wie het kan zien, kan deze notities lezen.",
+  "Share findings, decisions and next steps.": "Deel bevindingen, beslissingen en volgende stappen.",
+  "Write a private note…": "Schrijf een privénotitie…"
 }

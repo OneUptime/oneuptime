@@ -593,8 +593,8 @@ export interface NotesCopy {
 
 /*
  * The events a notes feed belongs to, as its sentences name them ("Internal
- * notes for your team about this incident."). Listed so the extraction finds
- * each one; getNotesCopy translates the noun it is given as a term.
+ * notes about this incident."). Listed so the extraction finds each one;
+ * getNotesCopy translates the noun it is given as a term.
  */
 export const EVENT_NOTE_NOUNS: ReadonlyArray<string> = [
   translationKey("incident"),
@@ -681,19 +681,28 @@ export function getNotesCopy(
     };
   }
 
+  /*
+   * Who can read a private note, said the way the composer's badge says it
+   * (PRIVATE_NOTE_AUDIENCE_HINTS): the people who can see the event. No
+   * sentence here says "your team", which read as one of OneUptime's Teams
+   * (#7595) - not the feed's header, not the prompt, and not the editor's
+   * placeholder right under the badge - and the empty feed no longer says
+   * "only people in your project", beside the badge's narrower answer on a
+   * private incident.
+   */
   return {
     title: translationKey("Private notes"),
     description: translator.translateTemplate(
-      "Internal notes for your team about this {{event}}. They are never shown on a status page or sent to subscribers.",
+      "Internal notes about this {{event}}. They are never shown on a status page or sent to subscribers.",
       { event },
     ),
     composerPlaceholder: translationKey(
-      "Share findings, decisions and next steps with your team.",
+      "Share findings, decisions and next steps.",
     ),
-    composerPrompt: translationKey("Write a note for your team…"),
+    composerPrompt: translationKey("Write a private note…"),
     emptyTitle: translationKey("No private notes yet"),
     emptyDescription: translator.translateTemplate(
-      "Capture what your team learns while working on this {{event}}. Only people in your project can see private notes.",
+      "Capture what you learn while working on this {{event}}. Only people who can see it can read these notes.",
       { event },
     ),
     audienceLabel: translationKey("Private"),

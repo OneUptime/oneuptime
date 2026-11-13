@@ -20401,7 +20401,6 @@
   "Browse all resources, {{count}}": "모든 리소스 둘러보기, {{count}}",
   "Build filter rules to target specific {{entities}}. Conditions are evaluated in order.": "Build filter rules to target specific {{entities}}. Conditions are evaluated in order.",
   "Capacity {{capacity}}": "Capacity {{capacity}}",
-  "Capture what your team learns while working on this {{event}}. Only people in your project can see private notes.": "이 {{event}}을(를) 처리하며 팀이 알게 된 내용을 기록하세요. 비공개 노트는 프로젝트 구성원만 볼 수 있습니다.",
   "Captured {{time}}.": "Captured {{time}}.",
   "Charting log volume": "로그 양을 차트로 그리는 중",
   "Check connection status and last telemetry times for my {{resources}}, where available. Which resources have stopped reporting?": "가능한 경우 내 {{resources}}의 연결 상태와 마지막 텔레메트리 시간을 확인해 주세요. 보고를 멈춘 리소스는 무엇인가요?",
@@ -20623,7 +20622,6 @@
   "Install the Database Agent →": "Install the Database Agent →",
   "Integrations with popular DevOps tools through community-maintained connectors.": "커뮤니티가 관리하는 커넥터를 통한 인기 DevOps 도구 통합.",
   "Interact with {{itemName}} in your workflow.": "Interact with {{itemName}} in your workflow.",
-  "Internal notes for your team about this {{event}}. They are never shown on a status page or sent to subscribers.": "이 {{event}}에 대한 팀 내부 노트입니다. 상태 페이지에 표시되거나 구독자에게 전송되지 않습니다.",
   "Introduced in {{release}}": "Introduced in {{release}}",
   "Investigating with OneUptime data only — no kubectl access to cluster \"{{clusterName}}\"": "Investigating with OneUptime data only — no kubectl access to cluster \"{{clusterName}}\"",
   "Investigation status is unavailable": "조사 상태를 사용할 수 없습니다",
@@ -20977,7 +20975,6 @@
   "Settings may have changed since this alert was created; this is not a recorded decision from that time.": "이 경고가 생성된 뒤 설정이 바뀌었을 수 있습니다. 이것은 그 당시 기록된 결정이 아닙니다.",
   "Settings may have changed since this incident was created; this is not a recorded decision from that time.": "이 인시던트가 생성된 뒤 설정이 바뀌었을 수 있습니다. 이것은 그 당시 기록된 결정이 아닙니다.",
   "Severity: {{name}}": "Severity: {{name}}",
-  "Share findings, decisions and next steps with your team.": "발견한 내용, 결정, 다음 단계를 팀과 공유하세요.",
   "Show as column in the table": "테이블에 열로 표시",
   "Show more: {{list}}": "Show more: {{list}}",
   "Show the {{window}}": "Show the {{window}}",
@@ -21202,7 +21199,6 @@
   "World map of {{count}} network sites, {{down}} of them down.": "World map of {{count}} network sites, {{down}} of them down.",
   "World map of {{count}} network sites, {{down}} of them down._one": "World map of {{count}} network site, {{down}} of them down.",
   "Wrap the variable name in double braces: {{example}}": "변수 이름을 이중 중괄호로 감싸세요: {{example}}",
-  "Write a note for your team…": "팀을 위한 노트 작성…",
   "You are about to mark this alert as {{state}}.": "이 경고를 {{state}}(으)로 표시하려고 합니다.",
   "You are about to mark this episode as {{state}}. This will also update all alerts in this episode.": "이 에피소드를 {{state}}(으)로 표시하려고 합니다. 이 에피소드의 모든 경고도 업데이트됩니다.",
   "You are about to mark this episode as {{state}}. This will also update all incidents in this episode.": "이 에피소드를 {{state}}(으)로 표시하려고 합니다. 이 에피소드의 모든 인시던트도 업데이트됩니다.",
@@ -52001,5 +51997,9 @@
   "Private note added, only for people who can see the alert": "비공개 메모 추가됨, 경고를 볼 수 있는 사람만 읽을 수 있음",
   "Private note added, only for people who can see the incident": "비공개 메모 추가됨, 인시던트를 볼 수 있는 사람만 읽을 수 있음",
   "The subscriber never sees it.": "구독자에게는 표시되지 않습니다.",
-  "This page has no sign-in, so while this is on, only people in your project can add subscribers.": "이 페이지에는 로그인이 없으므로, 이 설정이 켜져 있는 동안에는 프로젝트 구성원만 구독자를 추가할 수 있습니다."
+  "This page has no sign-in, so while this is on, only people in your project can add subscribers.": "이 페이지에는 로그인이 없으므로, 이 설정이 켜져 있는 동안에는 프로젝트 구성원만 구독자를 추가할 수 있습니다.",
+  "Internal notes about this {{event}}. They are never shown on a status page or sent to subscribers.": "이 {{event}}에 대한 내부 노트입니다. 상태 페이지에 표시되거나 구독자에게 전송되지 않습니다.",
+  "Capture what you learn while working on this {{event}}. Only people who can see it can read these notes.": "이 {{event}}을(를) 처리하며 알게 된 내용을 기록하세요. 이 노트는 이 {{event}}을(를) 볼 수 있는 사람만 읽을 수 있습니다.",
+  "Share findings, decisions and next steps.": "발견한 내용, 결정, 다음 단계를 공유하세요.",
+  "Write a private note…": "비공개 노트 작성…"
 }

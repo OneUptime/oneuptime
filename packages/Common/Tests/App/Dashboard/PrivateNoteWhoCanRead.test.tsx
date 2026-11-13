@@ -49,6 +49,9 @@ import {
  *   - the alert and episode state change dialogs, a pin's line on the Slack
  *     and Microsoft Teams pages, OneUptime AI's card, a subscriber's
  *     Internal Note and the no-sign-in line of Who Can Subscribe say it too;
+ *   - the private feed's header, its empty state, the composer's prompt and
+ *     the editor's placeholder under the badge no longer say "your team"
+ *     either, and the empty state no longer says "people in your project";
  *   - every one of those sentences is worded in all seventeen languages,
  *     none says a team, and the old sentences are gone from every file.
  */
@@ -138,12 +141,28 @@ const OLD_KEYS: ReadonlyArray<string> = [
   "Only your team sees it.",
   "Private note added, for your team only",
   "This page has no sign-in, so while this is on, only your team can add subscribers.",
+  "Internal notes for your team about this {{event}}. They are never shown on a status page or sent to subscribers.",
+  "Capture what your team learns while working on this {{event}}. Only people in your project can see private notes.",
+  "Write a note for your team…",
+  "Share findings, decisions and next steps with your team.",
+];
+
+/*
+ * The private feed's header and empty state, as en.json keys: getNotesCopy
+ * hands them back with the event already filled in.
+ */
+const PRIVATE_FEED_SENTENCES: ReadonlyArray<string> = [
+  "Internal notes about this {{event}}. They are never shown on a status page or sent to subscribers.",
+  "Capture what you learn while working on this {{event}}. Only people who can see it can read these notes.",
 ];
 
 // Every sentence the change words, as en.json keys, each once.
 const NEW_KEYS: ReadonlyArray<string> = Array.from(
   new Set<string>([
     ...Object.values(PRIVATE_NOTE_AUDIENCE_HINTS),
+    ...PRIVATE_FEED_SENTENCES,
+    getNotesCopy("private", "incident").composerPrompt,
+    getNotesCopy("private", "incident").composerPlaceholder,
     EVENT_STATE_KINDS[EventStateKind.Alert].words.rowNoteDescription,
     EVENT_STATE_KINDS[EventStateKind.Alert].words.bulkNoteDescription,
     EVENT_STATE_KINDS[EventStateKind.IncidentEpisode].words.bulkNoteDescription,
@@ -316,8 +335,8 @@ describe("the private note composer says who can read the note, naming its event
 });
 
 describe("every sentence that says who reads a private or internal note, in every language", () => {
-  test("there are fifteen of them, each saying who can read, never a team", () => {
-    expect(NEW_KEYS).toHaveLength(15);
+  test("there are nineteen of them, each saying who can read, never a team", () => {
+    expect(NEW_KEYS).toHaveLength(19);
 
     for (const key of NEW_KEYS) {
       expect({

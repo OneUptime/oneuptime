@@ -20401,7 +20401,6 @@
   "Browse all resources, {{count}}": "مرور همه منابع، {{count}}",
   "Build filter rules to target specific {{entities}}. Conditions are evaluated in order.": "قواعد فیلتر بسازید تا {{entities}} مشخصی را هدف بگیرید. شرط‌ها به ترتیب ارزیابی می‌شوند.",
   "Capacity {{capacity}}": "ظرفیت {{capacity}}",
-  "Capture what your team learns while working on this {{event}}. Only people in your project can see private notes.": "آنچه تیمتان هنگام کار روی این {{event}} می‌آموزد ثبت کنید. فقط افراد پروژهٔ شما یادداشت‌های خصوصی را می‌بینند.",
   "Captured {{time}}.": "{{time}} ثبت شد.",
   "Charting log volume": "رسم نمودار حجم لاگ‌ها",
   "Check connection status and last telemetry times for my {{resources}}, where available. Which resources have stopped reporting?": "در صورت امکان، وضعیت اتصال و زمان آخرین تله‌متری {{resources}} من را بررسی کن. کدام منابع گزارش دادن را متوقف کرده‌اند؟",
@@ -20623,7 +20622,6 @@
   "Install the Database Agent →": "نصب Database Agent ←",
   "Integrations with popular DevOps tools through community-maintained connectors.": "یکپارچه‌سازی با ابزارهای پرکاربرد DevOps از راه رابط‌هایی که انجمن نگه‌داری می‌کند.",
   "Interact with {{itemName}} in your workflow.": "در گردش کاری خود با {{itemName}} تعامل کنید.",
-  "Internal notes for your team about this {{event}}. They are never shown on a status page or sent to subscribers.": "یادداشت‌های داخلی برای تیم شما دربارهٔ این {{event}}. این‌ها هرگز در صفحه وضعیت نمایش داده نمی‌شوند و برای مشترکان فرستاده نمی‌شوند.",
   "Introduced in {{release}}": "Introduced in {{release}}",
   "Investigating with OneUptime data only — no kubectl access to cluster \"{{clusterName}}\"": "بررسی فقط با داده‌های OneUptime — بدون دسترسی kubectl به خوشه «{{clusterName}}»",
   "Investigation status is unavailable": "وضعیت بررسی در دسترس نیست",
@@ -20977,7 +20975,6 @@
   "Settings may have changed since this alert was created; this is not a recorded decision from that time.": "شاید تنظیمات از زمان ایجاد این هشدار تغییر کرده باشد؛ این تصمیمی نیست که آن موقع ثبت شده باشد.",
   "Settings may have changed since this incident was created; this is not a recorded decision from that time.": "شاید تنظیمات از زمان ایجاد این حادثه تغییر کرده باشد؛ این تصمیمی نیست که آن موقع ثبت شده باشد.",
   "Severity: {{name}}": "شدت: {{name}}",
-  "Share findings, decisions and next steps with your team.": "یافته‌ها، تصمیم‌ها و گام‌های بعدی را با تیمتان در میان بگذارید.",
   "Show as column in the table": "نمایش به‌صورت ستون در جدول",
   "Show more: {{list}}": "نمایش بیشتر: {{list}}",
   "Show the {{window}}": "نمایش {{window}}",
@@ -21202,7 +21199,6 @@
   "World map of {{count}} network sites, {{down}} of them down.": "نقشه جهان با {{count}} سایت شبکه که {{down}} مورد از آن‌ها از کار افتاده است.",
   "World map of {{count}} network sites, {{down}} of them down._one": "نقشه جهان با {{count}} سایت شبکه که {{down}} مورد از آن‌ها از کار افتاده است.",
   "Wrap the variable name in double braces: {{example}}": "نام متغیر را میان دو آکولاد دوتایی بنویسید: {{example}}",
-  "Write a note for your team…": "یک یادداشت برای تیمتان بنویسید…",
   "You are about to mark this alert as {{state}}.": "در حال علامت‌گذاری این هشدار به‌عنوان {{state}} هستید.",
   "You are about to mark this episode as {{state}}. This will also update all alerts in this episode.": "در حال علامت‌گذاری این اپیزود به‌عنوان {{state}} هستید. همه هشدارهای این اپیزود هم به‌روز می‌شوند.",
   "You are about to mark this episode as {{state}}. This will also update all incidents in this episode.": "در حال علامت‌گذاری این اپیزود به‌عنوان {{state}} هستید. همه حادثه‌های این اپیزود هم به‌روز می‌شوند.",
@@ -52001,5 +51997,9 @@
   "Private note added, only for people who can see the alert": "یادداشت خصوصی افزوده شد، فقط برای کسانی که هشدار را می‌بینند",
   "Private note added, only for people who can see the incident": "یادداشت خصوصی افزوده شد، فقط برای کسانی که حادثه را می‌بینند",
   "The subscriber never sees it.": "مشترک هرگز آن را نمی‌بیند.",
-  "This page has no sign-in, so while this is on, only people in your project can add subscribers.": "این صفحه ورود ندارد؛ بنابراین تا زمانی که این گزینه روشن است، فقط افراد پروژهٔ شما می‌توانند مشترک اضافه کنند."
+  "This page has no sign-in, so while this is on, only people in your project can add subscribers.": "این صفحه ورود ندارد؛ بنابراین تا زمانی که این گزینه روشن است، فقط افراد پروژهٔ شما می‌توانند مشترک اضافه کنند.",
+  "Internal notes about this {{event}}. They are never shown on a status page or sent to subscribers.": "یادداشت‌های داخلی دربارهٔ این {{event}}. این‌ها هرگز در صفحه وضعیت نمایش داده نمی‌شوند و برای مشترکان فرستاده نمی‌شوند.",
+  "Capture what you learn while working on this {{event}}. Only people who can see it can read these notes.": "آنچه هنگام کار روی این {{event}} می‌آموزید ثبت کنید. فقط کسانی که آن را می‌بینند، می‌توانند این یادداشت‌ها را بخوانند.",
+  "Share findings, decisions and next steps.": "یافته‌ها، تصمیم‌ها و گام‌های بعدی را به اشتراک بگذارید.",
+  "Write a private note…": "یک یادداشت خصوصی بنویسید…"
 }

@@ -20401,7 +20401,6 @@
   "Browse all resources, {{count}}": "浏览所有资源，{{count}}",
   "Build filter rules to target specific {{entities}}. Conditions are evaluated in order.": "Build filter rules to target specific {{entities}}. Conditions are evaluated in order.",
   "Capacity {{capacity}}": "Capacity {{capacity}}",
-  "Capture what your team learns while working on this {{event}}. Only people in your project can see private notes.": "记录团队在处理此{{event}}时了解到的内容。只有项目成员才能看到私有备注。",
   "Captured {{time}}.": "Captured {{time}}.",
   "Charting log volume": "正在绘制日志量图表",
   "Check connection status and last telemetry times for my {{resources}}, where available. Which resources have stopped reporting?": "在可用时检查我的{{resources}}的连接状态和最后一次遥测时间。哪些资源已停止上报？",
@@ -20623,7 +20622,6 @@
   "Install the Database Agent →": "Install the Database Agent →",
   "Integrations with popular DevOps tools through community-maintained connectors.": "通过社区维护的连接器与常用 DevOps 工具集成。",
   "Interact with {{itemName}} in your workflow.": "Interact with {{itemName}} in your workflow.",
-  "Internal notes for your team about this {{event}}. They are never shown on a status page or sent to subscribers.": "关于此{{event}}的团队内部备注。它们从不显示在状态页上，也不会发送给订阅者。",
   "Introduced in {{release}}": "Introduced in {{release}}",
   "Investigating with OneUptime data only — no kubectl access to cluster \"{{clusterName}}\"": "Investigating with OneUptime data only — no kubectl access to cluster \"{{clusterName}}\"",
   "Investigation status is unavailable": "调查状态不可用",
@@ -20977,7 +20975,6 @@
   "Settings may have changed since this alert was created; this is not a recorded decision from that time.": "自此警报创建以来，设置可能已经改变；这不是当时记录的决定。",
   "Settings may have changed since this incident was created; this is not a recorded decision from that time.": "自此事件创建以来，设置可能已经改变；这不是当时记录的决定。",
   "Severity: {{name}}": "Severity: {{name}}",
-  "Share findings, decisions and next steps with your team.": "与团队分享发现、决定和后续步骤。",
   "Show as column in the table": "在表格中显示为列",
   "Show more: {{list}}": "Show more: {{list}}",
   "Show the {{window}}": "Show the {{window}}",
@@ -21202,7 +21199,6 @@
   "World map of {{count}} network sites, {{down}} of them down.": "World map of {{count}} network sites, {{down}} of them down.",
   "World map of {{count}} network sites, {{down}} of them down._one": "World map of {{count}} network site, {{down}} of them down.",
   "Wrap the variable name in double braces: {{example}}": "用双花括号括住变量名：{{example}}",
-  "Write a note for your team…": "给团队写一条备注…",
   "You are about to mark this alert as {{state}}.": "你即将把此警报标记为“{{state}}”。",
   "You are about to mark this episode as {{state}}. This will also update all alerts in this episode.": "你即将把此片段标记为“{{state}}”。此片段中的所有警报也会被更新。",
   "You are about to mark this episode as {{state}}. This will also update all incidents in this episode.": "你即将把此片段标记为“{{state}}”。此片段中的所有事件也会被更新。",
@@ -52001,5 +51997,9 @@
   "Private note added, only for people who can see the alert": "已添加私密备注，仅限能查看该警报的人阅读",
   "Private note added, only for people who can see the incident": "已添加私密备注，仅限能查看该事件的人阅读",
   "The subscriber never sees it.": "订阅者永远看不到它。",
-  "This page has no sign-in, so while this is on, only people in your project can add subscribers.": "此页面没有登录，因此开启此设置时，只有项目成员可以添加订阅者。"
+  "This page has no sign-in, so while this is on, only people in your project can add subscribers.": "此页面没有登录，因此开启此设置时，只有项目成员可以添加订阅者。",
+  "Internal notes about this {{event}}. They are never shown on a status page or sent to subscribers.": "关于此{{event}}的内部备注。它们从不显示在状态页上，也不会发送给订阅者。",
+  "Capture what you learn while working on this {{event}}. Only people who can see it can read these notes.": "记录处理此{{event}}时了解到的内容。只有能查看此{{event}}的人才能阅读这些备注。",
+  "Share findings, decisions and next steps.": "分享发现、决定和后续步骤。",
+  "Write a private note…": "写一条私有备注…"
 }

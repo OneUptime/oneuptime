@@ -762,6 +762,41 @@ describe("getNotesCopy", () => {
     },
   );
 
+  /*
+   * Everything else the private feed and its composer say agrees with the
+   * badge: no "your team" (#7595) in the header, the prompt or the editor's
+   * placeholder right under the badge, and no "people in your project" in
+   * the empty feed, which a role limited to some incidents is not.
+   */
+  test.each(
+    EVENT_NOTE_NOUNS.map((eventNoun: string): [string] => {
+      return [eventNoun];
+    }),
+  )(
+    "a private %s feed and its composer agree with the badge",
+    (eventNoun: string) => {
+      const copy: ReturnType<typeof getNotesCopy> = getNotesCopy(
+        "private",
+        eventNoun,
+      );
+
+      expect(copy.description).toBe(
+        `Internal notes about this ${eventNoun}. They are never shown on a status page or sent to subscribers.`,
+      );
+      expect(copy.emptyDescription).toBe(
+        `Capture what you learn while working on this ${eventNoun}. Only people who can see it can read these notes.`,
+      );
+      expect(copy.composerPrompt).toBe("Write a private note…");
+      expect(copy.composerPlaceholder).toBe(
+        "Share findings, decisions and next steps.",
+      );
+
+      for (const words of Object.values(copy)) {
+        expect(words).not.toMatch(/\bteams?\b|\bproject\b/i);
+      }
+    },
+  );
+
   test("every event a notes feed is for has its own sentence, and no two say the same", () => {
     const hints: Array<string> = EVENT_NOTE_NOUNS.map(
       (eventNoun: string): string => {

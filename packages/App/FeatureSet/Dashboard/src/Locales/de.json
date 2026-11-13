@@ -20401,7 +20401,6 @@
   "Browse all resources, {{count}}": "Alle Ressourcen durchsuchen, {{count}}",
   "Build filter rules to target specific {{entities}}. Conditions are evaluated in order.": "Build filter rules to target specific {{entities}}. Conditions are evaluated in order.",
   "Capacity {{capacity}}": "Capacity {{capacity}}",
-  "Capture what your team learns while working on this {{event}}. Only people in your project can see private notes.": "Halten Sie fest, was Ihr Team bei der Arbeit an diesem Eintrag ({{event}}) herausfindet. Private Notizen sehen nur Personen in Ihrem Projekt.",
   "Captured {{time}}.": "Captured {{time}}.",
   "Charting log volume": "Protokollvolumen wird dargestellt",
   "Check connection status and last telemetry times for my {{resources}}, where available. Which resources have stopped reporting?": "Prüfe, soweit verfügbar, den Verbindungsstatus und den Zeitpunkt der letzten Telemetrie für meine {{resources}}. Welche Ressourcen melden sich nicht mehr?",
@@ -20623,7 +20622,6 @@
   "Install the Database Agent →": "Install the Database Agent →",
   "Integrations with popular DevOps tools through community-maintained connectors.": "Integrationen mit beliebten DevOps-Tools über von der Community gepflegte Konnektoren.",
   "Interact with {{itemName}} in your workflow.": "Interact with {{itemName}} in your workflow.",
-  "Internal notes for your team about this {{event}}. They are never shown on a status page or sent to subscribers.": "Interne Notizen für Ihr Team zu diesem Eintrag ({{event}}). Sie werden nie auf einer Statusseite angezeigt oder an Abonnenten gesendet.",
   "Introduced in {{release}}": "Introduced in {{release}}",
   "Investigating with OneUptime data only — no kubectl access to cluster \"{{clusterName}}\"": "Investigating with OneUptime data only — no kubectl access to cluster \"{{clusterName}}\"",
   "Investigation status is unavailable": "Der Untersuchungsstatus ist nicht verfügbar",
@@ -20977,7 +20975,6 @@
   "Settings may have changed since this alert was created; this is not a recorded decision from that time.": "Die Einstellungen haben sich seit der Erstellung dieser Warnung möglicherweise geändert; dies ist keine damals erfasste Entscheidung.",
   "Settings may have changed since this incident was created; this is not a recorded decision from that time.": "Die Einstellungen haben sich seit der Erstellung dieses Vorfalls möglicherweise geändert; dies ist keine damals erfasste Entscheidung.",
   "Severity: {{name}}": "Severity: {{name}}",
-  "Share findings, decisions and next steps with your team.": "Teilen Sie Erkenntnisse, Entscheidungen und nächste Schritte mit Ihrem Team.",
   "Show as column in the table": "Als Spalte in der Tabelle anzeigen",
   "Show more: {{list}}": "Show more: {{list}}",
   "Show the {{window}}": "Show the {{window}}",
@@ -21202,7 +21199,6 @@
   "World map of {{count}} network sites, {{down}} of them down.": "World map of {{count}} network sites, {{down}} of them down.",
   "World map of {{count}} network sites, {{down}} of them down._one": "World map of {{count}} network site, {{down}} of them down.",
   "Wrap the variable name in double braces: {{example}}": "Setzen Sie den Namen der Variablen in doppelte geschweifte Klammern: {{example}}",
-  "Write a note for your team…": "Eine Notiz für Ihr Team schreiben…",
   "You are about to mark this alert as {{state}}.": "Sie sind dabei, diese Warnung als {{state}} zu markieren.",
   "You are about to mark this episode as {{state}}. This will also update all alerts in this episode.": "Sie sind dabei, diese Episode als {{state}} zu markieren. Dadurch werden auch alle Warnungen in dieser Episode aktualisiert.",
   "You are about to mark this episode as {{state}}. This will also update all incidents in this episode.": "Sie sind dabei, diese Episode als {{state}} zu markieren. Dadurch werden auch alle Vorfälle in dieser Episode aktualisiert.",
@@ -52001,5 +51997,9 @@
   "Private note added, only for people who can see the alert": "Private Notiz hinzugefügt, nur für Personen, die die Warnung sehen können",
   "Private note added, only for people who can see the incident": "Private Notiz hinzugefügt, nur für Personen, die den Vorfall sehen können",
   "The subscriber never sees it.": "Der Abonnent sieht sie nie.",
-  "This page has no sign-in, so while this is on, only people in your project can add subscribers.": "Diese Seite hat keine Anmeldung. Solange dies aktiviert ist, können daher nur Personen in Ihrem Projekt Abonnenten hinzufügen."
+  "This page has no sign-in, so while this is on, only people in your project can add subscribers.": "Diese Seite hat keine Anmeldung. Solange dies aktiviert ist, können daher nur Personen in Ihrem Projekt Abonnenten hinzufügen.",
+  "Internal notes about this {{event}}. They are never shown on a status page or sent to subscribers.": "Interne Notizen zu diesem Eintrag ({{event}}). Sie werden nie auf einer Statusseite angezeigt oder an Abonnenten gesendet.",
+  "Capture what you learn while working on this {{event}}. Only people who can see it can read these notes.": "Halten Sie fest, was Sie bei der Arbeit an diesem Eintrag ({{event}}) herausfinden. Nur wer ihn sehen kann, kann diese Notizen lesen.",
+  "Share findings, decisions and next steps.": "Teilen Sie Erkenntnisse, Entscheidungen und nächste Schritte.",
+  "Write a private note…": "Eine private Notiz schreiben…"
 }

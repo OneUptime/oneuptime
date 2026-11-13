@@ -514,7 +514,7 @@ export default class IncidentSlaRule extends RuleBaseModel {
     type: TableColumnType.Markdown,
     title: "Internal Note Reminder Template",
     description:
-      "The content of the automatic internal note posted to your team. Use variables like {{incidentTitle}}, {{elapsedTime}}, {{slaStatus}}, {{timeToResolutionDeadline}} to include dynamic incident data. If left empty, a default template will be used.",
+      "The content of the automatic internal note posted on the incident. Use variables like {{incidentTitle}}, {{elapsedTime}}, {{slaStatus}}, {{timeToResolutionDeadline}} to include dynamic incident data. If left empty, a default template will be used.",
   })
   @Column({
     type: ColumnType.Markdown,
