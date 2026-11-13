@@ -18,6 +18,7 @@ import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentTyp
 import { AttributeToColumnMap } from "Common/Utils/Dashboard/ModelQueryVariableInterpolation";
 import ObjectID from "Common/Types/ObjectID";
 import { DashboardListWidgetSortProps } from "../Utils/UseDashboardListWidgetSort";
+import { PluralTemplate } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Thin Kubernetes wrapper around the shared, model-class-driven
@@ -36,7 +37,8 @@ export interface KubernetesResourceListBaseProps {
   componentType: DashboardComponentType;
   widgetProps: DashboardListWidgetSortProps;
   title?: string | undefined;
-  pluralLabel: string;
+  // The count beside the title, both its forms (DashboardResourceListBase).
+  countLabel: PluralTemplate;
   emptyMessage: string;
   emptyIcon: IconProp;
   columns: Array<ResourceListColumn>;
@@ -127,7 +129,7 @@ const DashboardKubernetesResourceListBase: FunctionComponent<
       componentType={props.componentType}
       widgetProps={props.widgetProps}
       title={props.title}
-      pluralLabel={props.pluralLabel}
+      countLabel={props.countLabel}
       emptyMessage={props.emptyMessage}
       emptyIcon={props.emptyIcon}
       columns={props.columns}

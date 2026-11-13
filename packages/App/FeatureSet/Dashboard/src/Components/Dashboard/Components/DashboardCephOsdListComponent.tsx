@@ -24,6 +24,7 @@ import {
   HoneycombLegendItem,
   HoneycombTile,
 } from "./DashboardResourceHoneycomb";
+import { getUnnamedText } from "./DashboardWidgetFallbackWords";
 
 /*
  * `ceph_daemon` is the datapoint label every per-OSD series carries
@@ -212,7 +213,7 @@ function renderUsageBar(percent: number | null): ReactElement {
 }
 
 function getOsdDisplayName(r: CephResource): string {
-  return (r.externalId as string) || (r.name as string) || "Unnamed";
+  return (r.externalId as string) || (r.name as string) || getUnnamedText();
 }
 
 function renderOsdRow(r: CephResource): ReactElement {
@@ -338,7 +339,10 @@ const DashboardCephOsdListComponentElement: FunctionComponent<
       componentId={props.componentId}
       publicResourceType="ceph-resource"
       title={args.title}
-      pluralLabel="OSDs"
+      countLabel={{
+        one: "{{count}} OSD",
+        other: "{{count}} OSDs",
+      }}
       emptyMessage="No Ceph OSDs found"
       emptyIcon={IconProp.SquareStack}
       columns={COLUMNS}

@@ -230,7 +230,7 @@ export default class OnCallTestPageDelivery {
           method: { userSmsId: rule.userSms.id! },
         });
 
-        const customTwilioConfig: TwilioConfig | undefined =
+        const projectTwilioConfigForSms: TwilioConfig | undefined =
           await ProjectCallSMSConfigService.getProjectDefaultTwilioConfig(
             options.projectId,
             TwilioMessageKind.SMS,
@@ -247,7 +247,7 @@ export default class OnCallTestPageDelivery {
           },
           {
             projectId: options.projectId,
-            customTwilioConfig: customTwilioConfig,
+            customTwilioConfig: projectTwilioConfigForSms,
             userOnCallLogTimelineId: row.id!,
             ...sendIds,
           },
@@ -530,7 +530,7 @@ export default class OnCallTestPageDelivery {
           method: { userCallId: rule.userCall.id! },
         });
 
-        const customTwilioConfig: TwilioConfig | undefined =
+        const projectTwilioConfigForCalls: TwilioConfig | undefined =
           await ProjectCallSMSConfigService.getProjectDefaultTwilioConfig(
             options.projectId,
             TwilioMessageKind.Call,
@@ -544,7 +544,7 @@ export default class OnCallTestPageDelivery {
           }),
           {
             projectId: options.projectId,
-            customTwilioConfig: customTwilioConfig,
+            customTwilioConfig: projectTwilioConfigForCalls,
             userOnCallLogTimelineId: row.id!,
             ...sendIds,
           },

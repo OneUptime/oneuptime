@@ -277,7 +277,10 @@ const DashboardCephPoolListComponentElement: FunctionComponent<
       componentId={props.componentId}
       publicResourceType="ceph-resource"
       title={args.title}
-      pluralLabel="pools"
+      countLabel={{
+        one: "{{count}} pool",
+        other: "{{count}} pools",
+      }}
       emptyMessage="No Ceph pools found"
       emptyIcon={IconProp.Database}
       columns={COLUMNS}

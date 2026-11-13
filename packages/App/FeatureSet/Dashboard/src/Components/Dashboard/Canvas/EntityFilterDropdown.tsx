@@ -41,6 +41,7 @@ import { describeProductAnalyticsSavedViewOptions } from "../../ProductAnalytics
 import { EntityFilterModelType } from "Common/Types/Dashboard/DashboardComponents/ComponentArgument";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { getUnnamedText } from "../Components/DashboardWidgetFallbackWords";
 
 type ModelTypeOf<T extends BaseModel> = { new (): T };
 
@@ -94,7 +95,9 @@ const toDropdownOption: ToDropdownOptionFunction = (
 ): DropdownOption => {
   const option: DropdownOption = {
     value: ((item as unknown as { _id: string })._id as string) || "",
-    label: ((item as unknown as { name: string }).name as string) || "Unnamed",
+    label:
+      ((item as unknown as { name: string }).name as string) ||
+      getUnnamedText(),
   };
 
   const color: Color | undefined = colorColumnName

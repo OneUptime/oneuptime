@@ -99,6 +99,8 @@ const readQueryString: (req: ExpressRequest, name: string) => string = (
   return typeof value === "string" ? value : "";
 };
 
+const WHOLE_NUMBER: RegExp = /^\d+$/;
+
 const readWholeNumber: (
   req: ExpressRequest,
   name: string,
@@ -110,7 +112,7 @@ const readWholeNumber: (
     return fallback;
   }
 
-  if (!/^\d+$/.test(raw)) {
+  if (!WHOLE_NUMBER.test(raw)) {
     throw new BadDataException(
       `Set ${name} to a whole number of 0 or more, then load the list again.`,
     );

@@ -377,7 +377,10 @@ const DashboardAlertListComponentElement: FunctionComponent<ComponentProps> = (
   return (
     <DashboardResourceListBase
       title={props.component.arguments.title}
-      pluralLabel="alerts"
+      countLabel={{
+        one: "{{count}} alert",
+        other: "{{count}} alerts",
+      }}
       columns={COLUMNS}
       count={alerts.length}
       isLoading={isLoading}

@@ -377,6 +377,10 @@ describe("a two-level policy (#7016)", () => {
       callCount: 0,
       whatsAppCount: 0,
       telegramCount: 0,
+      paidSmsCount: 1,
+      paidCallCount: 0,
+      paidWhatsAppCount: 0,
+      paidTelegramCount: 0,
       estimatedCostInUSDCents: SMS_PRICE,
     });
     expect(preview.walkCost).toEqual({
@@ -385,6 +389,10 @@ describe("a two-level policy (#7016)", () => {
       callCount: 1,
       whatsAppCount: 0,
       telegramCount: 0,
+      paidSmsCount: 1,
+      paidCallCount: 1,
+      paidWhatsAppCount: 0,
+      paidTelegramCount: 0,
       estimatedCostInUSDCents: SMS_PRICE + CALL_PRICE,
     });
   });
@@ -396,6 +404,9 @@ describe("a two-level policy (#7016)", () => {
 
     expect(countsOf(preview.walkCost)).toEqual({ smsCount: 1, callCount: 1 });
     expect(preview.walkCost!.estimatedCostInUSDCents).toBe(SMS_PRICE);
+    // What the balance pays for leaves the call out, as the amount does (#7263).
+    expect(preview.walkCost!.paidSmsCount).toBe(1);
+    expect(preview.walkCost!.paidCallCount).toBe(0);
   });
 
   test("somebody named by both levels is paged, and priced, at each", async () => {

@@ -34,6 +34,7 @@ import {
   getTotalIops,
   getVolumeLatencyState,
 } from "./StorageArrayWidgetData";
+import { getUnnamedText } from "./DashboardWidgetFallbackWords";
 
 /*
  * `name` is the datapoint label every per-volume series carries
@@ -127,7 +128,7 @@ function getVolumeRoute(r: StorageArrayResource): Route | undefined {
 }
 
 function getVolumeDisplayName(r: StorageArrayResource): string {
-  return (r.name as string) || (r.externalId as string) || "Unnamed";
+  return (r.name as string) || (r.externalId as string) || getUnnamedText();
 }
 
 function formatUsedOfProvisioned(r: StorageArrayResource): string {
@@ -259,7 +260,10 @@ const DashboardStorageArrayVolumeListComponentElement: FunctionComponent<
       componentId={props.componentId}
       publicResourceType="storage-array-resource"
       title={args.title}
-      pluralLabel="volumes"
+      countLabel={{
+        one: "{{count}} volume",
+        other: "{{count}} volumes",
+      }}
       emptyMessage="No storage array volumes found"
       emptyIcon={IconProp.Database}
       columns={COLUMNS}

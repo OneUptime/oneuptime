@@ -106,7 +106,12 @@ describe("a form field's glossaryTerm", () => {
     fireEvent.click(screen.getByTestId(DEFINED_TERM_TEST_ID));
 
     expect(onChange).not.toHaveBeenCalled();
-    expect(screen.getByLabelText(/Probes/)).not.toBeChecked();
+    /*
+     * The box itself, by its role and its name. A lookup by label text skips
+     * a button's words, so it never found the box: it found the definition,
+     * open now and named by the word, which is never ticked.
+     */
+    expect(screen.getByRole("checkbox", { name: /Probes/ })).not.toBeChecked();
   });
 
   test("leaves a title without one as plain words", () => {

@@ -24,6 +24,7 @@ import {
   HoneycombLegendItem,
   HoneycombTile,
 } from "./DashboardResourceHoneycomb";
+import { getUnnamedText } from "./DashboardWidgetFallbackWords";
 
 /*
  * For PVE nodes the `pve.id` datapoint attribute (split out of the raw
@@ -105,7 +106,7 @@ function getNodeRoute(r: ProxmoxResource): Route | undefined {
 }
 
 function getNodeDisplayName(r: ProxmoxResource): string {
-  return (r.name as string) || (r.externalId as string) || "Unnamed";
+  return (r.name as string) || (r.externalId as string) || getUnnamedText();
 }
 
 function getNodeStatus(r: ProxmoxResource): {
@@ -253,7 +254,10 @@ const DashboardProxmoxNodeListComponentElement: FunctionComponent<
       componentId={props.componentId}
       publicResourceType="proxmox-resource"
       title={args.title}
-      pluralLabel="nodes"
+      countLabel={{
+        one: "{{count}} node",
+        other: "{{count}} nodes",
+      }}
       emptyMessage="No Proxmox nodes found"
       emptyIcon={IconProp.ServerStack}
       columns={COLUMNS}

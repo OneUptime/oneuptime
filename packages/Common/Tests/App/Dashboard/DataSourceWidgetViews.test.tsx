@@ -1,5 +1,11 @@
 import "@testing-library/jest-dom";
-import { render, RenderResult, screen, within } from "@testing-library/react";
+import {
+  cleanup,
+  render,
+  RenderResult,
+  screen,
+  within,
+} from "@testing-library/react";
 import React from "react";
 import { describe, expect, test } from "@jest/globals";
 import ValueWidgetView, {
@@ -7,8 +13,8 @@ import ValueWidgetView, {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/ValueWidgetView";
 import GaugeWidgetView, {
   GaugeWidgetViewProps,
-  splitFormattedDisplay,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/GaugeWidgetView";
+import ValueFormatter, { FormattedValue } from "../../../Utils/ValueFormatter";
 
 /*
  * ValueWidgetView and GaugeWidgetView are the only two presentational surfaces
@@ -679,48 +685,101 @@ describe("GaugeWidgetView", () => {
   });
 });
 
-describe("splitFormattedDisplay", () => {
-  test("peels a trailing percent sign off as the unit", () => {
-    expect(splitFormattedDisplay("25.00%")).toEqual({
+/*
+ * The gauge drew its number and its unit by splitting ValueFormatter's text
+ * back apart at its last space (splitFormattedDisplay, now gone): "5
+ * requests per Second" drew "5 requests per" as its big number, and
+ * German's "73,40 %" or Persian's "۷۳٫۴۰٪" cannot be split so at all. It
+ * draws ValueFormatter's own two parts now (formatValueInParts, #7094); an
+ * English number reads exactly as it did.
+ */
+describe("GaugeWidgetView's number and its unit", () => {
+  interface Centre {
+    value: string;
+    unit: string | null;
+    gap: string | null;
+  }
+
+  // The big number, then its unit in a smaller span of its own.
+  function centreOf(container: HTMLElement): Centre {
+    const centre: HTMLElement = getGaugeNumber(container)!;
+    const unit: HTMLElement | null = centre.querySelector("span");
+
+    return {
+      value: centre.firstChild?.textContent || "",
+      unit: unit ? unit.textContent : null,
+      gap: unit ? unit.style.marginInlineStart : null,
+    };
+  }
+
+  test("a percentage: the number, then its sign with no gap", () => {
+    expect(centreOf(renderGauge({ value: 25, rawUnit: "%" }))).toEqual({
       value: "25.00",
       unit: "%",
+      gap: "0",
     });
-    expect(splitFormattedDisplay("%")).toEqual({ value: "", unit: "%" });
   });
 
-  test("splits a single-space value at its space", () => {
-    expect(splitFormattedDisplay("1.5 MB")).toEqual({
+  test("a unit of one word: the number, a gap, then the unit", () => {
+    expect(centreOf(renderGauge({ value: 1500000, rawUnit: "By/s" }))).toEqual({
       value: "1.5",
-      unit: "MB",
+      unit: "MB/s",
+      gap: "0.15em",
     });
-    expect(splitFormattedDisplay("6.91 hours")).toEqual({
-      value: "6.91",
+    expect(centreOf(renderGauge({ value: 3600, rawUnit: "seconds" }))).toEqual({
+      value: "1",
       unit: "hours",
+      gap: "0.15em",
     });
   });
 
-  test("leaves a bare number with an empty unit", () => {
-    expect(splitFormattedDisplay("42")).toEqual({ value: "42", unit: "" });
-  });
-
-  test("handles an empty string without throwing", () => {
-    expect(splitFormattedDisplay("")).toEqual({ value: "", unit: "" });
-  });
-
-  test("splits a multi-word unit at its LAST space, stranding the rest", () => {
-    /*
-     * The bug ValueWidgetView documents and avoids by asking ValueFormatter
-     * for the two parts rather than splitting the joined string; the gauge
-     * still splits. Asserted as-is so a fix has to arrive with an intentional
-     * test change — see SOURCE BUGS FOUND.
-     */
-    expect(splitFormattedDisplay("5 requests per Second")).toEqual({
-      value: "5 requests per",
-      unit: "Second",
+  test("a unit of several words is drawn whole, never put in the big number", () => {
+    expect(centreOf(renderGauge({ value: 5, rawUnit: "requests/s" }))).toEqual({
+      value: "5",
+      unit: "requests per Second",
+      gap: "0.15em",
     });
   });
 
-  test("does not split on a leading space", () => {
-    expect(splitFormattedDisplay(" 42")).toEqual({ value: " 42", unit: "" });
+  test("a bare number draws no unit", () => {
+    expect(centreOf(renderGauge({ value: 42, rawUnit: "" }))).toEqual({
+      value: "42",
+      unit: null,
+      gap: null,
+    });
+  });
+
+  test("an English number reads exactly as ValueFormatter writes it", () => {
+    const cases: Array<{
+      value: number;
+      rawUnit: string;
+      metricName: string;
+    }> = [
+      { value: 25, rawUnit: "%", metricName: "" },
+      { value: 1500000, rawUnit: "By/s", metricName: "" },
+      { value: 5, rawUnit: "requests/s", metricName: "" },
+      { value: 42, rawUnit: "", metricName: "" },
+      { value: 23.5, rawUnit: "Cel", metricName: "" },
+      { value: 0.25, rawUnit: "1", metricName: "system.cpu.utilization" },
+      { value: 1234, rawUnit: "1", metricName: "" },
+    ];
+
+    for (const gaugeCase of cases) {
+      const container: HTMLElement = renderGauge({
+        ...gaugeCase,
+        minValue: 0,
+        maxValue: 2000000,
+      });
+      const parts: FormattedValue = ValueFormatter.formatValueInParts(
+        gaugeCase.value,
+        gaugeCase.rawUnit,
+        { metricName: gaugeCase.metricName },
+      );
+
+      expect(getGaugeNumber(container)?.textContent).toBe(
+        `${parts.value}${parts.unit}`,
+      );
+      cleanup();
+    }
   });
 });

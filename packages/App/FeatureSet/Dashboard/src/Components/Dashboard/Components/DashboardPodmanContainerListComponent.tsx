@@ -42,6 +42,7 @@ import ObjectID from "Common/Types/ObjectID";
 import DashboardModelQueryInterpolation, {
   AttributeToColumnMap,
 } from "Common/Utils/Dashboard/ModelQueryVariableInterpolation";
+import { getUnnamedText } from "./DashboardWidgetFallbackWords";
 
 const ATTRIBUTE_TO_COLUMN: AttributeToColumnMap = {
   "container.name": "name",
@@ -228,7 +229,7 @@ const DashboardPodmanContainerListComponentElement: FunctionComponent<
   const honeycombTiles: Array<HoneycombTile> = containers.map(
     (container: PodmanResource): HoneycombTile => {
       const id: string = (container._id as string) || "";
-      const name: string = (container.name as string) || "Unnamed";
+      const name: string = (container.name as string) || getUnnamedText();
       const image: string = (container.imageName as string) || "—";
       const stateRaw: string | undefined = container.state as
         | string
@@ -266,7 +267,7 @@ const DashboardPodmanContainerListComponentElement: FunctionComponent<
   const rows: Array<ReactElement> = containers.map(
     (container: PodmanResource) => {
       const id: string = (container._id as string) || "";
-      const name: string = (container.name as string) || "Unnamed";
+      const name: string = (container.name as string) || getUnnamedText();
       const image: string = (container.imageName as string) || "—";
       const cpu: number | null =
         typeof container.latestCpuPercent === "number"
@@ -329,7 +330,10 @@ const DashboardPodmanContainerListComponentElement: FunctionComponent<
   return (
     <DashboardResourceListBase
       title={args.title}
-      pluralLabel="containers"
+      countLabel={{
+        one: "{{count}} container",
+        other: "{{count}} containers",
+      }}
       columns={COLUMNS}
       count={containers.length}
       isLoading={isLoading}

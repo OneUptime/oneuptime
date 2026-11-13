@@ -62,6 +62,7 @@ import {
   OnCallTestPageLineCode,
   OnCallTestPageNotPagedCode,
   OnCallTestPagePreview,
+  OnCallTestPagePreviewMethod,
   OnCallTestPageReachedThroughCode,
   OnCallTestPageRecordKind,
   OnCallTestPageResult,
@@ -713,8 +714,23 @@ describe("what a test will send, before it is sent", () => {
     }
   });
 
-  test("with no rule for the severity: like a real page, every verified method - or nothing, opted out", async () => {
+  test("with no rule for the severity: like a real page, what the fallback picks (#7262) - or nothing, opted out", async () => {
     rulesRead.mockResolvedValue([] as never);
+
+    const fallbackRead: jest.SpyInstance = jest
+      .spyOn(UserNotificationRuleService, "getFallbackRules")
+      .mockResolvedValue([
+        {
+          channelName: "Email",
+          rule: {
+            notifyAfterMinutes: 0,
+            userEmail: {
+              email: new Email("ana@example.com"),
+              isVerified: true,
+            },
+          } as unknown as UserNotificationRule,
+        },
+      ] as never);
 
     let preview: OnCallTestPagePreview = await OnCallTestPageService.getPreview(
       {
@@ -726,13 +742,32 @@ describe("what a test will send, before it is sent", () => {
     );
 
     expect(preview.people[0]!.hasNoRule).toBe(true);
+    // The fallback's reader, asked for the person and the kind of page tested.
+    expect(fallbackRead).toHaveBeenCalledTimes(1);
+    expect(fallbackRead.mock.calls[0]![0]).toEqual({
+      projectId: PROJECT,
+      userId: ANA,
+      ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+    });
+    expect(preview.people[0]!.methods).toEqual([
+      {
+        channel: OnCallPageChannel.Email,
+        address: "ana@example.com",
+        notifyAfterMinutes: 0,
+        isVerified: true,
+        canAcknowledge: true,
+        isFallback: true,
+      },
+    ]);
+    // One method listed: "the method above".
     expect(preview.people[0]!.warnings[0]).toBe(
-      "No on-call rule covers this severity: like a real page, the test goes to every verified method instead.",
+      "No on-call rule covers this severity: like a real page, the test falls back to the method above.",
     );
     expect(preview.people[0]!.warningCodes![0]!.code).toBe(
-      OnCallTestPageWarningCode.NoRuleFallsBack,
+      OnCallTestPageWarningCode.NoRuleFallsBackToListed,
     );
 
+    fallbackRead.mockClear();
     jest
       .spyOn(UserNotificationRuleService, "findOneBy")
       .mockResolvedValue({ id: RULE_1 } as never);
@@ -755,6 +790,9 @@ describe("what a test will send, before it is sent", () => {
           "Opted out of pages of this severity, so the test sends nothing.",
       },
     ]);
+    // Opted out: nothing is sent, so the fallback is not asked.
+    expect(preview.people[0]!.methods).toEqual([]);
+    expect(fallbackRead).not.toHaveBeenCalled();
   });
 
   test("its cost counts the texts and calls it sends", async () => {
@@ -1686,6 +1724,105 @@ describe("the result's words, from the records", () => {
           "No on-call rule covers this severity, and this project does not fall back to verified methods: the test sends nothing.",
       },
     ]);
+  });
+
+  test("a person with no rule, read with what the fallback picks (#7262): falls back to the methods listed, or is sent nothing", () => {
+    const fallbackEmail: OnCallTestPagePreviewMethod = {
+      channel: OnCallPageChannel.Email,
+      notifyAfterMinutes: 0,
+      isVerified: true,
+      canAcknowledge: true,
+      isFallback: true,
+    };
+
+    expect(
+      getPreviewWarningCodes({
+        methods: [fallbackEmail],
+        project: { disableOnCallNotificationFallback: false } as never,
+        hasNoRule: true,
+        isOptedOut: false,
+        readsFallbackMethods: true,
+      }),
+    ).toEqual([
+      {
+        code: OnCallTestPageWarningCode.NoRuleFallsBackToListed,
+        message:
+          "No on-call rule covers this severity: like a real page, the test falls back to the method above.",
+      },
+    ]);
+    // Two methods the fallback picks: "the methods above".
+    expect(
+      getPreviewWarnings({
+        methods: [
+          fallbackEmail,
+          { ...fallbackEmail, channel: OnCallPageChannel.Push },
+        ],
+        project: { disableOnCallNotificationFallback: false } as never,
+        hasNoRule: true,
+        isOptedOut: false,
+        readsFallbackMethods: true,
+      }),
+    ).toEqual([
+      "No on-call rule covers this severity: like a real page, the test falls back to the methods above.",
+    ]);
+    expect(
+      getPreviewWarnings({
+        methods: [],
+        project: { disableOnCallNotificationFallback: false } as never,
+        hasNoRule: true,
+        isOptedOut: false,
+        readsFallbackMethods: true,
+      }),
+    ).toEqual([
+      "No on-call rule covers this severity, and no verified method can be used instead: the test sends nothing.",
+    ]);
+    expect(
+      getPreviewWarningCodes({
+        methods: [],
+        project: null,
+        hasNoRule: true,
+        isOptedOut: false,
+        readsFallbackMethods: true,
+      })[0]!.code,
+    ).toBe(OnCallTestPageWarningCode.NoRuleNothingToFallBackTo);
+
+    // Read without what the fallback picks: every verified method, as before.
+    expect(
+      getPreviewWarningCodes({
+        methods: [],
+        project: { disableOnCallNotificationFallback: false } as never,
+        hasNoRule: true,
+        isOptedOut: false,
+      }),
+    ).toEqual([
+      {
+        code: OnCallTestPageWarningCode.NoRuleFallsBack,
+        message:
+          "No on-call rule covers this severity: like a real page, the test goes to every verified method instead.",
+      },
+    ]);
+
+    // A project that does not fall back says so, however it was read.
+    expect(
+      getPreviewWarningCodes({
+        methods: [],
+        project: { disableOnCallNotificationFallback: true } as never,
+        hasNoRule: true,
+        isOptedOut: false,
+        readsFallbackMethods: true,
+      })[0]!.code,
+    ).toBe(OnCallTestPageWarningCode.NoRuleNoFallback);
+
+    // A person with rules is told nothing about the fallback.
+    expect(
+      getPreviewWarningCodes({
+        methods: [{ ...fallbackEmail, isFallback: false }],
+        project: null,
+        hasNoRule: false,
+        isOptedOut: false,
+        readsFallbackMethods: true,
+      }),
+    ).toEqual([]);
   });
 
   test("a custom channel that is off is said to be off, with its channel's code", () => {
