@@ -21,6 +21,12 @@ import logger from "Common/Server/Utils/Logger";
  * no feed line and no chat message is written about them now - over Sending
  * only, page by page (settleNotificationsStuckBeforeTheCheck).
  *
+ * Since issue #7290 every run of the check also settles those written
+ * before its look-back, so a notification the workers left behind while
+ * they were down for a day is settled when they come back. This migration
+ * settles the backlog at once, as the server is upgraded; it is kept for
+ * the servers that have not run it yet.
+ *
  * Postgres only. Idempotent: a second run finds none to settle.
  */
 export default class SettleOnCallNotificationsStuckBeforeUpgrade extends DataMigrationBase {
