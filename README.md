@@ -47,6 +47,8 @@ You can use it on [OneUptime Cloud](https://oneuptime.com) or run it on your own
 - **[API, CLI and Terraform](https://oneuptime.com/docs/api-reference/api-reference)**: Automate OneUptime from your scripts and CI, and manage monitors, status pages and on-call as code.
 - **[MCP server](https://oneuptime.com/docs/ai/mcp-server)** (`https://oneuptime.com/mcp`): Connect Claude, Cursor, VS Code with GitHub Copilot or any other client of the Model Context Protocol (MCP), and ask it to look into an incident, query logs and traces, acknowledge an alert or set up a monitor.
 
+Step-by-step guides take one job from start to finish, on OneUptime Cloud or your own server: [Know When Your Website or API Is Down](https://oneuptime.com/docs/guides/website-down), [Get Paged by Phone, SMS or Push](https://oneuptime.com/docs/guides/paging) and [Publish a Status Page](https://oneuptime.com/docs/guides/status-page).
+
 Everything else is in the [docs](https://oneuptime.com/docs/introduction/getting-started).
 
 ## Get started

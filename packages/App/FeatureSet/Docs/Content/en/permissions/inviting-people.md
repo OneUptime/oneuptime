@@ -86,7 +86,7 @@ Filter the list by **User**, **Status** or **Team**. Click a row to open the per
 | --- | --- |
 | **Profile** | Their name, email address, picture and user ID. |
 | **Teams** | The teams they are in. Add or remove a team here. |
-| **Readiness**, **Notification Methods**, **On-Call Rules** | Whether they can be paged, and how. Shown to Project Owners, Project Admins, the person themselves, and anyone who may read people's notification rules. See [Readiness & Reports](/docs/on-call/readiness). |
+| **Readiness**, **Notification Methods**, **How to Reach Me** | Whether they can be paged, and how. Shown to Project Owners, Project Admins, the person themselves, and anyone who may read people's notification rules. See [Readiness & Reports](/docs/on-call/readiness). |
 | **Custom Fields** | The project's custom fields for people, when it has any. |
 | **Remove from Project** | Take them out of the project. |
 

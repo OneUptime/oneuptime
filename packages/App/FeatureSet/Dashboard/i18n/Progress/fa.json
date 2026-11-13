@@ -394,7 +394,6 @@
     "{{gigabytes}} GB",
     "{{inRate}} / {{outRate}} Mbps",
     "{{in}} in",
-    "{{value}} ms",
     "μs"
   ]
 }

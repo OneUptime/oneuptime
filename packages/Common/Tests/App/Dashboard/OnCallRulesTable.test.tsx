@@ -92,6 +92,33 @@ const getListMock: MockFunction = getJestMockFunction();
  * requires, so the consts above are still in their temporal dead zone when the
  * factory body runs. Dereferencing them lazily, at call time, is what works.
  */
+/*
+ * How to Reach Me's own reads - the ladder above the tabs (#6820) - are not
+ * the tables': stood in for, so what is counted here is what the tables read.
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/NotificationRule/PagingLadder/PagingLadderApi",
+  () => {
+    return {
+      __esModule: true,
+      loadPagingLadderData: () => {
+        return Promise.resolve({ cells: [], rules: [], severityColors: {} });
+      },
+      loadOwnPagingMethods: () => {
+        return Promise.resolve([]);
+      },
+      savePagingLadder: () => {
+        return Promise.resolve({
+          createdCount: 0,
+          updatedCount: 0,
+          deletedCount: 0,
+          unchangedCount: 0,
+        });
+      },
+    };
+  },
+);
+
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
     __esModule: true,

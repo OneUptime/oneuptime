@@ -444,6 +444,37 @@ To restore PostgreSQL, set the `DATABASE_RESTORE_*` values in `config.env`: `DAT
 > [!CAUTION]
 > `restore.sh` drops every object in the backup from the target database before recreating it. It asks before it starts; check the database name it shows.
 
+## Run only what you need
+
+Many servers run OneUptime for one job, such as watching websites and publishing a status page. A master admin can switch off the products nobody uses, for every project on the server at once, under **Settings > Products** in the Admin Dashboard.
+
+- **Presets** set every switch in one click: **Monitoring and status pages** keeps Monitors, Incidents, On-Call, Status Pages and Scheduled Maintenance; **Incident response** adds Alerts, SLOs, Workflows and Runbooks; **Everything** keeps every product. **Choose products one by one** switches a single product. Users, Teams and Project Settings are always on.
+- A product that is off is gone from every project's **Products** menu, from Home and from Search, and **Project Settings > Products** shows it as switched off. A link to one of its pages says the product is switched off on this server and who can switch it on.
+- The API refuses to create, change or delete the product's records, and Ask AI leaves it out. Reading still works, because products that stay on show records of others: an incident names its monitors.
+- Nothing is deleted, and what already runs keeps running: monitors keep checking, published status pages stay up, and telemetry keeps arriving unless you also stop ingestion. A product switched on again comes back as it was.
+
+To set the products as code, set `SERVER_PRODUCTS` in `config.env` (Helm: `products.onThisServer`) to `everything`, `monitoring-and-status-pages`, `incident-response`, or the products to keep on by key, such as `monitors,incidents,on-call,status-pages`. It is a starting value: once an admin saves **Settings > Products**, what they saved applies.
+
+### The Monitoring and status pages profile
+
+For a server that only watches websites and APIs and publishes status pages, set these in `config.env`, then run `npm start`:
+
+```bash
+SERVER_PRODUCTS=monitoring-and-status-pages
+DISABLE_TELEMETRY_INGESTION=true
+GLOBAL_RUNNER_REPLICAS=0
+MQTT_INGEST_ENABLED=false
+```
+
+| Setting | What it does |
+| --- | --- |
+| `SERVER_PRODUCTS=monitoring-and-status-pages` | Every project offers Monitors, Incidents, On-Call, Status Pages and Scheduled Maintenance. |
+| `DISABLE_TELEMETRY_INGESTION=true` | OneUptime keeps none of the logs, metrics, traces or profiles it is sent. Logs, Metrics, Traces, Profiles and Exceptions show as off. |
+| `GLOBAL_RUNNER_REPLICAS=0` | The `global-runner` service does not start. Only runbooks and OneUptime AI's code fixes use it. |
+| `MQTT_INGEST_ENABLED=false` | The MQTT listeners that IoT devices send to are turned off. |
+
+Six services still run: `ingress`, `app`, `probe-1`, `postgres`, `clickhouse` and `valkey`. ClickHouse stays, because monitors keep their results and logs in it. On Kubernetes, set `products.onThisServer: monitoring-and-status-pages`, `telemetry.disableIngestion: true` and `globalRunner.enabled: false` in the Helm values. Size the server by the [requirements](#requirements).
+
 ## Update OneUptime
 
 Back up first, then run:

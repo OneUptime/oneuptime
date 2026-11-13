@@ -1,4 +1,8 @@
-import { recordingLogger, testConfig } from "./Helpers/TestSupport";
+import {
+  RecordingLogger,
+  recordingLogger,
+  testConfig,
+} from "./Helpers/TestSupport";
 import assert from "assert";
 import fs from "fs";
 import path from "path";
@@ -13,6 +17,7 @@ import ProxmoxExecutor, {
   MAX_PVE_RESPONSE_BYTES,
   MAX_TASK_LOG_LINES,
   POSTURE_REQUEST_TIMEOUT_MS,
+  PVE_CONNECT_ATTEMPT_TIMEOUT_MS,
   ProxmoxConnectionResult,
   ProxmoxHttpRequest,
   ProxmoxHttpResponse,
@@ -25,6 +30,7 @@ import ProxmoxExecutor, {
   encodeProxmoxParams,
   parseProxmoxEnvelope,
   parsePveHost,
+  parsePveNodes,
   renderProxmoxData,
   resolveProxmoxConnection,
 } from "../Executors/ProxmoxExecutor";
@@ -200,6 +206,7 @@ interface Harness {
   executor: ProxmoxExecutor;
   transport: FakeTransport;
   clock: FakeClock;
+  logger: RecordingLogger;
 }
 
 function harness(
@@ -213,11 +220,12 @@ function harness(
 ): Harness {
   const transport: FakeTransport = data.transport || new FakeTransport();
   const clock: FakeClock = new FakeClock();
+  const logger: RecordingLogger = recordingLogger();
   const options: ExecutorOptions = {
     config: data.config || agentConfig(),
     env: data.env || pveEnv(),
     tmpDir,
-    logger: recordingLogger(),
+    logger,
     now: clock.now,
     guardPolicy: data.guardPolicy,
   };
@@ -230,6 +238,7 @@ function harness(
     }),
     transport,
     clock,
+    logger,
   };
 }
 
@@ -696,6 +705,8 @@ describe("resolveProxmoxConnection / parsePveHost", () => {
         host: PVE_HOST,
         port: DEFAULT_PVE_PORT,
         endpoint: "https://192.168.1.10:8006",
+        fallbacks: [],
+        ignoredNodes: [],
         tokenId: TOKEN_ID,
         tokenSecret: TOKEN_SECRET,
         tokenSource: "PVE_API_TOKEN_ID",
@@ -2379,6 +2390,628 @@ describe("as the agent builds it", () => {
     for (const command of ["pvesh get /version", "pvesh get /cluster/status"]) {
       const result: ExecResult = await runCommand(h, request(command));
       assert.strictEqual(result.success, true, command);
+    }
+  });
+});
+
+// ---- Every node: PVE_NODES ---------------------------------------------------------------
+
+/*
+ * When PVE_HOST's API cannot be reached, a call goes to the next node of
+ * PVE_NODES (the list the collector reads every node from), and the node
+ * that answered is tried first from then on. Only a call that certainly
+ * never reached the API moves on, so a write is never repeated on another
+ * node after it may have landed.
+ */
+describe("every node: when PVE_HOST cannot be reached, the next node of PVE_NODES", () => {
+  const NODES: string = "[192.168.1.10,192.168.1.11,192.168.1.12]";
+  const NODE1: string = "https://192.168.1.10:8006";
+  const NODE2: string = "https://192.168.1.11:8006";
+  const NODE3: string = "https://192.168.1.12:8006";
+  const CHECK: string =
+    "Check PVE_HOST and PVE_NODES (every node's own address) and PVE_PORT (8006 by default), and that the agent's network reaches them.";
+
+  type HostAnswer = FakeAnswer | ((request: ProxmoxHttpRequest) => FakeAnswer);
+
+  function clusterEnv(
+    overrides: Record<string, string> = {},
+  ): NodeJS.ProcessEnv {
+    return pveEnv({ PVE_NODES: NODES, ...overrides });
+  }
+
+  // Answers by host: a node not named answers every call with the version.
+  function byHost(answers: Record<string, HostAnswer>): FakeTransport {
+    return new FakeTransport((req: ProxmoxHttpRequest): FakeAnswer => {
+      const answer: HostAnswer | undefined = answers[req.hostname];
+
+      if (typeof answer === "function") {
+        return answer(req);
+      }
+
+      return answer || reply({ version: "8.2.4", release: "8.2" });
+    });
+  }
+
+  function hosts(h: Harness): Array<string> {
+    return h.transport.requests.map((req: ProxmoxHttpRequest): string => {
+      return `${req.hostname}:${req.port}`;
+    });
+  }
+
+  function refused(host: string): ProxmoxTransportError {
+    return transportError(
+      "connect",
+      "ECONNREFUSED",
+      `connect ECONNREFUSED ${host}:8006`,
+    );
+  }
+
+  test("parsePveNodes reads the collector's list: brackets, spaces and quotes as the collector takes them", () => {
+    assert.deepStrictEqual(
+      parsePveNodes(
+        "[192.168.1.10, 192.168.1.11 ,'pve3.lab',\"pve4:8443\"]",
+        DEFAULT_PVE_PORT,
+      ),
+      {
+        endpoints: [
+          {
+            host: "192.168.1.10",
+            port: 8006,
+            endpoint: "https://192.168.1.10:8006",
+          },
+          {
+            host: "192.168.1.11",
+            port: 8006,
+            endpoint: "https://192.168.1.11:8006",
+          },
+          { host: "pve3.lab", port: 8006, endpoint: "https://pve3.lab:8006" },
+          { host: "pve4", port: 8443, endpoint: "https://pve4:8443" },
+        ],
+        ignored: [],
+      },
+    );
+
+    const endpoints: (raw: string, port: number) => Array<string> = (
+      raw: string,
+      port: number,
+    ): Array<string> => {
+      return parsePveNodes(raw, port).endpoints.map(
+        (endpoint: { endpoint: string }): string => {
+          return endpoint.endpoint;
+        },
+      );
+    };
+
+    // Without its brackets too; an entry's own port wins over the default.
+    assert.deepStrictEqual(endpoints("10.0.0.1,10.0.0.2:9000", 8443), [
+      "https://10.0.0.1:8443",
+      "https://10.0.0.2:9000",
+    ]);
+    // IPv6, bare or bracketed with a port.
+    assert.deepStrictEqual(endpoints("[fd00::1,[fd00::2]:8443]", 8006), [
+      "https://[fd00::1]:8006",
+      "https://[fd00::2]:8443",
+    ]);
+    // Each node once, whatever its case or a port that repeats the default.
+    assert.deepStrictEqual(endpoints("[pve1,PVE1,pve1:8006,pve1:8443]", 8006), [
+      "https://pve1:8006",
+      "https://pve1:8443",
+    ]);
+    assert.deepStrictEqual(parsePveNodes("", 8006), {
+      endpoints: [],
+      ignored: [],
+    });
+    assert.deepStrictEqual(parsePveNodes("[ ]", 8006), {
+      endpoints: [],
+      ignored: [],
+    });
+  });
+
+  test("parsePveNodes leaves out what is not a node's address, and never echoes an entry with an @", () => {
+    assert.deepStrictEqual(
+      parsePveNodes(
+        "[pve1,http://pve2,pve 3,root:secret@pve4,pve5/api]",
+        DEFAULT_PVE_PORT,
+      ),
+      {
+        endpoints: [
+          { host: "pve1", port: 8006, endpoint: "https://pve1:8006" },
+        ],
+        ignored: ["http://pve2", "pve 3", "entry 4", "pve5/api"],
+      },
+    );
+  });
+
+  test("resolveProxmoxConnection: the other nodes in order, without PVE_HOST, on PVE_HOST's port", () => {
+    const resolved: ProxmoxConnectionResult = resolveProxmoxConnection(
+      clusterEnv({
+        PVE_PORT: "8443",
+        PVE_NODES: "[192.168.1.11,192.168.1.10,192.168.1.12:9443,bad/node]",
+      }),
+    );
+
+    assert.strictEqual(resolved.problem, null);
+    assert.strictEqual(
+      resolved.connection?.endpoint,
+      "https://192.168.1.10:8443",
+    );
+    assert.deepStrictEqual(
+      resolved.connection?.fallbacks.map(
+        (endpoint: { endpoint: string }): string => {
+          return endpoint.endpoint;
+        },
+      ),
+      ["https://192.168.1.11:8443", "https://192.168.1.12:9443"],
+    );
+    assert.deepStrictEqual(resolved.connection?.ignoredNodes, ["bad/node"]);
+  });
+
+  test("a PVE_NODES the agent cannot read never refuses a command: PVE_HOST alone is called", async () => {
+    const h: Harness = harness({
+      env: clusterEnv({ PVE_NODES: "[not a node, http://x]" }),
+    });
+    const result: ExecResult = await runCommand(
+      h,
+      request("pvesh get /version"),
+    );
+
+    assert.strictEqual(result.success, true, String(result.errorMessage));
+    assert.deepStrictEqual(hosts(h), ["192.168.1.10:8006"]);
+  });
+
+  test("a single node is called as before: no connect timeout of its own", async () => {
+    for (const env of [
+      pveEnv(),
+      pveEnv({ PVE_NODES: "[192.168.1.10]" }),
+      pveEnv({ PVE_NODES: "" }),
+    ]) {
+      const h: Harness = harness({ env });
+
+      await runCommand(h, request("pvesh get /version"));
+      assert.deepStrictEqual(hosts(h), ["192.168.1.10:8006"]);
+      assert.ok(
+        !("connectTimeoutInMs" in (h.transport.requests[0] || {})),
+        JSON.stringify(h.transport.requests[0]),
+      );
+    }
+  });
+
+  test("a read: PVE_HOST refuses, the next node answers the same request, within the same budget", async () => {
+    const h: Harness = harness({
+      env: clusterEnv(),
+      transport: byHost({ "192.168.1.10": refused("192.168.1.10") }),
+    });
+    const result: ExecResult = await runCommand(
+      h,
+      request("pvesh get /cluster/status"),
+    );
+
+    assert.strictEqual(result.success, true, String(result.errorMessage));
+    assert.deepStrictEqual(hosts(h), [
+      "192.168.1.10:8006",
+      "192.168.1.11:8006",
+    ]);
+
+    const [first, second] = h.transport.requests;
+
+    // Every try but the last has its own connect timeout.
+    assert.strictEqual(
+      first?.connectTimeoutInMs,
+      PVE_CONNECT_ATTEMPT_TIMEOUT_MS,
+    );
+    assert.strictEqual(
+      second?.connectTimeoutInMs,
+      PVE_CONNECT_ATTEMPT_TIMEOUT_MS,
+    );
+    // The same request, to another node.
+    assert.deepStrictEqual(
+      { ...second, hostname: "" },
+      { ...first, hostname: "" },
+    );
+    assert.ok(
+      h.logger.records.some((record: { level: string; message: string }) => {
+        return (
+          record.level === "warn" &&
+          record.message.includes("calling another node of PVE_NODES")
+        );
+      }),
+      JSON.stringify(h.logger.records),
+    );
+    assertNoSecret(result);
+  });
+
+  test("the node that answered is called first from then on, and PVE_HOST again only when that node fails", async () => {
+    let node2Down: boolean = false;
+    const h: Harness = harness({
+      env: clusterEnv(),
+      transport: byHost({
+        "192.168.1.10": refused("192.168.1.10"),
+        "192.168.1.11": (): FakeAnswer => {
+          return node2Down
+            ? transportError("connect", "EHOSTUNREACH")
+            : reply({ version: "8.2.4" });
+        },
+      }),
+    });
+
+    await runCommand(h, request("pvesh get /version"));
+    await runCommand(h, request("pvesh get /version"));
+    node2Down = true;
+    const result: ExecResult = await runCommand(
+      h,
+      request("pvesh get /version"),
+    );
+
+    assert.strictEqual(result.success, true, String(result.errorMessage));
+    assert.deepStrictEqual(hosts(h), [
+      // PVE_HOST refuses; node 2 answers.
+      "192.168.1.10:8006",
+      "192.168.1.11:8006",
+      // Node 2 first.
+      "192.168.1.11:8006",
+      // Node 2 is gone: PVE_HOST, then node 3.
+      "192.168.1.11:8006",
+      "192.168.1.10:8006",
+      "192.168.1.12:8006",
+    ]);
+  });
+
+  test("a node whose address stops answering costs one connect timeout; the next node gets what is left of the budget", async () => {
+    const h: Harness = harness({ env: clusterEnv() });
+
+    h.transport.responder = (req: ProxmoxHttpRequest): FakeAnswer => {
+      if (req.hostname === "192.168.1.10") {
+        h.clock.nowMs += PVE_CONNECT_ATTEMPT_TIMEOUT_MS;
+        return transportError(
+          "connect-timeout",
+          null,
+          `no connection within ${PVE_CONNECT_ATTEMPT_TIMEOUT_MS}ms`,
+        );
+      }
+
+      return reply({ version: "8.2.4" });
+    };
+
+    const result: ExecResult = await runCommand(
+      h,
+      request("pvesh get /version", { timeoutInMs: 12_000 }),
+    );
+
+    assert.strictEqual(result.success, true, String(result.errorMessage));
+    assert.deepStrictEqual(
+      h.transport.requests.map(
+        (req: ProxmoxHttpRequest): Array<string | number | undefined> => {
+          return [req.hostname, req.timeoutInMs, req.connectTimeoutInMs];
+        },
+      ),
+      [
+        ["192.168.1.10", 12_000, 5_000],
+        ["192.168.1.11", 7_000, 5_000],
+      ],
+    );
+  });
+
+  test("when the budget runs out on nodes that do not answer, the rest are not tried, and the error names each node tried", async () => {
+    const h: Harness = harness({ env: clusterEnv() });
+
+    h.transport.responder = (req: ProxmoxHttpRequest): FakeAnswer => {
+      const spent: number = req.connectTimeoutInMs ?? req.timeoutInMs;
+
+      h.clock.nowMs += spent;
+      return transportError(
+        "connect-timeout",
+        null,
+        `no connection within ${spent}ms`,
+      );
+    };
+
+    const result: ExecResult = await runCommand(
+      h,
+      request("pvesh get /version", { timeoutInMs: 6_000 }),
+    );
+
+    assert.deepStrictEqual(
+      h.transport.requests.map(
+        (req: ProxmoxHttpRequest): Array<string | number | undefined> => {
+          return [req.hostname, req.timeoutInMs, req.connectTimeoutInMs];
+        },
+      ),
+      [
+        ["192.168.1.10", 6_000, 5_000],
+        ["192.168.1.11", 1_000, 1_000],
+      ],
+    );
+    assert.deepStrictEqual(result, {
+      success: false,
+      output: "",
+      errorMessage: `Could not connect to the Proxmox VE API of any node. ${NODE1}: no connection within 5000ms; ${NODE2}: no connection within 1000ms. ${CHECK}`,
+    });
+  });
+
+  test("no node answers: every node is tried once, and each is named with why", async () => {
+    const h: Harness = harness({
+      env: clusterEnv(),
+      transport: byHost({
+        "192.168.1.10": refused("192.168.1.10"),
+        "192.168.1.11": transportError(
+          "connect",
+          "ENOTFOUND",
+          "getaddrinfo ENOTFOUND",
+        ),
+        "192.168.1.12": transportError(
+          "connect",
+          "EHOSTUNREACH",
+          "connect EHOSTUNREACH",
+        ),
+      }),
+    });
+    const result: ExecResult = await runCommand(
+      h,
+      request("pvesh get /version"),
+    );
+
+    assert.deepStrictEqual(hosts(h), [
+      "192.168.1.10:8006",
+      "192.168.1.11:8006",
+      "192.168.1.12:8006",
+    ]);
+    // The last node has no connect timeout of its own: nothing is left to try.
+    assert.strictEqual(h.transport.requests[2]?.connectTimeoutInMs, undefined);
+    assert.deepStrictEqual(result, {
+      success: false,
+      output: "",
+      errorMessage: `Could not connect to the Proxmox VE API of any node. ${NODE1}: nothing is listening there (connection refused); ${NODE2}: the name "192.168.1.11" does not resolve (ENOTFOUND); ${NODE3}: there is no route to it (EHOSTUNREACH). ${CHECK}`,
+    });
+    assertNoSecret(result);
+  });
+
+  for (const [what, answer] of [
+    [
+      "a timeout after the request went out",
+      transportError("timeout", null, "no answer within 30000ms"),
+    ],
+    [
+      "a connection dropped after the request went out",
+      transportError("reset", "ECONNRESET", "socket hang up"),
+    ],
+    [
+      "a TLS failure, which is a setting to fix",
+      transportError(
+        "tls",
+        "DEPTH_ZERO_SELF_SIGNED_CERT",
+        "self-signed certificate",
+      ),
+    ],
+    ["an error the transport does not classify", new Error("boom")],
+  ] as Array<[string, FakeAnswer]>) {
+    test(`no other node is asked after ${what}`, async () => {
+      const h: Harness = harness({
+        env: clusterEnv(),
+        transport: byHost({ "192.168.1.10": answer }),
+      });
+      const result: ExecResult = await runCommand(
+        h,
+        request("pvesh get /version"),
+      );
+
+      assert.strictEqual(result.success, false);
+      assert.deepStrictEqual(hosts(h), ["192.168.1.10:8006"]);
+      assert.match(String(result.errorMessage), /192\.168\.1\.10/);
+      assert.doesNotMatch(String(result.errorMessage), /192\.168\.1\.11/);
+    });
+  }
+
+  test("an HTTP error is the API's answer: no other node is asked, and the advice names the node that answered", async () => {
+    const h: Harness = harness({
+      env: clusterEnv(),
+      transport: byHost({
+        "192.168.1.10": refused("192.168.1.10"),
+        "192.168.1.11": failure(596, "Broken pipe"),
+      }),
+    });
+    const result: ExecResult = await runCommand(
+      h,
+      request("pvesh get /cluster/status"),
+    );
+
+    assert.strictEqual(result.success, false);
+    assert.deepStrictEqual(hosts(h), [
+      "192.168.1.10:8006",
+      "192.168.1.11:8006",
+    ]);
+    assert.match(
+      String(result.errorMessage),
+      /The node the agent talks to \(192\.168\.1\.11\) could not reach the node this call is for/,
+    );
+  });
+
+  test("a redirect or an answer that is not the API's names the node that gave it", async () => {
+    const redirect: Harness = harness({
+      env: clusterEnv(),
+      transport: byHost({
+        "192.168.1.10": refused("192.168.1.10"),
+        "192.168.1.11": reply(null, {
+          statusCode: 302,
+          statusMessage: "Found",
+          location: "https://login.example.com/",
+        }),
+      }),
+    });
+
+    assert.match(
+      String(
+        (await runCommand(redirect, request("pvesh get /version")))
+          .errorMessage,
+      ),
+      /^The server at https:\/\/192\.168\.1\.11:8006 answered GET \/version with a redirect/,
+    );
+
+    const notJson: Harness = harness({
+      env: clusterEnv(),
+      transport: byHost({
+        "192.168.1.10": refused("192.168.1.10"),
+        "192.168.1.11": reply(null, {
+          contentType: "text/html",
+          body: "<html>login</html>",
+        }),
+      }),
+    });
+
+    assert.match(
+      String(
+        (await runCommand(notJson, request("pvesh get /version"))).errorMessage,
+      ),
+      /^Exit code 1: the server at https:\/\/192\.168\.1\.11:8006 answered, but not as the Proxmox VE API does/,
+    );
+  });
+
+  test("a write PVE_HOST refused goes to the next node — it never reached PVE_HOST — and its task is followed there", async () => {
+    let polls: number = 0;
+    const h: Harness = harness({
+      config: agentConfig(WRITES_ON),
+      env: clusterEnv(),
+      transport: byHost({
+        "192.168.1.10": refused("192.168.1.10"),
+        "192.168.1.11": (req: ProxmoxHttpRequest): FakeAnswer => {
+          if (req.method === "POST") {
+            return reply(UPID);
+          }
+
+          polls++;
+          return reply(
+            polls < 2
+              ? { status: "running" }
+              : { status: "stopped", exitstatus: "OK" },
+          );
+        },
+      }),
+    });
+    const result: ExecResult = await runCommand(h, writeRequest(START));
+
+    assert.strictEqual(result.success, true, String(result.errorMessage));
+    assert.deepStrictEqual(
+      h.transport.requests.map((req: ProxmoxHttpRequest): string => {
+        return `${req.method} ${req.hostname}`;
+      }),
+      [
+        "POST 192.168.1.10",
+        "POST 192.168.1.11",
+        "GET 192.168.1.11",
+        "GET 192.168.1.11",
+      ],
+    );
+  });
+
+  test("a write that may have reached PVE_HOST is never repeated on another node", async () => {
+    for (const answer of [
+      transportError("timeout", null, "no answer within 30000ms"),
+      transportError("reset", "ECONNRESET", "socket hang up"),
+    ]) {
+      const h: Harness = harness({
+        config: agentConfig(WRITES_ON),
+        env: clusterEnv(),
+        transport: byHost({ "192.168.1.10": answer }),
+      });
+      const result: ExecResult = await runCommand(h, writeRequest(START));
+
+      assert.strictEqual(result.success, false);
+      assert.deepStrictEqual(hosts(h), ["192.168.1.10:8006"]);
+      assert.match(
+        String(result.errorMessage),
+        /may still have been carried out/,
+      );
+      // It may have run, so it reads as "ran": its output says what happened.
+      assert.notStrictEqual(result.output, "");
+    }
+  });
+
+  test("the posture names PVE_HOST, the nodes it falls back to, the node that answered and those that did not", async () => {
+    const h: Harness = harness({
+      env: clusterEnv({
+        PVE_NODES: "[192.168.1.10,192.168.1.11,192.168.1.12,bad/node]",
+      }),
+      transport: byHost({
+        "192.168.1.10": refused("192.168.1.10"),
+        "192.168.1.11": (req: ProxmoxHttpRequest): FakeAnswer => {
+          return req.path.endsWith("/version")
+            ? reply({ version: "9.0.3", release: "9.0" })
+            : reply([
+                { type: "cluster", name: "homelab", quorate: 1 },
+                { type: "node", name: "pve2", online: 1 },
+              ]);
+        },
+      }),
+    });
+    const probe: ResourcePostureProbe = await h.executor.probePosture();
+
+    assert.strictEqual(probe.reachable, true, String(probe.reachError));
+    assert.strictEqual(probe.toolVersion, "9.0.3");
+    assert.strictEqual(probe.details?.["apiEndpoint"], NODE2);
+    assert.strictEqual(probe.details?.["configuredApiEndpoint"], NODE1);
+    assert.strictEqual(
+      probe.details?.["failoverApiEndpoints"],
+      `${NODE2}, ${NODE3}`,
+    );
+    assert.strictEqual(probe.details?.["unreachableApiEndpoints"], NODE1);
+    assert.strictEqual(probe.details?.["ignoredNodes"], "bad/node");
+    assert.strictEqual(probe.details?.["quorate"], true);
+    // /cluster/status went straight to the node that answered /version.
+    assert.deepStrictEqual(
+      h.transport.requests.map((req: ProxmoxHttpRequest): string => {
+        return `${req.hostname} ${req.path}`;
+      }),
+      [
+        "192.168.1.10 /api2/json/version",
+        "192.168.1.11 /api2/json/version",
+        "192.168.1.11 /api2/json/cluster/status",
+      ],
+    );
+    assertNoSecret(probe);
+  });
+
+  test("the posture when no node answers: unreachable, every node named with why", async () => {
+    const h: Harness = harness({
+      env: clusterEnv(),
+      transport: new FakeTransport((req: ProxmoxHttpRequest): FakeAnswer => {
+        return refused(req.hostname);
+      }),
+    });
+    const probe: ResourcePostureProbe = await h.executor.probePosture();
+
+    assert.strictEqual(probe.reachable, false);
+    assert.strictEqual(
+      probe.reachError,
+      `Could not connect to the Proxmox VE API of any node. ${NODE1}: nothing is listening there (connection refused); ${NODE2}: nothing is listening there (connection refused); ${NODE3}: nothing is listening there (connection refused). ${CHECK}`,
+    );
+    assert.strictEqual(probe.details?.["apiEndpoint"], NODE1);
+    assert.strictEqual(
+      probe.details?.["unreachableApiEndpoints"],
+      `${NODE1}, ${NODE2}, ${NODE3}`,
+    );
+    // Each request gives up within the probe's own budget.
+    for (const req of h.transport.requests) {
+      assert.strictEqual(req.timeoutInMs, POSTURE_REQUEST_TIMEOUT_MS);
+    }
+  });
+
+  test("a single node's posture says nothing about failing over", async () => {
+    const h: Harness = harness({
+      transport: new FakeTransport((req: ProxmoxHttpRequest): FakeAnswer => {
+        return req.path.endsWith("/version")
+          ? reply({ version: "8.2.4" })
+          : reply([{ type: "node", name: "pve1", online: 1 }]);
+      }),
+    });
+    const probe: ResourcePostureProbe = await h.executor.probePosture();
+
+    assert.strictEqual(probe.reachable, true);
+    for (const key of [
+      "configuredApiEndpoint",
+      "failoverApiEndpoints",
+      "unreachableApiEndpoints",
+      "ignoredNodes",
+    ]) {
+      assert.ok(!(key in (probe.details || {})), key);
     }
   });
 });

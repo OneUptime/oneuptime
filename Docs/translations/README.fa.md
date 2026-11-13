@@ -47,6 +47,8 @@
 - **[‏API، CLI و Terraform](https://oneuptime.com/docs/fa/api-reference/api-reference)**: OneUptime را از اسکریپت‌ها و CI خود خودکار کنید، و مانیتورها، صفحات وضعیت و آنکال را به‌صورت کد مدیریت کنید.
 - **[سرور MCP](https://oneuptime.com/docs/fa/ai/mcp-server)** (`https://oneuptime.com/mcp`): Claude، Cursor، VS Code همراه با GitHub Copilot یا هر کلاینت دیگری از Model Context Protocol (MCP) را وصل کنید و از آن بخواهید یک حادثه را بررسی کند، لاگ‌ها و ردیابی‌ها را جست‌وجو کند، یک هشدار را تأیید کند یا یک مانیتور راه بیندازد.
 
+راهنماهای گام‌به‌گام یک کار را از ابتدا تا انتها پیش می‌برند، در OneUptime Cloud یا روی سرور خودتان: [بدانید چه زمانی وب‌سایت یا API شما از کار می‌افتد](https://oneuptime.com/docs/fa/guides/website-down)، [با تماس، پیامک یا پوش خبر شوید](https://oneuptime.com/docs/fa/guides/paging) و [یک صفحه وضعیت منتشر کنید](https://oneuptime.com/docs/fa/guides/status-page).
+
 باقی چیزها در [مستندات](https://oneuptime.com/docs/fa/introduction/getting-started) آمده است.
 
 ## شروع کنید

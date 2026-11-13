@@ -53,6 +53,15 @@ const DASHBOARD_DIR: string = path.resolve(
   "../../../FeatureSet/Dashboard/src",
 );
 
+/*
+ * The repository's README. Its 16 translations keep its links line for line,
+ * each in its own language (Tests/Ops/ReadmeFacts), so English is enough here.
+ */
+const README: string = fs.readFileSync(
+  path.resolve(__dirname, "../../../../../README.md"),
+  "utf8",
+);
+
 // A Dashboard source file, read as text: its copy files load the browser's config.
 function dashboardFile(relativePath: string): string {
   return fs.readFileSync(path.join(DASHBOARD_DIR, relativePath), "utf8");
@@ -182,8 +191,14 @@ const WORD_CHARACTER: RegExp = /\w/;
 const THOUSANDS_SEPARATOR: RegExp = /(\d)[.,\s](?=\d{3}(?!\d))/g;
 const NUMBER: RegExp = /\d+(?:\.\d+)?/g;
 
+/*
+ * A screenshot's alt text (#6823) stands in for the picture a reader looks
+ * at, not for words they read through: it is left out of the guide's length.
+ */
+const SCREENSHOT: RegExp = /!\[(?:\\.|[^\]\\])*\]\(screen:[^)]*\)/g;
+
 function wordsOf(markdown: string): number {
-  return prose(markdown)
+  return prose(markdown.replace(SCREENSHOT, ""))
     .split(/\s+/)
     .filter((word: string): boolean => {
       return WORD_CHARACTER.test(word);
@@ -398,7 +413,11 @@ describe.each(DOCS_GUIDES)("$navTitle, in English", (guide: DocsGuide) => {
 
   it("links only to pages in the nav, and to headings they have", () => {
     for (const link of scanMarkdown(markdown).links) {
-      if (link.target.startsWith("#")) {
+      /*
+       * A screenshot (#6823) is a picture, not a link: the content rules
+       * hold it to a shot that exists (DocsContentRules' images).
+       */
+      if (link.target.startsWith("#") || link.isImage) {
         continue;
       }
 
@@ -669,6 +688,18 @@ describe.each(DOCS_GUIDES)(
         `export const ${guide.guidedSetup.constant}: string = "${guideUrl(guide)}";`,
       );
       expect(page).toContain(`guideDocsPath={${guide.guidedSetup.constant}}`);
+    });
+
+    it("is linked from the README, by its title, on the line that lists the guides", () => {
+      const line: string | undefined = README.split("\n").find(
+        (entry: string): boolean => {
+          return entry.startsWith("Step-by-step guides ");
+        },
+      );
+
+      expect(line).toContain(
+        `[${guide.navTitle}](https://oneuptime.com${guideUrl(guide)})`,
+      );
     });
 
     it.each(DOCS_LANGUAGES)(

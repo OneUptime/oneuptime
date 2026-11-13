@@ -3,7 +3,10 @@ import ObjectID from "Common/Types/ObjectID";
 import VideoCallProvider from "Common/Types/VideoCall/VideoCallProvider";
 import { VIDEO_CALL_TRANSCRIPT_FILE_EXTENSIONS } from "Common/Types/VideoCall/VideoCallTranscript";
 import TranscriptText from "Common/Utils/VideoCall/TranscriptText";
+import { formatFileSize } from "Common/Types/File/FileSize";
 import Icon from "Common/UI/Components/Icon/Icon";
+import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import TextArea from "Common/UI/Components/TextArea/TextArea";
 import API from "Common/UI/Utils/API/API";
@@ -77,20 +80,14 @@ export function getTranscriptSourceHint(
   }
 }
 
-export function formatFileSize(bytes: number): string {
-  if (bytes < 1024) {
-    return `${bytes} B`;
-  }
-
-  if (bytes < 1024 * 1024) {
-    return `${Math.round(bytes / 1024)} KB`;
-  }
-
-  // "5 MB", "2.4 MB".
-  const megabytes: number = Math.round((bytes / (1024 * 1024)) * 10) / 10;
-
-  return `${megabytes} MB`;
-}
+/*
+ * The chosen file's name: one line, cut short at its own end. An English
+ * name on an Arabic or Persian page reads its own way (IsolatedLine), so
+ * it keeps its start ("Payments outage call tran...") rather than losing
+ * it, and its extension stays at its end (issue #7233).
+ */
+export const TRANSCRIPT_FILE_NAME_CLASS_NAME: string =
+  "truncate text-sm font-medium text-gray-900";
 
 const AddCallTranscriptModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -114,10 +111,16 @@ const AddCallTranscriptModal: FunctionComponent<ComponentProps> = (
     }
 
     if (chosen.size > MAX_TRANSCRIPT_FILE_BYTES) {
+      // The limit set apart, so it reads "۵ MB" in a Persian sentence.
       setError(
         translator.translateTemplate(
           "This file is larger than {{size}}. Add the part of the call about the incident.",
-          { size: formatFileSize(MAX_TRANSCRIPT_FILE_BYTES) },
+          {
+            size: formatFileSize(MAX_TRANSCRIPT_FILE_BYTES, {
+              language: translator.language,
+            }),
+          },
+          { setsValuesApart: true },
         ),
       );
       return;
@@ -213,11 +216,24 @@ const AddCallTranscriptModal: FunctionComponent<ComponentProps> = (
               className="h-5 w-5 flex-shrink-0 text-indigo-600"
             />
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-gray-900">
-                {file.name}
-              </p>
+              <IsolatedLine
+                as="p"
+                text={file.name}
+                className={TRANSCRIPT_FILE_NAME_CLASS_NAME}
+                dataTestId="add-call-transcript-file-name"
+              />
+              {/*
+               * The size in the reader's digits, its number first on a
+               * page read from the right ("۴۷ KB", not "KB ۴۷").
+               */}
               <p className="text-xs text-gray-500">
-                {formatFileSize(file.size)}
+                <IsolatedText
+                  text={formatFileSize(file.size, {
+                    language: translator.language,
+                  })}
+                  className="tabular-nums"
+                  dataTestId="add-call-transcript-file-size"
+                />
               </p>
             </div>
             <button
@@ -259,7 +275,12 @@ const AddCallTranscriptModal: FunctionComponent<ComponentProps> = (
               <span className="text-xs text-gray-500">
                 {translator.translateTemplate(
                   "or drop it here: .vtt, .srt or .txt, up to {{size}}",
-                  { size: formatFileSize(MAX_TRANSCRIPT_FILE_BYTES) },
+                  {
+                    size: formatFileSize(MAX_TRANSCRIPT_FILE_BYTES, {
+                      language: translator.language,
+                    }),
+                  },
+                  { setsValuesApart: true },
                 )}
               </span>
             </button>

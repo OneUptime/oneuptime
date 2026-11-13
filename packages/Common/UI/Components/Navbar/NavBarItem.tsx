@@ -1,6 +1,7 @@
 // Tailwind
 import Navigation from "../../Utils/Navigation";
 import useTranslateValue from "../../Utils/Translation";
+import { withProductText } from "../../Utils/ProductText";
 import Icon, { ThickProp } from "../Icon/Icon";
 import Link from "../Link/Link";
 import Route from "../../../Types/API/Route";
@@ -100,7 +101,9 @@ const NavBarItem: FunctionComponent<ComponentProps> = (
         ) : (
           <></>
         )}
-        <span className={props.labelClassName}>{translatedTitle}</span>
+        <span className={withProductText(props.labelClassName)}>
+          {translatedTitle}
+        </span>
         {props.trailing}
         {props.children ? <div className="arrow-down"></div> : <></>}
       </Link>

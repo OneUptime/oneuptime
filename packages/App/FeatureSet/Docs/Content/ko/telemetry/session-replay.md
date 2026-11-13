@@ -102,6 +102,8 @@ window.__ONEUPTIME_SESSION_REPLAY__ = {
   respectDoNotTrack: true, // optional
   debug: false, // optional
   offlineStorage: true, // optional; false keeps offline chunks in memory only
+  maskAllText: false, // optional; true masks all text, whatever the policy says
+  blockSelectors: [], // optional; added to the policy's block selectors
 };
 ```
 
@@ -253,7 +255,7 @@ OneUptimeReplay.identify("user-123", { plan: "pro", tenant: "acme" });
 );
 ```
 
-`grantConsent`, `revokeConsent`, `stop`, `identify`, `setTags`, `addTag`는 레코더가 시작되기 전에 적용되므로, 대기열의 동의 결정이 무엇이든 업로드될지를 정하고, 대기열의 신원은 첫 청크부터 함께 전송됩니다. `track`, `metric`, `captureSession`, `onSessionChange`는 시작 직후에 실행됩니다.
+`grantConsent`, `revokeConsent`, `stop`, `pause`, `resume`, `identify`, `setTags`, `addTag`는 레코더가 시작되기 전에 적용되므로, 대기열의 동의 결정이 무엇이든 업로드될지를 정하고, 대기열의 신원은 첫 청크부터 함께 전송됩니다. `track`, `metric`, `captureSession`, `onSessionChange`는 시작 직후에 실행됩니다.
 
 | 메서드 | 하는 일 |
 | --- | --- |
@@ -268,6 +270,8 @@ OneUptimeReplay.identify("user-123", { plan: "pro", tenant: "acme" });
 | `getSessionId()` | 현재 세션 ID, 또는 아무것도 녹화하지 않을 때는 `null`. 세션 전환도 따라가는 `onSessionChange()`를 우선 사용하세요. |
 | `getVisitorId()` | [익명 방문자 ID](#익명-방문자)입니다. 십육진수 32자로, 브라우저 프로필마다 하나이며 세션이 바뀌어도 같습니다. 레코더가 시작되기 전, `stop()` 이후, 동의가 취소된 동안에는 `""`입니다. 무작위이며 신원이 아니고, **최종 사용자 신원 캡처**에 좌우되지 않습니다. |
 | `stop()` | 마지막 청크를 업로드하고, 세션을 봉인하며, 페이지가 남아 있는 동안 멈춥니다. |
+| `pause()` | `resume()`까지 화면에 보이는 내용의 기록을 멈춥니다. 열려 있는 청크는 _paused_ 마커와 함께 전송되고, 그동안 페이지, 입력, 요청, 콘솔, 클릭 중 어느 것도 기록되지 않습니다. 세션은 열린 채로 유지되며 방문자의 입력으로는 다시 시작되지 않습니다. 페이지의 일부만 기록하는 페이지를 위한 것이며, 레코더가 로드되기 전에 대기열에 넣으면 일시 중지된 상태로 시작합니다. |
+| `resume()` | `pause()` 후 같은 세션에서 현재 페이지의 새 스냅샷으로 기록을 계속합니다. 플레이어는 일시 중지된 구간을 건너뜁니다. |
 | `setDebug(enabled)` | 지금부터 레코더의 결정을 콘솔에 출력합니다. |
 | `getDiagnostics()` | 진단이 켜져 있었든 아니든 레코더가 결정한 모든 것. 아래를 참고하세요. |
 
@@ -370,7 +374,12 @@ _Mask all text_ 모드에서 리플레이는 와이어프레임입니다. 텍스
 
 <!-- Recorded, but input events inside are dropped. -->
 <div class="oneuptime-ignore">...</div>
+
+<!-- Under Mask all text, the text inside is recorded as written. -->
+<div class="oneuptime-unmask">...</div>
 ```
+
+_Mask all text_ 모드에서는 `oneuptime-unmask` 클래스가 있는 요소 안의 텍스트가 그대로 기록됩니다. 버튼, 제목, 메뉴처럼 페이지 자체의 인터페이스 단어에 사용하세요. 그 안의 `oneuptime-mask` 요소나 추가 마스크 선택자에 맞는 요소는 텍스트를 다시 마스크하고, 양식 필드는 계속 마스크되며, 다른 마스크 모드에서는 이 클래스가 아무 일도 하지 않습니다. 페이지는 초기화 전역 객체에서 정책보다 더 많은 마스크를 요청할 수도 있습니다. `maskAllText: true`는 정책과 관계없이 _Mask all text_ 모드로 기록하고, `blockSelectors`는 정책의 차단 선택자에 추가됩니다. 둘 다 기록에 더 많은 것을 보여 주게 할 수는 없습니다.
 
 마크업을 바꾸지 않고 애플리케이션의 **리플레이 정책** 페이지에서 **추가 마스킹 선택자**와 **차단 선택자**를 추가할 수도 있습니다. 기본 마스킹 모드에서는 이것이 마크업이 민감하다고 선언하지 않은 콘텐츠를 보호하는 주된 도구입니다.
 

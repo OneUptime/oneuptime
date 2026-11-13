@@ -92,7 +92,7 @@ El resumen de la parte superior de la página **Reglas de escalado** muestra tod
 
 ### Cómo se localiza a cada persona
 
-A cada persona que avisa un nivel se la localiza como indiquen sus propias reglas de guardia: **Ajustes de usuario** > **Reglas de guardia**, con una pestaña para incidentes, episodios de incidentes, alertas y episodios de alertas, y una tarjeta por severidad que indica qué método de notificación se prueba y tras cuánto tiempo. Un administrador del proyecto puede ver y cambiar las reglas de un miembro en **Usuarios** > el miembro > **Reglas de guardia**. Consulta [Reglas de guardia personales](/docs/notifications/on-call-rules).
+A cada persona que avisa un nivel se la localiza como indiquen sus propias reglas de guardia: **Ajustes de usuario** > **Cómo contactarme**, con una pestaña para incidentes, episodios de incidentes, alertas y episodios de alertas, y una tarjeta por severidad que indica qué método de notificación se prueba y tras cuánto tiempo. Un administrador del proyecto puede ver y cambiar las reglas de un miembro en **Usuarios** > el miembro > **Cómo contactarme**. Consulta [Reglas de guardia personales](/docs/notifications/on-call-rules).
 
 ```mermaid title="A quién avisa un nivel y cómo se localiza a cada persona"
 flowchart TB
