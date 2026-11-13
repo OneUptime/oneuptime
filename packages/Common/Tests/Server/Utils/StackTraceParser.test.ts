@@ -216,7 +216,82 @@ describe("StackTraceParser.parse - Java", () => {
   });
 });
 
+describe("StackTraceParser.parse - Java constructors and static initializers", () => {
+  /*
+   * <init> and <clinit> frames are in nearly every Java trace (a failing
+   * constructor, a Spring bean being built). C#'s reader allows angle
+   * brackets, so before Java's did too, such a trace gave C# more frames
+   * and was read as C# - with no file or line on any frame.
+   */
+  test("reads <init> and <clinit> frames as Java, with their files and lines", () => {
+    const trace: string = [
+      "java.lang.IllegalStateException: no price for SKU 42",
+      "    at com.example.cart.Price.<init>(Price.java:27)",
+      "    at com.example.cart.Catalog.<clinit>(Catalog.java:12)",
+      "    at com.example.cart.CartService.add(CartService.java:88)",
+      "    at java.base/java.lang.Thread.run(Thread.java:833)",
+    ].join("\n");
+
+    const result: ParsedStackTrace = StackTraceParser.parse(trace);
+
+    expect(result.frames).toHaveLength(3);
+    expect(result.frames[0]).toMatchObject({
+      functionName: "com.example.cart.Price.<init>",
+      fileName: "Price.java",
+      lineNumber: 27,
+    });
+    expect(result.frames[1]).toMatchObject({
+      functionName: "com.example.cart.Catalog.<clinit>",
+      fileName: "Catalog.java",
+      lineNumber: 12,
+    });
+    expect(result.frames[2]!.fileName).toBe("CartService.java");
+  });
+
+  test("a constructor in native code keeps its name", () => {
+    const result: ParsedStackTrace = StackTraceParser.parse(
+      [
+        "    at sun.reflect.NativeConstructorAccessorImpl.newInstance0(Native Method)",
+        "    at com.example.Widget.<init>(Unknown Source)",
+      ].join("\n"),
+    );
+
+    expect(
+      result.frames.map((frame: { functionName: string }) => {
+        return frame.functionName;
+      }),
+    ).toEqual([
+      "sun.reflect.NativeConstructorAccessorImpl.newInstance0",
+      "com.example.Widget.<init>",
+    ]);
+  });
+});
+
 describe("StackTraceParser.parse - Go", () => {
+  test("keeps a method's receiver, cutting only the argument list", () => {
+    const trace: string = [
+      "goroutine 7 [running]:",
+      "main.(*Server).handle(0xc000010030, {0x4a1b20, 0xc0000a6000})",
+      "\t/app/server.go:41 +0x5d",
+      "net/http.HandlerFunc.ServeHTTP(...)",
+      "\t/usr/local/go/src/net/http/server.go:2136",
+      "created by main.main in goroutine 1",
+      "\t/app/main.go:18 +0x7f",
+    ].join("\n");
+
+    const result: ParsedStackTrace = StackTraceParser.parse(trace);
+
+    expect(
+      result.frames.map((frame: { functionName: string }) => {
+        return frame.functionName;
+      }),
+    ).toEqual([
+      "main.(*Server).handle",
+      "net/http.HandlerFunc.ServeHTTP",
+      "created by main.main in goroutine 1",
+    ]);
+  });
+
   test("pairs the function line with the following file:line", () => {
     const trace: string = [
       "goroutine 1 [running]:",

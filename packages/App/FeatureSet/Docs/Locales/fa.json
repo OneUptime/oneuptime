@@ -310,6 +310,7 @@
     "Data Retention": "نگهداری داده",
     "Telemetry Usage": "مصرف تله‌متری",
     "Ingestion Budgets": "بودجه‌های دریافت داده",
+    "Prometheus, Loki, Splunk, Datadog & Sentry": "Prometheus, Loki, Splunk, Datadog & Sentry",
     "Serilog (.NET)": "Serilog (.NET)",
     "Fluent Bit": "Fluent Bit",
     "Fluentd": "Fluentd",
