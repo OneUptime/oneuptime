@@ -1496,9 +1496,9 @@ test.describe("Hunt Rules on the Slack page", () => {
       "PowerShell finds to #threat-hunting",
     );
     await expect(hunts).toContainText("PowerShell finds to #threat-hunting");
-    // Which hunts, in words: the one condition it has.
+    // Which hunts, in words: the one condition it has, as a sentence says it.
     await expect(hunts).toContainText("Security Hunt Name");
-    await expect(hunts).toContainText("Contains");
+    await expect(hunts).toContainText("contains");
     await expect(hunts).toContainText("PowerShell");
     await expect(hunts).not.toContainText("New cases to #soc");
 
@@ -1554,7 +1554,7 @@ test.describe("Hunt Rules on the Slack page", () => {
     // A hunt is matched by its name, the one thing a hunt rule reads.
     await expect(conditions).toContainText("Security Hunt Name");
     await conditions.locator(".ou-select__control").nth(1).click();
-    await page.getByRole("option", { name: "Contains", exact: true }).click();
+    await page.getByRole("option", { name: "contains", exact: true }).click();
     await conditions.getByRole("textbox").fill("Okta");
     await dialog(page).getByRole("button", { name: "Next" }).click();
 

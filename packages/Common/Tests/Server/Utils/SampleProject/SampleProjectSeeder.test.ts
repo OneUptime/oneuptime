@@ -76,9 +76,12 @@ import {
 } from "../../../../Types/SampleProject/SampleProject";
 import {
   MINUTES_IN_A_DAY,
+  SAMPLE_ALERTS,
   SAMPLE_INCIDENTS,
   SAMPLE_MONITOR_HISTORY_DAYS,
   SAMPLE_MONITORS,
+  SampleAlertState,
+  SampleIncidentState,
   SampleMonitor,
 } from "../../../../Types/SampleProject/SampleProjectContent";
 import StatusPageSubscriberNotificationStatus from "../../../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
@@ -183,47 +186,75 @@ const named: (
   );
 };
 
+// The flags that say whether a record's owners and subscribers were told.
+const OWNER_NOTIFIED_KEY: RegExp = /^isOwnerNotified/;
+const SUBSCRIBERS_TOLD_KEY: RegExp =
+  /^shouldStatusPageSubscribersBeNotified|^notifySubscribers/;
+const SUBSCRIBER_STATUS_KEY: RegExp =
+  /^subscriberNotificationStatus(On[A-Za-z]+)?$/;
+
+type CreateBy = {
+  data: Record<string, unknown>;
+  props: Record<string, unknown>;
+};
+
+type BackdateInput = {
+  id: ObjectID;
+  data: { createdAt?: Date };
+};
+
 beforeEach(async () => {
   creates = [];
   backdates = [];
   let counter: number = 0;
 
+  /*
+   * Each service's create, recorded under its name and answered with an id
+   * of its own, and the write that back-dates a row: made here, outside the
+   * loop over the services that installs them.
+   */
+  const createAs: (
+    name: string,
+  ) => (createBy: CreateBy) => Promise<{ id: ObjectID }> = (
+    name: string,
+  ): ((createBy: CreateBy) => Promise<{ id: ObjectID }>) => {
+    return async (createBy: CreateBy): Promise<{ id: ObjectID }> => {
+      creates.push({
+        service: name,
+        data: createBy.data,
+        props: createBy.props,
+      });
+      counter++;
+      return {
+        id: new ObjectID(
+          `5a3c0000-0000-4000-9000-${String(counter).padStart(12, "0")}`,
+        ),
+      };
+    };
+  };
+
+  const backdate: (input: BackdateInput) => Promise<void> = async (
+    input: BackdateInput,
+  ): Promise<void> => {
+    if (input.data.createdAt) {
+      backdates.push({
+        id: input.id.toString(),
+        createdAt: input.data.createdAt,
+      });
+    }
+  };
+
   for (const [name, service] of Object.entries(SERVICES)) {
     jest
       .spyOn(service as { create: () => Promise<unknown> }, "create")
-      .mockImplementation((async (createBy: {
-        data: Record<string, unknown>;
-        props: Record<string, unknown>;
-      }) => {
-        creates.push({
-          service: name,
-          data: createBy.data,
-          props: createBy.props,
-        });
-        counter++;
-        return {
-          id: new ObjectID(
-            `5a3c0000-0000-4000-9000-${String(counter).padStart(12, "0")}`,
-          ),
-        };
-      }) as never);
+      .mockImplementation(createAs(name) as never);
 
     jest
       .spyOn(
         service as { updateColumnsByIdWithoutHooks: () => Promise<void> },
         "updateColumnsByIdWithoutHooks",
       )
-      .mockImplementation((async (input: {
-        id: ObjectID;
-        data: { createdAt?: Date };
-      }) => {
-        if (input.data.createdAt) {
-          backdates.push({
-            id: input.id.toString(),
-            createdAt: input.data.createdAt,
-          });
-        }
-      }) as never);
+      .mockImplementation(backdate as never);
   }
 
   jest
@@ -349,7 +380,7 @@ describe("it never does what a real record does", () => {
   test("every 'notified' flag says done, and no subscriber is ever told", () => {
     for (const call of creates) {
       for (const [key, value] of Object.entries(call.data)) {
-        if (/^isOwnerNotified/.test(key)) {
+        if (OWNER_NOTIFIED_KEY.test(key)) {
           expect({ service: call.service, key, value }).toEqual({
             service: call.service,
             key,
@@ -357,9 +388,7 @@ describe("it never does what a real record does", () => {
           });
         }
 
-        if (
-          /^shouldStatusPageSubscribersBeNotified|^notifySubscribers/.test(key)
-        ) {
+        if (SUBSCRIBERS_TOLD_KEY.test(key)) {
           expect({ service: call.service, key, value }).toEqual({
             service: call.service,
             key,
@@ -367,10 +396,7 @@ describe("it never does what a real record does", () => {
           });
         }
 
-        if (
-          /^subscriberNotificationStatus(On[A-Za-z]+)?$/.test(key) &&
-          value !== undefined
-        ) {
+        if (SUBSCRIBER_STATUS_KEY.test(key) && value !== undefined) {
           expect({ service: call.service, key, value }).toEqual({
             service: call.service,
             key,
@@ -408,7 +434,7 @@ describe("it never does what a real record does", () => {
       for (const row of rowsOf(service)) {
         expect(
           Object.keys(row).some((key: string) => {
-            return /^isOwnerNotified/.test(key);
+            return OWNER_NOTIFIED_KEY.test(key);
           }),
         ).toBe(true);
       }
@@ -608,6 +634,57 @@ describe("what it makes", () => {
     expect(rowsOf("StatusPageResourceService").length).toBeGreaterThanOrEqual(
       3,
     );
+  });
+
+  /*
+   * Each record ends in the project's own state for it: THE acknowledged
+   * and THE resolved state, picked as Acknowledge and Resolve pick them,
+   * and THE scheduled state a new maintenance event is created in.
+   */
+  test("each incident, alert and maintenance event ends in the project's own state for it", () => {
+    const incidentStateIdOf: Record<SampleIncidentState, string> = {
+      [SampleIncidentState.Identified]: id("is1").toString(),
+      [SampleIncidentState.Acknowledged]: id("is2").toString(),
+      [SampleIncidentState.Resolved]: id("is3").toString(),
+    };
+    const alertStateIdOf: Record<SampleAlertState, string> = {
+      [SampleAlertState.Identified]: id("as1").toString(),
+      [SampleAlertState.Acknowledged]: id("as2").toString(),
+      [SampleAlertState.Resolved]: id("as3").toString(),
+    };
+
+    expect(
+      rowsOf("IncidentService").map((row: Record<string, unknown>) => {
+        return String(row["currentIncidentStateId"]);
+      }),
+    ).toEqual(
+      SAMPLE_INCIDENTS.map((sample: (typeof SAMPLE_INCIDENTS)[number]) => {
+        return incidentStateIdOf[
+          sample.states[sample.states.length - 1]!.state
+        ];
+      }),
+    );
+    expect(
+      rowsOf("AlertService").map((row: Record<string, unknown>) => {
+        return String(row["currentAlertStateId"]);
+      }),
+    ).toEqual(
+      SAMPLE_ALERTS.map((sample: (typeof SAMPLE_ALERTS)[number]) => {
+        return alertStateIdOf[sample.states[sample.states.length - 1]!.state];
+      }),
+    );
+
+    const maintenance: Array<Record<string, unknown>> = rowsOf(
+      "ScheduledMaintenanceService",
+    );
+
+    expect(maintenance.length).toBeGreaterThan(0);
+
+    for (const row of maintenance) {
+      expect(String(row["currentScheduledMaintenanceStateId"])).toBe(
+        id("sm1").toString(),
+      );
+    }
   });
 
   test("a maintenance window to come", () => {

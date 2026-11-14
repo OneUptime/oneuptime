@@ -51,6 +51,8 @@ export interface ComponentProps {
   initialValue?: undefined | Array<FileModel> | FileModel;
   onClick?: undefined | (() => void);
   placeholder?: undefined | string;
+  // In the reader's words already: said as given (Field's, #7682).
+  isPlaceholderTranslated?: boolean | undefined;
   className?: undefined | string;
   onChange?: undefined | ((value: Array<FileModel>) => void);
   value?: Array<FileModel> | undefined;
@@ -682,6 +684,7 @@ const FilePicker: FunctionComponent<ComponentProps> = (
     translator,
     {
       placeholder: props.placeholder,
+      isPlaceholderTranslated: props.isPlaceholderTranslated,
       hint: props.hint,
       mimeTypes: props.mimeTypes,
       maxFileSizeInBytes: props.maxFileSizeInBytes,

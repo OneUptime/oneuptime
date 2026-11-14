@@ -31,6 +31,12 @@ import DeviceMonitorTemplateUtil, {
   isDeviceAddressMonitorType,
 } from "../../Utils/Monitor/DeviceMonitorTemplateUtil";
 import MonitorTemplateSyncUtil from "../../Utils/Monitor/MonitorTemplateSyncUtil";
+import {
+  getMonitorTypeMismatchRefusal,
+  MONITOR_IN_ANOTHER_PROJECT_REFUSAL,
+  MONITOR_NOT_FOUND_REFUSAL,
+  MONITOR_NOT_LINKED_REFUSAL,
+} from "../../Utils/Monitor/MonitorTemplateLinkRefusal";
 import QueryHelper from "../Types/Database/QueryHelper";
 import MonitorStepsIdentityUtil from "../../Utils/Monitor/MonitorStepsIdentityUtil";
 import MetricQueryCloudAggregation from "../../Utils/Metrics/MetricQueryCloudAggregation";
@@ -1032,23 +1038,21 @@ export class Service extends ProjectReferencesService<Model> {
     });
 
     if (!monitor) {
-      throw new BadDataException("Monitor not found");
+      throw new BadDataException(MONITOR_NOT_FOUND_REFUSAL);
     }
 
     if (
       !monitor.monitorTemplateId ||
       monitor.monitorTemplateId.toString() !== template.id!.toString()
     ) {
-      throw new BadDataException("Monitor is not linked to this template");
+      throw new BadDataException(MONITOR_NOT_LINKED_REFUSAL);
     }
 
     if (
       !monitor.projectId ||
       monitor.projectId.toString() !== template.projectId.toString()
     ) {
-      throw new BadDataException(
-        "Monitor and template belong to different projects",
-      );
+      throw new BadDataException(MONITOR_IN_ANOTHER_PROJECT_REFUSAL);
     }
 
     const updateData: Partial<Monitor> = this.buildUpdateData(template, fields);
@@ -1122,19 +1126,20 @@ export class Service extends ProjectReferencesService<Model> {
     });
 
     if (!monitor) {
-      throw new BadDataException("Monitor not found");
+      throw new BadDataException(MONITOR_NOT_FOUND_REFUSAL);
     }
     if (
       !monitor.projectId ||
       monitor.projectId.toString() !== template.projectId.toString()
     ) {
-      throw new BadDataException(
-        "Monitor and template belong to different projects",
-      );
+      throw new BadDataException(MONITOR_IN_ANOTHER_PROJECT_REFUSAL);
     }
     if (monitor.monitorType !== template.monitorType) {
       throw new BadDataException(
-        `Monitor type "${monitor.monitorType}" does not match template type "${template.monitorType}"`,
+        getMonitorTypeMismatchRefusal({
+          monitorType: monitor.monitorType || "",
+          templateType: template.monitorType,
+        }),
       );
     }
 
@@ -1168,13 +1173,13 @@ export class Service extends ProjectReferencesService<Model> {
     });
 
     if (!monitor) {
-      throw new BadDataException("Monitor not found");
+      throw new BadDataException(MONITOR_NOT_FOUND_REFUSAL);
     }
     if (
       !monitor.monitorTemplateId ||
       monitor.monitorTemplateId.toString() !== data.monitorTemplateId.toString()
     ) {
-      throw new BadDataException("Monitor is not linked to this template");
+      throw new BadDataException(MONITOR_NOT_LINKED_REFUSAL);
     }
 
     await MonitorService.updateOneById({

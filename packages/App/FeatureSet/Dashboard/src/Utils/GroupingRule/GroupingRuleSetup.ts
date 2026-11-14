@@ -22,10 +22,11 @@ import {
  * (IncidentGroupingEngineService, AlertGroupingEngineService). What changes is
  * how a person gets there:
  *
- *   - one question instead of five switches: group by monitor, severity,
- *     title, everything together, or a custom mix (getGroupingMode maps the
- *     switches to that answer and getGroupByValuesForMode maps it back);
- *   - four ready-made rules that are added in one click
+ *   - one question instead of six switches: group by monitor, everything
+ *     together, connected services, severity, title, or a custom mix
+ *     (getGroupingMode maps the switches to that answer and
+ *     getGroupByValuesForMode maps it back);
+ *   - five ready-made rules that are added in one click
  *     (GROUPING_RULE_TEMPLATES);
  *   - one sentence per rule in the list instead of raw columns
  *     (getGroupingRuleSummary);
@@ -42,7 +43,11 @@ import {
  *     switch and a count in the rule's More fields like the lifecycle
  *     switches, read with the engines' own rule
  *     (Common/Utils/Episode/EpisodeOpeningThreshold; see
- *     MINIMUM_COUNT_FIELD_NAMES).
+ *     MINIMUM_COUNT_FIELD_NAMES);
+ *   - grouping by connected services (issue #6798): incidents or alerts on
+ *     services that call each other on the Service Map share an episode
+ *     (Common/Server/Utils/Topology/ConnectedServices), a sixth switch with
+ *     a card of its own.
  *
  * React-free on purpose: App has no react (see
  * App/Tests/FeatureSetImportsStayReactFree.test.ts), and the node tests that
@@ -57,7 +62,7 @@ export enum GroupingRuleKind {
 }
 
 /*
- * The one question the form asks instead of five switches. Custom is the way
+ * The one question the form asks instead of six switches. Custom is the way
  * to every other combination of the switches, so nothing a rule could do
  * before is out of reach.
  */
@@ -66,6 +71,7 @@ export enum GroupingMode {
   Severity = "severity",
   Title = "title",
   Everything = "everything",
+  ConnectedServices = "connected-services",
   Custom = "custom",
 }
 
@@ -87,6 +93,7 @@ export interface GroupByFieldNames {
   title: string;
   labels: string;
   monitorLabels: string;
+  connectedServices: string;
 }
 
 // The two models name their title and label switches after what they group.
@@ -98,6 +105,7 @@ export const GROUP_BY_FIELD_NAMES: Record<GroupingRuleKind, GroupByFieldNames> =
       title: "groupByIncidentTitle",
       labels: "groupByIncidentLabels",
       monitorLabels: "groupByMonitorLabels",
+      connectedServices: "groupByConnectedServices",
     },
     [GroupingRuleKind.Alert]: {
       monitor: "groupByMonitor",
@@ -105,6 +113,7 @@ export const GROUP_BY_FIELD_NAMES: Record<GroupingRuleKind, GroupByFieldNames> =
       title: "groupByAlertTitle",
       labels: "groupByAlertLabels",
       monitorLabels: "groupByMonitorLabels",
+      connectedServices: "groupByConnectedServices",
     },
   };
 
@@ -424,6 +433,17 @@ export const GROUPING_MODE_OPTIONS: Array<GroupingModeOption> = [
     },
   },
   {
+    mode: GroupingMode.ConnectedServices,
+    icon: IconProp.FlowDiagram,
+    title: "Connected Services",
+    description: {
+      [GroupingRuleKind.Incident]:
+        "One episode for incidents on services that call each other on the Service Map. Catches one failure spreading to its callers.",
+      [GroupingRuleKind.Alert]:
+        "One episode for alerts on services that call each other on the Service Map. Catches one failure spreading to its callers.",
+    },
+  },
+  {
     mode: GroupingMode.Severity,
     icon: IconProp.ExclaimationCircle,
     title: "Severity",
@@ -451,9 +471,9 @@ export const GROUPING_MODE_OPTIONS: Array<GroupingModeOption> = [
     title: "Custom",
     description: {
       [GroupingRuleKind.Incident]:
-        "Combine monitor, severity, title and labels yourself on the next step.",
+        "Combine monitor, severity, title, labels and connected services yourself on the next step.",
       [GroupingRuleKind.Alert]:
-        "Combine monitor, severity, title and labels yourself on the next step.",
+        "Combine monitor, severity, title, labels and connected services yourself on the next step.",
     },
   },
 ];
@@ -505,6 +525,22 @@ export const GROUPING_RULE_TEMPLATES: Array<GroupingRuleTemplate> = [
     },
   },
   {
+    id: "connected-services",
+    mode: GroupingMode.ConnectedServices,
+    icon: IconProp.FlowDiagram,
+    timeWindowMinutes: 30,
+    name: {
+      [GroupingRuleKind.Incident]: "Group incidents on connected services",
+      [GroupingRuleKind.Alert]: "Group alerts on connected services",
+    },
+    description: {
+      [GroupingRuleKind.Incident]:
+        "One episode for incidents on services that call each other on the Service Map, while they arrive within 30 minutes of each other. Incidents on no service are grouped by monitor.",
+      [GroupingRuleKind.Alert]:
+        "One episode for alerts on services that call each other on the Service Map, while they arrive within 30 minutes of each other. Alerts on no service are grouped by monitor.",
+    },
+  },
+  {
     id: "same-severity",
     mode: GroupingMode.Severity,
     icon: IconProp.ExclaimationCircle,
@@ -544,12 +580,14 @@ export const GROUPING_SUMMARY_COPY: {
   perSeverity: string;
   perTitle: string;
   everything: KindCopy;
+  connectedServices: KindCopy;
   perCombination: string;
   fieldMonitor: string;
   fieldSeverity: string;
   fieldTitle: string;
   fieldLabels: KindCopy;
   fieldMonitorLabels: string;
+  fieldConnectedServices: string;
   timeWindowOn: KindCopy;
   timeWindowOff: KindCopy;
   opensOnceOngoing: KindCopy;
@@ -574,6 +612,11 @@ export const GROUPING_SUMMARY_COPY: {
     [GroupingRuleKind.Incident]: "All matching incidents share one episode",
     [GroupingRuleKind.Alert]: "All matching alerts share one episode",
   },
+  connectedServices: {
+    [GroupingRuleKind.Incident]:
+      "Incidents on connected services share one episode",
+    [GroupingRuleKind.Alert]: "Alerts on connected services share one episode",
+  },
   /*
    * A custom mix, listed by the switches' own names (shared with the rest of
    * the Dashboard): "One episode per combination of: Monitor, Severity". A
@@ -589,6 +632,7 @@ export const GROUPING_SUMMARY_COPY: {
     [GroupingRuleKind.Alert]: "Alert Labels",
   },
   fieldMonitorLabels: "Monitor Labels",
+  fieldConnectedServices: "Connected Services",
   timeWindowOn: {
     [GroupingRuleKind.Incident]:
       "New incidents join while they arrive within {{duration}} of the last one",
@@ -645,7 +689,7 @@ const isOn: ReadFlagFunction = (
 };
 
 /*
- * The question's answer for a rule's five switches. One switch on its own is
+ * The question's answer for a rule's six switches. One switch on its own is
  * one of the named answers (labels on their own have no card, so they are
  * Custom); none at all is Everything; anything else is Custom.
  */
@@ -662,6 +706,7 @@ export const getGroupingMode: (
   const title: boolean = isOn(values, names.title);
   const labels: boolean = isOn(values, names.labels);
   const monitorLabels: boolean = isOn(values, names.monitorLabels);
+  const connectedServices: boolean = isOn(values, names.connectedServices);
 
   const switchedOn: number = [
     monitor,
@@ -669,6 +714,7 @@ export const getGroupingMode: (
     title,
     labels,
     monitorLabels,
+    connectedServices,
   ].filter(Boolean).length;
 
   if (switchedOn === 0) {
@@ -685,6 +731,10 @@ export const getGroupingMode: (
 
   if (switchedOn === 1 && title) {
     return GroupingMode.Title;
+  }
+
+  if (switchedOn === 1 && connectedServices) {
+    return GroupingMode.ConnectedServices;
   }
 
   return GroupingMode.Custom;
@@ -721,7 +771,7 @@ export const getSelectedGroupingMode: (
 };
 
 /*
- * The five switches for a named answer. Null for Custom, which leaves the
+ * The six switches for a named answer. Null for Custom, which leaves the
  * switches as they are for the person to change on the Group By step.
  */
 export const getGroupByValuesForMode: (
@@ -743,6 +793,7 @@ export const getGroupByValuesForMode: (
     [names.title]: mode === GroupingMode.Title,
     [names.labels]: false,
     [names.monitorLabels]: false,
+    [names.connectedServices]: mode === GroupingMode.ConnectedServices,
   };
 };
 
@@ -813,7 +864,7 @@ export const isSuggestedRuleName: (data: {
 /*
  * What changes when the answer to "Group incidents by" changes:
  *
- *   - the five switches, for a named answer (Custom keeps them);
+ *   - the six switches, for a named answer (Custom keeps them);
  *   - the name, while it is empty or still a suggestion;
  *   - the time window, while it is on and still the previous answer's
  *     starting value - picking Everything Together should not leave the
@@ -1206,6 +1257,9 @@ export const getGroupingRuleSummary: (data: {
     case GroupingMode.Everything:
       grouping = translate(GROUPING_SUMMARY_COPY.everything[data.kind]);
       break;
+    case GroupingMode.ConnectedServices:
+      grouping = translate(GROUPING_SUMMARY_COPY.connectedServices[data.kind]);
+      break;
     case GroupingMode.Custom: {
       const fields: Array<string> = [];
 
@@ -1227,6 +1281,10 @@ export const getGroupingRuleSummary: (data: {
 
       if (isOn(rule, names.monitorLabels)) {
         fields.push(translate(GROUPING_SUMMARY_COPY.fieldMonitorLabels));
+      }
+
+      if (isOn(rule, names.connectedServices)) {
+        fields.push(translate(GROUPING_SUMMARY_COPY.fieldConnectedServices));
       }
 
       grouping = translate(GROUPING_SUMMARY_COPY.perCombination, {
@@ -1364,6 +1422,7 @@ export const getGroupingRuleSummarySelect: (
     [names.title]: true,
     [names.labels]: true,
     [names.monitorLabels]: true,
+    [names.connectedServices]: true,
     enableTimeWindow: true,
     timeWindowMinutes: true,
     [minimumCount.enabled]: true,

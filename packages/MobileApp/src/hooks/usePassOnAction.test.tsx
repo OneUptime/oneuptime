@@ -581,6 +581,44 @@ describe("a page again: Acknowledge again", () => {
     expect(PAGE_AGAIN_TEXT.button).toBe("Acknowledge again");
   });
 
+  /*
+   * A page somebody asked for by hand - sent from a chat, or a policy
+   * started by hand - about a record somebody else acknowledged is answered
+   * the same way, but the reader was paged to help, not paged again: the
+   * screen words it apart (isPagedToHelp). A page again among the reader's
+   * pages is said as one: they took the record before.
+   */
+  test("a page somebody asked for offers it too, and says the reader is paged to help - unless a page again is among their pages", async () => {
+    const ASKED_FOR: OnCallPassOnPage = {
+      ...PAGE,
+      executionLogId: "run-asked",
+      isPageAgain: true,
+      isAskedFor: true,
+    };
+
+    for (const [pages, isPagedToHelp] of [
+      [[ASKED_FOR], true],
+      [[ASKED_FOR, PAGE], true],
+      [[ASKED_FOR, PAGE_AGAIN], false],
+      [[PAGE_AGAIN], false],
+    ] as Array<[Array<OnCallPassOnPage>, boolean]>) {
+      fetchMock.mockResolvedValue(pages);
+      const client: QueryClient = createTestQueryClient();
+
+      const rendered: HookRender = await renderPassOn(client);
+
+      await waitFor(() => {
+        return expect(rendered.result.current.pagesSettled).toBe(true);
+      });
+      expect(rendered.result.current.acknowledgeAgainAction).toMatchObject({
+        label: PAGE_AGAIN_TEXT.button,
+        primary: true,
+      });
+      expect(rendered.result.current.isPageAgain).toBe(true);
+      expect(rendered.result.current.isPagedToHelp).toBe(isPagedToHelp);
+    }
+  });
+
   test("a first page, and no page at all, offer none", async () => {
     for (const pages of [[PAGE], [PAGE, { ...PAGE, isPageAgain: false }], []]) {
       fetchMock.mockResolvedValue(pages);
@@ -593,6 +631,7 @@ describe("a page again: Acknowledge again", () => {
       });
       expect(rendered.result.current.acknowledgeAgainAction).toBeNull();
       expect(rendered.result.current.isPageAgain).toBe(false);
+      expect(rendered.result.current.isPagedToHelp).toBe(false);
     }
   });
 

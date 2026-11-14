@@ -58,6 +58,15 @@ const SURFACE_SIGNALS: Partial<
   [TelemetryIngestSurface.VercelLogDrain]: ProductType.Logs,
   [TelemetryIngestSurface.Pyroscope]: ProductType.Profiles,
   [TelemetryIngestSurface.SecurityEvents]: ProductType.SecurityEvents,
+  /*
+   * The compatible endpoints that only ever carry one signal. Splunk HEC
+   * (logs and metric events), Datadog (logs and metrics) and Sentry
+   * (traces and logs) are not here: a request to one may carry several,
+   * so each part is counted against its own signal's budget as it is
+   * queued (CompatibleIngestService), never against another's here.
+   */
+  [TelemetryIngestSurface.PrometheusRemoteWrite]: ProductType.Metrics,
+  [TelemetryIngestSurface.Loki]: ProductType.Logs,
 };
 
 // The OTLP/HTTP routes, whose refusals carry a google.rpc.Status body.
@@ -87,7 +96,16 @@ export const RAW_BODY_SURFACES: ReadonlySet<TelemetryIngestSurface> =
  * (TelemetryIngestionBudget.chargePending).
  */
 export const DEFERRED_BODY_SURFACES: ReadonlySet<TelemetryIngestSurface> =
-  new Set<TelemetryIngestSurface>([TelemetryIngestSurface.Pyroscope]);
+  new Set<TelemetryIngestSurface>([
+    TelemetryIngestSurface.Pyroscope,
+    /*
+     * Remote write and Loki read their bodies after the key check, and a
+     * snappy body's size is only known once it is undone: the enqueue
+     * counts each at the size of the OTLP it becomes.
+     */
+    TelemetryIngestSurface.PrometheusRemoteWrite,
+    TelemetryIngestSurface.Loki,
+  ]);
 
 export const getTelemetryIngestionBudgetSignalForSurface: (
   surface: TelemetryIngestSurface | null,

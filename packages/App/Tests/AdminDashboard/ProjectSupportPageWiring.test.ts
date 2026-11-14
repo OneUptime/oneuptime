@@ -1,6 +1,7 @@
 import { beforeAll, describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import nodePath from "path";
+import { pageRoutesIn, routeMapPath, routesAt } from "../Helpers/PageRoutes";
 
 /*
  * The Admin Dashboard's Project > Support page is the staff-side copy of the
@@ -260,9 +261,14 @@ describe("Project > Support page registration", () => {
   });
 
   test("App.tsx registers a route that renders it", () => {
-    expect(appSource).toMatch(
-      /RouteMap\[PageMap\.PROJECT_SUPPORT\][\s\S]{0,120}element=\{<ProjectSupport \/>\}/,
-    );
+    expect(
+      routesAt(
+        pageRoutesIn(nodePath.join(ADMIN_DASHBOARD_SRC, "App.tsx")),
+        routeMapPath("PROJECT_SUPPORT"),
+      ),
+    ).toEqual([
+      { path: routeMapPath("PROJECT_SUPPORT"), element: "<ProjectSupport />" },
+    ]);
   });
 
   test("the project's side menu links to it", () => {

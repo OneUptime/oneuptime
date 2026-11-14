@@ -199,9 +199,21 @@ export function describePublicNotesTab(tab: PublicNotesTabCase): void {
       ).toBeLessThan(indexOfOrFail(source, `<EventNotes<${tab.noteModel}>`));
     });
 
-    test(`shows an error instead of the feed when the ${tab.eventName} cannot be loaded`, () => {
+    /*
+     * When nobody explained why, the error says what failed - the public
+     * notes did not load - not "This did not finish." (#7647). How the page
+     * draws it, in the reader's language, is pinned in
+     * Common/Tests/App/Dashboard/NoteActionErrorsInReadersLanguage.test.tsx.
+     */
+    test(`shows an error instead of the feed when the ${tab.eventName} cannot be loaded, saying the public notes did not load`, () => {
       expect(source).toContain(
-        "if (error) { return <ErrorMessage message={error} />; }",
+        "if (error) { return ( <ErrorMessage message={error} whatFailed={translateString(PUBLIC_NOTES_LOAD_FAILED)} /> ); }",
+      );
+      expect(source).toContain(
+        'import useParentNotifyDefault, { PUBLIC_NOTES_LOAD_FAILED, } from "../../../Components/EventNotes/useParentNotifyDefault";',
+      );
+      expect(source).toContain(
+        "const { translateString } = useTranslateValue();",
       );
       expect(indexOfOrFail(source, "if (error)")).toBeLessThan(
         indexOfOrFail(source, `<EventNotes<${tab.noteModel}>`),

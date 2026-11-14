@@ -340,6 +340,7 @@ import AIConversation from "./AIConversation";
 import AIConversationMessage from "./AIConversationMessage";
 import AIRun from "./AIRun";
 import AIRunEvent from "./AIRunEvent";
+import AIRunRecording from "./AIRunRecording";
 import AIInsight from "./AIInsight";
 import LlmProvider from "./LlmProvider";
 import LlmLog from "./LlmLog";
@@ -1127,6 +1128,7 @@ const AllModelTypes: Array<{
   AIConversationMessage,
   AIRun,
   AIRunEvent,
+  AIRunRecording,
   AIInsight,
 
   LlmProvider,

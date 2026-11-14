@@ -32,6 +32,7 @@ import { getMonitorStepsSchema } from "./MonitorSchemas";
 import MonitorType from "../../Types/Monitor/MonitorType";
 import WorkflowStatus from "../../Types/Workflow/WorkflowStatus";
 import CustomFieldType from "../../Types/CustomField/CustomFieldType";
+import { getApiSingularName } from "../ModelApiName";
 
 export type ModelSchemaType = ZodSchema;
 
@@ -47,7 +48,8 @@ const ENCRYPTED_SECRET_COLUMN_TYPES: Array<TableColumnType> = [
 
 /*
  * The model a relation column points at, as the generated spec names it:
- * `tag` is what that model's endpoints are tagged with (its singular name).
+ * `tag` is what that model's endpoints are tagged with (the singular name
+ * the API keeps, getApiSingularName).
  */
 export interface ModelRelationReference {
   tag: string;
@@ -762,8 +764,16 @@ export class ModelSchema extends BaseSchema {
         continue;
       }
 
+      /*
+       * By the name the API keeps, the one OpenAPI.ts tags the model's
+       * endpoints with. A model renamed on screen (#6817: an On-Call Policy
+       * Schedule is an On-Call Schedule) keeps its tag, and its screen name
+       * here named a tag no endpoint has: the Terraform provider found no
+       * resource for the relation, and its docs example was not a list of
+       * ids.
+       */
       references[columnKey] = {
-        tag: target.singularName || tableName,
+        tag: getApiSingularName(target) || tableName,
         tableName: tableName,
       };
     }

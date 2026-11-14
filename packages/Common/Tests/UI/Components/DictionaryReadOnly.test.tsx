@@ -96,7 +96,12 @@ describe("DictionaryForm — read only", () => {
     expect(screen.queryAllByRole("button")).toEqual([]);
   });
 
-  test("for whoever may change it, the rows come with Delete, Add and a type to clear", () => {
+  /*
+   * A value always has a type, so its box has nothing to clear (clearing it
+   * only put Text back): whoever may change the rows changes the type by
+   * picking another one.
+   */
+  test("for whoever may change it, the rows come with Delete, Add and a type to pick", () => {
     const { container } = render(
       <DictionaryForm
         initialValue={HEADERS}
@@ -113,8 +118,12 @@ describe("DictionaryForm — read only", () => {
       container.querySelectorAll(".ou-select__control--is-disabled"),
     ).toHaveLength(0);
     expect(
-      container.querySelectorAll(".ou-select__clear-indicator").length,
+      container.querySelectorAll(".ou-select__control").length,
     ).toBeGreaterThan(0);
+    for (const type of screen.getAllByRole("combobox", { name: "Type" })) {
+      expect(type).toBeEnabled();
+    }
+    expect(container.querySelector(".ou-select__clear-indicator")).toBeNull();
     expect(screen.queryByTestId("dictionary-none")).toBeNull();
   });
 });

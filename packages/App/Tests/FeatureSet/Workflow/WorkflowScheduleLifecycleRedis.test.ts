@@ -27,6 +27,12 @@ import TriggerCode from "Common/Server/Types/Workflow/TriggerCode";
 
 type Row = Record<string, any>;
 const table: Map<string, Row> = new Map();
+/*
+ * The projects ProjectService.isSampleProject says yes for. Since the sample
+ * project (issue #6808) every run and schedule asks it, and a sample's is
+ * refused; an ordinary project, as the rows' is, is not a sample.
+ */
+const sampleProjectIds: Set<string> = new Set();
 
 jest.mock("Common/Server/Services/WorkflowService", () => {
   const pick: (row: Row | undefined) => Row | null = (row?: Row) => {
@@ -62,6 +68,9 @@ jest.mock("Common/Server/Services/ProjectService", () => {
     default: {
       getCurrentPlan: async () => {
         return { plan: null, isSubscriptionUnpaid: false };
+      },
+      isSampleProject: async (projectId: ObjectID) => {
+        return sampleProjectIds.has(projectId.toString());
       },
     },
   };
@@ -184,6 +193,7 @@ describe("Workflow schedule lifecycle (real Valkey)", () => {
 
   beforeEach(async () => {
     table.clear();
+    sampleProjectIds.clear();
     sent.length = 0;
     for (const k of Object.keys(runs)) {
       delete runs[k];
@@ -428,5 +438,15 @@ describe("Workflow schedule lifecycle (real Valkey)", () => {
     spy.mockRestore();
     expect(sent[sent.length - 1]).toEqual({ status: "Updated" });
     expect(await repeatableNames()).toContain(id1);
+  });
+
+  test("N: a sample project's schedule is refused, and nothing is registered for it", async () => {
+    const row: Row = addRow(id1);
+    sampleProjectIds.add(row["projectId"].toString());
+    await notify(id1);
+
+    expect(sent[sent.length - 1]).toEqual({ status: "Updated" });
+    expect(await repeatableNames()).not.toContain(id1);
+    expect(table.get(id1)!["repeatableJobKey"] ?? null).toBeNull();
   });
 });

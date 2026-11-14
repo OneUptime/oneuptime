@@ -161,7 +161,6 @@ export const FormsCopy: {
   editOnSubmitSettings: string;
   mappingFieldColumn: string;
   mappingSourceColumn: string;
-  fromAnswer: string;
   ifLeftEmpty: string;
   alwaysAdded: string;
   notAsked: string;
@@ -449,7 +448,6 @@ export const FormsCopy: {
   editOnSubmitSettings: "Edit Settings",
   mappingFieldColumn: "Field",
   mappingSourceColumn: "Comes From",
-  fromAnswer: "Answer to the question:",
   ifLeftEmpty: "If it is left empty:",
   alwaysAdded: "Always added:",
   notAsked: "Not asked",

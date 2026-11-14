@@ -182,7 +182,7 @@ Incidents, alerts, their episodes and scheduled maintenance events have commands
 | `resolve <id>` | Moves it to your project's resolved state | The same four |
 | `start <id>` | Moves the event to your project's ongoing state | `scheduled-maintenance-event` |
 | `end <id>` | Moves it to your project's ended state | `scheduled-maintenance-event` |
-| `add-note <id> --note <markdown>` | Adds a note your team sees, or with `--public` one on the record's status pages | All five |
+| `add-note <id> --note <markdown>` | Adds a note only the people who can see the record can read, or with `--public` one on the record's status pages | All five |
 
 ```bash
 oneuptime incident acknowledge 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11

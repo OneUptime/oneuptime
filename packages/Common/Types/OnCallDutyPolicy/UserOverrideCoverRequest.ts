@@ -64,6 +64,10 @@ export const toUserOverrideTime: (value: unknown) => Date | null = (
  * the start, or from now once it has started, to the end. Null when either
  * time is not a real one, when the end is not after the start, or when the
  * shift has ended.
+ *
+ * "From now" is the minute now is in, as Add User Override's Starts shows it
+ * (11:15, not 11:15:52): already begun, so the cover is in force at once.
+ * It never reaches back before the shift itself started.
  */
 export const getUserOverrideCoverWindow: (data: {
   start: unknown;
@@ -89,8 +93,14 @@ export const getUserOverrideCoverWindow: (data: {
     return null;
   }
 
+  if (start.getTime() >= data.now.getTime()) {
+    return { startsAt: start, endsAt: end };
+  }
+
+  const thisMinute: Date = OneUptimeDate.getStartOfMinute(data.now);
+
   return {
-    startsAt: start.getTime() < data.now.getTime() ? new Date(data.now) : start,
+    startsAt: thisMinute.getTime() > start.getTime() ? thisMinute : start,
     endsAt: end,
   };
 };

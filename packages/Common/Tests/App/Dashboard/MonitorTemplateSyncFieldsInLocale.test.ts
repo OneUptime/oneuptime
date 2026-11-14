@@ -374,13 +374,16 @@ describe("the summary line names the protected fields in the reader's language",
         });
       };
 
-      // The steps are clauses: "; ", "；" or "؛ " (#7607).
+      // The steps are clauses: "; ", "；", "؛ " (#7607) or " ; " (#7629).
       expect(line).toBe(
         filled(words[SUMMARY_SENTENCE] as string, {
-          fields: joinClauses([
-            step("1", ["Monitor destination"]),
-            step("2", ["Request timeout", "Retry count"]),
-          ]),
+          fields: joinClauses(
+            [
+              step("1", ["Monitor destination"]),
+              step("2", ["Request timeout", "Retry count"]),
+            ],
+            language,
+          ),
         }),
       );
       expect({ language, english: englishNamesIn(line, language) }).toEqual({
@@ -421,6 +424,31 @@ describe("the summary line names the protected fields in the reader's language",
     );
     expect(apiSummary(TWO_STEPS, dashboardTranslator("ru"))).toMatch(
       /; \S+ 2: /u,
+    );
+  });
+
+  /*
+   * French puts a space before its semicolon, as before the colons its own
+   * step sentence writes ("Étape {{number}} : {{fields}}"): the line read
+   * "Étape 1 : Cible du moniteur; Étape 2 : …" (#7629).
+   */
+  test("a French line puts a space before the semicolon between two steps, as before its colons", () => {
+    expect(apiSummary(TWO_STEPS, dashboardTranslator("fr"))).toBe(
+      "Ces champs conservent les valeurs actuelles de chaque moniteur lors de la synchronisation : Étape 1 : Cible du moniteur ; Étape 2 : Délai d'expiration de la requête, Nombre de tentatives. Tous les autres réglages d'étape sont copiés depuis le modèle.",
+    );
+  });
+
+  test("French that words the steps but not the line reads it all in English, with English's semicolon", () => {
+    const french: Record<string, string> = readDashboardLocale("fr");
+    const stepsOnly: Translator = createTranslator(
+      (text: string): string | undefined => {
+        return text === SUMMARY_SENTENCE ? undefined : french[text];
+      },
+      "fr",
+    );
+
+    expect(apiSummary(TWO_STEPS, stepsOnly)).toBe(
+      "These fields keep each monitor's current values during sync: Step 1: Monitor destination; Step 2: Request timeout, Retry count. All other step settings are copied from the template.",
     );
   });
 

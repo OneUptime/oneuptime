@@ -3,6 +3,11 @@ import { boldSpans, escapeRegExp } from "./DocsTranslationChecks";
 import CodeRepository from "Common/Models/DatabaseModels/CodeRepository";
 import ProjectCallSMSConfig from "Common/Models/DatabaseModels/ProjectCallSMSConfig";
 import WorkspaceProjectAuthToken from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
+import ServerTwilioEnvironment, {
+  SERVER_TWILIO_ENVIRONMENT_VARIABLES,
+  SERVER_TWILIO_USED_FOR_VALUES,
+  ServerTwilioEnvironmentVariable,
+} from "Common/Types/CallAndSMS/ServerTwilioEnvironment";
 import TwilioConfig from "Common/Types/CallAndSMS/TwilioConfig";
 import TwilioConfigDefaults, {
   TwilioConfigDefaultFlags,
@@ -3242,7 +3247,7 @@ describe("Microsoft Teams Integration, against the server and the Teams card", (
 describe("Twilio Integration, against the notification server and the forms", () => {
   const page: string = english(TWILIO);
 
-  it("only the legacy import reads the old variables, and the chart has no Twilio values", () => {
+  it("only the legacy import reads the old variables, once", () => {
     const readers: Array<string> = [
       ...serverSourcesUnder("packages/App/FeatureSet"),
       ...serverSourcesUnder(COMMON_SERVER),
@@ -3264,8 +3269,226 @@ describe("Twilio Integration, against the notification server and the forms", ()
       expect(page).toContain(`\`${variable}\``);
     }
 
-    expect(readSource("chartValues")).not.toMatch(/twilio/i);
-    expect(page).toContain("the Helm chart has no Twilio credential values");
+    // The old wording, from before the chart and Compose passed the account on.
+    expect(page).not.toContain(
+      "the Helm chart has no Twilio credential values",
+    );
+    expect(page).toContain(
+      "changing those variables does not update an existing installation's credentials. The `GLOBAL_TWILIO_` variables below do.",
+    );
+  });
+
+  /*
+   * #7515: the installation-wide account from environment variables. The
+   * page's table is the server's list of them, each set by the chart from
+   * the Helm value its row names, passed on by Docker Compose and listed in
+   * config.env, and every rule the page states is one the chart or the
+   * server keeps.
+   */
+  describe("the installation-wide account from environment variables", () => {
+    const section: string = sectionOf(
+      page,
+      "### Set the installation-wide account from environment variables",
+    );
+    const rows: Array<Array<string>> = tableRows(section).slice(1);
+
+    it("the intro links to the section", () => {
+      expect(page.split("\n")[2]).toContain(
+        "[Set the installation-wide account from environment variables](#set-the-installation-wide-account-from-environment-variables)",
+      );
+    });
+
+    it("lists every variable the server reads, in its order, and no other", () => {
+      expect(
+        rows.map((row: Array<string>): string => {
+          return unwrap(row[0] as string);
+        }),
+      ).toEqual([...SERVER_TWILIO_ENVIRONMENT_VARIABLES]);
+    });
+
+    it("each variable is set by the chart from the Helm value its row names, which ships empty", () => {
+      const values: unknown = yamlOf("chartValues")["twilio"];
+
+      for (const row of rows) {
+        const variable: string = unwrap(row[0] as string);
+        const helmValue: string = inlineCodes(row[1] as string)[0] as string;
+        const key: string = helmValue.replace(/^twilio\./, "");
+
+        expect({
+          variable,
+          helmValue,
+          setByChart: chartEnvBlock(variable).includes(`$twilio.${key}`),
+          shipsEmpty: valueAt(values, key) === null,
+        }).toEqual({ variable, helmValue, setByChart: true, shipsEmpty: true });
+      }
+
+      // The token from a Secret instead, under the key the values name.
+      const token: Array<string> = rowOf(
+        section,
+        `\`${ServerTwilioEnvironmentVariable.AuthToken}\``,
+      );
+
+      expect(inlineCodes(token[1] as string)).toEqual([
+        "twilio.authToken",
+        "twilio.existingSecret.name",
+      ]);
+      expect(valueAt(values, "existingSecret.authTokenKey")).toBe("authToken");
+      expect(
+        chartEnvBlock(ServerTwilioEnvironmentVariable.AuthToken),
+      ).toContain("secretKeyRef:");
+      expect(readSource("chartHelpers")).toContain(
+        "{{- $existing := $twilio.existingSecret | default dict }}",
+      );
+    });
+
+    it("Docker Compose passes every one on, defaulted, and config.env lists each empty", () => {
+      const compose: string = readSource("baseCompose");
+      const settings: Map<string, string> = configExample();
+
+      for (const variable of SERVER_TWILIO_ENVIRONMENT_VARIABLES) {
+        expect({
+          variable,
+          passedOn: compose.includes(`  ${variable}: \${${variable}:-}\n`),
+          setting: settings.get(variable),
+        }).toEqual({ variable, passedOn: true, setting: "" });
+      }
+
+      expect(section).toContain(
+        "set the `GLOBAL_TWILIO_` settings in `config.env`, then run `npm run start` to recreate the containers.",
+      );
+    });
+
+    it("names the uses the server reads, as the chart's schema allows them", () => {
+      const uses: Array<string> = Object.values(SERVER_TWILIO_USED_FOR_VALUES);
+      const schema: unknown = JSON.parse(
+        fs.readFileSync(
+          path.join(REPO_DIR, CHART, "values.schema.json"),
+          "utf8",
+        ),
+      );
+
+      expect(
+        inlineCodes(
+          rowOf(
+            section,
+            `\`${ServerTwilioEnvironmentVariable.UsedFor}\``,
+          )[2] as string,
+        ),
+      ).toEqual(uses);
+      expect(
+        valueAt(schema, "properties.twilio.properties.usedFor.enum"),
+      ).toEqual([null, "", ...uses]);
+
+      for (const use of uses) {
+        expect({
+          use,
+          read: ServerTwilioEnvironment.readUse(use) !== null,
+        }).toEqual({ use, read: true });
+      }
+
+      // Empty is calls and SMS, as the row says.
+      expect(ServerTwilioEnvironment.readUse("")).toBe(
+        TwilioConfigUse.CallsAndSms,
+      );
+      expect(
+        rowOf(section, `\`${ServerTwilioEnvironmentVariable.UsedFor}\``)[2],
+      ).toContain("`calls-and-sms` (also when empty)");
+    });
+
+    it("the refusals it names are the chart's", () => {
+      const helpers: string = readSource("chartHelpers");
+
+      expect(section).toContain(
+        "The chart also refuses other `twilio` values without `twilio.accountSid`, an Account SID without an auth token, and an auth token given both in `twilio.authToken` and in a Secret.",
+      );
+
+      for (const refusal of [
+        "twilio.accountSid is empty, so OneUptime reads none of the other twilio values",
+        "twilio.accountSid is set, but twilio.authToken and twilio.existingSecret.name are empty",
+        "twilio.authToken and twilio.existingSecret.name are both set.",
+      ]) {
+        expect(helpers).toContain(refusal);
+      }
+
+      // A phone number YAML reads as a number is refused by the schema's string type.
+      expect(section).toContain(
+        "unquoted, `+14155550100` is a number, which the chart refuses",
+      );
+      expect(readSource("chartValues")).toContain(
+        "pass it with --set-string, not --set",
+      );
+    });
+
+    it("the account SID is the switch, and an account with a problem sends nothing", () => {
+      const sid: string = ServerTwilioEnvironmentVariable.AccountSid;
+      const authToken: string = "twilio-auth-token-sentinel";
+      const usable: Record<string, string> = {
+        [sid]: "AC00000000000000000000000000000001",
+        [ServerTwilioEnvironmentVariable.AuthToken]: authToken,
+        [ServerTwilioEnvironmentVariable.PrimaryPhoneNumber]: "+14155550100",
+      };
+
+      expect(section).toContain(
+        "Once `GLOBAL_TWILIO_ACCOUNT_SID` is set, the account is the one the variables describe.",
+      );
+      expect(ServerTwilioEnvironment.read({}).isSet).toBe(false);
+      expect(
+        ServerTwilioEnvironment.isUsable(ServerTwilioEnvironment.read(usable)),
+      ).toBe(true);
+
+      /*
+       * The page's examples of a wrong value are ones the server refuses. A
+       * number without its country code is not one of them: Phone takes
+       * 4155550100, so the page must not say it stops the account.
+       */
+      expect(section).toContain(
+        "such as a phone number OneUptime cannot read or a missing auth token, the account sends no SMS and makes no calls until it is fixed",
+      );
+      expect(section).not.toContain("without its country code");
+      expect(
+        ServerTwilioEnvironment.isUsable(
+          ServerTwilioEnvironment.read({
+            ...usable,
+            [ServerTwilioEnvironmentVariable.PrimaryPhoneNumber]:
+              "+1 415 555 CALL",
+          }),
+        ),
+      ).toBe(false);
+      expect(
+        ServerTwilioEnvironment.isUsable(
+          ServerTwilioEnvironment.read({
+            ...usable,
+            [ServerTwilioEnvironmentVariable.AuthToken]: "",
+          }),
+        ),
+      ).toBe(false);
+
+      // Never the token: the answer the Admin Dashboard reads has none.
+      expect(section).toContain("The auth token is never shown.");
+      expect(
+        JSON.stringify(
+          ServerTwilioEnvironment.toAnswer(
+            ServerTwilioEnvironment.read(usable),
+          ),
+        ),
+      ).not.toContain(authToken);
+    });
+
+    it("no server code reads the variables but through the one reader", () => {
+      // process.env["GLOBAL_TWILIO_..."] or process.env.GLOBAL_TWILIO_...
+      const DIRECT_READ: RegExp =
+        /process\.env\[\s*["'`]GLOBAL_TWILIO_|process\.env\.GLOBAL_TWILIO_/;
+      const readers: Array<string> = [
+        ...serverSourcesUnder("packages/App"),
+        ...serverSourcesUnder(COMMON_SERVER),
+      ].filter((file: string): boolean => {
+        return DIRECT_READ.test(
+          fs.readFileSync(path.join(REPO_DIR, file), "utf8"),
+        );
+      });
+
+      expect(readers).toEqual([]);
+    });
   });
 
   it("each callback path is the notification server's route, behind the ingress's /notification prefix", () => {

@@ -93,14 +93,17 @@ A notification rule says which events post to Slack, and where. Each product has
 | **On-Call** | One list of rules |
 | **SLOs** | One list of rules |
 
-Creating a rule walks four steps:
+Creating a rule walks up to five steps:
 
 | Step | What you set |
 | --- | --- |
 | **Basic** | **Rule Name** and **Rule Description**. |
 | **Conditions** | Which events the rule is for, by severity, state, label, monitor or words in the title, for example. They are checked when an event is created and again with each update OneUptime posts about it, so a rule for acknowledged incidents acts when an incident is acknowledged. A new rule is for every event, such as **All incidents**. To narrow it down, pick **Only incidents that match conditions** and add the conditions. With two or more, **Match Condition** says whether all of them must match, or any one. |
 | **Destination** | Where it posts: **Post to existing channels** with the channel names, **Create a channel for each incident** (or alert, episode, event, monitor or on-call policy) with who joins it, or both. Under the step, **What this rule does** says it in sentences, as the rule's card does. |
+| **Updates** | Incidents, alerts, episodes and scheduled maintenance only: which updates the rule posts after the record's first message. **Every update**, which a new rule starts with, posts them all. **Key updates only** posts the ones that matter most, which the step lists for each kind of record: for an incident, its resolution or reopening, severity changes, public notes and the postmortem. **Choose updates** lets you tick them one by one. Whatever you pick, the rule posts the record's first message, and a video call when one starts. |
 | **Video Call** | Incidents and alerts only: start a call for each one. See [Video Calls](/docs/workspace-connections/video-calls). |
+
+Each condition reads as a sentence: the field, how it compares and the value. Values to pick come from the project's own lists, such as its states, severities, labels and monitors. An on-call rule picks its policies under **On-Call Policy**, which keeps matching a policy after it is renamed, while **On-Call Policy Name** matches words in a policy's name. Every kind of event that has owners has an owner condition, such as **Incident Owner**: pick people and teams, and it matches the people and teams recorded as the event's owners. Being in a team that owns the event does not count. An owner added later makes the rule match from that update on, and a rule that creates channels creates the channel then. An archived value, such as a severity or an on-call policy, is not offered for a new condition. A rule that already has one keeps it, marked **Archived**, and still matches the events that have it. A person, team or policy the project no longer has stays in the condition, and the rule's card says so.
 
 An SLO's rule posts the changes of its error budget policy: when the SLO enters a tier, recovers to a less severe one or leaves every tier, and when its deployments are frozen or allowed again. It posts only to existing channels, as an SLO gets no channel of its own. See [Post to Slack, Microsoft Teams and Mattermost](/docs/slo/error-budget-policy#post-to-slack-microsoft-teams-and-mattermost).
 
@@ -112,7 +115,7 @@ A rule creates its channel the first time an event matches it: when the event is
 
 For an on-call schedule in **Also invite**, whoever is on call in it when the channel is created joins, as the schedule's page shows them, and is not paged. To add people only to some incidents' channels, give a second rule those conditions and those people, with the same **Channel Name Prefix** as the first: rules that match an incident when its channel is created share that channel, and each one adds its own people.
 
-Every later update of the record — a state change, a note, a new owner — is posted to its channels, and to the existing channels its rules name while their conditions match. With **Archive the channel when the incident is resolved** on, or its twin for alerts, episodes, events, monitors and on-call policies, the rule that created a channel archives it when the record is resolved, completed or deleted, whatever its conditions say by then. An incident, alert or episode created already resolved gets no channel of its own; its created message still goes to the channels your rules name. See [Declared already acknowledged or resolved](/docs/incidents/declaring-incidents#declared-already-acknowledged-or-resolved).
+Every later update of the record — a state change, a note, a new owner — is posted to its channels, and to the existing channels its rules name while their conditions match, when a rule that posts there chooses it in its **Updates** step. With **Archive the channel when the incident is resolved** on, or its twin for alerts, episodes, events, monitors and on-call policies, the rule that created a channel archives it when the record is resolved, completed or deleted, whatever its conditions say by then. An incident, alert or episode created already resolved gets no channel of its own; its created message still goes to the channels your rules name. See [Declared already acknowledged or resolved](/docs/incidents/declaring-incidents#declared-already-acknowledged-or-resolved).
 
 An incident, alert, episode or scheduled maintenance event with a channel of its own has **Open in Slack** in the header of its page in OneUptime, beside its state buttons. It opens that channel in a new tab, in the Slack app or in the browser. A record with two channels of its own lists both under the button. A record with channels in both Slack and Microsoft Teams has one **Open channel** button instead, which lists them all. The existing channels your rules post to are not offered.
 
@@ -174,7 +177,7 @@ React to a message in the channel of an incident, alert, episode or scheduled ma
 
 | Reaction | Saved as |
 | --- | --- |
-| 📌 A pin emoji, or Slack's own **Pin to channel** | A private note, seen only by your team |
+| 📌 A pin emoji, or Slack's own **Pin to channel** | A private note, read only by the people who can see the record |
 | 📢 A megaphone or loudspeaker emoji | A public note, shown on the status page. Incidents and scheduled maintenance events only. On a private incident, a private note, and the confirmation says why. When the project's public notes need approval, it is shown once approved, and the confirmation says who it waits for: see [Public note approval](/docs/incidents/notes-owners-and-feed#public-note-approval). |
 
 The note keeps the message as Slack showed it: its formatting, links and code, the people and channels it mentions by name, and its files and images as links to them. A public note leaves the files and images out, since they open only for your team.
@@ -281,7 +284,7 @@ An incident's message has four buttons, **Acknowledge Incident**, **Resolve Inci
 | **Change Severity** | Sets the incident's severity. |
 | **Change Incident State** | Moves the incident to a later state. |
 | **Assign Role** | Gives somebody a role on the incident, such as **Incident Commander**. A role that takes one person moves to them. |
-| **Page Someone** | Pages people, a team, whoever is on call in a schedule, or an on-call policy about the incident, with an optional message. People are paged until one of them answers; a policy pages until somebody acknowledges the incident. |
+| **Page Someone** | Pages people, a team, whoever is on call in a schedule, or an on-call policy about the incident, with an optional message. Whoever it pages, a policy's people too, is paged until one of them answers or the incident is resolved. |
 | **Edit Custom Fields** | Sets the incident's custom fields, each filled in with what the incident holds. A field left empty is cleared. |
 
 `/oneuptime incident 42` shows incident 42, with these buttons and its menu, in a message only you see. Type the number as OneUptime shows it: `42`, `#42` or `INC-42`. In an incident's own channel, `/oneuptime incident` alone shows that incident.

@@ -330,7 +330,7 @@ Oltre agli strumenti per ogni tipo di record, il server ha strumenti pensati per
 
 - **`acknowledge_incident`** / **`resolve_incident`**: portare un incidente allo stato Acknowledged o Resolved del progetto, come fa il pulsante della dashboard
 - **`acknowledge_alert`** / **`resolve_alert`**: lo stesso per gli avvisi
-- **`add_incident_note`**: aggiungere una nota a un incidente con `visibility: "internal"` (solo il team, il predefinito) o `visibility: "public"` (pubblicata sulla pagina di stato). Markdown è supportato
+- **`add_incident_note`**: aggiungere una nota a un incidente con `visibility: "internal"` (solo chi può vedere l'incidente, il predefinito) o `visibility: "public"` (pubblicata sulla pagina di stato). Markdown è supportato
 - **`add_alert_note`**: aggiungere una nota interna a un avviso
 
 Un ciclo tipico: `list_incidents` → `acknowledge_incident` → indagare con `list_logs` → `add_incident_note` (pubblica) → `resolve_incident`.

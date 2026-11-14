@@ -8,6 +8,7 @@ Verstuur de e-mail van OneUptime via de HTTPS-API van een e-mailprovider in plaa
 - [Mailgun](#mailgun): Een API-sleutel, het verzenddomein en de regio ervan.
 - [Postmark](#postmark): Het API-token van de server.
 - [Resend](#resend): Een API-sleutel met verzendtoegang.
+- [Omgevingsvariabelen](#de-e-mail-van-de-server-instellen-met-omgevingsvariabelen): Stel de e-mail van een zelf gehoste server in vanuit Helm-values of `config.env`.
 - [Problemen oplossen](#problemen-oplossen): Wat de weigering van elke provider betekent.
 :::
 
@@ -17,7 +18,7 @@ Verstuur de e-mail van OneUptime via de HTTPS-API van een e-mailprovider in plaa
 @tab Project
 Open via **Projectinstellingen > Meldingen > Meldingskanalen** het onderdeel **Meer instellingen** en klik op **SMTP-configuratie aanmaken** in de kaart **Aangepaste SMTP-configuraties**. Vul in de stap **Provider** een **Naam** in en kies de provider. De volgende stap vraagt om de instellingen van die provider, en de stap **Afzender** om de **E-mail van** en de **Van naam**. Zodra de configuratie is opgeslagen, controleert **Test-e-mail verzenden** in haar rij of ze werkt.
 @tab Zelf gehoste instantie
-Open in het Admin Dashboard **Instellingen** en daarna **Meldingen > E-mails**. Klik in de kaart **E-mailserverinstellingen** op **Server bewerken** en kies de provider als **Type e-mailserver**. Daaronder verschijnt de kaart van de provider, zoals **Amazon SES-instellingen**: klik op de bewerkknop ervan, zoals **Amazon SES bewerken**, en vul de instellingen van de provider en de stap **Afzender** in. Zolang er iets ontbreekt, zegt de kaart wat er ontbreekt, en wordt elke e-mail geweigerd met de instelling die nog moet worden ingevuld.
+Open in het Admin Dashboard **Instellingen** en daarna **Meldingen > E-mails**. Klik in de kaart **E-mailserverinstellingen** op **Server bewerken** en kies de provider als **Type e-mailserver**. Daaronder verschijnt de kaart van de provider, zoals **Amazon SES-instellingen**: klik op de bewerkknop ervan, zoals **Amazon SES bewerken**, en vul de instellingen van de provider en de stap **Afzender** in. Zolang er iets ontbreekt, zegt de kaart wat er ontbreekt, en wordt elke e-mail geweigerd met de instelling die nog moet worden ingevuld. Een server die vanuit code wordt uitgerold, kan ze in plaats daarvan met omgevingsvariabelen instellen: zie [De e-mail van de server instellen met omgevingsvariabelen](#de-e-mail-van-de-server-instellen-met-omgevingsvariabelen).
 :::
 
 | Provider | Wat u invult | Waar OneUptime naartoe verstuurt |
@@ -108,6 +109,67 @@ Open in Postmark de server die verstuurt, daarna het tabblad **API Tokens** erva
 ## Resend
 
 Voeg in Resend onder **Domains** uw domein toe en verifieer het, en maak daarna onder **API Keys** een API-sleutel met verzendtoegang aan. Vul die in als **API-sleutel** in de stap **Resend**, met een **E-mail van** in uw geverifieerde domein. Het eigen testdomein van Resend verstuurt alleen naar uw eigen adres.
+
+## De e-mail van de server instellen met omgevingsvariabelen
+
+Een zelf gehoste server die vanuit code wordt uitgerold, kan meteen e-mail versturen, zonder iets met de hand in te stellen: stel de e-mailinstellingen in met omgevingsvariabelen, vanuit Terraform of waarmee u OneUptime verder uitrolt. Zodra `GLOBAL_EMAIL_SERVER_TYPE` is ingesteld, verstuurt de server zijn eigen e-mail zoals de variabelen beschrijven. De instellingen die in het Admin Dashboard onder **Instellingen** en daarna **Meldingen > E-mails** zijn opgeslagen, worden niet gebruikt, en die pagina toont deze alleen-lezen, elk veld met de variabele die het instelt. Laat `GLOBAL_EMAIL_SERVER_TYPE` leeg om e-mail in plaats daarvan in het Admin Dashboard in te stellen. De SMTP-configuraties van projecten veranderen niet.
+
+| Variabele | Helm-waarde | Wat erin staat |
+| --- | --- | --- |
+| `GLOBAL_EMAIL_SERVER_TYPE` | `email.serverType` | `custom-smtp`, `sendgrid`, `amazon-ses`, `mailgun`, `postmark` of `resend`. Pas als die is ingesteld, leest OneUptime de andere variabelen |
+| `GLOBAL_EMAIL_FROM_EMAIL` | `email.fromEmail` | Het adres waar elke e-mail vandaan komt |
+| `GLOBAL_EMAIL_FROM_NAME` | `email.fromName` | De naam waarmee elke e-mail wordt verstuurd. Verplicht voor `custom-smtp` en `sendgrid` |
+| `GLOBAL_EMAIL_SMTP_TRANSPORT` | `email.smtp.transport` | `smtp` (ook als die leeg is), of `microsoft-graph` om via Microsoft Graph te versturen met de OAuth-app |
+| `GLOBAL_EMAIL_SMTP_HOST` | `email.smtp.host` | De mailserver, zoals `smtp.example.com` |
+| `GLOBAL_EMAIL_SMTP_PORT` | `email.smtp.port` | De poort ervan, zoals `587` |
+| `GLOBAL_EMAIL_SMTP_REQUIRE_TLS` | `email.smtp.requireTls` | `true` om alleen te versturen via een versleutelde verbinding met een geldig certificaat, of `false` (ook als die leeg is) |
+| `GLOBAL_EMAIL_SMTP_AUTH_TYPE` | `email.smtp.authType` | `username-and-password` (ook als die leeg is), `oauth` of `none` |
+| `GLOBAL_EMAIL_SMTP_USERNAME` | `email.smtp.username` | De mailbox waarmee wordt aangemeld, ook voor `oauth`. Laat deze en het wachtwoord leeg om zonder aanmelden te versturen |
+| `GLOBAL_EMAIL_SMTP_PASSWORD` | `email.smtp.password`, of een Secret die in `email.existingSecret.name` is genoemd | Het wachtwoord ervan |
+| `GLOBAL_EMAIL_SMTP_OAUTH_PROVIDER_TYPE` | `email.smtp.oauth.providerType` | `client-credentials` (ook als die leeg is) of `jwt-bearer` |
+| `GLOBAL_EMAIL_SMTP_OAUTH_CLIENT_ID` | `email.smtp.oauth.clientId` | De client-ID van de OAuth-app |
+| `GLOBAL_EMAIL_SMTP_OAUTH_CLIENT_SECRET` | `email.smtp.oauth.clientSecret`, of een Secret die in `email.existingSecret.name` is genoemd | Het clientgeheim ervan; voor `jwt-bearer` de privésleutel in PEM-indeling |
+| `GLOBAL_EMAIL_SMTP_OAUTH_TOKEN_URL` | `email.smtp.oauth.tokenUrl` | De token-URL ervan |
+| `GLOBAL_EMAIL_SMTP_OAUTH_SCOPE` | `email.smtp.oauth.scope` | De scope ervan |
+| `GLOBAL_EMAIL_SENDGRID_API_KEY` | `email.sendgrid.apiKey`, of een Secret die in `email.existingSecret.name` is genoemd | De API-sleutel van SendGrid |
+| `GLOBAL_EMAIL_AMAZON_SES_AUTHENTICATION_TYPE` | `email.amazonSes.authenticationType` | `access-key` (ook als die leeg is), of `server-iam-role` om aan te melden met de IAM-rol van de server |
+| `GLOBAL_EMAIL_AMAZON_SES_ACCESS_KEY_ID` | `email.amazonSes.accessKeyId` | De ID van de toegangssleutel |
+| `GLOBAL_EMAIL_AMAZON_SES_SECRET_ACCESS_KEY` | `email.amazonSes.secretAccessKey`, of een Secret die in `email.existingSecret.name` is genoemd | De geheime toegangssleutel ervan |
+| `GLOBAL_EMAIL_AMAZON_SES_REGION` | `email.amazonSes.region` | De regio waarin uw afzender is geverifieerd, zoals `us-east-1` |
+| `GLOBAL_EMAIL_MAILGUN_API_KEY` | `email.mailgun.apiKey`, of een Secret die in `email.existingSecret.name` is genoemd | De API-sleutel van Mailgun |
+| `GLOBAL_EMAIL_MAILGUN_DOMAIN` | `email.mailgun.domain` | Het verzenddomein, zoals `mg.example.com` |
+| `GLOBAL_EMAIL_MAILGUN_REGION` | `email.mailgun.region` | `us` (ook als die leeg is) of `eu` |
+| `GLOBAL_EMAIL_POSTMARK_SERVER_TOKEN` | `email.postmark.serverToken`, of een Secret die in `email.existingSecret.name` is genoemd | Het server-API-token van Postmark |
+| `GLOBAL_EMAIL_RESEND_API_KEY` | `email.resend.apiKey`, of een Secret die in `email.existingSecret.name` is genoemd | De API-sleutel van Resend |
+
+Alleen de variabelen die het servertype leest, worden gebruikt: de `GLOBAL_EMAIL_SMTP_`-variabelen voor `custom-smtp`, en de eigen variabelen van een provider voor die provider. Het log van de server en het Admin Dashboard noemen elke andere die is ingesteld, als ongebruikt.
+
+Met Helm stelt u ze in onder `email` in uw values. Om het wachtwoord of de sleutel buiten de values te houden die Helm bij elke release opslaat, zet u het in een eigen Secret en noemt u die Secret in `email.existingSecret.name`. De chart leest het uit de sleutel die in `email.existingSecret.key` is genoemd, anders uit de sleutel die ernaar is genoemd: `smtpPassword`, `smtpOAuthClientSecret`, `sendgridApiKey`, `amazonSesSecretAccessKey`, `mailgunApiKey`, `postmarkServerToken` of `resendApiKey`.
+
+```bash
+kubectl create secret generic oneuptime-email --namespace oneuptime \
+  --from-literal=smtpPassword=YOUR_SMTP_PASSWORD
+```
+
+```yaml
+email:
+  serverType: custom-smtp
+  fromEmail: alerts@example.com
+  fromName: OneUptime
+  smtp:
+    host: smtp.example.com
+    port: 587
+    requireTls: true
+    username: alerts@example.com
+  existingSecret:
+    name: oneuptime-email
+```
+
+De chart weigert andere `email`-waarden zonder `email.serverType`, instellingen zonder het wachtwoord of de sleutel die ze lezen, een wachtwoord of sleutel dat zowel in de values als in een Secret staat, en een Secret waaruit de instellingen niets lezen. Met Terraform stelt u dezelfde waarden in op een `helm_release`, het wachtwoord of de sleutel als gevoelige waarde.
+
+Met Docker Compose stelt u de `GLOBAL_EMAIL_`-instellingen in `config.env` in en voert u daarna `npm run start` uit om de containers opnieuw te maken.
+
+OneUptime leest de variabelen bij het opstarten. Is er een onjuist, zoals een poort die geen getal is of een ontbrekend wachtwoord, dan verstuurt de server geen e-mail totdat dat is opgelost; het log van de server, de e-mailinstellingen in het Admin Dashboard en de checklist op `/admin/setup` noemen de variabele. Wachtwoorden en sleutels worden nooit getoond. Wijzig de variabelen en herstart OneUptime om de instellingen te wijzigen: het Admin Dashboard wijzigt ze niet.
 
 ## Problemen oplossen
 

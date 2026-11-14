@@ -60,6 +60,12 @@ export function getPhoneSchema(): ZodSchema {
   }).openapi({
     type: "object",
     description: "Phone object",
+    /*
+     * Machine-readable marker, as on the DateTime wrapper: the Terraform
+     * provider generator writes a phone number as a plain string, compared
+     * as OneUptime keeps it (as written, or as its digits).
+     */
+    "x-oneuptime-type": ObjectType.Phone,
     example: { _type: ObjectType.Phone, value: "+1-555-123-4567" },
   });
 }

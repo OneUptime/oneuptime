@@ -27,6 +27,7 @@ import SubscriberNotificationResendAccess from "../Utils/StatusPage/SubscriberNo
 import logger, { LogAttributes } from "../Utils/Logger";
 import IncidentEpisodeFeedService from "./IncidentEpisodeFeedService";
 import WorkspaceStateChangePosting from "../Utils/Workspace/WorkspaceStateChangePosting";
+import NotificationRuleUpdates from "../../Types/Workspace/NotificationRules/NotificationRuleUpdates";
 import { IncidentEpisodeFeedEventType } from "../../Models/DatabaseModels/IncidentEpisodeFeed";
 import { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import StateChangeLock from "../Utils/StateChangeLock";
@@ -558,6 +559,16 @@ export class Service extends ProjectReferencesService<IncidentEpisodeStateTimeli
     const episodeDisplayNumber: string =
       episode?.episodeNumberWithPrefix || "#" + (episode?.episodeNumber || 0);
 
+    // Whether the episode was resolved in the state before this one.
+    const previousIncidentStateId: ObjectID | undefined =
+      onCreate.carryForward.statusTimelineBeforeThisStatus?.incidentStateId;
+    const wasResolved: boolean = previousIncidentStateId
+      ? await IncidentStateService.isResolvedIncidentState({
+          projectId: createdItem.projectId!,
+          incidentStateId: previousIncidentStateId,
+        })
+      : false;
+
     await IncidentEpisodeFeedService.createIncidentEpisodeFeedItem({
       incidentEpisodeId: createdItem.incidentEpisodeId!,
       projectId: createdItem.projectId!,
@@ -584,6 +595,16 @@ export class Service extends ProjectReferencesService<IncidentEpisodeStateTimeli
           },
         ),
         leadWithAuthor: true,
+        /*
+         * Resolving it, or reopening it, is an update of its own for the
+         * rules that choose their updates: a quiet channel hears of it.
+         */
+        updateKinds: [
+          NotificationRuleUpdates.getStateChangeKind({
+            isResolved: isResolvedState,
+            wasResolved: wasResolved,
+          }),
+        ],
       },
     });
 
@@ -613,6 +634,14 @@ export class Service extends ProjectReferencesService<IncidentEpisodeStateTimeli
         stateId: createdItem.incidentStateId,
         previousStateId:
           onCreate.carryForward.statusTimelineBeforeThisStatus?.incidentStateId,
+        /*
+         * Who changed it: somebody paged about the episode by a policy a
+         * person started by hand (OnCallPolicyStartedByHand), or as an
+         * observer, answers their page by acknowledging it
+         * (OnCallPersonPageAnswer).
+         */
+        changedByUserId:
+          createdItem.createdByUserId || onCreate.createBy.props.userId,
       });
     }
 

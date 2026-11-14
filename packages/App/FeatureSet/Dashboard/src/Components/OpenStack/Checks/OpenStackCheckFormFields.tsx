@@ -278,6 +278,10 @@ function getCredentialFields(data: {
       autoComplete: "new-password",
       collapsibleSection: data.section,
     },
+    /*
+     * Both start as the domain called Default. Their placeholder is that domain's name in
+     * Keystone, in every language (isPlaceholderIdentifier), as on Connect Cloud (#7663).
+     */
     {
       field: { userDomainName: true },
       title: "User Domain",
@@ -285,6 +289,7 @@ function getCredentialFields(data: {
       required: false,
       showIf: isPasswordKind,
       placeholder: "Default",
+      isPlaceholderIdentifier: true,
       autoComplete: "off",
       collapsibleSection: data.moreSection,
     },
@@ -295,6 +300,7 @@ function getCredentialFields(data: {
       required: false,
       showIf: isPasswordKind,
       placeholder: "Default",
+      isPlaceholderIdentifier: true,
       autoComplete: "off",
       collapsibleSection: data.moreSection,
     },
@@ -423,10 +429,15 @@ function readLifecycleOptions(value: unknown): OpenStackLifecycleCheckOptions {
     : {};
 }
 
-// A text box with its label, for one thing the check would otherwise pick by itself.
+/*
+ * A text box with its label, for one thing the check would otherwise pick by itself. Its
+ * placeholder is English, which Input looks up, once - or, said so, a sentence put in the
+ * reader's words here already (#7682).
+ */
 const OptionInput: FunctionComponent<{
   label: string;
   placeholder: string;
+  isPlaceholderTranslated?: boolean | undefined;
   value: string | undefined;
   dataTestId: string;
   type?: InputType | undefined;
@@ -434,6 +445,7 @@ const OptionInput: FunctionComponent<{
 }> = (props: {
   label: string;
   placeholder: string;
+  isPlaceholderTranslated?: boolean | undefined;
   value: string | undefined;
   dataTestId: string;
   type?: InputType | undefined;
@@ -449,7 +461,8 @@ const OptionInput: FunctionComponent<{
       </div>
       <Input
         value={props.value || ""}
-        placeholder={translator.translateText(props.placeholder) as string}
+        placeholder={props.placeholder}
+        isPlaceholderTranslated={props.isPlaceholderTranslated}
         ariaLabelledby={labelId}
         dataTestId={props.dataTestId}
         {...(props.type ? { type: props.type } : {})}
@@ -529,6 +542,7 @@ export const OpenStackLifecycleOptionsField: FunctionComponent<
                 ),
               },
             )}
+            isPlaceholderTranslated={true}
             value={
               options.volumeSizeInGiB !== undefined
                 ? String(options.volumeSizeInGiB)

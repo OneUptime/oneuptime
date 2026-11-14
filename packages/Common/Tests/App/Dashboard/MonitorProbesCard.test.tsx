@@ -342,6 +342,38 @@ describe("MonitorProbesCard", () => {
     expect(row).not.toHaveTextContent("next");
   });
 
+  /*
+   * A paused monitor's rows are set aside by the probes' claim a quarter of
+   * an hour at a time, so their nextPingAt is in the future without being a
+   * check that will happen (Server/Utils/Probe/ClaimSetAside).
+   */
+  test("a paused monitor's probe never promises a next check", () => {
+    const rows: Array<MonitorProbe> = [
+      monitorProbe({
+        name: "London",
+        isEnabled: true,
+        result: { monitoredAt: minutesAgo(30), isOnline: true },
+        nextPingAt: minutesAgo(-12),
+      }),
+    ];
+
+    renderCard({
+      probes: loaded(rows),
+      summary: MonitorOverviewProbeUtil.summarizeProbes({
+        monitorProbes: rows,
+        validStepIds: new Set<string>([STEP_ID]),
+        primaryStepId: STEP_ID,
+        cadenceSeconds: 300,
+        now: NOW,
+        isScheduled: false,
+      }),
+    });
+
+    const row: HTMLElement = screen.getByTestId("monitor-probe-row");
+    expect(row).toHaveTextContent("Checked 30 minutes ago");
+    expect(row).not.toHaveTextContent("next");
+  });
+
   test("whether a next check is still ahead is judged at the summary's now, not the browser's clock", () => {
     // The browser's clock is ten minutes slow; the summary was judged at NOW.
     jest.setSystemTime(minutesAgo(10));

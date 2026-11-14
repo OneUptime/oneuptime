@@ -220,16 +220,16 @@ describe("the card", () => {
     expect(savings).toHaveTextContent("€140.00");
     /*
      * What it changes sits under what to do in the card's direction; only
-     * the configuration's own words are set apart (an inline bdi), so a
-     * page read right to left does not push the line to the far side.
+     * the configurations are set apart, inline (joinWithArrowsOn, #7666),
+     * so a page read right to left does not push the line to the far side.
+     * Two names in Latin letters on an English page need nothing round
+     * them: the line is written exactly as it was.
      */
     const change: HTMLElement = within(savings).getByTestId(
       "cloud-resource-saving-change",
     );
     expect(change.tagName).toBe("DIV");
-    expect(change.querySelector("bdi")).toHaveTextContent(
-      "Standard_D8s_v5 → Standard_D4s_v5",
-    );
+    expect(change.textContent).toBe("Standard_D8s_v5 → Standard_D4s_v5");
 
     // Called what it shows: what it costs, and how it could cost less.
     expect(screen.getByTestId("cloud-resource-cost")).toHaveAttribute(

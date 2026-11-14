@@ -26,11 +26,8 @@ import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import User from "Common/Models/DatabaseModels/User";
 import TelemetryQueueService from "../../Services/Queue/TelemetryQueueService";
-import PositiveNumber from "Common/Types/PositiveNumber";
 import MonitorProbeService from "Common/Server/Services/MonitorProbeService";
-import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import OneUptimeDate from "Common/Types/Date";
-import MonitorService from "Common/Server/Services/MonitorService";
 import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 import ProbeReportIdentity, {
   PROBE_REPORTS_ONLY_ITS_OWN_RESULTS_MESSAGE,
@@ -564,28 +561,19 @@ router.post(
         );
       }
 
-      // Get pending monitor count for this specific probe
-      const pendingCount: PositiveNumber = await MonitorProbeService.countBy({
-        query: {
+      /*
+       * The monitors this probe has left waiting for more than two minutes,
+       * by the claim's own rule and up to its cap
+       * (MonitorProbeService.countMonitorProbesDueForProbing).
+       */
+      const pendingCount: number =
+        await MonitorProbeService.countMonitorProbesDueForProbing({
           probeId: probeId,
-          isEnabled: true,
-          nextPingAt: QueryHelper.lessThanEqualToOrNull(
-            OneUptimeDate.getSomeMinutesAgo(2),
-          ),
-          monitor: {
-            ...MonitorService.getEnabledMonitorQuery(),
-          },
-          project: {
-            ...ProjectService.getActiveProjectStatusQuery(),
-          },
-        },
-        props: {
-          isRoot: true,
-        },
-      });
+          dueAt: OneUptimeDate.getSomeMinutesAgo(2),
+        });
 
       return Response.sendJsonObjectResponse(req, res, {
-        queueSize: pendingCount.toNumber(),
+        queueSize: pendingCount,
       });
     } catch (err) {
       return next(err);

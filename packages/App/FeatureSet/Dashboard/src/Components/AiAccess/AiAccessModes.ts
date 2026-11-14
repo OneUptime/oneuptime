@@ -352,13 +352,16 @@ export function joinAiAccessProtections(
 
   /*
    * Never more than four today; any more are said together as the first,
-   * set off with the semicolon of their script (joinClauses).
+   * set off with the semicolon of their script and language (joinClauses).
    */
   if (clauses.length > 4) {
     const together: number = clauses.length - 3;
 
     return joinAiAccessProtections(
-      [joinClauses(clauses.slice(0, together)), ...clauses.slice(together)],
+      [
+        joinClauses(clauses.slice(0, together), translator.language),
+        ...clauses.slice(together),
+      ],
       translator,
     );
   }

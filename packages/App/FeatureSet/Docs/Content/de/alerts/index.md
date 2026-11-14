@@ -33,7 +33,7 @@ Beide halten ein Problem fest, und beide können die Bereitschaft alarmieren. De
 | ---------------------------- | ------------------------------------------------------ | ------------------------------------------------- |
 | **Was es ist**               | Ein Problem, das sich Ihr Team ansehen sollte, bevor Nutzer betroffen sind | Ein Problem, das Ihre Nutzer betrifft, etwa ein Ausfall |
 | **Auf Statusseiten**         | Nie                                                    | Kann erscheinen und informiert Abonnenten         |
-| **Notizen**                  | Private Notizen, nur für Ihr Team                      | Öffentliche Notizen für Kunden und private Notizen |
+| **Notizen**                  | Private Notizen, nur für Personen, die die Warnung sehen können                      | Öffentliche Notizen für Kunden und private Notizen |
 | **Anfangsstatus**            | **Identifiziert**, **Bestätigt**, **Behoben**          | **Identifiziert**, **Bestätigt**, **Behoben**     |
 | **Anfangsschweregrade**      | **Hoch**, **Niedrig**                                      | Critical Incident, Major Incident, Minor Incident |
 | **Nummern in einem neuen Projekt** | `ALT-42` und `AE-42` für Episoden                | `INC-42` und `IE-42` für Episoden                 |

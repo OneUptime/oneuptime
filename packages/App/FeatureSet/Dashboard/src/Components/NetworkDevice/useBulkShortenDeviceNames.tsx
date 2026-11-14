@@ -21,11 +21,13 @@ import PermissionGate, {
 import ProjectUtil from "Common/UI/Utils/Project";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
+  getGlobalTranslator,
   translatePlural,
   translateTemplate,
   translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
+import { joinWithArrowsOn } from "Common/Types/DirectionArrow";
 import {
   planShortDeviceName,
   planShortDeviceNames,
@@ -195,8 +197,13 @@ export function buildShortenDeviceNamesConfirmMessage(
           ),
     );
 
+    // Each name keeps its own reading; the arrow points the way the page reads.
+    const language: string = getGlobalTranslator().language;
+
     for (const rename of renames.slice(0, MAX_CONFIRM_EXAMPLES)) {
-      lines.push(`  ${rename.currentName} → ${rename.newName}`);
+      lines.push(
+        `  ${joinWithArrowsOn([rename.currentName, rename.newName], language)}`,
+      );
     }
 
     if (renames.length > MAX_CONFIRM_EXAMPLES) {

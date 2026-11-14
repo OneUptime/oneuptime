@@ -37,6 +37,11 @@ import LabelRuleImportExport, {
 import { afterEach, describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import {
+  RouteAttributes,
+  pageRoutesIn,
+  routesAt,
+} from "../../Helpers/PageRoutes";
 
 /*
  * Docs overhaul task 14: what the Label and Owner Rules, Import and Export
@@ -1285,12 +1290,26 @@ describe("Forms Overview, against the form's menus and routes", () => {
 
   it("gives the product's address and a form's link as the routes spell them", () => {
     const accounts: string = readSource("accountsApp");
+    // The Accounts app mounts react-router's <Route> by its own name.
+    const accountsRoutes: Array<RouteAttributes> = pageRoutesIn(
+      path.join(REPO_DIR, SOURCES["accountsApp"]!),
+      "Route",
+    );
 
     expect(readSource("dashboardRouteMap")).toContain(
       "[PageMap.FORMS]: new Route(`/dashboard/${RouteParams.ProjectID}/forms`),",
     );
-    expect(accounts).toContain('path="/accounts/form/:shareKey"');
-    expect(accounts).toContain('path="/accounts/incident-form/:shareKey"');
+    expect(routesAt(accountsRoutes, '"/accounts/form/:shareKey"')).toEqual([
+      { path: '"/accounts/form/:shareKey"', element: "<FormPage />" },
+    ]);
+    expect(
+      routesAt(accountsRoutes, '"/accounts/incident-form/:shareKey"'),
+    ).toEqual([
+      {
+        path: '"/accounts/incident-form/:shareKey"',
+        element: "<LegacyIncidentFormRedirect />",
+      },
+    ]);
     expect(accounts).toContain(
       "to={`/accounts/form/${encodeURIComponent(shareKey)}`}",
     );

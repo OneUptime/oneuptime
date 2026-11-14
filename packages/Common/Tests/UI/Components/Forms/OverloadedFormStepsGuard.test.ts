@@ -121,6 +121,23 @@ export const LONG_STEPS_ALLOWED: Array<ListedStep> = [
     reason:
       "The team of the summary's channels is written once for each workspace that has teams, each only on that workspace's summaries: Mattermost's team picker, shown when its bot is in two or more teams, and Microsoft Teams' Team Name. Slack's summaries show neither. The step shows five rows at most - the name, the description, the channel names, the team and Enabled - and four for Slack.",
   },
+  /*
+   * A grouping rule's Group By step shows only for a Custom mix: each named
+   * answer - Monitor, Everything Together, Connected Services, Severity,
+   * Title - is a card on the Grouping step and never reaches it.
+   */
+  ...[
+    ["Alerts/Settings/AlertGroupingRules.tsx", "Alert"],
+    ["Incidents/Settings/IncidentGroupingRules.tsx", "Incident"],
+  ].map(([file, kind]: Array<string>): ListedStep => {
+    return {
+      file: `${DASHBOARD}/Pages/${file}`,
+      form: `ModelTable: Settings > ${kind} Grouping Rules`,
+      step: "group-by",
+      reason:
+        "Six checkboxes that answer one question - which of these split the rule's episodes - in two columns of three rows: monitor, severity, title, the two label sets and connected services. The step shows only for a Custom mix; a split would ask one question on two pages.",
+    };
+  }),
 ];
 
 const VIRTUAL_ROOT: string = "/repo";
@@ -462,13 +479,14 @@ describe("the project's stepped forms", () => {
     /*
      * Its one Rules step drew the whole rule (its own form, so the scan sees
      * one field there - see LongFormStepsGuard for that form). A rule for
-     * incidents or alerts also asks, on a step of its own, whether it starts
-     * a video call for the event, and where.
+     * incidents, alerts, episodes or scheduled maintenance asks which
+     * updates it posts on a step of its own (#7581), and one for incidents
+     * or alerts whether it starts a video call for the event, and where.
      */
     [
       `${DASHBOARD}/Components/Workspace/WorkspaceNotificationRulesTable.tsx`,
       "ModelTable: Settings > Workspace Notification Rules",
-      ["basic", "conditions", "destination", "videoCall"],
+      ["basic", "conditions", "destination", "updates", "videoCall"],
     ],
     /*
      * Grouping rules ask two questions and then create: Grouping (how to

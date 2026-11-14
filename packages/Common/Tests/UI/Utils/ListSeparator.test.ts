@@ -3,6 +3,7 @@ import {
   ARABIC_CLAUSE_SEPARATOR,
   ARABIC_LIST_SEPARATOR,
   CLAUSE_SEPARATOR,
+  FRENCH_CLAUSE_SEPARATOR,
   getClauseSeparator,
   getListSeparator,
   IDEOGRAPHIC_CLAUSE_SEPARATOR,
@@ -185,5 +186,101 @@ describe("getClauseSeparator and joinClauses", () => {
       limitInMs: 2000,
     });
     expect(timed.inMs).toBeLessThan(2000);
+  });
+});
+
+/*
+ * French sets its semicolon apart with a space before it, as the
+ * Dashboard's French locale writes every one: "{{first}} ; {{second}} ; et
+ * {{third}}", "Étape {{number}} : {{fields}}". French and English share
+ * their letters, so the clauses' language says it (#7629).
+ */
+describe("getClauseSeparator and joinClauses, told the clauses' language", () => {
+  test("a space before the semicolon between French clauses", () => {
+    expect(FRENCH_CLAUSE_SEPARATOR).toBe(" ; ");
+    expect(
+      joinClauses(
+        ["Étape 1 : Cible du moniteur", "Étape 2 : Nombre de tentatives"],
+        "fr",
+      ),
+    ).toBe("Étape 1 : Cible du moniteur ; Étape 2 : Nombre de tentatives");
+    expect(
+      getClauseSeparator(["lun.–jeu. 08:30–18:00", "ven. 08:30–15:00"], "fr"),
+    ).toBe(" ; ");
+    // A regional code, or one written in capitals, is French too.
+    expect(getClauseSeparator(["a", "b"], "fr-CA")).toBe(" ; ");
+    expect(getClauseSeparator(["a", "b"], "fr_FR")).toBe(" ; ");
+    expect(getClauseSeparator(["a", "b"], "FR")).toBe(" ; ");
+    expect(joinClauses(["Étape 1 : Cible du moniteur"], "fr")).toBe(
+      "Étape 1 : Cible du moniteur",
+    );
+  });
+
+  test("French clauses nobody says are French keep English's semicolon: their letters cannot tell", () => {
+    expect(
+      joinClauses([
+        "Étape 1 : Cible du moniteur",
+        "Étape 2 : Nombre de tentatives",
+      ]),
+    ).toBe("Étape 1 : Cible du moniteur; Étape 2 : Nombre de tentatives");
+    expect(getClauseSeparator(["a", "b"], "")).toBe("; ");
+  });
+
+  test("no change for any other language: a semicolon and a space between clauses in Latin letters", () => {
+    for (const language of [
+      "en",
+      "de",
+      "es",
+      "it",
+      "pt",
+      "nl",
+      "da",
+      "no",
+      "sv",
+      "ru",
+      "ko",
+      "hi",
+      "fa",
+      "ar",
+      "ja",
+      "zh-CN",
+      "zh-TW",
+      // Only French: not a language whose code starts with its letters.
+      "fy",
+      "fur",
+    ]) {
+      expect({
+        language,
+        separator: getClauseSeparator(
+          ["Step 1: Monitor destination", "Step 2: Retry count"],
+          language,
+        ),
+      }).toEqual({ language, separator: CLAUSE_SEPARATOR });
+    }
+
+    expect(
+      joinClauses(
+        ["Schritt 1: Monitor-Ziel", "Schritt 2: Wiederholungen"],
+        "de",
+      ),
+    ).toBe("Schritt 1: Monitor-Ziel; Schritt 2: Wiederholungen");
+    expect(
+      joinClauses(["Шаг 1: Цель монитора", "Шаг 2: Число повторов"], "ru"),
+    ).toBe("Шаг 1: Цель монитора; Шаг 2: Число повторов");
+  });
+
+  test("a clause in Chinese or Persian script still decides, whatever the language", () => {
+    expect(getClauseSeparator(["第 1 步：监视目标", "第 2 步"], "fr")).toBe(
+      IDEOGRAPHIC_CLAUSE_SEPARATOR,
+    );
+    expect(getClauseSeparator(["مرحله 1", "مرحله 2"], "fr")).toBe(
+      ARABIC_CLAUSE_SEPARATOR,
+    );
+    expect(
+      joinClauses(["第 1 步：监视目标", "第 2 步：重试次数"], "zh-CN"),
+    ).toBe("第 1 步：监视目标；第 2 步：重试次数");
+    expect(
+      joinClauses(["مرحله 1: هدف مانیتور", "مرحله 2: تعداد تلاش مجدد"], "fa"),
+    ).toBe("مرحله 1: هدف مانیتور؛ مرحله 2: تعداد تلاش مجدد");
   });
 });

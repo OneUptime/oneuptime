@@ -1,9 +1,9 @@
 # Twilio 整合
 
-自行託管的 OneUptime 透過您自己的 Twilio 帳戶傳送簡訊和語音警示，費用由您直接支付給 Twilio。Twilio 認證資訊儲存在 OneUptime 的儀表板中，而不是環境變數中：通知傳送會讀取已儲存的設定，Helm Chart 中也沒有 Twilio 認證資訊的值。
+自行託管的 OneUptime 透過您自己的 Twilio 帳戶傳送簡訊和語音警示，費用由您直接支付給 Twilio。Twilio 認證資訊儲存在 OneUptime 的儀表板中，可以只用於一個專案，也可以用於整個安裝。從程式碼部署的安裝也可以改為透過環境變數設定整個安裝的帳戶，由 Helm Chart 和 Docker Compose 傳入：請參閱[透過環境變數設定整個安裝的帳戶](#透過環境變數設定整個安裝的帳戶)。
 
 > [!NOTE]
-> 一次舊的移轉匯入了 `TWILIO_ACCOUNT_SID`、`TWILIO_AUTH_TOKEN` 和 `TWILIO_PHONE_NUMBER`；修改這些變數並無法更新現有安裝的認證資訊。
+> 一次舊的移轉曾匯入 `TWILIO_ACCOUNT_SID`、`TWILIO_AUTH_TOKEN` 和 `TWILIO_PHONE_NUMBER`；修改這些變數並無法更新現有安裝的認證資訊。下文的 `GLOBAL_TWILIO_` 變數可以。
 
 :::cards
 - [準備 Twilio 帳戶](#1-準備-twilio-帳戶): 認證資訊、電話號碼和帳戶的限制。
@@ -53,6 +53,66 @@
 :::
 
 如果要設定整個安裝的預設設定，管理員可以改為開啟 **Admin Dashboard > 設定 > 通話和簡訊**，選擇該帳戶傳送的內容，編輯 Twilio 認證資訊和電話號碼並儲存。當成員所在的專案沒有預設設定時，傳給他們的通知會使用這個全域設定。請對 Auth Token 保密。
+
+### 透過環境變數設定整個安裝的帳戶
+
+新的安裝可以一啟動就傳送簡訊、撥打電話，無需手動設定：透過環境變數設定整個安裝的帳戶，可以來自 Terraform 或任何部署 OneUptime 的工具。一旦設定了 `GLOBAL_TWILIO_ACCOUNT_SID`，帳戶就是這些變數所描述的帳戶。**Admin Dashboard > 設定 > 通話和簡訊** 中儲存的帳戶不再使用，該頁面以唯讀方式顯示此帳戶，每個欄位旁註明設定它的變數。如果要改為在 Admin Dashboard 中設定帳戶，請將 `GLOBAL_TWILIO_ACCOUNT_SID` 留空。專案設定不受影響。
+
+| 變數 | Helm 值 | 內容 |
+| --- | --- | --- |
+| `GLOBAL_TWILIO_ACCOUNT_SID` | `twilio.accountSid` | Account SID。只有設定了它，OneUptime 才會讀取其他變數 |
+| `GLOBAL_TWILIO_AUTH_TOKEN` | `twilio.authToken`，或在 `twilio.existingSecret.name` 中指定的 Secret | Auth Token |
+| `GLOBAL_TWILIO_USED_FOR` | `twilio.usedFor` | `calls-and-sms`（為空時也是如此）、`sms-only` 或 `calls-only` |
+| `GLOBAL_TWILIO_PRIMARY_PHONE_NUMBER` | `twilio.primaryPhoneNumber` | 撥出電話所用的號碼，包含國碼。`sms-only` 不需要 |
+| `GLOBAL_TWILIO_SECONDARY_PHONE_NUMBERS` | `twilio.secondaryPhoneNumbers` | 選填，以逗號分隔：對其所在國家的收件者，用這些號碼代替主要號碼 |
+| `GLOBAL_TWILIO_SMS_PHONE_NUMBERS` | `twilio.smsPhoneNumbers` | 傳送每則簡訊所用的號碼，以逗號分隔。`sms-only` 必填 |
+
+使用 Helm 時，在 values 的 `twilio` 下設定它們。為了不讓 auth token 出現在 Helm 隨每個 release 儲存的 values 中，請把它放進您自己的 Secret，並在 `twilio.existingSecret.name` 中指定該 Secret：
+
+```bash
+kubectl create secret generic oneuptime-twilio --namespace oneuptime \
+  --from-literal=authToken=YOUR_TWILIO_AUTH_TOKEN
+```
+
+```yaml
+twilio:
+  accountSid: ACXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+  usedFor: calls-and-sms
+  primaryPhoneNumber: "+14155550100"
+  existingSecret:
+    name: oneuptime-twilio
+```
+
+在 values 檔案中為電話號碼加上引號，並用 `--set-string` 而不是 `--set` 傳入：不加引號時，`+14155550100` 是一個數字，Chart 會拒絕它。Chart 也會拒絕沒有 `twilio.accountSid` 的其他 `twilio` 值、沒有 auth token 的 Account SID，以及同時在 `twilio.authToken` 和 Secret 中提供的 auth token。使用 Terraform 時，在 `helm_release` 上設定相同的值，並將 auth token 設為敏感值。
+
+使用 Docker Compose 時，在 `config.env` 中填寫以 `GLOBAL_TWILIO_` 開頭的設定，然後執行 `npm run start` 重新建立容器。
+
+OneUptime 在啟動時讀取這些變數。如果其中有錯誤，例如 OneUptime 無法識別的電話號碼或缺少 auth token，在修正之前該帳戶不會傳送簡訊，也不會撥打電話；伺服器記錄、**Admin Dashboard > 設定 > 通話和簡訊** 和 `/admin/setup` 上的檢查清單會指出是哪個變數。auth token 永遠不會顯示。若要變更帳戶，請修改這些變數並重新啟動 OneUptime：Admin Dashboard 不會變更它。
+
+### 使用 Terraform 管理專案設定
+
+專案設定也是 [Terraform 提供者](/docs/terraform/index) 的 `oneuptime_call_and_sms_config` 資源，同名的資料來源可以讀取它。Auth Token 是敏感值，因此計畫、記錄和輸出中從不顯示它。請透過敏感變數傳入：
+
+```hcl
+variable "twilio_auth_token" {
+  type      = string
+  sensitive = true
+}
+
+resource "oneuptime_call_and_sms_config" "production" {
+  name                        = "Production Twilio"
+  used_for                    = "Calls and SMS"
+  twilio_account_sid          = "ACXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+  twilio_auth_token           = var.twilio_auth_token
+  twilio_primary_phone_number = "+14155550100"
+  is_project_default          = true
+}
+```
+
+- **專案預設設定。** 只有設定 `is_project_default = true`，Terraform 才會把設定設為專案預設。省略時 Terraform 會傳送 `false`，因此與在儀表板中不同，專案的第一個設定不會成為預設。每種訊息只在一個設定上設定它：如果 `used_for` 相同的兩個設定都設定了它，它們會在每次 apply 時互相奪走預設。`is_project_default_for_sms` 和 `is_project_default_for_calls` 由 OneUptime 設定，Terraform 只讀取它們。
+- **電話號碼。** 每個號碼都要寫上 `+` 和國碼。數字之間可以有空格、連字號、句點或括號：OneUptime 會把 `+1 415 555 0100` 存成 `+14155550100`，而 Terraform 會將它視為您寫的號碼，因此 plan 不會顯示任何變更。
+- **API 金鑰。** Terraform 使用的金鑰除了能建立和編輯設定外，還必須能讀取 Auth Token：**專案擁有者**、**專案管理員**，或自訂角色中的 **Read Call and SMS**。如果金鑰無法讀取，讀取設定會失敗，錯誤會說明誰可以讀取該權杖。
+- **參照。** 狀態頁面的 `call_sms_config_id` 和來電策略的 `project_call_sms_config_id` 取設定的 `id`。
 
 ### 為通話和簡訊使用不同號碼
 

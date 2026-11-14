@@ -22,6 +22,7 @@ import {
   ScheduleCoverageState,
   ScheduleCoverageStatus,
 } from "Common/Types/OnCallDutyPolicy/ScheduleShiftUtil";
+import DirectionArrow from "Common/UI/Components/DirectionArrow/DirectionArrow";
 import Icon from "Common/UI/Components/Icon/Icon";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -238,7 +239,7 @@ const FinalScheduleSummary: FunctionComponent<ComponentProps> = (
               ),
             }}
             slots={{
-              arrow: <span className="text-gray-300">&rarr;</span>,
+              arrow: <DirectionArrow className="text-gray-300" />,
             }}
           />
         </span>

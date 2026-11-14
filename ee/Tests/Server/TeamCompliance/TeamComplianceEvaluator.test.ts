@@ -3327,7 +3327,7 @@ describe("evaluate - rule warnings", () => {
       projectSwitch: ProjectChannelSwitch,
       label: string,
     ) => {
-      const warning: string = `${label} notifications are switched off for this project, so members will not be notified by ${label} even when they meet this rule. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Settings.`;
+      const warning: string = `${label} notifications are switched off for this project, so members will not be notified by ${label} even when they meet this rule. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.`;
 
       expect(
         TeamComplianceEvaluator.getChannelSwitchedOffWarning(channel),
@@ -3424,7 +3424,7 @@ describe("evaluate - rule warnings", () => {
     });
 
     expect(WHATSAPP_SWITCHED_OFF_WARNING).toBe(
-      "WhatsApp is switched off for this project, so members cannot add a WhatsApp number to meet this rule. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notifications > Notification Settings.",
+      "WhatsApp is switched off for this project, so members cannot add a WhatsApp number to meet this rule. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notifications > Notification Channels.",
     );
 
     expect(
@@ -3470,7 +3470,7 @@ describe("evaluate - rule warnings", () => {
       expect(
         TeamComplianceEvaluator.getChannelSwitchedOffWarning(channel),
       ).toBe(
-        `${channel} notifications are switched off for this project, so members will not be notified by ${channel} even when they meet this rule. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Settings.`,
+        `${channel} notifications are switched off for this project, so members will not be notified by ${channel} even when they meet this rule. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.`,
       );
     },
   );
@@ -3510,7 +3510,7 @@ describe("evaluate - rule warnings", () => {
   });
 
   const CALL_AND_SMS_OFF: string =
-    "Call and SMS notifications are switched off for this project, so members will not be notified on these channels even when they meet this rule. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Settings.";
+    "Call and SMS notifications are switched off for this project, so members will not be notified on these channels even when they meet this rule. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.";
 
   /*
    * A rule on several switched-off channels says so in ONE sentence for the
@@ -3524,7 +3524,7 @@ describe("evaluate - rule warnings", () => {
       "Call alone keeps the one-channel sentence",
       [ComplianceNotificationChannel.Call],
       [
-        "Call notifications are switched off for this project, so members will not be notified by Call even when they meet this rule. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Settings.",
+        "Call notifications are switched off for this project, so members will not be notified by Call even when they meet this rule. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.",
       ],
     ],
     [
@@ -3540,7 +3540,7 @@ describe("evaluate - rule warnings", () => {
         ComplianceNotificationChannel.Telegram,
       ],
       [
-        "Call, SMS and Telegram notifications are switched off for this project, so members will not be notified on these channels even when they meet this rule. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Settings.",
+        "Call, SMS and Telegram notifications are switched off for this project, so members will not be notified on these channels even when they meet this rule. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.",
       ],
     ],
     [
@@ -3565,7 +3565,7 @@ describe("evaluate - rule warnings", () => {
         ComplianceNotificationChannel.WhatsApp,
       ],
       [
-        "Call notifications are switched off for this project, so members will not be notified by Call even when they meet this rule. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Settings.",
+        "Call notifications are switched off for this project, so members will not be notified by Call even when they meet this rule. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.",
         WHATSAPP_SWITCHED_OFF_WARNING,
       ],
     ],
@@ -3578,7 +3578,7 @@ describe("evaluate - rule warnings", () => {
         ComplianceNotificationChannel.Telegram,
       ],
       [
-        "Call, SMS and Telegram notifications are switched off for this project, so members will not be notified on these channels even when they meet this rule. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Settings.",
+        "Call, SMS and Telegram notifications are switched off for this project, so members will not be notified on these channels even when they meet this rule. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.",
         WHATSAPP_SWITCHED_OFF_WARNING,
       ],
     ],
@@ -3650,7 +3650,7 @@ describe("evaluate - rule warnings", () => {
         enableTelegramNotifications: false,
       }),
     ).toEqual([
-      "SMS and Telegram notifications are switched off for this project, so members will not be notified on these channels even when they meet this rule. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Settings.",
+      "SMS and Telegram notifications are switched off for this project, so members will not be notified on these channels even when they meet this rule. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.",
     ]);
     expect(
       warningsFor({
@@ -4094,7 +4094,7 @@ describe("a switched-off channel's warning says who can turn it on", () => {
         "A project owner, a Billing Admin or someone with Manage Billing can turn",
       );
       expect(warning).toContain(
-        "in Project Settings > Notifications > Notification Settings.",
+        "in Project Settings > Notifications > Notification Channels.",
       );
     }
 

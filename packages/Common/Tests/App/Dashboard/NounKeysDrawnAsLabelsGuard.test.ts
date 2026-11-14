@@ -113,7 +113,7 @@ const LABEL_ONLY_KEYS: Readonly<Record<string, string>> = {
   "Galera cluster size":
     "A metric's title, on a database's and an OpenStack cloud's pages, and before the words a chart adds to it (\"{{metric}} (per second)\").",
   "Container App":
-    "The kind beside a connected cloud resource's name and in an account's Type filter, and the first words of every sentence that says what a cloud change does to one, in every language that words those sentences (\"{{kind}} {{name}}: reiniciar\").",
+    "The first words of every sentence that says what a cloud change does to one, in every language that words those sentences (\"{{kind}} {{name}}: reiniciar\"). The catalog's label of the same words is a product's name, drawn as written (CloudResourceTypeNamesGuard).",
 };
 
 // A call that draws a key as a label: the file it is in, and what it reads.
@@ -257,10 +257,6 @@ const SITES: Readonly<Record<string, NounSite>> = {
   [`${DASHBOARD}/Components/ResourceConnection/ResourceConnectionGuides.ts`]: {
     inSentence:
       "The agent's name in the connection guide's sentences (\"Set up the {{agentName}}\").",
-  },
-  [`${DASHBOARD}/Components/Topology/ServiceMapViewModel.ts`]: {
-    inEnglish:
-      'A count\'s noun after its number ("3 Docker hosts"), English words that are not looked up.',
   },
   [`${DASHBOARD}/Pages/Ceph/View/Owners.tsx`]: OWNERS_CARD,
   [`${DASHBOARD}/Pages/Ceph/View/Settings.tsx`]: MORE_SETTINGS,
