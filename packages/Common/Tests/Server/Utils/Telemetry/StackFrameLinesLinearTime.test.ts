@@ -7,6 +7,7 @@ import {
   readPhpFrame,
   readPythonFrame,
   readRubyFrame,
+  readRubyFrameWithMessage,
   readV8EvalFrame,
   readV8FrameWithParens,
   readV8FrameWithParensNoColumn,
@@ -86,6 +87,11 @@ const WORST_LINES: Array<[string, string]> = [
     "x" + repeat(":0:in `x", LENGTH) + "z",
   ],
   ["Ruby with a run of digits", repeat(":0", LENGTH)],
+  [
+    "Ruby candidates with a message only after a line separator",
+    "x" + repeat(":0:in 'x", LENGTH) + "\r': z",
+  ],
+  ["from, then a run of white space", "from" + repeat("\t", LENGTH) + "x"],
   ["C# with in after in", "at x" + repeat(" in x", LENGTH) + "z"],
   [
     "C# with tabs around an n",
@@ -107,7 +113,10 @@ const WORST_LINES: Array<[string, string]> = [
   ["browser frames", repeat("a@", LENGTH)],
 ];
 
-// The patterns as they were: the references the readers must agree with.
+/*
+ * The patterns as they were - or, for a reader written since, the pattern it
+ * stands for: the references the readers must agree with.
+ */
 interface Reader {
   name: string;
   read: (line: string) => FrameLineMatch | null;
@@ -237,6 +246,31 @@ const READERS: ReadonlyArray<Reader> = [
       "a:1:in 'b'",
       "x:1:in  `y:2:in 'z'",
       "a:b:1:in ``'",
+    ],
+  },
+  {
+    name: "a Ruby frame with the message after it",
+    read: readRubyFrameWithMessage,
+    before: /^(.+?):(\d+):in\s+[`'](.+?)': /,
+    alphabet: [
+      ...COMMON_PIECES,
+      ":in",
+      ":1:in `",
+      ":2:in '",
+      "'",
+      "`",
+      "': ",
+      "': x (E)",
+      ": ",
+      "in",
+      ":3:in\t'",
+    ],
+    frames: [
+      "/app/a.rb:12:in `pay': card declined (PaymentError)",
+      "a:1:in 'b': c",
+      "x:1:in  `y:2:in 'z': w': v",
+      "a:b:1:in `': ': x",
+      "a.rb:1:in 'B#c': couldn't find 'd': e (E)",
     ],
   },
   {
