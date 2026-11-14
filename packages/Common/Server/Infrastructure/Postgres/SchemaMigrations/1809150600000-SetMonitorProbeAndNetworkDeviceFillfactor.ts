@@ -5,25 +5,29 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * parameters, so there is nothing to generate, and nothing for the schema
  * drift check to compare.
  *
- * Keeps a tenth of every page of "MonitorProbe" and "NetworkDevice" free
- * when rows are placed on it, so that the next update of a row finds room
- * on the row's own page. Only an update that stays on its page can be HOT:
- * it writes no index entry, and the next read of the page reclaims the old
+ * Keeps part of every page of "MonitorProbe" and "NetworkDevice" free when
+ * rows are placed on it, so that the next update of a row finds room on
+ * the row's own page. Only an update that stays on its page can be HOT: it
+ * writes no index entry, and the next read of the page reclaims the old
  * version instead of leaving it for vacuum. Both tables are rewritten all
  * day - each monitor probe's result is stored over it every minute, each
  * poll writes a device's verdict and rate baseline - and at the default
  * fillfactor of 100 a page often has no room left for that.
  *
- * Measured on seeded tables, a minute of probing at a time: at 90 every
- * probe result stored over a MonitorProbe row was HOT (49.9% of the
- * table's updates, against 44.2% at 100; the claims, the other half, never
- * can be), and NetworkDevice's HOT updates went from 50.7% to 55.2%. That
- * is about 10% fewer index entries written on each table, for 6-12% more
- * heap.
+ * Measured on seeded tables, a minute of probing at a time:
+ *
+ *   MonitorProbe at 90: every probe result stored over a row was HOT
+ *     (49.9% of the table's updates, from 44.2% at 100; the claims, the
+ *     other half, never can be, so a lower fillfactor has nothing left to
+ *     win). 10% fewer index entries written, 12% more heap.
+ *   NetworkDevice at 80: HOT updates went from 50.7% to 61.7% (55.2% at
+ *     90) of a ceiling near 64% - the claims never can be either. 22%
+ *     fewer index entries written, 7% more heap (as much as at 90: fewer
+ *     non-HOT updates leave fewer dead rows behind).
  *
  * SET (fillfactor) takes SHARE UPDATE EXCLUSIVE, which no read or write
  * waits for, and rewrites nothing: an update that does not fit on its page
- * moves its row to a page that keeps the tenth free, so the tables settle
+ * moves its row to a page that keeps the room free, so the tables settle
  * into it as they are updated.
  */
 export class SetMonitorProbeAndNetworkDeviceFillfactor1809150600000
@@ -35,7 +39,7 @@ export class SetMonitorProbeAndNetworkDeviceFillfactor1809150600000
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`ALTER TABLE "MonitorProbe" SET (fillfactor = 90)`);
     await queryRunner.query(
-      `ALTER TABLE "NetworkDevice" SET (fillfactor = 90)`,
+      `ALTER TABLE "NetworkDevice" SET (fillfactor = 80)`,
     );
   }
 

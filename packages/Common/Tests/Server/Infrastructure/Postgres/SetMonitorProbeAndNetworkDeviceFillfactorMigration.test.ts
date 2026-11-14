@@ -7,11 +7,14 @@ import { describe, expect, test } from "@jest/globals";
  * ROOM ON EVERY PAGE FOR THE NEXT UPDATE (issue #7921).
  *
  * "MonitorProbe" and "NetworkDevice" are rewritten all day, and only an
- * update that fits on its row's page can be HOT. The migration keeps a
- * tenth of each page free for that (fillfactor 90). TypeORM does not model
- * storage parameters, so the migration is written by hand and the schema
- * drift check cannot catch a change to it: these assertions pin its
- * statements.
+ * update that fits on its row's page can be HOT. The migration keeps room
+ * on each page for that: a tenth of MonitorProbe's (fillfactor 90, where
+ * every probe result already stays HOT), a fifth of NetworkDevice's
+ * (fillfactor 80, measured better than 90 there: a poll writes a device
+ * three times, where a check writes a monitor probe twice). TypeORM does
+ * not model storage parameters, so the migration is written by hand and
+ * the schema drift check cannot catch a change to it: these assertions pin
+ * its statements.
  *
  * They also pin what keeps it harmless on two tables probes write all the
  * time. ALTER TABLE ... SET / RESET of fillfactor takes SHARE UPDATE
@@ -40,7 +43,7 @@ const STORAGE_PARAMETER_ONLY: RegExp =
   /^ALTER TABLE "(MonitorProbe|NetworkDevice)" (SET \(fillfactor = \d+\)|RESET \(fillfactor\))$/;
 
 describe("SetMonitorProbeAndNetworkDeviceFillfactor1809150600000", () => {
-  test("keeps a tenth of every page of both tables free - and does nothing else", async () => {
+  test("keeps room on every page of both tables - and does nothing else", async () => {
     expect(
       await statementsOf((runner: QueryRunner) => {
         return new SetMonitorProbeAndNetworkDeviceFillfactor1809150600000().up(
@@ -49,7 +52,7 @@ describe("SetMonitorProbeAndNetworkDeviceFillfactor1809150600000", () => {
       }),
     ).toEqual([
       `ALTER TABLE "MonitorProbe" SET (fillfactor = 90)`,
-      `ALTER TABLE "NetworkDevice" SET (fillfactor = 90)`,
+      `ALTER TABLE "NetworkDevice" SET (fillfactor = 80)`,
     ]);
   });
 
