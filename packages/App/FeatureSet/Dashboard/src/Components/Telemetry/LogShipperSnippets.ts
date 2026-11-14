@@ -68,6 +68,24 @@ services:
       - /var/log:/var/log:ro`;
 }
 
+/*
+ * Fluentd's file, which sent nothing as it was handed out (issue #7886).
+ * Now:
+ *  - the tail reads each line as it is, into "message", the first field
+ *    OneUptime takes a log's body from, and the filter after it reads a
+ *    JSON line's own fields. A line that is not JSON goes on as it is:
+ *    parsed as JSON in the tail, it was refused ("pattern not matched").
+ *  - the tail keeps its place in each file in /fluentd/log, the image's own
+ *    folder, where its user can write (the Compose file keeps it in a
+ *    volume). /var/log is the host's, mounted read-only.
+ *  - Fluentd's own logs (tagged fluent.info, fluent.warn, ...) go to the
+ *    @FLUENT_LOG label and stop there. With no such label, <match **> takes
+ *    them too and sends them to OneUptime.
+ *  - json_array sends a buffer chunk as one request, so chunk_limit_size
+ *    keeps each request under the most the ingress takes on /fluentd/logs
+ *    (1 MB, nginx's default), as the docs page's file does. Fluentd's own
+ *    default is 8 MB a chunk.
+ */
 export function getFluentdConfig(endpoint: CompatibleIngestEndpoint): string {
   return `# fluentd.conf
 <source>
@@ -79,12 +97,24 @@ export function getFluentdConfig(endpoint: CompatibleIngestEndpoint): string {
 <source>
   @type tail
   path /var/log/*.log
-  pos_file /var/log/fluentd.pos
+  pos_file /fluentd/log/fluentd.pos
   tag app.logs
+  <parse>
+    @type none
+  </parse>
+</source>
+
+# A JSON line keeps its fields; any other line is sent as it is
+<filter app.**>
+  @type parser
+  key_name message
+  reserve_data true
+  remove_key_name_field true
+  emit_invalid_record_to_error false
   <parse>
     @type json
   </parse>
-</source>
+</filter>
 
 <match **>
   @type http
@@ -97,18 +127,38 @@ export function getFluentdConfig(endpoint: CompatibleIngestEndpoint): string {
   <buffer>
     @type memory
     flush_interval 5s
+    chunk_limit_size 900k
   </buffer>
-</match>`;
+</match>
+
+# Keep Fluentd's own logs out of OneUptime
+<label @FLUENT_LOG>
+  <match **>
+    @type null
+  </match>
+</label>`;
 }
 
+/*
+ * The image (fluent/fluentd) runs /fluentd/etc/$FLUENTD_CONF, and its
+ * FLUENTD_CONF is fluent.conf: mounted as /fluentd/etc/fluentd.conf, the
+ * file was never read, and Fluentd ran the image's own, which sends nothing
+ * here. The fluentd-positions volume keeps the tail's place in each file
+ * when the container is made again. The address is in fluentd.conf alone:
+ * nothing here sets it.
+ */
 export function getFluentdDockerCompose(): string {
   return `# docker-compose.yml
 services:
   fluentd:
     image: fluent/fluentd:latest
     volumes:
-      - ./fluentd.conf:/fluentd/etc/fluentd.conf
+      - ./fluentd.conf:/fluentd/etc/fluent.conf
       - /var/log:/var/log:ro
+      - fluentd-positions:/fluentd/log
     ports:
-      - "24224:24224"`;
+      - "24224:24224"
+
+volumes:
+  fluentd-positions:`;
 }
