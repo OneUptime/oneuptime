@@ -18,6 +18,7 @@ import Dictionary from "../../../Types/Dictionary";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import Semaphore, { SemaphoreMutex } from "../../Infrastructure/Semaphore";
 import IncomingMonitorRequest from "../../../Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
+import IncomingEmailMonitorRequest from "../../../Types/Monitor/IncomingEmailMonitor/IncomingEmailMonitorRequest";
 import MonitorCriteria from "../../../Types/Monitor/MonitorCriteria";
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
@@ -105,6 +106,10 @@ import MonitorProbeLastResults, {
   MonitorProbesOfResult,
 } from "./MonitorProbeLastResults";
 import MonitorProbeResultOrder from "./MonitorProbeResultOrder";
+import MonitorHeartbeatState, {
+  HeartbeatKind,
+  HeartbeatWrite,
+} from "./MonitorHeartbeatState";
 import MonitorOpenRecords, {
   MonitorOpenRecordsReading,
   MonitorRecordKind,
@@ -616,6 +621,22 @@ export default class MonitorResourceUtil {
         return response;
       }
 
+      // What a heartbeat sweep compares with (MonitorHeartbeatState).
+      const monitorStatusIdFound: ObjectID | undefined =
+        monitor.currentMonitorStatusId;
+
+      /*
+       * A server agent's report is written to the monitor at most every few
+       * minutes; its arrival is kept on every report, and a check of the
+       * monitor judges the latest kept (MonitorResourceUtil.keepServerReport).
+       */
+      if (monitor.monitorType === MonitorType.Server) {
+        await MonitorResourceUtil.keepServerReport({
+          monitorId: monitor.id!,
+          dataToProcess: dataToProcess as ServerMonitorResponse,
+        });
+      }
+
       let probeName: string | undefined = undefined;
       const monitorName: string | undefined = monitor.name || undefined;
 
@@ -838,7 +859,23 @@ export default class MonitorResourceUtil {
            * (and overwrite) the ingest path's fresh heartbeat update, causing
            * the monitor to flap between Online and Offline every minute.
            */
-          if (!serverMonitorResponse.onlyCheckRequestReceivedAt) {
+          if (
+            !serverMonitorResponse.onlyCheckRequestReceivedAt &&
+            !(await MonitorHeartbeatState.isWriteDue({
+              monitorId: monitor.id!,
+              write: HeartbeatWrite.ServerReport,
+            }))
+          ) {
+            /*
+             * Written less than SERVER_REPORT_WRITE_EVERY_SECONDS ago. Its
+             * arrival is kept (keepServerReport), and the CheckOnlineStatus
+             * sweep only looks at a server whose written report is older
+             * than its window.
+             */
+            logger.debug(
+              `${dataToProcess.monitorId.toString()} - Server report not written: the last one was written less than ${MonitorHeartbeatState.SERVER_REPORT_WRITE_EVERY_SECONDS} seconds ago.`,
+            );
+          } else if (!serverMonitorResponse.onlyCheckRequestReceivedAt) {
             /*
              * Heartbeat write: single-statement UPDATE, no hooks and no
              * `version` bump. This DELIBERATELY drops the per-update workflow
@@ -871,6 +908,13 @@ export default class MonitorResourceUtil {
                     MonitorRecordEvidence.keepsResponseContent(monitor),
                 }) as unknown as ServerMonitorResponse,
               },
+            });
+
+            await MonitorHeartbeatState.markWritten({
+              monitorId: monitor.id!,
+              write: HeartbeatWrite.ServerReport,
+              everySeconds:
+                MonitorHeartbeatState.SERVER_REPORT_WRITE_EVERY_SECONDS,
             });
 
             logger.debug(
@@ -910,6 +954,35 @@ export default class MonitorResourceUtil {
                 MonitorRecordEvidence.keepsResponseContent(monitor),
             });
 
+          /*
+           * Written when the request differs from the last one written in
+           * anything the heartbeat sweep judges again, and otherwise at most
+           * every so often (MonitorHeartbeatState): a sender repeating the
+           * same ping rewrote the row on every call. Its arrival is in
+           * IncomingRequestReceivedAtStore, which the sweep judges; the row's
+           * is only the floor, so it is never left older than half the
+           * monitor's shortest window.
+           */
+          const requestFingerprint: string =
+            MonitorHeartbeatState.getIncomingRequestFingerprint({
+              request: incomingMonitorRequest,
+              monitorSteps: monitor.monitorSteps,
+            });
+
+          if (
+            !(await MonitorHeartbeatState.isWriteDue({
+              monitorId: monitor.id!,
+              write: HeartbeatWrite.IncomingRequest,
+              fingerprint: requestFingerprint,
+            }))
+          ) {
+            logger.debug(
+              `${dataToProcess.monitorId.toString()} - Incoming request not written: the same request was written moments ago.`,
+            );
+            hasPersistedMonitorData = true;
+            return;
+          }
+
           await MonitorService.updateColumnsByIdWithoutHooks({
             id: monitor.id!,
             data: {
@@ -919,6 +992,16 @@ export default class MonitorResourceUtil {
               incomingMonitorRequestAsReceived:
                 latestRequest.incomingMonitorRequestAsReceived,
             } as any,
+          });
+
+          await MonitorHeartbeatState.markWritten({
+            monitorId: monitor.id!,
+            write: HeartbeatWrite.IncomingRequest,
+            fingerprint: requestFingerprint,
+            everySeconds:
+              MonitorHeartbeatState.getIncomingRequestWriteEverySeconds(
+                monitor.monitorSteps,
+              ),
           });
 
           logger.debug(
@@ -2135,6 +2218,17 @@ export default class MonitorResourceUtil {
 
       await persistLatestMonitorPayload();
 
+      /*
+       * An incoming request or email evaluated: what it judged is recorded,
+       * so a heartbeat sweep that would judge the same again can skip it
+       * (MonitorHeartbeatState.canSkipEvaluation).
+       */
+      await MonitorResourceUtil.markHeartbeatEvaluated({
+        monitor: monitor,
+        dataToProcess: dataToProcess,
+        monitorStatusIdFound: monitorStatusIdFound,
+      });
+
       MonitorLogUtil.saveMonitorLog({
         monitorId: monitor.id!,
         projectId: monitor.projectId!,
@@ -2148,6 +2242,72 @@ export default class MonitorResourceUtil {
     } finally {
       await releaseMutex();
     }
+  }
+
+  /*
+   * A server agent's report: its arrival is kept on every report, before
+   * the report is judged (the row is written at most every few minutes). A
+   * check of the monitor - the CheckOnlineStatus sweep, which passes the
+   * arrival it read from the row - judges the latest arrival kept, so a
+   * report that was not written is never taken for silence.
+   */
+  public static async keepServerReport(input: {
+    monitorId: ObjectID;
+    dataToProcess: ServerMonitorResponse;
+  }): Promise<void> {
+    if (!input.dataToProcess.onlyCheckRequestReceivedAt) {
+      await MonitorHeartbeatState.recordServerReport({
+        monitorId: input.monitorId,
+        receivedAt: input.dataToProcess.requestReceivedAt,
+      });
+      return;
+    }
+
+    const kept: Date | null =
+      await MonitorHeartbeatState.getServerReportReceivedAt(input.monitorId);
+
+    if (!kept) {
+      return;
+    }
+
+    const written: Date | null = input.dataToProcess.requestReceivedAt
+      ? OneUptimeDate.fromString(input.dataToProcess.requestReceivedAt)
+      : null;
+
+    if (!written || kept.getTime() > written.getTime()) {
+      input.dataToProcess.requestReceivedAt = kept;
+    }
+  }
+
+  // An incoming request or email evaluated, recorded for the heartbeat sweeps.
+  public static async markHeartbeatEvaluated(input: {
+    monitor: Monitor;
+    dataToProcess: DataToProcess;
+    monitorStatusIdFound: ObjectID | undefined;
+  }): Promise<void> {
+    const kind: HeartbeatKind | null =
+      input.monitor.monitorType === MonitorType.IncomingRequest
+        ? HeartbeatKind.IncomingRequest
+        : input.monitor.monitorType === MonitorType.IncomingEmail
+          ? HeartbeatKind.IncomingEmail
+          : null;
+
+    if (!kind || !input.monitor.id) {
+      return;
+    }
+
+    await MonitorHeartbeatState.markEvaluated({
+      kind: kind,
+      monitorId: input.monitor.id,
+      receivedAt:
+        kind === HeartbeatKind.IncomingRequest
+          ? (input.dataToProcess as IncomingMonitorRequest)
+              .incomingRequestReceivedAt
+          : (input.dataToProcess as IncomingEmailMonitorRequest)
+              .emailReceivedAt,
+      monitorSteps: input.monitor.monitorSteps,
+      monitorStatusId: input.monitorStatusIdFound,
+    });
   }
 
   /*
