@@ -477,6 +477,85 @@ describe("a page as a person reads it", () => {
     );
   });
 
+  /*
+   * #7877: the parser keeps an escape as written, so a page reached as
+   * "/caf%c3%a9" (lower-case hex, as .NET and WordPress write it) or with
+   * its accent decomposed ("/cafe" and U+0301, as macOS writes file names)
+   * was a row of its own beside "/caf%C3%A9", all three named "/café". A
+   * key is the path in one spelling, and what can name another page stays
+   * apart.
+   */
+  test("every spelling of one address is one row with all its sessions", () => {
+    const analysis: UserFlowAnalysis = analyzeUserFlow(
+      response([
+        { id: "1", pages: ["/café"] },
+        { id: "2", pages: ["/caf%C3%A9"] },
+        { id: "3", pages: ["/caf%c3%a9"] },
+        { id: "4", pages: [`/cafe${String.fromCharCode(0x301)}`] },
+        { id: "5", pages: ["/a/b"] },
+        { id: "6", pages: ["/a%2Fb"] },
+        { id: "7", pages: ["/a%2fb"] },
+        { id: "8", pages: ["/Cart"] },
+        { id: "9", pages: ["/cart"] },
+      ]),
+      {},
+    );
+
+    expect(
+      analysis.pages
+        .map((page: UserFlowPageStats): string => {
+          return `${page.page} ${page.sessions}`;
+        })
+        .sort(),
+    ).toEqual(
+      ["/caf%C3%A9 4", "/a/b 1", "/a%2Fb 2", "/Cart 1", "/cart 1"].sort(),
+    );
+
+    // One box on the map, named as a person reads it.
+    expect(
+      analysis.graph.nodes
+        .filter((candidate: UserFlowNode): boolean => {
+          return candidate.label === "/café";
+        })
+        .map((candidate: UserFlowNode): [string, number] => {
+          return [candidate.page, candidate.sessions];
+        }),
+    ).toEqual([["/caf%C3%A9", 4]]);
+  });
+
+  test("hiding a page, or anchoring the map on it, takes every spelling of it", () => {
+    const specs: Array<SessionSpec> = [
+      { id: "1", pages: ["/home", "/caf%c3%a9", "/menu"] },
+      { id: "2", pages: ["/home", "/cafe%CC%81", "/menu"] },
+      { id: "3", pages: ["/home", "/caf%C3%A9", "/order"] },
+    ];
+
+    const journeys: Array<UserFlowJourney> = buildUserFlowJourneys(
+      response(specs),
+      {
+        groupDynamicSegments: true,
+        hiddenPages: ["/caf%C3%A9"],
+        sessionFilter: "all",
+        deviceType: "",
+      },
+    ).journeys;
+
+    expect(
+      journeys
+        .map((journey: UserFlowJourney): string => {
+          return journey.pages.join(" ");
+        })
+        .sort(),
+    ).toEqual(["/home /menu", "/home /menu", "/home /order"]);
+
+    const anchored: UserFlowAnalysis = analyzeUserFlow(response(specs), {
+      anchorPage: "/caf%C3%A9",
+    });
+
+    expect(node(anchored.graph, 0, "/caf%C3%A9")?.sessions).toBe(3);
+    expect(node(anchored.graph, 1, "/menu")?.sessions).toBe(2);
+  });
+
   test("a page is hidden by its key, whichever spelling its address had", () => {
     const journeys: Array<UserFlowJourney> = buildUserFlowJourneys(
       response([

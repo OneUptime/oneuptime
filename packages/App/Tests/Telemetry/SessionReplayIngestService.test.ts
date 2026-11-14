@@ -2554,6 +2554,52 @@ describe("SessionReplayIngestService.processFromQueue", () => {
     });
 
     /*
+     * #7877. The browser can write one page several ways: lower-case hex,
+     * an accent decomposed. Whatever a recorder sends, an older one too, a
+     * page is stored in one spelling, so it is one route; what can name
+     * another page ("/a%2Fb" beside "/a/b") stays apart.
+     */
+    test("a page's spellings are stored as one", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            {
+              chunkIndex: 0,
+              url: "https://shop.example.com/a/b",
+              routes: [
+                "https://shop.example.com/caf%c3%a9",
+                "https://shop.example.com/cafe%CC%81",
+                "https://shop.example.com/a%2fb",
+                "https://shop.example.com/a/b",
+              ],
+              meta: {
+                entryUrl: "https://shop.example.com/caf%c3%a9",
+                browserName: "Chrome",
+                browserVersion: "141",
+                osName: "macOS",
+                deviceType: "desktop",
+                viewportWidth: 1440,
+                viewportHeight: 900,
+              },
+            },
+          ]),
+        ),
+      );
+
+      const chunk: JSONObject = getSubmittedRows("RumSessionChunkV1")[0]!;
+
+      expect(chunk["routes"]).toEqual([
+        "https://shop.example.com/caf%C3%A9",
+        "https://shop.example.com/a%2Fb",
+        "https://shop.example.com/a/b",
+      ]);
+
+      const header: JSONObject = getSubmittedRows("RumSessionV1")[0]!;
+
+      expect(header["entryUrl"]).toBe("https://shop.example.com/caf%C3%A9");
+    });
+
+    /*
      * What an older or hand-made client sends is scrubbed the same way: a
      * route's query and ids go, and every other fragment is dropped.
      */

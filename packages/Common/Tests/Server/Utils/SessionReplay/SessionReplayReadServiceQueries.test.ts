@@ -765,6 +765,65 @@ describe("SessionReplayReadService statements", () => {
       ).toHaveLength(6);
     });
 
+    /*
+     * #7877: one page can be written several ways ("/caf%c3%a9",
+     * "/caf%C3%A9", "/cafe%CC%81"), and a session recorded before the
+     * scrubber stored one spelling holds whichever the browser had. A prefix
+     * that can be spelled more ways than one is also matched in one
+     * spelling, on each stored path and hash route with an escape. A plain
+     * prefix is matched as written (above), with nothing more to read.
+     */
+    test("urlPrefix with an escape also matches each stored spelling of the path", async () => {
+      const query: string = await listQuery({ urlPrefix: "/caf%C3%A9" });
+      const having: string = havingSection(query);
+
+      /* "{P}" is the bound prefix. */
+      const spelled: (expression: string) => string = (
+        expression: string,
+      ): string => {
+        return `normalizeUTF8NFC(toValidUTF8(decodeURLComponent(replaceRegexpAll(${expression}, '%([0-7][0-9A-Fa-f])', '%EF%BF%BF%\\\\1'))))`;
+      };
+      const hashPath: (url: string) => string = (url: string): string => {
+        return `if(startsWith(fragment(${url}), '!/'), substring(fragment(${url}), 2), fragment(${url}))`;
+      };
+      const urlArms: (url: string) => string = (url: string): string => {
+        return [
+          `startsWith(${url}, {P})`,
+          `startsWith(path(${url}), {P})`,
+          `startsWith(${hashPath(url)}, {P})`,
+          `(position(${url}, '%') > 0 AND (startsWith(${spelled(`path(${url})`)}, ${spelled("{P}")}) OR startsWith(${spelled(hashPath(url))}, ${spelled("{P}")})))`,
+        ].join(" OR ");
+      };
+      const predicate: string = `AND (arrayExists(r -> ${urlArms("r")}, aggRoutes) OR ${urlArms("aggEntryUrl")})`;
+
+      expect(having).toMatch(
+        new RegExp(
+          predicate
+            .split("{P}")
+            .map((part: string): string => {
+              return escapeRegExp(part);
+            })
+            .join("\\{p\\d+:String\\}"),
+        ),
+      );
+      /* Bound ten times, never interpolated. */
+      expect(query).not.toContain("'/caf%C3%A9'");
+      expect(
+        boundValues(statementOf(headerQuerySpy)).filter(
+          (value: unknown): boolean => {
+            return value === "/caf%C3%A9";
+          },
+        ),
+      ).toHaveLength(10);
+
+      // A plain prefix reads no spelling.
+      headerQuerySpy.mockClear();
+
+      expect(await listQuery({ urlPrefix: "/checkout" })).not.toContain(
+        "normalizeUTF8NFC",
+      );
+    });
+
     test("tags require every pair through mapContains over the argMax'd map", async () => {
       const query: string = await listQuery({
         tags: { build: "1.2.3", tier: "enterprise" },

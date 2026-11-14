@@ -177,12 +177,36 @@ const PAGE_SESSIONS: {
   hashbangRoute: string;
   hashEntry: string;
   home: string;
+  cafeUpper: string;
+  cafeLower: string;
+  cafeDecomposed: string;
+  cafeHashRoute: string;
+  slashEscaped: string;
+  slashEscapedLower: string;
+  slashPlain: string;
+  cartUpper: string;
+  cartLower: string;
+  notUtf8: string;
 } = {
   // #7878: a hash router's routes, kept by the scrubber.
   hashRoute: "c0000000000000000000000000000001",
   hashbangRoute: "c0000000000000000000000000000002",
   hashEntry: "c0000000000000000000000000000003",
   home: "c0000000000000000000000000000004",
+  /*
+   * #7877: one page in each spelling a browser can give it, stored as it
+   * was before the scrubber wrote one, and pages a spelling must not join.
+   */
+  cafeUpper: "c0000000000000000000000000000005",
+  cafeLower: "c0000000000000000000000000000006",
+  cafeDecomposed: "c0000000000000000000000000000007",
+  cafeHashRoute: "c0000000000000000000000000000008",
+  slashEscaped: "c0000000000000000000000000000009",
+  slashEscapedLower: "c000000000000000000000000000000a",
+  slashPlain: "c000000000000000000000000000000b",
+  cartUpper: "c000000000000000000000000000000c",
+  cartLower: "c000000000000000000000000000000d",
+  notUtf8: "c000000000000000000000000000000e",
 };
 
 const PAGE_FIXTURES: Array<{
@@ -209,6 +233,60 @@ const PAGE_FIXTURES: Array<{
     sessionId: PAGE_SESSIONS.home,
     routes: [`${ORIGIN}/`, `${ORIGIN}/pricing`],
     entryUrl: `${ORIGIN}/`,
+  },
+  {
+    sessionId: PAGE_SESSIONS.cafeUpper,
+    routes: [`${ORIGIN}/caf%C3%A9`],
+    entryUrl: `${ORIGIN}/caf%C3%A9`,
+  },
+  {
+    // Lower-case hex, as .NET and WordPress write it.
+    sessionId: PAGE_SESSIONS.cafeLower,
+    routes: [`${ORIGIN}/`, `${ORIGIN}/caf%c3%a9/menu`],
+    entryUrl: `${ORIGIN}/`,
+  },
+  {
+    // The accent decomposed, in the entry URL alone.
+    sessionId: PAGE_SESSIONS.cafeDecomposed,
+    routes: [],
+    entryUrl: `${ORIGIN}/cafe%CC%81`,
+  },
+  {
+    sessionId: PAGE_SESSIONS.cafeHashRoute,
+    routes: [`${ORIGIN}/#/caf%c3%a9`],
+    entryUrl: `${ORIGIN}/#/caf%c3%a9`,
+  },
+  {
+    sessionId: PAGE_SESSIONS.slashEscaped,
+    routes: [`${ORIGIN}/a%2Fb`],
+    entryUrl: `${ORIGIN}/a%2Fb`,
+  },
+  {
+    sessionId: PAGE_SESSIONS.slashEscapedLower,
+    routes: [`${ORIGIN}/a%2fb`],
+    entryUrl: `${ORIGIN}/a%2fb`,
+  },
+  {
+    // An escape further on, so the list reads this path in one spelling too.
+    sessionId: PAGE_SESSIONS.slashPlain,
+    routes: [`${ORIGIN}/a/b/caf%C3%A9`],
+    entryUrl: `${ORIGIN}/a/b/caf%C3%A9`,
+  },
+  {
+    sessionId: PAGE_SESSIONS.cartUpper,
+    routes: [`${ORIGIN}/Cart`],
+    entryUrl: `${ORIGIN}/Cart`,
+  },
+  {
+    sessionId: PAGE_SESSIONS.cartLower,
+    routes: [`${ORIGIN}/cart`],
+    entryUrl: `${ORIGIN}/cart`,
+  },
+  {
+    // Bytes that are not UTF-8: cut short, and one no character starts with.
+    sessionId: PAGE_SESSIONS.notUtf8,
+    routes: [`${ORIGIN}/x%E0%A4`, `${ORIGIN}/caf%FF`],
+    entryUrl: `${ORIGIN}/x%E0%A4`,
   },
 ];
 
@@ -1189,6 +1267,59 @@ integration("User Flows journeys against ClickHouse", () => {
       expect(await listed(`${ORIGIN}/#/orders`)).toEqual(
         [PAGE_SESSIONS.hashRoute, PAGE_SESSIONS.hashEntry].sort(),
       );
+    });
+
+    /*
+     * #7877: a session recorded before the scrubber stored one spelling
+     * holds whichever the browser had. A row's key is in one spelling, and
+     * the list finds every spelling of it, in a route, a hash route or the
+     * entry URL - while "/a%2Fb" and "/a/b", and "/Cart" and "/cart", stay
+     * two pages.
+     */
+    test("every spelling of a row's page is listed, and only those", async () => {
+      const cafe: Array<string> = [
+        PAGE_SESSIONS.cafeUpper,
+        PAGE_SESSIONS.cafeLower,
+        PAGE_SESSIONS.cafeDecomposed,
+        PAGE_SESSIONS.cafeHashRoute,
+      ].sort();
+
+      for (const url of [
+        `${ORIGIN}/caf%C3%A9`,
+        `${ORIGIN}/caf%c3%a9`,
+        `${ORIGIN}/cafe%CC%81`,
+        `${ORIGIN}/café`,
+      ]) {
+        expect(showSessionsOf(url)).toBe("/caf%C3%A9");
+        expect(await listed(showSessionsOf(url))).toEqual(cafe);
+      }
+
+      // Typed in the search box in its letters, or in lower-case hex.
+      expect(await listed("/café")).toEqual(cafe);
+      expect(await listed("/caf%c3%a9")).toEqual(cafe);
+
+      expect(await listed(showSessionsOf(`${ORIGIN}/a%2fb`))).toEqual(
+        [PAGE_SESSIONS.slashEscaped, PAGE_SESSIONS.slashEscapedLower].sort(),
+      );
+      expect(await listed(showSessionsOf(`${ORIGIN}/a/b`))).toEqual([
+        PAGE_SESSIONS.slashPlain,
+      ]);
+      expect(await listed(showSessionsOf(`${ORIGIN}/Cart`))).toEqual([
+        PAGE_SESSIONS.cartUpper,
+      ]);
+      expect(await listed(showSessionsOf(`${ORIGIN}/cart`))).toEqual([
+        PAGE_SESSIONS.cartLower,
+      ]);
+    });
+
+    /*
+     * Bytes that are not UTF-8 are read as U+FFFD, since normalizeUTF8NFC
+     * refuses them and would fail the whole list.
+     */
+    test("an address that is not UTF-8 neither fails the list nor joins a page of words", async () => {
+      expect(await listed("/x%E0%A4")).toEqual([PAGE_SESSIONS.notUtf8]);
+      expect(await listed("/x%e0%a4")).toEqual([PAGE_SESSIONS.notUtf8]);
+      expect(await listed("/caf%C3%A9")).not.toContain(PAGE_SESSIONS.notUtf8);
     });
   });
 });

@@ -158,6 +158,24 @@ describe("RouteRecorder", (): void => {
   });
 
   /*
+   * #7877: the same page written another way - lower-case hex, an accent
+   * decomposed - is no navigation, and is recorded in the one spelling
+   * the ingest stores.
+   */
+  it("takes another spelling of the page it is on for no route change", (): void => {
+    window.history.pushState({}, "", "/caf%c3%a9");
+    window.history.pushState({}, "", "/cafe%CC%81");
+    window.history.pushState({}, "", "/caf%C3%A9");
+
+    expect(
+      routes.map((route: RecordedRoute): string => {
+        return route.to;
+      }),
+    ).toEqual(["https://shop.example.com/caf%C3%A9"]);
+    expect(recorder.getCurrentUrl()).toBe("https://shop.example.com/caf%C3%A9");
+  });
+
+  /*
    * Hash routers keep the whole route in the fragment. Compared without
    * it, `#/orders` -> `#/orders/42` used to scrub to identical strings and
    * every hash-routed app reported one page per session; UrlScrubber now

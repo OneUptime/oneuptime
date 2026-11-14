@@ -103,6 +103,31 @@ function toHashRoutePathSql(url: string): string {
 }
 
 /*
+ * A stored path, or the prefix it is matched with, in one spelling: the
+ * spelling a User Flows key has (UrlScrubber.normalizePathSpelling), for
+ * the URLs stored before the scrubber wrote it. Every escape is decoded
+ * and the text composed (NFC), so "%c3%a9", "%C3%A9" and "e%CC%81" all
+ * read "é". An escape of an ASCII character is decoded behind U+FFFF,
+ * which no stored path holds unescaped, so it never reads as the character
+ * itself: "/a%2Fb" stays apart from "/a/b", while "%2f" reads as "%2F".
+ * Bytes that are not UTF-8 read as U+FFFD (normalizeUTF8NFC refuses
+ * them), so two such paths can read alike, but never as a page of words.
+ * The three characters NFC turns into ASCII (U+037E, U+1FEF, U+212A) read
+ * as that character, where a key keeps their escape. The expression goes
+ * between the two halves.
+ */
+const PATH_SPELLING_OPEN: string =
+  "normalizeUTF8NFC(toValidUTF8(decodeURLComponent(replaceRegexpAll(";
+const PATH_SPELLING_CLOSE: string =
+  ", '%([0-7][0-9A-Fa-f])', '%EF%BF%BF%\\\\1'))))";
+
+/*
+ * A prefix that can be spelled more ways than one: it has an escape, or a
+ * character beyond ASCII.
+ */
+const SPELLED_PREFIX: RegExp = /[%\u0080-\uffff]/;
+
+/*
  * Wall-clock cap. 'throw' rather than 'break': see (2) above. 30s is well
  * inside the App pool's 58s request_timeout, so a query that blows the
  * budget surfaces as an error the player can retry rather than as a
@@ -4281,10 +4306,30 @@ export default class SessionReplayReadService {
        * "/". The third arm matches the route's path, which is the page
        * User Flows keys such a URL by, so `url:/orders` and a User Flows
        * row's "show sessions" both find it.
+       *
+       * One page can be written several ways: "/caf%c3%a9", "/caf%C3%A9",
+       * "/cafe%CC%81". The scrubber stores one spelling, a User Flows key's,
+       * but a session recorded before it holds whichever the browser had.
+       * So a prefix with more than one spelling (an escape or a character
+       * beyond ASCII) is also matched in one spelling against each stored
+       * path and hash route that has an escape (PATH_SPELLING_OPEN). A
+       * prefix in plain ASCII has one spelling, and is matched as written.
        */
       const prefixParameter: { type: TableColumnType; value: string } = {
         type: TableColumnType.Text,
         value: filters.urlPrefix,
+      };
+
+      const matchesSpellings: boolean = SPELLED_PREFIX.test(filters.urlPrefix);
+
+      const appendSpellingArm: (path: string) => void = (
+        path: string,
+      ): void => {
+        statement.append(
+          `startsWith(${PATH_SPELLING_OPEN}${path}${PATH_SPELLING_CLOSE}, ${PATH_SPELLING_OPEN}`,
+        );
+        statement.append(SQL`${prefixParameter}`);
+        statement.append(`${PATH_SPELLING_CLOSE})`);
       };
 
       const appendUrlArms: (url: string) => void = (url: string): void => {
@@ -4295,6 +4340,14 @@ export default class SessionReplayReadService {
         statement.append(`) OR startsWith(${toHashRoutePathSql(url)}, `);
         statement.append(SQL`${prefixParameter}`);
         statement.append(")");
+
+        if (matchesSpellings) {
+          statement.append(` OR (position(${url}, '%') > 0 AND (`);
+          appendSpellingArm(`path(${url})`);
+          statement.append(" OR ");
+          appendSpellingArm(toHashRoutePathSql(url));
+          statement.append("))");
+        }
       };
 
       statement.append(" AND (arrayExists(r -> ");
