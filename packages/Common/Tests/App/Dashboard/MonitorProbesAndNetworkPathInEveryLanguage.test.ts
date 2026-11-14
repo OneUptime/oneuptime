@@ -155,6 +155,7 @@ describe("the Probes and Network Path cards in every language", () => {
       "Disconnected",
       "Late",
       "No result yet · next {{next}}",
+      "Next check {{next}}",
       "A status change needs {{required}} of {{count}} connected probes to agree.",
       "A status change needs both connected probes to agree.",
       "Couldn't load probes. {{error}}",

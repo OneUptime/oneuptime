@@ -22081,6 +22081,7 @@
   "No reminder was sent. {{reason}} Ask {{name}} to finish their notification setup in User Settings.": "Ingen påminnelse skickades. {{reason}} Be {{name}} att slutföra aviseringsinställningarna i Användarinställningar.",
   "No responders": "Inga mottagare",
   "No result yet · next {{next}}": "Inget resultat ännu · nästa {{next}}",
+  "Next check {{next}}": "Nästa kontroll {{next}}",
   "No rotation": "Ingen rotation",
   "No rule - pages here fall back to a verified method": "Ingen regel – larm här faller tillbaka på en verifierad metod",
   "No series match “{{search}}”": "Inga serier matchar ”{{search}}”",

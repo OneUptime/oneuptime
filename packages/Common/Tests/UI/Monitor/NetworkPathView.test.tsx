@@ -16,6 +16,10 @@ import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import ProbeNetworkFailureUtil, {
   ProbeNetworkOperation,
 } from "../../../Utils/ProbeNetworkFailureUtil";
+import {
+  getHopHostText,
+  TRACEROUTE_HOP_HOST_CLASS_NAME,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/TracerouteHopsTable";
 import NetworkPathView, {
   NETWORK_PATH_VERDICT_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/SummaryView/NetworkPathView";
@@ -265,6 +269,98 @@ describe("Network path card when traceroute recorded hops", () => {
     expect(
       screen.getByText("Route did not reach the destination."),
     ).toBeInTheDocument();
+  });
+});
+
+/*
+ * A hop's host on a phone. The host column broke at whatever letter filled
+ * the line (break-all): "(198.51.100.4" / "2)", "gw.exampl" / "e.com". It
+ * gives way between its words first, then after its own dots before a
+ * letter; an address never breaks inside. On an Arabic or Persian page it
+ * is a box as wide as its words that starts where the page's lines start,
+ * each of its lines drawn from the left.
+ */
+describe("a hop's host on a narrow screen", () => {
+  const LONG_HOP: TraceRouteHop = {
+    hopNumber: 4,
+    address: "198.51.100.42",
+    hostName: "edge-router-01.lon.example.net",
+    roundTripTimeInMS: 22,
+    isTimeout: false,
+  };
+
+  const hostCells: () => Array<HTMLElement> = (): Array<HTMLElement> => {
+    return screen.getAllByTestId("traceroute-hop-host");
+  };
+
+  it("names the host and its address, or three stars when none answered", () => {
+    expect(getHopHostText(HOPS[0]!)).toBe("gw.example.com (192.168.1.1)");
+    expect(getHopHostText(HOPS[1]!)).toBe("* * *");
+    expect(getHopHostText(HOPS[2]!)).toBe("(198.51.100.7)");
+    expect(
+      getHopHostText({ ...LONG_HOP, address: undefined, hostName: "gw" }),
+    ).toBe("gw");
+    expect(
+      getHopHostText({
+        ...LONG_HOP,
+        hostName: undefined,
+        address: "2001:db8::1",
+      }),
+    ).toBe("(2001:db8::1)");
+  });
+
+  it("each host is a box as wide as its words, read left to right, never break-all", () => {
+    renderPath(buildTraceRoute({ hops: [...HOPS, LONG_HOP], totalHops: 4 }));
+
+    const hosts: Array<HTMLElement> = hostCells();
+
+    expect(hosts).toHaveLength(4);
+    for (const host of hosts) {
+      expect(host.tagName).toBe("BDI");
+      expect(host).toHaveAttribute("dir", "ltr");
+      expect(host.className).toBe(TRACEROUTE_HOP_HOST_CLASS_NAME);
+      expect(host).toHaveClass("block", "w-fit", "max-w-full");
+      expect(host).toHaveClass("[overflow-wrap:anywhere]");
+      expect(host.parentElement).not.toHaveClass("break-all");
+      expect(host.parentElement).toHaveClass("font-mono");
+    }
+  });
+
+  it("a long host breaks after its own dots before a letter, and its address stays whole", () => {
+    renderPath(buildTraceRoute({ hops: [LONG_HOP], totalHops: 1 }));
+
+    const host: HTMLElement = hostCells()[0]!;
+
+    // The text is unchanged: a break adds no character.
+    expect(host.textContent).toBe(
+      "edge-router-01.lon.example.net (198.51.100.42)",
+    );
+    expect(host.querySelectorAll("wbr")).toHaveLength(3);
+    expect(
+      Array.from(host.childNodes).map((node: ChildNode) => {
+        return node.nodeName === "WBR" ? "|" : node.textContent;
+      }),
+    ).toEqual([
+      "edge-router-01.",
+      "|",
+      "lon.",
+      "|",
+      "example.",
+      "|",
+      "net (198.51.100.42)",
+    ]);
+  });
+
+  it("a short host breaks after its dots too: it is alone in its cell", () => {
+    renderPath(buildTraceRoute({ hops: [HOPS[0]!, HOPS[1]!], totalHops: 2 }));
+
+    const hosts: Array<HTMLElement> = hostCells();
+
+    expect(hosts[0]!.querySelectorAll("wbr")).toHaveLength(2);
+    expect(hosts[0]!.textContent).toBe("gw.example.com (192.168.1.1)");
+    // Three stars have nothing to break after.
+    expect(hosts[1]!.querySelectorAll("wbr")).toHaveLength(0);
+    expect(hosts[1]!.textContent).toBe("* * *");
   });
 });
 
@@ -594,7 +690,8 @@ describe("Network path card in the reader's language", () => {
   /*
    * A round trip is a figure with its unit, which a phone must not break
    * between the two ("۴۸٫۲۷" on one line, "میلی‌ثانیه" on the next): the
-   * host column gives way instead (break-all).
+   * host column gives way instead, between its words and after its own
+   * dots (TracerouteHopsTable).
    */
   it("a hop's round trip stays on one line, in the reader's digits and unit", () => {
     renderIn("fa", BROKEN_ROUTE);

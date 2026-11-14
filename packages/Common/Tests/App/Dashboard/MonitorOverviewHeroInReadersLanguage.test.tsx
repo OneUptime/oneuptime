@@ -59,6 +59,7 @@ import MonitorOverviewPresentationUtil, {
   MonitorOverviewStatusRef,
 } from "../../../Utils/Monitor/MonitorOverviewPresentationUtil";
 import { MonitorOverviewProbeSummary } from "../../../Utils/Monitor/MonitorOverviewProbeUtil";
+import { writeProbeTimeoutFailureCause } from "../../../Utils/Monitor/ProbeFailureReading";
 import {
   formatDurationCompact,
   formatDurationCompactInLanguage,
@@ -463,6 +464,45 @@ describe("the hero's latest result in the reader's digits and unit (#7416)", () 
     expect(isolate()).toHaveAttribute("dir", "ltr");
     expect(isolate()).toHaveTextContent("Connection refused.");
   });
+
+  /*
+   * A check that timed out on every try: the probe's own sentence, which
+   * the probe stores in English, is drawn in the reader's words and digits,
+   * as every monitor summary draws it (#8003) - a sentence of the page's
+   * own, so no isolate on an Arabic or Persian page.
+   */
+  test.each([
+    ["en", "Request was tried 3 times and it timed out."],
+    [
+      "de",
+      "Die Anfrage wurde 3-mal versucht und hat das Zeitlimit überschritten.",
+    ],
+    ["fa", "درخواست ۳ بار امتحان شد و مهلت آن تمام شد."],
+    ["ar", "عدد محاولات الطلب: 3، وانتهت مهلته."],
+  ])(
+    "%s: a timed-out check's cause is the reader's sentence",
+    (language: string, expected: string) => {
+      drawHero({
+        language: language,
+        overrides: {
+          probes: {
+            ...probeSummary(),
+            latestResult: {
+              probeId: "33333333-3333-4333-8333-333333333333",
+              probeName: "London",
+              monitoredAt: secondsAgo(60),
+              isOnline: false,
+              failureCause: writeProbeTimeoutFailureCause(3),
+            },
+          },
+        },
+      });
+
+      expect(cause().textContent).toBe(expected);
+      expect(isolate()).toBeNull();
+      expect(cause()).not.toHaveAttribute("dir");
+    },
+  );
 
   test("the reader's words under the value read as the page does, however Latin the name in them", () => {
     // "from London": more Latin letters than Persian ones, yet Persian words.

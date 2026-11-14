@@ -22081,6 +22081,7 @@
   "No reminder was sent. {{reason}} Ask {{name}} to finish their notification setup in User Settings.": "Der blev ikke sendt nogen påmindelse. {{reason}} Bed {{name}} om at gøre opsætningen af notifikationer færdig i Brugerindstillinger.",
   "No responders": "Ingen modtagere",
   "No result yet · next {{next}}": "Intet resultat endnu · næste {{next}}",
+  "Next check {{next}}": "Næste tjek {{next}}",
   "No rotation": "Ingen rotation",
   "No rule - pages here fall back to a verified method": "Ingen regel – tilkald her falder tilbage på en bekræftet metode",
   "No series match “{{search}}”": "Ingen serier matcher »{{search}}«",

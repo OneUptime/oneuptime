@@ -38,6 +38,7 @@ import MonitorOverviewTargetUtil, {
   MonitorOverviewTarget,
 } from "./MonitorOverviewTargetUtil";
 import { MonitorUptimeCaveat } from "./MonitorUptimeSummaryUtil";
+import { getProbeFailureCauseText } from "./ProbeFailureReading";
 
 /*
  * The monitor overview's hero, facts, pulse and section switches, decided in
@@ -2461,14 +2462,28 @@ export default class MonitorOverviewPresentationUtil {
       parts.push(`HTTP ${result.responseCode}`);
     }
 
-    // A failure cause is the probe's own message, as it wrote it.
+    /*
+     * A failure cause as every monitor summary draws it: the probe's own
+     * timeout sentence in the reader's words and digits, and any other
+     * message - the network's, a server's - as the probe wrote it
+     * (getProbeFailureCauseText). The hero draws a message that reads the
+     * other way from the page in its own direction (readAsWritten). A
+     * cause that is only space names the probe instead.
+     */
+    const failureCause: string =
+      result.isOnline === false
+        ? getProbeFailureCauseText({
+            translator: t,
+            failureCause: result.failureCause,
+          })
+        : "";
+
     return {
       ...base,
       value: formatInline(parts, t),
       secondary:
-        result.isOnline === false && result.failureCause
-          ? result.failureCause
-          : t.translateTemplate("from {{probe}}", { probe: result.probeName }),
+        failureCause ||
+        t.translateTemplate("from {{probe}}", { probe: result.probeName }),
       tone: tone,
     };
   }

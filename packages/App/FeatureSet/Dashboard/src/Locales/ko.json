@@ -22081,6 +22081,7 @@
   "No reminder was sent. {{reason}} Ask {{name}} to finish their notification setup in User Settings.": "알림을 보내지 않았습니다. {{reason}} {{name}}에게 사용자 설정에서 알림 설정을 마치도록 요청하세요.",
   "No responders": "대응자 없음",
   "No result yet · next {{next}}": "아직 결과 없음 · 다음 {{next}}",
+  "Next check {{next}}": "다음 확인 {{next}}",
   "No rotation": "로테이션 없음",
   "No rule - pages here fall back to a verified method": "규칙 없음 - 여기의 호출은 인증된 방법으로 대체됨",
   "No series match “{{search}}”": "“{{search}}”에 맞는 시리즈가 없습니다",

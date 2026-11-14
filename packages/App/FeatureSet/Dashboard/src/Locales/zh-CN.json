@@ -22081,6 +22081,7 @@
   "No reminder was sent. {{reason}} Ask {{name}} to finish their notification setup in User Settings.": "未发送任何提醒。{{reason}}请让 {{name}} 在“用户设置”中完成通知设置。",
   "No responders": "无响应人",
   "No result yet · next {{next}}": "暂无结果 · 下次 {{next}}",
+  "Next check {{next}}": "下次检查 {{next}}",
   "No rotation": "不轮换",
   "No rule - pages here fall back to a verified method": "无规则 - 此处的呼叫会改用已验证的方式",
   "No series match “{{search}}”": "没有与“{{search}}”匹配的序列",

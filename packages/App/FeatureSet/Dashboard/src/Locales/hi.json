@@ -22081,6 +22081,7 @@
   "No reminder was sent. {{reason}} Ask {{name}} to finish their notification setup in User Settings.": "कोई रिमाइंडर नहीं भेजा गया। {{reason}} {{name}} से उपयोगकर्ता सेटिंग्स में अपनी सूचना सेटअप पूरी करने को कहें।",
   "No responders": "कोई प्रतिक्रियाकर्ता नहीं",
   "No result yet · next {{next}}": "अभी तक कोई परिणाम नहीं · अगली {{next}}",
+  "Next check {{next}}": "अगली जाँच {{next}}",
   "No rotation": "कोई रोटेशन नहीं",
   "No rule - pages here fall back to a verified method": "कोई नियम नहीं - यहाँ के पेज किसी सत्यापित विधि से जाते हैं",
   "No series match “{{search}}”": "“{{search}}” से मेल खाती कोई सीरीज़ नहीं",

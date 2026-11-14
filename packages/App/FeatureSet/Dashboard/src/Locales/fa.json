@@ -22081,6 +22081,7 @@
   "No reminder was sent. {{reason}} Ask {{name}} to finish their notification setup in User Settings.": "هیچ یادآوری فرستاده نشد. {{reason}} از {{name}} بخواهید راه‌اندازی اعلان‌هایش را در تنظیمات کاربر کامل کند.",
   "No responders": "بدون پاسخ‌دهنده",
   "No result yet · next {{next}}": "هنوز نتیجه‌ای نیست · بعدی {{next}}",
+  "Next check {{next}}": "بررسی بعدی {{next}}",
   "No rotation": "بدون چرخش",
   "No rule - pages here fall back to a verified method": "بدون قاعده - فراخوان‌های اینجا از یک روش تأییدشده استفاده می‌کنند",
   "No series match “{{search}}”": "هیچ سری‌ای با «{{search}}» جور نیست",

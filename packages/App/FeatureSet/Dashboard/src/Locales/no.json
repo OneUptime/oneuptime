@@ -22081,6 +22081,7 @@
   "No reminder was sent. {{reason}} Ask {{name}} to finish their notification setup in User Settings.": "Ingen påminnelse ble sendt. {{reason}} Be {{name}} om å fullføre varseloppsettet i Brukerinnstillinger.",
   "No responders": "Ingen mottakere",
   "No result yet · next {{next}}": "Ingen resultat ennå · neste {{next}}",
+  "Next check {{next}}": "Neste sjekk {{next}}",
   "No rotation": "Ingen rotasjon",
   "No rule - pages here fall back to a verified method": "Ingen regel – varsler her faller tilbake på en verifisert metode",
   "No series match “{{search}}”": "Ingen serier samsvarer med «{{search}}»",

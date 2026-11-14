@@ -22081,6 +22081,7 @@
   "No reminder was sent. {{reason}} Ask {{name}} to finish their notification setup in User Settings.": "No se envió ningún recordatorio. {{reason}} Pide a {{name}} que termine de configurar sus notificaciones en Ajustes de usuario.",
   "No responders": "Sin respondedores",
   "No result yet · next {{next}}": "Aún no hay resultado · siguiente {{next}}",
+  "Next check {{next}}": "Siguiente comprobación {{next}}",
   "No rotation": "Sin rotación",
   "No rule - pages here fall back to a verified method": "Sin regla: los avisos aquí recurren a un método verificado",
   "No series match “{{search}}”": "Ninguna serie coincide con «{{search}}»",

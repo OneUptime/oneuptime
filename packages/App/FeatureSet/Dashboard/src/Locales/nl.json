@@ -22081,6 +22081,7 @@
   "No reminder was sent. {{reason}} Ask {{name}} to finish their notification setup in User Settings.": "Er is geen herinnering verstuurd. {{reason}} Vraag {{name}} om de meldingsinstellingen af te ronden in Gebruikersinstellingen.",
   "No responders": "Geen ontvangers",
   "No result yet · next {{next}}": "Nog geen resultaat · volgende {{next}}",
+  "Next check {{next}}": "Volgende controle {{next}}",
   "No rotation": "Geen rotatie",
   "No rule - pages here fall back to a verified method": "Geen regel - oproepen hier vallen terug op een geverifieerde methode",
   "No series match “{{search}}”": "Geen reeksen komen overeen met ‘{{search}}’",

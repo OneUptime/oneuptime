@@ -1,6 +1,8 @@
 import { NETWORK_DEVICE_METRIC_DESCRIPTIONS } from "../MetricDescriptions/NetworkDeviceMetricDescriptions";
 import { TraceRouteHop } from "Common/Types/Monitor/NetworkMonitor/NetworkPathTrace";
+import BreakableName from "Common/UI/Components/BreakableName/BreakableName";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import { CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME } from "Common/UI/Utils/LineDirection";
 import React, { FunctionComponent, ReactElement } from "react";
 import useResizableColumns, {
   ResizableColumns,
@@ -14,6 +16,32 @@ import { formatMilliseconds } from "../../Utils/Milliseconds";
 export interface ComponentProps {
   hops: Array<TraceRouteHop>;
 }
+
+// The host that answered a hop and its address, or "* * *" when none did.
+export const getHopHostText: (hop: TraceRouteHop) => string = (
+  hop: TraceRouteHop,
+): string => {
+  if (hop.isTimeout) {
+    return "* * *";
+  }
+
+  return [hop.hostName, hop.address ? `(${hop.address})` : ""]
+    .filter((part: string | undefined): part is string => {
+      return Boolean(part);
+    })
+    .join(" ");
+};
+
+/*
+ * The host gives way on a phone, between its words first ("gw.example.com"
+ * / "(192.168.1.1)") and then after its own dots and dashes (BreakableName),
+ * never at whatever letter fills the line ("(198.51.100.4" / "2)"). It is
+ * a box of its own as wide as its words, read left to right: on an Arabic
+ * or Persian page it starts where the page's lines start and each of its
+ * lines starts on the left, rather than a wrapped last piece ("9)") hanging
+ * on the right.
+ */
+export const TRACEROUTE_HOP_HOST_CLASS_NAME: string = `block ${CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME} [overflow-wrap:anywhere]`;
 
 /*
  * The hop-by-hop table of a traceroute: hop number, the host that answered
@@ -121,13 +149,16 @@ const TracerouteHopsTable: FunctionComponent<ComponentProps> = (
                 >
                   {translator.formatNumber(hop.hopNumber)}
                 </td>
-                <td className="pe-4 py-1 font-mono break-all">
-                  <bdi dir="ltr">
-                    {hop.isTimeout
-                      ? "* * *"
-                      : `${hop.hostName ? hop.hostName + " " : ""}${
-                          hop.address ? `(${hop.address})` : ""
-                        }`}
+                <td className="pe-4 py-1 font-mono">
+                  <bdi
+                    dir="ltr"
+                    className={TRACEROUTE_HOP_HOST_CLASS_NAME}
+                    data-testid="traceroute-hop-host"
+                  >
+                    <BreakableName
+                      text={getHopHostText(hop)}
+                      breaksFromLength={0}
+                    />
                   </bdi>
                 </td>
                 {/*

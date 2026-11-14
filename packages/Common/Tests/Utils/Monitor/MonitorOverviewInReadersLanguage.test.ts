@@ -25,7 +25,11 @@ import MonitorOverviewPresentationUtil, {
   MonitorOverviewPresentationInput,
   MonitorOverviewStatusRef,
 } from "../../../Utils/Monitor/MonitorOverviewPresentationUtil";
-import { MonitorOverviewProbeSummary } from "../../../Utils/Monitor/MonitorOverviewProbeUtil";
+import {
+  MonitorOverviewProbeResult,
+  MonitorOverviewProbeSummary,
+} from "../../../Utils/Monitor/MonitorOverviewProbeUtil";
+import { writeProbeTimeoutFailureCause } from "../../../Utils/Monitor/ProbeFailureReading";
 import MonitorUptimeSummaryUtil, {
   UptimeWindowPresentation,
 } from "../../../Utils/Monitor/MonitorUptimeSummaryUtil";
@@ -1514,6 +1518,92 @@ describe("the latest result and the probes in the reader's digits", () => {
       ].join(" \u2022 "),
     );
     expect(`${fact.value} ${fact.secondary}`).not.toMatch(/[0-9]|\u00b7/);
+  });
+
+  /*
+   * The line under the latest result: the probe's own timeout sentence in
+   * the reader's words and digits, as every monitor summary draws it; any
+   * other failure as the probe wrote it; the probe's name when it passed
+   * or its failure is only space (#8003).
+   */
+  const secondaryOf: (
+    language: string | undefined,
+    overrides: Partial<MonitorOverviewProbeResult>,
+  ) => string | undefined = (
+    language: string | undefined,
+    overrides: Partial<MonitorOverviewProbeResult>,
+  ): string | undefined => {
+    return factOf(
+      build(
+        running(MonitorType.Website, {
+          probes: probes({
+            latestResult: {
+              probeId: "11111111-1111-4111-8111-111111111111",
+              probeName: "London",
+              monitoredAt: secondsAgo(60),
+              isOnline: false,
+              responseTimeInMs: 2410.4,
+              failureCause: writeProbeTimeoutFailureCause(3),
+              ...overrides,
+            },
+          }),
+        }),
+        language ? translatorFor(language) : undefined,
+      ),
+      "latest-result",
+    ).secondary;
+  };
+
+  test("a timeout under the latest result: English as the probe wrote it", () => {
+    expect(secondaryOf(undefined, {})).toBe(
+      "Request was tried 3 times and it timed out.",
+    );
+    expect(secondaryOf("en", {})).toBe(
+      "Request was tried 3 times and it timed out.",
+    );
+    expect(
+      secondaryOf("en", { failureCause: writeProbeTimeoutFailureCause(1) }),
+    ).toBe("Request was tried once and it timed out.");
+  });
+
+  test.each([
+    [
+      "de",
+      "Die Anfrage wurde 3-mal versucht und hat das Zeitlimit überschritten.",
+    ],
+    ["fa", "درخواست ۳ بار امتحان شد و مهلت آن تمام شد."],
+    ["ar", "عدد محاولات الطلب: 3، وانتهت مهلته."],
+  ])(
+    "a timeout under the latest result in %s: the reader's words and digits",
+    (language: string, expected: string) => {
+      expect(secondaryOf(language, {})).toBe(expected);
+    },
+  );
+
+  test("any other failure stays as the probe wrote it, in every language", () => {
+    for (const language of ["en", "de", "fa", "ar"]) {
+      expect(
+        secondaryOf(language, { failureCause: "  Connection refused " }),
+      ).toBe("Connection refused");
+      // Close to the timeout sentence is not the timeout sentence.
+      expect(
+        secondaryOf(language, {
+          failureCause: "Request was tried 3 times and it timed out",
+        }),
+      ).toBe("Request was tried 3 times and it timed out");
+    }
+  });
+
+  test("a passed check, or a failure that is only space, names the probe", () => {
+    const de: Translator = translatorFor("de");
+    const fromLondon: string = de.translateTemplate("from {{probe}}", {
+      probe: "London",
+    });
+
+    expect(secondaryOf("de", { isOnline: true })).toBe(fromLondon);
+    expect(secondaryOf("de", { failureCause: "   " })).toBe(fromLondon);
+    expect(secondaryOf("de", { failureCause: undefined })).toBe(fromLondon);
+    expect(secondaryOf(undefined, { failureCause: "   " })).toBe("from London");
   });
 
   test("the Probes fact in English is as it was", () => {

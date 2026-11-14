@@ -22081,6 +22081,7 @@
   "No reminder was sent. {{reason}} Ask {{name}} to finish their notification setup in User Settings.": "Напоминание не отправлено. {{reason}} Попросите {{name}} завершить настройку уведомлений в разделе «Настройки пользователя».",
   "No responders": "Нет получателей",
   "No result yet · next {{next}}": "Результата пока нет · следующая {{next}}",
+  "Next check {{next}}": "Следующая проверка {{next}}",
   "No rotation": "Без ротации",
   "No rule - pages here fall back to a verified method": "Нет правила — оповещения здесь идут через подтверждённый метод",
   "No series match “{{search}}”": "Нет рядов, подходящих под «{{search}}»",

@@ -22,9 +22,20 @@ import arabicLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/ar.js
 import MonitorProbesCard, {
   ComponentProps,
   getProbeAgreementText,
+  getProbeHealthParts,
   getProbeHealthText,
+  PROBE_HEALTH_CLASS_NAME,
+  PROBE_HEALTH_FIGURE_CLASS_NAME,
   PROBE_HEALTH_WORDS,
+  PROBE_ROW_CLASS_NAME,
+  PROBE_ROW_DETAILS_CLASS_NAME,
+  PROBE_ROWS_CLASS_NAME,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/Overview/MonitorProbesCard";
+import {
+  PROBE_TIMEOUT_FAILURE_CAUSE,
+  writeProbeTimeoutFailureCause,
+} from "../../../Utils/Monitor/ProbeFailureReading";
+import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 import {
   forgetRememberedDateTexts,
   setDateDisplayLanguage,
@@ -442,6 +453,195 @@ describe("MonitorProbesCard", () => {
     expect(cause).toHaveAttribute("title", "Connection refused on port 443");
   });
 
+  /*
+   * The card sits in a third of the overview at 1280px (a body about 14rem
+   * wide). A state kept on one line beside the name - "Turned off for this
+   * monitor", "Für diesen Monitor ausgeschaltet" - squeezed the probe's name
+   * to a letter a line. So the list is a container: under 22rem a row is
+   * one column (name, then its state, then when it was checked), and from
+   * 22rem the state sits beside the name, at most 10rem wide, with the
+   * details under both. jsdom lays nothing out, so the classes that do it
+   * are pinned, and the order the narrow column reads in.
+   */
+  test("a row reads name, state, details: the state under the name in a narrow card, beside it from 22rem", () => {
+    renderRows(EVERY_HEALTH());
+
+    const list: HTMLElement = screen.getByRole("list", { name: "Probes" });
+
+    expect(list).toHaveClass("[container-type:inline-size]");
+    expect(PROBE_ROWS_CLASS_NAME.split(" ")).toContain(
+      "[container-type:inline-size]",
+    );
+
+    const rows: Array<HTMLElement> = screen.getAllByTestId("monitor-probe-row");
+
+    expect(rows).toHaveLength(7);
+
+    for (const row of rows) {
+      // One column under 22rem; the name and its state side by side from it.
+      expect(row).toHaveClass(
+        "grid",
+        "grid-cols-1",
+        "[@container(min-width:22rem)]:grid-cols-[minmax(0,1fr)_auto]",
+      );
+      expect(row).not.toHaveClass("flex");
+
+      const parts: Array<Element> = Array.from(row.children);
+
+      expect(parts).toHaveLength(3);
+      expect(within(parts[0] as HTMLElement).getByTestId("probe-name")).toBe(
+        within(row).getByTestId("probe-name"),
+      );
+      expect(parts[1]).toBe(within(row).getByTestId("monitor-probe-health"));
+      expect(parts[2]).toBe(within(row).getByTestId("monitor-probe-details"));
+
+      // The state: under the name, or at the row's end, capped at 10rem.
+      expect(parts[1]).toHaveClass(
+        "mt-1",
+        "[@container(min-width:22rem)]:mt-0",
+        "[@container(min-width:22rem)]:max-w-[10rem]",
+        "[@container(min-width:22rem)]:text-right",
+      );
+      // Never kept on one line whatever its length.
+      expect(parts[1]).not.toHaveClass("flex-shrink-0");
+      expect(parts[1]).not.toHaveClass("whitespace-nowrap");
+
+      // When it was checked and why it failed: the full width of the row.
+      expect(parts[2]).toHaveClass(
+        "min-w-0",
+        "[@container(min-width:22rem)]:col-span-2",
+      );
+    }
+
+    // The failure line is one of the details, under both.
+    expect(
+      within(rows[0]!.lastElementChild as HTMLElement).getByTestId(
+        "monitor-probe-failure-cause",
+      ),
+    ).toHaveTextContent("Connection refused on port 443");
+
+    expect(PROBE_ROW_CLASS_NAME).toContain(
+      "[@container(min-width:22rem)]:grid-cols-[minmax(0,1fr)_auto]",
+    );
+    expect(PROBE_HEALTH_CLASS_NAME).toContain(
+      "[@container(min-width:22rem)]:max-w-[10rem]",
+    );
+    expect(PROBE_ROW_DETAILS_CLASS_NAME).toContain(
+      "[@container(min-width:22rem)]:col-span-2",
+    );
+  });
+
+  /*
+   * A state that wraps (beside a long name, or a long word in a narrow
+   * card) wraps between its facts: an up probe's time is one figure with
+   * its unit, moved whole to the next line ("Up ·" / "119 ms").
+   */
+  test("an up probe's time never breaks from its unit, and the state reads as one line", () => {
+    renderRows(EVERY_HEALTH());
+
+    const health: Array<HTMLElement> = screen.getAllByTestId(
+      "monitor-probe-health",
+    );
+    const london: HTMLElement = health[4]!;
+    const figure: Element | null = london.querySelector("span");
+
+    expect(london).toHaveTextContent("Up · 119 ms");
+    expect(figure).toHaveTextContent("119 ms");
+    expect(figure).toHaveClass(PROBE_HEALTH_FIGURE_CLASS_NAME);
+    expect(PROBE_HEALTH_FIGURE_CLASS_NAME).toBe("whitespace-nowrap");
+    // "Up" and its separator are not inside the kept-whole part.
+    expect(figure!.textContent).toBe("119 ms");
+
+    // A state with no time has no part kept whole.
+    for (const index of [0, 1, 2, 3, 5, 6]) {
+      expect(health[index]!.querySelector("span")).toBeNull();
+    }
+  });
+
+  /*
+   * A probe that has sent nothing and has no check ahead used to say "No
+   * result yet" twice: its state, and the line under it. The state says it
+   * once; a probe that is disconnected or turned off with no result still
+   * says so under its state.
+   */
+  test("a probe with no result says 'No result yet' once, as its state", () => {
+    renderRows([
+      monitorProbe({ name: "Mumbai", lastPingAt: minutesAgo(1) }),
+      monitorProbe({
+        name: "Paris",
+        connectionStatus: ProbeConnectionStatus.Disconnected,
+      }),
+    ]);
+
+    const rows: Array<HTMLElement> = screen.getAllByTestId("monitor-probe-row");
+    const mumbai: HTMLElement = rows.find((row: HTMLElement) => {
+      return row.textContent?.includes("Mumbai");
+    })!;
+    const paris: HTMLElement = rows.find((row: HTMLElement) => {
+      return row.textContent?.includes("Paris");
+    })!;
+
+    expect(
+      within(mumbai).getByTestId("monitor-probe-health"),
+    ).toHaveTextContent("No result yet");
+    expect(mumbai.textContent!.split("No result yet")).toHaveLength(2);
+    expect(
+      within(mumbai).getByTestId("monitor-probe-details"),
+    ).toBeEmptyDOMElement();
+
+    expect(within(paris).getByTestId("monitor-probe-health")).toHaveTextContent(
+      "Disconnected",
+    );
+    expect(
+      within(paris).getByTestId("monitor-probe-details"),
+    ).toHaveTextContent("No result yet");
+  });
+
+  /*
+   * A new monitor's probes have sent nothing and each has a check ahead:
+   * the state says "No result yet", the line under it only when the check
+   * is due - never "No result yet" twice on every row. A probe in another
+   * state with no result still says so on that line.
+   */
+  test("a probe with no result but a check ahead says when it is due, and 'No result yet' once", () => {
+    renderRows([
+      monitorProbe({
+        name: "Mumbai",
+        lastPingAt: minutesAgo(1),
+        nextPingAt: minutesAgo(-4),
+      }),
+    ]);
+
+    const row: HTMLElement = screen.getByTestId("monitor-probe-row");
+
+    expect(within(row).getByTestId("monitor-probe-health")).toHaveTextContent(
+      "No result yet",
+    );
+    expect(within(row).getByTestId("monitor-probe-details")).toHaveTextContent(
+      /^Next check in 4 minutes$/,
+    );
+    expect(row.textContent!.split("No result yet")).toHaveLength(2);
+  });
+
+  test("a disconnected probe with no result and a check ahead keeps 'No result yet' on its line", () => {
+    renderRows([
+      monitorProbe({
+        name: "Paris",
+        connectionStatus: ProbeConnectionStatus.Disconnected,
+        nextPingAt: minutesAgo(-4),
+      }),
+    ]);
+
+    const row: HTMLElement = screen.getByTestId("monitor-probe-row");
+
+    expect(within(row).getByTestId("monitor-probe-health")).toHaveTextContent(
+      "Disconnected",
+    );
+    expect(within(row).getByTestId("monitor-probe-details")).toHaveTextContent(
+      "No result yet · next in 4 minutes",
+    );
+  });
+
   test("the agreement footnote appears only when it constrains anything", () => {
     const rows: Array<MonitorProbe> = [
       monitorProbe({
@@ -846,6 +1046,125 @@ describe("MonitorProbesCard in the reader's language", () => {
       screen.getByTestId("monitor-probe-failure-cause"),
     ).not.toHaveAttribute("dir");
   });
+
+  /*
+   * #8003: the probe's own timeout sentence, which every monitor summary
+   * draws in the reader's words since #7944, read in English on the
+   * overview one click away. It is now the same words, the count in the
+   * reader's digits, and on an Arabic or Persian page it reads as the page
+   * does (no dir of its own); the whole sentence is its hover title.
+   */
+  const timedOutProbe: (triedCount: number) => MonitorProbe = (
+    triedCount: number,
+  ): MonitorProbe => {
+    return monitorProbe({
+      name: "Tokyo",
+      result: {
+        monitoredAt: minutesAgo(1),
+        isOnline: false,
+        failureCause: writeProbeTimeoutFailureCause(triedCount),
+      },
+    });
+  };
+
+  test.each([
+    ["en", "Request was tried 3 times and it timed out."],
+    [
+      "de",
+      "Die Anfrage wurde 3-mal versucht und hat das Zeitlimit überschritten.",
+    ],
+    ["fa", "درخواست ۳ بار امتحان شد و مهلت آن تمام شد."],
+    ["ar", "عدد محاولات الطلب: 3، وانتهت مهلته."],
+  ])(
+    "%s: a probe's timeout sentence reads as every summary words it",
+    (language: string, sentence: string) => {
+      renderRowsIn(language, [timedOutProbe(3)]);
+
+      const cause: HTMLElement = screen.getByTestId(
+        "monitor-probe-failure-cause",
+      );
+
+      expect(withoutIsolateMarks(cause.textContent || "")).toBe(sentence);
+      expect(withoutIsolateMarks(cause.getAttribute("title") || "")).toBe(
+        sentence,
+      );
+      expect(sentence).toBe(
+        withoutIsolateMarks(
+          translatorFor(language).translatePlural(
+            PROBE_TIMEOUT_FAILURE_CAUSE,
+            3,
+          ),
+        ),
+      );
+      // Worded, it reads as the page does: no direction of its own.
+      expect(cause).not.toHaveAttribute("dir");
+      expect(cause).toHaveClass("line-clamp-2");
+    },
+  );
+
+  test("one try reads the language's one form", () => {
+    renderRowsIn("de", [timedOutProbe(1)]);
+
+    expect(screen.getByTestId("monitor-probe-failure-cause").textContent).toBe(
+      "Die Anfrage wurde einmal versucht und hat das Zeitlimit überschritten.",
+    );
+  });
+
+  test("a message that only looks like the timeout sentence stays as the probe wrote it", () => {
+    const nearMiss: string =
+      "Request was tried 3 times and it timed out after 30 seconds.";
+
+    for (const language of ["de", "fa"]) {
+      renderRowsIn(language, [
+        monitorProbe({
+          name: "Tokyo",
+          result: {
+            monitoredAt: minutesAgo(1),
+            isOnline: false,
+            failureCause: nearMiss,
+          },
+        }),
+      ]);
+
+      const cause: HTMLElement = screen.getByTestId(
+        "monitor-probe-failure-cause",
+      );
+
+      expect(cause.textContent).toBe(nearMiss);
+      expect(cause.getAttribute("dir")).toBe(language === "fa" ? "ltr" : null);
+      cleanup();
+    }
+  });
+
+  test("Persian: an up probe's time is kept whole in Persian digits, after a bullet", () => {
+    renderRowsIn("fa", EVERY_HEALTH());
+
+    const london: HTMLElement = screen.getAllByTestId(
+      "monitor-probe-health",
+    )[4]!;
+    const figure: Element | null = london.querySelector(
+      `span.${PROBE_HEALTH_FIGURE_CLASS_NAME}`,
+    );
+
+    expect(figure?.textContent).toBe("۱۱۹ میلی\u200cثانیه");
+    expect(london.textContent).toBe(
+      getProbeHealthText(
+        {
+          probeId: "p",
+          name: "London",
+          isEnabled: true,
+          isConnected: true,
+          health: MonitorOverviewProbeHealth.Up,
+          latestResult: {
+            monitoredAt: NOW,
+            isOnline: true,
+            responseTimeInMs: 118.6,
+          },
+        } as MonitorOverviewProbeRow,
+        translatorFor("fa"),
+      ),
+    );
+  });
 });
 
 describe("getProbeHealthText and getProbeAgreementText write in the translator's language", () => {
@@ -887,6 +1206,35 @@ describe("getProbeHealthText and getProbeAgreementText write in the translator's
         `[${PROBE_HEALTH_WORDS[health]}]`,
       );
     }
+  });
+
+  test("getProbeHealthParts: the state, and an up probe's time as a fact of its own", () => {
+    const english: Translator = translatorFor("en");
+    const persian: Translator = translatorFor("fa");
+
+    expect(
+      getProbeHealthParts(row(MonitorOverviewProbeHealth.Up, 182.4), english),
+    ).toEqual(["Up", "182 ms"]);
+    expect(
+      getProbeHealthParts(row(MonitorOverviewProbeHealth.Up, 182.4), persian),
+    ).toEqual([persian.translateTemplate("Up"), "۱۸۲ میلی\u200cثانیه"]);
+    // An up probe whose result had no time, and every other state: one part.
+    expect(
+      getProbeHealthParts(row(MonitorOverviewProbeHealth.Up), english),
+    ).toEqual(["Up"]);
+    for (const health of Object.values(MonitorOverviewProbeHealth)) {
+      if (health === MonitorOverviewProbeHealth.Up) {
+        continue;
+      }
+
+      expect(getProbeHealthParts(row(health, 182.4), english)).toEqual([
+        english.translateTemplate(PROBE_HEALTH_WORDS[health]),
+      ]);
+    }
+    // The one line is the parts set apart as the language sets two facts.
+    expect(
+      getProbeHealthText(row(MonitorOverviewProbeHealth.Up, 182.4), persian),
+    ).toBe(`${persian.translateTemplate("Up")} \u2022 ۱۸۲ میلی\u200cثانیه`);
   });
 
   test("an up probe's time in German grouping; only an up probe shows one", () => {

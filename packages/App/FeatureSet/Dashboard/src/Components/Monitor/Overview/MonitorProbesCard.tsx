@@ -20,11 +20,13 @@ import React, { FunctionComponent, ReactElement } from "react";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import {
   formatInline,
+  getInlineSeparator,
   translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
+import { getProbeFailureCauseText } from "Common/Utils/Monitor/ProbeFailureReading";
 import { formatMilliseconds } from "../../../Utils/Milliseconds";
 
 export interface ComponentProps {
@@ -60,19 +62,18 @@ export const PROBE_HEALTH_WORDS: Record<MonitorOverviewProbeHealth, string> = {
 };
 
 /*
- * The words on the right of a probe row, in the reader's language: the
+ * The facts on the right of a probe row, in the reader's language: the
  * state, and for a probe that is up its latest response time, written as
- * every monitor summary writes a duration (formatMilliseconds: "Up · 182
- * ms", "فعال • ۱۸۲ میلی‌ثانیه"). The two are set apart as the reader's
- * language sets two facts on one line (formatInline).
+ * every monitor summary writes a duration (formatMilliseconds: "182 ms",
+ * "۱۸۲ میلی‌ثانیه").
  */
-export const getProbeHealthText: (
+export const getProbeHealthParts: (
   row: MonitorOverviewProbeRow,
   translator: Translator,
-) => string = (
+) => Array<string> = (
   row: MonitorOverviewProbeRow,
   translator: Translator,
-): string => {
+): Array<string> => {
   const state: string = translator.translateTemplate(
     PROBE_HEALTH_WORDS[row.health] ||
       PROBE_HEALTH_WORDS[MonitorOverviewProbeHealth.Reported],
@@ -83,19 +84,67 @@ export const getProbeHealthText: (
       : undefined;
 
   if (responseTimeInMs === undefined) {
-    return state;
+    return [state];
   }
 
-  return formatInline(
-    [
-      state,
-      formatMilliseconds(translator, responseTimeInMs, {
-        maximumFractionDigits: 0,
-      }),
-    ],
-    translator,
-  );
+  return [
+    state,
+    formatMilliseconds(translator, responseTimeInMs, {
+      maximumFractionDigits: 0,
+    }),
+  ];
 };
+
+/*
+ * The words on the right of a probe row, as one line: the facts set apart
+ * as the reader's language sets two facts on one line (formatInline: "Up ·
+ * 182 ms", "فعال • ۱۸۲ میلی‌ثانیه").
+ */
+export const getProbeHealthText: (
+  row: MonitorOverviewProbeRow,
+  translator: Translator,
+) => string = (
+  row: MonitorOverviewProbeRow,
+  translator: Translator,
+): string => {
+  return formatInline(getProbeHealthParts(row, translator), translator);
+};
+
+/*
+ * A PROBE'S ROW, LAID OUT FOR THE WIDTH THE CARD HAS.
+ *
+ * The Probes card sits in a third of the overview at 1280px (a body about
+ * 14rem wide) and full width on a phone. Its state used to sit beside the
+ * probe's name, kept on one line, so a long one - "Turned off for this
+ * monitor", "Für diesen Monitor ausgeschaltet", a Persian time with its
+ * unit ("فعال • ۱٬۱۸۳ میلی‌ثانیه") - squeezed the name to a letter a line
+ * ("At" / "tic" / "R" / "as..."), and even "Up · 182 ms" broke
+ * "Frankfurt (eu-" / "central-1)".
+ *
+ * So the list is a container: in a card narrower than 22rem (the width a
+ * monitor summary's facts go side by side from, SummaryFacts) the state is
+ * a line of its own under the name, which keeps the whole row; from 22rem
+ * it sits beside the name, at the row's end, as wide as at most 10rem
+ * (longer states wrap at their words). Either way, when the check was made
+ * and why it failed run under both, the full width of the row.
+ */
+export const PROBE_ROWS_CLASS_NAME: string =
+  "[container-type:inline-size] divide-y divide-gray-100";
+
+export const PROBE_ROW_CLASS_NAME: string =
+  "grid grid-cols-1 items-start gap-x-3 py-2.5 [@container(min-width:22rem)]:grid-cols-[minmax(0,1fr)_auto]";
+
+export const PROBE_HEALTH_CLASS_NAME: string =
+  "mt-1 text-xs font-medium [@container(min-width:22rem)]:mt-0 [@container(min-width:22rem)]:max-w-[10rem] [@container(min-width:22rem)]:text-right";
+
+export const PROBE_ROW_DETAILS_CLASS_NAME: string =
+  "min-w-0 [@container(min-width:22rem)]:col-span-2";
+
+/*
+ * A duration is one figure with its unit: when the state wraps, it moves
+ * to the next line whole ("Up ·" / "1,183 ms"), never "1,183" / "ms".
+ */
+export const PROBE_HEALTH_FIGURE_CLASS_NAME: string = "whitespace-nowrap";
 
 /*
  * The probe agreement rule, worked out the way the server applies it
@@ -200,46 +249,97 @@ const MonitorProbesCard: FunctionComponent<ComponentProps> = (
         row.nextPingAt &&
         row.nextPingAt.getTime() > now.getTime(),
     );
+    /*
+     * Why a down probe's check failed, as every monitor summary draws it:
+     * the probe's own timeout sentence in the reader's words and digits,
+     * any other message as the probe wrote it (getProbeFailureCauseText).
+     */
     const failureCause: string | undefined =
-      row.health === MonitorOverviewProbeHealth.Down
-        ? row.latestResult?.failureCause
+      row.health === MonitorOverviewProbeHealth.Down &&
+      row.latestResult?.failureCause
+        ? getProbeFailureCauseText({
+            translator: translator,
+            failureCause: row.latestResult.failureCause,
+          }) || undefined
         : undefined;
+    const healthParts: Array<string> = getProbeHealthParts(row, translator);
 
     return (
       <li
         key={row.probeId}
         data-testid="monitor-probe-row"
-        className="flex items-start justify-between gap-3 py-2.5"
+        className={PROBE_ROW_CLASS_NAME}
       >
         <div className="min-w-0">
           <ProbeElement probe={toProbeModel(row)} />
-          <p className="mt-1 text-xs text-gray-500">
-            {monitoredAt && isNextInFuture && row.nextPingAt ? (
-              <TranslatedSentence
-                template="Checked {{time}} · next {{next}}"
-                slots={{
-                  time: <RelativeTime date={monitoredAt} />,
-                  next: <RelativeTime date={row.nextPingAt} />,
-                }}
-              />
-            ) : monitoredAt ? (
-              <TranslatedSentence
-                template="Checked {{time}}"
-                slots={{ time: <RelativeTime date={monitoredAt} /> }}
-              />
-            ) : isNextInFuture && row.nextPingAt ? (
-              <TranslatedSentence
-                template="No result yet · next {{next}}"
-                slots={{ next: <RelativeTime date={row.nextPingAt} /> }}
-              />
+        </div>
+        <span
+          data-testid="monitor-probe-health"
+          className={`${PROBE_HEALTH_CLASS_NAME} ${
+            PROBE_HEALTH_TEXT_CLASS[row.health]
+          }`}
+        >
+          {healthParts.map((part: string, index: number): ReactElement => {
+            return index === 0 ? (
+              <React.Fragment key={index}>{part}</React.Fragment>
             ) : (
-              <>{translator.translateText("No result yet")}</>
-            )}
-          </p>
+              <React.Fragment key={index}>
+                {getInlineSeparator(translator.language)}
+                <span className={PROBE_HEALTH_FIGURE_CLASS_NAME}>{part}</span>
+              </React.Fragment>
+            );
+          })}
+        </span>
+        <div
+          className={PROBE_ROW_DETAILS_CLASS_NAME}
+          data-testid="monitor-probe-details"
+        >
           {/*
-           * The probe's own message, as it wrote it (English): drawn the
-           * way its words read, so on an Arabic or Persian page it starts
-           * at its start and keeps its full stop at its end.
+           * When the check was made. A probe that has sent nothing says "No
+           * result yet" once, as its state, not a second time on the line
+           * under it: with a check ahead that line only says when it is due.
+           */}
+          {!monitoredAt &&
+          !(isNextInFuture && row.nextPingAt) &&
+          row.health === MonitorOverviewProbeHealth.NoResultYet ? (
+            <></>
+          ) : (
+            <p className="mt-1 text-xs text-gray-500">
+              {monitoredAt && isNextInFuture && row.nextPingAt ? (
+                <TranslatedSentence
+                  template="Checked {{time}} · next {{next}}"
+                  slots={{
+                    time: <RelativeTime date={monitoredAt} />,
+                    next: <RelativeTime date={row.nextPingAt} />,
+                  }}
+                />
+              ) : monitoredAt ? (
+                <TranslatedSentence
+                  template="Checked {{time}}"
+                  slots={{ time: <RelativeTime date={monitoredAt} /> }}
+                />
+              ) : isNextInFuture &&
+                row.nextPingAt &&
+                row.health === MonitorOverviewProbeHealth.NoResultYet ? (
+                <TranslatedSentence
+                  template="Next check {{next}}"
+                  slots={{ next: <RelativeTime date={row.nextPingAt} /> }}
+                />
+              ) : isNextInFuture && row.nextPingAt ? (
+                <TranslatedSentence
+                  template="No result yet · next {{next}}"
+                  slots={{ next: <RelativeTime date={row.nextPingAt} /> }}
+                />
+              ) : (
+                <>{translator.translateText("No result yet")}</>
+              )}
+            </p>
+          )}
+          {/*
+           * A message the probe wrote in English is drawn the way its words
+           * read, so on an Arabic or Persian page it starts at its start
+           * and keeps its full stop at its end; the worded timeout sentence
+           * reads as the page does.
            */}
           {failureCause ? (
             <IsolatedLine
@@ -253,14 +353,6 @@ const MonitorProbesCard: FunctionComponent<ComponentProps> = (
             <></>
           )}
         </div>
-        <span
-          data-testid="monitor-probe-health"
-          className={`flex-shrink-0 text-right text-xs font-medium ${
-            PROBE_HEALTH_TEXT_CLASS[row.health]
-          }`}
-        >
-          {getProbeHealthText(row, translator)}
-        </span>
       </li>
     );
   };
@@ -330,7 +422,7 @@ const MonitorProbesCard: FunctionComponent<ComponentProps> = (
       <div>
         <ul
           aria-label={translator.translateText("Probes")}
-          className="divide-y divide-gray-100"
+          className={PROBE_ROWS_CLASS_NAME}
         >
           {rows.map((row: MonitorOverviewProbeRow) => {
             return getRow(row, now);

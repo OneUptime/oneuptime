@@ -22081,6 +22081,7 @@
   "No reminder was sent. {{reason}} Ask {{name}} to finish their notification setup in User Settings.": "リマインダーは送信されませんでした。{{reason}} ユーザー設定で通知のセットアップを完了するよう {{name}} に依頼してください。",
   "No responders": "対応者なし",
   "No result yet · next {{next}}": "まだ結果はありません · 次回 {{next}}",
+  "Next check {{next}}": "次回の確認 {{next}}",
   "No rotation": "ローテーションなし",
   "No rule - pages here fall back to a verified method": "ルールなし - ここへの呼び出しは確認済みの方法にフォールバックします",
   "No series match “{{search}}”": "「{{search}}」に一致する系列はありません",

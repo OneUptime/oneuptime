@@ -22081,6 +22081,7 @@
   "No reminder was sent. {{reason}} Ask {{name}} to finish their notification setup in User Settings.": "لم يُرسل أي تذكير. {{reason}} اطلب من {{name}} إكمال إعداد الإشعارات في «إعدادات المستخدم».",
   "No responders": "لا يوجد مستجيبون",
   "No result yet · next {{next}}": "لا توجد نتيجة بعد · التالي {{next}}",
+  "Next check {{next}}": "الفحص التالي {{next}}",
   "No rotation": "لا يوجد تناوب",
   "No rule - pages here fall back to a verified method": "لا توجد قاعدة - تلجأ الاستدعاءات هنا إلى طريقة متحقق منها",
   "No series match “{{search}}”": "لا توجد سلاسل تطابق «{{search}}»",
