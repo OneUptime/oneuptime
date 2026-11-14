@@ -163,7 +163,10 @@ import DashboardValueComponentElement from "../../../../App/FeatureSet/Dashboard
 import { DashboardBaseComponentProps } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardBaseComponent";
 import DashboardWidgetError, {
   DASHBOARD_WIDGET_ERROR_TEST_ID,
+  DASHBOARD_WIDGET_STATE_ICON_ROOM_IN_PX,
+  DASHBOARD_WIDGET_STATE_ICON_TEST_ID,
   DashboardWidgetErrorLine,
+  DashboardWidgetState,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardWidgetError";
 import {
   DASHBOARD_WIDGET_ERROR_LINE_CLASS_NAME,
@@ -306,7 +309,7 @@ interface Widget {
   ) => React.ReactElement;
   // Whether it says a time range with no start or end is the problem.
   checksTheTimeRange: boolean;
-  // Whether it draws the line under an icon of its own (the Gauge's arc).
+  // Whether its error's icon is one of its own (the Gauge's arc).
   drawsItsOwnIcon?: boolean | undefined;
 }
 
@@ -501,26 +504,35 @@ function readsMade(): number {
 }
 
 /*
- * The widget's error line, inside its error state - under the gauge's own
- * arc icon for the Gauge, which draws the line alone
- * (DashboardWidgetErrorLine).
+ * The widget's error line, inside its error state (DashboardWidgetError),
+ * under the widget's icon - the gauge's own arc for the Gauge, gray as
+ * every widget's error icon is.
  */
 async function errorLine(widget: Widget): Promise<HTMLElement> {
   const line: HTMLElement = await screen.findByTestId(
     DASHBOARD_WIDGET_ERROR_LINE_TEST_ID,
   );
+  const state: HTMLElement = screen.getByTestId(DASHBOARD_WIDGET_ERROR_TEST_ID);
+
+  expect(within(state).getByTestId(DASHBOARD_WIDGET_ERROR_LINE_TEST_ID)).toBe(
+    line,
+  );
+
+  const icon: HTMLElement = within(state).getByTestId(
+    DASHBOARD_WIDGET_STATE_ICON_TEST_ID,
+  );
+  const drawn: SVGElement | null = icon.querySelector("svg");
+
+  expect(drawn).not.toBeNull();
 
   if (widget.drawsItsOwnIcon) {
-    expect(
-      screen.queryByTestId(DASHBOARD_WIDGET_ERROR_TEST_ID),
-    ).not.toBeInTheDocument();
-  } else {
-    expect(
-      within(screen.getByTestId(DASHBOARD_WIDGET_ERROR_TEST_ID)).getByTestId(
-        DASHBOARD_WIDGET_ERROR_LINE_TEST_ID,
-      ),
-    ).toBe(line);
+    // The arc, in its soft circle, gray as the others: never paler.
+    expect(drawn!.getAttribute("class") || "").toMatch(/\btext-gray-400\b/);
+    expect(icon.querySelector(".bg-gray-50")).not.toBeNull();
   }
+
+  // The icon sits over the line, never inside it.
+  expect(line).not.toContainElement(icon);
 
   return line;
 }
@@ -741,8 +753,222 @@ describe("the Gauge's line when it has no value: readable, and its reason in the
       expect(line).toHaveTextContent(inLanguage(english, language));
       expect(line.className).toBe(DASHBOARD_WIDGET_ERROR_LINE_CLASS_NAME);
       expect(line.className).not.toMatch(OLD_LOOK);
+      // Under the gauge's own arc, in the state that never cuts its top off.
+      expect(
+        screen.getByTestId(DASHBOARD_WIDGET_STATE_ICON_TEST_ID),
+      ).not.toContainElement(line);
     },
   );
+});
+
+/*
+ * A long message - a failure nobody explained, with its reference and copy
+ * button, in German - in a two-row tile. Drawn under its icon, centred, it
+ * ran past the box's edge: the Gauge's was cut off above and below, the
+ * others' scrolled with the reference out of sight. The icon gives up its
+ * room first, as the widget fallback's note does in a short tile, and comes
+ * back when the box grows. The browser's layout is stood in for: the box's
+ * height and the words' height, measured when the ResizeObserver says so.
+ */
+describe("a long message in a short tile: the icon gives up its room first", () => {
+  type Observed = (entries: Array<unknown>, observer: unknown) => void;
+
+  let observers: Array<{ callback: Observed; targets: Array<Element> }> = [];
+  const realResizeObserver: unknown = (
+    globalThis as unknown as { ResizeObserver?: unknown }
+  ).ResizeObserver;
+
+  beforeEach(() => {
+    observers = [];
+
+    class StandInResizeObserver {
+      private record: { callback: Observed; targets: Array<Element> };
+
+      public constructor(callback: Observed) {
+        this.record = { callback, targets: [] };
+        observers.push(this.record);
+      }
+
+      public observe(target: Element): void {
+        this.record.targets.push(target);
+      }
+
+      public disconnect(): void {
+        this.record.targets = [];
+      }
+    }
+
+    (globalThis as unknown as { ResizeObserver: unknown }).ResizeObserver =
+      StandInResizeObserver;
+  });
+
+  afterEach(() => {
+    (globalThis as unknown as { ResizeObserver: unknown }).ResizeObserver =
+      realResizeObserver;
+  });
+
+  // The box and the words, as the browser laid them out.
+  function layOut(data: { box: number; words: number }): void {
+    const state: HTMLElement = screen.getByTestId(
+      DASHBOARD_WIDGET_ERROR_TEST_ID,
+    );
+    const content: HTMLElement = state.firstElementChild as HTMLElement;
+
+    Object.defineProperty(state, "clientHeight", {
+      configurable: true,
+      value: data.box,
+    });
+    /*
+     * The words' height, with the icon's room over them while it is
+     * drawn.
+     */
+    Object.defineProperty(content, "offsetHeight", {
+      configurable: true,
+      get: (): number => {
+        return (
+          data.words +
+          (content.querySelector(
+            `[data-testid="${DASHBOARD_WIDGET_STATE_ICON_TEST_ID}"]`,
+          )
+            ? DASHBOARD_WIDGET_STATE_ICON_ROOM_IN_PX
+            : 0)
+        );
+      },
+    });
+
+    act(() => {
+      for (const observer of observers) {
+        if (observer.targets.length > 0) {
+          observer.callback([], observer);
+        }
+      }
+    });
+  }
+
+  function iconIsDrawn(): boolean {
+    return Boolean(screen.queryByTestId(DASHBOARD_WIDGET_STATE_ICON_TEST_ID));
+  }
+
+  test("it watches the box and the words, and stops when the state goes", () => {
+    const view: ReturnType<typeof render> = render(
+      <DashboardWidgetError icon={IconProp.ChartBar} error={SERVER_ANSWER} />,
+    );
+
+    const state: HTMLElement = screen.getByTestId(
+      DASHBOARD_WIDGET_ERROR_TEST_ID,
+    );
+
+    expect(observers).toHaveLength(1);
+    expect(observers[0]!.targets).toEqual([state, state.firstElementChild]);
+
+    view.unmount();
+
+    expect(observers[0]!.targets).toEqual([]);
+  });
+
+  test("words that fit under the icon keep it", () => {
+    render(
+      <DashboardWidgetError icon={IconProp.ChartBar} error={SERVER_ANSWER} />,
+    );
+
+    layOut({ box: 166, words: 48 });
+
+    expect(iconIsDrawn()).toBe(true);
+  });
+
+  test("words that need the icon's room take it, and keep it while they still need it", () => {
+    render(
+      <DashboardWidgetError
+        icon={IconProp.ChartBar}
+        error={getUnexplainedServerErrorMessage("ab12cd34")}
+      />,
+    );
+
+    // A two-row tile: 142px inside the card, 136px of words and reference.
+    layOut({ box: 142, words: 136 });
+
+    expect(iconIsDrawn()).toBe(false);
+    // The words and the reference are all still there.
+    expect(screen.getByTestId("error-reference")).toHaveTextContent("ab12cd34");
+
+    // Without the icon they fit: it does not come back and go again.
+    layOut({ box: 142, words: 136 });
+
+    expect(iconIsDrawn()).toBe(false);
+  });
+
+  test("the icon comes back when the box grows to hold it", () => {
+    render(
+      <DashboardWidgetError
+        icon={IconProp.ChartBar}
+        error={getUnexplainedServerErrorMessage("ab12cd34")}
+      />,
+    );
+
+    layOut({ box: 142, words: 136 });
+
+    expect(iconIsDrawn()).toBe(false);
+
+    layOut({ box: 136 + DASHBOARD_WIDGET_STATE_ICON_ROOM_IN_PX, words: 136 });
+
+    expect(iconIsDrawn()).toBe(true);
+  });
+
+  test("the Gauge's error drops its arc the same way", async () => {
+    fetchResultsMock.mockRejectedValue(
+      new Error(getUnexplainedServerErrorMessage("ab12cd34")),
+    );
+
+    render(
+      <DashboardGaugeComponentElement
+        {...baseProps()}
+        component={
+          withArguments(DashboardGaugeComponentUtil.getDefaultComponent(), {
+            metricQueryConfig: METRIC_QUERY,
+          }) as never
+        }
+      />,
+    );
+
+    await screen.findByTestId(DASHBOARD_WIDGET_ERROR_LINE_TEST_ID);
+
+    expect(iconIsDrawn()).toBe(true);
+
+    layOut({ box: 142, words: 136 });
+
+    expect(iconIsDrawn()).toBe(false);
+  });
+
+  test("with no ResizeObserver (an older browser) the icon stays", () => {
+    (globalThis as unknown as { ResizeObserver: unknown }).ResizeObserver =
+      undefined;
+
+    render(
+      <DashboardWidgetState
+        icon={<span data-testid="own-icon" />}
+        dataTestId={DASHBOARD_WIDGET_ERROR_TEST_ID}
+      >
+        <DashboardWidgetErrorLine error={SERVER_ANSWER} />
+      </DashboardWidgetState>,
+    );
+
+    expect(screen.getByTestId("own-icon")).toBeInTheDocument();
+    expect(iconIsDrawn()).toBe(true);
+  });
+
+  test("the state scrolls from its first line: centred by its margins, never cut off above", () => {
+    render(
+      <DashboardWidgetError icon={IconProp.ChartBar} error={SERVER_ANSWER} />,
+    );
+
+    const state: HTMLElement = screen.getByTestId(
+      DASHBOARD_WIDGET_ERROR_TEST_ID,
+    );
+
+    expect(state).toHaveClass("flex", "h-full", "w-full", "overflow-auto");
+    expect(state).not.toHaveClass("justify-center");
+    expect(state.firstElementChild).toHaveClass("m-auto");
+  });
 });
 
 describe("the error line itself", () => {

@@ -31,6 +31,9 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 export const TABLE_COLUMN_CARD_HEADER_TEST_ID: string =
   "table-column-card-header";
 
+// The row under the cards: Add Metric and Add Formula.
+export const TABLE_COLUMNS_ADD_ROW_TEST_ID: string = "table-columns-add-row";
+
 export interface ComponentProps {
   columns: Array<TableColumn>;
   metricTypes: Array<MetricType>;
@@ -419,11 +422,22 @@ const TableColumnsEditor: FunctionComponent<ComponentProps> = (
         );
       })}
 
-      <div className="flex gap-2 pt-1">
+      {/*
+       * Two small buttons side by side, each its own size at every width:
+       * on a phone the shared Button took half the row each, in larger
+       * words that broke over two lines in German (issue #7331's footer
+       * look, as the cards' Remove had). They wrap under each other when
+       * they do not fit.
+       */}
+      <div
+        className="flex flex-wrap gap-2 pt-1"
+        data-testid={TABLE_COLUMNS_ADD_ROW_TEST_ID}
+      >
         <Button
           title="Add Metric"
           buttonSize={ButtonSize.Small}
           buttonStyle={ButtonStyleType.OUTLINE}
+          isFullWidthOnPhone={false}
           icon={IconProp.Add}
           onClick={(): void => {
             addColumn(TableColumnKind.Metric);
@@ -433,6 +447,7 @@ const TableColumnsEditor: FunctionComponent<ComponentProps> = (
           title="Add Formula"
           buttonSize={ButtonSize.Small}
           buttonStyle={ButtonStyleType.OUTLINE}
+          isFullWidthOnPhone={false}
           icon={IconProp.Add}
           onClick={(): void => {
             addColumn(TableColumnKind.Formula);

@@ -69,6 +69,7 @@ import DataSourceQueryEditor, {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Canvas/DataSourceQueryEditor";
 import TableColumnsEditor, {
   TABLE_COLUMN_CARD_HEADER_TEST_ID,
+  TABLE_COLUMNS_ADD_ROW_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Canvas/TableColumnsEditor";
 import DashboardBaseComponent from "../../../Types/Dashboard/DashboardComponents/DashboardBaseComponent";
 import DashboardComponentType from "../../../Types/Dashboard/DashboardComponentType";
@@ -386,6 +387,64 @@ describe("the metric Table's column card's Remove", () => {
     expect(headers[0]!.firstElementChild).toHaveTextContent("a");
     expect(headers[1]!.firstElementChild).toHaveTextContent("b");
   });
+
+  /*
+   * Under the cards, Add Metric and Add Formula sit side by side. On a
+   * phone the shared Button gave each half the row in larger words, which
+   * broke over two lines in German: each keeps its own size, and the row
+   * wraps them under each other when they do not fit.
+   */
+  test.each([["en"], ["de"]])(
+    "in %s: Add Metric and Add Formula keep their own size, in a row that wraps",
+    async (language: string) => {
+      await act(async () => {
+        await i18next.changeLanguage(language);
+      });
+
+      render(
+        <TableColumnsEditor
+          columns={COLUMNS}
+          metricTypes={[]}
+          onChange={() => {}}
+        />,
+      );
+
+      const row: HTMLElement = screen.getByTestId(
+        TABLE_COLUMNS_ADD_ROW_TEST_ID,
+      );
+
+      expect(row).toHaveClass("flex", "flex-wrap", "gap-2");
+
+      const buttons: Array<HTMLElement> = within(row).getAllByRole("button");
+
+      expect(
+        buttons.map((button: HTMLElement): string => {
+          return button.textContent || "";
+        }),
+      ).toEqual([
+        language === "en"
+          ? "Add Metric"
+          : readDashboardLocale("de")["Add Metric"],
+        language === "en"
+          ? "Add Formula"
+          : readDashboardLocale("de")["Add Formula"],
+      ]);
+
+      for (const button of buttons) {
+        const footerLayoutLeft: Array<string> = classesOf(button).filter(
+          (name: string): boolean => {
+            return FOOTER_LAYOUT.includes(name);
+          },
+        );
+
+        expect({ button: button.textContent, footerLayoutLeft }).toEqual({
+          button: button.textContent,
+          footerLayoutLeft: [],
+        });
+        expect(button).toHaveClass("text-sm");
+      }
+    },
+  );
 });
 
 describe("a metric widget's added query row's Remove", () => {

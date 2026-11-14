@@ -18,13 +18,14 @@ import { getNumberSpacingClassName } from "./DashboardWidgetDigits";
 import { getLineDirection } from "Common/UI/Utils/LineDirection";
 import { ReadingDirection } from "Common/Types/ReadingDirection";
 import {
-  DASHBOARD_WIDGET_ERROR_LINE_CLASS_NAME,
   DASHBOARD_WIDGET_SETUP_LINE_CLASS_NAME,
   DASHBOARD_WIDGET_SETUP_LINE_TEST_ID,
   DASHBOARD_WIDGET_SETUP_NAME_CLASS_NAME,
 } from "./DashboardWidgetSetupCopy";
-import { DashboardWidgetErrorLine } from "./DashboardWidgetError";
-import ErrorMessageText from "Common/UI/Components/ErrorMessage/ErrorMessageText";
+import DashboardWidgetError, {
+  DashboardWidgetErrorLine,
+  DashboardWidgetState,
+} from "./DashboardWidgetError";
 
 // The row of the arc's bounds under it: the minimum, then the maximum.
 export const GAUGE_BOUNDS_TEST_ID: string = "gauge-bounds";
@@ -51,9 +52,14 @@ const GaugeStateIcon: FunctionComponent<{
         props.tone === "emerald" ? "bg-emerald-50" : "bg-gray-50"
       }`}
     >
+      {/*
+       * Gray as every widget's error icon is (DashboardWidgetErrorIcon):
+       * the arc stands for the gauge where another widget's chart or table
+       * icon would.
+       */}
       <svg
         className={`w-5 h-5 ${
-          props.tone === "emerald" ? "text-emerald-300" : "text-gray-300"
+          props.tone === "emerald" ? "text-emerald-300" : "text-gray-400"
         }`}
         fill="none"
         viewBox="0 0 24 24"
@@ -177,16 +183,18 @@ const GaugeWidgetView: FunctionComponent<GaugeWidgetViewProps> = (
   }
 
   /*
-   * The error's line every widget draws (DashboardWidgetErrorLine): in the
-   * reader's language and readable, under the gauge's own icon. It was
-   * drawn as set, in gray-400, in a 160px column.
+   * Every widget's error state (DashboardWidgetError), under the gauge's
+   * own arc icon: the line in the reader's language and readable, and a
+   * long message in a two-row gauge that drops the icon, then scrolls from
+   * its first line. It was drawn as set, in gray-400, in a 160px column,
+   * centred so a long one was cut off above and below.
    */
   if (props.error) {
     return (
-      <div className="flex flex-col items-center justify-center w-full h-full gap-1.5">
-        <GaugeStateIcon tone="gray" />
-        <DashboardWidgetErrorLine error={props.error} />
-      </div>
+      <DashboardWidgetError
+        icon={<GaugeStateIcon tone="gray" />}
+        error={props.error}
+      />
     );
   }
 
@@ -199,10 +207,11 @@ const GaugeWidgetView: FunctionComponent<GaugeWidgetViewProps> = (
    */
   if (props.value === null && !props.isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center w-full h-full gap-1.5">
-        <GaugeStateIcon tone="gray" />
+      <DashboardWidgetState icon={<GaugeStateIcon tone="gray" />}>
         {props.title ? (
-          <p className="text-xs font-medium text-gray-500">{props.title}</p>
+          <p className={DASHBOARD_WIDGET_SETUP_NAME_CLASS_NAME}>
+            {props.title}
+          </p>
         ) : (
           <></>
         )}
@@ -212,17 +221,11 @@ const GaugeWidgetView: FunctionComponent<GaugeWidgetViewProps> = (
          * or English from a connector in its own reading direction. It was
          * gray-400 in a 160px column.
          */}
-        <p
-          className={DASHBOARD_WIDGET_ERROR_LINE_CLASS_NAME}
-          data-testid={GAUGE_NO_DATA_TEST_ID}
-        >
-          <ErrorMessageText
-            message={props.noDataMessage}
-            hideWhatFailed={true}
-            isCentered={true}
-          />
-        </p>
-      </div>
+        <DashboardWidgetErrorLine
+          error={props.noDataMessage}
+          dataTestId={GAUGE_NO_DATA_TEST_ID}
+        />
+      </DashboardWidgetState>
     );
   }
 
