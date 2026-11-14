@@ -18,6 +18,7 @@ import React from "react";
  *   Which incidents  Incident State  is any of  (Acknowledged)
  *   Then             - Creates a channel like #ack-inc-42 for each incident.
  *                    - Invites on-call responders as they are paged, ...
+ *   Updates          (only when the rule leaves some updates out)
  *   Video Call       (only when the rule starts one)
  *
  * The rules list is a ModelTable shown as a list of cards, each card a row
@@ -767,8 +768,295 @@ describe("a rule's video call", () => {
   });
 });
 
+/*
+ * Which updates the rule posts (#7581): a row only on the card of a rule
+ * that leaves some out, saying the answer it picked and what it posts - or,
+ * for a rule that ticked its own boxes, what it posts alone. Every rule
+ * saved before the Updates step, and every new rule left on Every update,
+ * posts every update as before, and its card is as it was.
+ */
+describe("a rule's updates", () => {
+  const KEY_ONLY: string = "4a8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e";
+
+  // The Updates row of a card: its answer, then the updates it posts.
+  function updatesRow(card: HTMLElement): {
+    title: string | null;
+    updates: string | null;
+  } {
+    const summary: HTMLElement = within(card).getByTestId(
+      "notification-rule-updates-summary",
+    );
+
+    return {
+      title:
+        within(summary).queryByTestId("notification-rule-updates-summary-title")
+          ?.textContent || null,
+      updates:
+        within(summary).queryByTestId("notification-rule-updates-summary-list")
+          ?.textContent || null,
+    };
+  }
+
+  test("has a row only on the card of a rule that leaves some updates out", async () => {
+    const cards: Array<HTMLElement> = await renderCards([
+      {
+        id: KEY_ONLY,
+        name: "Executive alerts",
+        rule: ruleJson({
+          updatesToPost: [
+            "ResolvedAndReopened",
+            "SeverityChanges",
+            "PublicNotes",
+            "Postmortem",
+          ],
+        }),
+      },
+      {
+        id: "5a8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
+        name: "Saved before the Updates step",
+        rule: ruleJson({}),
+      },
+      {
+        id: "6a8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
+        name: "Saved with no list",
+        rule: ruleJson({ updatesToPost: null }),
+      },
+    ]);
+
+    expect(rowNames(cards[0]!)).toEqual([
+      "Rule Name",
+      "Which incidents",
+      "Then",
+      "Updates",
+    ]);
+    expect(updatesRow(cards[0]!)).toEqual({
+      title: "Key updates only",
+      updates:
+        "Resolved and reopened · Severity changes · Public notes · Postmortem",
+    });
+
+    for (const card of cards.slice(1)) {
+      expect(rowNames(card)).toEqual(["Rule Name", "Which incidents", "Then"]);
+      expect(
+        within(card).queryByTestId("notification-rule-updates-summary"),
+      ).not.toBeInTheDocument();
+    }
+  });
+
+  test("the key updates in any order are still Key updates only", async () => {
+    const [card] = await renderCards([
+      {
+        id: KEY_ONLY,
+        name: "Executive alerts",
+        rule: ruleJson({
+          updatesToPost: [
+            "Postmortem",
+            "PublicNotes",
+            "SeverityChanges",
+            "ResolvedAndReopened",
+          ],
+        }),
+      },
+    ]);
+
+    // In the order of the step's boxes, not the order saved.
+    expect(updatesRow(card!)).toEqual({
+      title: "Key updates only",
+      updates:
+        "Resolved and reopened · Severity changes · Public notes · Postmortem",
+    });
+  });
+
+  test("a rule that ticked its own boxes is said by the updates it posts, with no answer over them", async () => {
+    const [card] = await renderCards([
+      {
+        id: KEY_ONLY,
+        name: "Paging only",
+        rule: ruleJson({ updatesToPost: ["Paging", "PrivateNotes"] }),
+      },
+    ]);
+
+    // "Updates: Private notes · Paging", not "Updates: Chosen updates".
+    expect(updatesRow(card!)).toEqual({
+      title: null,
+      updates: "Private notes · Paging",
+    });
+  });
+
+  test("a rule with every box cleared says when it still posts", async () => {
+    const [card] = await renderCards([
+      {
+        id: KEY_ONLY,
+        name: "Declared only",
+        rule: ruleJson({ updatesToPost: [] }),
+      },
+    ]);
+
+    expect(rowNames(card!)).toContain("Updates");
+    expect(updatesRow(card!)).toEqual({
+      title: "Only when an incident is declared or a video call starts",
+      updates: null,
+    });
+  });
+
+  /*
+   * A narrow card breaks the list between two updates, never inside one
+   * ("Changes to the / severity") or before a mark: each update is an item
+   * of its own, kept whole on a line, with the mark after it. The marks are
+   * drawn, not read out: a screen reader hears a list of three.
+   */
+  test("each update is an item kept whole on a line, with the mark after it", async () => {
+    const [card] = await renderCards([
+      {
+        id: KEY_ONLY,
+        name: "Three updates",
+        rule: ruleJson({
+          updatesToPost: ["SeverityChanges", "Paging", "ResolvedAndReopened"],
+        }),
+      },
+    ]);
+
+    const list: HTMLElement = within(card!).getByTestId(
+      "notification-rule-updates-summary-list",
+    );
+
+    expect(list).toHaveAttribute("role", "list");
+
+    const items: Array<HTMLElement> = within(list).getAllByRole("listitem");
+
+    expect(
+      items.map((item: HTMLElement): string => {
+        return item.textContent || "";
+      }),
+    ).toEqual(["Resolved and reopened ·", "Severity changes ·", "Paging"]);
+
+    for (const item of items) {
+      expect(item).toHaveClass("inline-block");
+    }
+
+    expect(
+      items.map((item: HTMLElement): string | null => {
+        return item.querySelector('[aria-hidden="true"]')?.textContent || null;
+      }),
+    ).toEqual([" ·", " ·", null]);
+  });
+
+  test("sits between Then and Video Call", async () => {
+    const [card] = await renderCards([
+      {
+        id: KEY_ONLY,
+        name: "Quiet, with a call",
+        rule: ruleJson({
+          updatesToPost: ["ResolvedAndReopened"],
+          shouldStartVideoCall: true,
+          videoCallSource: ZOOM_ID,
+        }),
+      },
+    ]);
+
+    expect(rowNames(card!)).toEqual([
+      "Rule Name",
+      "Which incidents",
+      "Then",
+      "Updates",
+      "Video Call",
+    ]);
+    expect(updatesRow(card!)).toEqual({
+      title: null,
+      updates: "Resolved and reopened",
+    });
+  });
+
+  test.each([
+    [
+      NotificationRuleEventType.Alert,
+      ["ResolvedAndReopened", "SeverityChanges"],
+      "Key updates only",
+    ],
+    [
+      NotificationRuleEventType.IncidentEpisode,
+      ["ResolvedAndReopened", "PublicNotes"],
+      "Key updates only",
+    ],
+    [
+      NotificationRuleEventType.AlertEpisode,
+      ["ResolvedAndReopened"],
+      "Key updates only",
+    ],
+    [
+      NotificationRuleEventType.ScheduledMaintenance,
+      ["StateChanges", "PublicNotes"],
+      "Key updates only",
+    ],
+    [NotificationRuleEventType.ScheduledMaintenance, ["PrivateNotes"], null],
+    [
+      NotificationRuleEventType.Incident,
+      [],
+      "Only when an incident is declared or a video call starts",
+    ],
+    [
+      NotificationRuleEventType.Alert,
+      [],
+      "Only when an alert is created or a video call starts",
+    ],
+    [
+      NotificationRuleEventType.IncidentEpisode,
+      [],
+      "Only when an incident episode is created",
+    ],
+    [
+      NotificationRuleEventType.AlertEpisode,
+      [],
+      "Only when an alert episode is created",
+    ],
+    [
+      NotificationRuleEventType.ScheduledMaintenance,
+      [],
+      "Only when a maintenance event is created",
+    ],
+  ])(
+    "a %s rule's card says what it picked, %j",
+    async (
+      eventType: NotificationRuleEventType,
+      updatesToPost: Array<string>,
+      title: string | null,
+    ) => {
+      const [card] = await renderCards(
+        [
+          {
+            id: KEY_ONLY,
+            name: "Quiet",
+            rule: ruleJson({ updatesToPost: updatesToPost }),
+          },
+        ],
+        { eventType: eventType, canStartVideoCall: false },
+      );
+
+      expect(rowNames(card!)).toContain("Updates");
+      expect(updatesRow(card!).title).toBe(title);
+    },
+  );
+
+  test.each([
+    NotificationRuleEventType.Monitor,
+    NotificationRuleEventType.OnCallDutyPolicy,
+    NotificationRuleEventType.SecurityCase,
+    NotificationRuleEventType.SecurityHunt,
+    NotificationRuleEventType.ServiceLevelObjective,
+  ])(
+    "is not a row at all on a %s rule's card: those post every update",
+    (eventType: NotificationRuleEventType) => {
+      const ids: Array<string> = getColumnIds<WorkspaceNotificationRule>(
+        columnsFor({ eventType: eventType, canStartVideoCall: false }),
+      );
+
+      expect(ids).not.toContain(NOTIFICATION_RULE_CARD_COLUMN_IDS.updates);
+    },
+  );
+});
+
 describe("the card's rows in Customize Columns", () => {
-  test("every row has a name, and the three that read the rule have ids of their own", () => {
+  test("every row has a name, and the four that read the rule have ids of their own", () => {
     const columns: Columns<WorkspaceNotificationRule> = columnsFor({});
 
     for (const column of columns) {
@@ -783,6 +1071,7 @@ describe("the card's rows in Customize Columns", () => {
       "description",
       NOTIFICATION_RULE_CARD_COLUMN_IDS.when,
       NOTIFICATION_RULE_CARD_COLUMN_IDS.then,
+      NOTIFICATION_RULE_CARD_COLUMN_IDS.updates,
       NOTIFICATION_RULE_CARD_COLUMN_IDS.videoCall,
     ]);
   });

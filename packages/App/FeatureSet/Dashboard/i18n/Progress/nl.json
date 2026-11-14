@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52081,
-    "untranslated": 9399
+    "keys": 52206,
+    "untranslated": 9384
   },
   "sameAsEnglish": [
     " is",
@@ -469,6 +469,7 @@
     "Up + In",
     "Up + Out",
     "Up · In",
+    "Updates",
     "Uplink",
     "Uplink {{uplink}}",
     "Uplinks",

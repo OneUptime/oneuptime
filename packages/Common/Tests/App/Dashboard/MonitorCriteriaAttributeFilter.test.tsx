@@ -470,7 +470,7 @@ describe("Monitoring criteria — Filter by Attributes", () => {
        * autocomplete, operator select, type select, value autocomplete.
        */
       const row: HTMLElement = keyInput().closest(
-        "div.flex.items-start",
+        '[data-testid="dictionary-row"]',
       ) as HTMLElement;
       const typeSelect: HTMLElement =
         row.querySelectorAll<HTMLElement>('[role="combobox"]')[2]!;

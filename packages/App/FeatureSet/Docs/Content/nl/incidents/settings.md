@@ -20,6 +20,7 @@ Open **Incidenten** vanuit het menu **Producten** in de bovenbalk en klap dan **
 | **Incident-sjablonen**       | Een heel incident vooraf invullen — titel, beschrijving, middelen, bereikbaarheidsbeleid, eigenaren, labels. |
 | **Notitie-sjablonen**        | Herbruikbare tekst voor openbare en privénotities.                                           |
 | **Goedkeuring van openbare notities** | Laat openbare notities goedkeuren voordat ze worden gepubliceerd en kies wie ze goedkeurt. |
+| **Meldingen aan abonnees** | Kiezen of **Statuspagina-abonnees op de hoogte stellen** aangevinkt begint wanneer iemand een incident meldt. Standaard aan. |
 | **Postmortem-sjablonen**     | Herbruikbare structuren voor postmortems.                                                    |
 | **Postmortem-statussen** | De statussen die een postmortem doorloopt, van Niet gestart tot Voltooid. |
 | **Aangepaste velden**        | Extra velden definiëren die op elk incident verschijnen.                                     |
@@ -183,6 +184,14 @@ De meeste projecten hebben één stap nodig. Voeg er nog een toe wanneer een not
 - **Niemand keurt zijn eigen notitie goed, of twee stappen van één notitie.** Wie een notitie ter goedkeuring verstuurde, kan haar niet goedkeuren of afwijzen, en wie een van haar stappen goedkeurde, kan geen andere goedkeuren.
 
 Alleen projecteigenaren en -beheerders kunnen deze instellingen wijzigen, en iedereen die de notities leest, ziet wie ze goedkeurt. **Geplande onderhoud → Instellingen → Goedkeuring van openbare notities** is dezelfde pagina voor geplande onderhoudsevenementen, met een eigen schakelaar en eigen stappen. Wat een notitie doet terwijl ze wacht, en hoe goedkeurders beslissen, staat onder [Goedkeuring van openbare notities](/docs/incidents/notes-owners-and-feed#goedkeuring-van-openbare-notities).
+
+## Meldingen aan abonnees
+
+Wanneer iemand een incident meldt, begint **Statuspagina-abonnees op de hoogte stellen** aangevinkt, zodat abonnees van de statuspagina van het incident horen, tenzij degene die het meldt het vakje uitvinkt. Werkt je team aan een incident voordat iemand buiten het team ervan hoort, laat het vakje dan niet aangevinkt beginnen: ga naar **Incidenten → Instellingen → Meldingen aan abonnees** (`/dashboard/{projectId}/incidents/settings/subscriber-notifications`) en zet **Statuspagina-abonnees standaard op de hoogte stellen** uit. Hij staat in elk project aan tot je hem uitzet, en wordt opgeslagen zodra je hem omzet. Alleen Project Owners en Project Admins kunnen hem wijzigen; voor alle anderen is de schakelaar vergrendeld en zegt hij welke machtiging hij nodig heeft.
+
+Zolang hij uitstaat, begint het vakje niet aangevinkt op **Nieuw incident melden**, of het incident nu vanuit de incidentenlijst, een sjabloon, een waarschuwing of een monitor wordt gemeld, en de beschrijving zegt dat het in dit project standaard niet aangevinkt is. Abonnees horen er alleen van als degene die meldt het aanvinkt. Op de samenvatting, voordat je verstuurt, staat naast het **Nee** **Wijzigen in Ja**, dat het vakje aanvinkt zonder terug te gaan naar **Getroffen middelen**. Bij een privé-incident, dat geen statuspagina toont, wordt dat niet aangeboden. De schakelaar verandert alleen hoe het vakje begint: het incident legt vast hoe het vakje is gelaten, en een incident dat zonder melding is gemeld, blijft stil, zoals [Een incident melden](/docs/incidents/declaring-incidents) beschrijft.
+
+Een incident dat vanuit Slack of Microsoft Teams wordt gemeld, of dat je door OneUptime AI laat melden, volgt de schakelaar ook: daar vraagt niets naar abonnees, dus zolang de schakelaar uit staat, wordt het gemeld zonder hen op de hoogte te stellen, en je kunt ze later met een openbare notitie inlichten. Incidenten die op een andere manier ontstaan — door monitors, of via de API, Terraform of workflows — houden hun eigen `shouldStatusPageSubscribersBeNotifiedOnIncidentCreated`, dat abonnees op de hoogte stelt tenzij het `false` is. Via de API is de schakelaar het veld `notifyStatusPageSubscribersOfNewIncidentsByDefault` van het project.
 
 ## Postmortem-sjablonen
 

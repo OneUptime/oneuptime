@@ -272,9 +272,20 @@ describe("BulkSwitchConsequences: what the sentences claim", () => {
     expect(monitorService).toContain(
       "disableActiveMonitoring: false, // do not fetch if disabled is true.",
     );
-    expect(
-      readSource("App/FeatureSet/Telemetry/API/ProbeIngest/Monitor.ts"),
-    ).toContain("...MonitorService.getEnabledMonitorQuery(),");
+    /*
+     * The probes' claim hands out only monitor probes its one rule says may
+     * be probed (MonitorProbeService.getProbeableSql), and every pause flag
+     * is in it.
+     */
+    const monitorProbeService: string = readSource(
+      "Common/Server/Services/MonitorProbeService.ts",
+    );
+    expect(monitorProbeService).toContain(
+      '          AND ${Service.getProbeableSql("$4")}\n        ORDER BY mp."nextPingAt" ASC',
+    );
+    expect(monitorProbeService).toContain(
+      '`m."disableActiveMonitoring" = false`,',
+    );
     expect(
       readSource("Common/Server/Utils/Monitor/MonitorResource.ts"),
     ).toContain(
@@ -420,8 +431,8 @@ describe("BulkSwitchConsequences: what the sentences claim", () => {
 
   test("a disabled probe stops checking the monitor: a probe fetches only the rows enabled for it", () => {
     expect(
-      readSource("App/FeatureSet/Telemetry/API/ProbeIngest/Monitor.ts"),
-    ).toContain("probeId: probeId,\n    isEnabled: true,");
+      readSource("Common/Server/Services/MonitorProbeService.ts"),
+    ).toContain('WHERE mp."probeId" = $1\n          AND mp."isEnabled" = true');
   });
 
   test("an unsubscribed subscriber gets nothing more, and stays in the list for its Edit form", () => {

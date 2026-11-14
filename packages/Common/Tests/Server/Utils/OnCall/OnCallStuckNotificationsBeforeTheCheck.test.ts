@@ -6,11 +6,14 @@ import type { Mock } from "jest-mock";
  *
  * The stuck check reads the last 24 hours only, so a notification left
  * Sending longer ago than that - on a server that ran before the check
- * existed - said Sending for ever. settleNotificationsStuckBeforeTheCheck,
- * run once by the data migration SettleOnCallNotificationsStuckBeforeUpgrade,
- * settles each as the check would - Error, with its verdict - straight to
- * the table, in statements of MAX_SETTLED_BEFORE_THE_CHECK_PER_STATEMENT,
- * the oldest first, to the last.
+ * existed, or while the workers were down for more than a day (issue
+ * #7290) - said Sending for ever. settleNotificationsStuckBeforeTheCheck,
+ * run once by the data migration SettleOnCallNotificationsStuckBeforeUpgrade
+ * and by every run of the check (runStuckNotificationCheck, pinned in
+ * OnCallStuckNotificationsRun.test.ts), settles each as the check would -
+ * Error, with its verdict - straight to the table, in statements of
+ * MAX_SETTLED_BEFORE_THE_CHECK_PER_STATEMENT, the oldest first, to the
+ * last.
  *
  * Here the table is rows held in memory, and the statement is read as the
  * statement says: the page of rows still Sending, not deleted, written
@@ -75,6 +78,9 @@ const PAGE_CLAUSES_PATTERN: RegExp = new RegExp(
     .map(escapeRegExp)
     .join("\\s+"),
 );
+
+// Any run of whitespace, read as one space.
+const WHITESPACE_RUN: RegExp = /\s+/g;
 
 const getRepository: jest.Mock =
   UserOnCallLogTimelineService.getRepository as unknown as jest.Mock;
@@ -271,6 +277,28 @@ describe("what the statement reads and writes", () => {
     expect(sql).toContain('"version" = "notification"."version" + 1');
     expect(sql).toContain('"statusMessage" = $3');
     expect(sql).toContain('"updatedAt" = now()');
+  });
+
+  /*
+   * The planner may drive the write from the partial index of the
+   * notifications that say Sending rather than from the page. Bounded by
+   * the page's own cut-off, that read finds nothing when there is nothing
+   * to settle; unbounded, it read every notification still going out, on
+   * every run of the check (issue #7290; the plan itself is pinned in
+   * OnCallStuckNotificationsPostgres.test.ts).
+   */
+  test("the write is bounded by the page's cut-off too, so it never reads a notification still going out", async () => {
+    await settle();
+
+    const sql: string = statements[0]!.sql.replace(WHITESPACE_RUN, " ");
+    const write: string = sql.slice(sql.indexOf("UPDATE "));
+
+    expect(write).toContain(
+      `"notification"."deletedAt" IS NULL AND "notification"."createdAt" < $1 RETURNING`,
+    );
+    // The same cut-off as the page's, not a second one.
+    expect(statements[0]!.parameters).toHaveLength(3);
+    expect(statements[0]!.parameters[0]).toEqual(CUT_OFF);
   });
 
   test("straight to the table, through the service's repository alone: none of its writes - so none of their hooks - runs", async () => {
@@ -528,8 +556,39 @@ describe("what it says", () => {
 
     expect(info).toHaveBeenCalledTimes(1);
     expect(info).toHaveBeenCalledWith(
-      "On-call notifications left Sending before the stuck check existed: 1 written more than 24 hours ago, 1 settled as not sent.",
+      "On-call notifications still Sending more than 24 hours after they were written: 1 found, 1 settled as not sent.",
     );
+  });
+
+  test("one found that moved on meanwhile is counted as found, not settled", async () => {
+    const row: Row = addRow({ writtenAgo: 3 * DAY });
+
+    meanwhile.push(() => {
+      row.status = UserNotificationStatus.Sent;
+    });
+
+    await settle();
+
+    expect(info).toHaveBeenCalledTimes(1);
+    expect(info).toHaveBeenCalledWith(
+      "On-call notifications still Sending more than 24 hours after they were written: 1 found, 0 settled as not sent.",
+    );
+  });
+
+  /*
+   * Every run of the stuck check runs it too (issue #7290), every five
+   * minutes, and nearly always finds none: a line a run would be noise.
+   */
+  test("none found: nothing said", async () => {
+    addRow({ writtenAgo: HOUR });
+    addRow({ writtenAgo: 3 * DAY, status: UserNotificationStatus.Sent });
+
+    await expect(settle()).resolves.toEqual({
+      found: 0,
+      settled: 0,
+      statements: 1,
+    });
+    expect(info).not.toHaveBeenCalled();
   });
 
   test("a statement that fails throws: the migration that runs it is tried again", async () => {

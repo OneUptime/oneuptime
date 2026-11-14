@@ -1327,6 +1327,18 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             ],
           },
           {
+            page: PageMap.INCIDENTS_SETTINGS_SUBSCRIBER_NOTIFICATIONS,
+            title: "Subscriber Notifications",
+            icon: IconProp.Megaphone,
+            keywords: [
+              "notify subscribers",
+              "notify status page subscribers",
+              "status page subscribers",
+              "subscriber emails",
+            ],
+            settings: ["Notify status page subscribers by default"],
+          },
+          {
             page: PageMap.INCIDENTS_SETTINGS_EPISODE_MEMBERSHIP,
             title: "Episode Membership",
             icon: IconProp.SquareStack3D,

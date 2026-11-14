@@ -8,20 +8,28 @@ import { beforeEach, describe, expect, test } from "@jest/globals";
  * SettleStuckNotifications - settles the on-call notifications still
  * Sending 15 minutes after their page wrote them: their request to the
  * Notification service got no answer, and nothing wrote how it went
- * (issue #6873). Real RunCron and JobDictionary, a stubbed queue and check,
- * as the other job suites (CheckExpoPushReceipts).
+ * (issue #6873) - however long ago they were written (issue #7290). Real
+ * RunCron and JobDictionary, a stubbed queue and run, as the other job
+ * suites (CheckExpoPushReceipts).
  *
  * Pinned:
  *   1. App/FeatureSet/Workers/Index.ts imports the job module - RunCron
  *      registers by module side effect, so a job nothing imports never runs;
  *   2. it is ONE job, on EVERY_FIVE_MINUTE, never on startup, with the
  *      default timeout - never a job per notification;
- *   3. the job runs settleStuckNotifications and awaits it, so a failed run
- *      is a failed job.
+ *   3. the job runs the whole check - runStuckNotificationCheck, which
+ *      settles those written within the check's day and those written
+ *      before it - and awaits it, so a failed run is a failed job; never
+ *      one part alone.
+ *
+ * What one run of the job does to the notifications themselves is pinned
+ * in SettleStuckNotificationsRun.test.ts, with the real check.
  */
 
 const mockAddJob: jest.Mock = jest.fn().mockResolvedValue(undefined as never);
+const mockRunStuckNotificationCheck: jest.Mock = jest.fn();
 const mockSettleStuckNotifications: jest.Mock = jest.fn();
+const mockSettleNotificationsStuckBeforeTheCheck: jest.Mock = jest.fn();
 
 jest.mock("Common/Server/Infrastructure/Queue", () => {
   return {
@@ -47,7 +55,10 @@ jest.mock("Common/Server/Utils/OnCall/OnCallStuckNotifications", () => {
   return {
     __esModule: true,
     ...actual,
+    runStuckNotificationCheck: mockRunStuckNotificationCheck,
     settleStuckNotifications: mockSettleStuckNotifications,
+    settleNotificationsStuckBeforeTheCheck:
+      mockSettleNotificationsStuckBeforeTheCheck,
   };
 });
 
@@ -97,13 +108,13 @@ const SIDE_EFFECT_IMPORT: RegExp =
 const DEFAULT_JOB_TIMEOUT_MS: number = 5 * 60 * 1000;
 
 beforeEach(() => {
-  mockSettleStuckNotifications.mockReset();
-  mockSettleStuckNotifications.mockResolvedValue({
-    found: 0,
-    settled: 0,
-    movedOn: 0,
-    failed: 0,
+  mockRunStuckNotificationCheck.mockReset();
+  mockRunStuckNotificationCheck.mockResolvedValue({
+    withinTheLookBack: { found: 0, settled: 0, movedOn: 0, failed: 0 },
+    beforeTheLookBack: { found: 0, settled: 0, statements: 1 },
   } as never);
+  mockSettleStuckNotifications.mockReset();
+  mockSettleNotificationsStuckBeforeTheCheck.mockReset();
 });
 
 describe("SettleStuckNotifications - wiring", () => {
@@ -149,22 +160,38 @@ describe("SettleStuckNotifications - registration", () => {
 });
 
 describe("SettleStuckNotifications - what the registered function does", () => {
-  test("settles the notifications that are due, once a run, as of now", async () => {
+  test("runs the whole check once a run, as of now", async () => {
     const jobFunction: PromiseVoidFunction = JobDictionary.getJobFunction(
       STUCK_NOTIFICATION_CHECK_JOB_NAME,
     );
 
     await jobFunction();
 
-    expect(mockSettleStuckNotifications).toHaveBeenCalledTimes(1);
+    expect(mockRunStuckNotificationCheck).toHaveBeenCalledTimes(1);
     // No clock of its own: the check reads the time it runs at.
-    expect(mockSettleStuckNotifications.mock.calls[0]).toEqual([]);
+    expect(mockRunStuckNotificationCheck.mock.calls[0]).toEqual([]);
+  });
+
+  /*
+   * The check alone left a notification written before its day - while the
+   * workers were down - Sending for ever (issue #7290): the job runs both
+   * parts through the run, never one of them by itself.
+   */
+  test("never one part of the check by itself", async () => {
+    const jobFunction: PromiseVoidFunction = JobDictionary.getJobFunction(
+      STUCK_NOTIFICATION_CHECK_JOB_NAME,
+    );
+
+    await jobFunction();
+
+    expect(mockSettleStuckNotifications).not.toHaveBeenCalled();
+    expect(mockSettleNotificationsStuckBeforeTheCheck).not.toHaveBeenCalled();
   });
 
   test("awaits the check, so a failed run is a failed job", async () => {
     const failure: Error = new Error("connection terminated");
 
-    mockSettleStuckNotifications.mockRejectedValue(failure as never);
+    mockRunStuckNotificationCheck.mockRejectedValue(failure as never);
 
     const jobFunction: PromiseVoidFunction = JobDictionary.getJobFunction(
       STUCK_NOTIFICATION_CHECK_JOB_NAME,
