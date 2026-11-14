@@ -410,7 +410,7 @@ export const NOTIFICATION_RULES_CARD_DESCRIPTIONS: ByEventType = {
     "Each rule picks the alert episodes it is for, then posts their updates to channels you have, or creates a channel for each episode with the people working on it.",
   ),
   [NotificationRuleEventType.ScheduledMaintenance]: translationKey(
-    "Each rule picks the scheduled maintenance events it is for, then posts their updates to channels you have, or creates a channel for each event.",
+    "Each rule picks the maintenance events it is for, then posts their updates to channels you have, or creates a channel for each event.",
   ),
   [NotificationRuleEventType.Monitor]: translationKey(
     "Each rule picks the monitors it is for, then posts their updates to channels you have, or creates a channel for each monitor.",
@@ -483,7 +483,7 @@ export const CREATE_CHANNEL_TITLES: ByChannelEventType = {
     "Create a channel for each alert episode",
   ),
   [NotificationRuleEventType.ScheduledMaintenance]: translationKey(
-    "Create a channel for each scheduled maintenance event",
+    "Create a channel for each maintenance event",
   ),
   [NotificationRuleEventType.Monitor]: translationKey(
     "Create a channel for each monitor",
@@ -507,7 +507,7 @@ export const CREATE_CHANNEL_DESCRIPTIONS: ByChannelEventType = {
     "The first time an alert episode matches this rule, OneUptime creates its channel and posts the episode's updates there.",
   ),
   [NotificationRuleEventType.ScheduledMaintenance]: translationKey(
-    "The first time a scheduled maintenance event matches this rule, OneUptime creates its channel and posts the event's updates there.",
+    "The first time a maintenance event matches this rule, OneUptime creates its channel and posts the event's updates there.",
   ),
   [NotificationRuleEventType.Monitor]: translationKey(
     "The first time a monitor matches this rule, OneUptime creates its channel and posts the monitor's updates there.",
@@ -1029,7 +1029,7 @@ export const NO_CONDITIONS_SENTENCES: ByEventType = {
     "Every alert episode.",
   ),
   [NotificationRuleEventType.ScheduledMaintenance]: translationKey(
-    "Every scheduled maintenance event.",
+    "Every maintenance event.",
   ),
   [NotificationRuleEventType.Monitor]: translationKey("Every monitor."),
   [NotificationRuleEventType.OnCallDutyPolicy]: translationKey(
@@ -1062,7 +1062,7 @@ export const CREATES_CHANNEL_SENTENCES: ByChannelEventType = {
     "Creates a channel like {{channel}} for each alert episode.",
   ),
   [NotificationRuleEventType.ScheduledMaintenance]: translationKey(
-    "Creates a channel like {{channel}} for each scheduled maintenance event.",
+    "Creates a channel like {{channel}} for each maintenance event.",
   ),
   [NotificationRuleEventType.Monitor]: translationKey(
     "Creates a channel like {{channel}} for each monitor.",
@@ -1087,7 +1087,7 @@ export const CREATES_CHANNEL_WITHOUT_NAME_SENTENCES: ByChannelEventType = {
     "Creates a channel for each alert episode.",
   ),
   [NotificationRuleEventType.ScheduledMaintenance]: translationKey(
-    "Creates a channel for each scheduled maintenance event.",
+    "Creates a channel for each maintenance event.",
   ),
   [NotificationRuleEventType.Monitor]: translationKey(
     "Creates a channel for each monitor.",

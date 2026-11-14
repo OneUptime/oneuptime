@@ -21,7 +21,7 @@ import Label from "Common/Models/DatabaseModels/Label";
 const scheduledMaintenanceOwnerDocumentation: string = `
 ### How Scheduled Maintenance Owner Rules Work
 
-Scheduled Maintenance Owner Rules add owner users and teams to a scheduled maintenance event automatically when it matches your criteria — without anyone having to remember to assign owners.
+Scheduled Maintenance Owner Rules add owner users and teams to a maintenance event automatically when it matches your criteria — without anyone having to remember to assign owners.
 
 ### Match Criteria
 
@@ -78,12 +78,12 @@ const ScheduledMaintenanceOwnerRulesPage: FunctionComponent<
         cardProps={{
           title: "Scheduled Maintenance Owner Rules",
           description:
-            "Auto-assign owner users and teams when matching scheduled maintenance events are created.",
+            "Auto-assign owner users and teams when matching maintenance events are created.",
         }}
         helpContent={{
           title: "How Scheduled Maintenance Owner Rules Work",
           description:
-            "Match scheduled maintenance events and add owner users/teams automatically.",
+            "Match maintenance events and add owner users/teams automatically.",
           markdown: scheduledMaintenanceOwnerDocumentation,
         }}
         sortBy="name"

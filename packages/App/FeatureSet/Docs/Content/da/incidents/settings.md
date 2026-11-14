@@ -736,7 +736,7 @@ De regler, siden selv kommer med, er værd at gøre til dine egne:
 - Det sæt politikker, der faktisk udføres, er foreningen af hver matchende regels politikker plus enhver politik, der er knyttet til hændelsen i hånden eller af en skabelon, uden dubletter, så hver politik kører højst én gang. Når to matchende regler tilkalder den samme politik, tilkalder den, så snart en af dem tillader det: med det samme vinder over arbejdstiden.
 
 > [!NOTE]
-> Alvorsgraden er et matchkriterium her og ingen andre steder. Der er intet vagtfelt på en hændelsesalvorsgrad — at vælge "Critical Incident" tilkalder ikke i sig selv nogen. Vil du have, at alvorsgraden styrer tilkaldelsen, så skriv en vagtregel, der matcher på den.
+> Alvorsgraden er et matchkriterium her og ingen andre steder. Der er intet vagtfelt på en hændelsesalvorsgrad — at vælge "Kritisk hændelse" tilkalder ikke i sig selv nogen. Vil du have, at alvorsgraden styrer tilkaldelsen, så skriv en vagtregel, der matcher på den.
 
 ## Knyt vagtpolitikker direkte
 

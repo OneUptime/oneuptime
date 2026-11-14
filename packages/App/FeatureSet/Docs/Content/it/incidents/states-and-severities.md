@@ -37,7 +37,7 @@ flowchart TB
 
 Il modello `IncidentState` ha `name`, `description`, `color` e `order`, più tre booleani: `isCreatedState`, `isAcknowledgedState` e `isResolvedState`. Tutto ciò che il prodotto fa con gli stati si basa su quei booleani e su `order` — mai sul nome dello stato. Ecco perché potete rinominare **Risolto** in «Closed» senza rompere nulla: il flag resta sulla riga.
 
-Il modello `IncidentSeverity` ha `name`, `description`, `color` e `order`, e nient'altro. Non ci sono flag. Nulla in OneUptime tratta di per sé **Critical Incident** diversamente da **Minor Incident** — la gravità conta solo dove le fate puntare qualcosa, come il criterio di corrispondenza **Gravità degli incidenti** di una regola di reperibilità.
+Il modello `IncidentSeverity` ha `name`, `description`, `color` e `order`, e nient'altro. Non ci sono flag. Nulla in OneUptime tratta di per sé **Incidente critico** diversamente da **Incidente minore** — la gravità conta solo dove le fate puntare qualcosa, come il criterio di corrispondenza **Gravità degli incidenti** di una regola di reperibilità.
 
 Qualche regola veloce:
 
@@ -138,9 +138,9 @@ Con il progetto vengono create tre gravità, in quest'ordine, dalla più grave:
 
 | Gravità               | `order` | Colore    | Descrizione predefinita                                                                                                                                                                   |
 | --------------------- | ------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Critical Incident** | `1`     | `#b70400` | Issues causing very high impact to customers. Immediate response is required. Examples include a full outage, or a data breach.                                                          |
-| **Major Incident**    | `2`     | `#fd625e` | Issues causing significant impact. Immediate response is usually required. We might have some workarounds that mitigate the impact on customers. Examples include an important sub-system failing. |
-| **Minor Incident**    | `3`     | `#ffbf53` | Issues with low impact, which can usually be handled within working hours. Most customers are unlikely to notice any problems. Examples include a slight drop in application performance. |
+| **Incidente critico** | `1`     | `#b70400` | Issues causing very high impact to customers. Immediate response is required. Examples include a full outage, or a data breach.                                                          |
+| **Incidente grave**    | `2`     | `#fd625e` | Issues causing significant impact. Immediate response is usually required. We might have some workarounds that mitigate the impact on customers. Examples include an important sub-system failing. |
+| **Incidente minore**    | `3`     | `#ffbf53` | Issues with low impact, which can usually be handled within working hours. Most customers are unlikely to notice any problems. Examples include a slight drop in application performance. |
 
 La gravità è obbligatoria quando dichiarate un incidente, ed è obbligatoria su ogni specifica di incidente nei criteri di un monitor, così ogni incidente — manuale o automatico — arriva con una gravità. Vedete [Dichiarare un incidente](/docs/incidents/declaring-incidents) per il flusso di dichiarazione e [Modelli di incidenti e avvisi](/docs/monitor/incident-alert-templating) per il percorso guidato dai monitor.
 
@@ -155,7 +155,7 @@ Due differenze rispetto agli stati:
 - **Non c'è protezione contro l'eliminazione.** Qualsiasi gravità può essere eliminata, comprese le tre predefinite.
 - **Non ci sono flag da ereditare, né «Conta come».** Una nuova gravità si comporta esattamente come quelle predefinite — è un'etichetta con un colore e un grado.
 
-Dove la gravità fa più che descrivere: in **Incidenti → Regole → Regole di reperibilità**, il campo **Gravità degli incidenti** di una regola è un criterio di corrispondenza. Elencarvi **Critical Incident** è il modo in cui si esprime «avvisa il team del database per tutto ciò che è critico» — la policy di reperibilità vive sulla regola, non sulla gravità.
+Dove la gravità fa più che descrivere: in **Incidenti → Regole → Regole di reperibilità**, il campo **Gravità degli incidenti** di una regola è un criterio di corrispondenza. Elencarvi **Incidente critico** è il modo in cui si esprime «avvisa il team del database per tutto ciò che è critico» — la policy di reperibilità vive sulla regola, non sulla gravità.
 
 **Cambiare la gravità di un incidente** — con **Modifica** sulla scheda **Dettagli dell'incidente** dell'incidente, tramite l'API o Terraform (`incidentSeverityId`), con un workflow o con gli strumenti di IA — fa le stesse quattro cose in qualunque modo venga inviata: il feed dell'incidente riceve una voce **Incident updated** che nomina la nuova gravità, le scadenze dello SLA dell'incidente vengono ricalcolate, la sua regola di promemoria viene riabbinata, e le metriche degli incidenti contano un cambio di gravità. Salvare la gravità che l'incidente ha già non fa nulla di tutto ciò, quindi modificare solo il titolo di un incidente lascia le sue scadenze SLA, i suoi promemoria e il conteggio dei cambi di gravità come erano. La gravità di un avviso funziona allo stesso modo per la sua voce di feed e i suoi promemoria.
 
