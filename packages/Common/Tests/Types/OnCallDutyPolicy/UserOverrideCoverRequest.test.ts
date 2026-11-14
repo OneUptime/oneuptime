@@ -64,6 +64,90 @@ describe("the window a shift asks to cover", () => {
     ).toEqual(["2026-09-01T15:30:00.000Z", SHIFT_END]);
   });
 
+  /*
+   * Issue #7593: Get cover opened at 15:30:42 filled Starts with 15:30:42,
+   * and the picker showed and asked for the seconds. It starts at the
+   * minute the page was opened in, which has already begun.
+   */
+  test("starts at the minute now is in once the shift has started, not at a second", () => {
+    for (const [now, startsAt] of [
+      ["2026-09-01T15:30:42.517Z", "2026-09-01T15:30:00.000Z"],
+      ["2026-09-01T15:30:00.001Z", "2026-09-01T15:30:00.000Z"],
+      ["2026-09-01T15:30:59.999Z", "2026-09-01T15:30:00.000Z"],
+      ["2026-09-01T19:59:59.999Z", "2026-09-01T19:59:00.000Z"],
+    ] as Array<[string, string]>) {
+      expect({
+        now,
+        window: iso(
+          getUserOverrideCoverWindow({
+            start: SHIFT_START,
+            end: SHIFT_END,
+            now: new Date(now),
+          }),
+        ),
+      }).toEqual({ now, window: [startsAt, SHIFT_END] });
+    }
+  });
+
+  test("never reaches back before the shift: one that began this minute starts when it began", () => {
+    // A rotation that started at 08:00:17 hands off at 12:00:17.
+    const start: string = "2026-09-01T12:00:17.000Z";
+
+    expect(
+      iso(
+        getUserOverrideCoverWindow({
+          start,
+          end: SHIFT_END,
+          now: new Date("2026-09-01T12:00:42.000Z"),
+        }),
+      ),
+    ).toEqual([start, SHIFT_END]);
+
+    // The next minute, the cover starts at that minute.
+    expect(
+      iso(
+        getUserOverrideCoverWindow({
+          start,
+          end: SHIFT_END,
+          now: new Date("2026-09-01T12:01:05.000Z"),
+        }),
+      ),
+    ).toEqual(["2026-09-01T12:01:00.000Z", SHIFT_END]);
+  });
+
+  test("a shift still to come is covered from its own start, seconds and all", () => {
+    for (const start of [
+      "2026-09-01T12:00:17.000Z",
+      "2026-09-01T10:00:00.001Z",
+    ]) {
+      expect(
+        iso(getUserOverrideCoverWindow({ start, end: SHIFT_END, now: NOW })),
+      ).toEqual([start, SHIFT_END]);
+    }
+  });
+
+  test("a shift starting at this very instant is covered from that instant", () => {
+    const now: Date = new Date("2026-09-01T12:00:17.250Z");
+
+    expect(
+      iso(
+        getUserOverrideCoverWindow({
+          start: now.toISOString(),
+          end: SHIFT_END,
+          now,
+        }),
+      ),
+    ).toEqual([now.toISOString(), SHIFT_END]);
+  });
+
+  test("leaves the time it is given as it was", () => {
+    const now: Date = new Date("2026-09-01T15:30:42.517Z");
+
+    getUserOverrideCoverWindow({ start: SHIFT_START, end: SHIFT_END, now });
+
+    expect(now.toISOString()).toBe("2026-09-01T15:30:42.517Z");
+  });
+
   test("is nothing once the shift has ended, or at its very end", () => {
     for (const now of [SHIFT_END, "2026-09-02T00:00:00.000Z"]) {
       expect(
@@ -174,6 +258,19 @@ describe("the link's address", () => {
             [USER_OVERRIDE_COVER_ENDS_AT_PARAM]: SHIFT_END,
           }),
           now: new Date("2026-09-01T13:00:00.000Z"),
+        }),
+      ),
+    ).toEqual(["2026-09-01T13:00:00.000Z", SHIFT_END]);
+
+    // Opened at a second past the minute, it covers from that minute.
+    expect(
+      iso(
+        readUserOverrideCoverRequest({
+          getParam: paramsOf({
+            [USER_OVERRIDE_COVER_STARTS_AT_PARAM]: SHIFT_START,
+            [USER_OVERRIDE_COVER_ENDS_AT_PARAM]: SHIFT_END,
+          }),
+          now: new Date("2026-09-01T13:00:37.000Z"),
         }),
       ),
     ).toEqual(["2026-09-01T13:00:00.000Z", SHIFT_END]);

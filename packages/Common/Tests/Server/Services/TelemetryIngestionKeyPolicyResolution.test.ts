@@ -5,6 +5,10 @@ import TelemetryIngestionKeyPolicy from "../../../Types/Telemetry/TelemetryInges
 import TelemetryIngestionKeyType from "../../../Types/Telemetry/TelemetryIngestionKeyType";
 import TelemetryIngestionKeyService from "../../../Server/Services/TelemetryIngestionKeyService";
 import PayAsYouGoBillingService from "../../../Server/Services/PayAsYouGoBillingService";
+import ProjectService from "../../../Server/Services/ProjectService";
+import ForbiddenException from "../../../Types/Exception/ForbiddenException";
+import { SAMPLE_PROJECT_REFUSALS } from "../../../Types/SampleProject/SampleProject";
+import { getTelemetryIngestRefusalKey } from "../../../Server/Utils/Telemetry/TelemetryIngestRefusalRecorder";
 
 // Payment eligibility is covered by the billing admission suites.
 jest.mock("../../../Server/Services/PayAsYouGoBillingService", () => {
@@ -14,11 +18,18 @@ jest.mock("../../../Server/Services/PayAsYouGoBillingService", () => {
   };
 });
 
-// Whether the key's project is blocked is BlockedProjectBackgroundWork.test.ts.
+/*
+ * Whether the key's project is blocked is BlockedProjectBackgroundWork.test.ts.
+ * Every key here is a real project's, not a sample's (issue #6808): the one
+ * test that says otherwise is under "billing admission".
+ */
 jest.mock("../../../Server/Services/ProjectService", () => {
   return {
     __esModule: true,
-    default: { isProjectBlocked: jest.fn().mockResolvedValue(false) },
+    default: {
+      isProjectBlocked: jest.fn().mockResolvedValue(false),
+      isSampleProject: jest.fn().mockResolvedValue(false),
+    },
   };
 });
 
@@ -895,6 +906,52 @@ describe("TelemetryIngestionKeyService policy resolution", () => {
           expect.objectContaining({ allowStaleDenial: true }),
         );
       }
+    });
+
+    /*
+     * A sample project takes no telemetry (issue #6808). It never has a key,
+     * so this is the check behind that: a key that is in one anyway is
+     * refused as what it is, before billing is asked, and the refusal is
+     * counted against that key like a billing one.
+     */
+    test("refuses a sample project's key, before billing is asked", async () => {
+      const requirePayAsYouGo: jest.Mock =
+        PayAsYouGoBillingService.requirePayAsYouGo as unknown as jest.Mock;
+      requirePayAsYouGo.mockClear();
+      const isSampleProject: jest.Mock =
+        ProjectService.isSampleProject as unknown as jest.Mock;
+      isSampleProject.mockClear();
+      isSampleProject.mockResolvedValueOnce(true);
+
+      const token: string = ObjectID.generate().toString();
+      const keyId: ObjectID = ObjectID.generate();
+      const projectId: ObjectID = ObjectID.generate();
+      installRows({
+        [token]: { _id: keyId, projectId: projectId, isEnabled: true },
+      });
+
+      const refusal: unknown =
+        await TelemetryIngestionKeyService.getPolicyFromSecretKey(token).then(
+          () => {
+            return null;
+          },
+          (err: unknown) => {
+            return err;
+          },
+        );
+
+      expect(refusal).toBeInstanceOf(ForbiddenException);
+      expect((refusal as Error).message).toBe(
+        SAMPLE_PROJECT_REFUSALS.telemetryIngestion,
+      );
+      expect(isSampleProject).toHaveBeenCalledWith(
+        expect.objectContaining({ value: projectId.value }),
+      );
+      expect(requirePayAsYouGo).not.toHaveBeenCalled();
+      expect(getTelemetryIngestRefusalKey(refusal)).toEqual({
+        projectId: expect.objectContaining({ value: projectId.value }),
+        ingestionKeyId: expect.objectContaining({ value: keyId.value }),
+      });
     });
   });
 });

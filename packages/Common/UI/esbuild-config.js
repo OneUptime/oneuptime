@@ -51,8 +51,144 @@ function createRefractorCompatibilityPlugin() {
   };
 }
 
-// CSS Plugin to handle CSS/SCSS files
-function createCSSPlugin() {
+const isCSSWhitespace = (character) => {
+  return /^[ \t\n\r\f]$/.test(character);
+};
+
+const isCSSNameCharacter = (character) => {
+  return /^[A-Za-z0-9_\-\\]$/.test(character) || character >= "\u0080";
+};
+
+/*
+ * A stylesheet without its comments. createCSSPlugin puts each stylesheet in
+ * the bundle as a string, which the minifier leaves as it is, so every page
+ * downloaded every comment of Theme.css and the others (27 KB of them in
+ * Theme.css alone) before it drew - about 11 KiB gzipped on the sign-in page
+ * (packages/Common/Scripts/first-load-budgets.js).
+ *
+ * Only what the CSS syntax calls a comment comes out (CSS Syntax Level 3,
+ * section 4): not a "/*" inside a string, an unquoted url( or after a
+ * backslash. A license (a comment that starts "/*!" or holds @license or
+ * @preserve, as esbuild keeps in JavaScript) stays. Everything else stays as
+ * written, but for two things: a comment alone on its lines goes with them,
+ * and one with no space on either side becomes an empty comment, since
+ * taking it out would join its two sides into one token (a, a comment and
+ * b would read as the one name ab).
+ */
+function removeCSSComments(css) {
+  let output = "";
+  let copiedUpTo = 0;
+  let index = 0;
+
+  while (index < css.length) {
+    const character = css[index];
+
+    if (character === "\\") {
+      index += 2;
+      continue;
+    }
+
+    // A string runs to its closing quote, or to a newline it does not escape.
+    if (character === '"' || character === "'") {
+      index += 1;
+
+      while (
+        index < css.length &&
+        css[index] !== character &&
+        !/^[\n\r\f]$/.test(css[index])
+      ) {
+        index += css[index] === "\\" ? 2 : 1;
+      }
+
+      index += 1;
+      continue;
+    }
+
+    // An unquoted url( runs to its closing parenthesis.
+    if (
+      (character === "u" || character === "U") &&
+      css.slice(index, index + 4).toLowerCase() === "url(" &&
+      (index === 0 || !isCSSNameCharacter(css[index - 1]))
+    ) {
+      index += 4;
+
+      while (index < css.length && isCSSWhitespace(css[index])) {
+        index += 1;
+      }
+
+      if (css[index] !== '"' && css[index] !== "'") {
+        while (index < css.length && css[index] !== ")") {
+          index += css[index] === "\\" ? 2 : 1;
+        }
+      }
+
+      continue;
+    }
+
+    if (character !== "/" || css[index + 1] !== "*") {
+      index += 1;
+      continue;
+    }
+
+    const close = css.indexOf("*/", index + 2);
+    const end = close === -1 ? css.length : close + 2;
+    const comment = css.slice(index, end);
+
+    if (
+      comment.startsWith("/*!") ||
+      comment.includes("@license") ||
+      comment.includes("@preserve")
+    ) {
+      index = end;
+      continue;
+    }
+
+    output += css.slice(copiedUpTo, index);
+    copiedUpTo = end;
+    index = end;
+
+    let lineStart = output.length;
+
+    while (lineStart > 0 && /^[ \t]$/.test(output[lineStart - 1])) {
+      lineStart -= 1;
+    }
+
+    let lineEnd = end;
+
+    while (lineEnd < css.length && /^[ \t]$/.test(css[lineEnd])) {
+      lineEnd += 1;
+    }
+
+    const isAloneOnItsLines =
+      (lineStart === 0 || output[lineStart - 1] === "\n") &&
+      (lineEnd === css.length || css[lineEnd] === "\n");
+
+    if (isAloneOnItsLines) {
+      output = output.slice(0, lineStart);
+      copiedUpTo = Math.min(lineEnd + 1, css.length);
+      continue;
+    }
+
+    if (
+      output.length > 0 &&
+      end < css.length &&
+      !isCSSWhitespace(output[output.length - 1]) &&
+      !isCSSWhitespace(css[end])
+    ) {
+      output += "/**/";
+    }
+  }
+
+  return output + css.slice(copiedUpTo);
+}
+
+/*
+ * CSS Plugin to handle CSS/SCSS files. With removeComments, each stylesheet
+ * goes into the bundle without its comments (removeCSSComments).
+ */
+function createCSSPlugin(options = {}) {
+  const { removeComments = false } = options;
+
   return {
     name: "css",
     setup(build) {
@@ -71,6 +207,10 @@ function createCSSPlugin() {
             console.error(`SCSS compilation error in ${args.path}:`, error);
             throw error;
           }
+        }
+
+        if (removeComments) {
+          contents = removeCSSComments(contents);
         }
 
         // Return CSS as a string that will be injected into the page
@@ -446,7 +586,12 @@ function createConfig(options) {
        */
       createMermaidSourcePlugin(),
       createRefractorCompatibilityPlugin(),
-      createCSSPlugin(),
+      /*
+       * A stylesheet is a string in the bundle, which minifying leaves as
+       * written: a production build takes its comments out instead. A
+       * development build keeps them, as it keeps the code readable.
+       */
+      createCSSPlugin({ removeComments: !isDev }),
       createFileLoaderPlugin(),
       ...additionalPlugins,
     ],
@@ -548,6 +693,8 @@ module.exports = {
   build,
   watch,
   createCSSPlugin,
+  // Exported so Common/Tests can run it on stylesheets of their own.
+  removeCSSComments,
   createFileLoaderPlugin,
   readEnvFile,
   // Exported so Common/Tests can run it, rather than assert on its source.

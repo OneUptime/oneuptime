@@ -417,6 +417,11 @@ const PROSE: Record<string, Array<string>> = {
    * language (ClickHouse is one since Data Observability reads it).
    */
   [SIZING]: ["PostgreSQL", "ClickHouse"],
+  /*
+   * A lead-in of the Terraform section's list (#7737): the key Terraform
+   * signs in with, which a language writes in its own words.
+   */
+  [TWILIO]: ["API key."],
 };
 
 /*
@@ -540,6 +545,8 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Watch webhook deliveries.",
     "Keep private keys out of version control.",
   ],
+  // The Terraform section's list (#7737); its "API key." is in PROSE.
+  [TWILIO]: ["Project default.", "Phone numbers.", "References."],
 };
 
 /*

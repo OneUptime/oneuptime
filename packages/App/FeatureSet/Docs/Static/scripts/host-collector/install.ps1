@@ -253,8 +253,10 @@ capabilities:
   accepts_remote_config: true
   reports_health: true
   reports_heartbeat: true
-  # The config the collector runs, as the supervisor put it together - with
-  # `${env:...} still unread, so it holds no key.
+  # The supervisor's own merge of the files OneUptime sends, `${env:...}
+  # unread: the file OneUptime sends with each config (oneuptime-opamp.yaml)
+  # stops the collector reporting the config it runs, values filled in.
+  # Left on: off, the supervisor logs an error for each such report.
   reports_effective_config: true
   reports_own_metrics: false
   reports_own_logs: false

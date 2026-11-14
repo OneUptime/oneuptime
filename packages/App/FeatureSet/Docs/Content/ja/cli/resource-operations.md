@@ -182,7 +182,7 @@ oneuptime incident-state list --query '{"isResolvedState":true}' --sort '{"order
 | `resolve <id>` | プロジェクトの解決済み状態に移します | 同じ四つ |
 | `start <id>` | イベントをプロジェクトの進行中の状態に移します | `scheduled-maintenance-event` |
 | `end <id>` | プロジェクトの終了状態に移します | `scheduled-maintenance-event` |
-| `add-note <id> --note <markdown>` | チームが見るメモを追加し、`--public` を付けるとレコードのステータスページにメモを載せます | 五つすべて |
+| `add-note <id> --note <markdown>` | レコードを閲覧できる人だけが読めるメモを追加し、`--public` を付けるとレコードのステータスページにメモを載せます | 五つすべて |
 
 ```bash
 oneuptime incident acknowledge 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11

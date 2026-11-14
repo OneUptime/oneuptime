@@ -237,6 +237,8 @@ export const RuleLlmProviderPicker: FunctionComponent<
         value={pickedProviderId || null}
         isMultiSelect={false}
         placeholder={getRuleLlmProviderPlaceholder(choices, translator)}
+        // Worded around the default provider's name, in the reader's words.
+        isPlaceholderTranslated={true}
         disabled={isLocked}
         dataTestId={`${dataTestId}-dropdown`}
         ariaLabel={translator.translateText(RULE_LLM_PROVIDER_FIELD_COPY.title)}

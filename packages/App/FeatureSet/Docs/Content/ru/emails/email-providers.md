@@ -8,6 +8,7 @@
 - [Mailgun](#mailgun): API-ключ, домен отправки и его регион.
 - [Postmark](#postmark): API-токен сервера.
 - [Resend](#resend): API-ключ с правом отправки.
+- [Переменные окружения](#задать-почту-сервера-через-переменные-окружения): Задайте почту самостоятельно размещённого сервера из values Helm или `config.env`.
 - [Устранение неполадок](#устранение-неполадок): Что означает отказ каждого провайдера.
 :::
 
@@ -17,7 +18,7 @@
 @tab Проект
 В **Настройки проекта > Уведомления > Каналы уведомлений** откройте **Дополнительные настройки** и нажмите **Создать: Конфигурация SMTP** в карточке **Пользовательские конфигурации SMTP**. На шаге **Провайдер** введите **Имя** и выберите провайдера. Следующий шаг запрашивает настройки этого провайдера, а шаг **Отправитель** — **Email отправителя** и **Имя отправителя**. После сохранения кнопка **Отправить тестовое письмо** в строке конфигурации проверяет, что она работает.
 @tab Самостоятельно размещённый экземпляр
-В Admin Dashboard откройте **Настройки**, затем **Уведомления > Email**. В карточке **Настройки email-сервера** нажмите **Изменить сервер** и выберите для **Тип почтового сервера** нужного провайдера. Ниже появится карточка провайдера, например **Настройки Amazon SES**: нажмите её кнопку изменения, например **Изменить Amazon SES**, и заполните настройки провайдера и шаг **Отправитель**. Пока заполнено не всё необходимое, карточка сообщает, чего не хватает, а каждое письмо отклоняется с указанием настройки, которую нужно заполнить.
+В Admin Dashboard откройте **Настройки**, затем **Уведомления > Email**. В карточке **Настройки email-сервера** нажмите **Изменить сервер** и выберите для **Тип почтового сервера** нужного провайдера. Ниже появится карточка провайдера, например **Настройки Amazon SES**: нажмите её кнопку изменения, например **Изменить Amazon SES**, и заполните настройки провайдера и шаг **Отправитель**. Пока заполнено не всё необходимое, карточка сообщает, чего не хватает, а каждое письмо отклоняется с указанием настройки, которую нужно заполнить. Сервер, который развёртывается из кода, может вместо этого задать их через переменные окружения: см. [Задать почту сервера через переменные окружения](#задать-почту-сервера-через-переменные-окружения).
 :::
 
 | Провайдер | Что нужно указать | Куда отправляет OneUptime |
@@ -108,6 +109,67 @@ OneUptime ищет учётные данные сервера там же, гд�
 ## Resend
 
 В Resend добавьте и подтвердите свой домен в разделе **Domains**, затем создайте API-ключ с правом отправки в разделе **API Keys**. Введите его в поле **API-ключ** на шаге **Resend**, а в **Email отправителя** укажите адрес в своём подтверждённом домене. Собственный тестовый домен Resend отправляет почту только на ваш адрес.
+
+## Задать почту сервера через переменные окружения
+
+Самостоятельно размещённый сервер, который развёртывается из кода, может сразу после запуска отправлять письма, без ручной настройки: задайте его настройки почты через переменные окружения, из Terraform или того, чем вы развёртываете OneUptime. Как только задана `GLOBAL_EMAIL_SERVER_TYPE`, сервер отправляет свои письма так, как описывают переменные. Настройки, сохранённые в Admin Dashboard в разделе **Настройки**, затем **Уведомления > Email**, не используются, а эта страница показывает новые только для чтения, каждое поле вместе с переменной, которая его задаёт. Оставьте `GLOBAL_EMAIL_SERVER_TYPE` пустой, чтобы вместо этого настроить почту в Admin Dashboard. Конфигурации SMTP проектов это не затрагивает.
+
+| Переменная | Значение Helm | Что в ней |
+| --- | --- | --- |
+| `GLOBAL_EMAIL_SERVER_TYPE` | `email.serverType` | `custom-smtp`, `sendgrid`, `amazon-ses`, `mailgun`, `postmark` или `resend`. Только когда она задана, OneUptime читает остальные переменные |
+| `GLOBAL_EMAIL_FROM_EMAIL` | `email.fromEmail` | Адрес, с которого приходит каждое письмо |
+| `GLOBAL_EMAIL_FROM_NAME` | `email.fromName` | Имя, от которого приходит каждое письмо. Обязательно для `custom-smtp` и `sendgrid` |
+| `GLOBAL_EMAIL_SMTP_TRANSPORT` | `email.smtp.transport` | `smtp` (и когда она пуста) или `microsoft-graph`, чтобы отправлять через Microsoft Graph с приложением OAuth |
+| `GLOBAL_EMAIL_SMTP_HOST` | `email.smtp.host` | Почтовый сервер, например `smtp.example.com` |
+| `GLOBAL_EMAIL_SMTP_PORT` | `email.smtp.port` | Его порт, например `587` |
+| `GLOBAL_EMAIL_SMTP_REQUIRE_TLS` | `email.smtp.requireTls` | `true`, чтобы отправлять только по зашифрованному соединению с действительным сертификатом, или `false` (и когда она пуста) |
+| `GLOBAL_EMAIL_SMTP_AUTH_TYPE` | `email.smtp.authType` | `username-and-password` (и когда она пуста), `oauth` или `none` |
+| `GLOBAL_EMAIL_SMTP_USERNAME` | `email.smtp.username` | Почтовый ящик, под которым выполняется вход, в том числе для `oauth`. Оставьте его и пароль пустыми, чтобы отправлять без входа |
+| `GLOBAL_EMAIL_SMTP_PASSWORD` | `email.smtp.password` или Secret, указанный в `email.existingSecret.name` | Его пароль |
+| `GLOBAL_EMAIL_SMTP_OAUTH_PROVIDER_TYPE` | `email.smtp.oauth.providerType` | `client-credentials` (и когда она пуста) или `jwt-bearer` |
+| `GLOBAL_EMAIL_SMTP_OAUTH_CLIENT_ID` | `email.smtp.oauth.clientId` | Идентификатор клиента приложения OAuth |
+| `GLOBAL_EMAIL_SMTP_OAUTH_CLIENT_SECRET` | `email.smtp.oauth.clientSecret` или Secret, указанный в `email.existingSecret.name` | Его секрет клиента; для `jwt-bearer` — его закрытый ключ в формате PEM |
+| `GLOBAL_EMAIL_SMTP_OAUTH_TOKEN_URL` | `email.smtp.oauth.tokenUrl` | Его URL токена |
+| `GLOBAL_EMAIL_SMTP_OAUTH_SCOPE` | `email.smtp.oauth.scope` | Его scope |
+| `GLOBAL_EMAIL_SENDGRID_API_KEY` | `email.sendgrid.apiKey` или Secret, указанный в `email.existingSecret.name` | API-ключ SendGrid |
+| `GLOBAL_EMAIL_AMAZON_SES_AUTHENTICATION_TYPE` | `email.amazonSes.authenticationType` | `access-key` (и когда она пуста) или `server-iam-role`, чтобы входить с ролью IAM сервера |
+| `GLOBAL_EMAIL_AMAZON_SES_ACCESS_KEY_ID` | `email.amazonSes.accessKeyId` | Идентификатор ключа доступа |
+| `GLOBAL_EMAIL_AMAZON_SES_SECRET_ACCESS_KEY` | `email.amazonSes.secretAccessKey` или Secret, указанный в `email.existingSecret.name` | Его секретный ключ доступа |
+| `GLOBAL_EMAIL_AMAZON_SES_REGION` | `email.amazonSes.region` | Регион, в котором подтверждён ваш отправитель, например `us-east-1` |
+| `GLOBAL_EMAIL_MAILGUN_API_KEY` | `email.mailgun.apiKey` или Secret, указанный в `email.existingSecret.name` | API-ключ Mailgun |
+| `GLOBAL_EMAIL_MAILGUN_DOMAIN` | `email.mailgun.domain` | Домен отправки, например `mg.example.com` |
+| `GLOBAL_EMAIL_MAILGUN_REGION` | `email.mailgun.region` | `us` (и когда она пуста) или `eu` |
+| `GLOBAL_EMAIL_POSTMARK_SERVER_TOKEN` | `email.postmark.serverToken` или Secret, указанный в `email.existingSecret.name` | Серверный API-токен Postmark |
+| `GLOBAL_EMAIL_RESEND_API_KEY` | `email.resend.apiKey` или Secret, указанный в `email.existingSecret.name` | API-ключ Resend |
+
+Используются только те переменные, которые читает тип сервера: переменные `GLOBAL_EMAIL_SMTP_` для `custom-smtp` и собственные переменные провайдера для этого провайдера. Журнал сервера и Admin Dashboard называют любую другую заданную переменную неиспользуемой.
+
+В Helm задайте их в разделе `email` ваших values. Чтобы пароль или ключ не попал в values, которые Helm сохраняет с каждым релизом, положите его в свой Secret и укажите этот Secret в `email.existingSecret.name`. Чарт читает его из ключа, указанного в `email.existingSecret.key`, а иначе из ключа, названного по нему: `smtpPassword`, `smtpOAuthClientSecret`, `sendgridApiKey`, `amazonSesSecretAccessKey`, `mailgunApiKey`, `postmarkServerToken` или `resendApiKey`.
+
+```bash
+kubectl create secret generic oneuptime-email --namespace oneuptime \
+  --from-literal=smtpPassword=YOUR_SMTP_PASSWORD
+```
+
+```yaml
+email:
+  serverType: custom-smtp
+  fromEmail: alerts@example.com
+  fromName: OneUptime
+  smtp:
+    host: smtp.example.com
+    port: 587
+    requireTls: true
+    username: alerts@example.com
+  existingSecret:
+    name: oneuptime-email
+```
+
+Чарт отклоняет другие значения `email` без `email.serverType`, настройки без пароля или ключа, который они читают, пароль или ключ, заданный и в values, и в Secret, а также Secret, из которого настройки ничего не читают. В Terraform задайте те же значения в `helm_release`, а пароль или ключ передайте как секретное значение.
+
+В Docker Compose задайте параметры `GLOBAL_EMAIL_` в `config.env`, затем выполните `npm run start`, чтобы пересоздать контейнеры.
+
+OneUptime читает переменные при запуске. Если какая-то из них неверна, например порт, который не является числом, или отсутствующий пароль, сервер не отправляет писем, пока это не исправлено; журнал сервера, настройки почты в Admin Dashboard и контрольный список на `/admin/setup` называют переменную. Пароли и ключи никогда не показываются. Чтобы изменить настройки, измените переменные и перезапустите OneUptime: Admin Dashboard их не меняет.
 
 ## Устранение неполадок
 

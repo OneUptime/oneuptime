@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom";
 import {
   afterEach,
+  beforeAll,
   beforeEach,
   describe,
   expect,
@@ -8,7 +9,9 @@ import {
   test,
 } from "@jest/globals";
 import { cleanup, render, screen, within } from "@testing-library/react";
+import { createInstance, i18n } from "i18next";
 import * as React from "react";
+import { I18nextProvider } from "react-i18next";
 import ClusterAccessNotice, {
   CLUSTER_AI_AGENT_PAGE_LINK_TEXT,
   CLUSTER_KUBECTL_RUNNER_NAME,
@@ -28,7 +31,10 @@ import {
   KubernetesClusterAiAccessStatus,
 } from "../../../Types/Kubernetes/KubernetesClusterAiAccess";
 import { Translator } from "../../../UI/Utils/TranslateTemplate";
-import { dashboardTranslator } from "../../Helpers/DashboardLocales";
+import {
+  dashboardTranslator,
+  readDashboardLocale,
+} from "../../Helpers/DashboardLocales";
 import { goTo, PROJECT_ID } from "./SideMenuHarness";
 
 /*
@@ -1181,5 +1187,120 @@ describe("ClusterAccessNotice layout", () => {
     } finally {
       consoleError.mockRestore();
     }
+  });
+});
+
+/*
+ * THE NOTES IN BRACKETS, IN THE LANGUAGE OF THEIR SENTENCE (#7629).
+ *
+ * The notes were translated one by one and handed to the sentence as text,
+ * so a language that words the notes but not yet the sentence read them in
+ * its own words, set off with its own semicolon, inside an English
+ * sentence. zh-CN words neither today: here it words the notes, then the
+ * notes and their sentence. French words them all and sets its semicolon
+ * apart with a space.
+ */
+describe("the notes in brackets, drawn in one language", () => {
+  const RAN_SENTENCE: string =
+    "OneUptime AI ran {{count}} read-only kubectl commands during this investigation ({{notes}} — see Investigation activity).";
+
+  const CHINESE_NOTES: Record<string, string> = {
+    "{{count}} returned an error": "{{count}} 条返回了错误",
+    "{{count}} more could not run": "另有 {{count}} 条无法运行",
+  };
+
+  const CHINESE_SENTENCE: Record<string, string> = {
+    [RAN_SENTENCE]:
+      "OneUptime AI 在本次调查中运行了 {{count}} 条只读 kubectl 命令（{{notes}}，请参阅调查活动）。",
+  };
+
+  const FRENCH_WORDS: Record<string, string> = {
+    "{{count}} returned an error": "{{count}} ont renvoyé une erreur",
+    "{{count}} more could not run": "{{count}} autres n'ont pas pu s'exécuter",
+    [RAN_SENTENCE]:
+      "OneUptime AI a exécuté {{count}} commandes kubectl en lecture seule pendant cette enquête ({{notes}} — voir l'activité de l'enquête).",
+  };
+
+  const instances: Record<string, i18n> = {};
+
+  beforeAll(async () => {
+    const languages: Array<[string, string, Record<string, string>]> = [
+      [
+        "zh-CN with the notes",
+        "zh-CN",
+        { ...readDashboardLocale("zh-CN"), ...CHINESE_NOTES },
+      ],
+      [
+        "zh-CN with the notes and the sentence",
+        "zh-CN",
+        {
+          ...readDashboardLocale("zh-CN"),
+          ...CHINESE_NOTES,
+          ...CHINESE_SENTENCE,
+        },
+      ],
+      ["fr", "fr", { ...readDashboardLocale("fr"), ...FRENCH_WORDS }],
+    ];
+
+    for (const [name, language, words] of languages) {
+      const instance: i18n = createInstance();
+
+      await instance.init({
+        lng: language,
+        fallbackLng: "en",
+        resources: {
+          en: { translation: readDashboardLocale("en") },
+          [language]: { translation: words },
+        },
+        interpolation: { escapeValue: false },
+        keySeparator: false,
+        nsSeparator: false,
+      });
+      instances[name] = instance;
+    }
+  });
+
+  /*
+   * What a finished run says that ran 3 commands, 2 of them failing, and
+   * could not run 2 more.
+   */
+  function usageIn(instance: string): string {
+    render(
+      <I18nextProvider i18n={instances[instance]!}>
+        <ClusterAccessNotice
+          clusterAccess={[makeStatus()]}
+          isRunFinished={true}
+          kubectlActivity={activity({
+            executed: 3,
+            succeeded: 1,
+            notRun: 2,
+            clusterToolCalls: 3,
+          })}
+        />
+      </I18nextProvider>,
+    );
+
+    return (
+      screen.getByTestId("cluster-access-run-usage").querySelector("p")
+        ?.textContent || ""
+    );
+  }
+
+  test("zh-CN that words the notes but not yet their sentence reads the whole line in English", () => {
+    expect(usageIn("zh-CN with the notes")).toBe(
+      "OneUptime AI ran 3 read-only kubectl commands during this investigation (2 returned an error; 2 more could not run — see Investigation activity).",
+    );
+  });
+
+  test("zh-CN that words the notes and their sentence reads the whole line in Chinese, the notes set off with ；", () => {
+    expect(usageIn("zh-CN with the notes and the sentence")).toBe(
+      "OneUptime AI 在本次调查中运行了 3 条只读 kubectl 命令（2 条返回了错误；另有 2 条无法运行，请参阅调查活动）。",
+    );
+  });
+
+  test("French sets the semicolon between the notes apart with a space", () => {
+    expect(usageIn("fr")).toBe(
+      "OneUptime AI a exécuté 3 commandes kubectl en lecture seule pendant cette enquête (2 ont renvoyé une erreur ; 2 autres n'ont pas pu s'exécuter — voir l'activité de l'enquête).",
+    );
   });
 });

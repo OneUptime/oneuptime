@@ -139,6 +139,12 @@ const LISTED: ReadonlyArray<ListedFile> = [
     builtFrom: "the HTTP method names WEBHOOK_TRIGGER_HTTP_METHODS lists",
   },
   {
+    file: "packages/Common/Utils/AI/MeaningMatch.ts",
+    count: 1,
+    builtFrom:
+      "the concept patterns MEANING_CONCEPTS lists, each a pattern literal, made global to count its matches",
+  },
+  {
     file: "packages/Common/Utils/AiRemediation/KubectlOutputRedactor.ts",
     count: 7,
     builtFrom:
@@ -199,6 +205,12 @@ const LISTED: ReadonlyArray<ListedFile> = [
  * pattern written in the file: what each file's calls read as a pattern.
  */
 const LISTED_PATTERN_ARGUMENTS: ReadonlyArray<ListedFile> = [
+  {
+    file: "packages/Common/Server/Utils/AI/Eval/Benchmark/BenchmarkScorer.ts",
+    count: 1,
+    builtFrom:
+      "the citation marker pattern InvestigationReport writes (getCitationMarkerRegex), a pattern literal",
+  },
   {
     file: "packages/Common/Server/Utils/CodeRepository/ProductionReview/ProductionReviewDataImpact.ts",
     count: 1,
@@ -293,6 +305,7 @@ const RUNS_PATTERNS_A_PROJECT_WRITES: ReadonlyArray<string> = [
   "packages/Common/Utils/Rules/RuleCriteriaMatcher.ts",
   "packages/Common/Types/Telemetry/ScrubRule.ts",
   "packages/Common/Utils/Grok/Grok.ts",
+  "packages/Common/Utils/PromQL/PromQLRegex.ts",
   "packages/App/FeatureSet/Telemetry/Services/MetricPipelineRuleService.ts",
   "packages/App/FeatureSet/Telemetry/Utils/LogFilterEvaluator.ts",
 ];

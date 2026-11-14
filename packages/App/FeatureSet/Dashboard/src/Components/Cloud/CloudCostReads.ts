@@ -29,6 +29,7 @@ import Includes from "Common/Types/BaseDatabase/Includes";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ObjectID from "Common/Types/ObjectID";
+import Timezone from "Common/Types/Timezone";
 import GroupBy from "Common/Server/Types/Database/GroupBy";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -167,6 +168,12 @@ export function buildCloudCostAggregateBy(data: {
     aggregateColumnName: "cost",
     aggregationTimestampColumnName: "day",
     aggregationInterval: data.interval,
+    /*
+     * A cloud bills by the UTC day (CloudCost.day is its start), so its days
+     * stay UTC's in every reader's zone: the trend fills and names UTC days
+     * (fillCloudCostDays, CloudDailySpendChart), not the reader's.
+     */
+    timezone: Timezone.UTC,
     startTimestamp: data.scope.startDate,
     endTimestamp: data.scope.endDate,
     limit: LIMIT_PER_PROJECT,

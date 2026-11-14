@@ -1,0 +1,398 @@
+# twilio: the server's own Twilio account, set in the values instead of in
+# Admin Dashboard > Settings > Call and SMS (#7515), so a new cluster comes up
+# sending SMS and making calls with nothing to click. So:
+#   - with twilio.accountSid empty nothing is rendered: the account saved in
+#     the Admin Dashboard is the one that sends, as before, and no
+#     GLOBAL_TWILIO_ variable an operator sets with extraEnv is hidden
+#     (HelmChart/Tests/suites/twilio-environment.sh renders the whole chart
+#     to hold that byte for byte, and to check that no workload was missed);
+#   - with it set, every workload that runs the server's env helper
+#     (oneuptime.env.runtime) gets all six GLOBAL_TWILIO_ variables, which
+#     packages/Common/Types/CallAndSMS/ServerTwilioEnvironment.ts reads;
+#   - the auth token comes from twilio.authToken, or from the Secret
+#     twilio.existingSecret names - under authToken unless authTokenKey
+#     names another key - and then never as a plain value too;
+#   - a block nothing would read, an account without its token, and a token
+#     given both ways are refused, each saying what to change.
+suite: Twilio account from the values
+release:
+  name: oneuptime
+  namespace: oneuptime
+tests:
+  # ---------------------------------------------------------------------------
+  # app
+  # ---------------------------------------------------------------------------
+  - it: app renders no GLOBAL_TWILIO_ variable while twilio.accountSid is empty
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts: &noTwilioAsserts
+      - notExists:
+          path: spec.template.spec.containers[0].env[?(@.name == "GLOBAL_TWILIO_ACCOUNT_SID")]
+      - notExists:
+          path: spec.template.spec.containers[0].env[?(@.name == "GLOBAL_TWILIO_AUTH_TOKEN")]
+      - notExists:
+          path: spec.template.spec.containers[0].env[?(@.name == "GLOBAL_TWILIO_USED_FOR")]
+      - notExists:
+          path: spec.template.spec.containers[0].env[?(@.name == "GLOBAL_TWILIO_PRIMARY_PHONE_NUMBER")]
+      - notExists:
+          path: spec.template.spec.containers[0].env[?(@.name == "GLOBAL_TWILIO_SECONDARY_PHONE_NUMBERS")]
+      - notExists:
+          path: spec.template.spec.containers[0].env[?(@.name == "GLOBAL_TWILIO_SMS_PHONE_NUMBERS")]
+
+  - it: app treats an account SID of spaces as empty, and a Secret key name alone as nothing set
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      twilio:
+        accountSid: "   "
+        existingSecret:
+          authTokenKey: twilio-token
+    asserts: *noTwilioAsserts
+
+  - it: app renders nothing for twilio set to null, as helm upgrade --reuse-values from an older release has it
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      twilio: null
+    asserts: *noTwilioAsserts
+
+  - it: app gets the whole account from the values
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set: &fullAccount
+      twilio:
+        accountSid: AC00000000000000000000000000000001
+        authToken: "twilio auth: token #1"
+        usedFor: calls-and-sms
+        primaryPhoneNumber: "+14155550100"
+        secondaryPhoneNumbers: "+441234567890,+461234567890"
+        smsPhoneNumbers: "+14155550199"
+    asserts: &fullAccountAsserts
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_TWILIO_ACCOUNT_SID
+            value: AC00000000000000000000000000000001
+      # Written quoted: the ': ' and the ' #' reach the app as they are.
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_TWILIO_AUTH_TOKEN
+            value: "twilio auth: token #1"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_TWILIO_USED_FOR
+            value: calls-and-sms
+      # A string, with its +: never read as a number.
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_TWILIO_PRIMARY_PHONE_NUMBER
+            value: "+14155550100"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_TWILIO_SECONDARY_PHONE_NUMBERS
+            value: "+441234567890,+461234567890"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_TWILIO_SMS_PHONE_NUMBERS
+            value: "+14155550199"
+      # Each once.
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_TWILIO_ACCOUNT_SID
+          any: true
+          count: 1
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_TWILIO_AUTH_TOKEN
+          any: true
+          count: 1
+
+  - it: app leaves the values it is not given empty, for the app to read as unset
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      twilio:
+        accountSid: AC00000000000000000000000000000001
+        authToken: twilio-auth-token
+        usedFor: sms-only
+        smsPhoneNumbers: "+14155550199"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_TWILIO_USED_FOR
+            value: sms-only
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_TWILIO_PRIMARY_PHONE_NUMBER
+            value: null
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_TWILIO_SECONDARY_PHONE_NUMBERS
+            value: null
+
+  - it: app drops the whitespace around a value, as a token read from a file with its final newline has it
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      twilio:
+        accountSid: " AC00000000000000000000000000000001\n"
+        authToken: "twilio-auth-token\n"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_TWILIO_ACCOUNT_SID
+            value: AC00000000000000000000000000000001
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_TWILIO_AUTH_TOKEN
+            value: twilio-auth-token
+
+  - it: app reads the auth token from the operator's Secret, and never as a plain value too
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set: &existingSecret
+      twilio:
+        accountSid: AC00000000000000000000000000000001
+        primaryPhoneNumber: "+14155550100"
+        existingSecret:
+          name: oneuptime-twilio
+    asserts: &existingSecretAsserts
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_TWILIO_AUTH_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: oneuptime-twilio
+                key: authToken
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_TWILIO_AUTH_TOKEN
+          any: true
+          count: 1
+      - notExists:
+          path: spec.template.spec.containers[0].env[?(@.name == "GLOBAL_TWILIO_AUTH_TOKEN")].value
+      # The rest of the account stays in the values: none of it is secret.
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_TWILIO_ACCOUNT_SID
+            value: AC00000000000000000000000000000001
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_TWILIO_PRIMARY_PHONE_NUMBER
+            value: "+14155550100"
+
+  - it: app reads the key twilio.existingSecret.authTokenKey names
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      twilio:
+        accountSid: AC00000000000000000000000000000001
+        existingSecret:
+          name: oneuptime-twilio
+          authTokenKey: twilio-auth-token
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_TWILIO_AUTH_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: oneuptime-twilio
+                key: twilio-auth-token
+
+  - it: app reads the key authToken when twilio.existingSecret.authTokenKey is left empty
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      twilio:
+        accountSid: AC00000000000000000000000000000001
+        primaryPhoneNumber: "+14155550100"
+        existingSecret:
+          name: oneuptime-twilio
+          authTokenKey: ""
+    asserts: *existingSecretAsserts
+
+  # A render stops at the first template that fails, and helm-unittest
+  # reports the error of that template only. So each refusal leaves the app
+  # the only workload rendering oneuptime.env.runtime (nginx and the migrate
+  # Job render it by default); HelmChart/Tests/suites/twilio-environment.sh
+  # checks that helm template refuses the whole release.
+  - it: app refuses twilio values without twilio.accountSid, naming them
+    templates:
+      - templates/app.yaml
+    set:
+      twilio:
+        usedFor: sms-only
+        smsPhoneNumbers: "+14155550199"
+        existingSecret:
+          name: oneuptime-twilio
+      nginx:
+        enabled: false
+      migrate:
+        enabled: false
+    asserts:
+      - failedTemplate:
+          errorMessage: "twilio.accountSid is empty, so OneUptime reads none of the other twilio values, and these are set: twilio.usedFor, twilio.smsPhoneNumbers, twilio.existingSecret.name. Set twilio.accountSid to send through that Twilio account, or clear them to set the account up in the Admin Dashboard."
+
+  - it: app refuses an auth token without twilio.accountSid, without printing it
+    templates:
+      - templates/app.yaml
+    set:
+      twilio:
+        authToken: twilio-auth-token
+      nginx:
+        enabled: false
+      migrate:
+        enabled: false
+    asserts:
+      - failedTemplate:
+          errorMessage: "twilio.accountSid is empty, so OneUptime reads none of the other twilio values, and these are set: twilio.authToken. Set twilio.accountSid to send through that Twilio account, or clear them to set the account up in the Admin Dashboard."
+
+  - it: app refuses an account without its auth token
+    templates:
+      - templates/app.yaml
+    set:
+      twilio:
+        accountSid: AC00000000000000000000000000000001
+        primaryPhoneNumber: "+14155550100"
+      nginx:
+        enabled: false
+      migrate:
+        enabled: false
+    asserts:
+      - failedTemplate:
+          errorMessage: "twilio.accountSid is set, but twilio.authToken and twilio.existingSecret.name are empty: Twilio refuses the account without its auth token. Set twilio.authToken, or name the Secret that holds it in twilio.existingSecret.name."
+
+  - it: app refuses authToken and existingSecret together, and says which to clear
+    templates:
+      - templates/app.yaml
+    set:
+      twilio: &bothSet
+        accountSid: AC00000000000000000000000000000001
+        authToken: twilio-auth-token
+        existingSecret:
+          name: oneuptime-twilio
+      nginx:
+        enabled: false
+      migrate:
+        enabled: false
+    asserts: &bothSetAsserts
+      - failedTemplate:
+          errorMessage: 'twilio.authToken and twilio.existingSecret.name are both set. Set one of them: to read the Twilio auth token from the Secret oneuptime-twilio, clear authToken (--set twilio.authToken="").'
+
+  # ---------------------------------------------------------------------------
+  # worker: it sends what the queues hold, so it reads the same account
+  # ---------------------------------------------------------------------------
+  - it: worker renders no GLOBAL_TWILIO_ variable while twilio.accountSid is empty
+    templates:
+      - templates/worker.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      worker:
+        enabled: true
+    asserts: *noTwilioAsserts
+
+  - it: worker gets the whole account from the values
+    templates:
+      - templates/worker.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      <<: *fullAccount
+      worker:
+        enabled: true
+    asserts: *fullAccountAsserts
+
+  - it: worker reads the auth token from the operator's Secret, and never as a plain value too
+    templates:
+      - templates/worker.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      <<: *existingSecret
+      worker:
+        enabled: true
+    asserts: *existingSecretAsserts
+
+  - it: worker refuses authToken and existingSecret together
+    templates:
+      - templates/worker.yaml
+    set:
+      twilio: *bothSet
+      worker:
+        enabled: true
+      app:
+        enabled: false
+      nginx:
+        enabled: false
+      migrate:
+        enabled: false
+    asserts: *bothSetAsserts
+
+  # ---------------------------------------------------------------------------
+  # the migrate Job: it runs the data migrations, which read the account too
+  # ---------------------------------------------------------------------------
+  - it: the migrate Job gets the whole account from the values
+    templates:
+      - templates/migrate-job.yaml
+    documentSelector:
+      path: kind
+      value: Job
+    set: *fullAccount
+    asserts: *fullAccountAsserts
+
+  - it: the migrate Job reads the auth token from the operator's Secret
+    templates:
+      - templates/migrate-job.yaml
+    documentSelector:
+      path: kind
+      value: Job
+    set: *existingSecret
+    asserts: *existingSecretAsserts

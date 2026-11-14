@@ -87,9 +87,11 @@ export interface ComponentProps {
   onChange: (value: string | Array<string> | null) => void;
   isMultiSelect?: boolean | undefined;
   /**
-   * Hint shown in the search input inside the popover.
+   * Hint shown in the search input inside the popover. In English, looked
+   * up here - or, said so, in the reader's words already (#7682).
    */
   searchPlaceholder?: string | undefined;
+  isSearchPlaceholderTranslated?: boolean | undefined;
   /**
    * Width of the popover. Defaults to 16rem.
    */
@@ -673,7 +675,9 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
                     setSearchText(e.target.value);
                   }}
                   placeholder={
-                    translator.translateText(props.searchPlaceholder) ||
+                    (props.isSearchPlaceholderTranslated
+                      ? props.searchPlaceholder
+                      : translator.translateText(props.searchPlaceholder)) ||
                     translator.translateTemplate("Search {{label}}...", {
                       label: translatableTerm(props.label, {
                         inSentence: true,

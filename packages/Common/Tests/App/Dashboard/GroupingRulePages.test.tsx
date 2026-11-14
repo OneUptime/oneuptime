@@ -210,6 +210,8 @@ const SHARED_FORM_COLUMNS: Array<string> = [
   "groupByMonitor",
   "groupBySeverity",
   "groupByMonitorLabels",
+  // Group by connected services (issue #6798), on the Group By step.
+  "groupByConnectedServices",
   "enableTimeWindow",
   "timeWindowMinutes",
   "enableResolveDelay",
@@ -1003,6 +1005,16 @@ describe.each(PAGES)(
       expect(stepShows("group-by", { [pageCase.labelsSwitch]: true })).toBe(
         true,
       );
+      // Connected Services is a card of its own; mixed with another, Custom.
+      expect(stepShows("group-by", { groupByConnectedServices: true })).toBe(
+        false,
+      );
+      expect(
+        stepShows("group-by", {
+          groupByConnectedServices: true,
+          groupBySeverity: true,
+        }),
+      ).toBe(true);
       expect(
         stepShows("group-by", {
           groupByMonitor: true,
@@ -1054,7 +1066,7 @@ describe.each(PAGES)(
       expect(
         within(empty).getByRole("region", { name: "Start with a template" }),
       ).toBeInTheDocument();
-      expect(within(empty).getAllByRole("listitem")).toHaveLength(4);
+      expect(within(empty).getAllByRole("listitem")).toHaveLength(5);
       expect(
         within(empty).getByRole("button", { name: "Create Custom Rule" }),
       ).toBeInTheDocument();

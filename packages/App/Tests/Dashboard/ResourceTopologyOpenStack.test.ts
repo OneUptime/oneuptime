@@ -22,7 +22,7 @@ import {
   buildInfrastructureTopologyModel,
   collectMapCards,
 } from "../../FeatureSet/Dashboard/src/Components/Topology/InfrastructureTopologyModel";
-import { nounForType } from "../../FeatureSet/Dashboard/src/Components/Topology/ServiceMapViewModel";
+import { countOfType } from "../../FeatureSet/Dashboard/src/Components/Topology/TopologyCounts";
 import {
   TopologyEntity,
   TopologyRelationship,
@@ -1147,8 +1147,10 @@ describe("the Infrastructure view draws clouds beside hosts and clusters", () =>
   });
 
   test("the map's words for them are OpenStack's", () => {
-    expect(nounForType(EntityType.OpenStackHypervisor, 2)).toBe("hypervisors");
-    expect(nounForType(EntityType.OpenStackInstance, 1)).toBe("instance");
+    expect(countOfType(EntityType.OpenStackHypervisor, 2)).toBe(
+      "2 hypervisors",
+    );
+    expect(countOfType(EntityType.OpenStackInstance, 1)).toBe("1 instance");
   });
 
   test("the relationships read the same way", () => {

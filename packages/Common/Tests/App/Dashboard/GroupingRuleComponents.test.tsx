@@ -230,7 +230,7 @@ describe("GroupingModeField", () => {
     );
   }
 
-  test("offers the four answers and Custom as cards, with the current one checked", () => {
+  test("offers the five answers and Custom as cards, with the current one checked", () => {
     render(
       <Harness
         kind={GroupingRuleKind.Incident}
@@ -250,6 +250,7 @@ describe("GroupingModeField", () => {
     ).toEqual([
       "card-select-option-monitor",
       "card-select-option-everything",
+      "card-select-option-connected-services",
       "card-select-option-severity",
       "card-select-option-title",
       "card-select-option-custom",
@@ -269,6 +270,9 @@ describe("GroupingModeField", () => {
     expect(screen.getByTestId("card-select-option-severity")).toHaveTextContent(
       "such as all Critical incidents",
     );
+    expect(
+      screen.getByTestId("card-select-option-connected-services"),
+    ).toHaveTextContent("call each other on the Service Map");
   });
 
   test("describes the alert page's cards in alerts", () => {
@@ -658,14 +662,14 @@ describe("GroupingRuleTemplates", () => {
     );
   }
 
-  test("shows the four ready-made rules, each with what it does", () => {
+  test("shows the five ready-made rules, each with what it does", () => {
     renderTemplates();
 
     const cards: Array<HTMLElement> = within(
       screen.getByTestId("grouping-rule-templates"),
     ).getAllByRole("listitem");
 
-    expect(cards).toHaveLength(4);
+    expect(cards).toHaveLength(5);
     expect(
       cards.map((card: HTMLElement): string => {
         return within(card).getByRole("heading").textContent || "";
@@ -673,12 +677,30 @@ describe("GroupingRuleTemplates", () => {
     ).toEqual([
       "Group incidents from the same monitor",
       "Group incidents that happen together",
+      "Group incidents on connected services",
       "Group incidents by severity",
       "Group repeats of the same incident",
     ]);
     expect(cards[1]).toHaveTextContent(
       "Catches an outage that trips many monitors at once.",
     );
+    expect(cards[2]).toHaveTextContent(
+      "Incidents on no service are grouped by monitor.",
+    );
+  });
+
+  test("two to a row: the odd last ready-made rule takes the whole row", () => {
+    renderTemplates();
+
+    const cards: Array<HTMLElement> = within(
+      screen.getByTestId("grouping-rule-templates"),
+    ).getAllByRole("listitem");
+
+    expect(cards[cards.length - 1]!.className).toContain("sm:col-span-2");
+
+    for (const card of cards.slice(0, -1)) {
+      expect(card.className).not.toContain("col-span");
+    }
   });
 
   test("an empty list introduces grouping with a worked example", () => {
@@ -910,7 +932,7 @@ describe("GroupingRuleTemplates", () => {
     userPermissions = [];
     renderTemplates({ onCreateCustomRule: (): void => {} });
 
-    expect(screen.getAllByRole("listitem")).toHaveLength(4);
+    expect(screen.getAllByRole("listitem")).toHaveLength(5);
     expect(
       screen.queryByTestId("grouping-rule-template-same-monitor-add"),
     ).not.toBeInTheDocument();

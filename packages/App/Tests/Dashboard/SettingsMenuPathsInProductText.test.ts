@@ -242,6 +242,11 @@ describe("a written path, as a reader follows it", () => {
       'names "Calendar Feed" without "Calendar"',
     ],
     [
+      "the same, with the arrow a path in Arabic or Persian points on with",
+      "Pick the times under User Settings ← Calendar Feed.",
+      'names "Calendar Feed" without "Calendar"',
+    ],
+    [
       "the channel note's old pointer",
       "ask them to connect Slack in OneUptime under **User Settings → Slack**.",
       'names "Slack" without "Workspace"',
@@ -289,6 +294,10 @@ describe("a written path, as a reader follows it", () => {
     ],
     [
       "Pick the times on **User Settings → Calendar → Calendar Feed**.",
+      [["User Settings", "Calendar", "Calendar Feed"]],
+    ],
+    [
+      "Pick the times on **User Settings ← Calendar ← Calendar Feed**.",
       [["User Settings", "Calendar", "Calendar Feed"]],
     ],
     [

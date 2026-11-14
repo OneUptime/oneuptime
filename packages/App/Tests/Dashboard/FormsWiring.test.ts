@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { pageRoutesIn, routeMapPath, routesAt } from "../Helpers/PageRoutes";
 
 /*
  * Source wiring of the dashboard's Forms product: forms anyone with the link
@@ -210,11 +211,16 @@ describe("the product's mount", () => {
       'constFormsRoutes:LazyRoutes=lazy(()=>{returnimport("./Routes/FormsRoutes");});',
     );
     expect(
-      countOf(
-        app,
-        '<PageRoutepath={RouteMap[PageMap.FORMS_ROOT]?.toString()||""}element={<FormsRoutes{...commonPageProps}/>}/>',
+      routesAt(
+        pageRoutesIn(path.join(DASHBOARD_SRC, "App.tsx")),
+        routeMapPath("FORMS_ROOT"),
       ),
-    ).toBe(1);
+    ).toEqual([
+      {
+        path: routeMapPath("FORMS_ROOT"),
+        element: "<FormsRoutes {...commonPageProps} />",
+      },
+    ]);
     expect(dense(ALL_ROUTES)).toContain(
       'export{defaultasFormsRoutes}from"./FormsRoutes";',
     );
@@ -543,11 +549,16 @@ describe("the share link", () => {
   });
 
   test("matches the route the Accounts app mounts the public page on", () => {
-    const accountsApp: string = fs.readFileSync(
-      path.join(APP_ROOT, "FeatureSet/Accounts/src/App.tsx"),
-      "utf8",
-    );
-
-    expect(accountsApp).toContain('path="/accounts/form/:shareKey"');
+    expect(
+      routesAt(
+        pageRoutesIn(
+          path.join(APP_ROOT, "FeatureSet/Accounts/src/App.tsx"),
+          "Route",
+        ),
+        '"/accounts/form/:shareKey"',
+      ),
+    ).toEqual([
+      { path: '"/accounts/form/:shareKey"', element: "<FormPage />" },
+    ]);
   });
 });

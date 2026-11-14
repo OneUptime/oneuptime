@@ -535,13 +535,24 @@
         "pillNoAccessKey": "Not Enabled. Please add the access key.",
         "pillNoRegion": "Not Enabled. Please add the Region.",
         "pillNoDomain": "Not Enabled. Please add the domain.",
-        "pillNoServerToken": "Not Enabled. Please add the server API token."
+        "pillNoServerToken": "Not Enabled. Please add the server API token.",
+        "environmentCardDescription": "Set by environment variables: email in the Helm chart's values, or the GLOBAL_EMAIL_ settings in config.env. To change these settings, change them there and restart OneUptime.",
+        "environmentProblemsTitle": "This server sends no email until these environment variables are fixed:",
+        "environmentUnusedTitle": "Some email environment variables are not used:",
+        "environmentIgnoredTitle": "These environment variables are set, but the email settings chosen do not read them, so they change nothing:",
+        "environmentValueSet": "Set",
+        "environmentValueNotSet": "Not set"
       },
       "callSms": {
         "cardTitle": "Twilio Config",
         "cardDescription": "The Twilio account OneUptime sends SMS and calls through, unless a project uses a Twilio config of its own.",
         "editButton": "Edit Twilio Config",
-        "smsSameAsCalls": "Same numbers as calls"
+        "smsSameAsCalls": "Same numbers as calls",
+        "environmentCardDescription": "Set by environment variables: twilio in the Helm chart's values, or the GLOBAL_TWILIO_ settings in config.env. To change this account, change them there and restart OneUptime.",
+        "environmentProblemsTitle": "This account sends no SMS and makes no calls until these environment variables are fixed:",
+        "environmentUnusedTitle": "Some Twilio environment variables are not used:",
+        "authTokenSet": "Set",
+        "authTokenNotSet": "Not set"
       },
       "whatsapp": {
         "metaCardTitle": "Meta WhatsApp Settings",
@@ -2848,8 +2859,8 @@
   "Only incident episodes that match conditions": "Only incident episodes that match conditions",
   "All alert episodes": "All alert episodes",
   "Only alert episodes that match conditions": "Only alert episodes that match conditions",
-  "All scheduled maintenance events": "All scheduled maintenance events",
-  "Only scheduled maintenance events that match conditions": "Only scheduled maintenance events that match conditions",
+  "All maintenance events": "All maintenance events",
+  "Only maintenance events that match conditions": "Only maintenance events that match conditions",
   "All monitors": "All monitors",
   "Only monitors that match conditions": "Only monitors that match conditions",
   "All status pages": "All status pages",
@@ -2989,5 +3000,9 @@
   "You need one of these permissions: {{permissions}}.": "You need one of these permissions: {{permissions}}.",
   "You need this role: {{role}}.": "You need this role: {{role}}.",
   "You need one of these roles: {{roles}}.": "You need one of these roles: {{roles}}.",
-  "You do not have permission to {{action}} this {{itemName}}.": "You do not have permission to {{action}} this {{itemName}}."
+  "You do not have permission to {{action}} this {{itemName}}.": "You do not have permission to {{action}} this {{itemName}}.",
+  "This monitor does not exist in this project, or you do not have access to it.": "This monitor does not exist in this project, or you do not have access to it.",
+  "This monitor and this template are in different projects.": "This monitor and this template are in different projects.",
+  "This monitor is not linked to this template.": "This monitor is not linked to this template.",
+  "This monitor's type is {{monitorType}}, and this template's type is {{templateType}}. Only monitors of the template's type can be linked to it.": "This monitor's type is {{monitorType}}, and this template's type is {{templateType}}. Only monitors of the template's type can be linked to it."
 }

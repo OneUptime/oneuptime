@@ -26,12 +26,21 @@ jest.mock("../../../Server/Services/PayAsYouGoBillingService", () => {
   };
 });
 
-// Whether the key's project is blocked is BlockedProjectBackgroundWork.test.ts.
+/*
+ * Whether the key's project is blocked is BlockedProjectBackgroundWork.test.ts.
+ * A sample project (issue #6808) is refused a key when one is made and when
+ * one is served: SampleProjectReaders.test.ts and
+ * TelemetryIngestionKeyPolicyResolution.test.ts. These keys' projects are
+ * neither.
+ */
 jest.mock("../../../Server/Services/ProjectService", () => {
   return {
     __esModule: true,
     default: {
       isProjectBlocked: jest
+        .fn<() => Promise<boolean>>()
+        .mockResolvedValue(false),
+      isSampleProject: jest
         .fn<() => Promise<boolean>>()
         .mockResolvedValue(false),
     },

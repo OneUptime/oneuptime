@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 51296,
-    "untranslated": 9546
+    "keys": 51818,
+    "untranslated": 9491
   },
   "sameAsEnglish": [
     " is",
@@ -347,6 +347,7 @@
     "Product",
     "Project",
     "Project: {{accounts}}",
+    "PromQL",
     "Prompt",
     "Protocol",
     "Provider",
@@ -654,6 +655,7 @@
     "storefront-web",
     "subnet",
     "subnets",
+    "sum by (job) (rate(http_requests_total[5m]))",
     "svc-backup",
     "syslog",
     "tag",
@@ -788,6 +790,7 @@
     "{{count}}m",
     "{{count}}s",
     "{{delta}} pp",
+    "{{exceptionType}} in {{serviceName}}",
     "{{field}} is {{value}}",
     "{{gigabytes}} GB",
     "{{inQuorum}}/{{count}} mon in quorum",

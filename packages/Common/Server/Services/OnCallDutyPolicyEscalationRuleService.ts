@@ -42,9 +42,9 @@ import OnCallDutyPolicyUserOverrideService from "./OnCallDutyPolicyUserOverrideS
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import ContiguousOrder from "../Utils/Database/ContiguousOrder";
 import ProjectMembership from "../Utils/TeamMember/ProjectMembership";
-import UserOverrideUtil, {
-  UserOverrideRecord,
-} from "../../Types/OnCallDutyPolicy/UserOverrideUtil";
+import UserOverrideOverlap, {
+  UserOverrideTimes,
+} from "../../Types/OnCallDutyPolicy/UserOverrideOverlap";
 import { ALREADY_PAGED_TIMELINE_MESSAGE } from "../../Types/OnCallDutyPolicy/AlreadyPagedTimelineMessage";
 import { getAwayTimelineMessage } from "../../Types/OnCallDutyPolicy/AwayTimelineMessage";
 import {
@@ -311,9 +311,11 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
    * The user override that decides, right now (or at `at`), what happens to
    * the pages of a person a rule names - the policy's own overrides and the
    * global ones, the winner chosen as the schedules choose it
-   * (UserOverrideUtil.getPrecedence): a policy's own override beats a global
-   * one, and within a scope one that names who covers beats a skip. Null
-   * when the person is not away.
+   * (UserOverrideOverlap.compareUse): a policy's own override beats a global
+   * one, and within a scope one that names who covers beats a skip; of two
+   * alike that overlap - saved before overlaps were refused (issue #7630) -
+   * the one that starts first, then the one added first. Null when the
+   * person is not away.
    *
    * With a cover, the cover is paged in their place. Without one - a skip -
    * nobody is: a person named directly, or as a member of a team, has no
@@ -358,10 +360,12 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
         limit: LIMIT_PER_PROJECT,
         skip: 0,
         select: {
+          _id: true,
           routeAlertsToUserId: true,
           onCallDutyPolicyId: true,
           startsAt: true,
           endsAt: true,
+          createdAt: true,
         },
       });
 
@@ -381,29 +385,33 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
         return !overridePolicyId || overridePolicyId === policyId;
       })
       .map((override: OnCallDutyPolicyUserOverride) => {
-        const record: UserOverrideRecord = {
+        const record: UserOverrideTimes = {
+          id: override._id?.toString() || null,
           overrideUserId: data.userId.toString(),
           routeAlertsToUserId: override.routeAlertsToUserId?.toString() || null,
           startsAt: override.startsAt!,
           endsAt: override.endsAt!,
           onCallDutyPolicyId: override.onCallDutyPolicyId?.toString() || null,
+          createdAt: override.createdAt || null,
         };
 
         return {
           override,
-          precedence: UserOverrideUtil.getPrecedence(record),
+          record,
         };
       })
       .sort(
         (
-          a: { override: OnCallDutyPolicyUserOverride; precedence: number },
-          b: { override: OnCallDutyPolicyUserOverride; precedence: number },
+          a: {
+            override: OnCallDutyPolicyUserOverride;
+            record: UserOverrideTimes;
+          },
+          b: {
+            override: OnCallDutyPolicyUserOverride;
+            record: UserOverrideTimes;
+          },
         ) => {
-          return (
-            a.precedence - b.precedence ||
-            (a.override.startsAt?.getTime() || 0) -
-              (b.override.startsAt?.getTime() || 0)
-          );
+          return UserOverrideOverlap.compareUse(a.record, b.record);
         },
       )[0]?.override;
 

@@ -35,7 +35,7 @@ flowchart LR
 | **ワークスペース** | **Slack**、**Microsoft Teams**、**Mattermost**、**ビデオ通話** | [Slack](/docs/workspace-connections/slack)、[Microsoft Teams](/docs/workspace-connections/microsoft-teams)、[Mattermost](/docs/workspace-connections/mattermost)、[ビデオ通話](/docs/workspace-connections/video-calls) |
 | **テレメトリと APM** | **取り込みキー**、**データ保持**、**使用量** | [取り込みキー](/docs/telemetry/ingestion-keys)、[データ保持](/docs/telemetry/data-retention)、[テレメトリ使用量](/docs/telemetry/usage) |
 | **通知** | **通知チャネル**、**通知ログ**、**モバイルアプリ** | [通知](#通知) |
-| **AI** | **AI 機能**、**LLM プロバイダー**、**外部 MCP サーバー**、**AI クレジット**、**AI ログ**、**MCP サーバー** | [LLM プロバイダー](/docs/ai/llm-provider)、[外部 MCP サーバー](/docs/ai/external-mcp-servers)、[MCP サーバー](/docs/ai/mcp-server)、[AI SRE](/docs/ai/ai-sre#コスト管理) |
+| **AI** | **AI 機能**、**LLM プロバイダー**、**外部 MCP サーバー**、**AI クレジット**、**AI の成果**、**AI ログ**、**MCP サーバー** | [LLM プロバイダー](/docs/ai/llm-provider)、[外部 MCP サーバー](/docs/ai/external-mcp-servers)、[MCP サーバー](/docs/ai/mcp-server)、[AI SRE](/docs/ai/ai-sre#コスト管理) |
 | **詳細** | **ドメイン**、**API キー**、**機能フラグ**、**別のツールからインポート** | [カスタムドメイン](/docs/status-pages/branding-and-domains#カスタムドメイン)、[API キー](/docs/permissions/index#api-キー)、[機能フラグ](#機能フラグ)、[Opsgenie からの移行](/docs/moving-to-oneuptime/opsgenie) とその他の移行ガイド |
 | **セキュリティ** | **SSO**、**SCIM** | [SSO](/docs/identity/sso)、[SCIM](/docs/identity/scim) |
 | **請求と請求書** | **請求**、**請求書** | [請求と使用量](/docs/configuration/billing) |

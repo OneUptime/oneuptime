@@ -4,11 +4,13 @@ import {
   PLACEMENT_RELATIONSHIP_TYPES,
   SERVICE_MAP_DETAIL_ATTRIBUTE_KEYS,
 } from "Common/Types/Topology/TopologyTypeRules";
+import { Translator } from "Common/Types/Translator";
 import computeLayeredLayout, {
   LayoutPoint,
 } from "../../Utils/LayeredGraphLayout";
 import { ServiceOperationalStatus } from "./OperationalOverlay";
 import { isEntityActive } from "./TopologyActivity";
+import { countOfType, formatCountLine } from "./TopologyCounts";
 import {
   TopologyEntity,
   TopologyRelationship,
@@ -753,9 +755,14 @@ export function layoutServiceMap(options: {
   };
 }
 
-/** "12 pods · 3 hosts" for the infrastructure a service runs on. */
+/*
+ * "12 pods · 3 hosts" for the infrastructure a service runs on, most first,
+ * in the reader's language (TopologyCounts): "Pod 12 個 · ホスト 3 台",
+ * "۱۲ پاد • ۳ میزبان". English words without a translator.
+ */
 export function summarizeRunsOn(
   runsOn: Array<ServiceMapRunsOn>,
+  translator?: Translator,
 ): string | null {
   const counted: Array<ServiceMapRunsOn> = sortRunsOn(
     runsOn.filter((item: ServiceMapRunsOn): boolean => {
@@ -765,43 +772,10 @@ export function summarizeRunsOn(
   if (counted.length === 0) {
     return null;
   }
-  return counted
-    .map((item: ServiceMapRunsOn): string => {
-      return `${item.count} ${nounForType(item.entityType, item.count)}`;
-    })
-    .join(" · ");
-}
-
-const SHORT_NOUNS: Record<string, [string, string]> = {
-  [EntityType.KubernetesPod]: ["pod", "pods"],
-  [EntityType.KubernetesDeployment]: ["deployment", "deployments"],
-  [EntityType.KubernetesNamespace]: ["namespace", "namespaces"],
-  [EntityType.KubernetesCluster]: ["cluster", "clusters"],
-  [EntityType.NetworkDevice]: ["device", "devices"],
-  [EntityType.DockerSwarmTask]: ["task", "tasks"],
-  [EntityType.DockerSwarmService]: ["swarm service", "swarm services"],
-  [EntityType.DockerSwarmNode]: ["swarm node", "swarm nodes"],
-  [EntityType.ProxmoxNode]: ["Proxmox node", "Proxmox nodes"],
-  [EntityType.VMwareHost]: ["ESXi host", "ESXi hosts"],
-  [EntityType.VMwareDatastore]: ["datastore", "datastores"],
-  [EntityType.CloudResource]: ["cloud resource", "cloud resources"],
-  [EntityType.IoTDevice]: ["IoT device", "IoT devices"],
-  [EntityType.Host]: ["host", "hosts"],
-  [EntityType.Container]: ["container", "containers"],
-  [EntityType.KubernetesNode]: ["node", "nodes"],
-  [EntityType.DockerHost]: ["Docker host", "Docker hosts"],
-  [EntityType.PodmanHost]: ["Podman host", "Podman hosts"],
-  [EntityType.ProxmoxGuest]: ["guest", "guests"],
-  [EntityType.OpenStackHypervisor]: ["hypervisor", "hypervisors"],
-  [EntityType.OpenStackInstance]: ["instance", "instances"],
-  [EntityType.VMwareVirtualMachine]: ["VM", "VMs"],
-};
-
-export function nounForType(type: string, count: number): string {
-  const nouns: [string, string] | undefined = SHORT_NOUNS[type];
-  if (nouns) {
-    return count === 1 ? nouns[0] : nouns[1];
-  }
-  const label: string = metaForEntityType(type).label.toLowerCase();
-  return count === 1 ? label : `${label}s`;
+  return formatCountLine(
+    counted.map((item: ServiceMapRunsOn): string => {
+      return countOfType(item.entityType, item.count, translator);
+    }),
+    translator,
+  );
 }

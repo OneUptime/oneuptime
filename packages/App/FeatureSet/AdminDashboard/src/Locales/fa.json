@@ -535,13 +535,24 @@
         "pillNoAccessKey": "فعال نیست. لطفاً کلید دسترسی را اضافه کنید.",
         "pillNoRegion": "فعال نیست. لطفاً منطقه را اضافه کنید.",
         "pillNoDomain": "فعال نیست. لطفاً دامنه را اضافه کنید.",
-        "pillNoServerToken": "فعال نیست. لطفاً توکن API سرور را اضافه کنید."
+        "pillNoServerToken": "فعال نیست. لطفاً توکن API سرور را اضافه کنید.",
+        "environmentCardDescription": "با متغیرهای محیطی تنظیم شده‌اند: email در مقادیر چارت Helm، یا تنظیمات GLOBAL_EMAIL_ در config.env. برای تغییر این تنظیمات، آن‌ها را همان‌جا تغییر دهید و OneUptime را دوباره راه‌اندازی کنید.",
+        "environmentProblemsTitle": "تا زمانی که این متغیرهای محیطی اصلاح نشوند، این سرور هیچ ایمیلی نمی‌فرستد:",
+        "environmentUnusedTitle": "برخی از متغیرهای محیطی ایمیل استفاده نمی‌شوند:",
+        "environmentIgnoredTitle": "این متغیرهای محیطی تنظیم شده‌اند، اما تنظیمات ایمیل انتخاب‌شده آن‌ها را نمی‌خوانند، پس چیزی را تغییر نمی‌دهند:",
+        "environmentValueSet": "تنظیم شده",
+        "environmentValueNotSet": "تنظیم نشده"
       },
       "callSms": {
         "cardTitle": "پیکربندی Twilio",
         "cardDescription": "حساب Twilio که OneUptime پیامک‌ها و تماس‌ها را از طریق آن می‌فرستد، مگر اینکه پروژه‌ای از پیکربندی Twilio خودش استفاده کند.",
         "editButton": "ویرایش پیکربندی Twilio",
-        "smsSameAsCalls": "همان شماره‌های تماس"
+        "smsSameAsCalls": "همان شماره‌های تماس",
+        "environmentCardDescription": "با متغیرهای محیطی تنظیم شده است: twilio در مقادیر چارت Helm، یا تنظیمات GLOBAL_TWILIO_ در config.env. برای تغییر این حساب، آن‌ها را همان‌جا تغییر دهید و OneUptime را دوباره راه‌اندازی کنید.",
+        "environmentProblemsTitle": "تا زمانی که این متغیرهای محیطی اصلاح نشوند، این حساب پیامک نمی‌فرستد و تماس نمی‌گیرد:",
+        "environmentUnusedTitle": "برخی از متغیرهای محیطی Twilio استفاده نمی‌شوند:",
+        "authTokenSet": "تنظیم شده",
+        "authTokenNotSet": "تنظیم نشده"
       },
       "whatsapp": {
         "metaCardTitle": "تنظیمات Meta WhatsApp",
@@ -2848,8 +2859,8 @@
   "Only incident episodes that match conditions": "فقط آن دسته از اپیزودهای حادثه که با شرط‌ها مطابقت دارند",
   "All alert episodes": "همه اپیزودهای هشدار",
   "Only alert episodes that match conditions": "فقط آن دسته از اپیزودهای هشدار که با شرط‌ها مطابقت دارند",
-  "All scheduled maintenance events": "همه رویدادهای تعمیر و نگهداری زمان‌بندی‌شده",
-  "Only scheduled maintenance events that match conditions": "فقط آن دسته از رویدادهای تعمیر و نگهداری زمان‌بندی‌شده که با شرط‌ها مطابقت دارند",
+  "All maintenance events": "همه رویدادهای تعمیر و نگهداری",
+  "Only maintenance events that match conditions": "فقط آن دسته از رویدادهای تعمیر و نگهداری که با شرط‌ها مطابقت دارند",
   "All monitors": "همه مانیتورها",
   "Only monitors that match conditions": "فقط آن دسته از مانیتورها که با شرط‌ها مطابقت دارند",
   "All status pages": "همه صفحات وضعیت",
@@ -2989,5 +3000,9 @@
   "You need one of these permissions: {{permissions}}.": "به یکی از این مجوزها نیاز دارید: {{permissions}}.",
   "You need this role: {{role}}.": "به این نقش نیاز دارید: {{role}}.",
   "You need one of these roles: {{roles}}.": "به یکی از این نقش‌ها نیاز دارید: {{roles}}.",
-  "You do not have permission to {{action}} this {{itemName}}.": "مجوز انجام «{{action}}» روی این مورد ({{itemName}}) را ندارید."
+  "You do not have permission to {{action}} this {{itemName}}.": "مجوز انجام «{{action}}» روی این مورد ({{itemName}}) را ندارید.",
+  "This monitor does not exist in this project, or you do not have access to it.": "این مانیتور در این پروژه وجود ندارد یا به آن دسترسی ندارید.",
+  "This monitor and this template are in different projects.": "این مانیتور و این قالب در پروژه‌های متفاوتی هستند.",
+  "This monitor is not linked to this template.": "این مانیتور به این قالب پیوند ندارد.",
+  "This monitor's type is {{monitorType}}, and this template's type is {{templateType}}. Only monitors of the template's type can be linked to it.": "نوع این مانیتور {{monitorType}} است و نوع این قالب {{templateType}}. فقط مانیتورهایی از نوع قالب را می‌توان به آن پیوند داد."
 }

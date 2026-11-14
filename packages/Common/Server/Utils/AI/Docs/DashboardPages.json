@@ -683,6 +683,22 @@
     "billing": true
   },
   {
+    "title": "AI Results",
+    "where": [
+      "Project Settings",
+      "AI"
+    ],
+    "keywords": [
+      "pages avoided",
+      "fixes verified",
+      "root causes confirmed",
+      "ai quality",
+      "ai outcomes"
+    ],
+    "path": "/dashboard/:projectId/settings/ai-results",
+    "kind": "page"
+  },
+  {
     "title": "AI Logs",
     "where": [
       "Project Settings",
@@ -1822,6 +1838,31 @@
     ],
     "path": "/dashboard/:projectId/incidents/settings/public-note-approval",
     "kind": "page"
+  },
+  {
+    "title": "Subscriber Notifications",
+    "where": [
+      "Incidents",
+      "Settings"
+    ],
+    "keywords": [
+      "notify subscribers",
+      "notify status page subscribers",
+      "status page subscribers",
+      "subscriber emails"
+    ],
+    "path": "/dashboard/:projectId/incidents/settings/subscriber-notifications",
+    "kind": "page"
+  },
+  {
+    "title": "Notify status page subscribers by default",
+    "where": [
+      "Incidents",
+      "Settings",
+      "Subscriber Notifications"
+    ],
+    "path": "/dashboard/:projectId/incidents/settings/subscriber-notifications",
+    "kind": "setting"
   },
   {
     "title": "Episode Membership",
@@ -3427,6 +3468,21 @@
       "search metrics"
     ],
     "path": "/dashboard/:projectId/metrics",
+    "kind": "page"
+  },
+  {
+    "title": "PromQL",
+    "where": [
+      "Metrics"
+    ],
+    "keywords": [
+      "prometheus",
+      "query metrics",
+      "metrics query language",
+      "grafana",
+      "prometheus data source"
+    ],
+    "path": "/dashboard/:projectId/metrics/promql",
     "kind": "page"
   },
   {

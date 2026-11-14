@@ -200,7 +200,8 @@ describe("WorkspaceReactionNote capabilities", () => {
     [
       WorkspaceNoteResourceType.ScheduledMaintenance,
       WorkspaceNoteType.Public,
-      "add a public note to this scheduled maintenance",
+      // A maintenance event, as the model has named it since #6817: the refusal for a record outside the member's read names it in the same words.
+      "add a public note to this maintenance event",
     ],
     [
       WorkspaceNoteResourceType.IncidentEpisode,

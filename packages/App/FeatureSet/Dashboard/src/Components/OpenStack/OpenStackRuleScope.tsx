@@ -53,7 +53,12 @@ export function getOpenStackRuleScopeFields<TEntity>(
       stepId,
       fieldType: FormFieldSchemaType.Text,
       required: false,
+      /*
+       * The default domain's ID in Keystone, in every language (isPlaceholderIdentifier):
+       * German read it "Normal" and Spanish "predeterminado", IDs no cloud has (#7663).
+       */
       placeholder: "default",
+      isPlaceholderIdentifier: true,
       collapsibleSection: section,
     },
   ];

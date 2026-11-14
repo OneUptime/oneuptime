@@ -721,4 +721,181 @@ describe("the frontend build config's production output settings", () => {
       expect(productionBytes / developmentBytes).toBeLessThanOrEqual(0.8);
     });
   });
+
+  describe("stylesheets go into a production bundle without their comments", () => {
+    /*
+     * The CSS plugin puts each stylesheet in the bundle as a string, which
+     * minifying leaves as written, so every page downloaded every comment of
+     * Theme.css (27 KB of them) before it drew (first-load-budgets.js). A
+     * production build takes them out itself. These build a stylesheet with
+     * createConfig and run the bundle against a stand-in document, reading
+     * the text it puts on the page.
+     */
+    const STYLESHEET: string = [
+      "/* About the rule below, for whoever edits it. */",
+      ".my-distinctive-rule {",
+      "  color: red; /* After a declaration. */",
+      '  content: "/* In a string, so not a comment. */";',
+      "  background-image: url(/images/a/*b*/c.png);",
+      "}",
+      "/*! A license, which stays. */",
+      ".first/* Between two parts of one selector. */.second {",
+      "  color: blue;",
+      "}",
+      "",
+    ].join("\n");
+
+    interface StylesheetBuild {
+      ok: boolean;
+      error: string;
+      stylesheets: Array<string>;
+    }
+
+    function buildStylesheet(nodeEnv: string | null): StylesheetBuild {
+      const root: string = makeTempDir("oneuptime-esbuild-css-");
+      const entry: string = path.join(root, "Entry.js");
+      const outdir: string = path.join(root, "out");
+
+      fs.writeFileSync(path.join(root, "Styles.css"), STYLESHEET);
+      fs.writeFileSync(entry, 'import "./Styles.css";\n');
+
+      const script: string = `
+        const c = require(${JSON.stringify(ESBUILD_CONFIG)});
+        const fs = require("fs");
+        const path = require("path");
+        const vm = require("vm");
+
+        const esbuild = require(require.resolve("esbuild", {
+          paths: [path.dirname(${JSON.stringify(ESBUILD_CONFIG)})],
+        }));
+
+        const cfg = c.createConfig({
+          serviceName: "Dashboard",
+          publicPath: "/dashboard/dist/",
+        });
+
+        cfg.entryPoints = [${JSON.stringify(entry)}];
+        cfg.outdir = ${JSON.stringify(outdir)};
+
+        esbuild.build(cfg).then(function () {
+          const stylesheets = [];
+
+          vm.runInNewContext(
+            fs.readFileSync(path.join(${JSON.stringify(outdir)}, "Entry.js"), "utf8"),
+            {
+              document: {
+                createElement: function () {
+                  return {};
+                },
+                head: {
+                  appendChild: function (style) {
+                    stylesheets.push(style.textContent);
+                  },
+                },
+              },
+            },
+          );
+
+          console.log(JSON.stringify({
+            ok: true,
+            error: "",
+            stylesheets: stylesheets,
+          }));
+        }).catch(function (error) {
+          console.log(JSON.stringify({
+            ok: false,
+            error: String((error && error.message) || error),
+            stylesheets: [],
+          }));
+        });
+      `;
+
+      return JSON.parse(runNode(script, nodeEnv)) as StylesheetBuild;
+    }
+
+    test("a production build puts the stylesheet on the page with its comments taken out, and nothing else", () => {
+      const result: StylesheetBuild = buildStylesheet("production");
+
+      expect([result.ok, result.error]).toEqual([true, ""]);
+
+      /*
+       * The comment alone on its line goes with the line. A comment with
+       * nothing but a selector's two parts beside it becomes an empty one,
+       * which keeps them two parts (as the comment did); "/*" in a string or
+       * an unquoted url( is no comment at all, and a license stays.
+       */
+      expect(result.stylesheets).toEqual([
+        [
+          ".my-distinctive-rule {",
+          "  color: red; ",
+          '  content: "/* In a string, so not a comment. */";',
+          "  background-image: url(/images/a/*b*/c.png);",
+          "}",
+          "/*! A license, which stays. */",
+          ".first/**/.second {",
+          "  color: blue;",
+          "}",
+          "",
+        ].join("\n"),
+      ]);
+    });
+
+    test("a development build puts the stylesheet on the page as written", () => {
+      const result: StylesheetBuild = buildStylesheet(null);
+
+      expect([result.ok, result.error]).toEqual([true, ""]);
+      expect(result.stylesheets).toEqual([STYLESHEET]);
+    });
+
+    test("only what the CSS syntax reads as a comment is taken out", () => {
+      // Each stylesheet, and what removeCSSComments makes of it.
+      const cases: Array<[string, string]> = [
+        // A quote a backslash escapes does not end the string.
+        [
+          '.a::before { content: "\\"/* x */"; }',
+          '.a::before { content: "\\"/* x */"; }',
+        ],
+        [
+          ".a::before { content: '/* x */'; }",
+          ".a::before { content: '/* x */'; }",
+        ],
+        // A backslash escapes the slash, so no comment starts there.
+        [".a\\/*b*/ {}", ".a\\/*b*/ {}"],
+        // An unquoted url( ends at its parenthesis, however it is written.
+        [
+          ".a { background: URL( /a/*b*/c.png ); }",
+          ".a { background: URL( /a/*b*/c.png ); }",
+        ],
+        // A comment over several lines of its own goes with them.
+        [
+          ".a {\n  color: red;\n  /*\n   * Why.\n   */\n  margin: 0;\n}\n",
+          ".a {\n  color: red;\n  margin: 0;\n}\n",
+        ],
+        // Taken out, it would make one name of two.
+        ["a/* x */b", "a/**/b"],
+        ["/* @license MIT */\n.a {}", "/* @license MIT */\n.a {}"],
+        ["/* @preserve */\n.a {}", "/* @preserve */\n.a {}"],
+        [".a {}\n/* At the end. */", ".a {}\n"],
+      ];
+
+      const script: string = `
+        const c = require(${JSON.stringify(ESBUILD_CONFIG)});
+        const stylesheets = ${JSON.stringify(
+          cases.map((testCase: [string, string]): string => {
+            return testCase[0];
+          }),
+        )};
+
+        console.log(JSON.stringify(stylesheets.map(function (css) {
+          return c.removeCSSComments(css);
+        })));
+      `;
+
+      expect(JSON.parse(runNode(script, "production"))).toEqual(
+        cases.map((testCase: [string, string]): string => {
+          return testCase[1];
+        }),
+      );
+    });
+  });
 });

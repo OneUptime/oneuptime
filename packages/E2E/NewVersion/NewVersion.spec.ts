@@ -482,14 +482,32 @@ test.describe("a deploy under the open tab", () => {
     page: Page;
     request: APIRequestContext;
   }) => {
+    const scrollYOf: () => Promise<number> = async (): Promise<number> => {
+      return await page.evaluate((): number => {
+        return Math.round(window.scrollY);
+      });
+    };
+
     await page.goto("/dashboard/home?gap=0#latest");
     await expect(page.getByTestId("page-home")).toBeVisible();
+    /*
+     * Its font in first. Inter landing after the scroll below redraws the
+     * text above the place, and the browser's scroll anchoring moves the
+     * reader with it - on a phone from 1200 to 1180: the place the reader is
+     * at as they press Reload, and the one the new version brings them back
+     * to.
+     */
+    await page.evaluate(async (): Promise<void> => {
+      await document.fonts.ready;
+    });
     await page.evaluate((): void => {
       window.scrollTo(0, 1200);
     });
     await deploy(request);
     await lookNow(page);
     await expect(notice(page)).toBeVisible();
+    // Where the reader is as they press Reload.
+    expect(await scrollYOf()).toBe(1200);
 
     await page.getByTestId("new-version-notice-reload").click();
 
@@ -505,13 +523,7 @@ test.describe("a deploy under the open tab", () => {
       "/dashboard/home?gap=0#latest",
     );
 
-    await expect
-      .poll(async (): Promise<number> => {
-        return await page.evaluate((): number => {
-          return Math.round(window.scrollY);
-        });
-      })
-      .toBe(1200);
+    await expect.poll(scrollYOf).toBe(1200);
   });
 
   test("Dismiss puts the notice away, and the next page still loads the new version", async ({
@@ -1168,6 +1180,14 @@ test.describe("the browser going offline under an open page", () => {
 
     await page.goto(`/dashboard/home?shell=master&${NO_LOOKING}`);
     await expect(page.getByTestId("page-home")).toBeVisible();
+    /*
+     * Its font in first: Inter landing after the scroll below moves the
+     * reader with the text above the place (on a phone to 1180), and the
+     * page comes back to where the reader was as the connection dropped.
+     */
+    await page.evaluate(async (): Promise<void> => {
+      await document.fonts.ready;
+    });
     await page.evaluate((): void => {
       window.scrollTo(0, 1200);
     });
@@ -1295,6 +1315,22 @@ const hasTailwind: (page: Page) => Promise<boolean> = async (
 ): Promise<boolean> => {
   return await page.evaluate((): boolean => {
     return Boolean((window as unknown as { tailwind?: unknown }).tailwind);
+  });
+};
+
+/*
+ * How many pixels the page reaches below its window, read once: 0 or less
+ * when it fits. The window's height is the root element's clientHeight -
+ * the window less any scrollbar that takes room.
+ */
+const downwardScrollOf: (page: Page) => Promise<number> = async (
+  page: Page,
+): Promise<number> => {
+  return await page.evaluate((): number => {
+    return (
+      document.documentElement.scrollHeight -
+      document.documentElement.clientHeight
+    );
   });
 };
 
@@ -1435,6 +1471,19 @@ test.describe("an app that cannot start", () => {
     expect(await hasTailwind(page)).toBe(false);
 
     await expectNoSidewaysScroll(page);
+    /*
+     * Nor down: the browser's 8 px around the body, which Tailwind's
+     * preflight takes away where it arrived, made the page - its root as
+     * tall as the window - 16 px taller than its window.
+     */
+    await expect
+      .poll(
+        async (): Promise<number> => {
+          return await downwardScrollOf(page);
+        },
+        { message: "how far the card's page reaches below its window" },
+      )
+      .toBeLessThanOrEqual(0);
     await shoot(page, testInfo, "entry-offline-without-tailwind");
 
     for (const script of scripts) {

@@ -431,17 +431,20 @@ export default function IncidentEpisodeDetailScreen({
     isAcknowledged,
     isPagedAgain(pagedActionsInput),
     isObserverOnly(pagedActionsInput),
+    passOn.isPagedToHelp,
   );
   const guidanceMessage: string =
     stage === "resolved"
       ? "This incident episode is resolved. Review the context and team notes below."
       : stage === "pagedAgain"
         ? "This incident episode is still not resolved. Acknowledge again if you're still on it, or escalate it."
-        : stage === "observer"
-          ? getObserverPageGuidance("incident-episode")
-          : stage === "acknowledged"
-            ? "A responder has acknowledged this incident episode. Resolve it once recovery is confirmed."
-            : "Actions on this episode apply to its grouped incidents. Acknowledge to take responsibility, or resolve when recovery is confirmed.";
+        : stage === "pagedToHelp"
+          ? "A responder has acknowledged this incident episode, and you're being paged to help. Acknowledge again to answer your page, or escalate it."
+          : stage === "observer"
+            ? getObserverPageGuidance("incident-episode")
+            : stage === "acknowledged"
+              ? "A responder has acknowledged this incident episode. Resolve it once recovery is confirmed."
+              : "Actions on this episode apply to its grouped incidents. Acknowledge to take responsibility, or resolve when recovery is confirmed.";
 
   return (
     <ScrollView

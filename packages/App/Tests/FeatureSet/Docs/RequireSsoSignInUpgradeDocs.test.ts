@@ -12,6 +12,12 @@ import {
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import {
+  RouteAttributes,
+  pageRoutesIn,
+  routeMapPath,
+  routesAt,
+} from "../../Helpers/PageRoutes";
 
 /*
  * The upgrade note that says what requiring SSO for the whole server now
@@ -139,9 +145,21 @@ describe("the note is true to the change", () => {
   it("names the master admins' address the Accounts app serves", () => {
     expect(MASTER_ADMIN_SIGN_IN_PATH).toBe("/accounts/admin-login");
     expect(ENGLISH_NOTE).toContain(`\`${MASTER_ADMIN_SIGN_IN_PATH}\``);
-    expect(source("App/FeatureSet/Accounts/src/App.tsx")).toMatch(
-      /path=\{MASTER_ADMIN_SIGN_IN_PATH\}\s*element=\{<LoginPage isMasterAdminSignIn=\{true\} \/>\}/,
-    );
+    // The Accounts app mounts react-router's <Route> by its own name.
+    expect(
+      routesAt(
+        pageRoutesIn(
+          path.join(PACKAGES_DIR, "App/FeatureSet/Accounts/src/App.tsx"),
+          "Route",
+        ),
+        "MASTER_ADMIN_SIGN_IN_PATH",
+      ),
+    ).toEqual([
+      {
+        path: "MASTER_ADMIN_SIGN_IN_PATH",
+        element: "<LoginPage isMasterAdminSignIn={true} />",
+      },
+    ]);
   });
 
   it("draws the single sign-on page in place of the sign-in and sign-up pages while SSO is required", () => {
@@ -216,15 +234,17 @@ describe("the note is true to the change", () => {
   });
 
   it("forwards the old list addresses to the Single Sign-On page", () => {
-    const app: string = source("App/FeatureSet/AdminDashboard/src/App.tsx");
+    const routes: Array<RouteAttributes> = pageRoutesIn(
+      path.join(PACKAGES_DIR, "App/FeatureSet/AdminDashboard/src/App.tsx"),
+    );
 
     for (const pageKey of ["SETTINGS_GLOBAL_SSO", "SETTINGS_GLOBAL_OIDC"]) {
-      expect({
-        pageKey,
-        forwards: new RegExp(
-          `path=\\{RouteMap\\[PageMap\\.${pageKey}\\]\\?\\.toString\\(\\) \\|\\| ""\\}\\s*element=\\{\\s*<Navigate\\s+replace=\\{true\\}\\s+to=\\{RouteMap\\[PageMap\\.SETTINGS_SSO\\]`,
-        ).test(app),
-      }).toEqual({ pageKey, forwards: true });
+      expect(routesAt(routes, routeMapPath(pageKey))).toEqual([
+        {
+          path: routeMapPath(pageKey),
+          element: `<Navigate replace={true} to={${routeMapPath("SETTINGS_SSO")}} />`,
+        },
+      ]);
     }
   });
 });

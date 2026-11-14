@@ -170,7 +170,7 @@ Allt i snippetet skickas till dina besökare, så vem som helst kan kopiera toke
 | **Upphör** | Efter det här datumet godtas nyckeln inte längre. |
 | **Aktiverad** | Stäng av den för att genast stoppa en läckt nyckel. |
 
-En Browser-nyckel skriver OTLP-spår, -loggar och -mätvärden samt sessionsuppspelningar; alla andra intagsvägar avvisar den. Du ändrar inställningarna på nyckelns egen sida. Nyckeltypen kan inte ändras efter att nyckeln har skapats.
+En Browser-nyckel skriver OTLP-spår, -loggar och -mätvärden, sessionsuppspelningar och händelser från ett [Sentry-SDK i webbläsaren](/docs/telemetry/compatible-endpoints#sentry-sdker); alla andra intagsvägar avvisar den. Du ändrar inställningarna på nyckelns egen sida. Nyckeltypen kan inte ändras efter att nyckeln har skapats.
 
 > [!WARNING]
 > Lägg aldrig en **Server**-nyckel i en sida. En Server-nyckel skriver all slags telemetri varifrån som helst, utan ursprungskontroll, så den som läser din sida skulle kunna skriva in i ditt projekt.

@@ -490,6 +490,15 @@ describe("Incidents side menu", () => {
           title: "Public Note Approval",
           href: routeFor(PageMap.INCIDENTS_SETTINGS_PUBLIC_NOTE_APPROVAL),
         },
+        /*
+         * Whether Notify Status Page Subscribers starts ticked on a new
+         * incident (#7606), beside the other page about what subscribers
+         * are told.
+         */
+        {
+          title: "Subscriber Notifications",
+          href: routeFor(PageMap.INCIDENTS_SETTINGS_SUBSCRIBER_NOTIFICATIONS),
+        },
         {
           title: "Postmortem Templates",
           href: routeFor(PageMap.INCIDENTS_SETTINGS_POSTMORTEM_TEMPLATES),

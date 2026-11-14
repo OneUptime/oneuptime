@@ -20,8 +20,9 @@ import type { TrustedLicenseKey } from "./TrustedLicenseKeys";
  *
  * The parser is deliberately strict. A license token is attacker-controlled
  * input (it can be pasted into the product for offline activation) and it
- * lands in a UNIQUE text column, so anything that is not exactly the canonical
- * shape this module produces is rejected rather than interpreted:
+ * is stored (GlobalConfig.enterpriseLicenseToken, encrypted), so anything
+ * that is not exactly the canonical shape this module produces is rejected
+ * rather than interpreted:
  *
  *   - at most 4 KB (the largest real token is under 1 KB);
  *   - exactly three segments, each non-empty base64url with no padding;

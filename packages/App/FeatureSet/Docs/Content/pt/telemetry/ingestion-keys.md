@@ -36,7 +36,7 @@ Escolha o tipo pelo lugar onde a chave vai ficar. O tipo não pode ser mudado de
 | | **Servidor** | **Navegador** |
 | --- | --- | --- |
 | Para | Aplicações, collectors e agentes em máquinas que você opera | Páginas web, e React Native Session Replay |
-| Envia | Todo tipo de telemetria, para todos os endpoints | Traços, registros, métricas e Session Replays |
+| Envia | Todo tipo de telemetria, para todos os endpoints | Traços, registros, métricas, Session Replays e [eventos do Sentry](/docs/telemetry/compatible-endpoints#sdks-do-sentry) |
 | É um segredo | Sim: mantenha-a nos seus servidores | Não: qualquer pessoa que veja a página pode lê-la |
 | Origens | Não verificadas | Só as origens listadas são aceitas |
 | Requisições por minuto | Sem limite, a menos que você defina um | 6.000, a menos que você defina outro limite |

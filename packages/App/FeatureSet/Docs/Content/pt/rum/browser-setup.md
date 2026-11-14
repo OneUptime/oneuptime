@@ -170,7 +170,7 @@ Tudo o que está no snippet vai para os seus visitantes, então qualquer pessoa 
 | **Expira em** | Depois desta data, a chave deixa de ser aceita. |
 | **Habilitado** | Desligue para interromper na hora uma chave vazada. |
 
-Uma chave Browser grava traços, registros e métricas OTLP, além de reproduções de sessão; todas as outras vias de ingestão a recusam. Essas configurações são alteradas na página da própria chave. O tipo de chave não pode ser mudado depois que a chave é criada.
+Uma chave Browser grava traços, registros e métricas OTLP, reproduções de sessão e eventos de um [SDK do Sentry no navegador](/docs/telemetry/compatible-endpoints#sdks-do-sentry); todas as outras vias de ingestão a recusam. Essas configurações são alteradas na página da própria chave. O tipo de chave não pode ser mudado depois que a chave é criada.
 
 > [!WARNING]
 > Nunca coloque uma chave **Servidor** em uma página. Uma chave Servidor grava qualquer tipo de telemetria de qualquer lugar, sem verificar a origem, então qualquer pessoa que leia a sua página poderia gravar no seu projeto.

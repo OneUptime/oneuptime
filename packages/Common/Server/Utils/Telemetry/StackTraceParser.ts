@@ -405,12 +405,18 @@ export default class StackTraceParser {
    */
   private static parseJava(lines: string[]): StackFrame[] {
     const frames: StackFrame[] = [];
-    // Pattern: at com.package.Class.method(File.java:123)
-    const pattern: RegExp = /^at\s+([\w.$]+)\(([\w.]+):(\d+)\)$/;
+    /*
+     * Pattern: at com.package.Class.method(File.java:123). A constructor is
+     * <init> and a static initializer <clinit>: without the angle brackets
+     * here, a trace with one of them gave C#'s reader (which allows them)
+     * more frames than Java's, and the whole trace was read as C# - every
+     * frame's file and line lost.
+     */
+    const pattern: RegExp = /^at\s+([\w.$<>]+)\(([\w.]+):(\d+)\)$/;
     // Pattern for native methods: at com.package.Class.method(Native Method)
-    const patternNative: RegExp = /^at\s+([\w.$]+)\(Native Method\)$/;
+    const patternNative: RegExp = /^at\s+([\w.$<>]+)\(Native Method\)$/;
     // Pattern for unknown source: at com.package.Class.method(Unknown Source)
-    const patternUnknown: RegExp = /^at\s+([\w.$]+)\(Unknown Source\)$/;
+    const patternUnknown: RegExp = /^at\s+([\w.$<>]+)\(Unknown Source\)$/;
 
     for (const line of lines) {
       let match: RegExpMatchArray | null = null;
@@ -478,11 +484,14 @@ export default class StackTraceParser {
         // The previous line should be the function name
         let functionName: string = "<unknown>";
         if (i > 0 && lines[i - 1]) {
-          // Remove arguments from function name
+          /*
+           * Remove the argument list: the LAST parenthesised group, at the
+           * end of the line. A method's receiver is in parentheses too -
+           * main.(*Server).handle(0xc000010030) - and cutting at the first
+           * "(" left only "main.".
+           */
           const funcLine: string = lines[i - 1]!;
-          const parenIndex: number = funcLine.indexOf("(");
-          functionName =
-            parenIndex > 0 ? funcLine.substring(0, parenIndex) : funcLine;
+          functionName = StackTraceParser.withoutGoArguments(funcLine);
         }
 
         frames.push({
@@ -495,6 +504,25 @@ export default class StackTraceParser {
     }
 
     return frames;
+  }
+
+  // A Go frame's function line without its trailing argument list.
+  private static withoutGoArguments(funcLine: string): string {
+    if (!funcLine.endsWith(")")) {
+      return funcLine;
+    }
+
+    const argumentsStart: number = funcLine.lastIndexOf("(");
+
+    // The argument list holds no parentheses of its own: hex words and "...".
+    if (
+      argumentsStart <= 0 ||
+      funcLine.slice(argumentsStart + 1, -1).includes(")")
+    ) {
+      return funcLine;
+    }
+
+    return funcLine.substring(0, argumentsStart);
   }
 
   /**

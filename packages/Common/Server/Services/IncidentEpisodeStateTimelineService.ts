@@ -613,6 +613,14 @@ export class Service extends ProjectReferencesService<IncidentEpisodeStateTimeli
         stateId: createdItem.incidentStateId,
         previousStateId:
           onCreate.carryForward.statusTimelineBeforeThisStatus?.incidentStateId,
+        /*
+         * Who changed it: somebody paged about the episode by a policy a
+         * person started by hand (OnCallPolicyStartedByHand), or as an
+         * observer, answers their page by acknowledging it
+         * (OnCallPersonPageAnswer).
+         */
+        changedByUserId:
+          createdItem.createdByUserId || onCreate.createBy.props.userId,
       });
     }
 

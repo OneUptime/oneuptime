@@ -383,7 +383,10 @@ describe("the scheduled maintenance forms", () => {
   });
 
   test("the details card Edit walks Maintenance Details and Status Pages", () => {
-    expect(EDIT.steps).toEqual(["event: Maintenance Details", "status-pages: Status Pages"]);
+    expect(EDIT.steps).toEqual([
+      "event: Maintenance Details",
+      "status-pages: Status Pages",
+    ]);
     expect(rowsByStep(EDIT)).toEqual({
       event: ["title", "startsAt", "endsAt", `${ADVANCED}: labels`],
       "status-pages": ["statusPages", PUBLISH_CHOICE, PUBLISH_AT, REMINDERS],

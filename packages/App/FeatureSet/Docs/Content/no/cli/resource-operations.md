@@ -182,7 +182,7 @@ Hendelser, varsler, episodene deres og planlagte vedlikeholdshendelser har komma
 | `resolve <id>` | Flytter den til prosjektets løst-tilstand | De samme fire |
 | `start <id>` | Flytter hendelsen til prosjektets pågående tilstand | `scheduled-maintenance-event` |
 | `end <id>` | Flytter den til prosjektets avsluttet-tilstand | `scheduled-maintenance-event` |
-| `add-note <id> --note <markdown>` | Legger til et notat teamet ditt ser, eller med `--public` ett på statussidene til posten | Alle fem |
+| `add-note <id> --note <markdown>` | Legger til et notat bare de som kan se posten, kan lese, eller med `--public` ett på statussidene til posten | Alle fem |
 
 ```bash
 oneuptime incident acknowledge 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11

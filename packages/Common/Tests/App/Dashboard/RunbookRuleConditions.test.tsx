@@ -312,8 +312,8 @@ const TRIGGERS: Array<TriggerCase> = [
   {
     trigger: RunbookRuleTriggerEntity.ScheduledMaintenance,
     entityLabel: "scheduled maintenance event",
-    all: "All scheduled maintenance events",
-    matching: "Only scheduled maintenance events that match conditions",
+    all: "All maintenance events",
+    matching: "Only maintenance events that match conditions",
     criteria: [
       "Monitors",
       "Event Labels",

@@ -89,7 +89,7 @@ export default class AddEndedState extends DataMigrationBase {
       endedState.projectId = project.id!;
       endedState.name = "Ended";
       endedState.description =
-        "Scheduled maintenance events switch to this state when they end.";
+        "Maintenance events switch to this state when they end.";
       endedState.order = resolvedState.order!;
       endedState.isEndedState = true;
       endedState.color = new Color("#4A4A4A");

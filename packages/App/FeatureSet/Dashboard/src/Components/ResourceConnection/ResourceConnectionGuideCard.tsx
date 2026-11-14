@@ -6,6 +6,7 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import Link from "Common/UI/Components/Link/Link";
 import {
+  isTranslatableTerm,
   translatableTerm,
   TranslatableTerm,
   Translator,
@@ -110,11 +111,15 @@ const getStateCopy: (
   translator: Translator,
 ): StateCopy => {
   /*
-   * What sends the resource's data, as it reads in a sentence. The
-   * sentences about the resource itself are the guide's own, one set for
-   * each kind of resource (ResourceConnectionGuide's setupCopy).
+   * What sends the resource's data, as it reads in a sentence: a product's
+   * name as written, or words cased where the sentence puts them
+   * (ResourceConnectionGuide's agentName). The sentences about the resource
+   * itself are the guide's own, one set for each kind of resource
+   * (ResourceConnectionGuide's setupCopy).
    */
-  const agentName: TranslatableTerm = translatableTerm(guide.agentName);
+  const agentName: TranslatableTerm = isTranslatableTerm(guide.agentName)
+    ? guide.agentName
+    : translatableTerm(guide.agentName);
 
   /*
    * The agent is running but the resource is not read (issue #7439): the

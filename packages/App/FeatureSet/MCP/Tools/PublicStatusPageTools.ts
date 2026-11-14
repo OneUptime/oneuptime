@@ -127,7 +127,7 @@ RETURNS:
 function createGetScheduledMaintenanceTool(): McpToolInfo {
   return {
     name: "get_public_status_page_scheduled_maintenance",
-    description: `Get scheduled maintenance events from a public status page.
+    description: `Get maintenance events from a public status page.
 
 This tool does NOT require an API key and works with public status pages.
 
@@ -138,7 +138,7 @@ USAGE:
 - By ID: statusPageIdOrDomain = "550e8400-e29b-41d4-a716-446655440000"
 
 RETURNS:
-- List of scheduled maintenance events (upcoming and ongoing)
+- List of maintenance events (upcoming and ongoing)
 - Maintenance details (title, description, scheduled times)
 - Maintenance timeline and state changes
 - Public notes/updates for each maintenance event`,

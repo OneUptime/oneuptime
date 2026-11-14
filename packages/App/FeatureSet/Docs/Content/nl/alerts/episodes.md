@@ -26,7 +26,7 @@ flowchart TB
 ```
 
 - **De voorwaarden van de regel** bepalen op welke waarschuwingen ze van toepassing is. Een regel zonder voorwaarden geldt voor elke nieuwe waarschuwing.
-- **De groeperingssleutel** bepaalt welke waarschuwingen een episode delen: die met dezelfde monitor, dezelfde ernst, dezelfde titel, of welke combinatie de regel ook gebruikt. Een regel die op niets groepeert, plaatst elke waarschuwing waarop ze overeenkomt in één episode.
+- **De groeperingssleutel** bepaalt welke waarschuwingen een episode delen: die met dezelfde monitor, dezelfde ernst, dezelfde titel, die bij services die elkaar aanroepen op de servicekaart, of welke combinatie de regel ook gebruikt. Een regel die op niets groepeert, plaatst elke waarschuwing waarop ze overeenkomt in één episode.
 - **Het tijdvenster** bepaalt hoe lang een episode waarschuwingen blijft opnemen. Staat het aan, dan voegt een waarschuwing zich alleen bij als ze binnen het venster na de laatste waarschuwing van de episode binnenkomt. Staat het uit, dan blijven overeenkomende waarschuwingen zich aansluiten tot de episode is opgelost.
 - **Wachten op meer waarschuwingen** bepaalt wanneer een nieuwe episode wordt geopend. Staat het uit, waarmee een nieuwe regel begint, dan opent de eerste overeenkomende waarschuwing er een. Staat het aan, dan wacht een waarschuwing in haar eentje tot er zoveel overeenkomende waarschuwingen van haar groep lopen als je hebt ingesteld, en dan opent er één episode met ze allemaal. Zie [Een episode alleen voor meerdere waarschuwingen openen](#een-episode-alleen-voor-meerdere-waarschuwingen-openen).
 
@@ -41,12 +41,13 @@ Ga naar **Waarschuwingen → Regels → Groeperingsregels**. De sectie **Regels*
 
 ### Beginnen vanuit een sjabloon
 
-Een project zonder groeperingsregels ziet vier kant-en-klare regels in plaats van een lege lijst; zodra je regels hebt, opent **Maken op basis van sjabloon** op de kaart ze. **Regel toevoegen** slaat er een op met één klik, ingeschakeld, aan het einde van de lijst en geldend voor elke nieuwe waarschuwing. Bewerk haar daarna zoals elke andere regel.
+Een project zonder groeperingsregels ziet vijf kant-en-klare regels in plaats van een lege lijst; zodra je regels hebt, opent **Maken op basis van sjabloon** op de kaart ze. **Regel toevoegen** slaat er een op met één klik, ingeschakeld, aan het einde van de lijst en geldend voor elke nieuwe waarschuwing. Bewerk haar daarna zoals elke andere regel.
 
 | Sjabloon                                             | Groepeert                                                                 | Tijdvenster |
 | ---------------------------------------------------- | ------------------------------------------------------------------------- | ----------- |
 | **Waarschuwingen van dezelfde monitor groeperen**    | Eén episode per monitor                                                   | 30 minuten  |
 | **Waarschuwingen groeperen die tegelijk gebeuren**   | Eén gedeelde episode, welke monitor ook                                   | 10 minuten  |
+| **Waarschuwingen van verbonden services groeperen** | Eén episode voor services die elkaar aanroepen op de servicekaart | 30 minuten  |
 | **Waarschuwingen groeperen op ernst**                | Eén episode per ernstniveau                                               | 30 minuten  |
 | **Herhalingen van dezelfde waarschuwing groeperen**  | Eén episode per waarschuwingstitel, zonder te letten op cijfers en hoofdletters | 1 uur  |
 
@@ -55,7 +56,7 @@ Een project zonder groeperingsregels ziet vier kant-en-klare regels in plaats va
 :::steps
 #### Kiezen hoe je groepeert
 
-Klik op **Aangepaste regel maken** onder de sjablonen, of op **Groeperingsregel voor waarschuwingen maken** op de kaart zodra je regels hebt. In de stap **Groepering** stelt **Waarschuwingen groeperen op** één vraag: **Monitor**, **Alles samen**, **Ernst**, **Titel** of **Aangepast**. De **Naam** volgt je antwoord tot je zelf een naam typt.
+Klik op **Aangepaste regel maken** onder de sjablonen, of op **Groeperingsregel voor waarschuwingen maken** op de kaart zodra je regels hebt. In de stap **Groepering** stelt **Waarschuwingen groeperen op** één vraag: **Monitor**, **Alles samen**, **Verbonden services**, **Ernst**, **Titel** of **Aangepast**. De **Naam** volgt je antwoord tot je zelf een naam typt.
 
 #### Het tijdvenster instellen
 
@@ -63,7 +64,7 @@ Klik op **Aangepaste regel maken** onder de sjablonen, of op **Groeperingsregel 
 
 #### Velden combineren, voor Aangepast
 
-**Aangepast** voegt een stap **Groeperen op** toe met vijf schakelaars: **Groeperen op monitor**, **Groeperen op ernst van waarschuwing**, **Groeperen op titel van waarschuwing**, **Groeperen op waarschuwingslabels** en **Groeperen op monitorlabels**. Labels groeperen op hun exacte set.
+**Aangepast** voegt een stap **Groeperen op** toe met zes schakelaars: **Groeperen op monitor**, **Groeperen op ernst van waarschuwing**, **Groeperen op titel van waarschuwing**, **Groeperen op waarschuwingslabels**, **Groeperen op monitorlabels** en **Groeperen op verbonden services**. Labels groeperen op hun exacte set.
 
 #### Afbakenen
 
@@ -90,6 +91,17 @@ Regels worden van boven naar beneden in de lijst gecontroleerd, en de eerste ove
 - **Het telt per groep.** Met **Alles samen** tellen alle overeenkomende waarschuwingen, dus opent er alleen een episode bij een storing die meerdere monitors tegelijk laat afgaan. Met **Monitor** opent de episode van een monitor zodra die monitor meerdere lopende waarschuwingen heeft.
 
 De kolom **Groepering** in de lijst zegt "Opent een episode zodra 3 overeenkomende waarschuwingen lopen". Via de API en Terraform heet het `enableMinimumAlertCount` en `minimumAlertCount`.
+
+### Waarschuwingen van verbonden services groeperen
+
+Als een service uitvalt, beginnen de services die hem aanroepen ook te falen, en elk geeft een waarschuwing op zijn eigen monitor. **Verbonden services** zet die waarschuwingen in één episode, met de [servicekaart](/docs/telemetry/topology) die OneUptime uit je traces tekent.
+
+- De services van een waarschuwing zijn de services die eraan gekoppeld zijn onder **Getroffen resources**, en de services die aan haar monitor gekoppeld zijn.
+- Een waarschuwing komt in een open episode van de regel als een van haar services een service van een waarschuwing in die episode is, die aanroept of erdoor wordt aangeroepen, zodat een storing die zich verspreidt in één episode blijft.
+- Verbonden betekent één aanroep verwijderd: twee services die alleen dezelfde database of externe API aanroepen, zijn niet verbonden, anders zou een afhankelijkheid die de helft van je services aanroept elke waarschuwing in één episode zetten.
+- Een waarschuwing zonder service wordt per monitor gegroepeerd, zoals **Monitor** groepeert.
+
+Een aanroep die 30 dagen niet is gezien, verdwijnt van de servicekaart, en daarmee de verbinding. De kolom **Groepering** in de lijst zegt "Waarschuwingen van verbonden services delen één episode". Via de API en Terraform heet het `groupByConnectedServices`.
 
 ## Titels van episodes
 
