@@ -71,6 +71,7 @@ import CreatedNotificationHold, {
   OwnersAddedBy,
 } from "../Notification/CreatedNotificationHold";
 import CreateBy from "../../Types/Database/CreateBy";
+import MonitorOpenRecords from "./MonitorOpenRecords";
 
 export default class MonitorAlert {
   @CaptureSpan()
@@ -1140,6 +1141,16 @@ export default class MonitorAlert {
                 return AlertService.create(createBy);
               },
             );
+
+            /*
+             * An open alert this monitor's criteria raised: what was known
+             * of its open alerts no longer counts, so the next result reads
+             * them - and resolves this one when it recovers
+             * (MonitorOpenRecords). AlertService's own update hook says the same
+             * once the alert's state is set; this says it before anything
+             * else can go wrong.
+             */
+            await MonitorOpenRecords.forgetMonitors([input.monitor.id]);
 
             await OpenStackScopedRules.finishAlert({
               projectId: input.monitor.projectId!,

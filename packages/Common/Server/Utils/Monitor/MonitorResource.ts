@@ -104,6 +104,11 @@ import MonitorProbeLastResults, {
   MonitorProbeOfResult,
   MonitorProbesOfResult,
 } from "./MonitorProbeLastResults";
+import MonitorOpenRecords, {
+  MonitorOpenRecordsReading,
+  MonitorRecordKind,
+  NOTHING_KNOWN,
+} from "./MonitorOpenRecords";
 import { toStorableJson } from "../Database/PostgresStorableValue";
 import ProbeReportIdentity from "../Probe/ProbeReportIdentity";
 
@@ -1543,45 +1548,93 @@ export default class MonitorResourceUtil {
          * each criteria absence-resolve the records the others just
          * justified. The creators are handed the survivors so they never
          * dedupe a new alert against one this pass has already closed.
+         *
+         * A kind of record no criteria met opens is read only to
+         * auto-resolve it, and is not read at all when the monitor is known
+         * to have none open that a criteria raised (MonitorOpenRecords): a
+         * healthy check, almost every result, reads neither.
          */
+        const opensIncidents: boolean = criteriaFanOut.some(
+          (matched: MatchedCriteriaResult): boolean => {
+            return (
+              criteriaInstanceMap[matched.criteriaId]?.data?.createIncidents ===
+              true
+            );
+          },
+        );
+
+        const opensAlerts: boolean = criteriaFanOut.some(
+          (matched: MatchedCriteriaResult): boolean => {
+            return (
+              criteriaInstanceAlertMap[matched.criteriaId]?.data
+                ?.createAlerts === true
+            );
+          },
+        );
+
+        const openRecordsReading: MonitorOpenRecordsReading =
+          await MonitorResourceUtil.readWhatIsKnownOfOpenRecords({
+            monitor: monitor,
+            opensIncidents: opensIncidents,
+            opensAlerts: opensAlerts,
+          });
+
         const openIncidents: Array<Incident> =
-          await MonitorIncident.checkOpenIncidentsAndCloseIfResolved({
-            monitorId: monitor.id!,
-            projectId: monitor.projectId!,
-            autoResolveCriteriaInstanceIdIncidentIdsDictionary,
-            rootCause: response.rootCause,
-            criteriaInstance: matchedCriteriaInstance,
-            dataToProcess: dataToProcess,
-            evaluationSummary: evaluationSummary,
-            breachingSeriesFingerprints,
-            breachingSeriesFingerprintsByCriteriaId: response.matchedCriteria
-              ? breachingSeriesFingerprintsByCriteriaId
-              : undefined,
-            disableSeriesAbsenceResolution,
-            criteriaInstancesById: criteriaInstanceMap,
-            keepResponseContent:
-              MonitorRecordEvidence.keepsResponseContent(monitor),
-            monitorStep: monitorStep,
+          await MonitorResourceUtil.readOpenRecordsUnlessNoneOpen({
+            monitor: monitor,
+            kind: MonitorRecordKind.Incident,
+            reading: openRecordsReading,
+            opensRecords: opensIncidents,
+            read: (): Promise<Array<Incident>> => {
+              return MonitorIncident.checkOpenIncidentsAndCloseIfResolved({
+                monitorId: monitor.id!,
+                projectId: monitor.projectId!,
+                autoResolveCriteriaInstanceIdIncidentIdsDictionary,
+                rootCause: response.rootCause!,
+                criteriaInstance: matchedCriteriaInstance,
+                dataToProcess: dataToProcess,
+                evaluationSummary: evaluationSummary,
+                breachingSeriesFingerprints,
+                breachingSeriesFingerprintsByCriteriaId:
+                  response.matchedCriteria
+                    ? breachingSeriesFingerprintsByCriteriaId
+                    : undefined,
+                disableSeriesAbsenceResolution,
+                criteriaInstancesById: criteriaInstanceMap,
+                keepResponseContent:
+                  MonitorRecordEvidence.keepsResponseContent(monitor),
+                monitorStep: monitorStep,
+              });
+            },
           });
 
         const openAlerts: Array<Alert> =
-          await MonitorAlert.checkOpenAlertsAndCloseIfResolved({
-            monitorId: monitor.id!,
-            projectId: monitor.projectId!,
-            autoResolveCriteriaInstanceIdAlertIdsDictionary,
-            rootCause: response.rootCause,
-            criteriaInstance: matchedCriteriaInstance,
-            dataToProcess: dataToProcess,
-            evaluationSummary: evaluationSummary,
-            breachingSeriesFingerprints,
-            breachingSeriesFingerprintsByCriteriaId: response.matchedCriteria
-              ? breachingSeriesFingerprintsByCriteriaId
-              : undefined,
-            disableSeriesAbsenceResolution,
-            criteriaInstancesById: criteriaInstanceAlertMap,
-            keepResponseContent:
-              MonitorRecordEvidence.keepsResponseContent(monitor),
-            monitorStep: monitorStep,
+          await MonitorResourceUtil.readOpenRecordsUnlessNoneOpen({
+            monitor: monitor,
+            kind: MonitorRecordKind.Alert,
+            reading: openRecordsReading,
+            opensRecords: opensAlerts,
+            read: (): Promise<Array<Alert>> => {
+              return MonitorAlert.checkOpenAlertsAndCloseIfResolved({
+                monitorId: monitor.id!,
+                projectId: monitor.projectId!,
+                autoResolveCriteriaInstanceIdAlertIdsDictionary,
+                rootCause: response.rootCause!,
+                criteriaInstance: matchedCriteriaInstance,
+                dataToProcess: dataToProcess,
+                evaluationSummary: evaluationSummary,
+                breachingSeriesFingerprints,
+                breachingSeriesFingerprintsByCriteriaId:
+                  response.matchedCriteria
+                    ? breachingSeriesFingerprintsByCriteriaId
+                    : undefined,
+                disableSeriesAbsenceResolution,
+                criteriaInstancesById: criteriaInstanceAlertMap,
+                keepResponseContent:
+                  MonitorRecordEvidence.keepsResponseContent(monitor),
+                monitorStep: monitorStep,
+              });
+            },
           });
 
         /*
@@ -1732,53 +1785,84 @@ export default class MonitorResourceUtil {
           `${dataToProcess.monitorId.toString()} - No criteria met. Change to default status.`,
         );
 
-        await MonitorIncident.checkOpenIncidentsAndCloseIfResolved({
-          monitorId: monitor.id!,
-          projectId: monitor.projectId!,
-          autoResolveCriteriaInstanceIdIncidentIdsDictionary,
-          rootCause: "No monitoring criteria met. Change to default status.",
-          criteriaInstance: null, // no criteria met!
-          dataToProcess: dataToProcess,
-          evaluationSummary: evaluationSummary,
-          keepResponseContent:
-            MonitorRecordEvidence.keepsResponseContent(monitor),
-          monitorStep: monitorStep,
-          /*
-           * Event-driven grouping: for incoming-request monitors, never
-           * absence-resolve per-key (seriesFingerprint) incidents on the
-           * no-criteria-met path — a heartbeat tick or a rejected webhook
-           * must not bulk-close grouped incidents. They resolve only via
-           * the explicit resolution block above. Non-grouped incoming
-           * incidents have no seriesFingerprint, so they still resolve
-           * normally; non-incoming-request types are unaffected (flag false).
-           *
-           * A Logs monitor whose groups are resolved by a log is the same
-           * case: with no log in the window no criteria is met, and that
-           * is silence, not recovery.
-           */
-          disableSeriesAbsenceResolution:
-            MonitorResourceUtil.isSeriesResolvedExplicitly({
-              monitor: monitor,
+        /*
+         * No criteria met opens anything: each kind is read only to
+         * auto-resolve it, and not read when none a criteria raised is open
+         * (MonitorOpenRecords).
+         */
+        const noCriteriaOpenRecords: MonitorOpenRecordsReading =
+          await MonitorResourceUtil.readWhatIsKnownOfOpenRecords({
+            monitor: monitor,
+            opensIncidents: false,
+            opensAlerts: false,
+          });
+
+        await MonitorResourceUtil.readOpenRecordsUnlessNoneOpen({
+          monitor: monitor,
+          kind: MonitorRecordKind.Incident,
+          reading: noCriteriaOpenRecords,
+          opensRecords: false,
+          read: (): Promise<Array<Incident>> => {
+            return MonitorIncident.checkOpenIncidentsAndCloseIfResolved({
+              monitorId: monitor.id!,
+              projectId: monitor.projectId!,
+              autoResolveCriteriaInstanceIdIncidentIdsDictionary,
+              rootCause:
+                "No monitoring criteria met. Change to default status.",
+              criteriaInstance: null, // no criteria met!
               dataToProcess: dataToProcess,
-            }),
+              evaluationSummary: evaluationSummary,
+              keepResponseContent:
+                MonitorRecordEvidence.keepsResponseContent(monitor),
+              monitorStep: monitorStep,
+              /*
+               * Event-driven grouping: for incoming-request monitors, never
+               * absence-resolve per-key (seriesFingerprint) incidents on the
+               * no-criteria-met path — a heartbeat tick or a rejected webhook
+               * must not bulk-close grouped incidents. They resolve only via
+               * the explicit resolution block above. Non-grouped incoming
+               * incidents have no seriesFingerprint, so they still resolve
+               * normally; non-incoming-request types are unaffected (flag
+               * false).
+               *
+               * A Logs monitor whose groups are resolved by a log is the same
+               * case: with no log in the window no criteria is met, and that
+               * is silence, not recovery.
+               */
+              disableSeriesAbsenceResolution:
+                MonitorResourceUtil.isSeriesResolvedExplicitly({
+                  monitor: monitor,
+                  dataToProcess: dataToProcess,
+                }),
+            });
+          },
         });
 
-        await MonitorAlert.checkOpenAlertsAndCloseIfResolved({
-          monitorId: monitor.id!,
-          projectId: monitor.projectId!,
-          autoResolveCriteriaInstanceIdAlertIdsDictionary,
-          rootCause: "No monitoring criteria met. Change to default status.",
-          criteriaInstance: null, // no criteria met!
-          dataToProcess: dataToProcess,
-          evaluationSummary: evaluationSummary,
-          keepResponseContent:
-            MonitorRecordEvidence.keepsResponseContent(monitor),
-          monitorStep: monitorStep,
-          disableSeriesAbsenceResolution:
-            MonitorResourceUtil.isSeriesResolvedExplicitly({
-              monitor: monitor,
+        await MonitorResourceUtil.readOpenRecordsUnlessNoneOpen({
+          monitor: monitor,
+          kind: MonitorRecordKind.Alert,
+          reading: noCriteriaOpenRecords,
+          opensRecords: false,
+          read: (): Promise<Array<Alert>> => {
+            return MonitorAlert.checkOpenAlertsAndCloseIfResolved({
+              monitorId: monitor.id!,
+              projectId: monitor.projectId!,
+              autoResolveCriteriaInstanceIdAlertIdsDictionary,
+              rootCause:
+                "No monitoring criteria met. Change to default status.",
+              criteriaInstance: null, // no criteria met!
               dataToProcess: dataToProcess,
-            }),
+              evaluationSummary: evaluationSummary,
+              keepResponseContent:
+                MonitorRecordEvidence.keepsResponseContent(monitor),
+              monitorStep: monitorStep,
+              disableSeriesAbsenceResolution:
+                MonitorResourceUtil.isSeriesResolvedExplicitly({
+                  monitor: monitor,
+                  dataToProcess: dataToProcess,
+                }),
+            });
+          },
         });
 
         // get last monitor status timeline.
@@ -1951,6 +2035,76 @@ export default class MonitorResourceUtil {
     } finally {
       await releaseMutex();
     }
+  }
+
+  /*
+   * What is known of the monitor's open incidents and alerts its criteria
+   * raised (MonitorOpenRecords), read under the monitor's lock before the
+   * result reads or leaves out its records. A result whose criteria opens
+   * both kinds reads both whatever is known, so it asks nothing of Redis.
+   */
+  public static async readWhatIsKnownOfOpenRecords(input: {
+    monitor: Monitor;
+    opensIncidents: boolean;
+    opensAlerts: boolean;
+  }): Promise<MonitorOpenRecordsReading> {
+    if (
+      (input.opensIncidents && input.opensAlerts) ||
+      !input.monitor.id ||
+      !input.monitor.projectId
+    ) {
+      return NOTHING_KNOWN;
+    }
+
+    return await MonitorOpenRecords.read({
+      monitorId: input.monitor.id,
+      projectId: input.monitor.projectId,
+    });
+  }
+
+  /*
+   * The monitor's open records of one kind, as the resolve pass left them -
+   * or none, unread, when nothing the criteria met opens that kind and the
+   * monitor is known to have none open that a criteria raised: the read
+   * would only look for something to auto-resolve, and only a record a
+   * criteria raised is ever auto-resolved (createdCriteriaId).
+   *
+   * A read of a kind nothing met opens that leaves no such record open is
+   * recorded, stamped as of the reading taken before it, so the next result
+   * can leave it out. A kind something met opens is read always - it opens
+   * none beside one already open - and recorded never: the result that
+   * opens one would make the record unusable at once.
+   */
+  public static async readOpenRecordsUnlessNoneOpen<
+    TRecord extends Incident | Alert,
+  >(input: {
+    monitor: Monitor;
+    kind: MonitorRecordKind;
+    reading: MonitorOpenRecordsReading;
+    opensRecords: boolean;
+    read: () => Promise<Array<TRecord>>;
+  }): Promise<Array<TRecord>> {
+    if (!input.opensRecords && input.reading.noneOpen[input.kind]) {
+      return [];
+    }
+
+    const records: Array<TRecord> = await input.read();
+
+    if (
+      !input.opensRecords &&
+      input.monitor.id &&
+      !records.some((record: TRecord): boolean => {
+        return Boolean(record.createdCriteriaId);
+      })
+    ) {
+      await MonitorOpenRecords.markNoneOpen({
+        monitorId: input.monitor.id,
+        kind: input.kind,
+        reading: input.reading,
+      });
+    }
+
+    return records;
   }
 
   /*

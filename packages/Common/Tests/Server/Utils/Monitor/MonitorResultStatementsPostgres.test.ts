@@ -86,6 +86,7 @@ import IncidentStateTimeline from "../../../../Models/DatabaseModels/IncidentSta
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import MonitorStatusTimeline from "../../../../Models/DatabaseModels/MonitorStatusTimeline";
 import GlobalCache from "../../../../Server/Infrastructure/GlobalCache";
+import Redis from "../../../../Server/Infrastructure/Redis";
 import PostgresAppInstance from "../../../../Server/Infrastructure/PostgresDatabase";
 import Semaphore from "../../../../Server/Infrastructure/Semaphore";
 import AlertService from "../../../../Server/Services/AlertService";
@@ -98,6 +99,7 @@ import CreateBy from "../../../../Server/Types/Database/CreateBy";
 import logger from "../../../../Server/Utils/Logger";
 import MonitorCriteriaEvaluator from "../../../../Server/Utils/Monitor/MonitorCriteriaEvaluator";
 import MonitorResourceUtil from "../../../../Server/Utils/Monitor/MonitorResource";
+import MonitorOpenRecords from "../../../../Server/Utils/Monitor/MonitorOpenRecords";
 import MonitorResourceContextUtil from "../../../../Server/Utils/Monitor/MonitorResourceContext";
 import { SeriesResolvedResourceIds } from "../../../../Server/Utils/Monitor/SeriesResourceLinker";
 import OneUptimeDate from "../../../../Types/Date";
@@ -150,12 +152,16 @@ const DASHES: RegExp = /-/g;
  * result while they are open 9, the one that resolves them 14.
  */
 const MOST_STATEMENTS: Readonly<Record<string, number>> = {
-  healthy: 7,
-  statusChange: 10,
-  opening: 12,
-  whileOpen: 8,
-  resolving: 13,
+  healthy: 3,
+  statusChange: 6,
+  opening: 10,
+  whileOpen: 6,
+  resolving: 9,
 };
+
+// A statement of incidents, alerts or their states.
+const READS_RECORDS_OR_STATES: RegExp =
+  /"(Incident|Alert|IncidentState|AlertState|IncidentMonitor)"/;
 
 // A statement that reads a probe's whole lastMonitoringLog out.
 const READS_WHOLE_LAST_MONITORING_LOG: RegExp = /"lastMonitoringLog"\s+AS\b/;
@@ -413,6 +419,8 @@ describePostgres("statements one monitor result costs (Postgres)", () => {
 
   // Redis, in memory: the calls the result path makes.
   function stubCache(): void {
+    jest.spyOn(Redis, "isConnected").mockReturnValue(true);
+
     jest
       .spyOn(GlobalCache, "getString")
       .mockImplementation(async (namespace: string, key: string) => {
@@ -938,6 +946,16 @@ describePostgres("statements one monitor result costs (Postgres)", () => {
       expect(statements.length).toBeLessThanOrEqual(
         MOST_STATEMENTS["healthy"]!,
       );
+
+      /*
+       * Nothing of the monitor's incidents or alerts, or of the project's
+       * states: none is open, and the states are kept per process.
+       */
+      expect(
+        statements.filter((statement: string) => {
+          return READS_RECORDS_OR_STATES.test(statement);
+        }),
+      ).toEqual([]);
     },
     TEST_TIMEOUT_MS,
   );
@@ -1089,6 +1107,102 @@ describePostgres("statements one monitor result costs (Postgres)", () => {
       expect(steady.statements.length).toBeLessThanOrEqual(
         MOST_STATEMENTS["healthy"]!,
       );
+    },
+    TEST_TIMEOUT_MS,
+  );
+
+  /*
+   * The case a healthy result that leaves out the read of its records must
+   * never miss: a record its criteria raised, resolved, then reopened by
+   * someone while the monitor stays healthy. Reopening writes the incident's
+   * and the alert's state through their services, whose update hooks forget
+   * their monitors (MonitorOpenRecords.forgetMonitorsOfIncidents /
+   * forgetMonitorsOfAlerts); that is run here as the hooks run it, against
+   * the cloned tables, and the next healthy result must read the records and
+   * resolve them again, as it always did.
+   */
+  test(
+    "a record reopened while the monitor stays healthy is read and resolved by its next result",
+    async () => {
+      const monitor: MonitorFixture = await seedMonitor({ probeCount: 1 });
+
+      await countStatements({
+        monitor,
+        verdict: Verdict.Online,
+        label: "reopen (warm-up)",
+      });
+      await countStatements({
+        monitor,
+        verdict: Verdict.Offline,
+        label: "reopen (opens)",
+      });
+      await countStatements({
+        monitor,
+        verdict: Verdict.Online,
+        label: "reopen (resolves)",
+      });
+      await countStatements({
+        monitor,
+        verdict: Verdict.Online,
+        label: "reopen (healthy)",
+      });
+
+      expect(await openRecordsOf(monitor)).toEqual({ incidents: 0, alerts: 0 });
+
+      // A healthy monitor that knows it has nothing open reads nothing.
+      const healthy: { statements: Array<string> } = await countStatements({
+        monitor,
+        verdict: Verdict.Online,
+        label: "reopen (steady)",
+      });
+
+      expect(
+        healthy.statements.filter((statement: string) => {
+          return (
+            statement.includes('"Incident"') || statement.includes('"Alert"')
+          );
+        }),
+      ).toEqual([]);
+
+      // Someone reopens both, and the services' update hooks run.
+      const incidentIds: Array<{ _id: string }> = await database.query(
+        `WITH "reopened" AS (
+           UPDATE "Incident" SET "currentIncidentStateId" = $1
+            WHERE "_id" IN (SELECT "incidentId" FROM "IncidentMonitor" WHERE "monitorId" = $2)
+            RETURNING "_id"
+         ) SELECT "_id" FROM "reopened"`,
+        [incidentAcknowledgedStateId.toString(), monitor.id.toString()],
+      );
+      const alertIds: Array<{ _id: string }> = await database.query(
+        `WITH "reopened" AS (
+           UPDATE "Alert" SET "currentAlertStateId" = $1 WHERE "monitorId" = $2 RETURNING "_id"
+         ) SELECT "_id" FROM "reopened"`,
+        [alertAcknowledgedStateId.toString(), monitor.id.toString()],
+      );
+
+      expect(incidentIds).toHaveLength(1);
+      expect(alertIds).toHaveLength(1);
+
+      await MonitorOpenRecords.forgetMonitorsOfIncidents(
+        incidentIds.map((row: { _id: string }) => {
+          return new ObjectID(row._id);
+        }),
+      );
+      await MonitorOpenRecords.forgetMonitorsOfAlerts(
+        alertIds.map((row: { _id: string }) => {
+          return new ObjectID(row._id);
+        }),
+      );
+
+      expect(await openRecordsOf(monitor)).toEqual({ incidents: 1, alerts: 1 });
+
+      await countStatements({
+        monitor,
+        verdict: Verdict.Online,
+        label: "reopen (the next healthy result)",
+      });
+
+      expect(await openRecordsOf(monitor)).toEqual({ incidents: 0, alerts: 0 });
     },
     TEST_TIMEOUT_MS,
   );
