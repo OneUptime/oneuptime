@@ -97,7 +97,6 @@ function facts(
     projectId: PROJECT_ID,
     recordLabel: "Incident INC-42",
     recordTitle: "Checkout is down",
-    recordNoun: "incident",
     notesUrl: "https://oneuptime.example/dashboard/p/incidents/i/public-notes",
     note: NOTE_TEXT,
     isEdit: false,

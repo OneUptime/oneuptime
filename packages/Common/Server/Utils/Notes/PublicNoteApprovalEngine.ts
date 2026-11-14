@@ -100,7 +100,7 @@ export enum PublicNoteKind {
 
 // The record a note is on, as messages name it.
 export interface PublicNoteApprovalRecordInfo {
-  // "Incident INC-42"
+  // "Incident INC-42": its kind and number, the only name messages give it.
   label: string;
   title: string;
   // The record in the Dashboard, and its public notes there.
@@ -120,8 +120,6 @@ export interface PublicNoteApprovalKind<TNote extends BaseModel> {
   service: DatabaseService<TNote>;
   // The note's column naming its record: incidentId, incidentEpisodeId...
   parentIdColumn: string;
-  // "incident", "episode", "maintenance event"
-  recordNoun: string;
 }
 
 /*
@@ -2430,7 +2428,6 @@ export default class PublicNoteApprovalEngine {
       projectId: note.projectId,
       recordLabel: record.label,
       recordTitle: record.title,
-      recordNoun: host.recordNoun,
       notesUrl: record.notesUrl,
       note: (isEdit ? note.pendingNote : note.note) || note.note || "",
       isEdit,
