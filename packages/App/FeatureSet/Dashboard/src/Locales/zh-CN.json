@@ -52160,5 +52160,7 @@
   "{{away}} is already covered by {{cover}} on every policy from {{from}} to {{until}}.": "{{cover}} 已在 {{from}} 至 {{until}} 于所有策略上为 {{away}} 代班。",
   "{{away}} is already covered by {{cover}} on this policy from {{from}} to {{until}}.": "{{cover}} 已在 {{from}} 至 {{until}} 于此策略上为 {{away}} 代班。",
   "User Override Changed": "用户覆盖已更改",
-  "Pick any time from now on. Once the override starts, its start can't be changed.": "请选择从现在起的任意时间。覆盖开始后，开始时间将无法更改。"
+  "Pick any time from now on. Once the override starts, its start can't be changed.": "请选择从现在起的任意时间。覆盖开始后，开始时间将无法更改。",
+  "Exclusion rule": "排除规则",
+  "Import rule": "导入规则"
 }

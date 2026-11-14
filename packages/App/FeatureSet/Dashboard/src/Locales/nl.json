@@ -52160,5 +52160,7 @@
   "{{away}} is already covered by {{cover}} on every policy from {{from}} to {{until}}.": "{{away}} wordt al vervangen door {{cover}} op elk beleid van {{from}} tot {{until}}.",
   "{{away}} is already covered by {{cover}} on this policy from {{from}} to {{until}}.": "{{away}} wordt al vervangen door {{cover}} op dit beleid van {{from}} tot {{until}}.",
   "User Override Changed": "Gebruikersoverschrijving gewijzigd",
-  "Pick any time from now on. Once the override starts, its start can't be changed.": "Kies een willekeurig tijdstip vanaf nu. Zodra de vervanging is begonnen, kan het begin niet meer worden gewijzigd."
+  "Pick any time from now on. Once the override starts, its start can't be changed.": "Kies een willekeurig tijdstip vanaf nu. Zodra de vervanging is begonnen, kan het begin niet meer worden gewijzigd.",
+  "Exclusion rule": "Uitsluitingsregel",
+  "Import rule": "Importregel"
 }

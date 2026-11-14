@@ -52160,5 +52160,7 @@
   "{{away}} is already covered by {{cover}} on every policy from {{from}} to {{until}}.": "{{cover}} dekker allerede for {{away}} på alle retningslinjer fra {{from}} til {{until}}.",
   "{{away}} is already covered by {{cover}} on this policy from {{from}} to {{until}}.": "{{cover}} dekker allerede for {{away}} på denne retningslinjen fra {{from}} til {{until}}.",
   "User Override Changed": "Brukeroverstyring endret",
-  "Pick any time from now on. Once the override starts, its start can't be changed.": "Velg et hvilket som helst tidspunkt fra nå av. Når overstyringen har startet, kan starten ikke endres."
+  "Pick any time from now on. Once the override starts, its start can't be changed.": "Velg et hvilket som helst tidspunkt fra nå av. Når overstyringen har startet, kan starten ikke endres.",
+  "Exclusion rule": "Ekskluderingsregel",
+  "Import rule": "Importregel"
 }

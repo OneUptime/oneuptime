@@ -52160,5 +52160,7 @@
   "{{away}} is already covered by {{cover}} on every policy from {{from}} to {{until}}.": "{{cover}} ya cubre a {{away}} en todas las políticas desde {{from}} hasta {{until}}.",
   "{{away}} is already covered by {{cover}} on this policy from {{from}} to {{until}}.": "{{cover}} ya cubre a {{away}} en esta política desde {{from}} hasta {{until}}.",
   "User Override Changed": "Anulación de usuario modificada",
-  "Pick any time from now on. Once the override starts, its start can't be changed.": "Elige cualquier hora a partir de ahora. Cuando la sustitución empiece, su inicio ya no se podrá cambiar."
+  "Pick any time from now on. Once the override starts, its start can't be changed.": "Elige cualquier hora a partir de ahora. Cuando la sustitución empiece, su inicio ya no se podrá cambiar.",
+  "Exclusion rule": "Regla de exclusión",
+  "Import rule": "Regla de importación"
 }

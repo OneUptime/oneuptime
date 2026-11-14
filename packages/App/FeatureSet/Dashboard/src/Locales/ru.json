@@ -52160,5 +52160,7 @@
   "{{away}} is already covered by {{cover}} on every policy from {{from}} to {{until}}.": "{{cover}} уже заменяет {{away}} во всех политиках с {{from}} до {{until}}.",
   "{{away}} is already covered by {{cover}} on this policy from {{from}} to {{until}}.": "{{cover}} уже заменяет {{away}} в этой политике с {{from}} до {{until}}.",
   "User Override Changed": "Пользовательское переопределение изменено",
-  "Pick any time from now on. Once the override starts, its start can't be changed.": "Выберите любое время не раньше текущего момента. Когда замена начнётся, время начала изменить будет нельзя."
+  "Pick any time from now on. Once the override starts, its start can't be changed.": "Выберите любое время не раньше текущего момента. Когда замена начнётся, время начала изменить будет нельзя.",
+  "Exclusion rule": "Правило исключения",
+  "Import rule": "Правило импорта"
 }

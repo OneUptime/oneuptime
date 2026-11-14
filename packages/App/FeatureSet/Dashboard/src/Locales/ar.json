@@ -52160,5 +52160,7 @@
   "{{away}} is already covered by {{cover}} on every policy from {{from}} to {{until}}.": "ينوب {{cover}} بالفعل عن {{away}} على كل السياسات من {{from}} إلى {{until}}.",
   "{{away}} is already covered by {{cover}} on this policy from {{from}} to {{until}}.": "ينوب {{cover}} بالفعل عن {{away}} على هذه السياسة من {{from}} إلى {{until}}.",
   "User Override Changed": "عُدِّل مستخدم بديل",
-  "Pick any time from now on. Once the override starts, its start can't be changed.": "اختر أي وقت من الآن فصاعدًا. بعد أن يبدأ التجاوز، لا يمكن تغيير وقت بدئه."
+  "Pick any time from now on. Once the override starts, its start can't be changed.": "اختر أي وقت من الآن فصاعدًا. بعد أن يبدأ التجاوز، لا يمكن تغيير وقت بدئه.",
+  "Exclusion rule": "قاعدة استبعاد",
+  "Import rule": "قاعدة استيراد"
 }

@@ -52160,5 +52160,7 @@
   "{{away}} is already covered by {{cover}} on every policy from {{from}} to {{until}}.": "{{away}}については、すでに{{from}}〜{{until}}にすべてのポリシーで{{cover}}が代理しています。",
   "{{away}} is already covered by {{cover}} on this policy from {{from}} to {{until}}.": "{{away}}については、すでに{{from}}〜{{until}}にこのポリシーで{{cover}}が代理しています。",
   "User Override Changed": "ユーザーオーバーライド変更済み",
-  "Pick any time from now on. Once the override starts, its start can't be changed.": "今以降の任意の時刻を選んでください。オーバーライドが開始すると、開始時刻は変更できなくなります。"
+  "Pick any time from now on. Once the override starts, its start can't be changed.": "今以降の任意の時刻を選んでください。オーバーライドが開始すると、開始時刻は変更できなくなります。",
+  "Exclusion rule": "除外ルール",
+  "Import rule": "インポートルール"
 }
