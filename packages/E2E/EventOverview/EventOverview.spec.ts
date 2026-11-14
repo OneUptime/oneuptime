@@ -17077,47 +17077,44 @@ test.describe("an incident call's transcript (?calls=)", () => {
     line: Locator,
     extensions: ReadonlyArray<string>,
   ): Promise<Array<DrawnExtension>> {
-    return line.evaluate(
-      (element: Element, written: ReadonlyArray<string>) => {
-        const found: Array<DrawnExtension> = [];
-        const walker: TreeWalker = document.createTreeWalker(
-          element,
-          NodeFilter.SHOW_TEXT,
-        );
+    return line.evaluate((element: Element, written: ReadonlyArray<string>) => {
+      const found: Array<DrawnExtension> = [];
+      const walker: TreeWalker = document.createTreeWalker(
+        element,
+        NodeFilter.SHOW_TEXT,
+      );
 
-        for (
-          let node: Node | null = walker.nextNode();
-          node;
-          node = walker.nextNode()
-        ) {
-          const text: string = node.textContent || "";
+      for (
+        let node: Node | null = walker.nextNode();
+        node;
+        node = walker.nextNode()
+      ) {
+        const text: string = node.textContent || "";
 
-          for (const extension of written) {
-            const at: number = text.indexOf(extension);
+        for (const extension of written) {
+          const at: number = text.indexOf(extension);
 
-            if (at < 0) {
-              continue;
-            }
-
-            const dot: Range = document.createRange();
-            dot.setStart(node, at);
-            dot.setEnd(node, at + 1);
-            const letters: Range = document.createRange();
-            letters.setStart(node, at + 1);
-            letters.setEnd(node, at + extension.length);
-
-            found.push({
-              extension,
-              dotRight: dot.getBoundingClientRect().right,
-              lettersLeft: letters.getBoundingClientRect().left,
-            });
+          if (at < 0) {
+            continue;
           }
-        }
 
-        return found;
-      },
-      extensions,
-    );
+          const dot: Range = document.createRange();
+          dot.setStart(node, at);
+          dot.setEnd(node, at + 1);
+          const letters: Range = document.createRange();
+          letters.setStart(node, at + 1);
+          letters.setEnd(node, at + extension.length);
+
+          found.push({
+            extension,
+            dotRight: dot.getBoundingClientRect().right,
+            lettersLeft: letters.getBoundingClientRect().left,
+          });
+        }
+      }
+
+      return found;
+    }, extensions);
   }
 
   function expectDotsFirst(drawn: Array<DrawnExtension>): void {
@@ -17129,7 +17126,10 @@ test.describe("an incident call's transcript (?calls=)", () => {
     }
   }
 
-  async function openAddTranscript(page: Page, query: string): Promise<Locator> {
+  async function openAddTranscript(
+    page: Page,
+    query: string,
+  ): Promise<Locator> {
     await open(page, INCIDENT_PATH, query);
     await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
     const add: Locator = callsCard(page).getByTestId("call-transcript-add");
@@ -17161,9 +17161,7 @@ test.describe("an incident call's transcript (?calls=)", () => {
       ".srt",
       ".txt",
     ]);
-    const inHint: Array<DrawnExtension> = await drawnExtensions(hint, [
-      ".vtt",
-    ]);
+    const inHint: Array<DrawnExtension> = await drawnExtensions(hint, [".vtt"]);
 
     expect(
       inDropZone.map((drawn: DrawnExtension): string => {

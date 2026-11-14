@@ -545,20 +545,76 @@ describe("a file custom field's hint", () => {
    * sentence that reads right for any count.
    */
   test.each([
-    ["en", 3, "Up to 3 files of 10 MB each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP."],
-    ["en", 1, "One file of up to 10 MB: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP."],
-    ["de", 3, "Bis zu 3 Dateien mit je 10 MB: PDF-, Office- und OpenDocument-Dateien, Bilder, Text, CSV, JSON, ZIP oder PCAP."],
-    ["de", 1, "Eine Datei mit bis zu 10 MB: PDF-, Office- und OpenDocument-Dateien, Bilder, Text, CSV, JSON, ZIP oder PCAP."],
-    ["ru", 3, "Максимум файлов: 3, каждый до 10 MB: файлы PDF, Office и OpenDocument, изображения, текст, CSV, JSON, ZIP или PCAP."],
-    ["ru", 5, "Максимум файлов: 5, каждый до 10 MB: файлы PDF, Office и OpenDocument, изображения, текст, CSV, JSON, ZIP или PCAP."],
-    ["ru", 21, "Максимум файлов: 21, каждый до 10 MB: файлы PDF, Office и OpenDocument, изображения, текст, CSV, JSON, ZIP или PCAP."],
-    ["ru", 1, "Один файл до 10 MB: файлы PDF, Office и OpenDocument, изображения, текст, CSV, JSON, ZIP или PCAP."],
-    ["ar", 2, "الحد الأقصى للملفات: 2، حتى 10 MB لكل ملف: ملفات PDF وOffice وOpenDocument والصور والنصوص وCSV وJSON وZIP أو PCAP."],
-    ["ar", 3, "الحد الأقصى للملفات: 3، حتى 10 MB لكل ملف: ملفات PDF وOffice وOpenDocument والصور والنصوص وCSV وJSON وZIP أو PCAP."],
-    ["ar", 11, "الحد الأقصى للملفات: 11، حتى 10 MB لكل ملف: ملفات PDF وOffice وOpenDocument والصور والنصوص وCSV وJSON وZIP أو PCAP."],
-    ["ar", 1, "ملف واحد حتى 10 MB: ملفات PDF وOffice وOpenDocument والصور والنصوص وCSV وJSON وZIP أو PCAP."],
-    ["fa", 3, "حداکثر ۳ فایل، هر کدام تا ۱۰ MB: فایل‌های PDF، Office و OpenDocument، تصویر، متن، CSV، JSON، ZIP یا PCAP."],
-    ["fa", 1, "یک فایل تا ۱۰ MB: فایل‌های PDF، Office و OpenDocument، تصویر، متن، CSV، JSON، ZIP یا PCAP."],
+    [
+      "en",
+      3,
+      "Up to 3 files of 10 MB each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.",
+    ],
+    [
+      "en",
+      1,
+      "One file of up to 10 MB: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.",
+    ],
+    [
+      "de",
+      3,
+      "Bis zu 3 Dateien mit je 10 MB: PDF-, Office- und OpenDocument-Dateien, Bilder, Text, CSV, JSON, ZIP oder PCAP.",
+    ],
+    [
+      "de",
+      1,
+      "Eine Datei mit bis zu 10 MB: PDF-, Office- und OpenDocument-Dateien, Bilder, Text, CSV, JSON, ZIP oder PCAP.",
+    ],
+    [
+      "ru",
+      3,
+      "Максимум файлов: 3, каждый до 10 MB: файлы PDF, Office и OpenDocument, изображения, текст, CSV, JSON, ZIP или PCAP.",
+    ],
+    [
+      "ru",
+      5,
+      "Максимум файлов: 5, каждый до 10 MB: файлы PDF, Office и OpenDocument, изображения, текст, CSV, JSON, ZIP или PCAP.",
+    ],
+    [
+      "ru",
+      21,
+      "Максимум файлов: 21, каждый до 10 MB: файлы PDF, Office и OpenDocument, изображения, текст, CSV, JSON, ZIP или PCAP.",
+    ],
+    [
+      "ru",
+      1,
+      "Один файл до 10 MB: файлы PDF, Office и OpenDocument, изображения, текст, CSV, JSON, ZIP или PCAP.",
+    ],
+    [
+      "ar",
+      2,
+      "الحد الأقصى للملفات: 2، حتى 10 MB لكل ملف: ملفات PDF وOffice وOpenDocument والصور والنصوص وCSV وJSON وZIP أو PCAP.",
+    ],
+    [
+      "ar",
+      3,
+      "الحد الأقصى للملفات: 3، حتى 10 MB لكل ملف: ملفات PDF وOffice وOpenDocument والصور والنصوص وCSV وJSON وZIP أو PCAP.",
+    ],
+    [
+      "ar",
+      11,
+      "الحد الأقصى للملفات: 11، حتى 10 MB لكل ملف: ملفات PDF وOffice وOpenDocument والصور والنصوص وCSV وJSON وZIP أو PCAP.",
+    ],
+    [
+      "ar",
+      1,
+      "ملف واحد حتى 10 MB: ملفات PDF وOffice وOpenDocument والصور والنصوص وCSV وJSON وZIP أو PCAP.",
+    ],
+    [
+      "fa",
+      3,
+      "حداکثر ۳ فایل، هر کدام تا ۱۰ MB: فایل‌های PDF، Office و OpenDocument، تصویر، متن، CSV، JSON، ZIP یا PCAP.",
+    ],
+    [
+      "fa",
+      1,
+      "یک فایل تا ۱۰ MB: فایل‌های PDF، Office و OpenDocument، تصویر، متن، CSV، JSON، ZIP یا PCAP.",
+    ],
   ] as Array<[string, number, string]>)(
     "%s: a picker of at most %p files says it",
     (language: string, maxFiles: number, words: string) => {
@@ -579,12 +635,32 @@ describe("a file custom field's hint", () => {
   test.each([
     ["en", 3, "This field holds up to 3 files. Remove one to add another."],
     ["en", 1, "This field holds one file. Remove it to add another."],
-    ["de", 1, "Dieses Feld fasst eine Datei. Entfernen Sie sie, um eine andere hinzuzufügen."],
-    ["ru", 21, "Максимум файлов в этом поле: 21. Удалите один, чтобы добавить другой."],
-    ["ru", 1, "В этом поле может быть только один файл. Удалите его, чтобы добавить другой."],
+    [
+      "de",
+      1,
+      "Dieses Feld fasst eine Datei. Entfernen Sie sie, um eine andere hinzuzufügen.",
+    ],
+    [
+      "ru",
+      21,
+      "Максимум файлов в этом поле: 21. Удалите один, чтобы добавить другой.",
+    ],
+    [
+      "ru",
+      1,
+      "В этом поле может быть только один файл. Удалите его, чтобы добавить другой.",
+    ],
     ["ar", 1, "يحمل هذا الحقل ملفًا واحدًا. أزله لإضافة آخر."],
-    ["fa", 3, "این فیلد حداکثر ۳ فایل می‌پذیرد. برای افزودن فایل دیگر، یکی را حذف کنید."],
-    ["fa", 1, "این فیلد یک فایل می‌پذیرد. برای افزودن فایل دیگر، آن را حذف کنید."],
+    [
+      "fa",
+      3,
+      "این فیلد حداکثر ۳ فایل می‌پذیرد. برای افزودن فایل دیگر، یکی را حذف کنید.",
+    ],
+    [
+      "fa",
+      1,
+      "این فیلد یک فایل می‌پذیرد. برای افزودن فایل دیگر، آن را حذف کنید.",
+    ],
   ] as Array<[string, number, string]>)(
     "%s: full at %p files, it says so",
     (language: string, maxFiles: number, words: string) => {

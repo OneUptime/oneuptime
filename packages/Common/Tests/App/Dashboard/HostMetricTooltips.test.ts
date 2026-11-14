@@ -21,7 +21,6 @@ import {
   MAX_DESCRIPTION_LENGTH,
 } from "./MetricDescriptionRules";
 import AggregationIntervalUtil from "../../../Types/BaseDatabase/AggregationIntervalUtil";
-import { formatHostBytes } from "../../../../App/FeatureSet/Dashboard/src/Pages/Host/Utils/HostFacts";
 import { getMountBarClassName } from "../../../../App/FeatureSet/Dashboard/src/Components/Host/HostFilesystemsTable";
 import {
   HOST_DISK_FULL_PERCENT,
@@ -32,6 +31,7 @@ import {
 import {
   HOST_CPU_BUSY_PERCENT,
   HOST_LOAD_QUEUING_PERCENT,
+  formatHostBytes,
   getHostUsageTone,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Host/Utils/HostFacts";
 

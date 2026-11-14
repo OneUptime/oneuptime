@@ -166,8 +166,14 @@ describe("a file question's input", () => {
   });
 
   test.each([
-    [1, "One file of up to 10 MB: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP."],
-    [3, "Up to 3 files of 10 MB each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP."],
+    [
+      1,
+      "One file of up to 10 MB: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.",
+    ],
+    [
+      3,
+      "Up to 3 files of 10 MB each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.",
+    ],
     [
       CUSTOM_FIELD_MAX_FILES,
       `Up to ${CUSTOM_FIELD_MAX_FILES} files of 10 MB each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.`,
@@ -329,10 +335,7 @@ describe("a file question's input", () => {
   ])(
     "%s: the count and the limit are set apart from the words around them",
     (language: string, count: string, size: string) => {
-      const hint: string = hintOf(
-        questionOf(3),
-        accountsTranslator(language),
-      )!;
+      const hint: string = hintOf(questionOf(3), accountsTranslator(language))!;
 
       expect(hint).toContain("\u2068" + count + "\u2069");
       expect(hint).toContain("\u2068" + size + "\u2069");

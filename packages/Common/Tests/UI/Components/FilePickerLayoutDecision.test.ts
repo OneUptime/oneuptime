@@ -243,8 +243,7 @@ describe("the prompt's words", () => {
           }).hint,
         ).toBe("Types: PNG. Max 10 MB each.");
         expect(
-          wordsOf({ isMultiFilePicker: true, maxFiles, hint: COUNT_HINT })
-            .hint,
+          wordsOf({ isMultiFilePicker: true, maxFiles, hint: COUNT_HINT }).hint,
         ).toBe("Max 10 MB each.");
       }
     });
@@ -269,8 +268,9 @@ describe("the prompt's words", () => {
     test("the custom fields' hint names the picker's count, never a number of its own", () => {
       expect(CUSTOM_FIELD_FILES_HINT.other).toContain("{{count}}");
       expect(CUSTOM_FIELD_FILES_HINT.one).not.toContain("{{count}}");
-      expect(`${CUSTOM_FIELD_FILES_HINT.one} ${CUSTOM_FIELD_FILES_HINT.other}`)
-        .not.toMatch(/[0-9]/);
+      expect(
+        `${CUSTOM_FIELD_FILES_HINT.one} ${CUSTOM_FIELD_FILES_HINT.other}`,
+      ).not.toMatch(/[0-9]/);
       // Its one form says exactly one: Russian's 21 and French's 0 read the other.
       expect(isOneFormOnlyForOne(CUSTOM_FIELD_FILES_HINT)).toBe(true);
     });

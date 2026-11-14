@@ -674,9 +674,18 @@ describe("what it says it takes", () => {
    * on the lazy picker's stand-in as on the picker it stands in for.
    */
   test.each([
-    [3, "Up to 3 files of 10 MB each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP."],
-    [10, "Up to 10 files of 10 MB each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP."],
-    [1, "One file of up to 10 MB: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP."],
+    [
+      3,
+      "Up to 3 files of 10 MB each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.",
+    ],
+    [
+      10,
+      "Up to 10 files of 10 MB each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.",
+    ],
+    [
+      1,
+      "One file of up to 10 MB: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.",
+    ],
   ])(
     "a picker of at most %p files says so in its hint",
     (maxFiles: number, hint: string) => {

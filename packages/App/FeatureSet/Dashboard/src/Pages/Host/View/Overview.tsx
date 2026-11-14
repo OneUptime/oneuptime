@@ -113,6 +113,7 @@ import {
 import {
   HOST_CPU_BUSY_PERCENT,
   HOST_LOAD_QUEUING_PERCENT,
+  formatHostBytes,
   getHostUptimeSeconds,
   isHostStarting,
 } from "../Utils/HostFacts";
@@ -147,7 +148,6 @@ import React, {
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator, composedValue } from "Common/UI/Utils/TranslateTemplate";
 import { formatReaderFigure } from "Common/Types/DateLanguage";
-import { formatHostBytes } from "../Utils/HostFacts";
 
 // Every alert OneUptime recommends for a host, as its Recommendations lists.
 const HOST_ALERT_TEMPLATE_IDS: Array<string> = getAllHostAlertTemplates().map(

@@ -22,7 +22,11 @@ import {
   withoutIsolates,
 } from "../../../UI/Utils/CodeReadsAsWritten";
 import { productNamePostProcessor } from "../../../UI/Utils/ProductNameTranslation";
-import { DrawnLine, drawLine, isDrawnAsWritten } from "../../Helpers/BidiLayout";
+import {
+  DrawnLine,
+  drawLine,
+  isDrawnAsWritten,
+} from "../../Helpers/BidiLayout";
 
 /*
  * THE ADD TRANSCRIPT DIALOG'S FILE EXTENSIONS, ON A PAGE READ FROM THE RIGHT
@@ -117,7 +121,9 @@ const drawDialog: (
 
 // The drop zone's line on what it takes, and the line on where a tool keeps its transcript.
 const dialogSentences: () => Array<string> = (): Array<string> => {
-  const zone: HTMLElement = screen.getByTestId("add-call-transcript-choose-file");
+  const zone: HTMLElement = screen.getByTestId(
+    "add-call-transcript-choose-file",
+  );
   const takes: Element | undefined = Array.from(
     zone.querySelectorAll("span"),
   ).pop();
@@ -194,9 +200,8 @@ describe.each(["fa", "ar"])(
       async (_name: string, provider: VideoCallProvider | undefined) => {
         await drawDialog(language, provider);
 
-        const drawn: Array<DrawnExtension> = dialogSentences().flatMap(
-          drawnExtensions,
-        );
+        const drawn: Array<DrawnExtension> =
+          dialogSentences().flatMap(drawnExtensions);
 
         for (const extension of drawn) {
           expect(extension).toEqual({
@@ -213,8 +218,8 @@ describe.each(["fa", "ar"])(
       async (_name: string, provider: VideoCallProvider | undefined) => {
         await drawDialog(language, provider);
 
-        const locale: Record<string, unknown> = RESOURCES[language]!
-          .translation;
+        const locale: Record<string, unknown> =
+          RESOURCES[language]!.translation;
         const size: string = formatFileSize(MAX_TRANSCRIPT_FILE_BYTES, {
           language: language,
         });
@@ -270,9 +275,8 @@ describe("the extensions the dialog names", () => {
   test("fa, as the locale file holds it: the extensions are not drawn as they are written", async () => {
     await drawDialog("fa", undefined, rawI18n);
 
-    const drawn: Array<DrawnExtension> = dialogSentences().flatMap(
-      drawnExtensions,
-    );
+    const drawn: Array<DrawnExtension> =
+      dialogSentences().flatMap(drawnExtensions);
 
     expect(drawn.length).toBeGreaterThan(0);
     expect(
@@ -296,8 +300,9 @@ describe("the extensions the dialog names", () => {
 
     // Read without the marks that set its code apart on a page read from the right.
     const example: string = withoutIsolates(
-      screen.getByTestId("add-call-transcript-text").getAttribute("placeholder") ||
-        "",
+      screen
+        .getByTestId("add-call-transcript-text")
+        .getAttribute("placeholder") || "",
     );
 
     expect(example.startsWith("[00:12:03] ")).toBe(true);
