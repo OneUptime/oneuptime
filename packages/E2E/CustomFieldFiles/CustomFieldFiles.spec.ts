@@ -1352,12 +1352,25 @@ test.describe("a public form's file questions", () => {
     expect(accountsText("en", FILES_HINT_ONE)).toBe(
       "One file of up to {{size}}: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.",
     );
+    // Every line of its prompt asks for one file, as its hint says one file.
+    await expect(formPicker(page, "evidence")).toContainText("Upload a file");
+    await expect(formPicker(page, "evidence")).toContainText(
+      "Click to choose a file or drag & drop.",
+    );
+    await expect(formPicker(page, "evidence")).not.toContainText(
+      "Upload files",
+    );
+    await screenshot(page, "form-one-1280");
 
     await formInput(page, "evidence").setInputFiles(csv("only.csv"));
 
     await expect(formPicker(page, "evidence")).toHaveText(
       "This field holds one file. Remove it to add another.",
     );
+    // Its one file sits under the field, with no "Chosen files" over one file.
+    const field: Locator = formPicker(page, "evidence").locator("xpath=..");
+    await expect(field.getByText("only.csv")).toBeVisible();
+    await expect(field.getByText("Chosen files")).toHaveCount(0);
     await screenshot(page, "form-one-full-1280");
   });
 

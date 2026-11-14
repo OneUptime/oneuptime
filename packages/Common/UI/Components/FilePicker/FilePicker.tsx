@@ -23,6 +23,7 @@ import {
   getFilePickerLayout,
   getFilePickerPromptWords,
   getMaxFileSizeInBytes,
+  isPickerOfSeveralForOneFile,
 } from "./FilePickerLayout";
 import { getHandDrawnButtonStateClassName } from "../Button/ButtonStates";
 import FileModel from "../../../Models/DatabaseModels/File";
@@ -894,9 +895,13 @@ const FilePicker: FunctionComponent<ComponentProps> = (
            * A picker of several heads its list, under the zone that adds to
            * it. A picker of one shows its file alone: the field's own label
            * is over it, and "Uploaded files" over one file said more than
-           * it held.
+           * it held - so does a picker of several that takes one file.
            */}
-          {props.isMultiFilePicker ? (
+          {props.isMultiFilePicker &&
+          !isPickerOfSeveralForOneFile({
+            isMultiFilePicker: props.isMultiFilePicker,
+            maxFiles: maxFiles,
+          }) ? (
             <p className="text-sm font-medium text-gray-700 text-left">
               {translator.translateText(
                 // Kept in the browser, they are sent with the form.

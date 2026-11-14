@@ -12,6 +12,7 @@ import {
   FilePickerPromptWords,
   getFilePickerLayout,
   getFilePickerPromptWords,
+  isPickerOfSeveralForOneFile,
 } from "./FilePickerLayout";
 import FieldError from "../Forms/Fields/FieldError";
 import IsolatedLine from "../IsolatedText/IsolatedLine";
@@ -173,7 +174,11 @@ export const FilePickerPlaceholder: FunctionComponent<
 
           {files.length > 0 && (
             <div className="space-y-2 w-full">
-              {props.isMultiFilePicker ? (
+              {props.isMultiFilePicker &&
+              !isPickerOfSeveralForOneFile({
+                isMultiFilePicker: props.isMultiFilePicker,
+                maxFiles: layout.maxFiles,
+              }) ? (
                 <div className={`h-5 w-24 ${BOX_CLASS_NAME}`} />
               ) : (
                 <></>

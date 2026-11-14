@@ -122,6 +122,23 @@ export const isFilePickerCountHint: (
 };
 
 /*
+ * A picker of several that holds one file at most - a form question that
+ * takes one file - speaks as a picker of one: it asks for "a file", as its
+ * hint says "One file of up to 10 MB", and shows the file it holds without
+ * a "Chosen files" heading over one file. Never "Upload files" over "One
+ * file of up to 10 MB".
+ */
+export const isPickerOfSeveralForOneFile: (data: {
+  isMultiFilePicker?: boolean | undefined;
+  maxFiles?: number | null | undefined;
+}) => boolean = (data: {
+  isMultiFilePicker?: boolean | undefined;
+  maxFiles?: number | null | undefined;
+}): boolean => {
+  return Boolean(data.isMultiFilePicker) && data.maxFiles === 1;
+};
+
+/*
  * What a full picker of several says: how many it holds, the noun in the
  * form the reader's language takes for that count.
  */
@@ -239,6 +256,9 @@ export const getFilePickerPromptWords: (
         );
   };
 
+  // A picker of several that takes one file asks for one (issue #7421).
+  const asksForOneFile: boolean = isPickerOfSeveralForOneFile(data);
+
   return {
     label:
       data.placeholder && data.isPlaceholderTranslated
@@ -248,7 +268,9 @@ export const getFilePickerPromptWords: (
               ? data.placeholder
               : data.hasFiles
                 ? "Add more files"
-                : "Upload files",
+                : asksForOneFile
+                  ? "Upload a file"
+                  : "Upload files",
           ),
     instruction: translator.translateText(
       data.isDragActive
@@ -258,7 +280,7 @@ export const getFilePickerPromptWords: (
         : data.hasFiles
           ? "Click to add more or drag & drop."
           : // A picker of one takes one file.
-            data.isMultiFilePicker
+            data.isMultiFilePicker && !asksForOneFile
             ? "Click to choose files or drag & drop."
             : "Click to choose a file or drag & drop.",
     ),

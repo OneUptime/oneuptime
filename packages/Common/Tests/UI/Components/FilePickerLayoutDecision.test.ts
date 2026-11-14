@@ -9,6 +9,7 @@ import {
   getFilePickerPromptWords,
   getMaxFileSizeInBytes,
   isFilePickerCountHint,
+  isPickerOfSeveralForOneFile,
 } from "../../../UI/Components/FilePicker/FilePickerLayout";
 import * as FilePicker from "../../../UI/Components/FilePicker/FilePicker";
 import { CUSTOM_FIELD_FILES_HINT } from "../../../UI/Components/CustomFields/CustomFieldFormFields";
@@ -19,6 +20,8 @@ import {
   Translator,
 } from "../../../UI/Utils/TranslateTemplate";
 import MimeType from "../../../Types/File/MimeType";
+import { dashboardTranslator } from "../../Helpers/DashboardLocales";
+import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -273,6 +276,107 @@ describe("the prompt's words", () => {
       ).not.toMatch(/[0-9]/);
       // Its one form says exactly one: Russian's 21 and French's 0 read the other.
       expect(isOneFormOnlyForOne(CUSTOM_FIELD_FILES_HINT)).toBe(true);
+    });
+  });
+
+  /*
+   * A picker of several that takes one file at most - a form question that
+   * takes one file - asks for one file in every line of its prompt: never
+   * "Upload files" and "Click to choose files" over "One file of up to
+   * 10 MB" (issue #7421).
+   */
+  describe("a picker of several that takes one file", () => {
+    test("is told apart from a picker of one and from one that takes more", () => {
+      expect(
+        isPickerOfSeveralForOneFile({ isMultiFilePicker: true, maxFiles: 1 }),
+      ).toBe(true);
+
+      for (const maxFiles of [2, 3, 10, null, undefined]) {
+        expect(
+          isPickerOfSeveralForOneFile({ isMultiFilePicker: true, maxFiles }),
+        ).toBe(false);
+      }
+
+      // A picker of one is a picker of one: its words are its own.
+      expect(
+        isPickerOfSeveralForOneFile({ isMultiFilePicker: false, maxFiles: 1 }),
+      ).toBe(false);
+      expect(isPickerOfSeveralForOneFile({ maxFiles: 1 })).toBe(false);
+    });
+
+    test("asks for a file, in the words its hint says one file in", () => {
+      expect(
+        wordsOf({
+          isMultiFilePicker: true,
+          maxFiles: 1,
+          hint: CUSTOM_FIELD_FILES_HINT,
+        }),
+      ).toEqual({
+        label: "Upload a file",
+        instruction: "Click to choose a file or drag & drop.",
+        hint: "One file of up to 10 MB: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.",
+      });
+    });
+
+    test("a picker of several that takes two or more still asks for files", () => {
+      for (const maxFiles of [2, 3, 10]) {
+        const words: FilePickerPromptWords = wordsOf({
+          isMultiFilePicker: true,
+          maxFiles,
+          hint: CUSTOM_FIELD_FILES_HINT,
+        });
+
+        expect(words.label).toBe("Upload files");
+        expect(words.instruction).toBe("Click to choose files or drag & drop.");
+      }
+    });
+
+    test("the words it is given still win, and a file dragged over it says what letting go does", () => {
+      expect(
+        wordsOf({
+          isMultiFilePicker: true,
+          maxFiles: 1,
+          placeholder: "Add the signed form",
+        }).label,
+      ).toBe("Add the signed form");
+      expect(
+        wordsOf({
+          isMultiFilePicker: true,
+          maxFiles: 1,
+          isDragActive: true,
+          keepFilesInBrowser: true,
+        }).instruction,
+      ).toBe("Release to add them.");
+    });
+
+    test("in German, Russian and Persian it asks for one file in the reader's words", () => {
+      for (const language of ["de", "ru", "fa"]) {
+        const translator: Translator = dashboardTranslator(language);
+        const words: FilePickerPromptWords = getFilePickerPromptWords(
+          translator,
+          {
+            isMultiFilePicker: true,
+            maxFiles: 1,
+            hint: CUSTOM_FIELD_FILES_HINT,
+            hasFiles: false,
+          },
+        );
+
+        expect(words.label).toBe(translator.translateText("Upload a file"));
+        expect(words.label).not.toBe("Upload a file");
+        expect(words.instruction).toBe(
+          translator.translateText("Click to choose a file or drag & drop."),
+        );
+        expect(withoutIsolateMarks(words.hint || "")).toBe(
+          withoutIsolateMarks(
+            translator.translatePlural(CUSTOM_FIELD_FILES_HINT, 1, {
+              size: formatFileSizeLimit(DEFAULT_MAX_FILE_SIZE_IN_BYTES, {
+                language,
+              }),
+            }),
+          ),
+        );
+      }
     });
   });
 
