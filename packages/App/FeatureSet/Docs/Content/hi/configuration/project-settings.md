@@ -16,7 +16,7 @@
 
 ```mermaid title="प्रोजेक्ट सेटिंग्स में क्या है"
 flowchart LR
-    settings["प्रोजेक्ट सेटिंग्स"] --> project["प्रोजेक्ट: विवरण,<br/>लेबल, इंपोर्ट"]
+    settings["प्रोजेक्ट सेटिंग्स"] --> project["प्रोजेक्ट: विवरण,<br/>लेबल, आयात"]
     settings --> connect["यह किससे जुड़ता है:<br/>चैट, टेलीमेट्री, AI"]
     settings --> access["कौन अंदर आता है:<br/>कुंजियाँ, डोमेन,<br/>साइन-इन"]
     settings --> records["पैसा और रिकॉर्ड:<br/>बिलिंग, ऑडिट"]
@@ -36,7 +36,7 @@ flowchart LR
 | **टेलीमेट्री और APM** | **इंजेशन कुंजियाँ**, **डेटा प्रतिधारण**, **उपयोग** | [इंजेशन कुंजियाँ](/docs/telemetry/ingestion-keys), [डेटा प्रतिधारण](/docs/telemetry/data-retention), [टेलीमेट्री उपयोग](/docs/telemetry/usage) |
 | **सूचनाएं** | **सूचना चैनल**, **सूचना लॉग**, **मोबाइल ऐप्स** | [सूचनाएं](#सूचनाएं) |
 | **एआई** | **AI सुविधाएं**, **LLM प्रदाता**, **बाहरी MCP सर्वर**, **AI क्रेडिट**, **AI परिणाम**, **AI लॉग**, **MCP सर्वर** | [LLM प्रदाता](/docs/ai/llm-provider), [बाहरी MCP सर्वर](/docs/ai/external-mcp-servers), [MCP सर्वर](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#लागत-नियंत्रण) |
-| **उन्नत** | **डोमेन**, **API कुंजियाँ**, **फ़ीचर फ़्लैग**, **किसी दूसरे टूल से इंपोर्ट करें** | [कस्टम डोमेन](/docs/status-pages/branding-and-domains#कस्टम-डोमेन), [API कुंजियाँ](/docs/permissions/index#api-कुंजियाँ), [फ़ीचर फ़्लैग](#फ़ीचर-फ़्लैग), [Opsgenie से आना](/docs/moving-to-oneuptime/opsgenie) और बाकी माइग्रेशन गाइड |
+| **उन्नत** | **डोमेन**, **API कुंजियाँ**, **फ़ीचर फ़्लैग**, **किसी दूसरे टूल से आयात करें** | [कस्टम डोमेन](/docs/status-pages/branding-and-domains#कस्टम-डोमेन), [API कुंजियाँ](/docs/permissions/index#api-कुंजियाँ), [फ़ीचर फ़्लैग](#फ़ीचर-फ़्लैग), [Opsgenie से आना](/docs/moving-to-oneuptime/opsgenie) और बाकी माइग्रेशन गाइड |
 | **सुरक्षा** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **बिलिंग और चालान** | **बिलिंग**, **चालान** | [बिलिंग और उपयोग](/docs/configuration/billing) |
 | **ऑडिट लॉग** | **ऑडिट लॉग**, **सेटिंग्स**, **एक्सपोर्ट** | [ऑडिट लॉग](/docs/configuration/audit-logs), [ऑडिट लॉग एक्सपोर्ट](/docs/configuration/audit-log-export) |

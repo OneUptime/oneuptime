@@ -52232,5 +52232,7 @@
   "Saved as \"{{value}}\".": "Gemmes som '{{value}}'.",
   "The Azure namespace: the first part of <namespace>.servicebus.windows.net. Leave empty only for the emulator or a custom domain.": "Azure-navnerummet: den første del af <namespace>.servicebus.windows.net. Lad kun feltet være tomt for emulatoren eller et brugerdefineret domæne.",
   "The queue, topic or subscription name your applications and broker use. A URL, ARN or resource path is reduced to its name.": "Navnet på den kø, det emne eller det abonnement, dine applikationer og din broker bruger. En URL, en ARN eller en ressourcesti forkortes til navnet.",
-  "This email was sent without a subject.": "Denne e-mail blev sendt uden emne."
+  "This email was sent without a subject.": "Denne e-mail blev sendt uden emne.",
+  "Exclusion rule": "Udelukkelsesregel",
+  "Import rule": "Importregel"
 }
