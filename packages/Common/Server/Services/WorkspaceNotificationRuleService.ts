@@ -8,7 +8,11 @@ import IncidentNotificationRule from "../../Types/Workspace/NotificationRules/No
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import Incident from "../../Models/DatabaseModels/Incident";
 import IncidentService from "./IncidentService";
-import { NotificationRuleConditionCheckOn } from "../../Types/Workspace/NotificationRules/NotificationRuleCondition";
+import NotificationRuleCondition, {
+  NotificationRuleConditionCheckOn,
+  NotificationRuleConditionUtil,
+  NotificationRuleConditionValues,
+} from "../../Types/Workspace/NotificationRules/NotificationRuleCondition";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Label from "../../Models/DatabaseModels/Label";
 import MonitorService from "./MonitorService";
@@ -127,6 +131,10 @@ import MattermostUtil, {
   MattermostUser,
 } from "../Utils/Workspace/Mattermost/Mattermost";
 import QueryHelper from "../Types/Database/QueryHelper";
+import WorkspaceRecordOwners, {
+  OwnedRecordKey,
+} from "../Utils/Workspace/WorkspaceRecordOwners";
+import NotificationRuleConditionIds from "../Utils/Workspace/NotificationRuleConditionIds";
 
 export interface MessageBlocksByWorkspaceType {
   workspaceType: WorkspaceType;
@@ -440,6 +448,22 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       eventType: createBy.data.eventType,
     });
 
+    /*
+     * The people, teams and policies its conditions name are the project's
+     * own (NotificationRuleConditionIds).
+     */
+    const projectId: ObjectID | undefined =
+      createBy.data.projectId || createBy.props.tenantId;
+
+    if (!createBy.props.isRoot && projectId) {
+      await NotificationRuleConditionIds.checkFilters({
+        projectId: projectId,
+        filters: NotificationRuleConditionIds.getRuleFilters(
+          createBy.data.notificationRule,
+        ),
+      });
+    }
+
     return { createBy, carryForward: undefined };
   }
 
@@ -463,6 +487,42 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
       if (eventType) {
         this.assertMaySetUpSecurityRules(updateBy.props, eventType);
+      }
+
+      /*
+       * Conditions written again: the people, teams and policies they name
+       * now are the project's own, but for those each rule named already -
+       * one since removed from the project is kept, and said so in the
+       * rule's view (NotificationRuleConditionIds).
+       */
+      const sentFilters: unknown = NotificationRuleConditionIds.getRuleFilters(
+        (updateBy.data as unknown as Record<string, unknown>)[
+          "notificationRule"
+        ],
+      );
+
+      if (NotificationRuleConditionIds.namesCheckedIds(sentFilters)) {
+        const rules: Array<WorkspaceNotificationRule> =
+          await this.findRowsAndHoldUpdateToThem(updateBy, {
+            projectId: true,
+            notificationRule: true,
+          });
+
+        for (const rule of rules) {
+          if (!rule.projectId) {
+            continue;
+          }
+
+          await NotificationRuleConditionIds.checkFilters({
+            projectId: rule.projectId,
+            filters: sentFilters,
+            keptIds: NotificationRuleConditionIds.getIdsNamed(
+              NotificationRuleConditionIds.getRuleFilters(
+                rule.notificationRule,
+              ),
+            ),
+          });
+        }
       }
     }
 
@@ -5415,14 +5475,64 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     return notificationRules;
   }
 
+  /*
+   * What the record a notification is for holds, by the field each
+   * condition checks (NotificationRuleConditionValues): its own fields,
+   * then the ones read from elsewhere -
+   *
+   * - an on-call policy itself, by its id: an on-call rule's On-Call Policy
+   *   condition names the policy, not its name, so a renamed policy is
+   *   still the one it names (#7554);
+   * - who owns the record (WorkspaceRecordOwners): its owner users' and
+   *   owner teams' ids, read only when a rule being matched checks them
+   *   (`checkOnsUsed`), as most rules do not.
+   */
   private async getValuesBasedOnNotificationFor(data: {
     notificationFor: NotificationFor;
-  }): Promise<{
-    [key in NotificationRuleConditionCheckOn]:
-      | string
-      | Array<string>
-      | undefined;
-  }> {
+    // The kind of record the rules being matched are for.
+    eventType: NotificationRuleEventType;
+    checkOnsUsed?: Set<NotificationRuleConditionCheckOn> | undefined;
+  }): Promise<NotificationRuleConditionValues> {
+    const values: NotificationRuleConditionValues =
+      NotificationRuleConditionUtil.getValues(
+        await this.getRecordValues({ notificationFor: data.notificationFor }),
+      );
+
+    if (
+      data.eventType === NotificationRuleEventType.OnCallDutyPolicy &&
+      data.notificationFor.onCallDutyPolicyId
+    ) {
+      values[NotificationRuleConditionCheckOn.OnCallDutyPolicies] = [
+        data.notificationFor.onCallDutyPolicyId.toString(),
+      ];
+    }
+
+    const ownedRecord: {
+      recordKey: OwnedRecordKey;
+      recordId: ObjectID;
+      checkOn: NotificationRuleConditionCheckOn;
+    } | null = WorkspaceRecordOwners.getOwnedRecord({
+      eventType: data.eventType,
+      notificationFor: data.notificationFor,
+    });
+
+    if (
+      ownedRecord &&
+      (!data.checkOnsUsed || data.checkOnsUsed.has(ownedRecord.checkOn))
+    ) {
+      values[ownedRecord.checkOn] = await WorkspaceRecordOwners.getOwnerIds({
+        recordKey: ownedRecord.recordKey,
+        recordId: ownedRecord.recordId,
+      });
+    }
+
+    return values;
+  }
+
+  // The record's own fields: every other field is left out (undefined).
+  private async getRecordValues(data: {
+    notificationFor: NotificationFor;
+  }): Promise<Partial<NotificationRuleConditionValues>> {
     logger.debug(
       "getValuesBasedOnNotificationFor called with data:",
       {} as LogAttributes,
@@ -6327,14 +6437,27 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       projectId: data.projectId?.toString(),
     } as LogAttributes);
 
-    const values: {
-      [key in NotificationRuleConditionCheckOn]:
-        | string
-        | Array<string>
-        | undefined;
-    } = await this.getValuesBasedOnNotificationFor({
-      notificationFor: data.notificationFor,
-    });
+    const values: NotificationRuleConditionValues =
+      await this.getValuesBasedOnNotificationFor({
+        notificationFor: data.notificationFor,
+        eventType: data.notificationRuleEventType,
+        // Only what the rules check is read: owners for an owners condition.
+        checkOnsUsed: NotificationRuleConditionUtil.getCheckOnsUsed(
+          notificationRules.flatMap(
+            (
+              notificationRule: WorkspaceNotificationRule,
+            ): Array<NotificationRuleCondition> => {
+              return (
+                (
+                  notificationRule.notificationRule as
+                    | IncidentNotificationRule
+                    | undefined
+                )?.filters || []
+              );
+            },
+          ),
+        ),
+      });
 
     logger.debug("Values based on notification for:", {
       projectId: data.projectId?.toString(),

@@ -9,6 +9,7 @@ import KeyboardKey, {
   KeyboardKeyUtil,
 } from "Common/UI/Components/KeyboardShortcut/KeyboardKey";
 import MarkdownEditor from "Common/UI/Components/Markdown.tsx/MarkdownEditor";
+import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import React, {
   FunctionComponent,
@@ -128,29 +129,73 @@ export const AUDIENCE_STYLES: Record<
 /*
  * Who will read what is being typed, stated where it is being typed. The two
  * kinds of note used to look identical until they were saved.
+ *
+ * The sentence is never cut: who can read a note is the point of the badge,
+ * and a private note's sentence names its event ("Only people who can see
+ * this maintenance event can read this"), which a phone, or a longer
+ * language, cannot fit on one line. It wraps instead, its second line
+ * under the first word, the icon beside the first line, and never leaves
+ * one word alone on its last line (text-pretty). The corners are half a
+ * line's height, so one line is the same pill it always was.
+ *
+ * isCompact: the lock and "Private" alone, beside the closed composer's
+ * prompt. The prompt is what a person reads there, and the whole sentence
+ * took most of that row: at 1280 px the prompt was cut to its first word,
+ * in English and in German alike (#7595). The sentence is the chip's
+ * tooltip and is read out with it, and the composer says it in full the
+ * moment it opens.
  */
 export const AudienceBadge: FunctionComponent<{
   visibility: NoteVisibility;
   copy: NotesCopy;
-}> = (props: { visibility: NoteVisibility; copy: NotesCopy }): ReactElement => {
+  isCompact?: boolean | undefined;
+}> = (props: {
+  visibility: NoteVisibility;
+  copy: NotesCopy;
+  isCompact?: boolean | undefined;
+}): ReactElement => {
   const { translateString } = useTranslateValue();
   const style: { icon: IconProp; className: string } =
     AUDIENCE_STYLES[props.visibility];
 
+  if (props.isCompact) {
+    return (
+      <Tooltip text={props.copy.audienceHint} isTriggerAlreadyDescribed={true}>
+        <span
+          data-testid="note-audience-chip"
+          className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${style.className}`}
+        >
+          <Icon icon={style.icon} className="h-3.5 w-3.5 shrink-0" />
+          <span>
+            {translateString(props.copy.audienceLabel) ||
+              props.copy.audienceLabel}
+          </span>
+          <span className="sr-only">
+            {translateString(props.copy.audienceHint) ||
+              props.copy.audienceHint}
+          </span>
+        </span>
+      </Tooltip>
+    );
+  }
+
   return (
     <span
       data-testid="note-audience"
-      className={`inline-flex min-w-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset ${style.className}`}
+      className={`inline-flex min-w-0 max-w-full items-start gap-1.5 rounded-xl px-2.5 py-1 text-xs font-medium ring-1 ring-inset ${style.className}`}
     >
-      <Icon icon={style.icon} className="h-3.5 w-3.5 shrink-0" />
-      <span className="font-semibold">
-        {translateString(props.copy.audienceLabel) || props.copy.audienceLabel}
-      </span>
-      <span aria-hidden="true" className="opacity-50">
-        <InlineSeparator markOnly />
-      </span>
-      <span className="truncate">
-        {translateString(props.copy.audienceHint) || props.copy.audienceHint}
+      <Icon icon={style.icon} className="mt-px h-3.5 w-3.5 shrink-0" />
+      <span className="min-w-0 break-words text-pretty">
+        <span className="font-semibold">
+          {translateString(props.copy.audienceLabel) ||
+            props.copy.audienceLabel}
+        </span>
+        <span aria-hidden="true" className="mx-1.5 opacity-50">
+          <InlineSeparator markOnly />
+        </span>
+        <span data-testid="note-audience-hint">
+          {translateString(props.copy.audienceHint) || props.copy.audienceHint}
+        </span>
       </span>
     </span>
   );
@@ -525,11 +570,20 @@ const NoteComposer: FunctionComponent<ComponentProps> = (
         </div>
       )}
 
+      {/*
+       * The tools and the buttons share one row when both fit and the buttons
+       * drop to their own row, at the end, when they do not. Squeezed side by
+       * side, the tools stacked in three rows and the submit button broke
+       * its own label ("Add / note") on a tablet and beside the side menu.
+       * On the narrowest phones a long label ("Update veröffentlichen") puts
+       * Cancel on a row of its own rather than run past the card's edge.
+       */}
       <div
+        data-testid="note-composer-footer"
         className={
           isDialog
             ? "mt-3"
-            : "mt-3 flex flex-col gap-3 rounded-b-xl border-t border-gray-100 bg-gray-50/70 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between"
+            : "mt-3 flex flex-wrap items-center gap-3 rounded-b-xl border-t border-gray-100 bg-gray-50/70 px-3 py-2.5"
         }
       >
         <div
@@ -589,7 +643,10 @@ const NoteComposer: FunctionComponent<ComponentProps> = (
          * every dialog has them.
          */}
         {!isDialog && (
-          <div className="flex items-center justify-end gap-2">
+          <div
+            className="ms-auto flex flex-wrap items-center justify-end gap-2"
+            data-testid="note-composer-buttons"
+          >
             {props.onCancel && (
               <button
                 type="button"

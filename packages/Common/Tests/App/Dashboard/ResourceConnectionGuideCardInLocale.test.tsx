@@ -366,3 +366,85 @@ describe.each(LANGUAGES)("the connection card in %s", (language: string) => {
     },
   );
 });
+
+/*
+ * THE COLLECTOR A HOST'S CARD NAMES, WHERE EACH SENTENCE PUTS IT (#7692).
+ *
+ * French, Italian and Russian put the article or the case on the name of
+ * the collector OneUptime installs on a host - "le collecteur OneUptime" -
+ * so it is worded for the middle of a sentence. The card's sentence once
+ * data stopped starts with it, and takes its capital there; the guide's
+ * sentence for a host nothing has arrived from names it in its middle, and
+ * read "Configurez Le collecteur OneUptime" while the name carried the
+ * capital.
+ */
+describe("the collector a host's card names, where each sentence puts it", () => {
+  const managedHost: () => ResourceConnectionGuide =
+    (): ResourceConnectionGuide => {
+      return getHostConnectionGuide("db-04", {
+        isManaged: true,
+        osType: "linux",
+        registeredAt: new Date(Date.now() - 30 * MINUTE),
+      });
+    };
+
+  // The card's sentence, under its title.
+  function drawnSentence(
+    guide: ResourceConnectionGuide,
+    lastSeenAt: Date | undefined,
+  ): string {
+    const { container } = render(
+      <ResourceConnectionGuideCard
+        status="disconnected"
+        lastSeenAt={lastSeenAt}
+        guide={guide}
+        documentationRoute={DOCS}
+      />,
+    );
+
+    const sentence: string =
+      container.querySelector(
+        '[data-testid="resource-connection-guide"] h2 + p',
+      )?.textContent || "";
+
+    cleanup();
+
+    return sentence;
+  }
+
+  test.each([
+    [
+      "fr",
+      ". Le collecteur OneUptime ne remonte plus de données — ",
+      "Configurez le collecteur OneUptime — ",
+    ],
+    [
+      "it",
+      ". Il collector di OneUptime non invia più dati: ",
+      "Configura il collector di OneUptime: ",
+    ],
+    [
+      "ru",
+      ". Коллектор OneUptime больше не передаёт данные — ",
+      "Настройте коллектор OneUptime — ",
+    ],
+  ])(
+    "%s starts the sentence with the collector's capital, and names it lower-case in the middle of one",
+    async (language: string, stopped: string, setUp: string) => {
+      await useLanguage(language);
+
+      expect(
+        drawnSentence(managedHost(), new Date(Date.now() - 3 * 60 * MINUTE)),
+      ).toContain(stopped);
+
+      /*
+       * Before its first data the card says the host is starting instead
+       * (the guide's startingCopy), so the guide's sentence for a host
+       * nothing has arrived from is drawn without it.
+       */
+      expect(
+        drawnSentence({ ...managedHost(), startingCopy: undefined }, undefined),
+      ).toContain(setUp);
+    },
+  );
+});

@@ -2225,7 +2225,7 @@ describe("Create a notification rule for security cases", () => {
       ),
     ).toBeVisible();
 
-    // The Filter Type of the condition it opened with: the case's fields only.
+    // The field of the condition it opened with: the case's fields only.
     await settle();
     await user.click((await within(dialog()).findAllByRole("combobox"))[0]!);
 
@@ -2281,7 +2281,10 @@ describe("Create a notification rule for security cases", () => {
     };
 
     await pick(0, "Security Case Labels");
-    await pick(1, "Contains Any");
+    // A field starts on its first way of comparing, said as a sentence says it.
+    expect(
+      within(dialog()).getByTestId("notification-rule-condition-0"),
+    ).toHaveTextContent("has any of");
     await user.click((await within(dialog()).findAllByRole("combobox"))[2]!);
 
     expect(await screen.findByText("Ransomware")).toBeVisible();

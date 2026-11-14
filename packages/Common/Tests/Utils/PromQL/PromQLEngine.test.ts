@@ -18,7 +18,10 @@ import {
   formatPromQLValue,
   matchesPromQLMatchers,
 } from "../../../Utils/PromQL/PromQLLabels";
-import { describe, expect, test } from "@jest/globals";
+import * as PatternCache from "../../../Utils/LinearRegExp/PatternCache";
+import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
+import { describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * The PromQL engine (issue #6796), against series held in memory.
@@ -351,6 +354,21 @@ describe("instant selectors", () => {
         ),
       ),
     ).toEqual(['http_requests_total{code="200", instance="a", job="api"}']);
+  });
+
+  test("a label named like an Object member is read from the series' own labels", async () => {
+    // up has no label named constructor or toString: each reads "".
+    const up: string = 'up{instance="host-1:9100", job="node"}';
+
+    expect(Object.keys(await vector('up{constructor=""}'))).toEqual([up]);
+    expect(Object.keys(await vector('up{constructor=~""}'))).toEqual([up]);
+    expect(Object.keys(await vector('up{constructor!~".+"}'))).toEqual([up]);
+    expect(Object.keys(await vector('up{toString!=""}'))).toEqual([]);
+    expect(
+      Object.keys(
+        await vector('label_replace(up, "x", "[$1]", "constructor", "(.*)")'),
+      ),
+    ).toEqual(['up{instance="host-1:9100", job="node", x="[]"}']);
   });
 
   test("an offset moves the selector back in time", async () => {
@@ -728,6 +746,90 @@ describe("other functions", () => {
     ]);
   });
 
+  test("label_replace reads RE2's named groups, whatever their names", async () => {
+    const replaced: string =
+      'up{host="host-1", instance="host-1:9100", job="node"}';
+
+    expect(
+      Object.keys(
+        await vector(
+          'label_replace(up, "host", "${host}", "instance", "(?P<host>[^:]+):.*")',
+        ),
+      ),
+    ).toEqual([replaced]);
+    expect(
+      Object.keys(
+        await vector(
+          'label_replace(up, "host", "$constructor", "instance", "(?P<constructor>[^:]+):.*")',
+        ),
+      ),
+    ).toEqual([replaced]);
+    expect(
+      Object.keys(
+        await vector(
+          'label_replace(up, "host", "$0", "instance", "[[:alpha:]]+-[[:digit:]]+:.*")',
+        ),
+      ),
+    ).toEqual(['up{host="host-1:9100", instance="host-1:9100", job="node"}']);
+    // A name no group has is empty, as in Go: the label is left out.
+    expect(
+      Object.keys(
+        await vector(
+          'label_replace(up, "host", "$toString", "instance", "(.*)")',
+        ),
+      ),
+    ).toEqual(['up{instance="host-1:9100", job="node"}']);
+  });
+
+  test("label_replace is anchored, as Prometheus anchors it: a pattern that matches part of the value leaves the series alone", async () => {
+    expect(
+      Object.keys(
+        await vector('label_replace(up, "host", "$1", "instance", "(host)")'),
+      ),
+    ).toEqual(['up{instance="host-1:9100", job="node"}']);
+  });
+
+  test("label_replace compiles its pattern once, for every series", async () => {
+    const compiles: SpyInstance<typeof PatternCache.getLinearRegExp> =
+      jest.spyOn(PatternCache, "getLinearRegExp");
+
+    try {
+      const values: Record<string, number> = await vector(
+        'label_replace(http_requests_total, "host", "$1", "instance", "(.+)")',
+      );
+
+      expect(Object.keys(values)).toHaveLength(4);
+      expect(compiles).toHaveBeenCalledTimes(1);
+    } finally {
+      compiles.mockRestore();
+    }
+  });
+
+  test.each([
+    [
+      'label_replace(up, "host", "$1", "instance", "(")',
+      '"(" in label_replace() is not a regular expression.',
+    ],
+    [
+      'label_replace(up, "host", "$1", "instance", "(a)\\\\1")',
+      'The pattern "(a)\\1" in label_replace() refers back to what an earlier group matched (\\1 or \\k<name>). Patterns are run in time that grows only in line with the text they read, which a back-reference cannot do. Write the pattern without it.',
+    ],
+    [
+      'label_replace(up, "host", "$1", "instance", "(.{0,50000})")',
+      'The pattern "(.{0,50000})" in label_replace() is too large to run. Shorten it, or repeat its parts fewer times.',
+    ],
+  ])(
+    "label_replace refuses %s with a sentence",
+    async (query: string, message: string) => {
+      const error: PromQLError = await queryError(() => {
+        return instant(query);
+      });
+
+      expect(error.message).toBe(message);
+      expect(error.errorType).toBe(PromQLErrorType.Execution);
+    },
+  );
+
   test("absent() names the labels the selector pins", async () => {
     expect(
       await vector('absent(nonexistent{job="api", instance=~"a.*"})'),
@@ -1016,6 +1118,72 @@ describe("limits and reads", () => {
       startTimeMs: 600000 - 600000 - 60000,
       endTimeMs: 600000,
     });
+  });
+});
+
+describe("a question the linear-time matcher stops at its work limit", () => {
+  // A thousand a's and b's, then a "Q".
+  const longValue: () => string = (): string => {
+    const random: SeededRandom = seededRandom(31);
+    let text: string = "";
+
+    for (let index: number = 0; index < 1000; index++) {
+      text += random(2) === 0 ? "a" : "b";
+    }
+
+    return `${text}Q`;
+  };
+
+  // A pattern that needs many steps for each character of a long value.
+  const PATTERN: string = ".*(?:[ab]*a[ab]{14}|[ab]{0,2000})Q";
+
+  const engineOver: (labels: PromQLLabels) => PromQLEngine = (
+    labels: PromQLLabels,
+  ): PromQLEngine => {
+    return new PromQLEngine(
+      new MemorySource([{ labels, samples: [[600, 1]] }]),
+    );
+  };
+
+  test("refuses a selector's query with a sentence, rather than answering without it", async () => {
+    const error: PromQLError = await queryError(() => {
+      return engineOver({ __name__: "x", path: longValue() }).instantQuery(
+        `x{path=~"${PATTERN}"}`,
+        600 * 1000,
+      );
+    });
+
+    expect(error.message).toBe(
+      `The pattern "${PATTERN}" for the label "path" needed more work to match one of the label's values than the value's length allows. Write a simpler pattern.`,
+    );
+    expect(error.errorType).toBe(PromQLErrorType.Execution);
+  });
+
+  test("refuses label_replace's with a sentence", async () => {
+    const error: PromQLError = await queryError(() => {
+      return engineOver({ __name__: "x", path: longValue() }).instantQuery(
+        `label_replace(x, "y", "$1", "path", "${PATTERN}")`,
+        600 * 1000,
+      );
+    });
+
+    expect(error.message).toBe(
+      `The pattern "${PATTERN}" in label_replace() needed more work to match a value of the label "path" than the value's length allows. Write a simpler pattern.`,
+    );
+    expect(error.errorType).toBe(PromQLErrorType.Execution);
+  });
+
+  test("the same pattern answers a short value", async () => {
+    const result: PromQLQueryResult = await engineOver({
+      __name__: "x",
+      path: "abQ",
+    }).instantQuery(`x{path=~"${PATTERN}"}`, 600 * 1000);
+
+    expect(
+      result.resultType === PromQLResultType.Vector
+        ? result.samples.length
+        : -1,
+    ).toBe(1);
   });
 });
 

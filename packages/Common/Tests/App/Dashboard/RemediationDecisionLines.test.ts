@@ -18,6 +18,7 @@ import {
 } from "../../../Types/AutoRemediation/AutoRemediationDecision";
 import { KubernetesAiRemediationMode } from "../../../Types/Kubernetes/KubernetesClusterAiAccess";
 import { getGlobalTranslator } from "../../../UI/Utils/TranslateTemplate";
+import { dashboardTranslator } from "../../Helpers/DashboardLocales";
 import { goTo, PROJECT_ID } from "./SideMenuHarness";
 
 /*
@@ -514,6 +515,32 @@ describe("getRemediationDecisionLines", () => {
       expect(line.text).toBe(
         'Database server "orders-db" could be fixed too, but OneUptime AI fixes one resource per incident.',
       );
+    });
+
+    // Danish shortens "per" to "pr.", whose full stop ends no sentence (#7692).
+    test("says it in Danish with the signal lower-case after the shortened per", () => {
+      for (const [signal, ending] of [
+        ["incident", "retter én ressource pr. hændelse."],
+        ["alert", "retter én ressource pr. advarsel."],
+      ] as Array<[RemediationDecisionSignal, string]>) {
+        const lines: Array<RemediationDecisionLine> =
+          getRemediationDecisionLines({
+            decision: evaluated([
+              {
+                lane: AutoRemediationDecisionLane.Resource,
+                reason: AutoRemediationDecisionReason.ResourceNotChosen,
+                resourceType: "DatabaseServer",
+                resourceId: RESOURCE_ID,
+                resourceName: "orders-db",
+              },
+            ]),
+            signal,
+            translator: dashboardTranslator("da"),
+          });
+
+        expect(lines).toHaveLength(1);
+        expect(lines[0]!.text).toContain(ending);
+      }
     });
 
     test("says why a resource's fixes cannot run yet", () => {

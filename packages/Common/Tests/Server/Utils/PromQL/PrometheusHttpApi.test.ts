@@ -302,6 +302,69 @@ describe("errors", () => {
   test("any other error is left to the server's own handling", () => {
     expect(toPrometheusErrorAnswer(new Error("boom"))).toBeUndefined();
   });
+
+  // What the PromQL tab and Grafana are answered for a query.
+  const answerFor: (
+    run: () => unknown,
+  ) => Promise<PrometheusErrorAnswer | undefined> = async (
+    run: () => unknown,
+  ): Promise<PrometheusErrorAnswer | undefined> => {
+    return toPrometheusErrorAnswer(await errorOf(run));
+  };
+
+  const BACK_REFERENCE: string =
+    "refers back to what an earlier group matched (\\1 or \\k<name>). Patterns are run in time that grows only in line with the text they read, which a back-reference cannot do. Write the pattern without it.";
+
+  test("a matcher's pattern the linear-time matcher cannot run is a bad query, told in a sentence", async () => {
+    const engine: PromQLEngine = new PromQLEngine(SOURCE);
+    const expected: PrometheusErrorAnswer = {
+      statusCode: 400,
+      body: {
+        status: "error",
+        errorType: "bad_data",
+        error: `The pattern "(a)\\1" for the label "job" ${BACK_REFERENCE}`,
+      },
+    };
+
+    expect(
+      await answerFor(() => {
+        return runPrometheusInstantQuery({
+          engine,
+          params: { query: 'up{job=~"(a)\\\\1"}', time: "180" },
+          nowMs: 0,
+        });
+      }),
+    ).toEqual(expected);
+    expect(
+      await answerFor(() => {
+        return readMatchSelectors({ "match[]": 'up{job=~"(a)\\\\1"}' });
+      }),
+    ).toEqual(expected);
+  });
+
+  test("label_replace's pattern the linear-time matcher cannot run is a query that cannot run, told in a sentence", async () => {
+    const engine: PromQLEngine = new PromQLEngine(SOURCE);
+
+    expect(
+      await answerFor(() => {
+        return runPrometheusInstantQuery({
+          engine,
+          params: {
+            query: 'label_replace(up, "x", "$1", "job", "(a)\\\\1")',
+            time: "180",
+          },
+          nowMs: 0,
+        });
+      }),
+    ).toEqual({
+      statusCode: 422,
+      body: {
+        status: "error",
+        errorType: "execution",
+        error: `The pattern "(a)\\1" in label_replace() ${BACK_REFERENCE}`,
+      },
+    });
+  });
 });
 
 describe("running queries", () => {

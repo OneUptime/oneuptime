@@ -248,6 +248,9 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
   const [numberPrefixes, setNumberPrefixes] = React.useState<
     WorkspaceChannelNumberPrefixes | undefined
   >(undefined);
+  const [onCallDutyPolicies, setOnCallDutyPolicies] = React.useState<
+    Array<OnCallDutyPolicy>
+  >([]);
   const [onCallPolicyName, setOnCallPolicyName] = React.useState<
     string | undefined
   >(undefined);
@@ -328,6 +331,11 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
       setIsLoading(true);
       setError(undefined);
 
+      /*
+       * Each list of values a condition picks from is read with whether each
+       * value is archived: a picker leaves an archived one out for a new
+       * pick, and marks one a rule holds already (#7582).
+       */
       const monitors: ListResult<Monitor> = await ModelAPI.getList({
         modelType: Monitor,
         query: {
@@ -336,6 +344,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
         select: {
           name: true,
           _id: true,
+          isArchived: true,
         },
         skip: 0,
         limit: LIMIT_PER_PROJECT,
@@ -355,6 +364,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
           name: true,
           _id: true,
           color: true,
+          isArchived: true,
         },
         skip: 0,
         limit: LIMIT_PER_PROJECT,
@@ -375,6 +385,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
           _id: true,
           color: true,
           order: true,
+          isArchived: true,
         },
         skip: 0,
         limit: LIMIT_PER_PROJECT,
@@ -396,6 +407,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
             _id: true,
             color: true,
             order: true,
+            isArchived: true,
           },
           skip: 0,
           limit: LIMIT_PER_PROJECT,
@@ -418,6 +430,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
             _id: true,
             color: true,
             order: true,
+            isArchived: true,
           },
           skip: 0,
           limit: LIMIT_PER_PROJECT,
@@ -438,6 +451,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
           _id: true,
           color: true,
           order: true,
+          isArchived: true,
         },
         skip: 0,
         limit: LIMIT_PER_PROJECT,
@@ -459,6 +473,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
             _id: true,
             color: true,
             order: true,
+            isArchived: true,
           },
           skip: 0,
           limit: LIMIT_PER_PROJECT,
@@ -496,6 +511,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
               select: {
                 _id: true,
                 name: true,
+                isArchived: true,
               },
               skip: 0,
               limit: LIMIT_PER_PROJECT,
@@ -520,6 +536,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
           _id: true,
           color: true,
           priority: true,
+          isArchived: true,
         },
         skip: 0,
         limit: LIMIT_PER_PROJECT,
@@ -559,6 +576,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
             name: true,
             email: true,
             _id: true,
+            profilePictureId: true,
           },
         },
         skip: 0,
@@ -645,6 +663,13 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
       }
 
       if (props.eventType === NotificationRuleEventType.OnCallDutyPolicy) {
+        /*
+         * An on-call rule's policies, to pick the ones it is for by name
+         * (#7554) - archived ones too, so a rule that holds one shows it
+         * marked - and one of them names the channel in its preview. A
+         * member who may not read them still edits the rule's other
+         * conditions.
+         */
         try {
           const policies: ListResult<OnCallDutyPolicy> = await ModelAPI.getList(
             {
@@ -655,17 +680,26 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
               select: {
                 _id: true,
                 name: true,
+                isArchived: true,
               },
               skip: 0,
-              limit: 1,
+              limit: LIMIT_PER_PROJECT,
               sort: {
                 name: SortOrder.Ascending,
               },
             },
           );
 
-          setOnCallPolicyName(policies.data[0]?.name || undefined);
+          setOnCallDutyPolicies(policies.data);
+          setOnCallPolicyName(
+            (
+              policies.data.find((policy: OnCallDutyPolicy): boolean => {
+                return !policy.isArchived;
+              }) || policies.data[0]
+            )?.name || undefined,
+          );
         } catch {
+          setOnCallDutyPolicies([]);
           setOnCallPolicyName(undefined);
         }
       }
@@ -863,6 +897,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
         securityCasePriorities={securityCasePriorities}
         securityCaseStatuses={securityCaseStatuses}
         serviceLevelObjectives={serviceLevelObjectives}
+        onCallDutyPolicies={onCallDutyPolicies}
         monitorStatus={monitorStatus}
         workspaceType={props.workspaceType}
         teams={teams}
@@ -1379,6 +1414,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
             securityCasePriorities: securityCasePriorities,
             securityCaseStatuses: securityCaseStatuses,
             serviceLevelObjectives: serviceLevelObjectives,
+            onCallDutyPolicies: onCallDutyPolicies,
             monitorStatus: monitorStatus,
             teams: teams,
             users: users,

@@ -269,34 +269,75 @@ export const loadFormReferenceData: LoadFormReferenceDataFunction = async (
   };
 };
 
+/*
+ * A record a setting names: its name, or, for one deleted since, none. The
+ * page says "Deleted" in the reader's language in its place
+ * (FormsCopy.deletedRecord), and the next save leaves it out.
+ */
+export interface NamedRecord {
+  name: string;
+  isDeleted: boolean;
+}
+
 export type NameRecordsFunction = (data: {
   lists: FormReferenceLists;
   model: FormTargetSettingReferenceModel;
   ids: Array<string> | undefined;
-  deletedLabel: string;
-}) => Array<string>;
+}) => Array<NamedRecord>;
 
 /*
- * The names of the records a setting names, in its order. A record deleted
- * since is named as such: the next save leaves it out.
+ * The records a setting names, in its order. A record deleted since is
+ * marked, not named: a name is drawn as written, so a word put in its place
+ * here reached every page in English (#7857), and a record really called
+ * "Deleted" could not be told from one that is gone.
  */
 export const nameRecords: NameRecordsFunction = (data: {
   lists: FormReferenceLists;
   model: FormTargetSettingReferenceModel;
   ids: Array<string> | undefined;
-  deletedLabel: string;
-}): Array<string> => {
+}): Array<NamedRecord> => {
   const records: Array<FormRecordOption> = data.lists[data.model] || [];
 
-  return (data.ids || []).map((id: string): string => {
+  return (data.ids || []).map((id: string): NamedRecord => {
     const record: FormRecordOption | undefined = records.find(
       (candidate: FormRecordOption): boolean => {
         return candidate.id === id.toLowerCase();
       },
     );
 
-    return record ? record.name : data.deletedLabel;
+    return record
+      ? { name: record.name, isDeleted: false }
+      : { name: "", isDeleted: true };
   });
+};
+
+export type NameRecordFunction = (data: {
+  lists: FormReferenceLists;
+  model: FormTargetSettingReferenceModel;
+  id: string | undefined;
+}) => string | undefined;
+
+/*
+ * The name of the one record a setting names (the incident template, the
+ * severity), or undefined when it names none or one deleted since: the page
+ * then says what applies without it.
+ */
+export const nameRecord: NameRecordFunction = (data: {
+  lists: FormReferenceLists;
+  model: FormTargetSettingReferenceModel;
+  id: string | undefined;
+}): string | undefined => {
+  if (!data.id) {
+    return undefined;
+  }
+
+  const named: NamedRecord | undefined = nameRecords({
+    lists: data.lists,
+    model: data.model,
+    ids: [data.id],
+  })[0];
+
+  return named && !named.isDeleted ? named.name || undefined : undefined;
 };
 
 export type ToDropdownOptionsFunction = (

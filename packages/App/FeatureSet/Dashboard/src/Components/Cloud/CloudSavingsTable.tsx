@@ -15,10 +15,6 @@ import {
   CloudSavingKind,
   getCloudSavingActionText,
 } from "Common/Types/Cloud/CloudCost";
-import {
-  CloudProvider,
-  getCloudProviderLabel,
-} from "Common/Types/Cloud/CloudPlatform";
 import Color from "Common/Types/Color";
 import ObjectID from "Common/Types/ObjectID";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
@@ -32,6 +28,7 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import AppLink from "../AppLink/AppLink";
 import { formatCloudMoney } from "./CloudCostWords";
+import { getCloudProviderOptions } from "./CloudProviderOptions";
 import {
   SAVING_NOT_KNOWN_YET,
   getCloudRightSizingEvidenceLine,
@@ -81,11 +78,7 @@ const KIND_OPTIONS: Array<DropdownOption> = Object.values(CloudSavingKind).map(
   },
 );
 
-const PROVIDER_OPTIONS: Array<DropdownOption> = Object.values(
-  CloudProvider,
-).map((provider: CloudProvider): DropdownOption => {
-  return { label: getCloudProviderLabel(provider), value: provider };
-});
+const PROVIDER_OPTIONS: Array<DropdownOption> = getCloudProviderOptions();
 
 /*
  * "m5.xlarge → m5.large": what it would change, when the recommender says,

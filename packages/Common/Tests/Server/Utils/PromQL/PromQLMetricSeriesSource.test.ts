@@ -24,7 +24,9 @@ import {
   PromQLSeriesKind,
 } from "../../../../Utils/PromQL/PromQLMetricNames";
 import { parsePromQL } from "../../../../Utils/PromQL/PromQLParser";
-import { describe, expect, test } from "@jest/globals";
+import * as PatternCache from "../../../../Utils/LinearRegExp/PatternCache";
+import { describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * The ClickHouse reader behind PromQL (issue #6796): which rows a selector
@@ -98,6 +100,22 @@ describe("which stored metrics a selector reads", () => {
       "temperature_count",
       "temperature_sum",
     ]);
+  });
+
+  test("a name matcher's pattern is compiled once for every stored name", () => {
+    // Read first: the parser compiles the pattern to check it.
+    const matchers: Array<PromQLLabelMatcher> = matchersOf(
+      '{__name__=~"http_.*"}',
+    );
+    const compiles: SpyInstance<typeof PatternCache.getLinearRegExp> =
+      jest.spyOn(PatternCache, "getLinearRegExp");
+
+    try {
+      expect(resolvePromQLSelection(matchers, stored)).toHaveLength(8);
+      expect(compiles).toHaveBeenCalledTimes(1);
+    } finally {
+      compiles.mockRestore();
+    }
   });
 
   test("a name matcher that excludes keeps the rest", () => {

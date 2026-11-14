@@ -2,6 +2,8 @@ import WorkspaceNotificationRuleService, {
   NotificationFor,
 } from "../../../Server/Services/WorkspaceNotificationRuleService";
 import OnCallDutyPolicyService from "../../../Server/Services/OnCallDutyPolicyService";
+import OnCallDutyPolicyOwnerTeamService from "../../../Server/Services/OnCallDutyPolicyOwnerTeamService";
+import OnCallDutyPolicyOwnerUserService from "../../../Server/Services/OnCallDutyPolicyOwnerUserService";
 import Label from "../../../Models/DatabaseModels/Label";
 import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
 import WorkspaceNotificationRule from "../../../Models/DatabaseModels/WorkspaceNotificationRule";
@@ -40,6 +42,9 @@ const PROJECT_ID: ObjectID = ObjectID.generate();
 const POLICY_ID: ObjectID = ObjectID.generate();
 const PAYMENTS_LABEL_ID: ObjectID = ObjectID.generate();
 const SEARCH_LABEL_ID: ObjectID = ObjectID.generate();
+// The person and the team on the policy's list of owners.
+const OWNER_USER_ID: ObjectID = ObjectID.generate();
+const OWNER_TEAM_ID: ObjectID = ObjectID.generate();
 
 function label(id: ObjectID, name: string): Label {
   const model: Label = new Label();
@@ -117,6 +122,18 @@ describe("On-Call Duty Policy workspace notification rules (#3459)", () => {
           labels: [label(PAYMENTS_LABEL_ID, "Payments")],
         }) as never,
       ) as ReturnType<typeof jest.spyOn>;
+
+    // The policy's owners: one person and one team, as their tables hold them.
+    jest
+      .spyOn(OnCallDutyPolicyOwnerUserService, "findAllBy")
+      .mockResolvedValue([
+        { onCallDutyPolicyId: POLICY_ID, userId: OWNER_USER_ID },
+      ] as never);
+    jest
+      .spyOn(OnCallDutyPolicyOwnerTeamService, "findAllBy")
+      .mockResolvedValue([
+        { onCallDutyPolicyId: POLICY_ID, teamId: OWNER_TEAM_ID },
+      ] as never);
   });
 
   afterEach(() => {
@@ -279,6 +296,18 @@ describe("On-Call Duty Policy workspace notification rules (#3459)", () => {
         checkOn: NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels,
         conditionType: ConditionType.ContainsAll,
         value: [PAYMENTS_LABEL_ID.toString()],
+      },
+      // The policy itself, by its id (#7554).
+      [NotificationRuleConditionCheckOn.OnCallDutyPolicies]: {
+        checkOn: NotificationRuleConditionCheckOn.OnCallDutyPolicies,
+        conditionType: ConditionType.ContainsAny,
+        value: [POLICY_ID.toString()],
+      },
+      // Who owns it (#7583): the team on its list of owners.
+      [NotificationRuleConditionCheckOn.OnCallDutyPolicyOwners]: {
+        checkOn: NotificationRuleConditionCheckOn.OnCallDutyPolicyOwners,
+        conditionType: ConditionType.ContainsAny,
+        value: [OWNER_TEAM_ID.toString()],
       },
     };
 

@@ -24,6 +24,7 @@ import {
 import {
   formatUserFlowCount,
   formatUserFlowShare,
+  getUserFlowPathDirection,
   pluralizeSessions,
   truncateUserFlowLabel,
 } from "./UserFlowFormat";
@@ -105,8 +106,9 @@ interface Tooltip {
   title: string;
   /*
    * The way the title reads on every page when it is a line read one way
-   * everywhere: a band's two pages and the arrow between them. None for a
-   * page's name, which reads the way its letters do.
+   * everywhere: a band's two pages and the arrow between them, and a
+   * page's path (getUserFlowPathDirection). None for the fold's name, which
+   * reads the way its letters do.
    */
   titleDirection?: ReadingDirection | undefined;
   lines: Array<string>;
@@ -688,6 +690,9 @@ const UserFlowMap: FunctionComponent<ComponentProps> = (
                       x: at.x,
                       y: at.y,
                       title: labelOf(node),
+                      titleDirection: node.isOther
+                        ? undefined
+                        : getUserFlowPathDirection(node.page),
                       lines: describeNode(node),
                     });
                   }}
@@ -784,9 +789,9 @@ const UserFlowMap: FunctionComponent<ComponentProps> = (
         >
           {/*
            * A band's "/cart → /home" reads from the left on any page,
-           * whatever letters its pages are named in; a page's name, with
-           * no arrow, the way its letters do. Either starts where the
-           * page's lines do, as the lines under it.
+           * whatever letters its pages are named in, and so does a page's
+           * path, "/" first; the fold's name, the way its letters do.
+           * Either starts where the page's lines do, as the lines under it.
            */}
           <p
             className={`mb-1 break-all font-semibold ${

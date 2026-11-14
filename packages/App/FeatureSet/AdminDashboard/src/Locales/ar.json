@@ -535,7 +535,13 @@
         "pillNoAccessKey": "غير مفعّل. يُرجى إضافة مفتاح الوصول.",
         "pillNoRegion": "غير مفعّل. يُرجى إضافة المنطقة.",
         "pillNoDomain": "غير مفعّل. يُرجى إضافة النطاق.",
-        "pillNoServerToken": "غير مفعّل. يُرجى إضافة رمز API للخادم."
+        "pillNoServerToken": "غير مفعّل. يُرجى إضافة رمز API للخادم.",
+        "environmentCardDescription": "مضبوطة بمتغيرات البيئة: email في قيم مخطط Helm، أو إعدادات GLOBAL_EMAIL_ في config.env. لتغيير هذه الإعدادات، غيّرها هناك وأعد تشغيل OneUptime.",
+        "environmentProblemsTitle": "لا يرسل هذا الخادم أي بريد إلكتروني حتى يتم إصلاح متغيرات البيئة هذه:",
+        "environmentUnusedTitle": "بعض متغيرات بيئة البريد الإلكتروني غير مستخدمة:",
+        "environmentIgnoredTitle": "متغيرات البيئة هذه مضبوطة، لكن إعدادات البريد الإلكتروني المختارة لا تقرؤها، لذا فهي لا تغيّر شيئًا:",
+        "environmentValueSet": "مضبوط",
+        "environmentValueNotSet": "غير مضبوط"
       },
       "callSms": {
         "cardTitle": "إعداد Twilio",

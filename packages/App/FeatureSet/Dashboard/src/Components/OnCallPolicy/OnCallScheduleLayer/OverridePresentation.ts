@@ -5,6 +5,10 @@ import {
   OverrideEventMeta,
   UserOverrideRecord,
 } from "Common/Types/OnCallDutyPolicy/UserOverrideUtil";
+import UserOverrideOverlap, {
+  UserOverrideOverlapNote,
+  UserOverrideTimes,
+} from "Common/Types/OnCallDutyPolicy/UserOverrideOverlap";
 import {
   SentenceOptions,
   translatePlural,
@@ -269,6 +273,19 @@ export function buildPlainEventTooltip(data: {
  */
 export interface OverrideSummaryRow {
   key: string;
+  /*
+   * The override's id, for its Edit (issue #7631); "" for a record read
+   * without one.
+   */
+  overrideId: string;
+  // Its policy, or "" for a global override: who may edit it differs.
+  onCallDutyPolicyId: string;
+  /*
+   * Saved before overlaps were refused (issue #7630): the other override of
+   * the same person in its scope that it overlaps, and which of the two is
+   * used there. Absent for most rows.
+   */
+  overlapNote?: UserOverrideOverlapNote<UserOverrideTimes> | undefined;
   originalUserId: string;
   originalName: string;
   // "" for a skip: nobody is named, the next person in the rotation covers.
@@ -293,12 +310,21 @@ export interface OverrideSummaryRow {
  * still applies.
  */
 export function buildOverrideSummaryRows(data: {
-  records: Array<UserOverrideRecord>;
+  records: Array<UserOverrideRecord | UserOverrideTimes>;
   userInfoById: Dictionary<OverrideUserDisplayInfo>;
   policyNameById: Dictionary<string>;
   now: Date;
 }): Array<OverrideSummaryRow> {
   const rows: Array<OverrideSummaryRow> = [];
+
+  // Two of one person in one scope that overlap: saved before the rule.
+  const overlapNotes: Map<
+    string,
+    UserOverrideOverlapNote<UserOverrideTimes>
+  > = UserOverrideOverlap.getOverlapNotes(
+    data.records as Array<UserOverrideTimes>,
+    data.now,
+  );
 
   for (const record of data.records) {
     if (OneUptimeDate.isOnOrBefore(record.endsAt, data.now)) {
@@ -307,9 +333,15 @@ export function buildOverrideSummaryRows(data: {
 
     const policyId: string = record.onCallDutyPolicyId || "";
     const substituteUserId: string = record.routeAlertsToUserId || "";
+    const overrideId: string = (record as UserOverrideTimes).id || "";
 
     rows.push({
       key: `${record.overrideUserId}-${substituteUserId || "rotation"}-${record.startsAt.getTime()}-${record.endsAt.getTime()}-${policyId}`,
+      overrideId: overrideId,
+      onCallDutyPolicyId: policyId,
+      overlapNote: overrideId
+        ? overlapNotes.get(overrideId.toLowerCase())
+        : undefined,
       originalUserId: record.overrideUserId,
       originalName: getUserDisplayName(
         data.userInfoById[record.overrideUserId],

@@ -1,3 +1,6 @@
+import LinearRegExp from "../LinearRegExp/LinearRegExp";
+import { getLinearRegExp } from "../LinearRegExp/PatternCache";
+
 /*
  * PromQL's regular expressions, read in JavaScript.
  *
@@ -6,6 +9,12 @@
  * the same way; the few spellings it reads differently, and that people write
  * in label matchers, are translated here: the `(?i)` flag group at the start,
  * `(?P<name>...)` named groups, and POSIX classes such as `[[:digit:]]`.
+ *
+ * A matcher's pattern is written by a project's people, so it runs on the
+ * linear-time matcher (Utils/LinearRegExp), as every such pattern does: in
+ * time in line with the value it reads, as RE2 runs it. It is compiled once
+ * and kept (PatternCache), by the pattern, so a query that asks it about
+ * every series compiles it once.
  */
 
 const POSIX_CLASSES: Record<string, string> = {
@@ -31,18 +40,32 @@ const LEADING_FLAGS_REGEX: RegExp = /^\(\?([imsU]+)\)/;
 
 const NAMED_GROUP_REGEX: RegExp = /\(\?P</g;
 
+export interface PromQLRegexOptions {
+  /*
+   * Whether exec reports what the groups captured, as label_replace() reads
+   * them. Off, a match says only that the value matched.
+   */
+  captures?: boolean | undefined;
+}
+
 export interface CompiledPromQLRegex {
-  regex: RegExp;
+  regex: LinearRegExp;
   // The pattern as Prometheus anchors it, for engines that speak RE2.
   anchoredPattern: string;
 }
 
 /*
  * The regular expression a matcher's pattern means, anchored as Prometheus
- * anchors it. Throws a SyntaxError for a pattern neither engine can read.
+ * anchors it. Throws what getLinearRegExp throws: a SyntaxError for a pattern
+ * that is not a regular expression, and PatternProblemError for one the
+ * linear-time matcher cannot run (a back-reference, or one too large).
  */
-export const compilePromQLRegex: (pattern: string) => CompiledPromQLRegex = (
+export const compilePromQLRegex: (
   pattern: string,
+  options?: PromQLRegexOptions,
+) => CompiledPromQLRegex = (
+  pattern: string,
+  options?: PromQLRegexOptions,
 ): CompiledPromQLRegex => {
   let body: string = pattern;
   let flags: string = "";
@@ -77,7 +100,9 @@ export const compilePromQLRegex: (pattern: string) => CompiledPromQLRegex = (
   );
 
   return {
-    regex: new RegExp(`^(?:${body})$`, flags),
+    regex: getLinearRegExp(`^(?:${body})$`, flags, {
+      captures: options?.captures === true,
+    }),
     anchoredPattern: `^(?:${pattern})$`,
   };
 };

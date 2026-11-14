@@ -13,6 +13,7 @@ import {
   OpenStackReachAcrossProducts,
 } from "../../../Types/OpenStack/OpenStackLinks";
 import AiResourceType from "../../../Types/ResourceAiAgent/AiResourceType";
+import { translatableTerm } from "../../../Types/Translator";
 import { describeCloudChange } from "../../../Utils/AiRemediation/CloudChangeWords";
 import { describeLinkedInfrastructure } from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/ChatActivityFeed";
 import TrafficAddressCard from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkTraffic/TrafficAddressCard";
@@ -328,7 +329,7 @@ describe("the sentences keep the nouns lower-case", () => {
     ["fr", "sur ressource cloud web-alb et cluster Ceph ceph-prod"],
     ["it", "su risorsa cloud web-alb e cluster Ceph ceph-prod"],
     ["pt", "em recurso de nuvem web-alb e cluster Ceph ceph-prod"],
-    ["ru", "на облачный ресурс web-alb и кластер Ceph ceph-prod"],
+    ["ru", "по ресурсам: облачный ресурс web-alb и кластер Ceph ceph-prod"],
     ["da", "på cloud-ressource web-alb og Ceph-klynge ceph-prod"],
     ["nl", "op cloud-resource web-alb en Ceph-cluster ceph-prod"],
     ["no", "på skyressurs web-alb og Ceph-klynge ceph-prod"],
@@ -353,7 +354,7 @@ describe("the sentences keep the nouns lower-case", () => {
 
   // An App Platforms environment the investigation read about.
   test.each([
-    ["ru", "на облачная среда checkout"],
+    ["ru", "по ресурсам: облачная среда checkout"],
     ["da", "på cloud-miljø checkout"],
     ["nl", "op cloud-omgeving checkout"],
     ["no", "på skymiljø checkout"],
@@ -375,6 +376,117 @@ describe("the sentences keep the nouns lower-case", () => {
   });
 });
 
+/*
+ * A SENTENCE THAT STARTS WITH A WORD WORDED FOR THE MIDDLE OF ONE (#7692).
+ *
+ * A model's name goes into a sentence cased for its middle ("No monitors
+ * yet."), and a language may start the sentence with it: Danish, Norwegian
+ * and Swedish say "{{itemName}} kan ikke indlæses.", Dutch "{{itemsName}}
+ * zoeken…". There it takes its capital: "overvågning kan ikke indlæses"
+ * and "monitoren zoeken…" started lower-case.
+ */
+describe("a sentence that starts with a word worded for the middle of one", () => {
+  const CANNOT_LOAD: string =
+    "Cannot load {{itemName}}. It could be because you don't have enough permissions to read this {{itemName}}.";
+
+  test.each([
+    [
+      "da",
+      "Overvågning kan ikke indlæses. Det kan skyldes, at du ikke har tilladelse til at se dette element.",
+    ],
+    [
+      "no",
+      "Overvåking kan ikke lastes inn. Det kan skyldes at du ikke har tillatelse til å se dette elementet.",
+    ],
+    [
+      "sv",
+      "Övervakning kan inte läsas in. Det kan bero på att du saknar behörighet att visa det här objektet.",
+    ],
+    [
+      "nl",
+      "Monitor kan niet worden geladen. Mogelijk hebt u onvoldoende rechten om dit item te bekijken.",
+    ],
+  ])(
+    "%s starts a record it cannot load with its kind's capital",
+    (language: string, sentence: string) => {
+      expect(
+        dashboardTranslator(language).translateTemplate(CANNOT_LOAD, {
+          itemName: translatableTerm("Monitor", { inSentence: true }),
+        }),
+      ).toBe(sentence);
+    },
+  );
+
+  test("Dutch starts a table's search box with the kind it searches", () => {
+    expect(
+      dashboardTranslator("nl").translateTemplate(
+        "Search {{itemsName}}… (try @ for labels)",
+        { itemsName: translatableTerm("Monitors", { inSentence: true }) },
+      ),
+    ).toBe("Monitoren zoeken… (probeer @ voor labels)");
+  });
+});
+
+/*
+ * WHERE RUSSIAN PUTS THE RESOURCES AN INVESTIGATION READ ABOUT (#7692).
+ *
+ * The line names each resource by its kind and its name, as a label reads:
+ * "облачный ресурс web-alb". After "на" a Russian noun takes the accusative
+ * or the prepositional ("на облачном ресурсе"), which a label cannot, and
+ * "на облачный ресурс web-alb" read wrong. Every form of the line names them
+ * after "по ресурсам:", a list after a colon: no alerts, the newest of more,
+ * one alert and any other count.
+ */
+describe("the Russian line names the resources after a colon, never after a preposition", () => {
+  const NAMED: string =
+    "по ресурсам: облачный ресурс web-alb и кластер Ceph ceph-prod";
+
+  test.each([
+    [0, false, `Нет открытых или недавних оповещений ${NAMED}`],
+    [
+      10,
+      true,
+      `Прочитаны 10 самых новых открытых или недавних оповещений ${NAMED}`,
+    ],
+    [1, false, `Прочитано 1 открытое или недавнее оповещение ${NAMED}`],
+    [3, false, `Прочитаны открытые или недавние оповещения (3) ${NAMED}`],
+    [5, false, `Прочитаны открытые или недавние оповещения (5) ${NAMED}`],
+  ])(
+    "%s alerts (more than that: %s)",
+    (alertCount: number, hasMoreAlerts: boolean, line: string) => {
+      expect(
+        describeLinkedInfrastructure(
+          {
+            resources: [
+              { kind: "CloudResource", name: "web-alb" },
+              { kind: "CephCluster", name: "ceph-prod" },
+            ],
+            alertCount: alertCount,
+            openAlertCount: alertCount,
+            hasMoreAlerts: hasMoreAlerts,
+            lookbackMinutes: 30,
+          },
+          dashboardTranslator("ru"),
+        ),
+      ).toBe(line);
+    },
+  );
+
+  test("every wording of the line puts them after the colon", () => {
+    for (const key of [
+      "No open or recent alerts on {{resources}}",
+      "Read the {{count}} newest open or recent alerts on {{resources}}",
+      "Read {{count}} open or recent alerts on {{resources}}",
+      "Read {{count}} open or recent alerts on {{resources}}_one",
+    ]) {
+      expect({
+        key,
+        after: wordIn("ru", key).endsWith(": {{resources}}"),
+      }).toEqual({ key, after: true });
+    }
+  });
+});
+
 describe("the nouns the sentences share, worded for the middle of one", () => {
   /*
    * Each starts lower-case in every language that writes a common noun so
@@ -383,7 +495,11 @@ describe("the nouns the sentences share, worded for the middle of one", () => {
    * ru and sv, "OpenStack cloud" in fr, it and pt, "OpenStack agent" in es,
    * fr, it and pt, "SNMP traps" in es and both documentation links in es
    * and fr - each said in the middle of a sentence ("Consulta la
-   * {{documentation}}").
+   * {{documentation}}"). #7692 found "OneUptime collector" with a capital
+   * article in fr and it ("Le collecteur OneUptime") and a capital in ru:
+   * "Configurez Le collecteur OneUptime". A connection card's sentence
+   * that starts with it takes the capital there (the translator's
+   * sentence start).
    */
   const SENTENCE_NOUN_KEYS: ReadonlyArray<string> = [
     "Cloud resource",
@@ -393,10 +509,16 @@ describe("the nouns the sentences share, worded for the middle of one", () => {
     "SNMP traps",
     "GitHub Integration documentation",
     "Network Device Monitor documentation",
+    "OneUptime collector",
   ];
 
   // The names one may start with, written as their makers write them.
-  const NAMES: ReadonlyArray<string> = ["OpenStack", "SNMP", "GitHub"];
+  const NAMES: ReadonlyArray<string> = [
+    "OpenStack",
+    "SNMP",
+    "GitHub",
+    "OneUptime",
+  ];
 
   test.each(["da", "es", "fr", "it", "nl", "no", "pt", "ru", "sv"])(
     "%s starts each lower-case, or with a name",

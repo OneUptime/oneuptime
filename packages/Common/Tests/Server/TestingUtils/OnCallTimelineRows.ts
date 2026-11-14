@@ -18,6 +18,14 @@ import { FindOperator } from "typeorm";
  *     QueryHelper.inBetween names, not deleted, in createdAt order, as
  *     many as its limit: the stuck check's read (OnCallStuckNotifications).
  *     A condition it cannot read throws, so a changed read fails loudly.
+ *   - the statement that settles the notifications written before the
+ *     check's look-back straight to the table - stood in for only when
+ *     asked (standIn's `settleStatement`), through the service's
+ *     getRepository - reads the page as it says: the rows still Sending,
+ *     not deleted, written before its cut-off, oldest first, as many as its
+ *     limit; then writes Error and its message over each that still says
+ *     Sending, moving the version on (settleNotificationsStuckBeforeTheCheck).
+ *     A statement that does not say so throws.
  *
  * What landed is kept, in order (writes). A test can make something land
  * between a read and the write that follows it (whenRead): the person
@@ -70,7 +78,40 @@ interface TimelineService {
   findOneById: unknown;
   updateOneBy: unknown;
   findBy?: unknown;
+  getRepository?: unknown;
 }
+
+// The statement that settles the notifications before the look-back, as sent.
+export interface SettleStatement {
+  sql: string;
+  // The cut-off, how many a statement settles, and the message it writes.
+  parameters: [Date, number, string];
+}
+
+// What the statement answers: how many its page found, and how many it wrote.
+export interface SettleStatementAnswer {
+  found: string;
+  settled: string;
+}
+
+// The table the repository a stand-in hands out names.
+export const ON_CALL_TIMELINE_TABLE_NAME: string = "UserOnCallLogTimeline";
+
+/*
+ * What the statement has to say, whitespace aside, for the stand-in to run
+ * it: its page - Sending, not deleted, before the cut-off, the oldest
+ * first, at most the limit - and its write - Error and the message, over
+ * Sending only, before the same cut-off. Anything else throws, so a changed
+ * statement fails loudly.
+ */
+export const SETTLE_STATEMENT_CLAUSES: ReadonlyArray<string> = [
+  `SELECT "_id" FROM "${ON_CALL_TIMELINE_TABLE_NAME}" WHERE "status" = '${UserNotificationStatus.Sending}' AND "deletedAt" IS NULL AND "createdAt" < $1 ORDER BY "createdAt" ASC LIMIT $2`,
+  `UPDATE "${ON_CALL_TIMELINE_TABLE_NAME}" AS "notification" SET "status" = '${UserNotificationStatus.Error}', "statusMessage" = $3, "version" = "notification"."version" + 1`,
+  `WHERE "notification"."_id" = "page"."_id" AND "notification"."status" = '${UserNotificationStatus.Sending}' AND "notification"."deletedAt" IS NULL AND "notification"."createdAt" < $1`,
+];
+
+// Any run of whitespace, read as one space.
+const WHITESPACE_RUN: RegExp = /\s+/g;
 
 /*
  * An update by query, on one notification read whole (a model a test hands
@@ -156,6 +197,9 @@ export default class OnCallTimelineRows {
   >();
 
   public readonly writes: Array<OnCallNotificationWrite> = [];
+
+  // The settling statements run, in order (settleStatement).
+  public readonly settleStatements: Array<SettleStatement> = [];
 
   private readonly afterReads: Array<(row: StoredOnCallNotification) => void> =
     [];
@@ -361,11 +405,97 @@ export default class OnCallTimelineRows {
   }
 
   /*
-   * Puts the rows behind the service's findOneById and updateOneBy - and,
-   * with `find`, findBy: its own jest.fn()s when the service is a jest.mock
-   * of it, spies on the real one otherwise.
+   * The statement that settles the notifications written before the
+   * check's look-back, as it says (see above): what its page found and what
+   * it wrote, as Postgres hands COUNT(*) back - as text.
    */
-  public standIn(service: TimelineService, options?: { find?: boolean }): void {
+  public settleStatement(
+    sql: string,
+    parameters: unknown,
+  ): Array<SettleStatementAnswer> {
+    const said: string = sql.replace(WHITESPACE_RUN, " ");
+
+    for (const clause of SETTLE_STATEMENT_CLAUSES) {
+      if (!said.includes(clause)) {
+        throw new Error(
+          `OnCallTimelineRows: a statement it cannot read, without: ${clause}`,
+        );
+      }
+    }
+
+    const [writtenBefore, limit, statusMessage] = parameters as [
+      Date,
+      number,
+      string,
+    ];
+
+    if (
+      !(writtenBefore instanceof Date) ||
+      typeof limit !== "number" ||
+      typeof statusMessage !== "string"
+    ) {
+      throw new Error(
+        `OnCallTimelineRows: a statement's parameters it cannot read: ${String(parameters)}`,
+      );
+    }
+
+    this.settleStatements.push({
+      sql: sql,
+      parameters: [writtenBefore, limit, statusMessage],
+    });
+
+    const page: Array<[string, StoredOnCallNotification]> = [
+      ...this.rows.entries(),
+    ]
+      .filter(([, row]: [string, StoredOnCallNotification]) => {
+        return (
+          row.status === UserNotificationStatus.Sending &&
+          !row.deletedAt &&
+          row.createdAt !== undefined &&
+          row.createdAt.getTime() < writtenBefore.getTime()
+        );
+      })
+      .sort(
+        (
+          [, a]: [string, StoredOnCallNotification],
+          [, b]: [string, StoredOnCallNotification],
+        ) => {
+          return (a.createdAt?.getTime() || 0) - (b.createdAt?.getTime() || 0);
+        },
+      )
+      .slice(0, limit);
+
+    let settled: number = 0;
+
+    for (const [id, row] of page) {
+      if (row.status !== UserNotificationStatus.Sending || row.deletedAt) {
+        continue;
+      }
+
+      row.status = UserNotificationStatus.Error;
+      row.statusMessage = statusMessage;
+      row.version++;
+      settled++;
+
+      this.writes.push({
+        id: id,
+        data: { status: row.status, statusMessage: row.statusMessage },
+      });
+    }
+
+    return [{ found: String(page.length), settled: String(settled) }];
+  }
+
+  /*
+   * Puts the rows behind the service's findOneById and updateOneBy - and,
+   * with `find`, findBy; with `settleStatement`, getRepository, whose
+   * manager runs the settling statement: its own jest.fn()s when the
+   * service is a jest.mock of it, spies on the real one otherwise.
+   */
+  public standIn(
+    service: TimelineService,
+    options?: { find?: boolean; settleStatement?: boolean },
+  ): void {
     const methods: Partial<
       Record<keyof TimelineService, (input: never) => unknown>
     > = {
@@ -381,6 +511,25 @@ export default class OnCallTimelineRows {
               input: FindByInput,
             ): Promise<Array<UserOnCallLogTimeline>> => {
               return Promise.resolve(this.find(input));
+            },
+          }
+        : {}),
+      ...(options?.settleStatement
+        ? {
+            getRepository: (): unknown => {
+              return {
+                metadata: { tableName: ON_CALL_TIMELINE_TABLE_NAME },
+                manager: {
+                  query: (
+                    sql: string,
+                    parameters: unknown,
+                  ): Promise<Array<SettleStatementAnswer>> => {
+                    return Promise.resolve(
+                      this.settleStatement(sql, parameters),
+                    );
+                  },
+                },
+              };
             },
           }
         : {}),

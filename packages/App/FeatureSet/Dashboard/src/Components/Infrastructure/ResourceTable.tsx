@@ -469,8 +469,9 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
         title: groupColumnTitle,
         key: "namespace",
         type: FieldType.Dropdown,
+        // A namespace's or a group's name, drawn as written.
         filterDropdownOptions: groups.map((group: string) => {
-          return { label: group, value: group };
+          return { label: group, value: group, isUserContent: true };
         }),
       });
     }
@@ -497,8 +498,12 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
         title: "Status",
         key: "status",
         type: FieldType.Dropdown,
+        /*
+         * As its cells draw it: already in the reader's words, or the
+         * status as the resource reports it - never looked up again.
+         */
         filterDropdownOptions: statuses.map((s: string) => {
-          return { label: labelOf(s), value: s };
+          return { label: labelOf(s), value: s, isUserContent: true };
         }),
       });
     }

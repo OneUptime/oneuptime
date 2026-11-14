@@ -16,6 +16,9 @@ import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus"
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
+import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
+import Team from "Common/Models/DatabaseModels/Team";
+import User from "Common/Models/DatabaseModels/User";
 
 export interface ComponentProps {
   criteriaFilters: Array<NotificationRuleCondition>;
@@ -32,6 +35,11 @@ export interface ComponentProps {
   securityCaseStatuses?: Array<SecurityCaseStatus> | undefined;
   // An SLO rule's: the project's SLOs, to name the ones it picks.
   serviceLevelObjectives?: Array<ServiceLevelObjective> | undefined;
+  // An on-call rule's: the project's policies, to name the ones it picks.
+  onCallDutyPolicies?: Array<OnCallDutyPolicy> | undefined;
+  // The project's people and teams, to name the owners a condition picks.
+  users?: Array<User> | undefined;
+  teams?: Array<Team> | undefined;
   monitorStatus: Array<MonitorStatus>;
 }
 
@@ -101,6 +109,9 @@ const NotificationRuleConditions: FunctionComponent<ComponentProps> = (
         securityCasePriorities={props.securityCasePriorities}
         securityCaseStatuses={props.securityCaseStatuses}
         serviceLevelObjectives={props.serviceLevelObjectives}
+        onCallDutyPolicies={props.onCallDutyPolicies}
+        users={props.users}
+        teams={props.teams}
         monitorStatus={props.monitorStatus}
       />
     );

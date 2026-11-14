@@ -103,6 +103,8 @@ Creating a rule walks up to five steps:
 | **Updates** | Incidents, alerts, episodes, scheduled maintenance and on-call policies only: which updates the rule posts after the record's first message. **Every update** posts them all, and a new rule starts with it, except an on-call policy's. **Key updates only** posts the ones that matter most, which the step lists for each kind of record: for an incident, its resolution or reopening, severity changes, public notes and the postmortem; for an on-call policy, who is on call now and when nobody is, which a new on-call policy rule starts with. **Choose updates** lets you tick them one by one. Whatever you pick, the rule posts the record's first message, and a video call when one starts. See [On-call messages](#on-call-messages). |
 | **Video Call** | Incidents and alerts only: start a call for each one. See [Video Calls](/docs/workspace-connections/video-calls). |
 
+Each condition reads as a sentence: the field, how it compares and the value. Values to pick come from the project's own lists, such as its states, severities, labels and monitors. An on-call rule picks its policies under **On-Call Policy**, which keeps matching a policy after it is renamed, while **On-Call Policy Name** matches words in a policy's name. Every kind of event that has owners has an owner condition, such as **Incident Owner**: pick people and teams, and it matches the people and teams recorded as the event's owners. Being in a team that owns the event does not count. An owner added later makes the rule match from that update on, and a rule that creates channels creates the channel then. An archived value, such as a severity or an on-call policy, is not offered for a new condition. A rule that already has one keeps it, marked **Archived**, and still matches the events that have it. A person, team or policy the project no longer has stays in the condition, and the rule's card says so.
+
 An SLO's rule posts the changes of its error budget policy: when the SLO enters a tier, recovers to a less severe one or leaves every tier, and when its deployments are frozen or allowed again. It posts only to existing channels, as an SLO gets no channel of its own. See [Post to Slack, Microsoft Teams and Mattermost](/docs/slo/error-budget-policy#post-to-slack-microsoft-teams-and-mattermost).
 
 A channel the rule creates is named after its record: incident INC-42 gets `inc-42`, alert ALT-7 gets `alt-7`, and in a project without number prefixes, incident 42 gets `incident-42`. Text in **Channel Name Prefix** goes in front, so `prod-` makes `prod-inc-42`, and the form shows the name as you type. For a scheduled maintenance event, the prefix takes the place of its number prefix: SM-5 gets `sm-5`, and `maint-` makes `maint-5`. Slack takes lowercase letters, numbers, `-` and `_`, up to 80 characters. If a channel by that name already exists, such as another project's or an archived one, OneUptime adds `-2`, `-3` and so on.
@@ -198,7 +200,7 @@ React to a message in the channel of an incident, alert, episode or scheduled ma
 
 | Reaction | Saved as |
 | --- | --- |
-| 📌 A pin emoji, or Slack's own **Pin to channel** | A private note, seen only by your team |
+| 📌 A pin emoji, or Slack's own **Pin to channel** | A private note, read only by the people who can see the record |
 | 📢 A megaphone or loudspeaker emoji | A public note, shown on the status page. Incidents and scheduled maintenance events only. On a private incident, a private note, and the confirmation says why. When the project's public notes need approval, it is shown once approved, and the confirmation says who it waits for: see [Public note approval](/docs/incidents/notes-owners-and-feed#public-note-approval). |
 
 The note keeps the message as Slack showed it: its formatting, links and code, the people and channels it mentions by name, and its files and images as links to them. A public note leaves the files and images out, since they open only for your team.
@@ -305,7 +307,7 @@ An incident's message has four buttons, **Acknowledge Incident**, **Resolve Inci
 | **Change Severity** | Sets the incident's severity. |
 | **Change Incident State** | Moves the incident to a later state. |
 | **Assign Role** | Gives somebody a role on the incident, such as **Incident Commander**. A role that takes one person moves to them. |
-| **Page Someone** | Pages people, a team, whoever is on call in a schedule, or an on-call policy about the incident, with an optional message. People are paged until one of them answers; a policy pages until somebody acknowledges the incident. |
+| **Page Someone** | Pages people, a team, whoever is on call in a schedule, or an on-call policy about the incident, with an optional message. Whoever it pages, a policy's people too, is paged until one of them answers or the incident is resolved. |
 | **Edit Custom Fields** | Sets the incident's custom fields, each filled in with what the incident holds. A field left empty is cleared. |
 
 `/oneuptime incident 42` shows incident 42, with these buttons and its menu, in a message only you see. Type the number as OneUptime shows it: `42`, `#42` or `INC-42`. In an incident's own channel, `/oneuptime incident` alone shows that incident.

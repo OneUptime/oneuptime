@@ -268,14 +268,17 @@ export const RULE_PLURAL_NAMES: ByEventType = {
 
 /*
  * What a rule's conditions check, and how: the Conditions step's dropdowns
- * and the rule's card show a condition by its own values
- * (NotificationRuleConditionCheckOn, ConditionType - "Incident State",
- * "Contains Any"), and these are their words, listed so each is translated:
- * a German reader read "Vorfallsstatus Contains Any". A test holds the lists
- * to the enums. They are not imported here, which keeps this module free of
- * the condition module and the UI it reaches. A field whose stored value has
- * words of its own (CHECK_ON_LABELS: "On Call Duty Policy Name" is shown as
- * "On-Call Policy Name") is listed by those words.
+ * and the rule's card show a condition's field by its own value
+ * (NotificationRuleConditionCheckOn - "Incident State"), and these are its
+ * words, listed so each is translated: a German reader read "Vorfallsstatus
+ * Contains Any". How a condition compares is said in the words of a
+ * sentence ("is any of": NotificationRuleConditionWords); an operator with
+ * none of its own is said by its stored value (ConditionType), whose words
+ * are listed below it. A test holds the lists to the enums. They are not
+ * imported here, which keeps this module free of the condition module and
+ * the UI it reaches. A field whose stored value has words of its own
+ * (CHECK_ON_LABELS: "On Call Duty Policy Name" is shown as "On-Call Policy
+ * Name") is listed by those words.
  */
 export const CONDITION_FIELD_WORDS: ReadonlyArray<string> = [
   translationKey("Monitor Name"),
@@ -310,6 +313,7 @@ export const CONDITION_FIELD_WORDS: ReadonlyArray<string> = [
   translationKey("On-Call Policy Name"),
   translationKey("On-Call Policy Description"),
   translationKey("On-Call Policy Labels"),
+  translationKey("On-Call Policy"),
   translationKey("Security Case Title"),
   translationKey("Security Case Description"),
   translationKey("Security Case Priority"),
@@ -321,6 +325,14 @@ export const CONDITION_FIELD_WORDS: ReadonlyArray<string> = [
   translationKey("SLOs"),
   translationKey("SLO Labels"),
   translationKey("Error Budget Policy Change"),
+  translationKey("Incident Owner"),
+  translationKey("Alert Owner"),
+  translationKey("Incident Episode Owner"),
+  translationKey("Alert Episode Owner"),
+  translationKey("Scheduled Maintenance Owner"),
+  translationKey("Monitor Owner"),
+  translationKey("On-Call Policy Owner"),
+  translationKey("SLO Owner"),
 ];
 
 /*

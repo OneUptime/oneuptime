@@ -1495,6 +1495,51 @@ describe("Paged again, and answering a page from its push", () => {
     ).toBeTruthy();
   });
 
+  /*
+   * Somebody asked for the reader by hand - a page sent from a chat, or a
+   * policy started by hand - about an alert somebody else acknowledged
+   * (#7596): the same buttons as a page again, but the reader never took
+   * it, so they are paged to help, not paged again.
+   */
+  test("paged to help with an alert somebody else acknowledged: the same buttons, and paged - not paged again", async () => {
+    mockPassOnPages.current = [
+      { ...PAGE, isPageAgain: true, isAskedFor: true },
+    ];
+    mockAlertDetail.current = queryState<AlertItem | null>({
+      data: makeLoadedAlert({
+        currentAlertState: makeNamedEntityWithColor({
+          _id: ACKNOWLEDGED_STATE._id,
+          name: ACKNOWLEDGED_STATE.name,
+        }),
+      }),
+    });
+
+    await renderScreen(createTestQueryClient());
+
+    await screen.findByRole("button", {
+      name: "Acknowledge this alert again",
+    });
+    expect(
+      within(screen.getByTestId("response-actions"))
+        .getAllByRole("button")
+        .map((button: { props: { accessibilityLabel?: string } }) => {
+          return button.props.accessibilityLabel;
+        }),
+    ).toEqual([
+      "Acknowledge this alert again",
+      "Resolve alert",
+      "Escalate this alert",
+    ]);
+    expect(screen.getByText("You're being paged")).toBeTruthy();
+    expect(screen.queryByText("You're being paged again")).toBeNull();
+    expect(
+      screen.getByText(
+        "A responder has acknowledged this alert, and you're being paged to help. Acknowledge again to answer your page, or escalate it.",
+      ),
+    ).toBeTruthy();
+    expect(screen.queryByText(/still on it/)).toBeNull();
+  });
+
   test("the push's Acknowledge acknowledges the alert, once", async () => {
     mockPassOnPages.current = [PAGE];
 

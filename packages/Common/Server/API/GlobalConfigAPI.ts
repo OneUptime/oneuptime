@@ -19,6 +19,10 @@ import { getServerTwilioEnvironment } from "../Utils/ServerTwilioConfig";
 import ServerTwilioEnvironment, {
   ServerTwilioEnvironmentAnswer,
 } from "../../Types/CallAndSMS/ServerTwilioEnvironment";
+import { getServerEmailEnvironment } from "../Utils/ServerEmailSettings";
+import ServerEmailEnvironment, {
+  ServerEmailEnvironmentAnswer,
+} from "../../Types/Email/ServerEmailEnvironment";
 import { ServerSendingStatusAnswer } from "../../Types/ServerSending/ServerSendingStatus";
 import ServerSetupChecklist from "../Utils/ServerSetup/ServerSetupChecklist";
 import ServerSetupChecklistUtil, {
@@ -405,6 +409,35 @@ export default class GlobalConfigAPI extends BaseAPI<
         try {
           const answer: ServerTwilioEnvironmentAnswer =
             ServerTwilioEnvironment.toAnswer(getServerTwilioEnvironment());
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            answer as unknown as JSONObject,
+          );
+        } catch (err) {
+          return next(err);
+        }
+      },
+    );
+
+    /*
+     * GET /global-config/email-environment - whether the GLOBAL_EMAIL_
+     * environment variables set the server's email settings (#7738), the
+     * settings they set, and what is wrong with them
+     * (Types/Email/ServerEmailEnvironment). Admin Dashboard > Settings >
+     * Emails shows them in place of the saved settings, with no Edit
+     * button. Never a password or a key: only whether each is set.
+     *
+     * Master admins only, as the saved settings are theirs to read.
+     */
+    this.router.get(
+      `${new this.entityType().getCrudApiPath()?.toString()}/email-environment`,
+      MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const answer: ServerEmailEnvironmentAnswer =
+            ServerEmailEnvironment.toAnswer(getServerEmailEnvironment());
 
           return Response.sendJsonObjectResponse(
             req,

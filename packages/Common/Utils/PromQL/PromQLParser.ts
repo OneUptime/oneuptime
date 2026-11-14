@@ -30,6 +30,7 @@ import {
 } from "./PromQLFunctions";
 import { PromQLToken, PromQLTokenType, tokenizePromQL } from "./PromQLLexer";
 import { compilePromQLRegex } from "./PromQLRegex";
+import { describePatternProblem } from "../LinearRegExp/PatternCache";
 
 /*
  * Parses a PromQL query into a checked syntax tree (promql/parser).
@@ -654,9 +655,14 @@ class PromQLParser {
         ) {
           try {
             compilePromQLRegex(valueToken.text);
-          } catch {
+          } catch (error: unknown) {
+            // Why a regular expression cannot run here, or null.
+            const problem: string | null = describePatternProblem(error);
+
             throw new PromQLError(
-              `"${valueToken.text}" is not a regular expression the label "${labelName}" can be matched with.`,
+              problem === null
+                ? `"${valueToken.text}" is not a regular expression the label "${labelName}" can be matched with.`
+                : `The pattern "${valueToken.text}" for the label "${labelName}" ${problem}`,
               undefined,
               { start: valueToken.start, end: valueToken.end },
             );

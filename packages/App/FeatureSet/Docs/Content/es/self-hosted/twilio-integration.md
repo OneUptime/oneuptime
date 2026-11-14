@@ -110,7 +110,7 @@ resource "oneuptime_call_and_sms_config" "production" {
 ```
 
 - **Configuración predeterminada.** Terraform convierte una configuración en la predeterminada del proyecto solo con `is_project_default = true`. Si se omite, Terraform envía `false`, así que la primera configuración de un proyecto no pasa a ser la predeterminada como ocurre en el panel. Defínelo en una sola configuración por cada tipo de mensaje: dos con el mismo `used_for` que lo definen ambas se quitan la predeterminada la una a la otra en cada apply. OneUptime define `is_project_default_for_sms` y `is_project_default_for_calls`, que Terraform solo lee.
-- **Números de teléfono.** Escribe cada número como lo muestra Twilio: `+`, el código de país y el número, sin espacios.
+- **Números de teléfono.** Escribe cada número con `+` y el código de país. Puedes separar los dígitos con espacios, guiones, puntos o paréntesis: OneUptime guarda `+1 415 555 0100` como `+14155550100`, y Terraform lo reconoce como el número que escribiste, así que un plan no muestra cambios.
 - **Clave de API.** La clave que usa Terraform debe poder leer el Auth Token: **Propietario del proyecto**, **Administrador del proyecto**, o **Read Call and SMS** en un rol personalizado, además de crear y editar configuraciones. Con una clave que no puede, la lectura de la configuración falla y el error dice quién puede leer el token.
 - **Referencias.** El `call_sms_config_id` de una página de estado y el `project_call_sms_config_id` de una política de llamadas entrantes toman el `id` de la configuración.
 

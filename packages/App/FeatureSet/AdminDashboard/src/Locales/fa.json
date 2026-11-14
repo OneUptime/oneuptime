@@ -535,7 +535,13 @@
         "pillNoAccessKey": "فعال نیست. لطفاً کلید دسترسی را اضافه کنید.",
         "pillNoRegion": "فعال نیست. لطفاً منطقه را اضافه کنید.",
         "pillNoDomain": "فعال نیست. لطفاً دامنه را اضافه کنید.",
-        "pillNoServerToken": "فعال نیست. لطفاً توکن API سرور را اضافه کنید."
+        "pillNoServerToken": "فعال نیست. لطفاً توکن API سرور را اضافه کنید.",
+        "environmentCardDescription": "با متغیرهای محیطی تنظیم شده‌اند: email در مقادیر چارت Helm، یا تنظیمات GLOBAL_EMAIL_ در config.env. برای تغییر این تنظیمات، آن‌ها را همان‌جا تغییر دهید و OneUptime را دوباره راه‌اندازی کنید.",
+        "environmentProblemsTitle": "تا زمانی که این متغیرهای محیطی اصلاح نشوند، این سرور هیچ ایمیلی نمی‌فرستد:",
+        "environmentUnusedTitle": "برخی از متغیرهای محیطی ایمیل استفاده نمی‌شوند:",
+        "environmentIgnoredTitle": "این متغیرهای محیطی تنظیم شده‌اند، اما تنظیمات ایمیل انتخاب‌شده آن‌ها را نمی‌خوانند، پس چیزی را تغییر نمی‌دهند:",
+        "environmentValueSet": "تنظیم شده",
+        "environmentValueNotSet": "تنظیم نشده"
       },
       "callSms": {
         "cardTitle": "پیکربندی Twilio",

@@ -6,7 +6,11 @@ import {
   FormMappingRow,
   getFormMappingRows,
 } from "./FormMappingRows";
-import { FormReferenceData, loadFormReferenceData } from "./FormOnSubmitData";
+import {
+  FormReferenceData,
+  loadFormReferenceData,
+  NamedRecord,
+} from "./FormOnSubmitData";
 import {
   getFormSettingsFields,
   getFormSettingsInitialValues,
@@ -33,6 +37,7 @@ import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import DirectionArrow from "Common/UI/Components/DirectionArrow/DirectionArrow";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
+import IsolatedTextList from "Common/UI/Components/IsolatedText/IsolatedTextList";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import API from "Common/UI/Utils/API/API";
@@ -198,6 +203,37 @@ const FormMappingCard: FunctionComponent<ComponentProps> = (
   ): ReactElement => {
     const text: string = line.isCopy ? tx(line.text) : line.text;
 
+    /*
+     * What applies - a default title, a severity, the labels always added,
+     * the owners - read the way it is written: each name an isolate of its
+     * own, and a line of records separated the reader's way ("، " in Arabic
+     * and Persian, "、" in Japanese and Chinese). Drawn as part of an Arabic
+     * or Persian line, "Checkout down." read ".Checkout down", and one
+     * name's full stop landed beside the next name. A record deleted since
+     * is the reader's word for it, in its place: the page's own words, never
+     * a name (#7857). A record called "Deleted" is still drawn as written.
+     */
+    const renderValue: (className?: string) => ReactElement = (
+      className?: string,
+    ): ReactElement => {
+      return line.names && line.names.length > 0 ? (
+        <IsolatedTextList
+          texts={line.names.map(
+            (record: NamedRecord): string | ReactElement => {
+              return record.isDeleted ? (
+                <span>{tx(FormsCopy.deletedRecord)}</span>
+              ) : (
+                record.name
+              );
+            },
+          )}
+          className={className}
+        />
+      ) : (
+        <IsolatedText text={text} className={className} />
+      );
+    };
+
     // "Answer to the question: “Title”", the question in the reader's quotes.
     const answerToTheQuestion: ReactElement = (
       <TranslatedSentence
@@ -226,9 +262,13 @@ const FormMappingCard: FunctionComponent<ComponentProps> = (
 
       case FormMappingLineKind.Fallback:
         return (
-          <p key={index} className="pl-5 text-xs text-gray-500">
+          <p
+            key={index}
+            className="pl-5 text-xs text-gray-500"
+            data-testid="form-mapping-fallback"
+          >
             {tx(FormsCopy.ifLeftEmpty)}{" "}
-            <span className="font-medium text-gray-700">{text}</span>
+            {renderValue("font-medium text-gray-700")}
           </p>
         );
 
@@ -244,8 +284,7 @@ const FormMappingCard: FunctionComponent<ComponentProps> = (
               className="mt-0.5 h-4 w-4 shrink-0 text-gray-400"
             />
             <span>
-              {tx(FormsCopy.alwaysAdded)}{" "}
-              <span className="font-medium">{text}</span>
+              {tx(FormsCopy.alwaysAdded)} {renderValue("font-medium")}
             </span>
           </div>
         );
@@ -280,9 +319,14 @@ const FormMappingCard: FunctionComponent<ComponentProps> = (
         );
 
       default:
+        // One of the card's own sentences ("Not set"), or a value as written.
         return (
-          <p key={index} className="text-sm text-gray-700">
-            {text}
+          <p
+            key={index}
+            className="text-sm text-gray-700"
+            data-testid="form-mapping-value"
+          >
+            {line.isCopy ? text : renderValue()}
           </p>
         );
     }

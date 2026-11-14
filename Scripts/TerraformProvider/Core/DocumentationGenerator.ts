@@ -1494,6 +1494,18 @@ resource "${provider}_monitor" "example" {
       return '"2030-01-01T00:00:00Z"';
     }
 
+    // A phone number: the spec's example number, as a plain string.
+    if (attrInfo.isPhone) {
+      const example: any = attrInfo.example;
+      return DocumentationGenerator.hclString(
+        example &&
+          typeof example === "object" &&
+          typeof example.value === "string"
+          ? example.value
+          : "+14155550100",
+      );
+    }
+
     if (fieldName === "name") {
       return `"Example ${label}"`;
     }

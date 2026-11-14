@@ -54,6 +54,16 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 // react-select's own empty-list message, i.e. the bug as it appeared.
 const NO_OPTIONS: string = "No options";
 
+// How a text field compares, in the words of a sentence.
+const TEXT_OPERATOR_WORDS: Array<string> = [
+  "equals",
+  "does not equal",
+  "contains",
+  "does not contain",
+  "starts with",
+  "ends with",
+];
+
 const PAYMENTS_LABEL_ID: string = "a1a1a1a1a1a1a1a1a1a1a1a1";
 const SEARCH_LABEL_ID: string = "b2b2b2b2b2b2b2b2b2b2b2b2";
 
@@ -445,7 +455,9 @@ describe("The workspace notification rule Conditions editor", () => {
       );
       const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
 
-      await user.click(screen.getByRole("button", { name: "Delete Filter" }));
+      await user.click(
+        screen.getByRole("button", { name: "Remove condition 1" }),
+      );
 
       expect(lastConditionsFrom(onChange)).toEqual([]);
       expect(
@@ -456,7 +468,7 @@ describe("The workspace notification rule Conditions editor", () => {
         ).checked,
       ).toBe(true);
       /*
-       * The Delete Filter button went with the conditions, and the focus
+       * The remove button went with the conditions, and the focus
        * with it: it is on the answer now picked, not lost to the page.
        */
       expect(document.activeElement).toBe(
@@ -567,7 +579,7 @@ describe("The workspace notification rule Conditions editor", () => {
       expect(divider(container)).not.toBeNull();
 
       await user.click(
-        screen.getAllByRole("button", { name: "Delete Filter" })[1]!,
+        screen.getByRole("button", { name: "Remove condition 2" }),
       );
       expect(divider(container)).toBeNull();
     });
@@ -657,11 +669,16 @@ describe("The workspace notification rule Conditions editor", () => {
       const conditions: Array<NotificationRuleCondition> =
         lastConditionsFrom(onChange);
 
+      /*
+       * The policies themselves, picked from the project's (#7554): what a
+       * rule about some policies means, and it keeps matching a policy that
+       * is renamed.
+       */
       expect(conditions.length).toBe(1);
       expect(conditions[0]!.checkOn).toBe(
-        NotificationRuleConditionCheckOn.OnCallDutyPolicyName,
+        NotificationRuleConditionCheckOn.OnCallDutyPolicies,
       );
-      expect(conditions[0]!.conditionType).toBe(ConditionType.EqualTo);
+      expect(conditions[0]!.conditionType).toBe(ConditionType.ContainsAny);
     });
 
     test("the Filter Condition dropdown offers the text operators once a field is chosen", async () => {
@@ -677,12 +694,11 @@ describe("The workspace notification rule Conditions editor", () => {
       await openDropdown(1);
 
       expect(screen.queryByText(NO_OPTIONS)).toBeNull();
-      expect(
-        screen.getAllByText(ConditionType.Contains).length,
-      ).toBeGreaterThan(0);
-      expect(
-        screen.getAllByText(ConditionType.StartsWith).length,
-      ).toBeGreaterThan(0);
+      expect(screen.getAllByText("contains").length).toBeGreaterThan(0);
+      expect(screen.getAllByText("starts with").length).toBeGreaterThan(0);
+      // Never the matcher's own names for them.
+      expect(screen.queryByText(ConditionType.Contains)).toBeNull();
+      expect(screen.queryByText(ConditionType.StartsWith)).toBeNull();
     });
 
     test("choosing the labels field offers the project's labels as the value", async () => {
@@ -695,10 +711,10 @@ describe("The workspace notification rule Conditions editor", () => {
           NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels,
         ),
       });
-      await pickFromDropdown({
-        index: 1,
-        optionLabel: ConditionType.ContainsAny,
-      });
+      // A field starts on its first way of comparing: "has any of".
+      expect(
+        screen.getByTestId("notification-rule-condition-0").textContent,
+      ).toContain("has any of");
       await openDropdown(2);
 
       expect(screen.queryByText(NO_OPTIONS)).toBeNull();
@@ -718,10 +734,10 @@ describe("The workspace notification rule Conditions editor", () => {
           NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels,
         ),
       });
-      await pickFromDropdown({
-        index: 1,
-        optionLabel: ConditionType.ContainsAny,
-      });
+      // A field starts on its first way of comparing: "has any of".
+      expect(
+        screen.getByTestId("notification-rule-condition-0").textContent,
+      ).toContain("has any of");
       await pickFromDropdown({ index: 2, optionLabel: "Payments" });
 
       const conditions: Array<NotificationRuleCondition> =
@@ -932,7 +948,12 @@ describe("A security case rule's conditions", () => {
   function listedOptions(): Array<string> {
     return Array.from(document.querySelectorAll("[id*='-option-']")).map(
       (option: Element): string => {
-        return (option.textContent || "").trim();
+        // The option's name, without the hint some fields have under it.
+        const label: Element | null = option.querySelector(
+          "[data-testid='dropdown-option-label']",
+        );
+
+        return ((label || option).textContent || "").trim();
       },
     );
   }
@@ -1014,10 +1035,6 @@ describe("A security case rule's conditions", () => {
       index: 0,
       optionLabel: NotificationRuleConditionCheckOn.SecurityCaseStatus,
     });
-    await pickFromDropdown({
-      index: 1,
-      optionLabel: ConditionType.ContainsAny,
-    });
     await openDropdown(2);
 
     expect(listedOptions()).toEqual([
@@ -1059,10 +1076,6 @@ describe("A security case rule's conditions", () => {
 
       await clickAddCondition();
       await pickFromDropdown({ index: 0, optionLabel: checkOn });
-      await pickFromDropdown({
-        index: 1,
-        optionLabel: ConditionType.ContainsAny,
-      });
       await openDropdown(2);
 
       expect(listedOptions()).toEqual(expected);
@@ -1078,10 +1091,6 @@ describe("A security case rule's conditions", () => {
     await pickFromDropdown({
       index: 0,
       optionLabel: NotificationRuleConditionCheckOn.SecurityCaseLabels,
-    });
-    await pickFromDropdown({
-      index: 1,
-      optionLabel: ConditionType.ContainsAny,
     });
     await openDropdown(2);
 
@@ -1110,13 +1119,9 @@ describe("A security case rule's conditions", () => {
     });
     await openDropdown(1);
 
-    expect(listedOptions()).toEqual(
-      NotificationRuleConditionUtil.getConditionTypeByCheckOn(
-        NotificationRuleConditionCheckOn.SecurityCaseTitle,
-      ),
-    );
+    expect(listedOptions()).toEqual(TEXT_OPERATOR_WORDS);
 
-    await userEvent.setup().click(screen.getByText(ConditionType.Contains));
+    await userEvent.setup().click(screen.getByText("contains"));
     await userEvent.setup().type(screen.getByRole("textbox"), "ransomware");
 
     const conditions: Array<NotificationRuleCondition> =
@@ -1246,7 +1251,12 @@ describe("An SLO rule's conditions", () => {
   function listedOptions(): Array<string> {
     return Array.from(document.querySelectorAll("[id*='-option-']")).map(
       (option: Element): string => {
-        return (option.textContent || "").trim();
+        // The option's name, without the hint some fields have under it.
+        const label: Element | null = option.querySelector(
+          "[data-testid='dropdown-option-label']",
+        );
+
+        return ((label || option).textContent || "").trim();
       },
     );
   }
@@ -1263,6 +1273,7 @@ describe("An SLO rule's conditions", () => {
       "SLO Labels",
       "SLO Name",
       "Error Budget Policy Change",
+      "SLO Owner",
     ]);
     expect(
       screen.queryByText(NotificationRuleConditionCheckOn.MonitorName),
@@ -1319,12 +1330,14 @@ describe("An SLO rule's conditions", () => {
     await openDropdown(1);
 
     expect(listedOptions()).toEqual([
-      ConditionType.ContainsAny,
-      ConditionType.NotContains,
-      ConditionType.ContainsAll,
+      "has any of",
+      "has none of",
+      "has all of",
     ]);
 
-    await userEvent.setup().click(screen.getByText(ConditionType.ContainsAny));
+    await userEvent
+      .setup()
+      .click(screen.getByRole("option", { name: "has any of" }));
     await pickFromDropdown({ index: 2, optionLabel: "Payments" });
 
     const conditions: Array<NotificationRuleCondition> =
@@ -1345,10 +1358,6 @@ describe("An SLO rule's conditions", () => {
     await pickFromDropdown({
       index: 0,
       optionLabel: NotificationRuleConditionCheckOn.SloErrorBudgetPolicyChange,
-    });
-    await pickFromDropdown({
-      index: 1,
-      optionLabel: ConditionType.ContainsAny,
     });
     await openDropdown(2);
 
@@ -1391,13 +1400,9 @@ describe("An SLO rule's conditions", () => {
     });
     await openDropdown(1);
 
-    expect(listedOptions()).toEqual(
-      NotificationRuleConditionUtil.getConditionTypeByCheckOn(
-        NotificationRuleConditionCheckOn.MonitorName,
-      ),
-    );
+    expect(listedOptions()).toEqual(TEXT_OPERATOR_WORDS);
 
-    await userEvent.setup().click(screen.getByText(ConditionType.StartsWith));
+    await userEvent.setup().click(screen.getByText("starts with"));
     await userEvent.setup().type(screen.getByRole("textbox"), "Checkout");
 
     expect(lastConditionsFrom(onChange)[0]).toEqual({

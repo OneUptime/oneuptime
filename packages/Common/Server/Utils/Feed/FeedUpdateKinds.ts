@@ -293,6 +293,9 @@ export const ON_CALL_DUTY_POLICY_FEED_UPDATE_KINDS: Readonly<
     NotificationRuleUpdateKind.NobodyOnCall,
   [OnCallDutyPolicyFeedEventType.UserOverrideAdded]:
     NotificationRuleUpdateKind.Overrides,
+  // An override's cover or times edited (issues #7630, #7631).
+  [OnCallDutyPolicyFeedEventType.UserOverrideChanged]:
+    NotificationRuleUpdateKind.Overrides,
   [OnCallDutyPolicyFeedEventType.UserOverrideRemoved]:
     NotificationRuleUpdateKind.Overrides,
   // Who and what the policy's escalation rules page.

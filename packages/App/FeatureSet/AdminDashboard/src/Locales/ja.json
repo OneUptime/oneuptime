@@ -535,7 +535,13 @@
         "pillNoAccessKey": "有効化されていません。アクセスキーを追加してください。",
         "pillNoRegion": "有効化されていません。リージョンを追加してください。",
         "pillNoDomain": "有効化されていません。ドメインを追加してください。",
-        "pillNoServerToken": "有効化されていません。サーバー API トークンを追加してください。"
+        "pillNoServerToken": "有効化されていません。サーバー API トークンを追加してください。",
+        "environmentCardDescription": "環境変数で設定されています：Helm チャートの values の email、または config.env の GLOBAL_EMAIL_ 設定です。これらの設定を変更するには、そこで変更してから OneUptime を再起動してください。",
+        "environmentProblemsTitle": "これらの環境変数が修正されるまで、このサーバーはメールを送信しません：",
+        "environmentUnusedTitle": "使用されていないメールの環境変数があります：",
+        "environmentIgnoredTitle": "これらの環境変数は設定されていますが、選択されたメール設定では読み取られないため、何も変わりません：",
+        "environmentValueSet": "設定済み",
+        "environmentValueNotSet": "未設定"
       },
       "callSms": {
         "cardTitle": "Twilio設定",
