@@ -39,7 +39,7 @@ Trascina una scheda per la sua maniglia per spostarla, oppure usa **Sposta su** 
 
 ### Salvare il modulo
 
-**Salva modifiche** salva tutte le modifiche in una volta. Finché non salvi, l'editor dice **Modifiche non salvate** e offre **Annulla modifiche**, e il browser chiede conferma prima che tu lasci la pagina.
+**Salva modifiche** salva tutte le modifiche in una volta. Finché non salvi, l'editor dice **Modifiche non salvate** e offre **Annulla modifiche**. Lasciare l'editor prima di salvare chiede prima conferma. Un link nel menu laterale, nel percorso di navigazione o nella barra superiore, o i pulsanti Indietro e Avanti del browser, aprono **Uscire senza salvare?** con due scelte: **Continua a modificare** resta nell'editor con le tue modifiche, e **Annulla modifiche** prosegue verso la pagina che stavi aprendo. Chiudere o ricaricare la scheda chiede conferma con la finestra di dialogo del browser.
 :::
 
 - **L'intestazione del modulo** mostra il suo nome e la sua descrizione come li mostrerà la pagina pubblica. **Modifica nome e descrizione** li modifica.

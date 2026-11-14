@@ -37,7 +37,7 @@ Steg körs **i ordning**. Du ändrar ordningen genom att dra ett steg i handtage
 
 ### Spara stegen
 
-Klicka på **Spara steg**. Tills du gör det visar redigeraren **Osparade ändringar**. När de är sparade ser du **Sparad**, och runbooket är redo att [köras](/docs/runbooks/running).
+Klicka på **Spara steg**. Tills du gör det visar redigeraren **Osparade ändringar**. När de är sparade ser du **Sparad**, och runbooket är redo att [köras](/docs/runbooks/running). Att lämna stegen innan du har sparat frågar först. En länk i sidomenyn, brödsmulorna eller det övre fältet, eller webbläsarens bakåt- och framåtknappar, öppnar **Lämna utan att spara?** med två val: **Fortsätt redigera** stannar vid stegen med dina ändringar, och **Kasta ändringar** går vidare till sidan du var på väg till. Stänger eller laddar du om fliken frågar webbläsaren med sin egen dialogruta.
 :::
 
 ## Hur ett steg är uppbyggt
