@@ -473,7 +473,7 @@ test.describe("the header on a phone", () => {
     });
   }
 
-  test("in the dark theme the row the keyboard is on stands out from the rest, Create New Project too", async ({
+  test("in the dark theme the row the keyboard is on stands out from the rest, Create New Project too, and Shift+Tab puts the list away", async ({
     page,
   }: {
     page: Page;
@@ -547,6 +547,14 @@ test.describe("the header on a phone", () => {
         return settled(createRow, "border-top-color");
       })
       .not.toBe(restingEdge);
+
+    /*
+     * Shift+Tab moves the focus back to the picker, as anywhere, and the
+     * list goes away behind it rather than cover the page.
+     */
+    await search.press("Shift+Tab");
+    await expect(picker(page)).toBeFocused();
+    await expect(menu).toBeHidden();
   });
 });
 

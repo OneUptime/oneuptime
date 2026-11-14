@@ -197,8 +197,10 @@ const ProjectPicker: FunctionComponent<ComponentProps> = (
   /*
    * The keys of the list, read in its search box (a combobox: focus stays
    * there): Down and Up move through the rows, stopping at either end,
-   * Home and End are left to the text, Enter opens the row, and Escape puts
-   * the list away and gives the focus back to the picker.
+   * Home and End are left to the text, Enter opens the row, Escape puts
+   * the list away and gives the focus back to the picker, and Tab (or
+   * Shift+Tab) moves the focus on as anywhere and puts the list away behind
+   * it - a list left open would cover the page the focus went on to.
    */
   const onSearchKeyDown: (
     event: React.KeyboardEvent<HTMLInputElement>,
@@ -208,6 +210,15 @@ const ProjectPicker: FunctionComponent<ComponentProps> = (
       event.stopPropagation();
       closeList();
       buttonRef.current?.focus();
+      return;
+    }
+
+    if (event.key === "Tab") {
+      /*
+       * Once the browser has moved the focus: the box taken away before
+       * that would leave the focus nowhere.
+       */
+      window.setTimeout(closeList, 0);
       return;
     }
 

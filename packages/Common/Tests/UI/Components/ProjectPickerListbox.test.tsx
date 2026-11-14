@@ -519,6 +519,26 @@ describe("the list from the keyboard", () => {
     expect(calls).toEqual(["create"]);
   });
 
+  test("Tab moves the focus on and puts the list away behind it, after the focus has moved", async () => {
+    render(picker());
+    openWithEnter();
+    expect(listbox()).toBeInTheDocument();
+
+    press("Tab");
+    // Not before the browser moves the focus: the box is still there.
+    expect(screen.queryByRole("listbox")).toBeInTheDocument();
+    expect(searchBox()).toBeInTheDocument();
+
+    await act(async () => {
+      await new Promise<void>((resolve: () => void) => {
+        setTimeout(resolve, 0);
+      });
+    });
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+    expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
+    expect(calls).toEqual([]);
+  });
+
   test("Escape puts the list away and gives the focus back to the picker", () => {
     render(picker());
     openWithEnter();
