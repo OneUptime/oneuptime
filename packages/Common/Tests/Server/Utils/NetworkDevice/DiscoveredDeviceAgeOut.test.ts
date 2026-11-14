@@ -213,6 +213,83 @@ describe("buildReportingDevicesStatement", () => {
   });
 });
 
+/*
+ * lastSeenAt is in no index (so a walk's refresh of it can be a HOT
+ * update); coarseLastSeenAt, lastSeenAt a day at a time, is - with
+ * coarseLastSeenAt <= lastSeenAt < coarseLastSeenAt + a day. Each statement
+ * narrows by the coarse column, through ("projectId", "coarseLastSeenAt") of
+ * live rows, with a bound every row it wants meets, and decides by lastSeenAt
+ * on the row - so what it finds, and in what order, is lastSeenAt's alone.
+ * DiscoveredDeviceAgeOutPostgres shows the index read on Postgres.
+ */
+describe("the coarse column each statement narrows by", () => {
+  test("due projects: a live device past the cut-off has a coarse value past it too", () => {
+    const sql: string = buildDueProjectsStatement({ now: NOW, limit: 100 })
+      .sql;
+
+    expect(sql).toContain(
+      `e."coarseLastSeenAt" < $1::timestamptz - make_interval(days => p."discoveredDeviceRetentionInDays")`,
+    );
+    expect(sql).toContain(
+      `e."lastSeenAt" < $1::timestamptz - make_interval(days => p."discoveredDeviceRetentionInDays")`,
+    );
+  });
+
+  test("reporting devices: a sighting since then has a coarse value less than a day before then", () => {
+    const sql: string = buildReportingDevicesStatement({
+      projectId: PROJECT_A,
+      since: new Date(NOW.getTime() - DAY),
+    }).sql;
+
+    expect(sql).toContain(
+      `e."coarseLastSeenAt" > $2::timestamptz - interval '24 hours'`,
+    );
+    expect(sql).toContain(`e."lastSeenAt" >= $2::timestamptz`);
+  });
+
+  test("a batch: narrowed by the coarse column, ordered and written by lastSeenAt", () => {
+    const sql: string = buildAgeOutStatement({
+      projectId: PROJECT_A,
+      seenBefore: new Date(NOW.getTime() - 30 * DAY),
+      reportingDeviceIds: [SWITCH_A],
+      limit: AGE_OUT_BATCH_SIZE,
+      removedAt: NOW,
+    }).sql;
+    const due: string = sql.slice(sql.indexOf("due AS"), sql.indexOf("removed AS"));
+    const write: string = sql.slice(sql.indexOf("removed AS"));
+
+    expect(due).toContain(`e."coarseLastSeenAt" < $2::timestamptz`);
+    expect(due).toContain(`e."lastSeenAt" < $2::timestamptz`);
+    expect(due).toContain(`ORDER BY e."lastSeenAt" ASC, e."_id" ASC`);
+    // The write decides by lastSeenAt alone, on the row it writes.
+    expect(write).toContain(`t."lastSeenAt" < $2::timestamptz`);
+    expect(write).not.toContain("coarseLastSeenAt");
+  });
+
+  /*
+   * The bounds, against every lastSeenAt a coarse value allows: each row
+   * the exact condition wants meets the coarse bound, so narrowing by it
+   * leaves nothing out.
+   */
+  test("leaves out no row the exact condition wants, wherever lastSeenAt is in its day", () => {
+    const cutOff: number = NOW.getTime() - 30 * DAY;
+    const since: number = NOW.getTime() - DAY;
+
+    for (let coarse: number = cutOff - 3 * DAY; coarse <= NOW.getTime(); coarse += 37 * 60 * 1000) {
+      for (let into: number = 0; into < DAY; into += 53 * 60 * 1000) {
+        const lastSeenAt: number = coarse + into;
+
+        if (lastSeenAt < cutOff) {
+          expect(coarse < cutOff).toBe(true);
+        }
+        if (lastSeenAt >= since) {
+          expect(coarse > since - DAY).toBe(true);
+        }
+      }
+    }
+  });
+});
+
 describe("buildAgeOutStatement", () => {
   const seenBefore: Date = new Date(NOW.getTime() - 30 * DAY);
 

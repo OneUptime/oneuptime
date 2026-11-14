@@ -258,12 +258,6 @@ export default class NetworkInventoryUtil {
           refreshRequestedAt: true,
           lastPolledAt: true,
           /*
-           * How often the device sees its endpoints again: an endpoint the
-           * walk finds unchanged is written again only after about two of
-           * its polls (getEndpointLastSeenRefreshMs).
-           */
-          pollingIntervalInMinutes: true,
-          /*
            * What the walk's device enrichment below would write, so only
            * what changed is written (withoutUnchangedInventory).
            */
@@ -798,8 +792,6 @@ export default class NetworkInventoryUtil {
               projectId: data.projectId,
               deviceId: deviceId,
               deviceSiteId: ownedDevice.siteId,
-              devicePollingIntervalInMinutes:
-                ownedDevice.pollingIntervalInMinutes,
               attachments: endpointResult.attachments,
               ipBindings: endpointResult.ipBindings,
               now: receivedAt,

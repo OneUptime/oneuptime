@@ -995,6 +995,9 @@ import { AddOnCallExecutionLogListIndexes1809165100000 } from "./1809165100000-A
 import { AddTeamMemberUserProjectIndex1809168000000 } from "./1809168000000-AddTeamMemberUserProjectIndex";
 import { AddAlertAndIncidentListIndexes1809169000000 } from "./1809169000000-AddAlertAndIncidentListIndexes";
 import { SetMonitorFillfactor1809172000000 } from "./1809172000000-SetMonitorFillfactor";
+import { AddNetworkEndpointCoarseLastSeenAt1809169000000 } from "./1809169000000-AddNetworkEndpointCoarseLastSeenAt";
+import { SwapNetworkEndpointLastSeenIndexes1809169100000 } from "./1809169100000-SwapNetworkEndpointLastSeenIndexes";
+import { SetNetworkEndpointFillfactor1809169200000 } from "./1809169200000-SetNetworkEndpointFillfactor";
 
 export default [
   InitialMigration,
@@ -1994,4 +1997,7 @@ export default [
   AddTeamMemberUserProjectIndex1809168000000,
   AddAlertAndIncidentListIndexes1809169000000,
   SetMonitorFillfactor1809172000000,
+  AddNetworkEndpointCoarseLastSeenAt1809169000000,
+  SwapNetworkEndpointLastSeenIndexes1809169100000,
+  SetNetworkEndpointFillfactor1809169200000,
 ];

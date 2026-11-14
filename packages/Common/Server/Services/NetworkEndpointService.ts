@@ -5,13 +5,13 @@ import LIMIT_MAX from "../../Types/Database/LimitMax";
 import OneUptimeDate from "../../Types/Date";
 import ObjectID from "../../Types/ObjectID";
 import EndpointAttachmentUtil, {
+  COARSE_LAST_SEEN_STEP_SQL,
   EndpointAttachment,
   EndpointExistingRowSnapshot,
   EndpointIncomingObservation,
   EndpointIpBinding,
   EndpointUpsertContext,
   EndpointUpsertDecision,
-  getEndpointLastSeenRefreshMs,
 } from "../../Utils/Monitor/EndpointAttachmentUtil";
 import OuiLookupUtil from "../Utils/Monitor/OuiLookupUtil";
 import { OnCreate } from "../Types/Database/Hooks";
@@ -21,8 +21,8 @@ import { isPostgresLockContentionError } from "../Utils/Database/PostgresLockCon
 import logger from "../Utils/Logger";
 
 /*
- * Rows written per statement. Endpoint rows are narrow (12 params each),
- * so 500 keeps a chunk well under Postgres' parameter ceiling while
+ * Rows written per statement. Endpoint rows are narrow (15 params each at
+ * most), so 500 keeps a chunk well under Postgres' parameter ceiling while
  * turning a 4096-MAC switch into 9 round trips instead of 4096.
  */
 const UPSERT_BATCH_SIZE: number = 500;
@@ -59,6 +59,7 @@ const INSERT_COLUMNS: Array<string> = [
   "siteId",
   "firstSeenAt",
   "lastSeenAt",
+  "coarseLastSeenAt",
   "version",
   "hostname",
   "attachmentSource",
@@ -217,9 +218,13 @@ export class Service extends ProjectReferencesService<Model> {
    *    option at restaurant-chain scale (thousands of sites x thousands
    *    of L2 endpoints),
    *  - endpoints that have not moved since the last poll produce no
-   *    write at all until their lastSeenAt is about two of the device's
-   *    poll intervals old (getEndpointLastSeenRefreshMs), so a stable
-   *    switch costs one SELECT and, every other poll, its refresh,
+   *    write at all until their 15-minute refresh comes due, on a clock
+   *    offset by each one's MAC (endpointRefreshSlot), so a stable switch
+   *    costs one SELECT and, each poll, the refresh of about a third of
+   *    its endpoints - a HOT update, since it writes no indexed column,
+   *  - coarseLastSeenAt, the age-out's indexed copy of lastSeenAt, moves
+   *    only when lastSeenAt is a day past it, so a write changes an indexed
+   *    column about once a day an endpoint (DiscoveredDeviceAgeOut),
    *  - vendor is stamped from the MAC OUI on create only (user-correctable),
    *  - siteId follows the attaching device's site whenever an attachment is
    *    (re)written and the caller knows the site,
@@ -234,11 +239,6 @@ export class Service extends ProjectReferencesService<Model> {
     projectId: ObjectID;
     deviceId: ObjectID;
     deviceSiteId?: ObjectID | undefined;
-    /*
-     * How often the walked device is polled, which is how often it sees its
-     * endpoints again. Absent: the default interval.
-     */
-    devicePollingIntervalInMinutes?: number | null | undefined;
     attachments: Array<EndpointAttachment>;
     ipBindings: Array<EndpointIpBinding>;
     now: Date;
@@ -308,9 +308,6 @@ export class Service extends ProjectReferencesService<Model> {
     const context: EndpointUpsertContext = {
       now: data.now,
       siteId: data.deviceSiteId?.toString(),
-      lastSeenRefreshMs: getEndpointLastSeenRefreshMs(
-        data.devicePollingIntervalInMinutes,
-      ),
     };
 
     const counts: EndpointWriteCounts = await this.writeSightings({
@@ -654,6 +651,7 @@ export class Service extends ProjectReferencesService<Model> {
           row.deviceSiteId?.toString() ?? null,
           seenAt,
           seenAt,
+          seenAt, // coarseLastSeenAt
           0, // version (BaseModel @VersionColumn)
           row.decision.hostname ?? null,
           row.decision.attachmentSource ?? null,
@@ -665,7 +663,7 @@ export class Service extends ProjectReferencesService<Model> {
           "projectId", "macAddress", "ipAddress", "vendor",
           "attachedNetworkDeviceId", "attachedInterfaceIndex",
           "attachedPortName", "vlanId", "siteId",
-          "firstSeenAt", "lastSeenAt", "version",
+          "firstSeenAt", "lastSeenAt", "coarseLastSeenAt", "version",
           "hostname", "attachmentSource"
         )
         VALUES ${valueFragments.join(", ")}
@@ -727,6 +725,15 @@ export class Service extends ProjectReferencesService<Model> {
    * and the sighting's. A walk's sighting is timed when OneUptime received
    * the poll (OneUptime issue #7389), and an older poll processed after a
    * newer one would otherwise take an endpoint's last sighting back to it.
+   *
+   * coarseLastSeenAt follows lastSeenAt a day at a time: it takes the new
+   * lastSeenAt only once that is a day or more past it, so it is never
+   * later than lastSeenAt and never a day behind it. It is what the
+   * age-out's index holds (DiscoveredDeviceAgeOut), in place of lastSeenAt:
+   * a write changes an indexed column about once a day an endpoint, and
+   * every other refresh can be a HOT update. Moving on its own clock, from
+   * whenever an endpoint was first seen, its daily step is spread across the
+   * day rather than taken by every endpoint at midnight.
    */
   private async bulkUpdateEndpoints(data: {
     projectId: ObjectID;
@@ -800,6 +807,12 @@ export class Service extends ProjectReferencesService<Model> {
             "ipAddress" = COALESCE(v."ipAddress", e."ipAddress"),
             "firstSeenAt" = COALESCE(e."firstSeenAt", v."lastSeenAt"),
             "lastSeenAt" = GREATEST(e."lastSeenAt", v."lastSeenAt"),
+            "coarseLastSeenAt" = CASE
+              WHEN e."coarseLastSeenAt" IS NULL
+                OR GREATEST(e."lastSeenAt", v."lastSeenAt") >= e."coarseLastSeenAt" + ${COARSE_LAST_SEEN_STEP_SQL}
+              THEN GREATEST(e."lastSeenAt", v."lastSeenAt")
+              ELSE e."coarseLastSeenAt"
+            END,
             "hostname" = COALESCE(v."hostname", e."hostname"),
             "attachmentSource" = v."attachmentSource",
             "updatedAt" = now()
@@ -880,6 +893,77 @@ export class Service extends ProjectReferencesService<Model> {
 
     return macs;
   }
+
+  /*
+   * One page of the coarseLastSeenAt backfill, for the data migration
+   * BackfillNetworkEndpointCoarseLastSeenAt: the next `limit` live endpoints
+   * by id after `afterId` that were seen but have no coarseLastSeenAt get
+   * their lastSeenAt as it - the value a walk would have given them, so
+   * coarseLastSeenAt <= lastSeenAt < coarseLastSeenAt + a day holds from the
+   * first write. A row a walk wrote meanwhile already has one, and is left
+   * as the walk wrote it (the UPDATE checks again on the row it writes).
+   * Never-seen rows (a person added them) have nothing to copy, and the
+   * age-out keeps them anyway. updatedAt is left alone: nothing about the
+   * endpoint changed.
+   *
+   * Answers how many rows the page read and wrote, and the last id it read,
+   * where the next page starts. Only rows still to write are read, so a run
+   * stopped part way, or a second run, starts over cheaply.
+   */
+  public async backfillCoarseLastSeenAtPage(data: {
+    afterId?: string | undefined;
+    limit: number;
+  }): Promise<CoarseLastSeenAtBackfillPage> {
+    const params: Array<unknown> = [Math.max(1, Math.floor(data.limit))];
+
+    if (data.afterId) {
+      params.push(data.afterId);
+    }
+
+    const rows: Array<Record<string, unknown>> = (await this.getRepository()
+      .manager.query(
+        `WITH "page" AS (
+          SELECT "_id"
+          FROM "NetworkEndpoint"
+          WHERE "deletedAt" IS NULL
+            AND "coarseLastSeenAt" IS NULL
+            AND "lastSeenAt" IS NOT NULL${
+              data.afterId ? `\n            AND "_id" > $2::uuid` : ""
+            }
+          ORDER BY "_id" ASC
+          LIMIT $1
+        ),
+        "written" AS (
+          UPDATE "NetworkEndpoint" AS e
+          SET "coarseLastSeenAt" = e."lastSeenAt"
+          FROM "page" AS p
+          WHERE e."_id" = p."_id"
+            AND e."coarseLastSeenAt" IS NULL
+          RETURNING e."_id"
+        )
+        SELECT
+          (SELECT COUNT(*) FROM "page")::int AS "read",
+          (SELECT COUNT(*) FROM "written")::int AS "written",
+          (SELECT p."_id"::text FROM "page" AS p ORDER BY p."_id" DESC LIMIT 1) AS "lastId"`,
+        params,
+      )) as Array<Record<string, unknown>>;
+
+    const row: Record<string, unknown> = rows[0] || {};
+    const lastId: unknown = row["lastId"];
+
+    return {
+      read: Number(row["read"]) || 0,
+      written: Number(row["written"]) || 0,
+      lastId: typeof lastId === "string" && lastId ? lastId : undefined,
+    };
+  }
+}
+
+export interface CoarseLastSeenAtBackfillPage {
+  read: number;
+  written: number;
+  // Where the next page starts; undefined when this one read nothing.
+  lastId?: string | undefined;
 }
 
 export default new Service();
