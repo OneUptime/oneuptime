@@ -16160,9 +16160,9 @@ const LINKED_LINE: string =
 const FOLLOW_UP_ACTIVITY_LINE: string =
   "Checking again: alert #318 opened on host checkout-api-7f9c after the first analysis";
 const FOLLOW_UP_LEAD_TEXT: string =
-  "Checked again after alert #318 opened on Host checkout-api-7f9c, 3 minutes after this incident was declared: High CPU on checkout-api-7f9c.";
+  "Checked again after alert #318 opened on host checkout-api-7f9c, 3 minutes after this incident was declared: High CPU on checkout-api-7f9c.";
 const FOLLOW_UP_FEED_LEAD: string =
-  "OneUptime AI checked again after alert #318 opened on Host checkout-api-7f9c, 3 minutes after this incident was declared: High CPU on checkout-api-7f9c.";
+  "OneUptime AI checked again after alert #318 opened on host checkout-api-7f9c, 3 minutes after this incident was declared: High CPU on checkout-api-7f9c.";
 const FIRST_ANALYSIS_FEED_LEAD: string =
   "OneUptime AI posted a root cause analysis";
 const FOLLOW_UP_TLDR_START: string = "Alert #318 does not change the analysis";
