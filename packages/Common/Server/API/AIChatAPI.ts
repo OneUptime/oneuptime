@@ -32,6 +32,7 @@ import {
   AIChatToolActionStatus,
 } from "../../Types/AI/AIChatTypes";
 import { JSONArray, JSONObject } from "../../Types/JSON";
+import { readRequestedReaderLanguage } from "../../Types/ReaderLanguage";
 import AIRunStatus from "../../Types/AI/AIRunStatus";
 import AIRunType from "../../Types/AI/AIRunType";
 import AIConversation from "../../Models/DatabaseModels/AIConversation";
@@ -472,6 +473,8 @@ router.post(
          * through its AI agents, for the person asking (issue #5259).
          */
         offersPageInfrastructure: true,
+        // The language the asker reads the Dashboard in (#7247).
+        language: readRequestedReaderLanguage(req.body["language"]),
       }).catch((error: Error) => {
         logger.error(`AI chat turn crashed: ${error.message}`);
       });
@@ -740,6 +743,11 @@ router.post(
           props: props,
           // The paused turn's command tools, built again for its subject.
           offersPageInfrastructure: true,
+          /*
+           * The language the approver reads the Dashboard in: what an
+           * approved setup action writes into the records it makes (#7247).
+           */
+          language: readRequestedReaderLanguage(req.body["language"]),
         },
         decisions,
       ).catch((error: Error) => {
