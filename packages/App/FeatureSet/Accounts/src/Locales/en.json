@@ -610,7 +610,8 @@
   "Click to choose a file or drag & drop.": "Click to choose a file or drag & drop.",
   "Click to add more or drag & drop.": "Click to add more or drag & drop.",
   "PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP, up to {{size}}.": "PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP, up to {{size}}.",
-  "Up to 10 files of {{size}} each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.": "Up to 10 files of {{size}} each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.",
+  "Up to {{count}} files of {{size}} each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.": "Up to {{count}} files of {{size}} each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.",
+  "Up to {{count}} files of {{size}} each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP._one": "One file of up to {{size}}: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.",
   "Chosen files": "Chosen files",
   "Remove": "Remove",
   "Replace": "Replace",
@@ -621,6 +622,7 @@
   "These files are not a type this field takes: {{fileNames}}.": "These files are not a type this field takes: {{fileNames}}.",
   "Add one file at a time.": "Add one file at a time.",
   "This field holds up to {{count}} files. Remove one to add another.": "This field holds up to {{count}} files. Remove one to add another.",
+  "This field holds up to {{count}} files. Remove one to add another._one": "This field holds one file. Remove it to add another.",
   "markdownCallouts": {
     "caution": "Caution",
     "danger": "Danger",

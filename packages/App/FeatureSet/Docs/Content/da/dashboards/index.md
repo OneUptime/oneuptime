@@ -62,7 +62,7 @@ Listens sidemenu har de sider, der passer på alle dine dashboards:
 | **Ejere** | De brugere og teams, der ejer det. |
 | **Branding** | Sidetitel, beskrivelse, logo, tema og favicon for det offentlige dashboard. |
 | **Brugerdefinerede domæner** | Host det offentlige dashboard på dit eget domæne. |
-| **Indstillinger** | Duplikér, eksportér eller arkivér dashboardet. |
+| **Indstillinger** | Duplikér, eksportér eller arkiver dashboardet. |
 | **Auditlogs** | Hver ændring, der er foretaget på dashboardet, og hvem der foretog den. |
 | **Slet** | Slet dashboardet for altid. |
 

@@ -190,7 +190,7 @@ Archivieren Sie einen Status, den Ihr Team nicht mehr verwenden soll, statt ihn 
 
 - **Archivieren** steht im Menü **⋯** der Zeile. Es fragt zuerst nach und listet die Monitorkriterien, Vorlagen und Statusseiten auf, die so eingerichtet sind, dass sie den Status verwenden: Sie verwenden ihn weiter, bis Sie sie ändern.
 - **Niemand kann ihn erneut auswählen.** Ein Kriterium, das Statusmenü eines Monitors, der Monitorstatus eines Vorfalls oder Wartungsereignisses und die Ausfallstatus einer Statusseite lassen ihn weg. Die API, Terraform und MCP lehnen ihn ab.
-- **Archivierte Status werden getrennt aufgeführt**, im eingeklappten Abschnitt **Archivierte Monitor-Status** unter der Tabelle. **Aus Archiv entfernen** stellt einen so wieder her, wie er war.
+- **Archivierte Status werden getrennt aufgeführt**, im eingeklappten Abschnitt **Archivierte Monitor-Status** unter der Tabelle. **Aus dem Archiv holen** stellt einen so wieder her, wie er war.
 - **Die eingebauten Status lassen sich nicht archivieren.** Neue Monitore beginnen im Betriebsstatus, und OneUptime behandelt einen Monitor im Offline-Status als ausgefallen. Ihr **Archivieren** ist gesperrt, mit Begründung.
 
 ## Fehlerbehebung

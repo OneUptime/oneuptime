@@ -992,11 +992,21 @@ describe("the helpers, on these pages' shapes", () => {
   });
 
   it("draw a product after Products as the Products menu does, the rest as labels", () => {
-    // Russian's menu says Сервисы where a label says Службы.
+    // After Products, the menu's own word for the product (navbar.items).
+    expect(drawnPath("ru", ["Products", "Services"])).toBe(
+      `Продукты → ${String(
+        (
+          (dashboardLocale("ru")["navbar"] as Record<string, unknown>)[
+            "items"
+          ] as Record<string, unknown>
+        )["servicesTitle"],
+      )}`,
+    );
+    // Russian's menu and its labels name Services one way since #7387.
     expect(drawnPath("ru", ["Products", "Services"])).toBe(
       "Продукты → Сервисы",
     );
-    expect(drawnActionLabel("ru", "Services")).toBe("Службы");
+    expect(drawnActionLabel("ru", "Services")).toBe("Сервисы");
     expect(drawnPath("de", ["Products", "Profiles"])).toBe(
       "Produkte → Profile",
     );

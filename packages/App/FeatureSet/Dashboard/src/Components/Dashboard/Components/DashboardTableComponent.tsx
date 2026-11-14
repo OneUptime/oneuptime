@@ -32,7 +32,6 @@ import API from "Common/UI/Utils/API/API";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigData";
-import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEndDateTime";
@@ -64,6 +63,21 @@ import useDashboardWidgetColumns, {
 } from "./DashboardWidgetColumns";
 import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
 import { getUnsetText } from "./DashboardWidgetFallbackWords";
+import DashboardWidgetError from "./DashboardWidgetError";
+import {
+  DASHBOARD_WIDGET_SETUP_LINE_CLASS_NAME,
+  DASHBOARD_WIDGET_SETUP_LINE_TEST_ID,
+  DASHBOARD_WIDGET_SETUP_NAME_CLASS_NAME,
+  DashboardWidgetSetupNeed,
+  getDashboardWidgetSetupLine,
+} from "./DashboardWidgetSetupCopy";
+import { useDashboardWidgetPlace } from "./DashboardWidgetPreview";
+import {
+  MetricTableRead,
+  getMetricTableRead,
+  isMetricTableSetUp,
+  placeMetricTableResults,
+} from "./MetricWidgetQuery";
 
 // The table's header line: its title, and its controls beside or under it.
 export const DASHBOARD_TABLE_HEADER_TEST_ID: string = "dashboard-table-header";
@@ -194,6 +208,21 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
     return resolveQueries(args, widgetGroupByAttributeKeys, unitsByMetricName);
   }, [args, widgetGroupByAttributeKeys, unitsByMetricName]);
 
+  /*
+   * Until a column names a metric the table draws what it needs instead of
+   * an empty grid, in words for where it is drawn: a click opens its
+   * settings only on the board being edited, its settings are right below
+   * it in the Live Preview, and a reader is only told what is missing
+   * (issue #7329). It was "Add a metric column with a Metric Name to start
+   * populating the table." in every place, in English - and a new table,
+   * whose one column names no metric yet, was read anyway.
+   */
+  const isSetUp: boolean = isMetricTableSetUp(resolved.queryConfigs);
+  const setupMessage: string = getDashboardWidgetSetupLine(
+    DashboardWidgetSetupNeed.MetricColumn,
+    useDashboardWidgetPlace(props.isEditMode),
+  );
+
   const queryConfigsInterpolated: Array<MetricQueryConfigData> = useMemo(() => {
     return DashboardVariableInterpolation.applyToQueryConfigs(
       resolved.queryConfigs,
@@ -230,40 +259,38 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
     const data: MetricViewData = metricViewDataRef.current;
     setIsLoading(true);
 
+    /*
+     * Nothing to read until a column names a metric: the table says what
+     * it needs in its place (isSetUp below), and an earlier read's error
+     * has nothing left to be about (issue #7329).
+     */
+    if (!isMetricTableSetUp(data.queryConfigs || [])) {
+      setIsLoading(false);
+      setMetricResults([]);
+      setError("");
+      return;
+    }
+
     if (!data.startAndEndDate?.startValue || !data.startAndEndDate?.endValue) {
       setIsLoading(false);
       setError("Please select a valid start and end date.");
       return;
     }
 
-    if (
-      !data.queryConfigs ||
-      data.queryConfigs.length === 0 ||
-      !data.queryConfigs[0] ||
-      !data.queryConfigs[0].metricQueryData ||
-      !data.queryConfigs[0].metricQueryData.filterData ||
-      Object.keys(data.queryConfigs[0].metricQueryData.filterData).length === 0
-    ) {
-      setIsLoading(false);
-      setError(
-        "Add a metric column with a Metric Name to start populating the table.",
-      );
-      return;
-    }
-
-    if (!data.queryConfigs[0].metricQueryData.filterData?.aggegationType) {
-      setIsLoading(false);
-      setError("Pick an aggregation for your first metric column.");
-      return;
-    }
+    /*
+     * Each column that names a metric, as its average while it names no
+     * aggregation - as its settings show it - and a column that names
+     * none yet left out of the read, its cells empty.
+     */
+    const read: MetricTableRead = getMetricTableRead(data.queryConfigs);
 
     try {
       const results: Array<AggregatedResult> = await MetricUtil.fetchResults({
-        metricViewData: data,
+        metricViewData: { ...data, queryConfigs: read.queryConfigs },
         metricTypes: props.metricTypes,
       });
 
-      setMetricResults(results);
+      setMetricResults(placeMetricTableResults({ read, results }));
       setError("");
     } catch (err: unknown) {
       setError(API.getFriendlyErrorMessage(err as Error));
@@ -660,6 +687,37 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
     }),
   ]);
 
+  /*
+   * The setup line outranks the skeleton and the error, as on the Chart,
+   * Value and Gauge widgets: there is nothing to load, and nothing left to
+   * be wrong about. Under the table's own title, or "Table".
+   */
+  if (!isSetUp) {
+    const setupTitle: string =
+      args.tableTitle?.trim() || translator.translateText("Table") || "Table";
+
+    return (
+      <div className="flex flex-col items-center justify-center w-full h-full gap-1.5">
+        <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center flex-none">
+          <div className="h-5 w-5 text-indigo-300">
+            <Icon icon={IconProp.TableCells} />
+          </div>
+        </div>
+        <DashboardWidgetLine
+          as="p"
+          text={setupTitle}
+          className={DASHBOARD_WIDGET_SETUP_NAME_CLASS_NAME}
+        />
+        <p
+          className={DASHBOARD_WIDGET_SETUP_LINE_CLASS_NAME}
+          data-testid={DASHBOARD_WIDGET_SETUP_LINE_TEST_ID}
+        >
+          {translator.translateText(setupMessage)}
+        </p>
+      </div>
+    );
+  }
+
   if (isLoading && metricResults.length === 0) {
     return (
       <div className="h-full flex flex-col animate-pulse p-1">
@@ -687,16 +745,7 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
   }
 
   if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center w-full h-full gap-2">
-        <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center">
-          <div className="h-5 w-5 text-gray-300">
-            <Icon icon={IconProp.TableCells} />
-          </div>
-        </div>
-        <p className="text-xs text-gray-400 text-center max-w-48">{error}</p>
-      </div>
-    );
+    return <DashboardWidgetError icon={IconProp.TableCells} error={error} />;
   }
 
   const title: string | undefined = args.tableTitle;
@@ -1090,7 +1139,15 @@ function resolveQueries(
           metricQueryData: {
             filterData: {
               metricName: column.metricName,
-              aggegationType: column.aggregation || MetricsAggregationType.Avg,
+              /*
+               * Only an aggregation the column picked: one it did not is
+               * read as its average where the table reads
+               * (getMetricTableRead), the one rule for every metric
+               * widget.
+               */
+              ...(column.aggregation
+                ? { aggegationType: column.aggregation }
+                : {}),
               ...(widgetAttributeFilters
                 ? { attributes: widgetAttributeFilters as any }
                 : {}),
