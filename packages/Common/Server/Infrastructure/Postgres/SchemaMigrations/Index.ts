@@ -992,6 +992,7 @@ import { SetNetworkInterfaceFillfactor1809164000000 } from "./1809164000000-SetN
 import { AddInventoryItemMirrorKeysetIndex1809164100000 } from "./1809164100000-AddInventoryItemMirrorKeysetIndex";
 import { MatchMonitorIndexesToTheirReads1809165000000 } from "./1809165000000-MatchMonitorIndexesToTheirReads";
 import { AddOnCallExecutionLogListIndexes1809165100000 } from "./1809165100000-AddOnCallExecutionLogListIndexes";
+import { AddTeamMemberUserProjectIndex1809168000000 } from "./1809168000000-AddTeamMemberUserProjectIndex";
 
 export default [
   InitialMigration,
@@ -1988,4 +1989,5 @@ export default [
   AddInventoryItemMirrorKeysetIndex1809164100000,
   MatchMonitorIndexesToTheirReads1809165000000,
   AddOnCallExecutionLogListIndexes1809165100000,
+  AddTeamMemberUserProjectIndex1809168000000,
 ];
