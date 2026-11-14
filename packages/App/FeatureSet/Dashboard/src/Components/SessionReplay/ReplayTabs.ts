@@ -11,7 +11,7 @@ import {
   SessionReplayManifestTab,
   tabHasFootage,
 } from "./ReplayManifest";
-import { formatReplayOffset } from "./ReplayTimeFormat";
+import { formatReplayOffsetInLanguage } from "./ReplayTimeFormat";
 import { formatReplayDurationInLanguage } from "./ReplayTimelineMath";
 
 /*
@@ -109,9 +109,16 @@ export const REPLAY_TAB_PAGE_MAX_SEARCH_LENGTH: number = 40;
  */
 export const REPLAY_TAB_UNKNOWN_PAGE: string = translationKey("Unknown page");
 
-/* "Tab 3": the name of the third tab the end user opened. */
+/*
+ * "Tab 3": the name of the third tab the end user opened, its number in the
+ * digits the reader's language writes ("زبانه ۳" in Persian, #7098). A
+ * template value goes in exactly as it is given, so a raw ordinal read "زبانه
+ * 3" beside the Persian digits of the counts next to it.
+ */
 function nameReplayTab(ordinal: number, translator: Translator): string {
-  return translator.translateTemplate("Tab {{number}}", { number: ordinal });
+  return translator.translateTemplate("Tab {{number}}", {
+    number: translator.formatNumber(ordinal),
+  });
 }
 
 /*
@@ -551,19 +558,45 @@ function readTabOrdinal(label: string): number | null {
   return match && match[1] ? Number(match[1]) : null;
 }
 
+// A Persian (۰ to ۹) or an Arabic-Indic (٠ to ٩) digit.
+const READER_DIGIT_PATTERN: RegExp = /[\u{0660}-\u{0669}\u{06F0}-\u{06F9}]/gu;
+
+const PERSIAN_ZERO_CODE_POINT: number = 0x06f0;
+
+const ARABIC_INDIC_ZERO_CODE_POINT: number = 0x0660;
+
+/*
+ * Persian and Arabic-Indic digits as the Latin ones they stand for. A
+ * Persian reader sees "زبانه ۳" and types "۳" from a Persian keyboard; read
+ * as "3", that finds Tab 3 the way "3" does in every other language.
+ */
+function readLatinDigits(text: string): string {
+  return text.replace(READER_DIGIT_PATTERN, (digit: string): string => {
+    const codePoint: number = digit.codePointAt(0) || 0;
+    const zero: number =
+      codePoint >= PERSIAN_ZERO_CODE_POINT
+        ? PERSIAN_ZERO_CODE_POINT
+        : ARABIC_INDIC_ZERO_CODE_POINT;
+
+    return String(codePoint - zero);
+  });
+}
+
 /*
  * The picker's search. Case-insensitive substring match on the label
  * ("tab 3"), the name the reader sees in their language, the first and
  * last url; a query of digits (optionally "#3") also matches the tab with
- * that ordinal. A blank query keeps every tab. Input order is kept, so the
- * caller decides whether it filters a display order or the opened order.
+ * that ordinal. Digits match in whichever digits they are typed, so "۳"
+ * finds what "3" finds (the names are drawn in the reader's digits). A
+ * blank query keeps every tab. Input order is kept, so the caller decides
+ * whether it filters a display order or the opened order.
  */
 export function filterReplayTabs(
   tabs: Array<ReplayTabSummary>,
   query: string,
   translator: Translator = ENGLISH,
 ): Array<ReplayTabSummary> {
-  const needle: string = (typeof query === "string" ? query : "")
+  const needle: string = readLatinDigits(typeof query === "string" ? query : "")
     .trim()
     .toLowerCase();
 
@@ -591,7 +624,7 @@ export function filterReplayTabs(
     ];
 
     return haystacks.some((haystack: string): boolean => {
-      return haystack.toLowerCase().includes(needle);
+      return readLatinDigits(haystack).toLowerCase().includes(needle);
     });
   });
 }
@@ -783,8 +816,13 @@ export function describeReplayTabOpened(
     return null;
   }
 
+  /*
+   * The session clock's m:ss in the reader's digits: "۲:۱۴" in Persian
+   * (#7098). Persian digits keep a clock's left-to-right order in a
+   * right-to-left line, as Latin ones do.
+   */
   return translator.translateTemplate("opened {{time}}", {
-    time: formatReplayOffset(tab.openedAtMs),
+    time: formatReplayOffsetInLanguage(tab.openedAtMs, translator.language),
   });
 }
 

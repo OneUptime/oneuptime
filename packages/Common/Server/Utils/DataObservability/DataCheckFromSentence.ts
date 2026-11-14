@@ -4,10 +4,15 @@ import {
   DataAssetColumn,
   readDataAssetColumns,
 } from "../../../Types/DataObservability/DataAssetColumn";
+import {
+  DashboardLanguage,
+  SUPPORTED_DASHBOARD_LANGUAGES,
+} from "../../../Types/Dashboard/DashboardLanguage";
 import { DataCheckAlertCondition } from "../../../Types/DataObservability/DataCheckType";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import { DEFAULT_READER_LANGUAGE } from "../../../Types/ReaderLanguage";
 import AIService, {
   AI_DATA_CHECK_DRAFT_FEATURE,
   AILogRequest,
@@ -59,12 +64,64 @@ export interface DataCheckSuggestion {
   explanation: string;
 }
 
+/*
+ * THE READER'S LANGUAGE (#7220).
+ *
+ * The check's name and what it counts are read on the Dashboard, and kept
+ * as the check's name and description, so they are written in the
+ * language the person who asked reads OneUptime in: one more line in the
+ * system message, naming that language from the Dashboard's own list.
+ * Only those two change language. The query or pipeline, the table and
+ * column names in it, the JSON keys, "Above" or "Below" and an error's
+ * why are asked for exactly as before - the why stays English, as the
+ * server's message around it is.
+ *
+ * English, no language, or anything that is not a code the Dashboard is
+ * read in adds nothing: the prompt is exactly what it always was, and what
+ * was sent is never written into it. This draft reads no AI context
+ * (AiContextWiring's LEAVES_OUT_AI_CONTEXT), so a reply language a
+ * project's notes ask for (#6580) never meets this line: the reader's
+ * language is the only one the model is told.
+ */
+export function getCheckFromSentenceLanguageLine(data: {
+  language?: string | undefined;
+  engine: DatabaseEngine;
+}): string | null {
+  if (data.language === DEFAULT_READER_LANGUAGE) {
+    return null;
+  }
+
+  // Only a code the Dashboard is read in, exactly as it lists it, names a language.
+  const language: DashboardLanguage | undefined =
+    SUPPORTED_DASHBOARD_LANGUAGES.find(
+      (dashboardLanguage: DashboardLanguage): boolean => {
+        return dashboardLanguage.code === data.language;
+      },
+    );
+
+  if (!language) {
+    return null;
+  }
+
+  const query: string =
+    data.engine === "mongodb"
+      ? "the pipeline, with the fields as listed"
+      : "the SQL, with the table and column names as listed";
+
+  return [
+    `Write the name and the explanation in this language: ${language.englishName}, ${language.nativeName}.`,
+    "It is the language the person who asked reads OneUptime in; the example below is in English only to show the shape.",
+    `Keep everything else exactly as asked: ${query}; the JSON keys; "Above" or "Below"; and the why of an error, in English.`,
+  ].join(" ");
+}
+
 // MongoDB's prompt: a collection's fields, and an aggregation pipeline for an answer.
 function buildPipelinePrompt(data: {
   sentence: string;
   schemaName: string;
   tableName: string;
   columns: Array<DataAssetColumn>;
+  languageLine: string | null;
 }): { system: string; user: string } {
   const fields: string = data.columns
     .slice(0, MAX_COLUMNS_SHOWN)
@@ -82,6 +139,7 @@ function buildPipelinePrompt(data: {
       "- Read only the fields listed. A field may be missing or null in any document.",
       '- End with {"$count": "value"}, or a $group or $project that names its number value.',
       'Answer with JSON only, no prose and no code fence: {"name": "a short name for the check", "pipeline": [the stages], "alertCondition": "Above" or "Below", "alertThreshold": a number, "explanation": "one sentence on what the pipeline counts"}.',
+      ...(data.languageLine ? [data.languageLine] : []),
       'For a rule that must never be broken, count the documents that break it and alert Above 0. Example: "orders never have a negative total" becomes {"name": "Orders with a negative total", "pipeline": [{"$match": {"total": {"$lt": 0}}}, {"$count": "value"}], "alertCondition": "Above", "alertThreshold": 0, "explanation": "Counts orders whose total is below zero."}',
       'If the sentence cannot be checked with the fields given, answer {"error": "why"}.',
     ].join("\n"),
@@ -95,6 +153,8 @@ export function buildCheckFromSentencePrompt(data: {
   schemaName: string;
   tableName: string;
   columns: Array<DataAssetColumn>;
+  // The language the person reads OneUptime in: the name and explanation are asked for in it.
+  language?: string | undefined;
 }): { system: string; user: string } {
   const sentence: string = data.sentence.trim().slice(0, MAX_SENTENCE_LENGTH);
 
@@ -102,8 +162,19 @@ export function buildCheckFromSentencePrompt(data: {
     throw new BadDataException("Say the rule the check should hold to.");
   }
 
+  const languageLine: string | null = getCheckFromSentenceLanguageLine({
+    language: data.language,
+    engine: data.engine,
+  });
+
   if (data.engine === "mongodb") {
-    return buildPipelinePrompt({ ...data, sentence });
+    return buildPipelinePrompt({
+      sentence,
+      schemaName: data.schemaName,
+      tableName: data.tableName,
+      columns: data.columns,
+      languageLine,
+    });
   }
 
   const table: string = tableReference(
@@ -130,6 +201,7 @@ export function buildCheckFromSentencePrompt(data: {
         : `- Write SQL for ${data.engine}.`,
       "- Alias the number AS value.",
       'Answer with JSON only, no prose and no code fence: {"name": "a short name for the check", "sql": "the query", "alertCondition": "Above" or "Below", "alertThreshold": a number, "explanation": "one sentence on what the query counts"}.',
+      ...(languageLine ? [languageLine] : []),
       'For a rule that must never be broken, count the rows that break it and alert Above 0. Example: "orders never have a negative total" becomes {"name": "Orders with a negative total", "sql": "SELECT COUNT(*) AS value FROM \\"public\\".\\"orders\\" WHERE \\"total\\" < 0", "alertCondition": "Above", "alertThreshold": 0, "explanation": "Counts orders whose total is below zero."}',
       'If the sentence cannot be checked with the columns given, answer {"error": "why"}.',
     ].join("\n"),
@@ -190,6 +262,7 @@ function readPipelineAnswer(answer: JSONObject): string {
 export function readCheckSuggestion(
   text: string,
   engine?: DatabaseEngine | undefined,
+  sentence?: string | undefined,
 ): DataCheckSuggestion {
   const answer: JSONObject = readJson(text);
 
@@ -227,12 +300,24 @@ export function readCheckSuggestion(
       : DataCheckAlertCondition.Above;
   const threshold: number = Number(answer["alertThreshold"]);
 
+  /*
+   * An answer that names no check is named by the rule as the person wrote
+   * it - in their own language - and only a call with no rule falls back
+   * to English words.
+   */
+  const ruleAsWritten: string = (sentence || "")
+    .slice(0, MAX_SENTENCE_LENGTH)
+    .replace(/\s+/g, " ")
+    .trim();
+
   return {
     name:
       (typeof answer["name"] === "string" ? answer["name"].trim() : "").slice(
         0,
         MAX_NAME_LENGTH,
-      ) || "Rule from a sentence",
+      ) ||
+      ruleAsWritten.slice(0, MAX_NAME_LENGTH) ||
+      "Rule from a sentence",
     customSql: sql,
     alertCondition: condition,
     alertThreshold: Number.isFinite(threshold) ? threshold : 0,
@@ -254,6 +339,8 @@ export default class DataCheckFromSentence {
     userId?: ObjectID | undefined;
     dataAssetId: ObjectID;
     sentence: string;
+    // The language the person reads OneUptime in (#7220); none, or one OneUptime is not read in, is English.
+    language?: string | undefined;
   }): Promise<DataCheckSuggestion> {
     // The project's AI switch, before any token is spent.
     await AIService.assertProjectAIEnabled(data.projectId);
@@ -293,6 +380,7 @@ export default class DataCheckFromSentence {
         schemaName: asset.schemaName || "",
         tableName: asset.name,
         columns: readDataAssetColumns(asset.columns),
+        language: data.language,
       });
     const messages: Array<LLMMessage> = [
       { role: "system", content: prompt.system },
@@ -323,7 +411,7 @@ export default class DataCheckFromSentence {
       const content: string = response.content || "";
 
       try {
-        return readCheckSuggestion(content, engine);
+        return readCheckSuggestion(content, engine, data.sentence);
       } catch (error) {
         lastError =
           error instanceof Error && error.message

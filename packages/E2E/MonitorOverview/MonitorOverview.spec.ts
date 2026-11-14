@@ -735,8 +735,11 @@ test.describe("probe checks", () => {
       "Monitor Summary",
       "Recent activity",
     ]);
+    // When this goes down (#6810) follows the open work on every monitor.
     expect(await cardTitles(sideColumn(page))).toEqual([
       "Open incidents & alerts",
+      "When this goes down",
+      "Used by",
       "Recent status changes",
       "Probes",
       "Details",
@@ -1579,8 +1582,11 @@ test.describe("other monitor families", () => {
     );
     await expect(card(page, "Probes")).toHaveCount(0);
     await expect(card(page, "Response time")).toHaveCount(0);
+    // When this goes down (#6810) follows the open work on every monitor.
     expect(await cardTitles(sideColumn(page))).toEqual([
       "Open incidents & alerts",
+      "When this goes down",
+      "Used by",
       "Recent status changes",
       "Details",
       "Linked Resources",
@@ -2225,7 +2231,14 @@ test.describe("refresh and polling", () => {
     const summaryUrl: URL = new URL(
       (await apiRequestsTo(page, "/monitor/uptime-summary/"))[0]!.url,
     );
-    expect(summaryUrl.searchParams.get("timezone")).toBe("UTC");
+    /*
+     * The zone every other time on the Dashboard is shown in (f46caf43d95):
+     * User Settings', else the browser's as moment-timezone guesses it. It
+     * reads the browser's own name only when that is longer than three
+     * letters, so this browser's UTC is guessed from its clock as
+     * Africa/Abidjan, which keeps UTC all year: the bars cut the same days.
+     */
+    expect(summaryUrl.searchParams.get("timezone")).toBe("Africa/Abidjan");
 
     // The monitor's own probe rows, not every probe in the project.
     const probeRead: RecordedModelRequest | undefined = (

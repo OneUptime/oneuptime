@@ -47,10 +47,10 @@ Em **Padrões do Monitor**, escolha o **Tipo de monitor**, com o mesmo seletor d
 
 ### Definir os critérios e o intervalo
 
-Em **Critérios**, preencha o que verificar e os critérios, como em [Criar monitor](/docs/monitor/create-monitor#critérios). O cartão **Template sync settings** no topo permite proteger campos das sincronizações (veja [Manter valores próprios de cada monitor](#manter-valores-próprios-de-cada-monitor)). Para um tipo de monitor que as sondas verificam, a última etapa, **Intervalo**, pede o **Intervalo de monitoramento**. Clique em **Criar: Modelo de monitor** na última etapa.
+Em **Critérios**, preencha o que verificar e os critérios, como em [Criar monitor](/docs/monitor/create-monitor#critérios). O cartão **Configurações de sincronização do modelo** no topo permite proteger campos das sincronizações (veja [Manter valores próprios de cada monitor](#manter-valores-próprios-de-cada-monitor)). Para um tipo de monitor que as sondas verificam, a última etapa, **Intervalo**, pede o **Intervalo de monitoramento**. Clique em **Criar: Modelo de monitor** na última etapa.
 :::
 
-O modelo é adicionado à lista. Abra-o para ver a página dele, com um cartão para cada parte: **Informações do modelo**, **Padrões do Monitor**, **Critérios de Monitoramento**, **Intervalo de monitoramento** (com **Concordância Mínima de Sondas**), **Rótulos**, **Valores padrão de campos personalizados** (quando o projeto tem campos personalizados de monitor) e **Monitores Vinculados**. Você altera cada parte no próprio cartão, por exemplo com **Editar critérios** ou **Editar intervalo**.
+O modelo é adicionado à lista. Abra-o para ver a página dele, com um cartão para cada parte: **Informações do modelo**, **Padrões do Monitor**, **Critérios**, **Intervalo de monitoramento** (com **Concordância Mínima de Sondas**), **Rótulos**, **Valores padrão de campos personalizados** (quando o projeto tem campos personalizados de monitor) e **Monitores Vinculados**. Você altera cada parte no próprio cartão, por exemplo com **Editar critérios** ou **Editar intervalo**.
 
 ## Criar monitores a partir de um modelo
 
@@ -85,22 +85,22 @@ Acesse **Monitores → Configurações → Modelos** e abra o modelo.
 
 ### Editar os critérios dele
 
-No cartão **Critérios de Monitoramento**, clique em **Editar critérios**.
+No cartão **Critérios**, clique em **Editar critérios**.
 
 ### Proteger os campos
 
-Em **Template sync settings**, marque **Do not sync this field** ao lado de cada campo que você quer manter nos monitores vinculados.
+Em **Configurações de sincronização do modelo**, marque **Não sincronizar este campo** ao lado de cada campo que você quer manter nos monitores vinculados.
 
 ### Salvar
 
-Salve as alterações. O cartão **Critérios de Monitoramento**, e a confirmação das duas sincronizações abaixo, listam os campos protegidos.
+Salve as alterações. O cartão **Critérios**, e a confirmação das duas sincronizações abaixo, listam os campos protegidos.
 
 ### Sincronizar
 
 Use **Sincronizar Critérios com Monitores Vinculados**, ou **Sincronizar a partir do Modelo** em um monitor vinculado específico.
 :::
 
-Por exemplo, proteja **Monitor destination** e **Request headers** em um modelo de API. Os monitores de produção e de staging mantêm as próprias URLs e cabeçalhos, enquanto ambos recebem os critérios atualizados do modelo e as demais configurações não protegidas.
+Por exemplo, proteja **Alvo do monitor** e **Cabeçalhos da requisição** em um modelo de API. Os monitores de produção e de staging mantêm as próprias URLs e cabeçalhos, enquanto ambos recebem os critérios atualizados do modelo e as demais configurações não protegidas.
 
 As opções disponíveis dependem do tipo de monitor. Elas incluem destinos e portas, opções de requisição HTTP, conexões de banco de dados, configurações de DNS, seletores de infraestrutura e consultas de telemetria. Credenciais relacionadas, como um certificado de cliente e a sua chave privada, são mantidas juntas.
 
@@ -159,7 +159,7 @@ Omita o array ou defina-o como `[]` para sincronizar todas as configurações de
 | Registros, Security Events, Traços, IA / LLM, Métricas, Exceções, Perfis | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor`, `profileMonitor` (toda a configuração do monitor) |
 | Status da sonda | `probeStatusMonitor.probeIds` |
 
-Os monitores de infraestrutura (Kubernetes, Docker Container, Host, Podman Container, Proxmox, Docker Swarm, Ceph, Array de armazenamento, IoT Device) oferecem o seu seletor de recursos, filtros (todos exceto Host), consultas de métricas e janela de tempo da consulta. Os nomes deles aparecem em **Template sync settings** em um modelo desse tipo.
+Os monitores de infraestrutura (Kubernetes, Docker Container, Host, Podman Container, Proxmox, Docker Swarm, Ceph, Array de armazenamento, IoT Device) oferecem o seu seletor de recursos, filtros (todos exceto Host), consultas de métricas e janela de tempo da consulta. Os nomes deles aparecem em **Configurações de sincronização do modelo** em um modelo desse tipo.
 :::
 
 ## Solução de problemas

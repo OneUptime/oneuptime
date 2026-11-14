@@ -5,7 +5,7 @@ A Port monitor checks that a host accepts TCP connections on a port, and measure
 :::cards
 - [Create the monitor](#create-a-port-monitor): Six steps in the dashboard.
 - [Connection timing](#connection-timing): What the DNS, TCP and total times measure.
-- [Monitoring criteria](#monitoring-criteria): Reachability and connection times.
+- [Criteria](#criteria): Reachability and connection times.
 - [Troubleshooting](#troubleshooting): When the service is up but the monitor says offline.
 :::
 
@@ -55,7 +55,7 @@ Click **Test Monitor**, pick a probe under **Select Probe** and click **Run Test
 
 ### Review the criteria
 
-**Monitor Criteria** starts with the [default criteria](#default-criteria): offline when the port does not accept a connection, online when it does. Change them if you need to, then click **Next**.
+The **Criteria** card starts with the [default criteria](#default-criteria): offline when the port does not accept a connection, online when it does. Change them if you need to, then click **Next**.
 
 ### Pick probes and create
 
@@ -102,7 +102,7 @@ For a host name, the probe measures the check in two phases:
 
 When the target is an IP address, there is no DNS lookup, so that phase is left out. Check results from before phase timing existed show only the total connection time.
 
-## Monitoring Criteria
+## Criteria
 
 Criteria decide when the port counts as online, degraded or offline, and whether that declares an incident or creates an alert. Each criteria checks one or more filters:
 

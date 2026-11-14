@@ -821,12 +821,17 @@ check_ingress() {
 # 10. What OneUptime says is wrong with itself
 #
 # The same checks as `npm run doctor` on Docker Compose and the "What needs
-# attention" card of Admin > OneUptime Health (GET /api/admin/health/doctor,
-# Common/Types/InstallationHealth): PostgreSQL, ClickHouse and Valkey answer,
-# the migrations, ClickHouse's disks, the queues, the version, and the server
-# setup checklist (email, HTTPS, sign-ups, SMS and calls, probes, backups,
-# update checks). Asked from inside the app pod, with the cluster key the pod
-# already holds, so the key never leaves the pod: only the findings do.
+# attention" card of Admin > OneUptime Health (Common/Types/InstallationHealth):
+# PostgreSQL, ClickHouse and Valkey answer, the migrations, ClickHouse's disks,
+# the queues, the version, and the server setup checklist (email, HTTPS,
+# sign-ups, SMS and calls, probes, backups, update checks). Asked from inside
+# the app pod, with the cluster key the pod already holds, so the key never
+# leaves the pod: only the findings do. It is a POST to
+# /api/admin/health/doctor, the key in the clusterkey header, URI-encoded as
+# every request that presents the cluster key (ClusterKeyAuthorization's
+# getClusterKey), so a key with + / = @ & % or a letter beyond ASCII is
+# accepted too; the POST changes nothing. A redirect is not followed, so the
+# key goes to no other address.
 # ---------------------------------------------------------------------------
 
 # Run with node inside the app pod. Prints one line a finding,
@@ -836,7 +841,9 @@ SERVER_FINDINGS_SCRIPT='
 const port = process.env.PORT || "3002";
 const clean = (text) => String(text || "").replace(/[|\s]+/g, " ").trim();
 fetch("http://127.0.0.1:" + port + "/api/admin/health/doctor", {
-  headers: { clusterkey: process.env.ONEUPTIME_SECRET || "" },
+  method: "POST",
+  redirect: "manual",
+  headers: { clusterkey: encodeURIComponent(process.env.ONEUPTIME_SECRET || "") },
 })
   .then(async (response) => {
     if (response.status !== 200) {

@@ -26,7 +26,7 @@ flowchart TB
 
 - Um aplicativo web cujo código você possa alterar e implantar de novo, com as dependências instaladas pelo npm.
 - As origens de onde suas páginas são servidas, por exemplo `https://app.example.com`. Uma chave Browser só aceita requisições das origens que você lista nela.
-- Uma função que possa criar chaves de ingestão: proprietários e administradores do projeto podem, assim como qualquer pessoa com a permissão **Create Telemetry Ingestion Key**.
+- Uma função que possa criar chaves de ingestão: proprietários e administradores do projeto podem, assim como qualquer pessoa com a permissão Create Ingestion Key.
 
 ## Configurar
 

@@ -72,7 +72,7 @@ These are sent from the server, each time the thing happens, with `project_id`, 
 
 ## Behaviour events
 
-These are sent from the Dashboard with `ProductEvents.send(ProductEventName.X, { ... })` (`packages/Common/UI/Utils/ProductEvents.ts`). The catalog in `packages/Common/Types/Analytics/ProductEvent.ts` lists every property an event may carry. Anything not listed is dropped before the event is sent.
+These are sent from the Dashboard with `ProductEvents.send(ProductEventName.X, { ... })` (`packages/Common/UI/Utils/ProductEvents.ts`), except `docs/feedback_given`, which the docs server sends for a docs page. The catalog in `packages/Common/Types/Analytics/ProductEvent.ts` lists every property an event may carry. Anything not listed is dropped before the event is sent.
 
 | Event | Sent when | Properties | Sent from |
 | --- | --- | --- | --- |
@@ -87,12 +87,30 @@ These are sent from the Dashboard with `ProductEvents.send(ProductEventName.X, {
 | `search/no_results` | A command palette search settles with nothing found. Only searches of 2 characters or more count, after one second, or when the palette closes on them | `source`, `query_length`, and on Cloud `query` (40 characters at most) | `DashboardCommandPalette` |
 | `ask_ai/question_asked` | Ask AI takes a question. The question itself is never sent | `is_new_conversation`, `permission_mode` | `useAiChat` |
 | `ask_ai/answer_rated` | An answer is rated, or its rating cleared | `rating` (`up`, `down`, `cleared`) | `useAiChat` |
+| `ask_ai/setup_proposed` | Ask AI proposes a setup plan on one approval card (#6829), once per answer. Never what the parts name | `parts` (`paging`, `website_monitor`, `status_page`, `status_page_monitors`, joined by a dot in the order they run), `part_count`, `permission_mode` | `useAiChat`, through `AskAiSetupEvents` |
+| `ask_ai/setup_approved` | The plan's card is answered | `parts` (the approved ones), `approved_count`, `skipped_count` | Same |
+| `ask_ai/setup_test_page_sent` | A test page is sent from under an answer that set something up | `target` (`self`, `policy`) | `AskAiTestPageOffer` |
 | `importer/opened` | "Import from another tool" is opened | `from` (`?from=` on its address, else `settings`) | `ImportFromTool` |
-| `docs/feedback_given` | "Was this page helpful?" is answered | `page`, `is_helpful` | Reserved for #6822 |
-| `guided_setup/started` | A guided setup opens: `website_down` (Know when my website or API is down, #6804) | `setup` | `GuidedSetupFrame`, through `useGuidedSetupEvents`; #6805 and #6806 add their setups to it |
-| `guided_setup/step_reached` | It moves on to a step. `website_down`'s steps are `check`, `who_is_told`, `test` and `summary` | `setup`, `step`, `step_number` | Same |
-| `guided_setup/finished` | It reaches its end: the thing works and was tested | `setup`, `seconds_taken` | Same |
+| `docs/feedback_given` | "Was this page helpful?" is answered at the foot of a docs page. Sent by the docs server, not the Dashboard: only where product analytics is set up (OneUptime Cloud), only with the reader's consent, under an id of its own for each answer and with no person profile. A self-hosted server's docs send nothing | `page` (the page's address under /docs/, without its language), `is_helpful`, `reason` for a no (`unclear`, `missing`, `wrong` or `not_found`), `edition`, `language` (the docs' language) | `DocsFeedback` (`packages/App/FeatureSet/Docs/Utils/DocsFeedback.ts`), from the page's `PageFeedback` |
+| `guided_setup/started` | A guided setup opens: `website_down` (Know when my website or API is down, #6804), `on_call` (Page the right person when something breaks, #6805), `status_page` (Publish a status page, #6806) or `telemetry` (Send logs, metrics and traces, then get alerted, #6806) | `setup` | `GuidedSetupFrame`, through `useGuidedSetupEvents` |
+| `guided_setup/step_reached` | It moves on to a step. `website_down`'s steps are `check`, `who_is_told`, `test` and `summary`; `on_call`'s are `reach_you`, `who_else`, `no_answer`, `test` and `summary`; `status_page`'s are `pick`, `review` and `summary`; `telemetry`'s are `send`, `alert` and `summary` | `setup`, `step`, `step_number` | Same |
+| `guided_setup/finished` | It reaches its end: the thing works and was tested (`on_call`: a test page of the policy acknowledged; `status_page`: a public page showing a monitor, reviewed; `telemetry`: data arrived, and a monitor watches it or the person said "not now") | `setup`, `seconds_taken` | Same |
 | `guided_setup/left` | It is left before its end | `setup`, `step`, `step_number` | Same |
+| `feedback/given` | Somebody tells OneUptime how something went (#6832): "How easy was that?" at the end of a guided setup (`kind` `setup_flow`, `topic` the setup, `score` 1 to 5), Give feedback in Help (`general`), "Was this clear?" under an explanation (`explanation`, `topic` `how_oneuptime_works` or `term.<term>`, `is_positive`) or the first-week check-in on Home (`check_in`, `is_positive`). What they wrote is never sent, only whether they wrote anything. Every answer is also kept on the server for its master admins (Admin Dashboard > Feedback), on every server | `kind`, `topic`, `score`, `is_positive`, `has_details`, `page` (the route, with no ids) | `ProductFeedback.submit` (`packages/Common/UI/Utils/ProductFeedback.ts`) |
+| `products/product_hidden` | A product is hidden in the project, on Project Settings > Products (`source` is `settings`) or with Home's **Keep hidden** (`home`) | `product` (its key, such as `kubernetes`), `source`, `has_data` | `ProductsSettings`, `HiddenProductsWithData` |
+| `products/product_shown` | A hidden product is shown again, on Project Settings > Products (`settings`) or with Home's **Show it** (`home`) | `product`, `source` | Same |
+| `products/all_products_shown` | **Show every product** on Project Settings > Products | `hidden_count` | `ProductsSettings` |
+| `products/product_pinned` | Somebody pins a product to the nav bar, from its card in the products menu (`source` is `menu`) or beside its page's title (`page`) | `product`, `source`, `pin_count` (how many they have pinned now) | `DashboardNavbar`, `ProductPinButton` |
+| `products/product_unpinned` | Somebody unpins one | `product`, `source`, `pin_count` | Same |
+| `setup_health/opened` | Setup health is opened (#6812), with how many findings of each level it shows. Whether people open it says whether a weekly email of new findings is worth sending | `source` (`?from=` on its address: `home`, `search`; else `direct`), `pages_will_not_arrive_count`, `worth_fixing_count`, `suggestion_count`, `dismissed_count` | `SetupHealthView` |
+| `setup_health/fix_opened` | The fix of a finding is opened: which findings people act on, for the one-click fixes the issue leaves for later | `check`, `level` | `SetupHealthView` |
+| `setup_health/finding_dismissed` | A finding is dismissed for everyone in the project. The reason is never sent | `check`, `has_reason` | `SetupHealthView` |
+| `setup_health/finding_restored` | A dismissed finding is restored | `check` | `SetupHealthView` |
+| `paging_ladder/saved` | A paging ladder is saved on How to Reach Me (#6820), by the person (`is_own`) or for a member. Whether people save one, and whether they replace differences, says whether the ladder is the view most people need | `is_own`, `step_count`, `replaced_card_count` (the cards that differed and now use the ladder) | `HowToReachMe` |
+| `paging_ladder/grid_opened` | Somebody opens the per-severity grid behind the ladder with "Different for Some Severities" | `is_own`, `differing_card_count` | `HowToReachMe` |
+| `used_by/list_opened` | The full list of what refers to a record is opened (#6813): a relation's "See all" on a record's Used by card, or a label's Used by on Settings > Labels. Whether people open it says whether the card's three rows are enough | `record_kind` (`monitor`, `on-call-schedule`, `service`, `status-page`, `team`, `label`), `relation` (the relation, or `all` for a label's whole list) | `UsedByDialog` |
+| `sample_project/started` | **Explore Sample Project** is pressed (#6808): a sample project is made, or the person's existing one opened again. A sample counts as no activation: it reaches no milestone, sends no `server/project_created`, and nothing done inside it sends an event but these two | `from` (`welcome`, `goals`, `home`), `is_new` | `ExploreSampleProject` |
+| `sample_project/deleted` | A sample project is deleted from its bar | `days_kept` (whole days since it was made) | `SampleProjectBar` |
 
 ### The Welcome checklist and its goals
 

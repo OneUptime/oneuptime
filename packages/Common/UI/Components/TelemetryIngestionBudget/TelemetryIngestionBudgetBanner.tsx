@@ -1,6 +1,7 @@
 import Route from "../../../Types/API/Route";
 import OneUptimeDate from "../../../Types/Date";
 import {
+  readTelemetryIngestionBudgetStatus,
   TelemetryIngestionBudgetScopeStatus,
   TelemetryIngestionBudgetSignal,
   TelemetryIngestionBudgetSignalStatus,
@@ -26,8 +27,8 @@ import React, {
  * shows above its data while the signal's ingestion budget is past its
  * warning or used up - the moment someone wonders why new data stopped
  * arriving. Nothing at all otherwise, and nothing when the status cannot be
- * read (a role that does not read usage, a network error): it is a notice,
- * never a reason for the page to fail.
+ * read (a role that does not read usage, a network error, an answer that is
+ * not a status): it is a notice, never a reason for the page to fail.
  */
 
 export const BUDGET_USED_UP: string = translationKey(
@@ -172,7 +173,13 @@ const TelemetryIngestionBudgetBanner: FunctionComponent<ComponentProps> = (
       .fetchStatus()
       .then((loaded: TelemetryIngestionBudgetStatus) => {
         if (isCurrent) {
-          setStatus(loaded);
+          /*
+           * Read again, as it came off the network: an answer that is not a
+           * status (a proxy's, an older server's, a test double's {}) is
+           * no status, which draws nothing, rather than a throw while the
+           * explorer under this banner draws.
+           */
+          setStatus(readTelemetryIngestionBudgetStatus(loaded));
         }
       })
       .catch(() => {

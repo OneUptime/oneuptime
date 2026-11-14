@@ -9,8 +9,16 @@ import React, {
   useState,
 } from "react";
 import Icon from "Common/UI/Components/Icon/Icon";
+import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import IconProp from "Common/Types/Icon/IconProp";
 import useComponentOutsideClick from "Common/UI/Types/UseComponentOutsideClick";
+import {
+  DropdownPlacement,
+  getDropdownAlignmentClassName,
+  getDropdownShiftStyle,
+  useDropdownPlacement,
+} from "Common/UI/Utils/DropdownAlignment";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   composedValue,
@@ -119,6 +127,18 @@ const NAME_WITH_STATUS: Record<ReplayTabStatus, string | null> = {
 };
 
 const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
+
+/*
+ * The picker is 28rem wide, room for a tab's name, page, opening and
+ * length on one row, and never wider than the screen between the 8px
+ * gutters every dropdown keeps (DEFAULT_DROPDOWN_VIEWPORT_MARGIN_IN_PX):
+ * 374px on a 390px phone, which useDropdownPlacement slides onto the
+ * screen wherever its button sits.
+ */
+export const REPLAY_TAB_PICKER_WIDTH_IN_PX: number = 448;
+
+export const REPLAY_TAB_PICKER_WIDTH_CLASS_NAME: string =
+  "w-[28rem] max-w-[calc(100vw-1rem)]";
 
 /*
  * The page a tab is showing: its LAST url, falling back to its first.
@@ -235,6 +255,20 @@ const ReplayTabSwitcher: FunctionComponent<ReplayTabSwitcherProps> = (
 
   const pickerButtonRef: React.RefObject<HTMLButtonElement> =
     useRef<HTMLButtonElement>(null);
+  const pickerPanelRef: React.RefObject<HTMLDivElement> =
+    useRef<HTMLDivElement>(null);
+  /*
+   * The picker hangs from the edge of its button with room for it, and
+   * slides along the line when neither edge has (a button in the middle of
+   * a phone): on a page that reads right to left as well, where its start is
+   * the button's right edge (#7098).
+   */
+  const pickerPlacement: DropdownPlacement = useDropdownPlacement({
+    isOpen: isPickerOpen,
+    anchorRef: pickerButtonRef,
+    dropdownRef: pickerPanelRef,
+    dropdownWidthInPx: REPLAY_TAB_PICKER_WIDTH_IN_PX,
+  });
   const searchRef: React.RefObject<HTMLInputElement> =
     useRef<HTMLInputElement>(null);
   const optionRefs: React.MutableRefObject<Array<HTMLButtonElement | null>> =
@@ -675,8 +709,19 @@ const ReplayTabSwitcher: FunctionComponent<ReplayTabSwitcherProps> = (
         <span className="shrink-0">
           {describeReplayTabName(tab, translator)}
         </span>
+        {/*
+         * The page is the end user's address, read left to right on every
+         * page: on an Arabic or Persian one, drawn the page's way, "/cart"
+         * came out as "cart/" (IsolatedText keeps it as written).
+         */}
         {page !== REPLAY_TAB_UNKNOWN_PAGE && (
-          <span className="max-sm:hidden max-w-[12rem] truncate sm:inline">{`${separator}${page}`}</span>
+          <span
+            data-testid="replay-tab-pill-page"
+            className="max-sm:hidden max-w-[12rem] truncate sm:inline"
+          >
+            {separator}
+            <IsolatedText text={page} />
+          </span>
         )}
         <span className="shrink-0 whitespace-nowrap">{`${separator}${describeReplayTabDuration(
           tab,
@@ -745,18 +790,34 @@ const ReplayTabSwitcher: FunctionComponent<ReplayTabSwitcherProps> = (
           <span className="shrink-0 text-xs font-medium text-gray-900">
             {describeReplayTabName(tab, translator)}
           </span>
-          <span
+          {/*
+           * The page in its own direction: "/cart" on an Arabic or Persian
+           * page too, beside the tab's name, cut short at its own end
+           * (IsolatedLine). "Unknown page" is the page's own words.
+           */}
+          <IsolatedLine
+            as="span"
+            dataTestId="replay-tab-option-page"
+            text={
+              page === REPLAY_TAB_UNKNOWN_PAGE
+                ? translator.translateText(REPLAY_TAB_UNKNOWN_PAGE) || page
+                : page
+            }
             className="min-w-0 flex-1 truncate text-xs text-gray-600"
             title={url.length > 0 ? url : undefined}
-          >
-            {page === REPLAY_TAB_UNKNOWN_PAGE
-              ? translator.translateText(REPLAY_TAB_UNKNOWN_PAGE)
-              : page}
-          </span>
+          />
           {opened !== null && (
             <span className="shrink-0 text-[11px] text-gray-500">{opened}</span>
           )}
-          <span className="shrink-0 font-mono text-[11px] tabular-nums text-gray-600">
+          {/*
+           * Words, not a clock ("1m 30s", "۳۰ ثانیه"): in the row's own
+           * font, as the strip draws them. A monospace font laid Persian
+           * and Arabic letters out one per cell, unjoined.
+           */}
+          <span
+            data-testid="replay-tab-option-duration"
+            className="shrink-0 text-[11px] tabular-nums text-gray-600"
+          >
             {describeReplayTabDuration(tab, translator)}
           </span>
           {errorCount > 0 && (
@@ -771,7 +832,7 @@ const ReplayTabSwitcher: FunctionComponent<ReplayTabSwitcherProps> = (
               )}
               className="shrink-0 rounded-full bg-rose-50 px-1.5 text-[11px] font-medium text-rose-700"
             >
-              {errorCount}
+              {translator.formatNumber(errorCount)}
             </span>
           )}
           {frustrationCount > 0 && (
@@ -786,7 +847,7 @@ const ReplayTabSwitcher: FunctionComponent<ReplayTabSwitcherProps> = (
               )}
               className="shrink-0 rounded-full bg-amber-50 px-1.5 text-[11px] font-medium text-amber-800"
             >
-              {frustrationCount}
+              {translator.formatNumber(frustrationCount)}
             </span>
           )}
           {tab.isActive && (
@@ -872,8 +933,13 @@ const ReplayTabSwitcher: FunctionComponent<ReplayTabSwitcherProps> = (
 
               {isPickerOpen && (
                 <div
+                  ref={pickerPanelRef}
                   data-testid="replay-tab-picker"
-                  className="absolute left-0 z-30 mt-1 w-[28rem] max-w-[90vw] rounded-xl border border-gray-200 bg-white p-1 shadow-lg"
+                  data-align={pickerPlacement.alignment}
+                  className={`absolute ${getDropdownAlignmentClassName(
+                    pickerPlacement.alignment,
+                  )} z-30 mt-1 ${REPLAY_TAB_PICKER_WIDTH_CLASS_NAME} rounded-xl border border-gray-200 bg-white p-1 shadow-lg`}
+                  style={getDropdownShiftStyle(pickerPlacement)}
                 >
                   <div className="p-1">
                     <input

@@ -98,6 +98,18 @@ const EMPTY_PROVIDERS: Array<PaletteSearchProvider> = [];
  */
 export const PALETTE_SEARCH_RESULT_LIMIT: number = 50;
 
+/*
+ * The palette's footer of keyboard hints: a row that wraps between hints,
+ * and hints that never break inside (their key and their words stay one
+ * piece). Every language words them its own way, some at twice the
+ * English length.
+ */
+export const COMMAND_PALETTE_FOOTER_CLASS_NAME: string =
+  "flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-gray-100 px-4 py-2";
+
+export const COMMAND_PALETTE_HINT_CLASS_NAME: string =
+  "flex items-center gap-1.5 whitespace-nowrap text-[11px] text-gray-400";
+
 type HasPendingSectionFunction = (
   sections: Array<PaletteSectionView>,
 ) => boolean;
@@ -869,12 +881,18 @@ const CommandPalettePanel: FunctionComponent<PanelProps> = (
               )}
             </div>
 
-            {/* Keyboard hints */}
+            {/*
+             * Keyboard hints. Each hint is one piece that never breaks (its
+             * keys and its words), and the row wraps between hints: in
+             * Hindi or German a phone's palette has no room for all three on
+             * one line, and words broken under their own key read as six
+             * scraps.
+             */}
             <div
               data-testid="command-palette-footer"
-              className="flex items-center gap-4 border-t border-gray-100 px-4 py-2"
+              className={COMMAND_PALETTE_FOOTER_CLASS_NAME}
             >
-              <span className="flex items-center gap-1.5 text-[11px] text-gray-400">
+              <span className={COMMAND_PALETTE_HINT_CLASS_NAME}>
                 <KeyboardShortcut
                   keys={[KeyboardKey.ArrowUp, KeyboardKey.ArrowDown]}
                   size={KeyboardShortcutSize.ExtraSmall}
@@ -882,7 +900,7 @@ const CommandPalettePanel: FunctionComponent<PanelProps> = (
                 />
                 {tx("to navigate")}
               </span>
-              <span className="flex items-center gap-1.5 text-[11px] text-gray-400">
+              <span className={COMMAND_PALETTE_HINT_CLASS_NAME}>
                 <KeyboardShortcut
                   keys={[KeyboardKey.Enter]}
                   size={KeyboardShortcutSize.ExtraSmall}
@@ -890,7 +908,7 @@ const CommandPalettePanel: FunctionComponent<PanelProps> = (
                 />
                 {tx("to select")}
               </span>
-              <span className="flex items-center gap-1.5 text-[11px] text-gray-400">
+              <span className={COMMAND_PALETTE_HINT_CLASS_NAME}>
                 <KeyboardShortcut
                   keys={[KeyboardKey.Escape]}
                   size={KeyboardShortcutSize.ExtraSmall}

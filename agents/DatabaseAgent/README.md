@@ -33,7 +33,7 @@ To add engine metrics to a database OneUptime already shows — one detected in 
 
 - Docker Engine 20.10+ with the Docker Compose v2 plugin, on a machine that can reach the database's port
 - A dedicated monitoring user on the database (see below)
-- A **OneUptime Telemetry Ingestion Key** — create one from _Project Settings → Telemetry & APM → Ingestion Keys_
+- A **OneUptime ingestion key** — create one from _Project Settings → Telemetry & APM → Ingestion Keys_
 
 ## Create a monitoring user
 
@@ -188,7 +188,7 @@ To run the agent inside Kubernetes (a Deployment next to the database, with `DAT
 | Variable | Required | Description |
 | --- | --- | --- |
 | `ONEUPTIME_URL` | Yes | Your OneUptime instance URL |
-| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Yes | Telemetry ingestion key (_Project Settings → Telemetry & APM → Ingestion Keys_) |
+| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Yes | Ingestion key (_Project Settings → Telemetry & APM → Ingestion Keys_) |
 | `DATABASE_SYSTEM` | Yes | The engine, stamped as `db.system.name`: `postgresql`, `mysql`, `mariadb`, `redis`, `valkey`, `keydb`, `dragonfly`, `mongodb`, `microsoft.sql_server`, `oracle.db`, `elasticsearch`, `opensearch` or `memcached`. install.sh accepts the usual spellings (`postgres`, `mssql`, `oracle`, …) and downloads the matching `configs/<receiver>.yaml` |
 | `DATABASE_ENDPOINT` | Yes | `host:port` the agent connects to. May be `host.docker.internal:<port>` when the agent runs on the database machine. For Elasticsearch / OpenSearch a URL, `http://host:9200` or `https://host:9200` for TLS |
 | `DATABASE_ENDPOINT_HOST` | SQL Server | `DATABASE_ENDPOINT`'s host on its own, for the SQL Server receiver (install.sh writes it) |

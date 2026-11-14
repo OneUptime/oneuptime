@@ -68,6 +68,11 @@ export enum PageSearchGate {
   Billing = "billing",
   // Monitor groups are behind a per-project feature flag.
   MonitorGroups = "monitor-groups",
+  /*
+   * The switches that turn off recording of the setup pages (#6834) are
+   * shown only where OneUptime Cloud records them.
+   */
+  DashboardRecording = "dashboard-recording",
 }
 
 // What someone must be allowed to do for an action to be offered.
@@ -507,6 +512,34 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
                 name: "Customer Support Access",
                 gate: PageSearchGate.Billing,
               },
+              {
+                name: "Recordings of Setup Pages",
+                gate: PageSearchGate.DashboardRecording,
+              },
+              {
+                name: "Record setup pages in this project",
+                gate: PageSearchGate.DashboardRecording,
+              },
+            ],
+          },
+          /*
+           * The products this project shows (#6814): found by what people
+           * call what it does - hiding what they do not use, choosing what
+           * the menu lists.
+           */
+          {
+            page: PageMap.SETTINGS_PRODUCTS,
+            title: "Products",
+            icon: IconProp.Squares,
+            keywords: [
+              "hide products",
+              "show products",
+              "hidden products",
+              "choose products",
+              "products menu",
+              "more products",
+              "customize menu",
+              "show every product",
             ],
           },
           {
@@ -568,13 +601,13 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             title: "Ingestion Keys",
             icon: IconProp.Terminal,
             keywords: [
+              // Its name before it became Ingestion Keys (#6817).
               "telemetry ingestion keys",
               "opentelemetry",
               "otel",
               "otlp",
               "send telemetry",
             ],
-            settings: ["Telemetry Ingestion Keys"],
           },
           {
             page: PageMap.SETTINGS_TELEMETRY_SETTINGS,
@@ -621,7 +654,13 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
         pages: [
           {
             page: PageMap.SETTINGS_NOTIFICATION_SETTINGS,
-            title: "Notification Settings",
+            /*
+             * Named for what it holds (#6817): the project's channel
+             * switches, the balance they are paid from and its own mail
+             * servers and Twilio accounts. Its old name, which User Settings'
+             * page keeps, still finds it.
+             */
+            title: "Notification Channels",
             icon: IconProp.Settings,
             keywords: [
               "sms",
@@ -633,9 +672,9 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "twilio",
               "balance",
               "auto recharge",
+              "notification settings",
             ],
             settings: [
-              "Notification Channels",
               { name: "Current Balance", gate: PageSearchGate.Billing },
               { name: "Auto Recharge", gate: PageSearchGate.Billing },
             ],
@@ -968,6 +1007,38 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
     ],
   },
   {
+    /*
+     * The pages under Home: Setup health, what is misconfigured in the
+     * project (#6812), which no menu links to - Home's "Needs attention"
+     * does - so Search finds it by name and by what people ask.
+     */
+    id: "home",
+    title: "Home",
+    productPage: PageMap.HOME,
+    icon: IconProp.Home,
+    iconColor: "slate",
+    sections: [
+      {
+        pages: [
+          {
+            page: PageMap.HOME_SETUP_HEALTH,
+            title: "Setup Health",
+            icon: IconProp.Wrench,
+            keywords: [
+              "misconfigured",
+              "is my setup ok",
+              "setup check",
+              "health check",
+              "nobody is paged",
+              "what is broken",
+              "configuration problems",
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  {
     id: "monitors",
     title: "Monitors",
     productPage: PageMap.MONITORS,
@@ -977,7 +1048,14 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
       {
         title: "Monitors",
         pages: [
-          allListPage(PageMap.MONITORS, "All Monitors"),
+          {
+            ...allListPage(PageMap.MONITORS, "All Monitors"),
+            /*
+             * A monitor's Criteria were its "Monitor Criteria" (#6817): a
+             * page of each monitor, one click from the list.
+             */
+            keywords: ["monitor criteria", "monitoring criteria"],
+          },
           /*
            * The guided setup (#6804): an address, who is told and a test
            * page on one page. Found by what people come to do.
@@ -1439,7 +1517,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
   },
   {
     id: "on-call-duty",
-    title: "On-Call Duty",
+    title: "On-Call",
     productPage: PageMap.ON_CALL_DUTY,
     icon: IconProp.Call,
     iconColor: "stone",
@@ -1457,7 +1535,33 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "escalation rules",
               "paging policy",
               "pager",
+              /*
+               * One policy, by its name: "on-call policy" also starts the
+               * schedules' old name below, and finds the policies first.
+               */
+              "on-call policy",
               "create on-call policy",
+              // Its name before On-Call Duty became On-Call (#6817).
+              "on-call duty policies",
+            ],
+          },
+          /*
+           * The guided setup (#6805): how you are reached, who else is on
+           * call, what if nobody answers and a test page, on one page.
+           * Found by what people come to do.
+           */
+          {
+            page: PageMap.ON_CALL_DUTY_GUIDED_SETUP,
+            title: "Page the right person when something breaks",
+            icon: IconProp.Call,
+            keywords: [
+              "guided setup",
+              "get paged",
+              "page me by phone",
+              "sms",
+              "phone call",
+              "escalate",
+              "set up on-call",
             ],
           },
           {
@@ -1482,6 +1586,9 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "shifts",
               "who is on call",
               "create on-call schedule",
+              // Its names before On-Call Duty became On-Call (#6817).
+              "on-call duty schedules",
+              "on-call policy schedules",
             ],
           },
           {
@@ -1541,7 +1648,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
         pages: [
           {
             page: PageMap.ON_CALLDUTY_USER_TIME_LOGS,
-            title: "User On Call Time",
+            title: "User On-Call Time",
             icon: IconProp.Clock,
             keywords: ["on-call hours", "time report"],
           },
@@ -1578,6 +1685,22 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             title: "All Status Pages",
             icon: IconProp.CheckCircle,
             keywords: ["create status page", "public status page"],
+          },
+          /*
+           * The guided setup (#6806): a name, the monitors it shows and what
+           * customers see, on one page. Found by what people come to do.
+           */
+          {
+            page: PageMap.STATUS_PAGES_GUIDED_SETUP,
+            title: "Publish a status page",
+            icon: IconProp.CheckCircle,
+            keywords: [
+              "guided setup",
+              "get started",
+              "status page setup",
+              "show uptime to customers",
+              "public status",
+            ],
           },
         ],
       },
@@ -1624,12 +1747,24 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
       {
         title: "Overview",
         pages: [
-          allListPage(PageMap.SCHEDULED_MAINTENANCE_EVENTS, "All Events"),
+          {
+            ...allListPage(
+              PageMap.SCHEDULED_MAINTENANCE_EVENTS,
+              "All Maintenance Events",
+            ),
+            // Its names before a record became a maintenance event (#6817).
+            keywords: [
+              "all events",
+              "scheduled maintenance events",
+              "scheduled events",
+            ],
+          },
           {
             page: PageMap.ONGOING_SCHEDULED_MAINTENANCE_EVENTS,
-            title: "Ongoing Events",
+            title: "Ongoing Maintenance Events",
             icon: IconProp.Clock,
-            keywords: ["maintenance in progress"],
+            // "ongoing events" was its name (#6817).
+            keywords: ["maintenance in progress", "ongoing events"],
           },
         ],
       },
@@ -1679,15 +1814,17 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
         pages: [
           {
             page: PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_STATE,
-            title: "Event State",
+            title: "Maintenance State",
             icon: IconProp.ArrowCircleRight,
-            keywords: ["maintenance states"],
+            // "event state" was its name (#6817).
+            keywords: ["maintenance states", "event state"],
           },
           {
             page: PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_TEMPLATES,
-            title: "Event Templates",
+            title: "Maintenance Templates",
             icon: IconProp.Template,
-            keywords: ["maintenance templates"],
+            // "event templates" was its name (#6817).
+            keywords: ["event templates"],
           },
           {
             page: PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NOTE_TEMPLATES,
@@ -1984,19 +2121,26 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
   },
   {
     id: "profiles",
-    title: "Performance Profiles",
+    title: "Profiles",
     productPage: PageMap.PROFILES,
     icon: IconProp.Fire,
     iconColor: "red",
     sections: [
       {
-        title: "Profiler",
+        title: "Profiles",
         pages: [
           {
             page: PageMap.PROFILES,
             title: "Overview",
             icon: IconProp.Bolt,
-            keywords: ["flame graph", "cpu profiling"],
+            keywords: [
+              "flame graph",
+              "cpu profiling",
+              // Its names before they became Profiles (#6817).
+              "performance profiles",
+              "profiler",
+              "continuous profiling",
+            ],
           },
           {
             page: PageMap.PROFILES_INSIGHTS,
@@ -2052,6 +2196,8 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             page: PageMap.EXCEPTIONS,
             title: "Exceptions",
             icon: IconProp.Alert,
+            // Its name in the docs before it became Exceptions (#6817).
+            keywords: ["exception tracking"],
           },
           {
             page: PageMap.EXCEPTIONS_OVERVIEW,
@@ -3002,7 +3148,32 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
     sections: [
       {
         title: "Services",
-        pages: [allListPage(PageMap.SERVICES, "All Services")],
+        pages: [
+          {
+            ...allListPage(PageMap.SERVICES, "All Services"),
+            // Its names before it became Services (#6817).
+            keywords: ["service catalog", "telemetry services"],
+          },
+          /*
+           * The guided setup (#6806): the OpenTelemetry guide, the first
+           * data, and recommended alerts on it, on one page.
+           */
+          {
+            page: PageMap.SERVICES_GUIDED_SETUP,
+            title: "Send logs, metrics and traces, then get alerted",
+            icon: IconProp.Logs,
+            keywords: [
+              "guided setup",
+              "get started",
+              "opentelemetry",
+              "send telemetry",
+              "send logs",
+              "send traces",
+              "send metrics",
+              "telemetry alert",
+            ],
+          },
+        ],
       },
       ...resourceSettingsSections({
         ownerRules: PageMap.SERVICE_SETTINGS_OWNER_RULES,
@@ -4097,9 +4268,18 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
           },
           {
             page: PageMap.USER_SETTINGS_ON_CALL_RULES,
-            title: "On-Call Rules",
+            title: "How to Reach Me",
             icon: IconProp.BellRinging,
-            keywords: ["how i get paged", "my notification rules"],
+            // Its old names find it still (#6817).
+            keywords: [
+              "on-call rules",
+              "personal on-call rules",
+              "how i get paged",
+              "my notification rules",
+              "paging ladder",
+              "escalation order",
+              "call after minutes",
+            ],
           },
           {
             page: PageMap.USER_SETTINGS_NOTIFICATION_SETTINGS,
@@ -4198,8 +4378,30 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             page: PageMap.USER_PROFILE_OVERVIEW,
             title: "Overview",
             icon: IconProp.Info,
-            keywords: ["my profile", "profile", "my name", "my email"],
-            settings: ["Basic Info", "Full Name", "Timezone"],
+            keywords: [
+              "my profile",
+              "profile",
+              "my name",
+              "my email",
+              "feedback",
+              "survey",
+              "stop asking",
+            ],
+            settings: [
+              "Basic Info",
+              "Full Name",
+              "Timezone",
+              "Feedback Questions",
+              "Ask me how things went",
+              {
+                name: "Recordings of Setup Pages",
+                gate: PageSearchGate.DashboardRecording,
+              },
+              {
+                name: "Record how I use setup pages",
+                gate: PageSearchGate.DashboardRecording,
+              },
+            ],
           },
           {
             page: PageMap.USER_PROFILE_PICTURE,

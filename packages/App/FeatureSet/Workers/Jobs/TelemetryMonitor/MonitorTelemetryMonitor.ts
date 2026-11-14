@@ -246,9 +246,12 @@ export const enqueueDueTelemetryMonitorEvaluationJobs: () => Promise<void> =
         /*
          * Not a project a master admin blocked: its monitors wait, due, until
          * it is unblocked (MonitorResource refuses any that slip through).
+         * Nor a sample project (issue #6808), whose monitors are never
+         * checked.
          */
         project: {
           isBlocked: false,
+          isSampleProject: false,
         },
       },
       props: {

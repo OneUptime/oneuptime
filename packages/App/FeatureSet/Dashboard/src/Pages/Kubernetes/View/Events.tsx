@@ -58,6 +58,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * A CLUSTER'S EVENTS PAGE.
@@ -462,10 +463,10 @@ const KubernetesClusterEvents: FunctionComponent<
               className="h-4 w-4 shrink-0 text-red-500"
             />
             <span>
-              {translator.translateTemplate(
-                "Couldn't refresh — showing previously loaded data. {{error}}",
-                { error: error },
-              )}
+              <ErrorSentence
+                template="Couldn't refresh — showing previously loaded data. {{error}}"
+                error={error}
+              />
             </span>
           </div>
         ) : (

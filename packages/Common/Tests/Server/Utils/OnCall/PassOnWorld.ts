@@ -40,6 +40,10 @@ import PositiveNumber from "../../../../Types/PositiveNumber";
 import UserNotificationEventType from "../../../../Types/UserNotification/UserNotificationEventType";
 import UserNotificationExecutionStatus from "../../../../Types/UserNotification/UserNotificationExecutionStatus";
 import { FakeRow, matchesQuery } from "./OnCallResolverTestHarness";
+import {
+  UpdateOneByInput,
+  updateNotificationWhileStill,
+} from "../../TestingUtils/OnCallTimelineRows";
 
 /*
  * AN ON-CALL POLICY'S RUN, IN MEMORY, DRIVEN THROUGH THE REAL CODE.
@@ -530,18 +534,36 @@ export default class PassOnWorld {
       },
     );
 
+    /*
+     * A notification is written as OnCallNotificationStatus writes it: read
+     * as it is, then updated only while it still holds the status and the
+     * version read.
+     */
+    const deliveryById: (id: unknown) => UserOnCallLogTimeline | undefined = (
+      id: unknown,
+    ): UserOnCallLogTimeline | undefined => {
+      return this.deliveries.find((row: UserOnCallLogTimeline) => {
+        return sameKey(row._id, id);
+      });
+    };
+
     this.spy(
       UserOnCallLogTimelineService,
-      "updateOneById",
-      async (data: { id: ObjectID; data: Partial<UserOnCallLogTimeline> }) => {
-        const delivery: UserOnCallLogTimeline | undefined =
-          this.deliveries.find((row: UserOnCallLogTimeline) => {
-            return sameKey(row._id, data.id);
-          });
+      "findOneById",
+      async (data: { id: ObjectID }) => {
+        return deliveryById(data.id) || null;
+      },
+    );
 
-        if (delivery) {
-          merge(delivery, data.data);
-        }
+    this.spy(
+      UserOnCallLogTimelineService,
+      "updateOneBy",
+      async (data: UpdateOneByInput) => {
+        const delivery: UserOnCallLogTimeline | undefined = deliveryById(
+          data.query["_id"],
+        );
+
+        return delivery ? updateNotificationWhileStill(delivery, data) : 0;
       },
     );
   }

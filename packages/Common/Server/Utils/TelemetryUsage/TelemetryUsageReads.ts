@@ -403,7 +403,8 @@ export default class TelemetryUsageReads {
    * Every project's usage over a range, for the instance admin: one page of
    * the projects that sent anything, in the order asked for (the heaviest
    * first by default), with the instance-wide totals beside it. A project
-   * that has been deleted is left out.
+   * that has been deleted is left out, and so is a sample project (issue
+   * #6808), which is in nobody's usage.
    */
   @CaptureSpan()
   public static async getUsageByProject(data: {
@@ -416,7 +417,7 @@ export default class TelemetryUsageReads {
   }): Promise<TelemetryProjectUsagePage> {
     const rows: Array<ProjectSumRow> =
       await TelemetryUsageReads.query<ProjectSumRow>(
-        `SELECT u."projectId"::text AS "projectId", p."name" AS "projectName", u."productType" AS "productType", ${getSignalSumsSql("u.")} FROM ${TABLE} u INNER JOIN "Project" p ON p."_id" = u."projectId" AND p."deletedAt" IS NULL WHERE u."createdAt" >= $1 AND u."createdAt" < $2 AND u."deletedAt" IS NULL GROUP BY 1, 2, 3`,
+        `SELECT u."projectId"::text AS "projectId", p."name" AS "projectName", u."productType" AS "productType", ${getSignalSumsSql("u.")} FROM ${TABLE} u INNER JOIN "Project" p ON p."_id" = u."projectId" AND p."deletedAt" IS NULL AND p."isSampleProject" = false WHERE u."createdAt" >= $1 AND u."createdAt" < $2 AND u."deletedAt" IS NULL GROUP BY 1, 2, 3`,
         [data.window.start, data.window.end],
       );
 

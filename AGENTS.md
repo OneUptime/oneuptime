@@ -1,227 +1,71 @@
-This is a local development server hosted at HOST env variable (please read config.env file). This project is hosted on docker compose for local development. When you make any changes to the codebase the container hot-reloads. Please make sure you wait for it to restart to test. If you need access to the database during development, credentials are in config.env file.
+## Local development
 
-Things to keep in mind while developing:
+- OneUptime runs locally under Docker Compose, served at the `HOST` set in `config.env` (copied from `config.example.env`). Database credentials are in `config.env` too.
+- Containers hot-reload when you change code. Wait for the restart before you test.
 
-Do not worry about circular dependencies. All the import should be on the top of the file.
+## Writing code
+
+- Put every import at the top of the file. Don't worry about circular dependencies.
 
 ### Keep OneUptime simple to use
 
-OneUptime should be as simple as possible to use. Every UI change must be easy for people to understand and must look great. Show what most people need first, with sensible defaults, and hide advanced settings away - for example in a folded Advanced section - so nobody faces decision paralysis (choice paralysis) when they set something up.
+Every UI change must be easy to understand and must look great. Show what most people need first, with sensible defaults, and fold advanced settings away (for example into a collapsed Advanced section) so nobody faces choice paralysis.
 
 Before you build or change a page, a form, a dialog, a menu or the words on one, read the UX rulebook, [Docs/ux/README.md](Docs/ux/README.md): every rule, with the guard test that enforces it. A new UX guard starts with `// UX rule: Docs/ux/README.md#<section>` and its rule goes in that section (`UxRulebookInStep` fails otherwise).
 
 ### Migrations
 
-#### Postgres
+Before you change a database model or write a migration, read the migration guide, [Docs/migrations/README.md](Docs/migrations/README.md). 
 
-If you are doing any postgres migration. Please do not write migraton code manually, run npm run generate-postgres-migration instead.
 
-After generating the migration file, you MUST also register it in `packages/Common/Server/Infrastructure/Postgres/SchemaMigrations/Index.ts` — add the import at the top and append the class to the default export array. The migration will not run on app startup until it is registered there.
+## After you make a change
 
-CI enforces this. The "Postgres Schema Drift" workflow migrates an empty database with every registered migration and then generates a migration against the result; anything it can still generate is drift and fails the job. Run the same check locally with `npm run check-postgres-schema-drift` — it prints the exact statements that are missing.
-
-If the generated migration builds an index (`CREATE INDEX`) or adds a foreign key (`ALTER TABLE ... ADD CONSTRAINT ... FOREIGN KEY`) on a table that already exists, those statements block the table's writers for the whole scan. Move them into a migration of their own with `public transaction: boolean = false;` and pass each one, exactly as generated, to `OnlineDdl.createIndex` / `OnlineDdl.addForeignKey` (`packages/Common/Server/Infrastructure/Postgres/OnlineDdl.ts`), which build it online. The `SchemaMigrationsOnlineDdl` test enforces this for new migrations.
-
-#### Clickhouse
-
-Clickhouse migrations are written manually. Please write the migration code in DataMigrations and follow the same pattern as other migrations.
-
-### Feed and chat Markdown
-
-Feed items and Slack / Microsoft Teams messages are Markdown with people's text in them: names, titles, labels, rule names. Write that Markdown with the `mdText` tag from `packages/Common/Utils/Markdown/FeedMarkdown.ts`. It escapes every value for where it sits (a sentence, a link's words or address, a code span, a table row, the start of a line), and places a `MarkdownText` (built with `mdText` or a `FeedMarkdown` helper) as it is, so nothing is escaped twice.
-
-- Join pieces with `FeedMarkdown.join` / `bulletList` / `numberedList`, not `Array.join` or `+`, and never turn a `MarkdownText` into a string to place it again.
-- Markdown a person wrote goes in with `FeedMarkdown.asMarkdown`, OneUptime AI's with `FeedMarkdown.aiWritten` (`aiWrittenForTeams` for the Teams bot), and text from outside OneUptime with `FeedMarkdown.writtenOutside` / `reportedValue`.
-- Only `packages/Common/Utils/Markdown/` imports `MarkdownEscape` or `UntrustedMarkdown`.
-
-`FeedAndChatPlainTextEscapedGuard` (packages/Common/Tests/Server/Services) enforces this for every feed and chat sink, including `ee/Server`.
-
-### Megabyte-long values
-
-A synthetic monitor's screenshot reaches descriptions and emails as base64 of several megabytes on one line. Do not run a regular expression with a quantifier over a value that long. V8 backtracks on a stack that can grow with every character a quantifier takes, and a process that has been running a while compiles regular expressions without optimization, so they run out of stack ("Maximum call stack size exceeded") on about three megabytes - in production, and in a CI test worker that has already run many test files. Scan such a value with a loop or `indexOf` (`isBase64` in `packages/Common/Utils/Markdown/InlineImageDataUri.ts`), and keep it out of the Markdown parser: `holdBackBase64Data` (`packages/Common/Utils/Markdown/Base64Data.ts`) holds a screenshot's data back from marked (`Markdown.holdBackFromMarked`) and from remark (`MarkdownViewerOverLongText.ts`) alike. Read as Markdown, base64 is one long word of punctuation that the slow-Markdown measure below holds back as text - the Dashboard showed a description with a screenshot as text (#6010). `ScreenshotEmailInLongRunningProcess.test.ts` (packages/Common/Tests/Server/Utils/Mail) runs the screenshot-in-email path under `node --no-regexp-optimization`, the state such a process reaches; test new code that handles these values the same way.
-
-Any text a notification carries can be that long: a response body or a log a description template places, a log pasted into a note - megabytes on one line, or a paragraph of a hundred thousand lines. Markdown parsers (marked for emails, remark for the Dashboard and for slackify) read lines and paragraphs with regular expressions or in time that grows with their square, so:
-
-- Before a parser reads such Markdown, hold back what is too long with `packages/Common/Utils/Markdown/OverLongText.ts` (`holdBackOverLongText`: the middle of every line over 64 KB, the plain lines of every run of lines over 64 KB) and write it back, escaped, where the parser put the token - as the email renderer (`Markdown.holdBackFromMarked`) and `MarkdownViewer` (`MarkdownViewerOverLongText.ts`) do. Markdown of at most 64 KB holds back nothing and renders exactly as before.
-- A token in an image's or link's address does not survive remark-rehype, which percent-encodes it: the viewer puts addresses back in the Markdown tree first (`remarkPutBackHeldUrls`). remark-rehype also copies a link reference definition's address and title into every reference to it, so what is put back there is limited in all (`MAX_HELD_TEXT_IN_REFERENCES`): a 3 MB screenshot defined once and referenced 200 times is 600 MB of HTML. marked does the same for an email, where the copies of addresses put back at most `MAX_EMAIL_HELD_TEXT_IN_REFERENCES` (8 MiB) per field, a copy of a held-back title none, and an address an email cannot keep (a `data:` link) nothing (`Markdown.withHeldDataInUrls`, #6481).
-- When too much is still left - long tables, logs whose lines hold a `|`, a `<` or a backtick - show the text as written: an email field with more than `MAX_MARKED_EMAIL_MARKDOWN_LENGTH` (1 MiB) left, or a RangeError from marked, is sent as escaped text; the viewer shows more than `MAX_PARSED_MARKDOWN_LENGTH` (128 KB) as text.
-- A regular expression that can cross lines gets a bounded quantifier (`{0,65536}`, as in `Markdown.convertToPlainText`), and a step that only needs a loop uses one.
-- Chat messages are cut before any converter reads them, ending with a note: Slack at `SlackUtil.MARKDOWN_MAX_LENGTH` (`cutMarkdown`), Teams to an 80 KB message (`MicrosoftTeamsMessageSize.fitMarkdownText`).
-- Every converter of notification text renders in time linear in its input, whatever its shape. marked, remark and slackify read some shapes in quadratic time far below 64 KB - emphasis, brackets or code spans that never close, a long word of punctuation, a `_` inside words for remark, long tables and lists - and 64 KB of one took from seconds to over a minute. Before a parser reads Markdown longer than 2 KB, `packages/Common/Utils/Markdown/SlowMarkdown.ts` (`holdBackSlowMarkdown`) measures its blocks in one pass and holds back the costly ones whole, written back as text, with each parser's limits (`EMAIL_SLOW_MARKDOWN_LIMITS`, `VIEWER_SLOW_MARKDOWN_LIMITS`, `SlackUtil.SLOW_MARKDOWN_LIMITS`). A new converter does the same; a new slow shape gets counted in `getInlineCharacterCount` or `getWordPunctuationWork`, and a timed entry in the suite below.
-- Every message is held to what its channel takes, measured as it is sent, and a cut one ends with "… (truncated — see OneUptime for the full text)": an email field to `MAX_EMAIL_FIELD_HTML_BYTES` and a whole email to `MAX_EMAIL_BYTES` (`Server/Utils/Mail/EmailSize.ts`; the note links to the record), a Teams card to its channel's budget (`MicrosoftTeamsMessageSize.fitAdaptiveCard`, `MICROSOFT_TEAMS_INCOMING_WEBHOOK_BUDGET_IN_BYTES`), and SMS, call, push, WhatsApp, Telegram and Discord messages to their providers' limits (`Utils/MessageFit.ts`, `TelegramMessageFit.ts`, `WhatsAppTemplateFit.ts`). A new channel or sender is held the same way.
-
-`HugeTextInLongRunningProcess.test.ts` (packages/Common/Tests/Server/Types) runs every converter - email, plain text, Slack, Teams, the Dashboard viewer, feed text - on sixteen megabytes under `node --no-regexp-optimization`, and on 64 KB of every shape that was slow, each held to a time budget; a new converter of notification text belongs there too.
-
-### Emails load nothing from outside the installation
-
-An email is read wherever its reader is - on a network without the internet, behind a mail gateway that flags remote images - and every image it fetches tells whoever serves it who opened the email, and when (issue #5124: every email's header loaded its logo from res.cloudinary.com). So an email's own markup loads nothing it does not carry: an image is either inside the email - OneUptime's logo (`oneUptimeLogoUrl`, `packages/Common/Server/Utils/Mail/EmailLogo.ts`) and screenshots go out as inline attachments the HTML points at by Content-ID (`EmailInlineImages.ts`) - or an address the installation builds on its own host and hands the template (a logo its operator uploaded). Just before an email is sent, a logo an operator uploaded - the installation's own, a status page's - goes inside the email in place of that address when it is a PNG, JPEG or GIF of at most 512 KB (`EmailCarriedLogos.ts`; the readers are `getCarriedProductLogo` in App's EmailBranding and `StatusPageCarriedLogo`, which the notification service registers when it starts); any other keeps its address. Never a CDN, a web font, a tracking pixel or any other address a template or the code that writes email markup spells out; the only host a template names is `oneuptime.com`, in the footer's link of an installation that is not renamed. `OfflineAssetHygiene.test.ts` (packages/Common/Tests/Server/Utils) reads every email template, in any format, and every string of the code that writes email markup; `EmailsLoadNothingFromOutside.test.ts` (packages/App/Tests/Notification) renders and sends every template on every transport.
-
-### After you make a change.
-
-Do not lint the entire project. Only lint the files you have modified by passing their paths explicitly to `npx eslint --fix` from the root. Do not run `npm run lint`, `npm run fix-lint`, or `npm run fix`, as these commands lint the entire project.
-
-Please run "npm run compile" in projects that you made changes to make sure compile works.
+- Lint only the files you changed, by passing their paths to `npx eslint --fix` from the repository root. Never run `npm run lint`, `npm run fix-lint` or `npm run fix`: they lint the whole project.
+- Run `npm run compile` in every package you changed.
+- Commit often, in small commits of logically related changes with messages that say why: they make a bug easier to trace and cost less when a session is interrupted.
 
 ### Tests
 
-Please write extensive tests for your changes. If you are adding a new feature, please write unit tests and integration tests. If you are fixing a bug, please write a regression test.
+- Write extensive tests: unit and integration tests for a new feature, a regression test for a bug fix.
+- Run only the tests relevant to your change: the ones you added or changed, and the ones that read or scan the files you changed (search the test folders for those files' paths and names). Never run whole test folders or packages (such as `packages/App/Tests/Dashboard`, `packages/Common/Tests/UI`, `packages/App/Tests/FeatureSet/Docs` or the `packages/Home` tests), and don't re-run them after merging `main` into your branch. CI runs everything, and failures on `main` are fixed together there.
+- Helm charts (`HelmChart/Public/oneuptime`, the product; `HelmChart/Public/kubernetes-agent`, the Kubernetes agent): `npm run test-helm-chart` runs their helm-unittest tests, and `npm run test-helm-chart-all` adds lint and the KinD-cluster suites in `HelmChart/Tests/suites` ([HelmChart/README.md](HelmChart/README.md) says how to add one). The agent chart writes the OpenTelemetry collector configuration, where a mistake shows up as wrong data rather than a failed deploy: cover a change there with a render assertion.
 
-There are a lot of tests in the app, please do not run all of them, run only the tests that are relevant to your changes. Running all the tests is a waste of time and resources. We run all the tests in CI, so you can be sure that your changes are not breaking anything. Only run test suites relevant to your changes.
-
-Do not run whole test folders or packages - for example all of `packages/App/Tests/Dashboard`, `packages/Common/Tests/UI`, `packages/App/Tests/FeatureSet/Docs` or the `packages/Home` tests - and do not re-run them after merging main into your branch. CI runs them on main, and failures there are fixed together on main. Run the tests you added or changed, and the tests that read or scan the files you changed (search the test folders for those files' paths and names).
-
-Property tests, fuzz sweeps and generated fixtures draw their pseudo-random inputs from `seededRandom(seed)` in `packages/Common/Tests/Helpers/SeededRandom.ts` (`random()` is a fraction, `random(limit)` a whole number below the limit), and texts made of an alphabet's pieces from `generatedTexts` in `packages/Common/Tests/Helpers/GeneratedTexts.ts`, so every run draws the same inputs and a failure can be run again. Shuffle with `shuffled(items, random)` from the same file. Do not write a generator of your own: the copies of `state * 1103515245 + 12345` the tests used to carry repeated within a few thousand draws, and `SeededRandomGuard.test.ts` fails a test file that rolls one of the kinds they carried (an LCG, mulberry32, xorshift).
-
-### Follow-ups
-
-File an issue only for something that is broken; everything else goes in the pull request's description. Between 6 and 11 November 2026 agents filed 463 `follow-up` issues and finished 100 of them. Each finished one filed about 1.7 new ones, and 141 were follow-ups of follow-ups, up to eight deep, so the list could only grow.
-
-- Fix it in this pull request when your change caused it or exposed it, or when it is small and in code you are already changing.
-- File an issue only for something broken that is too big to fix here: a page that errors or shows wrong data, an action that fails or does the wrong thing, a notification that is not sent, a security or data-loss problem, or a red `main`. One problem per issue, labels `follow-up` and `bug`, a title under 80 characters, and a body of a few lines: what is broken, where, how to see it, and the pull request that found it. Whoever picks it up reads that pull request.
-- Everything else is one line under "Not done" in the pull request's description, not an issue: wording, translations, layout, tests beyond your change, docs, a wider scope, a better way to do something. The pull request is the record, and a maintainer turns a line into an issue when it is worth one.
-- File at most one follow-up issue per pull request. A red `main` or a security or data-loss problem always gets its own.
-- When your task is itself a follow-up (its issue has the `follow-up` label), file no follow-up issues, except for a red `main` or a security or data-loss problem.
-- When you are asked to do the follow-ups too, that means the broken ones; list the rest under "Not done".
-- Do not open an epic to hold follow-ups. An epic ends when its own work ships.
-
-### Helm chart
-
-Two charts are published: the product itself in `HelmChart/Public/oneuptime`, and the
-Kubernetes agent in `HelmChart/Public/kubernetes-agent`. Both have cluster-free unit tests
-in their own `tests/` directory (helm-unittest); run them with `npm run test-helm-chart`
-(it installs the plugin for you through the runner, or install it yourself with
-`helm plugin install https://github.com/helm-unittest/helm-unittest`).
-
-The agent chart writes the OpenTelemetry collector configuration, which decides what
-resource attributes ingest actually sees — so a mistake there surfaces as wrong data
-rather than as a failed deploy. Prefer a render assertion over a careful reading.
-
-`npm run test-helm-chart-all` runs every chart test — lint, those unit tests, and the
-cluster-backed suites that install the chart on a throwaway KinD cluster. That is the
-`helm-test` job in the "Common Jobs" workflow. Suites live in `HelmChart/Tests/suites`;
-see `HelmChart/README.md` for how to add one.
-
-### Releasing OneUptime
-
-Releases go through a release branch: `release-<version>` is cut from `main` and bumped, its pull request into
-`release` is the release's CI gate, every red check is fixed in that branch and the branch is merged into `main`
-after every push (`Scripts/Release/MergeReleaseBranchIntoMain.sh`), the branch is merged into `release` once green
-and into `main` once more, and the release run is followed until OneUptime has shipped. The next release is cut
-when `main` has pull requests the last one did not ship. While a release is in flight, `Scripts/Release/PrioritizeReleaseRuns.sh` cancels
-every other workflow run so the release has the runners. [RELEASING.md](RELEASING.md) has every step and command.
+## Pull requests
 
 ### Release notes
 
-Each release's notes on GitHub, which the upgrade guide sends self-hosters to and the website links to as the Changelog, are written by `Scripts/Release/GenerateReleaseNotes.js` from what the release ships: the title of every pull request and the subject of every commit pushed straight to main. So a title is a line someone reads on the release page. Write it as `type(area): what changed, for the person using OneUptime`, not what the code does.
+`Scripts/Release/GenerateReleaseNotes.js` writes each release's notes from the title of every pull request it ships (and the subject of every commit pushed straight to `main`), so a title is a line people read on the release page. Write it as `type(area): what changed, for the person using OneUptime`, not what the code does.
 
-- `feat`, `fix`, `perf` and `docs` each have a section. `test`, `ci`, `chore`, `refactor`, `style` and `build` go under Maintenance, which is folded, and so does anything in an area of the repository rather than the product (`fix(ci): ...`; `INTERNAL_AREAS` in the script).
-- The scope is the area the line is filed under: use the product's name (`exceptions`, `on-call`, `status-pages`). A title with no type can open with its area instead (`Workflows: every template in five steps`); it goes under New and improved.
-- A `!` after the type or scope (`feat(helm)!: ...`) puts the change under Breaking changes, at the top. Use it whenever an upgrade asks something of the person upgrading.
-- A label wins over a title (`bug`, `enhancement`, `documentation`, `dependencies`), and `ignore` leaves a pull request out.
+- `feat`, `fix`, `perf` and `docs` each get a section. `test`, `ci`, `chore`, `refactor`, `style` and `build`, and areas of the repository rather than the product (`fix(ci): ...`; `INTERNAL_AREAS` in the script), go under the folded Maintenance section.
+- The area is the product's name (`exceptions`, `on-call`, `status-pages`). A title with no type can open with its area instead (`Workflows: every template in five steps`) and lands under New and improved.
+- A `!` after the type or scope (`feat(helm)!: ...`) lists the change under Breaking changes, at the top. Use it whenever an upgrade asks something of the person upgrading.
+- A label wins over the title (`bug`, `enhancement`, `documentation`, `dependencies`), and `ignore` leaves a pull request out.
 
-To see a release's notes, or write a published release's again:
+### Follow-ups
 
-```bash
-GH_TOKEN=$(gh auth token) node Scripts/Release/GenerateReleaseNotes.js --version 14.0.98 --output notes.md
-gh release edit 14.0.98 --notes-file notes.md
-```
+File a GitHub issue for anything you notice outside your current task:
 
-With `--to main` and no `--version`, it shows what the next release will say.
+- A bug: labels `follow-up` and `bug`.
+- Something that should be improved: labels `follow-up` and `enhancement`.
 
-### Mobile app releases
+When your current task is done, fix the bug follow-ups you filed, then the important enhancement ones, in pull requests separate from your current one. Enhancement follow-ups that aren't important can stay open as issues.
 
-Before building or publishing the Android or iOS app, read
-[packages/MobileApp/RELEASING.md](packages/MobileApp/RELEASING.md). It contains the existing store and
-Expo identifiers, the verified release procedure, privacy checks, and the steps
-needed after uploading a binary to actually submit and publish the update.
+### Changing AGENTS.md
 
-### Slack and Microsoft Teams app releases
+Change AGENTS.md only in a pull request of its own, never alongside other work. Put `UPDATE AGENTS.md` in its title (`chore(dev): UPDATE AGENTS.md - <what changed>` keeps it under Maintenance in the release notes), and file a separate issue for the change that the pull request closes.
 
-OneUptime Cloud's own Slack and Microsoft Teams apps do not change when the code does. Before changing
-`packages/Common/Server/Utils/Workspace/Slack/app-manifest.json`, `MicrosoftTeamsAPI.getTeamsAppManifest()`,
-or the Slack scopes, Slack events or Microsoft Graph permissions the code relies on, read
-[the Slack guide](packages/Common/Server/Utils/Workspace/Slack/RELEASING.md) and
-[the Microsoft Teams guide](packages/Common/Server/Utils/Workspace/MicrosoftTeams/RELEASING.md). They name the
-published apps and the workspace, tenant and accounts that own them, and say how to apply a manifest change to
-the live apps once it is released, how the Slack Marketplace and Microsoft Partner Center submissions work, and
-what customers must do after a permission change.
+## Read the guide before you touch these
 
-### GitHub App releases
+Apps, listings and consoles outside this repository (Slack, Microsoft Teams, GitHub, the marketplaces, Google Cloud) don't change when code merges. Each guide says what to change by hand and in which order, how to test it end to end, and which steps only a maintainer may do.
 
-OneUptime Cloud's GitHub Apps (OneUptime for oneuptime.com, OneUptime Test for test.oneuptime.com) are configured on
-GitHub, not in this repository: merging code changes none of their settings. Before changing what the code needs
-from an app - a token permission, a webhook event, the install or sign-in callback, the webhook route - or the app's
-GitHub Marketplace listing, read
-[the GitHub App guide](packages/Common/Server/Utils/CodeRepository/GitHub/RELEASING.md). It names the apps and the
-organization that owns them, lists every setting the code depends on and what breaks without it, and says in which
-order to change the app and the code, how to test end to end on test.oneuptime.com, where publisher verification
-stands, and what the GitHub Marketplace listing holds and how to change it.
-
-### Cloud marketplace listings
-
-OneUptime Cloud is sold on AWS Marketplace and Microsoft Marketplace (Azure) through the enterprise module's
-`ee/Server/CloudMarketplace` (purchases, landing pages, webhooks, hourly usage reporting) and Sign in with Microsoft
-(core: `packages/Common/Server/Utils/MicrosoftSignIn`, built on the HTTP client and token verifier that stay in
-`packages/Common/Server/Utils/Marketplace`). The same code can sell it on Google Cloud Marketplace, but OneUptime Cloud
-is not listed there: Google lists only SaaS hosted on Google Cloud. Before changing that code, its settings, the
-marketplace usage prices, or anything in a seller portal, read
-[the cloud marketplace guide](packages/Common/Server/Utils/Marketplace/RELEASING.md). It explains how a purchase is billed,
-the URLs and settings each marketplace is configured with, and which steps (seller registration, tax and banking,
-publishing) only a maintainer may do.
-
-OneUptime Cloud is also a native integration on the Vercel Marketplace (`ee/Server/CloudMarketplace/Vercel` and
-`ee/Server/CloudMarketplace/API`: the provider API Vercel calls, sign-in from Vercel, webhooks, monitors of connected
-projects, Vercel invoices) with its log drain in the Telemetry service, which every edition serves. Before changing that
-code, the resources' secrets or plans, or anything in Vercel's Integration Console, read
-[the Vercel Marketplace guide](packages/Common/Server/Utils/Marketplace/VERCEL_RELEASING.md).
-
-Self-hosted OneUptime Enterprise is sold on AWS Marketplace, Microsoft Marketplace and Google Cloud Marketplace as a
-Kubernetes application, billed per user-hour: the usage job in `ee/Server/Marketplace`, the marketplace license in
-`ee/Server/License`, the reporters in `ee/Server/Marketplace/Reporters`, the chart editions and their release automation in
-`HelmChart/Marketplace`, and `.github/workflows/marketplace-release.yml`. Before changing
-any of these, the `enterpriseMarketplace` chart values, or anything in those listings, read
-[the self-hosted marketplace guide](packages/Common/Server/Utils/Marketplace/SELF_HOSTED_RELEASING.md). It explains
-how an installation is billed and licensed, how each edition is built, pushed, tested and submitted, and which steps
-only a maintainer may do.
-
-### Continue with Google
-
-The **Continue with Google** button on the sign-in and sign-up pages runs on a Google OAuth client in Google Cloud, not
-in this repository: merging code turns nothing on, and a server offers the button only once `GOOGLE_SIGN_IN_CLIENT_ID`
-and `GOOGLE_SIGN_IN_CLIENT_SECRET` are set (Helm `googleSignInApp`). Its code is the Google client in
-`packages/Common/Server/Utils/GoogleSignIn` and the provider sign-in it shares with Sign in with Microsoft
-(`packages/App/FeatureSet/Identity/Utils/ProviderSignIn.ts`: who may sign in, the state cookie, the campaign a new
-account keeps). Before changing that code, the button, or anything in Google Cloud, read
-[the Continue with Google guide](packages/Common/Server/Utils/GoogleSignIn/RELEASING.md). It says how to set up the
-consent screen and the OAuth client and their redirect URI, what the button must look like under Google's branding
-rules, how to test it end to end, and which steps only a maintainer may do.
-
-### Infrastructure agent package managers
-
-Each release publishes the infrastructure agent (`agents/InfrastructureAgent`) to apt and yum (packages.oneuptime.com,
-the GitHub Pages site of `OneUptime/packages`), Homebrew (`OneUptime/homebrew-tap`) and winget (`microsoft/winget-pkgs`).
-Before changing the agent's `.goreleaser.yaml`, `Scripts/PackageManagers`, or the `publish-infrastructure-agent-*` jobs in
-`.github/workflows/release.yml`, read [the package manager guide](Scripts/PackageManagers/README.md). It says how a
-release gets to each package manager, which repositories, keys and secrets each needs, and how to test a change
-(`Tests/Ops/package-repository-e2e.sh` installs from a repository the scripts build, as the docs say).
-
-To check or follow up on a release of the agent (a winget pull request, the Pages deploy, the signing key), read
-[agents/InfrastructureAgent/RELEASING.md](agents/InfrastructureAgent/RELEASING.md). The "Infrastructure Agent Release
-Status" workflow checks every place after each release and every day; its run summary is the release's record.
-
-### Iron Bank
-
-The App (its Enterprise Edition), ingress, runner and probe images are also packaged for Iron Bank, the US Department of
-Defense's registry of hardened images (registry1.dso.mil), from `IronBank/App`, `IronBank/Ingress`, `IronBank/Runner` and
-`IronBank/Probe`. Iron Bank's pipeline does not build them: each project's Dockerfile copies what a release's image adds
-(`/usr/src`, and the ingress's nginx configuration, the runner's kubectl, the probe's browsers and Node.js) onto an Iron
-Bank base image of the same distribution, and sets again what the release's Dockerfile sets. So when you change
-`packages/App/Dockerfile.tpl`, `packages/Nginx/Dockerfile.tpl`, `packages/Runner/Dockerfile.tpl` or
-`packages/Probe/Dockerfile.tpl` - a start command, entrypoint, user, environment variable, label or package, or what the
-image copies or builds in - `Tests/Ops/IronBankApp.test.js` or `IronBankProjects.test.js` fails until the project's
-Dockerfile does the same. Before changing anything in `IronBank/`, `Scripts/IronBank/` or `.github/workflows/iron-bank.yml`
-(the "Iron Bank Preflight" workflow), read [the Iron Bank guide](IronBank/README.md).
-
-### Commit frequently
-
-Committing frequently helps keep your changes small and manageable. It also makes it easier to identify which changes introduced a bug if something goes wrong. Aim to commit logically related changes together and write clear commit messages that describe the purpose of the change. It also costs less when the work session is interrupted and resumed later.
+- **Releases**: [RELEASING.md](RELEASING.md). While a release is in flight, `Scripts/Release/PrioritizeReleaseRuns.sh` cancels every other workflow run.
+- **Mobile app builds and store releases**: [packages/MobileApp/RELEASING.md](packages/MobileApp/RELEASING.md).
+- **Slack app** (`packages/Common/Server/Utils/Workspace/Slack/app-manifest.json`, or the scopes and events the code relies on): [Slack guide](packages/Common/Server/Utils/Workspace/Slack/RELEASING.md).
+- **Microsoft Teams app** (`MicrosoftTeamsAPI.getTeamsAppManifest()`, or the Microsoft Graph permissions the code relies on): [Microsoft Teams guide](packages/Common/Server/Utils/Workspace/MicrosoftTeams/RELEASING.md).
+- **GitHub Apps** (a permission, webhook event, callback or route the code needs from them, or their GitHub Marketplace listing): [GitHub App guide](packages/Common/Server/Utils/CodeRepository/GitHub/RELEASING.md).
+- **OneUptime Cloud on AWS Marketplace and Microsoft Marketplace** (`ee/Server/CloudMarketplace`, `packages/Common/Server/Utils/Marketplace`, Sign in with Microsoft in `packages/Common/Server/Utils/MicrosoftSignIn`, usage prices, seller portals): [cloud marketplace guide](packages/Common/Server/Utils/Marketplace/RELEASING.md). OneUptime Cloud is not on Google Cloud Marketplace, which lists only SaaS hosted on Google Cloud.
+- **Vercel Marketplace** (`ee/Server/CloudMarketplace/Vercel`, `ee/Server/CloudMarketplace/API`, the Telemetry log drain, Vercel's Integration Console): [Vercel Marketplace guide](packages/Common/Server/Utils/Marketplace/VERCEL_RELEASING.md).
+- **Self-hosted OneUptime Enterprise on AWS, Microsoft and Google Cloud marketplaces** (`ee/Server/Marketplace`, `ee/Server/License`, `HelmChart/Marketplace`, the `enterpriseMarketplace` chart values, `.github/workflows/marketplace-release.yml`): [self-hosted marketplace guide](packages/Common/Server/Utils/Marketplace/SELF_HOSTED_RELEASING.md).
+- **Continue with Google** (`packages/Common/Server/Utils/GoogleSignIn`, `packages/App/FeatureSet/Identity/Utils/ProviderSignIn.ts`, the Google OAuth client): [Continue with Google guide](packages/Common/Server/Utils/GoogleSignIn/RELEASING.md).
+- **Infrastructure agent packages** (`agents/InfrastructureAgent/.goreleaser.yaml`, `Scripts/PackageManagers`, the `publish-infrastructure-agent-*` jobs in `.github/workflows/release.yml`): [package manager guide](Scripts/PackageManagers/README.md). To check on a release of the agent: [agents/InfrastructureAgent/RELEASING.md](agents/InfrastructureAgent/RELEASING.md).
+- **Iron Bank** (`IronBank/`, `Scripts/IronBank/`, `.github/workflows/iron-bank.yml`): [IronBank/README.md](IronBank/README.md). Its Dockerfiles mirror the release images, so a change to `packages/App/Dockerfile.tpl`, `packages/Nginx/Dockerfile.tpl`, `packages/Runner/Dockerfile.tpl` or `packages/Probe/Dockerfile.tpl` (anything the image runs, sets, installs, copies or builds) fails `Tests/Ops/IronBankApp.test.js` or `IronBankProjects.test.js` until the matching `IronBank/` Dockerfile does the same.

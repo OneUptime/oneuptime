@@ -44,7 +44,7 @@ For a monitor that probes check, **Test Monitor** runs the check once before you
 
 ### Review the criteria
 
-Below it, **Monitor Criteria** decide when the monitor changes status, declares an incident or creates an alert. A new monitor starts with criteria that suit most monitors, each folded to one line that says what it checks and what it does. A new website monitor, for example, is marked offline and declares an incident when the site does not answer or answers with an error status code.
+Below it, **Criteria** decide when the monitor changes status, declares an incident or creates an alert. A new monitor starts with criteria that suit most monitors, each folded to one line that says what it checks and what it does. A new website monitor, for example, is marked offline and declares an incident when the site does not answer or answers with an error status code.
 
 Click a criteria to open and change it. **Add Criteria** adds one, open and ready to fill in. To change the order, drag a criteria by the handle on its left.
 
@@ -72,7 +72,7 @@ flowchart TB
     end
 ```
 
-Incidents and alerts set to resolve automatically, as the default criteria's are, resolve themselves once their criteria stops matching. A monitor checked by more than one probe changes only when its probes agree: by default, every probe that is turned on and connected must reach the same result. To require fewer, set **Probe Agreement** on the monitor's **Configuration → Probes & Interval** page. For everything a criteria can hold, and the statuses a monitor can show, see [Monitor Criteria & Statuses](/docs/monitor/criteria-and-statuses).
+Incidents and alerts set to resolve automatically, as the default criteria's are, resolve themselves once their criteria stops matching. A monitor checked by more than one probe changes only when its probes agree: by default, every probe that is turned on and connected must reach the same result. To require fewer, set **Probe Agreement** on the monitor's **Configuration → Probes & Interval** page. For everything a criteria can hold, and the statuses a monitor can show, see [Criteria & Statuses](/docs/monitor/criteria-and-statuses).
 
 ## Probes & Interval
 
@@ -103,7 +103,7 @@ Each monitor type has its own page with its settings, its default criteria and e
 :::cards
 - [Website Monitor](/docs/monitor/website-monitor): Check that a page loads, and what it answers.
 - [API Monitor](/docs/monitor/api-monitor): Call an endpoint with a method, headers and a body.
-- [Monitor Criteria & Statuses](/docs/monitor/criteria-and-statuses): What sets each monitor's status.
+- [Criteria & Statuses](/docs/monitor/criteria-and-statuses): What sets each monitor's status.
 - [Monitor Templates](/docs/monitor/monitor-templates): Create many monitors from one configuration and keep them in step.
 - [Monitor Groups](/docs/monitor/monitor-groups): Roll several monitors up into one status.
 - [Incidents](/docs/incidents/index): What happens after a monitor declares an incident.

@@ -194,20 +194,30 @@ describe.each(["en", "fa"])(
         "Posted now",
         "Notify status page subscribers",
       ]) {
-        expect(page).toContain(`| **${label}**`);
+        expect(page).toContain(`| ${bold(language, label)}`);
       }
 
-      expect(page).not.toContain("| **Posted At**");
-      expect(page).not.toContain("**Public Incident Note**");
-      expect(page).not.toContain("**Private Incident Note**");
-      expect(page).not.toContain("**Create from Template**");
-      expect(page).not.toContain("**Generate with AI**");
+      // The old form's fields, in English and as the Dashboard draws them.
+      for (const english of [
+        "Posted At",
+        "Public Incident Note",
+        "Private Incident Note",
+        "Create from Template",
+        "Generate with AI",
+      ]) {
+        expect(page).not.toContain(`**${english}**`);
+        expect(page).not.toContain(bold(language, english));
+      }
     });
 
     test("says the same composer opens from the feed", () => {
-      expect(page).toContain("**Add Public Note**");
-      expect(page).toContain("**Add Private Note**");
-      expect(page).toContain("**Post update**");
+      for (const label of [
+        "Add Public Note",
+        "Add Private Note",
+        "Post update",
+      ]) {
+        expect(page).toContain(bold(language, label));
+      }
     });
 
     test("every link to a section of this page lands on a heading", () => {

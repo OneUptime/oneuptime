@@ -112,7 +112,7 @@ export function getServiceBreadcrumbs(path: string): Array<Link> | undefined {
       "Project",
       "Services",
       "View Service",
-      "Performance Profiles",
+      "Profiles",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SERVICE_VIEW_EXCEPTIONS, [
       "Project",
@@ -136,6 +136,11 @@ export function getServiceBreadcrumbs(path: string): Array<Link> | undefined {
       "Project",
       "Services",
       "Archived",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SERVICES_GUIDED_SETUP, [
+      "Project",
+      "Services",
+      "Guided setup",
     ]),
   };
   return breadcrumpLinksMap[path];

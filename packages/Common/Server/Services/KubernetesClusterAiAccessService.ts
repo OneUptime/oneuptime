@@ -888,11 +888,11 @@ class KubernetesClusterAiAccessServiceClass {
     if (!gates.hasLlmProvider) {
       gaps.push({
         code: "llm_provider_missing",
-        title: "No AI provider is configured",
+        title: "No LLM provider is configured",
         description:
           "OneUptime AI needs an LLM provider to investigate or remediate anything.",
         nextStep:
-          "Add a provider under Project Settings → AI → LLM Providers (or use OneUptime AI credits).",
+          "Add an LLM provider under Project Settings → AI → LLM Providers (or use OneUptime AI credits).",
         blocks: "both",
       });
     }

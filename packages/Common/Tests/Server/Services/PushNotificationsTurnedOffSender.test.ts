@@ -32,6 +32,11 @@ import PushNotificationRequest from "../../../Types/PushNotification/PushNotific
 import { PUSH_NOTIFICATION_NOT_SENT_TURNED_OFF_REASON } from "../../../Types/PushNotification/PushNotificationsTurnedOff";
 import UserNotificationStatus from "../../../Types/UserNotification/UserNotificationStatus";
 import API from "../../../Utils/API";
+import { ON_CALL_NOTIFICATION_ACKNOWLEDGED_MESSAGE } from "../../../Server/Utils/OnCall/OnCallNotificationStatus";
+import { ON_CALL_PAGE_PASSED_ON_DELIVERY_MESSAGE } from "../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
+import OnCallTimelineRows, {
+  StoredOnCallNotification,
+} from "../TestingUtils/OnCallTimelineRows";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { Expo } from "expo-server-sdk";
 import webpush from "web-push";
@@ -106,6 +111,7 @@ let relayPost: jest.SpyInstance;
 let pushLogCreate: jest.SpyInstance;
 let receiptQueueAdd: jest.SpyInstance;
 let timelineUpdate: jest.SpyInstance;
+let timeline: OnCallTimelineRows;
 
 // Everything a push leaves the server through.
 function expectNothingPushed(): void {
@@ -164,9 +170,16 @@ beforeEach(() => {
       return createBy.data;
     }) as never);
 
-  timelineUpdate = jest
-    .spyOn(UserOnCallLogTimelineService, "updateOneById")
-    .mockResolvedValue(undefined as never);
+  /*
+   * The page's on-call log row, as written when the page went out. Every
+   * write reaches it as OnCallNotificationStatus writes it: at the status
+   * and the version read.
+   */
+  timeline = new OnCallTimelineRows();
+  timeline.add(TIMELINE_ID, UserNotificationStatus.Sending);
+  timeline.standIn(UserOnCallLogTimelineService);
+  timelineUpdate =
+    UserOnCallLogTimelineService.updateOneBy as unknown as jest.SpyInstance;
 });
 
 afterEach(() => {
@@ -295,7 +308,11 @@ describe("sendPushNotification while push is off", () => {
     // Written once, by UserOnCallLogTimelineService.markNotSent - never "Sent" after it.
     expect(timelineUpdate).toHaveBeenCalledTimes(1);
     expect(timelineUpdate).toHaveBeenCalledWith({
-      id: TIMELINE_ID,
+      query: {
+        _id: TIMELINE_ID.toString(),
+        status: UserNotificationStatus.Sending,
+        version: 1,
+      },
       data: {
         status: UserNotificationStatus.Error,
         statusMessage: PUSH_NOTIFICATION_NOT_SENT_TURNED_OFF_REASON,
@@ -313,6 +330,24 @@ describe("sendPushNotification while push is off", () => {
     ).resolves.toBeUndefined();
 
     expect(timelineUpdate).not.toHaveBeenCalled();
+    expectNothingPushed();
+  });
+
+  test("a page the person acknowledged already, from another of its messages: the reason is not written over the acknowledgement", async () => {
+    timeline.get(TIMELINE_ID)!.status = UserNotificationStatus.Acknowledged;
+    timeline.get(TIMELINE_ID)!.statusMessage =
+      ON_CALL_NOTIFICATION_ACKNOWLEDGED_MESSAGE;
+
+    await PushNotificationService.sendPushNotification(
+      requestFor(PushDeviceType.iOS),
+      { projectId: PROJECT_ID, userOnCallLogTimelineId: TIMELINE_ID },
+    );
+
+    expect(timeline.get(TIMELINE_ID)).toMatchObject({
+      status: UserNotificationStatus.Acknowledged,
+      statusMessage: ON_CALL_NOTIFICATION_ACKNOWLEDGED_MESSAGE,
+    });
+    expect(timeline.writes).toEqual([]);
     expectNothingPushed();
   });
 
@@ -418,7 +453,11 @@ describe("sendPushNotification while push is on", () => {
     expect(pushLogCreate).toHaveBeenCalledTimes(1);
     expect(markNotSent).not.toHaveBeenCalled();
     expect(timelineUpdate).toHaveBeenCalledWith({
-      id: TIMELINE_ID,
+      query: {
+        _id: TIMELINE_ID.toString(),
+        status: UserNotificationStatus.Sending,
+        version: 1,
+      },
       data: {
         status: UserNotificationStatus.Sent,
         statusMessage: "Push notification sent successfully",
@@ -440,6 +479,52 @@ describe("sendPushNotification while push is on", () => {
       expect(webPushSend).not.toHaveBeenCalled();
     },
   );
+
+  test("acknowledged from another of the page's messages while the push was on its way: Sent is not written over it (#7082)", async () => {
+    webPushSend.mockImplementation((async () => {
+      const row: StoredOnCallNotification = timeline.get(TIMELINE_ID)!;
+      row.status = UserNotificationStatus.Acknowledged;
+      row.statusMessage = ON_CALL_NOTIFICATION_ACKNOWLEDGED_MESSAGE;
+      row.version++;
+      return { statusCode: 201, body: "", headers: {} };
+    }) as never);
+
+    await PushNotificationService.sendPushNotification(
+      requestFor(PushDeviceType.Web),
+      { projectId: PROJECT_ID, userOnCallLogTimelineId: TIMELINE_ID },
+    );
+
+    expect(webPushSend).toHaveBeenCalledTimes(1);
+    expect(timeline.get(TIMELINE_ID)).toMatchObject({
+      status: UserNotificationStatus.Acknowledged,
+      statusMessage: ON_CALL_NOTIFICATION_ACKNOWLEDGED_MESSAGE,
+    });
+    expect(timeline.writes).toEqual([]);
+  });
+
+  test("escalated from another of the page's messages before the push failed: the escalation stays, and the failure is still told to the caller", async () => {
+    const row: StoredOnCallNotification = timeline.get(TIMELINE_ID)!;
+    row.status = UserNotificationStatus.PassedOn;
+    row.statusMessage = ON_CALL_PAGE_PASSED_ON_DELIVERY_MESSAGE;
+    webPushSend.mockRejectedValue(
+      Object.assign(new Error("push service unavailable"), {
+        statusCode: 503,
+      }) as never,
+    );
+
+    await expect(
+      PushNotificationService.sendPushNotification(
+        requestFor(PushDeviceType.Web),
+        { projectId: PROJECT_ID, userOnCallLogTimelineId: TIMELINE_ID },
+      ),
+    ).rejects.toThrow();
+
+    expect(timeline.get(TIMELINE_ID)).toMatchObject({
+      status: UserNotificationStatus.PassedOn,
+      statusMessage: ON_CALL_PAGE_PASSED_ON_DELIVERY_MESSAGE,
+    });
+    expect(timeline.writes).toEqual([]);
+  });
 
   test("each send asks whether push is off", async () => {
     await PushNotificationService.sendPushNotification(

@@ -2,6 +2,9 @@
 
 OneUptime Kubernetes 에이전트는 Helm 차트로, 클러스터의 메트릭, 이벤트, Pod 로그를 수집하고, eBPF로 모든 Pod의 트레이스, 요청 메트릭, 서비스 그래프, 네트워크 흐름을 코드 변경이나 SDK 없이 수집합니다. 또한 [Kubernetes AI 에이전트](#kubernetes-ai-에이전트)를 실행해 OneUptime AI가 인시던트나 알림을 조사하는 동안 읽기 전용 `kubectl`을 실행할 수 있게 합니다. `helm install` 한 번으로 설치되며, [Kubernetes 모니터](/docs/monitor/kubernetes-monitor)가 에이전트가 보낸 데이터를 기준으로 알림을 보냅니다.
 
+> [!NOTE]
+> 이 페이지는 에이전트의 전체 레퍼런스입니다. 처음 설치하시나요? 플랫폼에 맞는 프리셋으로 단계별로 설치하는 방법은 여기에 있습니다: [Kubernetes 에이전트(Helm 설치)](/docs/monitor/kubernetes-agent).
+
 :::cards
 - [에이전트 설치](#에이전트-설치): Helm으로 네 단계.
 - [Amazon EKS 추가 기능으로 설치](#amazon-eks-추가-기능으로-설치): Helm 없이 EKS 콘솔에서.

@@ -4,12 +4,15 @@ import {
 } from "../../../FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceFacets";
 import { DIAGNOSTIC_TIMEOUT_IN_MS } from "../../../FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceDiagnosticsViewModel";
 import {
+  MONITOR_ARCHIVED_QUALIFIER,
+  MONITORING_OFF_QUALIFIER,
   NO_MONITOR_QUALIFIER,
   NO_PROBE_QUALIFIER,
   NO_SNMP_INTERFACES_LABEL,
   SNMP_FAILING_QUALIFIER,
 } from "../../../FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceStatusUtil";
 import { MONITORING_METHOD_OPTIONS } from "../../../FeatureSet/Dashboard/src/Components/NetworkDevice/MonitoringMethodFormFields";
+import { FilterChipDropdownOption } from "../../../FeatureSet/Dashboard/src/Components/ResourceOwners/FilterChipDropdownTypes";
 import {
   ADD_DEVICE_MORE_FIELDS,
   ADD_DEVICE_PING_MONITOR_TITLE,
@@ -405,7 +408,45 @@ describe("the Network Device Monitor page: a device's status", () => {
       NO_PROBE_QUALIFIER.text,
       NO_MONITOR_QUALIFIER.text,
       SNMP_FAILING_QUALIFIER.text,
+      MONITORING_OFF_QUALIFIER.text,
+      MONITOR_ARCHIVED_QUALIFIER.text,
     ]);
+  });
+
+  it("says a device whose bound monitor is turned off or archived reads Pending, as the status filter does (issue #6965)", () => {
+    const pending: Array<string> | undefined = tableAfter(
+      DEVICE,
+      "| Verdict | Means |",
+    ).find((row: Array<string>): boolean => {
+      return row[0] === "**Pending**";
+    });
+    const pendingOption: FilterChipDropdownOption | undefined =
+      DEVICE_STATUS_FACET_OPTIONS.find(
+        (option: FilterChipDropdownOption): boolean => {
+          return option.label === "Pending";
+        },
+      );
+
+    // The filter's sublabel, as the page writes a sentence.
+    expect(pending?.[1]).toBe(
+      `${pendingOption?.sublabel?.replace(" — ", ": ")}.`,
+    );
+
+    for (const qualifier of [
+      MONITORING_OFF_QUALIFIER,
+      MONITOR_ARCHIVED_QUALIFIER,
+    ]) {
+      const row: Array<string> | undefined = tableAfter(
+        DEVICE,
+        "| Qualifier | Shown when | What to do |",
+      ).find((cellsOfRow: Array<string>): boolean => {
+        return cellsOfRow[0] === `**${qualifier.text}**`;
+      });
+
+      expect(row?.[1]).toContain(
+        "so the device reads **Pending** rather than the status the monitor was left at.",
+      );
+    }
   });
 
   it("names the SNMP filter's values and what the Interfaces column reads without a walk", () => {

@@ -60,14 +60,16 @@ import {
 } from "../Utils/Processes";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { formatReaderFigure } from "Common/Types/DateLanguage";
 
+// In the reader's digits: "۱۲٫۵٪" in Persian, "12,5 %" in German (#7106).
 const formatPercent: (value: number | null) => string = (
   value: number | null,
 ): string => {
   if (value === null || !isFinite(value)) {
     return "—";
   }
-  return `${value.toFixed(1)}%`;
+  return formatReaderFigure(value, { decimals: 1, isPercent: true });
 };
 
 const formatBytes: (value: number | null) => string = (
@@ -83,7 +85,7 @@ const formatBytes: (value: number | null) => string = (
     v /= 1024;
     i++;
   }
-  return `${v.toFixed(1)} ${units[i]}`;
+  return `${formatReaderFigure(v, { decimals: 1 })} ${units[i]}`;
 };
 
 /*

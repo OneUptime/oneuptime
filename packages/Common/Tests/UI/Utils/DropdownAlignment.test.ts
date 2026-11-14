@@ -1,9 +1,14 @@
 import {
+  DEFAULT_DROPDOWN_PLACEMENT,
   DEFAULT_DROPDOWN_VIEWPORT_MARGIN_IN_PX,
   DropdownHorizontalAlignment,
+  DropdownPlacement,
   getDropdownAlignmentClassName,
   getDropdownAnchorEdges,
   getDropdownHorizontalAlignment,
+  getDropdownPlacement,
+  getDropdownShiftStyle,
+  getDropdownShiftToFit,
   getDropdownViewportWidth,
 } from "../../../UI/Utils/DropdownAlignment";
 import { describe, expect, test } from "@jest/globals";
@@ -427,5 +432,296 @@ describe("getDropdownViewportWidth", () => {
         viewportWidth: 900,
       }),
     ).toBe(DropdownHorizontalAlignment.Left);
+  });
+});
+
+/*
+ * A POPUP TOO WIDE FOR EITHER SIDE OF ITS TRIGGER SLIDES ONTO THE SCREEN
+ * (#7098).
+ *
+ * The session replay's tab picker is 28rem (448px) wide. Under a button in
+ * the middle of a 390px phone neither edge of the button has room for it,
+ * so whichever edge it hangs from it ran off the screen. It now slides
+ * along the line, away from that edge, until it sits inside the gutters.
+ */
+const PICKER_WIDTH: number = 448;
+
+// A placement's popup, in viewport coordinates, the way the browser draws it.
+function drawnBox(
+  placement: DropdownPlacement,
+  input: { anchorLeft: number; anchorRight: number; viewportWidth: number },
+  width: number,
+): { left: number; right: number } {
+  const drawnWidth: number = Math.min(
+    width,
+    input.viewportWidth - 2 * DEFAULT_DROPDOWN_VIEWPORT_MARGIN_IN_PX,
+  );
+
+  if (placement.alignment === DropdownHorizontalAlignment.Right) {
+    const right: number = input.anchorRight + placement.shiftInPx;
+
+    return { left: right - drawnWidth, right: right };
+  }
+
+  const left: number = input.anchorLeft - placement.shiftInPx;
+
+  return { left: left, right: left + drawnWidth };
+}
+
+describe("getDropdownShiftToFit", () => {
+  test("a popup that fits where it hangs does not move", () => {
+    expect(
+      getDropdownShiftToFit({
+        anchorLeft: 64,
+        anchorRight: 180,
+        dropdownWidth: PICKER_WIDTH,
+        viewportWidth: 1280,
+        alignment: DropdownHorizontalAlignment.Left,
+      }),
+    ).toBe(0);
+    expect(
+      getDropdownShiftToFit({
+        anchorLeft: 1100,
+        anchorRight: 1200,
+        dropdownWidth: PICKER_WIDTH,
+        viewportWidth: 1280,
+        alignment: DropdownHorizontalAlignment.Right,
+      }),
+    ).toBe(0);
+  });
+
+  test("hung from its left edge, it slides left just enough to clear the right gutter", () => {
+    // 150 + 374 = 524 against a right gutter at 382: 142 to the left.
+    expect(
+      getDropdownShiftToFit({
+        anchorLeft: 150,
+        anchorRight: 250,
+        dropdownWidth: PICKER_WIDTH,
+        viewportWidth: 390,
+        alignment: DropdownHorizontalAlignment.Left,
+      }),
+    ).toBe(142);
+  });
+
+  test("hung from its right edge, it slides right just enough to clear the left gutter", () => {
+    // 250 - 374 = -124 against a left gutter at 8: 132 to the right.
+    expect(
+      getDropdownShiftToFit({
+        anchorLeft: 150,
+        anchorRight: 250,
+        dropdownWidth: PICKER_WIDTH,
+        viewportWidth: 390,
+        alignment: DropdownHorizontalAlignment.Right,
+      }),
+    ).toBe(132);
+  });
+
+  test("never past the far gutter", () => {
+    // A trigger near the left edge has only 2px to give before the left gutter.
+    expect(
+      getDropdownShiftToFit({
+        anchorLeft: 10,
+        anchorRight: 90,
+        dropdownWidth: 2000,
+        viewportWidth: 1280,
+        alignment: DropdownHorizontalAlignment.Left,
+      }),
+    ).toBe(2);
+    expect(
+      getDropdownShiftToFit({
+        anchorLeft: 1190,
+        anchorRight: 1270,
+        dropdownWidth: 2000,
+        viewportWidth: 1280,
+        alignment: DropdownHorizontalAlignment.Right,
+      }),
+    ).toBe(2);
+  });
+
+  test("honours a custom margin", () => {
+    expect(
+      getDropdownShiftToFit({
+        anchorLeft: 150,
+        anchorRight: 250,
+        dropdownWidth: PICKER_WIDTH,
+        viewportWidth: 390,
+        viewportMargin: 16,
+        alignment: DropdownHorizontalAlignment.Left,
+      }),
+      // 358 wide between 16px gutters: 150 + 358 - 374 = 134.
+    ).toBe(134);
+  });
+
+  test("an unmeasured layout does not move", () => {
+    for (const input of [
+      { dropdownWidth: 0, viewportWidth: 390 },
+      { dropdownWidth: PICKER_WIDTH, viewportWidth: 0 },
+      { dropdownWidth: Number.NaN, viewportWidth: 390 },
+      { dropdownWidth: PICKER_WIDTH, viewportWidth: Number.NaN },
+    ]) {
+      expect(
+        getDropdownShiftToFit({
+          anchorLeft: 150,
+          anchorRight: 250,
+          ...input,
+          alignment: DropdownHorizontalAlignment.Left,
+        }),
+      ).toBe(0);
+    }
+
+    expect(
+      getDropdownShiftToFit({
+        anchorLeft: Number.NaN,
+        anchorRight: 250,
+        dropdownWidth: PICKER_WIDTH,
+        viewportWidth: 390,
+        alignment: DropdownHorizontalAlignment.Left,
+      }),
+    ).toBe(0);
+  });
+});
+
+describe("getDropdownPlacement keeps the picker inside the gutters wherever its button sits", () => {
+  test.each([
+    // [viewport, button's left edge, button's width]
+    [390, 16, 92],
+    [390, 140, 92],
+    [390, 282, 92],
+    [320, 16, 92],
+    [320, 120, 92],
+    [320, 212, 92],
+    [640, 200, 92],
+    [768, 340, 92],
+    [1024, 600, 92],
+    [1280, 16, 92],
+    [1280, 700, 92],
+    [1280, 1172, 92],
+  ])(
+    "a %ipx screen, a button at %ipx",
+    (viewportWidth: number, anchorLeft: number, buttonWidth: number) => {
+      const input: {
+        anchorLeft: number;
+        anchorRight: number;
+        viewportWidth: number;
+      } = {
+        anchorLeft: anchorLeft,
+        anchorRight: anchorLeft + buttonWidth,
+        viewportWidth: viewportWidth,
+      };
+      const placement: DropdownPlacement = getDropdownPlacement({
+        ...input,
+        dropdownWidth: PICKER_WIDTH,
+      });
+      const box: { left: number; right: number } = drawnBox(
+        placement,
+        input,
+        PICKER_WIDTH,
+      );
+
+      expect(box.left).toBeGreaterThanOrEqual(
+        DEFAULT_DROPDOWN_VIEWPORT_MARGIN_IN_PX,
+      );
+      expect(box.right).toBeLessThanOrEqual(
+        viewportWidth - DEFAULT_DROPDOWN_VIEWPORT_MARGIN_IN_PX,
+      );
+    },
+  );
+
+  test("its alignment is getDropdownHorizontalAlignment's, so a popup with room hangs as before", () => {
+    const input: {
+      anchorLeft: number;
+      anchorRight: number;
+      dropdownWidth: number;
+      viewportWidth: number;
+    } = {
+      anchorLeft: 1100,
+      anchorRight: 1200,
+      dropdownWidth: DROPDOWN_WIDTH,
+      viewportWidth: 1280,
+    };
+
+    expect(getDropdownPlacement(input)).toEqual({
+      alignment: getDropdownHorizontalAlignment(input),
+      shiftInPx: 0,
+    });
+    expect(getDropdownPlacement(input).alignment).toBe(
+      DropdownHorizontalAlignment.Right,
+    );
+  });
+
+  test("on a Persian page, measured in the mirrored frame, it stays inside too", () => {
+    // A button 140px from the screen's left edge of a 390px Persian page.
+    const edges: { anchorLeft: number; anchorRight: number } =
+      getDropdownAnchorEdges({
+        anchorLeft: 140,
+        anchorRight: 232,
+        viewportWidth: 390,
+        isRightToLeft: true,
+      });
+    const placement: DropdownPlacement = getDropdownPlacement({
+      ...edges,
+      dropdownWidth: PICKER_WIDTH,
+      viewportWidth: 390,
+    });
+    const box: { left: number; right: number } = drawnBox(
+      placement,
+      { ...edges, viewportWidth: 390 },
+      PICKER_WIDTH,
+    );
+
+    expect(placement.shiftInPx).toBeGreaterThan(0);
+    expect(box.left).toBeGreaterThanOrEqual(8);
+    expect(box.right).toBeLessThanOrEqual(382);
+  });
+
+  test("starts at the default: hung from the start, not moved", () => {
+    expect(DEFAULT_DROPDOWN_PLACEMENT).toEqual({
+      alignment: DropdownHorizontalAlignment.Left,
+      shiftInPx: 0,
+    });
+  });
+});
+
+describe("getDropdownShiftStyle", () => {
+  test("no style for a popup that fits", () => {
+    expect(getDropdownShiftStyle(DEFAULT_DROPDOWN_PLACEMENT)).toEqual({});
+    expect(
+      getDropdownShiftStyle({
+        alignment: DropdownHorizontalAlignment.Right,
+        shiftInPx: 0,
+      }),
+    ).toEqual({});
+  });
+
+  test("a negative inset on the side it hangs from, with logical properties", () => {
+    expect(
+      getDropdownShiftStyle({
+        alignment: DropdownHorizontalAlignment.Left,
+        shiftInPx: 142,
+      }),
+    ).toEqual({ insetInlineStart: "-142px" });
+    expect(
+      getDropdownShiftStyle({
+        alignment: DropdownHorizontalAlignment.Right,
+        shiftInPx: 132,
+      }),
+    ).toEqual({ insetInlineEnd: "-132px" });
+  });
+
+  test("never a physical side, which would not mirror on a Persian page", () => {
+    for (const alignment of [
+      DropdownHorizontalAlignment.Left,
+      DropdownHorizontalAlignment.Right,
+    ]) {
+      const style: Record<string, unknown> = getDropdownShiftStyle({
+        alignment: alignment,
+        shiftInPx: 40,
+      }) as Record<string, unknown>;
+
+      expect(Object.keys(style)).not.toContain("left");
+      expect(Object.keys(style)).not.toContain("right");
+      expect(Object.keys(style)).not.toContain("marginLeft");
+      expect(Object.keys(style)).not.toContain("transform");
+    }
   });
 });

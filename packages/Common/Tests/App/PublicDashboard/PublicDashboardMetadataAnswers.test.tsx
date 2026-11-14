@@ -92,6 +92,13 @@ const METADATA_URL: string = `${PUBLIC_DASHBOARD_API_URL.toString()}/metadata/${
 
 const DOMAIN_URL: string = `${PUBLIC_DASHBOARD_API_URL.toString()}/domain`;
 
+/*
+ * A bare "Server Error" says only that the read failed: since #6836 it is
+ * said as a problem the server could not explain.
+ */
+const SERVER_COULD_NOT_EXPLAIN: string =
+  "The server ran into a problem it could not explain. Try again in a moment.";
+
 let server: FakeAxiosServer;
 
 let navigateSpy: SpyInstance<typeof Navigation.navigate>;
@@ -258,20 +265,22 @@ describe("the public dashboard app shows what the metadata says this visitor may
       "a rate limit (429)",
       429,
       "Too many requests. Please try again in a minute.",
+      "Too many requests. Please try again in a minute.",
     ],
-    ["a server error (500)", 500, "Server Error"],
+    ["a server error (500)", 500, "Server Error", SERVER_COULD_NOT_EXPLAIN],
   ])(
     "%s is shown as an error, not as a missing dashboard",
-    async (_label: string, status: number, message: string) => {
+    async (_label: string, status: number, sent: string, shown: string) => {
       server.on(HTTPMethod.POST, METADATA_URL, [
-        { status, data: { error: message } },
+        { status, data: { error: sent } },
       ]);
 
       renderApp();
 
       expect(
-        await screen.findByText(message, undefined, { timeout: 15000 }),
+        await screen.findByText(shown, undefined, { timeout: 15000 }),
       ).toBeTruthy();
+      expect(screen.queryByText("Server Error")).toBeNull();
 
       expect(screen.queryByText("Dashboard Not Found")).toBeNull();
       expect(navigateSpy).not.toHaveBeenCalled();
@@ -310,8 +319,11 @@ describe("on a custom domain, the public dashboard app asks which dashboard the 
     renderApp("/");
 
     expect(
-      await screen.findByText("Server Error", undefined, { timeout: 15000 }),
+      await screen.findByText(SERVER_COULD_NOT_EXPLAIN, undefined, {
+        timeout: 15000,
+      }),
     ).toBeTruthy();
+    expect(screen.queryByText("Server Error")).toBeNull();
 
     expect(screen.queryByText("Dashboard Not Found")).toBeNull();
     expect(server.sent.length).toBe(1);

@@ -129,4 +129,17 @@ describe("llms-full.txt", () => {
     expect(text).not.toContain("{{IP_WHITELIST}}");
     expect(text).toContain("203.0.113.10");
   });
+
+  /*
+   * A page names a screenshot by its shot (#6823); the Markdown the docs
+   * hand out names the picture itself, so it loads where it is read.
+   */
+  it("names each screenshot's English picture, never a shot's address", async () => {
+    const text: string = await LlmsTxtUtil.getLlmsFullTxt();
+
+    expect(text).not.toContain("](screen:");
+    expect(text).toContain(
+      "](/docs/static/images/screens/en/website-down-address.webp)",
+    );
+  });
 });

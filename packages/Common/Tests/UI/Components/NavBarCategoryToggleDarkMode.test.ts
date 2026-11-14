@@ -209,9 +209,16 @@ describe("the category row's colours", () => {
     /*
      * Its every category is a row (NavBarCategoryToggle, scanned above), so
      * the menu itself draws only the rule above them and the guide line
-     * under an open one.
+     * under an open one - and a product's marks (#6814): the plan it needs,
+     * and Not set up.
      */
-    expect(tokens).toEqual(["border-gray-100"]);
+    expect(tokens).toEqual([
+      "bg-yellow-50",
+      "text-yellow-800",
+      "ring-yellow-200",
+      "text-gray-400",
+      "border-gray-100",
+    ]);
     for (const token of tokens) {
       expect([token, isRemapped(token)]).toEqual([token, true]);
     }

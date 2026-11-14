@@ -3,6 +3,7 @@ import { AUDIT_LOG_SESSION_RESOURCE_TYPE } from "Common/Types/AuditLog/AuditLogS
 import Query from "Common/Types/BaseDatabase/Query";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
+import { getScreenSingularName } from "Common/Utils/ModelApiName";
 import { getNameInitials } from "Common/Utils/NameInitials";
 import PageMap from "../../Utils/PageMap";
 
@@ -33,6 +34,15 @@ export interface ResourceMeta {
    * back to viewRoute.
    */
   childViewRoute?: PageMap | undefined;
+  /*
+   * What the resource type is called on screen, when the type an entry is
+   * stored under is a name the model kept after it was renamed (#6817:
+   * entries about an On-Call Schedule are stored as "On-Call Policy
+   * Schedule", as they always were). Left out, a kept name is called what
+   * its model is called now (getScreenSingularName), and any other type is
+   * its own name.
+   */
+  label?: string | undefined;
 }
 
 export const RESOURCE_META: { [key: string]: ResourceMeta } = {
@@ -79,6 +89,7 @@ export const RESOURCE_META: { [key: string]: ResourceMeta } = {
     viewRoute: PageMap.STATUS_PAGE_VIEW,
   },
   "Scheduled Maintenance Event": {
+    label: "Maintenance Event",
     icon: IconProp.Clock,
     color: "text-yellow-700",
     bgColor: "bg-yellow-50 border-yellow-100",
@@ -91,6 +102,7 @@ export const RESOURCE_META: { [key: string]: ResourceMeta } = {
     viewRoute: PageMap.ON_CALL_DUTY_POLICY_VIEW,
   },
   "On-Call Policy Schedule": {
+    label: "On-Call Schedule",
     icon: IconProp.Calendar,
     color: "text-purple-700",
     bgColor: "bg-purple-50 border-purple-100",
@@ -436,6 +448,19 @@ export const getResourceMeta: (type: string | undefined) => ResourceMeta = (
     return DEFAULT_RESOURCE_META;
   }
   return RESOURCE_META[type] || DEFAULT_RESOURCE_META;
+};
+
+/*
+ * The resource type an entry shows: what the thing is called now, though
+ * the entry keeps the type it was stored under (ResourceMeta's label).
+ */
+export const getResourceTypeLabel: (type: string | undefined) => string = (
+  type: string | undefined,
+): string => {
+  if (!type) {
+    return "Resource";
+  }
+  return RESOURCE_META[type]?.label || getScreenSingularName(type);
 };
 
 /*

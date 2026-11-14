@@ -92,7 +92,7 @@ export const HOW_IT_WORKS_STEPS: Array<HowItWorksStep> = [
   },
   {
     key: "on-call",
-    title: "On-Call Duty",
+    title: "On-Call",
     description: "Pages the right person, and escalates if nobody answers.",
     icon: IconProp.Call,
     iconClassName: "bg-stone-100 text-stone-600 ring-stone-300",

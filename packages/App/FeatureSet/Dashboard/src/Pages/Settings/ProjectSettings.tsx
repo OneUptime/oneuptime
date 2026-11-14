@@ -9,6 +9,9 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import { BILLING_ENABLED } from "Common/UI/Config";
 import DataResidencyUtil from "Common/Utils/Project/DataResidency";
 import CustomerSupportAccessCard from "../../Components/Project/CustomerSupportAccessCard";
+import ModelSwitchCard from "Common/UI/Components/ModelSwitch/ModelSwitchCard";
+import { isDashboardRecordingConfigured } from "../../Utils/DashboardRecording/DashboardRecordingConfig";
+import { PROJECT_RECORDING_COPY } from "../../Components/DashboardRecording/DashboardRecordingCopy";
 
 const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
   return (
@@ -95,6 +98,29 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
       {BILLING_ENABLED && (
         <CustomerSupportAccessCard
           projectId={ProjectUtil.getCurrentProjectId()!}
+        />
+      )}
+
+      {/*
+       * Whether OneUptime may record members on the setup pages (#6834):
+       * an admin's choice for an organisation that wants none of it. Only
+       * on a server that records at all - OneUptime Cloud, once it is on.
+       */}
+      {isDashboardRecordingConfigured() && (
+        <ModelSwitchCard<Project>
+          modelType={Project}
+          modelId={ProjectUtil.getCurrentProjectId()!}
+          column="disableDashboardRecording"
+          isInverted={true}
+          cardTitle={PROJECT_RECORDING_COPY.cardTitle}
+          cardDescription={PROJECT_RECORDING_COPY.cardDescription}
+          title={PROJECT_RECORDING_COPY.title}
+          getDescription={(isOn: boolean): string => {
+            return isOn
+              ? PROJECT_RECORDING_COPY.onDescription
+              : PROJECT_RECORDING_COPY.offDescription;
+          }}
+          dataTestId="project-settings-dashboard-recording"
         />
       )}
     </Fragment>

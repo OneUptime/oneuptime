@@ -79,6 +79,57 @@ phone layout never used the bare `hidden` class, so the mobile tests guard
 against a future regression rather than reproduce the reported one. Run only
 this spec with `npm run test-navigation-search-ui -- ForeignHiddenRule`.
 
+`HeaderAtTabletWidths.spec.ts` covers the top of every Dashboard page from
+768px to 1023px (#7037), on the desktop project. The fixture's
+`?header=true` page (`HeaderFixture.js`) renders the production header and
+navbar in a project named Acme Commerce Production, with the bell's counts
+and Search's and Ask AI's toggles answered in the page
+(`window.__headerFixture` counts them), production's Inter and Vazirmatn
+fonts and `Theme.css`; add `lang=de` or `lang=ar` for German or Arabic and
+`theme=dark` for the dark theme. Each test opens the page once and resizes
+the window. At 768, 900 and 1023px the header shows Search and Help, leaves
+Ask AI to Search, draws no phone menu, keeps every entry on one row inside
+the window with nothing over anything else and no sideways scroll, and Help
+opens to Quickstart, How OneUptime works (which opens its dialog) and the
+Glossary (a new tab on `/docs/en/introduction/glossary`). Search's button
+opens Search; at 1024px the desktop rail keeps its order; at 767px the
+phone's menu carries Search and Help and widening to 768 hands them back to
+the header. In German the project picker keeps at least 160px and no entry
+of the Help menu is cut ("So funktioniert OneUptime" was, at the menu's old
+16rem); in Arabic the header reads right to left and the menu opens inside
+the window; in the dark the menu is drawn dark. Help's menu and the profile
+menu are each named by their own button (no id twice on the page), open with
+Enter, and Escape puts them away with the focus back on the button.
+Screenshots are saved as `header-*.png`.
+
+`ProjectProducts.spec.ts` covers products that fit the project and pins
+that follow the person (issue #6814). The Dashboard's navbar asks the API
+for the project's products (`/api/project-products`): the fixture's page
+names its own server as the Dashboard's host, so the request stays on the
+page's origin, and the server answers it with nothing hidden and nothing
+pinned. The spec answers it itself with a project that hides the container
+and cluster products and pins Status Pages and Incidents, records every
+write and answers it as the server does. It checks that the pins sit right
+of Products in their order and open their product, as the current page on
+it; that a card's pin in the menu shows when the card is pointed at, pins
+without opening the product and tells the server, and unpins; that with
+five pinned a sixth card's pin cannot be pressed and says why; that five
+pins and their names fit the bar at 1280px and are icons that still name
+their product at 1024px; that the hidden products are the menu's last row,
+More products, with the note that Search still finds them (and the link to
+choose products only for those who may), and that Search finds and opens
+one; that a card names the plan a product needs and says when one is not
+set up; and that a phone's menu lists the pins under Home and the hidden
+products last. `?products=true` draws Project Settings > Products under
+Home's card for hidden products that have data: a switch for every product
+by its menu section (Users, Teams and Project Settings always shown), a
+switch that hides a product at once and says Saved, Show Every Product, the
+card's Show It, and no sideways scroll on a phone. Every page but the
+header's takes `?lang=de` or `?lang=ar` too: in German five pins still fit
+the bar at 1280px, in Arabic the pins sit after Products, to its left, and
+in the dark theme a pin is drawn as Home is. Screenshots are saved under
+`output/playwright/navigation-search/products`.
+
 For manual inspection, run `node NavigationSearch/server.js` and open
 `http://127.0.0.1:4242/dashboard/00000000-0000-4000-8000-000000000001/home`.
 The server builds before listening; restart it after changing source files.

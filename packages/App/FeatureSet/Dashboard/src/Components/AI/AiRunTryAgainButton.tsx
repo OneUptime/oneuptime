@@ -7,6 +7,7 @@ import Button, {
 import API from "Common/UI/Utils/API/API";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { describeAiRunRefusal } from "./AiRunFailureWords";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -79,11 +80,12 @@ const AiRunTryAgainButton: FunctionComponent<ComponentProps> = (
       if (isMountedRef.current) {
         /*
          * The server's refusal says why ("... is queued or running
-         * already"); anything else gets the button's own words.
+         * already"), in the reader's language when the Dashboard words it
+         * (describeAiRunRefusal); anything else gets the button's own words.
          */
         setError(
           err instanceof HTTPErrorResponse || err instanceof Error
-            ? API.getFriendlyMessage(err)
+            ? describeAiRunRefusal(API.getFriendlyMessage(err), translator)
             : (translator.translateText(
                 "The run could not start again. Try again in a moment.",
               ) as string),
@@ -110,10 +112,10 @@ const AiRunTryAgainButton: FunctionComponent<ComponentProps> = (
         }}
       />
       {/*
-       * The server's refusal is in English whatever the reader's language,
-       * the button's own words in theirs: dir="auto" lays each out by its
-       * first letter, so an English refusal on a page that reads right to
-       * left keeps its full stop at the end.
+       * A refusal the Dashboard does not word stays in the server's
+       * English, the button's own words are in the reader's language:
+       * dir="auto" lays each out by its first letter, so an English refusal
+       * on a page that reads right to left keeps its full stop at the end.
        */}
       {error ? (
         <p

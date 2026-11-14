@@ -61,9 +61,11 @@ jest.mock("Common/Server/Utils/Logger", () => {
  *
  * These routes send an email, an SMS, a call, a WhatsApp or Telegram message
  * or a webhook with the installation's own accounts, release its phone
- * numbers, run its workflows and write telemetry for any project. Only
- * OneUptime's own services may ask for that, they ask for it with POST
- * requests, and a value this repository ships is never their key.
+ * numbers, run its workflows, write telemetry for any project and say what
+ * is wrong with the installation (the doctor's, for `npm run doctor` and
+ * diagnose.sh). Only OneUptime's own services and tools may ask for that,
+ * they ask for it with POST requests, and a value this repository ships is
+ * never their key.
  *
  * Each installation here is a fresh copy of the product, loaded with the
  * ONEUPTIME_SECRET it names: the real EnvironmentConfig reads it, and the
@@ -279,6 +281,9 @@ function routesUnderTest(modelTriggerPath: string): Array<RouteUnderTest> {
       "INCOMING_EMAIL_TRIGGER_DELIVERY_PATH",
       ["/workflow/incoming-email/deliver"],
     ),
+    route("packages/App/API/AdminHealth.ts", "POST", '"/doctor"', [
+      "/api/admin/health/doctor",
+    ]),
   ];
 }
 
@@ -482,6 +487,9 @@ async function startInstallation(
       }
 
       app.use("/workflow", componentRouter);
+
+      // The OneUptime Health router, where App/Index.ts mounts it: the doctor's POST.
+      app.use("/api/admin/health", require_("../../API/AdminHealth").default);
 
       app.use(require_("Common/Server/Utils/StartServer").expressErrorHandler);
 

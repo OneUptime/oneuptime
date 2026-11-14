@@ -19,6 +19,7 @@ import CustomDomainCertificates, {
 } from "Common/Types/CustomDomain/CustomDomainCertificates";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
+import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import Query from "Common/Types/BaseDatabase/Query";
 import OneUptimeDate from "Common/Types/Date";
@@ -263,6 +264,7 @@ const CustomDomainsTable: FunctionComponent<ComponentProps> = (
         isDeleteable={true}
         isCreateable={true}
         isEditable={true}
+        documentationLink={Route.fromString(kind.docsPath)}
         cardProps={{
           title: "Custom Domains",
           description: cnameRecord

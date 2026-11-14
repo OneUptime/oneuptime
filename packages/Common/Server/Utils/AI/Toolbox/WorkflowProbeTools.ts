@@ -27,6 +27,7 @@ import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/Datab
 import OneUptimeDate from "../../../../Types/Date";
 import ToolResultSerializer, { SerializedResult } from "./Serializer";
 import WidgetBuilder from "./WidgetBuilder";
+import { getUnrunWorkflowCardWords } from "./ReadCardWords";
 import {
   ObservabilityTool,
   ToolArgs,
@@ -546,19 +547,13 @@ export const QueryWorkflowsTool: ObservabilityTool = {
               })
             : WidgetBuilder.resourceCard({
                 title: `Workflow "${workflow.name}"`,
-                resourceType: "Workflow",
                 heading: workflow.name || "Workflow",
-                subheading: workflow.description,
-                fields: [
-                  {
-                    label: "Enabled",
-                    value: workflow.isEnabled ? "Yes" : "No",
-                  },
-                  ...(workflow.isArchived === true
-                    ? [{ label: "Archived", value: "Yes - does not run" }]
-                    : []),
-                  { label: "Recent runs", value: "0" },
-                ],
+                // In the reader's language (issue #7175).
+                words: getUnrunWorkflowCardWords({
+                  description: workflow.description || undefined,
+                  isEnabled: Boolean(workflow.isEnabled),
+                  isArchived: workflow.isArchived === true,
+                }),
                 link: {
                   type: AIChatCitationTargetType.WorkflowView,
                   params: { workflowId: workflowId.toString() },

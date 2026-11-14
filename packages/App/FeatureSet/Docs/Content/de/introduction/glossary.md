@@ -42,13 +42,13 @@ Siehe [Einen Monitor erstellen](/docs/monitor/create-monitor).
 
 Die Regeln eines Monitors: was jedes Prüfergebnis bedeutet. Sie werden der Reihe nach geprüft, und die erste zutreffende kann den Status des Monitors ändern, einen Vorfall melden, eine Warnung erstellen oder alles drei.
 
-Auch genannt: **Überwachungskriterien**, **Monitor-Kriterien**, **Monitor-Schritte**. Siehe [Monitorkriterien & Status](/docs/monitor/criteria-and-statuses).
+Auch genannt: **Überwachungskriterien**, **Monitor-Kriterien**, **Monitor-Schritte**. Siehe [Kriterien & Status](/docs/monitor/criteria-and-statuses).
 
 ### Monitor-Status
 
 In welchem Zustand ein Monitor gerade ist. Jedes neue Projekt hat drei Monitor-Status, **Betriebsbereit**, **Beeinträchtigt** und **Offline**, und Sie können eigene hinzufügen.
 
-Siehe [Monitorkriterien & Status](/docs/monitor/criteria-and-statuses).
+Siehe [Kriterien & Status](/docs/monitor/criteria-and-statuses).
 
 ### Sonde
 
@@ -90,7 +90,7 @@ Siehe [Eskalationsregeln](/docs/on-call/escalation-rules).
 
 Wer zu jedem Zeitpunkt Bereitschaft hat: Personen wechseln sich ab, und jede übergibt an die nächste. Eine Eskalationsregel, die einen Plan alarmiert, alarmiert die Person, die darin gerade Bereitschaft hat.
 
-Auch genannt: **Rotation**. Siehe [Bereitschaftspläne](/docs/on-call/schedules).
+Auch genannt: **Rotation**, **Bereitschaftsplan der Richtlinie**. Siehe [Bereitschaftspläne](/docs/on-call/schedules).
 
 ### Ebene
 
@@ -103,6 +103,12 @@ Siehe [Bereitschaftspläne](/docs/on-call/schedules#ebenen).
 Eine Adresse, unter der OneUptime Sie in einem Projekt erreichen darf: eine E-Mail-Adresse, eine Telefonnummer für SMS oder Anrufe, Ihr Slack- oder Microsoft-Teams-Konto oder die OneUptime-App auf Ihrem Telefon. Jede Person fügt ihre eigenen unter **Benutzereinstellungen** hinzu.
 
 Siehe [Benachrichtigungsmethoden](/docs/notifications/notification-methods).
+
+### Wie ich erreichbar bin
+
+Ihre eigenen Regeln, wie Sie alarmiert werden: welche Ihrer Benachrichtigungsmethoden eine Alarmierung versucht, und nach welcher Zeit. Eine Leiter gilt für jeden Vorfall, jede Warnung und jede Episode, und ein Schweregrad kann eigene Regeln haben. Jede Person legt ihre eigenen unter **Benutzereinstellungen** fest.
+
+Auch genannt: **Persönliche Bereitschaftsregeln**. Siehe [Wie ich erreichbar bin](/docs/notifications/on-call-rules).
 
 ### Statusseite
 
@@ -118,7 +124,7 @@ Siehe [Abonnenten & Ankündigungen](/docs/status-pages/subscribers).
 
 ### Geplante Wartung
 
-Geplante Arbeiten, vorab angekündigt. Ein Ereignis durchläuft **Geplant**, **Laufend**, **Beendet** und **Abgeschlossen**, und die Statusseiten, auf denen es angezeigt wird, informieren Besucher und Abonnenten darüber.
+Geplante Arbeiten, vorab angekündigt. Jedes Wartungsereignis durchläuft die Wartungsstatus **Geplant**, **Laufend**, **Beendet** und **Abgeschlossen**, und die Statusseiten, auf denen es angezeigt wird, informieren Besucher und Abonnenten darüber.
 
 Auch genannt: **Geplantes Wartungsereignis**, **Geplantes Ereignis**, **Ereignis**. Siehe [Geplante Wartung – Übersicht](/docs/scheduled-maintenance/index).
 
@@ -140,7 +146,7 @@ Siehe [Monitor-Gruppen](/docs/monitor/monitor-groups).
 
 Eine Anwendung oder ein Microservice, den Sie betreiben. OneUptime legt ihn an, sobald seine Telemetrie zum ersten Mal eintrifft, benannt nach seinem `service.name`, und führt seine Protokolle, Traces, Metriken, Ausnahmen, Vorfälle und Eigentümer auf einer Seite zusammen.
 
-Auch genannt: **Dienstkatalog**, **Telemetrie-Dienst**. Siehe [Dienstkatalog](/docs/telemetry/services).
+Auch genannt: **Dienstkatalog**, **Telemetrie-Dienst**. Siehe [Dienste](/docs/telemetry/services).
 
 ### Host
 
@@ -256,7 +262,7 @@ Siehe [Beschriftungs- und Eigentümerregeln](/docs/configuration/label-and-owner
 
 Ein Fehler, den Ihr Code wirft. OneUptime fasst jedes Auftreten desselben Fehlers zu einer Ausnahme zusammen, mit ihrem Stacktrace, ihrem Verlauf und den Anfragen, in denen sie auftrat.
 
-Auch genannt: **Ausnahmenverfolgung**, `/telemetry-exception`. Siehe [Ausnahmenverfolgung](/docs/telemetry/exceptions).
+Auch genannt: **Ausnahmenverfolgung**, `/telemetry-exception`. Siehe [Ausnahmen](/docs/telemetry/exceptions).
 
 ### KI-Einblicke
 
@@ -300,7 +306,7 @@ Siehe [Trace-Explorer](/docs/telemetry/traces-explorer).
 
 Wie Ihre Anwendung CPU-Zeit und Speicher verbraucht, Funktion für Funktion, gesendet von einem Profiler, der an die Pyroscope-kompatible API von OneUptime liefert.
 
-Auch genannt: **Leistungsprofile**, **Kontinuierliches Profiling**. Siehe [Kontinuierliches Profiling](/docs/telemetry/profiles).
+Auch genannt: **Leistungsprofile**, **Kontinuierliches Profiling**. Siehe [Profile](/docs/telemetry/profiles).
 
 ### KI / LLM
 
@@ -472,13 +478,13 @@ Siehe [Was nehme ich wann?](/docs/introduction/which-one#sonde-agent-collector-o
 
 ### Bereitschaftsregeln
 
-Zwei verschiedene Dinge. Unter **Vorfälle** und **Warnungen** wählen Bereitschaftsregeln die Bereitschaftsrichtlinien aus, die ein neuer Vorfall oder eine neue Warnung durchläuft. Unter **Benutzereinstellungen** entscheiden Ihre eigenen Bereitschaftsregeln, welche Ihrer Benachrichtigungsmethoden eine Alarmierung versucht, und nach welcher Zeit.
+Unter **Vorfälle** und **Warnungen** wählen Bereitschaftsregeln die Bereitschaftsrichtlinien aus, die ein neuer Vorfall oder eine neue Warnung durchläuft. Die eigenen Regeln einer Person, wie eine Alarmierung sie erreicht, hießen auch Bereitschaftsregeln: Sie heißen jetzt **Wie ich erreichbar bin**, unter **Benutzereinstellungen**.
 
-Siehe [Vorfalleinstellungen & Automatisierung](/docs/incidents/settings#bereitschaftsregeln-für-vorfälle) und [Persönliche Bereitschaftsregeln](/docs/notifications/on-call-rules).
+Siehe [Vorfalleinstellungen & Automatisierung](/docs/incidents/settings#bereitschaftsregeln-für-vorfälle) und [Wie ich erreichbar bin](/docs/notifications/on-call-rules).
 
 ### Benachrichtigungseinstellungen
 
-Zwei verschiedene Seiten. Unter **Benutzereinstellungen** legen Sie fest, welche Updates Sie zu dem erreichen, was Ihnen gehört, und über welche Kanäle. Unter **Projekteinstellungen** liegen die Schalter des Projekts für SMS und Anrufe, sein Nachrichtenguthaben und sein eigenes SMTP und Twilio.
+Unter **Benutzereinstellungen** legen Sie fest, welche Updates Sie zu dem erreichen, was Ihnen gehört, und über welche Kanäle. Die Schalter des Projekts für SMS und Anrufe, sein Nachrichtenguthaben und sein eigenes SMTP und Twilio hießen auch Benachrichtigungseinstellungen: Sie heißen jetzt **Benachrichtigungskanäle**, unter **Projekteinstellungen**.
 
 Siehe [Benachrichtigungseinstellungen](/docs/notifications/notification-settings).
 

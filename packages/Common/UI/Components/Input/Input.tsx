@@ -4,6 +4,10 @@ import { Logger } from "../../Utils/Logger";
 import joinAriaIds from "../../Utils/AriaIds";
 import useTranslateValue from "../../Utils/Translation";
 import { TYPED_TEXT_READS_ITS_OWN_WAY_CLASS_NAME } from "../../Utils/TypedTextDirection";
+import {
+  getReadingDirection,
+  RIGHT_TO_LEFT,
+} from "../../../Types/ReadingDirection";
 import Icon from "../Icon/Icon";
 import OneUptimeDate from "../../../Types/Date";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -89,6 +93,18 @@ export interface ComponentProps {
   outerDivClassName?: string | undefined;
   autoFocus?: boolean | undefined;
   disableSpellCheck?: boolean | undefined;
+  /*
+   * A value that reads left to right in every language, typed as text: a
+   * list of phone numbers, which a phone's dial pad has no comma for. A
+   * phone number (inputMode "tel") and an address on the web read so
+   * already.
+   */
+  readsLeftToRight?: boolean | undefined;
+  /*
+   * The placeholder is an identifier (an OIDC claim's name), drawn as
+   * given and never looked up (a form Field's isPlaceholderIdentifier).
+   */
+  isPlaceholderIdentifier?: boolean | undefined;
   showSecondsForDateTime?: boolean | undefined;
   autoComplete?: string | undefined;
   // The most characters it takes, as the column it fills keeps them.
@@ -165,10 +181,31 @@ const getDateDisplayValue: GetDateDisplayValueFunction = (
   }
 };
 
+/*
+ * A number field on a page read right to left: its number reads left to
+ * right, as a number is written in every language - unicode-bidi:
+ * plaintext, as typed text does (TypedTextDirection), and its example the
+ * same way. The field itself keeps the page's direction, so its error icon
+ * and its spinner stay where every other field has them.
+ */
+export const NUMBER_READS_LEFT_TO_RIGHT_CLASS_NAME: string = `${TYPED_TEXT_READS_ITS_OWN_WAY_CLASS_NAME} placeholder:[unicode-bidi:plaintext]`;
+
+/*
+ * And the number stays at the field's right, where the page's lines start
+ * and where it always sat: a line that reads left to right would start at
+ * the left. Written out in full, which the page's left-and-right swap
+ * (TailwindReadingDirection) leaves as it is.
+ */
+export const NUMBER_AT_THE_PAGE_START_CLASS_NAME: string = "[text-align:right]";
+
+// A box that already says where its line sits keeps it.
+const TEXT_ALIGN_CLASS_NAME_PATTERN: RegExp =
+  /(?:^|\s)(?:text-(?:left|center|right|start|end|justify)|\[text-align:[a-z-]+\])(?=\s|$)/;
+
 const Input: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const { translateString } = useTranslateValue();
+  const { translateString, language } = useTranslateValue();
   /*
    * Each input's error message has an id of its own for the input to point
    * aria-describedby at. The id was fixed, so on a form with several fields
@@ -209,7 +246,7 @@ const Input: FunctionComponent<ComponentProps> = (
    * What is typed reads the way it is written (TypedTextDirection): an
    * English name or address on a Persian page keeps its full stop and its
    * slashes at its end. Not a date, a time or a number, which the browser
-   * lays out itself.
+   * lays out itself - but for a number on a page read right to left, below.
    */
   if (
     !isDateInput &&
@@ -227,12 +264,39 @@ const Input: FunctionComponent<ComponentProps> = (
    * "https://hooks.slack.com/services/..." - and a number typed in with
    * spaces or brackets started at the far end from its placeholder. So such
    * a field reads left to right, its error icon (at the end of the box
-   * around it) on the right with it, whatever the page's language.
+   * around it) on the right with it, whatever the page's language. And a
+   * field that says it reads so: a list of phone numbers, whose example
+   * "+14155550123, +447700900123" put each "+" after its digits (#7180).
    */
   const readsLeftToRight: boolean =
+    props.readsLeftToRight === true ||
     props.inputMode === "tel" ||
     props.inputMode === "url" ||
     props.type === InputType.URL;
+
+  /*
+   * A number on a page read right to left. The browser laid a negative one
+   * out the page's way, its minus sign after its digits: a network site's
+   * longitude of -71.0589 read "71.0589-" - another point than the one
+   * saved - and the field's example "-89.6501" read "89.6501-". So there a
+   * number reads left to right (NUMBER_READS_LEFT_TO_RIGHT_CLASS_NAME), at
+   * the field's right where it always was, unless the field says where its
+   * line sits (NUMBER_AT_THE_PAGE_START_CLASS_NAME). On a page read left to
+   * right a number field is drawn as it always was.
+   */
+  if (
+    props.type === InputType.NUMBER &&
+    getReadingDirection(language) === RIGHT_TO_LEFT
+  ) {
+    const hasItsOwnAlignment: boolean =
+      TEXT_ALIGN_CLASS_NAME_PATTERN.test(className);
+
+    className += ` ${NUMBER_READS_LEFT_TO_RIGHT_CLASS_NAME}`;
+
+    if (!hasItsOwnAlignment) {
+      className += ` ${NUMBER_AT_THE_PAGE_START_CLASS_NAME}`;
+    }
+  }
 
   /*
    * A password field that is not the person's own holds a secret the product
@@ -439,7 +503,11 @@ const Input: FunctionComponent<ComponentProps> = (
               ? "1"
               : undefined
           }
-          placeholder={translateString(props.placeholder)}
+          placeholder={
+            props.isPlaceholderIdentifier
+              ? props.placeholder
+              : translateString(props.placeholder)
+          }
           className={className}
           onBlur={() => {
             if (props.onBlur) {

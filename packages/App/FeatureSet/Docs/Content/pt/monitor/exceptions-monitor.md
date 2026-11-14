@@ -72,7 +72,7 @@ Clique em **Criar monitor**. O monitor abre na sua página **Visão geral**, e s
 | **Tipos de exceção** | Exceções de qualquer um destes tipos, separados por vírgulas, como `TypeError, NullReferenceException`. O nome do tipo precisa corresponder exatamente. | Vazio: todos os tipos |
 | **Ambientes** | Exceções de qualquer um destes ambientes, separados por vírgulas (veja [Ambientes](#ambientes)). | Vazio: todos os ambientes |
 | **Janela de tempo** (em **Quando alertar**) | Exceções dos últimos 5 segundos até as últimas 24 horas. | **Últimos 5 minutos** |
-| **Filtrar por serviço de telemetria** (em **Mais campos**) | Exceções de qualquer um dos serviços escolhidos. | Vazio: todos os serviços |
+| **Filtrar por serviço** (em **Mais campos**) | Exceções de qualquer um dos serviços escolhidos. | Vazio: todos os serviços |
 | **Filtrar por entidade de infraestrutura** (em **Mais campos**) | Exceções de qualquer um dos hosts, pods, contêineres e outras entidades escolhidos. | Vazio: todas as entidades |
 | **Incluir Exceções Resolvidas** (em **Mais campos**) | Contar também as exceções marcadas como resolvidas. | Desativado |
 | **Incluir Exceções Arquivadas** (em **Mais campos**) | Contar também as exceções arquivadas. | Desativado |
@@ -193,7 +193,7 @@ A **Quantidade de exceções** é 3, então **Mais de** `0` corresponde: o monit
 ## Solução de problemas
 
 :::details As exceções aparecem no explorador, mas o monitor conta 0
-Compare o valor de **Ambientes** com o filtro `env:` do explorador: a correspondência é exata e diferencia maiúsculas de minúsculas, e as exceções sem ambiente ficam de fora quando o filtro está definido. Depois verifique se essas exceções estão resolvidas ou arquivadas. Abra a página **Critérios** do monitor (em **Configuração**) e clique em **Editar critérios de monitoramento**: **Exceções correspondentes** mostra o que os filtros selecionam.
+Compare o valor de **Ambientes** com o filtro `env:` do explorador: a correspondência é exata e diferencia maiúsculas de minúsculas, e as exceções sem ambiente ficam de fora quando o filtro está definido. Depois verifique se essas exceções estão resolvidas ou arquivadas. Abra a página **Critérios** do monitor (em **Configuração**) e clique em **Editar critérios**: **Exceções correspondentes** mostra o que os filtros selecionam.
 :::
 
 :::details O incidente se resolveu quando resolvi a exceção

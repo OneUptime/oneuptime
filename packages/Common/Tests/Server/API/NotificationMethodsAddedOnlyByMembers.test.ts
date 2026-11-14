@@ -1012,7 +1012,9 @@ describe("a row its owner holds in a project they are not a member of", () => {
     });
 
     expect(result.status).toBe(400);
-    expect(errorOf(result)).toBe("Item not found");
+    expect(errorOf(result)).toBe(
+      "This notification method is not in your list any more. Add it again, then verify it.",
+    );
     expect(sent).toEqual([]);
     expect(incoming.updates).toEqual([]);
     // Nothing about the project is read for them either.
@@ -1028,7 +1030,9 @@ describe("a row its owner holds in a project they are not a member of", () => {
     });
 
     expect(result.status).toBe(400);
-    expect(errorOf(result)).toBe("Item not found");
+    expect(errorOf(result)).toBe(
+      "This notification method is not in your list any more. Add it again, then verify it.",
+    );
     expect(incoming.get(ROW_ID)!["isVerified"]).toBe(false);
     expect(incoming.updates).toEqual([]);
   });
@@ -1042,7 +1046,9 @@ describe("a row its owner holds in a project they are not a member of", () => {
     });
 
     expect(result.status).toBe(400);
-    expect(errorOf(result)).toBe("Item not found");
+    expect(errorOf(result)).toBe(
+      "This notification method is not in your list any more. Add it again, then verify it.",
+    );
     expect(projectWasRead()).toBe(false);
   });
 

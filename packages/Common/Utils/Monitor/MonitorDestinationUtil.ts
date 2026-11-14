@@ -116,7 +116,8 @@ export default class MonitorDestinationUtil {
         error:
           err instanceof Exception
             ? err.getMessage()
-            : (err as Error)?.message || "Invalid Destination",
+            : (err as Error)?.message ||
+              "This is not an address OneUptime can monitor. Check it for typos.",
       };
     }
   }

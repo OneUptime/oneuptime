@@ -5,9 +5,18 @@ import {
   translateNamedAction,
 } from "Common/UI/Utils/TranslateTemplate";
 import {
+  DurationTextPart,
+  DurationTextUnit,
+  formatDurationText,
+  withDateDisplayLanguage,
+  writeInDateDisplayLanguage,
+} from "Common/Types/DateLanguage";
+import SloWindowType from "Common/Types/ServiceLevelObjective/SloWindowType";
+import {
   SloBudgetRunwayKind,
   SloProjectionTone,
 } from "Common/Utils/Slo/SloProjection";
+import { formatSloPercent } from "Common/Utils/Slo/SloWidgetFormat";
 import fs from "fs";
 import path from "path";
 import {
@@ -15,6 +24,8 @@ import {
   getRollingWindowFillTextInLanguage,
   getSloBudgetRunwayTextInLanguage,
 } from "../../../FeatureSet/Dashboard/src/Components/Slo/SloOverviewTextInLanguage";
+import { describeSloErrorBudget } from "../../../FeatureSet/Dashboard/src/Pages/Slo/SloSettingsFormFields";
+import { getArchiveCardWords } from "../../../FeatureSet/Dashboard/src/Components/Archive/ArchiveCardWords";
 
 /*
  * How each docs language names a piece of the Dashboard.
@@ -29,10 +40,11 @@ import {
  * name, so it is translated the same way, unless the locale has the whole
  * phrase (translateCreateAction looks the phrase up first, too).
  *
- * Persian: the incident pages have always kept the Dashboard's English names,
- * and dashboardLabel reads them that way. The on-call pages name the Dashboard
- * as the Persian Dashboard draws it, like every other language, and read it
- * with drawnDashboardLabel.
+ * Every docs language names the Dashboard this way, Persian included: the
+ * Persian incident pages kept the Dashboard's English names while the
+ * Persian Dashboard was mostly English, and name it as it draws it since it
+ * draws them in Persian (#7100). dashboardLabel and drawnDashboardLabel are
+ * one rule under two names.
  */
 
 const REPO_ROOT: string = path.resolve(__dirname, "../../../..");
@@ -40,9 +52,6 @@ const LOCALES_DIR: string = path.join(
   REPO_ROOT,
   "App/FeatureSet/Dashboard/src/Locales",
 );
-
-// The languages whose pages write the Dashboard's names in English.
-export const ENGLISH_UI_NAME_LANGUAGES: ReadonlyArray<string> = ["en", "fa"];
 
 const ITEM_NAME_PLACEHOLDER: string = "{{itemName}}";
 
@@ -114,7 +123,8 @@ type DashboardLabelFunction = (language: string, english: string) => string;
 
 /*
  * What the Dashboard draws for the label written in English, in this
- * language: Persian included.
+ * language: its value in the language's locale, or the English where the
+ * locale has none.
  */
 export const drawnDashboardLabel: DashboardLabelFunction = (
   language: string,
@@ -235,6 +245,29 @@ export const dashboardTranslator: (language: string) => Translator = (
   }, language);
 };
 
+/*
+ * The title of a Settings page's Archive card, as the card draws it in this
+ * language (#7195): "Archive SLO", "SLO archivieren", "بایگانی صفحه وضعیت".
+ * It is built from "Archive {{itemName}}" and the name the page hands the
+ * card, so no locale has it as a key and a page cannot look it up.
+ */
+export const drawnArchiveCardTitle: (
+  language: string,
+  singularName: string,
+  isArchived?: boolean,
+) => string = (
+  language: string,
+  singularName: string,
+  isArchived?: boolean,
+): string => {
+  return getArchiveCardWords({
+    singularName: singularName,
+    isArchived: Boolean(isArchived),
+    copy: {},
+    translator: dashboardTranslator(language),
+  }).title;
+};
+
 // The seconds of each unit of an English compact duration: "4d 23m", "12m 30s".
 const COMPACT_UNIT_SECONDS: Record<string, number> = {
   d: 86400,
@@ -266,6 +299,92 @@ const compactDurationSeconds: (text: string | undefined) => number | null = (
   return seconds;
 };
 
+// The unit each letter of an English compact duration names.
+const COMPACT_UNITS: Record<string, DurationTextUnit> = {
+  d: "day",
+  h: "hour",
+  m: "minute",
+  s: "second",
+};
+
+// A target the budget table lists: "99.9%".
+const TABLE_TARGET: RegExp = /^(\d+(?:\.\d+)?)%$/;
+
+const SECONDS_PER_DAY: number = 24 * 60 * 60;
+
+/*
+ * The parts an English compact duration writes, as it writes them - "1m 0s"
+ * keeps its 0s - or null for any other text.
+ */
+const compactDurationParts: (text: string) => Array<DurationTextPart> | null = (
+  text: string,
+): Array<DurationTextPart> | null => {
+  const parts: Array<DurationTextPart> = [];
+
+  for (const part of text.split(" ")) {
+    const match: RegExpExecArray | null = COMPACT_PART.exec(part);
+    const unit: DurationTextUnit | undefined = match
+      ? COMPACT_UNITS[match[2]!]
+      : undefined;
+
+    if (!match || !unit) {
+      return null;
+    }
+
+    parts.push({ count: Number(match[1]), unit: unit });
+  }
+
+  return parts.length > 0 ? parts : null;
+};
+
+/*
+ * A figure of the Error Budgets page's budget table, or of the sentence
+ * under it, as this language's Dashboard writes such a figure: a target,
+ * "99.9%", with the language's own percent (formatSloPercent: "99,9 %" in
+ * German, "۹۹٫۹٪" in Persian), and a budget, "1h 40m 48s", with every part
+ * the table writes named as the Dashboard names a duration's parts
+ * (formatDurationCompactInLanguage: "1 Std., 40 Min., 48 Sek."). The
+ * Dashboard draws the two largest parts of a budget; the table keeps the
+ * third, so a reader can check it against the formula. Null for any other
+ * text.
+ */
+export const drawnBudgetFigure: (
+  language: string,
+  english: string,
+) => string | null = (language: string, english: string): string | null => {
+  const target: RegExpExecArray | null = TABLE_TARGET.exec(english);
+
+  if (target) {
+    return formatSloPercent(
+      Number(target[1]),
+      3,
+      dashboardTranslator(language),
+    );
+  }
+
+  const parts: Array<DurationTextPart> | null = compactDurationParts(english);
+
+  if (!parts) {
+    return null;
+  }
+
+  return withDateDisplayLanguage(language, (): string => {
+    return writeInDateDisplayLanguage(
+      (): string => {
+        return english;
+      },
+      (_language: string, locale: string): string | null => {
+        return formatDurationText({
+          parts: parts,
+          locale: locale,
+          unitDisplay: "short",
+          listStyle: "narrow",
+        });
+      },
+    );
+  });
+};
+
 interface TextWithFigures {
   // The text in English, each figure in it caught.
   english: RegExp;
@@ -279,9 +398,33 @@ interface TextWithFigures {
  * {{percent}}% full" with 23 put in - its error budget lines, "12m 30s left
  * of 43m 12s" and "4d 23m over budget · 5m 47s allowed", and its runway,
  * "~2d 5h". Each is drawn by the Dashboard's own helper
- * (SloOverviewTextInLanguage), handed the figures of the English text.
+ * (SloOverviewTextInLanguage), handed the figures of the English text. And
+ * the Settings page's Error Budget line, "43m 12s of downtime per 30-day
+ * window" (describeSloErrorBudget, #6925).
  */
 const TEXTS_WITH_FIGURES: ReadonlyArray<TextWithFigures> = [
+  {
+    english: /^(\d+[dhms](?: \d+[dhms])*) of downtime per (\d+)-day window$/,
+    draw: (figures: Array<string>, translator: Translator): string | null => {
+      const budget: number | null = compactDurationSeconds(figures[0]);
+      const windowDays: number = Number(figures[1]);
+
+      if (budget === null || !(windowDays > 0)) {
+        return null;
+      }
+
+      // The target that leaves this budget: 43m 12s of 30 days is 99.9%.
+      return describeSloErrorBudget(
+        {
+          targetPercentage:
+            100 - (budget * 100) / (windowDays * SECONDS_PER_DAY),
+          windowType: SloWindowType.Rolling,
+          windowDays: windowDays,
+        },
+        translator,
+      );
+    },
+  },
   {
     english: /^Window (\d+)% full$/,
     draw: (figures: Array<string>, translator: Translator): string => {
@@ -389,17 +532,13 @@ export const drawnTextWithFigures: (
   return null;
 };
 
-// What a page in this language calls the Dashboard label written in English.
-export const dashboardLabel: DashboardLabelFunction = (
-  language: string,
-  english: string,
-): string => {
-  if (ENGLISH_UI_NAME_LANGUAGES.includes(language)) {
-    return english;
-  }
-
-  return drawnDashboardLabel(language, english);
-};
+/*
+ * What a page in this language calls the Dashboard label written in English:
+ * the label as that language's Dashboard draws it, in every docs language. No
+ * language keeps the Dashboard's English names (DocsDashboardLabelsEveryLanguage
+ * holds every docs suite to that).
+ */
+export const dashboardLabel: DashboardLabelFunction = drawnDashboardLabel;
 
 const CREATE_PREFIX: string = "Create ";
 

@@ -18,7 +18,7 @@ Gå till **Monitorer** och klicka på **Skapa monitor**. Formuläret öppnas på
 
 Den första frågan är **Monitortyp**: vad vill du övervaka?
 
-- De sex typer som flest skapar kommer först: **Webbplats**, **API**, **Ping**, **Port**, **SSL Certificate** och **Inkommande begäran**, för heartbeats från cron-jobb och webhooks.
+- De sex typer som flest skapar kommer först: **Webbplats**, **API**, **Ping**, **Port**, **SSL-certifikat** och **Inkommande begäran**, för heartbeats från cron-jobb och webhooks.
 - **Fler monitortyper** listar alla andra typer under sin kategori, som **Infrastruktur** (Kubernetes, Docker, värd) och **Telemetri** (loggar, mätvärden, spår). **Manuell**, en monitor vars status du själv sätter, och **Sondstatus**, som säger till när en prob tappar anslutningen, finns under **Annat**.
 - Eller skriv i sökrutan. Den känner till orden du redan använder, som `k8s`, `postgres`, `heartbeat` eller `tls`, och **Enter** väljer den första träffen.
 
@@ -44,7 +44,7 @@ För en monitor som sonder kontrollerar kör **Testa monitor** kontrollen en gå
 
 ### Gå igenom kriterierna
 
-Nedanför avgör **Monitorkriterier** när monitorn byter status, deklarerar en incident eller skapar ett larm. En ny monitor börjar med kriterier som passar de flesta monitorer, vart och ett hopfällt till en rad som säger vad det kontrollerar och vad det gör. En ny webbplatsmonitor markeras till exempel som offline och deklarerar en incident när webbplatsen inte svarar eller svarar med en felstatuskod.
+Nedanför avgör **Kriterier** när monitorn byter status, deklarerar en incident eller skapar ett larm. En ny monitor börjar med kriterier som passar de flesta monitorer, vart och ett hopfällt till en rad som säger vad det kontrollerar och vad det gör. En ny webbplatsmonitor markeras till exempel som offline och deklarerar en incident när webbplatsen inte svarar eller svarar med en felstatuskod.
 
 Klicka på ett kriterium för att öppna och ändra det. **Lägg till kriterier** lägger till ett, öppet och redo att fyllas i. För att ändra ordningen drar du ett kriterium i handtaget till vänster om det.
 
@@ -72,11 +72,11 @@ flowchart TB
     end
 ```
 
-Incidenter och larm som är inställda på att lösas automatiskt, som standardkriteriernas, löser sig själva så snart deras kriterium slutar matcha. En monitor som kontrolleras av mer än en sond ändras bara när sonderna är överens: som standard måste varje sond som är påslagen och ansluten komma fram till samma resultat. För att kräva färre ställer du in **Sondöverensstämmelse** på monitorns sida **Konfiguration → Sonder och intervall**. Allt ett kriterium kan innehålla, och de statusar en monitor kan visa, finns i [Monitorkriterier och statusar](/docs/monitor/criteria-and-statuses).
+Incidenter och larm som är inställda på att lösas automatiskt, som standardkriteriernas, löser sig själva så snart deras kriterium slutar matcha. En monitor som kontrolleras av mer än en sond ändras bara när sonderna är överens: som standard måste varje sond som är påslagen och ansluten komma fram till samma resultat. För att kräva färre ställer du in **Sondöverensstämmelse** på monitorns sida **Konfiguration → Sonder och intervall**. Allt ett kriterium kan innehålla, och de statusar en monitor kan visa, finns i [Kriterier och statusar](/docs/monitor/criteria-and-statuses).
 
 ## Sonder och intervall
 
-Monitorer som sonder kontrollerar avslutas med det här steget: Webbplats, API, Ping, IP, Port, SSL Certificate, DNS, DNSSEC, NTP, Domän, SQL Query, Database Health, Synthetic Monitor, Custom JavaScript Code och External Status Page. **Sonder** är maskinerna som kör kontrollerna, och projektets standardsonder är förvalda. **Övervakningsintervall** börjar på **Var 5:e minut**.
+Monitorer som sonder kontrollerar avslutas med det här steget: Webbplats, API, Ping, IP, Port, SSL-certifikat, DNS, DNSSEC, NTP, Domän, SQL Query, Database Health, Synthetic Monitor, Custom JavaScript Code och External Status Page. **Sonder** är maskinerna som kör kontrollerna, och projektets standardsonder är förvalda. **Övervakningsintervall** börjar på **Var 5:e minut**.
 
 :::steps
 ### Välj sonderna
@@ -85,7 +85,7 @@ Behåll de valda **Sonder** eller välj andra. En monitor utan sonder kontroller
 
 ### Välj hur ofta kontrollen körs
 
-Välj ett **Övervakningsintervall**, från **Varje minut** till **Varje vecka**. Monitorer av typen Synthetic Monitor, Custom JavaScript Code och SSL Certificate erbjuds intervall på 5 minuter eller längre.
+Välj ett **Övervakningsintervall**, från **Varje minut** till **Varje vecka**. Monitorer av typen Synthetic Monitor, Custom JavaScript Code och SSL-certifikat erbjuds intervall på 5 minuter eller längre.
 
 ### Skapa monitorn
 
@@ -103,7 +103,7 @@ Varje monitortyp har en egen sida med sina inställningar, sina standardkriterie
 :::cards
 - [Webbplatsövervakning](/docs/monitor/website-monitor): Kontrollera att en sida laddas och vad den svarar.
 - [API-övervakning](/docs/monitor/api-monitor): Anropa en slutpunkt med en metod, huvuden och en kropp.
-- [Monitorkriterier och statusar](/docs/monitor/criteria-and-statuses): Vad som sätter varje monitors status.
+- [Kriterier och statusar](/docs/monitor/criteria-and-statuses): Vad som sätter varje monitors status.
 - [Monitormallar](/docs/monitor/monitor-templates): Skapa många monitorer från en konfiguration och håll dem lika.
 - [Monitorgrupper](/docs/monitor/monitor-groups): Samla flera monitorer i en status.
 - [Incidenter](/docs/incidents/index): Vad som händer efter att en monitor har deklarerat en incident.

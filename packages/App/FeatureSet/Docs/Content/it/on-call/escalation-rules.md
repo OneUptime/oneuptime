@@ -2,6 +2,9 @@
 
 Una policy di reperibilità avvisa le persone per livelli. Ogni regola di escalation è un livello: chi viene avvisato e quanto attendere che qualcuno confermi prima di avvisare il livello successivo. Le regole di una policy sono elencate, in ordine, nella sua pagina **Regole di escalation**.
 
+> [!TIP]
+> Prima volta qui? Inizia dalla guida: [Essere avvisati per chiamata, SMS o push](/docs/guides/paging).
+
 ```mermaid title="Una policy di reperibilità avvisa livello per livello finché qualcuno conferma"
 flowchart TB
     trigger["Incidente o avviso"] --> level1["Level 1 avvisa"]
@@ -89,7 +92,7 @@ Il riepilogo in cima alla pagina **Regole di escalation** mostra l'intera scala:
 
 ### Come viene raggiunta ogni persona
 
-Ogni persona avvisata da un livello viene raggiunta come indicano le sue regole di reperibilità: **Impostazioni utente** > **Regole di reperibilità**, con una scheda per incidenti, episodi di incidente, avvisi ed episodi di avviso e una scheda per gravità che indica quale metodo di notifica viene provato e dopo quanto tempo. Un amministratore del progetto può vedere e modificare le regole di un membro in **Utenti** > il membro > **Regole di reperibilità**. Vedi [Regole di reperibilità personali](/docs/notifications/on-call-rules).
+Ogni persona avvisata da un livello viene raggiunta come indicano le sue regole di reperibilità: **Impostazioni utente** > **Come contattarmi**, con una scheda per incidenti, episodi di incidente, avvisi ed episodi di avviso e una scheda per gravità che indica quale metodo di notifica viene provato e dopo quanto tempo. Un amministratore del progetto può vedere e modificare le regole di un membro in **Utenti** > il membro > **Come contattarmi**. Vedi [Come contattarmi](/docs/notifications/on-call-rules).
 
 ```mermaid title="Chi avvisa un livello e come viene raggiunta ogni persona"
 flowchart TB
@@ -166,14 +169,14 @@ I proprietari del progetto ricevono un'email una volta, finché il saldo non vie
 
 Un avviso che non ha potuto raggiungere il servizio di notifica di OneUptime dice `Could not reach the Notification service to send this (ECONNREFUSED).`, con il codice dell'errore di rete tra le parentesi. Un avviso il cui invio non è mai terminato, per esempio perché un server si è riavviato durante l'invio, dice `Sending did not finish within 15 minutes, so this notification may not have been sent.` Se l'invio termina comunque, il suo risultato sostituisce quel messaggio.
 
-Su OneUptime Cloud ogni SMS, chiamata, messaggio WhatsApp e Telegram viene pagato con il saldo del progetto in **Impostazioni del progetto > Notifiche > Impostazioni notifiche**: il suo costo esatto viene scalato dal saldo quando il fornitore lo accetta, indipendentemente da quanti messaggi partono insieme.
+Su OneUptime Cloud ogni SMS, chiamata, messaggio WhatsApp e Telegram viene pagato con il saldo del progetto in **Impostazioni del progetto > Notifiche > Canali di notifica**: il suo costo esatto viene scalato dal saldo quando il fornitore lo accetta, indipendentemente da quanti messaggi partono insieme.
 
 - Con la **Ricarica automatica** attiva lì, il messaggio che trova il saldo sotto la soglia aggiunge prima l'importo impostato per la ricarica automatica, addebitandolo sulla carta del progetto; i messaggi che lo trovano basso nello stesso momento addebitano la carta una sola volta.
-- Se l'addebito non riesce (non c'è un metodo di pagamento o la carta è stata rifiutata), la ricarica automatica riprova la carta un'ora dopo, e **Impostazioni notifiche** lo indica in alto fino ad allora. Aggiungere saldo a mano, o salvare di nuovo la ricarica automatica, riprova subito.
+- Se l'addebito non riesce (non c'è un metodo di pagamento o la carta è stata rifiutata), la ricarica automatica riprova la carta un'ora dopo, e **Canali di notifica** lo indica in alto fino ad allora. Aggiungere saldo a mano, o salvare di nuovo la ricarica automatica, riprova subito.
 - Gli avvisi continuano a partire con il saldo rimasto finché la ricarica automatica non riesce ad addebitare la carta.
 
 > [!IMPORTANT]
-> SMS, chiamate telefoniche, WhatsApp e Telegram sono disattivati in un nuovo progetto: su OneUptime Cloud ogni messaggio viene pagato con il saldo del progetto, e un'installazione self-hosted ha prima bisogno di un account Twilio, di un gateway per SMS e chiamate o di un bot Telegram configurato. Finché un canale è disattivato, nessuno nel progetto può aggiungere un metodo su di esso. Solo un proprietario del progetto o qualcuno con il ruolo **Amministratore della fatturazione** o il permesso **Manage Billing** può attivarne uno, nella scheda **Canali di notifica** di **Impostazioni del progetto > Notifiche > Impostazioni notifiche**: un amministratore del progetto non può. Tutti gli altri vengono informati esattamente su chi può farlo, ovunque un canale sia disattivato: sopra il proprio elenco di metodi su quel canale, nella propria checklist di configurazione e nel messaggio che ricevono quando qualcosa ne ha bisogno.
+> SMS, chiamate telefoniche, WhatsApp e Telegram sono disattivati in un nuovo progetto: su OneUptime Cloud ogni messaggio viene pagato con il saldo del progetto, e un'installazione self-hosted ha prima bisogno di un account Twilio, di un gateway per SMS e chiamate o di un bot Telegram configurato. Finché un canale è disattivato, nessuno nel progetto può aggiungere un metodo su di esso. Solo un proprietario del progetto o qualcuno con il ruolo **Amministratore della fatturazione** o il permesso **Manage Billing** può attivarne uno, nella scheda **Canali di notifica** di **Impostazioni del progetto > Notifiche > Canali di notifica**: un amministratore del progetto non può. Tutti gli altri vengono informati esattamente su chi può farlo, ovunque un canale sia disattivato: sopra il proprio elenco di metodi su quel canale, nella propria checklist di configurazione e nel messaggio che ricevono quando qualcosa ne ha bisogno.
 
 ## Escalation alla persona successiva nella rotazione
 

@@ -43,7 +43,7 @@ const LOCALES_DIR: string = path.resolve(
   "../../../FeatureSet/Docs/Locales",
 );
 
-const NAV_GROUP_TITLE: string = "On Call";
+const NAV_GROUP_TITLE: string = "On-Call";
 const PAGE_TITLE: string = "Escalation Rules";
 const PAGE_RELATIVE_PATH: string = "on-call/escalation-rules";
 const PAGE_URL: string = `/docs/${PAGE_RELATIVE_PATH}`;

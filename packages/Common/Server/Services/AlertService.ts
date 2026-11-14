@@ -72,6 +72,7 @@ import MutableMetricService from "./MutableMetricService";
 import GlobalConfigService from "./GlobalConfigService";
 import GlobalConfig from "../../Models/DatabaseModels/GlobalConfig";
 import OneUptimeDate from "../../Types/Date";
+import { getReminderIntervalInMinutes } from "../../Types/Reminder/ReminderInterval";
 import MutableMetric from "../../Models/AnalyticsModels/MutableMetric";
 import { MetricPointType } from "../../Models/AnalyticsModels/Metric";
 import ServiceType from "../../Types/Telemetry/ServiceType";
@@ -129,6 +130,9 @@ import AIAlertInvestigationRunner from "../Utils/AI/SRE/AlertInvestigationRunner
 import InvestigationRuleWait from "../Utils/AI/SRE/InvestigationRuleWait";
 import IncidentFollowUpCheck from "../Utils/AI/SRE/IncidentFollowUpCheck";
 import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
+import CreatedNotificationHold, {
+  OwnersAddedBy,
+} from "../Utils/Notification/CreatedNotificationHold";
 import AlertPrivacyRuleEngineService from "./AlertPrivacyRuleEngineService";
 import ProjectService from "./ProjectService";
 import OnCallNotRunOnCreate from "../Utils/OnCall/OnCallNotRunOnCreate";
@@ -319,14 +323,19 @@ export class Service extends ProjectReferencesService<Model> {
           }),
         });
 
+      // A rule with no interval a reminder can follow reminds nobody.
+      const intervalInMinutes: number | null = getReminderIntervalInMinutes(
+        matchingRule?.reminderIntervalInMinutes,
+      );
+
       if (
         matchingRule &&
-        matchingRule.reminderIntervalInMinutes &&
+        intervalInMinutes !== null &&
         !(await this.isAlertResolved({ alertId: data.alertId }))
       ) {
         nextReminderNotificationAt = OneUptimeDate.addRemoveMinutes(
           OneUptimeDate.getCurrentDate(),
-          matchingRule.reminderIntervalInMinutes,
+          intervalInMinutes,
         );
       }
     }
@@ -913,6 +922,36 @@ export class Service extends ProjectReferencesService<Model> {
     ];
   }
 
+  /*
+   * A create: its creator is made an owner of the alert as it returns
+   * (autoOwnerOnCreate), and the owners' "Alert Created" notification held
+   * by onBeforeCreate waits for that too (CreatedNotificationHold) - also
+   * when the create fails, which leaves nothing to wait for.
+   */
+  @CaptureSpan()
+  public override async create(createBy: CreateBy<Model>): Promise<Model> {
+    CreatedNotificationHold.willAddOwners(createBy, OwnersAddedBy.Create);
+
+    try {
+      return await super.create(createBy);
+    } finally {
+      await CreatedNotificationHold.ownersAreIn(createBy, OwnersAddedBy.Create);
+    }
+  }
+
+  /*
+   * The next alert number of this project, with the project's prefix for
+   * it: the one way an alert is numbered. A create takes it in
+   * onBeforeCreate; the sample project, which writes its alerts without
+   * hooks, takes it here (RecordNumbersTakenInOnePlaceGuard).
+   */
+  @CaptureSpan()
+  public async takeNextAlertNumber(
+    projectId: ObjectID,
+  ): Promise<{ counter: number; prefix: string | undefined }> {
+    return await ProjectService.incrementAndGetAlertCounter(projectId);
+  }
+
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
@@ -929,6 +968,28 @@ export class Service extends ProjectReferencesService<Model> {
       createBy.data.createdStateLog = StateChangeLogScreenshots.leaveOut(
         createBy.data.createdStateLog,
       );
+    }
+
+    /*
+     * An alert gets its owners after it is written: from onCreateSuccess's
+     * chain (the owners picked on its create form, and the project's owner
+     * rules), from its create as it returns (its creator), and from the
+     * code that made it once the create returns (a monitor's criteria, the
+     * network device the monitor watches, a data asset's owners). The
+     * owners' "Alert Created" notification is sent by a job that runs every
+     * minute and takes every alert not yet marked as notified: run in
+     * between, it would find no owners and tell the project's owners
+     * instead, and the alert's owners would hear nothing of it. So every
+     * alert is written as notified already, and is marked not notified once
+     * all of its owners are in (CreatedNotificationHold,
+     * releaseCreatedNotificationHeldForOwners): the job then tells them on
+     * its next run - or, should it have no owner at all, the project's
+     * owners, as before. A create that says it was notified already is
+     * written as it says.
+     */
+    if (createBy.data.isOwnerNotifiedOfAlertCreation !== true) {
+      createBy.data.isOwnerNotifiedOfAlertCreation = true;
+      CreatedNotificationHold.hold(createBy);
     }
 
     // The owners picked in the form are asked about now, before anything is saved.
@@ -1083,7 +1144,7 @@ export class Service extends ProjectReferencesService<Model> {
     const alertCounterResult: {
       counter: number;
       prefix: string | undefined;
-    } = await ProjectService.incrementAndGetAlertCounter(projectId);
+    } = await this.takeNextAlertNumber(projectId);
 
     createBy.data.alertNumber = alertCounterResult.counter;
     createBy.data.alertNumberWithPrefix = NumberPrefixUtil.formatNumber(
@@ -1175,6 +1236,17 @@ export class Service extends ProjectReferencesService<Model> {
      * by the on-call rules step, read by the on-call step after it.
      */
     let onCallRulesPaging: OnCallRulesPaging = getNoOnCallRulesPaging();
+
+    /*
+     * The owners' "Alert Created" notification onBeforeCreate held waits
+     * for the owners this chain adds - the ones picked on its create form,
+     * and the owner rules' - as for everyone else's
+     * (CreatedNotificationHold): the chain says they are in right after the
+     * owner rules have run, or as soon as it stops short of them.
+     */
+    CreatedNotificationHold.chainAddsOwners(onCreate.createBy, async () => {
+      await this.releaseCreatedNotificationHeldForOwners(createdItem);
+    });
 
     // Execute operations sequentially with error handling
     Promise.resolve()
@@ -1322,6 +1394,17 @@ export class Service extends ProjectReferencesService<Model> {
             } as LogAttributes,
           );
         }
+
+        /*
+         * Every owner this chain adds is in - or could not be added, and it
+         * will not try again: the "Alert Created" notification may go out
+         * once the others' are. Not waited for: paging the on-call below
+         * never waits on it.
+         */
+        CreatedNotificationHold.ownersAreIn(
+          onCreate.createBy,
+          OwnersAddedBy.Chain,
+        );
       })
       .then(async () => {
         // Apply label rules: attach matched (and inherited monitor) labels.
@@ -1407,7 +1490,7 @@ export class Service extends ProjectReferencesService<Model> {
           );
         } catch (error) {
           logger.error(
-            `On-call duty policy execution failed in AlertService.onCreateSuccess: ${error}`,
+            `On-call policy execution failed in AlertService.onCreateSuccess: ${error}`,
             {
               projectId: createdItem.projectId?.toString(),
               alertId: createdItem.id?.toString(),
@@ -1578,9 +1661,48 @@ export class Service extends ProjectReferencesService<Model> {
             alertId: createdItem.id?.toString(),
           } as LogAttributes,
         );
+
+        // Stopped short, maybe of its owner rules: it adds no more owners.
+        CreatedNotificationHold.ownersAreIn(
+          onCreate.createBy,
+          OwnersAddedBy.Chain,
+        );
       });
 
     return createdItem;
+  }
+
+  /*
+   * Marks an alert whose create held its "Alert Created" notification as
+   * not notified, so the owners' job sends it on its next run - to every
+   * owner it has by then (CreatedNotificationHold says when that is).
+   * Without the update hooks, as the other notification markers on an
+   * alert are written: nothing they react to changed. It never throws; a
+   * failure is logged, and leaves the notification unsent.
+   */
+  private async releaseCreatedNotificationHeldForOwners(
+    alert: Model,
+  ): Promise<void> {
+    try {
+      await this.updateOneById({
+        id: alert.id!,
+        data: {
+          isOwnerNotifiedOfAlertCreation: false,
+        },
+        props: {
+          isRoot: true,
+          ignoreHooks: true,
+        },
+      });
+    } catch (error) {
+      logger.error(
+        `Releasing the Alert Created notification held for the owners failed in AlertService.onCreateSuccess: ${error}`,
+        {
+          projectId: alert.projectId?.toString(),
+          alertId: alert.id?.toString(),
+        } as LogAttributes,
+      );
+    }
   }
 
   /*

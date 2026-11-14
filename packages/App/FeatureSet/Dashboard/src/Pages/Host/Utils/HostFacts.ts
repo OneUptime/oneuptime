@@ -1,3 +1,4 @@
+import { formatReaderFigure } from "Common/Types/DateLanguage";
 import {
   HOST_DISK_FULL_PERCENT,
   HOST_DISK_NEAR_FULL_PERCENT,
@@ -96,11 +97,16 @@ export function getHostUsage(data: {
   return { percent: percent, tone: getHostUsageTone(data.kind, percent) };
 }
 
-// A percent as a cell writes it: whole from 10, one decimal below ("4.2%").
+/*
+ * A percent as a cell writes it: whole from 10, one decimal below ("4.2%"),
+ * in the reader's digits and percent sign ("۴٫۲٪" in Persian, "4,2 %" in
+ * German; issue #7106).
+ */
 export function formatHostUsagePercent(percent: number): string {
-  return percent >= 10 || percent === 0
-    ? `${Math.round(percent)}%`
-    : `${percent.toFixed(1)}%`;
+  return formatReaderFigure(percent, {
+    decimals: percent >= 10 || percent === 0 ? 0 : 1,
+    isPercent: true,
+  });
 }
 
 export interface HostStatusFacts {
@@ -203,5 +209,8 @@ export function formatHostBytes(bytes: number | null | undefined): string {
     value /= 1024;
     index++;
   }
-  return `${value.toFixed(value < 10 ? 1 : 0)} ${units[index]}`;
+  // The number in the reader's digits, the unit as written: "۱۶ GiB".
+  return `${formatReaderFigure(value, { decimals: value < 10 ? 1 : 0 })} ${
+    units[index]
+  }`;
 }

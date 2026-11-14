@@ -1,4 +1,6 @@
 import Icon from "../Icon/Icon";
+import IsolatedLine from "../IsolatedText/IsolatedLine";
+import IsolatedText from "../IsolatedText/IsolatedText";
 import {
   CustomFieldFile,
   formatCustomFieldFileSize,
@@ -9,6 +11,7 @@ import IconProp from "../../../Types/Icon/IconProp";
 import { getFileTypeIcon } from "../../../Types/File/FileTypeIcon";
 import { PLACEHOLDER_TEXT_CLASS_NAME } from "../Detail/PlaceholderText";
 import { getKnownFileSize } from "../FilePicker/KnownFileSizes";
+import { getLineDirection } from "../../Utils/LineDirection";
 import { handleAuthenticatedLinkClick } from "../../Utils/OpenAuthenticatedUrl";
 import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
@@ -42,6 +45,31 @@ export interface ComponentProps {
   isCompact?: boolean | undefined;
   dataTestId?: string | undefined;
 }
+
+/*
+ * A file's name in the list: the room between its icon and its size,
+ * wrapped where it has to be, never cut short.
+ */
+export const CUSTOM_FIELD_FILE_NAME_CLASS_NAME: string =
+  "min-w-0 flex-1 break-words font-medium text-gray-800 [overflow-wrap:anywhere]";
+
+// A file's size beside its name: never squeezed, its digits all one width.
+export const CUSTOM_FIELD_FILE_SIZE_CLASS_NAME: string =
+  "shrink-0 text-xs tabular-nums text-gray-500";
+
+/*
+ * A name that reads the other way from the page - "Q3 vendor contract
+ * (signed).pdf" on an Arabic or Persian page - is a line of its own in that
+ * room (IsolatedLine's box for wrapping words): as wide as its words beside
+ * the icon, each wrapped line from the name's own start, its brackets and
+ * extension where they were typed. Laid out the page's way, a long English
+ * name lined up each wrapped line at its end and drew ".pdf" at its start.
+ */
+export const CUSTOM_FIELD_FILE_NAME_LINE_CLASS_NAME: string =
+  "block [overflow-wrap:anywhere]";
+
+// A table cell's first name: one line, cut short at its own end.
+export const CUSTOM_FIELD_FILE_COMPACT_NAME_CLASS_NAME: string = "truncate";
 
 type GetFileIconFunction = (fileType: string) => IconProp;
 
@@ -146,7 +174,16 @@ const CustomFieldFileList: FunctionComponent<ComponentProps> = (
           icon={IconProp.PaperClip}
           className="h-3.5 w-3.5 shrink-0 text-gray-400"
         />
-        <span className="truncate">{first.name}</span>
+        {/*
+         * Cut short at its own end (IsolatedLine): an English name on an
+         * Arabic page keeps its start ("Q3 vendor contr..."), not its
+         * extension.
+         */}
+        <IsolatedLine
+          as="span"
+          text={first.name}
+          className={CUSTOM_FIELD_FILE_COMPACT_NAME_CLASS_NAME}
+        />
         {more > 0 ? (
           <span className="shrink-0 text-xs text-gray-500">
             {translator.translatePlural(
@@ -189,13 +226,28 @@ const CustomFieldFileList: FunctionComponent<ComponentProps> = (
              * differ only at the end ("-signed.pdf", "-draft.pdf"), which
              * an ellipsis would hide on a phone.
              */}
-            <span className="min-w-0 flex-1 break-words font-medium text-gray-800 [overflow-wrap:anywhere]">
-              {file.name}
+            <span className={CUSTOM_FIELD_FILE_NAME_CLASS_NAME}>
+              {getLineDirection(file.name, translator.language) ? (
+                <IsolatedLine
+                  as="span"
+                  text={file.name}
+                  className={CUSTOM_FIELD_FILE_NAME_LINE_CLASS_NAME}
+                />
+              ) : (
+                file.name
+              )}
             </span>
+            {/*
+             * The size in the reader's digits, reading its own way: "۴۷ KB"
+             * with its number first on a page read from the right, where a
+             * bare "47 KB" was drawn "KB 47" (issue #7233).
+             */}
             {size ? (
-              <span className="shrink-0 text-xs tabular-nums text-gray-500">
-                {size}
-              </span>
+              <IsolatedText
+                text={size}
+                className={CUSTOM_FIELD_FILE_SIZE_CLASS_NAME}
+                dataTestId="custom-field-file-size"
+              />
             ) : (
               <></>
             )}

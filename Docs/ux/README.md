@@ -66,7 +66,7 @@ learned one can find their way around the next.
   monitor, who is told and a test page; three products would leave the person to find the chain. A
   guided setup draws its steps in `Components/GuidedSetup/GuidedSetupFrame`: each step saves real
   records, coming back opens the first step not done, and it ends with a summary read from the
-  records and what to do next (`/monitors/setup`, #6804). Its journey gets a budget of its own, with
+  records and what to do next (`/monitors/setup`, #6804; `/on-call-duty/setup`, #6805). Its journey gets a budget of its own, with
   `"path": "guided"`. Enforced by
   [GuidedSetupFrame](../../packages/Common/Tests/App/Dashboard/GuidedSetupFrame.test.tsx).
 
@@ -88,7 +88,8 @@ and phone summary: change the suite in the same pull request as the menu.
   `useWorkspaceSideMenuSection`, which lists only the workspaces the project has connected. Enforced by
   [WorkspaceConnectionsGuards](../../packages/Common/Tests/App/Dashboard/WorkspaceConnectionsGuards.test.ts).
 - **One kind of record is one page.** Kinds of the same thing are tabs on that page, not a page each:
-  your on-call rules are one page with a tab per kind, not four pages in two menu sections. Enforced by
+  How to Reach Me is one page, a ladder with a tab per kind behind it, not four pages in two menu
+  sections. Enforced by
   [OnCallRulesOnePageGuard](../../packages/App/Tests/Dashboard/OnCallRulesOnePageGuard.test.ts).
 - **Every entry in the More menu has an icon.** Enforced by
   [MoreMenuItemIconsGuard](../../packages/App/Tests/MoreMenuItemIconsGuard.test.ts).
@@ -273,8 +274,47 @@ work out, starts from a default for everything else, and folds what most people 
   [FieldErrorColorGuard](../../packages/Common/Tests/UI/FieldErrorColorGuard.test.ts).
 - **A field says what is wrong in the reader's language.** Enforced by
   [FormValidationMessagesInLocales](../../packages/App/Tests/FormValidationMessagesInLocales.test.ts).
-- **An error says what happened and what to do next,** in the reader's words: which value is wrong
-  and where to change it, not "Request failed". Not enforced: use judgement.
+- **An error says what happened, why if OneUptime knows, and what to do next.** It is the moment a
+  person most needs the product to be clear (#6836). What to do next is a fix they can make, who can
+  make it, or Try again. Good, from the product: "You already have a project with the same name.
+  Choose another name."; "That code is not right. Enter the code from the latest message we sent, or
+  send a new code."; "This project has no monitor status marked as operational, so a new monitor has
+  no status to start in. Add one under Monitors > Settings > Monitor Status, then create the monitor
+  again." Bad, as they were: "Project with the same name already exists", "Invalid code",
+  "Operational status not found for this project". Not enforced: use judgement.
+- **An error never blames the person, never shows an internal name or code alone, and never ends at
+  an empty phrase:** "Server Error", "Something went wrong", "Invalid request", "Bad request" or "An
+  error occurred" on their own (`EMPTY_ERROR_PHRASES` in `Common/Types/Exception/ErrorMessageRule`).
+  Every message thrown with its words written where it is thrown is a sentence, a capital letter first
+  and a full stop last; the first-hour flows' files (sign-up, a project, an invitation, a monitor, a
+  notification method, on-call, a status page, an ingestion key) have no exception, and everywhere
+  else a per-file baseline of messages that are not sentences may not grow (lower it with
+  `UPDATE_ERROR_MESSAGES_BASELINE=true` when you rewrite one). Enforced by
+  [ErrorMessagesGuard](../../packages/Common/Tests/App/ErrorMessagesGuard.test.ts).
+- **A failure nobody explained still says what to do next, with a reference.** When the server fails
+  in a way no message describes, it answers with what happened and what to do next, and a reference
+  (the start of the request's id) that one of its log lines names
+  (`Common/Server/Utils/UnexplainedServerError`). `API.getFriendlyMessage` turns every unexplained
+  failure into one of four sentences (`Common/Types/Exception/UnexplainedError`): the server failed,
+  the server did not answer, OneUptime could not be reached, or the page failed; never a
+  TypeError's words or a URL. A form's alert, a list or table that did not load, a dialog and the
+  page that did not load draw them with `ErrorExplanation`: what failed ("The monitor was not
+  saved."), why, Try again, the reference with a copy button, and, for a master admin of a
+  self-hosted server, where to look (`npm run doctor -- --logs`, OneUptime Health). Use
+  `API.getFriendlyMessage` for every error you show, and hand a sentence of what failed to the form
+  or list (`whatFailed`) where the page knows it. Enforced by
+  [ErrorMessagesGuard](../../packages/Common/Tests/App/ErrorMessagesGuard.test.ts) for the words of
+  the last resort; for everything else, not enforced: use judgement.
+- **Another system's failure is said in OneUptime's words first,** and that system's own words
+  second: "The verification code was not sent to +15551230100. No Twilio account is set up to send
+  SMS." Not enforced: use judgement.
+- **An error inside a sentence is said in the reader's language.** A card that says what failed in
+  a sentence of its own ("Couldn't work out who is told. {{error}}") draws the error with
+  `ErrorSentence`, or fills it with `errorInSentence(message)` where it has to be text
+  (`Common/UI/Utils/ErrorInSentence`). Filled with the message as it came, a German or a Persian
+  card read half in English, and a server failure's reference had no copy button (#7307).
+  Enforced by
+  [ErrorSentenceGuard](../../packages/Common/Tests/App/Dashboard/ErrorSentenceGuard.test.ts).
 
 ## Lists and empty states
 
@@ -297,6 +337,12 @@ work out, starts from a default for everything else, and folds what most people 
   [BulkActionsRunThroughRunnerGuard](../../packages/Common/Tests/UI/BulkActionsRunThroughRunnerGuard.test.ts).
 - **The colours of the shared table hold in both themes.** Enforced by
   [TableSourceGuard](../../packages/Common/Tests/UI/Components/Table/TableSourceGuard.test.ts).
+- **An empty value is the quiet dash, never a hyphen a page writes.** An empty cell or detail field
+  draws the light grey dash a screen reader reads as "Not set" (`TableEmptyValue`,
+  `Detail/EmptyValue`). A column's `noValueMessage: "-"` or a field's `placeholder: "-"` drew a
+  darker hyphen of its own, so one row could show both marks for the same nothing (#7264). A page
+  that wants words writes words ("Never", "No labels attached."). Enforced by
+  [TableEmptyValueDashGuard](../../packages/Common/Tests/UI/Components/Table/TableEmptyValueDashGuard.test.ts).
 
 ### Empty states and suggestions
 
@@ -329,8 +375,24 @@ work out, starts from a default for everything else, and folds what most people 
 - **A dialog is for a short job that returns the person where they were.** Creating a record from a
   list, a confirmation, a quick edit. Something people read, compare or come back to is a page. Not
   enforced: use judgement.
+- **A preview in a dialog never leaves the page.** It draws a thing as its reader will see it, over
+  work the dialog has not saved yet, so a click in it must not open another page and drop that work.
+  In a dashboard widget's Live Preview a link is its words, and a tile, a map's site, an incident's
+  marker or an exemplar opens nothing (#6859). Enforced by
+  [DashboardWidgetPreviewGuard](../../packages/Common/Tests/App/Dashboard/DashboardWidgetPreviewGuard.test.tsx).
 - **Confirm only what cannot be undone.** A switch that can be flipped back saves without asking.
   Not enforced: use judgement.
+- **Leaving unsaved work asks first.** While a page holds work it has not saved (a dashboard being
+  edited), a step to another page waits for its answer, Keep Editing or Discard Changes: a link,
+  the side menu, the breadcrumbs, a button, the project picker, the browser's Back and Forward.
+  Closing or reloading the tab asks with the browser's own dialog (`useLeaveGuard`, #7173). With
+  nothing unsaved, nothing asks. Enforced by
+  [LeaveGuard](../../packages/Common/Tests/UI/Utils/LeaveGuard.test.ts),
+  [UseLeaveGuard](../../packages/Common/Tests/UI/Utils/UseLeaveGuard.test.tsx),
+  [NavigationLeaveGuard](../../packages/Common/Tests/UI/Utils/NavigationLeaveGuard.test.ts),
+  [LinkLeaveGuard](../../packages/Common/Tests/UI/Components/LinkLeaveGuard.test.tsx),
+  [AppLinkLeaveGuard](../../packages/Common/Tests/App/Dashboard/AppLinkLeaveGuard.test.tsx) and
+  [ProjectPickerLeaveGuard](../../packages/Common/Tests/UI/Components/ProjectPickerLeaveGuard.test.tsx).
 
 ## Cards and the look of a page
 
@@ -340,15 +402,26 @@ work out, starts from a default for everything else, and folds what most people 
   [CardHeaderActionsGuard](../../packages/Common/Tests/UI/Components/CardHeaderActionsGuard.test.tsx).
 - **A card's description sits right under its title,** with no gap. Enforced by
   [CardDescriptionUnderTitleGuard](../../packages/Common/Tests/UI/Components/CardDescriptionUnderTitleGuard.test.tsx).
-- **What a card holds lines up with its title.** Enforced by
-  [DataObservabilityCardPaddingGuard](../../packages/Common/Tests/App/Dashboard/DataObservabilityCardPaddingGuard.test.ts).
+- **What a card holds lines up with its title,** in every product: the card pads its body, and the
+  body does not pad it again. Enforced by
+  [CardBodyPaddingGuard](../../packages/Common/Tests/App/Dashboard/CardBodyPaddingGuard.test.ts).
 - **A row of cards ends on one line.** Enforced by
   [CardRowsGuard](../../packages/Common/Tests/UI/Components/CardRowsGuard.test.ts).
+- **A chart's legend names its series in the order the page gives them,** not alphabetically, so it reads
+  the same in every language: every recharts `Legend` passes an `itemSorter` (never `itemSorter={null}`). Enforced by
+  [ChartLegendOrderGuard](../../packages/Common/Tests/UI/ChartLegendOrderGuard.test.ts).
 - **A details card lays its fields out by its own width,** not by a share of the page's. Enforced by
   [DetailCardsSourceGuard](../../packages/Common/Tests/UI/Components/Detail/DetailCardsSourceGuard.test.ts)
   and
   [MonitorSummaryViewsLayoutGuard](../../packages/App/Tests/Dashboard/MonitorSummaryViewsLayoutGuard.test.ts).
 - **Banners are for exceptions the person must act on,** never for the default state. Enforced by
+  [NoAlwaysOnInfoBannersGuard](../../packages/App/Tests/Dashboard/NoAlwaysOnInfoBannersGuard.test.ts).
+- **A sample project says what it is on every page.** It is the one bar a project shows on every
+  page, because there the project itself is the exception: nobody may take its made-up incidents
+  for their own (#6808). One dark bar at the top says "This is a sample project. Nothing here is
+  real, and nobody is notified.", with the ways out (back to their own project, Delete Sample
+  Project) and How OneUptime works, and it is drawn for a sample alone. Enforced by
+  [SampleProjectBar](../../packages/Common/Tests/App/Dashboard/SampleProjectBar.test.tsx) and
   [NoAlwaysOnInfoBannersGuard](../../packages/App/Tests/Dashboard/NoAlwaysOnInfoBannersGuard.test.ts).
 - **A button that cannot be pressed looks it,** the same way everywhere: faded, with the not-allowed
   cursor. Enforced by
@@ -371,6 +444,19 @@ work out, starts from a default for everything else, and folds what most people 
   ([`introduction/glossary.md`](../../packages/App/FeatureSet/Docs/Content/en/introduction/glossary.md))
   and the name the menu uses. A renamed thing is still found by its old name in Search. Not enforced:
   use judgement.
+- **A retired name does not come back.** When one thing had several names, #6817 kept one and retired
+  the rest ([`RetiredNames`](../../packages/Common/Types/Docs/RetiredNames.ts)): "On-Call Duty" is
+  On-Call, a person's "on-call rules" are How to Reach Me, the project's "Notification Settings" are
+  Notification Channels, a "Scheduled Maintenance Event" is a Maintenance Event. A retired name stays
+  only where people who learned it look: a Search keyword, the glossary's "Also called", a docs-search
+  synonym, and an address, API name or stored value (a model's `apiSingularName`, a workspace rule's
+  condition shown through a label), or a name another app keeps (the Slack app's shortcuts, as its
+  manifest names them). Enforced by
+  [RetiredNamesGuard](../../packages/App/Tests/Dashboard/RetiredNamesGuard.test.ts), which reads the
+  Dashboard's words, permission names, emails, every front end's English locale, every string the
+  server and the front ends write, the English docs with their diagrams, and the website, and
+  [RetiredNamesFindable](../../packages/App/Tests/Dashboard/RetiredNamesFindable.test.ts), which checks
+  that each old name still finds the page.
 - **At most three words on a page are marked as defined terms, each the first time it is met.** A
   `DefinedTerm` draws the word with a dotted line and shows its definition on hover, focus or tap.
   Enforced by
@@ -402,11 +488,36 @@ work out, starts from a default for everything else, and folds what most people 
 ### Numbers, dates and plurals
 
 - **A count goes through the plural forms of the reader's language** (`translatePlural`), and a
-  second count beside it is written in the reader's digits too: "۵/۸" on a Persian page. Enforced by
-  [CountPairsInReadersDigitsGuard](../../packages/Common/Tests/UI/CountPairsInReadersDigitsGuard.test.ts).
+  second count beside it, joined by "/", " of " or ":", is written in the reader's digits too
+  (`translator.formatNumber`): "۵/۸" and "۳۹ از ۴۰" on a Persian page. Enforced by
+  [CountPairsInReadersDigitsGuard](../../packages/Common/Tests/UI/CountPairsInReadersDigitsGuard.test.ts),
+  whose list of " of " pairs still to write only shrinks.
+- **A figure on its own is written in the reader's digits, decimal sign and percent sign:** a tile's
+  "97.5%" is "۹۷٫۵٪" in Persian and "97,5 %" in German, with `formatReaderFigure` (toFixed's
+  decimals, English exactly as toFixed writes it) or `translator.formatNumber`; a figure inside a
+  sentence takes the sentence's language (`figureInSentence`, `withSentenceDigits`), and a count in
+  a list column is a count column (`isCount`). Arabic is written in Latin digits. A name, an id, a
+  port or a Kubernetes quantity ("500m") is drawn as written. Checked on the Host and Kubernetes
+  pages. Enforced by
+  [HostOverviewFiguresInPersian](../../packages/Common/Tests/App/Dashboard/HostOverviewFiguresInPersian.test.tsx)
+  and
+  [KubernetesOverviewFiguresInPersian](../../packages/Common/Tests/App/Dashboard/KubernetesOverviewFiguresInPersian.test.tsx).
+- **A negative number in a right-to-left sentence takes the language's own minus:** in Persian a
+  left-to-right mark and a minus sign (U+2212) before the digits, in Arabic the word
+  ([ARABIC.md](../../packages/App/FeatureSet/Dashboard/src/Locales/ARABIC.md)),
+  never a hyphen that a right-to-left line moves after the number. Enforced by
+  [NegativeNumbersInRightToLeftSentences](../../packages/Common/Tests/App/NegativeNumbersInRightToLeftSentences.test.ts).
 - **A date is written by `OneUptimeDate` in the reader's language,** never put into an English
   template literal. Enforced by
   [DatesInEnglishTextGuard](../../packages/App/Tests/Dashboard/DatesInEnglishTextGuard.test.ts).
+- **A duration in milliseconds is written in the reader's language,** with the Dashboard's
+  `formatMilliseconds` ("{{value}} ms", each language's own unit and order, the figure in the
+  reader's digits), never a figure joined to " ms": every monitor's Response Time read "ms 411" on
+  an Arabic or Persian page (#7224). Enforced by
+  [MillisecondsInReadersLanguageGuard](../../packages/Common/Tests/UI/MillisecondsInReadersLanguageGuard.test.ts).
+- **A chart of one point a day labels its axis by the day** (`xAxisPrecision={XAxisPrecision.EVERY_DAY}`),
+  never by an hour or a step guessed from the window's length. Enforced by
+  [ProductAnalyticsDayAxisGuard](../../packages/Common/Tests/App/Dashboard/ProductAnalyticsDayAxisGuard.test.ts).
 - **A whole sentence is translated, never a word at a time.** Word by word, German read "Nein monitors
   yet". Use `TranslatedSentence` for a sentence with values in it. Not enforced: use judgement.
 
@@ -419,12 +530,16 @@ then `npm run i18n:validate` from the root.
 - **Every word a person reads is translated.** Enforced by
   [DashboardLocalesGuard](../../packages/App/Tests/Dashboard/DashboardLocalesGuard.test.ts),
   [ArabicLocaleGuards](../../packages/Common/Tests/App/ArabicLocaleGuards.test.ts),
+  [DashboardWordsInPersian](../../packages/App/Tests/Dashboard/DashboardWordsInPersian.test.ts),
   [DashboardComponentsAToLHardcodedGuard](../../packages/App/Tests/Dashboard/DashboardComponentsAToLHardcodedGuard.test.ts),
   [DashboardComponentsMRHardcodedGuard](../../packages/App/Tests/Dashboard/DashboardComponentsMRHardcodedGuard.test.ts),
   [DashboardPagesUtilsHardcodedGuard](../../packages/App/Tests/Dashboard/DashboardPagesUtilsHardcodedGuard.test.ts),
   [DashboardSloTopologyWorkspaceHardcodedGuard](../../packages/App/Tests/Dashboard/DashboardSloTopologyWorkspaceHardcodedGuard.test.ts)
   and
   [DashboardTraceViewHardcodedGuard](../../packages/App/Tests/Dashboard/DashboardTraceViewHardcodedGuard.test.ts).
+- **A phone number is never printed as it is.** On a page that reads right to left its "+" would go after
+  its digits; print it so it keeps its own direction. Enforced by
+  [PhoneNumberTextGuard](../../packages/Common/Tests/UI/PhoneNumberTextGuard.test.ts).
 - **A right-to-left page reads right to left.** Use start and end, never an inline left or right; a
   canvas's panels are mirrored once, by the page; a name in a table reads the way its words do; a
   sentence in a flex row is one item of it. Enforced by
@@ -434,9 +549,22 @@ then `npm run i18n:validate` from the root.
   [DashboardListNameCellsGuard](../../packages/Common/Tests/App/Dashboard/DashboardListNameCellsGuard.test.ts)
   and
   [TranslatedSentenceInRowGuard](../../packages/Common/Tests/UI/TranslatedSentenceInRowGuard.test.ts).
+- **A path's arrows point the way it is read.** A browser never turns "→" round, so on a page read
+  from the right it points each step back at the one before: Arabic and Persian write "←" beside a
+  step in their own words (`تنظیمات پروژه ← پیشرفته`), and keep "→" between two steps left in Latin
+  letters, which are drawn from the left. ">" and "›" turn round by themselves. Enforced by
+  [PathArrowsInRightToLeftSentences](../../packages/Common/Tests/App/PathArrowsInRightToLeftSentences.test.ts).
 - **A bare word has one meaning everywhere,** because a label is translated by its English text.
   "Any" is the Match Condition's word. Enforced by
   [MatchConditionAnyWordGuard](../../packages/Common/Tests/UI/Components/Forms/MatchConditionAnyWordGuard.test.ts).
+- **A noun the sentences share starts a label with a capital.** Many nouns are worded for the middle
+  of a sentence, so Spanish says "clúster de Kubernetes" and French "ressource cloud". Where the same
+  key names a row, a chip or a line of a card, draw it through `toLabelTerm`, which starts it with a
+  capital in the reader's language: "Clúster de Kubernetes". A key that is only ever a label is worded
+  with a capital in every language instead. Enforced by
+  [NounKeysDrawnAsLabelsGuard](../../packages/Common/Tests/App/Dashboard/NounKeysDrawnAsLabelsGuard.test.ts)
+  and
+  [NounLabelsStartWithACapital](../../packages/Common/Tests/App/Dashboard/NounLabelsStartWithACapital.test.tsx).
 - **Pick words that translate as you mean them.** "About" read "Regarding" in 13 languages, so the
   button says "How it works"; "Uptime" read "runtime", so a share of time up says "Availability". Not
   enforced: use judgement.
@@ -447,9 +575,39 @@ then `npm run i18n:validate` from the root.
   only when it was sent. Enforced by
   [ClipboardWritesGuard](../../packages/Common/Tests/UI/ClipboardWritesGuard.test.ts) for copy buttons;
   for everything else, not enforced: use judgement.
+- **Never ask for a click that does nothing where it is drawn.** A dashboard widget is drawn on the
+  board being edited, in its settings' Live Preview, on a board out of edit mode and on a public
+  dashboard: "Click to configure metric" is true only on the first, so a widget that is not set up
+  takes its line for each place from `DashboardWidgetSetupCopy`. Enforced by
+  [WidgetSetupLineGuard](../../packages/Common/Tests/App/Dashboard/WidgetSetupLineGuard.test.ts).
 - **No jargon, no made-up words, no vendor names in examples.** "Not Operational", not
   "Inoperational"; neutral model names (chat-large), not a vendor's model ids. Not enforced: use
   judgement.
+
+## Asking people
+
+People who are lost leave quietly, so the product asks them, in five seconds, what was hard
+(#6832). Answers stay on the server, for its master admins (Admin Dashboard > Feedback).
+
+- **Ask at most one question a week, once per question, and never while something is down.** A
+  question OneUptime asks goes through `ProductFeedback.ask` (`Common/UI/Utils/ProductFeedback`),
+  and the server decides: never once the person or the server has switched questions off, never
+  while the project has an open incident or alert, and never a question the person was asked
+  before. The end of every guided setup already asks once, from `GuidedSetupFrame`, so a new setup
+  needs no question of its own. A new place that asks is added to the guard's list, with the
+  reason. Enforced by
+  [FeedbackQuestionsGuard](../../packages/App/Tests/Dashboard/FeedbackQuestionsGuard.test.ts).
+- **Ask what to fix, not how much people like OneUptime.** "How easy was that?" at the end of a
+  flow says what to fix. A product-wide score, the "how likely are you to recommend" kind, does
+  not, so the product asks none. Enforced by
+  [FeedbackQuestionsGuard](../../packages/App/Tests/Dashboard/FeedbackQuestionsGuard.test.ts).
+- **An answer carries the page as a route with no ids, and the version, and nothing else.** No
+  person, no project, no address. Say where it goes where it is given: to the server's admins on a
+  self-hosted server, and to the OneUptime team on Cloud. Enforced by
+  [FeedbackQuestionsGuard](../../packages/App/Tests/Dashboard/FeedbackQuestionsGuard.test.ts).
+- **Before each release, someone who has not seen the changes walks the core jobs as a newcomer**,
+  and posts what made them hesitate, guess or go back on the epic #6802:
+  [the newcomer walkthrough](newcomer-walkthrough.md). Not enforced: use judgement.
 
 ## Before you open a pull request
 

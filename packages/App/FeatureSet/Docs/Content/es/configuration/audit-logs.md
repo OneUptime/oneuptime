@@ -88,6 +88,7 @@ Se registra todo lo que las personas crean, cambian o eliminan en un proyecto: m
 | Fuentes de actividad | Una fuente muestra cambios que el registro de auditoría ya registra. |
 | El estado de trabajo de OneUptime | Sesiones de los lectores de páginas de estado, trabajos en cola y otro estado que OneUptime guarda mientras trabaja. |
 | La configuración de notificaciones propia de una persona | Las direcciones, los números y las reglas de guardia personales de cada persona son solo suyos. |
+| Las preferencias propias de una persona | Los productos que cada persona fija en su propia barra superior son solo suyos, y solo esa persona los ve. |
 
 También se registra que un administrador añada o quite un método de notificación o una regla de guardia personal en la cuenta de otra persona, sin la dirección ni el número en sí.
 

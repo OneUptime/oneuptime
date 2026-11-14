@@ -38,7 +38,7 @@ Raden högst upp nämner det mest brådskande som är öppet, i en färg som pas
 
 Bredvid den visar Hem när projektet senast lästes in, och **Uppdatera** läser in det igen. När du kommer tillbaka till en flik med Hem efter en minut eller mer uppdateras den av sig själv.
 
-Så länge inget övervakas ännu slutar raden med knappen **Skapa din första övervakare**, som öppnar formuläret som skapar en monitor. Bara den som får skapa monitorer ser den.
+Så länge inget övervakas ännu slutar raden med knappen **Skapa din första övervakare**, som öppnar den guidade installationen **Veta när min webbplats eller mitt API ligger nere**. Bara den som får skapa monitorer ser den.
 
 ### De fem siffrorna
 
@@ -49,7 +49,7 @@ Varje siffra räknar något, säger om det behöver dig och öppnar listan bakom
 | **Aktiva incidenter** | Incidenter som inte är lösta | **Allt är i sin ordning** | **Incidenter → Aktiva incidenter** |
 | **Aktiva larm** | Larm som inte är lösta | **Allt är i sin ordning** | **Larm → Aktiva larm** |
 | **Icke-operativa monitorer** | Monitorer vars status inte är en fungerande status. Arkiverade monitorer, och monitorer med avstängd övervakning, räknas inte. | **Alla fungerar** | **Monitorer → Ej operativ** |
-| **Pågående underhåll** | Schemalagda underhåll som pågår | **Inget pågår** | **Schemalagt underhåll → Pågående händelser** |
+| **Pågående underhåll** | Schemalagda underhåll som pågår | **Inget pågår** | **Schemalagt underhåll → Pågående underhållshändelser** |
 | **SLO:er i riskzonen** | Påslagna SLO:er som är i riskzonen eller har förbrukat sin felbudget | **Budgetarna är friska** | **SLOs** |
 
 En siffra över noll visar **Kräver uppmärksamhet**, eller **Pågår** och **Budgeten förbrukas** för underhåll och SLO:er. Så länge en SLO är i riskzonen öppnar **SLO:er i riskzonen** listan **SLOs**, filtrerad på just dem. Ett projekt utan monitorer ser **Inga monitorer ännu**, och ett utan SLO:er ser **Inga SLO:er ännu**: ett tomt projekt är inte detsamma som ett friskt. De två siffrorna öppnar då listorna **Monitorer** och **SLOs**, där du skapar en.
@@ -63,18 +63,18 @@ Varje steg bockar av sig självt när saken fungerar, inte när en post finns, o
 | Steg | Klart när | Öppnar |
 | --- | --- | --- |
 | **Importera från ditt nuvarande verktyg** | En import från ett annat verktyg är slutförd. | **Importera från ett annat verktyg** |
-| **Skapa din första övervakare** | Den första kontrollen kommer in. | Formuläret **Skapa monitor**, eller listan **Monitorer** för den som inte får skapa övervakare. |
+| **Skapa din första övervakare** | Den första kontrollen kommer in. | Den guidade installationen **Veta när min webbplats eller mitt API ligger nere**, eller listan **Monitorer** för den som inte får skapa övervakare. |
 | **Anslut en server eller ett kluster** | De första mätvärdena kommer in. | **Värdar** |
-| **Skicka dina första loggar, mätvärden eller spår** | Projektets första loggar, mätvärden, spår, undantag eller profiler kommer in. | **Loggar** |
-| **Konfigurera en jourpolicy** | Ett testlarm kvitteras, ett larm når någon, eller en jourregel kör en policy som kan nå någon. | **Jourtjänst** |
-| **Publicera en statussida** | En statussida visar en övervakare. | **Statussidor** |
+| **Skicka dina första loggar, mätvärden eller spår** | Projektets första loggar, mätvärden, spår, undantag eller profiler kommer in. | Den guidade installationen **Skicka loggar, mätvärden och spår och få sedan larm** |
+| **Konfigurera en jourpolicy** | Ett testlarm kvitteras, ett larm når någon, eller en jourregel kör en policy som kan nå någon. | Den guidade installationen **Larma rätt person när något går sönder** |
+| **Publicera en statussida** | En statussida visar en övervakare. | Den guidade installationen **Publicera en statussida**, eller listan **Statussidor** för den som inte får skapa statussidor. |
 | **Bjud in ditt team** | Någon accepterar din inbjudan. | **Användare** |
 
 Steget du ska ta först är markerat med **Nästa steg**. På OneUptime Clouds Free-plan, som har en person, säger **Bjud in ditt team** att den behöver Growth-planen, och öppnar **Fakturering**. På en egen server som ännu inte kan skicka e-post ser serverns administratörer först **Den här servern kan inte skicka e-post än**; den öppnar administratörsdashboarden.
 
-När du skapar en övervakare, en statussida eller en jourpolicy från ett steg säger sidan du hamnar på vad som kommer härnäst, med **Tillbaka till konfigurationen**.
+En guidad installation gör hela jobbet på en sida, ett steg i taget, och slutar med vad den har konfigurerat och vad du gör härnäst. Sök på dess namn för att öppna den igen senare.
 
-Under stegen visar **Så fungerar OneUptime** de fyra kärnprodukterna i den ordning ett problem går igenom dem: **Monitorer**, **Incidenter och larm**, **Jourtjänst** och **Statussidor**. Klicka på en för att öppna den. Under dem står vad som matar kretsloppet, telemetri och infrastruktur, med länkar till [Grundbegrepp](/docs/introduction/core-concepts) och [Ordlista](/docs/introduction/glossary).
+Under stegen visar **Så fungerar OneUptime** de fyra kärnprodukterna i den ordning ett problem går igenom dem: **Monitorer**, **Incidenter och larm**, **Jour** och **Statussidor**. Klicka på en för att öppna den. Under dem står vad som matar kretsloppet, telemetri och infrastruktur, med länkar till [Grundbegrepp](/docs/introduction/core-concepts) och [Ordlista](/docs/introduction/glossary).
 
 ```mermaid title="När välkomstchecklistan visas"
 flowchart TB
@@ -93,6 +93,10 @@ Checklistan försvinner för alla när varje steg är klart. För att dölja den
 
 **Kräver uppmärksamhet** listar med namn det som siffrorna räknar: de öppna incidenterna, de öppna larmen, monitorerna som inte fungerar, SLO:erna i riskzonen och underhållet som pågår, det mest brådskande först. Varje rad visar sin allvarlighetsgrad eller status, säger när en incident eller larm började och när ett underhåll slutar, och öppnar posten. Varje typ visar upp till fem, med **Visa alla** för resten, som öppnar samma lista som dess siffra. När inget är öppet står det **Inget kräver din uppmärksamhet**.
 
+### Inställningarnas hälsa
+
+När något i projektets inställningar skulle hindra att folk får veta, slutar **Kräver uppmärksamhet** med **Inställning**: hur många saker som behöver en titt. Den öppnar **Inställningarnas hälsa**, som listar vad som är felinställt, det allvarligaste först, under **Larm kommer inte fram**, **Värt att åtgärda** och **Förslag**: en monitor som inte larmar någon, en jourpolicy som ingenting kör, en person som inte kan larmas, sms avstängt, ett jourschema utan någon i jour, en statussida som inte visar någon monitor. Varje fynd säger i en mening vad som är fel, med knappen som öppnar åtgärden, och en monitors fynd är de avbrott som dess kort **När den går ner** nämner. Ett fynd som ert team medvetet låter vara kan döljas med en motivering, för alla, och återställas från **Avfärdad**. Sök hittar sidan som **Inställningarnas hälsa**, och Fråga AI svarar på ”är mina inställningar okej?” utifrån den.
+
 ### Ditt projekt
 
 **Ditt projekt** räknar projektets **Monitorer**, **Statussidor**, **Jourpolicyer**, **SLOs**, **Tjänster**, **Instrumentpaneler** och **Arbetsflöden**; arkiverade räknas inte. Varje rad öppnar sin lista. En typ som projektet saknar visar **Konfigurera** i stället för en siffra.
@@ -101,16 +105,19 @@ Checklistan försvinner för alla när varje steg är klart. För att dölja den
 
 ### Utforska OneUptime
 
-**Utforska OneUptime** visar produkterna i menyn **Produkter**, en kategori i taget, med början i det grundläggande. Varje produkt säger vad den är till för, och öppnas när du klickar på den.
+**Utforska OneUptime** visar produkterna i menyn **Produkter**, en kategori i taget, med början i det grundläggande. Varje produkt säger vad den är till för, och öppnas när du klickar på den. Produkterna som ditt projekt döljer är inte med.
 
 ## Hitta rätt
 
-Allt i OneUptime finns under **Produkter** i toppfältet. Menyn visar sina grupper som raderna i en enda lista och öppnas alltid med den första av dem, det grundläggande, utfälld: Övervakare, Incidenter, Larm, Jourtjänst, Statussidor, Schemalagt underhåll och SLOs. Varje annan grupp (Observerbarhet, Säkerhet, AI, Kod, Resurser, Infrastruktur, Moln, Instrumentpaneler och automatisering och Inställningar) är hopfälld till en rad i samma lista. Varje rad nämner gruppens produkter och säger hur många de är. Klicka på en rad för att fälla ut eller fälla ihop den, eller gå till den med piltangenterna och tryck på **Enter**.
+Allt i OneUptime finns under **Produkter** i toppfältet. Menyn visar sina grupper som raderna i en enda lista och öppnas alltid med den första av dem, det grundläggande, utfälld: Övervakare, Incidenter, Larm, Jour, Statussidor, Schemalagt underhåll och SLOs. Varje annan grupp (Observerbarhet, Säkerhet, AI, Kod, Resurser, Infrastruktur, Moln, Instrumentpaneler och automatisering och Inställningar) är hopfälld till en rad i samma lista. Varje rad nämner gruppens produkter och säger hur många de är. Klicka på en rad för att fälla ut eller fälla ihop den, eller gå till den med piltangenterna och tryck på **Enter**.
 
 - **Sökningen hittar allt.** Skriv i menyns sökruta för att hitta vilken produkt som helst efter namn, efter vad den gör eller efter ett välbekant ord som `k8s` eller `RUM`. Sökningen letar också i de hopfällda grupperna.
 - **Du börjar där du är.** Gruppen för sidan du är på fälls ut av sig själv, och produkterna du nyligen har öppnat står överst.
 - **Dina val ligger kvar.** Menyn kommer ihåg i din webbläsare vilka av de andra grupperna du har fällt ut eller ihop. Det grundläggande är utfällt igen varje gång du öppnar menyn, även om du fällde ihop det.
 - **På en telefon** visar menyknappen produkterna på samma sätt: det grundläggande utfällt överst och varje annan grupp som en rad som öppnas med ett tryck.
+- **Produkter som projektet inte använder.** En projektägare eller -administratör kan dölja dem under **Projektinställningar → Grundläggande → Produkter**. En dold produkt flyttas till **Fler produkter**, menyns sista rad: Sök hittar den fortfarande, dess sidor fungerar och dess data fortsätter att komma in. När en av dem börjar ta emot data säger Hem det till dem som kan visa den igen.
+- **Fäst.** Behåll en produkt i det övre fältet, bredvid **Hem** och **Produkter**: tryck på nålen på dess kort i menyn, eller på **Fäst** bredvid dess sidrubrik. Du kan fästa fem, och de följer med dig till alla webbläsare. På en telefon kommer dina fästa produkter först i menyn.
+- **Vad som används.** I varje grupp utom det grundläggande och inställningarna kommer produkterna som ditt projekt använder först, och en som du inte har konfigurerat ännu säger **Inte konfigurerad**. I OneUptime Cloud nämner en produkt som din plan inte omfattar den plan som omfattar den.
 
 ### Fälten högst upp
 
@@ -122,7 +129,7 @@ Två fält löper över toppen av varje sida.
 | Uppe till höger | **Sök** och **Fråga AI**, aviseringsklockan med det som behöver dig nu (aktiva incidenter och larm, jourpolicyerna du har jour i, väntande inbjudningar), **Hjälp**, och din bild, som öppnar menyn för ditt [konto](/docs/introduction/your-account). |
 | Under dem | **Hem** och **Produkter** till vänster, **Användarinställningar** till höger: hur OneUptime når dig i det här projektet. |
 
-**Hjälp** börjar med det som hjälper dig att lära dig: **Snabbstart**, **Så fungerar OneUptime**, **Ordlista** och den här dokumentationen (**Dokumentation**). Under dem finns listan **Keyboard shortcuts** och support via e-post och på Slack. På en smal skärm, som en telefon, utelämnas **Sök**, **Fråga AI** och **Hjälp** för att spara plats; klockan och din bild finns kvar.
+**Hjälp** börjar med det som hjälper dig att lära dig: **Snabbstart**, **Så fungerar OneUptime**, **Ordlista** och den här dokumentationen (**Dokumentation**). Under dem finns listan **Kortkommandon** och support via e-post och på Slack. På en surfplatta eller i ett smalt fönster utelämnas **Fråga AI** för att spara plats: den finns bland åtgärderna i **Sök**. På en telefon flyttar **Sök** och **Hjälp** in i menyknappens lista, högst upp och längst ned; klockan och din bild finns kvar.
 
 Ett ord med en prickad linje under, som **Sonder** i formuläret för en ny monitor, berättar vad det betyder när du pekar på det, tabbar till det eller trycker på det. Dess **Läs mer** öppnar ordet i [Ordlista](/docs/introduction/glossary).
 
@@ -142,9 +149,10 @@ Ovanför varje sidas rubrik visar ett spår som *Projekt › Docker › Inställ
 Tryck på **Cmd+K** (Mac) eller **Ctrl+K** (Windows och Linux), eller klicka på sökikonen i toppfältet, och börja skriva. Sökningen hittar:
 
 - **Varje sida i menyerna**, under namnet som menyn ger den: API-nycklar, Farozon, Jourscheman, Incidentallvar, dina egna Aviseringsmetoder. Varje resultat säger var det finns, till exempel *Projektinställningar › Avancerad*, så att sidor med samma namn (Anpassade fält under Incidenter, Larm och Monitorer) är lätta att skilja åt.
-- **Inställningarna på en sida**, under namnet som deras kort eller reglage visar: *Kräv SSO för inloggning* hittar SSO, och *Aviseringskanaler* hittar Aviseringsinställningar. Skriv namnet på engelska eller på ditt eget språk.
+- **Inställningarna på en sida**, under namnet som deras kort eller reglage visar: *Kräv SSO för inloggning* hittar SSO, och *Anpassade SMTP-konfigurationer* hittar Aviseringskanaler. Skriv namnet på engelska eller på ditt eget språk.
 - **Åtgärder**, efter vad du vill göra: Deklarera incident, Skapa monitor eller Delete Project, som öppnar Farozon. En åtgärd som ändrar något erbjuds bara den som får utföra den.
 - **Dina monitorer, incidenter, larm, statussidor och jourpolicyer**, efter namn, och incidenter och larm även efter nummer, som `INC-42`. Varje resultat för en incident eller ett larm börjar med dess nummer, så att två med samma titel går att skilja åt.
+- **Dokumentationen**, i en grupp *Dokumentation* under allt annat: de sidor och avsnitt vars ord stämmer med det du skriver, på ditt språk, även med ett stavfel. Var och en öppnas i en ny flik, så att du behåller din plats.
 
 Sökningen läser det du skriver som du menar det:
 
@@ -157,7 +165,7 @@ Med en tom sökruta visar sökningen sidorna du nyligen har öppnat, åtgärdern
 
 ## Kortkommandon
 
-Tryck på `?` var som helst i instrumentpanelen för att se alla kortkommandon, eller öppna **Hjälp** och välj **Keyboard shortcuts**. På en Mac är `Mod` Command-tangenten; på Windows och Linux är det Ctrl.
+Tryck på `?` var som helst i instrumentpanelen för att se alla kortkommandon, eller öppna **Hjälp** och välj **Kortkommandon**. På en Mac är `Mod` Command-tangenten; på Windows och Linux är det Ctrl.
 
 | Tangenter | Vad de gör |
 | --- | --- |
@@ -177,7 +185,7 @@ Tryck på `g` och sedan en bokstav för att gå direkt till en produkt. Tryck p�
 | `g` sedan `m` | Övervakare |
 | `g` sedan `i` | Incidenter |
 | `g` sedan `a` | Larm |
-| `g` sedan `o` | Jourtjänst |
+| `g` sedan `o` | Jour |
 | `g` sedan `s` | Statussidor |
 | `g` sedan `e` | Schemalagt underhåll |
 | `g` sedan `d` | Instrumentpaneler |

@@ -26,6 +26,7 @@ import {
   strayMarkers,
   tableShape,
 } from "./DocsTranslationChecks";
+import { pathWithArrows } from "./DocsPageShape";
 import { describe, expect, it } from "@jest/globals";
 
 /*
@@ -42,18 +43,22 @@ import { describe, expect, it } from "@jest/globals";
  *     language's Dashboard locale, Persian included, as on the on-call,
  *     runbook, workflow and introduction pages (drawnActionLabel). Menu
  *     paths ("A → B → C") are drawn segment by segment.
- *   - The If No Data options (Ignore, Treat As Zero), the HTTP methods, two
- *     template sync field names and the sync button have no Dashboard
- *     locale key at all: every language's Dashboard shows them in English,
- *     so every translation names them in English (SHOWN_IN_ENGLISH). When
- *     the Dashboard gains a key for one, a test below fails until the pages
- *     name it as drawn. The comparisons (Greater Than, Equal To, Not
- *     Contains) gained theirs in adc8421a1b, and the criteria filters (Is
- *     Online, Response Header, Packet Loss (in %)), their window aggregates
- *     and the rest of their conditions (Evaluates To True) theirs in
- *     31eadaee92e, worded in every language in f155e8e0998: they are labels
- *     now, drawn like any other (DocsCriteriaConditions holds every page to
- *     the conditions).
+ *   - The If No Data options (Ignore, Treat As Zero), the HTTP methods and
+ *     the sync button have no Dashboard locale key at all: every language's
+ *     Dashboard shows them in English, so every translation names them in
+ *     English (SHOWN_IN_ENGLISH). When the Dashboard gains a key for one, a
+ *     test below fails until the pages name it as drawn. The comparisons
+ *     (Greater Than, Equal To, Not Contains) gained theirs in adc8421a1b,
+ *     and the criteria filters (Is Online, Response Header, Packet Loss
+ *     (in %)), their window aggregates and the rest of their conditions
+ *     (Evaluates To True) theirs in 31eadaee92e, worded in every language
+ *     in f155e8e0998: they are labels now, drawn like any other
+ *     (DocsCriteriaConditions holds every page to the conditions). The sync
+ *     field Request headers gained its key with the Test LLM Provider
+ *     dialog's request panel (#7355), which draws the same words, and is a
+ *     label now too. Every other sync field name, Monitor destination among
+ *     them, gained its key when the Template sync settings card came to say
+ *     them in the reader's language (#7546).
  *   - A button drawn from a template such as "Add {{itemName}}" around an
  *     item name that has no translation keeps that name in English
  *     (TEMPLATED_LABELS). The request headers' Add button was one until
@@ -128,9 +133,6 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
      * (MonitorTemplatesView), so no language translates it.
      */
     "Sync Criteria to 3 Linked Monitors",
-    // Template sync settings' field names (MonitorTemplateSyncField).
-    "Monitor destination",
-    "Request headers",
   ],
   [WEBSITE_MONITOR]: CRITERIA_NAMES_IN_ENGLISH,
   [API_MONITOR]: [
@@ -555,11 +557,12 @@ describe.each(LANGUAGES)("%s", (language: string) => {
       const translated: string = readPage(language, entry.page);
       const missing: Array<string> = menuPaths(english)
         .map((segments: Array<string>): string => {
-          return segments
-            .map((segment: string): string => {
+          return pathWithArrows(
+            segments.map((segment: string): string => {
               return drawnActionLabel(language, segment);
-            })
-            .join(PATH_SEPARATOR);
+            }),
+            language,
+          );
         })
         .filter((localized: string): boolean => {
           return !translated.includes(`**${localized}**`);
@@ -681,13 +684,13 @@ describe("the helpers, on these pages' shapes", () => {
   });
 
   it("fill a template around an untranslated name, as German draws it", () => {
-    // A template sync field's name, which no locale words.
-    expect(isActionLabel("Request headers")).toBe(false);
-    expect(filled("en", "Add {{itemName}}", "Request headers")).toBe(
-      "Add Request headers",
+    // An If No Data option (NoDataPolicy), which no locale words.
+    expect(isActionLabel("Treat As Zero")).toBe(false);
+    expect(filled("en", "Add {{itemName}}", "Treat As Zero")).toBe(
+      "Add Treat As Zero",
     );
-    expect(filled("de", "Add {{itemName}}", "Request headers")).toBe(
-      "Request headers hinzufügen",
+    expect(filled("de", "Add {{itemName}}", "Treat As Zero")).toBe(
+      "Treat As Zero hinzufügen",
     );
   });
 

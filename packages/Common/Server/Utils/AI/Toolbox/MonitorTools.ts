@@ -9,6 +9,7 @@ import Permission from "../../../../Types/Permission";
 import Query from "../../../../Types/BaseDatabase/Query";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import { AIChatCitationTargetType } from "../../../../Types/AI/AIChatTypes";
+import { Gray500 } from "../../../../Types/BrandColors";
 import MonitorService from "../../../Services/MonitorService";
 import MonitorOwnerTeamService from "../../../Services/MonitorOwnerTeamService";
 import MonitorOwnerUserService from "../../../Services/MonitorOwnerUserService";
@@ -17,6 +18,7 @@ import MonitorStatusTimelineService from "../../../Services/MonitorStatusTimelin
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import ToolResultSerializer, { SerializedResult } from "./Serializer";
 import WidgetBuilder from "./WidgetBuilder";
+import { getMonitorCardWords } from "./ReadCardWords";
 import {
   ObservabilityTool,
   ToolArgs,
@@ -63,8 +65,9 @@ export const MONITORING_OFF_LIST_NOTE: string =
 
 /*
  * What the chat says for such a monitor - its table's Status, its card's
- * line under the name: the Monitors table's word. The card names the status
- * the monitor was frozen at as its last one.
+ * line under the name (AI_READ_CARD_LINES.disabled, in the reader's
+ * language): the Monitors table's word. The card names the status the
+ * monitor was frozen at as its last one (AI_READ_CARD_FACTS.lastStatus).
  */
 export const MONITORING_OFF_STATUS_TEXT: string = "Disabled";
 export const MONITORING_OFF_LAST_STATUS_LABEL: string = "Last status";
@@ -269,34 +272,6 @@ export const QueryMonitorsTool: ObservabilityTool = {
       const serialized: SerializedResult =
         ToolResultSerializer.serializeRows(rows);
 
-      const cardFields: Array<{ label: string; value: string }> = [];
-      if (monitor?.monitorType) {
-        cardFields.push({ label: "Type", value: String(monitor.monitorType) });
-      }
-      if (monitor?.currentMonitorStatus?.name) {
-        /*
-         * A monitor whose monitoring is off is not in that status now: its
-         * card says Disabled under its name (below), and this is the status
-         * its last check saw, said as the last one.
-         */
-        cardFields.push({
-          label: isMonitoringOff ? MONITORING_OFF_LAST_STATUS_LABEL : "Status",
-          value: monitor.currentMonitorStatus.name,
-        });
-      }
-      if (monitor?.isArchived === true) {
-        cardFields.push({ label: "Archived", value: "Yes - not monitored" });
-      }
-      if (isMonitoringOff) {
-        cardFields.push({ label: "Monitoring", value: "Off - not checked" });
-      }
-      if (ownerTeamNames) {
-        cardFields.push({ label: "Owner teams", value: ownerTeamNames });
-      }
-      if (ownerUserNames) {
-        cardFields.push({ label: "Owner users", value: ownerUserNames });
-      }
-
       // What the status it shows is worth, said before it.
       const notes: Array<string> = [];
       if (monitor?.isArchived === true) {
@@ -319,16 +294,33 @@ export const QueryMonitorsTool: ObservabilityTool = {
         widget: monitor
           ? WidgetBuilder.resourceCard({
               title: `Monitor ${monitor.name || ""}`.trim(),
-              resourceType: "Monitor",
               heading: monitor.name || "Monitor",
               /*
-               * What the Monitors table says of it: Disabled when its
-               * monitoring is off, not the status it was frozen at.
+               * In the reader's language (issue #7175): its type by the
+               * type picker's name for it, and under its name what the
+               * Monitors table says of it - Disabled when its monitoring
+               * is off, not the status it was frozen at, which the card
+               * names as its last one.
                */
-              subheading: isMonitoringOff
-                ? MONITORING_OFF_STATUS_TEXT
-                : monitor.currentMonitorStatus?.name,
-              fields: cardFields,
+              words: getMonitorCardWords({
+                monitorType: monitor.monitorType
+                  ? String(monitor.monitorType)
+                  : undefined,
+                statusName: monitor.currentMonitorStatus?.name || undefined,
+                isMonitoringOff,
+                isArchived: monitor.isArchived === true,
+                ownerTeamNames: ownerTeamNames || undefined,
+                ownerUserNames: ownerUserNames || undefined,
+              }),
+              /*
+               * And in its colour, as that table draws it (issue #6968):
+               * gray when the status is not live - monitoring off, or
+               * archived - never the green of the status it was frozen at.
+               */
+              statusColor:
+                isMonitoringOff || monitor.isArchived === true
+                  ? Gray500.toString()
+                  : monitor.currentMonitorStatus?.color?.toString(),
               link: {
                 type: AIChatCitationTargetType.MonitorView,
                 params: { monitorId: monitorId.toString() },

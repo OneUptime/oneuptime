@@ -47,6 +47,8 @@ OneUptime은 오픈 소스 옵저버빌리티 플랫폼입니다. 웹사이트, 
 - **[API, CLI, Terraform](https://oneuptime.com/docs/ko/api-reference/api-reference)**: 스크립트와 CI에서 OneUptime을 자동화하고, 모니터, 상태 페이지, 온콜을 코드로 관리합니다.
 - **[MCP 서버](https://oneuptime.com/docs/ko/ai/mcp-server)** (`https://oneuptime.com/mcp`): Claude, Cursor, GitHub Copilot이 있는 VS Code 또는 Model Context Protocol(MCP)의 다른 클라이언트를 연결한 뒤, 인시던트를 살펴보고, 로그와 트레이스를 조회하고, 알림을 확인하고, 모니터를 설정해 달라고 요청하세요.
 
+단계별 가이드는 OneUptime Cloud에서든 자체 서버에서든 한 가지 작업을 처음부터 끝까지 안내합니다: [웹사이트나 API가 다운되면 알기](https://oneuptime.com/docs/ko/guides/website-down), [전화, SMS, 푸시로 호출 받기](https://oneuptime.com/docs/ko/guides/paging), [상태 페이지 게시하기](https://oneuptime.com/docs/ko/guides/status-page).
+
 나머지는 모두 [문서](https://oneuptime.com/docs/ko/introduction/getting-started)에 있습니다.
 
 ## 시작하기

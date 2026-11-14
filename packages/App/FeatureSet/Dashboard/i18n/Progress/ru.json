@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 50830,
-    "untranslated": 9666
+    "keys": 51296,
+    "untranslated": 9488
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -31,6 +31,7 @@
     "Client Secret",
     "CloudKitty",
     "CloudWatch Metric Streams",
+    "Community Edition",
     "CrowdStrike",
     "DE",
     "DES",
@@ -41,6 +42,7 @@
     "Down + In",
     "Down + Out",
     "Edge",
+    "Enterprise Edition",
     "Flavor",
     "Flavors",
     "Fluent Bit",

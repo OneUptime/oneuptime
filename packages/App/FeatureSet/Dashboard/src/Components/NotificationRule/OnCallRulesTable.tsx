@@ -40,6 +40,7 @@ import {
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import { NO_NOTIFICATION_REPEAT } from "Common/Types/NotificationRule/NotificationRepeat";
+import { getPagingLadderCellKey } from "Common/Types/NotificationRule/PagingLadder";
 import NotificationRuleType from "Common/Types/NotificationRule/NotificationRuleType";
 import PushNotificationLevel from "Common/Types/NotificationRule/PushNotificationLevel";
 import ObjectID from "Common/Types/ObjectID";
@@ -203,10 +204,12 @@ const isSelectableMethod: IsSelectableMethod = (
 /* The supplied methods as dropdown entries, in the order they were given. */
 type GetSuppliedDropdownOptions = (
   methods: Array<NotificationMethodChoice>,
+  translator: Translator,
 ) => Array<DropdownOption>;
 
 const getSuppliedDropdownOptions: GetSuppliedDropdownOptions = (
   methods: Array<NotificationMethodChoice>,
+  translator: Translator,
 ): Array<DropdownOption> => {
   const options: Array<DropdownOption> = [];
 
@@ -218,13 +221,18 @@ const getSuppliedDropdownOptions: GetSuppliedDropdownOptions = (
     /*
      * The same `Channel: identifier` shape NotificationMethodUtil.getLabel
      * produces, so the two paths read identically - the only difference a
-     * viewer can see is that this one is masked.
+     * viewer can see is that this one is masked. In the reader's words:
+     * "Phone call", never the shared "Call" (#7178), drawn as the other
+     * path's are (TRANSLATED_LABEL_OPTION).
      */
     options.push({
-      label: method.maskedIdentifier
-        ? `${method.methodType}: ${method.maskedIdentifier}`
-        : method.methodType,
+      label: NotificationMethodUtil.getMethodLabel(
+        translator,
+        method.methodType,
+        method.maskedIdentifier,
+      ),
       value: method.methodId,
+      ...NotificationMethodUtil.TRANSLATED_LABEL_OPTION,
     });
   }
 
@@ -297,11 +305,13 @@ const UNRESOLVED_METHOD_LABEL: string = translationKey(
 type GetSuppliedMethodLabel = (
   methods: Array<NotificationMethodChoice>,
   rule: UserNotificationRule,
+  translator: Translator,
 ) => string;
 
 const getSuppliedMethodLabel: GetSuppliedMethodLabel = (
   methods: Array<NotificationMethodChoice>,
   rule: UserNotificationRule,
+  translator: Translator,
 ): string => {
   for (const channel of METHOD_CHANNELS) {
     const rawValue: unknown = (rule as unknown as Record<string, unknown>)[
@@ -331,7 +341,11 @@ const getSuppliedMethodLabel: GetSuppliedMethodLabel = (
     );
 
     if (method && method.maskedIdentifier) {
-      return `${method.methodType}: ${method.maskedIdentifier}`;
+      return NotificationMethodUtil.getMethodLabel(
+        translator,
+        method.methodType,
+        method.maskedIdentifier,
+      );
     }
 
     /*
@@ -341,7 +355,10 @@ const getSuppliedMethodLabel: GetSuppliedMethodLabel = (
      * device is meant to ring without saying which account it is.
      */
     if (method) {
-      return channel.methodType;
+      return NotificationMethodUtil.getMethodName(
+        translator,
+        channel.methodType,
+      );
     }
 
     return UNRESOLVED_METHOD_LABEL;
@@ -467,7 +484,25 @@ export interface ComponentProps {
   onBehalfOfName?: string | undefined;
 
   noItemsMessage?: string | undefined;
+
+  /*
+   * The cards that differ from the person's ladder (How to Reach Me), by
+   * getPagingLadderCellKey: each is marked on its title, beside its
+   * severity. Left out, no card is marked.
+   */
+  differingCellKeys?: ReadonlySet<string> | undefined;
+
+  /*
+   * Called once a rule on any card was added, changed or removed, so the
+   * ladder above the cards reads them again.
+   */
+  onRulesChanged?: (() => void) | undefined;
 }
+
+// The mark on a card that differs from the person's ladder.
+export const DIFFERS_FROM_LADDER_TAG: string = translationKey(
+  "Differs from the ladder",
+);
 
 /*
  * What a severity with no rule says on your own page: the card's title and
@@ -508,7 +543,12 @@ const OPT_OUT_LABEL: string = translationKey(
  */
 const SeverityCardTitle: FunctionComponent<{
   severity: OnCallRuleSeverity;
-}> = (props: { severity: OnCallRuleSeverity }): ReactElement => {
+  differsFromLadder?: boolean | undefined;
+}> = (props: {
+  severity: OnCallRuleSeverity;
+  differsFromLadder?: boolean | undefined;
+}): ReactElement => {
+  const translator: Translator = useTranslator();
   const color: string | undefined = props.severity.color?.toString();
 
   return (
@@ -528,6 +568,17 @@ const SeverityCardTitle: FunctionComponent<{
       <IsolatedText text={props.severity.name || ""} />
       {/* Nobody picks it again; the rules it has still notify. */}
       {isArchivedValue(props.severity) ? <ArchivedTag /> : <></>}
+      {/* How to Reach Me: this card pages otherwise than the ladder. */}
+      {props.differsFromLadder ? (
+        <span
+          className="inline-flex flex-none items-center whitespace-nowrap rounded-md bg-amber-50 px-1.5 py-0.5 text-xs font-medium leading-4 text-amber-800 ring-1 ring-inset ring-amber-200"
+          data-testid="on-call-rules-differs-tag"
+        >
+          {translator.translateText(DIFFERS_FROM_LADDER_TAG)}
+        </span>
+      ) : (
+        <></>
+      )}
     </span>
   );
 };
@@ -640,25 +691,29 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
 
   const notificationMethodsDropdownOptions: Array<DropdownOption> =
     isViewerTheOwner
-      ? NotificationMethodUtil.getDropdownOptions({
-          userCalls: userCalls,
-          userEmails: userEmails,
-          userSMSs: userSMSs,
-          userPush: offeredUserPush,
-          userWhatsApps: userWhatsApps,
-          userTelegrams: userTelegrams,
-          userSlacks: userSlacks,
-          userMicrosoftTeamsAccounts: userMicrosoftTeamsAccounts,
-          userMattermostAccounts: userMattermostAccounts,
-          userWebhooks: userWebhooks,
-          customNotificationChannels: customNotificationChannels,
-        })
+      ? NotificationMethodUtil.getDropdownOptions(
+          {
+            userCalls: userCalls,
+            userEmails: userEmails,
+            userSMSs: userSMSs,
+            userPush: offeredUserPush,
+            userWhatsApps: userWhatsApps,
+            userTelegrams: userTelegrams,
+            userSlacks: userSlacks,
+            userMicrosoftTeamsAccounts: userMicrosoftTeamsAccounts,
+            userMattermostAccounts: userMattermostAccounts,
+            userWebhooks: userWebhooks,
+            customNotificationChannels: customNotificationChannels,
+          },
+          translator,
+        )
       : getSuppliedDropdownOptions(
           (props.notificationMethods || []).filter(
             (method: NotificationMethodChoice): boolean => {
               return !isPushTurnedOff || method.methodType !== "Push";
             },
           ),
+          translator,
         );
 
   /*
@@ -864,6 +919,7 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
        * row on screen.
        */
       setRefreshToggle(OneUptimeDate.getCurrentDate().toString());
+      props.onRulesChanged?.();
     } catch (err) {
       setDeleteError(API.getFriendlyMessage(err));
     }
@@ -1019,6 +1075,8 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
       id: rule.id,
       data: data,
     });
+
+    props.onRulesChanged?.();
   };
 
   /*
@@ -1131,6 +1189,7 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
     const suppliedLabel: string = getSuppliedMethodLabel(
       props.notificationMethods || [],
       item,
+      translator,
     );
 
     /*
@@ -1274,6 +1333,16 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
 
           return Promise.resolve(model);
         }}
+        onCreateSuccess={(
+          item: UserNotificationRule,
+        ): Promise<UserNotificationRule> => {
+          // Added or edited: the ladder above reads the cards again.
+          props.onRulesChanged?.();
+          return Promise.resolve(item);
+        }}
+        onItemDeleted={() => {
+          props.onRulesChanged?.();
+        }}
         sortOrder={SortOrder.Ascending}
         sortBy="notifyAfterMinutes"
         createVerb={"Add"}
@@ -1312,7 +1381,20 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
          */
         isCreateable={isEditable && !isArchivedValue(severity)}
         cardProps={{
-          title: <SeverityCardTitle severity={severity} />,
+          title: (
+            <SeverityCardTitle
+              severity={severity}
+              differsFromLadder={Boolean(
+                severity.id &&
+                  props.differingCellKeys?.has(
+                    getPagingLadderCellKey({
+                      ruleType: props.ruleType,
+                      severityId: severity.id.toString(),
+                    }),
+                  ),
+              )}
+            />
+          ),
           /*
            * An archived one says what its rules still do, and - where they
            * can be changed - why it has no Add. A view that changes nothing

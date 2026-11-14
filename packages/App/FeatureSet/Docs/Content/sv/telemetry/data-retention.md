@@ -79,7 +79,7 @@ Ett fält som lämnas tomt faller tillbaka på nästa inställning i ordningen o
 
 Öppna tjänstens eller resursens sida **Inställningar** och sedan **Fler inställningar**. Dess kort **Datalagring för telemetri** innehåller **Behåll telemetridata i (dagar)**, ett enda tal för allt den skickar, och dess kort **Lagring efter telemetrityp** har samma fält som projektets. Lämna ett fält tomt för att använda projektets inställningar.
 
-Tjänster, värdar, Kubernetes-kluster, Docker- och Podman-värdar, Docker Swarm-, Proxmox- och Ceph-kluster, lagringssystem, vCenter, databaser, serverlösa funktioner, molnmiljöer, RUM-applikationer och IoT-flottor har alla de här korten. Se [Tjänstekatalogen](/docs/telemetry/services#ändra-en-tjänst) för en tjänsts sida **Inställningar**.
+Tjänster, värdar, Kubernetes-kluster, Docker- och Podman-värdar, Docker Swarm-, Proxmox- och Ceph-kluster, lagringssystem, vCenter, databaser, serverlösa funktioner, molnmiljöer, RUM-applikationer och IoT-flottor har alla de här korten. Se [Tjänster](/docs/telemetry/services#ändra-en-tjänst) för en tjänsts sida **Inställningar**.
 
 ### När planen eller licensen inte längre omfattar åsidosättningar
 
@@ -121,6 +121,6 @@ Utgångna poster slutar synas i sökningar, grafer och listor så snart de går 
 :::cards
 - [Intagningsnycklar](/docs/telemetry/ingestion-keys): Skicka telemetri till ditt projekt.
 - [Drop-filter och scrub-regler](/docs/telemetry/drop-filters-and-scrub-rules): Behåll bara den telemetri du behöver.
-- [Tjänstekatalog](/docs/telemetry/services): Ange en tjänsts egen lagring.
+- [Tjänster](/docs/telemetry/services): Ange en tjänsts egen lagring.
 - [Enterprise Edition](/docs/self-hosted/enterprise): Vad åsidosättningar av lagringen följer med.
 :::

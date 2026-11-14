@@ -63,7 +63,7 @@ Haga clic en **Probar monitor**, elija una sonda en **Seleccionar sonda** y haga
 
 ### Revisar los criterios
 
-**Criterios del monitor** empieza con los [criterios predeterminados](#criterios-predeterminados): sin conexión cuando la dirección no responde, en línea cuando responde. Cámbielos si lo necesita y haga clic en **Siguiente**.
+**Criterios** empieza con los [criterios predeterminados](#criterios-predeterminados): sin conexión cuando la dirección no responde, en línea cuando responde. Cámbielos si lo necesita y haga clic en **Siguiente**.
 
 ### Elegir sondas y crear
 

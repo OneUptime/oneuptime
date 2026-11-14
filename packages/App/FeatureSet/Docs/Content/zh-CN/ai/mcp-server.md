@@ -483,7 +483,7 @@ MCP 服务器是无状态的：它既不发放也不跟踪会话 ID，因此每�
 | 事件 | Incident, Incident State, Incident Severity, Incident State Timeline, Incident Public Note, Incident Internal Note, Incident Alert, Postmortem Status |
 | 警报 | Alert, Alert State, Alert Severity, Alert State Timeline, Alert Internal Note |
 | 状态页 | Status Page, Status Page Announcement |
-| 计划维护 | Scheduled Maintenance Event, Scheduled Maintenance State, Scheduled Maintenance State Timeline |
+| 计划维护 | Maintenance Event, Scheduled Maintenance State, Scheduled Maintenance State Timeline |
 | 团队和值班 | Team, On-Call Policy |
 | 标签 | Label |
 | 安全 | Security Case, Security Case Evidence, Security Case Note, Security Case Priority, Security Case Status, Security Case Task, Security Detection, Security Playbook |

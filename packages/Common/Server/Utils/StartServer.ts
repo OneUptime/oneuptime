@@ -54,8 +54,10 @@ import {
   CLOUD_STREAM_PATHS,
   CLOUD_STREAM_URL_PREFIX,
 } from "../../Types/CloudConnection/CloudStream";
+import { isEmptyErrorPhrase } from "../../Types/Exception/ErrorMessageRule";
 import Exception from "../../Types/Exception/Exception";
 import NotFoundException from "../../Types/Exception/NotFoundException";
+import { sendUnexplainedError } from "./UnexplainedServerError";
 import { PromiseVoidFunction } from "../../Types/FunctionTypes";
 import { JSONObject } from "../../Types/JSON";
 import JSONFunctions from "../../Types/JSONFunctions";
@@ -669,12 +671,18 @@ export const expressErrorHandler: (
 
   if (err instanceof Promise) {
     err.catch((exception: Exception) => {
-      if (StatusCode.isValidStatusCode((exception as Exception).code)) {
+      const isStatus: boolean = StatusCode.isValidStatusCode(
+        (exception as Exception)?.code,
+      );
+
+      if (isStatus && !isEmptyErrorPhrase((exception as Exception)?.message)) {
         res.status((exception as Exception).code);
         res.send({ error: (exception as Exception).message });
       } else {
-        res.status(500);
-        res.send({ error: "Server Error" });
+        sendUnexplainedError(_req, res, {
+          status: isStatus ? (exception as Exception).code : 500,
+          errorField: "error",
+        });
       }
     });
   } else if (err instanceof HTTPErrorResponse) {
@@ -682,8 +690,21 @@ export const expressErrorHandler: (
       ? err.statusCode
       : 500;
 
+    /*
+     * Another service's answer is passed on as it came - with its own
+     * reference, when it could not explain itself either - unless it says
+     * nothing at all.
+     */
+    if (isEmptyErrorPhrase(err.message)) {
+      sendUnexplainedError(_req, res, {
+        status: errorStatusCode,
+        errorField: "error",
+      });
+      return;
+    }
+
     const payload: unknown = err.jsonData ?? {
-      error: err.message || "Server Error",
+      error: err.message,
     };
 
     res.status(errorStatusCode);
@@ -702,16 +723,27 @@ export const expressErrorHandler: (
      */
     const exception: Exception = err as Exception;
 
-    if (StatusCode.isValidStatusCode(exception.code)) {
-      res.status(exception.code);
-    } else {
-      res.status(500);
+    const status: number = StatusCode.isValidStatusCode(exception.code)
+      ? exception.code
+      : 500;
+
+    /*
+     * An Exception thrown with no message, or with only "Server Error"
+     * (ServerException's default), explains as little as a TypeError.
+     */
+    if (isEmptyErrorPhrase(exception.message)) {
+      sendUnexplainedError(_req, res, { status: status, errorField: "error" });
+      return;
     }
 
-    res.send({ error: exception.message || "Server Error" });
+    res.status(status);
+    res.send({ error: exception.message });
   } else {
-    res.status(500);
-    res.send({ error: "Server Error" });
+    /*
+     * Not one of OneUptime's exceptions: a TypeError, a lost database
+     * connection. Its message is a developer's, so it stays in the log.
+     */
+    sendUnexplainedError(_req, res, { status: 500, errorField: "error" });
   }
 };
 

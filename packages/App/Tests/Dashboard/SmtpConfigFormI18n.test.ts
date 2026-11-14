@@ -19,6 +19,11 @@ import path from "path";
  * card each, and its key asked on a step of its own. The instance's
  * provider cards in the Admin Dashboard ask the same fields, so those
  * strings are pinned in both apps, worded alike.
+ *
+ * The instance's Amazon SES card also asks how the server signs in: with an
+ * access key, or with the IAM role AWS gives the server itself (#7000). A
+ * project's config always signs in with a key, so those strings are the
+ * Admin Dashboard's alone.
  */
 
 const APP_ROOT: string = path.join(__dirname, "..", "..");
@@ -141,6 +146,19 @@ const PROJECT_PROVIDER_STRINGS: Array<string> = [
   "How OneUptime sends this project's email.",
   "Send through SendGrid's API with an API key.",
   "A SendGrid API key with the Mail Send permission, from SendGrid's Settings > API Keys. It is stored encrypted.",
+];
+
+/*
+ * The strings only the instance's Amazon SES card draws: how it signs in,
+ * its two answers, and the provider card's line that names the role.
+ */
+const ADMIN_PROVIDER_STRINGS: Array<string> = [
+  "How OneUptime signs in to Amazon SES.",
+  "Access Key",
+  "An IAM user's access key ID and secret access key, stored encrypted.",
+  "This Server's IAM Role",
+  "The role AWS gives this server on Amazon EKS, ECS or EC2. No key is stored, and its credentials renew on their own.",
+  "Send through Amazon SES with an access key or this server's IAM role.",
 ];
 
 const DASHBOARD_STRINGS: Array<string> = [
@@ -293,6 +311,7 @@ describe("the mail server forms' strings", () => {
       ...ADMIN_ALSO,
       ...PROVIDER_STRINGS,
       ...PROJECT_PROVIDER_STRINGS,
+      ...ADMIN_PROVIDER_STRINGS,
     ].filter((text: string): boolean => {
       return !BUILDER.includes(`"${text}"`);
     });
@@ -313,7 +332,7 @@ describe("the mail server forms' strings", () => {
   test("English carries every new string as itself, in both apps", () => {
     for (const [directory, strings] of [
       [DASHBOARD_LOCALES, DASHBOARD_STRINGS],
-      [ADMIN_LOCALES, ADMIN_STRINGS],
+      [ADMIN_LOCALES, [...ADMIN_STRINGS, ...ADMIN_PROVIDER_STRINGS]],
     ] as Array<[string, Array<string>]>) {
       const english: Locale = readLocale(directory, "en.json");
 
@@ -358,6 +377,55 @@ describe("the mail server forms' strings", () => {
       // One wording per language, whichever app draws the form.
       expect(
         ADMIN_STRINGS.filter((text: string): boolean => {
+          return admin[text] !== dashboard[text];
+        }),
+      ).toEqual([]);
+    },
+  );
+
+  test.each(
+    ADMIN_FILES.filter((file: string) => {
+      return file !== "en.json";
+    }),
+  )(
+    "the Admin Dashboard's %s translates how the server signs in to Amazon SES",
+    (file: string) => {
+      const admin: Locale = readLocale(ADMIN_LOCALES, file);
+
+      expect(
+        ADMIN_PROVIDER_STRINGS.flatMap((text: string): Array<string> => {
+          return findProblems(text, admin[text]);
+        }),
+      ).toEqual([]);
+    },
+  );
+
+  /*
+   * npm run i18n:extract reads Common's UI for the Dashboard too, so the
+   * instance's Amazon SES strings are in its files as well, and the
+   * GlobalConfig column's title with them. Worded as the Admin Dashboard
+   * words them, never left as the English the extractor put there.
+   */
+  test.each(
+    DASHBOARD_FILES.filter((file: string) => {
+      return file !== "en.json";
+    }),
+  )(
+    "the Dashboard's %s words how the server signs in to Amazon SES as the Admin Dashboard does",
+    (file: string) => {
+      const admin: Locale = readLocale(ADMIN_LOCALES, file);
+      const dashboard: Locale = readLocale(DASHBOARD_LOCALES, file);
+
+      expect(
+        [...ADMIN_PROVIDER_STRINGS, "Amazon SES Authentication Type"].flatMap(
+          (text: string): Array<string> => {
+            return findProblems(text, dashboard[text]);
+          },
+        ),
+      ).toEqual([]);
+
+      expect(
+        ADMIN_PROVIDER_STRINGS.filter((text: string): boolean => {
           return admin[text] !== dashboard[text];
         }),
       ).toEqual([]);

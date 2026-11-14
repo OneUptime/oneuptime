@@ -158,6 +158,16 @@ describePostgres(
       return id;
     }
 
+    async function setService(
+      id: ObjectID,
+      data: { serviceVersion?: string; deletedAt?: Date },
+    ): Promise<void> {
+      await database.query(
+        `UPDATE "${schema}"."Service" SET "serviceVersion" = $2, "deletedAt" = $3 WHERE "_id" = $1`,
+        [id.toString(), data.serviceVersion || null, data.deletedAt || null],
+      );
+    }
+
     async function readService(id: ObjectID): Promise<{
       lastSeenAt: Date | null;
       serviceVersion: string | null;
@@ -356,6 +366,90 @@ describePostgres(
         expect(cache.has(`${NAMESPACE}-write-window:${id.toString()}`)).toBe(
           true,
         );
+      });
+    });
+
+    /*
+     * OneUptime issue #7194: the writes that yield instead of waiting - a
+     * poll's rate baseline, a MAC learned from an ARP table - carry a
+     * compare-and-set guard. Postgres binds a null against a typed column
+     * here, and judges the guard on the row it locks.
+     */
+    describe("with a compare-and-set guard (expectedData)", () => {
+      test("writes a row that still holds every expected value, nulls included", async () => {
+        const id: ObjectID = await insertService();
+
+        await expect(
+          service.updateColumnsByIdIfUnlockedWithoutHooks({
+            id: id,
+            data: { serviceVersion: "5.0.0" },
+            expectedData: {
+              serviceVersion: null,
+              deletedAt: null,
+            } as never,
+          }),
+        ).resolves.toBe(true);
+
+        expect((await readService(id)).serviceVersion).toBe("5.0.0");
+      });
+
+      test("never writes a row deleted meanwhile, and says so", async () => {
+        const id: ObjectID = await insertService();
+        await setService(id, { deletedAt: new Date() });
+
+        await expect(
+          service.updateColumnsByIdIfUnlockedWithoutHooks({
+            id: id,
+            data: { serviceVersion: "5.0.0" },
+            expectedData: { deletedAt: null } as never,
+          }),
+        ).resolves.toBe(false);
+
+        expect((await readService(id)).serviceVersion).toBeNull();
+      });
+
+      test("never writes over a value someone else wrote meanwhile, and says so", async () => {
+        const id: ObjectID = await insertService();
+        await setService(id, { serviceVersion: "4.0.0" });
+
+        await expect(
+          service.updateColumnsByIdIfUnlockedWithoutHooks({
+            id: id,
+            data: { serviceVersion: "5.0.0" },
+            expectedData: { serviceVersion: null } as never,
+          }),
+        ).resolves.toBe(false);
+
+        expect((await readService(id)).serviceVersion).toBe("4.0.0");
+      });
+
+      test("a held row is still skipped at once, guard or not", async () => {
+        const id: ObjectID = await insertService();
+        const lock: { release: () => Promise<void> } = await holdRowLock(id);
+
+        let wrote: boolean | "blocked";
+        const startedAt: number = Date.now();
+
+        try {
+          wrote = await Promise.race([
+            service.updateColumnsByIdIfUnlockedWithoutHooks({
+              id: id,
+              data: { serviceVersion: "5.0.0" },
+              expectedData: { deletedAt: null } as never,
+            }),
+            new Promise<"blocked">((resolve: (value: "blocked") => void) => {
+              setTimeout(() => {
+                resolve("blocked");
+              }, LOCK_TIMEOUT_MS / 2);
+            }),
+          ]);
+        } finally {
+          await lock.release();
+        }
+
+        expect(wrote).toBe(false);
+        expect(Date.now() - startedAt).toBeLessThan(LOCK_TIMEOUT_MS / 2);
+        expect((await readService(id)).serviceVersion).toBeNull();
       });
     });
   },

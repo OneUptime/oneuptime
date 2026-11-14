@@ -3,6 +3,7 @@ import {
   CodeRepositoryTaskStatsJSON,
   CodeTaskBlocker,
   CodeTaskContextInput,
+  CodeTaskLinkedTurnJSON,
   CodeTaskListCountsJSON,
   CodeTaskListFilter,
   CodeTaskListKind,
@@ -11,12 +12,14 @@ import {
   CodeTaskSummaryJSON,
   CodeTaskTurnJSON,
   CodeTaskTurnProgressJSON,
+  CodeTaskTurnsNotShownJSON,
   MAX_CODE_TASKS_PER_REQUEST,
 } from "Common/Types/AI/CodeTask";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
 import { JSONObject } from "Common/Types/JSON";
+import ObjectID from "Common/Types/ObjectID";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -76,13 +79,94 @@ export interface CodeTaskRetryManyResponse {
 
 export interface CodeTaskResponse {
   task: CodeTaskSummaryJSON;
+  // Its first turn, then its newest, oldest first.
   turns: Array<CodeTaskTurnJSON>;
   repository: CodeTaskRepositoryJSON | null;
   canAsk: boolean;
   canSeeChanges: boolean;
   canReadLogContent: boolean;
   blocker: CodeTaskBlocker | null;
+  /*
+   * A task with more turns than its page shows (a conversation reads at
+   * most 200): how many between its first turn and its newest are not
+   * shown, and how long AI worked on them. None for a task shown whole.
+   */
+  turnsNotShown?: CodeTaskTurnsNotShownJSON | null | undefined;
+  /*
+   * The turn the read asked for (getTask's `turn`), when it is one of the
+   * task's turns the page does not show: its place in the task, and the
+   * turn. None for any other - a turn shown is in `turns`, and a run that
+   * is not the task's is never sent.
+   */
+  linkedTurn?: CodeTaskLinkedTurnJSON | null | undefined;
 }
+
+/*
+ * The turns a task's page is told it does not show: a whole count of one or
+ * more, and how long AI worked on them (none or nonsense: nothing). Null
+ * for anything else - a task shown whole.
+ */
+export const parseTurnsNotShown: (
+  value: unknown,
+) => CodeTaskTurnsNotShownJSON | null = (
+  value: unknown,
+): CodeTaskTurnsNotShownJSON | null => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const count: unknown = (value as JSONObject)["count"];
+
+  if (typeof count !== "number" || !Number.isInteger(count) || count < 1) {
+    return null;
+  }
+
+  const workMilliseconds: unknown = (value as JSONObject)["workMilliseconds"];
+
+  return {
+    count,
+    workMilliseconds:
+      typeof workMilliseconds === "number" &&
+      Number.isFinite(workMilliseconds) &&
+      workMilliseconds > 0
+        ? workMilliseconds
+        : 0,
+  };
+};
+
+/*
+ * The turn not shown a task's read asked for: a place after the first turn
+ * (a whole number from 2), and a turn named by a run id. Null for anything
+ * else.
+ */
+export const parseLinkedTurn: (
+  value: unknown,
+) => CodeTaskLinkedTurnJSON | null = (
+  value: unknown,
+): CodeTaskLinkedTurnJSON | null => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const number: unknown = (value as JSONObject)["number"];
+  const turn: unknown = (value as JSONObject)["turn"];
+
+  if (typeof number !== "number" || !Number.isInteger(number) || number < 2) {
+    return null;
+  }
+
+  if (!turn || typeof turn !== "object" || Array.isArray(turn)) {
+    return null;
+  }
+
+  const runId: unknown = (turn as JSONObject)["runId"];
+
+  if (typeof runId !== "string" || !ObjectID.isValidUUID(runId)) {
+    return null;
+  }
+
+  return { number, turn: turn as unknown as CodeTaskTurnJSON };
+};
 
 export const CODE_TASK_API_PATH: string = "/code-task";
 
@@ -238,8 +322,19 @@ export default class CodeApi {
     return result;
   }
 
-  public static async getTask(taskId: string): Promise<CodeTaskResponse> {
-    const data: JSONObject = await CodeApi.post(`/get/${taskId}`, {});
+  /*
+   * A task's conversation. `turn` names a turn a link points at (the Log
+   * page's address): when the conversation does not show it, it comes
+   * back as linkedTurn - if it is one of the task's.
+   */
+  public static async getTask(
+    taskId: string,
+    options: { turn?: string | undefined } = {},
+  ): Promise<CodeTaskResponse> {
+    const data: JSONObject = await CodeApi.post(
+      `/get/${taskId}`,
+      options.turn ? { turn: options.turn } : {},
+    );
 
     return {
       task: data["task"] as unknown as CodeTaskSummaryJSON,
@@ -251,6 +346,8 @@ export default class CodeApi {
       canSeeChanges: data["canSeeChanges"] === true,
       canReadLogContent: data["canReadLogContent"] === true,
       blocker: (data["blocker"] as unknown as CodeTaskBlocker | null) || null,
+      turnsNotShown: parseTurnsNotShown(data["turnsNotShown"]),
+      linkedTurn: parseLinkedTurn(data["linkedTurn"]),
     };
   }
 

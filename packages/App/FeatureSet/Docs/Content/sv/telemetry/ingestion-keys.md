@@ -45,7 +45,7 @@ Välj typ efter var nyckeln ska finnas. Typen kan inte ändras efter att nyckeln
 
 ## Innan du börjar
 
-- **En roll som hanterar intagningsnycklar.** Project Owner eller Project Admin, eller en anpassad roll med behörigheten Create Telemetry Ingestion Key. Telemetry-rollerna omfattar inte intagningsnycklar.
+- **En roll som hanterar intagningsnycklar.** Project Owner eller Project Admin, eller en anpassad roll med behörigheten Create Ingestion Key. Telemetry-rollerna omfattar inte intagningsnycklar.
 - **På OneUptime Cloud, en betalningsmetod.** Telemetri faktureras efter användning, så ett projekt på Free-planen behöver en betalningsmetod innan det kan skapa en nyckel. Dialogrutan för att skapa slutar då med ett steg **Fakturering** som visar priserna.
 
 ## Skapa en intagningsnyckel
@@ -85,7 +85,7 @@ x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_KEY
 
 ## Lås ned en webbläsarnyckel
 
-En webbläsarnyckel finns i din sida, där vem som helst kan kopiera den. De här inställningarna begränsar vad en kopia kan göra. Ändra dem på nyckelns sida med **Redigera Telemetri Ingestion Key**.
+En webbläsarnyckel finns i din sida, där vem som helst kan kopiera den. De här inställningarna begränsar vad en kopia kan göra. Ändra dem på nyckelns sida med **Redigera Intagningsnyckel**.
 
 | Inställning | Vad den gör |
 | --- | --- |
@@ -104,7 +104,7 @@ Ett ursprung är ett schema, en värd och en valfri port: `https://app.example.c
 ]
 ```
 
-[Tjänstekatalogen](/docs/telemetry/services#så-hamnar-en-tjänst-i-katalogen) visar hur ett fastlåst namn bestämmer tjänsten. Kubernetes-agentens Runner och AI-agent, och infrastrukturens AI-agenter, registrerar sig inte med en fastlåst nyckel: ge dem en servernyckel utan fastlåst namn.
+[Tjänster](/docs/telemetry/services#så-hamnar-en-tjänst-i-katalogen) visar hur ett fastlåst namn bestämmer tjänsten. Kubernetes-agentens Runner och AI-agent, och infrastrukturens AI-agenter, registrerar sig inte med en fastlåst nyckel: ge dem en servernyckel utan fastlåst namn.
 
 ## Byt ut, stäng av eller ta bort en nyckel
 
@@ -112,9 +112,9 @@ En nyckels sida visar dess **Status**, dess **Hemlig nyckel** bakom **Click to r
 
 | För att | Gör så här | Vad avsändare ser |
 | --- | --- | --- |
-| Stoppa en nyckel direkt, och kunna ångra det senare | Klicka på **Redigera Telemetri Ingestion Key**, öppna **Åtkomst och gränser** och stäng av **Aktiverad**. Statusen visar **Disabled — telemetry refused**. | `422` tills du slår på den igen |
+| Stoppa en nyckel direkt, och kunna ångra det senare | Klicka på **Redigera Intagningsnyckel**, öppna **Åtkomst och gränser** och stäng av **Aktiverad**. Statusen visar **Disabled — telemetry refused**. | `422` tills du slår på den igen |
 | Ersätta en läckt hemlighet | Klicka på **Återställ hemlig nyckel** och bekräfta. Nyckeln behåller sina inställningar och får en ny hemlighet. | `401` tills de skickar den nya hemligheten |
-| Stoppa en nyckel för gott | Klicka på **Ta bort Telemetri Ingestion Key** längst ned på dess sida. | `401` |
+| Stoppa en nyckel för gott | Klicka på **Ta bort Intagningsnyckel** längst ned på dess sida. | `401` |
 
 För att byta en hemlighet utan att förlora data skapar du en andra nyckel, flyttar dina avsändare till den och tar bort den gamla nyckeln när dess **Last Used At** slutar ändras. **Last Used At** uppdateras med några minuters mellanrum, inte vid varje begäran.
 
@@ -155,7 +155,7 @@ Inget har skickat data med den här nyckeln sedan OneUptime började registrera 
 
 :::cards
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Skicka spår, mätvärden och loggar med din nyckel.
-- [Tjänstekatalog](/docs/telemetry/services): Se tjänsterna som din telemetri läggs under.
+- [Tjänster](/docs/telemetry/services): Se tjänsterna som din telemetri läggs under.
 - [Datalagring](/docs/telemetry/data-retention): Bestäm hur länge data sparas.
 - [Drop-filter och scrub-regler](/docs/telemetry/drop-filters-and-scrub-rules): Kassera eller maskera data innan den lagras.
 - [Intagningsbudgetar](/docs/telemetry/ingestion-budgets): Begränsa hur mycket varje nyckel får skicka under en dag.

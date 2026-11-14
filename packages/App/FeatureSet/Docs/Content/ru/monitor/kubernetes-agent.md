@@ -2,6 +2,9 @@
 
 Агент Kubernetes от OneUptime — это Helm-чарт, который собирает метрики, события и логи подов вашего кластера, трассировки приложений, захваченные с помощью eBPF, и метрики ОС каждого узла и отправляет их в OneUptime. Одна команда `helm install` разворачивает его без изменений в коде ваших приложений. [Мониторы Kubernetes](/docs/monitor/kubernetes-monitor) создают оповещения на основе того, что он отправляет.
 
+> [!NOTE]
+> На этой странице агент устанавливается через Helm шаг за шагом, с пресетом для вашей платформы. Все параметры, дополнение Amazon EKS, OpenShift и ИИ-агент Kubernetes описаны на странице [Агент Kubernetes](/docs/telemetry/kubernetes-agent) — полном справочнике по агенту.
+
 :::cards
 - [Установите агент](#установка-агента): Четыре шага с Helm.
 - [Выберите пресет](#выбор-пресета): Стандартные кластеры, GKE Autopilot, EKS Fargate или OpenShift.
@@ -331,7 +334,7 @@ kubectl logs -n oneuptime-agent -l component=ebpf-instrument --tail=200
 
 ## Непрерывное профилирование CPU
 
-[OpenTelemetry eBPF Profiler](https://github.com/open-telemetry/opentelemetry-ebpf-profiler) тоже может работать на каждом узле, в виде образа `otel/opentelemetry-collector-ebpf-profiler`. Он 19 раз в секунду снимает выборку того, что выполняет каждый процесс, на Go, Java, .NET, Python, Ruby, Node.js, PHP, Perl, C, C++ и Rust, и отправляет профили в OneUptime. Они появляются в разделе **Продукты → Профили производительности** и в виде flame-графа на каждом спане трассировки.
+[OpenTelemetry eBPF Profiler](https://github.com/open-telemetry/opentelemetry-ebpf-profiler) тоже может работать на каждом узле, в виде образа `otel/opentelemetry-collector-ebpf-profiler`. Он 19 раз в секунду снимает выборку того, что выполняет каждый процесс, на Go, Java, .NET, Python, Ruby, Node.js, PHP, Perl, C, C++ и Rust, и отправляет профили в OneUptime. Они появляются в разделе **Продукты → Профили** и в виде flame-графа на каждом спане трассировки.
 
 **Профилирование по умолчанию выключено:** оно требует больше CPU и памяти на узел, чем eBPF-инструментирование. Включите его с помощью `--set profiling.enabled=true`.
 

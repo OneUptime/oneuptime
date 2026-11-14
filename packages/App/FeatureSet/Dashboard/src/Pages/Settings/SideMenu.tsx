@@ -11,12 +11,12 @@ import React, { ReactElement } from "react";
 const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
   /*
    * Every page here is set up once and revisited rarely, so only Basic (the
-   * project itself and its labels) starts open. The other sections fold down
-   * to their titles, which read as an index of what can be configured, and
-   * each opens by itself on its own pages. Most of them fold by their title
-   * (Workspace, Notifications, AI, Advanced, Security, Audit Logs, Danger
-   * Zone: see SideMenuSectionState.ts); Telemetry & APM and Billing say so
-   * here.
+   * project itself, its products and its labels) starts open. The other
+   * sections fold down to their titles, which read as an index of what can
+   * be configured, and each opens by itself on its own pages. Most of them
+   * fold by their title (Workspace, Notifications, AI, Advanced, Security,
+   * Audit Logs, Danger Zone: see SideMenuSectionState.ts); Telemetry & APM
+   * and Billing say so here.
    */
   const sections: SideMenuSectionProps[] = [
     {
@@ -30,6 +30,20 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
             ),
           },
           icon: IconProp.Folder,
+        },
+        /*
+         * The products this project shows (#6814): a choice about the
+         * whole project, made once and revisited when the team takes up
+         * something new, so it sits with the project itself.
+         */
+        {
+          link: {
+            title: "Products",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_PRODUCTS] as Route,
+            ),
+          },
+          icon: IconProp.Squares,
         },
         {
           link: {
@@ -126,7 +140,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
       items: [
         {
           link: {
-            title: "Notification Settings",
+            title: "Notification Channels",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_NOTIFICATION_SETTINGS] as Route,
             ),

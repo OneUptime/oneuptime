@@ -805,7 +805,7 @@ test.describe("values someone wrote, shown and typed", () => {
     );
   });
 
-  test("fa: what is typed reads its own way, and an empty field shows its placeholder the page's way", async ({
+  test("fa: what is typed reads its own way, an empty field shows its placeholder the page's way, and a number keeps its minus sign", async ({
     page,
   }: {
     page: Page;
@@ -826,9 +826,32 @@ test.describe("values someone wrote, shown and typed", () => {
 
     await empty.fill("Payments gateway");
     expect(await styleOf(empty, "unicode-bidi")).toBe("plaintext");
+
+    /*
+     * A number - a site's longitude, -71.0589 - laid out the page's way had
+     * its minus sign drawn after its digits ("71.0589-"), and so had the
+     * field's example. It reads left to right, at the field's right where
+     * it always was, in a field that keeps the page's direction.
+     */
+    const number: Locator = page.getByTestId("field-number").locator("input");
+    const emptyNumber: Locator = page
+      .getByTestId("field-number-empty")
+      .locator("input");
+
+    await expect(number).toHaveValue("-71.0589");
+    expect(await styleOf(number, "unicode-bidi")).toBe("plaintext");
+    expect(await styleOf(number, "text-align")).toBe("right");
+    expect(await styleOf(number, "direction")).toBe("rtl");
+    expect(await styleOf(emptyNumber, "direction")).toBe("rtl");
+    expect(await styleOf(emptyNumber, "text-align")).toBe("right");
+    expect(
+      await emptyNumber.evaluate((element: Element): string => {
+        return window.getComputedStyle(element, "::placeholder").unicodeBidi;
+      }),
+    ).toBe("plaintext");
   });
 
-  test("en: a Persian value on an English page reads right to left", async ({
+  test("en: a Persian value on an English page reads right to left, and a number field is drawn as before", async ({
     page,
   }: {
     page: Page;
@@ -842,6 +865,13 @@ test.describe("values someone wrote, shown and typed", () => {
 
     expect(await values[0]!.locator("bdi").getAttribute("dir")).toBe("ltr");
     expect(await values[1]!.locator("bdi").getAttribute("dir")).toBe("rtl");
+
+    // A number field is drawn as it always was.
+    const number: Locator = page.getByTestId("field-number").locator("input");
+
+    await expect(number).toHaveValue("-71.0589");
+    expect(await styleOf(number, "unicode-bidi")).toBe("normal");
+    expect(await styleOf(number, "text-align")).toBe("start");
   });
 });
 

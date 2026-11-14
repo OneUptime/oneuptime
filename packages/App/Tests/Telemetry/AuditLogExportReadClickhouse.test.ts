@@ -49,7 +49,14 @@ import {
  *      the record of the entry written;
  *   6. a read stopped at its time limit fails, rather than answering some
  *      rows that are not the first ones (which would move the cursor past
- *      entries never sent).
+ *      entries never sent);
+ *   7. the soonest retentionDate among the entries an export has not sent
+ *      (findSoonestRetentionDateForExport, which a failing export warns from
+ *      a day ahead, #6563) is read over the same window, project and cursor:
+ *      never a stamp of an entry outside them - the fixture stamps those
+ *      soonest of all - ties in a second resumed by id, null when nothing
+ *      waits, and stopped at its time limit it fails rather than answer the
+ *      soonest of some of the entries.
  *
  * Opt in locally by pointing TEST_CLICKHOUSE_URL at a disposable server:
  *
@@ -114,6 +121,8 @@ interface EntryFixture {
   projectId: ObjectID;
   createdAtMs: number;
   resourceName: string;
+  // The retentionDate stamped on it (stampEntries): whole seconds, a month or so ahead.
+  retentionMs: number;
 }
 
 let fixtureCounter: number = 0;
@@ -130,6 +139,7 @@ function entryAt(
     projectId: projectId,
     createdAtMs: createdAtMs,
     resourceName: `Monitor ${fixtureCounter}`,
+    retentionMs: 0,
   };
 }
 
@@ -187,6 +197,72 @@ const ALL_ENTRIES: Array<EntryFixture> = [
   ...ONE_A_SECOND,
   ...AFTER_UNTIL,
 ];
+
+function isOfProject(entry: EntryFixture, projectId: ObjectID): boolean {
+  return entry.projectId.toString() === projectId.toString();
+}
+
+// Project A's entries in the second most entries share, in read order (by id).
+const TIES_OF_A: Array<EntryFixture> = [...TIES]
+  .filter((entry: EntryFixture): boolean => {
+    return isOfProject(entry, PROJECT_A);
+  })
+  .sort((a: EntryFixture, b: EntryFixture): number => {
+    return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+  });
+
+// A whole second about a month ahead: the soonest stamp of all.
+const FIRST_STAMP_MS: number =
+  Math.floor((Date.now() + 30 * 24 * 60 * 60 * SECOND) / SECOND) * SECOND;
+
+/*
+ * Every entry its own stamp, an hour apart, soonest first in this order, so
+ * a read that leaves out any part of the window answers a stamp sooner than
+ * the right one:
+ *
+ *   - the entries outside the window (before Export From, after the settle
+ *     bound), of both projects;
+ *   - project B's entries in it, sooner than any of A's;
+ *   - A's first three entries in the shared second, the ones up to the
+ *     cursor of the cursor tests, then the fourth - the next one after that
+ *     cursor, in the same second, by id;
+ *   - the rest of A's newest first, so the soonest is never simply the
+ *     oldest entry's.
+ */
+function stampEntries(): void {
+  const outside: Array<EntryFixture> = [...BEFORE_START, ...AFTER_UNTIL];
+  // B's entries in the window: two of its own seconds, and four in the shared one.
+  const ofB: Array<EntryFixture> = [
+    ...OTHER_PROJECT,
+    ...TIES.filter((entry: EntryFixture): boolean => {
+      return isOfProject(entry, PROJECT_B);
+    }),
+  ];
+  const firstOfA: Array<EntryFixture> = TIES_OF_A.slice(0, 4);
+  const restOfA: Array<EntryFixture> = ALL_ENTRIES.filter(
+    (entry: EntryFixture): boolean => {
+      return (
+        !outside.includes(entry) &&
+        isOfProject(entry, PROJECT_A) &&
+        !firstOfA.includes(entry)
+      );
+    },
+  ).sort((a: EntryFixture, b: EntryFixture): number => {
+    if (a.createdAtMs !== b.createdAtMs) {
+      return b.createdAtMs - a.createdAtMs;
+    }
+
+    return a.id < b.id ? 1 : a.id > b.id ? -1 : 0;
+  });
+
+  [...outside, ...ofB, ...firstOfA, ...restOfA].forEach(
+    (entry: EntryFixture, index: number): void => {
+      entry.retentionMs = FIRST_STAMP_MS + index * 60 * 60 * SECOND;
+    },
+  );
+}
+
+stampEntries();
 
 function changesOf(entry: EntryFixture): Array<JSONObject> {
   return [
@@ -283,10 +359,15 @@ function idsOf(rows: Array<JSONObject>): Array<string> {
  * The read as built, with a slow filter folded in and its time limit cut to
  * a second on one thread, so a real server stops it at the limit the way it
  * would stop a read of a busy month at 45. Everything else - the WHERE, the
- * order, the overflow mode - is the statement as built.
+ * order, the overflow mode - is the statement as built. The filter goes at
+ * the end of the WHERE, before `clause`: the export read's ORDER BY, or the
+ * SETTINGS of the soonest stamp's read, which has no ORDER BY.
  */
 class SlowReadStatement extends Statement {
-  public constructor(private readonly source: Statement) {
+  public constructor(
+    private readonly source: Statement,
+    private readonly clause: string = " ORDER BY createdAt ASC, _id ASC LIMIT ",
+  ) {
     super();
   }
 
@@ -294,7 +375,7 @@ class SlowReadStatement extends Statement {
     let query: string = this.source.query;
 
     for (const expected of [
-      " ORDER BY createdAt ASC, _id ASC LIMIT ",
+      this.clause,
       `max_execution_time = ${AUDIT_LOG_EXPORT_READ_TIME_LIMIT_IN_SECONDS}`,
       "timeout_overflow_mode = 'throw'",
     ]) {
@@ -304,10 +385,7 @@ class SlowReadStatement extends Statement {
     }
 
     query = query
-      .replace(
-        " ORDER BY createdAt ASC, _id ASC LIMIT ",
-        " AND sleepEachRow(0.2) = 0 ORDER BY createdAt ASC, _id ASC LIMIT ",
-      )
+      .replace(this.clause, ` AND sleepEachRow(0.2) = 0${this.clause}`)
       .replace(
         `max_execution_time = ${AUDIT_LOG_EXPORT_READ_TIME_LIMIT_IN_SECONDS}`,
         // Merged parts are read a block at a time, which may hold every row.
@@ -374,8 +452,6 @@ integration("The audit log export's read against ClickHouse", () => {
 
     service = new AuditLogService(clickhouse);
 
-    const retentionDate: Date = OneUptimeDate.addRemoveDays(new Date(), 30);
-
     /*
      * Written as the recorder writes them: root, through the service, which
      * records each "now" - here each fixture's time, in order (the first
@@ -402,7 +478,7 @@ integration("The audit log export's read against ClickHouse", () => {
         entry.resourceName = fixture.resourceName;
         entry.userType = "User";
         entry.changes = changesOf(fixture);
-        entry.retentionDate = retentionDate;
+        entry.retentionDate = new Date(fixture.retentionMs);
         return entry;
       }),
       props: { isRoot: true },
@@ -461,7 +537,7 @@ integration("The audit log export's read against ClickHouse", () => {
 
     const stored: { json: () => Promise<{ data?: Array<JSONObject> }> } =
       (await client.query({
-        query: `SELECT _id, toUnixTimestamp(createdAt) AS seconds FROM ${database}.${TABLE}`,
+        query: `SELECT _id, toUnixTimestamp(createdAt) AS seconds, toUnixTimestamp(retentionDate) AS stamp FROM ${database}.${TABLE}`,
         format: "JSON",
       })) as unknown as { json: () => Promise<{ data?: Array<JSONObject> }> };
 
@@ -473,11 +549,25 @@ integration("The audit log export's read against ClickHouse", () => {
       )!;
 
       // Whole seconds: the one fixture a millisecond before the start is the second before it.
-      expect({ id: fixture.id, seconds: Number(row["seconds"]) }).toEqual({
+      expect({
+        id: fixture.id,
+        seconds: Number(row["seconds"]),
+        stamp: Number(row["stamp"]),
+      }).toEqual({
         id: fixture.id,
         seconds: Math.floor(fixture.createdAtMs / SECOND),
+        stamp: fixture.retentionMs / SECOND,
       });
     }
+
+    // Each its own stamp.
+    expect(
+      new Set(
+        ALL_ENTRIES.map((entry: EntryFixture): number => {
+          return entry.retentionMs;
+        }),
+      ).size,
+    ).toBe(ALL_ENTRIES.length);
   });
 
   test("a project's entries are read oldest first, each exactly once, ties in a second by id, and no other project's", async () => {
@@ -652,6 +742,189 @@ integration("The audit log export's read against ClickHouse", () => {
     }
 
     // Recorded on the export as its error; the same batch is read again on its next run.
+    expect({
+      isQueryTimeoutException: error instanceof QueryTimeoutException,
+      error: String(error),
+    }).toEqual({ isQueryTimeoutException: true, error: String(error) });
+  });
+
+  // When the first of the entries an export has not sent is deleted (#6563).
+  const soonest: (data: {
+    projectId: ObjectID | null;
+    after: Cursor;
+    startsAt?: Date | undefined;
+    until?: Date | undefined;
+  }) => Promise<string | null> = async (data: {
+    projectId: ObjectID | null;
+    after: Cursor;
+    startsAt?: Date | undefined;
+    until?: Date | undefined;
+  }): Promise<string | null> => {
+    const date: Date | null = await service.findSoonestRetentionDateForExport({
+      projectId: data.projectId,
+      startsAt: data.startsAt || START,
+      until: data.until || UNTIL,
+      after: data.after,
+    });
+
+    return date ? date.toISOString() : null;
+  };
+
+  const stampOf: (entry: EntryFixture) => string = (
+    entry: EntryFixture,
+  ): string => {
+    return new Date(entry.retentionMs).toISOString();
+  };
+
+  const cursorAt: (entry: EntryFixture) => Cursor = (
+    entry: EntryFixture,
+  ): Cursor => {
+    return {
+      createdAt: new Date(entry.createdAtMs),
+      id: new ObjectID(entry.id),
+    };
+  };
+
+  test("the soonest stamp among a project's entries waiting: never one outside the window, never another project's, never simply the oldest entry's", async () => {
+    const oldestOfA: EntryFixture = ALL_ENTRIES.find(
+      (entry: EntryFixture): boolean => {
+        return entry.id === inReadOrder(entriesOf(PROJECT_A))[0];
+      },
+    )!;
+
+    expect(await soonest({ projectId: PROJECT_A, after: null })).toBe(
+      stampOf(TIES_OF_A[0]!),
+    );
+    // The fixture as described: sooner stamps outside, on B's, and on A's oldest-but-one.
+    expect(oldestOfA.id).toBe(AT_START.id);
+    expect(AT_START.retentionMs).toBeGreaterThan(TIES_OF_A[0]!.retentionMs);
+    expect(BEFORE_START[0]!.retentionMs).toBeLessThan(
+      TIES_OF_A[0]!.retentionMs,
+    );
+    expect(OTHER_PROJECT[0]!.retentionMs).toBeLessThan(
+      TIES_OF_A[0]!.retentionMs,
+    );
+  });
+
+  test("the instance's export: the soonest stamp among every project's entries waiting, still only in the window", async () => {
+    expect(await soonest({ projectId: null, after: null })).toBe(
+      stampOf(OTHER_PROJECT[0]!),
+    );
+  });
+
+  test("after a cursor inside a second: the entries after its entry, by id, not after the second", async () => {
+    // TIES_OF_A[0..2] are sent; the next one, in the same second, is stamped soonest of A's left.
+    expect(
+      await soonest({ projectId: PROJECT_A, after: cursorAt(TIES_OF_A[2]!) }),
+    ).toBe(stampOf(TIES_OF_A[3]!));
+  });
+
+  test("for every cursor an export can hold, of a project's export and the instance's, the soonest stamp of exactly the entries after it", async () => {
+    for (const projectId of [PROJECT_A, null]) {
+      const waiting: Array<string> = inReadOrder(entriesOf(projectId));
+
+      for (let index: number = 0; index < waiting.length; index++) {
+        const entry: EntryFixture = ALL_ENTRIES.find(
+          (candidate: EntryFixture): boolean => {
+            return candidate.id === waiting[index];
+          },
+        )!;
+        const after: Array<number> = waiting
+          .slice(index + 1)
+          .map((id: string): number => {
+            return ALL_ENTRIES.find((candidate: EntryFixture): boolean => {
+              return candidate.id === id;
+            })!.retentionMs;
+          });
+
+        expect({
+          projectId: projectId ? projectId.toString() : null,
+          cursor: index,
+          soonest: await soonest({ projectId, after: cursorAt(entry) }),
+        }).toEqual({
+          projectId: projectId ? projectId.toString() : null,
+          cursor: index,
+          soonest: after.length
+            ? new Date(Math.min(...after)).toISOString()
+            : null,
+        });
+      }
+    }
+  });
+
+  test("both ends of the window are read: an entry at Export From, and one at the settle bound", async () => {
+    expect(
+      await soonest({
+        projectId: PROJECT_A,
+        after: null,
+        startsAt: START,
+        until: START,
+      }),
+    ).toBe(stampOf(AT_START));
+    expect(
+      await soonest({
+        projectId: PROJECT_A,
+        after: null,
+        startsAt: UNTIL,
+        until: UNTIL,
+      }),
+    ).toBe(stampOf(AT_UNTIL));
+  });
+
+  test("nothing waiting is null, never 1970: past the last entry, or a window nothing was recorded in", async () => {
+    const lastOfA: string = inReadOrder(entriesOf(PROJECT_A)).pop()!;
+
+    expect(
+      await soonest({
+        projectId: PROJECT_A,
+        after: cursorAt(
+          ALL_ENTRIES.find((entry: EntryFixture): boolean => {
+            return entry.id === lastOfA;
+          })!,
+        ),
+      }),
+    ).toBeNull();
+    expect(
+      await soonest({
+        projectId: PROJECT_A,
+        after: null,
+        startsAt: new Date(UNTIL.getTime() + 60 * SECOND),
+        until: new Date(UNTIL.getTime() + 120 * SECOND),
+      }),
+    ).toBeNull();
+    expect(
+      await soonest({
+        projectId: new ObjectID("d4000000-0000-4000-8000-00000000d004"),
+        after: null,
+      }),
+    ).toBeNull();
+  });
+
+  test("the soonest read stopped at its time limit fails, rather than answer the soonest of some of the entries", async () => {
+    const statement: Statement =
+      AuditLogService.toSoonestRetentionDateStatement({
+        databaseName: database,
+        tableName: TABLE,
+        projectId: null,
+        startsAt: START,
+        until: UNTIL,
+        after: null,
+      });
+
+    let error: unknown = null;
+
+    try {
+      const result: { json: () => Promise<{ data?: Array<unknown> }> } =
+        (await service.executeQuery(
+          new SlowReadStatement(statement, " SETTINGS "),
+        )) as unknown as { json: () => Promise<{ data?: Array<unknown> }> };
+
+      await result.json();
+    } catch (caught) {
+      error = caught;
+    }
+
+    // The exporter then reckons from the oldest entry waiting, as it did before.
     expect({
       isQueryTimeoutException: error instanceof QueryTimeoutException,
       error: String(error),

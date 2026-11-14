@@ -163,7 +163,7 @@ beforeEach(() => {
     return turns[0]!;
   });
   jest.spyOn(CodeTaskThread, "getTurns").mockImplementation(async () => {
-    return turns;
+    return { turns, olderTurnsLeftOut: 0 };
   });
   jest.spyOn(CodeTaskThread, "getPullRequests").mockImplementation(async () => {
     return pullRequests;

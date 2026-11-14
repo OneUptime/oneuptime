@@ -184,7 +184,7 @@ const CASES: Array<LayoutCase> = [
     viewPage: PageMap.SCHEDULED_MAINTENANCE_VIEW,
     subPage: PageMap.SCHEDULED_MAINTENANCE_VIEW_OWNERS,
     subPageTitle: "Owners",
-    trail: ["Project", "Scheduled Maintenance Events"],
+    trail: ["Project", "Scheduled Maintenance"],
     numberColumn: "scheduledMaintenanceNumber",
     number: "SM-3",
     title: "Primary database failover drill",

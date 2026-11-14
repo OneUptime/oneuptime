@@ -128,7 +128,7 @@ OneUptime Enterprise som köpts på AWS Marketplace, Microsoft Marketplace eller
 2. Ange din licensnyckel och validera den.
 :::
 
-Installationen kontrollerar nyckeln hos OneUptime och lagrar licensen den får. Därefter håller den licensen aktuell med en daglig synkronisering. Använd **Refresh license** på samma sida för att hämta ändringar, som extra platser eller en förnyelse, direkt.
+Installationen kontrollerar nyckeln hos OneUptime och lagrar licensen den får. Därefter håller den licensen aktuell med en daglig synkronisering. Använd **Uppdatera licens** på samma sida för att hämta ändringar, som extra platser eller en förnyelse, direkt.
 
 Onlineaktivering kräver utgående HTTPS från OneUptime-servern till `https://oneuptime.com`. Om servern bara når internet via ett relä anger du `ENTERPRISE_LICENSE_SERVER_URL` till reläets `https://`-adress. Reläet måste vidarebefordra `/api/enterprise-license/` till oneuptime.com.
 

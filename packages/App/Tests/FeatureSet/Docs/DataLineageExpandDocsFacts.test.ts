@@ -231,7 +231,10 @@ describe("Data Observability docs: drawing more of a lineage diagram, and follow
           `**${drawnDashboardLabel(lang, "Lineage")}**`,
         ),
         namesTheColumn: own.line.includes("`customer_id`"),
-        namesTheCheck: own.line.includes("Null Percent"),
+        // The check as its Dashboard names it (#7223): Anteil NULL-Werte in German.
+        namesTheCheck: own.line.includes(
+          drawnDashboardLabel(lang, "Null Percent"),
+        ),
         namesThePicker: own.line.includes(
           `**${drawnDashboardLabel(lang, "Follow a column")}**`,
         ),

@@ -79,6 +79,7 @@ import useRecordChannelMembers, {
   RecordChannelMembersState,
   addPeopleToRecordChannel,
 } from "./useRecordChannelMembers";
+import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * THE RECORD'S OWN CHANNELS, AND WHO IS IN THEM.
@@ -761,8 +762,6 @@ const ChannelSection: FunctionComponent<ChannelSectionProps> = (
 const RecordChannelMembersCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement | null => {
-  const translator: Translator = useTranslator();
-
   // A new channel - created a moment after the record - is read again.
   const readKey: string = props.links
     .map((link: WorkspaceChannelLink) => {
@@ -801,9 +800,10 @@ const RecordChannelMembersCard: FunctionComponent<ComponentProps> = (
         className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5"
       >
         <p role="alert" className="text-sm text-gray-700">
-          {translator.translateTemplate(RECORD_CHANNEL_TEXT.couldNotRead, {
-            error: members.error,
-          })}
+          <ErrorSentence
+            template={RECORD_CHANNEL_TEXT.couldNotRead}
+            error={members.error}
+          />
         </p>
         <TryAgainButton
           testId="record-channel-read-try-again"

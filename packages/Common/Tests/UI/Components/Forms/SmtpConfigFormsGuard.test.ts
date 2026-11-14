@@ -268,6 +268,7 @@ const INSTANCE_SMTP_COLUMNS: Array<string> = [
 
 // The instance's provider columns, each provider's card on Settings > Email.
 const INSTANCE_PROVIDER_COLUMNS: Array<string> = [
+  "amazonSesAuthenticationType",
   "amazonSesAccessKeyId",
   "amazonSesSecretAccessKey",
   "amazonSesRegion",

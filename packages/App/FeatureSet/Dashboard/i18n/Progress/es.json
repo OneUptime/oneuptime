@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 50830,
-    "untranslated": 2303
+    "keys": 51296,
+    "untranslated": 2265
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -87,6 +87,7 @@
     "Basic Auth",
     "Bearer Token",
     "Bits",
+    "Blade",
     "Bolivia",
     "Bootstrap",
     "Breadcrumb",
@@ -619,6 +620,7 @@
     "{{count}} Kubernetes",
     "{{count}} MB",
     "{{count}} OID",
+    "{{count}} OSD",
     "{{count}} Podman",
     "{{count}} SLO",
     "{{count}} SMS",
@@ -640,6 +642,7 @@
     "{{count}} mon",
     "{{count}} monitor",
     "{{count}} mons",
+    "{{count}} ms",
     "{{count}} pod",
     "{{count}} pods",
     "{{count}} pool",
@@ -663,6 +666,7 @@
     "{{gigabytes}} GB",
     "{{in}} in",
     "{{minutes}} min",
+    "{{name}} (monitor: {{monitor}})",
     "{{tokens}} tokens",
     "{{up}}/{{count}} OSD up",
     "{{value}} ms",

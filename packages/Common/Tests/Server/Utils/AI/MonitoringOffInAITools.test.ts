@@ -10,6 +10,21 @@ import {
 } from "../../../../Server/Utils/AI/Toolbox/MonitorTools";
 import { getFactsNotInHeading } from "../../../../Types/AI/ResourceCardFacts";
 import {
+  AIActionCardWords,
+  describeAIActionCardWords,
+} from "../../../../Types/AI/AIActionWords";
+import { dashboardTranslator } from "../../../Helpers/DashboardLocales";
+import { expectReadCardWorded } from "../../../Helpers/ReadCardWords";
+import MonitorOwnerTeam from "../../../../Models/DatabaseModels/MonitorOwnerTeam";
+import Team from "../../../../Models/DatabaseModels/Team";
+import {
+  AIChatResourceCardOrigin,
+  AIChatWidgetData,
+  isAIChatReadResourceCard,
+} from "../../../../Types/AI/AIChatTypes";
+import { Gray500, Green, Red } from "../../../../Types/BrandColors";
+import Color from "../../../../Types/Color";
+import {
   ToolContext,
   ToolExecutionResult,
 } from "../../../../Server/Utils/AI/Toolbox/ToolTypes";
@@ -634,6 +649,252 @@ describe("query_monitors read by id says when monitoring is off", () => {
 
     expect(result.dataForLlm).not.toContain(MONITORING_OFF_MONITOR_NOTE);
     expect(result.widget).toBeUndefined();
+  });
+});
+
+/*
+ * Issue #6968: the card a monitor read by id leaves was drawn as a write's
+ * - green, with a check - so a monitor that was Offline, or whose
+ * monitoring was off, read as something done well. Its card is a read's
+ * now, drawn plain, with its status's own colour beside the line that
+ * names it: the Offline red, and gray when the status is not live.
+ */
+describe("query_monitors read by id leaves a read's card, its status in its colour (#6968)", () => {
+  function coloured(
+    row: MonitorStatus,
+    color: Color | undefined,
+  ): MonitorStatus {
+    const copy: MonitorStatus = status({
+      name: row.name!,
+      priority: row.priority!,
+      operational: row.isOperationalState === true,
+    });
+    if (color) {
+      copy.color = color;
+    }
+    return copy;
+  }
+
+  async function cardOf(row: Monitor): Promise<AIChatWidgetData> {
+    spy(MonitorService, "findOneById", row);
+    spy(MonitorStatusTimelineService, "findBy", []);
+    spy(MonitorOwnerTeamService, "findBy", []);
+    spy(MonitorOwnerUserService, "findBy", []);
+
+    const result: ToolExecutionResult = await QueryMonitorsTool.execute(
+      { monitorId: ObjectID.generate().toString() },
+      ctx,
+    );
+
+    return result.widget!.data;
+  }
+
+  test("an Offline monitor's card is a read's, never a write's", async () => {
+    const card: AIChatWidgetData = await cardOf(
+      monitor({ name: "Checkout API", status: coloured(OFFLINE, Red) }),
+    );
+
+    expect(card.origin).toBe(AIChatResourceCardOrigin.Read);
+    expect(isAIChatReadResourceCard(card)).toBe(true);
+    expect(card.subheading).toBe("Offline");
+  });
+
+  test("its line's status is in that status's own colour, as the Monitors table draws it", async () => {
+    const offline: AIChatWidgetData = await cardOf(
+      monitor({ name: "Checkout API", status: coloured(OFFLINE, Red) }),
+    );
+    jest.restoreAllMocks();
+    const operational: AIChatWidgetData = await cardOf(
+      monitor({ name: "Ledger", status: coloured(OPERATIONAL, Green) }),
+    );
+
+    expect(offline.statusColor).toBe("#fd625e");
+    expect(offline.statusColor).toBe(Red.toString());
+    expect(operational.statusColor).toBe("#2ab57d");
+    expect(operational.subheading).toBe("Operational");
+  });
+
+  test("monitoring off: Disabled, in gray - never the colour of the status it was frozen at", async () => {
+    for (const frozenAt of [
+      coloured(OFFLINE, Red),
+      coloured(OPERATIONAL, Green),
+    ]) {
+      jest.restoreAllMocks();
+      const card: AIChatWidgetData = await cardOf(
+        monitor({
+          name: "Backup Job",
+          status: frozenAt,
+          monitoringOff: true,
+        }),
+      );
+
+      expect(card.subheading).toBe(MONITORING_OFF_STATUS_TEXT);
+      expect(card.statusColor).toBe(Gray500.toString());
+      expect(card.statusColor).toBe("#6b7280");
+      expect(card.statusColor).not.toBe(frozenAt.color!.toString());
+      expect(card.origin).toBe(AIChatResourceCardOrigin.Read);
+    }
+  });
+
+  test("archived, and so not monitored: its status in gray too", async () => {
+    const card: AIChatWidgetData = await cardOf(
+      monitor({
+        name: "Old Checkout API",
+        status: coloured(OPERATIONAL, Green),
+        isArchived: true,
+      }),
+    );
+
+    expect(card.subheading).toBe("Operational");
+    expect(card.statusColor).toBe(Gray500.toString());
+    expect(card.fields).toContainEqual({
+      label: "Archived",
+      value: "Yes - not monitored",
+    });
+  });
+
+  test("a status with no colour leaves no dot; a monitor with no status, no line and no dot", async () => {
+    const uncoloured: AIChatWidgetData = await cardOf(
+      monitor({ name: "Checkout API", status: coloured(DEGRADED, undefined) }),
+    );
+    expect(uncoloured.subheading).toBe("Degraded");
+    expect(Object.keys(uncoloured)).not.toContain("statusColor");
+
+    jest.restoreAllMocks();
+    // A monitor not checked yet: no status at all.
+    const row: Monitor = new Monitor();
+    row._id = ObjectID.generate().toString();
+    row.name = "New monitor";
+    row.monitorType = MonitorType.Website;
+    row.disableActiveMonitoring = false;
+    const statusless: AIChatWidgetData = await cardOf(row);
+    expect(statusless.subheading).toBeUndefined();
+    expect(Object.keys(statusless)).not.toContain("statusColor");
+  });
+
+  test("a status colour that is not one is never saved on the card", async () => {
+    const odd: MonitorStatus = coloured(OFFLINE, undefined);
+    odd.color = new Color("red; background: url(https://example.com/x.png)");
+
+    const card: AIChatWidgetData = await cardOf(
+      monitor({ name: "Checkout API", status: odd }),
+    );
+
+    expect(card.subheading).toBe("Offline");
+    expect(Object.keys(card)).not.toContain("statusColor");
+  });
+});
+
+/*
+ * Issue #7175: the card said "MONITOR", "Type: Website", "Last status" and
+ * "Off - not checked" in English on a German or Persian page. Its words are
+ * OneUptime's own words now, which the Dashboard says in the reader's
+ * language - its status and its owners as the project named them - and the
+ * English it stores is the same words in English.
+ */
+describe("query_monitors read by id leaves its card in the reader's language (#7175)", () => {
+  async function widgetOf(
+    row: Monitor,
+    ownerTeams: Array<string> = [],
+  ): Promise<ToolExecutionResult["widget"]> {
+    spy(MonitorService, "findOneById", row);
+    spy(MonitorStatusTimelineService, "findBy", []);
+    spy(
+      MonitorOwnerTeamService,
+      "findBy",
+      ownerTeams.map((name: string): MonitorOwnerTeam => {
+        const owner: MonitorOwnerTeam = new MonitorOwnerTeam();
+        const team: Team = new Team();
+        team.name = name;
+        owner.team = team;
+        return owner;
+      }),
+    );
+    spy(MonitorOwnerUserService, "findBy", []);
+
+    const result: ToolExecutionResult = await QueryMonitorsTool.execute(
+      { monitorId: ObjectID.generate().toString() },
+      ctx,
+    );
+
+    return result.widget;
+  }
+
+  test("an Offline monitor: its type a word of ours, its status and owners as the project named them", async () => {
+    const words: AIActionCardWords = expectReadCardWorded(
+      await widgetOf(monitor({ name: "Checkout API", status: OFFLINE }), [
+        "SRE",
+        "DBA",
+      ]),
+    );
+
+    expect(describeAIActionCardWords(words)).toEqual({
+      kind: "Monitor",
+      line: "Offline",
+      facts: [
+        { label: "Type", value: "Website" },
+        { label: "Owner teams", value: "SRE, DBA" },
+      ],
+    });
+    expect(describeAIActionCardWords(words, dashboardTranslator("de"))).toEqual(
+      {
+        kind: "Überwachung",
+        line: "Offline",
+        facts: [
+          { label: "Typ", value: "Website" },
+          { label: "Eigentümer-Teams", value: "SRE, DBA" },
+        ],
+      },
+    );
+  });
+
+  test("monitoring off and archived: Disabled, Last status, Off - not checked and Yes - not monitored, each in the reader's words", async () => {
+    const words: AIActionCardWords = expectReadCardWorded(
+      await widgetOf(
+        monitor({
+          name: "Backup Job",
+          status: OFFLINE,
+          monitoringOff: true,
+          isArchived: true,
+        }),
+      ),
+    );
+
+    expect(describeAIActionCardWords(words)).toEqual({
+      kind: "Monitor",
+      line: MONITORING_OFF_STATUS_TEXT,
+      facts: [
+        { label: "Type", value: "Website" },
+        { label: MONITORING_OFF_LAST_STATUS_LABEL, value: "Offline" },
+        { label: "Archived", value: "Yes - not monitored" },
+        { label: "Monitoring", value: "Off - not checked" },
+      ],
+    });
+
+    for (const language of ["de", "fa", "ar"]) {
+      const drawn: string = JSON.stringify(
+        describeAIActionCardWords(words, dashboardTranslator(language)),
+      );
+
+      for (const english of [
+        "Monitor",
+        "Disabled",
+        "Last status",
+        "Off - not checked",
+        "Yes - not monitored",
+        // German writes Website as English does.
+        ...(language === "de" ? [] : ["Website"]),
+      ]) {
+        expect({ language, english, drawn }).toEqual({
+          language,
+          english,
+          drawn: expect.not.stringContaining(english),
+        });
+      }
+
+      // The status the project named is data, in every language.
+      expect(drawn).toContain("Offline");
+    }
   });
 });
 

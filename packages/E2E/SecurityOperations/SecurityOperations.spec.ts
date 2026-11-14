@@ -92,6 +92,13 @@ const POWERSHELL_CASE_PATH: string = `${PRODUCT}/cases/20000000-0000-4000-8000-0
 // The spray case's triage run, whose cited checks re-run.
 const SPRAY_TRIAGE_RUN_ID: string = "29000000-0000-4000-8000-000000000142";
 
+/*
+ * A row of views drawn as toggle buttons. The product's Pin beside the page's
+ * title (#6814) is a toggle too, on every product page, and no view.
+ */
+const VIEW_TOGGLES: string =
+  'button[aria-pressed]:not([data-testid="product-pin-button"])';
+
 // The fixture's two correlation rules, beside its six library rules.
 const SEQUENCE_RULE: string = "Spray, then a success";
 const FIRST_SEEN_RULE: string = "Admin console from a new address";
@@ -2061,7 +2068,7 @@ test.describe("the case queue", () => {
     await expect(
       page.locator('[data-testid^="security-case-view-"]'),
     ).toHaveCount(0);
-    await expect(page.locator("button[aria-pressed]")).toHaveCount(0);
+    await expect(page.locator(VIEW_TOGGLES)).toHaveCount(0);
   });
 
   test("each case page lists what its name says, from the side menu", async ({
@@ -5937,7 +5944,7 @@ test.describe("playbooks", () => {
     await expect(
       page.locator('[data-testid^="security-playbook-runs-view-"]'),
     ).toHaveCount(0);
-    await expect(page.locator("button[aria-pressed]")).toHaveCount(0);
+    await expect(page.locator(VIEW_TOGGLES)).toHaveCount(0);
     // With a run listed, the card says what the page holds.
     await expect(
       cardTitled(page, "Approvals").getByTestId("card-description"),

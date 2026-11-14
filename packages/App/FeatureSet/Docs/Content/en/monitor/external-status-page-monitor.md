@@ -7,7 +7,7 @@ It reads status pages made with OneUptime too, resource by resource, and tells p
 :::cards
 - [Create the monitor](#creating-an-external-status-page-monitor): Paste a status page URL and pick what to watch.
 - [Choose components](#components): Watch only the components you depend on.
-- [Criteria](#monitoring-criteria): What counts as down, out of the box.
+- [Criteria](#criteria): What counts as down, out of the box.
 - [OneUptime status pages](#oneuptime-status-pages): Another project's resources, and its maintenance.
 - [Popular status pages](#popular-status-page-urls): URLs for the services most teams depend on.
 :::
@@ -123,7 +123,7 @@ When a component group is set, the **active incident count** and **overall statu
 
 Component group filtering is supported for **Atlassian Statuspage**, **incident.io** and **OneUptime Status Page** providers. RSS and Atom feeds do not expose component groups.
 
-## Monitoring Criteria
+## Criteria
 
 You can configure criteria to decide when the external service is considered online or offline, based on:
 

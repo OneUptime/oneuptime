@@ -87,7 +87,7 @@ function tableWidget(): AIChatWidget {
 }
 
 describe("a table keeps every column on screen", () => {
-  test("text wraps - anywhere, an endpoint has no spaces - up to three lines, the whole value on hover", () => {
+  test("text wraps - a word whole, an endpoint (no spaces to wrap at) anywhere - up to three lines, the whole value on hover", () => {
     render(<DataTableWidget widget={tableWidget()} />);
 
     const cells: Array<HTMLElement> =
@@ -98,10 +98,21 @@ describe("a table keeps every column on screen", () => {
       "title",
       "POST /api/v2/checkout/sessions/{sessionId}/confirm",
     );
-    const text: HTMLElement = within(endpoint).getByText(
+    const text: HTMLElement = endpoint.firstElementChild as HTMLElement;
+    expect(text.textContent).toBe(
       "POST /api/v2/checkout/sessions/{sessionId}/confirm",
     );
-    expect(text).toHaveClass("line-clamp-3", "[overflow-wrap:anywhere]");
+    // Up to three lines, a word broken only when it is wider than the column...
+    expect(text).toHaveClass("line-clamp-3", "break-words");
+    expect(text).not.toHaveClass("[overflow-wrap:anywhere]");
+    // ...and the endpoint's path, with no spaces to wrap at, anywhere (#6969).
+    const path: HTMLElement = within(endpoint).getByTestId(
+      "ai-chat-table-cell-long-word",
+    );
+    expect(path.textContent).toBe(
+      "/api/v2/checkout/sessions/{sessionId}/confirm",
+    );
+    expect(path).toHaveClass("[overflow-wrap:anywhere]");
     // A floor, so a wrapped column never shrinks to a letter a line.
     expect(endpoint).toHaveClass("min-w-[5rem]");
   });

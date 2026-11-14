@@ -545,7 +545,10 @@ export default class Project extends TenantModel {
   @TableColumn({
     manyToOneRelationColumn: "createdByUserId",
     type: TableColumnType.Entity,
-    modelType: User,
+    // Lazy: User imports Project back (User.sampleProject; see modelTypeThunk).
+    modelTypeThunk: () => {
+      return User;
+    },
     title: "Created by User",
     description:
       "Relation to User who created this object (if this object was created by a User)",
@@ -600,7 +603,10 @@ export default class Project extends TenantModel {
     manyToOneRelationColumn: "deletedByUserId",
     type: TableColumnType.Entity,
     title: "Deleted by User",
-    modelType: User,
+    // Lazy: User imports Project back (User.sampleProject; see modelTypeThunk).
+    modelTypeThunk: () => {
+      return User;
+    },
     description:
       "Relation to User who deleted this object (if this object was deleted by a User)",
   })
@@ -5207,6 +5213,47 @@ export default class Project extends TenantModel {
     undefined;
 
   /*
+   * Whether OneUptime may record how this project's members use the
+   * Dashboard's setup pages (issue #6834), on while this is false. On
+   * OneUptime Cloud only, and only for members who pressed "Accept all"
+   * and did not switch it off themselves (User.disableDashboardRecording),
+   * with everything typed or stored masked. An organisation that wants
+   * none of it switches it off here, in Project Settings: then nobody is
+   * recorded while working in the project. Every member reads it, because
+   * each member's browser decides before it records; Project Owner or
+   * Project Admin changes it.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Disable Dashboard Recording",
+    description:
+      "When true, OneUptime never records how members use the dashboard while working in this project. Recording happens only on OneUptime Cloud, only for members who accepted analytics, and only on the setup pages, with what they type or store masked.",
+    defaultValue: false,
+    example: false,
+  })
+  @Column({
+    nullable: false,
+    default: false,
+    type: ColumnType.Boolean,
+  })
+  public disableDashboardRecording?: boolean = undefined;
+
+  /*
    * Telemetry ingestion budgets for this project, per signal
    * (TelemetryIngestionBudget): set by the master admin only (Admin
    * Dashboard > Projects > the project > Ingestion Budgets), so `create` and
@@ -5445,4 +5492,92 @@ export default class Project extends TenantModel {
     unique: false,
   })
   public welcomeChecklistState?: JSONObject = undefined;
+
+  /*
+   * The products the project hides (issue #6814,
+   * Types/Product/ProjectProducts): left out of the products menu's
+   * categories, Home and Search's list, and kept under More products. Null:
+   * nothing chosen, every product shown - every project from before this,
+   * and a new one until its goals are chosen. Read it with
+   * parseProjectProductSettings.
+   *
+   * Every member reads it, with the project (ProjectAPI's
+   * list-user-projects), so the menu draws the project's products on its
+   * first paint. Nobody writes it through the API: Project Settings >
+   * Products changes it through ProjectProductsAPI, which checks who may and
+   * what is in use, and choosing the goals sets it (ProjectProductsService).
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Product Settings",
+    description:
+      "The products this project hides from its menu, Home and Search's list, and where that list came from (its goals, or a member). A hidden product still works and is found by Search. Not set: every product is shown.",
+    example:
+      '{"hidden": ["kubernetes", "docker"], "keptHiddenWithData": [], "chosenBy": "member"}',
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+    unique: false,
+  })
+  public productSettings?: JSONObject = undefined;
+
+  /*
+   * A sample project (issue #6808): "Sample: Acme Shop", made in one click
+   * for a person to look around in, filled with made-up monitors,
+   * incidents, an on-call policy, a status page and telemetry
+   * (SampleProjectService). It can never notify anyone, be seen by the
+   * public or be billed: every reader that keeps it so asks
+   * ProjectService.isSampleProject, and SampleProjectReadersGuard lists
+   * them, so a new channel cannot forget it.
+   *
+   * Set once, by the server, when the sample is made, and never changed:
+   * nobody writes it through the API, and a project never becomes or
+   * stops being a sample. Every member reads it, with the project
+   * (ProjectAPI's list-user-projects), so every page says what it is.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: true,
+    type: TableColumnType.Boolean,
+    isDefaultValueColumn: true,
+    defaultValue: false,
+    title: "Is Sample Project",
+    description:
+      "A sample project made for looking around: nothing in it is real, it notifies nobody, its status page is never public and it is never billed. Set by OneUptime when the sample is made.",
+    example: "false",
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    unique: false,
+    default: false,
+  })
+  public isSampleProject?: boolean = undefined;
 }

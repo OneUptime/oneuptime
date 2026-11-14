@@ -72,7 +72,7 @@ Klicka på **Skapa monitor**. Monitorn öppnas på sin sida **Översikt**, och d
 | **Tidsfönster** (i **När det ska larmas**) | Loggar från de senaste 5 sekunderna upp till de senaste 24 timmarna. | **Senaste 5 minuterna** |
 | **Gruppera efter attribut** | Inget filter: räknar varje kombination av dessa attributs värden för sig. | Tomt: en räkning |
 | **Löst av attribut** | Inget filter: loggen som löser en grupp. Visas så snart **Gruppera efter attribut** har ett attribut; se [Löst av en logg](#löst-av-en-logg). | Tomt: en grupp löses när dess loggar upphör |
-| **Filtrera efter telemetritjänst** (under **Fler fält**) | Loggar från någon av de valda tjänsterna. | Tomt: alla tjänster |
+| **Filtrera efter tjänst** (under **Fler fält**) | Loggar från någon av de valda tjänsterna. | Tomt: alla tjänster |
 | **Filtrera efter infrastrukturenhet** (under **Fler fält**) | Loggar från någon av de valda värdarna, poddarna, containrarna och andra entiteterna. | Tomt: alla entiteter |
 | **Filtrera efter attribut** (under **Fler fält**) | Loggar vars attribut uppfyller alla villkor. Varje villkor har en egen operator, som "är lika med" eller "innehåller". | Tomt: inga villkor |
 
@@ -140,7 +140,7 @@ Du vill ha en incident när checkout-tjänsten loggar fler än 50 fel på fem mi
 
 - **Loggens allvarlighetsgrad**: **Fel**
 - **Tidsfönster**: **Senaste 5 minuterna**
-- **Filtrera efter telemetritjänst**: `checkout`
+- **Filtrera efter tjänst**: `checkout`
 - **När det ska larmas**: **Fler än** `50`
 - **Vad som händer**: **Deklarera en incident**
 
@@ -240,7 +240,7 @@ Värdet för varje Group By-attribut är en [mallvariabel](/docs/monitor/inciden
 ## Felsökning
 
 :::details Monitorn är offline, men min tjänst loggar
-Antalet var 0, så filtren matchar inga av de loggar som tjänsten skickar. Öppna monitorns sida **Kriterier** (under **Konfiguration**) och klicka på **Redigera övervakningskriterier**: **Matchande loggar** visar vad filtren väljer ut just nu, och diagrammet i **När det ska larmas** räknar dem i varje fönster. De vanligaste orsakerna är en allvarlighetsgrad som valts efter texten som loggaren skriver ut i stället för efter dess allvarlighetsnummer (se [Loggarnas allvarlighetsgrad](#loggarnas-allvarlighetsgrad)), ett tjänst- eller attributfilter som inte matchar och ett tidsfönster som är kortare än tiden mellan tjänstens loggar.
+Antalet var 0, så filtren matchar inga av de loggar som tjänsten skickar. Öppna monitorns sida **Kriterier** (under **Konfiguration**) och klicka på **Redigera kriterier**: **Matchande loggar** visar vad filtren väljer ut just nu, och diagrammet i **När det ska larmas** räknar dem i varje fönster. De vanligaste orsakerna är en allvarlighetsgrad som valts efter texten som loggaren skriver ut i stället för efter dess allvarlighetsnummer (se [Loggarnas allvarlighetsgrad](#loggarnas-allvarlighetsgrad)), ett tjänst- eller attributfilter som inte matchar och ett tidsfönster som är kortare än tiden mellan tjänstens loggar.
 :::
 
 :::details Det var en ökning, men ingenting varnade

@@ -7,6 +7,9 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import ErrorExplanation, {
+  isUnexplainedErrorMessage,
+} from "Common/UI/Components/ErrorMessage/ErrorExplanation";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import Icon, { IconType, ThickProp } from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
@@ -97,7 +100,8 @@ const VerifyEmail: () => JSX.Element = () => {
 
   const runInit: RunInitFunction = (): void => {
     init().catch((err: Error) => {
-      setError(err.toString());
+      // Never "TypeError: ...": what happened and what to do (#6836).
+      setError(API.getFriendlyMessage(err));
       setIsLoading(false);
     });
   };
@@ -239,7 +243,11 @@ const VerifyEmail: () => JSX.Element = () => {
                       : t("verifyEmail.errorTitle")}
                   </h1>
                   <p className="mt-3 px-2 text-sm leading-relaxed text-gray-600 sm:px-0 sm:text-base">
-                    {error}
+                    {isUnexplainedErrorMessage(error) ? (
+                      <ErrorExplanation message={error} hideWhatFailed={true} />
+                    ) : (
+                      error
+                    )}
                   </p>
                   {/*
                    * The server did not answer properly, which says nothing

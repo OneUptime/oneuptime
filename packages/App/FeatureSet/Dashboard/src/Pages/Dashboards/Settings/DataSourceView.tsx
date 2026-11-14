@@ -301,35 +301,30 @@ const DataSourceView: FunctionComponent<PageComponentProps> = (
                 url: true,
               },
               title: "URL",
-              placeholder: "-",
             },
             {
               field: {
                 databaseHost: true,
               },
               title: "Database Host",
-              placeholder: "-",
             },
             {
               field: {
                 databasePort: true,
               },
               title: "Database Port",
-              placeholder: "-",
             },
             {
               field: {
                 databaseName: true,
               },
               title: "Database Name",
-              placeholder: "-",
             },
             {
               field: {
                 username: true,
               },
               title: "Username",
-              placeholder: "-",
             },
           ],
           modelId: modelId,

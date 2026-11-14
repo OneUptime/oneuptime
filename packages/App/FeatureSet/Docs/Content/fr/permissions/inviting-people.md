@@ -52,6 +52,8 @@ Saisissez son adresse dans **E-mail**. Si aucun compte OneUptime ne l'utilise en
 ### Envoyer l'invitation
 
 Cliquez sur **Inviter**. OneUptime envoie l'invitation par e-mail et ouvre la page de la personne. Elle apparaît comme **Invitation envoyée** jusqu'à ce qu'elle accepte.
+
+Sur un serveur auto-hébergé qui ne peut pas encore envoyer d'e-mails, aucun e-mail ne part, et la personne apparaît comme **Invité**. Un administrateur principal voit d'abord **Envoyez-leur leur lien d'invitation** : copiez le lien, envoyez-le vous-même à la personne, puis cliquez sur **Terminé**. Toute autre personne demande à l'admin du serveur de [configurer l'e-mail](/docs/emails/smtp#ouvrir-le-formulaire).
 :::
 
 > [!TIP]
@@ -84,7 +86,7 @@ Filtrez la liste par **Utilisateur**, **Statut** ou **Équipe**. Cliquez sur une
 | --- | --- |
 | **Profil** | Son nom, son adresse e-mail, sa photo et son ID utilisateur. |
 | **Équipes** | Les équipes dont elle fait partie. Ajoutez ou retirez une équipe ici. |
-| **Disponibilité**, **Méthodes de notification**, **Règles d'astreinte** | Si elle peut être appelée, et comment. Visible par les Project Owners, les Project Admins, la personne elle-même et toute personne qui peut lire les règles de notification des autres. Voir [Disponibilité et rapports](/docs/on-call/readiness). |
+| **Disponibilité**, **Méthodes de notification**, **Comment me joindre** | Si elle peut être appelée, et comment. Visible par les Project Owners, les Project Admins, la personne elle-même et toute personne qui peut lire les règles de notification des autres. Voir [Disponibilité et rapports](/docs/on-call/readiness). |
 | **Champs personnalisés** | Les champs personnalisés du projet pour les personnes, s'il en a. |
 | **Retirer du projet** | La retirer du projet. |
 
@@ -134,6 +136,8 @@ Une adresse peut recevoir 10 invitations par heure, aux projets et aux pages de 
 
 :::details L'e-mail d'invitation n'est pas arrivé, ou son lien a expiré
 L'invitation ne dépend pas de l'e-mail. Demandez à la personne de s'inscrire avec l'adresse invitée : OneUptime envoie à cette adresse un nouveau lien pour finir de créer le compte. Une personne qui a déjà un compte se connecte et trouve l'invitation qui l'attend.
+
+Sur un serveur auto-hébergé qui ne peut pas encore envoyer d'e-mails, l'inscription ne peut pas non plus envoyer de nouveau lien par e-mail : elle invite plutôt la personne à demander son lien d'invitation. Une fois que l'admin du serveur a [configuré l'e-mail](/docs/emails/smtp#ouvrir-le-formulaire), l'inscription fonctionne comme ci-dessus. D'ici là, un administrateur principal peut retirer la personne du projet, l'inviter de nouveau et lui envoyer le nouveau lien d'invitation, qui fonctionne une fois, uniquement pour cette adresse, pendant 7 jours.
 :::
 
 :::details Inviter un utilisateur indique que les utilisateurs sont gérés par SCIM Push Groups

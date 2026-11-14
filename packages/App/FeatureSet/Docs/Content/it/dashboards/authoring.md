@@ -59,7 +59,9 @@ flowchart TB
 Le tue modifiche restano solo tue finché non le salvi. Durante la modifica non viene salvato nulla, quindi gli altri continuano a vedere la dashboard com'era.
 
 - **Salva modifiche** salva i widget, le loro posizioni e dimensioni, le variabili, e l'intervallo di tempo e l'aggiornamento automatico predefiniti, tutto insieme, e torna in modalità di lettura. Se il salvataggio viene rifiutato, per esempio perché nel frattempo hai perso l'autorizzazione, resti in modifica con le tue modifiche e il motivo sopra la griglia.
-- **Annulla** chiede prima conferma, perché butta via le tue modifiche: **Annulla modifiche** torna alla dashboard com'era salvata, e **Continua a modificare** ti riporta al tuo lavoro.
+- **Annulla** torna in modalità di lettura. Se hai cambiato qualcosa, chiede prima conferma, perché butta via le tue modifiche: **Annulla modifiche** torna alla dashboard com'era salvata, e **Continua a modificare** ti riporta al tuo lavoro.
+
+Anche lasciare la dashboard con modifiche non salvate chiede prima conferma. Un link nel menu laterale, nel percorso di navigazione o nella barra superiore, o i pulsanti Indietro e Avanti del browser, aprono **Uscire senza salvare?** con le stesse due scelte: **Continua a modificare** resta sulla dashboard con le tue modifiche, e **Annulla modifiche** prosegue verso la pagina che stavi aprendo. Chiudere o ricaricare la scheda chiede conferma con la finestra di dialogo del browser. Una dashboard aperta in modifica e lasciata com'era non chiede nulla, e nemmeno una che hai appena salvato.
 
 Durante la modifica, l'aggiornamento automatico è in pausa, e un intervallo di tempo ingrandito torna all'intervallo che avevi scelto.
 

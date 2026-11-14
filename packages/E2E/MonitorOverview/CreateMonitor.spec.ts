@@ -1051,7 +1051,10 @@ test.describe("Create Monitor, start to finish", () => {
 
     // The criteria step: what to check first, the criteria folded below.
     await expect(
-      form.getByText("Monitor Criteria", { exact: true }).first(),
+      form
+        .getByTestId("card-details-heading")
+        .getByText("Criteria", { exact: true })
+        .first(),
     ).toBeVisible({ timeout: 60000 });
     const headers: Locator = page.getByTestId("monitor-criteria-header");
     await expect(headers).toHaveCount(2, { timeout: 30000 });
@@ -2052,6 +2055,265 @@ test.describe("Create Monitor's plainer fields", () => {
     expect(await frame()).toBe("0px");
 
     await screenshot(page, "create-monitor-more-fields-line");
+  });
+});
+
+/*
+ * PROBES' DEFINITION OPENS FROM THE WORD, AND ONLY FROM THE WORD (#7543).
+ *
+ * "Probes" is a defined term: the field's title is a button that opens what
+ * the word means. A dropdown's title has no control to point at (no `for`),
+ * and a <label> with no `for` takes the first button inside it, the word's,
+ * for the control it labels: the browser handed that button a click on
+ * any of the label's own words or space. The title's row spans the
+ * field's width, so most of it was empty space that opened the definition.
+ * Such a title is no longer a <label> (Forms/Fields/FieldLabel); the names
+ * b762ca7f750 gave the dropdown and the word hold.
+ */
+test.describe("Create Monitor's Probes definition", () => {
+  /*
+   * The product reads the glossary from its own host (DOCS_URL); the
+   * fixture is served from another, and its page allows reads from itself
+   * alone (connect-src 'self'): the browser sets that aside here, and the
+   * route below answers the read.
+   */
+  test.use({ bypassCSP: true });
+
+  const PROBE_DEFINITION: string =
+    "A machine that runs monitors' checks on a schedule: it requests a page, calls an API or pings a host.";
+
+  // Waits for what a click started: Tippy draws a definition in a frame.
+  async function nextFrames(page: Page): Promise<void> {
+    await page.evaluate(async (): Promise<void> => {
+      for (let frame: number = 0; frame < 2; frame++) {
+        await new Promise<void>((resolve: () => void) => {
+          requestAnimationFrame(() => {
+            resolve();
+          });
+        });
+      }
+    });
+  }
+
+  test("a click on the empty end of its title's row leaves the definition closed; a press on the word opens it, and the dropdown is still named Probes alone", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.route(
+      /\/docs\/glossary\/en\.json$/,
+      async (route: PlaywrightRoute) => {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          headers: { "Access-Control-Allow-Origin": "*" },
+          body: JSON.stringify({
+            lang: "en",
+            entries: [
+              { id: "probe", term: "Probe", definition: PROBE_DEFINITION },
+            ],
+          }),
+        });
+      },
+    );
+
+    const form: Locator = await openCreate(page, "?monitorType=Website");
+    await nameInput(form).fill("Storefront");
+    await form.getByRole("button", { name: "Next", exact: true }).click();
+    const url: Locator = form.getByPlaceholder("https://example.com", {
+      exact: true,
+    });
+    await expect(url).toBeVisible({ timeout: 60000 });
+    await url.fill("https://storefront.acme-commerce.example");
+    await form.getByRole("button", { name: "Next", exact: true }).click();
+
+    const probes: Locator = page.getByRole("combobox", { name: /^Probes/ });
+    await expect(probes).toBeVisible({ timeout: 30000 });
+
+    // The title's row, which names the dropdown, and the word in it.
+    const rowId: string | null = await probes.getAttribute("aria-labelledby");
+    expect(rowId).toBeTruthy();
+    const row: Locator = page.locator(`[id="${rowId}"]`);
+    const word: Locator = row.getByTestId("defined-term");
+
+    // The names b762ca7f750 holds: the dropdown's, and the word's own.
+    await expect(probes).toHaveAccessibleName("Probes");
+    await expect(word).toHaveAccessibleName("Probes");
+
+    const definition: Locator = page.getByRole("dialog", { name: "Probes" });
+
+    // The empty end of the row, well past the word: the row itself is there.
+    const rowBox: { x: number; y: number; width: number; height: number } =
+      await boxOf(row);
+    const wordBox: { x: number; width: number } = await boxOf(word);
+    const end: { x: number; y: number } = {
+      x: rowBox.x + rowBox.width - 8,
+      y: rowBox.y + rowBox.height / 2,
+    };
+    expect(end.x).toBeGreaterThan(wordBox.x + wordBox.width + 100);
+    expect(
+      await page.evaluate((point: { x: number; y: number }): string | null => {
+        return document.elementFromPoint(point.x, point.y)?.id || null;
+      }, end),
+    ).toBe(rowId);
+    // Under an arrow, as every title's row is: a label's.
+    expect(
+      await row.evaluate((element: Element): string => {
+        return getComputedStyle(element).cursor;
+      }),
+    ).toBe("default");
+
+    await page.mouse.click(end.x, end.y);
+    await nextFrames(page);
+
+    await expect(definition).toBeHidden();
+    await expect(word).toHaveAttribute("aria-expanded", "false");
+
+    // A press on the word opens it, and keeps it once the pointer moves away.
+    await word.click();
+    await expect(definition).toBeVisible();
+    await expect(definition.getByTestId("defined-term-definition")).toHaveText(
+      PROBE_DEFINITION,
+    );
+    await page.mouse.move(0, 0);
+    await nextFrames(page);
+    await expect(definition).toBeVisible();
+    await expect(word).toHaveAttribute("aria-expanded", "true");
+
+    /*
+     * While it shows, the dropdown is still named Probes alone (#7561). The
+     * row names the dropdown with every word inside it, and the definition
+     * was drawn in it: "Probes Probe A machine that runs ... Read more". It
+     * is drawn right after the row now.
+     */
+    await expect(
+      page.getByRole("combobox", { name: "Probes", exact: true }),
+    ).toBeVisible();
+    await expect(probes).toHaveAccessibleName("Probes");
+
+    // It still shows by the word: just above or below it, and over it.
+    const definitionBox: {
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+    } = await boxOf(definition);
+    const wordNow: { x: number; y: number; width: number; height: number } =
+      await boxOf(word);
+    expect(
+      Math.min(
+        Math.abs(wordNow.y - (definitionBox.y + definitionBox.height)),
+        Math.abs(definitionBox.y - (wordNow.y + wordNow.height)),
+      ),
+    ).toBeLessThan(24);
+    expect(definitionBox.x).toBeLessThan(wordNow.x + wordNow.width);
+    expect(definitionBox.x + definitionBox.width).toBeGreaterThan(wordNow.x);
+
+    // The keyboard still goes from the word to Read more, and back.
+    await word.focus();
+    await page.keyboard.press("Tab");
+    await expect(
+      definition.getByTestId("defined-term-read-more"),
+    ).toBeFocused();
+    await page.keyboard.press("Shift+Tab");
+    await expect(word).toBeFocused();
+    await expect(definition).toBeVisible();
+  });
+});
+
+/*
+ * THE CRITERIA CARD'S HEADING, WITH ITS WORD'S DEFINITION OPEN (#7594).
+ *
+ * The Criteria card's title is a defined term. Its definition - a dialog
+ * named by its word - was drawn inside the card's heading, beside the word,
+ * and a heading is named by the words inside it: while it showed, Chromium
+ * named the heading "Criteria Criteria", and a screen reader's list of
+ * headings read it so. It is drawn right after the heading now
+ * (Glossary/DefinitionsDrawnAfter): the heading holds its title alone, the
+ * definition still shows by the word, and Tab goes from the word to Read
+ * more, then on to the card's Learn more.
+ */
+test.describe("Create Monitor's Criteria definition", () => {
+  // The glossary is read from the product's host, as for Probes above.
+  test.use({ bypassCSP: true });
+
+  const CRITERIA_DEFINITION: string =
+    "A monitor's rules: what each check result means, and what to do then.";
+
+  test("while it shows, the card's heading holds its title alone; it shows by the word, and Tab goes from Read more to Learn more", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.route(
+      /\/docs\/glossary\/en\.json$/,
+      async (route: PlaywrightRoute) => {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          headers: { "Access-Control-Allow-Origin": "*" },
+          body: JSON.stringify({
+            lang: "en",
+            entries: [
+              {
+                id: "criteria",
+                term: "Criteria",
+                definition: CRITERIA_DEFINITION,
+              },
+            ],
+          }),
+        });
+      },
+    );
+
+    const form: Locator = await openCreate(page, "?monitorType=Website");
+    await nameInput(form).fill("Storefront");
+    await form.getByRole("button", { name: "Next", exact: true }).click();
+
+    // The Criteria card's heading, and the word in it.
+    const heading: Locator = form
+      .getByTestId("card-details-heading")
+      .filter({ has: page.locator("[data-glossary-term='criteria']") });
+    await expect(heading).toBeVisible({ timeout: 60000 });
+    await expect(heading).toHaveText("Criteria");
+    const word: Locator = heading.getByTestId("defined-term");
+
+    await word.click();
+    const definition: Locator = page.getByRole("dialog", { name: "Criteria" });
+    await expect(definition.getByTestId("defined-term-definition")).toHaveText(
+      CRITERIA_DEFINITION,
+    );
+
+    // The heading holds its title alone: the definition is not in it.
+    await expect(heading).toHaveText("Criteria");
+    await expect(heading.getByRole("dialog")).toHaveCount(0);
+
+    // It still shows by the word: just above or below it, and over it.
+    const definitionBox: {
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+    } = await boxOf(definition);
+    const wordBox: { x: number; y: number; width: number; height: number } =
+      await boxOf(word);
+    expect(
+      Math.min(
+        Math.abs(wordBox.y - (definitionBox.y + definitionBox.height)),
+        Math.abs(definitionBox.y - (wordBox.y + wordBox.height)),
+      ),
+    ).toBeLessThan(24);
+    expect(definitionBox.x).toBeLessThan(wordBox.x + wordBox.width);
+    expect(definitionBox.x + definitionBox.width).toBeGreaterThan(wordBox.x);
+
+    // The keyboard goes from the word to Read more, then on past the heading.
+    await word.focus();
+    await page.keyboard.press("Tab");
+    await expect(
+      definition.getByTestId("defined-term-read-more"),
+    ).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(page.getByTestId("monitor-criteria-learn-more")).toBeFocused();
   });
 });
 

@@ -7,16 +7,18 @@ import {
   test,
 } from "@jest/globals";
 import { act, cleanup, renderHook } from "@testing-library/react";
+import fs from "fs";
 import { Mock } from "jest-mock";
+import path from "path";
 
 /*
  * useLiveCount: a side-menu count counts again when the server announces a
  * change to a record of its kind - at once for the first change, at most
  * once every interval however many follow (a bulk action announces every
  * record it changed), never while the tab is hidden, and never after the
- * count has gone. The live connection is faked: every subscription is
- * recorded, and a test announces a change by calling what the count handed
- * it.
+ * count has gone. The app's live connection is faked where the count asks
+ * for it (LiveConnection): every subscription is recorded, and a test
+ * announces a change by calling what the count handed it.
  */
 
 interface Subscription {
@@ -27,38 +29,49 @@ interface Subscription {
   isStopped: boolean;
 }
 
+interface ListenRequest {
+  modelType: { new (): { tableName: string } };
+  eventType: string;
+  tenantId: { toString: () => string };
+}
+
+// What a count uses of the connection the app opened (Realtime).
+interface OpenConnection {
+  listenToModelEvent: (
+    listen: ListenRequest,
+    onEvent: (modelId: unknown) => void,
+  ) => () => void;
+}
+
 const subscriptions: Array<Subscription> = [];
 let isConnectionStarted: boolean = true;
 
-jest.mock("../../../UI/Utils/Realtime", () => {
+jest.mock("../../../UI/Utils/LiveConnection", () => {
+  const connection: OpenConnection = {
+    listenToModelEvent: (
+      listen: ListenRequest,
+      onEvent: (modelId: unknown) => void,
+    ): (() => void) => {
+      const subscription: Subscription = {
+        modelName: new listen.modelType().tableName,
+        eventType: listen.eventType,
+        tenantId: listen.tenantId.toString(),
+        onEvent: onEvent,
+        isStopped: false,
+      };
+
+      subscriptions.push(subscription);
+
+      return (): void => {
+        subscription.isStopped = true;
+      };
+    },
+  };
+
   return {
     __esModule: true,
-    default: {
-      isStarted: (): boolean => {
-        return isConnectionStarted;
-      },
-      listenToModelEvent: (
-        listen: {
-          modelType: { new (): { tableName: string } };
-          eventType: string;
-          tenantId: { toString: () => string };
-        },
-        onEvent: (modelId: unknown) => void,
-      ): (() => void) => {
-        const subscription: Subscription = {
-          modelName: new listen.modelType().tableName,
-          eventType: listen.eventType,
-          tenantId: listen.tenantId.toString(),
-          onEvent: onEvent,
-          isStopped: false,
-        };
-
-        subscriptions.push(subscription);
-
-        return (): void => {
-          subscription.isStopped = true;
-        };
-      },
+    getOpenLiveConnection: (): OpenConnection | null => {
+      return isConnectionStarted ? connection : null;
     },
   };
 });
@@ -485,5 +498,34 @@ describe("starting over and stopping", () => {
     setVisibility("hidden");
     setVisibility("visible");
     expect(harness.recount).toHaveBeenCalledTimes(1);
+  });
+});
+
+/*
+ * A status page's subscribe menu draws a side menu and opens no live
+ * connection. Importing Realtime there put it - with socket.io and the
+ * analytics models - in the page's first load: about 18 KiB gzipped
+ * (packages/Common/Scripts/first-load-budgets.js holds the page to it). The
+ * count asks LiveConnection for the connection the app opened instead.
+ */
+describe("what a count loads", () => {
+  test("Realtime's type alone: the connection is asked for from LiveConnection", () => {
+    const source: string = fs.readFileSync(
+      path.join(__dirname, "../../../UI/Components/SideMenu/UseLiveCount.ts"),
+      "utf8",
+    );
+
+    const imports: Array<string> = Array.from(
+      source.matchAll(
+        /^import[^;]*from "\.\.\/\.\.\/Utils\/(?:Realtime|LiveConnection)";$/gm,
+      ),
+    ).map((match: RegExpMatchArray): string => {
+      return match[0];
+    });
+
+    expect(imports).toEqual([
+      'import { getOpenLiveConnection } from "../../Utils/LiveConnection";',
+      'import type Realtime from "../../Utils/Realtime";',
+    ]);
   });
 });

@@ -2,6 +2,9 @@
 
 Ein API-Monitor ruft nach Zeitplan einen HTTP-Endpunkt auf, mit der Methode, den Headern und dem Body, die Sie wählen, und prüft, was zurückkommt: den Statuscode, die Antwortzeit, die Header und den Body. Verwenden Sie ihn für REST-, JSON- und GraphQL-Endpunkte, Integritätsprüfungen und jeden Aufruf, auf den Ihre Benutzer angewiesen sind.
 
+> [!TIP]
+> Neu hier? Folgen Sie zuerst der Anleitung: [Erfahren, wenn Ihre Website oder API ausfällt](/docs/guides/website-down).
+
 :::cards
 - [Den Monitor erstellen](#einen-api-monitor-erstellen): Sechs Schritte im Dashboard.
 - [Konfigurationsoptionen](#konfigurationsoptionen): Methode, Header, Body, Weiterleitungen, Zertifikate, Zeitlimits und Wiederholungen.
@@ -56,7 +59,7 @@ Klicken Sie auf **Monitor testen**, wählen Sie unter **Sonde auswählen** eine 
 
 ### Die Kriterien prüfen
 
-**Monitor-Kriterien** beginnt mit den [Standardkriterien](#standardkriterien): offline, wenn die API nicht oder mit einem Fehler antwortet, online bei jedem Status `2xx` oder `3xx`. Um auch zu prüfen, was die API zurückgibt, fügen Sie einen Filter hinzu und klicken Sie dann auf **Weiter**.
+**Kriterien** beginnt mit den [Standardkriterien](#standardkriterien): offline, wenn die API nicht oder mit einem Fehler antwortet, online bei jedem Status `2xx` oder `3xx`. Um auch zu prüfen, was die API zurückgibt, fügen Sie einen Filter hinzu und klicken Sie dann auf **Weiter**.
 
 ### Sonden wählen und erstellen
 

@@ -18,7 +18,7 @@ Gå til **Monitorer**, og klik på **Opret monitor**. Formularen åbner på sit 
 
 Det første spørgsmål er **Monitortype**: hvad vil du overvåge?
 
-- De seks typer, som de fleste opretter, kommer først: **Websted**, **API**, **Ping**, **Port**, **SSL Certificate** og **Indgående anmodning** til heartbeats fra cronjobs og webhooks.
+- De seks typer, som de fleste opretter, kommer først: **Websted**, **API**, **Ping**, **Port**, **SSL-certifikat** og **Indgående anmodning** til heartbeats fra cronjobs og webhooks.
 - **Flere monitortyper** viser alle andre typer under deres kategori, som **Infrastruktur** (Kubernetes, Docker, vært) og **Telemetri** (protokoller, metrikker, spor). **Manuel**, en monitor, hvis status du selv sætter, og **Sondestatus**, der giver besked, når en probe mister forbindelsen, ligger under **Andet**.
 - Eller skriv i søgefeltet. Det kender de ord, du allerede bruger, som `k8s`, `postgres`, `heartbeat` eller `tls`, og **Enter** vælger det første resultat.
 
@@ -44,7 +44,7 @@ For en monitor, som sonder tjekker, kører **Test monitor** tjekket én gang, f�
 
 ### Gennemgå kriterierne
 
-Nedenunder afgør **Monitorkriterier**, hvornår monitoren skifter status, erklærer en hændelse eller opretter en advarsel. En ny monitor starter med kriterier, der passer til de fleste monitorer, hver foldet sammen til én linje, der siger, hvad den tjekker, og hvad den gør. En ny webstedsmonitor markeres for eksempel som offline og erklærer en hændelse, når webstedet ikke svarer eller svarer med en fejlstatuskode.
+Nedenunder afgør **Kriterier**, hvornår monitoren skifter status, erklærer en hændelse eller opretter en advarsel. En ny monitor starter med kriterier, der passer til de fleste monitorer, hver foldet sammen til én linje, der siger, hvad den tjekker, og hvad den gør. En ny webstedsmonitor markeres for eksempel som offline og erklærer en hændelse, når webstedet ikke svarer eller svarer med en fejlstatuskode.
 
 Klik på et kriterium for at åbne og ændre det. **Tilføj kriterier** tilføjer et, åbent og klar til at udfylde. For at ændre rækkefølgen trækker du et kriterium i håndtaget til venstre for det.
 
@@ -72,11 +72,11 @@ flowchart TB
     end
 ```
 
-Hændelser og advarsler, der er sat til at blive løst automatisk, som standardkriteriernes, løser sig selv, så snart deres kriterium ikke længere matcher. En monitor, som flere sonder tjekker, skifter kun, når sonderne er enige: som standard skal hver sonde, der er slået til og forbundet, nå samme resultat. For at kræve færre sætter du **Sondeenighed** på monitorens side **Konfiguration → Sonder og interval**. Alt, hvad et kriterium kan indeholde, og de statusser, en monitor kan vise, står i [Monitorkriterier og statusser](/docs/monitor/criteria-and-statuses).
+Hændelser og advarsler, der er sat til at blive løst automatisk, som standardkriteriernes, løser sig selv, så snart deres kriterium ikke længere matcher. En monitor, som flere sonder tjekker, skifter kun, når sonderne er enige: som standard skal hver sonde, der er slået til og forbundet, nå samme resultat. For at kræve færre sætter du **Sondeenighed** på monitorens side **Konfiguration → Sonder og interval**. Alt, hvad et kriterium kan indeholde, og de statusser, en monitor kan vise, står i [Kriterier og statusser](/docs/monitor/criteria-and-statuses).
 
 ## Sonder og interval
 
-Monitorer, som sonder tjekker, slutter med dette trin: Websted, API, Ping, IP, Port, SSL Certificate, DNS, DNSSEC, NTP, Domæne, SQL Query, Database Health, Synthetic Monitor, Custom JavaScript Code og External Status Page. **Sonder** er de maskiner, der kører tjekkene, og dit projekts standardsonder er valgt på forhånd. **Overvågningsinterval** starter på **Hvert 5. minut**.
+Monitorer, som sonder tjekker, slutter med dette trin: Websted, API, Ping, IP, Port, SSL-certifikat, DNS, DNSSEC, NTP, Domæne, SQL Query, Database Health, Synthetic Monitor, Custom JavaScript Code og External Status Page. **Sonder** er de maskiner, der kører tjekkene, og dit projekts standardsonder er valgt på forhånd. **Overvågningsinterval** starter på **Hvert 5. minut**.
 
 :::steps
 ### Vælg sonderne
@@ -85,7 +85,7 @@ Behold de valgte **Sonder**, eller vælg andre. En monitor uden sonder bliver al
 
 ### Vælg, hvor ofte der tjekkes
 
-Vælg et **Overvågningsinterval** fra **Hvert minut** til **Hver uge**. Monitorer af typen Synthetic Monitor, Custom JavaScript Code og SSL Certificate får tilbudt intervaller på 5 minutter eller mere.
+Vælg et **Overvågningsinterval** fra **Hvert minut** til **Hver uge**. Monitorer af typen Synthetic Monitor, Custom JavaScript Code og SSL-certifikat får tilbudt intervaller på 5 minutter eller mere.
 
 ### Opret monitoren
 
@@ -103,7 +103,7 @@ Hver monitortype har sin egen side med sine indstillinger, sine standardkriterie
 :::cards
 - [Websted-monitor](/docs/monitor/website-monitor): Tjek, at en side indlæses, og hvad den svarer.
 - [API-monitor](/docs/monitor/api-monitor): Kald et endpoint med en metode, headere og en brødtekst.
-- [Monitorkriterier og statusser](/docs/monitor/criteria-and-statuses): Hvad der sætter hver monitors status.
+- [Kriterier og statusser](/docs/monitor/criteria-and-statuses): Hvad der sætter hver monitors status.
 - [Monitorskabeloner](/docs/monitor/monitor-templates): Opret mange monitorer fra én konfiguration, og hold dem ens.
 - [Monitorgrupper](/docs/monitor/monitor-groups): Saml flere monitorer i én status.
 - [Hændelser](/docs/incidents/index): Hvad der sker, efter at en monitor erklærer en hændelse.

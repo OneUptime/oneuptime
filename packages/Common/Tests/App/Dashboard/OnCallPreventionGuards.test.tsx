@@ -888,7 +888,7 @@ describe("Delete guards: the sentences", () => {
 
     expect(sentence).toBe(
       "You are an on-call responder in this project, reached through a team. " +
-        "Deleting Email: jane@example.com removes 2 notification rules and leaves Alert · Sev2 with no rule.",
+        "Deleting Email: jane@example.com removes 2 rules from How to Reach Me and leaves Alert · Sev2 with no rule.",
     );
   });
 
@@ -903,7 +903,7 @@ describe("Delete guards: the sentences", () => {
     });
 
     expect(sentence).toContain(
-      "No notification rules use SMS: +15550100, so deleting it does not change how you are paged.",
+      "No rule in How to Reach Me uses SMS: +15550100, so deleting it does not change how you are paged.",
     );
   });
 
@@ -918,7 +918,7 @@ describe("Delete guards: the sentences", () => {
     });
 
     expect(sentence).toBe(
-      "Deleting Email: jane@example.com removes 1 notification rule and leaves Alert · Sev2 with no rule.",
+      "Deleting Email: jane@example.com removes 1 rule from How to Reach Me and leaves Alert · Sev2 with no rule.",
     );
   });
 
@@ -1006,7 +1006,7 @@ describe("Delete guards: the sentences", () => {
 
     expect(sentence).not.toContain("does not leave a gap");
     expect(sentence).toBe(
-      "We could not match this rule to your notification rules, so we cannot tell what deleting it leaves uncovered.",
+      "We could not match this rule to How to Reach Me, so we cannot tell what deleting it leaves uncovered.",
     );
   });
 
@@ -1136,7 +1136,7 @@ describe("Delete guards: the confirmation an admin actually reads", () => {
 
     await waitFor(() => {
       expect(screen.getByTestId("confirm-modal-description")).toHaveTextContent(
-        "Deleting Email: jane@example.com removes 2 notification rules and leaves Alert · Sev2 with no rule.",
+        "Deleting Email: jane@example.com removes 2 rules from How to Reach Me and leaves Alert · Sev2 with no rule.",
       );
     });
 
@@ -1200,7 +1200,7 @@ describe("Delete guards: the confirmation an admin actually reads", () => {
 
     await waitFor(() => {
       expect(screen.getByTestId("confirm-modal-description")).toHaveTextContent(
-        "Deleting Email: jane@example.com removes 1 notification rule",
+        "Deleting Email: jane@example.com removes 1 rule from How to Reach Me",
       );
     });
 
@@ -1270,7 +1270,7 @@ describe("Delete guards: the confirmation an admin actually reads", () => {
 
     await waitFor(() => {
       expect(screen.getByTestId("confirm-modal-description")).toHaveTextContent(
-        "removes 1 notification rule",
+        "removes 1 rule from How to Reach Me",
       );
     });
 
@@ -1647,7 +1647,8 @@ const METHOD_SURFACES: Array<MethodSurface> = [
       });
     },
     modalTitle: "Delete Phone Number",
-    methodLabel: "Call: +15551230199",
+    // A call method by its own name (#7178): "Phone call", not "Call".
+    methodLabel: "Phone call: +15551230199",
     rowButtons: ["Delete"],
     menuItems: [],
   },
@@ -1663,7 +1664,7 @@ const METHOD_SURFACES: Array<MethodSurface> = [
       });
     },
     modalTitle: "Delete Device",
-    methodLabel: "Push: Chrome on macOS",
+    methodLabel: "Push notification: Chrome on macOS",
     rowButtons: ["Test Notification", "More actions"],
     menuItems: ["Delete"],
   },
@@ -2014,7 +2015,7 @@ describe.each(METHOD_SURFACES)(
         expect(
           screen.getByTestId("confirm-modal-description"),
         ).toHaveTextContent(
-          `Deleting ${surface.methodLabel} removes 1 notification rule and leaves Alert · Sev2 with no rule.`,
+          `Deleting ${surface.methodLabel} removes 1 rule from How to Reach Me and leaves Alert · Sev2 with no rule.`,
         );
       });
 
@@ -2067,7 +2068,7 @@ describe.each(METHOD_SURFACES)(
       await waitFor(() => {
         expect(
           screen.getByTestId("confirm-modal-description"),
-        ).toHaveTextContent("removes 1 notification rule");
+        ).toHaveTextContent("removes 1 rule from How to Reach Me");
       });
 
       // The modal's own submit, which only exists once the guard has opened it.
@@ -2128,7 +2129,7 @@ describe.each(METHOD_SURFACES)(
       await waitFor(() => {
         expect(
           screen.getByTestId("confirm-modal-description"),
-        ).toHaveTextContent("removes 1 notification rule");
+        ).toHaveTextContent("removes 1 rule from How to Reach Me");
       });
 
       clickInModal("Delete");

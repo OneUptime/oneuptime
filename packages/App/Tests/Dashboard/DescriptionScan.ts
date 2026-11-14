@@ -339,6 +339,7 @@ const INLINE_TAGS: ReadonlySet<string> = new Set<string>([
 ]);
 // Elements that draw a sentence from its template attribute.
 const SENTENCE_TAGS: ReadonlySet<string> = new Set<string>([
+  "ErrorSentence",
   "NamedSentence",
   "TranslatedSentence",
 ]);

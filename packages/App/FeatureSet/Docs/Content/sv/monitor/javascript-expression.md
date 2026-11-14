@@ -29,7 +29,7 @@ Eftersom platshållarna ersätts som text blir `{{responseBody.item}}` det råa 
 :::steps
 ### Öppna kriterierna
 
-Öppna **Konfiguration → Kriterier** på monitorn och klicka på **Redigera övervakningskriterier**, eller använd steget **Kriterier** i **Skapa monitor**. Arbeta i det kriterium du vill ändra, eller klicka på **Lägg till kriterier** för ett nytt.
+Öppna **Konfiguration → Kriterier** på monitorn och klicka på **Redigera kriterier**, eller använd steget **Kriterier** i **Skapa monitor**. Arbeta i det kriterium du vill ändra, eller klicka på **Lägg till kriterier** för ett nytt.
 
 ### Lägg till ett filter
 

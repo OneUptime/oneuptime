@@ -2,11 +2,15 @@ import PushNotificationRequest from "../../Types/PushNotification/PushNotificati
 import PushNotificationMessage from "../../Types/PushNotification/PushNotificationMessage";
 import PushDeviceType from "../../Types/PushNotification/PushDeviceType";
 import { isExpoPushDeviceType } from "../../Types/PushNotification/ExpoPushDeviceType";
+import {
+  PUSH_NOT_SENT_TO_APP_THAT_NO_LONGER_RECEIVES_MESSAGE,
+  PUSH_NOT_SENT_TO_BROWSER_THAT_NO_LONGER_RECEIVES_MESSAGE,
+} from "../../Types/OnCallDutyPolicy/OnCallPageLine";
 import ObjectID from "../../Types/ObjectID";
 import logger from "../Utils/Logger";
 import UserPushService from "./UserPushService";
 import UserOnCallLogTimelineService from "./UserOnCallLogTimelineService";
-import UserNotificationStatus from "../../Types/UserNotification/UserNotificationStatus";
+import { recordSendResult } from "../Utils/OnCall/OnCallNotificationStatus";
 import {
   VapidPublicKey,
   VapidPrivateKey,
@@ -305,10 +309,10 @@ export default class PushNotificationService {
     deviceType: PushDeviceType | string | undefined,
   ): string {
     if (isExpoPushDeviceType(deviceType)) {
-      return "Push notification not sent: this device no longer receives push notifications. Open the mobile app on it to register it again.";
+      return PUSH_NOT_SENT_TO_APP_THAT_NO_LONGER_RECEIVES_MESSAGE;
     }
 
-    return "Push notification not sent: this browser no longer receives push notifications. Register it again from User Settings > Notification Methods > Push in that browser.";
+    return PUSH_NOT_SENT_TO_BROWSER_THAT_NO_LONGER_RECEIVES_MESSAGE;
   }
 
   /*
@@ -924,26 +928,20 @@ export default class PushNotificationService {
       failureReasons: failureReasons,
     });
 
-    // Update user on call log timeline status if provided
+    /*
+     * The person's on-call timeline, when the push is a page's: written only
+     * while it still says Sending (OnCallNotificationStatus) - the person may
+     * have acknowledged the page, or escalated it, meanwhile, from another of
+     * its messages.
+     */
     if (options.userOnCallLogTimelineId) {
-      const status: UserNotificationStatus =
-        successCount > 0
-          ? UserNotificationStatus.Sent
-          : UserNotificationStatus.Error;
-      const statusMessage: string =
-        successCount > 0
-          ? "Push notification sent successfully"
-          : failureMessage;
-
-      await UserOnCallLogTimelineService.updateOneById({
-        id: options.userOnCallLogTimelineId,
-        data: {
-          status,
-          statusMessage,
-        },
-        props: {
-          isRoot: true,
-        },
+      await recordSendResult({
+        userOnCallLogTimelineId: options.userOnCallLogTimelineId,
+        isSent: successCount > 0,
+        statusMessage:
+          successCount > 0
+            ? "Push notification sent successfully"
+            : failureMessage,
       });
     }
 

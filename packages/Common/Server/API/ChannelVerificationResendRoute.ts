@@ -4,7 +4,10 @@ import VerificationCodeRateLimit, {
 } from "../Middleware/VerificationCodeRateLimit";
 import DatabaseService from "../Services/DatabaseService";
 import Select from "../Types/Database/Select";
-import { VerifiableChannelModel } from "../Utils/ChannelVerification";
+import {
+  ChannelVerificationMessages,
+  VerifiableChannelModel,
+} from "../Utils/ChannelVerification";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -74,7 +77,7 @@ export default class ChannelVerificationResendRoute {
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException("Invalid item ID"),
+              new BadDataException(ChannelVerificationMessages.noItem),
             );
           }
 
@@ -85,7 +88,7 @@ export default class ChannelVerificationResendRoute {
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException("Invalid user ID"),
+              new BadDataException(ChannelVerificationMessages.notSignedIn),
             );
           }
 
@@ -103,20 +106,21 @@ export default class ChannelVerificationResendRoute {
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException("Item not found"),
+              new BadDataException(ChannelVerificationMessages.notFound),
             );
           }
 
           /*
            * A caller may only ask for a code to be sent to a row they own.
            * Without this the resend route is a way to make somebody else's
-           * device ring on demand.
+           * device ring on demand. Answered like a row that does not
+           * exist, so it never says whether somebody else has the number.
            */
           if (item.userId?.toString() !== userId.toString()) {
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException("Invalid user ID"),
+              new BadDataException(ChannelVerificationMessages.notFound),
             );
           }
 

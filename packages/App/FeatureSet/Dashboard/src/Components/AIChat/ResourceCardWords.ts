@@ -3,26 +3,37 @@ import {
   AIActionCardFact,
   AIActionCardWords,
   AIActionSentence,
+  describeAIActionCardLabel,
   describeAIActionCardValue,
+  describeAIActionFigure,
   getAIActionSentenceDirection,
+  isAIActionFigure,
   isAIActionList,
+  isAIActionMoment,
+  isAIActionTerm,
   isKnownAIActionCardWords,
 } from "Common/Types/AI/AIActionWords";
-import { AIChatWidget } from "Common/Types/AI/AIChatTypes";
+import {
+  AIChatWidget,
+  isAIChatReadResourceCard,
+} from "Common/Types/AI/AIChatTypes";
 import {
   getFactsNotInHeading,
   ResourceCardFact,
 } from "Common/Types/AI/ResourceCardFacts";
+import OneUptimeDate from "Common/Types/Date";
+import { withDateDisplayLanguage } from "Common/Types/DateLanguage";
 import { getReadingDirection } from "Common/Types/ReadingDirection";
-import { Translator } from "Common/Types/Translator";
+import { getSentenceLanguage, Translator } from "Common/Types/Translator";
 import { drawActionSentence, DrawnActionSentence } from "./ToolActionWords";
 
 /*
- * THE CARD AN ACTION LEFT, IN THE READER'S LANGUAGE.
+ * THE CARD A TOOL LEFT, IN THE READER'S LANGUAGE.
  *
  * Under an answer, the card a write left says what it made or changed:
  * "INCIDENT", "INC-42 · Checkout down", "Severity: High · Started
- * resolved", and its facts. The server stores the card twice: in English
+ * resolved", and its facts; the card a read left shows a record as it is -
+ * "MONITOR", its name, its status, "Type: Website" (issue #7175). The server stores the card twice: in English
  * (resourceType, subheading, fields), which the exports print and which a
  * card saved before this reads as, and as sentences and terms of
  * Common/Types/AI/AIActionWords (data.words), which this words in the
@@ -51,11 +62,18 @@ export interface DrawnResourceCard {
   isWorded: boolean;
 }
 
-// A card's words, when they are the module's sentences and terms.
+/*
+ * A card's words, when they are the module's sentences and terms - a
+ * read's card's, or a write's, as the one who left it says (issue #7175).
+ */
 export function getKnownResourceCardWords(
   widget: AIChatWidget,
 ): AIActionCardWords | null {
-  return isKnownAIActionCardWords(widget.data.words) ? widget.data.words : null;
+  return isKnownAIActionCardWords(widget.data.words, {
+    isRead: isAIChatReadResourceCard(widget.data),
+  })
+    ? widget.data.words
+    : null;
 }
 
 // The stored English, read the way most of its letters are.
@@ -63,33 +81,105 @@ function asStored(text: string): DrawnActionSentence {
   return { text, direction: null, separatorBefore: "" };
 }
 
+// A word or a figure of the module, read its language's way.
+function drawWord(text: string, language: string): DrawnActionSentence {
+  return {
+    text,
+    direction: getReadingDirection(language),
+    separatorBefore: "",
+  };
+}
+
 function drawFactValue(
   fact: AIActionCardFact,
   translator: Translator,
 ): DrawnActionSentence {
-  // Data as written - a note, a description - read the way its letters are.
-  if (typeof fact.value === "string") {
-    return asStored(fact.value);
+  const value: AIActionCardFact["value"] = fact.value;
+
+  // Data as written - a note, a description, a name - read the way its letters are.
+  if (typeof value === "string") {
+    return asStored(value);
+  }
+
+  /*
+   * A word of OneUptime's - "Off - not checked", a monitor type's name -
+   * in the reader's language when it words it, else in English, read
+   * that language's way.
+   */
+  if (isAIActionTerm(value)) {
+    return drawWord(
+      translator.translateTerm(value.term),
+      getSentenceLanguage(translator, value.term),
+    );
+  }
+
+  // A figure, written the reader's way: "99,95 %" in German, "۹۹٫۹۵٪" in Persian.
+  if (isAIActionFigure(value)) {
+    return drawWord(
+      describeAIActionFigure(value, translator),
+      translator.language,
+    );
+  }
+
+  /*
+   * A moment, as every page writes one - in the reader's language and in
+   * the time zone they picked, its zone said - never the ISO text the
+   * card stores for the exports.
+   */
+  if (isAIActionMoment(value)) {
+    const moment: Date = new Date(value.moment);
+
+    return drawWord(
+      withDateDisplayLanguage(translator.language, (): string => {
+        return OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(moment);
+      }),
+      translator.language,
+    );
   }
 
   /*
    * A list of sentences - the resources linked - in the reader's language,
    * each name set apart, read the language's way.
    */
-  if (isAIActionList(fact.value)) {
+  if (isAIActionList(value)) {
     return {
-      text: describeAIActionCardValue(fact.value, translator, {
+      text: describeAIActionCardValue(value, translator, {
         setsValuesApart: true,
       }),
       direction:
-        fact.value.list.length > 0
-          ? getAIActionSentenceDirection(fact.value.list[0]!, translator)
+        value.list.length > 0
+          ? getAIActionSentenceDirection(value.list[0]!, translator)
           : getReadingDirection(translator.language),
       separatorBefore: "",
     };
   }
 
-  return drawActionSentence(fact.value, translator, "");
+  return drawActionSentence(value, translator, "");
+}
+
+/*
+ * A card's line, part by part: a sentence in the reader's language, and
+ * data - a status name the project chose, a description - as written.
+ */
+function drawLine(
+  parts: Array<AIActionSentence | string>,
+  translator: Translator,
+): Array<DrawnActionSentence> {
+  return parts
+    .map((part: AIActionSentence | string): DrawnActionSentence => {
+      return typeof part === "string"
+        ? asStored(part)
+        : drawActionSentence(part, translator, "");
+    })
+    .filter((part: DrawnActionSentence): boolean => {
+      return Boolean(part.text);
+    })
+    .map((part: DrawnActionSentence, index: number): DrawnActionSentence => {
+      return {
+        ...part,
+        separatorBefore: index > 0 ? AI_ACTION_CARD_LINE_SEPARATOR : "",
+      };
+    });
 }
 
 /*
@@ -124,18 +214,14 @@ export function getDrawnResourceCard(
   return {
     kind: translator.translateTerm(words.kind.term),
     heading,
-    line: (words.line || []).map(
-      (sentence: AIActionSentence, index: number): DrawnActionSentence => {
-        return {
-          ...drawActionSentence(sentence, translator, ""),
-          separatorBefore: index > 0 ? AI_ACTION_CARD_LINE_SEPARATOR : "",
-        };
-      },
-    ),
+    line: drawLine(words.line || [], translator),
     facts: (words.facts || []).map(
       (fact: AIActionCardFact): DrawnResourceCardFact => {
         return {
-          label: translator.translateTerm(fact.label.term),
+          // A name, or a sentence with data in it: "Rule 2 — Database team".
+          label: describeAIActionCardLabel(fact.label, translator, {
+            setsValuesApart: true,
+          }),
           value: drawFactValue(fact, translator),
         };
       },

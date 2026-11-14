@@ -19,6 +19,7 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
 import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
@@ -54,7 +55,7 @@ const DataObservabilityDataProductsPage: FunctionComponent<
         setSyncError(
           translator.translateTemplate(
             "The data product is saved, but its monitor and SLO could not be set up: {{reason}}",
-            { reason: (err as Error).message },
+            { reason: errorInSentence((err as Error).message) },
           ),
         );
       }

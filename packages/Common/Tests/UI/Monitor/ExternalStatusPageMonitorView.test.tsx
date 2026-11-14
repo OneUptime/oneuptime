@@ -26,12 +26,32 @@ import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import { DropdownOption } from "../../../UI/Components/Dropdown/Dropdown";
 import CriteriaFilterUtil from "../../../../App/FeatureSet/Dashboard/src/Utils/Form/Monitor/CriteriaFilter";
 import ExternalStatusPageMonitorView, {
+  EXTERNAL_STATUS_PAGE_ERROR_TEST_ID,
   EXTERNAL_STATUS_PAGE_OUTSIDE_INCIDENTS_TEST_ID,
   EXTERNAL_STATUS_PAGE_OVERALL_STATUS_TEST_ID,
   EXTERNAL_STATUS_PAGE_UNMATCHED_TEST_ID,
+  getComponentDescription,
+  getActiveIncidentsText,
+  getFailureCause,
   getWatchedComponentNames,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/SummaryView/ExternalStatusPageMonitorView";
 import SummaryInfo from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/SummaryView/SummaryInfo";
+import {
+  EXTERNAL_STATUS_PAGE_ONEUPTIME_IP_NOT_ALLOWED_MESSAGE,
+  EXTERNAL_STATUS_PAGE_ONEUPTIME_NOT_MONITORED,
+  EXTERNAL_STATUS_PAGE_ONEUPTIME_PRIVATE_MESSAGE,
+  EXTERNAL_STATUS_PAGE_ONEUPTIME_STATUS_NOT_SHOWN,
+  EXTERNAL_STATUS_PAGE_ONEUPTIME_UNDER_MAINTENANCE_OF,
+} from "../../../Utils/Monitor/ExternalStatusPageReading";
+import { createTranslator, Translator } from "../../../Types/Translator";
+import {
+  DASHBOARD_LANGUAGES,
+  dashboardTranslator,
+  isWordedInDashboardLocale,
+  placeholdersOf,
+  readDashboardLocale,
+} from "../../Helpers/DashboardLocales";
+import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 
 /*
  * What one check of an external status page found, as the monitor's
@@ -153,7 +173,11 @@ beforeAll(async () => {
   await i18next.use(initReactI18next).init({
     lng: "en",
     fallbackLng: "en",
-    resources: { de: { translation: DE } },
+    resources: {
+      de: { translation: DE },
+      ar: { translation: readDashboardLocale("ar") },
+      fa: { translation: readDashboardLocale("fa") },
+    },
     interpolation: { escapeValue: false },
     keySeparator: false,
     nsSeparator: false,
@@ -984,5 +1008,854 @@ describe("in English", () => {
     expect(
       screen.getByTestId("external-status-page-page-facts"),
     ).toHaveAttribute("lang", "en");
+  });
+});
+
+/*
+ * ONEUPTIME'S OWN NOTES ON A COMPONENT, IN THE READER'S LANGUAGE (#6990).
+ *
+ * A OneUptime status page gives a resource it shows no status for no
+ * words of its own, so the probe writes a note as the component's
+ * description: the page does not show its status, it is not monitored, or
+ * it is under maintenance for the page's events. The summary drew the
+ * note as the probe wrote it, in English on every page. It now draws it in
+ * the reader's language, the events' titles - the page's words - as
+ * written; a description another page wrote stays as it wrote it, even
+ * one that reads like OneUptime's note.
+ */
+
+// Components of a OneUptime page with no status of their own.
+const NOTED_COMPONENTS: Array<ExternalStatusPageComponentStatus> = [
+  {
+    name: "Search",
+    status: "unknown",
+    description: EXTERNAL_STATUS_PAGE_ONEUPTIME_NOT_MONITORED,
+    groupName: "Core / APIs",
+  },
+  {
+    name: "Storefront",
+    status: "unknown",
+    description: EXTERNAL_STATUS_PAGE_ONEUPTIME_STATUS_NOT_SHOWN,
+  },
+  {
+    name: "Orders database",
+    status: "under_maintenance",
+    description: "Under maintenance: Database upgrade",
+    groupName: "Core / Databases",
+  },
+];
+
+// The line under each component's name, as a reader sees it.
+function details(): Array<string | null> {
+  return screen
+    .getAllByTestId("external-status-page-component")
+    .map((row: HTMLElement): string | null => {
+      const detail: HTMLElement | null = within(row).queryByTestId(
+        "external-status-page-component-detail",
+      );
+
+      return detail ? withoutIsolateMarks(detail.textContent || "") : null;
+    });
+}
+
+function renderNoted(
+  provider: ExternalStatusPageProviderType = ExternalStatusPageProviderType.OneUptime,
+): void {
+  renderView(
+    pageResponse({
+      provider: provider,
+      overallStatus: "under_maintenance",
+      componentStatuses: NOTED_COMPONENTS,
+    }),
+  );
+}
+
+describe("OneUptime's own notes on a component", () => {
+  test("in English, each note reads as the probe wrote it", () => {
+    renderNoted();
+
+    expect(details()).toEqual([
+      "Core / APIs · The status page shows this resource as not monitored.",
+      "The status page does not show this resource's status.",
+      "Core / Databases · Under maintenance: Database upgrade",
+    ]);
+  });
+
+  test("in English, the line holds no isolate marks", () => {
+    renderNoted();
+
+    for (const detail of screen.getAllByTestId(
+      "external-status-page-component-detail",
+    )) {
+      expect(withoutIsolateMarks(detail.textContent || "")).toBe(
+        detail.textContent,
+      );
+    }
+  });
+
+  test("each part of the line is in its own direction", () => {
+    renderNoted();
+
+    const first: HTMLElement = screen.getAllByTestId(
+      "external-status-page-component-detail",
+    )[0]!;
+    const parts: Array<string> = Array.from(first.querySelectorAll("bdi")).map(
+      (part: Element): string => {
+        return part.textContent || "";
+      },
+    );
+
+    expect(parts).toEqual([
+      "Core / APIs",
+      "The status page shows this resource as not monitored.",
+    ]);
+    // The separator sits between the parts, outside both.
+    expect(first.textContent).toBe(parts.join(" · "));
+  });
+
+  describe("in German", () => {
+    beforeAll(async () => {
+      await i18next.changeLanguage("de");
+    });
+
+    afterAll(async () => {
+      await i18next.changeLanguage("en");
+    });
+
+    test("each note reads German, the group and the event's title as the page wrote them", () => {
+      renderNoted();
+
+      expect(details()).toEqual([
+        "Core / APIs · Die Statusseite zeigt diese Ressource als nicht überwacht an.",
+        "Die Statusseite zeigt den Status dieser Ressource nicht an.",
+        "Core / Databases · In Wartung: Database upgrade",
+      ]);
+    });
+
+    test("the German is the locale file's", () => {
+      renderNoted();
+
+      expect(details()).toEqual([
+        `Core / APIs · ${DE[EXTERNAL_STATUS_PAGE_ONEUPTIME_NOT_MONITORED]}`,
+        DE[EXTERNAL_STATUS_PAGE_ONEUPTIME_STATUS_NOT_SHOWN],
+        `Core / Databases · ${DE[
+          EXTERNAL_STATUS_PAGE_ONEUPTIME_UNDER_MAINTENANCE_OF
+        ]!.replace("{{events}}", "Database upgrade")}`,
+      ]);
+    });
+
+    test("another page's description stays as that page wrote it, even when it reads like a note", () => {
+      for (const provider of [
+        ExternalStatusPageProviderType.AtlassianStatuspage,
+        ExternalStatusPageProviderType.IncidentIo,
+      ]) {
+        renderNoted(provider);
+
+        expect(details()).toEqual([
+          "Core / APIs · The status page shows this resource as not monitored.",
+          "The status page does not show this resource's status.",
+          "Core / Databases · Under maintenance: Database upgrade",
+        ]);
+
+        cleanup();
+      }
+    });
+
+    test("a check that names no provider leaves every description as written", () => {
+      renderView(
+        pageResponse({
+          provider: undefined,
+          componentStatuses: NOTED_COMPONENTS,
+        }),
+      );
+
+      expect(details()[1]).toBe(
+        "The status page does not show this resource's status.",
+      );
+    });
+
+    test("a OneUptime resource's own status name stays as the page wrote it", () => {
+      renderView(
+        pageResponse({
+          componentStatuses: [
+            {
+              name: "Payments webhooks",
+              status: "major_outage",
+              description: "Offline",
+            },
+          ],
+        }),
+      );
+
+      expect(details()).toEqual(["Offline"]);
+    });
+  });
+
+  describe.each(["ar", "fa"])("in %s", (language: string) => {
+    const locale: Record<string, string> = readDashboardLocale(language);
+
+    beforeAll(async () => {
+      await i18next.changeLanguage(language);
+    });
+
+    afterAll(async () => {
+      await i18next.changeLanguage("en");
+    });
+
+    test("each note reads in the language, the page's words as written", () => {
+      renderNoted();
+
+      const separator: string = language === "fa" ? " • " : " · ";
+
+      expect(details()).toEqual([
+        `Core / APIs${separator}${locale[EXTERNAL_STATUS_PAGE_ONEUPTIME_NOT_MONITORED]}`,
+        locale[EXTERNAL_STATUS_PAGE_ONEUPTIME_STATUS_NOT_SHOWN],
+        `Core / Databases${separator}${locale[
+          EXTERNAL_STATUS_PAGE_ONEUPTIME_UNDER_MAINTENANCE_OF
+        ]!.replace("{{events}}", "Database upgrade")}`,
+      ]);
+    });
+
+    test("the page's English group and the note are each drawn in their own direction", () => {
+      renderNoted();
+
+      const last: HTMLElement = screen.getAllByTestId(
+        "external-status-page-component-detail",
+      )[2]!;
+      const parts: Array<HTMLElement> = Array.from(
+        last.querySelectorAll("bdi"),
+      );
+
+      expect(parts).toHaveLength(2);
+      expect(parts[0]).toHaveTextContent("Core / Databases");
+      expect(withoutIsolateMarks(parts[1]!.textContent || "")).toBe(
+        locale[EXTERNAL_STATUS_PAGE_ONEUPTIME_UNDER_MAINTENANCE_OF]!.replace(
+          "{{events}}",
+          "Database upgrade",
+        ),
+      );
+      // The event's English title is set apart inside the sentence.
+      expect(parts[1]!.textContent).not.toBe(
+        withoutIsolateMarks(parts[1]!.textContent || ""),
+      );
+    });
+  });
+});
+
+describe("what the page says of a component (getComponentDescription)", () => {
+  const german: Translator = dashboardTranslator("de");
+
+  test("a OneUptime page's note in the reader's language", () => {
+    expect(
+      getComponentDescription({
+        translator: german,
+        description: EXTERNAL_STATUS_PAGE_ONEUPTIME_NOT_MONITORED,
+        isOneUptimePage: true,
+      }),
+    ).toBe("Die Statusseite zeigt diese Ressource als nicht überwacht an.");
+  });
+
+  test("the same words from another page, as written", () => {
+    expect(
+      getComponentDescription({
+        translator: german,
+        description: EXTERNAL_STATUS_PAGE_ONEUPTIME_NOT_MONITORED,
+        isOneUptimePage: false,
+      }),
+    ).toBe(EXTERNAL_STATUS_PAGE_ONEUPTIME_NOT_MONITORED);
+  });
+
+  test("a description of the page's own, trimmed, as written", () => {
+    expect(
+      getComponentDescription({
+        translator: german,
+        description: "  Partial outage in eu-west  ",
+        isOneUptimePage: true,
+      }),
+    ).toBe("Partial outage in eu-west");
+  });
+
+  test("negative control: a language that left a note in English draws the English", () => {
+    const words: Record<string, string> = {
+      ...readDashboardLocale("de"),
+      [EXTERNAL_STATUS_PAGE_ONEUPTIME_STATUS_NOT_SHOWN]:
+        EXTERNAL_STATUS_PAGE_ONEUPTIME_STATUS_NOT_SHOWN,
+    };
+    const untranslated: Translator = createTranslator(
+      (text: string): string | undefined => {
+        return words[text];
+      },
+      "de",
+    );
+
+    expect(
+      getComponentDescription({
+        translator: untranslated,
+        description: EXTERNAL_STATUS_PAGE_ONEUPTIME_STATUS_NOT_SHOWN,
+        isOneUptimePage: true,
+      }),
+    ).toBe(EXTERNAL_STATUS_PAGE_ONEUPTIME_STATUS_NOT_SHOWN);
+    expect(
+      isWordedInDashboardLocale(
+        "The status page does not show this resource's status (made up).",
+        "de",
+      ),
+    ).toBe(false);
+  });
+});
+
+describe("OneUptime's notes in every Dashboard language", () => {
+  const NOTES: Array<string> = [
+    EXTERNAL_STATUS_PAGE_ONEUPTIME_STATUS_NOT_SHOWN,
+    EXTERNAL_STATUS_PAGE_ONEUPTIME_NOT_MONITORED,
+    EXTERNAL_STATUS_PAGE_ONEUPTIME_UNDER_MAINTENANCE_OF,
+  ];
+
+  test("English holds each note under its own words", () => {
+    const english: Record<string, string> = readDashboardLocale("en");
+
+    for (const note of NOTES) {
+      expect(english[note]).toBe(note);
+    }
+  });
+
+  test.each([...DASHBOARD_LANGUAGES])(
+    "%s words each note, with the English placeholders",
+    (language: string) => {
+      const locale: Record<string, string> = readDashboardLocale(language);
+
+      for (const note of NOTES) {
+        expect({
+          note,
+          worded: isWordedInDashboardLocale(note, language),
+        }).toEqual({ note, worded: true });
+        expect(placeholdersOf(locale[note]!)).toEqual(placeholdersOf(note));
+      }
+    },
+  );
+});
+
+/*
+ * WHY A ONEUPTIME PAGE TURNED THE PROBE AWAY, IN THE READER'S LANGUAGE (#7222).
+ *
+ * With the OneUptime Status Page provider chosen, a private page (sign-in
+ * or password) or one whose IP allowlist leaves the probe out fails the
+ * check, and the probe stores why in English: monitor criteria and logs
+ * compare those words, so they never change. The summary's Error drew
+ * them in English on every page. Each is a translation key now
+ * (ExternalStatusPageReading), and the Error draws it in the reader's
+ * language - only for a check of a OneUptime page, and only when the cause
+ * is exactly those words. Any other cause, or the same words from another
+ * provider, is drawn as written.
+ */
+const REFUSALS: Array<string> = [
+  EXTERNAL_STATUS_PAGE_ONEUPTIME_PRIVATE_MESSAGE,
+  EXTERNAL_STATUS_PAGE_ONEUPTIME_IP_NOT_ALLOWED_MESSAGE,
+];
+
+const IP_NOT_ALLOWED_MESSAGE: string =
+  "This status page lets in only the IP addresses on its allowlist, and this probe's address is not one of them. Add the probe's address to the allowlist, or watch the page from a probe inside that network.";
+
+const LATIN_LETTER: RegExp = /[A-Za-z]/;
+const IP_WORD: RegExp = /\bIP\b/g;
+
+// A check the page turned away, as the probe reports it.
+function refusedResponse(
+  failureCause: string,
+  provider:
+    | ExternalStatusPageProviderType
+    | undefined = ExternalStatusPageProviderType.OneUptime,
+): ExternalStatusPageMonitorResponse {
+  return pageResponse({
+    isOnline: false,
+    overallStatus: "unknown",
+    componentStatuses: [],
+    failureCause: failureCause,
+    provider: provider,
+  });
+}
+
+// The Error as a reader sees it: its words, and the direction it reads in.
+function drawnError(): { text: string; dir: string | null } {
+  const error: HTMLElement = screen.getByTestId(
+    EXTERNAL_STATUS_PAGE_ERROR_TEST_ID,
+  );
+
+  return {
+    text: withoutIsolateMarks(error.textContent || ""),
+    dir: error.getAttribute("dir"),
+  };
+}
+
+describe("why a OneUptime page turned the probe away (getFailureCause)", () => {
+  test("the probe stores the English it always stored, which monitor criteria compare", () => {
+    expect(EXTERNAL_STATUS_PAGE_ONEUPTIME_PRIVATE_MESSAGE).toBe(
+      PRIVATE_PAGE_MESSAGE,
+    );
+    expect(EXTERNAL_STATUS_PAGE_ONEUPTIME_IP_NOT_ALLOWED_MESSAGE).toBe(
+      IP_NOT_ALLOWED_MESSAGE,
+    );
+  });
+
+  test("in German, each reads in German", () => {
+    const german: Translator = dashboardTranslator("de");
+
+    expect(
+      getFailureCause({
+        translator: german,
+        failureCause: PRIVATE_PAGE_MESSAGE,
+        provider: ExternalStatusPageProviderType.OneUptime,
+      }),
+    ).toBe(
+      "Diese Statusseite ist privat: Nur Personen, die sich dort anmelden oder ihr Passwort kennen, können sie lesen. Nur eine öffentliche Statusseite kann überwacht werden.",
+    );
+    expect(
+      getFailureCause({
+        translator: german,
+        failureCause: IP_NOT_ALLOWED_MESSAGE,
+        provider: ExternalStatusPageProviderType.OneUptime,
+      }),
+    ).toBe(
+      "Diese Statusseite lässt nur die IP-Adressen auf ihrer Zulassungsliste zu, und die Adresse dieser Sonde gehört nicht dazu. Fügen Sie die Adresse der Sonde zur Zulassungsliste hinzu oder überwachen Sie die Seite von einer Sonde innerhalb dieses Netzwerks.",
+    );
+  });
+
+  test.each(["de", "ar", "fa"])(
+    "in %s, each reads as the language's file words it, never the English",
+    (language: string) => {
+      const translator: Translator = dashboardTranslator(language);
+      const locale: Record<string, string> = readDashboardLocale(language);
+
+      for (const refusal of REFUSALS) {
+        const drawn: string = getFailureCause({
+          translator: translator,
+          failureCause: refusal,
+          provider: ExternalStatusPageProviderType.OneUptime,
+        });
+
+        expect(drawn).toBe(locale[refusal]);
+        expect(drawn).not.toBe(refusal);
+      }
+    },
+  );
+
+  test.each(["ar", "fa"])(
+    "in %s the words are the language's own, but for the name IP",
+    (language: string) => {
+      for (const refusal of REFUSALS) {
+        const drawn: string = getFailureCause({
+          translator: dashboardTranslator(language),
+          failureCause: refusal,
+          provider: ExternalStatusPageProviderType.OneUptime,
+        });
+
+        expect(drawn.replace(IP_WORD, "")).not.toMatch(LATIN_LETTER);
+      }
+    },
+  );
+
+  test("a check stored before the probe named its provider reads in the language too", () => {
+    const german: Translator = dashboardTranslator("de");
+
+    for (const provider of [undefined, "", "  "]) {
+      expect(
+        getFailureCause({
+          translator: german,
+          failureCause: PRIVATE_PAGE_MESSAGE,
+          provider: provider,
+        }),
+      ).toBe(readDashboardLocale("de")[PRIVATE_PAGE_MESSAGE]);
+    }
+  });
+
+  test("the probe's words with space round them still read in the language", () => {
+    expect(
+      getFailureCause({
+        translator: dashboardTranslator("de"),
+        failureCause: `  ${IP_NOT_ALLOWED_MESSAGE}\n`,
+        provider: ExternalStatusPageProviderType.OneUptime,
+      }),
+    ).toBe(readDashboardLocale("de")[IP_NOT_ALLOWED_MESSAGE]);
+  });
+
+  test.each([
+    ExternalStatusPageProviderType.AtlassianStatuspage,
+    ExternalStatusPageProviderType.IncidentIo,
+    ExternalStatusPageProviderType.RSS,
+    ExternalStatusPageProviderType.Atom,
+    ExternalStatusPageProviderType.Auto,
+  ])(
+    "the same words from %s are drawn as written",
+    (provider: ExternalStatusPageProviderType) => {
+      for (const refusal of REFUSALS) {
+        expect(
+          getFailureCause({
+            translator: dashboardTranslator("de"),
+            failureCause: refusal,
+            provider: provider,
+          }),
+        ).toBe(refusal);
+      }
+    },
+  );
+
+  test("any other cause is drawn as written: the network's, a timeout's, a page's status", () => {
+    for (const cause of [
+      "HTTP status 503",
+      "Request timed out after 10000 ms",
+      "getaddrinfo ENOTFOUND status.example.com",
+      "Unexpected token < in JSON at position 0",
+    ]) {
+      expect(
+        getFailureCause({
+          translator: dashboardTranslator("ar"),
+          failureCause: `${cause} `,
+          provider: ExternalStatusPageProviderType.OneUptime,
+        }),
+      ).toBe(cause);
+    }
+  });
+
+  test("words close to the probe's, but not the same, are drawn as written", () => {
+    for (const cause of [
+      PRIVATE_PAGE_MESSAGE.slice(0, -1),
+      `${PRIVATE_PAGE_MESSAGE} (HTTP 401)`,
+      PRIVATE_PAGE_MESSAGE.toLowerCase(),
+      `Error: ${IP_NOT_ALLOWED_MESSAGE}`,
+    ]) {
+      expect(
+        getFailureCause({
+          translator: dashboardTranslator("de"),
+          failureCause: cause,
+          provider: ExternalStatusPageProviderType.OneUptime,
+        }),
+      ).toBe(cause);
+    }
+  });
+
+  test("in English, exactly the probe's words", () => {
+    for (const refusal of REFUSALS) {
+      expect(
+        getFailureCause({
+          translator: dashboardTranslator("en"),
+          failureCause: refusal,
+          provider: ExternalStatusPageProviderType.OneUptime,
+        }),
+      ).toBe(refusal);
+    }
+  });
+
+  test("negative control: a language that left a refusal in English draws the English", () => {
+    const words: Record<string, string> = {
+      ...readDashboardLocale("de"),
+      [PRIVATE_PAGE_MESSAGE]: PRIVATE_PAGE_MESSAGE,
+    };
+    const untranslated: Translator = createTranslator(
+      (text: string): string | undefined => {
+        return words[text];
+      },
+      "de",
+    );
+
+    expect(
+      getFailureCause({
+        translator: untranslated,
+        failureCause: PRIVATE_PAGE_MESSAGE,
+        provider: ExternalStatusPageProviderType.OneUptime,
+      }),
+    ).toBe(PRIVATE_PAGE_MESSAGE);
+  });
+});
+
+describe.each(["de", "ar", "fa"])(
+  "a refused check's summary in %s",
+  (language: string) => {
+    const locale: Record<string, string> = readDashboardLocale(language);
+    const isRightToLeft: boolean = language === "ar" || language === "fa";
+
+    beforeAll(async () => {
+      await i18next.changeLanguage(language);
+    });
+
+    afterAll(async () => {
+      await i18next.changeLanguage("en");
+    });
+
+    test.each([
+      ["a private page", PRIVATE_PAGE_MESSAGE],
+      [
+        "a page whose IP allowlist leaves the probe out",
+        IP_NOT_ALLOWED_MESSAGE,
+      ],
+    ])(
+      "%s: the Error reads in the language, the page's way",
+      (_name: string, refusal: string) => {
+        renderView(refusedResponse(refusal));
+
+        expect(drawnError()).toEqual({ text: locale[refusal], dir: null });
+        expect(
+          screen.queryByText(refusal, { exact: false }),
+        ).not.toBeInTheDocument();
+      },
+    );
+
+    test("a check stored before the probe named its provider: the Error reads in the language", () => {
+      renderView(refusedResponse(PRIVATE_PAGE_MESSAGE, undefined));
+
+      expect(drawnError().text).toBe(locale[PRIVATE_PAGE_MESSAGE]);
+    });
+
+    test("the same words from an Atlassian Statuspage stay in English, read left to right", () => {
+      renderView(
+        refusedResponse(
+          PRIVATE_PAGE_MESSAGE,
+          ExternalStatusPageProviderType.AtlassianStatuspage,
+        ),
+      );
+
+      expect(drawnError()).toEqual({
+        text: PRIVATE_PAGE_MESSAGE,
+        dir: isRightToLeft ? "ltr" : null,
+      });
+    });
+
+    test("a network error stays as written, read left to right", () => {
+      renderView(refusedResponse("connect ECONNREFUSED 203.0.113.7:443"));
+
+      expect(drawnError()).toEqual({
+        text: "connect ECONNREFUSED 203.0.113.7:443",
+        dir: isRightToLeft ? "ltr" : null,
+      });
+    });
+  },
+);
+
+describe("a refused check's summary in English", () => {
+  test("the Error reads the probe's words, exactly", () => {
+    renderView(refusedResponse(IP_NOT_ALLOWED_MESSAGE));
+
+    expect(drawnError()).toEqual({ text: IP_NOT_ALLOWED_MESSAGE, dir: null });
+  });
+
+  test("a check that did not fail draws no Error", () => {
+    renderView();
+
+    expect(
+      screen.queryByTestId(EXTERNAL_STATUS_PAGE_ERROR_TEST_ID),
+    ).not.toBeInTheDocument();
+  });
+});
+
+/*
+ * THE RESPONSE TIME IN THE READER'S LANGUAGE (#7224): Persian digits and a
+ * Persian unit in Persian, an Arabic unit in Arabic - never "ms 412" - and
+ * "412 ms" in English as before.
+ */
+describe.each([
+  ["en", "412 ms"],
+  ["de", "412 ms"],
+  ["ar", "412 ملي ث"],
+  ["fa", "۴۱۲ میلی\u{200C}ثانیه"],
+])("the Response Time in %s", (language: string, expected: string) => {
+  beforeAll(async () => {
+    await i18next.changeLanguage(language);
+  });
+
+  afterAll(async () => {
+    await i18next.changeLanguage("en");
+  });
+
+  test(`reads "${expected}"`, () => {
+    renderView();
+
+    expect(
+      withoutIsolateMarks(
+        factValue("external-status-page-check-facts", 2).textContent || "",
+      ),
+    ).toBe(expected);
+  });
+});
+
+describe("the refusals in every Dashboard language", () => {
+  test("English holds each under its own words", () => {
+    const english: Record<string, string> = readDashboardLocale("en");
+
+    for (const refusal of REFUSALS) {
+      expect(english[refusal]).toBe(refusal);
+    }
+  });
+
+  test.each([...DASHBOARD_LANGUAGES])(
+    "%s words each refusal",
+    (language: string) => {
+      for (const refusal of REFUSALS) {
+        expect({
+          refusal,
+          worded: isWordedInDashboardLocale(refusal, language),
+        }).toEqual({ refusal, worded: true });
+      }
+    },
+  );
+
+  test("negative control: words no file holds are not worded", () => {
+    expect(
+      isWordedInDashboardLocale(`${PRIVATE_PAGE_MESSAGE} (made up)`, "de"),
+    ).toBe(false);
+  });
+});
+
+/*
+ * THE PAGE'S ACTIVE INCIDENTS. A check that could not read the page - a
+ * private page, one whose IP allowlist leaves the probe out, a timeout, a
+ * network error - counted no incidents: its Active Incidents reads "-", as
+ * its Overall Status does, never a 0 that reads as a quiet page. A page
+ * the probe read gives its count in the reader's digits ("۳" in Persian).
+ */
+describe("the page's active incidents (getActiveIncidentsText)", () => {
+  const english: Translator = dashboardTranslator("en");
+
+  test("a page the probe read: its count, 0 when it has none", () => {
+    expect(
+      getActiveIncidentsText({
+        translator: english,
+        activeIncidentCount: 3,
+        isPageRead: true,
+      }),
+    ).toBe("3");
+    expect(
+      getActiveIncidentsText({
+        translator: english,
+        activeIncidentCount: 0,
+        isPageRead: true,
+      }),
+    ).toBe("0");
+    expect(
+      getActiveIncidentsText({
+        translator: english,
+        activeIncidentCount: undefined,
+        isPageRead: true,
+      }),
+    ).toBe("0");
+    expect(
+      getActiveIncidentsText({
+        translator: english,
+        activeIncidentCount: 1250,
+        isPageRead: true,
+      }),
+    ).toBe("1,250");
+  });
+
+  test("a page the probe could not read: a dash, whatever count the check carries", () => {
+    for (const count of [0, 3, undefined]) {
+      expect(
+        getActiveIncidentsText({
+          translator: english,
+          activeIncidentCount: count,
+          isPageRead: false,
+        }),
+      ).toBe("-");
+    }
+  });
+
+  test("in Persian, the count in Persian digits", () => {
+    const persian: Translator = dashboardTranslator("fa");
+
+    expect(
+      getActiveIncidentsText({
+        translator: persian,
+        activeIncidentCount: 3,
+        isPageRead: true,
+      }),
+    ).toBe("\u{06F3}");
+    expect(
+      getActiveIncidentsText({
+        translator: persian,
+        activeIncidentCount: 0,
+        isPageRead: true,
+      }),
+    ).toBe("\u{06F0}");
+  });
+});
+
+describe("the Active Incidents fact", () => {
+  // The Active Incidents card's value: the page facts' third card.
+  function activeIncidents(): string {
+    return withoutIsolateMarks(
+      factValue("external-status-page-page-facts", 2).textContent || "",
+    ).trim();
+  }
+
+  // The Overall Status card's value: the page facts' second card.
+  function overallStatus(): string {
+    return withoutIsolateMarks(
+      factValue("external-status-page-page-facts", 1).textContent || "",
+    ).trim();
+  }
+
+  test.each([
+    ["a private page", PRIVATE_PAGE_MESSAGE],
+    ["a page whose IP allowlist leaves the probe out", IP_NOT_ALLOWED_MESSAGE],
+    ["a network error", "connect ECONNREFUSED 203.0.113.7:443"],
+  ])(
+    "%s: a dash, as the Overall Status, not a 0",
+    (_name: string, cause: string) => {
+      renderView({ ...refusedResponse(cause), overallStatus: "" });
+
+      expect(activeIncidents()).toBe("-");
+      expect(overallStatus()).toBe("-");
+    },
+  );
+
+  test("a timeout, its status Unknown: a dash", () => {
+    renderView(
+      refusedResponse("Request was tried 3 times and it timed out.", undefined),
+    );
+
+    expect(activeIncidents()).toBe("-");
+  });
+
+  test("a page that answered with none: 0", () => {
+    renderView(pageResponse({ activeIncidentCount: 0 }));
+
+    expect(activeIncidents()).toBe("0");
+  });
+
+  test("a page that answered with two: 2", () => {
+    renderView(pageResponse({ activeIncidentCount: 2 }));
+
+    expect(activeIncidents()).toBe("2");
+  });
+
+  test("the incidents the scope left out still read under the count", () => {
+    renderView(
+      pageResponse({ activeIncidentCount: 1, incidentsOutsideScopeCount: 2 }),
+    );
+
+    expect(
+      screen.getByTestId(EXTERNAL_STATUS_PAGE_OUTSIDE_INCIDENTS_TEST_ID),
+    ).toHaveTextContent("2 more on the page, not counted");
+    expect(activeIncidents()).toBe("12 more on the page, not counted");
+  });
+
+  describe("in Persian", () => {
+    beforeAll(async () => {
+      await i18next.changeLanguage("fa");
+    });
+
+    afterAll(async () => {
+      await i18next.changeLanguage("en");
+    });
+
+    test("the count in Persian digits, never a Latin one", () => {
+      renderView(pageResponse({ activeIncidentCount: 3 }));
+
+      expect(activeIncidents()).toBe("\u{06F3}");
+    });
+
+    test("a refused page: a dash", () => {
+      renderView(refusedResponse(PRIVATE_PAGE_MESSAGE));
+
+      expect(activeIncidents()).toBe("-");
+    });
   });
 });

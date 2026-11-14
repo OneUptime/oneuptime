@@ -16,8 +16,9 @@ import {
  * project's owners for a project's export, every master admin (through the
  * instance health sender) for the instance's. One template serves both
  * emails of a run of failures - "is failing" and "will start losing
- * entries" - so its own sentence says only what an export does; the
- * subject, the badge, the details and the remediation say which it is.
+ * entries", or "is losing entries" once that moment has passed (#7185) -
+ * so its own sentence says only what an export does; the subject, the
+ * badge, the details and the remediation say which it is.
  *
  * The export's name and the destination's answer are written by people and
  * by outside services, and are escaped like every other value. Why the
@@ -41,9 +42,18 @@ registerEmailLanguageHelpers(handlebars);
 const ERROR: string =
   "The webhook answered HTTP 401 (Unauthorized). <b>Check</b> the token.";
 
+// The words the builder gives the "losing entries" email once its date has passed (#7185).
+const BEING_LOST: { subject: string; instanceSubject: string } = {
+  subject: 'The audit log export "SIEM <webhook>" is losing entries',
+  instanceSubject:
+    'The audit log export "Instance archive" of your OneUptime instance is losing entries',
+};
+
 function render(data: {
   isInstanceExport: boolean;
   isLosing: boolean;
+  // The "losing entries" email for a date that has passed by the try.
+  isLost?: boolean | undefined;
 }): string {
   const vars: Record<string, string> = {
     subject: data.isInstanceExport
@@ -62,8 +72,8 @@ function render(data: {
       : "https://oneuptime.acme.test/dashboard/0f9e8d7c-6b5a-4493-8211-00aa11bb22cc/settings/audit-logs/export",
     healthPageButtonText: "Open Audit Log Export",
     remediation: data.isLosing
-      ? "From about Oct 31, 2026, 11:55 AM UTC, the entries this export has not sent are deleted as they pass the audit log's retention of 7 days, and are never sent. Fix the destination before then, and the export sends them, oldest first."
-      : "Fix the destination, and the export sends every entry waiting for it, oldest first. Nothing is lost yet: the audit log keeps each entry for 7 days.",
+      ? "From about Oct 31, 2026, 11:55 AM UTC, the entries this export has not sent are deleted as they pass the audit log retention they were recorded with, and are never sent. Fix the destination before then, and the export sends them, oldest first."
+      : "Fix the destination, and the export sends every entry waiting for it, oldest first. Nothing is lost yet: the audit log starts deleting them from about Oct 31, 2026, 11:55 AM UTC.",
     detail1Title: "Export: ",
     detail1Text: "SIEM <webhook>",
     detail2Title: "Destination: ",
@@ -83,6 +93,17 @@ function render(data: {
   } else {
     vars["detail5Title"] = "Why: ";
     vars["detail5Text"] = ERROR;
+  }
+
+  if (data.isLosing && data.isLost) {
+    vars["subject"] = data.isInstanceExport
+      ? BEING_LOST.instanceSubject
+      : BEING_LOST.subject;
+    vars["badgeText"] = "Entries being lost";
+    vars["detail5Title"] = "Entries lost since: ";
+    vars["detail5Text"] = "about Oct 20, 2026, 11:55 AM UTC";
+    vars["remediation"] =
+      "Fix the destination now, and the export sends the entries the audit log still keeps, oldest first. Since about Oct 20, 2026, 11:55 AM UTC, the entries this export has not sent are being deleted as they pass the audit log retention they were recorded with, and are never sent. A longer retention (Project Settings > Audit Logs > Settings) only keeps the entries recorded after the change.";
   }
 
   if (!data.isInstanceExport) {
@@ -125,11 +146,17 @@ beforeAll(() => {
   registerEmailDetailCardHelpers(handlebars);
 });
 
-const EVERY_EMAIL: Array<{ isInstanceExport: boolean; isLosing: boolean }> = [
+const EVERY_EMAIL: Array<{
+  isInstanceExport: boolean;
+  isLosing: boolean;
+  isLost?: boolean | undefined;
+}> = [
   { isInstanceExport: false, isLosing: false },
   { isInstanceExport: false, isLosing: true },
+  { isInstanceExport: false, isLosing: true, isLost: true },
   { isInstanceExport: true, isLosing: false },
   { isInstanceExport: true, isLosing: true },
+  { isInstanceExport: true, isLosing: true, isLost: true },
 ];
 
 describe("AuditLogExportFailed.hbs", () => {
@@ -161,6 +188,60 @@ describe("AuditLogExportFailed.hbs", () => {
     expect(losing).toContain("Entries about to be lost");
     expect(losing).toContain("Entries lost from: about Oct 31, 2026");
     expect(losing).toContain("Fix the destination before then");
+  });
+
+  test("entries already being lost: the subject, the critical badge, the row since when, and to fix the destination now", () => {
+    for (const isInstanceExport of [false, true]) {
+      const html: string = render({
+        isInstanceExport,
+        isLosing: true,
+        isLost: true,
+      });
+      const text: string = visibleText(html);
+
+      expect(text).toContain(
+        isInstanceExport ? BEING_LOST.instanceSubject : BEING_LOST.subject,
+      );
+      expect(text).toContain("Entries being lost");
+      expect(html).toContain("st-Badge--critical");
+      expect(html).not.toContain("st-Badge--warning");
+      expect(text).toContain(
+        "Entries lost since: about Oct 20, 2026, 11:55 AM UTC",
+      );
+      expect(text).toContain(
+        "Fix the destination now, and the export sends the entries the audit log still keeps, oldest first. Since about Oct 20, 2026, 11:55 AM UTC,",
+      );
+      // Nothing that reads as still ahead.
+      expect(text).not.toContain("will start losing entries");
+      expect(text).not.toContain("Entries about to be lost");
+      expect(text).not.toContain("Entries lost from:");
+      expect(text).not.toContain("before then");
+    }
+
+    // Its rows keep the order of the email whose date is ahead.
+    const order: Array<number> = [
+      "Export:",
+      "Destination:",
+      "Failing since:",
+      "Oldest entry not sent:",
+      "Entries lost since:",
+      "Why:",
+    ].map((title: string): number => {
+      return visibleText(
+        render({ isInstanceExport: false, isLosing: true, isLost: true }),
+      ).indexOf(title);
+    });
+
+    expect(
+      order.every((index: number): boolean => {
+        return index >= 0;
+      }),
+    ).toBe(true);
+    expect(
+      [...order].sort((a: number, b: number): number => {
+        return a - b;
+      }),
+    ).toEqual(order);
   });
 
   test("all six detail rows show, the destination's answer last", () => {

@@ -39,6 +39,7 @@ import { AIRunStatusHelper } from "../../../Types/AI/AIRunStatus";
 import AIRunType from "../../../Types/AI/AIRunType";
 import { AIRunEventResultSummary } from "../../../Types/AI/AIChatTypes";
 import { InvestigationNotStartedCode } from "../../../Types/AI/InvestigationNotStartedReason";
+import { isRecordAiTokenLimitPaused } from "../../../Types/AI/RecordAiTokenLimit";
 import AutoRemediationSuggestionStatus from "../../../Types/AutoRemediation/AutoRemediationSuggestionStatus";
 import AutoRemediationSuggestionType from "../../../Types/AutoRemediation/AutoRemediationSuggestionType";
 import {
@@ -93,6 +94,7 @@ import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/Database
 import Incident from "../../../Models/DatabaseModels/Incident";
 import AIRunEventService from "../../Services/AIRunEventService";
 import AIRunService from "../../Services/AIRunService";
+import { AutonomousBudgetStatus } from "../../Services/AIService";
 import AlertFeedService from "../../Services/AlertFeedService";
 import AlertService from "../../Services/AlertService";
 import AutoRemediationSuggestionService from "../../Services/AutoRemediationSuggestionService";
@@ -457,11 +459,37 @@ const NOT_STARTED_REFUSALS: Partial<
   provider_missing: RemediationRoundTryAgainRefusal.NoProvider,
   insufficient_ai_balance: RemediationRoundTryAgainRefusal.CreditsUsedUp,
   project_daily_limit_reached: RemediationRoundTryAgainRefusal.LimitReached,
-  // The incident's or alert's own daily AI token limit: midnight UTC too.
-  daily_budget_exhausted: RemediationRoundTryAgainRefusal.LimitReached,
+  /*
+   * daily_budget_exhausted is the incident's or alert's own daily AI token
+   * limit, not the project's: getTokenLimitRefusal words it by the record
+   * and whether a limit of 0 pauses it (#7157).
+   */
 };
 
 type RoundSubjectKind = "incident" | "alert";
+
+/*
+ * The refusal when the incident's (alert's) own daily AI token limit stops
+ * the round: paused when it is set to 0 or below, which only raising it
+ * lifts, else used up until midnight UTC. A budget the queue did not hand
+ * over reads as used up, the only other way the limit stops work.
+ */
+export function getTokenLimitRefusal(
+  subjectKind: RoundSubjectKind,
+  budget: AutonomousBudgetStatus | null | undefined,
+): RemediationRoundTryAgainRefusal {
+  const isPaused: boolean = isRecordAiTokenLimitPaused(budget?.limitInTokens);
+
+  if (subjectKind === "incident") {
+    return isPaused
+      ? RemediationRoundTryAgainRefusal.IncidentTokenLimitPaused
+      : RemediationRoundTryAgainRefusal.IncidentTokenLimitUsedUp;
+  }
+
+  return isPaused
+    ? RemediationRoundTryAgainRefusal.AlertTokenLimitPaused
+    : RemediationRoundTryAgainRefusal.AlertTokenLimitUsedUp;
+}
 
 interface RoundForViewer {
   suggestion: AutoRemediationSuggestion;
@@ -770,7 +798,13 @@ export default class RemediationRound {
       isAsked: boolean;
       isAdmitted: boolean;
       notEnqueuedCode: InvestigationNotStartedCode | null;
-    } = { isAsked: false, isAdmitted: false, notEnqueuedCode: null };
+      notEnqueuedBudget: AutonomousBudgetStatus | null;
+    } = {
+      isAsked: false,
+      isAdmitted: false,
+      notEnqueuedCode: null,
+      notEnqueuedBudget: null,
+    };
 
     const createdRunId: ObjectID | null = await AIInvestigationQueue.enqueue({
       projectId: data.tenantId,
@@ -783,8 +817,10 @@ export default class RemediationRound {
       runId: newRunId,
       onNotEnqueued: async (
         code: InvestigationNotStartedCode,
+        budget?: AutonomousBudgetStatus,
       ): Promise<void> => {
         admission.notEnqueuedCode = code;
+        admission.notEnqueuedBudget = budget || null;
       },
       /*
        * Right before the run is created: the round, as it was read, names
@@ -831,6 +867,12 @@ export default class RemediationRound {
 
       if (admission.isAsked && !admission.isAdmitted) {
         refuse(RemediationRoundTryAgainRefusal.AlreadyStarted);
+      }
+
+      if (admission.notEnqueuedCode === "daily_budget_exhausted") {
+        refuse(
+          getTokenLimitRefusal(round.subjectKind, admission.notEnqueuedBudget),
+        );
       }
 
       refuse(

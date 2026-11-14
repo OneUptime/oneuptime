@@ -18,6 +18,8 @@ import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../Types/API/HTTPResponse";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
+import { SAMPLE_PROJECT_REFUSALS } from "../../Types/SampleProject/SampleProject";
+import ProjectService from "./ProjectService";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
@@ -145,6 +147,21 @@ export class Service extends ProjectReferencesService<StatusPageDomain> {
     createBy: CreateBy<StatusPageDomain>,
   ): Promise<OnCreate<StatusPageDomain>> {
     await super.onBeforeCreate(createBy);
+
+    /*
+     * A sample project's status page (issue #6808) is never public, so it
+     * takes no custom domain: one would ask for a certificate and answer on
+     * an address of its own.
+     */
+    const sampleProjectId: ObjectID | undefined =
+      createBy.props.tenantId || createBy.data.projectId;
+
+    if (
+      sampleProjectId &&
+      (await ProjectService.isSampleProject(sampleProjectId))
+    ) {
+      throw new BadDataException(SAMPLE_PROJECT_REFUSALS.statusPageDomain);
+    }
 
     /*
      * The domain under either of its names (the two must agree), kept in

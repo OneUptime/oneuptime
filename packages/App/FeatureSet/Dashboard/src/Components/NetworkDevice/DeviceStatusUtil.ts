@@ -7,6 +7,7 @@ import DeviceReachabilityUtil, {
 } from "Common/Utils/NetworkDevice/DeviceReachabilityUtil";
 import { NetworkDeviceMonitoringMethodUtil } from "Common/Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import ObjectID from "Common/Types/ObjectID";
+import MonitoringOff from "Common/Utils/Monitor/MonitoringOff";
 import {
   translateTemplate,
   translationKey,
@@ -203,6 +204,14 @@ export function getStaleTooltip(staleWindowInMinutes: number): string {
  *                    SNMP walk is failing. The device is reachable; its
  *                    interfaces, inventory and health OIDs are not being
  *                    refreshed, which is almost always credentials.
+ *   "Monitoring off" / "Monitor archived"
+ *                  — monitor-backed, and the bound monitor is not checked.
+ *                    Pending: a monitor nothing checks gives no verdict, so
+ *                    the device takes none from it and its site rolls up
+ *                    without it (issue #6965, see
+ *                    NetworkDeviceService.refreshStampedMonitorStatus). It
+ *                    stays Pending until the monitor is turned on again or
+ *                    unarchived.
  *
  * Every surface that prints a device status reads these, so the list, the
  * site's Devices tab and the device Overview hero use one word and one
@@ -239,6 +248,93 @@ export const SNMP_FAILING_QUALIFIER: { text: string; tooltip: string } = {
   tooltip:
     "The device answers ping but its SNMP walk is failing — check its credentials or that SNMP is enabled on the device. Interfaces, inventory and health OIDs are not being refreshed until it succeeds.",
 };
+
+/*
+ * The bound monitor's two switches, which the "Monitoring off" and "Monitor
+ * archived" qualifiers are decided from. Not part of DEVICE_STATUS_SELECT:
+ * the rule does not read them - the server leaves the stamp empty for a
+ * monitor that is not checked - and DeviceStatusUtil.test.ts holds that set
+ * whole. A surface that prints the qualifiers spreads this after monitorId.
+ */
+export const DEVICE_BOUND_MONITOR_SELECT: {
+  monitor: {
+    disableActiveMonitoring: boolean;
+    isArchived: boolean;
+  };
+} = {
+  monitor: {
+    disableActiveMonitoring: true,
+    isArchived: true,
+  },
+};
+
+/** The columns the "Monitoring off" and "Monitor archived" qualifiers are decided from. */
+export interface DeviceBoundMonitorRow extends DeviceBindingRow {
+  monitor?:
+    | {
+        disableActiveMonitoring?: boolean | null | undefined;
+        isArchived?: boolean | null | undefined;
+      }
+    | null
+    | undefined;
+}
+
+export const MONITORING_OFF_QUALIFIER: {
+  text: string;
+  tooltip: string;
+  pendingTooltip: string;
+} = {
+  text: "Monitoring off",
+  tooltip:
+    "Monitoring is turned off for the monitor bound to this device, so nothing checks it: the device has no status, and its site leaves it out. Turn monitoring back on for the monitor to have it report again.",
+  pendingTooltip: translationKey(
+    "Nothing checks this device — monitoring is turned off for the monitor bound to it.",
+  ),
+};
+
+export const MONITOR_ARCHIVED_QUALIFIER: {
+  text: string;
+  tooltip: string;
+  pendingTooltip: string;
+} = {
+  text: "Monitor archived",
+  tooltip:
+    "The monitor bound to this device is archived, so nothing checks it: the device has no status, and its site leaves it out. Unarchive the monitor, or bind another one under the device's Settings.",
+  pendingTooltip: translationKey(
+    "Nothing checks this device — the monitor bound to it is archived.",
+  ),
+};
+
+/**
+ * The qualifier for a monitor-backed device whose bound monitor is not
+ * checked - archived, or its monitoring turned off - or null when it is
+ * checked, nothing is bound, or the device is probe-polled. Archived wins
+ * when both are set: unarchiving is what puts the monitor back, and its
+ * switch only matters after that.
+ *
+ * Read only from the bound monitor's own two columns
+ * (DEVICE_BOUND_MONITOR_SELECT); a row read without them reads as checked,
+ * as MonitoringOff.isMonitored reads a monitor read without them.
+ */
+export function getBoundMonitorNotCheckedQualifier(
+  device: DeviceBoundMonitorRow,
+): { text: string; tooltip: string; pendingTooltip: string } | null {
+  if (
+    !NetworkDeviceMonitoringMethodUtil.isMonitorBacked(
+      device.monitoringMethod,
+    ) ||
+    !device.monitorId ||
+    MonitoringOff.isMonitored(device.monitor)
+  ) {
+    return null;
+  }
+
+  if (device.monitor?.isArchived === true) {
+    return MONITOR_ARCHIVED_QUALIFIER;
+  }
+
+  return MONITORING_OFF_QUALIFIER;
+}
 
 /*
  * The Interfaces column's "not collected" states. Interface counts are

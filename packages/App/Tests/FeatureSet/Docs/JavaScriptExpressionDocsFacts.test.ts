@@ -313,13 +313,13 @@ describe("where the filter is offered", () => {
 
   it("opens the criteria where the monitor's page and the create form have them", () => {
     expect(page).toContain(
-      "open **Configuration → Criteria** and click **Edit Monitoring Criteria**, or use the **Criteria** step of **Create Monitor**",
+      "open **Configuration → Criteria** and click **Edit Criteria**, or use the **Criteria** step of **Create Monitor**",
     );
     expect(
       readRepoFile(
         "App/FeatureSet/Dashboard/src/Pages/Monitor/View/Criteria.tsx",
       ),
-    ).toContain('editButtonText="Edit Monitoring Criteria"');
+    ).toContain('editButtonText="Edit Criteria"');
   });
 });
 

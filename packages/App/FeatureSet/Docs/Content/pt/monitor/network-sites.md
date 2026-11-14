@@ -38,7 +38,7 @@ O status de cada site vem de todos os dispositivos da subárvore dele, avaliados
 
 ## A hierarquia
 
-Os sites formam uma árvore. Cada site tem um **Site Type** e, opcionalmente, um site pai. Os tipos de site são a lista do próprio projeto, em **Rede → Configurações → Tipos de site**, e um projeto novo começa com Account Type, Region, Franchisee, Market e Unit, nessa ordem de cima para baixo, mais Data Center e Other. Os tipos formam uma hierarquia própria (**Parent Site Type**), que decide quais sites podem ser pai de um site. Um tipo marcado como **Is Unit Level** é o nível folha do seu parque, a loja ou a filial individual: os sites dele contêm dispositivos, não outros sites.
+Os sites formam uma árvore. Cada site tem um **Tipo de site** e, opcionalmente, um site pai. Os tipos de site são a lista do próprio projeto, em **Rede → Configurações → Tipos de site**, e um projeto novo começa com Account Type, Region, Franchisee, Market e Unit, nessa ordem de cima para baixo, mais Data Center e Other. Os tipos formam uma hierarquia própria (**Parent Site Type**), que decide quais sites podem ser pai de um site. Um tipo marcado como **Is Unit Level** é o nível folha do seu parque, a loja ou a filial individual: os sites dele contêm dispositivos, não outros sites.
 
 O tipo, o nome, a descrição, o pai e a localização de um site são editados em um só lugar: o cartão **Site Settings** na página **Configurações** do site. A visão geral do site os mostra com um link **Editar nas configurações**, e a lista **Sites** adiciona sites, mas não os edita.
 
@@ -54,7 +54,7 @@ Cada dispositivo se liga a um site. A subárvore de um site é o próprio site m
 Acesse **Rede → Sites** e clique em **Adicionar: Site**.
 
 ### Dizer o que o site é
-Na etapa **Site Details**, escolha o **Site Type** (que tipo de lugar é: uma região, uma loja, um data center) e digite um **Nome**. O **Código do site**, a descrição, o endereço e a latitude e a longitude que posicionam o site no mapa ficam recolhidos em **Mais campos**: preencha agora ou depois. Um código de site é um código curto, como o número de uma loja ou de uma unidade (`1216`); as [regras de nomenclatura](/docs/monitor/network-device-monitor#nomear-dispositivos-pela-sua-convenção-de-nomenclatura) o colocam nos nomes dos dispositivos com `{site.code}`.
+Na etapa **Site Details**, escolha o **Tipo de site** (que tipo de lugar é: uma região, uma loja, um data center) e digite um **Nome**. O **Código do site**, a descrição, o endereço e a latitude e a longitude que posicionam o site no mapa ficam recolhidos em **Mais campos**: preencha agora ou depois. Um código de site é um código curto, como o número de uma loja ou de uma unidade (`1216`); as [regras de nomenclatura](/docs/monitor/network-device-monitor#nomear-dispositivos-pela-sua-convenção-de-nomenclatura) o colocam nos nomes dos dispositivos com `{site.code}`.
 
 ### Posicioná-lo na árvore
 Na etapa **Hierarchy**, escolha o **Parent Site** se o site fica abaixo de outro. Deixe vazio para manter o site no nível mais alto.
@@ -67,7 +67,7 @@ Na página **Sites filhos** de um site, **Adicionar: Site filho** pede só o tip
 
 ### Importar sites de um arquivo CSV
 
-Para trazer um parque inteiro de uma vez, abra o menu no topo da lista **Sites** e clique em **Import from CSV**. O arquivo precisa de uma linha de cabeçalho; as colunas podem vir em qualquer ordem e os nomes delas não diferenciam maiúsculas de minúsculas:
+Para trazer um parque inteiro de uma vez, abra o menu no topo da lista **Sites** e clique em **Importar de CSV**. O arquivo precisa de uma linha de cabeçalho; as colunas podem vir em qualquer ordem e os nomes delas não diferenciam maiúsculas de minúsculas:
 
 ```csv title="sites.csv"
 name,siteType,parentName,address,latitude,longitude
@@ -141,6 +141,7 @@ As duas políticas concordam aqui, e isso importa mais do que parece:
 - Dispositivos que nunca informaram nada nunca votam. Um dispositivo aguardando a primeira sondagem não é prova de uma interrupção, então fica de fora dos dois lados da proporção, e uma região na metade da implantação é avaliada pela metade que respondeu.
 - Um dispositivo consultado pela sonda, o tipo normal, vota com o resultado da última sondagem: acessível por ping ou SNMP, e não há quanto tempo ele teve sucesso pela última vez. Um dispositivo que responde ao ping enquanto o walk SNMP dele falha está acessível e vota assim; o site diz que ele está ativo, e a linha do dispositivo diz **SNMP failing** para que alguém corrija as credenciais.
 - Um dispositivo baseado em monitor, um que passou para a substituição por monitor vinculado na página de Configurações dele, vota com o status do monitor vinculado a ele, porque nada o consulta. Sem nada vinculado, ele nunca informou, então não vota.
+- Um dispositivo baseado em monitor cujo monitor não é verificado, porque o monitoramento dele está desligado ou ele está arquivado, também não vota: o status desse monitor é só o que a última verificação dele viu. O dispositivo fica **Pendente**, com **Monitoramento desligado** ou **Monitor arquivado** ao lado, até que o monitoramento do monitor seja ligado novamente ou ele seja desarquivado.
 
 Um monitor de dispositivo de rede em um dispositivo consultado pela sonda não muda como o dispositivo vota. Um monitor com um critério "interface fora do ar, então Offline" carimbaria Offline em um switch que responde a todo ping, e uma única porta apagada deixaria um site inteiro vermelho enquanto cada linha de dispositivo abaixo dele mostra Up: o site discordaria da lista que ele resume. Para um dispositivo consultado, a sondagem é a fonte da saúde dele; o monitor está lá para abrir incidentes.
 
@@ -185,7 +186,7 @@ Uma média sobre os filhos dá à loja com dois dispositivos o mesmo peso de um 
 
 ## Manutenção programada para sites de rede
 
-Ligue sites a um evento de manutenção programada em **Outros recursos afetados**, na etapa **Recursos afetados** do evento, como faria com um host. A página **Manutenção programada** de um site lista os eventos ligados a ele, e o **Criar Evento de Manutenção Programada** dela abre o formulário com o site já escolhido.
+Ligue sites a um evento de manutenção programada em **Outros recursos afetados**, na etapa **Recursos afetados** do evento, como faria com um host. A página **Manutenção programada** de um site lista os eventos ligados a ele, e o **Criar evento de manutenção** dela abre o formulário com o site já escolhido.
 
 Uma janela em um pai cobre tudo abaixo dele: uma janela em uma região cobre cada mercado e cada unidade dela, incluindo sites criados depois de a janela ser agendada, então uma troca de operadora regional não precisa listar quatrocentas lojas.
 
@@ -214,6 +215,8 @@ O cartão **Alerting** na página **Configurações** de um site tem **Alert Whe
 
 Ele só alerta na mudança: ativá-lo em um site que já não está saudável arma a próxima mudança em vez de alertar sobre o passado. Degraded não é operacional, então um site com a política de porcentagem alerta assim que um dos dispositivos que informam fica fora do ar, como faz um site com a política do pior status; o alerta continua aberto, sem um segundo, enquanto o site passa entre Degraded e Offline, e o título dele indica o status a que o site chegou primeiro.
 
+Quando nada em um site informa mais um status, porque os monitores por trás dos dispositivos dele estão com o monitoramento desligado, estão arquivados ou foram excluídos, o site volta a não ter status em vez de manter o último, e o alerta aberto dele é resolvido com esse motivo como causa. Um dispositivo que volta a informar um problema abre um novo alerta.
+
 ## Solução de problemas
 
 :::details Uma região está sempre vermelha
@@ -225,7 +228,11 @@ Nenhum resumo jamais rodou para o site, então ele não tem linhas na linha do t
 :::
 
 :::details Um dispositivo não conta para o seu site
-Dispositivos arquivados, e dispositivos que ainda não informaram, nunca votam. Um dispositivo baseado em monitor sem monitor vinculado também nunca informou. Confira o status do dispositivo: um dispositivo **Pendente** começa a votar depois da primeira sondagem.
+Dispositivos arquivados, e dispositivos que ainda não informaram, nunca votam. Um dispositivo baseado em monitor sem monitor vinculado também nunca informou. Confira o status do dispositivo: um dispositivo **Pendente** começa a votar depois da primeira sondagem. Um com **Monitoramento desligado** ou **Monitor arquivado** ao lado volta a votar assim que o monitoramento do monitor dele é ligado novamente ou ele é desarquivado.
+:::
+
+:::details Um site não tem mais status
+Nada no site informa um status: os monitores por trás dos dispositivos dele estão com o monitoramento desligado, estão arquivados ou foram excluídos, então o último status do site foi removido e o alerta dele, resolvido. Ligue novamente o monitoramento desses monitores, ou desarquive-os, e o status do site volta a ser calculado a partir dos dispositivos dele.
 :::
 
 :::details O alerta de um site não disparou

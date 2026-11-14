@@ -330,7 +330,7 @@ export default class ProxmoxCluster extends BaseModel {
     canReadOnRelationQuery: true,
     title: "OTel Collector Status",
     description:
-      "Connection status of the OTel Collector agent (connected or disconnected)",
+      "Whether the cluster is being read: connected while it was read in the last 15 minutes, disconnected once it was not (see Agent Last Seen At for whether the agent is still sending)",
     example: "connected",
   })
   @Column({
@@ -426,18 +426,66 @@ export default class ProxmoxCluster extends BaseModel {
       Permission.EditProxmoxCluster,
     ],
   })
+  /*
+   * When the cluster was last READ - a batch that carried what the Proxmox VE
+   * API says about the cluster (its nodes, guests, storage, version or quorum;
+   * or, over the native push, a node's own status) - not when anything at all
+   * last arrived. An agent whose node went down, or whose token was revoked,
+   * keeps sending its own scrape metrics and the per-node collectors of the
+   * nodes still up; none of that refreshes this, so the cluster turns
+   * Disconnected 15 minutes after its last read (markDisconnectedClusters) and
+   * the stale-inventory prune, anchored here, stops with it. agentLastSeenAt
+   * below says whether the agent is still sending (issue #7439).
+   */
   @TableColumn({
     required: false,
     type: TableColumnType.Date,
     canReadOnRelationQuery: true,
     title: "Last Seen At",
-    description: "When metrics were last received from this cluster",
+    description:
+      "When the cluster was last read: when the agent last read its nodes, guests or storage from the Proxmox VE API, or a node last pushed its own status",
   })
   @Column({
     nullable: true,
     type: ColumnType.Date,
   })
   public lastSeenAt?: Date = undefined;
+
+  /*
+   * When the OneUptime Proxmox agent last sent anything for this cluster - its
+   * own scrape metrics included - whether or not it could read the Proxmox VE
+   * API. Fresh while lastSeenAt is stale: the agent is running but cannot read
+   * the cluster, which the Overview says instead of "stopped sending data".
+   * Written by the ingest heartbeat (ProxmoxClusterService.updateAgentLastSeen),
+   * never by a person. NULL until the agent first reports.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadProxmoxCluster,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    canReadOnRelationQuery: true,
+    title: "Agent Last Seen At",
+    description:
+      "When the OneUptime Proxmox agent last sent anything for this cluster, whether or not it could read the Proxmox VE API",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public agentLastSeenAt?: Date = undefined;
 
   @ColumnAccessControl({
     create: [],

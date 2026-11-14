@@ -361,7 +361,7 @@ Conceda **TeamsAppInstallation.ReadForTeam.All** (passo 2) para que o OneUptime 
 
 A instalação é por equipe. Adicionar o OneUptime a uma equipe não faz nada pelas outras, e conectar a integração também não: isso concede acesso de *leitura* ao Graph em todo o locatário, por isso o seletor de canais pode mostrar canais de equipes nas quais o bot não pode publicar. Conclua o **passo 9** em cada equipe em que você quer notificações.
 
-### "Regra de teste" funciona, mas as notificações reais nunca chegam
+### "Testar regra" funciona, mas as notificações reais nunca chegam
 
 Verifique quais destinos a regra realmente tem ativados. Uma regra só exercita aquilo para o que está configurada: com **Criar um canal para cada incidente** ativado, o teste cria um canal e publica nele, o que prova que o bot pode publicar *na equipe em que esse canal foi criado*, e nada sobre qualquer outra equipe. **Configurações do projeto > Notificações > Logs de notificação** registra cada envio de teste, incluindo o erro exato da Microsoft quando um falha.
 

@@ -26,8 +26,7 @@ const ScheduledMaintenanceNoteTemplates: FunctionComponent<
           tableId: "scheduled-maintenance-note-templates-table",
         }}
         cardProps={{
-          title:
-            "Public or Private Note Templates for Scheduled Maintenance Events",
+          title: "Public or Private Note Templates for Maintenance Events",
           description:
             "Ready-made text for maintenance updates. Pick one when writing a public or private note on a scheduled maintenance event, or when changing its state, and edit it before posting.",
         }}

@@ -48,7 +48,7 @@ import { getTemplateNextEventAt } from "../../../Utils/ScheduledMaintenanceTempl
 
 /*
  * A template is an event to schedule again and again, so its form walks the
- * steps of Create Scheduled Maintenance Event - Event, Resources Affected
+ * steps of Create Maintenance Event - Event, Resources Affected
  * (Components/ScheduledMaintenance/ScheduledMaintenanceForm) - with the
  * template's own name and description in front and its recurring schedule
  * at the end. Its view page edits the resources and the owners in cards of
@@ -166,7 +166,7 @@ export const getTemplateFormFields: GetTemplateFormFieldsFunction = (data: {
   ]);
 
   /*
-   * Split as Create Scheduled Maintenance Event is: the monitors on their
+   * Split as Create Maintenance Event is: the monitors on their
    * own, the status they change to right under them, and everything else
    * the events affect below.
    */
@@ -220,7 +220,7 @@ export const getTemplateFormFields: GetTemplateFormFieldsFunction = (data: {
       /*
        * Always asked here, monitors picked or not: a template's status also
        * applies to the monitors picked when an event is scheduled from it -
-       * where Create Scheduled Maintenance Event shows it once the first
+       * where Create Maintenance Event shows it once the first
        * monitor is picked - and to the events a recurring template
        * schedules by itself.
        */
@@ -557,7 +557,7 @@ export const getFormSteps: GetFormStepsFunction = (data: {
       id: "template-info",
     },
     {
-      title: "Event",
+      title: "Maintenance Details",
       id: "event",
     },
     {

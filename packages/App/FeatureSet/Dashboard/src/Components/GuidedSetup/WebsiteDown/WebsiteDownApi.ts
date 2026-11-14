@@ -5,8 +5,17 @@ import {
   WebsiteMonitorSeeds,
   WhoIsToldFacts,
   buildWebsiteMonitor,
+  isMonitorCheckingAddress,
   readFirstCheckAnswers,
 } from "./WebsiteDownSetup";
+import {
+  FirstOnCallPolicyCreate,
+  buildFirstOnCallPolicy,
+} from "Common/Utils/GuidedSetup/OnCallPolicyRecords";
+import {
+  WEBSITE_MONITOR_SEEDS_MISSING,
+  pickWebsiteMonitorSeeds,
+} from "Common/Utils/GuidedSetup/WebsiteMonitorRecords";
 import { mayAddEveryNewEventRules } from "../../OnCallPolicy/UseEveryNewEventRulesOffer";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import AlertOnCallRule from "Common/Models/DatabaseModels/AlertOnCallRule";
@@ -22,10 +31,10 @@ import OnCallDutyPolicyEscalationRule from "Common/Models/DatabaseModels/OnCallD
 import OnCallDutyPolicyEscalationRuleTeam from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRuleTeam";
 import OnCallDutyPolicyEscalationRuleUser from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRuleUser";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
+import Includes from "Common/Types/BaseDatabase/Includes";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { JSONObject } from "Common/Types/JSON";
+import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
-import { PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_KEY } from "Common/Types/OnCallDutyPolicy/EveryNewEventRules";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -60,6 +69,13 @@ export interface WebsiteDownPolicyRecord {
 export const mayCreateMonitor: () => boolean = (): boolean => {
   return PermissionGate.check(new Monitor(), ModelAction.Create).isAllowed;
 };
+
+/*
+ * How many of this person's newest Website and API monitors are read to find
+ * one for an address: the one a lost run made is the newest, and a person
+ * the guided setup is for has a handful.
+ */
+export const OWN_MONITORS_READ_LIMIT: number = 100;
 
 export default class WebsiteDownApi {
   /*
@@ -99,43 +115,18 @@ export default class WebsiteDownApi {
       }),
     ]);
 
-    const operational: MonitorStatus | undefined = statuses.data.find(
-      (status: MonitorStatus): boolean => {
-        return Boolean(status.isOperationalState);
-      },
-    );
-    const offline: MonitorStatus | undefined = statuses.data.find(
-      (status: MonitorStatus): boolean => {
-        return Boolean(status.isOfflineState);
-      },
-    );
-    const incidentSeverity: IncidentSeverity | undefined =
-      incidentSeverities.data.find((severity: IncidentSeverity): boolean => {
-        return !severity.isArchived;
-      });
-    const alertSeverity: AlertSeverity | undefined = alertSeverities.data.find(
-      (severity: AlertSeverity): boolean => {
-        return !severity.isArchived;
-      },
-    );
+    // Picked as Ask AI's set_up_website_monitoring picks them (Common).
+    const seeds: WebsiteMonitorSeeds | null = pickWebsiteMonitorSeeds({
+      statuses: statuses.data,
+      incidentSeverities: incidentSeverities.data,
+      alertSeverities: alertSeverities.data,
+    });
 
-    if (
-      !operational?.id ||
-      !offline?.id ||
-      !incidentSeverity?.id ||
-      !alertSeverity?.id
-    ) {
-      throw new Error(
-        "This project is missing its monitor statuses or severities, so a monitor can't be made here. Create one from Create Monitor instead.",
-      );
+    if (!seeds) {
+      throw new Error(WEBSITE_MONITOR_SEEDS_MISSING);
     }
 
-    return {
-      operationalStatusId: operational.id,
-      offlineStatusId: offline.id,
-      incidentSeverityId: incidentSeverity.id,
-      alertSeverityId: alertSeverity.id,
-    };
+    return seeds;
   }
 
   // Makes the monitor. Returns its id.
@@ -163,6 +154,63 @@ export default class WebsiteDownApi {
     }
 
     return id;
+  }
+
+  /*
+   * The monitor this person already has for an address (#7059): a Website
+   * or API monitor they made that checks it now, the newest first. A run the
+   * browser lost - a private window, another device, storage cleared - finds
+   * the monitor it made here instead of making a second, and so does a
+   * person who starts over with the same address or made one from Create
+   * Monitor. Null when they have none. A read that fails throws, so nothing
+   * is made on a guess.
+   */
+  public static async findOwnMonitor(data: {
+    address: WebsiteAddress;
+    userId: string;
+  }): Promise<WebsiteDownMonitorRecord | null> {
+    if (!data.userId) {
+      return null;
+    }
+
+    const monitors: ListResult<Monitor> = await ModelAPI.getList<Monitor>({
+      modelType: Monitor,
+      query: {
+        createdByUserId: new ObjectID(data.userId),
+        monitorType: new Includes([MonitorType.Website, MonitorType.API]),
+      },
+      limit: OWN_MONITORS_READ_LIMIT,
+      skip: 0,
+      select: {
+        _id: true,
+        name: true,
+        monitorSteps: true,
+        monitoringInterval: true,
+        isArchived: true,
+        disableActiveMonitoring: true,
+      },
+      sort: { createdAt: SortOrder.Descending },
+    });
+
+    const found: Monitor | undefined = monitors.data.find(
+      (monitor: Monitor): boolean => {
+        return (
+          Boolean(monitor.id) &&
+          isMonitorCheckingAddress({ monitor: monitor, address: data.address })
+        );
+      },
+    );
+
+    if (!found?.id) {
+      return null;
+    }
+
+    return {
+      id: found.id.toString(),
+      name: found.name || "",
+      monitorSteps: found.monitorSteps,
+      monitoringInterval: found.monitoringInterval,
+    };
   }
 
   // The run's monitor, or null when it is gone.
@@ -276,20 +324,17 @@ export default class WebsiteDownApi {
     userIds: Array<string>;
     teamIds: Array<string>;
   }): Promise<string> {
-    const policy: OnCallDutyPolicy = new OnCallDutyPolicy();
-    policy.name = WEBSITE_DOWN_POLICY_NAME;
-
-    const miscDataProps: JSONObject = {
-      users: data.userIds,
-      teams: data.teamIds,
-      [PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_KEY]: true,
-    };
+    // Built as Ask AI's set_up_paging builds it (Common).
+    const create: FirstOnCallPolicyCreate = buildFirstOnCallPolicy({
+      userIds: data.userIds,
+      teamIds: data.teamIds,
+    });
 
     const response: HTTPResponse<OnCallDutyPolicy> =
       (await ModelAPI.create<OnCallDutyPolicy>({
-        model: policy,
+        model: create.policy,
         modelType: OnCallDutyPolicy,
-        miscDataProps: miscDataProps,
+        miscDataProps: create.miscDataProps,
       })) as HTTPResponse<OnCallDutyPolicy>;
 
     const id: string | undefined = response.data?.id?.toString();

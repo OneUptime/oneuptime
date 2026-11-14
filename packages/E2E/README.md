@@ -687,3 +687,11 @@ default suite and the enterprise suites use them:
 | `SsoRoutes.ts`        | the identity prefixes, and every unauthenticated SSO probe with the one answer every stack gives |
 | `SsoConfiguration.ts` | a SAML provider configured, offered, started and required end to end, with its assertions        |
 | `ApiSignup.ts`        | a brand new project owner, signed up over the API alone                                          |
+
+## Docs screenshots
+
+`DocsScreens/` is not a test suite: `npm run docs-screens` draws the docs'
+screenshots from the offline fixtures, in every docs language, and
+`npm run docs-screens:check` (the Docs Screenshots workflow on main) says
+which no longer show their page. [DocsScreens/README.md](DocsScreens/README.md)
+has the rest (#6823).

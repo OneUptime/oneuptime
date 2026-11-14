@@ -2,6 +2,9 @@
 
 Een bereikbaarheidsbeleid roept mensen op in niveaus. Elke escalatieregel is één niveau: wie wordt opgeroepen en hoe lang er wordt gewacht tot iemand bevestigt voordat het volgende niveau wordt opgeroepen. De regels van een beleid staan op volgorde op de pagina **Escalatieregels** ervan.
 
+> [!TIP]
+> Nieuw hier? Volg eerst de handleiding: [Opgeroepen worden via telefoon, sms of push](/docs/guides/paging).
+
 ```mermaid title="Een bereikbaarheidsbeleid roept niveau na niveau op tot iemand bevestigt"
 flowchart TB
     trigger["Incident of waarschuwing"] --> level1["Level 1 roept op"]
@@ -29,7 +32,7 @@ flowchart TB
 Wanneer u op de pagina **Bereikbaarheidsbeleid** een bereikbaarheidsbeleid maakt, vraagt het formulier om de **Naam** en **Wie wordt als eerste opgeroepen?**. De vraag gebruikt dezelfde kiezer als **Op de hoogte stellen**: bereikbaarheidsschema's, teams en personen, zoveel als nodig. Wie u kiest, vormt de eerste escalatieregel van het beleid, **Level 1**, die **30 minuten** op een bevestiging wacht voordat het volgende niveau wordt opgeroepen.
 
 :::steps
-1. Ga naar **Bereikbaarheidsdienst** > **Bereikbaarheidsbeleid** en klik op **Bereikbaarheidsbeleid aanmaken**.
+1. Ga naar **Bereikbaarheid** > **Bereikbaarheidsbeleid** en klik op **Bereikbaarheidsbeleid aanmaken**.
 2. Vul een **Naam** in.
 3. Klik onder **Wie wordt als eerste opgeroepen?** op **Ontvanger toevoegen** en kies de bereikbaarheidsschema's, teams en personen die als eerste worden opgeroepen.
 4. Klik op **Bereikbaarheidsbeleid aanmaken**. Het nieuwe beleid opent daarna op de pagina **Escalatieregels** ervan, waar u meer niveaus kunt toevoegen.
@@ -89,7 +92,7 @@ Het overzicht boven aan de pagina **Escalatieregels** toont de hele ladder: wann
 
 ### Hoe iedere persoon wordt bereikt
 
-Iedere persoon die een niveau oproept, wordt bereikt zoals diens eigen bereikbaarheidsregels voorschrijven: **Gebruikersinstellingen** > **Bereikbaarheidsregels**, met een tabblad voor incidenten, incidentepisodes, waarschuwingen en waarschuwingsepisodes, en per ernst een kaart die laat zien welke meldingsmethode na hoeveel tijd wordt geprobeerd. Een projectbeheerder kan de regels van een lid bekijken en wijzigen onder **Gebruikers** > het lid > **Bereikbaarheidsregels**. Zie [Persoonlijke bereikbaarheidsregels](/docs/notifications/on-call-rules).
+Iedere persoon die een niveau oproept, wordt bereikt zoals diens eigen bereikbaarheidsregels voorschrijven: **Gebruikersinstellingen** > **Hoe ik bereikbaar ben**, met een tabblad voor incidenten, incidentepisodes, waarschuwingen en waarschuwingsepisodes, en per ernst een kaart die laat zien welke meldingsmethode na hoeveel tijd wordt geprobeerd. Een projectbeheerder kan de regels van een lid bekijken en wijzigen onder **Gebruikers** > het lid > **Hoe ik bereikbaar ben**. Zie [Hoe ik bereikbaar ben](/docs/notifications/on-call-rules).
 
 ```mermaid title="Wie een niveau oproept en hoe iedere persoon wordt bereikt"
 flowchart TB
@@ -166,14 +169,14 @@ De eigenaren van het project krijgen daar één keer een e-mail over, totdat het
 
 Een oproep die de meldingsdienst van OneUptime niet kon bereiken, zegt `Could not reach the Notification service to send this (ECONNREFUSED).`, met de code van de netwerkfout tussen de haakjes. Een oproep waarvan het verzenden nooit klaar was, bijvoorbeeld omdat een server tijdens het verzenden opnieuw opstartte, zegt `Sending did not finish within 15 minutes, so this notification may not have been sent.` Als het verzenden toch nog klaar is, vervangt het resultaat dat bericht.
 
-Op OneUptime Cloud wordt elke SMS, oproep, WhatsApp- en Telegram-bericht betaald uit het saldo van het project op **Projectinstellingen > Meldingen > Meldingsinstellingen**: de exacte kosten gaan van het saldo af wanneer de provider het bericht aanneemt, hoeveel berichten er ook tegelijk uitgaan.
+Op OneUptime Cloud wordt elke SMS, oproep, WhatsApp- en Telegram-bericht betaald uit het saldo van het project op **Projectinstellingen > Meldingen > Meldingskanalen**: de exacte kosten gaan van het saldo af wanneer de provider het bericht aanneemt, hoeveel berichten er ook tegelijk uitgaan.
 
 - Staat **Automatisch bijvullen** daar aan, dan voegt het bericht dat het saldo onder de drempel aantreft eerst het bedrag toe waarop automatisch bijvullen is ingesteld, en belast daarvoor de kaart van het project; berichten die het saldo op hetzelfde moment laag aantreffen, belasten de kaart één keer.
-- Mislukt die betaling (er is geen betaalmethode of de kaart is geweigerd), dan probeert automatisch bijvullen de kaart een uur later opnieuw, en **Meldingsinstellingen** meldt dat tot dan bovenaan. Handmatig saldo toevoegen, of automatisch bijvullen opnieuw opslaan, probeert het meteen.
+- Mislukt die betaling (er is geen betaalmethode of de kaart is geweigerd), dan probeert automatisch bijvullen de kaart een uur later opnieuw, en **Meldingskanalen** meldt dat tot dan bovenaan. Handmatig saldo toevoegen, of automatisch bijvullen opnieuw opslaan, probeert het meteen.
 - Oproepen blijven uitgaan op het resterende saldo zolang automatisch bijvullen de kaart niet kan belasten.
 
 > [!IMPORTANT]
-> SMS, telefoonoproepen, WhatsApp en Telegram staan uit in een nieuw project: op OneUptime Cloud wordt elk bericht betaald uit het saldo van het project, en een zelfgehoste installatie heeft eerst een Twilio-account, een sms- en belgateway of een ingestelde Telegram-bot nodig. Zolang een kanaal uit staat, kan niemand in het project er een methode op toevoegen. Alleen een projecteigenaar of iemand met de rol **Factureringsbeheerder** of de machtiging **Manage Billing** kan er een aanzetten, in de kaart **Meldingskanalen** onder **Projectinstellingen > Meldingen > Meldingsinstellingen** — een projectbeheerder kan dat niet. Alle anderen krijgen overal waar een kanaal uit staat precies te horen wie het kan aanzetten: boven hun eigen lijst met methoden op dat kanaal, op hun installatiechecklist en in het bericht dat ze krijgen wanneer iets het kanaal nodig heeft.
+> SMS, telefoonoproepen, WhatsApp en Telegram staan uit in een nieuw project: op OneUptime Cloud wordt elk bericht betaald uit het saldo van het project, en een zelfgehoste installatie heeft eerst een Twilio-account, een sms- en belgateway of een ingestelde Telegram-bot nodig. Zolang een kanaal uit staat, kan niemand in het project er een methode op toevoegen. Alleen een projecteigenaar of iemand met de rol **Factureringsbeheerder** of de machtiging **Manage Billing** kan er een aanzetten, in de kaart **Meldingskanalen** onder **Projectinstellingen > Meldingen > Meldingskanalen** — een projectbeheerder kan dat niet. Alle anderen krijgen overal waar een kanaal uit staat precies te horen wie het kan aanzetten: boven hun eigen lijst met methoden op dat kanaal, op hun installatiechecklist en in het bericht dat ze krijgen wanneer iets het kanaal nodig heeft.
 
 ## Escaleren naar de volgende persoon in de rotatie
 

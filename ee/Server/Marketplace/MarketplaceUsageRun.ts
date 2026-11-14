@@ -4,6 +4,7 @@ import Semaphore, {
   SemaphoreMutex,
 } from "Common/Server/Infrastructure/Semaphore";
 import UserService from "Common/Server/Services/UserService";
+import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import logger from "Common/Server/Utils/Logger";
 import SelfHostedMarketplaceConfig, {
   SelfHostedMarketplaceConfigResult,
@@ -131,7 +132,10 @@ export const getDefaultMarketplaceUsageRunDependencies: () => MarketplaceUsageRu
       // Every user on this installation: a seat is consumed by a person existing here.
       countUsers: async (): Promise<number> => {
         const count: PositiveNumber = await UserService.countBy({
-          query: {},
+          // Real people only: a sample person (issue #6808) is never billed.
+          query: {
+            sampleProjectId: QueryHelper.isNull(),
+          },
           props: {
             isRoot: true,
           },

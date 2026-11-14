@@ -71,7 +71,7 @@ function pagePath(page: string): string {
 }
 
 function expectOnCallSelected(width: number): void {
-  expect(screen.getByText("On-Call Duty", { exact: true })).toBeVisible();
+  expect(screen.getByText("On-Call", { exact: true })).toBeVisible();
   expect(
     screen.queryByText("Products", { exact: true }),
   ).not.toBeInTheDocument();
@@ -80,7 +80,7 @@ function expectOnCallSelected(width: number): void {
     expect(screen.getByTestId("mobile-nav-toggle")).toBeVisible();
     expect(screen.queryByText("Home", { exact: true })).not.toBeInTheDocument();
   } else {
-    expect(screen.getByRole("button", { name: "On-Call Duty" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "On-Call" })).toBeVisible();
     expect(screen.getByRole("link", { name: "Home" })).toBeVisible();
   }
 }
@@ -121,7 +121,7 @@ describe.each([
       setViewportWidth(width);
     });
 
-    test.each(ON_CALL_PAGES)("selects On-Call Duty on %s", (page: string) => {
+    test.each(ON_CALL_PAGES)("selects On-Call on %s", (page: string) => {
       goTo(pagePath(page));
       render(navbar());
 
@@ -129,7 +129,7 @@ describe.each([
     });
 
     test.each(["", "/", "/schedules/", `/schedules/${MODEL_ID}/layers/`])(
-      "selects On-Call Duty on the section root or trailing slash: %s",
+      "selects On-Call on the section root or trailing slash: %s",
       (suffix: string) => {
         goTo(`/dashboard/${PROJECT_ID}/on-call-duty${suffix}`);
         render(navbar());
@@ -152,14 +152,14 @@ describe.each([
         goTo(`/dashboard/${PROJECT_ID}/${suffix}`);
         render(navbar());
 
-        expect(screen.queryByText("On-Call Duty")).not.toBeInTheDocument();
+        expect(screen.queryByText("On-Call")).not.toBeInTheDocument();
         expect(screen.getByText(title, { exact: true })).toBeVisible();
       },
     );
 
     test("updates when navigating into and out of schedules", () => {
       const { rerender } = render(navbar());
-      expect(screen.queryByText("On-Call Duty")).not.toBeInTheDocument();
+      expect(screen.queryByText("On-Call")).not.toBeInTheDocument();
 
       goTo(pagePath(PageMap.ON_CALL_DUTY_SCHEDULE_VIEW));
       rerender(navbar());
@@ -168,7 +168,7 @@ describe.each([
       goTo(`/dashboard/${PROJECT_ID}/monitors`);
       rerender(navbar());
       expect(screen.getByText("Monitors", { exact: true })).toBeVisible();
-      expect(screen.queryByText("On-Call Duty")).not.toBeInTheDocument();
+      expect(screen.queryByText("On-Call")).not.toBeInTheDocument();
     });
 
     test("keeps the selection when switching projects and languages", async () => {
@@ -184,7 +184,7 @@ describe.each([
         await translation.changeLanguage("fr");
       });
       expect(screen.getByText("Astreinte", { exact: true })).toBeVisible();
-      expect(screen.queryByText("On-Call Duty")).not.toBeInTheDocument();
+      expect(screen.queryByText("On-Call")).not.toBeInTheDocument();
     });
   },
 );
@@ -195,15 +195,15 @@ test("the selected product still opens the menu and links to this project's poli
   jest.spyOn(Navigation, "navigate").mockImplementation((): void => {});
   render(navbar());
 
-  fireEvent.click(screen.getByRole("button", { name: "On-Call Duty" }));
+  fireEvent.click(screen.getByRole("button", { name: "On-Call" }));
   const menu: HTMLElement = screen.getByRole("dialog", {
     name: "Products menu",
   });
   expect(
     within(menu).getByRole("option", { selected: true }),
-  ).toHaveTextContent("On-Call Duty");
+  ).toHaveTextContent("On-Call");
   const link: HTMLElement = within(menu).getByRole("link", {
-    name: /On-Call Duty/,
+    name: /^On-Call\b/,
   });
   const landingPath: string = `/dashboard/${OTHER_PROJECT_ID}/on-call-duty/policies`;
   expect(link).toHaveAttribute("href", landingPath);

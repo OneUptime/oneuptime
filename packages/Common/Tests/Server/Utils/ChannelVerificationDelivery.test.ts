@@ -491,12 +491,21 @@ describe("getSendFailureReason", () => {
 
   it("never 'Server Error' or nothing: a failure it cannot explain says to try again", () => {
     const retry: string =
-      "Something went wrong while sending it. Please try again in a moment.";
+      "The message service did not say why. Try again in a moment.";
 
     expect(
       ChannelVerification.getSendFailureReason(
         new HTTPErrorResponse(500, { error: "Server Error" }, {}),
       ),
+    ).toBe(retry);
+    // Every empty phrase, not only "Server Error" (#6836).
+    expect(
+      ChannelVerification.getSendFailureReason(
+        new HTTPErrorResponse(500, { error: "Internal Server Error" }, {}),
+      ),
+    ).toBe(retry);
+    expect(
+      ChannelVerification.getSendFailureReason(new Error("Bad request.")),
     ).toBe(retry);
     expect(ChannelVerification.getSendFailureReason(new Error(""))).toBe(retry);
     expect(ChannelVerification.getSendFailureReason(undefined)).toBe(retry);

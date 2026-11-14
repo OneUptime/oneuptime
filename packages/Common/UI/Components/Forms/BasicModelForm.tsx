@@ -53,6 +53,8 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   cancelButtonText?: undefined | string;
   maxPrimaryButtonWidth?: undefined | boolean;
   error: string | null;
+  // What the form was doing, for an error nobody explained (BasicForm).
+  whatFailed?: string | undefined;
   hideSubmitButton?: undefined | boolean;
   formRef?: undefined | MutableRefObject<FormProps<FormValues<TBaseModel>>>;
   initialValues?: FormValues<TBaseModel> | undefined;
@@ -149,6 +151,7 @@ const BasicModelForm: <TBaseModel extends BaseModel>(
       cancelButtonText={props.cancelButtonText}
       maxPrimaryButtonWidth={props.maxPrimaryButtonWidth || false}
       error={props.error}
+      whatFailed={props.whatFailed}
       onIsLastFormStep={props.onIsLastFormStep}
       hideSubmitButton={props.hideSubmitButton}
       ref={props.formRef}

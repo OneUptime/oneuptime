@@ -5,12 +5,16 @@ import NetworkPathTrace, {
 import { NetworkTopologyNode } from "Common/Types/Monitor/SnmpMonitor/NetworkTopology";
 import { NetworkDeviceDiagnosticPingResult } from "Common/Types/NetworkDevice/NetworkDeviceDiagnosticResult";
 import NetworkDeviceDiagnosticType from "Common/Types/NetworkDevice/NetworkDeviceDiagnosticType";
+import { formatReaderFigure } from "Common/Types/DateLanguage";
 import { NETWORK_DEVICE_METRIC_DESCRIPTIONS } from "../MetricDescriptions/NetworkDeviceMetricDescriptions";
 import {
+  Translator,
+  composedValue,
   translatePlural,
   translateTemplate,
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
+import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
 
 /*
  * The pure half of the on-demand device diagnostics (issue #3745): the
@@ -80,24 +84,31 @@ export interface PingResultSummary {
   rows: Array<DiagnosticRow>;
 }
 
+/*
+ * A round trip in the reader's digits ("12.4 ms", "۱۲٫۴ ms" in Persian), as
+ * the rest of the device's figures are; English reads as it always has.
+ */
 export function formatMilliseconds(value: number | undefined): string {
   if (value === undefined || value === null || Number.isNaN(value)) {
     return "—";
   }
 
-  return `${value.toFixed(1)} ms`;
+  return `${formatReaderFigure(value, { decimals: 1 })} ms`;
 }
 
 /*
  * "0%" rather than "0.0%": packet loss out of five packets is a whole
  * number in practice, and a decimal there reads like false precision.
  */
-export function formatPercent(value: number): string {
-  if (Number.isInteger(value)) {
-    return `${value}%`;
-  }
-
-  return `${value.toFixed(1)}%`;
+export function formatPercent(
+  value: number,
+  language?: string | undefined,
+): string {
+  return formatReaderFigure(value, {
+    decimals: Number.isInteger(value) ? 0 : 1,
+    isPercent: true,
+    language: language,
+  });
 }
 
 export function describePingResult(
@@ -131,6 +142,8 @@ export function describePingResult(
   }
 
   const loss: number = result.pingResponse.packetLossPercent;
+  const packetsReceived: number = result.pingResponse.packetsReceived;
+  const packetsSent: number = result.pingResponse.packetsSent;
   const isDown: boolean = !result.isOnline || loss >= 100;
 
   let headline: string = translationKey("Reachable");
@@ -168,9 +181,20 @@ export function describePingResult(
   rows.push({
     label: "Packet loss",
     value: translateTemplate("{{percent}} ({{received}}/{{sent}} received)", {
-      percent: formatPercent(loss),
-      received: result.pingResponse.packetsReceived,
-      sent: result.pingResponse.packetsSent,
+      /*
+       * The share and the pair in the sentence's digits (issue #7107):
+       * "۴۰٪ (۳/۵ دریافت‌شده)" in Persian, English digits in a sentence
+       * the reader's language has not worded yet.
+       */
+      percent: composedValue((sentence: Translator): string => {
+        return formatPercent(loss, sentence.language);
+      }),
+      received: composedValue((sentence: Translator): string => {
+        return sentence.formatNumber(packetsReceived);
+      }),
+      sent: composedValue((sentence: Translator): string => {
+        return sentence.formatNumber(packetsSent);
+      }),
     }),
     description: NETWORK_DEVICE_METRIC_DESCRIPTIONS.pingPacketLoss,
   });
@@ -228,7 +252,7 @@ export function describeTraceRoute(trace: NetworkPathTrace): TraceRouteSummary {
       : trace.dnsLookup.errorMessage
         ? translateTemplate("Lookup for {{host}} failed — {{error}}", {
             host: trace.dnsLookup.hostName,
-            error: trace.dnsLookup.errorMessage,
+            error: errorInSentence(trace.dnsLookup.errorMessage),
           })
         : translateTemplate("Lookup for {{host}} failed", {
             host: trace.dnsLookup.hostName,

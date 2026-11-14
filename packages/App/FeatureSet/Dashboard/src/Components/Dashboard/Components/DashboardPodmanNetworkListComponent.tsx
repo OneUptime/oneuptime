@@ -30,6 +30,7 @@ import Query from "Common/Types/BaseDatabase/Query";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import ProjectUtil from "Common/UI/Utils/Project";
+import { getUnnamedText } from "./DashboardWidgetFallbackWords";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardPodmanNetworkListComponent;
@@ -149,7 +150,7 @@ const DashboardPodmanNetworkListComponentElement: FunctionComponent<
   const honeycombTiles: Array<HoneycombTile> = networks.map(
     (n: PodmanResource): HoneycombTile => {
       const id: string = (n._id as string) || "";
-      const name: string = (n.name as string) || "Unnamed";
+      const name: string = (n.name as string) || getUnnamedText();
       const driverScope: string = (n.state as string) || "—";
       const hostName: string = (n.podmanHost?.name as string) || "—";
 
@@ -170,7 +171,7 @@ const DashboardPodmanNetworkListComponentElement: FunctionComponent<
 
   const rows: Array<ReactElement> = networks.map((n: PodmanResource) => {
     const id: string = (n._id as string) || "";
-    const name: string = (n.name as string) || "Unnamed";
+    const name: string = (n.name as string) || getUnnamedText();
     const driverScope: string = (n.state as string) || "—";
     const hostName: string = (n.podmanHost?.name as string) || "—";
 
@@ -198,7 +199,10 @@ const DashboardPodmanNetworkListComponentElement: FunctionComponent<
   return (
     <DashboardResourceListBase
       title={args.title}
-      pluralLabel="networks"
+      countLabel={{
+        one: "{{count}} network",
+        other: "{{count}} networks",
+      }}
       columns={COLUMNS}
       count={networks.length}
       isLoading={isLoading}

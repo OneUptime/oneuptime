@@ -45,7 +45,7 @@ describe("the rule editor", () => {
     expect(source).toContain("{isRuleMonitorType ? ( <TelemetryRuleEditor");
     // The full editor is the rule editor's fallback, and every other type's.
     expect(source).toContain("customCriteria={criteriaElement}");
-    expect(source).toContain('title="Monitor Criteria"');
+    expect(source).toContain('title="Criteria"');
   });
 
   test("the four types are the ones TelemetryAlertRule reads", () => {

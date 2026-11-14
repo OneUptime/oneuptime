@@ -2,6 +2,9 @@
 
 La guardia es la forma en que OneUptime pone a una persona ante un problema, a cualquier hora. Cuando un incidente, una alerta o un episodio necesita a alguien, sus políticas de guardia avisan a personas nivel a nivel hasta que alguien lo reconoce, y cada persona recibe el aviso como eligió: una notificación push, un SMS, una llamada, un correo o un mensaje de chat. Esta página muestra cómo encajan las piezas y dónde está cada una. El [Glosario](/docs/introduction/glossary#política-de-guardia) explica en una o dos frases cada palabra que se usa en las guardias.
 
+> [!TIP]
+> ¿Eres nuevo? Sigue primero la guía: [Recibir avisos por llamada, SMS o push](/docs/guides/paging).
+
 :::cards
 - [Cómo llega un aviso a alguien](#cómo-llega-un-aviso-a-alguien): De un incidente nuevo a la persona que responde.
 - [Las piezas](#las-piezas): Políticas, reglas de escalado, programaciones, sustituciones y reglas personales.
@@ -45,7 +48,7 @@ Las palabras que se usan en todo OneUptime están en el [Glosario](/docs/introdu
 | Regla de escalado | Un nivel de una política: a quién avisa y cuánto espera a que alguien reconozca | [Reglas de escalado](/docs/on-call/escalation-rules) |
 | Programación de guardia | Quién está de guardia en cada momento, por turnos | [Programaciones de guardia](/docs/on-call/schedules) |
 | Sustitución de usuario | Quién cubre a alguien mientras está ausente | [Sustituciones de usuarios](/docs/on-call/user-overrides) |
-| Reglas de guardia personales | Cómo se llega a una persona: por qué método y al cabo de cuánto tiempo | [Reglas de guardia personales](/docs/notifications/on-call-rules) |
+| Cómo contactarme | Cómo se llega a una persona: por qué método y al cabo de cuánto tiempo | [Cómo contactarme](/docs/notifications/on-call-rules) |
 | Política de llamadas entrantes | Un número de teléfono que hace sonar a quien está de guardia | [Política de llamadas entrantes](/docs/on-call/incoming-call-policy) |
 
 Las políticas, las reglas de escalado, las programaciones y las sustituciones pertenecen al proyecto, en **Guardia**. Los métodos de notificación y las reglas de guardia personales pertenecen a cada persona, en **Ajustes de usuario**: un administrador puede ver la configuración de alguien, pero solo esa persona puede verificar su teléfono o su correo. Consulta [Cómo te contacta OneUptime](/docs/notifications/index).

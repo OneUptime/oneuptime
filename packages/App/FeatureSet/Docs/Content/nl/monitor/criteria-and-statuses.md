@@ -1,4 +1,4 @@
-# Monitorcriteria en statussen
+# Criteria en statussen
 
 De criteria van een monitor bepalen wat elke controle betekent: of de monitor bereikbaar is of uitgevallen, en of OneUptime een incident meldt of een waarschuwing maakt. Statussen zijn de lijst van uw project met wat een monitor kan zijn, van **Operationeel** tot **Offline**. Deze pagina legt beide uit voor elk monitortype; de eigen pagina van elk type noemt de filters die het biedt.
 
@@ -111,7 +111,7 @@ Geheimen en persoonsgegevens worden gemaskeerd voordat er iets wordt bewaard: he
 :::steps
 ### De criteriapagina openen
 
-Ga naar **Monitoren** en open de monitor. Klap **Configuratie** uit in het zijmenu en klik op **Criteria**. De kaart **Bewakingscriteria** toont elk criterium, wat het controleert en wat het doet.
+Ga naar **Monitoren** en open de monitor. Klap **Configuratie** uit in het zijmenu en klik op **Criteria**. De kaart **Criteria** toont elk criterium, wat het controleert en wat het doet.
 
 ### Op Bewakingscriteria bewerken klikken
 

@@ -8,11 +8,14 @@ import OnCallReadinessService, {
 import ProjectMilestoneService, {
   ReachedMilestone,
 } from "./ProjectMilestoneService";
+import ProjectProductsService from "./ProjectProductsService";
 import ProjectService from "./ProjectService";
+import SampleProjectService from "./SampleProjectService";
 import StatusPageService from "./StatusPageService";
 import TeamMemberService from "./TeamMemberService";
 import ToolImportRunService from "./ToolImportRunService";
 import { IsBillingEnabled } from "../EnvironmentConfig";
+import ServerProducts from "../Utils/ServerProducts/ServerProducts";
 import logger from "../Utils/Logger";
 import CallerPermission from "../Utils/Permission/CallerPermission";
 import ServerSendingStatus from "../Utils/ServerSending/ServerSendingStatus";
@@ -28,7 +31,6 @@ import SubscriptionPlan, {
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotFoundException from "../../Types/Exception/NotFoundException";
-import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import ToolImportRunStatus from "../../Types/ToolImport/ToolImportRunStatus";
@@ -64,6 +66,7 @@ import {
   withWelcomeChecklistFinished,
   withWelcomeChecklistHiddenFor,
 } from "../../Types/WelcomeChecklist/WelcomeChecklistState";
+import { EntityManager } from "typeorm";
 
 /*
  * THE WELCOME CHECKLIST ON HOME, ON THE SERVER (issue #6803).
@@ -88,10 +91,16 @@ import {
  *   - whether the server can send email, for a master admin of a
  *     self-hosted server.
  *
- * Writes go straight to the project's row (writeState / writeGoals), not
- * through ProjectService's update: they are the server's own bookkeeping,
- * and would otherwise run the project's update hooks and fill its audit log
- * every time Home ticks a step.
+ * Writes go straight to the project's row (changeState), not through
+ * ProjectService's update: they are the server's own bookkeeping, and would
+ * otherwise run the project's update hooks and fill its audit log every
+ * time Home ticks a step.
+ *
+ * Every write changes the state as it stands when it is written, never as
+ * it was read a moment before (#7043): the row is read and locked, the
+ * change applied, and the row written, in one transaction. So two writers
+ * keep both their changes - two people acknowledging one policy's test at
+ * once, or Home finishing the checklist while somebody acknowledges one.
  */
 
 // Who may choose the project's goals: the people who set it up.
@@ -158,6 +167,18 @@ export default class WelcomeChecklistService {
     };
 
     /*
+     * A sample project (issue #6808) has no checklist: it was made set up,
+     * with made-up records, and nothing done in it is a step of anyone's
+     * own setup. Home shows no Welcome card there, and the goal question
+     * is never asked.
+     */
+    if (await ProjectService.isSampleProject(caller.projectId)) {
+      answer.canChooseGoals = false;
+      answer.isFinished = true;
+      return answer;
+    }
+
+    /*
      * An invited member gets no steps: the owner's checklist is not theirs.
      * Home draws their own first hour (#6807) - can OneUptime reach me,
      * when am I on call - from their personal checklist and their shifts,
@@ -208,6 +229,8 @@ export default class WelcomeChecklistService {
 
     const checklist: WelcomeChecklist = buildWelcomeChecklist({
       goals: row.goals,
+      // A step of a product switched off on the server is left out (#6815).
+      offProducts: await ServerProducts.getOffProducts(),
       facts: {
         reached: reached,
         hasRuleThatPagesSomeone: hasRuleThatPagesSomeone,
@@ -219,6 +242,12 @@ export default class WelcomeChecklistService {
     });
 
     answer.canSendEmail = serverCanSendEmail;
+    /*
+     * Whether the card may offer a sample project (#6808): to someone who
+     * set the project up, on a server that lets them make projects.
+     */
+    answer.canExploreSampleProject =
+      isSetUpCaller && (await this.canExploreSampleProject(caller));
     answer.steps = checklist.steps;
     answer.doneCount = checklist.doneCount;
     answer.totalCount = checklist.totalCount;
@@ -229,13 +258,15 @@ export default class WelcomeChecklistService {
        * answer still carries the steps, all done, so the browser that sees
        * the last one tick off sends home/checklist_finished.
        */
-      await this.writeState(
+      await this.changeState(
         caller.projectId,
-        withWelcomeChecklistFinished(
-          state,
-          WelcomeChecklistFinishedBy.Outcomes,
-          OneUptimeDate.getCurrentDate(),
-        ),
+        (current: WelcomeChecklistState): WelcomeChecklistState => {
+          return withWelcomeChecklistFinished(
+            current,
+            WelcomeChecklistFinishedBy.Outcomes,
+            OneUptimeDate.getCurrentDate(),
+          );
+        },
       );
 
       answer.isFinished = true;
@@ -250,6 +281,27 @@ export default class WelcomeChecklistService {
     });
 
     return answer;
+  }
+
+  /*
+   * Whether this server lets the caller make a sample project (#6808). The
+   * card offers none when that cannot be told: the offer is a help, and
+   * the route that makes one asks again.
+   */
+  private static async canExploreSampleProject(
+    caller: WelcomeChecklistCaller,
+  ): Promise<boolean> {
+    try {
+      return await SampleProjectService.canCreateFor({
+        isMasterAdmin: Boolean(caller.props.isMasterAdmin),
+      });
+    } catch (err) {
+      logger.debug(
+        `Could not tell whether a sample project may be made for project ${caller.projectId.toString()}; it is not offered.`,
+      );
+      logger.debug(err);
+      return false;
+    }
   }
 
   /*
@@ -278,12 +330,26 @@ export default class WelcomeChecklistService {
       );
     }
 
-    const row: ProjectChecklistRow = await this.readProject(caller.projectId);
+    await this.changeState(
+      caller.projectId,
+      (current: WelcomeChecklistState): WelcomeChecklistState => {
+        return {
+          ...current,
+          goalsChosenAt: OneUptimeDate.getCurrentDate().toISOString(),
+          goalsChosenByUserId: caller.userId.toString(),
+        };
+      },
+      { goals: chosen },
+    );
 
-    await this.writeGoalsAndState(caller.projectId, chosen, {
-      ...row.state,
-      goalsChosenAt: OneUptimeDate.getCurrentDate().toISOString(),
-      goalsChosenByUserId: caller.userId.toString(),
+    /*
+     * The products the goals need (#6814): Essentials and what the goals
+     * name are shown, the rest move under More products - unless a member
+     * already chose the project's products. Never throws.
+     */
+    await ProjectProductsService.applyGoals({
+      projectId: caller.projectId,
+      goals: chosen,
     });
 
     return chosen;
@@ -294,38 +360,41 @@ export default class WelcomeChecklistService {
     caller: WelcomeChecklistCaller,
     isHidden: boolean,
   ): Promise<void> {
-    const row: ProjectChecklistRow = await this.readProject(caller.projectId);
-
-    await this.writeState(
+    await this.changeState(
       caller.projectId,
-      withWelcomeChecklistHiddenFor(
-        row.state,
-        caller.userId.toString(),
-        isHidden,
-      ),
+      (current: WelcomeChecklistState): WelcomeChecklistState => {
+        return withWelcomeChecklistHiddenFor(
+          current,
+          caller.userId.toString(),
+          isHidden,
+        );
+      },
     );
   }
 
   /*
    * Notes that a member acknowledged a test page in this project: a page
-   * reached them, and their first hour on Home is done (#6807). Written
-   * once per member - later acknowledgements read the row and stop.
+   * reached them, and their first hour on Home is done (#6807). Every
+   * person who acknowledges one is noted - each who answers a policy's
+   * test, not only the first (#7043) - and once: a later acknowledgement
+   * reads the row and stops, without taking its lock.
    */
   public static async noteTestPageAcknowledged(data: {
     projectId: ObjectID;
     userId: ObjectID;
   }): Promise<void> {
     const row: ProjectChecklistRow = await this.readProject(data.projectId);
-    const next: WelcomeChecklistState = withTestPageAcknowledgedBy(
-      row.state,
-      data.userId.toString(),
-    );
 
-    if (next === row.state) {
+    if (hasAcknowledgedTestPage(row.state, data.userId.toString())) {
       return;
     }
 
-    await this.writeState(data.projectId, next);
+    await this.changeState(
+      data.projectId,
+      (current: WelcomeChecklistState): WelcomeChecklistState => {
+        return withTestPageAcknowledgedBy(current, data.userId.toString());
+      },
+    );
   }
 
   /*
@@ -355,30 +424,37 @@ export default class WelcomeChecklistService {
       return;
     }
 
-    const row: ProjectChecklistRow = await this.readProject(caller.projectId);
-    let state: WelcomeChecklistState = row.state;
-
-    if (data.wasDismissed) {
-      state = withWelcomeChecklistHiddenFor(
-        state,
-        caller.userId.toString(),
-        true,
-      );
-    }
-
     /*
      * Finished is the whole project's, so only someone who set it up may
      * say so: anybody else's browser only hides the card for them.
      */
-    if (data.wasFinished && this.isSetUpCaller(caller.props)) {
-      state = withWelcomeChecklistFinished(
-        state,
-        WelcomeChecklistFinishedBy.Browser,
-        OneUptimeDate.getCurrentDate(),
-      );
-    }
+    const finishes: boolean =
+      data.wasFinished && this.isSetUpCaller(caller.props);
 
-    await this.writeState(caller.projectId, state);
+    await this.changeState(
+      caller.projectId,
+      (current: WelcomeChecklistState): WelcomeChecklistState => {
+        let state: WelcomeChecklistState = current;
+
+        if (data.wasDismissed) {
+          state = withWelcomeChecklistHiddenFor(
+            state,
+            caller.userId.toString(),
+            true,
+          );
+        }
+
+        if (finishes) {
+          state = withWelcomeChecklistFinished(
+            state,
+            WelcomeChecklistFinishedBy.Browser,
+            OneUptimeDate.getCurrentDate(),
+          );
+        }
+
+        return state;
+      },
+    );
   }
 
   // The plan's name a project row holds, or the plan its plan id names.
@@ -582,22 +658,29 @@ export default class WelcomeChecklistService {
     }
 
     const now: Date = OneUptimeDate.getCurrentDate();
-    let next: WelcomeChecklistState = {
-      ...state,
-      legacyCheckedAt: now.toISOString(),
-    };
 
-    if (isLegacyChecklistComplete(counts)) {
-      next = withWelcomeChecklistFinished(
-        next,
-        WelcomeChecklistFinishedBy.Legacy,
-        now,
-      );
-    }
+    return await this.changeState(
+      projectId,
+      (current: WelcomeChecklistState): WelcomeChecklistState => {
+        // Looked at by somebody else meanwhile: theirs stands.
+        if (!needsLegacyCheck(current)) {
+          return current;
+        }
 
-    await this.writeState(projectId, next);
+        const next: WelcomeChecklistState = {
+          ...current,
+          legacyCheckedAt: now.toISOString(),
+        };
 
-    return next;
+        return isLegacyChecklistComplete(counts)
+          ? withWelcomeChecklistFinished(
+              next,
+              WelcomeChecklistFinishedBy.Legacy,
+              now,
+            )
+          : next;
+      },
+    );
   }
 
   public static async readLegacyCounts(
@@ -628,30 +711,61 @@ export default class WelcomeChecklistService {
     };
   }
 
-  private static async writeState(
+  /*
+   * CHANGES THE PROJECT'S CHECKLIST STATE AS IT STANDS NOW (#7043): in one
+   * transaction, the row is read and locked (FOR UPDATE), `change` is given
+   * the state it holds, and what it returns is written - with the goals,
+   * when they are chosen. A writer that comes meanwhile waits for the lock,
+   * then reads the state with this change in it, so no change is lost. A
+   * change that leaves the state as it was writes nothing. Returns the state
+   * as it now stands.
+   */
+  private static async changeState(
     projectId: ObjectID,
-    state: WelcomeChecklistState,
-  ): Promise<void> {
-    const json: JSONObject = toWelcomeChecklistStateJSON(state);
+    change: (state: WelcomeChecklistState) => WelcomeChecklistState,
+    options?: { goals?: Array<ProjectGoal> | undefined } | undefined,
+  ): Promise<WelcomeChecklistState> {
+    return await ProjectService.getRepository().manager.transaction(
+      async (manager: EntityManager): Promise<WelcomeChecklistState> => {
+        const rows: Array<{ welcomeChecklistState?: unknown }> =
+          await manager.query(
+            `SELECT "welcomeChecklistState" FROM "Project" WHERE "_id" = $1 AND "deletedAt" IS NULL FOR UPDATE`,
+            [projectId.toString()],
+          );
 
-    await ProjectService.getRepository().manager.query(
-      `UPDATE "Project" SET "welcomeChecklistState" = $1 WHERE "_id" = $2`,
-      [JSON.stringify(json), projectId.toString()],
-    );
-  }
+        if (!rows || rows.length === 0) {
+          throw new NotFoundException("Project not found.");
+        }
 
-  private static async writeGoalsAndState(
-    projectId: ObjectID,
-    goals: Array<ProjectGoal>,
-    state: WelcomeChecklistState,
-  ): Promise<void> {
-    await ProjectService.getRepository().manager.query(
-      `UPDATE "Project" SET "goals" = $1, "welcomeChecklistState" = $2 WHERE "_id" = $3`,
-      [
-        JSON.stringify(goals),
-        JSON.stringify(toWelcomeChecklistStateJSON(state)),
-        projectId.toString(),
-      ],
+        const current: WelcomeChecklistState = parseWelcomeChecklistState(
+          rows[0]!.welcomeChecklistState,
+        );
+        const next: WelcomeChecklistState = change(current);
+        const json: string = JSON.stringify(toWelcomeChecklistStateJSON(next));
+
+        if (options?.goals) {
+          await manager.query(
+            `UPDATE "Project" SET "goals" = $1, "welcomeChecklistState" = $2 WHERE "_id" = $3`,
+            [JSON.stringify(options.goals), json, projectId.toString()],
+          );
+
+          return next;
+        }
+
+        if (
+          next === current ||
+          json === JSON.stringify(toWelcomeChecklistStateJSON(current))
+        ) {
+          return current;
+        }
+
+        await manager.query(
+          `UPDATE "Project" SET "welcomeChecklistState" = $1 WHERE "_id" = $2`,
+          [json, projectId.toString()],
+        );
+
+        return next;
+      },
     );
   }
 }

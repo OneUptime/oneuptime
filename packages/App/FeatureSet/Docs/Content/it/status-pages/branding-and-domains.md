@@ -2,6 +2,9 @@
 
 La vostra pagina di stato è l'unica schermata di OneUptime che guardano i vostri clienti, quindi dovrebbe somigliarvi e stare sul vostro dominio, come `status.yourcompany.com`. Questa pagina percorre la pagina **Branding** scheda per scheda, poi porta la pagina di stato sul vostro dominio: aggiungete il dominio, aggiungete i suoi record DNS e il certificato SSL gratuito arriva da solo.
 
+> [!TIP]
+> Prima volta qui? Inizia dalla guida: [Pubblicare una pagina di stato](/docs/guides/status-page).
+
 :::cards
 - [La pagina Branding](#la-pagina-branding): Logo, tema, titolo, favicon, link, footer, colori e lingue.
 - [HTML, CSS e JavaScript personalizzati](#html-css-e-javascript-personalizzati): Tutto ciò che le impostazioni integrate non coprono.

@@ -386,7 +386,7 @@ const AREAS: Record<string, ReadonlyArray<string>> = {
     "Search notes",
   ],
   "monitor pages": [
-    "Edit Monitoring Criteria",
+    "Edit Criteria",
     "Monitor Dependencies",
     "Suppress When Parent Status Is",
     "Network Device Monitoring Guide",
@@ -426,20 +426,22 @@ describe("the areas people meet first", () => {
 describe("the words a language already settled", () => {
   test("Korean criteria are 기준, as the monitor's Criteria tab says", () => {
     expect(valueOf("ko", "Criteria")).toBe("기준");
-    expect(valueOf("ko", "Edit Monitoring Criteria")).toBe(
-      "모니터링 기준 편집",
-    );
     expect(valueOf("ko", "Edit Criteria")).toBe("기준 편집");
   });
 
+  /*
+   * The criteria card's button was "Edit Monitoring Criteria" until #6817
+   * named the card Criteria, its button "Edit Criteria": the word for
+   * monitoring is pinned by the words that still say it.
+   */
   test("Traditional Chinese monitoring is 監測, Hindi निगरानी, Dutch bewaking", () => {
-    expect(valueOf("zh-TW", "Edit Monitoring Criteria")).toBe("編輯監測條件");
-    expect(valueOf("hi", "Edit Monitoring Criteria")).toBe(
-      "निगरानी मानदंड संपादित करें",
+    expect(valueOf("zh-TW", "Network Device Monitoring Guide")).toBe(
+      "網路裝置監測指南",
     );
-    expect(valueOf("nl", "Edit Monitoring Criteria")).toBe(
-      "Bewakingscriteria bewerken",
+    expect(valueOf("hi", "Network Device Monitoring Guide")).toBe(
+      "नेटवर्क डिवाइस निगरानी गाइड",
     );
+    expect(valueOf("nl", "Monitoring")).toBe("Bewaking");
   });
 });
 
@@ -686,7 +688,7 @@ describe("the first-met areas' model names", () => {
         "Incident Severities",
         "Status Page Announcement",
         "Monitor Group",
-        "On-Call Policy Schedule",
+        "On-Call Schedule",
       ]),
     );
   });
@@ -750,9 +752,7 @@ describe("the first-met areas' model names", () => {
     expect(valueOf("pt", "Status Page Subscribers")).toBe(
       "Assinantes da página de status",
     );
-    expect(valueOf("no", "On-Call Policy Schedule")).toBe(
-      "Vaktplan for vaktpolicy",
-    );
+    expect(valueOf("no", "On-Call Schedule")).toBe("Vakttidsplan");
   });
 
   test("a create button drawn from one reads whole: Opret Monitorgruppe", () => {

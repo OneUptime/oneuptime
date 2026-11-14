@@ -1,6 +1,6 @@
 # Étapes de moniteur
 
-`monitor_steps` est l'attribut de `oneuptime_monitor` qui dit ce qu'un moniteur vérifie et comment chaque résultat est jugé : l'adresse à vérifier, la requête à envoyer, et les critères qui transforment un résultat en statut de moniteur, en incident ou en alerte. Cette page en explique chaque partie.
+`monitor_steps` est l'attribut de `oneuptime_monitor` qui dit ce qu'un moniteur vérifie et comment chaque résultat est jugé : l'adresse à vérifier, la requête à envoyer, et les critères qui transforment un résultat en statut de moniteur, en incident ou en alerte. Cette page en explique chaque partie. Le tableau de bord affiche les critères d'une étape sur la page **Critères** du moniteur, comme le décrit [Critères et statuts](/docs/monitor/criteria-and-statuses).
 
 :::cards
 - [Comment une vérification est jugée](#comment-une-vérification-est-jugée): Les critères dans l'ordre, et le premier qui correspond.

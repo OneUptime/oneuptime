@@ -421,9 +421,22 @@ describe("a stack's page", () => {
         }),
       ];
       await renderPage(OpenStackCloudStackDetail, partPath("stacks", "owner"));
-      expect(
-        await screen.findByTestId("openstack-stack-owns-more"),
-      ).toHaveTextContent("41");
+      const more: HTMLElement = await screen.findByTestId(
+        "openstack-stack-owns-more",
+      );
+      expect(more).toHaveTextContent("41");
+
+      /*
+       * The last row of the ruled list, padded as its rows are (#6956): a
+       * line after the list sat in the card's bottom padding under a list
+       * bled to the card's edges, and left a card's padding more under it.
+       */
+      const items: Array<HTMLElement> = screen.getAllByTestId(
+        "openstack-stack-owns-item",
+      );
+      expect(more.tagName).toBe("LI");
+      expect(more.parentElement).toBe(items[0]!.parentElement);
+      expect(more.parentElement!.lastElementChild).toBe(more);
     });
 
     test("owning nothing says so, which is not the same as nobody having read it", async () => {

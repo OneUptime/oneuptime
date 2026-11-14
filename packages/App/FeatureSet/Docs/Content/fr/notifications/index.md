@@ -29,7 +29,7 @@ flowchart TB
 | Page | Ce qu'elle contient | La question à laquelle elle répond |
 | --- | --- | --- |
 | **Méthodes de notification** | Vos adresses e-mail, numéros de téléphone, numéros WhatsApp, comptes Telegram, Slack, Microsoft Teams et Mattermost, appareils push et webhooks | Où OneUptime peut-il me joindre ? |
-| **Règles d'astreinte** | Pour chaque type d'alerte et chaque gravité, quelle méthode essayer et après combien de temps | Comment suis-je alerté pendant mon astreinte ? |
+| **Comment me joindre** | Pour chaque type d'alerte et chaque gravité, quelle méthode essayer et après combien de temps | Comment suis-je alerté pendant mon astreinte ? |
 | **Paramètres de notification** | Pour chaque événement concernant un élément dont vous êtes propriétaire ou vos permanences, quels canaux utiliser | De quoi d'autre suis-je informé, et où ? |
 
 Elles sont séparées exprès. Activer tous les canaux dans les **Paramètres de notification** ne vous alerte jamais, et une méthode que vous n'avez pas vérifiée n'est jamais utilisée, quoi que disent vos règles.
@@ -44,7 +44,7 @@ Ouvrez les **Paramètres utilisateur**, à droite de la barre située sous la ba
 | Section | Pages |
 | --- | --- |
 | **Premiers pas** | **Liste de configuration** : ce qu'il reste à configurer, dans l'ordre qui compte |
-| **Alertes & notifications** | **Méthodes de notification**, **Règles d'astreinte**, **Paramètres de notification** et **Préférences e-mail**, qui règle le nombre d'e-mails que représentent vos nouvelles |
+| **Alertes & notifications** | **Méthodes de notification**, **Comment me joindre**, **Paramètres de notification** et **Préférences e-mail**, qui règle le nombre d'e-mails que représentent vos nouvelles |
 | **Journaux d'astreinte** | **Journaux d'astreinte** : chaque fois que vous avez été alerté dans ce projet, et ce qui a été envoyé |
 | **Politique d'appels entrants** | **Numéros de téléphone entrants** : le numéro auquel une politique d'appels entrants vous appelle |
 | **Calendrier** | **Flux de calendrier** : vos permanences dans votre application de calendrier, et des rappels avant qu'elles commencent |
@@ -53,17 +53,17 @@ Ouvrez les **Paramètres utilisateur**, à droite de la barre située sous la ba
 
 **Premiers pas** et **Alertes & notifications** sont ouvertes ; les autres sections démarrent repliées, et une section s'ouvre d'elle-même quand vous êtes sur l'une de ses pages. **Espace de travail** n'apparaît que si le projet a connecté Slack, Microsoft Teams ou Mattermost.
 
-Les propriétaires et les admins du projet peuvent aussi consulter votre configuration : dans **Utilisateurs**, ils ouvrent votre ligne et sa section **Astreinte**, avec **Disponibilité**, **Méthodes de notification** et **Règles d'astreinte**. Ils peuvent y ajouter une méthode pour vous, mais le code est envoyé à la méthode elle-même, donc vous seul pouvez la vérifier.
+Les propriétaires et les admins du projet peuvent aussi consulter votre configuration : dans **Utilisateurs**, ils ouvrent votre ligne et sa section **Astreinte**, avec **Disponibilité**, **Méthodes de notification** et **Comment me joindre**. Ils peuvent y ajouter une méthode pour vous, mais le code est envoyé à la méthode elle-même, donc vous seul pouvez la vérifier.
 
 ## Ce dont vous disposez au départ
 
 Quand vous rejoignez un projet avec un e-mail de connexion vérifié, OneUptime vous configure pour qu'une alerte puisse toujours vous joindre :
 
 1. Votre e-mail de connexion est ajouté comme méthode e-mail vérifiée.
-2. Pour chaque gravité, sur chacun des quatre onglets des **Règles d'astreinte**, une règle vous envoie un e-mail dès que vous êtes alerté.
+2. Pour chaque gravité, sur chacun des quatre onglets des **Comment me joindre**, une règle vous envoie un e-mail dès que vous êtes alerté.
 3. Un ensemble de nouvelles sur ce dont vous êtes propriétaire, et sur vos permanences, est activé par e-mail. Voir [Paramètres de notification](/docs/notifications/notification-settings#ce-qui-est-activé-pour-un-nouveau-membre).
 
-Chaque méthode que vous vérifiez ensuite reçoit les mêmes règles : une règle pour chaque gravité, envoyée dès que vous êtes alerté. Vérifier un numéro de téléphone pour les SMS signifie donc que chaque alerte vous envoie aussi un SMS. Pour garder les SMS pour les alertes critiques uniquement, supprimez les règles SMS des autres gravités. Voir [Règles d'astreinte personnelles](/docs/notifications/on-call-rules#les-règles-de-départ).
+Chaque méthode que vous vérifiez ensuite reçoit les mêmes règles : une règle pour chaque gravité, envoyée dès que vous êtes alerté. Vérifier un numéro de téléphone pour les SMS signifie donc que chaque alerte vous envoie aussi un SMS. Pour garder les SMS pour les alertes critiques uniquement, supprimez les règles SMS des autres gravités. Voir [Comment me joindre](/docs/notifications/on-call-rules#les-règles-de-départ).
 
 ## La liste de configuration
 
@@ -72,7 +72,7 @@ Chaque méthode que vous vérifiez ensuite reçoit les mêmes règles : une règ
 | Section | Ce qu'elle vérifie |
 | --- | --- |
 | **So we can reach you** | Vous avez une méthode, chaque méthode ajoutée est vérifiée, et au moins l'une d'elles est sur un canal que le projet a activé |
-| **Comment vous souhaitez être alerté** | Chaque gravité a une règle, sur chacun des quatre onglets des **Règles d'astreinte** |
+| **Comment vous souhaitez être alerté** | Chaque gravité a une règle, sur chacun des quatre onglets des **Comment me joindre** |
 | **Staying informed** | Vous êtes prévenu quand une permanence commence, et chaque canal activé dans les **Paramètres de notification** a une méthode vérifiée derrière lui |
 | **Souhaitable** | Un numéro pour les appels entrants, vos comptes Slack et Microsoft Teams, un lien de calendrier et vos champs de profil |
 
@@ -95,7 +95,7 @@ Une alerte peut vous parvenir pour un type et une gravité pour lesquels vous n'
 2. Si vous n'en avez aucune, une seule méthode payante, dans cet ordre : SMS, appel téléphonique, WhatsApp, Telegram. C'est la première que vous avez vérifiée, sur un canal que le projet a activé.
 3. Si vous n'en avez aucune non plus, un webhook.
 
-Vous recevez un e-mail à ce sujet, tout comme les propriétaires de la politique d'astreinte, ou ceux du projet si la politique n'en a pas. Si rien n'est vérifié, l'alerte ne peut pas être livrée, et l'e-mail le dit. Ces e-mails sont retenus tant que les alertes continuent, afin qu'une tempête d'alertes ne devienne pas une tempête d'e-mails. Pour ajouter la règle manquante, voir [Règles d'astreinte personnelles](/docs/notifications/on-call-rules#quand-une-gravité-na-pas-de-règle).
+Vous recevez un e-mail à ce sujet, tout comme les propriétaires de la politique d'astreinte, ou ceux du projet si la politique n'en a pas. Si rien n'est vérifié, l'alerte ne peut pas être livrée, et l'e-mail le dit. Ces e-mails sont retenus tant que les alertes continuent, afin qu'une tempête d'alertes ne devienne pas une tempête d'e-mails. Pour ajouter la règle manquante, voir [Comment me joindre](/docs/notifications/on-call-rules#quand-une-gravité-na-pas-de-règle).
 
 ## La langue de vos alertes
 
@@ -131,7 +131,7 @@ Un numéro rejoint vos règles une fois vérifié. Cliquez sur **Vérifier** dan
 
 :::cards
 - [Méthodes de notification](/docs/notifications/notification-methods): Ajoutez et vérifiez les adresses auxquelles OneUptime peut vous joindre.
-- [Règles d'astreinte personnelles](/docs/notifications/on-call-rules): Décidez quelle méthode chaque alerte essaie, et quand.
+- [Comment me joindre](/docs/notifications/on-call-rules): Décidez quelle méthode chaque alerte essaie, et quand.
 - [Paramètres de notification](/docs/notifications/notification-settings): Choisissez les nouvelles dont vous êtes informé, et par quels canaux.
 - [Règles d'escalade](/docs/on-call/escalation-rules): Comment une politique d'astreinte décide qui est alerté, niveau par niveau.
 :::

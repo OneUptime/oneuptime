@@ -31,6 +31,7 @@ import StatusPageAnnouncement from "Common/Models/DatabaseModels/StatusPageAnnou
 import Team from "Common/Models/DatabaseModels/Team";
 import TelemetryException from "Common/Models/DatabaseModels/TelemetryException";
 import { AUDIT_LOG_ROOT_RESOURCE_TABLES } from "Common/Types/AuditLog/AuditLogCoverage";
+import { getApiSingularName } from "Common/Utils/ModelApiName";
 import { AuditLogRootResource } from "Common/Types/BaseDatabase/EnableAuditLogOn";
 import ObjectID from "Common/Types/ObjectID";
 
@@ -523,7 +524,7 @@ describe("the resources that had no Audit Logs page", () => {
       expect(
         AUDIT_LOG_ROOT_RESOURCE_TABLES.has(model.tableName as string),
       ).toBe(true);
-      expect(RESOURCE_META[model.singularName as string]).toBeDefined();
+      expect(RESOURCE_META[getApiSingularName(model)]).toBeDefined();
     },
   );
 
@@ -559,8 +560,12 @@ const ROOTS: Array<BaseModel> = MODELS.filter((model: BaseModel): boolean => {
 });
 
 describe("every resource with a page is drawn and linked in the project's log", () => {
+  /*
+   * The type an entry is stored under: the model's kept API name when the
+   * screen renamed it (#6817), so old entries and new ones are one type.
+   */
   const rootTypes: Array<string> = ROOTS.map((model: BaseModel): string => {
-    return model.singularName as string;
+    return getApiSingularName(model);
   });
 
   test("the sweep reads the roots", () => {

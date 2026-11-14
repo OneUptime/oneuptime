@@ -70,6 +70,14 @@ jest.mock("Common/Server/Services/WorkspaceNotificationSummaryService", () => {
 });
 
 import WorkspaceNotificationSummaryService from "Common/Server/Services/WorkspaceNotificationSummaryService";
+import logger from "Common/Server/Utils/Logger";
+import BadDataException from "Common/Types/Exception/BadDataException";
+import {
+  WORKSPACE_SUMMARY_NO_CHANNELS_REASON,
+  WORKSPACE_SUMMARY_NO_ITEMS_REASON,
+  WORKSPACE_SUMMARY_NO_PROJECT_REASON,
+  WorkspaceSummaryNotSendableException,
+} from "Common/Utils/Workspace/WorkspaceSummarySetup";
 import "../../../../FeatureSet/Workers/Jobs/WorkspaceNotificationSummary/SendSummary";
 import {
   afterEach,
@@ -609,5 +617,131 @@ describe("WorkspaceNotificationSummary:SendSummary, across a daylight saving cha
       { id: FIRST_SUMMARY_ID, nextSendAt: "2026-10-26T08:00:00.000Z" },
       { id: FIRST_SUMMARY_ID, nextSendAt: "2026-10-19T07:00:00.000Z" },
     ]);
+  });
+});
+
+/*
+ * #7116: a summary that cannot be sent as it is set up - no channel to
+ * post in, nothing to include - failed every time, and the worker rolled
+ * its next send back each time: it was tried, and failed, every minute for
+ * ever, with an error in the worker's log each time and nothing in the
+ * project's Notification Logs. Now sendSummary writes that log row and
+ * throws WorkspaceSummaryNotSendableException; the worker keeps the next
+ * send it moved on - the summary is tried again at its next scheduled
+ * send, not a minute later - and says it once, as a warning.
+ */
+describe("WorkspaceNotificationSummary:SendSummary, a summary that cannot be sent as it is set up", () => {
+  type MockedLogger = {
+    warn: jest.Mock;
+    error: jest.Mock;
+  };
+
+  const mockedLogger: MockedLogger = logger as unknown as MockedLogger;
+
+  beforeEach(() => {
+    mockedLogger.warn.mockClear();
+    mockedLogger.error.mockClear();
+  });
+
+  function due(id: string): WorkspaceNotificationSummary {
+    return summary({
+      id: id,
+      nextSendAt: OneUptimeDate.fromString("2026-10-12T09:00:00.000Z"),
+      recurringInterval: every(EventInterval.Week, 1),
+    });
+  }
+
+  test("REGRESSION: keeps its next send moved on - it is not tried again a minute later", async () => {
+    service.sendSummary.mockRejectedValueOnce(
+      new WorkspaceSummaryNotSendableException(
+        WORKSPACE_SUMMARY_NO_CHANNELS_REASON,
+      ) as never,
+    );
+
+    await tick("2026-10-12T09:00:30.000Z", [due(FIRST_SUMMARY_ID)]);
+
+    // Moved on a week, and never rolled back.
+    expect(writtenNextSends()).toEqual([
+      { id: FIRST_SUMMARY_ID, nextSendAt: "2026-10-19T09:00:00.000Z" },
+    ]);
+    expect(postedSummaryIds()).toEqual([FIRST_SUMMARY_ID]);
+  });
+
+  test("says so once, as a warning naming the summary and why - not as an error", async () => {
+    service.sendSummary.mockRejectedValueOnce(
+      new WorkspaceSummaryNotSendableException(
+        WORKSPACE_SUMMARY_NO_ITEMS_REASON,
+      ) as never,
+    );
+
+    await tick("2026-10-12T09:00:30.000Z", [due(FIRST_SUMMARY_ID)]);
+
+    expect(mockedLogger.warn).toHaveBeenCalledTimes(1);
+    // Why, in brackets, without the full stop that ends it as a sentence.
+    expect(mockedLogger.warn.mock.calls[0]![0]).toBe(
+      `WorkspaceNotificationSummary:SendSummary: Did not send summary ${FIRST_SUMMARY_ID}, as it cannot be sent as it is set up (The summary has no items picked under What to Include). It is tried again at its next scheduled send.`,
+    );
+    expect(mockedLogger.error).not.toHaveBeenCalled();
+  });
+
+  test("a why that is not a sentence - no project - is said in brackets as it is", async () => {
+    service.sendSummary.mockRejectedValueOnce(
+      new WorkspaceSummaryNotSendableException(
+        WORKSPACE_SUMMARY_NO_PROJECT_REASON,
+      ) as never,
+    );
+
+    await tick("2026-10-12T09:00:30.000Z", [due(FIRST_SUMMARY_ID)]);
+
+    expect(mockedLogger.warn.mock.calls[0]![0]).toBe(
+      `WorkspaceNotificationSummary:SendSummary: Did not send summary ${FIRST_SUMMARY_ID}, as it cannot be sent as it is set up (Summary project ID not found). It is tried again at its next scheduled send.`,
+    );
+  });
+
+  test("the summaries after it are still posted", async () => {
+    service.sendSummary.mockRejectedValueOnce(
+      new WorkspaceSummaryNotSendableException(
+        WORKSPACE_SUMMARY_NO_CHANNELS_REASON,
+      ) as never,
+    );
+
+    await tick("2026-10-12T09:00:30.000Z", [
+      due(FIRST_SUMMARY_ID),
+      due(SECOND_SUMMARY_ID),
+    ]);
+
+    expect(postedSummaryIds()).toEqual([FIRST_SUMMARY_ID, SECOND_SUMMARY_ID]);
+    expect(writtenNextSends()).toEqual([
+      { id: FIRST_SUMMARY_ID, nextSendAt: "2026-10-19T09:00:00.000Z" },
+      { id: SECOND_SUMMARY_ID, nextSendAt: "2026-10-19T09:00:00.000Z" },
+    ]);
+  });
+
+  test("any other refusal - a summary not found - is still rolled back and logged as an error, as before", async () => {
+    service.sendSummary.mockRejectedValueOnce(
+      new BadDataException("Summary not found") as never,
+    );
+
+    await tick("2026-10-12T09:00:30.000Z", [due(FIRST_SUMMARY_ID)]);
+
+    expect(writtenNextSends()).toEqual([
+      { id: FIRST_SUMMARY_ID, nextSendAt: "2026-10-19T09:00:00.000Z" },
+      { id: FIRST_SUMMARY_ID, nextSendAt: "2026-10-12T09:00:00.000Z" },
+    ]);
+    expect(mockedLogger.warn).not.toHaveBeenCalled();
+    expect(mockedLogger.error).toHaveBeenCalled();
+  });
+
+  test("a summary whose next send could not be moved on is rolled back as before, whatever it is", async () => {
+    // The database failed before the send was tried: nothing was skipped.
+    service.updateOneById.mockRejectedValueOnce(
+      new Error("Database is down") as never,
+    );
+
+    await tick("2026-10-12T09:00:30.000Z", [due(FIRST_SUMMARY_ID)]);
+
+    expect(service.sendSummary).not.toHaveBeenCalled();
+    expect(service.updateOneById).toHaveBeenCalledTimes(2);
+    expect(mockedLogger.warn).not.toHaveBeenCalled();
   });
 });

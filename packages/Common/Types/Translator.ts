@@ -232,6 +232,7 @@ const PROPER_NOUNS: Array<string> = [
   "Jira",
   "Kubernetes",
   "Linux",
+  "Mattermost",
   "Microsoft",
   "Okta",
   "OpenTelemetry",
@@ -251,7 +252,10 @@ const PROPER_NOUNS: Array<string> = [
  * Proper nouns of two words: the second keeps its capital after the first
  * ("Google Cloud project", but "cloud resources").
  */
-const PROPER_NOUN_PAIRS: Array<[string, string]> = [["Google", "Cloud"]];
+const PROPER_NOUN_PAIRS: Array<[string, string]> = [
+  ["Google", "Cloud"],
+  ["Microsoft", "Teams"],
+];
 
 // "API", "SLOs": two capitals in a row.
 const ACRONYM_PATTERN: RegExp = /\p{Lu}{2,}/u;
@@ -321,6 +325,46 @@ export const toSentenceTerm: (text: string, language?: string) => string = (
         .join("-");
     })
     .join(" ");
+};
+
+// A lower-case letter at the very start: the "c" of "clúster de Kubernetes".
+const LOWER_CASE_START: RegExp = /^\p{Ll}/u;
+
+/*
+ * A word or name as it starts a label - a row's name, a chip, a line of a
+ * card - in `language`: its first letter upper-cased the way the language
+ * writes a capital. A locale words a name the way the sentences that say it
+ * take it ("Este clúster de Kubernetes...", "Этот кластер Kubernetes..."),
+ * so where the same key names a row it starts lower-case; drawn through
+ * this, it reads "Clúster de Kubernetes", "Кластер Kubernetes". The
+ * counterpart of toSentenceTerm, which writes a label for the middle of a
+ * sentence.
+ *
+ * Unchanged when the text starts with anything but a lower-case letter - a
+ * capital, a digit, a sign, a letter of a script without case (Chinese,
+ * Japanese, Korean, Persian, Arabic, Hindi) - and when its first word keeps
+ * its own case ("vCenter", "iOS", "eBPF"). For a label of words, never a
+ * code or a name someone typed.
+ */
+export const toLabelTerm: (text: string, language?: string) => string = (
+  text: string,
+  language?: string,
+): string => {
+  const first: string | undefined = LOWER_CASE_START.exec(text)?.[0];
+
+  if (!first || keepsItsCase(text.split(/[\s-]/)[0] || "")) {
+    return text;
+  }
+
+  let capital: string;
+
+  try {
+    capital = first.toLocaleUpperCase(language || DEFAULT_LANGUAGE);
+  } catch {
+    capital = first.toUpperCase();
+  }
+
+  return `${capital}${text.slice(first.length)}`;
 };
 
 /*

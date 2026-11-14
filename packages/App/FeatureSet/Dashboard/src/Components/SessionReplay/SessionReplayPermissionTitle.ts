@@ -28,3 +28,21 @@ export function getSessionReplayPermissionTitle(
     return String(permission);
   }
 }
+
+/*
+ * The grant that reads who a session's end user is: the reference the page
+ * passed to identify(), and its traits. The server serves them only to a
+ * project owner or admin, or to a role with this permission
+ * (SESSION_REPLAY_IDENTITY_PERMISSIONS in Common/Server/API/TelemetryAPI.ts),
+ * and the roles screen lists it as "Watch Session Replays". Every line that
+ * says the identity is hidden names it by that title (#7096): "the identity
+ * permission" is on no roles screen, so a reader who wanted to see who a
+ * session belongs to had no way to find which grant gives it.
+ */
+export const SESSION_REPLAY_IDENTITY_PERMISSION: Permission =
+  Permission.ReadRumSessionReplayPayload;
+
+// "Watch Session Replays": the identity grant, by the roles screen's title.
+export function getSessionReplayIdentityPermissionTitle(): string {
+  return getSessionReplayPermissionTitle(SESSION_REPLAY_IDENTITY_PERMISSION);
+}

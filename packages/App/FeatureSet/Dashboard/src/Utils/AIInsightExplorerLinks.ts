@@ -1090,7 +1090,7 @@ export const buildInsightInvestigationLink: BuildInsightInvestigationLinkFunctio
         if (!serviceId) {
           return {
             target: "profiles",
-            label: "Open in Profiler",
+            label: "Open in Profiles",
             icon: IconProp.Fire,
             route: buildProfilesRoute({}),
             dropped: trimmedOrNull(input.serviceName) ? ["serviceIds"] : [],
@@ -1137,7 +1137,7 @@ export const buildInsightInvestigationLink: BuildInsightInvestigationLinkFunctio
         try {
           return {
             target: "profiles",
-            label: "Open in Profiler",
+            label: "Open in Profiles",
             icon: IconProp.Fire,
             route: buildProfilesRoute(state),
             dropped: [],

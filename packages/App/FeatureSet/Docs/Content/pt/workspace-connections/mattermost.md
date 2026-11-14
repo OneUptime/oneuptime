@@ -100,7 +100,7 @@ Para ser acionado por mensagem direta quando estiver de plantão, adicione o Mat
 3. Clique em **Send Test Message** na linha dele. A mensagem chega como mensagem direta do bot do projeto.
 :::
 
-Adicioná-lo o inclui imediatamente nas suas regras de plantão, então a partir daí os acionamentos chegam a você no Mattermost. Altere quais acionamentos ele recebe em **Configurações do usuário** > **Regras de Plantão**. Cada acionamento traz um link para confirmá-lo e outro para escaloná-lo. Desconectar a sua conta do Mattermost remove este método e as regras de plantão que o usam.
+Adicioná-lo o inclui imediatamente nas suas regras de plantão, então a partir daí os acionamentos chegam a você no Mattermost. Altere quais acionamentos ele recebe em **Configurações do usuário** > **Como me contatar**. Cada acionamento traz um link para confirmá-lo e outro para escaloná-lo. Desconectar a sua conta do Mattermost remove este método e as regras de plantão que o usam.
 
 ## Regras de notificação
 
@@ -114,7 +114,7 @@ As pessoas entram no canal de uma regra pela conta do Mattermost que conectaram,
 
 Um incidente, alerta, episódio ou evento de manutenção agendada com um canal próprio tem **Abrir no Mattermost** no cabeçalho da sua página no OneUptime, ao lado dos botões de estado. Ele abre esse canal em uma nova aba, no seu servidor do Mattermost. Um registro com dois canais próprios lista os dois sob o botão. Um registro que também tem canais no Slack ou no Microsoft Teams tem, em vez disso, um único botão **Abrir canal**, que lista todos eles. Os canais existentes em que as suas regras publicam não são oferecidos.
 
-**Regra de teste** na linha de uma regra publica uma mensagem de teste dessa regra nos canais que ela indica, como faz para o Slack.
+**Testar regra** na linha de uma regra publica uma mensagem de teste dessa regra nos canais que ela indica, como faz para o Slack.
 
 As mensagens do OneUptime não notificam ninguém com o que citam: um nome ou uma descrição que contenha `@channel`, `@here` ou `@someone` é mostrado como foi escrito, e não notifica ninguém.
 

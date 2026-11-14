@@ -36,9 +36,9 @@ export const getCustomChannelReachSentence: (
 ) => string = (channel: CustomNotificationChannel): string => {
   return channel.pageEveryoneByDefault !== false
     ? translationKey(
-        "Already in your on-call rules: your administrator pages everyone through it.",
+        "Already in How to Reach Me: your administrator pages everyone through it.",
       )
-    : translationKey("Add it to your on-call rules to be paged through it.");
+    : translationKey("Add it to How to Reach Me to be paged through it.");
 };
 
 const CustomChannels: FunctionComponent<ComponentProps> = (

@@ -28,7 +28,7 @@ flowchart LR
 ## 始める前に
 
 - **届いているテレメトリ。** サービスマップにはトレースが必要です。[OpenTelemetry](/docs/telemetry/open-telemetry) を参照してください。インフラストラクチャビューにはデータを送るホストまたはクラスターが必要です。[Kubernetes エージェント](/docs/telemetry/kubernetes-agent) を参照してください。ネットワークビューにはネットワークデバイスが必要です。[ネットワークデバイス モニター](/docs/monitor/network-device-monitor) を参照してください。
-- **テレメトリを読み取るロール。** Project Owner、Project Admin、Project Member、Viewer、Telemetry Admin、Telemetry Member、Telemetry Viewer、または Read Telemetry Service 権限を持つカスタムロールです。
+- **テレメトリを読み取るロール。** Project Owner、Project Admin、Project Member、Viewer、Telemetry Admin、Telemetry Member、Telemetry Viewer、または Read Inventory Item 権限を持つカスタムロールです。
 
 ## トポロジーを開く
 
@@ -114,7 +114,7 @@ OneUptime は 10 分ごとにトレースからサービス間の呼び出しを
 ## 次のステップ
 
 :::cards
-- [サービスカタログ](/docs/telemetry/services): 1 つのサービスのすべて。
+- [サービス](/docs/telemetry/services): 1 つのサービスのすべて。
 - [トレースエクスプローラー](/docs/telemetry/traces-explorer): 各矢印の背後にあるリクエスト。
 - [インベントリの概要](/docs/inventory/overview): マップに描かれるすべてのリソース。
 - [ネットワークデバイス モニター](/docs/monitor/network-device-monitor): ネットワークをマップに載せます。

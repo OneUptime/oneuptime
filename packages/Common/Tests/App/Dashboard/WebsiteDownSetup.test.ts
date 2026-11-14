@@ -15,14 +15,18 @@ import {
   WebsiteMonitorSeeds,
   WhoIsToldFacts,
   WhoIsToldMode,
+  areWhoIsToldCountsKnown,
   buildWebsiteMonitor,
   describeFirstCheck,
   getIncidentSeverityId,
   getMonitorAddress,
+  getWebsiteAddressIdentity,
   getWebsiteDownProgress,
   getWebsiteDownSummaryRows,
   getWhoIsToldMode,
   isDownAnswer,
+  isMonitorCheckingAddress,
+  isSameWebsiteAddress,
   isTestDone,
   isWebsiteDownFinished,
   parseWebsiteAddress,
@@ -41,6 +45,12 @@ import {
   OnCallTestPageStatus,
 } from "../../../Types/OnCallDutyPolicy/OnCallTestPage";
 import { Translator, createTranslator } from "../../../Types/Translator";
+import {
+  DASHBOARD_LANGUAGES,
+  dashboardTranslator,
+  readDashboardLocale,
+} from "../../Helpers/DashboardLocales";
+import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 
 /*
  * The website-down guided setup's rules and words (issue #6804): the
@@ -122,6 +132,22 @@ describe("the address", () => {
     });
   });
 
+  test("trailing slashes, however many, are not part of the name; slashes inside it are", () => {
+    expect(parseWebsiteAddress("acme.example/health///")?.monitorName).toBe(
+      "acme.example/health",
+    );
+    expect(parseWebsiteAddress("acme.example//a//")?.monitorName).toBe(
+      "acme.example//a",
+    );
+    expect(parseWebsiteAddress("acme.example////")?.monitorName).toBe(
+      "acme.example",
+    );
+    // A long run of them in the middle is read once, not again at each one.
+    expect(
+      parseWebsiteAddress(`acme.example/a${"/".repeat(20000)}b/`)?.monitorName,
+    ).toBe(`acme.example/a${"/".repeat(MONITOR_NAME_MAX_LENGTH - 14)}`);
+  });
+
   test("a port stays in the name", () => {
     expect(parseWebsiteAddress("localhost:8080/status")?.monitorName).toBe(
       "localhost:8080/status",
@@ -150,6 +176,169 @@ describe("the address", () => {
     ["https://ana:secret@example.com"],
   ])("%j is not an address a website monitor checks", (text: string) => {
     expect(parseWebsiteAddress(text)).toBeNull();
+  });
+});
+
+/*
+ * ONE ADDRESS, HOWEVER IT WAS TYPED (#7059): how the setup knows a monitor
+ * of this person's checks the address typed, so it makes no second one.
+ */
+describe("one address, however it was typed", () => {
+  test.each([
+    ["acme.example", "https://acme.example"],
+    ["acme.example", "https://acme.example/"],
+    ["ACME.Example", "https://acme.example"],
+    ["  acme.example  ", "acme.example"],
+    ["https://acme.example:443/", "acme.example"],
+    ["http://acme.example:80", "http://acme.example/"],
+    ["acme.example/health/", "https://acme.example/health"],
+    ["acme.example/health///", "https://acme.example/health"],
+    ["acme.example//", "acme.example"],
+    ["acme.example/#top", "acme.example"],
+    ["acme.example/status?x=1", "https://acme.example/status?x=1"],
+    ["localhost:8080/status", "https://LOCALHOST:8080/status/"],
+  ])("%j and %j are one address", (left: string, right: string) => {
+    expect(isSameWebsiteAddress(left, right)).toBe(true);
+    expect(isSameWebsiteAddress(right, left)).toBe(true);
+    expect(getWebsiteAddressIdentity(left)).toBe(
+      getWebsiteAddressIdentity(right),
+    );
+  });
+
+  test.each([
+    ["http://acme.example", "https://acme.example"],
+    ["www.acme.example", "acme.example"],
+    ["status.acme.example", "acme.example"],
+    ["acme.example:8080", "acme.example"],
+    ["acme.example/health", "acme.example"],
+    ["acme.example/Health", "acme.example/health"],
+    ["acme.example?x=1", "acme.example"],
+    ["acme.example?x=1", "acme.example?x=2"],
+  ])("%j and %j are two checks", (left: string, right: string) => {
+    expect(isSameWebsiteAddress(left, right)).toBe(false);
+    expect(isSameWebsiteAddress(right, left)).toBe(false);
+  });
+
+  test("what makes an address one: scheme, host, port, path and query", () => {
+    expect(getWebsiteAddressIdentity("acme.example")).toBe(
+      "https://acme.example",
+    );
+    expect(getWebsiteAddressIdentity("ACME.example:8443/Health/?a=1#top")).toBe(
+      "https://acme.example:8443/Health?a=1",
+    );
+    // Every address the setup parses has one.
+    expect(
+      getWebsiteAddressIdentity(address("api.acme.example/v1/health").url),
+    ).toBe("https://api.acme.example/v1/health");
+  });
+
+  test.each([
+    [""],
+    ["   "],
+    ["not an address"],
+    ["ftp://acme.example"],
+    ["mailto:ana@acme.example"],
+    ["https://ana:secret@acme.example"],
+    ["javascript:alert(1)"],
+    ["https://"],
+  ])("%j is no address, and never the same as one", (text: string) => {
+    expect(getWebsiteAddressIdentity(text)).toBeNull();
+    expect(isSameWebsiteAddress(text, text)).toBe(false);
+    expect(isSameWebsiteAddress(text, "acme.example")).toBe(false);
+  });
+});
+
+describe("a monitor of this person's that checks the address (#7059)", () => {
+  const madeFor: (text: string) => Monitor = (text: string): Monitor => {
+    return buildWebsiteMonitor({
+      address: address(text),
+      isApi: false,
+      seeds: seeds,
+    });
+  };
+
+  test("one made for the address checks it, however the address is typed now", () => {
+    const monitor: Monitor = madeFor("acme.example");
+
+    for (const typed of [
+      "acme.example",
+      "https://ACME.example/",
+      "acme.example//",
+    ]) {
+      expect(
+        isMonitorCheckingAddress({ monitor: monitor, address: address(typed) }),
+      ).toBe(true);
+    }
+  });
+
+  test("an API monitor for the endpoint checks it too", () => {
+    expect(
+      isMonitorCheckingAddress({
+        monitor: buildWebsiteMonitor({
+          address: address("api.acme.example/health"),
+          isApi: true,
+          seeds: seeds,
+        }),
+        address: address("https://api.acme.example/health/"),
+      }),
+    ).toBe(true);
+  });
+
+  test("one that is archived or turned off is no longer checking it", () => {
+    const monitor: Monitor = madeFor("acme.example");
+
+    expect(
+      isMonitorCheckingAddress({
+        monitor: { monitorSteps: monitor.monitorSteps, isArchived: true },
+        address: address("acme.example"),
+      }),
+    ).toBe(false);
+    expect(
+      isMonitorCheckingAddress({
+        monitor: {
+          monitorSteps: monitor.monitorSteps,
+          disableActiveMonitoring: true,
+        },
+        address: address("acme.example"),
+      }),
+    ).toBe(false);
+    expect(
+      isMonitorCheckingAddress({
+        monitor: {
+          monitorSteps: monitor.monitorSteps,
+          isArchived: false,
+          disableActiveMonitoring: false,
+        },
+        address: address("acme.example"),
+      }),
+    ).toBe(true);
+  });
+
+  test("one for another address, or with no step to read, does not", () => {
+    expect(
+      isMonitorCheckingAddress({
+        monitor: madeFor("status.acme.example"),
+        address: address("acme.example"),
+      }),
+    ).toBe(false);
+    expect(
+      isMonitorCheckingAddress({
+        monitor: madeFor("http://acme.example"),
+        address: address("acme.example"),
+      }),
+    ).toBe(false);
+    expect(
+      isMonitorCheckingAddress({
+        monitor: { monitorSteps: undefined },
+        address: address("acme.example"),
+      }),
+    ).toBe(false);
+    expect(
+      isMonitorCheckingAddress({
+        monitor: { monitorSteps: null },
+        address: address("acme.example"),
+      }),
+    ).toBe(false);
   });
 });
 
@@ -509,8 +698,37 @@ describe("who is told", () => {
       expect(getWhoIsToldMode(whoFacts(extra))).toBe(
         WhoIsToldMode.OwnerEmailOnly,
       );
+      // And say so, so the step can ask again rather than guess (#7059).
+      expect(areWhoIsToldCountsKnown(whoFacts(extra))).toBe(false);
     },
   );
+
+  test("counts read, none or some, whoever reads them, are known", () => {
+    expect(areWhoIsToldCountsKnown(whoFacts())).toBe(true);
+    expect(
+      areWhoIsToldCountsKnown(
+        whoFacts({ policyCount: 2, incidentRuleCount: 1, alertRuleCount: 0 }),
+      ),
+    ).toBe(true);
+    expect(
+      areWhoIsToldCountsKnown(
+        whoFacts({
+          mayCreatePolicy: false,
+          mayAddEscalationRules: false,
+          mayAddRules: false,
+        }),
+      ),
+    ).toBe(true);
+    expect(
+      areWhoIsToldCountsKnown(
+        whoFacts({
+          policyCount: null,
+          incidentRuleCount: null,
+          alertRuleCount: null,
+        }),
+      ),
+    ).toBe(false);
+  });
 });
 
 const progressFacts: (
@@ -901,5 +1119,213 @@ describe("its words", () => {
         }
       }
     }
+  });
+});
+
+/*
+ * THE SEVERITY, AFTER THE WORD FOR INCIDENT (#7060): the summary names the
+ * incident's severity in brackets after the word for incident, in every
+ * language. A project's severities keep the names they were given, and a
+ * default one is called "Critical Incident", so a sentence that set the name
+ * before the word read "a Critical Incident incident"; the English was
+ * reworded with the severity in brackets, and the other languages kept the
+ * old wording until #7060.
+ */
+const SEVERITY_SENTENCE: string =
+  "If it does not answer, or answers with an error, OneUptime opens an incident ({{severity}}).";
+
+// The word each language's setup says incident with: its other sentences use it too.
+const INCIDENT_WORDS: Record<string, string> = {
+  en: "incident",
+  ar: "حادثة",
+  da: "hændelse",
+  de: "Vorfall",
+  es: "incidente",
+  fa: "حادثه",
+  fr: "incident",
+  hi: "घटना",
+  it: "incidente",
+  ja: "インシデント",
+  ko: "인시던트",
+  nl: "incident",
+  no: "hendelse",
+  pt: "incidente",
+  ru: "инцидент",
+  sv: "incident",
+  "zh-CN": "事件",
+  "zh-TW": "事件",
+};
+
+const SEVERITY_PLACEHOLDER: string = "{{severity}}";
+
+/*
+ * The words from the word for incident to the closing bracket: "Vorfall
+ * ({{severity}})", "インシデント（{{severity}}）". Null when the sentence does
+ * not set the severity in brackets right after the word for incident.
+ */
+const getBracketedSeverity: (
+  sentence: string,
+  incidentWord: string,
+) => string | null = (
+  sentence: string,
+  incidentWord: string,
+): string | null => {
+  const at: number = sentence.indexOf(SEVERITY_PLACEHOLDER);
+
+  if (at < 0 || sentence.indexOf(SEVERITY_PLACEHOLDER, at + 1) >= 0) {
+    return null;
+  }
+
+  const before: string = sentence.slice(0, at);
+  const after: string = sentence.slice(at + SEVERITY_PLACEHOLDER.length);
+
+  // Brackets as the language writes them: full width in Chinese and Japanese.
+  for (const [open, close] of [
+    [" (", ")"],
+    ["(", ")"],
+    ["（", "）"],
+  ] as Array<[string, string]>) {
+    if (before.endsWith(`${incidentWord}${open}`) && after.startsWith(close)) {
+      return `${incidentWord}${open}${SEVERITY_PLACEHOLDER}${close}`;
+    }
+  }
+
+  return null;
+};
+
+describe("the summary's severity, in brackets after the word for incident, in every language (#7060)", () => {
+  const languages: Array<string> = Object.keys(INCIDENT_WORDS);
+
+  test("every language the Dashboard offers is here", () => {
+    expect(
+      languages
+        .filter((language: string): boolean => {
+          return language !== "en";
+        })
+        .sort(),
+    ).toEqual([...DASHBOARD_LANGUAGES].sort());
+  });
+
+  test.each(languages)(
+    "%s: the word for incident is the one the setup's other sentences use",
+    (language: string) => {
+      const table: Record<string, string> = readDashboardLocale(language);
+
+      for (const sentence of [
+        WEBSITE_DOWN_COPY.whoCreateHelp,
+        WEBSITE_DOWN_COPY.whoExistingHelp,
+      ]) {
+        expect(table[sentence]).toContain(INCIDENT_WORDS[language]!);
+      }
+    },
+  );
+
+  test.each(languages)(
+    "%s: the sentence sets the severity in brackets right after it, and nowhere else",
+    (language: string) => {
+      const sentence: string =
+        readDashboardLocale(language)[SEVERITY_SENTENCE]!;
+
+      expect(sentence).toBeTruthy();
+      expect(
+        getBracketedSeverity(sentence, INCIDENT_WORDS[language]!),
+      ).not.toBeNull();
+    },
+  );
+
+  // A project's own names, the defaults among them, kept as they were given.
+  const severities: Array<string> = [
+    "Critical Incident",
+    "Major Incident",
+    "Minor Incident",
+    "SEV1",
+  ];
+
+  test.each(
+    languages.flatMap((language: string): Array<[string, string]> => {
+      return severities.map((severity: string): [string, string] => {
+        return [language, severity];
+      });
+    }),
+  )(
+    "%s, a severity named %j: read in brackets, never as a word before the word for incident",
+    (language: string, severity: string) => {
+      const incidentWord: string = INCIDENT_WORDS[language]!;
+      const bracketed: string = getBracketedSeverity(
+        readDashboardLocale(language)[SEVERITY_SENTENCE]!,
+        incidentWord,
+      )!;
+      const text: string = withoutIsolateMarks(
+        rowText(
+          getWebsiteDownSummaryRows(
+            dashboardTranslator(language),
+            summaryFacts({ incidentSeverityName: severity }),
+          ),
+          "when_down",
+        )!,
+      );
+
+      expect(text).toContain(bracketed.replace(SEVERITY_PLACEHOLDER, severity));
+      // "Critical Incident incident", "Kritischer Vorfall Vorfall": never.
+      expect(text.toLowerCase()).not.toContain(
+        `${severity} ${incidentWord}`.toLowerCase(),
+      );
+      expect(text.toLowerCase()).not.toContain(
+        `${severity}${incidentWord}`.toLowerCase(),
+      );
+      expect(text.split(severity)).toHaveLength(2);
+    },
+  );
+
+  test("the check tells the old wordings apart: each would fail it", () => {
+    const old: Array<[string, string]> = [
+      [
+        "en",
+        "If it does not answer, or answers with an error, OneUptime opens a {{severity}} incident.",
+      ],
+      [
+        "de",
+        "Kommt keine Antwort oder eine Fehlerantwort, eröffnet OneUptime einen Vorfall mit Schweregrad {{severity}}.",
+      ],
+      [
+        "fr",
+        "Si aucune réponse n'arrive, ou si la réponse est une erreur, OneUptime ouvre un incident de gravité {{severity}}.",
+      ],
+      [
+        "ja",
+        "応答がない場合、またはエラーが返された場合、OneUptime は重大度 {{severity}} のインシデントを作成します。",
+      ],
+      [
+        "ko",
+        "응답이 없거나 오류로 응답하면 OneUptime이 심각도 {{severity}} 인시던트를 엽니다.",
+      ],
+      [
+        "hi",
+        "अगर जवाब नहीं आता, या जवाब में त्रुटि आती है, तो OneUptime {{severity}} गंभीरता वाली घटना खोलता है।",
+      ],
+      [
+        "zh-CN",
+        "如果没有响应，或响应出错，OneUptime 会创建严重程度为 {{severity}} 的事件。",
+      ],
+      [
+        "ar",
+        "إذا لم يُجب، أو أجاب بخطأ، يفتح OneUptime حادثة بخطورة {{severity}}.",
+      ],
+    ];
+
+    for (const [language, sentence] of old) {
+      expect({
+        language,
+        bracketed: getBracketedSeverity(sentence, INCIDENT_WORDS[language]!),
+      }).toEqual({ language, bracketed: null });
+    }
+
+    // And a sentence naming the severity twice is not one either.
+    expect(
+      getBracketedSeverity(
+        "OneUptime opens an incident ({{severity}}), {{severity}}.",
+        "incident",
+      ),
+    ).toBeNull();
   });
 });

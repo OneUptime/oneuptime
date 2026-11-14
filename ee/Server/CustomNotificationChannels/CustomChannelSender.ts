@@ -4,8 +4,8 @@ import SignedWebhookPost, {
 } from "App/FeatureSet/Notification/Utils/SignedWebhookPost";
 import CustomNotificationChannelService from "Common/Server/Services/CustomNotificationChannelService";
 import { CustomChannelDeliveryResult } from "Common/Server/Services/CustomNotificationChannelDeliveryService";
-import UserOnCallLogTimelineService from "Common/Server/Services/UserOnCallLogTimelineService";
 import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
+import { recordSendResult } from "Common/Server/Utils/OnCall/OnCallNotificationStatus";
 import CustomChannelEdition, {
   CUSTOM_CHANNEL_NOT_ACTIVE_MESSAGE,
 } from "Common/Server/Utils/Notification/CustomChannelEdition";
@@ -19,7 +19,6 @@ import NotificationDeliveryMetrics, {
 import CustomNotificationChannel from "Common/Models/DatabaseModels/CustomNotificationChannel";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import UserNotificationStatus from "Common/Types/UserNotification/UserNotificationStatus";
 
 /*
  * SENDING A REQUEST TO A CUSTOM CHANNEL (Enterprise Edition).
@@ -79,18 +78,17 @@ export default class CustomChannelSender {
       );
     }
 
+    /*
+     * Written only while the page's timeline entry still says Sending
+     * (OnCallNotificationStatus): the person may have acknowledged the page,
+     * or escalated it, meanwhile - from another of its messages, or from
+     * this one, as soon as the company's app showed it.
+     */
     if (input.userOnCallLogTimelineId) {
-      await UserOnCallLogTimelineService.updateOneById({
-        id: input.userOnCallLogTimelineId,
-        data: {
-          status: result.ok
-            ? UserNotificationStatus.Sent
-            : UserNotificationStatus.Error,
-          statusMessage: result.message,
-        },
-        props: {
-          isRoot: true,
-        },
+      await recordSendResult({
+        userOnCallLogTimelineId: input.userOnCallLogTimelineId,
+        isSent: result.ok,
+        statusMessage: result.message,
       });
     }
 

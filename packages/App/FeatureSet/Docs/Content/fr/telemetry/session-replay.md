@@ -102,6 +102,8 @@ window.__ONEUPTIME_SESSION_REPLAY__ = {
   respectDoNotTrack: true, // optional
   debug: false, // optional
   offlineStorage: true, // optional; false keeps offline chunks in memory only
+  maskAllText: false, // optional; true masks all text, whatever the policy says
+  blockSelectors: [], // optional; added to the policy's block selectors
 };
 ```
 
@@ -253,7 +255,7 @@ L'enregistreur publie `window.OneUptimeReplay`. Comme il se charge de manière a
 );
 ```
 
-`grantConsent`, `revokeConsent`, `stop`, `identify`, `setTags` et `addTag` sont appliqués avant le démarrage de l'enregistreur : une décision de consentement mise en file décide donc si quoi que ce soit est envoyé, et une identité mise en file voyage dès le tout premier fragment. `track`, `metric`, `captureSession` et `onSessionChange` s'exécutent juste après son démarrage.
+`grantConsent`, `revokeConsent`, `stop`, `pause`, `resume`, `identify`, `setTags` et `addTag` sont appliqués avant le démarrage de l'enregistreur : une décision de consentement mise en file décide donc si quoi que ce soit est envoyé, et une identité mise en file voyage dès le tout premier fragment. `track`, `metric`, `captureSession` et `onSessionChange` s'exécutent juste après son démarrage.
 
 | Méthode | Rôle |
 | --- | --- |
@@ -268,6 +270,8 @@ L'enregistreur publie `window.OneUptimeReplay`. Comme il se charge de manière a
 | `getSessionId()` | L'id de session actuel, ou `null` quand rien n'est enregistré. Préférez `onSessionChange()`, qui suit aussi les renouvellements. |
 | `getVisitorId()` | L'[id de visiteur anonyme](#visiteurs-anonymes) — 32 caractères hexadécimaux, un par profil de navigateur, le même d'un renouvellement de session à l'autre — ou `""` avant le démarrage de l'enregistreur, après `stop()`, et tant que le consentement est retiré. Aléatoire et pas une identité ; ne dépend pas de **Capturer l'identité de l'utilisateur final**. |
 | `stop()` | Envoie le dernier fragment, scelle la session et s'arrête pour le reste de la vie de la page. |
+| `pause()` | Suspend la capture de ce qui est à l'écran jusqu'à `resume()` : le chunk ouvert part avec un marqueur _paused_, et rien n'est enregistré entre-temps — ni la page, ni les saisies, les requêtes, la console ou les clics. La session reste ouverte, et les actions du visiteur ne la relancent pas. Pour une page qui n'enregistre qu'une partie d'elle-même ; mise en file avant le chargement de l'enregistreur, celui-ci démarre en pause. |
+| `resume()` | Reprend l'enregistrement après `pause()`, dans la même session, sur un nouvel instantané de la page telle qu'elle est. Le lecteur saute le passage en pause. |
 | `setDebug(enabled)` | Affiche désormais les décisions de l'enregistreur dans la console. |
 | `getDiagnostics()` | Tout ce que l'enregistreur a décidé, que les diagnostics aient été activés ou non. Voir ci-dessous. |
 
@@ -370,7 +374,12 @@ Les valeurs masquées ne conservent pas la longueur. Un champ masqué est un esp
 
 <!-- Recorded, but input events inside are dropped. -->
 <div class="oneuptime-ignore">...</div>
+
+<!-- Under Mask all text, the text inside is recorded as written. -->
+<div class="oneuptime-unmask">...</div>
 ```
+
+Sous _Mask all text_, le texte d'un élément portant la classe `oneuptime-unmask` est enregistré tel quel : utilisez-la pour les mots de l'interface de votre page, comme les boutons, les titres et les menus. Un élément `oneuptime-mask` ou l'un de vos sélecteurs de masquage supplémentaires à l'intérieur masque de nouveau son texte, les champs de formulaire restent masqués, et la classe est sans effet dans les autres modes de masquage. Une page peut aussi demander plus de masquage que sa politique, sur l'objet global d'initialisation : `maskAllText: true` enregistre sous _Mask all text_ quelle que soit la politique, et `blockSelectors` s'ajoute aux sélecteurs de blocage de la politique. Aucun des deux ne peut faire montrer davantage à un enregistrement.
 
 Vous pouvez aussi ajouter des **Sélecteurs de masquage supplémentaires** et des **Sélecteurs de blocage** sur la page **Politique de relecture** de votre application, sans modifier votre balisage. Avec le mode de masquage par défaut, ce sont les principaux outils pour protéger un contenu que votre balisage ne déclare pas sensible.
 

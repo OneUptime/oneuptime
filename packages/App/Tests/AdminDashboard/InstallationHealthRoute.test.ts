@@ -8,19 +8,28 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 import { createServer, Server } from "http";
 import { AddressInfo } from "net";
 import AdminHealthRouter, {
   getInstallationHealthFacts,
   getPendingMigrationFailure,
-  installationHealthMiddleware,
   InstallationHealthReaders,
 } from "../../API/AdminHealth";
 import { ClickhouseAppInstance } from "Common/Server/Infrastructure/ClickhouseDatabase";
 import PostgresAppInstance from "Common/Server/Infrastructure/PostgresDatabase";
 import Redis from "Common/Server/Infrastructure/Redis";
-import ClusterKeyAuthorization from "Common/Server/Middleware/ClusterKeyAuthorization";
+import ClusterKeyAuthorization, {
+  CLUSTER_KEY_IN_URL_MESSAGE,
+  CLUSTER_KEY_NOT_FOUND_MESSAGE,
+  INVALID_CLUSTER_KEY_MESSAGE,
+  SHIPPED_CLUSTER_KEY_MESSAGE,
+} from "Common/Server/Middleware/ClusterKeyAuthorization";
 import MasterAdminAuthorization from "Common/Server/Middleware/MasterAdminAuthorization";
+import ProjectMiddleware from "Common/Server/Middleware/ProjectAuthorization";
+import UserMiddleware, {
+  RequestSession,
+} from "Common/Server/Middleware/UserAuthorization";
 import CustomDomainServerReadiness from "Common/Server/Utils/CustomDomain/CustomDomainServerReadiness";
 import {
   createExpressApp,
@@ -38,28 +47,41 @@ import InstallationHealthUtil, {
   InstallationHealthFindingId,
 } from "Common/Types/InstallationHealth/InstallationHealth";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
+import ObjectID from "Common/Types/ObjectID";
 import { ServerSetupChecklistAnswer } from "Common/Types/ServerSetup/ServerSetupChecklist";
 
 /*
- * GET /api/admin/health/doctor (#6826): what is wrong with this installation,
+ * /api/admin/health/doctor (#6826): what is wrong with this installation,
  * for the Admin Dashboard's OneUptime Health overview, `npm run doctor` and
  * diagnose.sh.
  *
  *   - Every edition: it is a Community route (AdminHealthEditionGates).
- *   - The cluster key, which a Docker Compose host's config.env and the app
- *     pod hold, or a master admin (or the master API key): a request that
- *     presents a cluster key is judged by the cluster key alone.
- *   - Only a cluster-key caller gets a proof to ask HOST for.
+ *   - GET is the Admin Dashboard's: a master admin's session, or the master
+ *     API key. A cluster key does not stand in for either.
+ *   - POST is the doctor's and diagnose.sh's: the cluster key, which a
+ *     Docker Compose host's config.env and the app pod hold, through
+ *     ClusterKeyAuthorization's one check, as every route that takes the
+ *     key (Common's ClusterKeyGuard). A master admin's session or the master
+ *     API key does not stand in for it.
+ *   - Only the POST's answer carries a proof to ask HOST for.
  *   - Each fact is read on its own: one datastore down neither hides the
  *     others nor fails the answer, and what needs PostgreSQL is not asked
  *     while it does not answer.
+ *
+ * It was one GET that took all three, until the rule of #5014 caught it: a
+ * route that takes the cluster key is a POST, handed the check by its
+ * router, and nothing else reads the key.
  */
 
-type Middleware = (
-  req: ExpressRequest,
-  res: ExpressResponse,
-  next: NextFunction,
-) => Promise<void>;
+type RouteLayer = {
+  route?: {
+    path: string;
+    methods: Record<string, boolean>;
+    stack: Array<{ handle: unknown }>;
+  };
+};
+
+const MASTER_API_KEY: string = ObjectID.generate().toString();
 
 const EMPTY_CHECKLIST: ServerSetupChecklistAnswer = {
   checks: [],
@@ -268,95 +290,73 @@ describe("the facts", () => {
   });
 });
 
+// The router's layers for /doctor, in the order they were registered.
+const doctorLayers: () => Array<RouteLayer> = (): Array<RouteLayer> => {
+  return (
+    AdminHealthRouter as unknown as { stack: Array<RouteLayer> }
+  ).stack.filter((layer: RouteLayer): boolean => {
+    return layer.route?.path === "/doctor";
+  });
+};
+
+const doctorLayer: (method: "get" | "post") => RouteLayer | undefined = (
+  method: "get" | "post",
+): RouteLayer | undefined => {
+  return doctorLayers().find((layer: RouteLayer): boolean => {
+    return Boolean(layer.route?.methods[method]);
+  });
+};
+
 describe("who may ask", () => {
-  let serviceMiddleware: jest.SpiedFunction<Middleware>;
-  let masterAdminMiddleware: jest.SpiedFunction<Middleware>;
-
-  beforeEach(() => {
-    serviceMiddleware = jest
-      .spyOn(ClusterKeyAuthorization, "isAuthorizedServiceMiddleware")
-      .mockImplementation(async (): Promise<void> => {
-        return undefined;
-      }) as unknown as jest.SpiedFunction<Middleware>;
-    masterAdminMiddleware = jest
-      .spyOn(
-        MasterAdminAuthorization,
-        "isAuthorizedMasterAdminOrMasterApiKeyMiddleware",
-      )
-      .mockImplementation(async (): Promise<void> => {
-        return undefined;
-      }) as unknown as jest.SpiedFunction<Middleware>;
+  test("a GET and a POST answer it, and no other method", () => {
+    expect(
+      doctorLayers().map((layer: RouteLayer): Record<string, boolean> => {
+        return layer.route?.methods || {};
+      }),
+    ).toEqual([{ get: true }, { post: true }]);
   });
 
-  afterEach(() => {
-    jest.restoreAllMocks();
-  });
+  test("the GET is the Admin Dashboard's: a master admin's session or the master API key, and nothing else first", () => {
+    const layer: RouteLayer | undefined = doctorLayer("get");
 
-  const requestWith: (headers: Record<string, string>) => ExpressRequest = (
-    headers: Record<string, string>,
-  ): ExpressRequest => {
-    return { headers: headers, query: {}, url: "/doctor" } as ExpressRequest;
-  };
-
-  test("a request that presents the cluster key is judged by the cluster key alone", async () => {
-    await installationHealthMiddleware(
-      requestWith({ clusterkey: "some-key" }),
-      {} as ExpressResponse,
-      (): void => {
-        return undefined;
-      },
-    );
-
-    expect(serviceMiddleware).toHaveBeenCalledTimes(1);
-    expect(masterAdminMiddleware).not.toHaveBeenCalled();
-  });
-
-  test("KEDA's spelling of the header counts too", async () => {
-    await installationHealthMiddleware(
-      requestWith({ "x-clusterkey": "some-key" }),
-      {} as ExpressResponse,
-      (): void => {
-        return undefined;
-      },
-    );
-
-    expect(serviceMiddleware).toHaveBeenCalledTimes(1);
-  });
-
-  test("any other request needs a master admin, or the master API key", async () => {
-    await installationHealthMiddleware(
-      requestWith({ apikey: "x" }),
-      {} as ExpressResponse,
-      (): void => {
-        return undefined;
-      },
-    );
-
-    expect(masterAdminMiddleware).toHaveBeenCalledTimes(1);
-    expect(serviceMiddleware).not.toHaveBeenCalled();
-  });
-
-  test("the route is registered with this middleware first", () => {
-    const layer:
-      | { route?: { path: string; stack: Array<{ handle: unknown }> } }
-      | undefined = (
-      AdminHealthRouter as unknown as {
-        stack: Array<{
-          route?: { path: string; stack: Array<{ handle: unknown }> };
-        }>;
-      }
-    ).stack.find((candidate: { route?: { path: string } }): boolean => {
-      return candidate.route?.path === "/doctor";
-    });
-
-    expect(layer?.route?.stack[0]?.handle).toBe(installationHealthMiddleware);
     expect(layer?.route?.stack).toHaveLength(2);
+    expect(layer?.route?.stack[0]?.handle).toBe(
+      MasterAdminAuthorization.isAuthorizedMasterAdminOrMasterApiKeyMiddleware,
+    );
+  });
+
+  test("the POST is the doctor's and diagnose.sh's: ClusterKeyAuthorization's one check, and nothing else first", () => {
+    const layer: RouteLayer | undefined = doctorLayer("post");
+
+    expect(layer?.route?.stack).toHaveLength(2);
+    expect(layer?.route?.stack[0]?.handle).toBe(
+      ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
+    );
   });
 });
 
+/*
+ * Real HTTP through the real router and the real checks - the router holds
+ * them from when it was loaded - with the session a check reads
+ * (UserMiddleware.readRequestSession) and the master API key's lookup
+ * (ProjectMiddleware.isMasterApiKey) stood in for, every datastore down and
+ * the proof stood in for.
+ */
 describe("over HTTP", () => {
   let httpServer: Server;
   let baseUrl: string = "";
+
+  interface Asked {
+    status: number;
+    message: string | null;
+    answer: InstallationHealthAnswer | null;
+  }
+
+  const EVERY_DATASTORE_DOWN: Array<string> = [
+    InstallationHealthFindingId.Postgres,
+    InstallationHealthFindingId.Clickhouse,
+    InstallationHealthFindingId.Valkey,
+  ];
 
   beforeAll(async () => {
     const app: ExpressApplication = createExpressApp();
@@ -388,6 +388,8 @@ describe("over HTTP", () => {
     });
   });
 
+  let createProof: SpyInstance<typeof CustomDomainServerReadiness.createProof>;
+
   beforeEach(() => {
     jest.spyOn(logger, "error").mockImplementation((): void => {
       return undefined;
@@ -396,88 +398,202 @@ describe("over HTTP", () => {
     jest.spyOn(PostgresAppInstance, "getDataSource").mockReturnValue(null);
     jest.spyOn(ClickhouseAppInstance, "getDataSource").mockReturnValue(null);
     jest.spyOn(Redis, "getClient").mockReturnValue(null);
-    jest
+    createProof = jest
       .spyOn(CustomDomainServerReadiness, "createProof")
       .mockReturnValue("nonce.signature");
+    // The installation's master API key, and no other.
     jest
-      .spyOn(ClusterKeyAuthorization, "isAuthorizedServiceMiddleware")
-      .mockImplementation(
-        async (
-          _req: ExpressRequest,
-          _res: ExpressResponse,
-          next: NextFunction,
-        ): Promise<void> => {
-          next();
-        },
-      );
-    jest
-      .spyOn(
-        MasterAdminAuthorization,
-        "isAuthorizedMasterAdminOrMasterApiKeyMiddleware",
-      )
-      .mockImplementation(
-        async (
-          _req: ExpressRequest,
-          _res: ExpressResponse,
-          next: NextFunction,
-        ): Promise<void> => {
-          next();
-        },
-      );
+      .spyOn(ProjectMiddleware, "isMasterApiKey")
+      .mockImplementation(async (apiKey: ObjectID): Promise<boolean> => {
+        return apiKey.toString() === MASTER_API_KEY;
+      });
   });
 
   afterEach(() => {
     jest.restoreAllMocks();
   });
 
-  const get: (headers: Record<string, string>) => Promise<{
-    status: number;
-    answer: InstallationHealthAnswer | null;
-  }> = async (
+  const signInAs: (requestSession: RequestSession) => void = (
+    requestSession: RequestSession,
+  ): void => {
+    jest
+      .spyOn(UserMiddleware, "readRequestSession")
+      .mockResolvedValue(requestSession);
+  };
+
+  const session: (isMasterAdmin: boolean) => RequestSession = (
+    isMasterAdmin: boolean,
+  ): RequestSession => {
+    return {
+      kind: "user",
+      session: {
+        userId: ObjectID.generate(),
+        email: "admin@example.com",
+        name: "Admin",
+        isMasterAdmin: isMasterAdmin,
+      },
+    } as unknown as RequestSession;
+  };
+
+  const ask: (
+    method: "GET" | "POST",
     headers: Record<string, string>,
-  ): Promise<{ status: number; answer: InstallationHealthAnswer | null }> => {
+    query?: string,
+  ) => Promise<Asked> = async (
+    method: "GET" | "POST",
+    headers: Record<string, string>,
+    query: string = "",
+  ): Promise<Asked> => {
     const response: globalThis.Response = await fetch(
-      `${baseUrl}/api/admin/health/doctor`,
-      { headers },
+      `${baseUrl}/api/admin/health/doctor${query}`,
+      { method, headers },
     );
+    const body: JSONObject = (await response.json()) as JSONObject;
 
     return {
       status: response.status,
-      answer: InstallationHealthUtil.parseAnswer(await response.json()),
+      message: typeof body["message"] === "string" ? body["message"] : null,
+      answer:
+        response.status === 200
+          ? InstallationHealthUtil.parseAnswer(body)
+          : null,
     };
   };
 
-  test("with the cluster key: every datastore that does not answer, worst first, and a proof to ask HOST for", async () => {
-    const result: {
-      status: number;
-      answer: InstallationHealthAnswer | null;
-    } = await get({ clusterkey: "some-key" });
+  const findingIds: (
+    answer: InstallationHealthAnswer | null,
+  ) => Array<string> = (
+    answer: InstallationHealthAnswer | null,
+  ): Array<string> => {
+    return (answer?.findings || []).map((finding: { id: string }): string => {
+      return finding.id;
+    });
+  };
+
+  test("GET, as a master admin: every datastore that does not answer, worst first, and no proof", async () => {
+    signInAs(session(true));
+
+    const result: Asked = await ask("GET", {});
 
     expect(result.status).toBe(200);
-    expect(
-      result.answer!.findings.map((finding: { id: string }): string => {
-        return finding.id;
-      }),
-    ).toEqual([
-      InstallationHealthFindingId.Postgres,
-      InstallationHealthFindingId.Clickhouse,
-      InstallationHealthFindingId.Valkey,
-    ]);
+    expect(findingIds(result.answer)).toEqual(EVERY_DATASTORE_DOWN);
+    expect(result.answer!.findings[0]!.sentence).toBe(
+      "PostgreSQL does not answer, so OneUptime cannot read or save anything.",
+    );
+    expect(result.answer!.addressProof).toBe(null);
+    expect(result.answer!.checkedAt).not.toBe("");
+    expect(createProof).not.toHaveBeenCalled();
+  });
+
+  test("GET, with the master API key: the same findings, and no proof", async () => {
+    const result: Asked = await ask("GET", { apikey: MASTER_API_KEY });
+
+    expect(result.status).toBe(200);
+    expect(findingIds(result.answer)).toEqual(EVERY_DATASTORE_DOWN);
+    expect(result.answer!.addressProof).toBe(null);
+    expect(createProof).not.toHaveBeenCalled();
+  });
+
+  test("GET with the cluster key alone is refused: it is no master admin's session, and nothing is read", async () => {
+    const readSession: SpyInstance<typeof UserMiddleware.readRequestSession> =
+      jest.spyOn(UserMiddleware, "readRequestSession");
+
+    const result: Asked = await ask(
+      "GET",
+      ClusterKeyAuthorization.getClusterKeyHeaders(),
+    );
+
+    expect(result).toEqual({
+      status: 401,
+      message: "Unauthorized: Access token is required.",
+      answer: null,
+    });
+    // Judged as a request with no session: the real reader, which found none.
+    expect(readSession).toHaveBeenCalledTimes(1);
+    expect(createProof).not.toHaveBeenCalled();
+  });
+
+  test("GET with the cluster key beside the session of someone who is not a master admin is refused", async () => {
+    signInAs(session(false));
+
+    const result: Asked = await ask(
+      "GET",
+      ClusterKeyAuthorization.getClusterKeyHeaders(),
+    );
+
+    expect(result.status).toBe(422);
+    expect(result.message).toBe(
+      "Unauthorized: Only master admins can perform this action.",
+    );
+    expect(createProof).not.toHaveBeenCalled();
+  });
+
+  test("POST, with the cluster key: the same findings, and a proof to ask HOST for", async () => {
+    const result: Asked = await ask(
+      "POST",
+      ClusterKeyAuthorization.getClusterKeyHeaders(),
+    );
+
+    expect(result.status).toBe(200);
+    expect(findingIds(result.answer)).toEqual(EVERY_DATASTORE_DOWN);
     expect(result.answer!.findings[0]!.sentence).toBe(
       "PostgreSQL does not answer, so OneUptime cannot read or save anything.",
     );
     expect(result.answer!.addressProof).toBe("nonce.signature");
-    expect(result.answer!.checkedAt).not.toBe("");
+    expect(createProof).toHaveBeenCalledTimes(1);
   });
 
-  test("a master admin gets the same findings, and no proof", async () => {
-    const result: {
-      status: number;
-      answer: InstallationHealthAnswer | null;
-    } = await get({});
+  test("POST without the key is refused, a master admin's session and the master API key too", async () => {
+    expect(await ask("POST", {})).toEqual({
+      status: 400,
+      message: CLUSTER_KEY_NOT_FOUND_MESSAGE,
+      answer: null,
+    });
+    expect(await ask("POST", { apikey: MASTER_API_KEY })).toEqual({
+      status: 400,
+      message: CLUSTER_KEY_NOT_FOUND_MESSAGE,
+      answer: null,
+    });
 
-    expect(result.status).toBe(200);
-    expect(result.answer!.findings).toHaveLength(3);
-    expect(result.answer!.addressProof).toBe(null);
+    signInAs(session(true));
+
+    expect(await ask("POST", {})).toEqual({
+      status: 400,
+      message: CLUSTER_KEY_NOT_FOUND_MESSAGE,
+      answer: null,
+    });
+    expect(createProof).not.toHaveBeenCalled();
+  });
+
+  test("POST with a wrong key, a value this repository ships, or the key in its URL, is refused", async () => {
+    expect(await ask("POST", { clusterkey: "not-the-key" })).toEqual({
+      status: 400,
+      message: INVALID_CLUSTER_KEY_MESSAGE,
+      answer: null,
+    });
+
+    for (const shipped of ["please-change-this-to-random-value", "secret"]) {
+      expect(await ask("POST", { clusterkey: shipped })).toEqual({
+        status: 400,
+        message: SHIPPED_CLUSTER_KEY_MESSAGE,
+        answer: null,
+      });
+    }
+
+    const headers: Record<string, string> =
+      ClusterKeyAuthorization.getClusterKeyHeaders();
+
+    expect(
+      await ask(
+        "POST",
+        headers,
+        `?clusterkey=${encodeURIComponent(Object.values(headers)[0]!)}`,
+      ),
+    ).toEqual({
+      status: 400,
+      message: CLUSTER_KEY_IN_URL_MESSAGE,
+      answer: null,
+    });
+    expect(createProof).not.toHaveBeenCalled();
   });
 });

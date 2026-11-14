@@ -2,6 +2,9 @@
 
 L'agent Kubernetes de OneUptime est un chart Helm qui collecte les métriques, les événements et les journaux de pods de votre cluster, les traces applicatives capturées avec eBPF et les métriques système de chaque nœud, et les envoie à OneUptime. Un seul `helm install` le met en place, sans aucune modification du code de vos applications. Les [moniteurs Kubernetes](/docs/monitor/kubernetes-monitor) alertent sur ce qu'il envoie.
 
+> [!NOTE]
+> Cette page installe l'agent avec Helm, étape par étape, avec un preset pour votre plateforme. Toutes les options, le module complémentaire Amazon EKS, OpenShift et l'agent IA Kubernetes se trouvent dans [Agent Kubernetes](/docs/telemetry/kubernetes-agent), sa référence complète.
+
 :::cards
 - [Installer l'agent](#installer-lagent): Quatre étapes avec Helm.
 - [Choisir un preset](#choisir-un-preset): Clusters standard, GKE Autopilot, EKS Fargate ou OpenShift.
@@ -331,7 +334,7 @@ kubectl logs -n oneuptime-agent -l component=ebpf-instrument --tail=200
 
 ## Profilage CPU continu
 
-Le [OpenTelemetry eBPF Profiler](https://github.com/open-telemetry/opentelemetry-ebpf-profiler) peut aussi tourner sur chaque nœud, sous la forme de l'image `otel/opentelemetry-collector-ebpf-profiler`. Il échantillonne ce que chaque processus exécute, 19 fois par seconde, en Go, Java, .NET, Python, Ruby, Node.js, PHP, Perl, C, C++ et Rust, et envoie les profils à OneUptime. Ils apparaissent sous **Produits → Profils de performance**, et sous forme de flame graph sur chaque span de trace.
+Le [OpenTelemetry eBPF Profiler](https://github.com/open-telemetry/opentelemetry-ebpf-profiler) peut aussi tourner sur chaque nœud, sous la forme de l'image `otel/opentelemetry-collector-ebpf-profiler`. Il échantillonne ce que chaque processus exécute, 19 fois par seconde, en Go, Java, .NET, Python, Ruby, Node.js, PHP, Perl, C, C++ et Rust, et envoie les profils à OneUptime. Ils apparaissent sous **Produits → Profils**, et sous forme de flame graph sur chaque span de trace.
 
 **Le profilage est désactivé par défaut :** il coûte plus de CPU et de mémoire par nœud que l'instrumentation eBPF. Activez-le avec `--set profiling.enabled=true`.
 

@@ -109,38 +109,50 @@ interface Subscription {
   isStopped: boolean;
 }
 
+interface ListenRequest {
+  modelType: { new (): { tableName: string } };
+  eventType: string;
+  tenantId: { toString: () => string };
+}
+
+// What a count uses of the connection the app opened (Realtime).
+interface OpenConnection {
+  listenToModelEvent: (
+    listen: ListenRequest,
+    onEvent: (modelId: unknown) => void,
+  ) => () => void;
+}
+
 const subscriptions: Array<Subscription> = [];
 let isConnectionStarted: boolean = true;
 
-jest.mock("../../../UI/Utils/Realtime", () => {
+// The app's live connection, where a count asks for it.
+jest.mock("../../../UI/Utils/LiveConnection", () => {
+  const connection: OpenConnection = {
+    listenToModelEvent: (
+      listen: ListenRequest,
+      onEvent: (modelId: unknown) => void,
+    ): (() => void) => {
+      const subscription: Subscription = {
+        modelName: new listen.modelType().tableName,
+        eventType: listen.eventType,
+        tenantId: listen.tenantId.toString(),
+        onEvent: onEvent,
+        isStopped: false,
+      };
+
+      subscriptions.push(subscription);
+
+      return (): void => {
+        subscription.isStopped = true;
+      };
+    },
+  };
+
   return {
     __esModule: true,
-    default: {
-      isStarted: (): boolean => {
-        return isConnectionStarted;
-      },
-      listenToModelEvent: (
-        listen: {
-          modelType: { new (): { tableName: string } };
-          eventType: string;
-          tenantId: { toString: () => string };
-        },
-        onEvent: (modelId: unknown) => void,
-      ): (() => void) => {
-        const subscription: Subscription = {
-          modelName: new listen.modelType().tableName,
-          eventType: listen.eventType,
-          tenantId: listen.tenantId.toString(),
-          onEvent: onEvent,
-          isStopped: false,
-        };
-
-        subscriptions.push(subscription);
-
-        return (): void => {
-          subscription.isStopped = true;
-        };
-      },
+    getOpenLiveConnection: (): OpenConnection | null => {
+      return isConnectionStarted ? connection : null;
     },
   };
 });

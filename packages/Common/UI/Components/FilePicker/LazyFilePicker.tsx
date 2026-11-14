@@ -6,12 +6,14 @@
 import type FilePicker from "./FilePicker";
 import type { ComponentProps } from "./FilePicker";
 import {
+  FILE_PICKER_FILE_NAME_CLASS_NAME,
   FilePickerLayout,
   FilePickerPromptWords,
   getFilePickerLayout,
   getFilePickerPromptWords,
 } from "./FilePickerLayout";
 import FieldError from "../Forms/Fields/FieldError";
+import IsolatedLine from "../IsolatedText/IsolatedLine";
 import LazyControlPlaceholder from "../Forms/Fields/LazyControlPlaceholder";
 import FileModel from "../../../Models/DatabaseModels/File";
 import {
@@ -184,9 +186,11 @@ export const FilePickerPlaceholder: FunctionComponent<
                       <div className="flex min-w-0 flex-1 basis-48 items-start gap-3 text-left">
                         <div className={`h-9 w-9 shrink-0 ${BOX_CLASS_NAME}`} />
                         <div className="flex min-w-0 flex-col">
-                          <p className="break-words text-sm font-medium text-gray-900 [overflow-wrap:anywhere]">
-                            {file.name || " "}
-                          </p>
+                          <IsolatedLine
+                            as="p"
+                            text={file.name || " "}
+                            className={FILE_PICKER_FILE_NAME_CLASS_NAME}
+                          />
                           <p className="text-xs">{" "}</p>
                         </div>
                       </div>

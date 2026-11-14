@@ -19,6 +19,7 @@ import { RuleEvaluation } from "../Utils/PatternWorkScope";
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import ColumnRuleCheck, { ColumnRule } from "../Utils/Database/ColumnRuleCheck";
+import ReminderIntervalCheck from "../Utils/Rules/ReminderIntervalCheck";
 import {
   SCHEDULED_MAINTENANCE_REMINDER_TIMING_COLUMNS,
   getScheduledMaintenanceReminderRuleRefusal,
@@ -45,13 +46,16 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * When the rule reminds is checked before anything else is looked up: the
-   * values alone decide (ColumnRuleCheck) - from the Dashboard, the API,
+   * How often the rule reminds - a whole number of minutes from 1 to a year
+   * (Types/Reminder/ReminderInterval) - and when it reminds are checked
+   * before anything else is looked up: the values alone decide
+   * (ReminderIntervalCheck, ColumnRuleCheck) - from the Dashboard, the API,
    * Terraform, MCP or a workflow alike.
    */
   protected override async checkCreateBeforeReferences(
     createBy: CreateBy<Model>,
   ): Promise<void> {
+    ReminderIntervalCheck.check(createBy.data);
     ColumnRuleCheck.checkCreate(
       createBy.data,
       SCHEDULED_MAINTENANCE_REMINDER_TIMING_RULE,
@@ -61,6 +65,7 @@ export class Service extends ProjectReferencesService<Model> {
   protected override async checkUpdateBeforeReferences(
     updateBy: UpdateBy<Model>,
   ): Promise<void> {
+    ReminderIntervalCheck.check(updateBy.data);
     await ColumnRuleCheck.checkUpdate({
       service: this,
       updateBy: updateBy,

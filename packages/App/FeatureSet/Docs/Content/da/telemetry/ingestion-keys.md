@@ -45,7 +45,7 @@ Alle andre steder afviser OneUptime en browsernøgle, for eksempel over gRPC og 
 
 ## Før du begynder
 
-- **En rolle, der administrerer indtagelsesnøgler.** Project Owner eller Project Admin, eller en brugerdefineret rolle med tilladelsen Create Telemetry Ingestion Key. Telemetry-rollerne omfatter ikke indtagelsesnøgler.
+- **En rolle, der administrerer indtagelsesnøgler.** Project Owner eller Project Admin, eller en brugerdefineret rolle med tilladelsen Create Ingestion Key. Telemetry-rollerne omfatter ikke indtagelsesnøgler.
 - **På OneUptime Cloud, en betalingsmetode.** Telemetri faktureres efter forbrug, så et projekt på Free-abonnementet skal have en betalingsmetode, før det kan oprette en nøgle. Oprettelsesdialogen slutter så med et trin **Fakturering**, der viser priserne.
 
 ## Opret en indtagelsesnøgle
@@ -85,7 +85,7 @@ x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_KEY
 
 ## Lås en browsernøgle ned
 
-En browsernøgle ligger i din side, hvor alle kan kopiere den. Disse indstillinger begrænser, hvad en kopi kan gøre. Ændr dem på nøglens side med **Rediger Telemetri Ingestion Key**.
+En browsernøgle ligger i din side, hvor alle kan kopiere den. Disse indstillinger begrænser, hvad en kopi kan gøre. Ændr dem på nøglens side med **Rediger Indtagelsesnøgle**.
 
 | Indstilling | Hvad den gør |
 | --- | --- |
@@ -104,7 +104,7 @@ En origin er et skema, en vært og en valgfri port: `https://app.example.com` d�
 ]
 ```
 
-[Tjenestekataloget](/docs/telemetry/services#sådan-kommer-en-tjeneste-ind-i-kataloget) viser, hvordan et fastlåst navn bestemmer tjenesten. Kubernetes-agentens Runner og AI-agent og infrastrukturens AI-agenter registrerer sig ikke med en fastlåst nøgle: giv dem en servernøgle uden fastlåst navn.
+[Tjenester](/docs/telemetry/services#sådan-kommer-en-tjeneste-ind-i-kataloget) viser, hvordan et fastlåst navn bestemmer tjenesten. Kubernetes-agentens Runner og AI-agent og infrastrukturens AI-agenter registrerer sig ikke med en fastlåst nøgle: giv dem en servernøgle uden fastlåst navn.
 
 ## Udskift, slå fra eller slet en nøgle
 
@@ -112,9 +112,9 @@ En nøgles side viser dens **Status**, dens **Hemmelig nøgle** bag **Click to r
 
 | For at | Gør dette | Hvad afsendere ser |
 | --- | --- | --- |
-| Stoppe en nøgle med det samme og kunne fortryde det senere | Klik på **Rediger Telemetri Ingestion Key**, åbn **Adgang og grænser**, og slå **Aktiveret** fra. Statussen viser **Disabled — telemetry refused**. | `422`, indtil du slår den til igen |
+| Stoppe en nøgle med det samme og kunne fortryde det senere | Klik på **Rediger Indtagelsesnøgle**, åbn **Adgang og grænser**, og slå **Aktiveret** fra. Statussen viser **Disabled — telemetry refused**. | `422`, indtil du slår den til igen |
 | Erstatte en lækket hemmelighed | Klik på **Nulstil hemmelig nøgle**, og bekræft. Nøglen beholder sine indstillinger og får en ny hemmelighed. | `401`, indtil de sender den nye hemmelighed |
-| Stoppe en nøgle for altid | Klik på **Slet Telemetri Ingestion Key** nederst på dens side. | `401` |
+| Stoppe en nøgle for altid | Klik på **Slet Indtagelsesnøgle** nederst på dens side. | `401` |
 
 For at skifte en hemmelighed uden at miste data skal du oprette en ny nøgle, flytte dine afsendere over til den og slette den gamle nøgle, når dens **Last Used At** holder op med at ændre sig. **Last Used At** opdateres hvert par minutter, ikke ved hver anmodning.
 
@@ -155,7 +155,7 @@ Intet har sendt data med denne nøgle, siden OneUptime begyndte at registrere br
 
 :::cards
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Send spor, metrikker og protokoller med din nøgle.
-- [Tjenestekatalog](/docs/telemetry/services): Se de tjenester, din telemetri lægges under.
+- [Tjenester](/docs/telemetry/services): Se de tjenester, din telemetri lægges under.
 - [Dataopbevaring](/docs/telemetry/data-retention): Bestem, hvor længe dataene opbevares.
 - [Drop-filtre og scrub-regler](/docs/telemetry/drop-filters-and-scrub-rules): Kassér eller maskér data, før de gemmes.
 - [Indtagelsesbudgetter](/docs/telemetry/ingestion-budgets): Begræns, hvor meget hver nøgle må sende på en dag.

@@ -1,6 +1,6 @@
 # Monitortrinn
 
-`monitor_steps` er attributtet i `oneuptime_monitor` som sier hva en monitor sjekker, og hvordan hvert resultat bedømmes: adressen som skal sjekkes, forespørselen som skal sendes, og kriteriene som gjør et resultat om til en monitorstatus, en hendelse eller et varsel. Denne siden forklarer hver del av det.
+`monitor_steps` er attributtet i `oneuptime_monitor` som sier hva en monitor sjekker, og hvordan hvert resultat bedømmes: adressen som skal sjekkes, forespørselen som skal sendes, og kriteriene som gjør et resultat om til en monitorstatus, en hendelse eller et varsel. Denne siden forklarer hver del av det. Dashbordet viser et stegs kriterier på monitorens side **Kriterier**, slik [Kriterier og statuser](/docs/monitor/criteria-and-statuses) beskriver.
 
 :::cards
 - [Slik bedømmes en sjekk](#slik-bedømmes-en-sjekk): Kriteriene i rekkefølge, og det første som stemmer.

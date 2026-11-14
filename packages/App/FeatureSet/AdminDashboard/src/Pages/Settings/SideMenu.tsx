@@ -52,6 +52,19 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           }}
           icon={IconProp.ShieldCheck}
         />
+        {/*
+         * The products every project on this server offers (#6815): a
+         * preset in one click, or a switch per product.
+         */}
+        <SideMenuItem
+          link={{
+            title: t("sideMenu.settingsProducts"),
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_PRODUCTS] as Route,
+            ),
+          }}
+          icon={IconProp.Squares}
+        />
         {EnterpriseSettingsItems ? <EnterpriseSettingsItems /> : <></>}
       </SideMenuSection>
 

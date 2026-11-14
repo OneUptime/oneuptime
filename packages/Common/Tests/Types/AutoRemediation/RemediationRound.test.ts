@@ -396,13 +396,57 @@ describe("Try again's refusals", () => {
       AiOff:
         "OneUptime AI is switched off for this project. A project owner or someone with Manage Billing can turn it on in Project Settings > AI > AI Features.",
       NoProvider:
-        "This project has no AI provider to work out a fix with. Add one in Project Settings > AI > LLM Providers, then try again.",
+        "This project has no LLM provider to work out a fix with. Add one in Project Settings > AI > LLM Providers, then try again.",
       CreditsUsedUp:
         "This project's AI credits are used up. A project owner or someone with Manage Billing can add AI credits in Project Settings > AI > AI Credits.",
       LimitReached:
         "The project reached its daily AI limit. OneUptime AI starts again at midnight UTC.",
+      IncidentTokenLimitPaused:
+        "The Daily Incident AI Token Limit is set to 0, which pauses automatic AI work for incidents. Raise it above 0 under Incidents → AI → Settings → More settings, or clear it, then try again.",
+      IncidentTokenLimitUsedUp:
+        "Automatic AI work for incidents used up today's Daily Incident AI Token Limit. Raise or clear it under Incidents → AI → Settings → More settings, or wait until midnight UTC, when it resets. Then try again.",
+      AlertTokenLimitPaused:
+        "The Daily Alert AI Token Limit is set to 0, which pauses automatic AI work for alerts. Raise it above 0 under Alerts → AI → Settings → More settings, or clear it, then try again.",
+      AlertTokenLimitUsedUp:
+        "Automatic AI work for alerts used up today's Daily Alert AI Token Limit. Raise or clear it under Alerts → AI → Settings → More settings, or wait until midnight UTC, when it resets. Then try again.",
       NotStarted: "The fix could not start again. Try again in a few minutes.",
     });
+  });
+
+  /*
+   * #7157: the incident's (alert's) own daily AI token limit is not the
+   * project's daily AI limit, and a limit of 0 is a pause that midnight
+   * does not lift: only the used-up refusals say midnight.
+   */
+  test("only the used-up and the project's limits say midnight, and each record names its own limit", () => {
+    const sayMidnight: Array<string> = Object.entries(
+      REMEDIATION_ROUND_TRY_AGAIN_REFUSALS,
+    )
+      .filter(([, sentence]: [string, string]): boolean => {
+        return sentence.includes("midnight");
+      })
+      .map(([refusal]: [string, string]): string => {
+        return refusal;
+      })
+      .sort();
+
+    expect(sayMidnight).toEqual([
+      "AlertTokenLimitUsedUp",
+      "IncidentTokenLimitUsedUp",
+      "LimitReached",
+    ]);
+    expect(
+      REMEDIATION_ROUND_TRY_AGAIN_REFUSALS.AlertTokenLimitPaused,
+    ).not.toMatch(/incident/i);
+    expect(
+      REMEDIATION_ROUND_TRY_AGAIN_REFUSALS.AlertTokenLimitUsedUp,
+    ).not.toMatch(/incident/i);
+    expect(
+      REMEDIATION_ROUND_TRY_AGAIN_REFUSALS.IncidentTokenLimitPaused,
+    ).not.toMatch(/alert/i);
+    expect(
+      REMEDIATION_ROUND_TRY_AGAIN_REFUSALS.IncidentTokenLimitUsedUp,
+    ).not.toMatch(/alert/i);
   });
 
   test("a person who may not change the record is told so, worded as the investigation's Try again", () => {

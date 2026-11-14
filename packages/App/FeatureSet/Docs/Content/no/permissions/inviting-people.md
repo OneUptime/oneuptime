@@ -52,6 +52,8 @@ Skriv adressen i **E-post**. Hvis ingen OneUptime-konto bruker den ennå, ber di
 ### Send invitasjonen
 
 Klikk på **Inviter**. OneUptime sender invitasjonen på e-post og åpner personens side. Personen vises som **Invitasjon sendt** til invitasjonen er godtatt.
+
+På en selvhostet server som ikke kan sende e-post ennå, sendes ingen e-post, og personen vises som **Invitert**. En hovedadministrator ser først **Send dem invitasjonslenken**: kopier lenken, send den selv til personen, og klikk deretter på **Ferdig**. Alle andre ber serverens administrator om å [sette opp e-post](/docs/emails/smtp#åpne-skjemaet).
 :::
 
 > [!TIP]
@@ -84,7 +86,7 @@ Filtrer listen etter **Bruker**, **Status** eller **Team**. Klikk på en rad for
 | --- | --- |
 | **Profil** | Navn, e-postadresse, bilde og bruker-ID. |
 | **Team** | Teamene personen er med i. Legg til eller fjern et team her. |
-| **Beredskap**, **Varselmetoder**, **Vaktregler** | Om personen kan tilkalles, og hvordan. Vises for Project Owners, Project Admins, personen selv og alle som kan lese andres varselregler. Se [Beredskap og rapporter](/docs/on-call/readiness). |
+| **Beredskap**, **Varselmetoder**, **Slik når man meg** | Om personen kan tilkalles, og hvordan. Vises for Project Owners, Project Admins, personen selv og alle som kan lese andres varselregler. Se [Beredskap og rapporter](/docs/on-call/readiness). |
 | **Egendefinerte felt** | Prosjektets egendefinerte felt for personer, hvis det har noen. |
 | **Fjern fra prosjekt** | Ta personen ut av prosjektet. |
 
@@ -134,6 +136,8 @@ I OneUptime Cloud har et prosjekt på Free-abonnementet plass til én person. En
 
 :::details Invitasjonsmeldingen kom ikke frem, eller lenken er utløpt
 Invitasjonen avhenger ikke av e-posten. Be personen registrere seg med den inviterte adressen: OneUptime sender den adressen en ny lenke for å fullføre kontoen. Den som allerede har en konto, logger inn og finner invitasjonen.
+
+På en selvhostet server som ikke kan sende e-post ennå, kan heller ikke registreringen sende en ny lenke på e-post: den ber i stedet personen spørre etter invitasjonslenken sin. Når serverens administrator har [satt opp e-post](/docs/emails/smtp#åpne-skjemaet), virker registreringen som over. Inntil da kan en hovedadministrator fjerne personen fra prosjektet, invitere personen igjen og sende den nye invitasjonslenken, som virker én gang, bare for den adressen, i 7 dager.
 :::
 
 :::details Inviter bruker sier at brukerne styres av SCIM Push Groups

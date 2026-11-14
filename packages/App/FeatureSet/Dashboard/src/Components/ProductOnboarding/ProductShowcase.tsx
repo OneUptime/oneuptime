@@ -4,7 +4,7 @@ import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import ResourceShowcaseCard, {
   ShowcaseAddButton,
 } from "../ResourceShowcase/ResourceShowcaseCard";
-import { ProductKey, ProductOnboarding } from "./ProductOnboarding";
+import { OnboardedProductKey, ProductOnboarding } from "./ProductOnboarding";
 import { getProductOnboarding } from "./ProductOnboardings";
 
 /*
@@ -19,7 +19,7 @@ import { getProductOnboarding } from "./ProductOnboardings";
 export const PRODUCT_SHOWCASE_TEST_ID: string = "product-showcase";
 
 export interface ComponentProps {
-  product: ProductKey;
+  product: OnboardedProductKey;
   // The page's own first step, as its own button says it.
   startButton?: ShowcaseAddButton | undefined;
   // Where the page above already walks through its own steps.
@@ -64,6 +64,7 @@ const ProductShowcase: FunctionComponent<ComponentProps> = (
         showcase={onboarding.showcase}
         addButton={props.startButton}
         docsRoute={onboarding.docsRoute}
+        guideRoute={onboarding.guideRoute}
         hidesSteps={props.hidesSteps}
         hidesDescription={props.hidesDescription}
       />

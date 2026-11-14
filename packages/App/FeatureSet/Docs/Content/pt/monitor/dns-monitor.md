@@ -52,7 +52,7 @@ Clique em **Testar monitor**, escolha uma sonda em **Selecionar Sonda** e clique
 
 ### Revisar os critérios
 
-**Critérios do monitor** começa com os [critérios padrão](#critérios-padrão): offline quando o nome não resolve, no ar quando resolve. Para verificar o que os registros dizem, adicione um filtro **Valor do registro DNS** e clique em **Próximo**.
+**Critérios** começa com os [critérios padrão](#critérios-padrão): offline quando o nome não resolve, no ar quando resolve. Para verificar o que os registros dizem, adicione um filtro **Valor do registro DNS** e clique em **Próximo**.
 
 ### Escolher as sondas e criar
 

@@ -2,11 +2,14 @@
 
 Vagt er den måde, OneUptime får en person sat på et problem, på alle tider af døgnet. Når en hændelse, en advarsel eller en episode har brug for nogen, tilkalder dens vagtpolitikker folk niveau for niveau, indtil nogen kvitterer, og hver person nås på den måde, de har valgt: en pushnotifikation, en sms, et opkald, en e-mail eller en chatbesked. Denne side viser, hvordan delene hænger sammen, og hvor hver del findes. Hvert ord, der bruges om vagt, er forklaret med en sætning eller to i [Ordliste](/docs/introduction/glossary#vagtpolitik).
 
+> [!TIP]
+> Ny her? Følg guiden først: [Bliv tilkaldt via opkald, SMS eller push](/docs/guides/paging).
+
 :::cards
 - [Sådan når et tilkald frem](#sådan-når-et-tilkald-frem): Fra en ny hændelse til den person, der svarer.
 - [Byggestenene](#byggestenene): Politikker, eskaleringsregler, vagtplaner, tilsidesættelser og personlige regler.
 - [Opsæt vagt](#opsæt-vagt): Fra ingenting til et team, der tilkaldes, i fem trin.
-- [Hvor vagt findes](#hvor-vagt-findes): Menuen Vagtordning, sektion for sektion.
+- [Hvor vagt findes](#hvor-vagt-findes): Menuen Vagt, sektion for sektion.
 :::
 
 ## Sådan når et tilkald frem
@@ -45,17 +48,17 @@ Se [Ordliste](/docs/introduction/glossary) for de ord, der bruges på tværs af 
 | Eskaleringsregel | Ét niveau i en politik: hvem det tilkalder, og hvor længe det venter på en kvittering | [Eskaleringsregler](/docs/on-call/escalation-rules) |
 | Vagtplan | Hvem der har vagt på et givet tidspunkt, efterhånden som folk skiftes | [Vagtplaner](/docs/on-call/schedules) |
 | Brugertilsidesættelse | Hvem der dækker for nogen, mens de er fraværende | [Brugertilsidesættelser](/docs/on-call/user-overrides) |
-| Personlige vagtregler | Hvordan én person nås: hvilken metode, og efter hvor lang tid | [Personlige vagtregler](/docs/notifications/on-call-rules) |
+| Sådan når man mig | Hvordan én person nås: hvilken metode, og efter hvor lang tid | [Sådan når man mig](/docs/notifications/on-call-rules) |
 | Politik for indgående opkald | Et telefonnummer, der ringer til den, der har vagt | [Politik for indgående opkald](/docs/on-call/incoming-call-policy) |
 
-Politikker, eskaleringsregler, vagtplaner og tilsidesættelser hører til projektet, under **Vagtordning**. Notifikationsmetoder og personlige vagtregler hører til hver person, under **Brugerindstillinger**: en administrator kan se nogens opsætning, men kun personen selv kan bekræfte sin telefon eller e-mail. Se [Sådan når OneUptime dig](/docs/notifications/index).
+Politikker, eskaleringsregler, vagtplaner og tilsidesættelser hører til projektet, under **Vagt**. Notifikationsmetoder og personlige vagtregler hører til hver person, under **Brugerindstillinger**: en administrator kan se nogens opsætning, men kun personen selv kan bekræfte sin telefon eller e-mail. Se [Sådan når OneUptime dig](/docs/notifications/index).
 
 ## Opsæt vagt
 
 :::steps
 ### Byg en vagtplan
 
-Åbn **Vagtordning** fra menuen **Produkter**, og gå til **Vagtplaner**. Klik på **Opret vagtplan**, giv den et navn, og vælg under **Hvem skiftes til at have vagt?** personerne i den rækkefølge, de skiftes. Se [Vagtplaner](/docs/on-call/schedules).
+Åbn **Vagt** fra menuen **Produkter**, og gå til **Vagtplaner**. Klik på **Opret vagtplan**, giv den et navn, og vælg under **Hvem skiftes til at have vagt?** personerne i den rækkefølge, de skiftes. Se [Vagtplaner](/docs/on-call/schedules).
 
 ### Opret en politik
 
@@ -71,7 +74,7 @@ Et projekts første politik kan gøre det allerede, når den oprettes: lad **Udl
 
 ### Tjek, at alle kan nås
 
-Åbn **Vagtordning → Parathed**. Alle, dine politikker kan tilkalde, står som **Klar**, **Kræver opsætning** eller **Utilgængelig**, med det, der mangler. Se [Parathed og rapporter](/docs/on-call/readiness).
+Åbn **Vagt → Parathed**. Alle, dine politikker kan tilkalde, står som **Klar**, **Kræver opsætning** eller **Utilgængelig**, med det, der mangler. Se [Parathed og rapporter](/docs/on-call/readiness).
 :::
 
 > [!NOTE]
@@ -79,7 +82,7 @@ Et projekts første politik kan gøre det allerede, når den oprettes: lad **Udl
 
 ## Hvor vagt findes
 
-Åbn **Vagtordning** fra menuen **Produkter** i den øverste bjælke. Den åbner på **Vagtpolitikker**, på `/dashboard/{projectId}/on-call-duty/policies`, og dens sidemenu rummer resten:
+Åbn **Vagt** fra menuen **Produkter** i den øverste bjælke. Den åbner på **Vagtpolitikker**, på `/dashboard/{projectId}/on-call-duty/policies`, og dens sidemenu rummer resten:
 
 | Sektion | Sider |
 | --- | --- |
@@ -103,11 +106,11 @@ Når du har vagt for en politik, viser klokken øverst til højre det. Klik på 
 :::
 
 :::details Nogen blev tilkaldt på den forkerte kanal, eller slet ikke
-Åbn **Vagtordning → Parathed**, og klik på **Dækning** i personens række. Den viser de metoder, personen har bekræftet, og hver alvorlighed, personen ikke har en regel for. Kun personen selv kan rette det, under **Brugerindstillinger**: send en påmindelse om opsætningen fra samme side. Se [Parathed og rapporter](/docs/on-call/readiness). På OneUptime Cloud kan en telefon, der blokerer ukendte opkald, tavsgøre et kald: føj [OneUptimes numre](/docs/on-call/phone-number-whitelist) til dens tilladelsesliste.
+Åbn **Vagt → Parathed**, og klik på **Dækning** i personens række. Den viser de metoder, personen har bekræftet, og hver alvorlighed, personen ikke har en regel for. Kun personen selv kan rette det, under **Brugerindstillinger**: send en påmindelse om opsætningen fra samme side. Se [Parathed og rapporter](/docs/on-call/readiness). På OneUptime Cloud kan en telefon, der blokerer ukendte opkald, tavsgøre et kald: føj [OneUptimes numre](/docs/on-call/phone-number-whitelist) til dens tilladelsesliste.
 :::
 
 :::details En person på ferie bliver stadig tilkaldt
-Tilføj en brugertilsidesættelse med personen under **Hvem er fraværende?**. En under **Vagtordning → Avanceret → Brugertilsidesættelser** gælder for alle politikker; en på en politiks egen side **Brugertilsidesættelser** gælder kun for den politik. Se [Brugertilsidesættelser](/docs/on-call/user-overrides).
+Tilføj en brugertilsidesættelse med personen under **Hvem er fraværende?**. En under **Vagt → Avanceret → Brugertilsidesættelser** gælder for alle politikker; en på en politiks egen side **Brugertilsidesættelser** gælder kun for den politik. Se [Brugertilsidesættelser](/docs/on-call/user-overrides).
 :::
 
 ## Næste trin

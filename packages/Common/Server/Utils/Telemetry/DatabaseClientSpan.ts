@@ -274,11 +274,11 @@ export function formatQueryText(text: string): string {
  * A statement's operation ("SELECT", "INSERT", "START TRANSACTION") and the
  * table it reads or writes, for the span's name. Read with a single pass of
  * index arithmetic over at most MAX_SUMMARY_SCAN_LENGTH characters - never a
- * regular expression, since statements can be megabytes long (AGENTS.md,
- * "Megabyte-long values"). Strings, quoted identifiers, comments and
- * parenthesised subqueries are stepped over, so the table is the statement's
- * own: `SELECT (SELECT 1 FROM "A") FROM "B"` reads B. Anything it cannot read
- * is null, never an error.
+ * regular expression, since statements can be megabytes long
+ * (Docs/notifications/README.md, "Megabyte-long values"). Strings, quoted
+ * identifiers, comments and parenthesised subqueries are stepped over, so the
+ * table is the statement's own: `SELECT (SELECT 1 FROM "A") FROM "B"` reads B.
+ * Anything it cannot read is null, never an error.
  */
 export function summarizeStatement(text: string): StatementSummary {
   if (typeof text !== "string" || text.length === 0) {

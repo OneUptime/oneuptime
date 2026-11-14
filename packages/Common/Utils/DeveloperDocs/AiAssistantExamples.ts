@@ -7,6 +7,7 @@ import {
   withIndefiniteArticle,
 } from "./ExampleValues";
 import { getTerraformTypeName } from "./TerraformSchema";
+import { getApiPluralName, getApiSingularName } from "../ModelApiName";
 
 /*
  * What the dashboard's Developer > AI Assistants pages show: how to connect
@@ -58,10 +59,9 @@ export function getMcpToolNames(
   }
 
   const model: DatabaseBaseModel = new modelType();
-  const singularName: string = model.singularName || model.tableName || "";
-  const pluralName: string = model.pluralName || `${singularName}s`;
-  const singular: string = sanitizeMcpToolName(singularName);
-  const plural: string = sanitizeMcpToolName(pluralName);
+  // By the names the API keeps: a model renamed on screen keeps its tools.
+  const singular: string = sanitizeMcpToolName(getApiSingularName(model));
+  const plural: string = sanitizeMcpToolName(getApiPluralName(model));
 
   return {
     create: `create_${singular}`,

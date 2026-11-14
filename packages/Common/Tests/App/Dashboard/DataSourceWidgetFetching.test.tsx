@@ -607,9 +607,7 @@ describe("Data Source widget fetching", () => {
       });
 
       expect(fetchTimeSeriesMock).not.toHaveBeenCalled();
-      expect(
-        screen.getByText("Click to configure a query"),
-      ).toBeInTheDocument();
+      expect(screen.getByText("No query set up yet.")).toBeInTheDocument();
     });
 
     test("value widget with whitespace-only query text is not configured", () => {
@@ -620,18 +618,14 @@ describe("Data Source widget fetching", () => {
 
       expect(fetchTimeSeriesMock).not.toHaveBeenCalled();
       expect(screen.getByText("Requests")).toBeInTheDocument();
-      expect(
-        screen.getByText("Click to configure a query"),
-      ).toBeInTheDocument();
+      expect(screen.getByText("No query set up yet.")).toBeInTheDocument();
     });
 
     test("value widget with no query object at all renders its setup prompt", () => {
       renderValueWidget({ title: "Requests" });
 
       expect(fetchTimeSeriesMock).not.toHaveBeenCalled();
-      expect(
-        screen.getByText("Click to configure a query"),
-      ).toBeInTheDocument();
+      expect(screen.getByText("No query set up yet.")).toBeInTheDocument();
     });
 
     test("gauge widget with whitespace-only query text is not configured", () => {
@@ -642,9 +636,7 @@ describe("Data Source widget fetching", () => {
 
       expect(fetchTimeSeriesMock).not.toHaveBeenCalled();
       expect(screen.getByText("CPU")).toBeInTheDocument();
-      expect(
-        screen.getByText("Click to configure a query"),
-      ).toBeInTheDocument();
+      expect(screen.getByText("No query set up yet.")).toBeInTheDocument();
     });
 
     test("gauge widget falls back to its own setup title when untitled", () => {
@@ -662,9 +654,7 @@ describe("Data Source widget fetching", () => {
 
       expect(fetchTableMock).not.toHaveBeenCalled();
       expect(screen.getByText("Slow queries")).toBeInTheDocument();
-      expect(
-        screen.getByText("Click to configure a query"),
-      ).toBeInTheDocument();
+      expect(screen.getByText("No query set up yet.")).toBeInTheDocument();
     });
 
     test("table widget with a blank data source renders its setup prompt", () => {
@@ -689,9 +679,7 @@ describe("Data Source widget fetching", () => {
       });
 
       expect(fetchTimeSeriesMock).not.toHaveBeenCalled();
-      expect(
-        screen.getByText("Click to configure a query"),
-      ).toBeInTheDocument();
+      expect(screen.getByText("No query set up yet.")).toBeInTheDocument();
       expect(screen.getByText("Throughput")).toBeInTheDocument();
       expect(
         screen.queryByText("Please configure a data source query."),
@@ -702,9 +690,7 @@ describe("Data Source widget fetching", () => {
       renderChartWidget({ chartTitle: "Throughput" });
 
       expect(fetchTimeSeriesMock).not.toHaveBeenCalled();
-      expect(
-        screen.getByText("Click to configure a query"),
-      ).toBeInTheDocument();
+      expect(screen.getByText("No query set up yet.")).toBeInTheDocument();
     });
 
     // Untitled, so the prompt has to name the widget itself.
@@ -712,9 +698,7 @@ describe("Data Source widget fetching", () => {
       renderChartWidget({ queries: [] });
 
       expect(screen.getByText("Data Source Chart")).toBeInTheDocument();
-      expect(
-        screen.getByText("Click to configure a query"),
-      ).toBeInTheDocument();
+      expect(screen.getByText("No query set up yet.")).toBeInTheDocument();
     });
   });
 

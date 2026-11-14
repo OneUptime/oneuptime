@@ -430,3 +430,35 @@ describe("admin dashboard header with a foreign .hidden rule on the page", () =>
     expect(isVisibleAtWidth(pill, WIDE_DESKTOP_WIDTH_IN_PX)).toBe(true);
   });
 });
+
+/*
+ * From md to lg the header holds the logo, the edition pill, help and the
+ * profile button. A long state in a long language ("Enterprise Edition
+ * (Marketplace-Berichte schlagen fehl) Abrechnung prüfen") ran the pill over
+ * the logo at 768px. Below lg the pill is held to a width and wraps its
+ * action onto a second line; from lg up, with the whole rail beside it,
+ * nothing holds it but the header itself.
+ */
+describe("admin dashboard header: the edition pill beside the logo", () => {
+  beforeEach(() => {
+    resetHeaderState();
+  });
+
+  test("is held to a width below lg, and wraps between its parts there", async () => {
+    await renderHeader();
+
+    const pill: HTMLElement = getEditionPill();
+
+    expect(pill).toHaveClass("max-lg:max-w-[26rem]", "flex-wrap");
+
+    const widthLimit: RegExp = /(^|:)max-w-/;
+    const widthLimits: Array<string> = Array.from(pill.classList).filter(
+      (token: string): boolean => {
+        return widthLimit.test(token);
+      },
+    );
+
+    // max-w-full keeps it inside the header at every width; only below lg more.
+    expect(widthLimits.sort()).toEqual(["max-lg:max-w-[26rem]", "max-w-full"]);
+  });
+});

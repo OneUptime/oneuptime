@@ -58,6 +58,13 @@ function readLocale(locale: string): Record<string, string> {
 const DE: Record<string, string> = readLocale("de");
 const FA: Record<string, string> = readLocale("fa");
 
+/*
+ * German sets its percent sign apart from the figure with a no-break space
+ * (#7094). The arrow's accessible name keeps it; toHaveTextContent reads it
+ * as a space.
+ */
+const NO_BREAK_SPACE: string = "\u00a0";
+
 const HOUR_MS: number = 60 * 60 * 1000;
 const WEEK_START_MS: number = Date.UTC(2026, 9, 15, 10, 0, 0);
 
@@ -102,7 +109,7 @@ function viewProps(
     noDataMessage: "No data for the selected time range",
     isConfigured: true,
     setupTitle: "Value Widget",
-    setupMessage: "Click to configure metric",
+    setupMessage: "Click to configure a metric",
     title: "Orders",
     rawUnit: "",
     metricName: "orders.count",
@@ -149,14 +156,15 @@ describe("the Value widget in German", () => {
   test("says which way the number moved, and against what", async () => {
     render(<ValueWidgetView {...viewProps(100, 125)} />);
 
+    // German sets the percent sign apart from its figure (#7094).
     expect(screen.getByTestId(TREND_TEST_ID)).toHaveAccessibleName(
-      "25% mehr als in der ersten Hälfte des Zeitraums",
+      `25${NO_BREAK_SPACE}% mehr als in der ersten Hälfte des Zeitraums`,
     );
 
     const details: HTMLElement = await openTooltip();
 
     expect(details).toHaveTextContent(
-      "25% mehr als in der ersten Hälfte des Zeitraums",
+      "25 % mehr als in der ersten Hälfte des Zeitraums",
     );
     expect(details).toHaveTextContent("Erste Hälfte");
     expect(details).toHaveTextContent("Zweite Hälfte");
@@ -166,7 +174,7 @@ describe("the Value widget in German", () => {
     const { rerender } = render(<ValueWidgetView {...viewProps(400, 300)} />);
 
     expect(screen.getByTestId(TREND_TEST_ID)).toHaveAccessibleName(
-      "25% weniger als in der ersten Hälfte des Zeitraums",
+      `25${NO_BREAK_SPACE}% weniger als in der ersten Hälfte des Zeitraums`,
     );
 
     rerender(<ValueWidgetView {...viewProps(42, 42)} />);

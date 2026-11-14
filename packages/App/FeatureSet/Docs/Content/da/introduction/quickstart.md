@@ -2,6 +2,8 @@
 
 Denne guide fører dig fra en ny konto til en fungerende opsætning på omkring femten minutter: en monitor, der tjekker dit websted hvert femte minut, en vagtpolitik, der tilkalder dig, når webstedet går ned, og en statusside, der informerer dine kunder. Den følger tjeklisten **Velkommen til OneUptime 👋** på dit projekts startside.
 
+Kommer du fra et andet værktøj? [Importér din opsætning](/docs/introduction/getting-started#hvis-du-kommer-fra-et-andet-værktøj) først: dine monitorer, vagtplaner og statussider følger med.
+
 ```mermaid title="Det, du sætter op i denne guide"
 flowchart TB
     monitor["Webstedsmonitor"] -->|"webstedet er nede"| incident["Hændelse"]
@@ -32,6 +34,8 @@ Indtast et **Projektnavn**, for eksempel din virksomheds navn. På OneUptime Clo
 
 ### Opret det
 
+![Hjem spørger »Hvad vil du gøre først?«, med denne vejlednings tre mål markeret](screen:home-goals-three)
+
 Klik på **Opret projekt**. Dit projekts startside åbner, med tjeklisten **Velkommen til OneUptime 👋** øverst. Først spørger den **Hvad vil du gøre først?**: sæt flueben ved **Vide, når mit website eller API er nede**, **Tilkalde den rette person, når noget går ned** og **Fortælle mine kunder det via en statusside**, og klik på **Fortsæt**.
 :::
 
@@ -57,6 +61,8 @@ Behold de valgte **Sonder** og **Overvågningsinterval** **Hvert 5. minut**, og 
 
 Vil du prøve tjekket, før du gemmer, så klik på **Test monitor** i det andet trin. Alle andre monitortyper er beskrevet i [Opret en monitor](/docs/monitor/create-monitor).
 
+Vil du også tjekke et API, vælge, hvem der får besked, og sende et testkald, der beviser, at beskeden når frem til dig, så følg [Få besked, når dit websted eller API går ned](/docs/guides/website-down).
+
 ## Bliv tilkaldt, når det går ned
 
 Som det er nu, sendes en hændelse uden ejere med e-mail til projektets ejere, og det omfatter dig. For at blive tilkaldt, indtil nogen reagerer, opretter du en vagtpolitik: et projekts første udløses ved hver ny hændelse og hver ny advarsel.
@@ -64,7 +70,7 @@ Som det er nu, sendes en hændelse uden ejere med e-mail til projektets ejere, o
 :::steps
 ### Opret en vagtpolitik
 
-Klik på **Opsæt en vagtpolitik** i tjeklisten, eller åbn **Vagtordning** fra menuen **Produkter**. Klik på **Opret Vagtpolitik**, og indtast et **Navn**. Under **Hvem tilkaldes først?** klikker du på **Tilføj modtager** og vælger dig selv. Lad **Udløs den ved hver ny hændelse og hver ny advarsel** være slået til, og klik på **Opret Vagtpolitik**.
+Klik på **Opsæt en vagtpolitik** i tjeklisten, eller åbn **Vagt** fra menuen **Produkter**. Klik på **Opret Vagtpolitik**, og indtast et **Navn**. Under **Hvem tilkaldes først?** klikker du på **Tilføj modtager** og vælger dig selv. Lad **Udløs den ved hver ny hændelse og hver ny advarsel** være slået til, og klik på **Opret Vagtpolitik**.
 
 ### Se reglen, der udløser den
 
@@ -76,9 +82,11 @@ Din login-e-mail er allerede en måde at kontakte dig på. For også at få SMS 
 :::
 
 > [!NOTE]
-> SMS og telefonopkald er slået fra i et nyt projekt. En projektejer, en Billing Admin eller en person med Manage Billing slår dem til i kortet **Notifikationskanaler** under **Projektindstillinger → Notifikationer → Notifikationsindstillinger**.
+> SMS og telefonopkald er slået fra i et nyt projekt. En projektejer, en Billing Admin eller en person med Manage Billing slår dem til i kortet **Notifikationskanaler** under **Projektindstillinger → Notifikationer → Notifikationskanaler**.
 
 Se [Eskaleringsregler](/docs/on-call/escalation-rules) og [Vagtplaner](/docs/on-call/schedules) for flere niveauer, rotationer og hvor længe hvert niveau venter.
+
+Vil du tilkaldes via SMS, opkald og push, få den næste person tilkaldt, når ingen svarer, og se et testkald bevise, at det virker, så følg [Bliv tilkaldt via opkald, SMS eller push](/docs/guides/paging).
 
 ## Udgiv en statusside
 
@@ -98,6 +106,8 @@ Vælg **Oversigt** i sidemenuen. Kortet **Link til statussiden** linker til din 
 
 En ny statusside er offentlig: alle med adressen kan åbne den. Se [Statusside – branding og domæner](/docs/status-pages/branding-and-domains) for at give den dit eget domæne, logo og dine egne farver.
 
+Vil du have statussiden på dit eget domæne, over HTTPS, så følg [Udgiv en statusside](/docs/guides/status-page).
+
 ## Invitér dit team
 
 Klik på **Inviter dit team** i tjeklisten, eller åbn **Brugere** fra menuen **Produkter**, under **Indstillinger**. Klik på **Inviter bruger**, indtast personens **E-mail**, og vælg et **Team**: medlemsteamet er valgt fra start. Klik på **Inviter**. OneUptime sender invitationen med e-mail, og teamet bestemmer, hvad personen må. Se [Brugere, teams og tilladelser](/docs/permissions/index).
@@ -113,9 +123,13 @@ Erklær en testhændelse for at se hele kæden virke.
 
 ### Se, hvad der sker
 
+![»Hændelsesfeed« for en løst hændelse: hvem der blev kaldt, og hver statusændring, nyeste først](screen:incident-feed)
+
 Inden for et minut eller to tilkalder din vagtpolitik dig, og hændelsen vises på din statusside.
 
 ### Løs den
+
+![En hændelse i »Bekræftet«, med »Løs« fremhævet](screen:incident-resolve)
 
 Klik på **Løs** på hændelsens side. Tilkaldene stopper, og hændelsen forsvinder fra din statusside.
 :::

@@ -113,7 +113,7 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyFeed> {
           },
         });
 
-      logger.debug("On Call Duty Policy Feed created", {
+      logger.debug("On-Call Policy Feed created", {
         projectId: data.projectId?.toString(),
         onCallDutyPolicyId: data.onCallDutyPolicyId?.toString(),
       } as LogAttributes);

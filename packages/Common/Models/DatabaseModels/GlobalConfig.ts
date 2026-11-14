@@ -11,6 +11,7 @@ import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import Email from "../../Types/Email";
+import AmazonSesAuthenticationType from "../../Types/Email/AmazonSesAuthenticationType";
 import MailgunRegion from "../../Types/Email/MailgunRegion";
 import MailTransportType from "../../Types/Email/MailTransportType";
 import OAuthProviderType from "../../Types/Email/OAuthProviderType";
@@ -1045,6 +1046,32 @@ export default class GlobalConfig extends GlobalConfigModel {
    * Email Server Type keeps each provider's settings as they were. Every
    * key is encrypted at rest.
    */
+
+  /*
+   * How the server signs in to Amazon SES: with the access key below, or
+   * as the IAM role AWS gives the server itself (#7000), when no key is
+   * stored at all. Never set, it signs in with the access key, as every
+   * server did before there was a choice. Saving the IAM role clears the
+   * access key (GlobalConfigService).
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    allowedValues: Object.values(AmazonSesAuthenticationType),
+    title: "Amazon SES Authentication Type",
+    description:
+      "How the server signs in to Amazon SES: with an IAM user's access key, or as the IAM role AWS gives the server (IAM roles for service accounts or EKS Pod Identity, an ECS task role, an EC2 instance profile), with no key stored. Access Key when not set.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public amazonSesAuthenticationType?: AmazonSesAuthenticationType = undefined;
 
   @ColumnAccessControl({
     create: [],
@@ -2708,4 +2735,58 @@ export default class GlobalConfig extends GlobalConfigModel {
     nullable: true,
   })
   public serverSetupChoices?: JSONObject = undefined;
+
+  /*
+   * Whether OneUptime asks people how things went (issue #6832): the
+   * question at the end of a guided setup, Was this clear? and the
+   * first-week check-in, and whether Give feedback is in Help. On unless
+   * a master admin turns it off (Admin Dashboard > Feedback): the answers
+   * stay on this server either way (ProductFeedback). Off, nothing asks,
+   * nothing is offered, and ProductFeedbackAPI takes no answer.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    title: "Disable Product Feedback",
+    description:
+      "When enabled, OneUptime asks nobody how things went and offers no Give feedback: no question at the end of a guided setup, no Was this clear?, no first-week check-in.",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: true,
+    default: false,
+  })
+  public disableProductFeedback?: boolean = undefined;
+
+  /*
+   * The products switched off for every project on this server (issue
+   * #6815, Types/Product/ServerProducts): { off: [product keys], changedAt,
+   * changedByUserId }. Null until a master admin saves Admin Dashboard >
+   * Settings > Products; until then SERVER_PRODUCTS (config.env, Helm
+   * products.onThisServer) gives the starting value, and unset every product
+   * is on. Written by OneUptime only (isRoot), through the page's own route,
+   * which records who changed it: GlobalConfigService refuses a write
+   * through the CRUD API.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    title: "Server Products",
+    description:
+      "The products switched off for every project on this server, and who switched them off and when. Empty until an admin saves Admin Dashboard > Settings > Products.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public serverProducts?: JSONObject = undefined;
 }

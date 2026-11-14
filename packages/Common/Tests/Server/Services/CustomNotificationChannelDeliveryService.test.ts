@@ -2,13 +2,17 @@ import CustomNotificationChannelDeliveryService, {
   CUSTOM_CHANNEL_DELIVERY_LABEL,
   CustomChannelDeliveryResult,
 } from "../../../Server/Services/CustomNotificationChannelDeliveryService";
+import UserOnCallLogTimelineService from "../../../Server/Services/UserOnCallLogTimelineService";
 import BlockedProjectNotifications from "../../../Server/Utils/Notification/BlockedProjectNotifications";
+import { STUCK_NOTIFICATION_STATUS_MESSAGE } from "../../../Server/Utils/OnCall/OnCallNotificationStatus";
 import { NotificationDeliveryChannel } from "../../../Server/Utils/Telemetry/NotificationDeliveryMetrics";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import UserNotificationStatus from "../../../Types/UserNotification/UserNotificationStatus";
 import API from "../../../Utils/API";
+import OnCallTimelineRows from "../TestingUtils/OnCallTimelineRows";
 import {
   installFakeEnterpriseModule,
   uninstallEnterpriseModule,
@@ -180,7 +184,7 @@ describe("CustomNotificationChannelDeliveryService.send", () => {
     expect(result.message).toContain("503");
   });
 
-  test("a Notification service that cannot be reached is not ok", async () => {
+  test("a Notification service that answered with an error is not ok, in words that say so", async () => {
     post.mockResolvedValue(
       new HTTPErrorResponse(500, { message: "Internal error" }, {}),
     );
@@ -192,8 +196,27 @@ describe("CustomNotificationChannelDeliveryService.send", () => {
         payload: {},
       });
 
-    expect(result.ok).toBe(false);
-    expect(result.message.length).toBeGreaterThan(0);
+    expect(result).toEqual({
+      ok: false,
+      statusCode: 500,
+      message:
+        "The Notification service answered with an error (HTTP 500), so this may not have been sent: Internal error.",
+    });
+  });
+
+  test("an error answer with no words still says what happened", async () => {
+    post.mockResolvedValue(new HTTPErrorResponse(503, {}, {}));
+
+    const result: CustomChannelDeliveryResult =
+      await CustomNotificationChannelDeliveryService.send({
+        customNotificationChannelId: CHANNEL_ID,
+        eventType: "test",
+        payload: {},
+      });
+
+    expect(result.message).toBe(
+      "The Notification service answered with an error (HTTP 503), so this may not have been sent.",
+    );
   });
 
   test("a project a master admin blocked sends nothing", async () => {
@@ -229,5 +252,259 @@ describe("CustomNotificationChannelDeliveryService.send", () => {
 
   test("is refused by the block as a Custom Channel", () => {
     expect(CUSTOM_CHANNEL_DELIVERY_LABEL).toBe("Custom Channel");
+  });
+});
+
+/*
+ * Issue #7083: the Enterprise Edition's sender records how a request went -
+ * but when the Notification service answered with an error, it never ran,
+ * or failed on its way: the notification said Sending until the stuck
+ * check. Now it says what the answer says, over Sending only, and the
+ * answer carries the same words.
+ */
+describe("an error answer from the Notification service (issue #7083)", () => {
+  let timeline: OnCallTimelineRows;
+
+  beforeEach(() => {
+    timeline = new OnCallTimelineRows();
+    timeline.add(TIMELINE_ID, UserNotificationStatus.Sending);
+    timeline.standIn(UserOnCallLogTimelineService);
+  });
+
+  async function page(
+    options?: { isTest?: boolean | undefined } | undefined,
+  ): Promise<CustomChannelDeliveryResult> {
+    return await CustomNotificationChannelDeliveryService.send({
+      customNotificationChannelId: CHANNEL_ID,
+      eventType: "on-call.incident.created",
+      payload: {},
+      projectId: PROJECT_ID,
+      userOnCallLogTimelineId: TIMELINE_ID,
+      ...(options?.isTest !== undefined ? { isTest: options.isTest } : {}),
+    });
+  }
+
+  test("a refusal: the notification says so in the answer's words, and so does the result, with the service's status", async () => {
+    post.mockResolvedValue(
+      new HTTPErrorResponse(
+        404,
+        { message: "This custom channel no longer exists." },
+        {},
+      ),
+    );
+
+    const said: string =
+      "The Notification service refused to send this (HTTP 404): This custom channel no longer exists.";
+
+    await expect(page()).resolves.toEqual({
+      ok: false,
+      statusCode: 404,
+      message: said,
+    });
+    expect(timeline.get(TIMELINE_ID)).toMatchObject({
+      status: UserNotificationStatus.Error,
+      statusMessage: said,
+    });
+    expect(timeline.writes).toEqual([
+      {
+        id: TIMELINE_ID.toString(),
+        data: { status: UserNotificationStatus.Error, statusMessage: said },
+      },
+    ]);
+  });
+
+  test("any other error answer: it may not have been sent", async () => {
+    post.mockResolvedValue(
+      new HTTPErrorResponse(500, { message: "Internal error" }, {}),
+    );
+
+    const said: string =
+      "The Notification service answered with an error (HTTP 500), so this may not have been sent: Internal error.";
+
+    await expect(page()).resolves.toEqual({
+      ok: false,
+      statusCode: 500,
+      message: said,
+    });
+    expect(timeline.get(TIMELINE_ID)!.statusMessage).toBe(said);
+  });
+
+  test("a proxy's error page: no markup, in the result or on the notification", async () => {
+    post.mockResolvedValue(
+      new HTTPErrorResponse(
+        502,
+        "<html><body><h1>502 Bad Gateway</h1></body></html>" as unknown as JSONObject,
+        {},
+      ),
+    );
+
+    const said: string =
+      "The Notification service answered with an error (HTTP 502), so this may not have been sent.";
+
+    await expect(page()).resolves.toMatchObject({ message: said });
+    expect(timeline.get(TIMELINE_ID)!.statusMessage).toBe(said);
+  });
+
+  test("the address of the service, in the answer's words, is never shown", async () => {
+    post.mockResolvedValue(
+      new HTTPErrorResponse(
+        503,
+        {
+          message:
+            "Upstream http://app:3002/api/notification/custom-channel/send is unavailable",
+        },
+        {},
+      ),
+    );
+
+    const result: CustomChannelDeliveryResult = await page();
+
+    expect(result.message).toBe(
+      "The Notification service answered with an error (HTTP 503), so this may not have been sent: Upstream [address] is unavailable.",
+    );
+    expect(timeline.get(TIMELINE_ID)!.statusMessage).not.toContain("3002");
+  });
+
+  test("a test of the channel writes nothing: its admin reads the words in the answer", async () => {
+    post.mockResolvedValue(
+      new HTTPErrorResponse(400, { message: "Payload is not valid." }, {}),
+    );
+
+    await expect(page({ isTest: true })).resolves.toEqual({
+      ok: false,
+      statusCode: 400,
+      message:
+        "The Notification service refused to send this (HTTP 400): Payload is not valid.",
+    });
+    expect(timeline.get(TIMELINE_ID)).toMatchObject({
+      status: UserNotificationStatus.Sending,
+      version: 1,
+    });
+    expect(timeline.writes).toEqual([]);
+  });
+
+  test("a send with no notification - a person's own notification, not a page - writes nothing", async () => {
+    post.mockResolvedValue(
+      new HTTPErrorResponse(500, { message: "Internal error" }, {}),
+    );
+
+    const findOneById: jest.SpyInstance = jest.spyOn(
+      UserOnCallLogTimelineService,
+      "findOneById",
+    );
+
+    const result: CustomChannelDeliveryResult =
+      await CustomNotificationChannelDeliveryService.send({
+        customNotificationChannelId: CHANNEL_ID,
+        eventType: "test",
+        payload: {},
+        projectId: PROJECT_ID,
+      });
+
+    expect(result.ok).toBe(false);
+    expect(findOneById).not.toHaveBeenCalled();
+    expect(timeline.writes).toEqual([]);
+  });
+
+  test.each([
+    UserNotificationStatus.Sent,
+    UserNotificationStatus.Acknowledged,
+    UserNotificationStatus.PassedOn,
+    UserNotificationStatus.Error,
+  ])(
+    "a notification already %s - the sender's own result, the person's answer - stays",
+    async (status: UserNotificationStatus) => {
+      timeline.get(TIMELINE_ID)!.status = status;
+      timeline.get(TIMELINE_ID)!.statusMessage = "written first";
+
+      post.mockResolvedValue(
+        new HTTPErrorResponse(500, { message: "Internal error" }, {}),
+      );
+
+      const result: CustomChannelDeliveryResult = await page();
+
+      expect(result.ok).toBe(false);
+      expect(timeline.get(TIMELINE_ID)).toMatchObject({
+        status: status,
+        statusMessage: "written first",
+      });
+      expect(timeline.writes).toEqual([]);
+    },
+  );
+
+  test("the stuck check's verdict is replaced: the request's own result, come late", async () => {
+    timeline.get(TIMELINE_ID)!.status = UserNotificationStatus.Error;
+    timeline.get(TIMELINE_ID)!.statusMessage =
+      STUCK_NOTIFICATION_STATUS_MESSAGE;
+
+    post.mockResolvedValue(
+      new HTTPErrorResponse(400, { message: "Payload is not valid." }, {}),
+    );
+
+    await page();
+
+    expect(timeline.get(TIMELINE_ID)!.statusMessage).toBe(
+      "The Notification service refused to send this (HTTP 400): Payload is not valid.",
+    );
+  });
+
+  test("a database that fails is logged, never thrown: the page's send has nobody to hand it to", async () => {
+    jest
+      .spyOn(UserOnCallLogTimelineService, "findOneById")
+      .mockRejectedValue(new Error("connection terminated"));
+
+    post.mockResolvedValue(
+      new HTTPErrorResponse(500, { message: "Internal error" }, {}),
+    );
+
+    await expect(page()).resolves.toMatchObject({
+      ok: false,
+      statusCode: 500,
+    });
+  });
+
+  test("an answer that is not an error writes nothing: the Enterprise Edition's sender recorded how it went", async () => {
+    post.mockResolvedValue(
+      new HTTPResponse<JSONObject>(
+        200,
+        {
+          ok: false,
+          statusCode: 503,
+          message: "Not delivered: CorpoApp answered HTTP 503 (tried 3 times).",
+        },
+        {},
+      ),
+    );
+
+    const findOneById: jest.SpyInstance = jest.spyOn(
+      UserOnCallLogTimelineService,
+      "findOneById",
+    );
+
+    await expect(page()).resolves.toEqual({
+      ok: false,
+      statusCode: 503,
+      message: "Not delivered: CorpoApp answered HTTP 503 (tried 3 times).",
+    });
+    expect(findOneById).not.toHaveBeenCalled();
+    expect(timeline.writes).toEqual([]);
+  });
+
+  test("a project a master admin blocked: its refusal is the answer - nothing more is written over what it wrote", async () => {
+    refusal.mockResolvedValue(
+      new HTTPErrorResponse(
+        403,
+        { message: "Custom Channel not sent: this project is blocked." },
+        {},
+      ),
+    );
+
+    await expect(page()).resolves.toEqual({
+      ok: false,
+      statusCode: 403,
+      message: "Custom Channel not sent: this project is blocked.",
+    });
+    expect(post).not.toHaveBeenCalled();
+    expect(timeline.writes).toEqual([]);
   });
 });

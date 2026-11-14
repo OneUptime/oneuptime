@@ -29,7 +29,7 @@ Fordi plassholderne erstattes som tekst, blir `{{responseBody.item}}` til den r�
 :::steps
 ### Åpne kriteriene
 
-Åpne **Konfigurasjon → Kriterier** på monitoren, og klikk på **Rediger overvåkingskriterier**, eller bruk trinnet **Kriterier** i **Opprett monitor**. Arbeid i kriteriet du vil endre, eller klikk på **Legg til kriterier** for et nytt.
+Åpne **Konfigurasjon → Kriterier** på monitoren, og klikk på **Rediger kriterier**, eller bruk trinnet **Kriterier** i **Opprett monitor**. Arbeid i kriteriet du vil endre, eller klikk på **Legg til kriterier** for et nytt.
 
 ### Legg til et filter
 

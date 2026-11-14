@@ -16,6 +16,7 @@ import SnmpDataType from "../../../../Types/Monitor/SnmpMonitor/SnmpDataType";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import OneUptimeDate from "../../../../Types/Date";
+import logger from "../../../../Server/Utils/Logger";
 
 /*
  * Which write path each half of a device walk takes.
@@ -24,7 +25,9 @@ import OneUptimeDate from "../../../../Types/Date";
  * stored out of line. The ordinary update pipeline SELECTs the row before
  * writing it, which detoasts the PREVIOUS log a second time — the walk util
  * already read it — on the hottest table in the product. It now goes through
- * `updateColumnsByIdWithoutHooks`: one statement, no pre-read, no hooks.
+ * `updateColumnsByIdIfUnlockedWithoutHooks`: one statement, no pre-read, no
+ * hooks - and no wait for a device another writer holds (issue #7194, pinned
+ * at the end of this file).
  *
  * That is only safe because of what the payload does NOT contain. The
  * NetworkDevice update hooks re-run site-assignment rules on the identity
@@ -72,6 +75,9 @@ let hookFreeUpdateSpy: jest.SpyInstance;
 let hookedUpdateSpy: jest.SpyInstance;
 let rateSpy: jest.SpyInstance;
 let deviceFindSpy: jest.SpyInstance;
+let inventorySpy: jest.SpyInstance;
+let metricsSpy: jest.SpyInstance;
+let monitorFindSpy: jest.SpyInstance;
 
 function buildSnmpResponse(
   overrides?: Partial<SnmpMonitorResponse>,
@@ -115,17 +121,18 @@ function mockWalkPipeline(
   deviceFindSpy = jest
     .spyOn(NetworkDeviceService, "findOneBy")
     .mockResolvedValue(device);
+  // true: written - the device was not held by another writer.
   hookFreeUpdateSpy = jest
-    .spyOn(NetworkDeviceService, "updateColumnsByIdWithoutHooks")
-    .mockResolvedValue(undefined);
+    .spyOn(NetworkDeviceService, "updateColumnsByIdIfUnlockedWithoutHooks")
+    .mockResolvedValue(true);
   hookedUpdateSpy = jest
     .spyOn(NetworkDeviceService, "updateOneById")
     .mockResolvedValue(1);
-  jest.spyOn(MonitorService, "findBy").mockResolvedValue([]);
-  jest
+  monitorFindSpy = jest.spyOn(MonitorService, "findBy").mockResolvedValue([]);
+  inventorySpy = jest
     .spyOn(NetworkInventoryUtil, "updateFromWalk")
     .mockResolvedValue(undefined);
-  jest
+  metricsSpy = jest
     .spyOn(NetworkDeviceMetricUtil, "saveWalkMetrics")
     .mockResolvedValue(undefined);
   rateSpy = jest
@@ -135,12 +142,21 @@ function mockWalkPipeline(
     });
 }
 
-async function runWalk(snmpResponse: SnmpMonitorResponse): Promise<void> {
+/*
+ * `dataReceivedAt`: when OneUptime's ingest API received the poll, before
+ * the queue it waited in. Absent - a job queued before the stamp existed -
+ * the poll is timed when it is processed.
+ */
+async function runWalk(
+  snmpResponse: SnmpMonitorResponse,
+  options?: { dataReceivedAt?: Date | undefined },
+): Promise<void> {
   await NetworkDeviceWalkUtil.processWalkResult({
     probeId: PROBE_ID,
     networkDeviceId: new ObjectID(DEVICE_ID),
     snmpResponse: snmpResponse,
     monitoredAt: MONITORED_AT,
+    dataReceivedAt: options?.dataReceivedAt,
   });
 }
 
@@ -165,11 +181,17 @@ describe("NetworkDeviceWalkUtil — the lastWalkLog baseline write", () => {
    */
   test("goes through the hook-free single-statement path, never the hooked one", async () => {
     mockWalkPipeline();
+    const waitingWriteSpy: jest.SpyInstance = jest.spyOn(
+      NetworkDeviceService,
+      "updateColumnsByIdWithoutHooks",
+    );
 
     await runWalk(buildSnmpResponse());
 
     expect(hookFreeUpdateSpy).toHaveBeenCalledTimes(1);
     expect(hookedUpdateSpy).not.toHaveBeenCalled();
+    // Nor the hook-free write that waits for the row (issue #7194).
+    expect(waitingWriteSpy).not.toHaveBeenCalled();
   });
 
   test("targets the walked device by id", async () => {
@@ -346,15 +368,21 @@ describe("NetworkDeviceWalkUtil — the lastWalkLog baseline write", () => {
 
 /*
  * The other half of the split. NetworkInventoryUtil's device enrichment write
- * carries sysName — an identity column — plus lastSeenAt / isReachable, and it
- * MUST keep going through updateOneById: that is the write whose hooks
- * re-evaluate site-assignment rules for a device that has no site, and it is
- * how a discovery-imported device (imported with only an IP) ever gets placed.
+ * carries sysName — an identity column — and it MUST keep going through
+ * updateOneById: that is the write whose hooks re-evaluate site-assignment
+ * rules for a device that has no site, and it is how a discovery-imported
+ * device (imported with only an IP) ever gets placed.
+ *
+ * The poll's verdict - reachability, liveness, the interface counts - left
+ * it for a statement of its own (issue #7389), which writes it only when the
+ * device holds no verdict from a poll received later. That is safe for the
+ * same reason as the baseline above: no hook reads any of those columns.
  */
 describe("NetworkInventoryUtil — the device enrichment write", () => {
   function mockInventoryServices(): {
     hookedUpdate: jest.SpyInstance;
     hookFreeUpdate: jest.SpyInstance;
+    pollVerdict: jest.SpyInstance;
   } {
     const ownedDevice: NetworkDevice = new NetworkDevice();
     ownedDevice.id = new ObjectID(DEVICE_ID);
@@ -378,6 +406,9 @@ describe("NetworkInventoryUtil — the device enrichment write", () => {
       hookFreeUpdate: jest
         .spyOn(NetworkDeviceService, "updateColumnsByIdWithoutHooks")
         .mockResolvedValue(undefined),
+      pollVerdict: jest
+        .spyOn(NetworkDeviceService, "writePollVerdict")
+        .mockResolvedValue(true),
     };
   }
 
@@ -385,6 +416,7 @@ describe("NetworkInventoryUtil — the device enrichment write", () => {
     const spies: {
       hookedUpdate: jest.SpyInstance;
       hookFreeUpdate: jest.SpyInstance;
+      pollVerdict: jest.SpyInstance;
     } = mockInventoryServices();
 
     await NetworkInventoryUtil.updateFromWalk({
@@ -413,14 +445,17 @@ describe("NetworkInventoryUtil — the device enrichment write", () => {
   });
 
   /*
-   * The enrichment write is also the one that stamps reachability, which the
-   * device list, the topology graph and the site rollup all read. It stays on
-   * the hooked path with sysName rather than being split off for speed.
+   * Reachability - what the device list, the topology graph and the site
+   * rollup read - is written first, by the guarded verdict statement, and
+   * never by the hooked write. Moved back onto the hooked payload, an older
+   * poll processed after a newer one would put its answer back over the
+   * newer one's again.
    */
-  test("reachability and liveness ride along on that same hooked write", async () => {
+  test("reachability and liveness go through the guarded verdict write, never the hooked one", async () => {
     const spies: {
       hookedUpdate: jest.SpyInstance;
       hookFreeUpdate: jest.SpyInstance;
+      pollVerdict: jest.SpyInstance;
     } = mockInventoryServices();
 
     await NetworkInventoryUtil.updateFromWalk({
@@ -431,17 +466,97 @@ describe("NetworkInventoryUtil — the device enrichment write", () => {
         responseTimeInMs: 12,
         failureCause: "",
         oidResponses: [],
+        systemInfo: { sysName: "UN0664LANSWI03" },
       } as unknown as SnmpMonitorResponse,
       isOnline: true,
     });
 
+    expect(spies.pollVerdict).toHaveBeenCalledTimes(1);
+    expect(spies.pollVerdict.mock.calls[0][0].verdict).toEqual({
+      isReachable: true,
+      isSnmpReachable: true,
+      interfaceCounts: undefined,
+    });
+    expect(spies.pollVerdict.mock.invocationCallOrder[0]).toBeLessThan(
+      spies.hookedUpdate.mock.invocationCallOrder[0] as number,
+    );
+
     const payload: JSONObject = spies.hookedUpdate.mock.calls[0][0][
       "data"
     ] as JSONObject;
-    expect(payload["isReachable"]).toBe(true);
-    expect(payload["lastPolledAt"]).toBeDefined();
-    expect(payload["lastSeenAt"]).toBeDefined();
+
+    for (const column of [
+      "lastPollReceivedAt",
+      "lastPolledAt",
+      "isReachable",
+      "lastSeenAt",
+      "isSnmpReachable",
+      "lastSnmpSeenAt",
+      "interfacesTotal",
+      "interfacesUp",
+      "interfacesDown",
+    ]) {
+      expect(payload).not.toHaveProperty(column);
+    }
+
     expect(spies.hookFreeUpdate).not.toHaveBeenCalled();
+  });
+
+  /*
+   * The verdict statement's columns are fixed (writePollVerdict), and the
+   * verdict it is handed names none of the columns a hook watches.
+   */
+  test("the verdict carries no column any device update hook watches", async () => {
+    const spies: {
+      hookedUpdate: jest.SpyInstance;
+      hookFreeUpdate: jest.SpyInstance;
+      pollVerdict: jest.SpyInstance;
+    } = mockInventoryServices();
+
+    await NetworkInventoryUtil.updateFromWalk({
+      projectId: PROJECT_ID,
+      deviceId: new ObjectID(DEVICE_ID),
+      snmpResponse: buildSnmpResponse(),
+      isOnline: true,
+    });
+
+    const verdictKeys: Array<string> = Object.keys(
+      spies.pollVerdict.mock.calls[0][0].verdict as JSONObject,
+    );
+
+    for (const watched of HOOK_WATCHED_COLUMNS) {
+      expect(verdictKeys).not.toContain(watched);
+    }
+  });
+
+  /*
+   * A poll older than the verdict the device holds wrote nothing through the
+   * verdict statement, and its system group, neighbours and snapshots are
+   * older than the device's too: the hooked write is not made at all.
+   */
+  test("an older poll than the one the device holds makes no enrichment write", async () => {
+    const spies: {
+      hookedUpdate: jest.SpyInstance;
+      hookFreeUpdate: jest.SpyInstance;
+      pollVerdict: jest.SpyInstance;
+    } = mockInventoryServices();
+    spies.pollVerdict.mockResolvedValue(false);
+
+    await NetworkInventoryUtil.updateFromWalk({
+      projectId: PROJECT_ID,
+      deviceId: new ObjectID(DEVICE_ID),
+      snmpResponse: {
+        isOnline: true,
+        responseTimeInMs: 12,
+        failureCause: "",
+        oidResponses: [],
+        systemInfo: { sysName: "UN0664LANSWI03" },
+      } as unknown as SnmpMonitorResponse,
+      isOnline: true,
+    });
+
+    expect(spies.pollVerdict).toHaveBeenCalledTimes(1);
+    expect(spies.hookedUpdate).not.toHaveBeenCalled();
   });
 });
 
@@ -645,5 +760,414 @@ describe("NetworkDeviceWalkUtil — the counters an OID rate is computed against
     });
 
     expect(hookFreeUpdateSpy).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * OneUptime issue #7194: a telemetry queue backlog of device polls, on a
+ * database busy enough that a device's row was often held by another writer
+ * when its poll got to it.
+ *
+ * The baseline write queued for the device's row like any UPDATE, and it had
+ * no try/catch: held past lock_timeout, it failed the whole job ("canceling
+ * statement due to lock timeout"), and the queue ran the job again from the
+ * start, twice - up to three times the work for the busy database, and the
+ * backlog grew. And every poll that did get through was timed by the moment
+ * a worker dequeued it, so a draining backlog read as a burst of traffic many
+ * times its size.
+ */
+describe("NetworkDeviceWalkUtil — a busy database and a queue backlog (issue #7194)", () => {
+  const RECEIVED_AT: Date = new Date("2026-07-16T11:57:00.000Z");
+  const IF_IN_ERRORS: string = "1.3.6.1.2.1.2.2.1.14.3";
+
+  function counterReads(errors: number): Array<SnmpOidResponse> {
+    return [
+      {
+        oid: IF_IN_ERRORS,
+        name: "ifInErrors.3",
+        value: errors,
+        type: SnmpDataType.Counter32,
+      },
+    ];
+  }
+
+  function interfaceWith(
+    inOctets: number,
+    outOctets: number,
+  ): SnmpMonitorResponse["interfaces"] {
+    return [
+      {
+        interfaceIndex: 1,
+        name: "GigabitEthernet0/1",
+        isOperationallyUp: true,
+        isAdministrativelyUp: true,
+        inOctets: inOctets,
+        outOctets: outOctets,
+      },
+    ];
+  }
+
+  // The interfaces half of a stored baseline, as the jsonb column holds it.
+  function interfacesBaseline(inOctets: number, outOctets: number): JSONObject {
+    return JSON.parse(
+      JSON.stringify({ interfaces: interfaceWith(inOctets, outOctets) }),
+    ) as JSONObject;
+  }
+
+  function storedWalkLog(callIndex: number = 0): JSONObject {
+    return (hookFreeUpdateSpy.mock.calls[callIndex][0]["data"] as JSONObject)[
+      "lastWalkLog"
+    ] as JSONObject;
+  }
+
+  // What a device read back from Postgres holds: the log as jsonb gives it.
+  function deviceHolding(walkLog: JSONObject): NetworkDevice {
+    const device: NetworkDevice = new NetworkDevice();
+    device.id = new ObjectID(DEVICE_ID);
+    device.projectId = PROJECT_ID;
+    device.name = "core-sw-01";
+    device.lastWalkLog = JSON.parse(JSON.stringify(walkLog)) as JSONObject;
+    return device;
+  }
+
+  function quietWarnings(): jest.SpyInstance {
+    return jest.spyOn(logger, "warn").mockImplementation((() => {
+      return undefined;
+    }) as never);
+  }
+
+  describe("a device another writer holds", () => {
+    test("is not waited for: its baseline is left as it is, and the rest of the poll still runs", async () => {
+      mockWalkPipeline();
+      // The skip-locked write answers false: another writer held the row.
+      hookFreeUpdateSpy.mockResolvedValue(false);
+
+      await expect(runWalk(buildSnmpResponse())).resolves.toBeUndefined();
+
+      expect(hookFreeUpdateSpy).toHaveBeenCalledTimes(1);
+      expect(inventorySpy).toHaveBeenCalledTimes(1);
+      expect(metricsSpy).toHaveBeenCalledTimes(1);
+      // The monitors watching the device are still looked up and evaluated.
+      expect(monitorFindSpy).toHaveBeenCalled();
+    });
+
+    /*
+     * The failure the issue reported. Whatever else goes wrong with the
+     * write - the pool, a deadlock, a dropped connection - the baseline is
+     * a cache of the last good counters, and losing one write of it costs
+     * the next poll nothing but a longer (and still correct) window.
+     */
+    test.each([
+      ["a lock timeout", "canceling statement due to lock timeout", "55P03"],
+      ["a deadlock", "deadlock detected", "40P01"],
+      ["a dropped connection", "Connection terminated unexpectedly", undefined],
+    ])(
+      "%s on the baseline write is logged, and does not fail the poll",
+      async (_label: string, message: string, code: string | undefined) => {
+        mockWalkPipeline();
+        const warn: jest.SpyInstance = quietWarnings();
+        const failure: Error & { code?: string | undefined } = new Error(
+          message,
+        );
+        failure.code = code;
+        hookFreeUpdateSpy.mockRejectedValue(failure);
+
+        await expect(runWalk(buildSnmpResponse())).resolves.toBeUndefined();
+
+        expect(inventorySpy).toHaveBeenCalledTimes(1);
+        expect(metricsSpy).toHaveBeenCalledTimes(1);
+        expect(monitorFindSpy).toHaveBeenCalled();
+
+        const logged: Array<string> = warn.mock.calls.map(
+          (call: Array<unknown>) => {
+            return String(call[0]);
+          },
+        );
+
+        expect(
+          logged.some((line: string) => {
+            return line.includes(DEVICE_ID) && line.includes(message);
+          }),
+        ).toBe(true);
+      },
+    );
+
+    test("writeWalkBaseline answers whether it wrote, and never throws", async () => {
+      const write: jest.SpyInstance = jest.spyOn(
+        NetworkDeviceService,
+        "updateColumnsByIdIfUnlockedWithoutHooks",
+      );
+      quietWarnings();
+
+      write.mockResolvedValueOnce(true);
+      await expect(
+        NetworkDeviceWalkUtil.writeWalkBaseline({
+          deviceId: new ObjectID(DEVICE_ID),
+          lastWalkLog: { monitoredAt: NOW.toISOString() },
+        }),
+      ).resolves.toBe(true);
+
+      write.mockResolvedValueOnce(false);
+      await expect(
+        NetworkDeviceWalkUtil.writeWalkBaseline({
+          deviceId: new ObjectID(DEVICE_ID),
+          lastWalkLog: { monitoredAt: NOW.toISOString() },
+        }),
+      ).resolves.toBe(false);
+
+      write.mockRejectedValueOnce(new Error("connection reset"));
+      await expect(
+        NetworkDeviceWalkUtil.writeWalkBaseline({
+          deviceId: new ObjectID(DEVICE_ID),
+          lastWalkLog: { monitoredAt: NOW.toISOString() },
+        }),
+      ).resolves.toBe(false);
+
+      // The deleted-device guard rides on every write.
+      for (const call of write.mock.calls) {
+        expect(call[0]["expectedData"]).toEqual({ deletedAt: null });
+        expect(Object.keys(call[0]["data"] as JSONObject)).toEqual([
+          "lastWalkLog",
+        ]);
+      }
+    });
+  });
+
+  describe("the time a poll is rated at", () => {
+    test("is when OneUptime received the poll, not when a worker got to it - for the rates and for the baseline", async () => {
+      mockWalkPipeline({
+        ...PREVIOUS_WALK_LOG,
+        oidCounters: {
+          values: { [IF_IN_ERRORS]: "1200" },
+          readAt: "2026-07-16T11:55:00.000Z",
+        },
+      });
+
+      const snmpResponse: SnmpMonitorResponse = buildSnmpResponse({
+        oidResponses: counterReads(1320),
+      });
+
+      await runWalk(snmpResponse, { dataReceivedAt: RECEIVED_AT });
+
+      // The interfaces: compared at the receipt time.
+      expect(rateSpy.mock.calls[0][0].now).toEqual(RECEIVED_AT);
+      // The counter OIDs: 120 more errors over the 120 s since 11:55:00.
+      expect(snmpResponse.oidResponses[0]!.ratePerSecond).toBe(1);
+
+      // And the next poll's baseline is stamped with it, not the worker's now.
+      const walkLog: JSONObject = storedWalkLog();
+      expect(walkLog["monitoredAt"]).toEqual(RECEIVED_AT);
+      expect(walkLog["oidCounters"]).toEqual({
+        values: { [IF_IN_ERRORS]: "1320" },
+        readAt: RECEIVED_AT.toISOString(),
+      });
+    });
+
+    test.each([
+      ["has no receipt time (queued before the stamp existed)", undefined],
+      ["has an unreadable receipt time", new Date("not a date")],
+    ])(
+      "is the moment it is processed when the job %s",
+      async (_label: string, dataReceivedAt: Date | undefined) => {
+        mockWalkPipeline();
+        const transceiverSpy: jest.SpyInstance = jest.spyOn(
+          NetworkDeviceWalkUtil,
+          "applyTransceivers",
+        );
+
+        await runWalk(buildSnmpResponse(), { dataReceivedAt });
+
+        expect(rateSpy.mock.calls[0][0].now).toEqual(NOW);
+        expect(storedWalkLog()["monitoredAt"]).toEqual(NOW);
+        expect(transceiverSpy.mock.calls[0][0].now).toEqual(NOW);
+        expect(inventorySpy.mock.calls[0][0].receivedAt).toEqual(NOW);
+      },
+    );
+
+    /*
+     * Everything else the poll saw is timed at the same receipt (issue
+     * #7389): the inventory - when the device, its interfaces and its
+     * endpoints were last seen, and the readings of its own MAC and
+     * address - and the transceivers' judgement.
+     */
+    test("is the time the inventory and the transceivers are stamped with too", async () => {
+      mockWalkPipeline();
+      const transceiverSpy: jest.SpyInstance = jest.spyOn(
+        NetworkDeviceWalkUtil,
+        "applyTransceivers",
+      );
+
+      await runWalk(buildSnmpResponse(), { dataReceivedAt: RECEIVED_AT });
+
+      expect(inventorySpy).toHaveBeenCalledTimes(1);
+      expect(inventorySpy.mock.calls[0][0].receivedAt).toEqual(RECEIVED_AT);
+      expect(transceiverSpy).toHaveBeenCalledTimes(1);
+      expect(transceiverSpy.mock.calls[0][0].now).toEqual(RECEIVED_AT);
+    });
+
+    /*
+     * The burst the issue's charts would have shown. Two polls five minutes
+     * apart wait out a backlog and are processed two seconds apart. Timed by
+     * the dequeues, the second poll's five minutes of traffic were divided
+     * by two seconds: 150 times the real rate, on the chart and against every
+     * bandwidth and error-rate criteria.
+     */
+    test("a backlog drained in seconds is rated over the minutes between the polls, not the seconds between the dequeues", async () => {
+      mockWalkPipeline(null);
+      rateSpy.mockRestore();
+      const clock: jest.SpyInstance = jest.spyOn(
+        OneUptimeDate,
+        "getCurrentDate",
+      );
+
+      // Received 11:50:00, processed at 13:00:00.
+      clock.mockReturnValue(new Date("2026-07-16T13:00:00.000Z"));
+      await runWalk(
+        buildSnmpResponse({
+          interfaces: interfaceWith(1_000_000, 2_000_000),
+          oidResponses: counterReads(1200),
+        }),
+        { dataReceivedAt: new Date("2026-07-16T11:50:00.000Z") },
+      );
+
+      expect(hookFreeUpdateSpy).toHaveBeenCalledTimes(1);
+      deviceFindSpy.mockResolvedValue(deviceHolding(storedWalkLog(0)));
+
+      // Received 11:55:00, processed two seconds after the first.
+      clock.mockReturnValue(new Date("2026-07-16T13:00:02.000Z"));
+      const second: SnmpMonitorResponse = buildSnmpResponse({
+        // 1,250 bytes a second in, 2,500 out, for the 300 s between them.
+        interfaces: interfaceWith(1_375_000, 2_750_000),
+        // An error a second.
+        oidResponses: counterReads(1500),
+      });
+      await runWalk(second, {
+        dataReceivedAt: new Date("2026-07-16T11:55:00.000Z"),
+      });
+
+      expect(second.interfaces![0]!.inBitsPerSecond).toBe(10_000);
+      expect(second.interfaces![0]!.outBitsPerSecond).toBe(20_000);
+      expect(second.oidResponses[0]!.ratePerSecond).toBe(1);
+
+      expect(storedWalkLog(1)["monitoredAt"]).toEqual(
+        new Date("2026-07-16T11:55:00.000Z"),
+      );
+    });
+  });
+
+  /*
+   * Polls do not always arrive in order: a job that failed and was retried
+   * - or one that simply waited longer in the queue - can be processed after
+   * a newer poll of the same device. Its reading is older than the baseline,
+   * so it must not be put back over it: the next poll would then be rated
+   * against a reading older than the one it follows.
+   */
+  describe("a poll received before the one the baseline holds", () => {
+    const NEWER: string = "2026-07-16T11:58:00.000Z";
+    const OLDER: Date = new Date("2026-07-16T11:53:00.000Z");
+
+    test("writes nothing: the newer interfaces and counters stay the baseline, and it gets no rate", async () => {
+      mockWalkPipeline({
+        snmpResponse: interfacesBaseline(9_000, 9_000),
+        monitoredAt: NEWER,
+        oidCounters: { values: { [IF_IN_ERRORS]: "1500" }, readAt: NEWER },
+      });
+      rateSpy.mockRestore();
+
+      const snmpResponse: SnmpMonitorResponse = buildSnmpResponse({
+        interfaces: interfaceWith(5_000, 5_000),
+        oidResponses: counterReads(1400),
+      });
+
+      await runWalk(snmpResponse, { dataReceivedAt: OLDER });
+
+      expect(hookFreeUpdateSpy).not.toHaveBeenCalled();
+      // A negative window: no rate rather than a made-up one.
+      expect(snmpResponse.interfaces![0]!.inBitsPerSecond).toBeUndefined();
+      expect(snmpResponse.oidResponses[0]!.ratePerSecond).toBeUndefined();
+      // The rest of the poll is processed as any other.
+      expect(inventorySpy).toHaveBeenCalledTimes(1);
+    });
+
+    /*
+     * The two halves of the baseline carry their own times - a poll that
+     * read counters but walked no interfaces moves only the counters'. Each
+     * half is kept or replaced by its own time.
+     */
+    test("replaces only the half of the baseline it is newer than", async () => {
+      mockWalkPipeline({
+        snmpResponse: interfacesBaseline(1_000, 1_000),
+        monitoredAt: "2026-07-16T11:50:00.000Z",
+        oidCounters: { values: { [IF_IN_ERRORS]: "1500" }, readAt: NEWER },
+      });
+
+      await runWalk(
+        buildSnmpResponse({
+          interfaces: interfaceWith(5_000, 5_000),
+          oidResponses: counterReads(1400),
+        }),
+        { dataReceivedAt: new Date("2026-07-16T11:55:00.000Z") },
+      );
+
+      const walkLog: JSONObject = storedWalkLog();
+
+      // Newer than the interfaces' baseline: replaces it.
+      expect(walkLog["monitoredAt"]).toEqual(
+        new Date("2026-07-16T11:55:00.000Z"),
+      );
+      expect(
+        (
+          (walkLog["snmpResponse"] as JSONObject)[
+            "interfaces"
+          ] as Array<JSONObject>
+        )[0]!["inOctets"],
+      ).toBe(5_000);
+      // Older than the counters': they stay, with their time.
+      expect(walkLog["oidCounters"]).toEqual({
+        values: { [IF_IN_ERRORS]: "1500" },
+        readAt: NEWER,
+      });
+    });
+
+    test("one received at the very time the baseline holds - the same poll, retried - rewrites nothing", async () => {
+      mockWalkPipeline({
+        snmpResponse: interfacesBaseline(5_000, 5_000),
+        monitoredAt: RECEIVED_AT.toISOString(),
+        oidCounters: {
+          values: { [IF_IN_ERRORS]: "1400" },
+          readAt: RECEIVED_AT.toISOString(),
+        },
+      });
+
+      await runWalk(
+        buildSnmpResponse({
+          interfaces: interfaceWith(5_000, 5_000),
+          oidResponses: counterReads(1400),
+        }),
+        { dataReceivedAt: RECEIVED_AT },
+      );
+
+      expect(hookFreeUpdateSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("isReceivedAfter", () => {
+    test.each([
+      ["no stored time", undefined, true],
+      ["a null stored time", null, true],
+      ["an unreadable stored time", "yesterday-ish", true],
+      ["a stored time that is not a string", 12345, true],
+      ["an older stored time", "2026-07-16T11:56:59.999Z", true],
+      ["the same stored time", "2026-07-16T11:57:00.000Z", false],
+      ["a newer stored time", "2026-07-16T11:57:00.001Z", false],
+      ["an older stored Date", new Date("2026-07-16T11:00:00.000Z"), true],
+    ])(
+      "a poll received at 11:57:00 against %s",
+      (_label: string, storedAt: unknown, expected: boolean) => {
+        expect(
+          NetworkDeviceWalkUtil.isReceivedAfter(RECEIVED_AT, storedAt),
+        ).toBe(expected);
+      },
+    );
   });
 });

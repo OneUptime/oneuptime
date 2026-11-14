@@ -67,7 +67,7 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
     getter: "getAlertsBreadcrumbs",
     pagePattern:
       "/dashboard/:projectId/alerts/:id/on-call-policy-execution-logs",
-    titles: ["Project", "Alerts", "View Alert", "On Call Executions"],
+    titles: ["Project", "Alerts", "View Alert", "On-Call Executions"],
   },
   {
     getter: "getAlertsBreadcrumbs",
@@ -944,7 +944,7 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
     getter: "getIncidentsBreadcrumbs",
     pagePattern:
       "/dashboard/:projectId/incidents/:id/on-call-policy-execution-logs",
-    titles: ["Project", "Incidents", "View Incident", "On Call Executions"],
+    titles: ["Project", "Incidents", "View Incident", "On-Call Executions"],
   },
   {
     getter: "getIncidentsBreadcrumbs",
@@ -1773,38 +1773,33 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   {
     getter: "getOnCallDutyBreadcrumbs",
     pagePattern: "/dashboard/:projectId/on-call-duty/calendar-feeds",
-    titles: ["Project", "On-Call Duty", "Calendar Feeds"],
+    titles: ["Project", "On-Call", "Calendar Feeds"],
   },
   {
     getter: "getOnCallDutyBreadcrumbs",
     pagePattern: "/dashboard/:projectId/on-call-duty/schedule-timeline",
-    titles: ["Project", "On-Call Duty", "Schedule Timeline"],
+    titles: ["Project", "On-Call", "Schedule Timeline"],
   },
   {
     getter: "getOnCallDutyBreadcrumbs",
     pagePattern: "/dashboard/:projectId/on-call-duty/execution-logs",
-    titles: ["Project", "On-Call Duty", "Execution Logs"],
+    titles: ["Project", "On-Call", "Execution Logs"],
   },
   {
     getter: "getOnCallDutyBreadcrumbs",
     pagePattern: "/dashboard/:projectId/on-call-duty/execution-logs/:id",
-    titles: ["Project", "On-Call Duty", "Execution Logs", "Timeline"],
+    titles: ["Project", "On-Call", "Execution Logs", "Timeline"],
   },
   {
     getter: "getOnCallDutyBreadcrumbs",
     pagePattern: "/dashboard/:projectId/on-call-duty/incoming-call-policies",
-    titles: ["Project", "On-Call Duty", "Incoming Call Policies"],
+    titles: ["Project", "On-Call", "Incoming Call Policies"],
   },
   {
     getter: "getIncomingCallPolicyBreadcrumbs",
     pagePattern:
       "/dashboard/:projectId/on-call-duty/incoming-call-policies/:id",
-    titles: [
-      "Project",
-      "On-Call Duty",
-      "Incoming Call Policies",
-      "View Policy",
-    ],
+    titles: ["Project", "On-Call", "Incoming Call Policies", "View Policy"],
   },
   {
     getter: "getIncomingCallPolicyBreadcrumbs",
@@ -1812,7 +1807,7 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
       "/dashboard/:projectId/on-call-duty/incoming-call-policies/:id/delete",
     titles: [
       "Project",
-      "On-Call Duty",
+      "On-Call",
       "Incoming Call Policies",
       "View Policy",
       "Delete",
@@ -1824,7 +1819,7 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
       "/dashboard/:projectId/on-call-duty/incoming-call-policies/:id/docs",
     titles: [
       "Project",
-      "On-Call Duty",
+      "On-Call",
       "Incoming Call Policies",
       "View Policy",
       "Documentation",
@@ -1836,7 +1831,7 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
       "/dashboard/:projectId/on-call-duty/incoming-call-policies/:id/escalation",
     titles: [
       "Project",
-      "On-Call Duty",
+      "On-Call",
       "Incoming Call Policies",
       "View Policy",
       "Escalation Rules",
@@ -1848,7 +1843,7 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
       "/dashboard/:projectId/on-call-duty/incoming-call-policies/:id/logs",
     titles: [
       "Project",
-      "On-Call Duty",
+      "On-Call",
       "Incoming Call Policies",
       "View Policy",
       "Call Logs",
@@ -1860,7 +1855,7 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
       "/dashboard/:projectId/on-call-duty/incoming-call-policies/:id/logs/:subModelId",
     titles: [
       "Project",
-      "On-Call Duty",
+      "On-Call",
       "Incoming Call Policies",
       "View Policy",
       "Call Logs",
@@ -1873,7 +1868,7 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
       "/dashboard/:projectId/on-call-duty/incoming-call-policies/:id/owners",
     titles: [
       "Project",
-      "On-Call Duty",
+      "On-Call",
       "Incoming Call Policies",
       "View Policy",
       "Owners",
@@ -1885,7 +1880,7 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
       "/dashboard/:projectId/on-call-duty/incoming-call-policies/:id/settings",
     titles: [
       "Project",
-      "On-Call Duty",
+      "On-Call",
       "Incoming Call Policies",
       "View Policy",
       "Settings",
@@ -1894,12 +1889,12 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   {
     getter: "getOnCallDutyBreadcrumbs",
     pagePattern: "/dashboard/:projectId/on-call-duty/policies",
-    titles: ["Project", "On-Call Duty", "Policies"],
+    titles: ["Project", "On-Call", "Policies"],
   },
   {
     getter: "getOnCallDutyBreadcrumbs",
     pagePattern: "/dashboard/:projectId/on-call-duty/policies/:id",
-    titles: ["Project", "On-Call Duty", "Policies", "View On-Call Policy"],
+    titles: ["Project", "On-Call", "Policies", "View On-Call Policy"],
   },
   {
     getter: "getOnCallDutyBreadcrumbs",
@@ -1907,7 +1902,7 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
       "/dashboard/:projectId/on-call-duty/policies/:id/custom-fields",
     titles: [
       "Project",
-      "On-Call Duty",
+      "On-Call",
       "Policies",
       "View On-Call Policy",
       "Custom Fields",
@@ -1918,7 +1913,7 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
     pagePattern: "/dashboard/:projectId/on-call-duty/policies/:id/delete",
     titles: [
       "Project",
-      "On-Call Duty",
+      "On-Call",
       "Policies",
       "View On-Call Policy",
       "Delete On-Call Policy",
@@ -1929,7 +1924,7 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
     pagePattern: "/dashboard/:projectId/on-call-duty/policies/:id/escalation",
     titles: [
       "Project",
-      "On-Call Duty",
+      "On-Call",
       "Policies",
       "View On-Call Policy",
       "Escalation Rules",
@@ -1939,13 +1934,7 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
     getter: "getOnCallDutyBreadcrumbs",
     pagePattern:
       "/dashboard/:projectId/on-call-duty/policies/:id/execution-logs",
-    titles: [
-      "Project",
-      "On-Call Duty",
-      "Policies",
-      "View On-Call Policy",
-      "Logs",
-    ],
+    titles: ["Project", "On-Call", "Policies", "View On-Call Policy", "Logs"],
   },
   {
     getter: "getOnCallDutyBreadcrumbs",
@@ -1953,7 +1942,7 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
       "/dashboard/:projectId/on-call-duty/policies/:id/execution-logs/:subModelId",
     titles: [
       "Project",
-      "On-Call Duty",
+      "On-Call",
       "Policies",
       "View On-Call Policy",
       "Logs",
@@ -1963,13 +1952,7 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   {
     getter: "getOnCallDutyBreadcrumbs",
     pagePattern: "/dashboard/:projectId/on-call-duty/policies/:id/owners",
-    titles: [
-      "Project",
-      "On-Call Duty",
-      "Policies",
-      "View On-Call Policy",
-      "Owners",
-    ],
+    titles: ["Project", "On-Call", "Policies", "View On-Call Policy", "Owners"],
   },
   {
     getter: "getOnCallDutyBreadcrumbs",
@@ -1977,7 +1960,7 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
       "/dashboard/:projectId/on-call-duty/policies/:id/user-overrides",
     titles: [
       "Project",
-      "On-Call Duty",
+      "On-Call",
       "Policies",
       "View On-Call Policy",
       "User Overrides",
@@ -1989,7 +1972,7 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
       "/dashboard/:projectId/on-call-duty/policies/:id/notification-logs",
     titles: [
       "Project",
-      "On-Call Duty",
+      "On-Call",
       "Policies",
       "View On-Call Policy",
       "Notification Logs",
@@ -2000,7 +1983,7 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
     pagePattern: "/dashboard/:projectId/on-call-duty/policies/:id/audit-logs",
     titles: [
       "Project",
-      "On-Call Duty",
+      "On-Call",
       "Policies",
       "View On-Call Policy",
       "Audit Logs",
@@ -2012,7 +1995,7 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
       "/dashboard/:projectId/on-call-duty/schedules/:id/notification-logs",
     titles: [
       "Project",
-      "On-Call Duty",
+      "On-Call",
       "Schedules",
       "View On-Call Schedule",
       "Notification Logs",
@@ -2023,7 +2006,7 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
     pagePattern: "/dashboard/:projectId/on-call-duty/schedules/:id/audit-logs",
     titles: [
       "Project",
-      "On-Call Duty",
+      "On-Call",
       "Schedules",
       "View On-Call Schedule",
       "Audit Logs",
@@ -2035,7 +2018,7 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
       "/dashboard/:projectId/on-call-duty/incoming-call-policies/:id/audit-logs",
     titles: [
       "Project",
-      "On-Call Duty",
+      "On-Call",
       "Incoming Call Policies",
       "View Policy",
       "Audit Logs",
@@ -2044,19 +2027,19 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   {
     getter: "getOnCallDutyBreadcrumbs",
     pagePattern: "/dashboard/:projectId/on-call-duty/schedules",
-    titles: ["Project", "On-Call Duty", "Schedules"],
+    titles: ["Project", "On-Call", "Schedules"],
   },
   {
     getter: "getOnCallDutyBreadcrumbs",
     pagePattern: "/dashboard/:projectId/on-call-duty/schedules/:id",
-    titles: ["Project", "On-Call Duty", "Schedules", "View On-Call Schedule"],
+    titles: ["Project", "On-Call", "Schedules", "View On-Call Schedule"],
   },
   {
     getter: "getOnCallDutyBreadcrumbs",
     pagePattern: "/dashboard/:projectId/on-call-duty/schedules/:id/delete",
     titles: [
       "Project",
-      "On-Call Duty",
+      "On-Call",
       "Schedules",
       "View On-Call Schedule",
       "Delete On-Call Schedule",
@@ -2067,7 +2050,7 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
     pagePattern: "/dashboard/:projectId/on-call-duty/schedules/:id/layers",
     titles: [
       "Project",
-      "On-Call Duty",
+      "On-Call",
       "Schedules",
       "View On-Call Schedule",
       "Layers",
@@ -2078,7 +2061,7 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
     pagePattern: "/dashboard/:projectId/on-call-duty/schedules/:id/owners",
     titles: [
       "Project",
-      "On-Call Duty",
+      "On-Call",
       "Schedules",
       "View On-Call Schedule",
       "Owners",
@@ -2089,7 +2072,7 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
     pagePattern: "/dashboard/:projectId/on-call-duty/schedules/:id/settings",
     titles: [
       "Project",
-      "On-Call Duty",
+      "On-Call",
       "Schedules",
       "View On-Call Schedule",
       "Settings",
@@ -2098,39 +2081,39 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   {
     getter: "getOnCallDutyBreadcrumbs",
     pagePattern: "/dashboard/:projectId/on-call-duty/settings/custom-fields",
-    titles: ["Project", "On-Call Duty", "Settings", "Custom Fields"],
+    titles: ["Project", "On-Call", "Settings", "Custom Fields"],
   },
   {
     getter: "getOnCallDutyBreadcrumbs",
     pagePattern: "/dashboard/:projectId/on-call-duty/settings/label-rules",
-    titles: ["Project", "On-Call Duty", "Settings", "Label Rules"],
+    titles: ["Project", "On-Call", "Settings", "Label Rules"],
   },
   {
     getter: "getOnCallDutyBreadcrumbs",
     pagePattern: "/dashboard/:projectId/on-call-duty/settings/owner-rules",
-    titles: ["Project", "On-Call Duty", "Settings", "Owner Rules"],
+    titles: ["Project", "On-Call", "Settings", "Owner Rules"],
   },
   {
     getter: "getOnCallDutyBreadcrumbs",
     pagePattern: "/dashboard/:projectId/on-call-duty/user-overrides",
-    titles: ["Project", "On-Call Duty", "User Overrides"],
+    titles: ["Project", "On-Call", "User Overrides"],
   },
   {
     getter: "getOnCallDutyBreadcrumbs",
     pagePattern: "/dashboard/:projectId/on-call-duty/user-time-logs",
-    titles: ["Project", "On-Call Duty", "User Time Logs"],
+    titles: ["Project", "On-Call", "User Time Logs"],
   },
   {
     getter: "getOnCallDutyBreadcrumbs",
     pagePattern:
       "/dashboard/:projectId/on-call-duty/workspace-connection-microsoft-teams",
-    titles: ["Project", "On-Call Duty", "Microsoft Teams"],
+    titles: ["Project", "On-Call", "Microsoft Teams"],
   },
   {
     getter: "getOnCallDutyBreadcrumbs",
     pagePattern:
       "/dashboard/:projectId/on-call-duty/workspace-connection-slack",
-    titles: ["Project", "On-Call Duty", "Slack"],
+    titles: ["Project", "On-Call", "Slack"],
   },
   {
     getter: "getPodmanBreadcrumbs",
@@ -2440,16 +2423,12 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   {
     getter: "getScheduleMaintenanceBreadcrumbs",
     pagePattern: "/dashboard/:projectId/scheduled-maintenance-events",
-    titles: ["Project", "Scheduled Maintenance Events"],
+    titles: ["Project", "Scheduled Maintenance"],
   },
   {
     getter: "getScheduleMaintenanceBreadcrumbs",
     pagePattern: "/dashboard/:projectId/scheduled-maintenance-events/:id",
-    titles: [
-      "Project",
-      "Scheduled Maintenance Events",
-      "View Scheduled Maintenance Event",
-    ],
+    titles: ["Project", "Scheduled Maintenance", "View Maintenance Event"],
   },
   {
     getter: "getScheduleMaintenanceBreadcrumbs",
@@ -2457,8 +2436,8 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
       "/dashboard/:projectId/scheduled-maintenance-events/:id/custom-fields",
     titles: [
       "Project",
-      "Scheduled Maintenance Events",
-      "View Scheduled Maintenance Event",
+      "Scheduled Maintenance",
+      "View Maintenance Event",
       "Custom Fields",
     ],
   },
@@ -2468,8 +2447,8 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
       "/dashboard/:projectId/scheduled-maintenance-events/:id/delete",
     titles: [
       "Project",
-      "Scheduled Maintenance Events",
-      "View Scheduled Maintenance Event",
+      "Scheduled Maintenance",
+      "View Maintenance Event",
       "Delete",
     ],
   },
@@ -2479,8 +2458,8 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
       "/dashboard/:projectId/scheduled-maintenance-events/:id/description",
     titles: [
       "Project",
-      "Scheduled Maintenance Events",
-      "View Scheduled Maintenance Event",
+      "Scheduled Maintenance",
+      "View Maintenance Event",
       "Description",
     ],
   },
@@ -2490,8 +2469,8 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
       "/dashboard/:projectId/scheduled-maintenance-events/:id/internal-notes",
     titles: [
       "Project",
-      "Scheduled Maintenance Events",
-      "View Scheduled Maintenance Event",
+      "Scheduled Maintenance",
+      "View Maintenance Event",
       "Private Notes",
     ],
   },
@@ -2501,8 +2480,8 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
       "/dashboard/:projectId/scheduled-maintenance-events/:id/owners",
     titles: [
       "Project",
-      "Scheduled Maintenance Events",
-      "View Scheduled Maintenance Event",
+      "Scheduled Maintenance",
+      "View Maintenance Event",
       "Owners",
     ],
   },
@@ -2512,8 +2491,8 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
       "/dashboard/:projectId/scheduled-maintenance-events/:id/public-notes",
     titles: [
       "Project",
-      "Scheduled Maintenance Events",
-      "View Scheduled Maintenance Event",
+      "Scheduled Maintenance",
+      "View Maintenance Event",
       "Public Notes",
     ],
   },
@@ -2523,8 +2502,8 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
       "/dashboard/:projectId/scheduled-maintenance-events/:id/settings",
     titles: [
       "Project",
-      "Scheduled Maintenance Events",
-      "View Scheduled Maintenance Event",
+      "Scheduled Maintenance",
+      "View Maintenance Event",
       "Settings",
     ],
   },
@@ -2534,28 +2513,20 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
       "/dashboard/:projectId/scheduled-maintenance-events/:id/state-timeline",
     titles: [
       "Project",
-      "Scheduled Maintenance Events",
-      "View Scheduled Maintenance Event",
+      "Scheduled Maintenance",
+      "View Maintenance Event",
       "Status Timeline",
     ],
   },
   {
     getter: "getScheduleMaintenanceBreadcrumbs",
     pagePattern: "/dashboard/:projectId/scheduled-maintenance-events/create",
-    titles: [
-      "Project",
-      "Scheduled Maintenance Events",
-      "New Scheduled Maintenance Event",
-    ],
+    titles: ["Project", "Scheduled Maintenance", "New Maintenance Event"],
   },
   {
     getter: "getScheduleMaintenanceBreadcrumbs",
     pagePattern: "/dashboard/:projectId/scheduled-maintenance-events/ongoing",
-    titles: [
-      "Project",
-      "Scheduled Maintenance Events",
-      "Ongoing Scheduled Maintenance",
-    ],
+    titles: ["Project", "Scheduled Maintenance", "Ongoing Maintenance Events"],
   },
   {
     getter: "getScheduleMaintenanceBreadcrumbs",
@@ -2633,11 +2604,7 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
     getter: "getScheduleMaintenanceBreadcrumbs",
     pagePattern:
       "/dashboard/:projectId/scheduled-maintenance-events/workspace-connection-slack",
-    titles: [
-      "Project",
-      "Scheduled Maintenance Events",
-      "Slack Workspace Connection",
-    ],
+    titles: ["Project", "Scheduled Maintenance", "Slack Workspace Connection"],
   },
   {
     getter: "getServerlessBreadcrumbs",
@@ -3474,7 +3441,7 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   {
     getter: "getUserSettingsBreadcrumbs",
     pagePattern: "/dashboard/:projectId/user-settings/on-call-rules",
-    titles: ["Project", "User Settings", "On-Call Rules"],
+    titles: ["Project", "User Settings", "How to Reach Me"],
   },
   {
     getter: "getUserSettingsBreadcrumbs",

@@ -284,6 +284,8 @@ describe("the Self-Hosting Guide in the nav", () => {
     expect(installation?.links[0]).toEqual({
       title: NAV_TITLE,
       url: `/docs/${PAGE}`,
+      // Followed from its first line to its last: docs search puts it above reference pages (#6822).
+      isGuide: true,
     });
     expect(installation?.links[1]?.url).toBe(
       "/docs/installation/docker-compose",
@@ -508,15 +510,24 @@ describe("what the Self-Hosting Guide names is what OneUptime has", () => {
     expect(chartInstall).toContain(
       "helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml",
     );
-    const diagnose: Array<string> = (
-      bash.find((code: string): boolean => {
+    /*
+     * The Kubernetes check is the chart's diagnostics script, which looks
+     * into a OneUptime that is slow or down, so that OneUptime cannot serve
+     * it: the chart's troubleshooting guide is the one place that says where
+     * to get it (Tests/Ops/InstallLinksNeverNameGitHub.test.js), and the
+     * guide links to its "Run it" section instead of writing the download
+     * again.
+     */
+    expect(
+      bash.filter((code: string): boolean => {
         return code.includes("diagnose.sh");
-      }) as string
-    ).split("\n");
-
-    for (const line of diagnose) {
-      expect(chartTroubleshooting).toContain(line);
-    }
+      }),
+    ).toEqual([]);
+    expect(ENGLISH).toContain(
+      "[chart's troubleshooting guide](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Public/oneuptime/docs/troubleshooting.md#run-it)",
+    );
+    expect(chartTroubleshooting).toContain("\n## Run it\n");
+    expect(chartTroubleshooting).toContain("\n./diagnose.sh\n");
     expect(
       fs.existsSync(path.join(REPO_ROOT, "HelmChart/Public/diagnose.sh")),
     ).toBe(true);

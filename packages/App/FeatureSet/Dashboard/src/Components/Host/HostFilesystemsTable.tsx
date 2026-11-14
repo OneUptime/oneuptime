@@ -5,6 +5,7 @@ import Column from "Common/UI/Components/Table/Types/Column";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import { formatReaderFigure } from "Common/Types/DateLanguage";
 import {
   HOST_DISK_FULL_PERCENT,
   HOST_DISK_NEAR_FULL_PERCENT,
@@ -170,7 +171,7 @@ const HostFilesystemsTable: FunctionComponent<ComponentProps> = (
               />
             </span>
             <span className="w-12 text-xs tabular-nums text-gray-600">
-              {percent.toFixed(1)}%
+              {formatReaderFigure(percent, { decimals: 1, isPercent: true })}
             </span>
           </span>
         );

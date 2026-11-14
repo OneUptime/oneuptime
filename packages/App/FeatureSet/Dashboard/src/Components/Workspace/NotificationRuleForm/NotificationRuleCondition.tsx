@@ -12,6 +12,7 @@ import Input from "Common/UI/Components/Input/Input";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 import NotificationRuleCondition, {
   ConditionType,
+  getCheckOnLabel,
   NotificationRuleConditionCheckOn,
   NotificationRuleConditionUtil,
 } from "Common/Types/Workspace/NotificationRules/NotificationRuleCondition";
@@ -71,7 +72,8 @@ const NotificationRuleConditionFormElement: FunctionComponent<
       (checkon: NotificationRuleConditionCheckOn) => {
         return {
           value: checkon,
-          label: checkon,
+          // The stored value, unless it has words of its own (CHECK_ON_LABELS).
+          label: getCheckOnLabel(checkon),
         };
       },
     );

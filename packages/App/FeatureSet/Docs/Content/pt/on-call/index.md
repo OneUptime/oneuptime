@@ -2,6 +2,9 @@
 
 O plantão é a forma como o OneUptime coloca uma pessoa diante de um problema, a qualquer hora. Quando um incidente, um alerta ou um episódio precisa de alguém, suas políticas de plantão acionam pessoas nível a nível até que alguém confirme, e cada pessoa é contatada como escolheu: notificação push, SMS, ligação, e-mail ou mensagem de chat. Esta página mostra como as peças se encaixam e onde fica cada uma. O [Glossário](/docs/introduction/glossary#política-de-plantão) explica em uma ou duas frases cada palavra que o plantão usa.
 
+> [!TIP]
+> Novo por aqui? Siga primeiro o guia: [Ser acionado por telefone, SMS ou push](/docs/guides/paging).
+
 :::cards
 - [Como um acionamento chega a alguém](#como-um-acionamento-chega-a-alguém): De um novo incidente até a pessoa que responde.
 - [As peças](#as-peças): Políticas, regras de escalonamento, agendamentos, substituições e regras pessoais.
@@ -45,7 +48,7 @@ As palavras usadas em todo o OneUptime estão no [Glossário](/docs/introduction
 | Regra de escalonamento | Um nível de uma política: quem ela aciona e quanto tempo espera por uma confirmação | [Regras de escalonamento](/docs/on-call/escalation-rules) |
 | Agendamento de plantão | Quem está de plantão a cada momento, em revezamento | [Agendamentos de plantão](/docs/on-call/schedules) |
 | Substituição de usuário | Quem cobre alguém enquanto essa pessoa está ausente | [Substituições de usuário](/docs/on-call/user-overrides) |
-| Regras de plantão pessoais | Como uma pessoa é contatada: por qual método e depois de quanto tempo | [Regras de Plantão pessoais](/docs/notifications/on-call-rules) |
+| Regras de plantão pessoais | Como uma pessoa é contatada: por qual método e depois de quanto tempo | [Como me contatar](/docs/notifications/on-call-rules) |
 | Política de chamadas recebidas | Um número de telefone que toca para quem está de plantão | [Política de chamadas recebidas](/docs/on-call/incoming-call-policy) |
 
 Políticas, regras de escalonamento, agendamentos e substituições pertencem ao projeto, em **Plantão**. Métodos de notificação e regras de plantão pessoais pertencem a cada pessoa, em **Configurações do usuário**: um administrador pode ver a configuração de alguém, mas só a própria pessoa pode verificar seu telefone ou e-mail. Veja [Como o OneUptime chega até você](/docs/notifications/index).

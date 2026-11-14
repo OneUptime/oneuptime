@@ -122,7 +122,7 @@ describe("the Profiles page's section on finding and fixing slow code", () => {
     expect(defaults).toContain('"enableAutomaticProfileRemediation"');
   });
 
-  it("gives the paths of the Profiler's AI section as its menu draws it", () => {
+  it("gives the paths of Profiles' AI section as its menu draws it", () => {
     const sideMenu: string = readSource(
       "App/FeatureSet/Dashboard/src/Pages/Profiles/SideMenu.tsx",
     );
@@ -130,9 +130,7 @@ describe("the Profiles page's section on finding and fixing slow code", () => {
 
     for (const page of ["Insights", "Logs", "Settings"]) {
       expect(aiSection).toContain(`title: "${page}"`);
-      expect(section).toContain(
-        `**Products → Performance Profiles → AI → ${page}**`,
-      );
+      expect(section).toContain(`**Products → Profiles → AI → ${page}**`);
     }
   });
 
@@ -143,7 +141,7 @@ describe("the Profiles page's section on finding and fixing slow code", () => {
    */
   it("says AI → Logs tells what each investigation found, as the page does", () => {
     expect(section).toContain(
-      "- **Products → Performance Profiles → AI → Logs** lists every investigation and pull request, newest first, with how each one stands and what each investigation found.",
+      "- **Products → Profiles → AI → Logs** lists every investigation and pull request, newest first, with how each one stands and what each investigation found.",
     );
     expect(
       TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Profile].investigationVerdicts[
@@ -188,7 +186,7 @@ describe("the Profiles page's section on finding and fixing slow code", () => {
     );
   });
 
-  it("names the finding's way into the Profiler as its link draws it", () => {
+  it("names the finding's way into Profiles as its link draws it", () => {
     // Read from the source: the link util needs a browser to load.
     const links: string = readSource(
       "App/FeatureSet/Dashboard/src/Utils/AIInsightExplorerLinks.ts",
@@ -198,8 +196,8 @@ describe("the Profiles page's section on finding and fixing slow code", () => {
     );
 
     expect(profileCase).toContain('target: "profiles"');
-    expect(profileCase).toContain('label: "Open in Profiler"');
-    expect(section).toContain("**Open in Profiler**");
+    expect(profileCase).toContain('label: "Open in Profiles"');
+    expect(section).toContain("**Open in Profiles**");
   });
 
   /*

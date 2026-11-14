@@ -483,7 +483,7 @@ curl https://oneuptime.com/mcp/tools
 | حادثه‌ها | Incident, Incident State, Incident Severity, Incident State Timeline, Incident Public Note, Incident Internal Note, Incident Alert, Postmortem Status |
 | هشدارها | Alert, Alert State, Alert Severity, Alert State Timeline, Alert Internal Note |
 | صفحه‌های وضعیت | Status Page, Status Page Announcement |
-| نگهداری زمان‌بندی‌شده | Scheduled Maintenance Event, Scheduled Maintenance State, Scheduled Maintenance State Timeline |
+| نگهداری زمان‌بندی‌شده | Maintenance Event, Scheduled Maintenance State, Scheduled Maintenance State Timeline |
 | تیم‌ها و آنکال | Team, On-Call Policy |
 | برچسب‌ها | Label |
 | امنیت | Security Case, Security Case Evidence, Security Case Note, Security Case Priority, Security Case Status, Security Case Task, Security Detection, Security Playbook |

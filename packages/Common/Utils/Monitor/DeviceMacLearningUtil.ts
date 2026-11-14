@@ -91,6 +91,23 @@ export function siteKeyOf(siteId: string | null | undefined): string {
   return (siteId || "").trim();
 }
 
+/*
+ * Whether the device holds a reading taken after `now`, when this table was
+ * read: by a newer poll of a router, processed before this one - a retried
+ * job, or one that waited longer in the queue than the poll after it
+ * (OneUptime issue #7389). The newer reading stands over an older table.
+ */
+function isReadAfter(
+  device: MacObservationCandidateDevice,
+  now: number | undefined,
+): boolean {
+  return (
+    now !== undefined &&
+    device.observedAt !== undefined &&
+    device.observedAt > now
+  );
+}
+
 export default class DeviceMacLearningUtil {
   /*
    * Which devices get which MAC. The rules, every one of them a refusal:
@@ -111,19 +128,29 @@ export default class DeviceMacLearningUtil {
    *  - Only an address the ARP table binds to exactly one MAC. Proxy ARP
    *    and stale duplicates put two MACs behind one address; neither can
    *    be trusted.
+   *  - A learned MAC is not corrected by a table read before the device's
+   *    recorded reading (`now`, when given): that reading is newer evidence
+   *    (see isReadAfter). A first learn is not about time: an empty column
+   *    takes the first trusted answer.
    *
    * Output is sorted by device id, so a given input always plans the same
    * writes in the same order.
    */
   public static planMacLearning(data: {
     ipBindings: Array<MacLearningIpBinding>;
-    devices: Array<MacLearningCandidateDevice>;
+    devices: Array<MacObservationCandidateDevice>;
     observingSiteId?: string | null | undefined;
+    /*
+     * When the table was read, in epoch milliseconds: the poll's receipt
+     * time. Without it a correction is not judged by time.
+     */
+    now?: number | undefined;
   }): Array<MacLearningPlanEntry> {
     const plan: Array<MacLearningPlanEntry> = [];
 
     for (const binding of DeviceMacLearningUtil.getTrustedBindings(data)) {
-      const device: MacLearningCandidateDevice = binding.device;
+      const device: MacObservationCandidateDevice =
+        binding.device as MacObservationCandidateDevice;
       const learnedMac: string = binding.macAddress;
       const storedMac: string | undefined = normalizeMac(device.macAddress);
       const hasStoredValue: boolean =
@@ -141,6 +168,11 @@ export default class DeviceMacLearningUtil {
 
       // Typed by somebody, or already what the table says: leave it.
       if (device.isMacAddressLearned !== true || storedMac === learnedMac) {
+        continue;
+      }
+
+      // A newer reading than this table stands (issue #7389).
+      if (isReadAfter(device, data.now)) {
         continue;
       }
 
@@ -179,6 +211,10 @@ export default class DeviceMacLearningUtil {
    * nothing disagrees - unless an earlier reading disagreed, which is now
    * replaced so the disagreement goes.
    *
+   * And never over a reading taken after this table was read (`now`): an
+   * older poll of a router, processed after a newer one (OneUptime issue
+   * #7389), would put its older answer back. See isReadAfter.
+   *
    * Sorted by device id, like the learning plan.
    */
   public static planMacObservations(data: {
@@ -193,6 +229,11 @@ export default class DeviceMacLearningUtil {
     for (const binding of DeviceMacLearningUtil.getTrustedBindings(data)) {
       const device: MacObservationCandidateDevice =
         binding.device as MacObservationCandidateDevice;
+
+      if (isReadAfter(device, data.now)) {
+        continue;
+      }
+
       const mac: string = binding.macAddress;
       const recordedMac: string | undefined = normalizeMac(
         device.observedMacAddress,

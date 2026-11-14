@@ -2,6 +2,8 @@
 
 Este guia leva você de uma conta nova a uma configuração funcionando em cerca de quinze minutos: um monitor que verifica seu site a cada cinco minutos, uma política de plantão que aciona você quando o site cai e uma página de status que informa seus clientes. Ele segue a lista **Boas-vindas ao OneUptime 👋** na página inicial do seu projeto.
 
+Vindo de outra ferramenta? Primeiro [importe sua configuração](/docs/introduction/getting-started#vindo-de-outra-ferramenta): seus monitores, agendamentos de plantão e páginas de status vêm junto.
+
 ```mermaid title="O que você configura neste guia"
 flowchart TB
     monitor["Monitor de site"] -->|"site fora do ar"| incident["Incidente"]
@@ -32,6 +34,8 @@ Digite um **Nome do projeto**, por exemplo o nome da sua empresa. No OneUptime C
 
 ### Criar o projeto
 
+![Início pergunta "O que você quer fazer primeiro?", com os três objetivos deste guia marcados](screen:home-goals-three)
+
 Clique em **Criar projeto**. A página inicial do seu projeto abre, com a lista **Boas-vindas ao OneUptime 👋** no topo. Primeiro ele pergunta **O que você quer fazer primeiro?**: marque **Saber quando meu site ou API cair**, **Acionar a pessoa certa quando algo quebrar** e **Informar meus clientes com uma página de status**, e clique em **Continuar**.
 :::
 
@@ -57,6 +61,8 @@ Mantenha as **Sondas** selecionadas e o **Intervalo de monitoramento** de **A ca
 
 Para testar a verificação antes de salvar, clique em **Testar monitor** na segunda etapa. Todos os outros tipos de monitor estão descritos em [Criar um monitor](/docs/monitor/create-monitor).
 
+Para verificar também uma API, escolher quem é avisado e enviar um acionamento de teste que comprove que a mensagem chega até você, siga [Saber quando seu site ou sua API cai](/docs/guides/website-down).
+
 ## Ser acionado quando cair
 
 Do jeito que está, um incidente sem proprietários é enviado por e-mail aos proprietários do projeto, e isso inclui você. Para ser acionado até que alguém responda, crie uma política de plantão: a primeira de um projeto é disparada a cada novo incidente e a cada novo alerta.
@@ -76,9 +82,11 @@ Seu e-mail de login já é uma forma de contatar você. Para receber também SMS
 :::
 
 > [!NOTE]
-> SMS e chamadas telefônicas ficam desativados em um projeto novo. Um proprietário do projeto, um Billing Admin ou alguém com Manage Billing os ativa no cartão **Canais de notificação**, em **Configurações do projeto → Notificações → Configurações de notificação**.
+> SMS e chamadas telefônicas ficam desativados em um projeto novo. Um proprietário do projeto, um Billing Admin ou alguém com Manage Billing os ativa no cartão **Canais de notificação**, em **Configurações do projeto → Notificações → Canais de notificação**.
 
 Para mais níveis, rodízios e quanto tempo cada nível espera, veja [Regras de escalonamento](/docs/on-call/escalation-rules) e [Agendamentos de plantão](/docs/on-call/schedules).
+
+Para ser acionado por SMS, ligação e push, com a próxima pessoa acionada quando ninguém responde e um acionamento de teste que comprova isso, siga [Ser acionado por telefone, SMS ou push](/docs/guides/paging).
 
 ## Publicar uma página de status
 
@@ -98,6 +106,8 @@ Escolha **Visão geral** no menu lateral. O cartão **Link da página de status*
 
 Uma página de status nova é pública: qualquer pessoa com o endereço pode abri-la. Para dar a ela seu próprio domínio, seu logotipo e suas cores, veja [Marca e domínios da página de status](/docs/status-pages/branding-and-domains).
 
+Para colocar a página de status no seu próprio domínio, por HTTPS, siga [Publicar uma página de status](/docs/guides/status-page).
+
 ## Convidar sua equipe
 
 Na lista, clique em **Convide sua equipe**, ou abra **Usuários** no menu **Produtos**, em **Configurações**. Clique em **Convidar Usuário**, digite o **E-mail** da pessoa e escolha uma **Equipe**: a equipe de membros vem escolhida. Clique em **Convidar**. O OneUptime envia o convite por e-mail, e a equipe decide o que a pessoa pode fazer. Veja [Usuários, equipes e permissões](/docs/permissions/index).
@@ -113,9 +123,13 @@ Abra **Incidentes** e clique em **Declarar incidente**. Digite um **Título**, p
 
 ### Ver o que acontece
 
+!["Feed do incidente" de um incidente resolvido: quem foi acionado e cada mudança de estado, do mais recente ao mais antigo](screen:incident-feed)
+
 Em um ou dois minutos, sua política de plantão aciona você, e o incidente aparece na sua página de status.
 
 ### Resolver
+
+![Um incidente em "Confirmado", com "Resolver" destacado](screen:incident-resolve)
 
 Na página do incidente, clique em **Resolver**. Os acionamentos param, e o incidente sai da sua página de status.
 :::

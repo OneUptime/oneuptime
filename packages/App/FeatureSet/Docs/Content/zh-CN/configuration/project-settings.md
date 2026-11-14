@@ -5,6 +5,7 @@
 :::cards
 - [查找设置](#查找设置): 侧边菜单中每个部分包含的内容。
 - [项目详情](#项目详情): 名称、ID 和支持访问。
+- [产品](#产品): 此项目显示的产品，以及它隐藏的产品。
 - [标签](#标签): 用于资源、权限和规则的标记。
 - [删除项目](#删除项目): 需要什么，以及会随之消失什么。
 :::
@@ -30,10 +31,10 @@ flowchart LR
 
 | 部分 | 页面 | 详细阅读 |
 | --- | --- | --- |
-| **基础** | **项目**、**标签** | [项目详情](#项目详情)、[标签](#标签) |
+| **基础** | **项目**、**产品**、**标签** | [项目详情](#项目详情)、[产品](#产品)、[标签](#标签) |
 | **工作区** | **Slack**、**Microsoft Teams**、**Mattermost**、**视频通话** | [Slack](/docs/workspace-connections/slack)、[Microsoft Teams](/docs/workspace-connections/microsoft-teams)、[Mattermost](/docs/workspace-connections/mattermost)、[视频通话](/docs/workspace-connections/video-calls) |
 | **遥测与 APM** | **摄取密钥**、**数据保留**、**用量** | [摄取密钥](/docs/telemetry/ingestion-keys)、[数据保留](/docs/telemetry/data-retention)、[遥测用量](/docs/telemetry/usage) |
-| **通知** | **通知设置**、**通知日志**、**移动应用** | [通知](#通知) |
+| **通知** | **通知渠道**、**通知日志**、**移动应用** | [通知](#通知) |
 | **人工智能** | **AI 功能**、**LLM 提供商**、**外部 MCP 服务器**、**AI 积分**、**AI 日志**、**MCP 服务器** | [LLM 提供商](/docs/ai/llm-provider)、[外部 MCP 服务器](/docs/ai/external-mcp-servers)、[MCP 服务器](/docs/ai/mcp-server)、[AI SRE](/docs/ai/ai-sre#成本控制) |
 | **高级** | **域名**、**API 密钥**、**功能标志**、**从其他工具导入** | [自定义域名](/docs/status-pages/branding-and-domains#自定义域名)、[API 密钥](/docs/permissions/index#api-密钥)、[功能标志](#功能标志)、[从 Opsgenie 迁移](/docs/moving-to-oneuptime/opsgenie)及其他迁移指南 |
 | **安全** | **SSO**、**SCIM** | [SSO](/docs/identity/sso)、[SCIM](/docs/identity/scim) |
@@ -54,6 +55,20 @@ flowchart LR
 - **Data Residency**：在 OneUptime Cloud 上，OneUptime 记录后你的项目数据所存放的位置。只有 OneUptime 会设置它。
 
 **客户支持访问权限**决定在 OneUptime Cloud 上 OneUptime 支持团队能否打开项目。需要帮助时，打开**允许 OneUptime 支持团队访问此项目**：由于支持团队届时可以查看和更改项目中的一切，OneUptime 会先确认，你再点击**允许支持团队进入**。处理完后将其关闭：更改会立即保存。Project Owner 和 Project Admin 可以更改此项。
+
+## 产品
+
+**项目设置 → 基础 → 产品** 用于选择此项目在 **产品** 菜单、首页和搜索列表中显示的产品。每个产品都有一个开关，切换后立即保存：打开即显示该产品。用户、团队和项目设置始终显示，**显示所有产品** 会重新显示全部产品。
+
+隐藏的产品并未关闭。它会移到 **产品** 菜单的最后一行 **更多产品** 下：搜索仍能找到它，它的页面和 API 照常工作，数据也会继续到达。固定了它的人仍保留固定。
+
+在自托管服务器上，主管理员还可以在 Admin Dashboard 的 **设置 → 产品** 中为所有项目关闭某个产品（请参阅 [只运行你需要的部分](/docs/installation/docker-compose#只运行你需要的部分)）。这样的产品在这里没有开关：它显示 **已在此服务器上关闭**，并说明谁可以开启它。
+
+新项目从所有者在首页上回答的项目用途开始：显示基础分组、设置以及这些目标需要的产品，其余产品被隐藏。跳过了该问题的项目，或在该问题出现之前创建的项目，会显示所有产品。一旦有人在这里更改了列表，目标就不会再更改它。
+
+每个产品都会说明它对此项目而言的状态：**使用中**、**未设置**，或在 OneUptime Cloud 上它需要的套餐。当隐藏的产品开始收到数据时，首页会告诉项目所有者和管理员，并提供 **显示** 或 **保持隐藏**。
+
+项目所有者、项目管理员以及可以编辑项目的人可以更改它；项目中的其他所有人都可以查看。
 
 ## 标签
 
@@ -81,7 +96,7 @@ flowchart LR
 
 **项目设置 → 通知**包含项目发送通知的方式：
 
-- **通知设置**：**通知渠道**卡片为项目打开或关闭短信、电话、WhatsApp 和 Telegram。四者默认均为关闭。由 Project Owner、**账单管理员** 或拥有 **Manage Billing** 的人打开它们。该页面的 **更多设置** 中还包含项目自己的邮件服务器，位于**自定义 SMTP 配置**下（参见[SMTP](/docs/emails/smtp)），以及项目自己的 Twilio 账户（参见[Twilio 集成](/docs/self-hosted/twilio-integration)）。在 OneUptime Cloud 上，它还包含支付这些消息的余额：参见[预付余额](/docs/configuration/billing#预付余额)。
+- **通知渠道**：**通知渠道**卡片为项目打开或关闭短信、电话、WhatsApp 和 Telegram。四者默认均为关闭。由 Project Owner、**账单管理员** 或拥有 **Manage Billing** 的人打开它们。该页面的 **更多设置** 中还包含项目自己的邮件服务器，位于**自定义 SMTP 配置**下（参见[SMTP](/docs/emails/smtp)），以及项目自己的 Twilio 账户（参见[Twilio 集成](/docs/self-hosted/twilio-integration)）。在 OneUptime Cloud 上，它还包含支付这些消息的余额：参见[预付余额](/docs/configuration/billing#预付余额)。
 - **通知日志**：项目发送的每条通知，每个渠道一个选项卡：**电子邮件**、**SMS**、**WhatsApp**、**Telegram**、**Webhook**、**调用**、**推送**和**工作区**。
 - **移动应用**：获取 iOS 和 Android 应用的位置。参见[应用概览](/docs/mobile-desktop-apps/index)。
 

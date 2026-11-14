@@ -281,6 +281,12 @@ const UNITS: RegExp = /\b(ms|us|μs|ns|min|s)\b/g;
  * What the page drew that the pseudo language did not mark: English that
  * skipped the lookup, once `isData` has taken out what the telemetry itself
  * says (its names, ids and durations).
+ *
+ * A sentence drawn around an element of its own (TranslatedSentence's
+ * slots, such as a list total's count since #6994) is drawn as pieces of
+ * text around it: "⟦", the count, " spans⟧". The piece after the element
+ * holds the sentence's closing mark alone, and is as marked as the piece
+ * that opened it.
  */
 export const textsThatSkippedTranslation: (
   isData: (text: string) => boolean,
@@ -289,6 +295,7 @@ export const textsThatSkippedTranslation: (
     return (
       WORDS.test(text.replace(UNITS, "")) &&
       !text.includes("⟦") &&
+      !text.includes("⟧") &&
       !isData(text)
     );
   });

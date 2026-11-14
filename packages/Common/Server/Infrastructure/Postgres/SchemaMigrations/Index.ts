@@ -969,6 +969,15 @@ import { AddProjectGoalsAndWelcomeChecklist1809110900000 } from "./1809110900000
 import { AddServerSetupChoices1809110968240 } from "./1809110968240-AddServerSetupChoices";
 import { AddUserOnCallLogTimelineSendingIndex1809120200000 } from "./1809120200000-AddUserOnCallLogTimelineSendingIndex";
 import { AddMonitorStatusTimelineIsMonitoringOff1809122600000 } from "./1809122600000-AddMonitorStatusTimelineIsMonitoringOff";
+import { AddProjectProductsAndPins1809122700000 } from "./1809122700000-AddProjectProductsAndPins";
+import { AddProductFeedback1809123000000 } from "./1809123000000-AddProductFeedback";
+import { AddAmazonSesAuthenticationType1809123100000 } from "./1809123100000-AddAmazonSesAuthenticationType";
+import { AddSampleProject1809123500000 } from "./1809123500000-AddSampleProject";
+import { AddSampleProjectUserIndex1809123500001 } from "./1809123500001-AddSampleProjectUserIndex";
+import { AddServerProducts1809123600000 } from "./1809123600000-AddServerProducts";
+import { AddDashboardRecordingSwitches1809123700000 } from "./1809123700000-AddDashboardRecordingSwitches";
+import { AddNetworkDeviceLastPollReceivedAt1809123800000 } from "./1809123800000-AddNetworkDeviceLastPollReceivedAt";
+import { AddProxmoxClusterAgentLastSeenAt1809123900000 } from "./1809123900000-AddProxmoxClusterAgentLastSeenAt";
 
 export default [
   InitialMigration,
@@ -1942,4 +1951,13 @@ export default [
   AddServerSetupChoices1809110968240,
   AddUserOnCallLogTimelineSendingIndex1809120200000,
   AddMonitorStatusTimelineIsMonitoringOff1809122600000,
+  AddProjectProductsAndPins1809122700000,
+  AddProductFeedback1809123000000,
+  AddAmazonSesAuthenticationType1809123100000,
+  AddSampleProject1809123500000,
+  AddSampleProjectUserIndex1809123500001,
+  AddServerProducts1809123600000,
+  AddDashboardRecordingSwitches1809123700000,
+  AddNetworkDeviceLastPollReceivedAt1809123800000,
+  AddProxmoxClusterAgentLastSeenAt1809123900000,
 ];

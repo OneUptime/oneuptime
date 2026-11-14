@@ -259,7 +259,6 @@ const LogPipelines: FunctionComponent<
           field: {
             description: true,
           },
-          noValueMessage: "-",
           title: "Description",
           type: FieldType.LongText,
         },

@@ -50,8 +50,11 @@ const READ_PERMISSIONS: Array<Permission> = [
 @CrudApiEndpoint(new Route("/telemetry-ingestion-key-refusal"))
 @TableMetadata({
   tableName: "TelemetryIngestionKeyRefusal",
-  singularName: "Telemetry Ingestion Key Refusal",
-  pluralName: "Telemetry Ingestion Key Refusals",
+  singularName: "Ingestion Key Refusal",
+  pluralName: "Ingestion Key Refusals",
+  // Was "Telemetry Ingestion Key Refusal" (#6817): its CLI name stays.
+  apiSingularName: "Telemetry Ingestion Key Refusal",
+  apiPluralName: "Telemetry Ingestion Key Refusals",
   icon: IconProp.Code,
   tableDescription:
     "Telemetry the ingest endpoints refused, counted per ingestion key, reason and ingest surface: how many requests, and when the first and the latest were refused. Written by the ingest endpoints; not user-editable.",
@@ -106,7 +109,7 @@ export default class TelemetryIngestionKeyRefusal extends BaseModel {
     manyToOneRelationColumn: "telemetryIngestionKeyId",
     type: TableColumnType.Entity,
     modelType: TelemetryIngestionKey,
-    title: "Telemetry Ingestion Key",
+    title: "Ingestion Key",
     description: "The ingestion key the refused telemetry was sent with.",
   })
   @ManyToOne(
@@ -129,7 +132,7 @@ export default class TelemetryIngestionKeyRefusal extends BaseModel {
     type: TableColumnType.ObjectID,
     required: true,
     canReadOnRelationQuery: true,
-    title: "Telemetry Ingestion Key ID",
+    title: "Ingestion Key ID",
     description: "ID of the ingestion key the refused telemetry was sent with.",
   })
   @Column({

@@ -388,7 +388,7 @@ describe("a Kubernetes cluster's side menu on a row's own page", () => {
 
 /*
  * Twelve of a cluster's pages had no trail at all - its Metrics, Traces,
- * Logs and Performance Profiles, PVCs and PVs and their rows, Costs,
+ * Logs and Profiles, PVCs and PVs and their rows, Costs,
  * Owners, Feed and Audit Logs - and so did the product's Costs, Archived
  * and its two rules pages: nothing above the page said where it was, and a
  * tab said only "OneUptime | Kubernetes Cluster".
@@ -492,7 +492,7 @@ describe("every Kubernetes page has a trail", () => {
     [PageMap.KUBERNETES_CLUSTER_VIEW_METRICS, "Metrics"],
     [PageMap.KUBERNETES_CLUSTER_VIEW_TRACES, "Traces"],
     [PageMap.KUBERNETES_CLUSTER_VIEW_LOGS, "Logs"],
-    [PageMap.KUBERNETES_CLUSTER_VIEW_PROFILES, "Performance Profiles"],
+    [PageMap.KUBERNETES_CLUSTER_VIEW_PROFILES, "Profiles"],
     [PageMap.KUBERNETES_CLUSTER_VIEW_PVCS, "PVCs"],
     [PageMap.KUBERNETES_CLUSTER_VIEW_PVS, "PVs"],
     [PageMap.KUBERNETES_CLUSTER_VIEW_COSTS, "Costs"],

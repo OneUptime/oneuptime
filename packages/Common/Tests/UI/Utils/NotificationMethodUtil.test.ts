@@ -18,6 +18,7 @@ import UserWebhook from "../../../Models/DatabaseModels/UserWebhook";
 import UserWhatsApp from "../../../Models/DatabaseModels/UserWhatsApp";
 import Email from "../../../Types/Email";
 import ObjectID from "../../../Types/ObjectID";
+import { OnCallPageChannel } from "../../../Types/OnCallDutyPolicy/OnCallPageChannel";
 import Phone from "../../../Types/Phone";
 
 /*
@@ -295,7 +296,13 @@ describe("NotificationMethodUtil.getDisplayItems", () => {
         reader({ userEmail: { email: "jane@example.com" } }),
       );
 
-    expect(items).toEqual([{ title: "Email", value: "jane@example.com" }]);
+    expect(items).toEqual([
+      {
+        method: OnCallPageChannel.Email,
+        title: "Email",
+        value: "jane@example.com",
+      },
+    ]);
   });
 
   test("renders a webhook line using its name", () => {
@@ -304,7 +311,13 @@ describe("NotificationMethodUtil.getDisplayItems", () => {
         reader({ userWebhook: { name: "Deploy Hook" } }),
       );
 
-    expect(items).toEqual([{ title: "Webhook", value: "Deploy Hook" }]);
+    expect(items).toEqual([
+      {
+        method: OnCallPageChannel.Webhook,
+        title: "Webhook",
+        value: "Deploy Hook",
+      },
+    ]);
   });
 
   test("never renders the webhook URL, even when the relation object carries it", () => {
@@ -318,7 +331,13 @@ describe("NotificationMethodUtil.getDisplayItems", () => {
         }),
       );
 
-    expect(items).toEqual([{ title: "Webhook", value: "Deploy Hook" }]);
+    expect(items).toEqual([
+      {
+        method: OnCallPageChannel.Webhook,
+        title: "Webhook",
+        value: "Deploy Hook",
+      },
+    ]);
     expect(JSON.stringify(items)).not.toContain("SECRETTOKEN");
   });
 
@@ -344,7 +363,9 @@ describe("NotificationMethodUtil.getDisplayItems", () => {
         }),
       );
 
-    expect(items).toEqual([{ title: "Telegram", value: "@jane" }]);
+    expect(items).toEqual([
+      { method: OnCallPageChannel.Telegram, title: "Telegram", value: "@jane" },
+    ]);
   });
 
   test("falls back to the Telegram chat id when the handle is absent", () => {
@@ -353,7 +374,9 @@ describe("NotificationMethodUtil.getDisplayItems", () => {
         reader({ userTelegram: { telegramChatId: "999" } }),
       );
 
-    expect(items).toEqual([{ title: "Telegram", value: "999" }]);
+    expect(items).toEqual([
+      { method: OnCallPageChannel.Telegram, title: "Telegram", value: "999" },
+    ]);
   });
 
   test("prefers the Slack user name over the Slack member id", () => {
@@ -364,7 +387,9 @@ describe("NotificationMethodUtil.getDisplayItems", () => {
         }),
       );
 
-    expect(items).toEqual([{ title: "Slack", value: "alice" }]);
+    expect(items).toEqual([
+      { method: OnCallPageChannel.Slack, title: "Slack", value: "alice" },
+    ]);
   });
 
   test("falls back to the Slack member id when the user name is absent", () => {
@@ -373,7 +398,9 @@ describe("NotificationMethodUtil.getDisplayItems", () => {
         reader({ userSlack: { slackUserId: "U0123ABCD" } }),
       );
 
-    expect(items).toEqual([{ title: "Slack", value: "U0123ABCD" }]);
+    expect(items).toEqual([
+      { method: OnCallPageChannel.Slack, title: "Slack", value: "U0123ABCD" },
+    ]);
   });
 
   test("prefers the Microsoft Teams user name over the Teams user id", () => {
@@ -388,7 +415,11 @@ describe("NotificationMethodUtil.getDisplayItems", () => {
       );
 
     expect(items).toEqual([
-      { title: "Microsoft Teams", value: "Alice Example" },
+      {
+        method: OnCallPageChannel.MicrosoftTeams,
+        title: "Microsoft Teams",
+        value: "Alice Example",
+      },
     ]);
   });
 
@@ -398,7 +429,13 @@ describe("NotificationMethodUtil.getDisplayItems", () => {
         reader({ userMicrosoftTeams: { microsoftTeamsUserId: "29:1abc" } }),
       );
 
-    expect(items).toEqual([{ title: "Microsoft Teams", value: "29:1abc" }]);
+    expect(items).toEqual([
+      {
+        method: OnCallPageChannel.MicrosoftTeams,
+        title: "Microsoft Teams",
+        value: "29:1abc",
+      },
+    ]);
   });
 
   test("prefers the Mattermost username over the Mattermost account id", () => {
@@ -412,7 +449,13 @@ describe("NotificationMethodUtil.getDisplayItems", () => {
         }),
       );
 
-    expect(items).toEqual([{ title: "Mattermost", value: "alice" }]);
+    expect(items).toEqual([
+      {
+        method: OnCallPageChannel.Mattermost,
+        title: "Mattermost",
+        value: "alice",
+      },
+    ]);
   });
 
   test("falls back to the Mattermost account id when the username is absent", () => {
@@ -424,7 +467,11 @@ describe("NotificationMethodUtil.getDisplayItems", () => {
       );
 
     expect(items).toEqual([
-      { title: "Mattermost", value: "abcdefghijklmnopqrstuvwxyz" },
+      {
+        method: OnCallPageChannel.Mattermost,
+        title: "Mattermost",
+        value: "abcdefghijklmnopqrstuvwxyz",
+      },
     ]);
   });
 
@@ -456,10 +503,14 @@ describe("NotificationMethodUtil.getDisplayItems", () => {
       );
 
     expect(items).toEqual([
-      { title: "Email", value: "jane@example.com" },
-      { title: "Slack", value: "alice" },
-      { title: "Webhook", value: "Hook" },
-      { title: "Push", value: "Pixel" },
+      {
+        method: OnCallPageChannel.Email,
+        title: "Email",
+        value: "jane@example.com",
+      },
+      { method: OnCallPageChannel.Slack, title: "Slack", value: "alice" },
+      { method: OnCallPageChannel.Webhook, title: "Webhook", value: "Hook" },
+      { method: OnCallPageChannel.Push, title: "Push", value: "Pixel" },
     ]);
   });
 
@@ -468,7 +519,11 @@ describe("NotificationMethodUtil.getDisplayItems", () => {
     rule.setColumnValue("userWebhook", { name: "Deploy Hook" });
 
     expect(NotificationMethodUtil.getDisplayItems(rule)).toEqual([
-      { title: "Webhook", value: "Deploy Hook" },
+      {
+        method: OnCallPageChannel.Webhook,
+        title: "Webhook",
+        value: "Deploy Hook",
+      },
     ]);
   });
 });
@@ -766,5 +821,83 @@ describe("NotificationMethodUtil.setSelectedMethodOnRule", () => {
       NotificationMethodUtil.setSelectedMethodOnRule(rule, ID.b, models());
 
     expect(returned).toBe(rule);
+  });
+});
+
+// ================================================ isPhoneNumberMethod
+
+/*
+ * Issue #6605: a method reached at a phone number shows that number, which
+ * reads +447700900123 in every language (PhoneNumberText) - printed as it
+ * was, an Arabic page put its "+" after its digits. Which methods those are
+ * is read from the relations themselves, so a renamed or new one cannot
+ * drift from a list kept somewhere else.
+ */
+describe("NotificationMethodUtil.isPhoneNumberMethod", () => {
+  test.each(["SMS", "Call", "WhatsApp"])(
+    "%s is reached at a phone number",
+    (methodName: string) => {
+      expect(NotificationMethodUtil.isPhoneNumberMethod(methodName)).toBe(true);
+    },
+  );
+
+  test.each([
+    "Email",
+    "Telegram",
+    "Slack",
+    "Microsoft Teams",
+    "Mattermost",
+    "Webhook",
+    "Custom Channel",
+    "Push",
+  ])("%s is not", (methodName: string) => {
+    expect(NotificationMethodUtil.isPhoneNumberMethod(methodName)).toBe(false);
+  });
+
+  test("a name is matched exactly: no other case, no part of one, nothing", () => {
+    for (const methodName of ["sms", "CALL", "Whats", "SMS ", "", "Phone"]) {
+      expect(NotificationMethodUtil.isPhoneNumberMethod(methodName)).toBe(
+        false,
+      );
+    }
+  });
+
+  test.each([
+    ["userSms", "SMS", OnCallPageChannel.SMS],
+    ["userCall", "Call", OnCallPageChannel.Call],
+    ["userWhatsApp", "WhatsApp", OnCallPageChannel.WhatsApp],
+  ])(
+    "the display line of a %s method is one it names, holding the number",
+    (column: string, title: string, method: OnCallPageChannel) => {
+      const items: Array<NotificationMethodDisplayItem> =
+        NotificationMethodUtil.getDisplayItems(
+          reader({ [column]: { phone: new Phone("+447700900123") } }),
+        );
+
+      expect(items).toEqual([
+        { method: method, title: title, value: "+447700900123" },
+      ]);
+      expect(NotificationMethodUtil.isPhoneNumberMethod(items[0]!.title)).toBe(
+        true,
+      );
+      // And by its kind, whatever a language calls it (#7178).
+      expect(
+        NotificationMethodUtil.isPhoneNumberChannel(items[0]!.method),
+      ).toBe(true);
+    },
+  );
+
+  test("the display line of an email method is not", () => {
+    const items: Array<NotificationMethodDisplayItem> =
+      NotificationMethodUtil.getDisplayItems(
+        reader({ userEmail: { email: "jane@example.com" } }),
+      );
+
+    expect(NotificationMethodUtil.isPhoneNumberMethod(items[0]!.title)).toBe(
+      false,
+    );
+    expect(NotificationMethodUtil.isPhoneNumberChannel(items[0]!.method)).toBe(
+      false,
+    );
   });
 });

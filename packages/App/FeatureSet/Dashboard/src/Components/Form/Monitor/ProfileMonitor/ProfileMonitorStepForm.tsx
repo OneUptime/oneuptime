@@ -397,7 +397,7 @@ const ProfileMonitorStepForm: FunctionComponent<ComponentProps> = (
             fieldType: FormFieldSchemaType.Text,
             title: "Function",
             description:
-              "Its name, or part of its file or package path, as the Profiler shows it.",
+              "Its name, or part of its file or package path, as shown in Profiles.",
             placeholder: "parseOrder",
             hideOptionalLabel: true,
           },
@@ -437,7 +437,7 @@ const ProfileMonitorStepForm: FunctionComponent<ComponentProps> = (
                 };
               },
             ),
-            title: "Filter by Telemetry Service",
+            title: "Filter by Service",
             description: "Select telemetry services to scope this monitor.",
             hideOptionalLabel: true,
             collapsibleSection: MORE_PROFILE_FILTERS,
@@ -469,7 +469,7 @@ const ProfileMonitorStepForm: FunctionComponent<ComponentProps> = (
 
       {/*
        * What the monitor reads now is a section of the step of its own, as
-       * Monitor Criteria is (CardFormSections): a rule above it and a
+       * Criteria is (CardFormSections): a rule above it and a
        * section's title. It was a rule and a larger, lighter heading of its
        * own inside the configuration section, which read as a step above
        * the sections round it.

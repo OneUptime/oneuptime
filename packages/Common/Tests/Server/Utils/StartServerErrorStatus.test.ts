@@ -13,6 +13,7 @@ import Exception from "../../../Types/Exception/Exception";
 import ExceptionCode from "../../../Types/Exception/ExceptionCode";
 import NotFoundException from "../../../Types/Exception/NotFoundException";
 import QueryTimeoutException from "../../../Types/Exception/QueryTimeoutException";
+import { UNEXPLAINED_ERROR_MESSAGES } from "../../../Types/Exception/UnexplainedError";
 import {
   afterEach,
   beforeEach,
@@ -165,11 +166,17 @@ describe("the express error handler never hands an invalid status to res.status(
    * thrown away. The ClickHouse reader no longer lets one reach this handler
    * (ClickhouseReadResult); this is why it must not.
    */
-  it("answers an error that is not an Exception with a bare 500", () => {
+  it("answers an error that is not an Exception with a 500 that keeps its message in the log", () => {
     handle(new SyntaxError("Unexpected end of JSON input"));
 
     expect(statuses).toEqual([500]);
-    expect(bodies).toEqual([{ error: "Server Error" }]);
+    /*
+     * Not "Server Error" any more (#6836): what happened and what to do
+     * next. This request has no id, so there is no reference to give;
+     * UnexplainedServerError.test.ts covers the answer with one.
+     */
+    expect(bodies).toEqual([{ error: UNEXPLAINED_ERROR_MESSAGES.server }]);
+    expect(JSON.stringify(bodies)).not.toContain("Unexpected end of JSON");
   });
 
   it("leaves a response that has already started to the default handler", () => {

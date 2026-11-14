@@ -59,7 +59,8 @@ const Layers: FunctionComponent<ComponentProps> = (
   useEffect(() => {
     //fetch layers.
     fetchLayers().catch((err: Error) => {
-      setError(err.message);
+      // Never a TypeError's words: what failed and what to do (#6836).
+      setError(API.getFriendlyMessage(err));
     });
   }, []);
 

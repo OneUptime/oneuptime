@@ -52,6 +52,8 @@ Type their address in **Email**. If no OneUptime account uses it yet, the dialog
 ### Send the invitation
 
 Click **Invite**. OneUptime emails the invitation and opens the person's page. They show as **Invitation Sent** until they accept.
+
+On a self-hosted server that cannot send email yet, no email goes out, and they show as **Invited**. A master admin sees **Send them their invitation link** first: copy the link, send it to them yourself, then click **Done**. Anyone else asks the server's admin to [set up email](/docs/emails/smtp#open-the-form).
 :::
 
 > [!TIP]
@@ -84,7 +86,7 @@ Filter the list by **User**, **Status** or **Team**. Click a row to open the per
 | --- | --- |
 | **Profile** | Their name, email address, picture and user ID. |
 | **Teams** | The teams they are in. Add or remove a team here. |
-| **Readiness**, **Notification Methods**, **On-Call Rules** | Whether they can be paged, and how. Shown to Project Owners, Project Admins, the person themselves, and anyone who may read people's notification rules. See [Readiness & Reports](/docs/on-call/readiness). |
+| **Readiness**, **Notification Methods**, **How to Reach Me** | Whether they can be paged, and how. Shown to Project Owners, Project Admins, the person themselves, and anyone who may read people's notification rules. See [Readiness & Reports](/docs/on-call/readiness). |
 | **Custom Fields** | The project's custom fields for people, when it has any. |
 | **Remove from Project** | Take them out of the project. |
 
@@ -134,6 +136,8 @@ One address can be sent 10 invitations an hour, to projects and private status p
 
 :::details The invitation email did not arrive, or its link expired
 The invitation does not depend on the email. Ask them to sign up with the address you invited: OneUptime emails that address a new link to finish creating the account. Someone who already has an account signs in and finds the invitation waiting.
+
+On a self-hosted server that cannot send email yet, signing up cannot email them a new link either: it tells them to ask for their invitation link. Once the server's admin has [set up email](/docs/emails/smtp#open-the-form), signing up works as above. Until then, a master admin can remove them from the project and invite them again, and send them the new invitation link, which works once, only for that address, for 7 days.
 :::
 
 :::details Invite User says users are managed by SCIM Push Groups

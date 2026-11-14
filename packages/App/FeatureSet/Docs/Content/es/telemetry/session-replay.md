@@ -102,6 +102,8 @@ window.__ONEUPTIME_SESSION_REPLAY__ = {
   respectDoNotTrack: true, // optional
   debug: false, // optional
   offlineStorage: true, // optional; false keeps offline chunks in memory only
+  maskAllText: false, // optional; true masks all text, whatever the policy says
+  blockSelectors: [], // optional; added to the policy's block selectors
 };
 ```
 
@@ -253,7 +255,7 @@ El grabador publica `window.OneUptimeReplay`. Como se carga de forma asíncrona,
 );
 ```
 
-`grantConsent`, `revokeConsent`, `stop`, `identify`, `setTags` y `addTag` se aplican antes de que arranque el grabador, así que una decisión de consentimiento en cola decide si se sube algo, y una identidad en cola viaja ya en el primer fragmento. `track`, `metric`, `captureSession` y `onSessionChange` se ejecutan justo después de que arranque.
+`grantConsent`, `revokeConsent`, `stop`, `pause`, `resume`, `identify`, `setTags` y `addTag` se aplican antes de que arranque el grabador, así que una decisión de consentimiento en cola decide si se sube algo, y una identidad en cola viaja ya en el primer fragmento. `track`, `metric`, `captureSession` y `onSessionChange` se ejecutan justo después de que arranque.
 
 | Método | Qué hace |
 | --- | --- |
@@ -268,6 +270,8 @@ El grabador publica `window.OneUptimeReplay`. Como se carga de forma asíncrona,
 | `getSessionId()` | El id de sesión actual, o `null` cuando no se graba nada. Prefiere `onSessionChange()`, que también sigue los cambios de sesión. |
 | `getVisitorId()` | El [id de visitante anónimo](#visitantes-anónimos) — 32 caracteres hexadecimales, uno por perfil de navegador, el mismo en todos los cambios de sesión — o `""` antes de que arranque el grabador, después de `stop()` y mientras el consentimiento está retirado. Aleatorio y no una identidad; no depende de **Capturar la identidad del usuario final**. |
 | `stop()` | Sube el último fragmento, sella la sesión y se detiene durante el resto de la vida de la página. |
+| `pause()` | Detiene la captura de lo que hay en pantalla hasta `resume()`: el chunk abierto sale con un marcador _paused_ y mientras tanto no se graba nada (ni la página, ni las entradas, solicitudes, consola o clics). La sesión sigue abierta y la actividad del visitante no la reanuda. Para una página que solo graba algunas de sus partes; si se encola antes de que cargue el grabador, este empieza en pausa. |
+| `resume()` | Sigue grabando después de `pause()`, en la misma sesión, con una instantánea nueva de la página tal como está. El reproductor salta el tramo en pausa. |
 | `setDebug(enabled)` | Imprime a partir de ahora las decisiones del grabador en la consola. |
 | `getDiagnostics()` | Todo lo que decidió el grabador, estuviera o no activado el diagnóstico. Consulta más abajo. |
 
@@ -370,7 +374,12 @@ Los valores enmascarados no conservan la longitud. Un campo enmascarado es un ma
 
 <!-- Recorded, but input events inside are dropped. -->
 <div class="oneuptime-ignore">...</div>
+
+<!-- Under Mask all text, the text inside is recorded as written. -->
+<div class="oneuptime-unmask">...</div>
 ```
+
+Con _Mask all text_, el texto dentro de un elemento con la clase `oneuptime-unmask` se graba tal cual: úsala para las palabras propias de la interfaz de tu página, como botones, títulos y menús. Un elemento `oneuptime-mask` o uno de tus selectores de enmascarado adicionales dentro de él vuelve a enmascarar su texto, los campos de formulario siguen enmascarados y la clase no hace nada en los demás modos de enmascarado. Una página también puede pedir más enmascarado del que da su política, en el objeto global de inicio: `maskAllText: true` graba con _Mask all text_ diga lo que diga la política, y `blockSelectors` se suma a los selectores de bloqueo de la política. Ninguno de los dos puede hacer que una grabación muestre más.
 
 También puedes añadir **Selectores de enmascaramiento adicionales** y **Selectores de bloqueo** en la página **Política de reproducción** de tu aplicación, sin cambiar tu marcado. Con el modo de enmascaramiento predeterminado, son la herramienta principal para proteger contenido que tu marcado no declara como sensible.
 

@@ -1,4 +1,5 @@
 import { ContentPath, StaticPath, ViewsPath } from "./Utils/Config";
+import { cachedManifest, withScreenAddresses } from "./Screens/DocsScreenFiles";
 import {
   addEnglishAnchorAliases,
   getEnglishAnchorAliases,
@@ -12,6 +13,8 @@ import DocsSearchIndex, {
   summarizeDocsPage,
 } from "./Utils/SearchIndex";
 import DocsSitemap from "./Utils/Sitemap";
+import DocsSearch, { DocsSearchAnswer } from "./Utils/DocsSearch";
+import DocsFeedback, { DocsFeedbackAnswer } from "./Utils/DocsFeedback";
 import DocsAIReader from "./Utils/AIDocsReader";
 import AIDocsLibrary from "Common/Server/Utils/AI/Docs/AIDocsLibrary";
 import DocsTranslations from "./Utils/Translations";
@@ -35,6 +38,7 @@ import FeatureSet from "Common/Server/Types/FeatureSet";
 import Express, {
   ExpressApplication,
   ExpressRequest,
+  ExpressJson,
   ExpressResponse,
   ExpressStatic,
   NextFunction,
@@ -291,11 +295,74 @@ const DocsFeatureSet: FeatureSet = {
     );
 
     /*
-     * The search index for one language: every page's title, group,
-     * summary and section headings (Utils/SearchIndex.ts). The search box
-     * fetches it the first time it opens. Registered before the two-segment
+     * Docs search, for one language: the results for ?q= (and at most
+     * ?limit= of them), read from every page in full, forgiving typos and a
+     * reader's other words (Utils/DocsSearch.ts). The docs' search box asks
+     * it as the reader types, and so does Search (Cmd/Ctrl+K) in the
+     * Dashboard for its Docs group. Registered before the two-segment
      * legacy redirect below, which would otherwise take the address for a
      * page called "<lang>.json".
+     */
+    app.get(
+      "/docs/search/:lang.json",
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const lang: string = req.params["lang"] || "";
+          const query: string =
+            typeof req.query["q"] === "string" ? req.query["q"] : "";
+          const limit: number = Number(req.query["limit"]);
+
+          if (!isSupportedDocsLanguage(lang)) {
+            res.status(404);
+            return res.json({ query: "", results: [], words: [] });
+          }
+
+          const answer: DocsSearchAnswer = query.trim()
+            ? await DocsSearch.search({
+                query,
+                language: lang,
+                limit: Number.isFinite(limit) && limit > 0 ? limit : undefined,
+              })
+            : { query: "", results: [], words: [] };
+
+          res.setHeader("Cache-Control", "public, max-age=300");
+          return res.json(answer);
+        } catch (err) {
+          logger.error(err);
+          return next(err);
+        }
+      },
+    );
+
+    /*
+     * "Was this page helpful?": a page's answer, which goes on to product
+     * analytics only where it is set up (OneUptime Cloud). Anywhere else
+     * the page never posts here, and an answer that arrives is dropped: it
+     * answers 204 either way, and 400 for anything that is not an answer
+     * (Utils/DocsFeedback.ts). Its body is a few dozen bytes.
+     */
+    app.post(
+      "/docs/feedback",
+      ExpressJson({ limit: "2kb" }),
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        const answer: DocsFeedbackAnswer | null = DocsFeedback.read(req.body);
+
+        if (!answer) {
+          return res.status(400).json({});
+        }
+
+        await DocsFeedback.send(answer);
+
+        return res.status(204).end();
+      },
+    );
+
+    /*
+     * The headings index for one language: every page's title, group,
+     * summary and section headings (Utils/SearchIndex.ts), for tools that
+     * want the docs' outline. The search box asks /docs/search instead.
+     * Registered before the two-segment legacy redirect below, which would
+     * otherwise take the address for a page called "<lang>.json".
      */
     app.get(
       "/docs/search-index/:lang.json",
@@ -726,7 +793,11 @@ const DocsFeatureSet: FeatureSet = {
           return Response.sendMarkdownResponse(
             req,
             res,
-            DocsPlaceholders.render(content.markdown, lang),
+            withScreenAddresses(
+              DocsPlaceholders.render(content.markdown, lang),
+              content.lang,
+              cachedManifest(),
+            ),
           );
         } catch (err) {
           logger.error(err);
@@ -756,7 +827,11 @@ const DocsFeatureSet: FeatureSet = {
           return Response.sendMarkdownResponse(
             req,
             res,
-            DocsPlaceholders.render(content.markdown, DEFAULT_DOCS_LANGUAGE),
+            withScreenAddresses(
+              DocsPlaceholders.render(content.markdown, DEFAULT_DOCS_LANGUAGE),
+              content.lang,
+              cachedManifest(),
+            ),
           );
         } catch (err) {
           logger.error(err);
@@ -930,6 +1005,16 @@ const DocsFeatureSet: FeatureSet = {
             pageDescription: summarizeDocsPage(content.markdown).description,
             markdownUrl: `/docs/as-markdown/${lang}/${fullPath}`,
             githubPath: fullPath,
+            // "Was this page helpful?" (Views/Partials/PageFeedback.ejs, Utils/DocsFeedback.ts).
+            feedback: {
+              page: fullPath,
+              isSent: DocsFeedback.isSent(),
+              githubIssueUrl: DocsFeedback.getGitHubIssueUrl({
+                page: fullPath,
+                title: currentNavLink.title,
+                lang: lang,
+              }),
+            },
             enableGoogleTagManager: GoogleTagManagerEnabled,
             prevLink: prevRaw ? translateFlatLink(prevRaw) : null,
             nextLink: nextRaw ? translateFlatLink(nextRaw) : null,

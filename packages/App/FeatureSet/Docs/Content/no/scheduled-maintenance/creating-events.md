@@ -31,7 +31,7 @@ flowchart TB
 :::steps
 ### Åpne skjemaet
 
-Gå til **Planlagt vedlikehold → Alle hendelser** og klikk på **Opprett planlagt vedlikeholdshendelse**. Skjemaet åpnes på det første trinnet, **Hendelse**.
+Gå til **Planlagt vedlikehold → Alle vedlikeholdshendelser** og klikk på **Opprett vedlikeholdshendelse**. Skjemaet åpnes på det første trinnet, **Detaljer om vedlikehold**.
 
 ### Si hva som skjer og når
 
@@ -47,7 +47,7 @@ Velg statussidene under **Vis hendelse på disse statussidene**. **Varsler til a
 
 ### Opprett den
 
-Klikk på **Neste** for å se gjennomgangen, sjekk den, og klikk deretter på **Opprett planlagt vedlikeholdshendelse**. Hendelsens egen side åpnes.
+Klikk på **Neste** for å se gjennomgangen, sjekk den, og klikk deretter på **Opprett vedlikeholdshendelse**. Hendelsens egen side åpnes.
 :::
 
 Ingenting sendes før du velger en statusside: en hendelse som ikke vises på noen statusside, gir ingen abonnent beskjed.
@@ -56,12 +56,12 @@ Ingenting sendes før du velger en statusside: en hendelse som ikke vises på no
 
 | Felt                                 | Trinn              | Starter som                     | Hva det gjør                                                                     |
 | ------------------------------------ | ------------------ | ------------------------------- | -------------------------------------------------------------------------------- |
-| **Tittel**                           | **Hendelse**       | Tom, og påkrevd                 | Navngir hendelsen overalt, også på statussidene dine.                            |
-| **Beskrivelse**                      | **Hendelse**       | Tom                             | Forklarer arbeidet for kundene dine, i Markdown.                                 |
-| **Begynner den**                     | **Hendelse**       | Neste hele time                 | Når hendelsen starter av seg selv.                                               |
-| **Slutter den**                      | **Hendelse**       | En time etter **Begynner den**  | Når hendelsen slutter av seg selv. Den må komme etter **Begynner den**.          |
-| **Eiere**                            | **Hendelse**       | Ingen                           | Personer og team som eier hendelsen og får beskjed om den.                       |
-| **Etiketter**                        | **Hendelse**       | Ingen                           | Etiketter som regler og filtre kan matche på.                                    |
+| **Tittel**                           | **Detaljer om vedlikehold**       | Tom, og påkrevd                 | Navngir hendelsen overalt, også på statussidene dine.                            |
+| **Beskrivelse**                      | **Detaljer om vedlikehold**       | Tom                             | Forklarer arbeidet for kundene dine, i Markdown.                                 |
+| **Begynner den**                     | **Detaljer om vedlikehold**       | Neste hele time                 | Når hendelsen starter av seg selv.                                               |
+| **Slutter den**                      | **Detaljer om vedlikehold**       | En time etter **Begynner den**  | Når hendelsen slutter av seg selv. Den må komme etter **Begynner den**.          |
+| **Eiere**                            | **Detaljer om vedlikehold**       | Ingen                           | Personer og team som eier hendelsen og får beskjed om den.                       |
+| **Etiketter**                        | **Detaljer om vedlikehold**       | Ingen                           | Etiketter som regler og filtre kan matche på.                                    |
 | **Monitorer**                        | **Berørte ressurser** | Ingen                        | Monitorene som ikke sjekkes mens hendelsen pågår.                                |
 | **Endre overvåkingsstatus til**      | **Berørte ressurser** | Ingen endring                | Statusen disse monitorene viser under hendelsen. Spørres om så snart en monitor er valgt. |
 | **Andre berørte ressurser**          | **Berørte ressurser** | Ingen                        | Verter, klynger, databaser, nettverkslokasjoner, tjenester og mer.               |
@@ -75,13 +75,13 @@ To ting fyller ut skjemaet for deg underveis:
 
 ## Start fra en ressurs eller en mal
 
-På fanen **Planlagt vedlikehold** for en vert, en Kubernetes-, Proxmox-, Ceph- eller Docker Swarm-klynge, en Docker- eller Podman-vert, en vCenter, en OpenStack-sky, et lagringssystem, en IoT-flåte, en database, en skyressurs, en tjeneste eller en nettverkslokasjon åpner **Opprett planlagt vedlikeholdshendelse** det samme skjemaet med den ressursen allerede valgt under **Andre berørte ressurser**, og fanen viser hendelsene som berører den. Fanen for et inventarelement velger verten, tjenesten eller Kubernetes-klyngen elementet peker på.
+På fanen **Planlagt vedlikehold** for en vert, en Kubernetes-, Proxmox-, Ceph- eller Docker Swarm-klynge, en Docker- eller Podman-vert, en vCenter, en OpenStack-sky, et lagringssystem, en IoT-flåte, en database, en skyressurs, en tjeneste eller en nettverkslokasjon åpner **Opprett vedlikeholdshendelse** det samme skjemaet med den ressursen allerede valgt under **Andre berørte ressurser**, og fanen viser hendelsene som berører den. Fanen for et inventarelement velger verten, tjenesten eller Kubernetes-klyngen elementet peker på.
 
 **Opprett fra mal**, ved siden av opprettingsknappen, ber deg om å **Velg mal for planlagt vedlikehold** og åpner deretter skjemaet utfylt fra malen. Se [Maler og gjentakende hendelser](/docs/scheduled-maintenance/templates).
 
 ## Hva som skjer når du oppretter den
 
-I det øyeblikket du klikker på **Opprett planlagt vedlikeholdshendelse**, går OneUptime gjennom disse trinnene, i denne rekkefølgen:
+I det øyeblikket du klikker på **Opprett vedlikeholdshendelse**, går OneUptime gjennom disse trinnene, i denne rekkefølgen:
 
 1. **Den får et nummer og en tilstand.** Nummeret kommer fra en teller per prosjekt og vises med prefikset ditt (`SM-42`). Hendelsen starter i den planlagte tilstanden din, uansett hvilken tilstand en forespørsel nevner.
 2. **Chatverktøyene dine får høre om den.** Slack- og Microsoft Teams-reglene under **Arbeidsområde** poster den i kanalene sine, og en regel kan opprette en kanal for hendelsen. Feeden dens registrerer at den ble opprettet.
@@ -90,7 +90,7 @@ I det øyeblikket du klikker på **Opprett planlagt vedlikeholdshendelse**, går
 5. **Runbook-regler starter** runbookene som matcher hendelsen.
 6. **Påminnelser planlegges**, når en påminnelsesregel matcher, for eierne.
 
-Innen et minutt etter at den publiseres, som skjer med en gang med mindre du har valgt et **Publiser den**, får abonnentene på statussidene dens beskjed om at den er planlagt, med mindre du har slått av **Når hendelsen planlegges**. Arbeidsflytutløseren **On Create Scheduled Maintenance Event** starter enhver arbeidsflyt som er bygget på den, og eierne får høre om den hvis de har slått på det varselet: se [Varselinnstillinger](/docs/notifications/notification-settings).
+Innen et minutt etter at den publiseres, som skjer med en gang med mindre du har valgt et **Publiser den**, får abonnentene på statussidene dens beskjed om at den er planlagt, med mindre du har slått av **Når hendelsen planlegges**. Arbeidsflytutløseren **On Create Maintenance Event** starter enhver arbeidsflyt som er bygget på den, og eierne får høre om den hvis de har slått på det varselet: se [Varselinnstillinger](/docs/notifications/notification-settings).
 
 ## Publiser den senere
 
@@ -113,7 +113,7 @@ Alt i skjemaet kan endres på hendelsens egne sider, unntatt de tre abonnenttids
 
 | For å endre                                 | Gå til                                                                         |
 | ------------------------------------------- | ------------------------------------------------------------------------------ |
-| Tittelen, vinduet eller etikettene          | **Rediger** på kortet **Detaljer om vedlikehold** i **Oversikt**, trinnet **Hendelse** |
+| Tittelen, vinduet eller etikettene          | **Rediger** på kortet **Detaljer om vedlikehold** i **Oversikt**, trinnet **Detaljer om vedlikehold** |
 | Statussidene, når den publiseres, eller påminnelsene | Samme **Rediger**, trinnet **Statussider**                             |
 | Monitorene, statusen deres eller andre ressurser | **Rediger** på kortet **Berørte ressurser**                               |
 | Beskrivelsen                                | **Beskrivelse** i sidemenyen                                                   |
@@ -155,7 +155,7 @@ curl -X POST https://oneuptime.com/api/scheduled-maintenance \
 | `shouldStatusPageSubscribersBeNotifiedOnEventCreated` | Bryteren **Når hendelsen planlegges**. De to andre tidspunktene har egne felt.            |
 | `publishOnStatusPageAt`                               | Når hendelsen publiseres på statussidene sine og abonnentene får beskjed om at den er planlagt. Utelatt: med en gang. |
 
-Den samme hendelsen som kode er Terraform-ressursen `oneuptime_scheduled_maintenance_event`: se [Eksempler](/docs/terraform/examples#planlagt-vedlikehold). En arbeidsflyt oppretter en med trinnet **Create One Scheduled Maintenance Event**, og `/oneuptime maintenance` åpner skjemaet i Slack: se [Slack](/docs/workspace-connections/slack#opprett-hendelser-og-vedlikehold-fra-slack).
+Den samme hendelsen som kode er Terraform-ressursen `oneuptime_scheduled_maintenance_event`: se [Eksempler](/docs/terraform/examples#planlagt-vedlikehold). En arbeidsflyt oppretter en med trinnet **Create One Maintenance Event**, og `/oneuptime maintenance` åpner skjemaet i Slack: se [Slack](/docs/workspace-connections/slack#opprett-hendelser-og-vedlikehold-fra-slack).
 
 ## Feilsøking
 

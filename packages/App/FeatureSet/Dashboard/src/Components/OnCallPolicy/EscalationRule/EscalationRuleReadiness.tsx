@@ -47,6 +47,7 @@ import {
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { joinList } from "Common/UI/Utils/ListSeparator";
+import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * THE READINESS WARNING, ON THE PAGE RATHER THAN IN THE MODAL.
@@ -1318,10 +1319,12 @@ const getReminderRow: (params: {
           data-testid="setup-reminder-not-sent"
           className="mt-2 text-xs font-medium leading-relaxed text-red-700"
         >
-          {translator.translateTemplate(
-            "No reminder was sent. {{reason}} Ask {{name}} to finish their notification setup in User Settings.",
-            { reason: params.status.message, name: name },
-          )}
+          <ErrorSentence
+            template="No reminder was sent. {{reason}} Ask {{name}} to finish their notification setup in User Settings."
+            error={params.status.message}
+            errorPlaceholder="reason"
+            values={{ name: name }}
+          />
         </p>
       ) : (
         <></>
@@ -1337,14 +1340,12 @@ const getReminderRow: (params: {
           data-testid="setup-reminder-unknown"
           className="mt-2 text-xs font-medium leading-relaxed text-amber-800"
         >
-          {translator.translateTemplate(
-            "We could not confirm whether a reminder reached {{name}}. {{reason}} Check with {{firstName}} before sending another.",
-            {
-              name: name,
-              reason: params.status.message,
-              firstName: getFirstName(name),
-            },
-          )}
+          <ErrorSentence
+            template="We could not confirm whether a reminder reached {{name}}. {{reason}} Check with {{firstName}} before sending another."
+            error={params.status.message}
+            errorPlaceholder="reason"
+            values={{ name: name, firstName: getFirstName(name) }}
+          />
         </p>
       ) : (
         <></>
@@ -1578,7 +1579,7 @@ export const RuleReadinessDetails: FunctionComponent<
             {report.unchecked.length > 0 ? (
               <p className="mt-0.5 text-sm leading-relaxed text-gray-600">
                 {translator.translateTemplate(
-                  "The readiness answer for this policy does not cover {{names}}, so they are unknown rather than ready. Open On-Call Duty > Readiness for the full list.",
+                  "The readiness answer for this policy does not cover {{names}}, so they are unknown rather than ready. Open On-Call > Readiness for the full list.",
                   {
                     names: report.unchecked
                       .map((issue: ResponderIssue): string => {

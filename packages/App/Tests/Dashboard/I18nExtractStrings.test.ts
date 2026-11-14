@@ -1492,7 +1492,7 @@ describe("scanning a source tree", () => {
 });
 
 describe("the real source roots", () => {
-  test("cover the Dashboard, the shared UI, the data models, the vCenter collection errors, the security case and playbook catalogs, the AI and cloud connections' catalogs, the shared monitor helpers, the monitor type cards, a new monitor's default criteria words, the cron schedule words and its common schedules, why an email was not sent when the server has no email set up, the placeholders of a playbook's message, what is wrong with a detection rule exception, what is wrong with a watchlist or one of its values, what is wrong with a hunt or why its run could not be made, the Hunt Library's starters, a security connector's Data to import choices, what each of the traces explorer's span types is, a naming rule's placeholders and what is wrong with its pattern or lookup table, why Add or Delete is locked on the Global User Overrides page, what a dashboard template's chart says while it draws its fallback query, how a change OneUptime AI proposes went before, a cloud change in plain words, a Kubernetes object's status by the cluster's rules, a database's status by its engine's alert lines, what a custom domain's DNS check found and what the server still needs before a custom domain works, why a RUM application's session recordings are missing, the dashboard SLO widgets' labels and lines, what each managed app platform is, a cloud resource's status by its key metrics and the kinds of saving the clouds recommend, a resource's right-sizing from OneUptime's own readings, what an AI action's approval card says and the kinds of resource it names, how an AI remediation round reads, the curated metrics' names, and what a monitor's evaluation says and the checks it names", () => {
+  test("cover the Dashboard, the shared UI, the data models, the vCenter collection errors, the security case and playbook catalogs, the AI and cloud connections' catalogs, the shared monitor helpers, the monitor type cards, a new monitor's default criteria words, a monitor template's sync fields, the cron schedule words and its common schedules, what each Setup health finding says, why an email was not sent when the server has no email set up, the placeholders of a playbook's message, what is wrong with a detection rule exception, what is wrong with a watchlist or one of its values, what is wrong with a hunt or why its run could not be made, the Hunt Library's starters, a security connector's Data to import choices, what each of the traces explorer's span types is, a naming rule's placeholders and what is wrong with its pattern or lookup table, why Add or Delete is locked on the Global User Overrides page, what a dashboard template's chart says while it draws its fallback query, how a change OneUptime AI proposes went before, a cloud change in plain words, a Kubernetes object's status by the cluster's rules, a database's status by its engine's alert lines, what a custom domain's DNS check found and what the server still needs before a custom domain works, what an error nobody explained says to do and where to look, why a RUM application's session recordings are missing, the dashboard SLO widgets' labels and lines, what each managed app platform is, a cloud resource's status by its key metrics and the kinds of saving the clouds recommend, a resource's right-sizing from OneUptime's own readings, what an AI action's approval card says and the kinds of resource it names, how an AI remediation round reads, the curated metrics' names, what a monitor's evaluation says and the checks it names, and the checks a table's columns call for", () => {
     expect(
       SOURCE_ROOTS.map((root: { directory: string; kind: string }) => {
         return `${root.kind} ${root.directory}`;
@@ -1518,8 +1518,12 @@ describe("the real source roots", () => {
       "ui packages/Common/Types/Monitor/MonitorType.ts",
       // A new monitor's default criteria: names, descriptions, what they open.
       "keys packages/Common/Types/Monitor/MonitorCriteriaInstance.ts",
+      // A template's sync fields: each one's name, and what it keeps together.
+      "keys packages/Common/Types/Monitor/MonitorTemplateSyncField.ts",
       // A cron schedule in words.
       "ui packages/Common/Utils/CronScheduleText.ts",
+      // What each Setup health finding says.
+      "ui packages/Common/Types/SetupHealth/SetupHealth.ts",
       "ui packages/Common/Types/ServerSending/ServerSendingWords.ts",
       // The common schedules a workflow's Schedule trigger offers.
       "ui packages/Common/Utils/CronTab.ts",
@@ -1558,6 +1562,8 @@ describe("the real source roots", () => {
       // A custom domain's DNS check, and what a server needs before one works.
       "keys packages/Common/Types/CustomDomain/DnsRecordCheckWords.ts",
       "keys packages/Common/Types/CustomDomain/CustomDomainServerReadiness.ts",
+      // An error nobody explained: what happened, what to do, where to look.
+      "keys packages/Common/Types/Exception/UnexplainedError.ts",
       // A RUM application's status and what each means - not its stored values.
       "keys packages/Common/Types/Rum/RumApplicationStatus.ts",
       "keys packages/Common/Utils/SessionReplay/SessionReplayHealth.ts",
@@ -1616,6 +1622,8 @@ describe("the real source roots", () => {
       "keys packages/Common/Server/Utils/Monitor/MonitorMaintenanceSuppression.ts",
       "keys packages/Common/Server/Utils/Monitor/MonitorDependencySuppression.ts",
       "keys packages/Common/Server/Utils/Monitor/LogGroupCriteriaFanOut.ts",
+      // The checks a table's columns call for, worded for each reader (#7221).
+      "keys packages/Common/Types/DataObservability/DataCheckSuggestions.ts",
     ]);
   });
 
@@ -1634,13 +1642,16 @@ describe("the real source roots", () => {
    * its new name: the license server's enterprise-only column titles would
    * reach every locale file, which a test in ee/ refuses, and so would the
    * instance's backups (#5241), which only the Enterprise Admin Dashboard
-   * shows, in words of its own (ee/AdminDashboard/Backups).
+   * shows, in words of its own (ee/AdminDashboard/Backups), and what people
+   * told the server (#6832), which only the Admin Dashboard's Feedback page
+   * shows, in words of its own.
    */
-  test("skip only the license server's own table and the instance's backups, by paths that exist", () => {
+  test("skip only the license server's own table, the instance's backups and what people told the server, by paths that exist", () => {
     expect([...SKIPPED_SOURCE_FILES]).toEqual([
       "packages/Common/Models/DatabaseModels/EnterpriseLicense.ts",
       "packages/Common/Models/DatabaseModels/BackupSetting.ts",
       "packages/Common/Models/DatabaseModels/BackupRun.ts",
+      "packages/Common/Models/DatabaseModels/ProductFeedback.ts",
     ]);
 
     for (const file of SKIPPED_SOURCE_FILES) {

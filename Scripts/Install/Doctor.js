@@ -57,10 +57,12 @@ const { MARKS } = require("./StartOutput");
  * leave this server: PostgreSQL, ClickHouse and Valkey answer, migrations,
  * ClickHouse's disks, the queues, the version and the server setup
  * checklist - email, HTTPS, sign-ups, SMS and calls, probes, backups and
- * update checks (GET /api/admin/health/doctor,
- * Common/Types/InstallationHealth). The Admin Dashboard's OneUptime Health
- * page shows the same answer in every edition, and on Kubernetes
- * HelmChart/Public/diagnose.sh prints it.
+ * update checks (Common/Types/InstallationHealth). It asks with a POST to
+ * /api/admin/health/doctor, the key in the clusterkey header, URI-encoded,
+ * as every request that presents the cluster key does; the POST changes
+ * nothing.
+ * The Admin Dashboard's OneUptime Health page shows the same answer in
+ * every edition, and on Kubernetes HelmChart/Public/diagnose.sh prints it.
  *
  * HOW IT ANSWERS
  *
@@ -472,7 +474,7 @@ const serverFixOf = (entry, publicUrl) => {
 };
 
 /*
- * Pure: what to say about the server's own answer to GET
+ * Pure: what to say about the server's own answer to POST
  * /api/admin/health/doctor: each of its findings, or why it did not answer.
  */
 const serverFindings = (response, publicUrl) => {
@@ -735,9 +737,10 @@ const defaultRunCommand = (command, args, options) => {
 };
 
 /*
- * GET a URL: { status, body, json } or { error } (an error code). It never
- * follows a redirect and accepts any certificate: the certificate check
- * says what is wrong with one.
+ * Asks a URL, with a GET unless options.method names another method, which
+ * sends an empty body (Content-Length: 0): { status, body, json } or
+ * { error } (an error code). It never follows a redirect and accepts any
+ * certificate: the certificate check says what is wrong with one.
  */
 const defaultRequest = (url, options) => {
   return new Promise((resolve) => {
@@ -753,11 +756,18 @@ const defaultRequest = (url, options) => {
 
     try {
       const client = url.indexOf("https:") === 0 ? https : http;
+      const method = (options && options.method) || "GET";
+      const headers = Object.assign({}, (options && options.headers) || {});
 
-      request = client.get(
+      if (method !== "GET") {
+        headers["Content-Length"] = "0";
+      }
+
+      request = client.request(
         url,
         {
-          headers: (options && options.headers) || {},
+          method: method,
+          headers: headers,
           rejectUnauthorized: false,
           timeout: REQUEST_TIMEOUT_MS,
         },
@@ -794,6 +804,7 @@ const defaultRequest = (url, options) => {
     request.on("error", (error) => {
       finish({ error: (error && error.code) || "ERROR" });
     });
+    request.end();
   });
 };
 
@@ -859,8 +870,8 @@ const succeeded = (result) => {
  * Runs every check and prints what it found. Returns the exit code: 1 when
  * something is marked ✗, 0 otherwise (always 0 after `npm start`).
  * Options, every effect passed in: cwd, env, log, argv, runCommand
- * (spawnSync's signature), request(url, { headers }), certificate(hostname,
- * port), interfaces, now.
+ * (spawnSync's signature), request(url, { method, headers }),
+ * certificate(hostname, port), interfaces, now.
  */
 const run = async (options) => {
   const given = options || {};
@@ -988,8 +999,15 @@ const run = async (options) => {
   let addressProof = null;
 
   if (ready && ready.status === 200 && secret && !isPlaceholderValue(secret)) {
+    /*
+     * A POST, as every request that presents the cluster key, and the key
+     * URI-encoded, as the app presents its own and compares what it is sent
+     * (ClusterKeyAuthorization.getClusterKey): a key with + / = @ & % or a
+     * letter beyond ASCII is accepted too, and Node's http can send it.
+     */
     const answer = await request(`${ingressUrl}${DOCTOR_PATH}`, {
-      headers: { clusterkey: secret },
+      method: "POST",
+      headers: { clusterkey: encodeURIComponent(secret) },
     });
 
     add(serverFindings(answer, publicUrl));

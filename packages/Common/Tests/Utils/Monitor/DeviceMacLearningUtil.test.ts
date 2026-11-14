@@ -2,6 +2,7 @@ import DeviceMacLearningUtil, {
   MacLearningCandidateDevice,
   MacLearningIpBinding,
   MacLearningPlanEntry,
+  MacObservationCandidateDevice,
   siteKeyOf,
 } from "../../../Utils/Monitor/DeviceMacLearningUtil";
 
@@ -493,5 +494,89 @@ describe("DeviceMacLearningUtil.planMacLearning — correcting a learned MAC", (
     });
 
     expect(result[0]?.previousMacAddress).toBe(storedSpelling);
+  });
+});
+
+/*
+ * OneUptime issue #7389: a router's polls are not always processed in the
+ * order they were received, so the table this plan reads can be older than a
+ * reading the device already holds (its discovered details, recorded by a
+ * newer table). That newer reading stands: a learned MAC is not corrected
+ * back to an older table's answer. A first learn is not about time.
+ */
+describe("DeviceMacLearningUtil.planMacLearning — a table read before the device's reading", () => {
+  const STALE_MAC: string = "de:ad:be:ef:00:01";
+  const NOW: number = new Date("2026-11-12T10:00:00.000Z").getTime();
+
+  function learned(
+    observedAt: number | undefined,
+  ): MacObservationCandidateDevice {
+    return {
+      id: "register",
+      hostname: REGISTER_IP,
+      siteId: SITE_A,
+      macAddress: STALE_MAC,
+      isMacAddressLearned: true,
+      observedMacAddress: STALE_MAC,
+      observedAt: observedAt,
+    };
+  }
+
+  function planAt(
+    devices: Array<MacObservationCandidateDevice>,
+    now: number | undefined,
+  ): Array<MacLearningPlanEntry> {
+    return DeviceMacLearningUtil.planMacLearning({
+      ipBindings: [binding(REGISTER_IP, REGISTER_MAC)],
+      devices: devices,
+      observingSiteId: SITE_A,
+      now: now,
+    });
+  }
+
+  it("does not correct a learned MAC whose reading was taken after this table", () => {
+    expect(planAt([learned(NOW + 1)], NOW)).toEqual([]);
+  });
+
+  it("corrects one whose reading was taken before it, or at the same moment", () => {
+    for (const observedAt of [NOW - 1, NOW]) {
+      expect(planAt([learned(observedAt)], NOW)).toEqual([
+        {
+          deviceId: "register",
+          macAddress: REGISTER_MAC,
+          ipAddress: REGISTER_IP,
+          previousMacAddress: STALE_MAC,
+        },
+      ]);
+    }
+  });
+
+  it("without a time for the table, or a reading for the device, corrects as before", () => {
+    expect(planAt([learned(NOW + 1)], undefined)).toHaveLength(1);
+    expect(planAt([learned(undefined)], NOW)).toHaveLength(1);
+  });
+
+  it("teaches a device with an empty column whatever its reading's time", () => {
+    expect(
+      planAt(
+        [
+          {
+            id: "register",
+            hostname: REGISTER_IP,
+            siteId: SITE_A,
+            observedMacAddress: STALE_MAC,
+            observedAt: NOW + 60 * 1000,
+          },
+        ],
+        NOW,
+      ),
+    ).toEqual([
+      {
+        deviceId: "register",
+        macAddress: REGISTER_MAC,
+        ipAddress: REGISTER_IP,
+        previousMacAddress: null,
+      },
+    ]);
   });
 });

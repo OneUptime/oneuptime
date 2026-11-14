@@ -3,6 +3,7 @@ import {
   ReplayClockParts,
   formatReplayClock,
   formatReplayOffset,
+  formatReplayOffsetInLanguage,
   formatReplayOffsetPrecise,
   splitReplayClock,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayTimeFormat";
@@ -90,5 +91,48 @@ describe("splitReplayClock", () => {
     expect(splitReplayClock(2_900, 60_000, false).current).toBe("0:02");
     expect(formatReplayOffset(2_900)).toBe("0:02");
     expect(formatReplayOffsetPrecise(2_900)).toBe("0:02.9");
+  });
+});
+
+// A Persian digit, ۰ to ۹.
+const PERSIAN_DIGITS: RegExp = /[\u{06F0}-\u{06F9}]/gu;
+
+/*
+ * The session clock in the reader's digits (#7098): a tab's "opened 2:14"
+ * read "2:14" on a Persian page whose every other number is in Persian
+ * digits. Only the digits change; the shape and the floor are
+ * formatReplayOffset's.
+ */
+describe("formatReplayOffsetInLanguage", () => {
+  it("writes Persian digits in Persian, keeping m:ss and h:mm:ss", () => {
+    expect(formatReplayOffsetInLanguage(134_000, "fa")).toBe("۲:۱۴");
+    expect(formatReplayOffsetInLanguage(3_734_000, "fa")).toBe("۱:۰۲:۱۴");
+    expect(formatReplayOffsetInLanguage(0, "fa")).toBe("۰:۰۰");
+    expect(formatReplayOffsetInLanguage(Number.NaN, "fa")).toBe("۰:۰۰");
+  });
+
+  it("floors as formatReplayOffset does, digit for digit", () => {
+    for (const offsetMs of [0, 999, 2_900, 59_999, 60_000, 3_599_999]) {
+      expect(
+        formatReplayOffsetInLanguage(offsetMs, "fa").replace(
+          PERSIAN_DIGITS,
+          (digit: string): string => {
+            return String((digit.codePointAt(0) as number) - 0x06f0);
+          },
+        ),
+      ).toBe(formatReplayOffset(offsetMs));
+    }
+  });
+
+  it("keeps Latin digits in every other language, Arabic included", () => {
+    for (const language of ["en", "de", "ar", "ja", "hi", "zh-CN"]) {
+      expect(formatReplayOffsetInLanguage(134_000, language)).toBe("2:14");
+    }
+  });
+
+  it("with no language, is formatReplayOffset", () => {
+    expect(formatReplayOffsetInLanguage(3_734_000, undefined)).toBe(
+      formatReplayOffset(3_734_000),
+    );
   });
 });

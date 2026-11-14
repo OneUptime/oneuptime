@@ -421,7 +421,7 @@ describe("Products menu sections", () => {
         "Logs",
         "Metrics",
         "Traces",
-        "Performance Profiles",
+        "Profiles",
         "Exceptions",
         "AI / LLM",
         "Data Observability",
@@ -490,7 +490,7 @@ describe("Products menu sections", () => {
         "Monitors",
         "Incidents",
         "Alerts",
-        "On-Call Duty",
+        "On-Call",
         "Status Pages",
         "Scheduled Maintenance",
         "SLOs",
@@ -612,7 +612,7 @@ describe("the Products menu opens on the essentials", () => {
       "Monitors",
       "Incidents",
       "Alerts",
-      "On-Call Duty",
+      "On-Call",
       "Status Pages",
       "Scheduled Maintenance",
       "SLOs",
@@ -697,7 +697,7 @@ describe("Products menu descriptions say what each product is for", () => {
     ["Alerts", "Problems for your team to look into before users notice."],
     ["Incidents", "Problems that affect your users — respond and resolve."],
     ["Monitors", "Check websites, APIs and servers, and know when they fail."],
-    ["On-Call Duty", "Who gets paged, and who is next if nobody answers."],
+    ["On-Call", "Who gets paged, and who is next if nobody answers."],
     ["Status Pages", "Show your customers what is up and what is down."],
   ])("%s", (title: string, description: string) => {
     openProductsMenu();
@@ -840,7 +840,7 @@ describe("How OneUptime works (Home)", () => {
     const flow: Array<number> = [
       "Monitors",
       "Incidents",
-      "On-Call Duty",
+      "On-Call",
       "Status Pages",
     ].map((title: string): number => {
       return essentials.indexOf(title);

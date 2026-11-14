@@ -15,6 +15,9 @@ import LocalStorage from "Common/UI/Utils/LocalStorage";
  *   - whether each step is done is read from those records when the page
  *     opens, never from the browser alone: a monitor deleted since is a
  *     step to do again;
+ *   - a browser that lost the run (a private window, another device,
+ *     storage cleared) makes nothing twice: before a step makes a record,
+ *     it looks for the one this person already has (#7059);
  *   - a run is kept until the person starts another: coming back after
  *     the last step shows its summary again.
  *
@@ -154,12 +157,25 @@ export const readGuidedSetupRun: (value: JSONValue | null) => GuidedSetupRun = (
 };
 
 /*
- * Kept in this browser's local storage, so a run survives a closed tab. A
- * browser that keeps nothing (a private window, storage switched off) still
- * walks the setup; it only starts again when the page opens again.
+ * Kept in this browser's local storage, so a run survives a closed tab, and
+ * in this page too: a browser that keeps nothing (a private window, storage
+ * switched off, or one that reads back nothing it was given) still walks the
+ * setup with every value a step saved, and only starts again when the page
+ * opens again (#7059).
+ *
+ * A run the browser lost is never a reason to make a record twice: each
+ * setup looks for what this person already made before it makes something
+ * (the website-down setup's monitor for the same address #7059, the status
+ * page setup's page with the same name #7252), and a step that makes the
+ * project's first on-call policy reads the project's policies again just
+ * before, so another tab or device that made one meanwhile is not doubled
+ * (the website-down and on-call setups).
  */
 export default class GuidedSetupRunStore {
   private readonly key: string;
+
+  // The run as this page last saved or read it; null until it does either.
+  private kept: GuidedSetupRun | null = null;
 
   public constructor(data: {
     setup: string;
@@ -169,19 +185,36 @@ export default class GuidedSetupRunStore {
     this.key = getGuidedSetupRunKey(data);
   }
 
+  /*
+   * The run in this browser's storage. When storage holds none, or cannot
+   * be read, the run this page kept: what it saved while the browser kept
+   * nothing.
+   */
   public read(): GuidedSetupRun {
+    let stored: GuidedSetupRun = {};
+
     try {
-      return readGuidedSetupRun(LocalStorage.getItem(this.key));
+      stored = readGuidedSetupRun(LocalStorage.getItem(this.key));
     } catch {
-      return {};
+      stored = {};
     }
+
+    if (Object.keys(stored).length > 0) {
+      this.kept = stored;
+      return { ...stored };
+    }
+
+    return { ...(this.kept || {}) };
   }
 
   public write(run: GuidedSetupRun): void {
+    const values: GuidedSetupRun = readGuidedSetupRun(run as JSONObject);
+    this.kept = values;
+
     try {
-      LocalStorage.setItem(this.key, readGuidedSetupRun(run) as JSONObject);
+      LocalStorage.setItem(this.key, values as JSONObject);
     } catch {
-      // Not kept: the run starts again when the page opens again.
+      // Not kept by the browser: this page keeps it until it closes.
     }
   }
 
@@ -199,11 +232,13 @@ export default class GuidedSetupRunStore {
 
     this.write(run);
 
-    return run;
+    return { ...run };
   }
 
   // A run started over, or whose records are gone: the next one starts afresh.
   public forget(): void {
+    this.kept = null;
+
     try {
       LocalStorage.removeItem(this.key);
     } catch {

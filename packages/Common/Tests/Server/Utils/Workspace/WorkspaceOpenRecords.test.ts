@@ -557,7 +557,7 @@ describe("what a list says", () => {
     expect(answer.markdown.split("\n")[1]).toBe(
       `- **[SM-3](${linkOf("scheduled-maintenance-events", upgrade)})** Database upgrade · Verifying · until ${at(ENDS)}`,
     );
-    // The rest of what is in progress: Ongoing Events.
+    // The rest of what is in progress: Ongoing Maintenance Events.
     expect(answer.markdown.split("\n").slice(-1)).toEqual([
       `[See every ongoing maintenance event in OneUptime](${DASHBOARD}/${PROJECT_ID.toString()}/scheduled-maintenance-events/ongoing)`,
     ]);

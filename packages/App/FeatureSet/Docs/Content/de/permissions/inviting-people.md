@@ -52,6 +52,8 @@ Geben Sie die Adresse unter **E-Mail** ein. Verwendet noch kein OneUptime-Konto 
 ### Die Einladung senden
 
 Klicken Sie auf **Einladen**. OneUptime sendet die Einladung per E-Mail und öffnet die Seite der Person. Bis zur Annahme erscheint sie als **Einladung gesendet**.
+
+Auf einem selbst gehosteten Server, der noch keine E-Mails senden kann, geht keine E-Mail hinaus, und die Person erscheint als **Eingeladen**. Ein Master-Admin sieht zuerst **Einladungslink selbst senden**: Kopieren Sie den Link, senden Sie ihn der Person selbst und klicken Sie dann auf **Fertig**. Alle anderen bitten den Admin des Servers, [E-Mail einzurichten](/docs/emails/smtp#das-formular-öffnen).
 :::
 
 > [!TIP]
@@ -84,7 +86,7 @@ Filtern Sie die Liste nach **Benutzer**, **Status** oder **Team**. Klicken Sie a
 | --- | --- |
 | **Profil** | Name, E-Mail-Adresse, Bild und Benutzer-ID. |
 | **Teams** | Die Teams, in denen die Person ist. Hier fügen Sie ein Team hinzu oder entfernen es. |
-| **Einsatzbereitschaft**, **Benachrichtigungsmethoden**, **Bereitschaftsregeln** | Ob die Person alarmiert werden kann, und wie. Sichtbar für Project Owners, Project Admins, die Person selbst und alle, die die Benachrichtigungsregeln anderer lesen dürfen. Siehe [Einsatzbereitschaft & Berichte](/docs/on-call/readiness). |
+| **Einsatzbereitschaft**, **Benachrichtigungsmethoden**, **Wie ich erreichbar bin** | Ob die Person alarmiert werden kann, und wie. Sichtbar für Project Owners, Project Admins, die Person selbst und alle, die die Benachrichtigungsregeln anderer lesen dürfen. Siehe [Einsatzbereitschaft & Berichte](/docs/on-call/readiness). |
 | **Benutzerdefinierte Felder** | Die benutzerdefinierten Felder des Projekts für Personen, wenn es welche hat. |
 | **Aus Projekt entfernen** | Die Person aus dem Projekt nehmen. |
 
@@ -134,6 +136,8 @@ An eine Adresse können 10 Einladungen pro Stunde gesendet werden, zu Projekten 
 
 :::details Die Einladungs-E-Mail kam nicht an, oder ihr Link ist abgelaufen
 Die Einladung hängt nicht an der E-Mail. Bitten Sie die Person, sich mit der eingeladenen Adresse zu registrieren: OneUptime sendet an diese Adresse einen neuen Link, um das Konto fertig anzulegen. Wer schon ein Konto hat, meldet sich an und findet die Einladung vor.
+
+Auf einem selbst gehosteten Server, der noch keine E-Mails senden kann, kann auch die Registrierung keinen neuen Link per E-Mail senden: Sie bittet die Person stattdessen, nach ihrem Einladungslink zu fragen. Sobald der Admin des Servers [E-Mail eingerichtet](/docs/emails/smtp#das-formular-öffnen) hat, funktioniert die Registrierung wie oben. Bis dahin kann ein Master-Admin die Person aus dem Projekt entfernen, sie erneut einladen und ihr den neuen Einladungslink senden, der einmal funktioniert, nur für diese Adresse, 7 Tage lang.
 :::
 
 :::details Benutzer einladen meldet, dass Benutzer über SCIM Push Groups verwaltet werden

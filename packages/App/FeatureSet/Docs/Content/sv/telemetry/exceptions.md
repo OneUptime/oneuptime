@@ -1,4 +1,4 @@
-# Undantagsspårning
+# Undantag
 
 Undantagsspårning samlar in felen som din kod kastar och grupperar varje förekomst av samma fel i ett undantag, med dess stack trace, dess utveckling och de förfrågningar där det inträffade. Gå igenom dem som en att göra-lista: rätta, lös eller arkivera bruset, och låt AI öppna en pull request för dem som den kan rätta.
 
@@ -39,7 +39,7 @@ flowchart TB
 ## Innan du börjar
 
 - **Spans eller loggar som kommer in.** Instrumentera dina tjänster med [OpenTelemetry](/docs/telemetry/open-telemetry). Fliken **Installationsguide** visar koden för ditt språk.
-- **En roll som får läsa telemetri.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member eller Telemetry Viewer, eller en anpassad roll med behörigheten Read Telemetry Service Exception. Att lösa och arkivera kräver Project Owner eller Project Admin, eller behörigheten Edit Telemetry Service Exception.
+- **En roll som får läsa telemetri.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member eller Telemetry Viewer, eller en anpassad roll med behörigheten Read Exceptions. Att lösa och arkivera kräver Project Owner eller Project Admin, eller behörigheten Edit Exceptions.
 
 ## Gå igenom listan
 

@@ -35,7 +35,10 @@ import {
 import { buildSyncResultSummary } from "../../../../App/FeatureSet/Dashboard/src/Pages/Monitor/Settings/MonitorTemplateSyncResultUtil";
 import SloWindowType from "../../../Types/ServiceLevelObjective/SloWindowType";
 import { DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE } from "../../../Utils/Slo/SloBurnRateTemplate";
-import { formatDurationCompact } from "../../../Utils/Slo/SloDuration";
+import {
+  formatDurationCompact,
+  formatDurationCompactInLanguage,
+} from "../../../Utils/Slo/SloDuration";
 import { translateText } from "../../../UI/Utils/TranslateTemplate";
 import { JSONObject } from "../../../Types/JSON";
 
@@ -65,8 +68,8 @@ const GERMAN: Record<string, string> = {
   "Calendar month ({{timezone}})": "Kalendermonat ({{timezone}})",
   "Rolling {{count}}-day window": "Gleitendes {{count}}-Tage-Fenster",
   "Rolling {{count}}-day window_one": "Gleitendes 1-Tages-Fenster",
-  "{{percentage}}% of each month: {{budget}} of downtime in a 30-day month":
-    "{{percentage}} % jedes Monats: {{budget}} Ausfallzeit in einem 30-Tage-Monat",
+  "{{percentage}} of each month: {{budget}} of downtime in a {{days}}-day month":
+    "{{percentage}} jedes Monats: {{budget}} Ausfallzeit in einem {{days}}-Tage-Monat",
   "{{budget}} of downtime per {{count}}-day window":
     "{{budget}} Ausfallzeit pro {{count}}-Tage-Fenster",
   // Pages/Slo/Utils/BurnRateRuleForm.ts
@@ -303,9 +306,17 @@ describe("in German, the page helpers and Utils translate whole sentences", () =
       describeSloWindow({ windowType: SloWindowType.Rolling, windowDays: 28 }),
     ).toBe("Gleitendes 28-Tage-Fenster");
 
-    // 99.9% over 30 days allows 0.1% of 30 days.
-    const budget: string = formatDurationCompact(
+    /*
+     * 99.9% over 30 days allows 0.1% of 30 days, written in German units
+     * and with a German decimal comma (#6925): never "43m 12s" and "0.1 %".
+     */
+    const budget: string = formatDurationCompactInLanguage(
       Math.round(0.001 * 30 * 24 * 60 * 60),
+      "de",
+    );
+
+    expect(budget).not.toBe(
+      formatDurationCompact(Math.round(0.001 * 30 * 24 * 60 * 60)),
     );
 
     expect(
@@ -320,7 +331,9 @@ describe("in German, the page helpers and Utils translate whole sentences", () =
         targetPercentage: 99.9,
         windowType: SloWindowType.CalendarMonth,
       }),
-    ).toBe(`0.1 % jedes Monats: ${budget} Ausfallzeit in einem 30-Tage-Monat`);
+    ).toBe(
+      `0,1${String.fromCharCode(0xa0)}% jedes Monats: ${budget} Ausfallzeit in einem 30-Tage-Monat`,
+    );
   });
 
   test("the burn rate form's description is read in the language of the moment", () => {

@@ -126,7 +126,7 @@ Las claves de acceso necesitan que la dirección de su OneUptime empiece por `ht
 - Compruebe que el teléfono permite las notificaciones de OneUptime On-Call, y que No molestar o un modo de concentración no las retiene.
 - En **Ajustes de usuario → Métodos de notificación**, pestaña **Notificaciones push**, compruebe que el teléfono aparece, y envíele una **Notificación de prueba**.
 - Si está marcado como **No recibe notificaciones**, abra la aplicación con la sesión iniciada: consulte [Cuando un teléfono tiene que volver a registrarse](#cuando-un-teléfono-tiene-que-volver-a-registrarse).
-- Compruebe sus reglas de guardia en **Ajustes de usuario → Reglas de guardia**: deciden qué avisos llegan a qué método.
+- Compruebe sus reglas de guardia en **Ajustes de usuario → Cómo contactarme**: deciden qué avisos llegan a qué método.
 - En un OneUptime autoalojado, compruebe que el servidor llega a su relé push: consulte [Notificaciones push](/docs/self-hosted/push-notifications#acceso-de-red).
 :::
 
@@ -135,7 +135,7 @@ Ponga el uso de batería de la aplicación en **Sin restricciones** en los ajust
 :::
 
 :::details Las alertas críticas no suenan pese al modo silencio
-Abra **Settings** en la aplicación: la línea bajo **Critical On-Call Alerts** dice qué falta en ese teléfono. Después compruebe en **Ajustes de usuario → Reglas de guardia** que la regla de guardia que envió el aviso está en **Alerta crítica**, no en **Estándar**. Cada teléfono tiene su propio interruptor.
+Abra **Settings** en la aplicación: la línea bajo **Critical On-Call Alerts** dice qué falta en ese teléfono. Después compruebe en **Ajustes de usuario → Cómo contactarme** que la regla de guardia que envió el aviso está en **Alerta crítica**, no en **Estándar**. Cada teléfono tiene su propio interruptor.
 :::
 
 ### Aplicación de escritorio

@@ -118,9 +118,15 @@ const InvestigationWaiting: FunctionComponent<ComponentProps> = (
               dataTestId="investigate-now"
             />
           </div>
+          {/*
+           * A refusal the Dashboard does not word is the server's English:
+           * dir="auto" lays it out by its first letter, so on a page that
+           * reads right to left its full stop stays at its end.
+           */}
           {props.startError ? (
             <p
               role="alert"
+              dir="auto"
               data-testid="investigate-now-error"
               className="text-sm leading-6 text-red-600"
             >

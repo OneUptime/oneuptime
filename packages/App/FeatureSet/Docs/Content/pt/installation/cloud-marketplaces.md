@@ -127,8 +127,8 @@ A sua assinatura do marketplace é a sua licença. Cada relatório que o marketp
 | O que acontece | O que o rótulo da edição mostra |
 | --- | --- |
 | O marketplace aceita os relatórios de cada hora | A Enterprise Edition, licenciada pelo seu marketplace. |
-| Nenhum relatório foi aceito nas últimas 72 horas | **Enterprise Edition (Marketplace Reports Failing)**: todos os recursos enterprise continuam funcionando durante um período de carência de 30 dias. |
-| O marketplace diz que a instalação não tem assinatura, ou o período de carência termina | **Enterprise Edition (Marketplace Subscription Ended)**: os recursos enterprise param, como acontece quando uma [licença expira](/docs/self-hosted/enterprise#quando-uma-licença-expira-ou-está-ausente). |
+| Nenhum relatório foi aceito nas últimas 72 horas | **Enterprise Edition (relatórios ao marketplace falhando)**: todos os recursos enterprise continuam funcionando durante um período de carência de 30 dias. |
+| O marketplace diz que a instalação não tem assinatura, ou o período de carência termina | **Enterprise Edition (assinatura do marketplace encerrada)**: os recursos enterprise param, como acontece quando uma [licença expira](/docs/self-hosted/enterprise#quando-uma-licença-expira-ou-está-ausente). |
 
 O marketplace recusa uma assinatura cancelada ou suspensa, ou uma instalação que não é a que você comprou. O monitoramento, os alertas, os incidentes, o plantão e as páginas de status continuam funcionando em todos os casos, e nada é excluído. Assine de novo, e o próximo relatório aceito volta a licenciar a Enterprise Edition, sem reiniciar.
 
@@ -162,7 +162,7 @@ A cobrança não depende de quantas réplicas estão em execução: só uma exec
 
 ## Solução de problemas
 
-:::details O rótulo da edição mostra Enterprise Edition (Marketplace Reports Failing)
+:::details O rótulo da edição mostra Enterprise Edition (relatórios ao marketplace falhando)
 O OneUptime não consegue enviar os relatórios ao marketplace. Cada linha que ele registra no log sobre isso começa com `OneUptime Enterprise marketplace billing`; uma linha que diz que o uso "cannot be reported" indica o que está faltando. As causas mais comuns:
 
 - **AWS:** a conta de serviço `oneuptime` não tem uma função do IAM, ou a função não tem a política `AWSMarketplaceMeteringFullAccess` (`AWSMarketplaceMeteringRegisterUsage` não basta). Associe a política à função, ou crie a função com o comando `eksctl` da seção [AWS Marketplace](#aws-marketplace) e depois reinicie os pods do OneUptime com `kubectl rollout restart deployment --namespace oneuptime`.
@@ -173,7 +173,7 @@ O OneUptime não consegue enviar os relatórios ao marketplace. Cada linha que e
 O uso fica guardado enquanto você corrige o problema e é cobrado assim que o OneUptime volta a conseguir enviar os relatórios. O uso com mais de 30 dias não é cobrado.
 :::
 
-:::details O rótulo da edição mostra Enterprise Edition (Marketplace Subscription Ended)
+:::details O rótulo da edição mostra Enterprise Edition (assinatura do marketplace encerrada)
 O marketplace recusou a instalação: a assinatura foi cancelada ou suspensa, ou a instalação não é a que foi comprada no marketplace. Verifique a assinatura no marketplace e assine de novo; o próximo relatório aceito volta a licenciar a Enterprise Edition. O mesmo rótulo aparece quando os relatórios continuaram falhando durante todo o período de carência.
 :::
 

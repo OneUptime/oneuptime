@@ -37,7 +37,7 @@ L'explorateur a cinq onglets :
 ## Avant de commencer
 
 - **Des journaux qui arrivent.** Envoyez-les avec [OpenTelemetry](/docs/telemetry/open-telemetry), [Fluent Bit](/docs/telemetry/fluentbit), [Fluentd](/docs/telemetry/fluentd) ou [Syslog](/docs/telemetry/syslog). L'onglet **Guide de configuration** montre la configuration pour votre langage ou votre collecteur.
-- **Un rôle qui peut lire la télémétrie.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member ou Telemetry Viewer, ou un rôle personnalisé avec la permission Read Telemetry Service Log. Sa portée décide de quels journaux vous voyez : voir [Télémétrie](/docs/permissions/index#télémétrie).
+- **Un rôle qui peut lire la télémétrie.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member ou Telemetry Viewer, ou un rôle personnalisé avec la permission Read Logs. Sa portée décide de quels journaux vous voyez : voir [Télémétrie](/docs/permissions/index#télémétrie).
 
 ## Trouver une ligne de journal
 
@@ -141,7 +141,7 @@ OneUptime enregistre trois types de constats :
 
 | Constat | Quand OneUptime l'enregistre | La pull request |
 | --- | --- | --- |
-| **Journal d'erreur** | Un service a journalisé un même message en Error ou Fatal 20 fois ou plus dans l'heure, un message avec des mots à lui et sans exception. Un message journalisé avec une exception, ou contenant une trace de pile, est suivi dans le [Suivi des exceptions](/docs/telemetry/exceptions) à la place. | Corrige la raison pour laquelle l'erreur est journalisée, ou la journalise au niveau qu'elle mérite. |
+| **Journal d'erreur** | Un service a journalisé un même message en Error ou Fatal 20 fois ou plus dans l'heure, un message avec des mots à lui et sans exception. Un message journalisé avec une exception, ou contenant une trace de pile, est suivi dans le [Exceptions](/docs/telemetry/exceptions) à la place. | Corrige la raison pour laquelle l'erreur est journalisée, ou la journalise au niveau qu'elle mérite. |
 | **Journalisation manquante** | Au moins 20 spans d'une opération ont échoué dans l'heure, 5 % ou plus d'entre eux, alors qu'au moins 100 journaux du service portent un identifiant de trace, et aucune des 20 requêtes en échec les plus récentes de l'opération n'a écrit de ligne de journal. Ou un service a envoyé 500 journaux ou plus et 100 spans ou plus dans l'heure, et moins de 1 % de ses journaux portent un identifiant de trace. | Journalise l'échec là où il se produit, ou fait porter l'identifiant de trace aux journaux du service. |
 | **Journal bruyant** | Un message journalisé sous Error représente 25 % ou plus des lignes d'un service dans l'heure, soit quelque 10 000 lignes ou plus. | Journalise la ligne moins souvent : en Debug, une fois par lot, ou plus du tout. |
 

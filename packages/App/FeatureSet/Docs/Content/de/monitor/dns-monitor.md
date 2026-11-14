@@ -52,7 +52,7 @@ Klicken Sie auf **Monitor testen**, wählen Sie unter **Sonde auswählen** eine 
 
 ### Die Kriterien prüfen
 
-**Monitor-Kriterien** beginnt mit den [Standardkriterien](#standardkriterien): offline, wenn der Name nicht aufgelöst wird, online, wenn er aufgelöst wird. Um zu prüfen, was in den Einträgen steht, fügen Sie einen Filter **DNS-Eintragswert** hinzu und klicken Sie dann auf **Weiter**.
+**Kriterien** beginnt mit den [Standardkriterien](#standardkriterien): offline, wenn der Name nicht aufgelöst wird, online, wenn er aufgelöst wird. Um zu prüfen, was in den Einträgen steht, fügen Sie einen Filter **DNS-Eintragswert** hinzu und klicken Sie dann auf **Weiter**.
 
 ### Sonden wählen und erstellen
 

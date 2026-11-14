@@ -2,7 +2,11 @@ import {
   OnCallPageChannel,
   getOnCallPageChannelName,
 } from "../OnCallDutyPolicy/OnCallPageChannel";
-import { OnCallTestPageRecordKind } from "../OnCallDutyPolicy/OnCallTestPage";
+import {
+  OnCallTestPageNotPaged,
+  OnCallTestPageReachedThrough,
+  OnCallTestPageRecordKind,
+} from "../OnCallDutyPolicy/OnCallTestPage";
 
 /*
  * WHO IS TOLD WHEN A MONITOR GOES DOWN, AND WHERE THE CHAIN BREAKS (#6810).
@@ -19,10 +23,11 @@ import { OnCallTestPageRecordKind } from "../OnCallDutyPolicy/OnCallTestPage";
  * The resolver (Server/Services/WhoIsToldService) reads them all for one
  * monitor, without sending or changing anything, and answers with this
  * shape: for every criteria that changes the monitor's status or opens an
- * incident or an alert, what it does, who it emails as owners, which
- * on-call rules match what it opens (the rule engines' own matching), and
- * for each policy those rules or the criteria run, who its first level
- * reaches right now and by what. With the breaks: each place the chain
+ * incident or an alert, what it does, who it emails as owners (with the
+ * owner rules that add them), which on-call rules match what it opens (the
+ * rule engines' own matching, on the title it would get), and for each
+ * policy those rules or the criteria run, who its first level reaches right
+ * now and by what. With the breaks: each place the chain
  * stops short of a person, in a sentence that says what to change, and
  * which page changes it.
  *
@@ -36,11 +41,21 @@ import { OnCallTestPageRecordKind } from "../OnCallDutyPolicy/OnCallTestPage";
  * them any chain.
  */
 
-// Who an incident or alert emails as its owners.
+/*
+ * Who an incident or alert emails as its owners: everyone it is given as an
+ * owner - whom its criteria names, the owners of the network device its
+ * monitor watches, and whom the project's owner rules add - or, when that is
+ * nobody, the project's owners.
+ */
 export enum WhoIsToldOwnersSource {
-  // The criteria names owners for what it opens.
+  /*
+   * The criteria names owners for what it opens, or the network device the
+   * monitor watches has owners - and owner rules may add more.
+   */
   Named = "Named",
-  // Nobody is named: the project's owners are emailed instead.
+  // Nobody is named: only the project's owner rules add owners.
+  OwnerRules = "OwnerRules",
+  // Nobody is named or added by a rule: the project's owners are emailed instead.
   ProjectOwners = "ProjectOwners",
   // Status only: the monitor's own owners are emailed of the change.
   MonitorOwners = "MonitorOwners",
@@ -52,11 +67,6 @@ export interface WhoIsToldOwners {
   userNames: Array<string>;
   // The teams, by name: each of their members is emailed.
   teamNames: Array<string>;
-  /*
-   * The project has incident (or alert) owner rules that may add owners to
-   * what opens. When they add any, the project's owners are not emailed.
-   */
-  hasOwnerRules: boolean;
 }
 
 // Why a person a policy reaches cannot be told by a page of this severity.
@@ -77,6 +87,13 @@ export interface WhoIsToldPerson {
   name: string;
   // Why them: "Team Platform", "Schedule Primary", "Covering for Ana".
   reachedThrough?: string | undefined;
+  /*
+   * The same, as a code with the name it names (#7261), for the card to
+   * word in the reader's language as the test page's dialog does
+   * (OnCallTestPageWords). reachedThrough is its English, for a Dashboard
+   * that does not know the code.
+   */
+  reachedThroughCode?: OnCallTestPageReachedThrough | undefined;
   // The channels a page of this severity reaches them by, in order.
   channels: Array<OnCallPageChannel>;
   /*
@@ -108,32 +125,51 @@ export interface WhoIsToldPolicy {
   people: Array<WhoIsToldPerson>;
   // Targets of its first level that reach nobody, and why (in English).
   notPaged: Array<string>;
+  /*
+   * The same, one code each with the names and the date it names (#7261),
+   * in notPaged's order: what the card words in the reader's language.
+   * Left out by a server from before them, whose English then shows.
+   */
+  notPagedCodes?: Array<OnCallTestPageNotPaged> | undefined;
 }
 
-// An on-call rule that matches what opens.
+// An on-call or owner rule that matches what opens.
 export interface WhoIsToldRule {
   id: string;
   // Empty while the caller may not read the rule.
   name: string;
 }
 
-// A status page that shows the monitor.
+// A status page an incident from the monitor shows on.
 export interface WhoIsToldStatusPage {
   id: string;
+  // Empty while the caller may not read the status page.
   name: string;
 }
 
 // One incident or alert a criteria opens.
 export interface WhoIsToldEvent {
   kind: OnCallTestPageRecordKind;
+  /*
+   * Its title: the criteria's template with what is known of the monitor
+   * before a check put in ({{monitorName}} and the like). A value only a
+   * check reports is left as written. The rules are matched on it.
+   */
+  title: string;
   severityName: string;
   owners: WhoIsToldOwners;
+  // The owner rules that add owners to it, in the order they are evaluated.
+  ownerRules: Array<WhoIsToldRule>;
+  // The on-call rules that match it and page a policy.
   rules: Array<WhoIsToldRule>;
   policies: Array<WhoIsToldPolicy>;
   /*
-   * The status pages its incident shows on, where subscribers are told.
+   * The status pages its incident shows on, where subscribers are told:
+   * each page that lists the monitor, directly or through a monitor group,
+   * shows incidents and is not archived - and not one that shows only the
+   * incidents limited to it, which an incident a monitor opens never is.
    * Empty for an alert, which is never public, and for an incident the
-   * criteria keeps off status pages.
+   * criteria keeps off status pages or makes private.
    */
   statusPages: Array<WhoIsToldStatusPage>;
 }
@@ -435,7 +471,7 @@ export function getWhoIsToldBreakMessage(
         ]
       }, so a page won't reach them.`;
     case WhoIsToldBreakKind.ChannelOff:
-      return `${brk.channel ? getOnCallPageChannelName(brk.channel as OnCallPageChannel) : "A channel"} is off in this project, so pages that use it are not sent. A project owner or admin turns it on in Notification Settings.`;
+      return `${brk.channel ? getOnCallPageChannelName(brk.channel as OnCallPageChannel) : "A channel"} is off in this project, so pages that use it are not sent. A project owner or admin turns it on in Notification Channels.`;
     case WhoIsToldBreakKind.NoBalance:
       return "This project has no balance left for SMS and calls, so they are not sent. Add balance, or turn on auto-recharge, in Billing.";
     case WhoIsToldBreakKind.ServerCannotSend:
@@ -714,16 +750,29 @@ export function getWhoIsToldBreaks(data: {
   return breaks;
 }
 
+// A rule or status page as it is, when the caller may read it; else nameless.
+function withNameIfReadable<T extends { id: string; name: string }>(
+  item: T,
+  readableIds: ReadonlySet<string>,
+): T {
+  return readableIds.has(item.id) ? item : { ...item, name: "" };
+}
+
 /*
  * THE ANSWER AS ONE CALLER MAY SEE IT. Somebody who may read the monitor
  * but not a policy is told paging is set up, and nothing of who: the
  * policy's name, people and gaps are taken away, and so are the names in
- * its breaks. A rule they may not read keeps its place without its name.
+ * its breaks. An on-call rule, an owner rule or a status page they may not
+ * read keeps its place without its name.
  */
 export function redactWhoIsTold(data: {
   result: WhoIsToldResult;
   readablePolicyIds: ReadonlySet<string>;
+  // The on-call rules (incident and alert) the caller may read.
   readableRuleIds: ReadonlySet<string>;
+  // The owner rules (incident and alert) the caller may read.
+  readableOwnerRuleIds: ReadonlySet<string>;
+  readableStatusPageIds: ReadonlySet<string>;
 }): WhoIsToldResult {
   const isReadable: (policyId: string | undefined) => boolean = (
     policyId: string | undefined,
@@ -740,11 +789,19 @@ export function redactWhoIsTold(data: {
           events: item.events.map((event: WhoIsToldEvent): WhoIsToldEvent => {
             return {
               ...event,
+              ownerRules: event.ownerRules.map(
+                (rule: WhoIsToldRule): WhoIsToldRule => {
+                  return withNameIfReadable(rule, data.readableOwnerRuleIds);
+                },
+              ),
               rules: event.rules.map((rule: WhoIsToldRule): WhoIsToldRule => {
-                return data.readableRuleIds.has(rule.id)
-                  ? rule
-                  : { id: rule.id, name: "" };
+                return withNameIfReadable(rule, data.readableRuleIds);
               }),
+              statusPages: event.statusPages.map(
+                (page: WhoIsToldStatusPage): WhoIsToldStatusPage => {
+                  return withNameIfReadable(page, data.readableStatusPageIds);
+                },
+              ),
               policies: event.policies.map(
                 (policy: WhoIsToldPolicy): WhoIsToldPolicy => {
                   if (isReadable(policy.id)) {
@@ -760,6 +817,7 @@ export function redactWhoIsTold(data: {
                     levelCount: 0,
                     people: [],
                     notPaged: [],
+                    notPagedCodes: [],
                   };
                 },
               ),

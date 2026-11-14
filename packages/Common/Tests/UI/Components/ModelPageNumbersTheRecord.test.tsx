@@ -1,4 +1,5 @@
 import "@testing-library/jest-dom";
+import { PRODUCT_TEXT_CLASS_NAME } from "../../../UI/Utils/ProductText";
 import {
   afterEach,
   beforeEach,
@@ -163,12 +164,12 @@ const KINDS: Array<NumberedKind> = [
     number: "ALT-18",
   },
   {
-    name: "a scheduled maintenance event",
+    name: "a maintenance event",
     modelType: ScheduledMaintenance,
-    pageTitle: "Scheduled Event",
-    list: "Scheduled Maintenance Events",
+    pageTitle: "Maintenance Event",
+    list: "Scheduled Maintenance",
     listPath: "scheduled-maintenance-events",
-    viewTitle: "View Scheduled Maintenance Event",
+    viewTitle: "View Maintenance Event",
     numberColumn: "scheduledMaintenanceNumber",
     numberWithPrefixColumn: "scheduledMaintenanceNumberWithPrefix",
     number: "SM-18",
@@ -632,7 +633,10 @@ describe("how the number and the title sit together", () => {
       name: "Breadcrumb",
     });
     for (const listItem of within(nav).getAllByRole("listitem")) {
-      expect(listItem.className).toBe(BREADCRUMB_ITEM_CLASS_NAME);
+      // A crumb in the product's words also carries the recording's marker (#6834).
+      expect(
+        listItem.className.replace(` ${PRODUCT_TEXT_CLASS_NAME}`, ""),
+      ).toBe(BREADCRUMB_ITEM_CLASS_NAME);
     }
   });
 

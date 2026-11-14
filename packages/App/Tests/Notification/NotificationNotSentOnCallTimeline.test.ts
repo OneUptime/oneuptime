@@ -182,9 +182,10 @@ interface TimelineUpdate {
 }
 
 /*
- * Every write to the person's timeline row: by id - a skip, a call, a
- * Telegram message - and, for an SMS that went out, the write made only
- * while the row still said Sending (OnCallNotificationStatus).
+ * Every write to the person's timeline row: each made only while the row
+ * still said Sending (OnCallNotificationStatus) - a skip, a send's result -
+ * and any write by id, which none makes any more (issue #7082): one would
+ * show here as a write too many.
  */
 function timelineUpdates(): Array<TimelineUpdate> {
   const byId: Array<TimelineUpdate> = (
@@ -422,7 +423,7 @@ describe("a page the project's balance cannot pay for", () => {
     await sms();
 
     expectTimelineNotSent(
-      "This project's balance is used up. A project owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Settings.",
+      "This project's balance is used up. A project owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Channels.",
     );
   });
 
@@ -570,11 +571,72 @@ describe("everything else stays as it was", () => {
     expect(timelineUpdates()[0]!.status).toBe(UserNotificationStatus.Sent);
   });
 
+  test.each([
+    ["an SMS", sms],
+    ["a call", call],
+    ["a Telegram message", telegram],
+  ])(
+    "%s that goes out after the person acknowledged the page from another message: the acknowledgement stays (issue #7082)",
+    async (
+      _name: string,
+      send: (options: { onTimeline?: boolean }) => Promise<void>,
+    ) => {
+      project!.smsOrCallCurrentBalanceInUSDCents = 1000;
+      timeline.get(TIMELINE_ID)!.status = UserNotificationStatus.Acknowledged;
+      timeline.get(TIMELINE_ID)!.statusMessage = "Notification Acknowledged";
+
+      await send({});
+
+      expect(timeline.get(TIMELINE_ID)).toMatchObject({
+        status: UserNotificationStatus.Acknowledged,
+        statusMessage: "Notification Acknowledged",
+        version: 1,
+      });
+      expect(timelineUpdates()).toEqual([]);
+    },
+  );
+
   test("a timeline update that fails does not turn a skipped page into an error for the sender", async () => {
     (
-      UserOnCallLogTimelineService.updateOneById as unknown as jest.Mock
+      UserOnCallLogTimelineService.updateOneBy as unknown as jest.Mock
     ).mockRejectedValue(new Error("database unavailable") as never);
 
     await expect(sms()).resolves.toBeUndefined();
+    expect(UserOnCallLogTimelineService.updateOneBy).toHaveBeenCalled();
   });
+
+  test("a timeline read that fails does not either", async () => {
+    (
+      UserOnCallLogTimelineService.findOneById as unknown as jest.Mock
+    ).mockRejectedValue(new Error("database unavailable") as never);
+
+    await expect(sms()).resolves.toBeUndefined();
+    expect(timeline.get(TIMELINE_ID)!.status).toBe(
+      UserNotificationStatus.Sending,
+    );
+  });
+
+  /*
+   * Issue #7082: the person may answer the page - from another of its
+   * messages - before this one is refused. Their answer stays.
+   */
+  test.each([
+    [UserNotificationStatus.Acknowledged, "Notification Acknowledged"],
+    [UserNotificationStatus.PassedOn, "Escalated from this notification."],
+  ])(
+    "a row already %s - the person answered from another message - stays: the refusal is not written over it",
+    async (status: UserNotificationStatus, statusMessage: string) => {
+      timeline.get(TIMELINE_ID)!.status = status;
+      timeline.get(TIMELINE_ID)!.statusMessage = statusMessage;
+
+      await sms();
+
+      expect(timeline.get(TIMELINE_ID)).toMatchObject({
+        status: status,
+        statusMessage: statusMessage,
+        version: 1,
+      });
+      expect(timelineUpdates()).toEqual([]);
+    },
+  );
 });

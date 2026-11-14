@@ -38,7 +38,7 @@ Une sonde qui a perdu sa propre connexion réseau ne rapporte aucun résultat, e
 :::steps
 ### Commencer un nouveau moniteur
 
-Allez dans **Moniteurs** et cliquez sur **Créer un moniteur**. Sous **Type de moniteur**, choisissez **SSL Certificate**.
+Allez dans **Moniteurs** et cliquez sur **Créer un moniteur**. Sous **Type de moniteur**, choisissez **Certificat SSL**.
 
 ### Le nommer
 
@@ -54,7 +54,7 @@ Cliquez sur **Tester le moniteur**, choisissez une sonde sous **Sélectionner la
 
 ### Passer en revue les critères
 
-**Critères du moniteur** commence avec les [critères par défaut](#critères-par-défaut) : hors ligne quand le certificat n'est pas valide, une alerte quand il expire dans 14 jours ou moins. Modifiez-les si besoin, puis cliquez sur **Suivant**.
+**Critères** commence avec les [critères par défaut](#critères-par-défaut) : hors ligne quand le certificat n'est pas valide, une alerte quand il expire dans 14 jours ou moins. Modifiez-les si besoin, puis cliquez sur **Suivant**.
 
 ### Choisir les sondes et créer
 
@@ -106,7 +106,7 @@ Pour être averti plus tôt, changez la valeur du filtre **Jours avant expiratio
 :::details Ajouter l'avertissement à un moniteur créé avant son existence
 Les moniteurs créés avant que OneUptime n'ajoute cet avertissement n'ont pas de critère « bientôt expiré ». Pour l'ajouter :
 
-1. Sur le moniteur, ouvrez **Configuration → Critères** et cliquez sur **Modifier les critères de surveillance**.
+1. Sur le moniteur, ouvrez **Configuration → Critères** et cliquez sur **Modifier les critères**.
 2. Cliquez sur **Ajouter un critère**. Réglez son filtre sur **Certificat valide** / **Vrai**, cliquez sur **Ajouter un filtre** et réglez le second sur **Jours avant expiration** / **Inférieur ou égal à** / `14`. Laissez **Condition de correspondance** sur **Tous** (il apparaît sous les filtres dès qu'il y en a deux).
 3. Sous **Actions**, activez **Lorsque les filtres correspondent, créer une alerte.** et laissez **Lorsque les filtres correspondent, modifier le statut du moniteur.** désactivé, pour qu'il crée une alerte sans changer l'état du moniteur.
 4. Faites glisser le nouveau critère au-dessus du critère qui marque le moniteur en ligne, puis enregistrez.

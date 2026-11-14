@@ -1,4 +1,5 @@
 import DatabaseService from "./DatabaseService";
+import ProjectService from "./ProjectService";
 import PostgresAppInstance from "../Infrastructure/PostgresDatabase";
 import { IsBillingEnabled, IsEnterpriseEdition } from "../EnvironmentConfig";
 import InProcessMemo from "../Utils/InProcessMemo";
@@ -195,6 +196,18 @@ export class Service extends DatabaseService<Model> {
     memoKey: string;
   }): Promise<boolean> {
     if (!PostgresAppInstance.isConnected()) {
+      return false;
+    }
+
+    /*
+     * A sample project (issue #6808) reaches no milestone: it was made up
+     * for a person to look around in, and what happens in it is not a
+     * project getting value - nothing is kept, no activation event is sent,
+     * and the first-hour funnel never sees it. Remembered like a milestone
+     * kept, so it is not asked again.
+     */
+    if (await ProjectService.isSampleProject(data.projectId)) {
+      this.reachedMemo.set(data.memoKey, true);
       return false;
     }
 

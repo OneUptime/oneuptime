@@ -542,7 +542,7 @@ const PROSE: Record<string, Array<string>> = {
   [ON_SUBMIT]: [
     // What a submission creates, said in the lead's own sentence.
     "incident",
-    "scheduled maintenance event",
+    "maintenance event",
   ],
 };
 
@@ -824,7 +824,7 @@ const PRODUCTS_MENU_KEYS: Record<string, string> = {
   Alerts: "alertsTitle",
   "Scheduled Maintenance": "scheduledMaintenanceTitle",
   Monitors: "monitorsTitle",
-  "On-Call Duty": "onCallDutyTitle",
+  "On-Call": "onCallDutyTitle",
 };
 
 const PATH_SEPARATOR: string = " > ";

@@ -647,7 +647,7 @@ describe("what it says it takes", () => {
     render(<FilePicker mimeTypes={[MimeType.png, MimeType.pdf]} />);
 
     expect(
-      screen.getByText("Types: PNG, PDF. Max 10MB each."),
+      screen.getByText("Types: PNG, PDF. Max 10 MB each."),
     ).toBeInTheDocument();
   });
 });
@@ -677,8 +677,17 @@ describe("each file it lists", () => {
     );
 
     expect(screen.getByText("DOCX")).toBeInTheDocument();
-    // Its size as the Custom Fields card says it: "2 KB", never "2.0 KB".
-    expect(screen.getByText("PCAP • 2 KB")).toBeInTheDocument();
+    /*
+     * Its size as the Custom Fields card says it: "2 KB", never "2.0 KB",
+     * after its type and the line's own separator.
+     */
+    expect(
+      screen
+        .getAllByTestId("file-picker-file-facts")
+        .map((element: HTMLElement): string => {
+          return element.textContent || "";
+        }),
+    ).toContain("PCAP · 2 KB");
     expect(screen.queryByText(MimeType.docx)).not.toBeInTheDocument();
     expect(
       screen.queryByText(MimeType.pcap, { exact: false }),

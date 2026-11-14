@@ -26,6 +26,7 @@ import MonitorStatusChangesCard from "../../../Components/Monitor/Overview/Monit
 import MonitorTelemetryPreview from "../../../Components/Monitor/Overview/MonitorTelemetryPreview";
 import MonitorUptimeHistoryCard from "../../../Components/Monitor/Overview/MonitorUptimeHistoryCard";
 import MonitorWhoIsToldCard from "../../../Components/Monitor/Overview/MonitorWhoIsToldCard";
+import UsedByCard from "../../../Components/UsedBy/UsedByCard";
 import useMonitorOpenWork from "../../../Components/Monitor/Overview/useMonitorOpenWork";
 import useMonitorOverviewData, {
   MONITOR_OVERVIEW_NOT_FOUND_MESSAGE,
@@ -50,6 +51,7 @@ import IncomingEmailMonitorRequest from "Common/Types/Monitor/IncomingEmailMonit
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import ProbeStatusMonitorUtil from "Common/Utils/Monitor/ProbeStatusMonitorUtil";
 import ObjectID from "Common/Types/ObjectID";
+import { UsedByRecordKind } from "Common/Types/UsedBy/UsedBy";
 import { SecurityConnectionKind } from "Common/Types/SecurityCase/SecurityConnection";
 import { getMonitorTargetHosts } from "Common/Utils/SecurityCase/SecurityConnectionMatch";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -489,6 +491,19 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           <MonitorWhoIsToldCard
             monitorId={modelId}
             refreshToken={`${detailsSaveCount}|${data.manualRefreshCount}`}
+          />
+
+          {/*
+           * "Used by" (#6813): the status pages, monitor groups, SLOs,
+           * maintenance, monitors, workflows and dashboards that refer to
+           * this monitor - beside who is told, the other half of what it
+           * is connected to. Read again on Refresh.
+           */}
+          <UsedByCard
+            recordKind={UsedByRecordKind.Monitor}
+            recordId={modelId}
+            refreshToken={data.manualRefreshCount}
+            headerLayout="stacked"
           />
 
           {/*

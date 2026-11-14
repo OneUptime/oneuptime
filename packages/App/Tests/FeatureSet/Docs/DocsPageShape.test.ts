@@ -4,8 +4,12 @@ import {
   detailsBlocks,
   detailsBody,
   DocsTabPanel,
+  isArrowPath,
   lineShape,
   PATH_SEPARATOR,
+  pathArrowPattern,
+  pathSteps,
+  pathWithArrows,
   stepCount,
   tabLabels,
   tabPanel,
@@ -53,6 +57,19 @@ const PAGE: string = [
   ":::",
   "",
   "Last line.",
+].join("\n");
+
+/*
+ * Persian lines as the pages write them: "←" beside a step in Persian
+ * words, "→" between two steps in Latin letters, which are drawn from the
+ * left (#7611).
+ */
+const PERSIAN_PAGE: string = [
+  "در پروژه به **تنظیمات کاربر ← ترجیحات ایمیل** بروید.",
+  "",
+  "در **AWS Console → App Runner → Services ← سرویس شما** را باز کنید.",
+  "",
+  "سپس **ذخیره** را بزنید.",
 ].join("\n");
 
 describe("lineShape", () => {
@@ -152,6 +169,98 @@ describe("boldLabels and boldPaths", () => {
   it("splits a path on the separator the docs write", () => {
     expect(PATH_SEPARATOR).toBe(" → ");
     expect(boldPaths("**A → B**, then **C>D**")).toEqual([["A", "B"]]);
+  });
+
+  it("reads a Persian path written with ←, and one that mixes → and ←, as one path each", () => {
+    expect(boldPaths(PERSIAN_PAGE)).toEqual([
+      ["تنظیمات کاربر", "ترجیحات ایمیل"],
+      ["AWS Console", "App Runner", "Services", "سرویس شما"],
+    ]);
+    expect(boldLabels(PERSIAN_PAGE)).toEqual(["ذخیره"]);
+  });
+});
+
+describe("pathWithArrows, pathSteps and pathArrowPattern", () => {
+  it("joins the steps with → in a language read from the left", () => {
+    expect(pathWithArrows(["Monitors", "Settings", "Probes"], "de")).toBe(
+      "Monitors → Settings → Probes",
+    );
+  });
+
+  it("writes ← beside a Persian step, and keeps → between two Latin ones", () => {
+    expect(pathWithArrows(["تنظیمات کاربر", "ترجیحات ایمیل"], "fa")).toBe(
+      "تنظیمات کاربر ← ترجیحات ایمیل",
+    );
+    expect(
+      pathWithArrows(
+        ["AWS Console", "App Runner", "Services", "سرویس شما"],
+        "fa",
+      ),
+    ).toBe("AWS Console → App Runner → Services ← سرویس شما");
+    expect(pathWithArrows(["Settings", "Probes"], "fa")).toBe(
+      "Settings → Probes",
+    );
+  });
+
+  it("reads back the steps of a path it wrote, whichever way its arrows point", () => {
+    for (const steps of [
+      ["Monitors", "Settings", "Probes"],
+      ["تنظیمات کاربر", "ترجیحات ایمیل"],
+      ["AWS Console", "App Runner", "Services", "سرویس شما"],
+    ]) {
+      expect({ steps, read: pathSteps(pathWithArrows(steps, "fa")) }).toEqual({
+        steps,
+        read: steps,
+      });
+      expect(isArrowPath(pathWithArrows(steps, "fa"))).toBe(true);
+    }
+
+    expect(isArrowPath("ذخیره")).toBe(false);
+  });
+
+  it("matches either arrow beside a step whose words it does not know in a language read from the right, and → in one read from the left", () => {
+    const toYourPage: (language: string) => RegExp = (
+      language: string,
+    ): RegExp => {
+      return new RegExp(`^Status Pages${pathArrowPattern(language)}[^→←]+$`);
+    };
+
+    expect(toYourPage("fa").test("Status Pages → My Page")).toBe(true);
+    expect(toYourPage("fa").test("Status Pages ← صفحه من")).toBe(true);
+    expect(toYourPage("de").test("Status Pages → Meine Seite")).toBe(true);
+    expect(toYourPage("de").test("Status Pages ← Meine Seite")).toBe(false);
+  });
+});
+
+/*
+ * A Persian path written with "←" is checked step by step, as one written
+ * with "→" was (#7611): a translation suite reads each step of a page's
+ * paths and holds it to the Dashboard's words, so a wrong step fails.
+ */
+describe("a Persian path written with ←, checked step by step", () => {
+  // The Persian Dashboard's words for a path's steps.
+  const DRAWN: Array<string> = ["تنظیمات کاربر", "ترجیحات ایمیل"];
+
+  // The steps of a page's paths that are not the Dashboard's words.
+  function wrongSteps(page: string): Array<string> {
+    return boldPaths(page).flatMap((steps: Array<string>): Array<string> => {
+      return steps.filter((step: string, index: number): boolean => {
+        return step !== DRAWN[index];
+      });
+    });
+  }
+
+  it("passes the path as the Dashboard words it, and fails a wrong step in it", () => {
+    const right: string = `در پروژه به **${pathWithArrows(DRAWN, "fa")}** بروید.`;
+    const wrong: string = `در پروژه به **${pathWithArrows(
+      ["تنظیمات کاربر", "ترجیحات پیامک"],
+      "fa",
+    )}** بروید.`;
+
+    expect(right).toBe("در پروژه به **تنظیمات کاربر ← ترجیحات ایمیل** بروید.");
+    expect(boldPaths(right)).toEqual([DRAWN]);
+    expect(wrongSteps(right)).toEqual([]);
+    expect(wrongSteps(wrong)).toEqual(["ترجیحات پیامک"]);
   });
 });
 

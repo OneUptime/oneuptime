@@ -48,7 +48,7 @@ DISABLE_TELEMETRY_FOR_APP=false
 Defínelos en `config.env` y luego ejecuta `npm start`. `DISABLE_TELEMETRY_FOR_APP` es `true` de forma predeterminada, y entonces no se envía nada.
 :::
 
-OneUptime necesita tanto el endpoint como las cabeceras: sin una cabecera no envía nada. Separa varias cabeceras con `;`. OneUptime añade `/v1/metrics` al endpoint por sí mismo, y los mismos ajustes envían también sus propias trazas y registros. Cada métrica aparece en cuanto OneUptime la registra por primera vez: `notification.send.count` con el primer mensaje enviado.
+OneUptime necesita tanto el endpoint como las cabeceras: sin una cabecera no envía nada. Escribe cada cabecera como `name=value` y separa varias con `;`. Un valor puede contener `=`. OneUptime añade `/v1/metrics` al endpoint por sí mismo, y los mismos ajustes envían también sus propias trazas y registros. Cada métrica aparece en cuanto OneUptime la registra por primera vez: `notification.send.count` con el primer mensaje enviado.
 
 ### Enviar deltas a un proyecto de OneUptime
 
@@ -246,7 +246,7 @@ La fórmula `$b / $a * 100` es la proporción no entregada. Los operadores y los
 ## Solución de problemas
 
 :::details No llega ninguna métrica de notificaciones
-Comprueba que `OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT` y `OPENTELEMETRY_EXPORTER_OTLP_HEADERS` estén definidas, y en Docker Compose que `DISABLE_TELEMETRY_FOR_APP` sea `false`, y luego reinicia OneUptime. Una métrica solo aparece cuando se registra algo, así que envía primero una notificación.
+Comprueba que `OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT` y `OPENTELEMETRY_EXPORTER_OTLP_HEADERS` estén definidas, y en Docker Compose que `DISABLE_TELEMETRY_FOR_APP` sea `false`, y luego reinicia OneUptime. Al arrancar, OneUptime registra una advertencia cuando no puede leer una cabecera o cuando no envía nada. Una métrica solo aparece cuando se registra algo, así que envía primero una notificación.
 :::
 
 :::details Un recuento solo crece, o un percentil apenas se mueve

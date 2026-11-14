@@ -3,7 +3,7 @@ import ObjectID from "../../../Types/ObjectID";
 import logger from "../../../Server/Utils/Logger";
 import {
   CapturedStatement,
-  captureClaimStatements,
+  captureClaimQueries,
   expectPlaceholdersMatchParameters,
 } from "../TestingUtils/PastDueMonitoringClaimSql";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
@@ -35,17 +35,18 @@ const PROBE_ID: ObjectID = new ObjectID("33333333-3333-4333-8333-333333333333");
 const MONITOR_PROBE_ID: string = "11111111-1111-4111-8111-111111111111";
 
 /*
- * Drive one claim and hand back the nextPingAt the UPDATE would write.
+ * Drive one claim and hand back the nextPingAt the claim would write.
  *
- * The UPDATE binds [currentDate, ids, ...nextPingDates], so the first
- * monitor's computed schedule is parameter index 2.
+ * The claim binds [currentDate, ids, nextPingAts, probeId, limit], each
+ * next run as an ISO string, so the first monitor's computed schedule is
+ * the first entry of parameter index 2.
  */
 async function claimAndReadNextPingAt(
   monitoringInterval: string | null,
 ): Promise<{ nextPingAt: Date; now: Date; update: CapturedStatement }> {
   const service: MonitorProbeServiceType = new MonitorProbeServiceType();
 
-  const statements: Array<CapturedStatement> = captureClaimStatements(service, [
+  const statements: Array<CapturedStatement> = captureClaimQueries(service, [
     { _id: MONITOR_PROBE_ID, monitoringInterval },
   ]);
 
@@ -59,9 +60,13 @@ async function claimAndReadNextPingAt(
   expect(statements.length).toBeGreaterThanOrEqual(2);
 
   const update: CapturedStatement = statements[1]!;
-  const nextPingAt: Date = update.parameters[2] as Date;
+  const nextPingAts: Array<string> = update.parameters[2] as Array<string>;
 
-  expect(nextPingAt).toBeInstanceOf(Date);
+  expect(nextPingAts).toHaveLength(1);
+
+  const nextPingAt: Date = new Date(nextPingAts[0]!);
+
+  expect(isNaN(nextPingAt.getTime())).toBe(false);
 
   return { nextPingAt, now: before, update };
 }
@@ -230,7 +235,7 @@ describe("claimMonitorProbesForProbing computes the schedule the customer asked 
 
       const service: MonitorProbeServiceType = new MonitorProbeServiceType();
 
-      captureClaimStatements(service, [
+      captureClaimQueries(service, [
         { _id: MONITOR_PROBE_ID, monitoringInterval: "banana" },
         {
           _id: "22222222-2222-4222-8222-222222222222",
@@ -275,7 +280,7 @@ describe("claimMonitorProbesForProbing computes the schedule the customer asked 
 
       const service: MonitorProbeServiceType = new MonitorProbeServiceType();
 
-      captureClaimStatements(service, [
+      captureClaimQueries(service, [
         { _id: MONITOR_PROBE_ID, monitoringInterval: "*/5 * * * *" },
         // "5m" is understood now, so it is not an offender either.
         {
@@ -302,13 +307,13 @@ describe("claimMonitorProbesForProbing computes the schedule the customer asked 
   describe("the SQL contract is unchanged", () => {
     test("placeholders still match parameters after the interval change", async () => {
       /*
-       * The nextPingAt CASE fragments are built with $${i + 3} numbering
-       * against a [currentDate, ids, ...dates] parameter list. Touching the
-       * loop that builds them is exactly how that numbering gets broken.
+       * The claim binds [currentDate, ids, nextPingAts, probeId, limit].
+       * Touching the loop that builds the schedule is exactly how that
+       * numbering gets broken.
        */
       const service: MonitorProbeServiceType = new MonitorProbeServiceType();
 
-      const statements: Array<CapturedStatement> = captureClaimStatements(
+      const statements: Array<CapturedStatement> = captureClaimQueries(
         service,
         [
           { _id: MONITOR_PROBE_ID, monitoringInterval: "5m" },
@@ -336,7 +341,7 @@ describe("claimMonitorProbesForProbing computes the schedule the customer asked 
     test("every claimed row still gets a schedule, whatever its interval says", async () => {
       const service: MonitorProbeServiceType = new MonitorProbeServiceType();
 
-      const statements: Array<CapturedStatement> = captureClaimStatements(
+      const statements: Array<CapturedStatement> = captureClaimQueries(
         service,
         [
           { _id: MONITOR_PROBE_ID, monitoringInterval: "5m" },
@@ -361,12 +366,91 @@ describe("claimMonitorProbesForProbing computes the schedule the customer asked 
 
       const update: CapturedStatement = statements[1]!;
 
-      // [currentDate, ids, ...3 dates]
+      // [currentDate, ids, 3 next runs, probeId, limit]
       expect(update.parameters).toHaveLength(5);
+      expect(update.parameters[1]).toHaveLength(3);
 
-      for (const date of update.parameters.slice(2)) {
-        expect(date).toBeInstanceOf(Date);
+      const nextPingAts: Array<string> = update.parameters[2] as Array<string>;
+
+      expect(nextPingAts).toHaveLength(3);
+
+      for (const nextPingAt of nextPingAts) {
+        expect(typeof nextPingAt).toBe("string");
+        expect(isNaN(new Date(nextPingAt).getTime())).toBe(false);
       }
+    });
+
+    /*
+     * One cron read per distinct interval: a probe with hundreds of
+     * monitors on the same five-minute schedule reads it once, not hundreds
+     * of times, and every one of them gets that same next run.
+     */
+    test("monitors that share an interval share one schedule", async () => {
+      const resolveSpy: ReturnType<typeof jest.spyOn> = jest.spyOn(
+        MonitorProbeServiceType,
+        "resolveNextPingAt",
+      );
+      const service: MonitorProbeServiceType = new MonitorProbeServiceType();
+
+      const statements: Array<CapturedStatement> = captureClaimQueries(
+        service,
+        [
+          { _id: MONITOR_PROBE_ID, monitoringInterval: "*/5 * * * *" },
+          {
+            _id: "22222222-2222-4222-8222-222222222222",
+            monitoringInterval: "*/5 * * * *",
+          },
+          {
+            _id: "44444444-4444-4444-8444-444444444444",
+            monitoringInterval: "*/10 * * * *",
+          },
+        ],
+      );
+
+      await service.claimMonitorProbesForProbing({
+        probeId: PROBE_ID,
+        limit: 25,
+      });
+
+      expect(resolveSpy).toHaveBeenCalledTimes(2);
+
+      const nextPingAts: Array<string> = statements[1]!
+        .parameters[2] as Array<string>;
+
+      expect(nextPingAts[0]).toBe(nextPingAts[1]);
+    });
+
+    test("an unreadable interval shared by several monitors still names each of them", async () => {
+      const errorSpy: ReturnType<typeof jest.spyOn> = jest
+        .spyOn(logger, "error")
+        .mockImplementation(() => {});
+      const service: MonitorProbeServiceType = new MonitorProbeServiceType();
+
+      captureClaimQueries(service, [
+        { _id: MONITOR_PROBE_ID, monitoringInterval: "banana" },
+        {
+          _id: "22222222-2222-4222-8222-222222222222",
+          monitoringInterval: "banana",
+        },
+      ]);
+
+      await service.claimMonitorProbesForProbing({
+        probeId: PROBE_ID,
+        limit: 25,
+      });
+
+      const offenderLogs: Array<string> = errorSpy.mock.calls
+        .map((call: Array<unknown>) => {
+          return String(call[0]);
+        })
+        .filter((message: string) => {
+          return message.includes("claimMonitorProbesForProbing");
+        });
+
+      expect(offenderLogs).toHaveLength(1);
+      expect(offenderLogs[0]).toContain("2 monitor(s)");
+      expect(offenderLogs[0]).toContain(MONITOR_PROBE_ID);
+      expect(offenderLogs[0]).toContain("22222222-2222-4222-8222-222222222222");
     });
   });
 });

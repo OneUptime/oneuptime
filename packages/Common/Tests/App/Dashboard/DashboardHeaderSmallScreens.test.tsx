@@ -209,6 +209,8 @@ jest.mock("../../../UI/Utils/User", () => {
 });
 
 import DashboardHeader from "../../../../App/FeatureSet/Dashboard/src/Components/Header/Header";
+// After the mocks above: it reads the wordmark's import as it loads.
+import { SMALL_SCREEN_MEDIA_QUERY } from "../../../UI/Components/ProductLogo/ProductLogo";
 
 const INCIDENT_COUNT: number = 2;
 const ALERT_COUNT: number = 3;
@@ -400,21 +402,34 @@ describe("dashboard header on small screens", () => {
     expect(panel.className).toContain("sm:w-80");
   });
 
-  test("search, Ask AI and help stay behind on a narrow screen", async () => {
+  test("search, Ask AI and help stay behind on a phone, where the phone's menu carries Search and Help", async () => {
     await renderHeader();
 
     for (const name of [/Search/, /Ask AI/, /^Help$/]) {
       const button: HTMLElement = getButton(name);
 
       expect(isVisibleAtWidth(button, PHONE_WIDTH_IN_PX)).toBe(false);
-      expect(isVisibleAtWidth(button, TABLET_WIDTH_IN_PX)).toBe(false);
       expect(describeVisibility(button, LAPTOP_WIDTH_IN_PX)).toBe(
         "visible at 1280px",
       );
     }
   });
 
-  test("nothing in the header overflows a phone: the wordmark shrinks instead", async () => {
+  test("on a tablet, where the phone's menu is not drawn, Search and Help are in the header and Ask AI still waits (#7037)", async () => {
+    await renderHeader();
+
+    for (const name of [/Search/, /^Help$/]) {
+      expect(describeVisibility(getButton(name), TABLET_WIDTH_IN_PX)).toBe(
+        "visible at 768px",
+      );
+    }
+
+    expect(isVisibleAtWidth(getButton(/Ask AI/), TABLET_WIDTH_IN_PX)).toBe(
+      false,
+    );
+  });
+
+  test("nothing in the header overflows a phone: below sm the logo is the product's mark, 24px tall", async () => {
     await renderHeader();
 
     const logo: HTMLElement = screen.getByAltText("OneUptime");
@@ -422,6 +437,16 @@ describe("dashboard header on small screens", () => {
     // 5:1 wordmark: h-8 is 160px, nearly half the width of a phone header.
     expect(logo.className).toContain("h-6");
     expect(logo.className).toContain("sm:h-8");
+
+    /*
+     * And even at h-6 it is 120px, which left the project picker one letter
+     * of the project's name (#7236): below sm the browser draws the mark.
+     */
+    expect(logo.parentElement!.tagName).toBe("PICTURE");
+    expect(logo.parentElement!.querySelector("source")).toHaveAttribute(
+      "media",
+      SMALL_SCREEN_MEDIA_QUERY,
+    );
   });
 });
 
@@ -442,11 +467,19 @@ const WITH_FOREIGN_HIDDEN_RULE: VisibilityOptions = {
 
 // Where the wide-screen entries are meant to appear.
 const LG_WIDTH_IN_PX: number = TAILWIND_BREAKPOINTS_IN_PX["lg"]!;
+// Where the phone's menu stops, and Search and Help join the header (#7037).
+const MD_WIDTH_IN_PX: number = TAILWIND_BREAKPOINTS_IN_PX["md"]!;
 
 const WIDE_SCREEN_WIDTHS_IN_PX: Array<number> = [
   LG_WIDTH_IN_PX,
   LAPTOP_WIDTH_IN_PX,
   WIDE_DESKTOP_WIDTH_IN_PX,
+];
+
+const TABLET_WIDTHS_IN_PX: Array<number> = [
+  MD_WIDTH_IN_PX,
+  900,
+  LG_WIDTH_IN_PX - 1,
 ];
 
 const NARROW_SCREEN_WIDTHS_IN_PX: Array<number> = [
@@ -455,7 +488,19 @@ const NARROW_SCREEN_WIDTHS_IN_PX: Array<number> = [
   LG_WIDTH_IN_PX - 1,
 ];
 
-const WIDE_SCREEN_ONLY_ENTRIES: Array<RegExp> = [/Search/, /Ask AI/, /^Help$/];
+const PHONE_WIDTHS_IN_PX: Array<number> = [
+  320,
+  PHONE_WIDTH_IN_PX,
+  MD_WIDTH_IN_PX - 1,
+];
+
+// From lg up: Ask AI (and Upgrade, on the Free plan with billing on).
+const WIDE_SCREEN_ONLY_ENTRIES: Array<RegExp> = [/Ask AI/];
+
+// From md up: on a phone, the phone's menu carries them instead.
+const TABLET_AND_UP_ENTRIES: Array<RegExp> = [/Search/, /^Help$/];
+
+const RAIL_ENTRIES_FROM_A_WIDTH: Array<RegExp> = [/Search/, /Ask AI/, /^Help$/];
 
 const ALWAYS_ON_SCREEN_ENTRIES: Array<RegExp> = [
   /View notifications/,
@@ -470,7 +515,7 @@ describe("dashboard header with a foreign .hidden rule on the page", () => {
   test("search, Ask AI and help are on screen from lg up: 1024, 1280 and 1917", async () => {
     await renderHeader();
 
-    for (const name of WIDE_SCREEN_ONLY_ENTRIES) {
+    for (const name of RAIL_ENTRIES_FROM_A_WIDTH) {
       const button: HTMLElement = getButton(name);
 
       for (const width of WIDE_SCREEN_WIDTHS_IN_PX) {
@@ -481,7 +526,7 @@ describe("dashboard header with a foreign .hidden rule on the page", () => {
     }
   });
 
-  test("they still stay behind below lg, so the fix did not just unhide them", async () => {
+  test("Ask AI still stays behind below lg, so the fix did not just unhide it", async () => {
     await renderHeader();
 
     for (const name of WIDE_SCREEN_ONLY_ENTRIES) {
@@ -491,7 +536,36 @@ describe("dashboard header with a foreign .hidden rule on the page", () => {
         expect(isVisibleAtWidth(button, width, WITH_FOREIGN_HIDDEN_RULE)).toBe(
           false,
         );
-        // And on a clean page: the rule must not be what hides them here.
+        // And on a clean page: the rule must not be what hides it here.
+        expect(isVisibleAtWidth(button, width)).toBe(false);
+      }
+    }
+  });
+
+  test("search and help are on screen on a tablet, rule or no rule: 768, 900 and 1023", async () => {
+    await renderHeader();
+
+    for (const name of TABLET_AND_UP_ENTRIES) {
+      const button: HTMLElement = getButton(name);
+
+      for (const width of TABLET_WIDTHS_IN_PX) {
+        expect(
+          describeVisibility(button, width, WITH_FOREIGN_HIDDEN_RULE),
+        ).toBe(`visible at ${width}px with a foreign .hidden rule on the page`);
+      }
+    }
+  });
+
+  test("search and help still stay behind on a phone, rule or no rule: 320, 375 and 767", async () => {
+    await renderHeader();
+
+    for (const name of TABLET_AND_UP_ENTRIES) {
+      const button: HTMLElement = getButton(name);
+
+      for (const width of PHONE_WIDTHS_IN_PX) {
+        expect(isVisibleAtWidth(button, width, WITH_FOREIGN_HIDDEN_RULE)).toBe(
+          false,
+        );
         expect(isVisibleAtWidth(button, width)).toBe(false);
       }
     }
@@ -518,7 +592,7 @@ describe("dashboard header with a foreign .hidden rule on the page", () => {
     await renderHeader();
 
     const entries: Array<RegExp> = [
-      ...WIDE_SCREEN_ONLY_ENTRIES,
+      ...RAIL_ENTRIES_FROM_A_WIDTH,
       ...ALWAYS_ON_SCREEN_ENTRIES,
     ];
 
@@ -550,23 +624,26 @@ describe("dashboard header with a foreign .hidden rule on the page", () => {
 
     expect(
       describeVisibility(
-        getButton(/Search/),
-        WIDE_DESKTOP_WIDTH_IN_PX,
-        WITH_FOREIGN_HIDDEN_RULE,
-      ),
-    ).toBe(
-      'hidden at 1917px with a foreign .hidden rule on the page by <div class="hidden items-center gap-2 lg:flex">',
-    );
-
-    expect(
-      describeVisibility(
-        getButton(/^Help$/),
+        getButton(/Ask AI/),
         WIDE_DESKTOP_WIDTH_IN_PX,
         WITH_FOREIGN_HIDDEN_RULE,
       ),
     ).toBe(
       'hidden at 1917px with a foreign .hidden rule on the page by <div class="hidden items-center lg:flex">',
     );
+
+    // Search and Help, drawn from md since #7037, the same with md:flex.
+    for (const name of TABLET_AND_UP_ENTRIES) {
+      expect(
+        describeVisibility(
+          getButton(name),
+          WIDE_DESKTOP_WIDTH_IN_PX,
+          WITH_FOREIGN_HIDDEN_RULE,
+        ),
+      ).toBe(
+        'hidden at 1917px with a foreign .hidden rule on the page by <div class="hidden items-center md:flex">',
+      );
+    }
 
     // On a clean page the old markup was fine, which is why nobody saw it.
     expect(

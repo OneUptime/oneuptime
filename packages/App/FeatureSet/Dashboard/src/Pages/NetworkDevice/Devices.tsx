@@ -124,6 +124,7 @@ import DeviceSummaryCards from "../../Components/NetworkDevice/DeviceSummaryCard
 import { NETWORK_DEVICE_METRIC_DESCRIPTIONS } from "../../Components/MetricDescriptions/NetworkDeviceMetricDescriptions";
 import DeviceStatusUtil, {
   BOUND_MONITOR_PENDING_TOOLTIP,
+  DEVICE_BOUND_MONITOR_SELECT,
   DEVICE_STATUS_SELECT,
   DeviceReachabilityResult,
   NEVER_POLLED_PENDING_TOOLTIP,
@@ -135,6 +136,7 @@ import DeviceStatusUtil, {
   PROBE_POLLED_UP_TOOLTIP,
   SNMP_FAILING_QUALIFIER,
   UNBOUND_MONITOR_BACKED_PENDING_TOOLTIP,
+  getBoundMonitorNotCheckedQualifier,
   getStaleTooltip,
   hasNoSnmpInventory,
   isSnmpFailing,
@@ -180,6 +182,7 @@ import {
 } from "Common/Utils/NetworkDevice/NetworkDeviceAssetFacts";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
 
 /*
  * Stable object identity, because ModelTable decides whether to refetch by
@@ -1242,7 +1245,7 @@ const NetworkDevices: FunctionComponent<
                 "{{deviceName}} was created and its probe polls it as usual, but its Ping monitor was not created: {{error}} Nothing raises an incident for this device yet — open it and use Create Ping Monitor to try again.",
                 {
                   deviceName: deviceName,
-                  error: API.getFriendlyMessage(err),
+                  error: errorInSentence(API.getFriendlyMessage(err)),
                 },
               ),
             });
@@ -1519,6 +1522,38 @@ const NetworkDevices: FunctionComponent<
                           color={Gray500}
                           size={PillSize.Small}
                           tooltip={NO_MONITOR_QUALIFIER.tooltip}
+                        />
+                      </div>
+                    );
+                  }
+
+                  /*
+                   * Bound, but the monitor is not checked - its monitoring
+                   * is off, or it is archived - so it gives the device no
+                   * verdict (issue #6965): Pending, and the qualifier says
+                   * why it will not change until the monitor is checked
+                   * again.
+                   */
+                  const notCheckedQualifier: {
+                    text: string;
+                    tooltip: string;
+                    pendingTooltip: string;
+                  } | null = getBoundMonitorNotCheckedQualifier(item);
+
+                  if (notCheckedQualifier) {
+                    return (
+                      <div className="flex items-center gap-1.5">
+                        <Pill
+                          text="Pending"
+                          color={Gray500}
+                          size={PillSize.Small}
+                          tooltip={notCheckedQualifier.pendingTooltip}
+                        />
+                        <Pill
+                          text={notCheckedQualifier.text}
+                          color={Gray500}
+                          size={PillSize.Small}
+                          tooltip={notCheckedQualifier.tooltip}
                         />
                       </div>
                     );
@@ -2051,6 +2086,8 @@ const NetworkDevices: FunctionComponent<
           ...DEVICE_STATUS_SELECT,
           // For the "No monitor" qualifier beside a monitor-backed Pending.
           monitorId: true,
+          // For the "Monitoring off" and "Monitor archived" qualifiers.
+          ...DEVICE_BOUND_MONITOR_SELECT,
           interfacesDown: true,
           sysName: true,
           deviceModel: true,

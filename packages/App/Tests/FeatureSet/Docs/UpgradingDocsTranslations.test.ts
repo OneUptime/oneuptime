@@ -30,6 +30,7 @@ import {
   toLatinDigits,
 } from "./DocsTranslationChecks";
 import { otherChangesItems } from "./UpgradingDocsNotes";
+import { isRightToLeftLanguage } from "Common/Types/ReadingDirection";
 import { APPROVAL_AFTER_LAST_STEP_TITLE } from "Common/Types/Runbook/RunbookStepApproval";
 import { slugifyMarkdownHeading } from "Common/Server/Types/MarkdownSlugify";
 import { describe, expect, it } from "@jest/globals";
@@ -50,10 +51,11 @@ import { isPermissionTitleKeptInEnglish } from "./DocsRoleNames";
  *   - The Dashboard, Persian included: a label, a menu path segment by
  *     segment, a "Mark as <state>" button filled from its template.
  *   - The Admin Dashboard: its breadcrumbs, its OneUptime Health page and the
- *     way to its Authentication settings, and the names it draws in English
- *     in every language - "This installation" (no key of its locale) and the
- *     Health dashboards and the Query Console, which its own translated
- *     sentences keep in English.
+ *     way to its Authentication settings, the edition label's "This
+ *     installation" card (worded as the Dashboard words it, #6470), and the
+ *     names it draws in English in every language - the Health dashboards
+ *     and the Query Console, which its own translated sentences keep in
+ *     English.
  *   - The sign-in page and the Admin Dashboard's switch, for the note on
  *     sign-in links (SIGN_IN_LINK_LABELS).
  *
@@ -97,7 +99,7 @@ const ROLES_AND_PERMISSIONS: Array<string> = [
   "Edit Incident",
   "Edit Alert",
   "Create Alert State Timeline",
-  "Execute On-Call Duty Policy",
+  "Execute On-Call Policies",
   "Create Runbook Execution",
   // The AI rules' permissions, which were the auto remediation rules'.
   "Create AI Rule",
@@ -225,16 +227,19 @@ const PRODUCT_NAMES: Array<string> = [
 const SCRIPT_OUTPUT: Array<string> = ["OneUptime is up!"];
 
 /*
- * Names the Admin Dashboard draws in English in every language: the edition
- * label's "This installation" has no key of its locale, and its own
+ * Names the Admin Dashboard draws in English in every language: its own
  * translated sentences keep the Health dashboards and the Query Console in
  * English (ADMIN_SENTENCE_KEEPING_THEM).
  */
-const ADMIN_DRAWN_IN_ENGLISH: Array<string> = [
-  "This installation",
-  "Health",
-  "Query Console",
-];
+const ADMIN_DRAWN_IN_ENGLISH: Array<string> = ["Health", "Query Console"];
+
+/*
+ * The edition label's card that shows the running version. The Admin
+ * Dashboard's header draws it in the reader's language, worded as the
+ * Dashboard's footer words it (#6470), so a translation names it as a
+ * Dashboard label.
+ */
+const EDITION_LABEL_CARD: string = "This installation";
 
 const ADMIN_SENTENCE_KEEPING_THEM: string =
   "The live OneUptime Health dashboards and the query console need an Enterprise license that includes instance health, and this installation's license is missing, expired or does not include it. Activate or renew the license from the Enterprise Edition badge at the top of the Admin Dashboard. While the license is missing or expired, SCIM provisioning and audit logging are off too; they come back with these screens as soon as a license is activated. ClickHouse capacity, the instance log, Global Probes, Migrations and the Support Bundle keep working without it; find them in the menu on the left.";
@@ -309,8 +314,12 @@ const SIGN_IN_LINK_LABELS: Array<string> = [
   "Let people sign in with an emailed link",
 ];
 
-// Bold words that are Dashboard labels by coincidence: words of the page.
-const PROSE: Array<string> = ["teams"];
+/*
+ * Bold words that are Dashboard labels by coincidence: words of the page.
+ * "team" became one with Ask AI's read cards (#7175), which say what an
+ * escalation rule pages: team "SRE".
+ */
+const PROSE: Array<string> = ["teams", "team"];
 
 /*
  * The bold leads of the page's own lists, steps and sentences. They are
@@ -472,7 +481,6 @@ const PROSE_LEADS: Array<string> = [
   "You installed Runbook Agents on your hosts:",
   "one security-relevant step",
   "API keys that were granted agent permissions directly:",
-  "team",
   "Runbook Agent containers you have not redeployed yet keep heartbeating and executing Bash and JavaScript steps",
   "SSH and Kubernetes steps (new in v12) fail on old agents.",
   "before",
@@ -704,15 +712,21 @@ function drawnSegments(language: string, english: string): Array<string> {
 
 /*
  * A path drawn in a translation: its segments in order, in one bold span or
- * one span a segment, joined by "→" or ">".
+ * one span a segment, joined by "→" or ">", and in a language read from the
+ * right by "←" as well, which a Persian page writes beside a Persian
+ * segment (#7611).
  */
-function pathPattern(segments: Array<string>): RegExp {
+function pathPattern(language: string, segments: Array<string>): RegExp {
+  const arrow: string = isRightToLeftLanguage(language)
+    ? "(?:→|←|>)"
+    : "(?:→|>)";
+
   return new RegExp(
     `\\*\\*${segments
       .map((segment: string): string => {
         return escapeRegExp(segment);
       })
-      .join("(?:\\*\\* | )(?:→|>)(?: \\*\\*| )")}\\*\\*`,
+      .join(`(?:\\*\\* | )${arrow}(?: \\*\\*| )`)}\\*\\*`,
   );
 }
 
@@ -952,15 +966,26 @@ describe("the lists this test keeps", () => {
     }
   });
 
-  it("draw the Admin Dashboard's English names as it draws them", () => {
-    // "This installation" is no key of any Admin Dashboard locale.
-    for (const language of SUPPORTED_DOCS_LANGUAGE_CODES) {
+  it("name the edition label's card as the Admin Dashboard draws it, the Dashboard's word", () => {
+    expect(isDashboardLabel(EDITION_LABEL_CARD)).toBe(true);
+    expect(drawnLabels()).toContain(EDITION_LABEL_CARD);
+
+    for (const language of LANGUAGES) {
+      const drawn: string | null = localeValue(
+        adminLocale(language),
+        EDITION_LABEL_CARD,
+      );
+
       expect({
         language,
-        key: localeValue(adminLocale(language), "This installation"),
-      }).toEqual({ language, key: null });
+        worded: drawn !== null && drawn !== EDITION_LABEL_CARD,
+        asTheDashboard:
+          drawn === localeValue(dashboardLocale(language), EDITION_LABEL_CARD),
+      }).toEqual({ language, worded: true, asTheDashboard: true });
     }
+  });
 
+  it("draw the Admin Dashboard's English names as it draws them", () => {
     // Its translated sentences keep the Health dashboards and the Query Console.
     for (const language of LANGUAGES) {
       const sentence: string =
@@ -1501,7 +1526,7 @@ describe.each(LANGUAGES)("the %s upgrade guide", (language: string) => {
         return drawnSegments(language, path_);
       })
       .filter((segments: Array<string>): boolean => {
-        return !pathPattern(segments).test(translated);
+        return !pathPattern(language, segments).test(translated);
       })
       .map((segments: Array<string>): string => {
         return segments.join(" > ");
@@ -1593,11 +1618,20 @@ describe("the helpers, on this page's shapes", () => {
   });
 
   it("draw a path in one span or a span a segment, joined by → or >", () => {
-    const pattern: RegExp = pathPattern(["Runbooks", "Runbook-Agents"]);
+    const pattern: RegExp = pathPattern("de", ["Runbooks", "Runbook-Agents"]);
 
     expect(pattern.test("**Runbooks → Runbook-Agents**")).toBe(true);
     expect(pattern.test("**Runbooks** > **Runbook-Agents**")).toBe(true);
     expect(pattern.test("**Runbook-Agents → Runbooks**")).toBe(false);
+    // A page read from the left writes no "←" (#7611).
+    expect(pattern.test("**Runbooks ← Runbook-Agents**")).toBe(false);
+
+    // A Persian page writes "←" beside a Persian segment, or ">".
+    const persian: RegExp = pathPattern("fa", ["تنظیمات", "هوش مصنوعی"]);
+
+    expect(persian.test("**تنظیمات ← هوش مصنوعی**")).toBe(true);
+    expect(persian.test("**تنظیمات** > **هوش مصنوعی**")).toBe(true);
+    expect(persian.test("**هوش مصنوعی ← تنظیمات**")).toBe(false);
   });
 
   it("fill a Mark as button from the language's template and state", () => {

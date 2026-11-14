@@ -506,9 +506,16 @@ describe("whether there is a card at all", () => {
       "record-channel-read-error",
     );
 
-    // Not the page-wide error panel with its "Refresh?" link.
+    /*
+     * Not the page-wide error panel with its "Refresh?" link. A server
+     * failure it could not explain is said in words, not as the bare
+     * "Server Error" it came as (#7307).
+     */
     expect(within(box).getByRole("alert")).toHaveTextContent(
-      "Could not read who is in this channel. Server Error",
+      "Could not read who is in this channel. The server ran into a problem it could not explain. Try again in a moment.",
+    );
+    expect(within(box).getByRole("alert")).not.toHaveTextContent(
+      "Server Error",
     );
     expect(screen.queryByText("Refresh?")).toBeNull();
 

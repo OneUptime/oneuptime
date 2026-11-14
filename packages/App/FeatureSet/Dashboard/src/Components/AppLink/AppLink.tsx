@@ -1,7 +1,10 @@
 import Route from "Common/Types/API/Route";
 import { ReadingDirection } from "Common/Types/ReadingDirection";
-import React, { FunctionComponent, ReactElement } from "react";
+import LeaveGuard from "Common/UI/Utils/LeaveGuard";
+import Navigation from "Common/UI/Utils/Navigation";
+import React, { FunctionComponent, ReactElement, useContext } from "react";
 import { Link } from "react-router-dom";
+import { AppLinkAsTextContext, getAppLinkTextClassName } from "./AppLinkAsText";
 
 export interface ComponentProps {
   children: ReactElement | Array<ReactElement> | string;
@@ -28,6 +31,8 @@ export interface ComponentProps {
 const ReactDomLink: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const isText: boolean = useContext(AppLinkAsTextContext);
+
   let children: ReactElement | Array<ReactElement>;
 
   if (typeof props.children === "string") {
@@ -36,15 +41,60 @@ const ReactDomLink: FunctionComponent<ComponentProps> = (
     children = props.children;
   }
 
+  if (isText) {
+    return (
+      <span
+        className={getAppLinkTextClassName(props.className) || undefined}
+        title={props.title}
+        data-testid={props.dataTestId}
+        dir={props.dir}
+      >
+        {children}
+      </span>
+    );
+  }
+
   const cursorClassName: string = props.to
     ? "cursor-pointer"
     : "cursor-default";
+
+  /*
+   * A click the router would take, to another page, while the page shown
+   * holds work nobody has saved (LeaveGuard): the router leaves it alone,
+   * and the step waits for the page's answer. A click with a modifier key
+   * (a new tab or window) never asks: the page stays where it is.
+   */
+  const onClick: (event: React.MouseEvent<HTMLAnchorElement>) => void = (
+    event: React.MouseEvent<HTMLAnchorElement>,
+  ): void => {
+    const to: Route | undefined = props.to;
+
+    if (
+      to &&
+      event.button === 0 &&
+      !event.metaKey &&
+      !event.altKey &&
+      !event.ctrlKey &&
+      !event.shiftKey &&
+      LeaveGuard.asksBeforeGoingTo(to.toString())
+    ) {
+      event.preventDefault();
+
+      LeaveGuard.whenLeaving(to.toString(), () => {
+        props.onNavigateComplete?.();
+        Navigation.navigate(to);
+      });
+      return;
+    }
+
+    props.onNavigateComplete?.();
+  };
 
   return (
     <Link
       to={props.to?.toString() || ""}
       className={`${cursorClassName} ${props.className || ""}`}
-      onClick={props.onNavigateComplete}
+      onClick={onClick}
       title={props.title}
       data-testid={props.dataTestId}
       aria-current={props.isCurrentPage ? "page" : undefined}

@@ -567,6 +567,45 @@ export interface CodeTaskTurnJSON {
 }
 
 /*
+ * The turns a long task's conversation does not show: the ones between its
+ * first turn and the newest it shows (a conversation reads at most 200).
+ * Its page says how many there are, where they are left out, and still
+ * counts how long AI worked on them.
+ */
+export interface CodeTaskTurnsNotShownJSON {
+  count: number;
+  // How long AI worked on them, in all.
+  workMilliseconds: number;
+}
+
+/*
+ * A turn a long task's conversation does not show, sent because a link
+ * names it: the Log page's address (`?turn=<run id>`) can name any turn of
+ * the task - one shared in chat, or bookmarked when the task was shorter.
+ * Its place in the task (the first turn is 1), and the turn itself.
+ */
+export interface CodeTaskLinkedTurnJSON {
+  number: number;
+  turn: CodeTaskTurnJSON;
+}
+
+// A task's conversation, as its page is sent it (POST /code-task/get/:taskId).
+export interface CodeTaskConversationJSON {
+  // The task at the top: every turn's, the ones not shown included.
+  task: CodeTaskSummaryJSON;
+  // Its first turn, then its newest, oldest first.
+  turns: Array<CodeTaskTurnJSON>;
+  // Only for a task with more turns than its conversation shows.
+  turnsNotShown?: CodeTaskTurnsNotShownJSON | undefined;
+  /*
+   * The turn the read asked for (its `turn`), when it is one of the task's
+   * turns not shown. None for any other: a turn shown is in `turns`, and a
+   * run that is not the task's is never sent.
+   */
+  linkedTurn?: CodeTaskLinkedTurnJSON | undefined;
+}
+
+/*
  * How a turn that AI is working on stands now, and the steps it took since
  * the page last read it (POST /code-task/progress/:taskId): what a task's
  * conversation reads as each step happens, instead of the whole task again.

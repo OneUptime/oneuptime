@@ -15,6 +15,9 @@ import Express, {
 import Response from "../Utils/Response";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import CommonAPI from "./CommonAPI";
+import ServerProducts from "../Utils/ServerProducts/ServerProducts";
+import { getProductOfTable } from "../../Types/Product/ProductOfTable";
+import ProductKey from "../../Types/Product/ProductKey";
 import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -410,6 +413,7 @@ export default class BaseAPI<
     req: ExpressRequest,
     res: ExpressResponse,
   ): Promise<void> {
+    await this.assertProductIsOn();
     await this.onBeforeDelete(req, res);
     const idParam: string = req.params["id"] as string;
     ObjectID.validateUUID(idParam);
@@ -444,6 +448,7 @@ export default class BaseAPI<
     req: ExpressRequest,
     res: ExpressResponse,
   ): Promise<void> {
+    await this.assertProductIsOn();
     await this.onBeforeUpdate(req, res);
     const idParam: string = req.params["id"] as string;
     ObjectID.validateUUID(idParam);
@@ -575,6 +580,7 @@ export default class BaseAPI<
     req: ExpressRequest,
     res: ExpressResponse,
   ): Promise<void> {
+    await this.assertProductIsOn();
     await this.onBeforeCreate(req, res);
     const body: JSONObject = req.body;
 
@@ -634,6 +640,24 @@ export default class BaseAPI<
 
   public getRouter(): ExpressRouter {
     return this.router;
+  }
+
+  /*
+   * Refuses a create, change or delete of a product's main record while the
+   * product is switched off on the server (#6815, Types/Product/
+   * ProductOfTable), with what happened and who can switch it on. Reads are
+   * never refused: products that are on show records of others.
+   */
+  public async assertProductIsOn(): Promise<void> {
+    const product: ProductKey | null = getProductOfTable(
+      new this.entityType().tableName,
+    );
+
+    if (!product) {
+      return;
+    }
+
+    await ServerProducts.assertProductIsOn(product);
   }
 
   public getEntityName(): string {

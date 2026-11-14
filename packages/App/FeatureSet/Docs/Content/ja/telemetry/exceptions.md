@@ -1,4 +1,4 @@
-# 例外トラッキング
+# 例外
 
 例外トラッキングは、コードがスローするエラーを収集し、同じエラーの発生をすべて 1 つの例外にまとめます。例外にはスタックトレース、推移、発生したリクエストが付きます。To-Do リストのようにトリアージしましょう。修正する、解決済みにする、ノイズをアーカイブする、そして AI が修正できるものは AI に pull request を開かせます。
 
@@ -39,7 +39,7 @@ flowchart TB
 ## 始める前に
 
 - **届いているスパンまたはログ。** [OpenTelemetry](/docs/telemetry/open-telemetry) でサービスを計装します。**セットアップガイド** タブに、使っている言語向けのコードが表示されます。
-- **テレメトリを読み取れるロール。** Project Owner、Project Admin、Project Member、Viewer、Telemetry Admin、Telemetry Member、Telemetry Viewer のいずれか、または Read Telemetry Service Exception 権限を持つカスタムロール。解決とアーカイブには、Project Owner か Project Admin、または Edit Telemetry Service Exception 権限が必要です。
+- **テレメトリを読み取れるロール。** Project Owner、Project Admin、Project Member、Viewer、Telemetry Admin、Telemetry Member、Telemetry Viewer のいずれか、または Read Exceptions 権限を持つカスタムロール。解決とアーカイブには、Project Owner か Project Admin、または Edit Exceptions 権限が必要です。
 
 ## 一覧をトリアージする
 

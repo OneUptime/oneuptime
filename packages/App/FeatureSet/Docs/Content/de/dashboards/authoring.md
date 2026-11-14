@@ -59,7 +59,9 @@ flowchart TB
 Ihre Änderungen gehören nur Ihnen, bis Sie sie speichern. Beim Bearbeiten wird nichts gespeichert, daher sehen andere das Dashboard weiterhin so, wie es war.
 
 - **Änderungen speichern** speichert die Widgets, ihre Plätze und Größen, die Variablen sowie den Standardzeitraum und die standardmäßige automatische Aktualisierung auf einmal und kehrt zur Ansicht zurück. Wird das Speichern abgelehnt, etwa weil Sie inzwischen die Berechtigung verloren haben, bleiben Sie mit Ihren Änderungen in der Bearbeitung, und der Grund steht über dem Raster.
-- **Abbrechen** fragt zuerst, weil es Ihre Änderungen verwirft: **Änderungen verwerfen** kehrt zum gespeicherten Dashboard zurück, und **Weiter bearbeiten** bringt Sie zurück zu Ihrer Arbeit.
+- **Abbrechen** kehrt zur Ansicht zurück. Haben Sie etwas geändert, fragt es zuerst, weil es Ihre Änderungen verwirft: **Änderungen verwerfen** kehrt zum gespeicherten Dashboard zurück, und **Weiter bearbeiten** bringt Sie zurück zu Ihrer Arbeit.
+
+Auch wer das Dashboard mit nicht gespeicherten Änderungen verlässt, wird zuerst gefragt. Ein Link im Seitenmenü, in den Breadcrumbs oder in der oberen Leiste sowie die Zurück- und Vorwärts-Schaltflächen Ihres Browsers öffnen **Ohne Speichern verlassen?** mit denselben zwei Möglichkeiten: **Weiter bearbeiten** bleibt mit Ihren Änderungen auf dem Dashboard, und **Änderungen verwerfen** öffnet die Seite, die Sie öffnen wollten. Beim Schließen oder Neuladen des Tabs fragt Ihr Browser mit seinem eigenen Dialog. Ein Dashboard, das Sie zum Bearbeiten geöffnet und nicht geändert haben, fragt nichts, ebenso wenig eines, das Sie gerade gespeichert haben.
 
 Während Sie bearbeiten, pausiert die automatische Aktualisierung, und ein gezoomter Zeitbereich kehrt zu dem Bereich zurück, den Sie gewählt hatten.
 

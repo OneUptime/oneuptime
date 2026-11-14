@@ -1,6 +1,6 @@
 # Passaggi del monitor
 
-`monitor_steps` è l'attributo di `oneuptime_monitor` che dice cosa controlla un monitor e come viene giudicato ogni risultato: l'indirizzo da controllare, la richiesta da inviare e i criteri che trasformano un risultato in uno stato del monitor, un incidente o un avviso. Questa pagina ne spiega ogni parte.
+`monitor_steps` è l'attributo di `oneuptime_monitor` che dice cosa controlla un monitor e come viene giudicato ogni risultato: l'indirizzo da controllare, la richiesta da inviare e i criteri che trasformano un risultato in uno stato del monitor, un incidente o un avviso. Questa pagina ne spiega ogni parte. La dashboard mostra i criteri di un passaggio nella pagina **Criteri** del monitor, come descrive [Criteri e stati](/docs/monitor/criteria-and-statuses).
 
 :::cards
 - [Come viene giudicato un controllo](#come-viene-giudicato-un-controllo): I criteri in ordine, e il primo che corrisponde.

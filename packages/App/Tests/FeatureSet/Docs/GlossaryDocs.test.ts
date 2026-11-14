@@ -21,6 +21,8 @@ import {
   prose,
   strayMarkers,
 } from "./DocsTranslationChecks";
+import { GETTING_STARTED_PLACES, cardTargetsAt } from "./GettingStartedPage";
+import { pathWithArrows } from "./DocsPageShape";
 import {
   menuSections,
   readCommonSource,
@@ -47,6 +49,11 @@ import GlossaryTerm, {
   ALL_GLOSSARY_TERMS,
 } from "Common/Types/Docs/GlossaryTerm";
 import Project from "Common/Models/DatabaseModels/Project";
+import {
+  findRetiredNames,
+  RETIRED_NAMES,
+  RetiredName,
+} from "Common/Types/Docs/RetiredNames";
 import { describe, expect, it } from "@jest/globals";
 
 /*
@@ -118,6 +125,8 @@ function wholeTerm(block: GlossaryTermBlock): string {
 const NAMES_6817: Record<string, Array<string>> = {
   [GlossaryTerm.OnCallRules]: [],
   [GlossaryTerm.NotificationSettings]: [],
+  [GlossaryTerm.HowToReachMe]: ["Personal On-Call Rules"],
+  [GlossaryTerm.OnCallSchedule]: ["Rotation", "On-Call Policy Schedule"],
   [GlossaryTerm.AIInsights]: ["Insights"],
   [GlossaryTerm.Episode]: ["Incident Episode", "Alert Episode"],
   [GlossaryTerm.OnCallPolicy]: [
@@ -214,6 +223,15 @@ const MENU_PRODUCTS: Record<string, GlossaryTerm> = {
   projectSettingsTitle: GlossaryTerm.Settings,
 };
 
+// A name #6817 retired: one of RetiredNames' names, or a name its patterns find.
+function isRetiredName(name: string): boolean {
+  return (
+    RETIRED_NAMES.some((retired: RetiredName): boolean => {
+      return retired.name === name;
+    }) || findRetiredNames(name).length > 0
+  );
+}
+
 /*
  * The overview pages that keep a list of their own words (#6818 keeps
  * them): the sentence that opens each list links to the Glossary, and the
@@ -241,7 +259,12 @@ const TERM_LISTS: Record<string, { heading: string; shared: Array<string> }> = {
   },
   "on-call/index": {
     heading: "## The building blocks",
-    shared: ["On-call policy", "Escalation rule", "On-call schedule"],
+    shared: [
+      "On-call policy",
+      "Escalation rule",
+      "On-call schedule",
+      "How to Reach Me",
+    ],
   },
 };
 
@@ -346,12 +369,10 @@ describe("the Glossary, in English", () => {
   });
 
   it("is linked from Getting Started's first screen, from Core Concepts and from the Quickstart's next steps", () => {
-    const startHere: Array<string> = cardTargets(
-      cardLines(
-        readPage("en", "introduction/getting-started").split(
-          "## ",
-        )[0] as string,
-      ),
+    // Getting Started's first screen: New to OneUptime?, right under the eight jobs (#6822).
+    const startHere: Array<string> = cardTargetsAt(
+      readPage("en", "introduction/getting-started"),
+      GETTING_STARTED_PLACES.newcomers,
     );
 
     expect(startHere).toContain(`/docs/${GLOSSARY}`);
@@ -485,10 +506,15 @@ describe("the Glossary, in English", () => {
 
     for (const block of TERMS) {
       for (const name of boldNamesOf(block.names)) {
+        /*
+         * A name #6817 retired (RetiredNames) was the product's own, and is
+         * kept here so people who learned it find the term, though the
+         * product no longer draws it.
+         */
         expect({
           term: block.term,
           name: name,
-          used: productNames.has(name),
+          used: productNames.has(name) || isRetiredName(name),
         }).toEqual({ term: block.term, name: name, used: true });
       }
 
@@ -536,23 +562,28 @@ describe("the Glossary, in English", () => {
       });
     }
 
-    // The two "On-Call Rules" and the two "Notification Settings" say where each lives.
-    for (const id of [
-      GlossaryTerm.OnCallRules,
-      GlossaryTerm.NotificationSettings,
-    ]) {
-      const definition: string = term(id).definition.join(" ");
-
-      expect(definition).toMatch(/^Two different/);
-      expect(definition).toContain("**User Settings**");
-    }
-
-    expect(term(GlossaryTerm.OnCallRules).definition.join(" ")).toContain(
-      "Under **Incidents** and **Alerts**",
+    /*
+     * "On-Call Rules" and "Notification Settings" each named two things
+     * until #6817 kept the name for one and renamed the other: each says
+     * where it lives, and what the other is called now.
+     */
+    const onCallRules: string = term(GlossaryTerm.OnCallRules).definition.join(
+      " ",
     );
-    expect(
-      term(GlossaryTerm.NotificationSettings).definition.join(" "),
-    ).toContain("Under **Project Settings**");
+    const notificationSettings: string = term(
+      GlossaryTerm.NotificationSettings,
+    ).definition.join(" ");
+
+    expect(onCallRules).toContain("Under **Incidents** and **Alerts**");
+    expect(onCallRules).toContain("**How to Reach Me**");
+    expect(onCallRules).toContain("**User Settings**");
+    expect(notificationSettings).toContain("Under **User Settings**");
+    expect(notificationSettings).toContain("**Notification Channels**");
+    expect(notificationSettings).toContain("**Project Settings**");
+
+    for (const definition of [onCallRules, notificationSettings]) {
+      expect(definition).not.toMatch(/^Two different/);
+    }
   });
 
   it("has a term for every product in the menu, which names it", () => {
@@ -636,7 +667,7 @@ describe("the Glossary, in English", () => {
     expect(
       term(GlossaryTerm.ScheduledMaintenance).definition.join(" "),
     ).toContain(
-      `moves through **${seeded("createdScheduledMaintenanceState")}**, **${seeded("ongoingScheduledMaintenanceState")}**, **${seeded("endedScheduledMaintenanceState")}** and **${seeded("completedScheduledMaintenanceState")}**`,
+      `moves through the maintenance states **${seeded("createdScheduledMaintenanceState")}**, **${seeded("ongoingScheduledMaintenanceState")}**, **${seeded("endedScheduledMaintenanceState")}** and **${seeded("completedScheduledMaintenanceState")}**`,
     );
   });
 
@@ -835,6 +866,12 @@ describe.each(LANGUAGES)("the Glossary in %s", (language: string) => {
        * is the term itself in this language is no other name.
        */
       const expected: Array<string | null> = [];
+      /*
+       * A name #6817 retired has no Dashboard word any more, so its
+       * translation is the translator's own, and it may be said as another
+       * name here: retired names may add up to fewer names, or to none.
+       */
+      let foldable: number = 0;
 
       for (const name of boldNamesOf(english.names)) {
         const docsTitle: string | null = (DocsNav as Array<NavGroup>)
@@ -849,6 +886,11 @@ describe.each(LANGUAGES)("the Glossary in %s", (language: string) => {
         const drawn: string | null = isActionLabel(name)
           ? drawnActionLabel(language, name)
           : docsTitle;
+
+        if (drawn === null && isRetiredName(name)) {
+          foldable++;
+          continue;
+        }
 
         if (
           drawn !== null &&
@@ -865,9 +907,14 @@ describe.each(LANGUAGES)("the Glossary in %s", (language: string) => {
         }
       }
 
-      if (bold.length !== expected.length) {
+      if (
+        bold.length < expected.length ||
+        bold.length > expected.length + foldable
+      ) {
         problems.push(
-          `${english.term}: ${bold.length} names, ${expected.length} expected`,
+          `${english.term}: ${bold.length} names, ${expected.length} expected${
+            foldable ? ` and up to ${foldable} retired` : ""
+          }`,
         );
       }
 
@@ -938,11 +985,12 @@ describe.each(LANGUAGES)("the Glossary in %s", (language: string) => {
           return segments.every((segment: string): boolean => {
             return isActionLabel(segment.trim());
           })
-            ? segments
-                .map((segment: string): string => {
+            ? pathWithArrows(
+                segments.map((segment: string): string => {
                   return drawnActionLabel(language, segment.trim());
-                })
-                .join(PATH_SEPARATOR)
+                }),
+                language,
+              )
             : null;
         }
 

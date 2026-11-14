@@ -2,6 +2,8 @@
 
 Questa guida ti porta da un account nuovo a una configurazione funzionante in circa quindici minuti: un monitor che controlla il tuo sito web ogni cinque minuti, una policy di reperibilità che ti avvisa quando il sito va giù, e una pagina di stato che informa i tuoi clienti. Segue l'elenco **Benvenuto in OneUptime 👋** nella home page del tuo progetto.
 
+Arrivi da un altro strumento? [Importa la tua configurazione](/docs/introduction/getting-started#se-arrivi-da-un-altro-strumento) per prima cosa: i tuoi monitor, le pianificazioni di reperibilità e le pagine di stato vengono con te.
+
 ```mermaid title="Cosa configuri in questa guida"
 flowchart TB
     monitor["Monitor del sito web"] -->|"sito giù"| incident["Incidente"]
@@ -32,6 +34,8 @@ Inserisci un **Nome del progetto**, per esempio il nome della tua azienda. Su On
 
 ### Crearlo
 
+![La pagina Home chiede «Cosa vuoi fare per prima cosa?», con i tre obiettivi di questa guida selezionati](screen:home-goals-three)
+
 Fai clic su **Crea progetto**. Si apre la home page del tuo progetto, con l'elenco **Benvenuto in OneUptime 👋** in alto. Prima chiede **Cosa vuoi fare per prima cosa?**: spunta **Sapere quando il mio sito web o la mia API non funziona**, **Avvisare la persona giusta quando qualcosa si guasta** e **Informare i clienti con una pagina di stato**, e fai clic su **Continua**.
 :::
 
@@ -57,6 +61,8 @@ Mantieni le **Sonde** selezionate e l'**Intervallo di monitoraggio** di **Ogni 5
 
 Per provare il controllo prima di salvare, fai clic su **Testa il monitor** nel secondo passaggio. Tutti gli altri tipi di monitor sono descritti in [Creare un monitor](/docs/monitor/create-monitor).
 
+Per controllare anche un'API, scegliere chi viene avvisato e inviare una chiamata di test che dimostra che il messaggio ti raggiunge, segui [Sapere quando il tuo sito web o la tua API smette di funzionare](/docs/guides/website-down).
+
 ## Essere avvisati quando va giù
 
 Così com'è, un incidente senza proprietari viene inviato via e-mail ai proprietari del progetto, e tra loro ci sei tu. Per essere avvisato finché qualcuno non risponde, crea una policy di reperibilità: la prima di un progetto si attiva per ogni nuovo incidente e ogni nuovo avviso.
@@ -76,9 +82,11 @@ La tua e-mail di accesso è già un modo per raggiungerti. Per ricevere anche SM
 :::
 
 > [!NOTE]
-> SMS e chiamate sono disattivati in un nuovo progetto. Un proprietario del progetto, un Billing Admin o chi ha Manage Billing li attiva nella scheda **Canali di notifica**, in **Impostazioni del progetto → Notifiche → Impostazioni notifiche**.
+> SMS e chiamate sono disattivati in un nuovo progetto. Un proprietario del progetto, un Billing Admin o chi ha Manage Billing li attiva nella scheda **Canali di notifica**, in **Impostazioni del progetto → Notifiche → Canali di notifica**.
 
 Per altri livelli, turni e quanto attende ogni livello, vedi [Regole di escalation](/docs/on-call/escalation-rules) e [Pianificazioni di reperibilità](/docs/on-call/schedules).
+
+Per essere avvisato via SMS, telefonata e push, con la persona successiva avvisata quando nessuno risponde e una chiamata di test che lo dimostra, segui [Essere avvisati per chiamata, SMS o push](/docs/guides/paging).
 
 ## Pubblicare una pagina di stato
 
@@ -98,6 +106,8 @@ Scegli **Panoramica** nel menu laterale. La scheda **Link della pagina di stato*
 
 Una nuova pagina di stato è pubblica: chiunque abbia il suo indirizzo può aprirla. Per darle il tuo dominio, il tuo logo e i tuoi colori, vedi [Branding e domini della pagina di stato](/docs/status-pages/branding-and-domains).
 
+Per portare la pagina di stato sul tuo dominio, in HTTPS, segui [Pubblicare una pagina di stato](/docs/guides/status-page).
+
 ## Invitare il tuo team
 
 Nell'elenco, fai clic su **Invita il tuo team**, oppure apri **Utenti** dal menu **Prodotti**, in **Impostazioni**. Fai clic su **Invita utente**, inserisci la sua **E-mail** e scegli un **Team**: all'inizio è scelto il team dei membri. Fai clic su **Invita**. OneUptime gli invia l'invito via e-mail, e il team decide cosa può fare. Vedi [Utenti, team e autorizzazioni](/docs/permissions/index).
@@ -113,9 +123,13 @@ Apri **Incidenti** e fai clic su **Dichiara incidente**. Inserisci un **Titolo**
 
 ### Guardare cosa succede
 
+![«Feed dell'incidente» di un incidente risolto: chi è stato chiamato e ogni cambio di stato, dal più recente](screen:incident-feed)
+
 Entro un paio di minuti, la tua policy di reperibilità ti avvisa e l'incidente compare sulla tua pagina di stato.
 
 ### Risolverlo
+
+![Un incidente nello stato «Riconosciuto», con «Risolvi» evidenziato](screen:incident-resolve)
 
 Nella pagina dell'incidente, fai clic su **Risolvi**. Gli avvisi si fermano e l'incidente lascia la tua pagina di stato.
 :::

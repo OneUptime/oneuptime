@@ -128,7 +128,7 @@ OneUptime Enterprise, gekauft auf AWS Marketplace, Microsoft Marketplace oder Go
 2. Geben Sie Ihren Lizenzschlüssel ein und validieren Sie ihn.
 :::
 
-Die Installation prüft den Schlüssel bei OneUptime und speichert die Lizenz, die sie erhält. Danach hält sie die Lizenz mit einer täglichen Synchronisierung aktuell. Verwenden Sie **Refresh license** auf derselben Seite, um Änderungen wie zusätzliche Plätze oder eine Verlängerung sofort abzurufen.
+Die Installation prüft den Schlüssel bei OneUptime und speichert die Lizenz, die sie erhält. Danach hält sie die Lizenz mit einer täglichen Synchronisierung aktuell. Verwenden Sie **Lizenz aktualisieren** auf derselben Seite, um Änderungen wie zusätzliche Plätze oder eine Verlängerung sofort abzurufen.
 
 Die Online-Aktivierung benötigt ausgehendes HTTPS vom OneUptime-Server zu `https://oneuptime.com`. Erreicht der Server das Internet nur über ein Relay, setzen Sie `ENTERPRISE_LICENSE_SERVER_URL` auf die `https://`-Adresse des Relays. Das Relay muss `/api/enterprise-license/` an oneuptime.com weiterleiten.
 

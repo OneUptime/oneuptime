@@ -1,6 +1,6 @@
-# Catalogue de services
+# Services
 
-Le catalogue de services liste les applications et les microservices que vous exploitez. OneUptime ajoute un service dès que sa télémétrie arrive pour la première fois, puis réunit ses journaux, ses traces, ses métriques, ses exceptions, ses incidents et ses propriétaires sur une seule page, pour que chacun sache ce que fait un service, à qui il appartient et comment il se porte. Pour choisir entre un service, un groupe de moniteurs et une étiquette, consultez [Lequel choisir ?](/docs/introduction/which-one#groupe-de-moniteurs-service-ou-étiquette).
+Services liste les applications et les microservices que vous exploitez. OneUptime ajoute un service dès que sa télémétrie arrive pour la première fois, puis réunit ses journaux, ses traces, ses métriques, ses exceptions, ses incidents et ses propriétaires sur une seule page, pour que chacun sache ce que fait un service, à qui il appartient et comment il se porte. Pour choisir entre un service, un groupe de moniteurs et une étiquette, consultez [Lequel choisir ?](/docs/introduction/which-one#groupe-de-moniteurs-service-ou-étiquette).
 
 :::cards
 - [Comment un service entre dans le catalogue](#comment-un-service-entre-dans-le-catalogue): Son `service.name`, dès sa première télémétrie.
@@ -62,7 +62,7 @@ Le menu latéral d'un service compte cinq sections :
 | Section | Pages |
 | --- | --- |
 | **Basique** | **Vue d'ensemble** : requêtes, taux d'erreur et latence p95 tirés de ses spans, graphiques et détails. **Recommandations** : des moniteurs prêts à l'emploi pour le service, choisis selon son langage. **Propriétaires** : les personnes et les équipes qui en sont responsables. **Fil d'activité** : tout ce qui lui est arrivé, de sa création à chaque modification depuis. |
-| **Télémétrie** | Ses **Journaux**, **Traces**, **Métriques**, **Profils de performance**, **Exceptions** et **Source Maps**, déjà filtrés sur ce service. |
+| **Télémétrie** | Ses **Journaux**, **Traces**, **Métriques**, **Profils**, **Exceptions** et **Source Maps**, déjà filtrés sur ce service. |
 | **Activité** | Les **Incidents**, les **Alertes** et les événements de **Maintenance planifiée** qui le concernent. |
 | **Développeurs** | **Terraform**, **API**, **CLI** et **Assistants IA** : le service géré depuis du code. Cette section est d'abord repliée. |
 | **Avancé** | **Paramètres**, **Journaux d'audit** et **Supprimer le service**. **Avancé** est replié au départ : dépliez-le d'abord. |
@@ -123,6 +123,6 @@ Rien n'est arrivé de ce service au cours des 30 dernières minutes. C'est norma
 :::cards
 - [Explorateur de journaux](/docs/telemetry/logs-explorer): Chercher dans les journaux d'un service.
 - [Explorateur de traces](/docs/telemetry/traces-explorer): Suivre ses requêtes.
-- [Suivi des exceptions](/docs/telemetry/exceptions): Trier les erreurs qu'il lève.
+- [Exceptions](/docs/telemetry/exceptions): Trier les erreurs qu'il lève.
 - [Règles d'étiquettes et de propriétaires](/docs/configuration/label-and-owner-rules): Donner étiquettes et propriétaires aux nouveaux services.
 :::

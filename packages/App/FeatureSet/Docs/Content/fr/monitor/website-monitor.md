@@ -2,6 +2,9 @@
 
 Un moniteur de site web vérifie qu'une page web répond. À chaque vérification, une sonde demande l'URL de la page, et le moniteur passe hors ligne et déclare un incident quand la page ne répond pas ou répond avec une erreur. Pour appeler un point de terminaison avec une méthode, des en-têtes ou un corps, utilisez plutôt un [moniteur d'API](/docs/monitor/api-monitor).
 
+> [!TIP]
+> Vous débutez ? Suivez d'abord le guide : [Savoir quand votre site web ou votre API tombe](/docs/guides/website-down).
+
 :::cards
 - [Créer le moniteur](#créer-un-moniteur-de-site-web): Six étapes dans le tableau de bord.
 - [Options de configuration](#options-de-configuration): Espaces réservés d'URL, redirections, certificats, délais d'expiration et nouvelles tentatives.
@@ -57,7 +60,7 @@ Cliquez sur **Tester le moniteur**, choisissez une sonde sous **Sélectionner la
 
 ### Passer en revue les critères
 
-**Critères du moniteur** commence avec les [critères par défaut](#critères-par-défaut) : hors ligne quand le site ne répond pas ou répond avec une erreur, en ligne pour tout statut `2xx` ou `3xx`. Modifiez-les si besoin, puis cliquez sur **Suivant**.
+**Critères** commence avec les [critères par défaut](#critères-par-défaut) : hors ligne quand le site ne répond pas ou répond avec une erreur, en ligne pour tout statut `2xx` ou `3xx`. Modifiez-les si besoin, puis cliquez sur **Suivant**.
 
 ### Choisir les sondes et créer
 

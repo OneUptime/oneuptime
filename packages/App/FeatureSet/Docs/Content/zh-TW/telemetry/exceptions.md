@@ -1,4 +1,4 @@
-# 例外狀況追蹤
+# 例外
 
 例外狀況追蹤收集你的程式碼擲回的錯誤，並把同一個錯誤的每次出現歸併為一個例外，附帶它的堆疊追蹤、趨勢以及它發生時所在的請求。像處理待辦清單一樣分流它們：修正、標記為已解決，或封存雜訊，並讓 AI 為它能修正的例外開啟 pull request。
 
@@ -39,7 +39,7 @@ flowchart TB
 ## 開始之前
 
 - **正在到達的 span 或日誌。** 使用 [OpenTelemetry](/docs/telemetry/open-telemetry) 檢測你的服務。**設定指南** 分頁會顯示適合你的語言的程式碼。
-- **可以讀取遙測的角色。** Project Owner、Project Admin、Project Member、Viewer、Telemetry Admin、Telemetry Member 或 Telemetry Viewer，或者擁有 Read Telemetry Service Exception 權限的自訂角色。解決和封存需要 Project Owner 或 Project Admin，或者 Edit Telemetry Service Exception 權限。
+- **可以讀取遙測的角色。** Project Owner、Project Admin、Project Member、Viewer、Telemetry Admin、Telemetry Member 或 Telemetry Viewer，或者擁有 Read Exceptions 權限的自訂角色。解決和封存需要 Project Owner 或 Project Admin，或者 Edit Exceptions 權限。
 
 ## 分流清單
 

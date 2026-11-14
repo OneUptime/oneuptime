@@ -78,6 +78,7 @@ import React, {
 } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { formatReaderFigure } from "Common/Types/DateLanguage";
 /*
  * The OTel hostmetrics `process` scraper attaches per-process identity
  * (pid, executable name, command, owner) to the *resource*, which ingest
@@ -114,13 +115,14 @@ interface ProcessStats {
   openFds: number | null;
 }
 
+// The tiles' figures in the reader's digits (#7106); English as before.
 const formatPercent: (value: number | null) => string = (
   value: number | null,
 ): string => {
   if (value === null || !isFinite(value)) {
     return "—";
   }
-  return `${value.toFixed(1)}%`;
+  return formatReaderFigure(value, { decimals: 1, isPercent: true });
 };
 
 const formatInt: (value: number | null) => string = (
@@ -129,7 +131,7 @@ const formatInt: (value: number | null) => string = (
   if (value === null || !isFinite(value)) {
     return "—";
   }
-  return Math.round(value).toString();
+  return formatReaderFigure(Math.round(value), { decimals: 0 });
 };
 
 const formatBytes: (value: number | null | undefined) => string = (
@@ -145,7 +147,7 @@ const formatBytes: (value: number | null | undefined) => string = (
     v /= 1024;
     i++;
   }
-  return `${v.toFixed(v < 10 ? 1 : 0)} ${units[i]}`;
+  return `${formatReaderFigure(v, { decimals: v < 10 ? 1 : 0 })} ${units[i]}`;
 };
 
 /*

@@ -2,6 +2,9 @@
 
 En jourpolicy larmar personer i nivåer. Varje eskaleringsregel är ett nivå: vem som larmas och hur länge det väntas på att någon bekräftar innan nästa nivå larmas. En policys regler visas i ordning på dess sida **Eskaleringsregler**.
 
+> [!TIP]
+> Ny här? Följ guiden först: [Bli larmad via samtal, SMS eller push](/docs/guides/paging).
+
 ```mermaid title="En jourpolicy larmar nivå för nivå tills någon bekräftar"
 flowchart TB
     trigger["Incident eller larm"] --> level1["Level 1 larmar"]
@@ -29,7 +32,7 @@ flowchart TB
 När du skapar en jourpolicy på sidan **Jourpolicyer** frågar formuläret efter dess **Namn** och **Vem larmas först?**. Frågan använder samma väljare som **Avisera**: jourscheman, team och personer, så många du behöver. De du väljer blir policyns första eskaleringsregel, **Level 1**, som väntar **30 minuter** på en bekräftelse innan nästa nivå larmas.
 
 :::steps
-1. Gå till **Jourtjänst** > **Jourpolicyer** och klicka på **Skapa Jourpolicy**.
+1. Gå till **Jour** > **Jourpolicyer** och klicka på **Skapa Jourpolicy**.
 2. Ange ett **Namn**.
 3. Klicka på **Lägg till mottagare** under **Vem larmas först?** och välj de jourscheman, team och personer som ska larmas först.
 4. Klicka på **Skapa Jourpolicy**. Den nya policyn öppnas sedan på sin sida **Eskaleringsregler**, där du kan lägga till fler nivåer.
@@ -89,7 +92,7 @@ För att upprepa en policy klickar du på **Redigera** på kortet **Upprepningsp
 
 ### Så nås varje person
 
-Varje person som en nivå larmar nås på det sätt som personens egna jourregler säger: **Användarinställningar** > **Jourregler**, med en flik för incidenter, incidentepisoder, larm och larmepisoder, och ett kort per allvarlighetsgrad som visar vilken aviseringsmetod som prövas och efter hur lång tid. En projektadministratör kan se och ändra en medlems regler under **Användare** > medlemmen > **Jourregler**. Se [Personliga jourregler](/docs/notifications/on-call-rules).
+Varje person som en nivå larmar nås på det sätt som personens egna jourregler säger: **Användarinställningar** > **Så når man mig**, med en flik för incidenter, incidentepisoder, larm och larmepisoder, och ett kort per allvarlighetsgrad som visar vilken aviseringsmetod som prövas och efter hur lång tid. En projektadministratör kan se och ändra en medlems regler under **Användare** > medlemmen > **Så når man mig**. Se [Så når man mig](/docs/notifications/on-call-rules).
 
 ```mermaid title="Vem en nivå larmar och hur varje person nås"
 flowchart TB
@@ -166,14 +169,14 @@ Projektets ägare får ett e-postmeddelande om det en gång, tills saldot har fy
 
 Ett larm som inte nådde OneUptimes aviseringstjänst säger `Could not reach the Notification service to send this (ECONNREFUSED).`, med nätverksfelets kod inom parentesen. Ett larm vars sändning aldrig blev klar, till exempel för att en server startade om under sändningen, säger `Sending did not finish within 15 minutes, so this notification may not have been sent.` Blir sändningen klar ändå ersätter resultatet det meddelandet.
 
-På OneUptime Cloud betalas varje SMS, samtal, WhatsApp- och Telegram-meddelande från projektets saldo på **Projektinställningar > Aviseringar > Aviseringsinställningar**: den exakta kostnaden dras från saldot när leverantören tar emot meddelandet, oavsett hur många meddelanden som går ut samtidigt.
+På OneUptime Cloud betalas varje SMS, samtal, WhatsApp- och Telegram-meddelande från projektets saldo på **Projektinställningar > Aviseringar > Aviseringskanaler**: den exakta kostnaden dras från saldot när leverantören tar emot meddelandet, oavsett hur många meddelanden som går ut samtidigt.
 
 - Med **Automatisk påfyllning** påslaget där lägger meddelandet som hittar saldot under tröskeln först till det belopp som automatisk påfyllning är inställd på och debiterar projektets kort; meddelanden som hittar saldot lågt i samma ögonblick debiterar kortet en gång.
-- Om debiteringen misslyckas (det finns ingen betalningsmetod eller kortet nekades) försöker automatisk påfyllning med kortet igen en timme senare, och **Aviseringsinställningar** säger det högst upp tills dess. Att fylla på saldot för hand, eller att spara automatisk påfyllning igen, försöker direkt.
+- Om debiteringen misslyckas (det finns ingen betalningsmetod eller kortet nekades) försöker automatisk påfyllning med kortet igen en timme senare, och **Aviseringskanaler** säger det högst upp tills dess. Att fylla på saldot för hand, eller att spara automatisk påfyllning igen, försöker direkt.
 - Larmen fortsätter att gå ut på det saldo som finns kvar medan automatisk påfyllning inte kan debitera kortet.
 
 > [!IMPORTANT]
-> SMS, telefonsamtal, WhatsApp och Telegram är avstängda i ett nytt projekt: på OneUptime Cloud betalas varje meddelande från projektets saldo, och en egen installation behöver först ett Twilio-konto, en SMS- och samtalsgateway eller en Telegram-bot. Så länge en kanal är avstängd kan ingen i projektet lägga till en metod på den. Bara en projektägare, en **Faktureringsadministratör** eller någon med behörigheten **Manage Billing** kan slå på en, i kortet **Aviseringskanaler** på **Projektinställningar > Aviseringar > Aviseringsinställningar** — en projektadministratör kan inte. Alla andra får veta exakt vem som kan, överallt där en kanal är avstängd: ovanför sin egen lista med metoder på den, i sin checklista för att komma igång och i meddelandet de får när något behöver den.
+> SMS, telefonsamtal, WhatsApp och Telegram är avstängda i ett nytt projekt: på OneUptime Cloud betalas varje meddelande från projektets saldo, och en egen installation behöver först ett Twilio-konto, en SMS- och samtalsgateway eller en Telegram-bot. Så länge en kanal är avstängd kan ingen i projektet lägga till en metod på den. Bara en projektägare, en **Faktureringsadministratör** eller någon med behörigheten **Manage Billing** kan slå på en, i kortet **Aviseringskanaler** på **Projektinställningar > Aviseringar > Aviseringskanaler** — en projektadministratör kan inte. Alla andra får veta exakt vem som kan, överallt där en kanal är avstängd: ovanför sin egen lista med metoder på den, i sin checklista för att komma igång och i meddelandet de får när något behöver den.
 
 ## Eskalera till nästa person i rotationen
 

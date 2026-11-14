@@ -72,7 +72,7 @@ flowchart TB
 
 :::cards
 - [Groupes de moniteurs](/docs/monitor/monitor-groups): Réunir plusieurs moniteurs en un seul statut.
-- [Catalogue de services](/docs/telemetry/services): Chaque application que vous exploitez, chacune sur sa propre page.
+- [Services](/docs/telemetry/services): Chaque application que vous exploitez, chacune sur sa propre page.
 - [Vue d'ensemble de l'inventaire](/docs/inventory/overview): Tout ce que OneUptime sait de votre parc.
 :::
 
@@ -132,7 +132,7 @@ La **maintenance planifiée** annonce à l'avance des travaux prévus. Un évén
 
 ## Télémétrie
 
-La **télémétrie** est ce que vos systèmes envoient à OneUptime : journaux, métriques, traces, exceptions et profils. Les applications l'envoient avec OpenTelemetry, et les agents de OneUptime l'envoient depuis des hôtes, des clusters Kubernetes, des hôtes Docker et le reste de votre infrastructure. Chaque émetteur utilise une **clé d'ingestion**, créée sous **Paramètres du projet → Télémétrie & APM → Clés d'ingestion**. Vous recherchez la télémétrie, la représentez sur des tableaux de bord et la surveillez avec des moniteurs de télémétrie, qui déclenchent des incidents et des alertes comme n'importe quel autre moniteur. Dans le menu, **Journaux**, **Métriques**, **Traces**, **Profils de performance** et **Exceptions** ouvrent chacun un type de données ; **IA / LLM** suit les conversations de votre IA, **Observabilité des données** surveille les tables de vos bases de données, et **Topologie** montre comment tout cela s'articule.
+La **télémétrie** est ce que vos systèmes envoient à OneUptime : journaux, métriques, traces, exceptions et profils. Les applications l'envoient avec OpenTelemetry, et les agents de OneUptime l'envoient depuis des hôtes, des clusters Kubernetes, des hôtes Docker et le reste de votre infrastructure. Chaque émetteur utilise une **clé d'ingestion**, créée sous **Paramètres du projet → Télémétrie & APM → Clés d'ingestion**. Vous recherchez la télémétrie, la représentez sur des tableaux de bord et la surveillez avec des moniteurs de télémétrie, qui déclenchent des incidents et des alertes comme n'importe quel autre moniteur. Dans le menu, **Journaux**, **Métriques**, **Traces**, **Profils** et **Exceptions** ouvrent chacun un type de données ; **IA / LLM** suit les conversations de votre IA, **Observabilité des données** surveille les tables de vos bases de données, et **Topologie** montre comment tout cela s'articule.
 
 :::cards
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Envoyer les journaux, les métriques et les traces de vos applications.
@@ -198,7 +198,7 @@ Les règles propres à un moniteur sont ses critères. Les règles d'astreinte s
 
 :::cards
 - [Paramètres et automatisation des incidents](/docs/incidents/settings#les-règles-qui-sexécutent-à-la-création-dun-incident): Les règles qui s'exécutent quand un incident est créé, dans l'ordre.
-- [Règles d'astreinte personnelles](/docs/notifications/on-call-rules): Comment une alerte vous parvient.
+- [Comment me joindre](/docs/notifications/on-call-rules): Comment une alerte vous parvient.
 :::
 
 ## Étapes suivantes

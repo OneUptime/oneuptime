@@ -32,7 +32,7 @@ registry (`Common/Utils/Dashboard/DashboardWidgetSorts`), kept to the rows the r
 policy keeps it to (a monitor list's query from
 `Common/Utils/Dashboard/MonitorListWidgetFormat`). Saves are kept for the tab,
 so a reload opens what was saved. `?theme=dark` and `?lang=de` set the theme and the
-Dashboard's words.
+Dashboard's words, and `?view=honeycomb` draws the monitor list as a honeycomb.
 
 Desktop (1280px) Chromium covers: a list opening in its own order with every sortable
 column a header and the sorted one marked (aria-sort, an arrow, a hint); Status sorting
@@ -52,10 +52,17 @@ units, in a 1440px window, where the board's units are 70px or wider as a list's
 default width was chosen on: the board fits its column now, and beside the side menu at
 1280 its units are about 60px); the Sort setting saving the order everyone sees, kept
 by Save Changes and a reload; a click on a header in the Live Preview setting the Sort;
-and, on the public dashboard, the visitor's sort travelling as `widgetSort` with the
-server reading a pod list's phases rank by rank. Phone (Pixel 5, 390px) Chromium runs
-what a phone changes: reaching and pressing the headers, inside OneUptime and on the
-public dashboard. Screenshots are under `output/playwright/dashboard-widget-sort-ui`.
+on the public dashboard, the visitor's sort travelling as `widgetSort` with the
+server reading a pod list's phases rank by rank; and a honeycomb tile's tooltip
+(`?view=honeycomb`, #6966): the gray tile of the monitor whose monitoring is off saying
+Disabled in a tooltip drawn on the page beside it, outside the widget's card, with nothing
+covering it, in the dark theme and in German, and on the board while the board is in full
+screen, gone once it leaves full screen; and the gray tile reached with Tab: ringed in the
+theme's focus color, named for its monitor and described by its tooltip, which Escape puts
+away while the focus stays on the tile. Phone (Pixel 5, 390px) Chromium runs what a phone
+changes: reaching and pressing the headers, inside OneUptime and on the public dashboard,
+and the honeycomb's tooltip in a phone's window, in the light and the dark theme. Screenshots are under
+`output/playwright/dashboard-widget-sort-ui`.
 
 Each widget is drawn once, at its own size: every frame the page paints is recorded
 from its first (`SuiteHelpers/DrawnBoxes`), and each widget and the board must be drawn
@@ -69,6 +76,20 @@ widgets ending where the board's grid ends in every frame. And the page must rai
 error event on the window, "ResizeObserver loop completed with undelivered
 notifications" among them: the board once laid its widgets out inside its observer's
 call, where the side menu's observer of the page's body shared the frame.
+
+Leaving a board being edited (#7173), at 1280: the side menu's other pages and the
+breadcrumbs' addresses open a stand-in that says only where it is (`fixture-elsewhere`).
+A board opened for editing and not changed stops editing at the toolbar's Cancel and is
+left by the side menu at once, with no question. With a widget added and not saved,
+leaving asks "Leave without saving?" (Keep Editing, Discard Changes): by the side menu,
+where Keep Editing keeps the board as it was being edited, and by the browser's Back,
+which the board takes back before the router moves - Keep Editing stays, Discard Changes
+goes to the page before it with nothing saved. The toolbar's Cancel then asks in the same
+voice, "Discard unsaved changes?", and Keep Editing there keeps the board too. A reload
+raises the browser's own question while the change is unsaved, and staying keeps the
+board as edited; after Save Changes a reload asks nothing and opens the board as saved,
+and the side menu leaves at once. Screenshots of both questions are saved with the
+others.
 
 This checks real browser rendering and the widgets' handling of their sorts; the API,
 the database and the deployed app's routing are outside this fixture (the public

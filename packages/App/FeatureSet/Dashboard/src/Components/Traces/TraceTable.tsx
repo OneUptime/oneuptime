@@ -42,6 +42,7 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import { Tab } from "Common/UI/Components/Tabs/Tab";
+import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 export interface ComponentProps {
   modelId?: ObjectID | undefined;
@@ -283,10 +284,12 @@ const TraceTable: FunctionComponent<ComponentProps> = (
       {pageError && (
         <div className="mb-4">
           <ErrorMessage
-            message={translator.translateTemplate(
-              "We couldn't load telemetry services. {{error}}",
-              { error: pageError },
-            )}
+            message={
+              <ErrorSentence
+                template="We couldn't load telemetry services. {{error}}"
+                error={pageError}
+              />
+            }
             onRefreshClick={() => {
               void loadServices();
             }}
@@ -297,10 +300,12 @@ const TraceTable: FunctionComponent<ComponentProps> = (
       {areAdvancedFiltersVisible && attributesError && (
         <div className="mb-4">
           <ErrorMessage
-            message={translator.translateTemplate(
-              "We couldn't load trace attributes. {{error}}",
-              { error: attributesError },
-            )}
+            message={
+              <ErrorSentence
+                template="We couldn't load trace attributes. {{error}}"
+                error={attributesError}
+              />
+            }
             onRefreshClick={() => {
               setAttributesLoaded(false);
               void loadAttributes();

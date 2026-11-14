@@ -20,7 +20,7 @@ flowchart TB
 
 ## Open the timeline
 
-- **On-Call Duty** > **Schedule Timeline** shows every schedule you can see, grouped by owning team. On **On-Call Schedules**, **Schedule Timeline** in the **⋯** menu opens the same page.
+- **On-Call** > **Schedule Timeline** shows every schedule you can see, grouped by owning team. On **On-Call Schedules**, **Schedule Timeline** in the **⋯** menu opens the same page.
 - **Teams** > a team > **On-Call Schedules** shows only the schedules that team owns.
 
 A team owns a schedule when it is listed on the schedule's **Owners** page. Schedules without an owning team are grouped under **No owner team**. Turn **Group by team** off to see all schedules in one list, sorted by name.
@@ -47,7 +47,7 @@ Under the grid, **On call this week** (**On call this month** in the month view)
 - The timeline covers 180 days back and 365 days ahead.
 
 > [!NOTE]
-> Past shifts are recomputed from each schedule's current setup, so they show the rotation as it is set up now, which can differ from who was actually paged at the time. For the hours people actually spent on call, use **On-Call Duty** > **Reports** > **User On Call Time**. See [User On Call Time](/docs/on-call/readiness#user-on-call-time).
+> Past shifts are recomputed from each schedule's current setup, so they show the rotation as it is set up now, which can differ from who was actually paged at the time. For the hours people actually spent on call, use **On-Call** > **Reports** > **User On-Call Time**. See [User On-Call Time](/docs/on-call/readiness#user-on-call-time).
 
 ## Find a schedule or a person
 

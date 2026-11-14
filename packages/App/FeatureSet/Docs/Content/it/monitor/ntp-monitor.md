@@ -57,7 +57,7 @@ Fai clic su **Testa il monitor**, scegli una sonda in **Seleziona sonda** e fai 
 
 ### Rivedere i criteri
 
-**Criteri del monitor** parte dai [criteri predefiniti](#criteri-predefiniti): offline quando il server non fornisce un'ora affidabile, online quando la fornisce. Modificali se necessario, quindi fai clic su **Avanti**.
+**Criteri** parte dai [criteri predefiniti](#criteri-predefiniti): offline quando il server non fornisce un'ora affidabile, online quando la fornisce. Modificali se necessario, quindi fai clic su **Avanti**.
 
 ### Scegliere le sonde e creare
 

@@ -17,6 +17,13 @@ import {
   AI_AFFECTED_RESOURCE_KINDS,
   AiAffectedResourceKindInfo,
 } from "./AiAffectedResources";
+import { MonitorTypeHelper, MonitorTypeProps } from "../Monitor/MonitorType";
+import SloStatus from "../ServiceLevelObjective/SloStatus";
+import { SecurityEntityType } from "../SecurityCase/SecurityEntity";
+import {
+  formatSloNumber,
+  formatSloPercent,
+} from "../../Utils/Slo/SloWidgetFormat";
 
 /*
  * WHAT AN AI ACTION'S CARD SAYS, IN EVERY READER'S LANGUAGE.
@@ -62,14 +69,35 @@ export interface AIActionList {
 }
 
 /*
+ * A figure, written the reader's way: a count ("1.234" in German), a rate
+ * ("1,5"), a share ("99,9 %", "۹۹٫۹٪" in Persian) - as the SLO pages write
+ * theirs (Utils/Slo/SloWidgetFormat), never with the server's digits.
+ */
+export interface AIActionFigure {
+  figure: number;
+  // A share of a hundred: "99.95%".
+  isPercent?: boolean | undefined;
+}
+
+/*
+ * A moment (an ISO 8601 date and time): the Dashboard writes it in the
+ * reader's language and time zone. The English the card stores keeps the
+ * ISO text, as it always did.
+ */
+export interface AIActionMoment {
+  moment: string;
+}
+
+/*
  * What fills a sentence's {{placeholder}}: data as written, a number, a
- * term, or a list.
+ * term, a list, or a figure.
  */
 export type AIActionSentenceValue =
   | string
   | number
   | AIActionTerm
-  | AIActionList;
+  | AIActionList
+  | AIActionFigure;
 
 export interface AIActionSentence {
   /*
@@ -149,6 +177,12 @@ export const AI_ACTION_TITLES: {
   createWorkflow: string;
   updateWorkflow: string;
   updateWorkflowUnnamed: string;
+  setUpWebsiteMonitoring: string;
+  setUpWebsiteMonitoringUnnamed: string;
+  createOnCallPolicy: string;
+  publishStatusPage: string;
+  addMonitorsToStatusPage: string;
+  addMonitorsToStatusPageUnnamed: string;
 } = {
   createIncident: translationKey("Create incident: {{title}}"),
   acknowledgeIncident: translationKey("Acknowledge incident {{incident}}"),
@@ -219,6 +253,22 @@ export const AI_ACTION_TITLES: {
   createWorkflow: translationKey("Create workflow: {{name}}"),
   updateWorkflow: translationKey("Update workflow {{workflow}}"),
   updateWorkflowUnnamed: translationKey("Update workflow"),
+  /*
+   * Ask AI's setup actions (#6829): what each part of a plan makes, by
+   * the address, the name or the status page the person knows it by.
+   */
+  setUpWebsiteMonitoring: translationKey("Set up monitoring for {{address}}"),
+  setUpWebsiteMonitoringUnnamed: translationKey(
+    "Set up monitoring for a website",
+  ),
+  createOnCallPolicy: translationKey("Create on-call policy {{policy}}"),
+  publishStatusPage: translationKey("Publish status page {{name}}"),
+  addMonitorsToStatusPage: translationKey(
+    "Add monitors to status page {{statusPage}}",
+  ),
+  addMonitorsToStatusPageUnnamed: translationKey(
+    "Add monitors to a status page",
+  ),
 };
 
 export const AI_ACTION_PLURAL_TITLES: {
@@ -254,6 +304,22 @@ export const AI_ACTION_LINES: {
   workflowUndoesSavedSince: string;
   workflowNotRead: string;
   workflowIsOn: string;
+  monitorOpensIncident: string;
+  monitorGoesOffline: string;
+  monitorOwnerEmailed: string;
+  monitorNoLocations: string;
+  pagesYouForEveryNewEvent: string;
+  pagesYouAndOthersForEveryNewEvent: string;
+  pagesOthersForEveryNewEvent: string;
+  respondersNotFound: string;
+  noVerifiedPhoneForSms: string;
+  noVerifiedPhoneForCalls: string;
+  noMobileApp: string;
+  nothingReachesYou: string;
+  statusPageIsPublic: string;
+  statusPageShows: string;
+  monitorsNotFound: string;
+  alreadyOnStatusPage: string;
 } = {
   // A new incident's or alert's resources: "Linked to host "test01"."
   linkedTo: translationKey("Linked to {{resources}}."),
@@ -298,6 +364,72 @@ export const AI_ACTION_LINES: {
   workflowIsOn: translationKey(
     "This workflow is on, so its next run uses the change.",
   ),
+  /*
+   * set_up_website_monitoring (#6829): what the monitor does when the
+   * address goes down - the words of the website guided setup's summary
+   * (#6804), so the setup and Ask AI say it alike - and who is emailed.
+   */
+  monitorOpensIncident: translationKey(
+    "If it does not answer, or answers with an error, OneUptime opens an incident ({{severity}}).",
+  ),
+  monitorGoesOffline: translationKey(
+    "If it does not answer, or answers with an error, its status changes to Offline.",
+  ),
+  monitorOwnerEmailed: translationKey(
+    "You own this monitor, so you are emailed when its status changes.",
+  ),
+  // The project adds no probe to a new monitor: nothing would check it.
+  monitorNoLocations: translationKey(
+    "No location checks {{host}} yet. Probes are added under Monitors > Settings > Probes.",
+  ),
+  /*
+   * set_up_paging (#6829): who the project's first on-call policy pages,
+   * by name ({{others}} and {{responders}}: lists of AI_ACTION_NAME and
+   * AI_ACTION_TEAM), with the two catch-all rules that run it.
+   */
+  pagesYouForEveryNewEvent: translationKey(
+    "Pages you for every new incident and alert.",
+  ),
+  pagesYouAndOthersForEveryNewEvent: translationKey(
+    "Pages you and {{others}} for every new incident and alert.",
+  ),
+  pagesOthersForEveryNewEvent: translationKey(
+    "Pages {{responders}} for every new incident and alert.",
+  ),
+  respondersNotFound: translationKey(
+    "Not in this project, so not paged: {{names}}.",
+  ),
+  /*
+   * What the person asked to be reached by and cannot be yet: Ask AI
+   * never adds a phone number or the app - the person verifies them -
+   * so the card says what is missing and where it is added.
+   */
+  noVerifiedPhoneForSms: translationKey(
+    "You have no verified phone number for texts yet. Add one in Notification Methods, and pages reach you by SMS too.",
+  ),
+  noVerifiedPhoneForCalls: translationKey(
+    "You have no verified phone number for calls yet. Add one in Notification Methods, and pages can call you too.",
+  ),
+  noMobileApp: translationKey(
+    "The mobile app is not set up for you yet. Set it up from Notification Methods to get push notifications.",
+  ),
+  nothingReachesYou: translationKey(
+    "Nothing reaches you yet. Add a notification method in Notification Methods.",
+  ),
+  /*
+   * publish_status_page and add_monitors_to_status_page (#6829): a page
+   * is public from the moment it exists, so the card says so before it
+   * is approved, and what it shows ({{monitors}}: AI_ACTION_NAME and
+   * AI_ACTION_NEW_MONITOR).
+   */
+  statusPageIsPublic: translationKey(
+    "It is public as soon as it is created: anyone with its link sees the status of the monitors it shows.",
+  ),
+  statusPageShows: translationKey("It shows {{monitors}}."),
+  monitorsNotFound: translationKey(
+    "Not in this project, so not shown: {{names}}.",
+  ),
+  alreadyOnStatusPage: translationKey("Already on it: {{monitors}}."),
 };
 
 /*
@@ -307,8 +439,9 @@ export const AI_ACTION_LINES: {
  * - would undo what was pushed to a file since, or replace a file Ask AI
  * read on another branch, or never read, or read only part of (issue
  * #6330), or read only in an earlier answer (issue #6365), or read earlier
- * in this answer and no longer has (issue #6570) - or write placeholders
- * where values were hidden from Ask AI (issue #6364). Each
+ * in this answer and no longer has (issue #6570), or read all of and no
+ * longer has part of (issue #6984) - or write placeholders where values
+ * were hidden from Ask AI (issue #6364). Each
  * names the files, as {{files}}: a list of AI_ACTION_CODE_FILE, the first
  * few written out and the rest counted (moreFiles). {{count}} is how many
  * files it names.
@@ -320,9 +453,14 @@ export const AI_ACTION_PLURAL_LINES: {
   codeFilesReadInPart: PluralTemplate;
   codeFilesReadInEarlierAnswer: PluralTemplate;
   codeFilesReadEarlierInThisAnswer: PluralTemplate;
+  codeFilesPartNoLongerInHand: PluralTemplate;
   codeFilesNotChecked: PluralTemplate;
   codeFilesValuesHidden: PluralTemplate;
   moreFiles: PluralTemplate;
+  websiteMonitorChecks: PluralTemplate;
+  apiMonitorChecks: PluralTemplate;
+  checkedFromLocations: PluralTemplate;
+  checkedEveryMinutes: PluralTemplate;
 } = {
   // Pushed to, deleted or renamed away on the branch after Ask AI read it there.
   codeFilesChangedSinceRead: {
@@ -395,6 +533,20 @@ export const AI_ACTION_PLURAL_LINES: {
       "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}.",
     ),
   },
+  /*
+   * Ask AI read every line of the version on the branch, in parts, and no
+   * longer has some of them (issue #6984): a part read in an earlier
+   * answer, or earlier in this answer and left out since. It writes those
+   * lines from memory - read, so never "read only part of".
+   */
+  codeFilesPartNoLongerInHand: {
+    one: translationKey(
+      "Ask AI read this file and no longer has part of its text, and its version replaces all of it: {{files}}.",
+    ),
+    other: translationKey(
+      "Ask AI read these {{count}} files and no longer has part of their text, and its versions replace all of them: {{files}}.",
+    ),
+  },
   // The branch could not be read: never said to be unchanged.
   codeFilesNotChecked: {
     one: translationKey(
@@ -424,6 +576,31 @@ export const AI_ACTION_PLURAL_LINES: {
     one: translationKey("{{count}} more file"),
     other: translationKey("{{count}} more files"),
   },
+  /*
+   * set_up_website_monitoring (#6829): what is checked and how often, in
+   * minutes ({{count}}), and from how many of the project's locations.
+   */
+  websiteMonitorChecks: {
+    one: translationKey("A website monitor checks {{url}} every minute."),
+    other: translationKey(
+      "A website monitor checks {{url}} every {{count}} minutes.",
+    ),
+  },
+  apiMonitorChecks: {
+    one: translationKey("An API monitor checks {{url}} every minute."),
+    other: translationKey(
+      "An API monitor checks {{url}} every {{count}} minutes.",
+    ),
+  },
+  checkedFromLocations: {
+    one: translationKey("It is checked from {{count}} location."),
+    other: translationKey("It is checked from {{count}} locations."),
+  },
+  // The line of the card a new monitor leaves: how often it is checked.
+  checkedEveryMinutes: {
+    one: translationKey("Checked every minute"),
+    other: translationKey("Checked every {{count}} minutes"),
+  },
 };
 
 /*
@@ -439,6 +616,7 @@ export const AI_ACTION_CODE_CHANGE_LINES: ReadonlyArray<string> = [
   AI_ACTION_PLURAL_LINES.codeFilesReadInPart.other,
   AI_ACTION_PLURAL_LINES.codeFilesReadInEarlierAnswer.other,
   AI_ACTION_PLURAL_LINES.codeFilesReadEarlierInThisAnswer.other,
+  AI_ACTION_PLURAL_LINES.codeFilesPartNoLongerInHand.other,
   AI_ACTION_PLURAL_LINES.codeFilesNotChecked.other,
   AI_ACTION_PLURAL_LINES.codeFilesValuesHidden.other,
 ];
@@ -457,6 +635,22 @@ export const AI_ACTION_CODE_FILE: string = "{{file}}";
  * the kind in every language.
  */
 export const AI_ACTION_RESOURCE_BY_NAME: string = "{{kind}} {{name}}";
+
+/*
+ * One name in a list, as written: a person a policy pages, a monitor a
+ * status page shows (in quotes, written as a JSON string, as a resource's
+ * name is). No words of its own: the name is data, in every language.
+ */
+export const AI_ACTION_NAME: string = "{{name}}";
+
+// A team a policy pages, by its name.
+export const AI_ACTION_TEAM: string = translationKey("the {{name}} team");
+
+/*
+ * A monitor a status page will show that the same plan sets up first: it
+ * does not exist until the plan is approved.
+ */
+export const AI_ACTION_NEW_MONITOR: string = translationKey("{{name}} (new)");
 
 /*
  * ---------------------------------------------------------------------------
@@ -503,6 +697,8 @@ export const AI_ACTION_CARD_KINDS: {
   runbook: string;
   securityCase: string;
   workflow: string;
+  monitor: string;
+  statusPage: string;
 } = {
   incident: translationKey("Incident"),
   alert: translationKey("Alert"),
@@ -510,6 +706,8 @@ export const AI_ACTION_CARD_KINDS: {
   runbook: translationKey("Runbook"),
   securityCase: translationKey("Security case"),
   workflow: translationKey("Workflow"),
+  monitor: translationKey("Monitor"),
+  statusPage: translationKey("Status page"),
 };
 
 // The line under a card's heading: what happened to the record.
@@ -535,6 +733,11 @@ export const AI_ACTION_CARD_LINES: {
   workflowTurnedOff: string;
   workflowOnNextRun: string;
   workflowSavedSinceKept: string;
+  pagesYouForEveryNewEvent: string;
+  pagesYouAndOthersForEveryNewEvent: string;
+  pagesOthersForEveryNewEvent: string;
+  statusPagePublished: string;
+  monitorsAdded: string;
 } = {
   // The severity a new record took, or the one it was changed to.
   severity: translationKey("Severity: {{severity}}"),
@@ -586,6 +789,18 @@ export const AI_ACTION_CARD_LINES: {
   workflowSavedSinceKept: translationKey(
     "Changes saved after this was proposed were kept",
   ),
+  // What a setup action made (#6829): who a new policy pages, no full stop.
+  pagesYouForEveryNewEvent: translationKey(
+    "Pages you for every new incident and alert",
+  ),
+  pagesYouAndOthersForEveryNewEvent: translationKey(
+    "Pages you and {{others}} for every new incident and alert",
+  ),
+  pagesOthersForEveryNewEvent: translationKey(
+    "Pages {{responders}} for every new incident and alert",
+  ),
+  statusPagePublished: translationKey("Published, public at its link"),
+  monitorsAdded: translationKey("Added {{monitors}}"),
 };
 
 // The names of a card's facts.
@@ -597,6 +812,10 @@ export const AI_ACTION_CARD_FACTS: {
   statusUpdate: string;
   workflowSteps: string;
   toFillIn: string;
+  address: string;
+  publicLink: string;
+  shows: string;
+  notAdded: string;
 } = {
   affectedResources: translationKey("Affected resources"),
   alreadyLinked: translationKey("Already linked"),
@@ -606,16 +825,334 @@ export const AI_ACTION_CARD_FACTS: {
   // Which steps a workflow has, by name: never how many (a count says little).
   workflowSteps: translationKey("Workflow steps"),
   toFillIn: translationKey("Still to fill in"),
+  // What a setup action made (#6829): a monitor's address, a page's link.
+  address: translationKey("Address"),
+  publicLink: translationKey("Public link"),
+  shows: translationKey("It shows"),
+  notAdded: translationKey("Not added"),
 };
 
 /*
- * A fact of a card: its name, a term, and its value - data as written (a
- * note, a description), or a sentence or a list of them (the resources it
- * linked).
+ * ---------------------------------------------------------------------------
+ * The card a read leaves under the answer (issue #7175).
+ *
+ * A read tool leaves a card that shows a record as it is - a monitor read
+ * by id, an SLO, a team, an on-call policy or schedule, a status page, a
+ * runbook, a workflow, a security case - drawn plain (issue #6968). It was
+ * the server's English in every language: "MONITOR", "Type: Website",
+ * "Last status", "Off - not checked", "Disabled". Its words are this
+ * module's now, as a write's card's are (WidgetBuilder.resourceCard): the
+ * kind and each fact's name a term, the line a sentence or data, and a
+ * fact's value data as written (a monitor's name, a status name the
+ * project chose, a URL), a word of OneUptime's (a term), a sentence, a
+ * figure or a moment. Words the Dashboard already says elsewhere are its
+ * own keys ("Type", "Window", "Calendar Month", a monitor type's name), so
+ * the card says them as those pages do.
+ * ---------------------------------------------------------------------------
+ */
+
+// The kinds of record a read's card shows, besides AI_ACTION_CARD_KINDS'.
+export const AI_READ_CARD_KINDS: {
+  monitor: string;
+  slo: string;
+  team: string;
+  onCallSchedule: string;
+  statusPage: string;
+} = {
+  monitor: translationKey("Monitor"),
+  slo: translationKey("SLO"),
+  team: translationKey("Team"),
+  onCallSchedule: translationKey("On-call schedule"),
+  statusPage: translationKey("Status page"),
+};
+
+// The names of a read's card's facts, besides AI_ACTION_CARD_FACTS'.
+export const AI_READ_CARD_FACTS: {
+  type: string;
+  status: string;
+  lastStatus: string;
+  archived: string;
+  monitoring: string;
+  ownerTeams: string;
+  ownerUsers: string;
+  target: string;
+  window: string;
+  sliType: string;
+  currentSli: string;
+  errorBudgetLeft: string;
+  burnRate: string;
+  monitors: string;
+  monitorRules: string;
+  burnRateRules: string;
+  errorBudgetPolicyTier: string;
+  deployments: string;
+  escalationRules: string;
+  onCallSince: string;
+  handsOffAt: string;
+  nextUp: string;
+  nextShiftStarts: string;
+  visibility: string;
+  publicUrl: string;
+  resourcesShown: string;
+  activeSubscribers: string;
+  steps: string;
+  enabled: string;
+  recentRuns: string;
+  detections: string;
+  entities: string;
+} = {
+  type: translationKey("Type"),
+  status: translationKey("Status"),
+  // A monitor whose monitoring is off: the status its last check saw.
+  lastStatus: translationKey("Last status"),
+  archived: translationKey("Archived"),
+  monitoring: translationKey("Monitoring"),
+  ownerTeams: translationKey("Owner teams"),
+  ownerUsers: translationKey("Owner users"),
+  target: translationKey("Target"),
+  window: translationKey("Window"),
+  sliType: translationKey("SLI type"),
+  currentSli: translationKey("Current SLI"),
+  errorBudgetLeft: translationKey("Error budget left"),
+  burnRate: translationKey("Burn rate"),
+  monitors: translationKey("Monitors"),
+  monitorRules: translationKey("Monitor rules"),
+  burnRateRules: translationKey("Burn-rate rules"),
+  errorBudgetPolicyTier: translationKey("Error budget policy tier"),
+  deployments: translationKey("Deployments"),
+  escalationRules: translationKey("Escalation rules"),
+  onCallSince: translationKey("On call since"),
+  handsOffAt: translationKey("Hands off at"),
+  nextUp: translationKey("Next up"),
+  nextShiftStarts: translationKey("Next shift starts"),
+  visibility: translationKey("Visibility"),
+  publicUrl: translationKey("Public URL"),
+  resourcesShown: translationKey("Resources shown"),
+  activeSubscribers: translationKey("Active subscribers"),
+  steps: translationKey("Steps"),
+  enabled: translationKey("Enabled"),
+  recentRuns: translationKey("Recent runs"),
+  detections: translationKey("Detections"),
+  entities: translationKey("Entities"),
+};
+
+// The line under a read's card's heading, when OneUptime writes it.
+export const AI_READ_CARD_LINES: {
+  disabled: string;
+  enabled: string;
+  noMembers: string;
+  noOneOnCall: string;
+  onCallNow: string;
+} = {
+  // A monitor whose monitoring is off, as the Monitors table says it; a runbook turned off.
+  disabled: translationKey("Disabled"),
+  enabled: translationKey("Enabled"),
+  noMembers: translationKey("No members"),
+  noOneOnCall: translationKey("No one is on call"),
+  // Who an on-call schedule has on call now, by name.
+  onCallNow: translationKey("On call now: {{name}}"),
+};
+
+/*
+ * A read's card's values that are OneUptime's words, each said as a term:
+ * what being archived means for the record, a figure not worked out yet,
+ * a rule table the reader may not read.
+ */
+export const AI_READ_CARD_VALUES: {
+  yes: string;
+  no: string;
+  public: string;
+  private: string;
+  monitorArchived: string;
+  monitoringOff: string;
+  onCallPolicyArchived: string;
+  statusPageArchived: string;
+  workflowArchived: string;
+  noEscalationRules: string;
+  notEvaluatedYet: string;
+  none: string;
+  monitorsPickedByHand: string;
+  notVisible: string;
+  noErrorBudgetPolicy: string;
+  aboveEveryTier: string;
+  deploymentsFrozen: string;
+  deploymentsAllowed: string;
+  calendarMonth: string;
+  monitorUptime: string;
+  metric: string;
+  archived: string;
+  disabled: string;
+} = {
+  yes: translationKey("Yes"),
+  no: translationKey("No"),
+  public: translationKey("Public"),
+  private: translationKey("Private"),
+  monitorArchived: translationKey("Yes - not monitored"),
+  monitoringOff: translationKey("Off - not checked"),
+  onCallPolicyArchived: translationKey("Yes - pages no one"),
+  statusPageArchived: translationKey("Yes - offline, sends nothing"),
+  workflowArchived: translationKey("Yes - does not run"),
+  noEscalationRules: translationKey("None configured"),
+  /*
+   * Each value starts with a capital, as the card's other values do
+   * ("Rolling 30-day window", "Yes - not monitored"): a fact list read
+   * "Deployments: frozen by the error budget policy" under "Status: At
+   * Risk". Not evaluated yet, None and Allowed are the Dashboard's own
+   * words for them elsewhere.
+   */
+  // An SLO's figures before the worker first evaluates it.
+  notEvaluatedYet: translationKey("Not evaluated yet"),
+  none: translationKey("None"),
+  monitorsPickedByHand: translationKey("None - monitors are picked by hand"),
+  notVisible: translationKey("Not visible to you"),
+  noErrorBudgetPolicy: translationKey("No error budget policy"),
+  aboveEveryTier: translationKey("None - the budget is above every tier"),
+  deploymentsFrozen: translationKey("Frozen by the error budget policy"),
+  deploymentsAllowed: translationKey("Allowed"),
+  // An SLO's window and SLI, as its Settings and Overview name them.
+  calendarMonth: translationKey("Calendar Month"),
+  monitorUptime: translationKey("Monitor uptime"),
+  metric: translationKey("Metric"),
+  // An SLO's status, as its list says it, before the worker's.
+  archived: translationKey("Archived"),
+  disabled: translationKey("Disabled"),
+};
+
+// An SLO's status, as the SLO list names it.
+export const AI_READ_CARD_SLO_STATUSES: Record<SloStatus, string> = {
+  [SloStatus.Healthy]: translationKey("Healthy"),
+  [SloStatus.AtRisk]: translationKey("At Risk"),
+  [SloStatus.BudgetExhausted]: translationKey("Budget Exhausted"),
+  [SloStatus.Misconfigured]: translationKey("Misconfigured"),
+  [SloStatus.Paused]: translationKey("Paused"),
+};
+
+// What an escalation rule pages, by kind: 'user "Ana"', 'team "SRE"'.
+export const AI_READ_CARD_NOUNS: {
+  user: string;
+  team: string;
+  onCallSchedule: string;
+} = {
+  user: translationKey("user"),
+  team: translationKey("team"),
+  onCallSchedule: translationKey("on-call schedule"),
+};
+
+// A read's card's sentences: an escalation rule's name and what it pages, a status page's resource.
+export const AI_READ_CARD_SENTENCES: {
+  rule: string;
+  ruleNamed: string;
+  pages: string;
+  pagesNoOne: string;
+  resourceFromMonitor: string;
+  resourceFromMonitorGroup: string;
+  resourceNotMonitored: string;
+} = {
+  rule: translationKey("Rule {{order}}"),
+  ruleNamed: translationKey("Rule {{order}} — {{name}}"),
+  // {{targets}} is a list of AI_ACTION_RESOURCE_BY_NAME, by AI_READ_CARD_NOUNS.
+  pages: translationKey("Pages {{targets}}"),
+  pagesNoOne: translationKey("Pages no one"),
+  // A resource the page names its own way, and the monitor or group it shows.
+  resourceFromMonitor: translationKey("{{name}} (monitor: {{monitor}})"),
+  resourceFromMonitorGroup: translationKey(
+    "{{name}} (monitor group: {{group}})",
+  ),
+  // The page draws it as Not monitored: its monitoring is off.
+  resourceNotMonitored: translationKey("{{resource}} - not monitored"),
+};
+
+export const AI_READ_CARD_PLURAL_SENTENCES: {
+  rollingWindow: PluralTemplate;
+  rulesEnabled: PluralTemplate;
+  pagesThenEscalates: PluralTemplate;
+  pagesNoOneThenEscalates: PluralTemplate;
+} = {
+  // An SLO's rolling window, as its Settings page says it.
+  rollingWindow: {
+    one: translationKey("Rolling {{count}}-day window"),
+    other: translationKey("Rolling {{count}}-day window"),
+  },
+  // {{enabled}} is a figure: how many of the {{count}} rules are on.
+  rulesEnabled: {
+    one: translationKey("{{enabled}} of {{count}} enabled"),
+    other: translationKey("{{enabled}} of {{count}} enabled"),
+  },
+  // {{count}} is minutes.
+  pagesThenEscalates: {
+    one: translationKey(
+      "Pages {{targets}}, then escalates after {{count}} minute",
+    ),
+    other: translationKey(
+      "Pages {{targets}}, then escalates after {{count}} minutes",
+    ),
+  },
+  pagesNoOneThenEscalates: {
+    one: translationKey("Pages no one, then escalates after {{count}} minute"),
+    other: translationKey(
+      "Pages no one, then escalates after {{count}} minutes",
+    ),
+  },
+};
+
+/*
+ * Sentences with no words of their own, which take the reader's: a name
+ * alone - one of a status page's resources - and a count before what it
+ * counts ("2: Checkout, Payments").
+ */
+export const AI_READ_CARD_NAME: string = "{{name}}";
+export const AI_READ_CARD_COUNTED: string = "{{count}}: {{items}}";
+
+/*
+ * One of a security case's entities: its kind, a word the Dashboard says
+ * on the case's page ("IP Address"), then its value, which is data
+ * ("10.0.0.7"). No words of its own either.
+ */
+export const AI_READ_CARD_ENTITY: string = "{{type}}: {{value}}";
+
+// The kinds of entity a security case names, by the Dashboard's words for them.
+export const AI_READ_CARD_ENTITY_TYPES: ReadonlyArray<string> =
+  Object.values(SecurityEntityType);
+
+let monitorTypeTerms: ReadonlyArray<string> | null = null;
+
+/*
+ * Every monitor type's name, as the type picker and the Monitors list
+ * write it ("Website", "Docker Container"): a monitor's card says its type
+ * by the same word, in the reader's language where the Dashboard has one.
+ */
+export function getAIReadCardMonitorTypeTerms(): ReadonlyArray<string> {
+  if (!monitorTypeTerms) {
+    monitorTypeTerms = MonitorTypeHelper.getAllMonitorTypeProps().map(
+      (props: MonitorTypeProps): string => {
+        return props.title;
+      },
+    );
+  }
+
+  return monitorTypeTerms;
+}
+
+/*
+ * A card's value: data as written (a note, a name, a URL), a word of the
+ * module (a term), a sentence or a list of them (the resources it linked),
+ * a figure, or a moment.
+ */
+export type AIActionCardValue =
+  | string
+  | AIActionTerm
+  | AIActionSentence
+  | AIActionList
+  | AIActionFigure
+  | AIActionMoment;
+
+/*
+ * A fact of a card: its name - a term, or a sentence for a name with data
+ * in it ("Rule 2 — Database team") - and its value.
  */
 export interface AIActionCardFact {
-  label: AIActionTerm;
-  value: string | AIActionSentence | AIActionList;
+  label: AIActionTerm | AIActionSentence;
+  value: AIActionCardValue;
 }
 
 /*
@@ -626,8 +1163,11 @@ export interface AIActionCardFact {
 export interface AIActionCardWords {
   // The kind of record: a term ("Incident", "On-call policy").
   kind: AIActionTerm;
-  // The line under the heading, its sentences one after another.
-  line?: Array<AIActionSentence> | undefined;
+  /*
+   * The line under the heading, its parts one after another: sentences,
+   * and data as written - a status name the project chose, a description.
+   */
+  line?: Array<AIActionSentence | string> | undefined;
   facts?: Array<AIActionCardFact> | undefined;
 }
 
@@ -643,11 +1183,20 @@ export const AI_ACTION_SENTENCES: ReadonlyArray<string> = [
   ...Object.values(AI_ACTION_CARD_LINES),
   AI_ACTION_RESOURCE_BY_NAME,
   AI_ACTION_CODE_FILE,
+  AI_ACTION_NAME,
+  AI_ACTION_TEAM,
+  AI_ACTION_NEW_MONITOR,
+  ...Object.values(AI_READ_CARD_LINES),
+  ...Object.values(AI_READ_CARD_SENTENCES),
+  AI_READ_CARD_NAME,
+  AI_READ_CARD_COUNTED,
+  AI_READ_CARD_ENTITY,
 ];
 
 export const AI_ACTION_PLURAL_SENTENCES: ReadonlyArray<PluralTemplate> = [
   ...Object.values(AI_ACTION_PLURAL_TITLES),
   ...Object.values(AI_ACTION_PLURAL_LINES),
+  ...Object.values(AI_READ_CARD_PLURAL_SENTENCES),
 ];
 
 // The kinds of resource, by the nouns the server names them by.
@@ -661,6 +1210,12 @@ export const AI_ACTION_TERM_WORDS: ReadonlyArray<string> = [
   ...AI_ACTION_RESOURCE_NOUNS,
   ...Object.values(AI_ACTION_CARD_KINDS),
   ...Object.values(AI_ACTION_CARD_FACTS),
+  ...Object.values(AI_READ_CARD_KINDS),
+  ...Object.values(AI_READ_CARD_FACTS),
+  ...Object.values(AI_READ_CARD_VALUES),
+  ...Object.values(AI_READ_CARD_SLO_STATUSES),
+  ...Object.values(AI_READ_CARD_NOUNS),
+  ...AI_READ_CARD_ENTITY_TYPES,
 ];
 
 /*
@@ -719,9 +1274,22 @@ export function aiActionResourceByName(data: {
  */
 export function aiActionCardFact(
   label: string,
-  value: string | AIActionSentence | AIActionList,
+  value: AIActionCardValue,
 ): AIActionCardFact {
   return { label: aiActionTerm(label), value };
+}
+
+// A figure, written the reader's way (AIActionFigure).
+export function aiActionFigure(
+  figure: number,
+  options?: { isPercent?: boolean | undefined } | undefined,
+): AIActionFigure {
+  return options?.isPercent ? { figure, isPercent: true } : { figure };
+}
+
+// A moment, written in the reader's language and time zone (AIActionMoment).
+export function aiActionMoment(moment: Date): AIActionMoment {
+  return { moment: moment.toISOString() };
 }
 
 /*
@@ -750,6 +1318,38 @@ export function isAIActionTerm(value: unknown): value is AIActionTerm {
 export function isAIActionList(value: unknown): value is AIActionList {
   return isPlainObject(value) && Array.isArray(value["list"]);
 }
+
+export function isAIActionFigure(value: unknown): value is AIActionFigure {
+  return isPlainObject(value) && typeof value["figure"] === "number";
+}
+
+export function isAIActionMoment(value: unknown): value is AIActionMoment {
+  return isPlainObject(value) && typeof value["moment"] === "string";
+}
+
+// A stored figure the Dashboard can write: a finite number, a share or not.
+const isKnownFigure: (value: AIActionFigure) => boolean = (
+  value: AIActionFigure,
+): boolean => {
+  return (
+    Number.isFinite(value.figure) &&
+    (value.isPercent === undefined || typeof value.isPercent === "boolean")
+  );
+};
+
+// The longest moment a stored card may hold: an ISO 8601 date and time is 24.
+const MAX_MOMENT_LENGTH: number = 40;
+
+// A stored moment the Dashboard can write: a date it can read.
+const isKnownMoment: (value: AIActionMoment) => boolean = (
+  value: AIActionMoment,
+): boolean => {
+  return (
+    value.moment.length > 0 &&
+    value.moment.length <= MAX_MOMENT_LENGTH &&
+    !isNaN(new Date(value.moment).getTime())
+  );
+};
 
 // The plural template whose "other" form is `template`, if it is one.
 export function getAIActionPluralTemplate(
@@ -787,6 +1387,10 @@ const isKnownValue: (value: unknown, depth: number) => boolean = (
         return isKnownSentence(item, depth + 1);
       })
     );
+  }
+
+  if (isAIActionFigure(value)) {
+    return isKnownFigure(value);
   }
 
   return false;
@@ -879,10 +1483,38 @@ export function isKnownAIActionWords(value: unknown): value is AIActionWords {
 // How many facts a stored card may hold.
 const MAX_CARD_FACTS: number = 20;
 
-const CARD_KIND_TERMS: ReadonlyArray<string> =
+/*
+ * The kinds and the names of facts a card may hold: a write's card the
+ * write cards' own, a read's card those and the read cards' (issue #7175).
+ * A write's card saved with a name only a read's card has - "Steps", a
+ * playbook's step count of before - reads as the English it stores.
+ */
+const WRITE_CARD_KIND_TERMS: ReadonlyArray<string> =
   Object.values(AI_ACTION_CARD_KINDS);
-const CARD_FACT_TERMS: ReadonlyArray<string> =
+const READ_CARD_KIND_TERMS: ReadonlyArray<string> = [
+  ...WRITE_CARD_KIND_TERMS,
+  ...Object.values(AI_READ_CARD_KINDS),
+];
+const WRITE_CARD_FACT_TERMS: ReadonlyArray<string> =
   Object.values(AI_ACTION_CARD_FACTS);
+const READ_CARD_FACT_TERMS: ReadonlyArray<string> = [
+  ...WRITE_CARD_FACT_TERMS,
+  ...Object.values(AI_READ_CARD_FACTS),
+];
+
+/*
+ * A word a card's fact may hold as its value: one of the module's terms, or
+ * a monitor type's name (getAIReadCardMonitorTypeTerms).
+ */
+const isKnownCardValueTerm: (value: AIActionTerm) => boolean = (
+  value: AIActionTerm,
+): boolean => {
+  return (
+    (AI_ACTION_TERM_WORDS.includes(value.term) ||
+      getAIReadCardMonitorTypeTerms().includes(value.term)) &&
+    (value.inSentence === undefined || typeof value.inSentence === "boolean")
+  );
+};
 
 const isKnownCardTerm: (
   value: unknown,
@@ -895,7 +1527,10 @@ const isKnownCardTerm: (
   );
 };
 
-// A fact's value: data as written, one of the module's sentences, or a list of them.
+/*
+ * A fact's value: data as written, a word of the module, one of its
+ * sentences or a list of them, a figure or a moment.
+ */
 const isKnownCardFactValue: (value: unknown) => boolean = (
   value: unknown,
 ): boolean => {
@@ -903,11 +1538,37 @@ const isKnownCardFactValue: (value: unknown) => boolean = (
     return true;
   }
 
+  if (isAIActionTerm(value)) {
+    return isKnownCardValueTerm(value);
+  }
+
   if (isAIActionList(value)) {
     return isKnownValue(value, 0);
   }
 
+  if (isAIActionFigure(value)) {
+    return isKnownFigure(value);
+  }
+
+  if (isAIActionMoment(value)) {
+    return isKnownMoment(value);
+  }
+
   return isKnownAIActionSentence(value);
+};
+
+/*
+ * A fact's name: one of the module's names - and on a read's card, a
+ * sentence of it ("Rule {{order}}").
+ */
+const isKnownCardFactLabel: (value: unknown, isRead: boolean) => boolean = (
+  value: unknown,
+  isRead: boolean,
+): boolean => {
+  return isRead
+    ? isKnownCardTerm(value, READ_CARD_FACT_TERMS) ||
+        isKnownAIActionSentence(value)
+    : isKnownCardTerm(value, WRITE_CARD_FACT_TERMS);
 };
 
 /*
@@ -915,14 +1576,23 @@ const isKnownCardFactValue: (value: unknown) => boolean = (
  * Dashboard draw the card in the reader's language. A card is read from a
  * conversation's saved JSON, so anything else - another kind, a fact named
  * otherwise, a value of another shape, a card saved before it had words -
- * reads as the English the card stores.
+ * reads as the English the card stores. `isRead` is whether a read left
+ * the card (AIChatTypes' isAIChatReadResourceCard): a read's card may name
+ * the kinds and facts only reads show, and hold data in its line - a
+ * status name the project chose.
  */
 export function isKnownAIActionCardWords(
   value: unknown,
+  options?: { isRead?: boolean | undefined } | undefined,
 ): value is AIActionCardWords {
+  const isRead: boolean = options?.isRead === true;
+
   if (
     !isPlainObject(value) ||
-    !isKnownCardTerm(value["kind"], CARD_KIND_TERMS)
+    !isKnownCardTerm(
+      value["kind"],
+      isRead ? READ_CARD_KIND_TERMS : WRITE_CARD_KIND_TERMS,
+    )
   ) {
     return false;
   }
@@ -934,8 +1604,12 @@ export function isKnownAIActionCardWords(
     (line === undefined ||
       (Array.isArray(line) &&
         line.length <= MAX_SENTENCE_VALUES &&
-        line.every((sentence: unknown): boolean => {
-          return isKnownAIActionSentence(sentence);
+        line.every((part: unknown): boolean => {
+          // One of the module's sentences, or on a read's card data as written.
+          return (
+            (isRead && typeof part === "string") ||
+            isKnownAIActionSentence(part)
+          );
         }))) &&
     (facts === undefined ||
       (Array.isArray(facts) &&
@@ -943,7 +1617,7 @@ export function isKnownAIActionCardWords(
         facts.every((fact: unknown): boolean => {
           return (
             isPlainObject(fact) &&
-            isKnownCardTerm(fact["label"], CARD_FACT_TERMS) &&
+            isKnownCardFactLabel(fact["label"], isRead) &&
             isKnownCardFactValue(fact["value"])
           );
         })))
@@ -991,11 +1665,47 @@ const toTemplateValues: (
           sentenceTranslator,
         );
       });
+    } else if (isAIActionFigure(value)) {
+      // Written the way the sentence's language writes a figure.
+      result[name] = composedValue((sentenceTranslator: Translator): string => {
+        return describeAIActionFigure(value, sentenceTranslator);
+      });
     }
   }
 
   return result;
 };
+
+// The most decimals a card's figure is written with: what the server rounds it to.
+const FIGURE_DECIMALS: number = 2;
+
+/*
+ * A figure as the translator's language writes it, as the SLO pages write
+ * theirs: "99.95%" and "1234" in English, as the card always said them;
+ * "99,95 %" and "1.234" in German; "۹۹٫۹۵٪" in Persian; Latin digits in
+ * Arabic.
+ */
+export function describeAIActionFigure(
+  value: AIActionFigure,
+  translator: Translator = getEnglishTranslator(),
+): string {
+  const written: string | null = value.isPercent
+    ? formatSloPercent(value.figure, FIGURE_DECIMALS, translator)
+    : formatSloNumber(value.figure, FIGURE_DECIMALS, translator);
+
+  return written ?? `${value.figure}${value.isPercent ? "%" : ""}`;
+}
+
+// A fact's name in the translator's language: a term, or a sentence with its data.
+export function describeAIActionCardLabel(
+  label: AIActionTerm | AIActionSentence,
+  translator: Translator = getEnglishTranslator(),
+  options?: SentenceOptions | undefined,
+): string {
+  return isAIActionTerm(label)
+    ? translator.translateTerm(label.term)
+    : describeAIActionSentence(label, translator, options);
+}
 
 /*
  * A sentence in the translator's language: the reader's on the Dashboard
@@ -1031,16 +1741,30 @@ export function describeAIActionSentence(
 
 /*
  * A card fact's value in the translator's language: data as written, a
- * sentence, or a list of sentences joined the way the language joins a
- * list.
+ * word, a sentence, a list of sentences joined the way the language joins
+ * a list, or a figure. A moment is its ISO text here, as the English the
+ * card stores it: the Dashboard writes it in the reader's language and
+ * time zone itself (ResourceCardWords).
  */
 export function describeAIActionCardValue(
-  value: string | AIActionSentence | AIActionList,
+  value: AIActionCardValue,
   translator: Translator = getEnglishTranslator(),
   options?: SentenceOptions | undefined,
 ): string {
   if (typeof value === "string") {
     return value;
+  }
+
+  if (isAIActionTerm(value)) {
+    return translator.translateTerm(value.term);
+  }
+
+  if (isAIActionFigure(value)) {
+    return describeAIActionFigure(value, translator);
+  }
+
+  if (isAIActionMoment(value)) {
+    return value.moment;
   }
 
   if (isAIActionList(value)) {
@@ -1071,8 +1795,10 @@ export function describeAIActionCardWords(
   facts: Array<{ label: string; value: string }>;
 } {
   const line: string = (words.line || [])
-    .map((sentence: AIActionSentence): string => {
-      return describeAIActionSentence(sentence, translator);
+    .map((part: AIActionSentence | string): string => {
+      return typeof part === "string"
+        ? part
+        : describeAIActionSentence(part, translator);
     })
     .filter((text: string): boolean => {
       return Boolean(text);
@@ -1085,7 +1811,7 @@ export function describeAIActionCardWords(
     facts: (words.facts || []).map(
       (fact: AIActionCardFact): { label: string; value: string } => {
         return {
-          label: translator.translateTerm(fact.label.term),
+          label: describeAIActionCardLabel(fact.label, translator),
           value: describeAIActionCardValue(fact.value, translator),
         };
       },

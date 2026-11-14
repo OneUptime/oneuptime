@@ -139,13 +139,7 @@ npm run doctor
 
 它会检查每个容器、`config.env`、`HOST` 能否到达这台服务器、证书和剩余磁盘，并询问 OneUptime 它看到的自身状态，例如邮件和探针。每个问题都附带修复方法：参见[检查你的安装](/docs/installation/docker-compose#检查你的安装)。
 @tab Kubernetes
-下载 chart 的诊断脚本，并针对你的集群运行它。它只读取，最后按严重程度给出它发现的问题摘要：
-
-```bash
-curl -sLO https://raw.githubusercontent.com/OneUptime/oneuptime/main/HelmChart/Public/diagnose.sh
-chmod +x diagnose.sh
-./diagnose.sh
-```
+按 [chart 的故障排除指南](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Public/oneuptime/docs/troubleshooting.md#run-it)中的步骤，针对你的集群运行 chart 的诊断脚本。它只读取，最后按严重程度给出它发现的问题摘要。
 :::
 
 **已生效的标志：** doctor 以 **Everything looks right.** 结束，并以 `0` 退出。有需要修复的问题时以 `1` 退出，无法运行检查时以 `2` 退出。在 Kubernetes 上，摘要中没有任何 `CRITICAL` 发现。

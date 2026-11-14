@@ -1,6 +1,6 @@
 # Regole di runbook
 
-Le regole di runbook avviano automaticamente i runbook quando viene creato un **incidente**, un **avviso** o un **evento di manutenzione programmata**, così nessuno deve ricordarsi di eseguirli nel mezzo di un disservizio. Ogni prodotto ha la sua pagina di regole, nel suo menu **Regole**:
+Le regole di runbook avviano automaticamente i runbook quando viene creato un **incidente**, un **avviso** o un **evento di manutenzione**, così nessuno deve ricordarsi di eseguirli nel mezzo di un disservizio. Ogni prodotto ha la sua pagina di regole, nel suo menu **Regole**:
 
 - Incidenti → Regole → **Regole di runbook**
 - Avvisi → Regole → **Regole di runbook**

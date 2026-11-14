@@ -83,7 +83,11 @@ import {
   getResourceHealthLabel,
 } from "../../../Components/TelemetryResource/ResourceHeroStatus";
 import NeedsAttentionCard from "../../../Components/ResourcePart/NeedsAttentionCard";
-import { withSentenceDigits } from "../../../Components/ResourcePart/SentenceDigits";
+import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
+import {
+  figureInSentence,
+  withSentenceDigits,
+} from "../../../Components/ResourcePart/SentenceDigits";
 import ResourcePartAlertsCard from "../../../Components/ResourcePart/ResourcePartAlertsCard";
 import RecommendationFilterUtil, {
   RECOMMENDATION_SELECTION_QUERY_PARAM,
@@ -142,6 +146,7 @@ import React, {
 } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator, composedValue } from "Common/UI/Utils/TranslateTemplate";
+import { formatReaderFigure } from "Common/Types/DateLanguage";
 
 // Every alert OneUptime recommends for a host, as its Recommendations lists.
 const HOST_ALERT_TEMPLATE_IDS: Array<string> = getAllHostAlertTemplates().map(
@@ -167,13 +172,18 @@ interface OverviewStats {
 // One mount point the host reports (HostFilesystemsTable).
 type MountInfo = HostMount;
 
+/*
+ * A tile's figure in the reader's digits, decimal sign and percent sign
+ * ("۹۷٫۵٪" in Persian, "97,5 %" in German), as the sentences under the
+ * tiles write theirs; English reads exactly as toFixed wrote it (#7106).
+ */
 const formatPercent: (value: number | null) => string = (
   value: number | null,
 ): string => {
   if (value === null || !isFinite(value)) {
     return "—";
   }
-  return `${value.toFixed(1)}%`;
+  return formatReaderFigure(value, { decimals: 1, isPercent: true });
 };
 
 const formatNumber: (value: number | null) => string = (
@@ -182,7 +192,7 @@ const formatNumber: (value: number | null) => string = (
   if (value === null || !isFinite(value)) {
     return "—";
   }
-  return value.toFixed(2);
+  return formatReaderFigure(value, { decimals: 2 });
 };
 
 const formatInt: (value: number | null) => string = (
@@ -191,7 +201,7 @@ const formatInt: (value: number | null) => string = (
   if (value === null || !isFinite(value)) {
     return "—";
   }
-  return Math.round(value).toString();
+  return formatReaderFigure(Math.round(value), { decimals: 0 });
 };
 
 const formatMemoryBytes: (bytes: number | null | undefined) => string = (
@@ -207,7 +217,7 @@ const formatMemoryBytes: (bytes: number | null | undefined) => string = (
     v /= 1024;
     i++;
   }
-  return `${v.toFixed(v < 10 ? 1 : 0)} ${units[i]}`;
+  return `${formatReaderFigure(v, { decimals: v < 10 ? 1 : 0 })} ${units[i]}`;
 };
 
 /*
@@ -1999,7 +2009,9 @@ const HostOverview: FunctionComponent<
           }`}
         >
           {translator.translateTemplate("{{percent}}% uptime", {
-            percent: availabilityPct.toFixed(availabilityPct >= 99.95 ? 1 : 2),
+            percent: figureInSentence(availabilityPct, {
+              decimals: availabilityPct >= 99.95 ? 1 : 2,
+            }),
           })}
         </span>
       );
@@ -2378,10 +2390,13 @@ const HostOverview: FunctionComponent<
               title: "Total Memory",
               fieldType: FieldType.Element,
               getElement: (item: Host): ReactElement => {
+                /*
+                 * A size set apart, as the hero's chip and the Filesystems
+                 * table write theirs: "۶۴ GiB" on a Persian page, never
+                 * "GiB ۶۴".
+                 */
                 return (
-                  <span>
-                    {formatMemoryBytes(Number(item.totalMemoryBytes))}
-                  </span>
+                  <bdi>{formatMemoryBytes(Number(item.totalMemoryBytes))}</bdi>
                 );
               },
             },
@@ -2410,7 +2425,18 @@ const HostOverview: FunctionComponent<
               },
               title: "Process Count (cached)",
               description: HOST_METRIC_DESCRIPTIONS.processCountCached,
-              fieldType: FieldType.Number,
+              fieldType: FieldType.Element,
+              // In the reader's digits, as the Processes tile's "۲۱۴" (#7106).
+              getElement: (item: Host): ReactElement => {
+                return item.processCount === undefined ||
+                  item.processCount === null ? (
+                  <EmptyValue />
+                ) : (
+                  <span>
+                    {translator.formatNumber(Number(item.processCount))}
+                  </span>
+                );
+              },
             },
             {
               field: {

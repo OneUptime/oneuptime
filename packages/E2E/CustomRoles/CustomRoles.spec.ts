@@ -1065,7 +1065,7 @@ test.describe("a role's page", () => {
     const permissions: Locator = card(page, "Permissions");
 
     // A single permission: the full list, on its row, pressed and in view.
-    await row(permissions, "Read Telemetry Service Log")
+    await row(permissions, "Read Logs")
       .getByRole("button", { name: "Edit" })
       .click();
 
@@ -1076,7 +1076,7 @@ test.describe("a role's page", () => {
       .getByTestId("permission-picker-list")
       .getByRole("button", { pressed: true });
     await expect(picked).toHaveCount(1);
-    await expect(picked).toContainText("Read Telemetry Service Log");
+    await expect(picked).toContainText("Read Logs");
     await expect(picked).toBeInViewport();
     await screenshot(page, "role-edit-single-permission");
 

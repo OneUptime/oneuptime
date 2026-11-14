@@ -21,6 +21,11 @@ export default class SnmpInterfaceRateUtil {
      * in NetworkDevice.lastWalkLog. Undefined on a device's first walk.
      */
     previousWalkLog: JSONObject | undefined;
+    /*
+     * When OneUptime received this poll - the time its counters are
+     * compared at. Absent, now.
+     */
+    now?: Date | undefined;
   }): void {
     const interfaces: Array<SnmpInterface> | undefined =
       data.snmpResponse?.interfaces;
@@ -60,15 +65,23 @@ export default class SnmpInterfaceRateUtil {
     }
 
     /*
-     * lastWalkLog stores server receipt time as monitoredAt, so the
-     * current side of the delta uses server time too.
+     * lastWalkLog stores the server's receipt time of the poll it kept as
+     * monitoredAt, so the current side of the delta is this poll's receipt
+     * time on the same clock - the ingest API's, not the moment a worker
+     * got to the poll: a poll that waited in a queue backlog was otherwise
+     * rated over the seconds between two dequeues instead of the minutes
+     * between two polls (OneUptime issue #7194). A poll older than the
+     * baseline (a negative window) gets no rate.
      */
-    const elapsedSeconds: number =
-      (OneUptimeDate.getCurrentDate().getTime() -
-        previousMonitoredAt.getTime()) /
-      1000;
+    const now: Date =
+      data.now && !isNaN(data.now.getTime())
+        ? data.now
+        : OneUptimeDate.getCurrentDate();
 
-    if (elapsedSeconds <= 0) {
+    const elapsedSeconds: number =
+      (now.getTime() - previousMonitoredAt.getTime()) / 1000;
+
+    if (!Number.isFinite(elapsedSeconds) || elapsedSeconds <= 0) {
       return;
     }
 

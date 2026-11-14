@@ -20,7 +20,6 @@ import OnCallDutyExecutionLogTimelineStatus from "../../Types/OnCallDutyPolicy/O
 import OnCallDutyPolicyStatus from "../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import UserNotificationExecutionStatus from "../../Types/UserNotification/UserNotificationExecutionStatus";
 import UserNotificationStatus from "../../Types/UserNotification/UserNotificationStatus";
-import ColumnLength from "../../Types/Database/ColumnLength";
 import logger from "../Utils/Logger";
 import User from "../../Models/DatabaseModels/User";
 import Model from "../../Models/DatabaseModels/UserOnCallLogTimeline";
@@ -55,6 +54,11 @@ import CustomNotificationChannel from "../../Models/DatabaseModels/CustomNotific
 import UserNotificationEventType from "../../Types/UserNotification/UserNotificationEventType";
 import { getOnCallTestPageAcknowledgedMessage } from "../../Types/OnCallDutyPolicy/OnCallTestPage";
 import OnCallTestPageEvents from "../Utils/OnCall/OnCallTestPageEvents";
+/*
+ * Read when a send is refused (markNotSent), never as this module loads:
+ * OnCallNotificationStatus writes through this service.
+ */
+import { recordSendResult } from "../Utils/OnCall/OnCallNotificationStatus";
 
 /*
  * What the record's feed is told of a notification that an update gives
@@ -88,7 +92,9 @@ export class Service extends DatabaseService<Model> {
    * timeline, with the reason the message's own log gives, instead of
    * staying at "Sending" for ever. Like the timeline's other skips (an
    * unverified number, say), it is recorded as Error: the page did not go
-   * out.
+   * out. Written as the send's result is, over Sending only
+   * (OnCallNotificationStatus.recordSendResult): the person may have
+   * answered the page meanwhile, from another of its messages.
    *
    * Never throws: the skip is already in the message's log, and a timeline
    * row that could not be written must not turn it into a failed send for
@@ -104,15 +110,10 @@ export class Service extends DatabaseService<Model> {
     }
 
     try {
-      await this.updateOneById({
-        id: data.userOnCallLogTimelineId,
-        data: {
-          status: UserNotificationStatus.Error,
-          statusMessage: data.reason.substring(0, ColumnLength.LongText),
-        },
-        props: {
-          isRoot: true,
-        },
+      await recordSendResult({
+        userOnCallLogTimelineId: data.userOnCallLogTimelineId,
+        isSent: false,
+        statusMessage: data.reason,
       });
     } catch (err) {
       logger.error(
@@ -513,12 +514,22 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
+    /*
+     * The notifications the update wrote, read by id: an acknowledgement is
+     * written at the status and the version it was read at
+     * (OnCallNotificationStatus.recordAcknowledgement), which the row no
+     * longer has once it is written - read by the update's own query, it
+     * found nothing, and the page was never acknowledged.
+     */
     if (
       onUpdate.updateBy.data.acknowledgedAt &&
-      onUpdate.updateBy.data.isAcknowledged
+      onUpdate.updateBy.data.isAcknowledged &&
+      updatedItemIds.length > 0
     ) {
       const items: Array<Model> = await this.findBy({
-        query: onUpdate.updateBy.query,
+        query: {
+          _id: QueryHelper.any(updatedItemIds),
+        },
         select: {
           _id: true,
           projectId: true,

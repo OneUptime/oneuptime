@@ -62,7 +62,7 @@ const CONTINUE_TO_SIGN_IN: string = "Continue to sign in";
 const LINK_INVALID_TITLE: string = "This verification link is no longer valid";
 const REQUEST_NEW_LINK: string =
   "If your link has expired or stopped working, we can email you a new one.";
-const ERROR_TITLE: string = "Sorry, something went wrong!";
+const ERROR_TITLE: string = "Your email was not verified.";
 const TRY_AGAIN: string = "Try again";
 // Its own sentence, not "Return to sign in? Sign in." (fu-platform's review).
 const RETURN_TO_SIGN_IN: string = "Already verified your email?";
@@ -517,9 +517,25 @@ describe("Verify email page", () => {
 
   describe("a server that did not answer properly", () => {
     test.each([
-      ["a 500", refuse(500, "Server Error"), "Server Error"],
-      ["a 503", refuse(503, "Service Unavailable"), "Service Unavailable"],
-      ["a network error", networkFailure, "Network Error"],
+      /*
+       * Each says what happened and what to do next (#6836), never the
+       * server's bare "Server Error" or the browser's "Network Error".
+       */
+      [
+        "a 500",
+        refuse(500, "Server Error"),
+        "The server ran into a problem it could not explain. Try again in a moment.",
+      ],
+      [
+        "a 503",
+        refuse(503, "Service Unavailable"),
+        "The server ran into a problem it could not explain. Try again in a moment.",
+      ],
+      [
+        "a network error",
+        networkFailure,
+        "OneUptime could not be reached. Check your internet connection, then try again.",
+      ],
     ])(
       "%s says so and offers to try the same link again",
       async (_label: string, answer: VerifyAnswer, message: string) => {
@@ -550,8 +566,9 @@ describe("Verify email page", () => {
 
       await renderPage();
 
+      // Says why and what to do next (#6836, ErrorExplanation).
       expect(errorBlock()).toHaveTextContent(
-        "Error connecting to server. Please try again in few minutes.",
+        "The OneUptime server did not answer. It may be starting or restarting. Try again in a few minutes.",
       );
       expect(screen.getByTestId("verify-email-try-again")).toBeInTheDocument();
     });

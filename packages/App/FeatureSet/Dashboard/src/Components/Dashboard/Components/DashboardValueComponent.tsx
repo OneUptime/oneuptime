@@ -41,6 +41,12 @@ import {
 import DashboardWidgetTimeRangeZoom, {
   DashboardWidgetTimeRangeZoomHandlers,
 } from "../Utils/DashboardWidgetTimeRangeZoom";
+import { useDashboardWidgetPlace } from "./DashboardWidgetPreview";
+import {
+  DashboardWidgetSetupNeed,
+  getDashboardWidgetSetupLine,
+} from "./DashboardWidgetSetupCopy";
+import { isMetricWidgetQuerySet } from "./MetricWidgetQuery";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardValueComponentType;
@@ -141,10 +147,13 @@ const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
       return;
     }
 
-    if (!data.queryConfigs[0].metricQueryData.filterData?.aggegationType) {
-      setIsLoading(false);
-      return;
-    }
+    /*
+     * A missing aggregation is an average, as the Gauge reads it: the
+     * "Aggregate by" picker shows Avg until another is picked, and
+     * MetricUtil.fetchResults asks for Avg when none is stored. A widget
+     * whose metric was picked and nothing else used to read nothing at all
+     * and say "No data" over a metric that had some.
+     */
     setAggregationType(
       (data.queryConfigs[0].metricQueryData.filterData
         ?.aggegationType as AggregationType) || AggregationType.Avg,
@@ -257,11 +266,18 @@ const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
       return item.name?.toString() === metricName;
     })?.unit || "";
 
-  const isConfigured: boolean = Boolean(
-    props.component.arguments.metricQueryConfig?.metricQueryData?.filterData &&
-      Object.keys(
-        props.component.arguments.metricQueryConfig.metricQueryData.filterData,
-      ).length > 0,
+  const isConfigured: boolean = isMetricWidgetQuerySet(
+    props.component.arguments.metricQueryConfig,
+  );
+
+  /*
+   * What the widget says until a metric is picked, for where it is drawn:
+   * a click opens its settings only on the board being edited (issue
+   * #7160).
+   */
+  const setupMessage: string = getDashboardWidgetSetupLine(
+    DashboardWidgetSetupNeed.Metric,
+    useDashboardWidgetPlace(props.isEditMode),
   );
 
   /*
@@ -288,7 +304,7 @@ const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
       }
       isConfigured={isConfigured}
       setupTitle={translationKey("Value Widget")}
-      setupMessage={translationKey("Click to configure metric")}
+      setupMessage={setupMessage}
       title={props.component.arguments.title}
       rawUnit={rawUnit}
       metricName={metricName}

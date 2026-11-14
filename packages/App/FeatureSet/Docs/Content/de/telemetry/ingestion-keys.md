@@ -45,7 +45,7 @@ Wählen Sie den Typ danach, wo der Schlüssel liegen wird. Der Typ lässt sich n
 
 ## Bevor Sie beginnen
 
-- **Eine Rolle, die Ingestion-Schlüssel verwalten darf.** Project Owner oder Project Admin, oder eine eigene Rolle mit der Berechtigung Create Telemetry Ingestion Key. Die Telemetrie-Rollen umfassen keine Ingestion-Schlüssel.
+- **Eine Rolle, die Ingestion-Schlüssel verwalten darf.** Project Owner oder Project Admin, oder eine eigene Rolle mit der Berechtigung Create Ingestion Key. Die Telemetrie-Rollen umfassen keine Ingestion-Schlüssel.
 - **In OneUptime Cloud eine Zahlungsmethode.** Telemetrie wird nach Nutzung abgerechnet, daher braucht ein Projekt im Free-Plan eine Zahlungsmethode, bevor es einen Schlüssel anlegen kann. Der Dialog zum Anlegen endet dann mit einem Schritt **Abrechnung**, der die Preise zeigt.
 
 ## Einen Ingestion-Schlüssel anlegen
@@ -85,7 +85,7 @@ x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_KEY
 
 ## Einen Browser-Schlüssel absichern
 
-Ein Browser-Schlüssel steht in Ihrer Seite, wo ihn jeder kopieren kann. Diese Einstellungen begrenzen, was eine Kopie anrichten kann. Ändern Sie sie auf der Seite des Schlüssels mit **Telemetrie-Aufnahmeschlüssel bearbeiten**.
+Ein Browser-Schlüssel steht in Ihrer Seite, wo ihn jeder kopieren kann. Diese Einstellungen begrenzen, was eine Kopie anrichten kann. Ändern Sie sie auf der Seite des Schlüssels mit **Aufnahmeschlüssel bearbeiten**.
 
 | Einstellung | Was sie bewirkt |
 | --- | --- |
@@ -104,7 +104,7 @@ Ein Ursprung besteht aus Schema, Host und optionalem Port: `https://app.example.
 ]
 ```
 
-Der [Dienstkatalog](/docs/telemetry/services#wie-ein-dienst-in-den-katalog-kommt) zeigt, wie ein festgelegter Name den Dienst bestimmt. Runner und KI-Agent des Kubernetes-Agenten sowie die Infrastruktur-KI-Agenten registrieren sich nicht mit einem festgelegten Schlüssel: Geben Sie ihnen einen Server-Schlüssel ohne festgelegten Namen.
+Unter [Dienste](/docs/telemetry/services#wie-ein-dienst-in-den-katalog-kommt) steht, wie ein festgelegter Name den Dienst bestimmt. Runner und KI-Agent des Kubernetes-Agenten sowie die Infrastruktur-KI-Agenten registrieren sich nicht mit einem festgelegten Schlüssel: Geben Sie ihnen einen Server-Schlüssel ohne festgelegten Namen.
 
 ## Einen Schlüssel rotieren, ausschalten oder löschen
 
@@ -112,9 +112,9 @@ Die Seite eines Schlüssels zeigt **Status**, **Geheimer Schlüssel** hinter **Z
 
 | Um | Tun Sie Folgendes | Was Sender sehen |
 | --- | --- | --- |
-| Einen Schlüssel sofort stoppen und es später rückgängig machen | Klicken Sie auf **Telemetrie-Aufnahmeschlüssel bearbeiten**, öffnen Sie **Zugriff & Limits** und schalten Sie **Aktiviert** aus. Der Status lautet **Deaktiviert — Telemetrie abgelehnt**. | `422`, bis Sie ihn wieder einschalten |
+| Einen Schlüssel sofort stoppen und es später rückgängig machen | Klicken Sie auf **Aufnahmeschlüssel bearbeiten**, öffnen Sie **Zugriff & Limits** und schalten Sie **Aktiviert** aus. Der Status lautet **Deaktiviert — Telemetrie abgelehnt**. | `422`, bis Sie ihn wieder einschalten |
 | Ein nach außen gelangtes Geheimnis ersetzen | Klicken Sie auf **Geheimen Schlüssel zurücksetzen** und bestätigen Sie. Der Schlüssel behält seine Einstellungen und bekommt ein neues Geheimnis. | `401`, bis sie das neue Geheimnis senden |
-| Einen Schlüssel endgültig stoppen | Klicken Sie unten auf seiner Seite auf **Telemetrie-Aufnahmeschlüssel löschen**. | `401` |
+| Einen Schlüssel endgültig stoppen | Klicken Sie unten auf seiner Seite auf **Aufnahmeschlüssel löschen**. | `401` |
 
 Um ein Geheimnis ohne Datenverlust zu wechseln, legen Sie einen zweiten Schlüssel an, stellen Ihre Sender darauf um und löschen den alten Schlüssel, sobald sich **Zuletzt verwendet am** dort nicht mehr ändert. **Zuletzt verwendet am** wird alle paar Minuten aktualisiert, nicht bei jeder Anfrage.
 
@@ -155,7 +155,7 @@ Seit OneUptime die Nutzung aufzeichnet, hat nichts Daten mit diesem Schlüssel g
 
 :::cards
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Traces, Metriken und Protokolle mit Ihrem Schlüssel senden.
-- [Dienstkatalog](/docs/telemetry/services): Die Dienste sehen, unter denen Ihre Telemetrie abgelegt wird.
+- [Dienste](/docs/telemetry/services): Die Dienste sehen, unter denen Ihre Telemetrie abgelegt wird.
 - [Datenaufbewahrung](/docs/telemetry/data-retention): Festlegen, wie lange die Daten aufbewahrt werden.
 - [Drop-Filter & Scrub-Regeln](/docs/telemetry/drop-filters-and-scrub-rules): Daten verwerfen oder maskieren, bevor sie gespeichert werden.
 - [Ingestion-Budgets](/docs/telemetry/ingestion-budgets): Begrenzen, wie viel jeder Schlüssel an einem Tag senden darf.

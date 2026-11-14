@@ -68,7 +68,7 @@ Skriv notatet i Markdown, eller start fra en av **Maler** eller fra **Utkast med
 
 ### Bestem hvem som får beskjed
 
-La **Varsle abonnentene på statussiden** være avkrysset for å gi abonnentene beskjed, eller fjern haken for å publisere stille. **Will notify** under den viser hvilke statussider notatet når, og **Forhåndsvisning** viser e-posten de får.
+La **Varsle abonnentene på statussiden** være avkrysset for å gi abonnentene beskjed, eller fjern haken for å publisere stille. **Varsler** under den viser hvilke statussider notatet når, og **Forhåndsvisning** viser e-posten de får.
 
 ### Publiser det
 
@@ -88,7 +88,7 @@ Det samme redigeringsverktøyet åpner i en dialog fra **Legg til offentlig nota
 
 **Stille hendelser forblir stille.** Ble en hendelse erklært med **Varsle statussideabonnenter** slått av (eller som en privat hendelse), har abonnentene aldri fått beskjed om den, så et offentlig notat bør ikke være det første de hører. På en slik hendelse starter avkrysningsboksen slått av, med en linje under som forklarer hvorfor. Du kan fortsatt krysse av for å gi abonnentene beskjed om det notatet. Notater som publiseres uten et uttrykkelig valg, følger samme regel: notater fra Slack og Microsoft Teams, arbeidsflyter og API-forespørsler som utelater `shouldStatusPageSubscribersBeNotifiedOnNoteCreated`. En uttrykkelig `true` eller `false` beholdes alltid. Offentlige notater på [planlagte vedlikeholdshendelser](/docs/status-pages/subscribers#planlagte-vedlikeholdshendelser) og [hendelsesepisoder](/docs/status-pages/subscribers#hendelsesepisoder) følger en lignende regel, basert på om hendelsen eller episoden selv ga abonnentene beskjed da den ble opprettet. En privat hendelse eller episode tar ingen offentlige notater i det hele tatt.
 
-**Se hvem notatet når.** Mens **Varsle abonnentene på statussiden** er avkrysset, viser en linje **Will notify** under den statussidene notatet går til, med et «opptil»-antall abonnenter per kanal, og sidene som viser hendelsens monitorer, men ikke får beskjed, med årsaken. Får ingen beskjed, viser den ingenting, med mindre hendelsen er skjult for statussider eller statussideomfanget er årsaken. Den følger hendelsens statussideomfang, så et notat på en hendelse som er begrenset til to lokasjonssider, sier at det når de to. Se [Én statusside per målgruppe](/docs/status-pages/one-status-page-per-audience).
+**Se hvem notatet når.** Mens **Varsle abonnentene på statussiden** er avkrysset, viser en linje **Varsler** under den statussidene notatet går til, med et «opptil»-antall abonnenter per kanal, og sidene som viser hendelsens monitorer, men ikke får beskjed, med årsaken. Får ingen beskjed, viser den ingenting, med mindre hendelsen er skjult for statussider eller statussideomfanget er årsaken. Den følger hendelsens statussideomfang, så et notat på en hendelse som er begrenset til to lokasjonssider, sier at det når de to. Se [Én statusside per målgruppe](/docs/status-pages/one-status-page-per-audience).
 
 **Se hva de får.** Ved siden av den samme avkrysningsboksen viser **Forhåndsvisning** e-posten abonnentene på hver av de statussidene får for notatet du skriver, og hvilken mal den bruker og hvorfor. Den forblir grå til notatet har litt tekst. **Send test til meg** sender den e-posten til e-postadressen til din egen konto, og til ingen andre. Se [Abonnenter og kunngjøringer](/docs/status-pages/subscribers#forhåndsvis-e-posten-før-den-sendes).
 

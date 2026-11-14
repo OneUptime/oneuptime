@@ -41,6 +41,7 @@ import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCom
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
+import { SAMPLE_PROJECT_REFUSALS } from "../../Types/SampleProject/SampleProject";
 import MonitoringIntervalValidator from "../Utils/Monitor/MonitoringIntervalValidator";
 import { JSONObject, JSONValue } from "../../Types/JSON";
 import MonitorType, {
@@ -2019,6 +2020,49 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     /*
+     * The network devices these monitors back are stamped again when the
+     * update turns monitoring off or on, or archives or unarchives them
+     * (issue #6965): a device takes no status from a monitor that is not
+     * checked, so its site's roll-up, the Network Map and the site's alerts
+     * stop counting the status the monitor was left at, and follow it again
+     * once it is checked. After MonitorTurnedOff, so what the devices end up
+     * with is the monitor as the save left it. Archiving reads no "before",
+     * so every monitor an archive write touched is re-stamped: a device that
+     * already agrees is not written again. Never fails the save.
+     */
+    const isArchiveWrite: boolean =
+      onUpdate.updateBy.data.isArchived !== undefined;
+
+    const monitorIdsWhoseDevicesToRestamp: Array<ObjectID> =
+      updatedItemIds.filter((monitorId: ObjectID): boolean => {
+        return (
+          isArchiveWrite ||
+          monitorIdsTurnedOff.has(monitorId.toString()) ||
+          monitorIdsTurnedOn.has(monitorId.toString())
+        );
+      });
+
+    if (monitorIdsWhoseDevicesToRestamp.length > 0) {
+      try {
+        await NetworkDeviceService.refreshStampsOfDevicesBoundToMonitors({
+          monitorIds: monitorIdsWhoseDevicesToRestamp,
+        });
+      } catch (error) {
+        logger.error(
+          "Stamping the network devices of monitors turned off, on, archived or unarchived again failed in MonitorService.onUpdateSuccess",
+          {
+            monitorIds: monitorIdsWhoseDevicesToRestamp
+              .map((monitorId: ObjectID): string => {
+                return monitorId.toString();
+              })
+              .join(","),
+          } as LogAttributes,
+        );
+        logger.error(error as Error);
+      }
+    }
+
+    /*
      * Keep request content changed: an Incoming Request monitor's latest
      * request, as people read it, is written again from the request as it
      * came, so the switch covers it now and not from the next request on.
@@ -2204,6 +2248,19 @@ export class Service extends ProjectReferencesService<Model> {
 
     if (!createBy.props.tenantId) {
       throw new BadDataException("ProjectId required to create monitor.");
+    }
+
+    /*
+     * A sample project's monitors (issue #6808) are never checked - no
+     * probe takes them, no job sweeps them - so a monitor made there would
+     * sit waiting for a first check for ever. Refused, with where to make
+     * it instead. OneUptime makes the sample's own, as root.
+     */
+    if (
+      !createBy.props.isRoot &&
+      (await ProjectService.isSampleProject(createBy.props.tenantId))
+    ) {
+      throw new BadDataException(SAMPLE_PROJECT_REFUSALS.monitor);
     }
 
     // A Synthetic step with no browser or no screen size would run nothing.
@@ -2405,7 +2462,7 @@ export class Service extends ProjectReferencesService<Model> {
 
     if (!monitorStatus || !monitorStatus.id) {
       throw new BadDataException(
-        "Operational status not found for this project. Please add an operational status",
+        "This project has no monitor status marked as operational, so a new monitor has no status to start in. Add one under Monitors > Settings > Monitor Status, then create the monitor again.",
       );
     }
 
@@ -2538,15 +2595,15 @@ export class Service extends ProjectReferencesService<Model> {
     createdItem: Model,
   ): Promise<Model> {
     if (!createdItem.projectId) {
-      throw new BadDataException("projectId is required");
+      throw new BadDataException("The monitor has no project.");
     }
 
     if (!createdItem.id) {
-      throw new BadDataException("id is required");
+      throw new BadDataException("The new monitor has no ID.");
     }
 
     if (!createdItem.currentMonitorStatusId) {
-      throw new BadDataException("currentMonitorStatusId is required");
+      throw new BadDataException("The new monitor has no status to start in.");
     }
 
     /*
@@ -2967,7 +3024,7 @@ ${FeedMarkdown.asMarkdown(createdItem.description?.trim() || "No description pro
   @CaptureSpan()
   public async findOwners(monitorId: ObjectID): Promise<Array<User>> {
     if (!monitorId) {
-      throw new BadDataException("monitorId is required");
+      throw new BadDataException("No monitor was named.");
     }
 
     const ownerUsers: Array<MonitorOwnerUser> =
@@ -3133,11 +3190,11 @@ ${FeedMarkdown.asMarkdown(createdItem.description?.trim() || "No description pro
     selectedProbeIds: Array<ObjectID> | undefined;
   }): Promise<void> {
     if (!data.projectId) {
-      throw new BadDataException("projectId is required");
+      throw new BadDataException("The monitor has no project.");
     }
 
     if (!data.monitorId) {
-      throw new BadDataException("monitorId is required");
+      throw new BadDataException("No monitor was named.");
     }
 
     if (data.selectedProbeIds === undefined) {

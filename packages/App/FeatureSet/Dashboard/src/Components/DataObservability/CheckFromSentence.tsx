@@ -1,4 +1,5 @@
 import DataObservabilityApi from "./DataObservabilityApi";
+import { getDataCheckAlertConditionSentence } from "./DataCheckAlertConditionWords";
 import DataCheck from "Common/Models/DatabaseModels/DataCheck";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import {
@@ -12,6 +13,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import CodeBlock from "Common/UI/Components/CodeBlock/CodeBlock";
+import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -34,6 +36,14 @@ export interface ComponentProps {
  */
 export const CHECK_FROM_SENTENCE_BUTTONS_CLASS_NAME: string =
   "flex flex-wrap gap-2 [&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0";
+
+// The suggestion's last line: when the check it writes alerts.
+export const CHECK_FROM_SENTENCE_ALERT_TEST_ID: string =
+  "check-from-sentence-alert";
+
+// Why the check could not be written or added: the server's words.
+export const CHECK_FROM_SENTENCE_ERROR_TEST_ID: string =
+  "check-from-sentence-error";
 
 /*
  * "Orders never have a negative total": a rule the team knows, as a check,
@@ -58,8 +68,13 @@ const CheckFromSentence: FunctionComponent<ComponentProps> = (
     setIsWorking(true);
 
     try {
+      // The check's name and explanation come back in the reader's language (#7220).
       setSuggestion(
-        await DataObservabilityApi.suggestCheck(props.dataAssetId, sentence),
+        await DataObservabilityApi.suggestCheck(
+          props.dataAssetId,
+          sentence,
+          translator.language,
+        ),
       );
     } catch (err) {
       setError(API.getFriendlyMessage(err));
@@ -116,6 +131,18 @@ const CheckFromSentence: FunctionComponent<ComponentProps> = (
     }
   };
 
+  /*
+   * When the check alerts, as one whole sentence in the reader's language,
+   * with the number where that language puts it (DataCheckAlertConditionWords).
+   */
+  const alertSentence: string | null = suggestion
+    ? getDataCheckAlertConditionSentence({
+        translator: translator,
+        condition: suggestion.alertCondition,
+        threshold: suggestion.alertThreshold,
+      })
+    : null;
+
   return (
     <Card
       title="Write a Check from a Sentence"
@@ -147,14 +174,43 @@ const CheckFromSentence: FunctionComponent<ComponentProps> = (
             }}
           />
         </div>
-        {error ? <p className="text-sm text-red-600">{error}</p> : <></>}
+        {error ? (
+          /*
+           * Why the check could not be written or added, in the words the
+           * server wrote it in - English, whatever the page's language: a
+           * line of its own, read the way its words are, so on an Arabic
+           * or Persian page it keeps its full stop at its end, as the
+           * suggestion's name and explanation do.
+           */
+          <IsolatedLine
+            as="p"
+            text={error}
+            className="break-words text-sm text-red-600"
+            dataTestId={CHECK_FROM_SENTENCE_ERROR_TEST_ID}
+          />
+        ) : (
+          <></>
+        )}
         {suggestion ? (
           <div className="space-y-2 rounded-md border border-gray-200 p-4">
-            <p className="text-sm font-medium text-gray-900">
-              {suggestion.name}
-            </p>
+            {/*
+             * The check's name and what it counts are OneUptime AI's words,
+             * asked for in the reader's language but read in whatever
+             * language they came back in: each line reads the way it is
+             * written, so an English explanation on an Arabic page keeps
+             * its full stop at its end.
+             */}
+            <IsolatedLine
+              as="p"
+              text={suggestion.name}
+              className="break-words text-sm font-medium text-gray-900"
+            />
             {suggestion.explanation ? (
-              <p className="text-sm text-gray-600">{suggestion.explanation}</p>
+              <IsolatedLine
+                as="p"
+                text={suggestion.explanation}
+                className="break-words text-sm text-gray-600"
+              />
             ) : (
               <></>
             )}
@@ -164,15 +220,16 @@ const CheckFromSentence: FunctionComponent<ComponentProps> = (
               showCopyButton={true}
               wrapLongLines={true}
             />
-            <p className="text-sm text-gray-600">
-              {translator.translateTemplate(
-                "Alerts when its value is {{condition}} {{threshold}}.",
-                {
-                  condition: suggestion.alertCondition.toLowerCase(),
-                  threshold: suggestion.alertThreshold,
-                },
-              )}
-            </p>
+            {alertSentence ? (
+              <p
+                className="text-sm text-gray-600"
+                data-testid={CHECK_FROM_SENTENCE_ALERT_TEST_ID}
+              >
+                {alertSentence}
+              </p>
+            ) : (
+              <></>
+            )}
             <div className={CHECK_FROM_SENTENCE_BUTTONS_CLASS_NAME}>
               <Button
                 title="Add Check"

@@ -121,5 +121,5 @@ curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \
 - [Regras de escalonamento](/docs/on-call/escalation-rules): Faça um nível de uma política de plantão acionar este agendamento.
 - [Linha do tempo de plantões](/docs/on-call/schedule-timeline): Veja todos os agendamentos lado a lado, com as lacunas de cobertura.
 - [Feeds de calendário](/docs/on-call/calendar-feeds): Leve os turnos para o Google Agenda, o Outlook ou o Calendário da Apple.
-- [Regras de Plantão pessoais](/docs/notifications/on-call-rules): Decida como um acionamento chega até você enquanto está de plantão.
+- [Como me contatar](/docs/notifications/on-call-rules): Decida como um acionamento chega até você enquanto está de plantão.
 :::

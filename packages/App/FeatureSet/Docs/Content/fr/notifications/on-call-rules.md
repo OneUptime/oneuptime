@@ -1,12 +1,13 @@
-# Règles d'astreinte personnelles
+# Comment me joindre
 
-Vos règles d'astreinte décident comment une alerte vous parvient : quelles méthodes de notification OneUptime essaie, et combien de temps après le début de l'alerte. Chaque type d'alerte a ses propres règles, un ensemble par gravité, si bien qu'un incident critique peut vous appeler tout de suite tandis qu'une alerte de faible gravité attend un e-mail. Vous les réglez dans **Paramètres utilisateur → Règles d'astreinte**.
+Vos règles d'astreinte décident comment une alerte vous parvient : quelles méthodes de notification OneUptime essaie, et combien de temps après le début de l'alerte. Chaque type d'alerte a ses propres règles, un ensemble par gravité, si bien qu'un incident critique peut vous appeler tout de suite tandis qu'une alerte de faible gravité attend un e-mail. Vous les réglez dans **Paramètres utilisateur → Comment me joindre**.
 
 > [!NOTE]
 > Ces règles n'appartiennent qu'à vous. Les **Règles d'astreinte** de **Incidents → Règles** et de **Alertes → Règles** sont autre chose : elles décident quelles politiques d'astreinte un nouvel incident ou une nouvelle alerte exécute.
 
 :::cards
 - [Comment une alerte vous parvient](#comment-une-alerte-vous-parvient): Vos règles pour une alerte, étape par étape.
+- [Une seule séquence pour tout](#une-seule-séquence-pour-tout): Les étapes que chaque appel essaie, réglées une fois.
 - [Les règles de départ](#les-règles-de-départ): Ce que chaque méthode vérifiée ajoute, et comment l'alléger.
 - [Ajouter une règle](#ajouter-une-règle): Une méthode et un délai pour une gravité.
 - [Règles push](#règles-push): Passer outre le mode silencieux, et répéter jusqu'à la prise en compte.
@@ -26,9 +27,33 @@ flowchart TB
 
 La plupart des messages peuvent prendre en compte l'alerte : les e-mails, les SMS et les messages WhatsApp, Telegram, Slack, Microsoft Teams et Mattermost contiennent un lien de prise en compte, et un appel vous demande d'appuyer sur 1. Si vous ne pouvez pas prendre une alerte, les mêmes messages vous permettent de l'escalader, et un appel vous demande d'appuyer sur 2 : la politique alerte tout de suite son niveau suivant, et vous n'êtes plus alerté à ce sujet. Voir [Escalader une alerte](/docs/on-call/escalation-rules#escalader-une-alerte). Chaque alerte reçue figure dans **Paramètres utilisateur → Journaux d'astreinte**, où **Voir la chronologie** montre chaque message envoyé et s'il a été livré.
 
+## Une seule séquence pour tout
+
+**Paramètres utilisateur → Comment me joindre** s'ouvre sur votre séquence : les étapes que chaque appel essaie, pour les incidents, les alertes et les épisodes de toute gravité. Chaque étape est l'une de vos méthodes vérifiées et le moment de l'utiliser, par exemple un SMS tout de suite et un appel après 5 minutes. Les étapes qui ont le même délai partent ensemble, si bien que la séquence se lit dans l'ordre où elle appelle.
+
+:::steps
+### Ajouter un moyen de vous joindre
+
+Choisissez l'une de vos méthodes vérifiées dans **Ajouter un moyen de vous joindre**. Un numéro ou une adresse qui attend encore son code apparaît sous **Pas encore vérifié**, avec **Vérifier**.
+
+### Choisir quand l'utiliser
+
+À côté de chaque étape, choisissez un délai, de **Immédiatement** à **1 heure**. Une étape push indique aussi comment elle sonne et si elle se répète : voir [Règles push](#règles-push).
+
+### Enregistrer
+
+Cliquez sur **Enregistrer la séquence**. Les mêmes règles sont écrites dans chaque carte de chaque onglet : celles que vous ajouteriez à la main à chaque carte.
+:::
+
+**Tester vos appels**, au pied de la page, vous envoie un appel de test à travers elles.
+
+Quand une gravité mérite autre chose, **Différent pour certaines gravités** ouvre les onglets et les cartes décrits plus bas. Une carte qui diffère de votre séquence est marquée **Diffère de la séquence**, et la séquence indique ce que fait chacune à la place. Si vos règles diffèrent déjà, la page s'ouvre sur les cartes, avec **Utiliser une seule séquence pour tout** : l'enregistrement nomme d'abord les cartes qui perdent leur différence. Une gravité que votre projet a archivée garde ses propres règles.
+
+Une politique d'astreinte décide qui est appelé et quand vient son niveau suivant. La façon dont vous êtes joint est cette séquence, pour chaque politique qui vous appelle.
+
 ## Les quatre onglets
 
-**Paramètres utilisateur → Règles d'astreinte** a un onglet par type d'alerte. Chaque onglet a une carte par gravité, nommée et colorée comme votre projet l'a définie :
+**Paramètres utilisateur → Comment me joindre** a un onglet par type d'alerte. Chaque onglet a une carte par gravité, nommée et colorée comme votre projet l'a définie :
 
 | Onglet | Alertes pour | Cartes pour |
 | --- | --- | --- |
@@ -60,11 +85,11 @@ Vos propres règles n'ont pas d'heures calmes : gardez les faibles gravités sur
 :::steps
 ### Ouvrir la carte
 
-Allez dans **Paramètres utilisateur → Règles d'astreinte**, ouvrez l'onglet du type d'alerte et trouvez la carte de la gravité.
+Allez dans **Paramètres utilisateur → Comment me joindre**, ouvrez l'onglet du type d'alerte et trouvez la carte de la gravité.
 
 ### Choisir la méthode
 
-Cliquez sur **Ajouter : Règle de notification**. Dans **Méthode de notification**, choisissez l'une de vos méthodes vérifiées ; une méthode que vous n'avez pas vérifiée n'est pas proposée.
+Cliquez sur **Ajouter une règle de notification**. Dans **Méthode de notification**, choisissez l'une de vos méthodes vérifiées ; une méthode que vous n'avez pas vérifiée n'est pas proposée.
 
 ### Choisir le son d'un push
 
@@ -72,7 +97,7 @@ Pour un téléphone, choisissez **Notification push** : **Alerte critique** ou *
 
 ### Fixer le délai
 
-Choisissez **Me notifier après** : **Immédiatement**, **5 minutes**, **10 minutes**, **15 minutes**, **30 minutes** ou **1 heure**. Cliquez ensuite sur **Ajouter : Règle de notification** dans la boîte de dialogue.
+Choisissez **Me notifier après** : **Immédiatement**, **5 minutes**, **10 minutes**, **15 minutes**, **30 minutes** ou **1 heure**. Cliquez ensuite sur **Ajouter une règle de notification** dans la boîte de dialogue.
 :::
 
 La carte liste ses règles dans l'ordre de leur délai, avec **Méthode de notification** et **Notifier après** pour chacune.
@@ -105,12 +130,12 @@ L'API peut enregistrer une règle de désinscription, avec `isOptOut` activé et
 :::
 
 :::details Désactiver le repli pour tout un projet
-Un propriétaire du projet, ou une personne disposant de **Manage Billing**, peut définir `disableOnCallNotificationFallback` du projet via l'API. Une alerte qui ne trouve pas de règle n'est alors pas livrée, et son journal indique que l'utilisateur doit ajouter des règles dans **Paramètres utilisateur → Règles d'astreinte**.
+Un propriétaire du projet, ou une personne disposant de **Manage Billing**, peut définir `disableOnCallNotificationFallback` du projet via l'API. Une alerte qui ne trouve pas de règle n'est alors pas livrée, et son journal indique que l'utilisateur doit ajouter des règles dans **Paramètres utilisateur → Comment me joindre**.
 :::
 
 ## Les règles d'un coéquipier
 
-Les propriétaires et les admins du projet peuvent voir et modifier la même page pour toute personne du projet : dans **Utilisateurs**, ils ouvrent la personne, puis **Règles d'astreinte** dans la section **Astreinte**. **Disponibilité**, juste à côté, montre si chaque gravité la joint. Quand quelqu'un d'autre ajoute, modifie ou supprime vos règles, vous recevez un e-mail à ce sujet, et chaque changement figure dans le journal d'audit du projet.
+Les propriétaires et les admins du projet peuvent voir et modifier la même page pour toute personne du projet : dans **Utilisateurs**, ils ouvrent la personne, puis **Comment me joindre** dans la section **Astreinte**. **Disponibilité**, juste à côté, montre si chaque gravité la joint. Quand quelqu'un d'autre ajoute, modifie ou supprime vos règles, vous recevez un e-mail à ce sujet, et chaque changement figure dans le journal d'audit du projet.
 
 ## Dépannage
 

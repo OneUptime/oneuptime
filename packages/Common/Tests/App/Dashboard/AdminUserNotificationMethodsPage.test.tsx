@@ -1112,6 +1112,28 @@ describe("adding a method on somebody's behalf", () => {
     expect(call.data.methodType).toBe("SMS");
   });
 
+  /*
+   * ISSUE #7180: an email address and a phone number both read left to
+   * right in every language, so the box they are typed in does, its example
+   * with it - typed on a Persian or Arabic page, "+15551234567" took the
+   * page's way and put its "+" after its digits. Text still: an email
+   * address has letters a dial pad has not.
+   */
+  test("the box for the address or number reads left to right, its example with it", async () => {
+    await renderPage();
+
+    clickButton(document.body, "Add notification method");
+
+    const valueInput: HTMLElement = screen.getByPlaceholderText(
+      "you@company.com or +15551234567",
+    );
+
+    expect(valueInput).toHaveAttribute("dir", "ltr");
+    expect(valueInput.parentElement).toHaveAttribute("dir", "ltr");
+    expect(valueInput).toHaveAttribute("type", "text");
+    expect(valueInput).not.toHaveAttribute("inputmode", "tel");
+  });
+
   test("re-reads the list and the readiness summary after a successful add", async () => {
     await renderPage();
 
@@ -2332,6 +2354,17 @@ describe("each row's actions: one button and a ⋯ menu", () => {
 
     await renderPage();
 
+    /*
+     * Each row names its method by the method's own name (#7178): a call
+     * method is a "Phone call", never the shared "Call" - a function call
+     * in Chinese.
+     */
+    expect(
+      within(rowFor(MASKED_CALL_PHONE)).getByText("Phone call"),
+    ).toBeInTheDocument();
+    expect(within(rowFor(MASKED_CALL_PHONE)).queryByText("Call")).toBeNull();
+    expect(within(rowFor(MASKED_EMAIL)).getByText("Email")).toBeInTheDocument();
+
     // Both unverified rows are drawn alike: Resend code, and a ⋯ menu.
     expect(rowButtonLabels(rowFor(MASKED_PHONE))).toEqual(["Resend code"]);
     expect(rowButtonLabels(rowFor(MASKED_CALL_PHONE))).toEqual(["Resend code"]);
@@ -2343,10 +2376,18 @@ describe("each row's actions: one button and a ⋯ menu", () => {
     // The menu closes on the choice rather than hanging over the dialog.
     expect(screen.queryByRole("menu")).toBeNull();
 
-    // The confirmation is about the Call row, by channel and by mask.
+    /*
+     * The confirmation is about the Call row, by channel and by mask - the
+     * channel by its method's own name, "Phone call", which each language
+     * words (#7178), cased as the middle of a sentence is.
+     */
     expect(
-      within(modal()).getByText("Remove this Call method?"),
+      within(modal()).getByText("Remove this phone call method?"),
     ).toBeInTheDocument();
+    // The sentence under it names the method so too.
+    expect((modal().textContent || "").replace(/[⁦-⁩]/g, "")).toContain(
+      "This removes the phone call method",
+    );
     expect(modal().textContent).toContain(MASKED_CALL_PHONE);
     expect(modal().textContent).not.toContain(MASKED_PHONE);
 
@@ -2440,7 +2481,7 @@ describe("each row's actions: one button and a ⋯ menu", () => {
     await waitForSettled();
 
     expect(
-      within(modal()).getByText("Remove this Email method?"),
+      within(modal()).getByText("Remove this email method?"),
     ).toBeInTheDocument();
 
     const removeButton: HTMLElement = within(emailRow).getByRole("button", {
@@ -2459,7 +2500,7 @@ describe("each row's actions: one button and a ⋯ menu", () => {
     await waitForSettled();
 
     expect(
-      within(modal()).getByText("Remove this Email method?"),
+      within(modal()).getByText("Remove this email method?"),
     ).toBeInTheDocument();
     expect(apiDeleteMock).not.toHaveBeenCalled();
   });
@@ -2576,11 +2617,11 @@ describe("a project with channels switched off", () => {
    * a channel on.
    */
   const WHY_MISSING: string =
-    "Channels that are off in this project are not offered. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings → Notifications → Notification Settings.";
+    "Channels that are off in this project are not offered. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings → Notifications → Notification Channels.";
 
   // Said to someone who may turn them on, with the page as a link.
   const WHY_MISSING_WITH_LINK: string =
-    "Channels that are off in this project are not offered. Turn them on in Project Settings → Notifications → Notification Settings.";
+    "Channels that are off in this project are not offered. Turn them on in Project Settings → Notifications → Notification Channels.";
 
   type ChannelsOffNoteFunction = () => HTMLElement;
 
@@ -2684,7 +2725,7 @@ describe("a project with channels switched off", () => {
       expect(note.textContent).toBe(WHY_MISSING_WITH_LINK);
 
       const link: HTMLElement = within(note).getByRole("link", {
-        name: "Project Settings → Notifications → Notification Settings",
+        name: "Project Settings → Notifications → Notification Channels",
       });
 
       expect(link.getAttribute("href")).toBe(
@@ -2876,5 +2917,70 @@ describe("a project with channels switched off", () => {
       enableWhatsAppNotifications: true,
       enableTelegramNotifications: true,
     });
+  });
+});
+
+/*
+ * Issue #6605: a masked phone number, "+1 ••• ••• 4821", printed as it was,
+ * read "4821 ••• ••• 1+" on an Arabic page - a number has no letter to say
+ * which way it reads, so it took the page's way. The identifier of an SMS,
+ * call or WhatsApp method is now an isolate that reads left to right
+ * (PhoneNumberText); any other identifier reads the way its letters do
+ * (IsolatedText).
+ */
+describe("a method's identifier reads the way it is written", () => {
+  const identifierOf: (row: HTMLElement) => HTMLElement = (
+    row: HTMLElement,
+  ): HTMLElement => {
+    return within(row).getByTestId("admin-notification-method-identifier");
+  };
+
+  test("a phone number is an isolate that reads left to right, in the grey it was", async () => {
+    await renderPage();
+
+    const identifier: HTMLElement = identifierOf(rowFor(MASKED_PHONE));
+
+    expect(identifier.tagName).toBe("BDI");
+    expect(identifier).toHaveAttribute("dir", "ltr");
+    expect(identifier.textContent).toBe(MASKED_PHONE);
+    expect(identifier).toHaveClass("text-gray-500");
+  });
+
+  test("an email address and a webhook's name are isolates that read as their letters do", async () => {
+    await renderPage();
+
+    for (const masked of [MASKED_EMAIL, MASKED_WEBHOOK]) {
+      const identifier: HTMLElement = identifierOf(rowFor(masked));
+
+      expect(identifier.tagName).toBe("BDI");
+      expect(identifier.textContent).toBe(masked);
+      expect(identifier).toHaveAttribute("dir", "ltr");
+    }
+  });
+
+  test("the removal confirmation names a phone number left to right too", async () => {
+    await renderPage();
+
+    chooseFromRowMenu(rowFor(MASKED_PHONE), "Remove");
+
+    const named: HTMLElement = within(modal()).getByTestId(
+      "admin-notification-method-identifier",
+    );
+
+    expect(named.tagName).toBe("BDI");
+    expect(named).toHaveAttribute("dir", "ltr");
+    expect(named.textContent).toBe(MASKED_PHONE);
+    expect(named).toHaveClass("font-medium", "text-gray-900");
+  });
+
+  test("on an English page the resend sentence names the number as it always did, with no mark", async () => {
+    await renderPage();
+
+    clickButton(rowFor(MASKED_PHONE), "Resend code");
+
+    const text: string = modal().textContent || "";
+
+    expect(text).toContain(`to ${MASKED_PHONE}.`);
+    expect(text).not.toMatch(/[\u2066-\u2069]/);
   });
 });

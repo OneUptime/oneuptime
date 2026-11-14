@@ -36,7 +36,7 @@ import React, { FunctionComponent, ReactElement, ReactNode } from "react";
  *
  *   <CardFormSections className="space-y-6">
  *     <Card title="Monitor Target">...</Card>
- *     <Card title="Monitor Criteria">...</Card>
+ *     <Card title="Criteria">...</Card>
  *   </CardFormSections>
  */
 export const CARD_FORM_SECTIONS_TEST_ID: string = "card-form-sections";

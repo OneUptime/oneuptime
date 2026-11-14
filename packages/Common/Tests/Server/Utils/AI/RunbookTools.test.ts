@@ -18,6 +18,12 @@ import ObjectID from "../../../../Types/ObjectID";
 import PositiveNumber from "../../../../Types/PositiveNumber";
 import RunbookExecutionStatus from "../../../../Types/Runbook/RunbookExecutionStatus";
 import { afterEach, describe, expect, test } from "@jest/globals";
+import {
+  AIActionCardWords,
+  describeAIActionCardWords,
+} from "../../../../Types/AI/AIActionWords";
+import { dashboardTranslator } from "../../../Helpers/DashboardLocales";
+import { expectReadCardWorded } from "../../../Helpers/ReadCardWords";
 
 /*
  * query_runbooks closes the gap where run_runbook said "find the runbook id
@@ -684,5 +690,77 @@ describe("query_runbooks — list mode", () => {
 describe("query_runbooks — permissions", () => {
   test("required permissions derive from the Runbook read ACL", () => {
     expect(QueryRunbooksTool.requiredPermissions.length).toBeGreaterThan(0);
+  });
+});
+
+/*
+ * Issue #7175: a runbook with no steps leaves a card, and it said "Enabled",
+ * "Description" and "Steps" in English on a German page. Its words are
+ * OneUptime's own now; its description is data.
+ */
+describe("query_runbooks — the card of a runbook with no steps, in the reader's language", () => {
+  async function runbookCardWords(
+    runbook: Runbook,
+  ): Promise<AIActionCardWords> {
+    jest
+      .spyOn(RunbookService, "findOneById")
+      .mockResolvedValue(runbook as never);
+    jest
+      .spyOn(RunbookExecutionService, "findBy")
+      .mockResolvedValue([] as never);
+
+    const result: ToolExecutionResult = await QueryRunbooksTool.execute(
+      { runbookId: RUNBOOK_ID.toString() },
+      ctx,
+    );
+
+    expect(result.widget!.data["heading"]).toBe("Database failover");
+
+    return expectReadCardWorded(result.widget);
+  }
+
+  test("enabled: its English, and German", async () => {
+    const words: AIActionCardWords = await runbookCardWords(
+      buildRunbook({ steps: undefined }),
+    );
+
+    expect(describeAIActionCardWords(words)).toEqual({
+      kind: "Runbook",
+      line: "Enabled",
+      facts: [
+        {
+          label: "Description",
+          value: "What to do when the primary database is unreachable.",
+        },
+        { label: "Steps", value: "0" },
+      ],
+    });
+    expect(describeAIActionCardWords(words, dashboardTranslator("de"))).toEqual(
+      {
+        kind: "Runbook",
+        line: "Aktiviert",
+        facts: [
+          {
+            label: "Beschreibung",
+            value: "What to do when the primary database is unreachable.",
+          },
+          { label: "Schritte", value: "0" },
+        ],
+      },
+    );
+  });
+
+  test("disabled: Disabled in the reader's words", async () => {
+    const words: AIActionCardWords = await runbookCardWords(
+      buildRunbook({ steps: undefined, isEnabled: false }),
+    );
+
+    expect(describeAIActionCardWords(words).line).toBe("Disabled");
+    expect(
+      describeAIActionCardWords(words, dashboardTranslator("de")).line,
+    ).toBe("Deaktiviert");
+    expect(
+      describeAIActionCardWords(words, dashboardTranslator("fa")).line,
+    ).toBe("غیرفعال");
   });
 });

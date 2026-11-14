@@ -37,7 +37,7 @@ flowchart TB
 ## 開始之前
 
 - **正在到達的日誌。** 透過 [OpenTelemetry](/docs/telemetry/open-telemetry)、[Fluent Bit](/docs/telemetry/fluentbit)、[Fluentd](/docs/telemetry/fluentd) 或 [Syslog](/docs/telemetry/syslog) 傳送。**設定指南** 分頁會顯示適合你的語言或收集器的設定。
-- **可以讀取遙測的角色。** Project Owner、Project Admin、Project Member、Viewer、Telemetry Admin、Telemetry Member 或 Telemetry Viewer，或者擁有 Read Telemetry Service Log 權限的自訂角色。角色的範圍決定你能看到誰的日誌：請參閱 [遙測](/docs/permissions/index#遙測)。
+- **可以讀取遙測的角色。** Project Owner、Project Admin、Project Member、Viewer、Telemetry Admin、Telemetry Member 或 Telemetry Viewer，或者擁有 Read Logs 權限的自訂角色。角色的範圍決定你能看到誰的日誌：請參閱 [遙測](/docs/permissions/index#遙測)。
 
 ## 尋找日誌行
 
@@ -141,7 +141,7 @@ OneUptime 會記錄三類發現：
 
 | 發現 | OneUptime 何時記錄 | Pull Request |
 | --- | --- | --- |
-| **錯誤日誌** | 某個服務在這一小時內以 Error 或 Fatal 記錄同一則訊息 20 次或更多，且該訊息有自己的詞語、不帶例外狀況。帶著例外狀況或包含堆疊追蹤記錄的訊息，會改在 [例外狀況追蹤](/docs/telemetry/exceptions) 中追蹤。 | 修正該錯誤被記錄的原因，或以它應有的層級記錄它。 |
+| **錯誤日誌** | 某個服務在這一小時內以 Error 或 Fatal 記錄同一則訊息 20 次或更多，且該訊息有自己的詞語、不帶例外狀況。帶著例外狀況或包含堆疊追蹤記錄的訊息，會改在 [例外](/docs/telemetry/exceptions) 中追蹤。 | 修正該錯誤被記錄的原因，或以它應有的層級記錄它。 |
 | **缺少的日誌記錄** | 某個操作的跨度在這一小時內至少有 20 個失敗，占其 5% 或更多，同時該服務至少有 100 筆日誌帶有追蹤 ID，而該操作最近 20 個失敗的請求都沒有寫下任何日誌行。或者某個服務在這一小時內傳送了 500 筆或更多日誌和 100 個或更多跨度，而帶有追蹤 ID 的日誌不到 1%。 | 在失敗發生的地方記錄該失敗，或讓該服務的日誌帶上追蹤 ID。 |
 | **雜訊日誌** | 一則以低於 Error 的層級記錄的訊息，占某個服務這一小時內日誌行的 25% 或更多，約 10,000 行或更多。 | 減少記錄該行：改為 Debug、每批記錄一次，或完全不記錄。 |
 

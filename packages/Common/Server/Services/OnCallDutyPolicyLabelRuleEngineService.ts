@@ -77,7 +77,7 @@ class OnCallDutyPolicyLabelRuleEngineServiceClass
         rules: rules,
       });
     } catch (error) {
-      logger.error(`Error applying on-call duty policy label rules: ${error}`, {
+      logger.error(`Error applying on-call policy label rules: ${error}`, {
         projectId: onCallDutyPolicy.projectId?.toString(),
         onCallDutyPolicyId: onCallDutyPolicy.id?.toString(),
       } as LogAttributes);
@@ -102,7 +102,7 @@ class OnCallDutyPolicyLabelRuleEngineServiceClass
         props: data.props,
       });
     } catch (error) {
-      logger.error(`Error running on-call duty policy label rules: ${error}`, {
+      logger.error(`Error running on-call policy label rules: ${error}`, {
         projectId: data.resource.projectId?.toString(),
         onCallDutyPolicyId: data.resource.id?.toString(),
       } as LogAttributes);
@@ -301,7 +301,7 @@ class OnCallDutyPolicyLabelRuleEngineServiceClass
       return RulePatternMatchUtil.testRegex(pattern, value);
     } catch {
       logger.warn(
-        `Invalid regex in on-call duty policy label rule ${rule.id}: ${pattern}`,
+        `Invalid regex in on-call policy label rule ${rule.id}: ${pattern}`,
       );
       return false;
     }

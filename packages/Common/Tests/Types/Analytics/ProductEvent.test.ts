@@ -111,8 +111,12 @@ describe("the product event catalog", () => {
       return event.name;
     });
 
-    // The guided setups' events are sent since #6804 (GuidedSetupFrame).
-    expect(reserved.sort()).toEqual([ProductEventName.DocsFeedbackGiven]);
+    /*
+     * The guided setups' events are sent since #6804 (GuidedSetupFrame),
+     * and "Was this page helpful?" since #6822 (the docs server's
+     * DocsFeedback): nothing waits for a later issue now.
+     */
+    expect(reserved.sort()).toEqual([]);
 
     for (const event of PRODUCT_EVENTS) {
       if (event.reservedFor) {

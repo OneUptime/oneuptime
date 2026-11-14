@@ -22,7 +22,9 @@
  *
  * The page carries what every frontend's index.ejs carries right after its
  * root: Common/Server/Views/Partials/EntryLoadFailure.ejs, rendered as it
- * is, which says what is wrong when the entry does not load.
+ * is, which says what is wrong when the entry does not load. Its head sets
+ * Tailwind's config with the Dashboard's own script and its root's height
+ * with the Dashboard's own rule, both read from the Dashboard's index.ejs.
  */
 const fs = require("fs");
 const http = require("http");
@@ -193,14 +195,81 @@ const entryLoadFailure = ejs.render(
 );
 
 /*
+ * The Dashboard's own Tailwind config, the script its index.ejs sets it with
+ * right after the entry script: taken from the page the server renders, not
+ * copied, so a page whose Tailwind runtime never arrived runs here what it
+ * runs in production. It runs in the head, right after the runtime, where
+ * this page always set its config: the runtime rebuilds its stylesheet when
+ * the config is set, and there it does so on the timing every case here
+ * was written against.
+ */
+const dashboardIndex = path.join(
+  repository,
+  "packages/App/FeatureSet/Dashboard/views/index.ejs",
+);
+const DASHBOARD_ENTRY_SCRIPT =
+  '<script type="module" src="/dashboard/dist/Index.js"></script>';
+
+function readDashboardTailwindConfig() {
+  const page = ejs.render(
+    fs.readFileSync(dashboardIndex, "utf8"),
+    {},
+    { filename: dashboardIndex },
+  );
+  const entry = page.indexOf(DASHBOARD_ENTRY_SCRIPT);
+  const start = page.indexOf("<script>", entry);
+  const end = page.indexOf("</script>", start);
+
+  if (
+    entry === -1 ||
+    start === -1 ||
+    end === -1 ||
+    !page.slice(start, end).includes("tailwind.config")
+  ) {
+    throw new Error(
+      "The Dashboard's index.ejs no longer sets Tailwind's config right after its entry script",
+    );
+  }
+
+  return page.slice(start, end + "</script>".length);
+}
+
+const dashboardTailwindConfig = readDashboardTailwindConfig();
+
+/*
+ * The Dashboard's rule for its root, from the styles its index.ejs sets
+ * before Tailwind arrives: as tall as the window. The page leaves the
+ * body's margin to Tailwind's preflight, as the Dashboard's does, so a page
+ * whose Tailwind never arrived is as tall here as it is there.
+ */
+const DASHBOARD_ROOT_RULE = /#root\s*\{[^}]*\}/;
+
+function readDashboardRootRule() {
+  const rule = fs
+    .readFileSync(dashboardIndex, "utf8")
+    .match(DASHBOARD_ROOT_RULE);
+
+  if (!rule || !/min-height:\s*100vh/.test(rule[0])) {
+    throw new Error(
+      "The Dashboard's index.ejs no longer makes its root as tall as the window before Tailwind arrives",
+    );
+  }
+
+  return rule[0];
+}
+
+const dashboardRootRule = readDashboardRootRule();
+
+/*
  * The page, as the Dashboard's index.ejs draws it before its bundle: the
  * theme applied before the first paint (?theme=dark, kept for the tab) - a
  * dark page's background painted before any stylesheet arrives, as
  * Common/Server/Views/Partials/Theme.ejs paints it, so a page whose app never
- * started is dark too - the language's direction, Tailwind, Inter and the
- * env the bundle reads.
+ * started is dark too - the language's direction, Tailwind with the
+ * Dashboard's own config, its root as tall as the window (the body's margin
+ * left to Tailwind's preflight), Inter and the env the bundle reads.
  */
-const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>New version</title><script>(function(){var params=new URLSearchParams(window.location.search);var saved={};try{saved=JSON.parse(window.sessionStorage.getItem("new-version-fixture-page")||"{}")}catch(e){}var theme=params.get("theme")||saved.theme||"light";var lang=params.get("lang")||saved.lang||"en";window.sessionStorage.setItem("new-version-fixture-page",JSON.stringify({theme:theme,lang:lang}));if(theme==="dark"){document.documentElement.classList.add("dark");}document.documentElement.lang=lang;document.documentElement.dir=lang==="fa"?"rtl":"ltr";})();window.process={env:{HOST:"localhost",HTTP_PROTOCOL:"http",BILLING_ENABLED:"false",VERSION:"1.0.0"}};window.global=window;</script><script src="/dashboard/assets/js/tailwind-3.4.5.js"></script><script src="/dashboard/assets/js/tailwind-reading-direction.js"></script><script>tailwind.config={darkMode:"class",theme:{extend:{fontFamily:{display:["Inter","sans-serif"],body:["Inter","sans-serif"]}}}};</script><style>@font-face{font-family:'Inter';font-style:normal;font-weight:100 900;font-display:block;src:url('/dashboard/assets/fonts/InterVariable.woff2') format('woff2');}html,body{margin:0;background:var(--ou-background-primary,#f9fafb)}html.dark,html.dark body{background:var(--ou-background-primary,#0f172a)}*{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}</style></head><body><div id="root"></div>${entryLoadFailure}<script type="module" src="/dashboard/dist/Index.js"></script></body></html>`;
+const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>New version</title><script>(function(){var params=new URLSearchParams(window.location.search);var saved={};try{saved=JSON.parse(window.sessionStorage.getItem("new-version-fixture-page")||"{}")}catch(e){}var theme=params.get("theme")||saved.theme||"light";var lang=params.get("lang")||saved.lang||"en";window.sessionStorage.setItem("new-version-fixture-page",JSON.stringify({theme:theme,lang:lang}));if(theme==="dark"){document.documentElement.classList.add("dark");}document.documentElement.lang=lang;document.documentElement.dir=lang==="fa"?"rtl":"ltr";})();window.process={env:{HOST:"localhost",HTTP_PROTOCOL:"http",BILLING_ENABLED:"false",VERSION:"1.0.0"}};window.global=window;</script><script src="/dashboard/assets/js/tailwind-3.4.5.js"></script><script src="/dashboard/assets/js/tailwind-reading-direction.js"></script>${dashboardTailwindConfig}<style>@font-face{font-family:'Inter';font-style:normal;font-weight:100 900;font-display:block;src:url('/dashboard/assets/fonts/InterVariable.woff2') format('woff2');}html,body{background:var(--ou-background-primary,#f9fafb)}${dashboardRootRule}html.dark,html.dark body{background:var(--ou-background-primary,#0f172a)}*{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}</style></head><body><div id="root"></div>${entryLoadFailure}<script type="module" src="/dashboard/dist/Index.js"></script></body></html>`;
 
 function readBody(request) {
   return new Promise((resolve) => {

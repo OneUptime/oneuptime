@@ -57,6 +57,7 @@ import NotificationRuleEventType from "../../../Types/Workspace/NotificationRule
 import NotificationRuleInvites from "../../../Types/Workspace/NotificationRules/NotificationRuleInvites";
 import {
   ConditionType,
+  getCheckOnLabel,
   NotificationRuleConditionCheckOn,
 } from "../../../Types/Workspace/NotificationRules/NotificationRuleCondition";
 import IncidentNotificationRule from "../../../Types/Workspace/NotificationRules/NotificationRuleTypes/IncidentNotificationRule";
@@ -863,7 +864,9 @@ describe("the sentences that say what a rule does", () => {
 describe("the words of a rule's conditions", () => {
   test("every field a condition can check, and every way it compares, is listed", () => {
     expect([...Copy.CONDITION_FIELD_WORDS].sort()).toEqual(
-      Object.values(NotificationRuleConditionCheckOn).sort(),
+      Object.values(NotificationRuleConditionCheckOn)
+        .map(getCheckOnLabel)
+        .sort(),
     );
     expect([...Copy.CONDITION_OPERATOR_WORDS].sort()).toEqual(
       Object.values(ConditionType).sort(),
@@ -881,9 +884,40 @@ describe("the words of a rule's conditions", () => {
     ).toBe("Vorfallsstatus");
     expect(
       german.translateText(
-        NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels,
+        getCheckOnLabel(
+          NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels,
+        ),
       ),
     ).toBe("Beschriftungen der Bereitschaftsrichtlinie");
+  });
+
+  /*
+   * The on-call fields keep the value a saved rule matches on, from when
+   * the product was "On Call Duty", and are shown by the product's name
+   * now (#6817): the dropdown and the card never draw the old words.
+   */
+  test("a field stored under the old on-call name is shown as On-Call", () => {
+    expect(NotificationRuleConditionCheckOn.OnCallDutyPolicyName).toBe(
+      "On Call Duty Policy Name",
+    );
+    expect(
+      getCheckOnLabel(NotificationRuleConditionCheckOn.OnCallDutyPolicyName),
+    ).toBe("On-Call Policy Name");
+    expect(
+      getCheckOnLabel(
+        NotificationRuleConditionCheckOn.OnCallDutyPolicyDescription,
+      ),
+    ).toBe("On-Call Policy Description");
+    expect(
+      getCheckOnLabel(NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels),
+    ).toBe("On-Call Policy Labels");
+    expect(
+      getCheckOnLabel(NotificationRuleConditionCheckOn.IncidentState),
+    ).toBe("Incident State");
+
+    for (const checkOn of Object.values(NotificationRuleConditionCheckOn)) {
+      expect(getCheckOnLabel(checkOn)).not.toMatch(/On Call Duty/);
+    }
   });
 });
 

@@ -2,6 +2,9 @@
 
 En vaktretningslinje varsler folk i nivåer. Hver eskaleringsregel er ett nivå: hvem som varsles, og hvor lenge det ventes på at noen bekrefter før neste nivå varsles. Reglene i en retningslinje står i rekkefølge på siden **Eskaleringsregler**.
 
+> [!TIP]
+> Ny her? Følg guiden først: [Bli varslet via telefon, SMS eller push](/docs/guides/paging).
+
 ```mermaid title="En vaktretningslinje varsler nivå for nivå til noen bekrefter"
 flowchart TB
     trigger["Hendelse eller varsel"] --> level1["Level 1 varsler"]
@@ -29,7 +32,7 @@ flowchart TB
 Når du oppretter en vaktretningslinje på siden **Vaktretningslinjer**, spør skjemaet om **Navn** og **Hvem varsles først?**. Spørsmålet bruker samme velger som **Varsle**: vaktplaner, team og personer, så mange du trenger. De du velger, blir den første eskaleringsregelen i retningslinjen, **Level 1**, som venter **30 minutter** på en bekreftelse før neste nivå varsles.
 
 :::steps
-1. Gå til **Vakttjeneste** > **Vaktretningslinjer**, og klikk på **Opprett Vaktpolicy**.
+1. Gå til **Vakt** > **Vaktretningslinjer**, og klikk på **Opprett Vaktpolicy**.
 2. Skriv inn et **Navn**.
 3. Klikk på **Legg til mottaker** under **Hvem varsles først?**, og velg vaktplanene, teamene og personene som skal varsles først.
 4. Klikk på **Opprett Vaktpolicy**. Den nye retningslinjen åpnes deretter på siden **Eskaleringsregler**, der du kan legge til flere nivåer.
@@ -89,7 +92,7 @@ Oversikten øverst på siden **Eskaleringsregler** viser hele stigen: når hvert
 
 ### Slik nås hver person
 
-Hver person et nivå varsler, nås slik personens egne vaktregler sier: **Brukerinnstillinger** > **Vaktregler**, med en fane for hendelser, hendelsesepisoder, varsler og varselepisoder, og et kort per alvorlighetsgrad som viser hvilken varselmetode som prøves og etter hvor lang tid. En prosjektadministrator kan se og endre reglene til et medlem under **Brukere** > medlemmet > **Vaktregler**. Se [Personlige vaktregler](/docs/notifications/on-call-rules).
+Hver person et nivå varsler, nås slik personens egne vaktregler sier: **Brukerinnstillinger** > **Slik når man meg**, med en fane for hendelser, hendelsesepisoder, varsler og varselepisoder, og et kort per alvorlighetsgrad som viser hvilken varselmetode som prøves og etter hvor lang tid. En prosjektadministrator kan se og endre reglene til et medlem under **Brukere** > medlemmet > **Slik når man meg**. Se [Slik når man meg](/docs/notifications/on-call-rules).
 
 ```mermaid title="Hvem et nivå varsler, og hvordan hver person nås"
 flowchart TB
@@ -166,14 +169,14 @@ Eierne av prosjektet får én e-post om det, til saldoen er fylt på eller kanal
 
 Et varsel som ikke nådde OneUptimes varslingstjeneste, sier `Could not reach the Notification service to send this (ECONNREFUSED).`, med koden for nettverksfeilen i parentesen. Et varsel der sendingen aldri ble ferdig, for eksempel fordi en server startet på nytt under sendingen, sier `Sending did not finish within 15 minutes, so this notification may not have been sent.` Blir sendingen likevel ferdig, erstatter resultatet den meldingen.
 
-På OneUptime Cloud betales hver SMS, hvert anrop og hver WhatsApp- og Telegram-melding fra prosjektets saldo på **Prosjektinnstillinger > Varsler > Varselinnstillinger**: den nøyaktige kostnaden trekkes fra saldoen når leverandøren tar imot meldingen, uansett hvor mange meldinger som går ut samtidig.
+På OneUptime Cloud betales hver SMS, hvert anrop og hver WhatsApp- og Telegram-melding fra prosjektets saldo på **Prosjektinnstillinger > Varsler > Varslingskanaler**: den nøyaktige kostnaden trekkes fra saldoen når leverandøren tar imot meldingen, uansett hvor mange meldinger som går ut samtidig.
 
 - Med **Automatisk påfylling** slått på der, legger meldingen som finner saldoen under terskelen, først til beløpet automatisk påfylling er satt til, og belaster prosjektets kort; meldinger som finner saldoen lav i samme øyeblikk, belaster kortet én gang.
-- Hvis belastningen mislykkes (det finnes ingen betalingsmetode, eller kortet ble avvist), prøver automatisk påfylling kortet igjen en time senere, og **Varselinnstillinger** sier det øverst til da. Å fylle på saldoen manuelt, eller å lagre automatisk påfylling på nytt, prøver med en gang.
+- Hvis belastningen mislykkes (det finnes ingen betalingsmetode, eller kortet ble avvist), prøver automatisk påfylling kortet igjen en time senere, og **Varslingskanaler** sier det øverst til da. Å fylle på saldoen manuelt, eller å lagre automatisk påfylling på nytt, prøver med en gang.
 - Varslene fortsetter å gå ut på saldoen som er igjen, mens automatisk påfylling ikke får belastet kortet.
 
 > [!IMPORTANT]
-> SMS, telefonanrop, WhatsApp og Telegram er slått av i et nytt prosjekt: på OneUptime Cloud betales hver melding fra prosjektets saldo, og en selvdriftet installasjon trenger først en Twilio-konto, en SMS- og anropsgateway eller en Telegram-bot som er satt opp. Så lenge en kanal er slått av, kan ingen i prosjektet legge til en metode på den. Bare en prosjekteier, en **Faktureringsadministrator** eller noen med tillatelsen **Manage Billing** kan slå en på, i kortet **Varslingskanaler** på **Prosjektinnstillinger > Varsler > Varselinnstillinger** — en prosjektadministrator kan ikke. Alle andre får vite nøyaktig hvem som kan, overalt der en kanal er slått av: over sin egen liste med metoder på den, på oppsettsjekklisten sin og i meldingen de får når noe trenger den.
+> SMS, telefonanrop, WhatsApp og Telegram er slått av i et nytt prosjekt: på OneUptime Cloud betales hver melding fra prosjektets saldo, og en selvdriftet installasjon trenger først en Twilio-konto, en SMS- og anropsgateway eller en Telegram-bot som er satt opp. Så lenge en kanal er slått av, kan ingen i prosjektet legge til en metode på den. Bare en prosjekteier, en **Faktureringsadministrator** eller noen med tillatelsen **Manage Billing** kan slå en på, i kortet **Varslingskanaler** på **Prosjektinnstillinger > Varsler > Varslingskanaler** — en prosjektadministrator kan ikke. Alle andre får vite nøyaktig hvem som kan, overalt der en kanal er slått av: over sin egen liste med metoder på den, på oppsettsjekklisten sin og i meldingen de får når noe trenger den.
 
 ## Eskaler til neste person i rotasjonen
 

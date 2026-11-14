@@ -10,7 +10,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 const DashboardSideMenu: FunctionComponent = (): ReactElement => {
   const sections: SideMenuSectionProps[] = [
     {
-      title: "Profiler",
+      title: "Profiles",
       items: [
         {
           link: {

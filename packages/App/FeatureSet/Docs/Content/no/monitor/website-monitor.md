@@ -2,6 +2,9 @@
 
 En nettstedsmonitor sjekker at en nettside svarer. Ved hver sjekk ber en sonde om sidens URL, og monitoren går frakoblet og erklærer en hendelse når siden ikke svarer eller svarer med en feil. For å kalle et endepunkt med en metode, hoder eller en brødtekst bruker du heller en [API-monitor](/docs/monitor/api-monitor).
 
+> [!TIP]
+> Ny her? Følg guiden først: [Få beskjed når nettstedet eller API-et ditt går ned](/docs/guides/website-down).
+
 :::cards
 - [Opprett monitoren](#opprett-en-nettstedsmonitor): Seks trinn i dashbordet.
 - [Konfigurasjonsalternativer](#konfigurasjonsalternativer): URL-plassholdere, omdirigeringer, sertifikater, tidsavbrudd og nye forsøk.
@@ -57,7 +60,7 @@ Klikk på **Test monitor**, velg en sonde under **Velg sonde**, og klikk på **K
 
 ### Gå gjennom kriteriene
 
-**Monitorkriterier** starter med [standardkriteriene](#standardkriterier): frakoblet når nettstedet ikke svarer eller svarer med en feil, tilkoblet ved enhver status `2xx` eller `3xx`. Endre dem ved behov, og klikk så på **Neste**.
+**Kriterier** starter med [standardkriteriene](#standardkriterier): frakoblet når nettstedet ikke svarer eller svarer med en feil, tilkoblet ved enhver status `2xx` eller `3xx`. Endre dem ved behov, og klikk så på **Neste**.
 
 ### Velg sonder og opprett
 

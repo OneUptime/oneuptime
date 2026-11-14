@@ -250,7 +250,10 @@ const DashboardSecurityEventsListComponentElement: FunctionComponent<
   return (
     <DashboardResourceListBase
       title={props.component.arguments.title}
-      pluralLabel="events"
+      countLabel={{
+        one: "{{count}} event",
+        other: "{{count}} events",
+      }}
       columns={COLUMNS}
       count={securityEvents.length}
       isLoading={isLoading}

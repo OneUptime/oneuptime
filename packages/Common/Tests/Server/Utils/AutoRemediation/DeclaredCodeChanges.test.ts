@@ -9,8 +9,10 @@ import IncidentFeedService from "../../../../Server/Services/IncidentFeedService
 import CodeTaskAccess from "../../../../Server/Utils/AI/CodeTask/CodeTaskAccess";
 import CodeTaskContextBuilder from "../../../../Server/Utils/AI/CodeTask/CodeTaskContextBuilder";
 import CodeTaskGate from "../../../../Server/Utils/AI/CodeTask/CodeTaskGate";
+import CodeTaskListRows, {
+  CodeTaskRepliesRead,
+} from "../../../../Server/Utils/AI/CodeTask/CodeTaskListRows";
 import CodeTaskRuns from "../../../../Server/Utils/AI/CodeTask/CodeTaskRuns";
-import CodeTaskThread from "../../../../Server/Utils/AI/CodeTask/CodeTaskThread";
 import DeclaredCodeOwner, {
   DeclaredCodeOwnerCandidate,
 } from "../../../../Server/Utils/AI/Remediation/DeclaredCodeOwner";
@@ -66,8 +68,9 @@ import type { SpyInstance } from "jest-mock";
  *     linked to the fix and its step; the same step asked again gets the
  *     task already on its way; the incident's feed - and its chat channels -
  *     say who asked;
- *   - list: each step's task as it stands, the pull request named only to a
- *     reader of its repository;
+ *   - list: each step's task as it stands - its newest turn, however many
+ *     it has (issue #7131) - the pull request named only to a reader of
+ *     its repository;
  *   - onPullRequestOpened: the pull request on the incident's feed and
  *     channels, for a task asked from a fix, from any of its turns.
  */
@@ -200,8 +203,8 @@ describe("DeclaredCodeChanges", () => {
   let startTask: SpyInstance<typeof CodeTaskRuns.start>;
   let findRuns: SpyInstance<typeof AIRunService.findBy>;
   let findRun: SpyInstance<typeof AIRunService.findOneBy>;
-  let replies: SpyInstance<typeof CodeTaskThread.getRepliesByTask>;
-  let pullRequests: SpyInstance<typeof CodeTaskThread.getPullRequests>;
+  let replies: SpyInstance<typeof CodeTaskListRows.readReplies>;
+  let pullRequests: SpyInstance<typeof CodeTaskListRows.readPullRequests>;
   let incidentFeed: SpyInstance<
     typeof IncidentFeedService.createIncidentFeedItem
   >;
@@ -283,11 +286,11 @@ describe("DeclaredCodeChanges", () => {
     findRuns = jest.spyOn(AIRunService, "findBy").mockResolvedValue([]);
     findRun = jest.spyOn(AIRunService, "findOneBy").mockResolvedValue(null);
     replies = jest
-      .spyOn(CodeTaskThread, "getRepliesByTask")
+      .spyOn(CodeTaskListRows, "readReplies")
       .mockResolvedValue(new Map());
     pullRequests = jest
-      .spyOn(CodeTaskThread, "getPullRequests")
-      .mockResolvedValue([]);
+      .spyOn(CodeTaskListRows, "readPullRequests")
+      .mockResolvedValue(new Map());
     incidentFeed = jest
       .spyOn(IncidentFeedService, "createIncidentFeedItem")
       .mockResolvedValue({} as never);
@@ -755,9 +758,24 @@ describe("DeclaredCodeChanges", () => {
       },
     );
 
+    // The pull request each task shows, by task (CodeTaskListRows).
+    function shown(
+      pullRequestOf: AIAgentTaskPullRequest,
+    ): Map<string, AIAgentTaskPullRequest> {
+      return new Map([[CodeTaskListRows.key(TASK_ID), pullRequestOf]]);
+    }
+
+    // The task's replies as read: how many, and the newest.
+    function newestReply(
+      newest: AIRun,
+      count: number = 1,
+    ): Map<string, CodeTaskRepliesRead> {
+      return new Map([[CodeTaskListRows.key(TASK_ID), { count, newest }]]);
+    }
+
     test("a task that opened a pull request reads opened, with its link", async () => {
       findRuns.mockResolvedValue([task({ status: AIRunStatus.Completed })]);
-      pullRequests.mockResolvedValue([pullRequest(TASK_ID)]);
+      pullRequests.mockResolvedValue(shown(pullRequest(TASK_ID)));
 
       expect(await list()).toEqual([
         {
@@ -775,17 +793,91 @@ describe("DeclaredCodeChanges", () => {
       const replyId: ObjectID = ObjectID.generate();
       const reply: AIRun = new AIRun();
       reply.id = replyId;
+      reply.codeTaskId = TASK_ID;
       reply.status = AIRunStatus.Running;
       findRuns.mockResolvedValue([task({ status: AIRunStatus.Completed })]);
-      replies.mockResolvedValue(new Map([[TASK_ID.toString(), [reply]]]));
-      pullRequests.mockResolvedValue([pullRequest(replyId)]);
+      replies.mockResolvedValue(newestReply(reply));
+      pullRequests.mockResolvedValue(shown(pullRequest(replyId)));
 
       expect((await list())[0]!["state"]).toBe(DeclaredCodeChangeState.Opened);
     });
 
+    /*
+     * A task kept open as a working thread for months: its newest turn says
+     * how it stands, however many came before it. The list read a page of
+     * tasks' replies oldest first, cut at 10,000 - so a task past that read
+     * as it stood when its 10,000th reply was asked (issue #7131).
+     */
+    test.each([
+      [AIRunStatus.Running, false, DeclaredCodeChangeState.Writing],
+      [AIRunStatus.Completed, true, DeclaredCodeChangeState.WaitingForYou],
+      [AIRunStatus.Error, false, DeclaredCodeChangeState.Failed],
+    ])(
+      "a task of 12,000 turns whose newest is %s (asking: %s) reads %s - not as its first turn stood",
+      async (
+        status: AIRunStatus,
+        needsUserInput: boolean,
+        state: DeclaredCodeChangeState,
+      ) => {
+        const newest: AIRun = new AIRun();
+        newest.id = ObjectID.generate();
+        newest.codeTaskId = TASK_ID;
+        newest.status = status;
+        newest.needsUserInput = needsUserInput;
+        findRuns.mockResolvedValue([task({ status: AIRunStatus.Completed })]);
+        replies.mockResolvedValue(newestReply(newest, 11999));
+
+        expect((await list())[0]!["state"]).toBe(state);
+      },
+    );
+
+    test("negative control: a task nobody replied to reads as its first turn stands - another task's newest turn is not its", async () => {
+      const otherTask: ObjectID = ObjectID.generate();
+      const othersNewest: AIRun = new AIRun();
+      othersNewest.id = ObjectID.generate();
+      othersNewest.codeTaskId = otherTask;
+      othersNewest.status = AIRunStatus.Running;
+      findRuns.mockResolvedValue([task({ status: AIRunStatus.Error })]);
+      replies.mockResolvedValue(
+        new Map([
+          [CodeTaskListRows.key(otherTask), { count: 3, newest: othersNewest }],
+        ]),
+      );
+
+      expect((await list())[0]!["state"]).toBe(DeclaredCodeChangeState.Failed);
+    });
+
+    test("each step's newest task is read per task, in this tenant - never every reply of every task", async () => {
+      const older: ObjectID = ObjectID.generate();
+      const second: ObjectID = ObjectID.generate();
+      findRuns.mockResolvedValue([
+        task({ status: AIRunStatus.Running }),
+        task({ id: older, status: AIRunStatus.Error }),
+        task({ id: second, status: AIRunStatus.Completed, sequence: 2 }),
+      ]);
+
+      await list();
+
+      for (const read of [replies, pullRequests]) {
+        expect(read).toHaveBeenCalledTimes(1);
+        const asked: { projectId: ObjectID; taskIds: Array<ObjectID> } = read
+          .mock.calls[0]![0] as never;
+        expect(asked.projectId).toEqual(PROJECT_ID);
+        // The step asked again is read; the older task it replaced is not.
+        expect(
+          asked.taskIds.map((id: ObjectID): string => {
+            return id.toString();
+          }),
+        ).toEqual([TASK_ID.toString(), second.toString()]);
+      }
+
+      // One read of runs: the fix's tasks. No reply is read one by one.
+      expect(findRuns).toHaveBeenCalledTimes(1);
+    });
+
     test("a reader who may not read the repository is not given the pull request", async () => {
       findRuns.mockResolvedValue([task({ status: AIRunStatus.Completed })]);
-      pullRequests.mockResolvedValue([pullRequest(TASK_ID)]);
+      pullRequests.mockResolvedValue(shown(pullRequest(TASK_ID)));
       readable.mockResolvedValue([]);
 
       expect(await list()).toEqual([

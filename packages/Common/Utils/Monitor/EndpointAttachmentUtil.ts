@@ -524,9 +524,14 @@ export default class EndpointAttachmentUtil {
    * True when applying `decision` to `existing` would change nothing a
    * reader can observe, and lastSeenAt is fresh enough that skipping the
    * refresh is safe. Deliberately conservative — any doubt (a row that
-   * still needs the firstSeenAt backfill, a row whose lastSeenAt sits in
-   * the future because of clock skew, a row we have never seen a
+   * still needs the firstSeenAt backfill, a row we have never seen a
    * timestamp for) falls through to a real write.
+   *
+   * A sighting older than the row's lastSeenAt refreshes nothing either.
+   * That is an older poll processed after a newer one (OneUptime issue
+   * #7389), or a row stamped by a clock a little ahead. The write never
+   * moves lastSeenAt backwards (NetworkEndpointService keeps the later of
+   * the two), so writing it would change nothing.
    */
   private static isUnchangedSighting(
     existing: EndpointExistingRowSnapshot,
@@ -543,7 +548,7 @@ export default class EndpointAttachmentUtil {
       context.lastSeenRefreshMs ?? ENDPOINT_LAST_SEEN_REFRESH_MS;
     const ageMs: number =
       context.now.getTime() - new Date(existing.lastSeenAt).getTime();
-    if (ageMs < 0 || ageMs >= refreshMs) {
+    if (ageMs >= refreshMs) {
       return false;
     }
 

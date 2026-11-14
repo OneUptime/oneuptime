@@ -1,4 +1,7 @@
-import { getNumberLocale } from "../../../Types/DateLanguage";
+import {
+  getLocaleClockHourOption,
+  getNumberLocale,
+} from "../../../Types/DateLanguage";
 import { Blue500 } from "../../../Types/BrandColors";
 import CalendarEvent from "../../../Types/Calendar/CalendarEvent";
 import Color from "../../../Types/Color";
@@ -282,9 +285,13 @@ export const getCalendarFormats: (language: string | undefined) => Formats = (
     };
   };
 
-  // Two-digit hours: a German or Japanese grid says 00:00 and 08:00.
+  /*
+   * The hours on the language's own clock: a German or Japanese grid says
+   * 00:00 and 08:00, a Korean or Arabic one 오전 8:00 and 8:00 ص - a
+   * 12-hour time has no leading zero (issue #7279).
+   */
   const time: (date: Date) => string = formatter({
-    hour: "2-digit",
+    hour: getLocaleClockHourOption(getNumberLocale(code) || code),
     minute: "2-digit",
   });
 

@@ -388,7 +388,7 @@ describe("a create that lists records", () => {
     );
 
     expect((refusal as Error).message).toBe(
-      `This scheduled maintenance event references records that are not in this project: Monitors "${MONITOR_B}", Status Pages "${PAGE_B}". Please pick values from this project and try again.`,
+      `This maintenance event references records that are not in this project: Monitors "${MONITOR_B}", Status Pages "${PAGE_B}". Please pick values from this project and try again.`,
     );
   });
 
@@ -625,7 +625,7 @@ describe("a create that lists records", () => {
     );
 
     expect((refusal as Error).message).toContain(
-      `On-Call Duty Policies "${POLICY_A}"`,
+      `On-Call Policies "${POLICY_A}"`,
     );
     expect(lookups.readCalls[0]?.modelType).toBe(OnCallDutyPolicy);
   });

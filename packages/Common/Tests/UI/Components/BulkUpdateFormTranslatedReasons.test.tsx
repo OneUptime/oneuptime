@@ -116,7 +116,7 @@ describe("BulkUpdateForm: the reason against each item", () => {
   });
 
   test("a failure nobody translated is shown as it came", async () => {
-    const untranslated: string = "Server Error. Please try again";
+    const untranslated: string = "The monitor is locked by another change.";
 
     renderAndRun(async (row: Row): Promise<BulkItemOutcome> => {
       if (row._id === "b") {

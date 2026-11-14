@@ -1,4 +1,5 @@
 import MimeType from "../../../Types/File/MimeType";
+import { FileSizeOptions, formatFileSize } from "../../../Types/File/FileSize";
 import { Translator } from "../../Utils/TranslateTemplate";
 
 /*
@@ -7,6 +8,14 @@ import { Translator } from "../../Utils/TranslateTemplate";
  * picker's file has arrived (LazyFilePicker), so the two take the same room
  * at any width.
  */
+
+/*
+ * A picked file's name: the whole of it, wrapped where it has to be. Drawn
+ * as a line of its own (IsolatedLine) by the picker and by what draws in its
+ * place until it has arrived, so both take the same room.
+ */
+export const FILE_PICKER_FILE_NAME_CLASS_NAME: string =
+  "break-words text-sm font-medium text-gray-900 [overflow-wrap:anywhere]";
 
 // What any upload may be, unless the picker is given less.
 export const DEFAULT_MAX_FILE_SIZE_IN_BYTES: number = 10 * 1024 * 1024;
@@ -25,19 +34,21 @@ export const getMaxFileSizeInBytes: GetMaxFileSizeInBytesFunction = (
     : DEFAULT_MAX_FILE_SIZE_IN_BYTES;
 };
 
-type FormatFileSizeLimitFunction = (bytes: number) => string;
+type FormatFileSizeLimitFunction = (
+  bytes: number,
+  options?: FileSizeOptions,
+) => string;
 
-// A limit as people read it: "512 KB", "1 MB", "1.5 MB".
+/*
+ * A limit as people read it: "512 KB", "1 MB", "1.5 MB" - in the reader's
+ * digits, as every file's size is (Types/File/FileSize): "۱۰ MB" on a
+ * Persian page. Never in bytes: a limit under a kilobyte reads "1 KB".
+ */
 export const formatFileSizeLimit: FormatFileSizeLimitFunction = (
   bytes: number,
+  options?: FileSizeOptions,
 ): string => {
-  const megabytes: number = bytes / (1024 * 1024);
-
-  if (megabytes >= 1) {
-    return `${Math.round(megabytes * 10) / 10} MB`;
-  }
-
-  return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return formatFileSize(Math.max(bytes, 1024), options);
 };
 
 export interface FilePickerLayout {
@@ -124,10 +135,9 @@ export const getFilePickerPromptWords: (
   const maxFileSizeBytes: number = getMaxFileSizeInBytes(
     data.maxFileSizeInBytes,
   );
-  const maxFileSize: string = formatFileSizeLimit(maxFileSizeBytes);
-  // The everyday limit keeps its own wording (and its translations).
-  const hasOwnLimit: boolean =
-    maxFileSizeBytes !== DEFAULT_MAX_FILE_SIZE_IN_BYTES;
+  const maxFileSize: string = formatFileSizeLimit(maxFileSizeBytes, {
+    language: translator.language,
+  });
 
   const typeNames: () => string = (): string => {
     return (data.mimeTypes || [])
@@ -168,22 +178,35 @@ export const getFilePickerPromptWords: (
             ? "Click to choose files or drag & drop."
             : "Click to choose a file or drag & drop.",
     ),
+    /*
+     * Every limit, the everyday 10 MB too, is one value of its sentence:
+     * written in the reader's digits and set apart from the words around
+     * it, so a page read from the right draws "۱۰ MB", never "MB 10" - as
+     * a limit written into the words ("Max 10MB each.") was drawn on Arabic
+     * and Persian pages (issue #7233). Drawn on the page only, so its
+     * isolate marks never reach a record. A hint the picker is given (a
+     * custom field's "... up to {{size}}.") names the same limit: its
+     * {{size}} is this picker's.
+     */
     hint: data.hint
-      ? translator.translateText(data.hint)
+      ? translator.translateTemplate(
+          data.hint,
+          { size: maxFileSize },
+          { setsValuesApart: true },
+        )
       : data.mimeTypes && data.mimeTypes.length > 0
         ? translator.translateTemplate(
-            hasOwnLimit
-              ? "Types: {{types}}. Max {{size}} each."
-              : "Types: {{types}}. Max 10MB each.",
+            "Types: {{types}}. Max {{size}} each.",
             {
               size: maxFileSize,
               types: typeNames(),
             },
+            { setsValuesApart: true },
           )
-        : hasOwnLimit
-          ? translator.translateTemplate("Max {{size}} each.", {
-              size: maxFileSize,
-            })
-          : translator.translateText("Max 10MB each."),
+        : translator.translateTemplate(
+            "Max {{size}} each.",
+            { size: maxFileSize },
+            { setsValuesApart: true },
+          ),
   };
 };

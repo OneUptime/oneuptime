@@ -358,3 +358,75 @@ describe("the card's stylesheet in dark mode", () => {
     },
   );
 });
+
+/*
+ * The screen is as wide as its place, with its padding inside that width:
+ * every box it draws is border-box by the card's own stylesheet, the
+ * screen's own box included. Tailwind's preflight makes every box so, but
+ * the card is also drawn where the page's Tailwind did not arrive - the
+ * connection dropped as the page loaded (Common/Server/Views/Partials/
+ * EntryLoadFailure.ejs, which copies these rules) - and there the screen's
+ * width plus its padding ran past the window: 48px at a laptop's width.
+ */
+describe("the card's stylesheet without the app's", () => {
+  const COMMENT_REGEX: RegExp = /\/\*[\s\S]*?\*\//g;
+  const BORDER_BOX_RULE_REGEX: RegExp =
+    /([^{}]+)\{\s*box-sizing:\s*border-box;\s*\}/g;
+
+  // What the sheet's own border-box rule names, pseudo-elements left out.
+  const borderBoxSelectors: () => Array<string> = (): Array<string> => {
+    const selectors: Array<string> = [];
+
+    for (const match of ERROR_SCREEN_CSS.replace(COMMENT_REGEX, "").matchAll(
+      BORDER_BOX_RULE_REGEX,
+    )) {
+      for (const selector of match[1]!.split(",")) {
+        if (!selector.includes("::")) {
+          selectors.push(selector.trim());
+        }
+      }
+    }
+
+    return selectors;
+  };
+
+  test("keeps every box of the screen border-box, the screen's own included", () => {
+    render(
+      <PageScreenCard
+        dataTestId="screen"
+        titleTestId="screen-title"
+        tone={PageScreenTone.Neutral}
+        iconPath={OFFLINE_ICON_PATH}
+        title="You're offline"
+        message="It will come back."
+        actions={[
+          {
+            title: "Try again",
+            onClick: (): void => {},
+            dataTestId: "screen-action",
+          },
+        ]}
+      />,
+    );
+
+    const selectors: Array<string> = borderBoxSelectors();
+    const screenBox: HTMLElement = screen.getByTestId("screen");
+    const boxes: Array<Element> = [
+      screenBox,
+      ...Array.from(screenBox.querySelectorAll("*")),
+    ];
+
+    expect(boxes.length).toBeGreaterThan(8);
+    expect(
+      boxes
+        .filter((box: Element): boolean => {
+          return !selectors.some((selector: string): boolean => {
+            return box.matches(selector);
+          });
+        })
+        .map((box: Element): string => {
+          return box.getAttribute("class") || box.tagName;
+        }),
+    ).toEqual([]);
+  });
+});

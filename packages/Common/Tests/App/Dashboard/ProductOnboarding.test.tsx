@@ -110,6 +110,8 @@ import ResourceShowcaseCard, {
   RESOURCE_SHOWCASE_DESCRIPTION_TEST_ID,
   RESOURCE_SHOWCASE_DOCS_LINK_TEST_ID,
   RESOURCE_SHOWCASE_FEATURES_TITLE,
+  RESOURCE_SHOWCASE_GUIDE_LINK_TEST_ID,
+  RESOURCE_SHOWCASE_GUIDE_TEXT,
   RESOURCE_SHOWCASE_HIGHLIGHTS_TEST_ID,
   RESOURCE_SHOWCASE_PREVIEW_TEST_ID,
   RESOURCE_SHOWCASE_STAT_VALUE_TEST_ID,
@@ -120,6 +122,7 @@ import ResourceShowcaseCard, {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceShowcase/ResourceShowcaseCard";
 import { ResourceShowcase } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceShowcase/ResourceShowcase";
 import {
+  OnboardedProductKey,
   PRODUCT_EXAMPLE_DESCRIPTION,
   ProductKey,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ProductOnboarding/ProductOnboarding";
@@ -323,6 +326,55 @@ describe("the showcase, as a product draws it", () => {
     expect(docs).toHaveAttribute("href", "/docs/monitor/create-monitor");
     // The docs open beside the dashboard, not in its place.
     expect(docs).toHaveAttribute("target", "_blank");
+    // A product with no guide (#6821) draws no link to one.
+    expect(
+      screen.queryByTestId(RESOURCE_SHOWCASE_GUIDE_LINK_TEST_ID),
+    ).toBeNull();
+  });
+
+  test("links the job's step-by-step guide before the documentation, when the product has one", async () => {
+    await renderInRouter(
+      <ResourceShowcaseCard
+        showcase={MONITORS_SHOWCASE}
+        addButton={startButton}
+        docsRoute={new Route("/docs/on-call/index")}
+        guideRoute={new Route("/docs/guides/paging")}
+      />,
+    );
+
+    const guide: HTMLElement = screen.getByTestId(
+      RESOURCE_SHOWCASE_GUIDE_LINK_TEST_ID,
+    );
+    const docs: HTMLElement = screen.getByTestId(
+      RESOURCE_SHOWCASE_DOCS_LINK_TEST_ID,
+    );
+
+    expect(RESOURCE_SHOWCASE_GUIDE_TEXT).toBe("Step-by-step guide");
+    expect(guide).toHaveTextContent(RESOURCE_SHOWCASE_GUIDE_TEXT);
+    expect(guide).toHaveAttribute("href", "/docs/guides/paging");
+    expect(guide).toHaveAttribute("target", "_blank");
+    // The guide first: someone new starts there; the reference follows.
+    expect(
+      guide.compareDocumentPosition(docs) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    // On the button's row, beside the documentation.
+    expect(guide.parentElement).toContainElement(docs);
+  });
+
+  test("a guide alone still draws the row of links", async () => {
+    await renderInRouter(
+      <ResourceShowcaseCard
+        showcase={MONITORS_SHOWCASE}
+        guideRoute={new Route("/docs/guides/status-page")}
+      />,
+    );
+
+    expect(
+      screen.getByTestId(RESOURCE_SHOWCASE_GUIDE_LINK_TEST_ID),
+    ).toHaveAttribute("href", "/docs/guides/status-page");
+    expect(
+      screen.queryByTestId(RESOURCE_SHOWCASE_DOCS_LINK_TEST_ID),
+    ).toBeNull();
   });
 
   test("its example is labelled as one, with the product's own state and sentence", async () => {
@@ -603,6 +655,62 @@ describe("About, beside a product page's title", () => {
     expect(
       within(dialog).getByTestId(RESOURCE_SHOWCASE_DOCS_LINK_TEST_ID),
     ).toHaveAttribute("href", "/docs/telemetry/hosts");
+  });
+
+  /*
+   * Monitors', On-Call's and Status Pages' jobs have a guide in the docs
+   * (#6821): their About links it first, as their empty lists do.
+   */
+  const GUIDED_PRODUCTS: Array<[OnboardedProductKey, string, string]> = [
+    [
+      ProductKey.Monitors,
+      "/docs/guides/website-down",
+      "/docs/monitor/create-monitor",
+    ],
+    [ProductKey.OnCall, "/docs/guides/paging", "/docs/on-call/index"],
+    [
+      ProductKey.StatusPages,
+      "/docs/guides/status-page",
+      "/docs/status-pages/index",
+    ],
+  ];
+
+  test.each(GUIDED_PRODUCTS)(
+    "%s's About links its step-by-step guide, then its documentation",
+    async (
+      product: OnboardedProductKey,
+      guidePath: string,
+      docsPath: string,
+    ) => {
+      await renderInRouter(<ProductAboutButton product={product} />);
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "How it works" }));
+      });
+
+      const dialog: HTMLElement = screen.getByTestId(
+        PRODUCT_ABOUT_DIALOG_TEST_ID,
+      );
+      const guide: HTMLElement = within(dialog).getByTestId(
+        RESOURCE_SHOWCASE_GUIDE_LINK_TEST_ID,
+      );
+
+      expect(guide).toHaveAttribute("href", guidePath);
+      expect(guide).toHaveTextContent("Step-by-step guide");
+      expect(
+        within(dialog).getByTestId(RESOURCE_SHOWCASE_DOCS_LINK_TEST_ID),
+      ).toHaveAttribute("href", docsPath);
+    },
+  );
+
+  test("the empty Status Pages list's showcase links the guide too", async () => {
+    await renderInRouter(<ProductShowcase product={ProductKey.StatusPages} />);
+
+    expect(
+      within(screen.getByTestId(PRODUCT_SHOWCASE_TEST_ID)).getByTestId(
+        RESOURCE_SHOWCASE_GUIDE_LINK_TEST_ID,
+      ),
+    ).toHaveAttribute("href", "/docs/guides/status-page");
   });
 });
 

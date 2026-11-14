@@ -281,7 +281,7 @@ Klient-ID:na är offentliga: de skickas till instrumentpanelen så att den vet v
 ## Felsökning
 
 :::details Inget samtal startades för en incident
-Kontrollera att regeln matchade incidenten (**Testregel**), att dess steg **Video Call** är påslaget och att incidenten deklarerades som pågående: en incident som skapas redan löst får inget samtal. En regel som redan har startat ett samtal för incidenten med den anslutningen startar inget till.
+Kontrollera att regeln matchade incidenten (**Testa regel**), att dess steg **Video Call** är påslaget och att incidenten deklarerades som pågående: en incident som skapas redan löst får inget samtal. En regel som redan har startat ett samtal för incidenten med den anslutningen startar inget till.
 :::
 
 :::details Feeden säger att samtalet inte kunde startas

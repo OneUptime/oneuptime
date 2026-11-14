@@ -34,7 +34,7 @@ flowchart TB
 ## Før du begynner
 
 - **For instansens og et prosjekts budsjetter: Admin Dashboard.** På en selvhostet installasjon er det bare instansadministratoren som angir dem. Et prosjekts eiere og administratorer ser budsjettene, men kan ikke endre dem.
-- **For en nøkkels eget budsjett: en rolle som redigerer inntaksnøkler.** Project Owner eller Project Admin, eller en egendefinert rolle med tillatelsen Edit Telemetry Ingestion Key.
+- **For en nøkkels eget budsjett: en rolle som redigerer inntaksnøkler.** Project Owner eller Project Admin, eller en egendefinert rolle med tillatelsen Edit Ingestion Key.
 - **For å se budsjettene: en rolle som ser prosjektets forbruk.** Rollene som ser siden [Telemetriforbruk](/docs/telemetry/usage), ser budsjettene der.
 
 ## Angi standardbudsjettene for alle prosjekter

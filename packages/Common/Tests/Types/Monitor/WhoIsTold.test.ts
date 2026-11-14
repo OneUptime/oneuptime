@@ -23,7 +23,11 @@ import {
   redactWhoIsTold,
 } from "../../../Types/Monitor/WhoIsTold";
 import { OnCallPageChannel } from "../../../Types/OnCallDutyPolicy/OnCallPageChannel";
-import { OnCallTestPageRecordKind } from "../../../Types/OnCallDutyPolicy/OnCallTestPage";
+import {
+  OnCallTestPageNotPagedCode,
+  OnCallTestPageReachedThroughCode,
+  OnCallTestPageRecordKind,
+} from "../../../Types/OnCallDutyPolicy/OnCallTestPage";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -38,6 +42,9 @@ import { describe, expect, test } from "@jest/globals";
 const POLICY_ID: string = "6810aaaa-0000-4000-8000-000000000001";
 const OTHER_POLICY_ID: string = "6810aaaa-0000-4000-8000-000000000002";
 const RULE_ID: string = "6810bbbb-0000-4000-8000-000000000001";
+const OWNER_RULE_ID: string = "6810bbbb-0000-4000-8000-000000000002";
+const STATUS_PAGE_ID: string = "6810dddd-0000-4000-8000-000000000001";
+const OTHER_STATUS_PAGE_ID: string = "6810dddd-0000-4000-8000-000000000002";
 const ANA: string = "6810cccc-0000-4000-8000-000000000001";
 const BEN: string = "6810cccc-0000-4000-8000-000000000002";
 
@@ -87,13 +94,14 @@ function policy(overrides: Partial<WhoIsToldPolicy> = {}): WhoIsToldPolicy {
 function event(overrides: Partial<WhoIsToldEvent> = {}): WhoIsToldEvent {
   return {
     kind: OnCallTestPageRecordKind.Incident,
+    title: "Checkout API is offline",
     severityName: "Critical",
     owners: {
       source: WhoIsToldOwnersSource.ProjectOwners,
       userNames: ["Ana Lopez"],
       teamNames: [],
-      hasOwnerRules: false,
     },
+    ownerRules: [],
     rules: [{ id: RULE_ID, name: "Every incident" }],
     policies: [policy()],
     statusPages: [],
@@ -834,15 +842,28 @@ function resultWith(criteriaList: Array<WhoIsToldCriteria>): WhoIsToldResult {
 }
 
 describe("the answer as one caller may see it", () => {
+  // Why each is paged and who is not, in English and as codes (#7261).
   const unreachable: WhoIsToldPolicy = policy({
     people: [
       person({
         isReachable: false,
         channels: [],
         problem: WhoIsToldPersonProblem.NoVerifiedMethod,
+        reachedThrough: "Schedule Primary",
+        reachedThroughCode: {
+          code: OnCallTestPageReachedThroughCode.Schedule,
+          name: "Primary",
+        },
       }),
     ],
     notPaged: ["Team Platform has no members."],
+    notPagedCodes: [
+      {
+        code: OnCallTestPageNotPagedCode.TeamHasNoMembers,
+        teamName: "Platform",
+        message: "Team Platform has no members.",
+      },
+    ],
   });
 
   test("a policy they may read is told whole", () => {
@@ -855,6 +876,8 @@ describe("the answer as one caller may see it", () => {
         result: result,
         readablePolicyIds: new Set<string>([POLICY_ID]),
         readableRuleIds: new Set<string>([RULE_ID]),
+        readableOwnerRuleIds: new Set<string>(),
+        readableStatusPageIds: new Set<string>(),
       }),
     ).toEqual(result);
   });
@@ -866,12 +889,14 @@ describe("the answer as one caller may see it", () => {
       ]),
       readablePolicyIds: new Set<string>(),
       readableRuleIds: new Set<string>([RULE_ID]),
+      readableOwnerRuleIds: new Set<string>(),
+      readableStatusPageIds: new Set<string>(),
     });
 
     const hidden: WhoIsToldPolicy =
       redacted.criteria[0]!.events[0]!.policies[0]!;
 
-    expect(hidden).toEqual({
+    expect(hidden).toStrictEqual({
       id: POLICY_ID,
       name: "",
       isHidden: true,
@@ -880,10 +905,16 @@ describe("the answer as one caller may see it", () => {
       levelCount: 0,
       people: [],
       notPaged: [],
+      notPagedCodes: [],
     });
     expect(JSON.stringify(redacted)).not.toContain("Ana Lopez has");
     expect(JSON.stringify(redacted)).not.toContain("Primary");
     expect(JSON.stringify(redacted)).not.toContain("Team Platform");
+    // Nor the names its codes carry.
+    expect(JSON.stringify(redacted)).not.toContain("Platform");
+    expect(JSON.stringify(redacted)).not.toContain(
+      OnCallTestPageNotPagedCode.TeamHasNoMembers,
+    );
     expect(redacted.breaks).toEqual([]);
   });
 
@@ -898,6 +929,8 @@ describe("the answer as one caller may see it", () => {
       result: result,
       readablePolicyIds: new Set<string>(),
       readableRuleIds: new Set<string>(),
+      readableOwnerRuleIds: new Set<string>(),
+      readableStatusPageIds: new Set<string>(),
     });
 
     expect(redacted.breaks).toHaveLength(1);
@@ -912,11 +945,114 @@ describe("the answer as one caller may see it", () => {
       result: resultWith([criteria()]),
       readablePolicyIds: new Set<string>([POLICY_ID]),
       readableRuleIds: new Set<string>(),
+      readableOwnerRuleIds: new Set<string>(),
+      readableStatusPageIds: new Set<string>(),
     });
 
     expect(redacted.criteria[0]!.events[0]!.rules).toEqual([
       { id: RULE_ID, name: "" },
     ]);
+  });
+
+  /*
+   * Owner rules and status pages are read with their own permissions, and
+   * status pages are label-scoped: one the caller may not read keeps its
+   * place, so the card still says it is there, without its name.
+   */
+  function withOwnerRuleAndPages(): WhoIsToldResult {
+    return resultWith([
+      criteria({
+        events: [
+          event({
+            owners: {
+              source: WhoIsToldOwnersSource.OwnerRules,
+              userNames: ["Ben Ito"],
+              teamNames: ["Checkout SRE"],
+            },
+            ownerRules: [{ id: OWNER_RULE_ID, name: "Checkout monitors" }],
+            statusPages: [
+              { id: STATUS_PAGE_ID, name: "Public Status" },
+              { id: OTHER_STATUS_PAGE_ID, name: "Payments Status" },
+            ],
+          }),
+        ],
+      }),
+    ]);
+  }
+
+  test("owner rules and status pages they may read are told whole", () => {
+    const result: WhoIsToldResult = withOwnerRuleAndPages();
+
+    expect(
+      redactWhoIsTold({
+        result: result,
+        readablePolicyIds: new Set<string>([POLICY_ID]),
+        readableRuleIds: new Set<string>([RULE_ID]),
+        readableOwnerRuleIds: new Set<string>([OWNER_RULE_ID]),
+        readableStatusPageIds: new Set<string>([
+          STATUS_PAGE_ID,
+          OTHER_STATUS_PAGE_ID,
+        ]),
+      }),
+    ).toEqual(result);
+  });
+
+  test("an owner rule they may not read keeps its place without its name", () => {
+    const redacted: WhoIsToldResult = redactWhoIsTold({
+      result: withOwnerRuleAndPages(),
+      readablePolicyIds: new Set<string>([POLICY_ID]),
+      // An on-call rule's permission is not an owner rule's.
+      readableRuleIds: new Set<string>([RULE_ID, OWNER_RULE_ID]),
+      readableOwnerRuleIds: new Set<string>(),
+      readableStatusPageIds: new Set<string>([
+        STATUS_PAGE_ID,
+        OTHER_STATUS_PAGE_ID,
+      ]),
+    });
+    const redactedEvent: WhoIsToldEvent = redacted.criteria[0]!.events[0]!;
+
+    expect(redactedEvent.ownerRules).toEqual([{ id: OWNER_RULE_ID, name: "" }]);
+    expect(JSON.stringify(redacted)).not.toContain("Checkout monitors");
+    // Who it emails is what the incident says, and stays.
+    expect(redactedEvent.owners.userNames).toEqual(["Ben Ito"]);
+    expect(redactedEvent.rules).toEqual([
+      { id: RULE_ID, name: "Every incident" },
+    ]);
+  });
+
+  test("a status page they may not read keeps its place without its name, and only that one", () => {
+    const redacted: WhoIsToldResult = redactWhoIsTold({
+      result: withOwnerRuleAndPages(),
+      readablePolicyIds: new Set<string>([POLICY_ID]),
+      readableRuleIds: new Set<string>([RULE_ID]),
+      readableOwnerRuleIds: new Set<string>([OWNER_RULE_ID]),
+      readableStatusPageIds: new Set<string>([STATUS_PAGE_ID]),
+    });
+
+    expect(redacted.criteria[0]!.events[0]!.statusPages).toEqual([
+      { id: STATUS_PAGE_ID, name: "Public Status" },
+      { id: OTHER_STATUS_PAGE_ID, name: "" },
+    ]);
+    expect(JSON.stringify(redacted)).not.toContain("Payments Status");
+    expect(redacted.criteria[0]!.events[0]!.ownerRules[0]!.name).toBe(
+      "Checkout monitors",
+    );
+  });
+
+  test("redacting leaves the answer it was handed as it was", () => {
+    const result: WhoIsToldResult = withOwnerRuleAndPages();
+    const before: string = JSON.stringify(result);
+
+    redactWhoIsTold({
+      result: result,
+      readablePolicyIds: new Set<string>(),
+      readableRuleIds: new Set<string>(),
+      readableOwnerRuleIds: new Set<string>(),
+      readableStatusPageIds: new Set<string>(),
+    });
+
+    // The cached answer every caller is handed their own view of.
+    expect(JSON.stringify(result)).toBe(before);
   });
 
   test("breaks about no policy at all are told to everybody", () => {
@@ -929,6 +1065,8 @@ describe("the answer as one caller may see it", () => {
         result: result,
         readablePolicyIds: new Set<string>(),
         readableRuleIds: new Set<string>(),
+        readableOwnerRuleIds: new Set<string>(),
+        readableStatusPageIds: new Set<string>(),
       }).breaks,
     ).toEqual(result.breaks);
   });
@@ -949,6 +1087,8 @@ describe("the answer as one caller may see it", () => {
       ]),
       readablePolicyIds: new Set<string>([POLICY_ID]),
       readableRuleIds: new Set<string>([RULE_ID]),
+      readableOwnerRuleIds: new Set<string>(),
+      readableStatusPageIds: new Set<string>(),
     });
 
     const policies: Array<WhoIsToldPolicy> =

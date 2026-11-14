@@ -847,6 +847,11 @@ describe("fetchTokenRefreshOutcome", () => {
       variable: () => WorkflowVariable;
       // What API.getFriendlyMessage makes of the failure.
       reason: string;
+      /*
+       * How the sentence says it, when that is not the reason as written:
+       * an error nobody explained is said in words of its own (#7307).
+       */
+      said?: string;
     };
 
     const FAILURES: Array<FailureCase> = [
@@ -897,7 +902,37 @@ describe("fetchTokenRefreshOutcome", () => {
         variable: (): WorkflowVariable => {
           return makeVariable({ id: VARIABLE_ID, name: "API_TOKEN" });
         },
-        reason: "Internal server error.",
+        /*
+         * "Internal server error." says nothing, so it reads as a failure
+         * the server did not explain, with what to do next (#6836) - said
+         * in the sentence as why and what next (#7307).
+         */
+        reason:
+          "The server ran into a problem it could not explain, so this did not finish. Try again in a moment.",
+        said: "The server ran into a problem it could not explain. Try again in a moment.",
+      },
+      {
+        label: "a server error with its reference (500)",
+        arrange: (): void => {
+          failWith(500, { message: "", reference: "a1b2c3d4" });
+        },
+        variable: (): WorkflowVariable => {
+          return makeVariable({ id: VARIABLE_ID, name: "API_TOKEN" });
+        },
+        reason:
+          "The server ran into a problem it could not explain, so this did not finish. Try again, and if it keeps failing, give this reference to your administrator or OneUptime support: a1b2c3d4.",
+        said: "The server ran into a problem it could not explain. Try again. If it keeps failing, give this reference to whoever runs your OneUptime server: a1b2c3d4.",
+      },
+      {
+        label: "a gateway's 502",
+        arrange: (): void => {
+          failWith(502, {});
+        },
+        variable: (): WorkflowVariable => {
+          return makeVariable({ id: VARIABLE_ID, name: "API_TOKEN" });
+        },
+        reason: "Error connecting to server. Please try again in few minutes.",
+        said: "The OneUptime server did not answer. It may be starting or restarting. Try again in a few minutes.",
       },
       {
         label: "a network error",
@@ -957,7 +992,7 @@ describe("fetchTokenRefreshOutcome", () => {
           "Could Not Fetch an Access Token",
         );
         expect(description).toBe(
-          `${prefix}OneUptime could not fetch an access token for "API_TOKEN": ${entry.reason}`,
+          `${prefix}OneUptime could not fetch an access token for "API_TOKEN": ${entry.said || entry.reason}`,
         );
         expect(description).not.toContain("said no");
         expect(description).not.toContain("asked your identity provider");

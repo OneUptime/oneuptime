@@ -88,7 +88,7 @@ export interface ComponentProps {
   query?: Query<ScheduledMaintenance> | undefined;
   /*
    * The record whose Scheduled Maintenance tab this is - a host, a cluster,
-   * a network site: Create Scheduled Maintenance Event and Create from
+   * a network site: Create Maintenance Event and Create from
    * Template open the create page with it already picked
    * (Components/CreateFromRecord).
    */
@@ -105,8 +105,9 @@ export interface ComponentProps {
   disableCreate?: boolean | undefined;
   saveFilterProps?: SaveFilterProps | undefined;
   /*
-   * The events as a list - the default: All Events, Ongoing Events, and a
-   * monitor's or a host's Scheduled Maintenance tab - or as a calendar: the
+   * The events as a list - the default: All Maintenance Events, Ongoing
+   * Maintenance Events, and a monitor's or a host's Scheduled Maintenance
+   * tab - or as a calendar: the
    * Maintenance Calendar page, with Subscribe to calendar (the team's
    * calendar link for every event of the project) and the calendars from
    * outside the project drawn beside the events. See ScheduledMaintenanceView.
@@ -402,7 +403,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
       ),
       PermissionGate.gateCardButton(
         {
-          title: "Create Scheduled Maintenance Event",
+          title: "Create Maintenance Event",
           phoneTitle: "Create",
           onClick: () => {
             Navigation.navigate(
@@ -530,7 +531,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
         ]
       : [];
 
-  const cardTitle: string = props.title || "Scheduled Maintenance Events";
+  const cardTitle: string = props.title || "Maintenance Events";
   const cardDescription: string =
     props.description ||
     "Announce planned work ahead of time, so your customers and status page subscribers are not caught by surprise.";
@@ -1083,7 +1084,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
         !isLoading && (
           <NoTemplatesYetModal
             title="No Scheduled Maintenance Templates"
-            description="This project has no scheduled maintenance templates yet. Create them in Scheduled Maintenance → Settings → Event Templates."
+            description="This project has no scheduled maintenance templates yet. Create them in Scheduled Maintenance → Settings → Maintenance Templates."
             templatesRoute={RouteUtil.populateRouteParams(
               RouteMap[
                 PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_TEMPLATES

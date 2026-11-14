@@ -10,6 +10,7 @@ import NtpMonitorUtil, {
 import HostAddressUtil from "Common/Utils/HostAddressUtil";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { formatMilliseconds } from "../../../Utils/Milliseconds";
 import React, { FunctionComponent, ReactElement } from "react";
 import NetworkPathView from "./NetworkPathView";
 import ProbeAttemptsView from "./ProbeAttemptsView";
@@ -57,7 +58,10 @@ const NtpMonitorView: FunctionComponent<ComponentProps> = (
   ): string => {
     return value === undefined || value === null
       ? "-"
-      : NtpMonitorUtil.formatMilliseconds(value);
+      : formatMilliseconds(translator, value, {
+          maximumFractionDigits:
+            NtpMonitorUtil.getMillisecondsFractionDigits(value),
+        });
   };
 
   const getOffsetText: () => string = (): string => {
@@ -71,9 +75,7 @@ const NtpMonitorView: FunctionComponent<ComponentProps> = (
       return translator.translateTemplate("In step with the probe");
     }
 
-    const formatted: string = NtpMonitorUtil.formatMilliseconds(
-      Math.abs(offset),
-    );
+    const formatted: string = formatMs(Math.abs(offset));
 
     return offset > 0
       ? translator.translateTemplate("{{offset}} ahead of the probe", {

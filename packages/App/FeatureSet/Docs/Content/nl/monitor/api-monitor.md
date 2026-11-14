@@ -2,6 +2,9 @@
 
 Een API-monitor roept volgens een schema een HTTP-endpoint aan, met de methode, de headers en de body die u kiest, en controleert wat er terugkomt: de statuscode, de reactietijd, de headers en de body. Gebruik hem voor REST-, JSON- en GraphQL-endpoints, gezondheidscontroles en elke aanroep waarvan uw gebruikers afhankelijk zijn.
 
+> [!TIP]
+> Nieuw hier? Volg eerst de handleiding: [Weten wanneer uw website of API uitvalt](/docs/guides/website-down).
+
 :::cards
 - [De monitor maken](#een-api-monitor-maken): Zes stappen in het dashboard.
 - [Configuratieopties](#configuratieopties): Methode, headers, body, omleidingen, certificaten, time-outs en nieuwe pogingen.
@@ -56,7 +59,7 @@ Klik op **Monitor testen**, kies een sonde onder **Selecteer sonde** en klik op 
 
 ### De criteria nakijken
 
-**Monitorcriteria** begint met de [standaardcriteria](#standaardcriteria): offline wanneer de API niet of met een fout antwoordt, online bij elke status `2xx` of `3xx`. Om ook te controleren wat de API teruggeeft, voegt u een filter toe en klikt u dan op **Volgende**.
+**Criteria** begint met de [standaardcriteria](#standaardcriteria): offline wanneer de API niet of met een fout antwoordt, online bij elke status `2xx` of `3xx`. Om ook te controleren wat de API teruggeeft, voegt u een filter toe en klikt u dan op **Volgende**.
 
 ### Sondes kiezen en maken
 

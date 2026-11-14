@@ -1,6 +1,6 @@
-# Servicecatalogus
+# Services
 
-De servicecatalogus toont de applicaties en microservices die u draait. OneUptime voegt een service toe zodra de telemetrie ervan voor het eerst binnenkomt, en brengt daarna de logboeken, traces, metrieken, uitzonderingen, incidenten en eigenaren van die service samen op één pagina, zodat iedereen ziet wat een service doet, van wie hij is en hoe het ermee gaat. Om te kiezen tussen een service, een monitorgroep en een label, zie [Welke gebruik ik?](/docs/introduction/which-one#monitorgroep-service-of-label).
+Services toont de applicaties en microservices die u draait. OneUptime voegt een service toe zodra de telemetrie ervan voor het eerst binnenkomt, en brengt daarna de logboeken, traces, metrieken, uitzonderingen, incidenten en eigenaren van die service samen op één pagina, zodat iedereen ziet wat een service doet, van wie hij is en hoe het ermee gaat. Om te kiezen tussen een service, een monitorgroep en een label, zie [Welke gebruik ik?](/docs/introduction/which-one#monitorgroep-service-of-label).
 
 :::cards
 - [Hoe een service in de catalogus komt](#hoe-een-service-in-de-catalogus-komt): Zijn `service.name`, bij zijn eerste telemetrie.
@@ -62,7 +62,7 @@ Het zijmenu van een service heeft vijf secties:
 | Sectie | Pagina's |
 | --- | --- |
 | **Basis** | **Overzicht**: verzoeken, foutpercentage en p95-latentie uit de spans, grafieken en de details. **Aanbevelingen**: kant-en-klare monitors voor de service, gekozen op basis van de taal. **Eigenaren**: de mensen en teams die verantwoordelijk zijn. **Feed**: alles wat er met de service gebeurd is, van hoe hij is aangemaakt tot elke wijziging sindsdien. |
-| **Telemetrie** | De **Logboeken**, **Traces**, **Metrieken**, **Prestatieprofielen**, **Uitzonderingen** en **Source maps**, al gefilterd op deze service. |
+| **Telemetrie** | De **Logboeken**, **Traces**, **Metrieken**, **Profielen**, **Uitzonderingen** en **Source maps**, al gefilterd op deze service. |
 | **Activiteit** | De **Incidenten**, **Waarschuwingen** en gebeurtenissen van **Geplande onderhoud** die de service raken. |
 | **Ontwikkelaars** | **Terraform**, **API**, **CLI** en **AI-assistenten**: de service vanuit code beheerd. Deze sectie is eerst ingeklapt. |
 | **Geavanceerd** | **Instellingen**, **Auditlogboeken** en **Service verwijderen**. **Geavanceerd** is eerst ingeklapt: klap het eerst uit. |
@@ -123,6 +123,6 @@ In de afgelopen 30 minuten is er niets van de service binnengekomen. Dat is te v
 :::cards
 - [Logboekverkenner](/docs/telemetry/logs-explorer): De logboeken van een service doorzoeken.
 - [Traceverkenner](/docs/telemetry/traces-explorer): De verzoeken ervan volgen.
-- [Uitzonderingen volgen](/docs/telemetry/exceptions): De fouten die hij gooit beoordelen.
+- [Uitzonderingen](/docs/telemetry/exceptions): De fouten die hij gooit beoordelen.
 - [Label- en eigenaarsregels](/docs/configuration/label-and-owner-rules): Nieuwe services labels en eigenaren geven.
 :::

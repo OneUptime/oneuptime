@@ -1,9 +1,11 @@
 import Alert, { AlertType } from "../Alerts/Alert";
 import Button, { ButtonStyleType } from "../Button/Button";
 import Loader, { LoaderType } from "../Loader/Loader";
-import Modal from "../Modal/Modal";
+import Modal, { ModalWidth } from "../Modal/Modal";
+import LlmProviderExchanges from "./LlmProviderExchanges";
 import { Indigo500 } from "../../../Types/BrandColors";
 import Dictionary from "../../../Types/Dictionary";
+import { LLMProviderExchange } from "../../../Types/LLM/LLMProviderExchange";
 import IconProp from "../../../Types/Icon/IconProp";
 import TestLLMProvider, {
   LLMProviderTestResult,
@@ -47,6 +49,11 @@ import React, {
  * a setting, wait and test again. "Test again" runs it again - the verdict
  * for a reply cut short, or a provider that was busy, asks for that - and
  * Close closes.
+ *
+ * Under the verdict, folded, "Show request and response": each request the
+ * test sent the provider and what came back - headers, bodies, the status,
+ * or why nothing answered - secrets masked (issue #7080,
+ * LlmProviderExchanges).
  */
 
 export enum LlmProviderTestOutcome {
@@ -115,6 +122,7 @@ const TestLlmProviderModal: FunctionComponent<ComponentProps> = (
     LlmProviderTestOutcome.Testing,
   );
   const [verdict, setVerdict] = useState<string>("");
+  const [exchanges, setExchanges] = useState<Array<LLMProviderExchange>>([]);
 
   /*
    * Which run's verdict may still be shown: a run started again, or a
@@ -128,6 +136,7 @@ const TestLlmProviderModal: FunctionComponent<ComponentProps> = (
 
     setOutcome(LlmProviderTestOutcome.Testing);
     setVerdict("");
+    setExchanges([]);
 
     const result: LLMProviderTestResult = await TestLLMProvider.test({
       llmProviderId: props.llmProviderId,
@@ -139,6 +148,7 @@ const TestLlmProviderModal: FunctionComponent<ComponentProps> = (
     }
 
     setVerdict(result.message);
+    setExchanges(result.exchanges);
     setOutcome(getLlmProviderTestOutcome(result));
   }, [props.llmProviderId, props.headers]);
 
@@ -156,6 +166,8 @@ const TestLlmProviderModal: FunctionComponent<ComponentProps> = (
   return (
     <Modal
       title="Test LLM Provider"
+      // Wide enough for a request's JSON to be read under the verdict.
+      modalWidth={ModalWidth.Medium}
       /*
        * A dialog that reports, laid out as the product's other connection
        * tests are (ConnectionTestModal): nothing to confirm or lose, so
@@ -207,13 +219,16 @@ const TestLlmProviderModal: FunctionComponent<ComponentProps> = (
            * The verdict keeps its line breaks: a failure puts what the
            * provider answered on a line of its own, under what to check.
            */
-          <Alert
-            type={ALERT_TYPES[outcome]}
-            strongTitle={HEADLINES[outcome]}
-            title={verdict}
-            dataTestId="llm-provider-test-result"
-            textClassName="whitespace-pre-wrap"
-          />
+          <>
+            <Alert
+              type={ALERT_TYPES[outcome]}
+              strongTitle={HEADLINES[outcome]}
+              title={verdict}
+              dataTestId="llm-provider-test-result"
+              textClassName="whitespace-pre-wrap"
+            />
+            <LlmProviderExchanges exchanges={exchanges} />
+          </>
         )}
       </div>
     </Modal>

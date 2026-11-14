@@ -189,9 +189,9 @@ export default class OnCallDutyPolicyScheduleLayer extends BaseModel {
     manyToOneRelationColumn: "onCallDutyPolicyScheduleId",
     type: TableColumnType.Entity,
     modelType: OnCallDutyPolicySchedule,
-    title: "On-Call Policy Schedule",
+    title: "On-Call Schedule",
     description:
-      "Relation to On-Call Policy Schedule where this escalation rule belongs.",
+      "Relation to On-Call Schedule where this escalation rule belongs.",
   })
   @ManyToOne(
     () => {
@@ -233,7 +233,7 @@ export default class OnCallDutyPolicyScheduleLayer extends BaseModel {
     type: TableColumnType.ObjectID,
     required: true,
     canReadOnRelationQuery: true,
-    title: "On-Call Policy Schedule ID",
+    title: "On-Call Schedule ID",
     description: "ID of the on-call schedule the layer is in",
   })
   @Column({

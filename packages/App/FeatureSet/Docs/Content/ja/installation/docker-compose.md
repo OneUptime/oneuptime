@@ -444,6 +444,37 @@ PostgreSQL を復元するには、`config.env` で `DATABASE_RESTORE_*` の値�
 > [!CAUTION]
 > `restore.sh` は、バックアップに含まれる各オブジェクトを復元先のデータベースから削除してから作り直します。開始前に確認を求めるので、表示されるデータベース名を確かめてください。
 
+## 必要なものだけを実行する
+
+多くのサーバーは、Web サイトの監視やステータスページの公開など、1 つの仕事のために OneUptime を実行しています。マスター管理者は、誰も使わない製品を、サーバー上のすべてのプロジェクトに対して一度にオフにできます。場所は Admin Dashboard の **設定 > 製品** です。
+
+- **プリセット** は、ワンクリックですべてのスイッチを設定します。 **監視とステータスページ** はモニター、インシデント、オンコール、ステータスページ、定期メンテナンスを残し、 **インシデント対応** はアラート、SLO、ワークフロー、Runbook を加え、 **すべて** はすべての製品を残します。 **製品を個別に選ぶ** では製品を 1 つずつ切り替えます。ユーザー、チーム、プロジェクト設定は常にオンです。
+- オフになった製品は、各プロジェクトの **製品** メニュー、ホーム、検索から消え、 **プロジェクト設定 > 製品** ではオフとして表示されます。その製品のページへのリンクを開くと、この製品がこのサーバーでオフになっていることと、誰がオンにできるかが表示されます。
+- API はその製品のレコードの作成、変更、削除を拒否し、AI に質問はその製品を対象から外します。オンのままの製品がほかの製品のレコードを表示するため、読み取りは引き続き機能します。たとえば、インシデントにはそのモニターの名前が表示されます。
+- 何も削除されず、すでに動いているものは動き続けます。モニターはチェックを続け、公開済みのステータスページは公開されたままで、取り込みも停止しない限りテレメトリは届き続けます。もう一度オンにした製品は、元の状態のまま戻ります。
+
+製品をコードとして設定するには、`config.env` の `SERVER_PRODUCTS` (Helm では `products.onThisServer`) を、`everything`、`monitoring-and-status-pages`、`incident-response`、またはオンのままにする製品のキー (例: `monitors,incidents,on-call,status-pages`) に設定します。これは初期値です。管理者が **設定 > 製品** を保存すると、保存した内容が適用されます。
+
+### 監視とステータスページのプロファイル
+
+Web サイトと API の監視とステータスページの公開だけを行うサーバーでは、`config.env` で次の値を設定してから `npm start` を実行します。
+
+```bash
+SERVER_PRODUCTS=monitoring-and-status-pages
+DISABLE_TELEMETRY_INGESTION=true
+GLOBAL_RUNNER_REPLICAS=0
+MQTT_INGEST_ENABLED=false
+```
+
+| 設定 | 役割 |
+| --- | --- |
+| `SERVER_PRODUCTS=monitoring-and-status-pages` | すべてのプロジェクトで、モニター、インシデント、オンコール、ステータスページ、定期メンテナンスを使えます。 |
+| `DISABLE_TELEMETRY_INGESTION=true` | OneUptime は、送られてきたログ、メトリクス、トレース、プロファイルを一切保存しません。ログ、メトリクス、トレース、パフォーマンスプロファイル、例外はオフとして表示されます。 |
+| `GLOBAL_RUNNER_REPLICAS=0` | `global-runner` サービスは起動しません。これを使うのは Runbook と OneUptime AI のコード修正だけです。 |
+| `MQTT_INGEST_ENABLED=false` | IoT デバイスの送信先である MQTT リスナーがオフになります。 |
+
+それでも 6 つのサービスは動き続けます: `ingress`、`app`、`probe-1`、`postgres`、`clickhouse`、`valkey`。ClickHouse は残ります。モニターが結果とログをそこに保存するためです。Kubernetes では、Helm の values で `products.onThisServer: monitoring-and-status-pages`、`telemetry.disableIngestion: true`、`globalRunner.enabled: false` を設定します。サーバーのサイズは [要件](#要件) に従って決めてください。
+
 ## OneUptime をアップデートする
 
 まずバックアップを取り、次に以下を実行します。

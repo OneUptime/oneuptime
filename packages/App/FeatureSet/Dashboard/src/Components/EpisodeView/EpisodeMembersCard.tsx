@@ -9,6 +9,7 @@ import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBa
 import Card from "Common/UI/Components/Card/Card";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
+import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
 import Link from "Common/UI/Components/Link/Link";
 import API from "Common/UI/Utils/API/API";
 import React, {
@@ -42,6 +43,7 @@ import {
   TranslatableTerm,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
+import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 export interface ComponentProps<
   TMember extends BaseModel,
@@ -82,6 +84,9 @@ interface LoadedMembers {
   totalCount: number;
 }
 
+// A state's or a severity's name in its pill: one line, cut short at its end.
+export const EPISODE_MEMBER_PILL_NAME_CLASS_NAME: string = "truncate";
+
 type PillFunction = (
   pill: EpisodeMemberPill,
   // The name as the reader's language words it ("تم الحل" for Resolved).
@@ -108,7 +113,17 @@ const getStatusPill: PillFunction = (
         className="h-1.5 w-1.5 flex-shrink-0 rounded-full"
         style={{ backgroundColor: (pill.color || Black).toString() }}
       />
-      <span className="truncate">{name}</span>
+      {/*
+       * A name the project typed reads the way it was typed (IsolatedLine):
+       * an English state on an Arabic page is cut short at its own end
+       * ("Waiting on the ven..."), its dot still at the page's start, as
+       * the episode header's Pill draws it.
+       */}
+      <IsolatedLine
+        as="span"
+        text={name}
+        className={EPISODE_MEMBER_PILL_NAME_CLASS_NAME}
+      />
     </span>
   );
 };
@@ -366,10 +381,11 @@ const EpisodeMembersCard: <
             role="alert"
             className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 ring-1 ring-inset ring-red-100"
           >
-            {translator.translateTemplate(
-              "Couldn't refresh {{itemsName}}: {{error}}",
-              { itemsName, error },
-            )}
+            <ErrorSentence
+              template="Couldn't refresh {{itemsName}}: {{error}}"
+              error={error}
+              values={{ itemsName }}
+            />
           </div>
         )}
         <ul

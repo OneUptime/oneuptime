@@ -444,6 +444,37 @@ PostgreSQL을 복원하려면 `config.env`에서 `DATABASE_RESTORE_*` 값을 설
 > [!CAUTION]
 > `restore.sh`는 백업에 있는 각 객체를 대상 데이터베이스에서 삭제한 뒤 다시 만듭니다. 시작하기 전에 확인을 요청하니, 표시되는 데이터베이스 이름을 확인하세요.
 
+## 필요한 것만 실행하기
+
+많은 서버가 웹사이트를 감시하고 상태 페이지를 게시하는 것처럼 한 가지 일을 위해 OneUptime을 실행합니다. 마스터 관리자는 아무도 쓰지 않는 제품을 서버의 모든 프로젝트에서 한 번에 끌 수 있습니다. Admin Dashboard의 **설정 > 제품**에서 끕니다.
+
+- **프리셋**은 클릭 한 번으로 모든 스위치를 설정합니다. **모니터링 및 상태 페이지**는 모니터, 인시던트, 온콜, 상태 페이지, 예정된 유지 관리를 남기고, **인시던트 대응**은 알림, SLOs, 워크플로, 런북을 더하며, **전체**는 모든 제품을 남깁니다. **제품을 하나씩 선택**에서는 제품 하나를 켜거나 끕니다. 사용자, 팀, 프로젝트 설정은 항상 켜져 있습니다.
+- 꺼진 제품은 모든 프로젝트의 **제품** 메뉴, 홈, 검색에서 사라지며, **프로젝트 설정 > 제품**에는 꺼진 것으로 표시됩니다. 그 제품의 페이지로 가는 링크는 이 서버에서 제품이 꺼져 있다는 것과 누가 켤 수 있는지를 알려 줍니다.
+- API는 그 제품의 레코드를 만들거나 바꾸거나 삭제하는 것을 거부하며, AI에게 질문은 그 제품을 제외합니다. 켜져 있는 제품이 다른 제품의 레코드를 보여 주기 때문에 읽기는 계속 작동합니다. 예를 들어 인시던트는 자신의 모니터를 표시합니다.
+- 아무것도 삭제되지 않으며, 이미 실행 중인 것은 계속 실행됩니다. 모니터는 계속 검사하고, 게시된 상태 페이지는 계속 열려 있으며, 수집도 멈추지 않는 한 텔레메트리는 계속 들어옵니다. 다시 켠 제품은 원래 상태 그대로 돌아옵니다.
+
+제품을 코드로 설정하려면 `config.env`의 `SERVER_PRODUCTS`(Helm: `products.onThisServer`)를 `everything`, `monitoring-and-status-pages`, `incident-response` 또는 켜 둘 제품의 키(예: `monitors,incidents,on-call,status-pages`)로 설정합니다. 이 값은 시작값입니다. 관리자가 **설정 > 제품**을 저장하면 저장한 내용이 적용됩니다.
+
+### 모니터링 및 상태 페이지 프로필
+
+웹사이트와 API만 감시하고 상태 페이지를 게시하는 서버라면 `config.env`에 다음 값을 설정한 다음 `npm start`를 실행하세요.
+
+```bash
+SERVER_PRODUCTS=monitoring-and-status-pages
+DISABLE_TELEMETRY_INGESTION=true
+GLOBAL_RUNNER_REPLICAS=0
+MQTT_INGEST_ENABLED=false
+```
+
+| 설정 | 하는 일 |
+| --- | --- |
+| `SERVER_PRODUCTS=monitoring-and-status-pages` | 모든 프로젝트에서 모니터, 인시던트, 온콜, 상태 페이지, 예정된 유지 관리를 제공합니다. |
+| `DISABLE_TELEMETRY_INGESTION=true` | OneUptime은 받은 로그, 메트릭, 트레이스, 프로필을 하나도 보관하지 않습니다. 로그, 메트릭, 트레이스, 성능 프로파일, 예외는 꺼진 것으로 표시됩니다. |
+| `GLOBAL_RUNNER_REPLICAS=0` | `global-runner` 서비스가 시작되지 않습니다. 이 서비스는 런북과 OneUptime AI의 코드 수정만 사용합니다. |
+| `MQTT_INGEST_ENABLED=false` | IoT 기기가 데이터를 보내는 MQTT 리스너가 꺼집니다. |
+
+여섯 개의 서비스는 계속 실행됩니다: `ingress`, `app`, `probe-1`, `postgres`, `clickhouse`, `valkey`. ClickHouse는 남습니다. 모니터가 결과와 로그를 여기에 보관하기 때문입니다. Kubernetes에서는 Helm values에 `products.onThisServer: monitoring-and-status-pages`, `telemetry.disableIngestion: true`, `globalRunner.enabled: false`를 설정합니다. 서버 크기는 [요구 사항](#요구-사항)에 따라 정하세요.
+
 ## OneUptime 업데이트
 
 먼저 백업한 다음 실행합니다.

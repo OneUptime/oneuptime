@@ -33,7 +33,7 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * show people as few options as possible (and hide those other 'advanced'
  * options), and have sane defaults." - the maintainer.
  *
- * Create Scheduled Maintenance Event used to walk seven steps with both
+ * Create Maintenance Event used to walk seven steps with both
  * times empty and required. The real page is drawn here, through the real
  * ModelForm and BasicForm, with only the network, the clock and the
  * signed-in user stubbed:
@@ -321,7 +321,7 @@ function titleInput(): HTMLInputElement {
 
 function createButton(): HTMLElement {
   return screen.getByRole("button", {
-    name: inPageLanguage("Create Scheduled Maintenance Event"),
+    name: inPageLanguage("Create Maintenance Event"),
   });
 }
 
@@ -331,12 +331,12 @@ function nextButton(): HTMLElement {
 
 function queryCreateButton(): HTMLElement | null {
   return screen.queryByRole("button", {
-    name: inPageLanguage("Create Scheduled Maintenance Event"),
+    name: inPageLanguage("Create Maintenance Event"),
   });
 }
 
 /*
- * Create Scheduled Maintenance Event is on the last step - the review -
+ * Create Maintenance Event is on the last step - the review -
  * only: walks there with Next, then presses it.
  */
 async function createFromTheReview(): Promise<void> {
@@ -478,12 +478,16 @@ afterEach(() => {
   pageLanguage = null;
 });
 
-describe("Create Scheduled Maintenance Event", () => {
+describe("Create Maintenance Event", () => {
   test("walks two steps and the review", async () => {
     await renderPage();
 
-    expect(stepTitles()).toEqual(["Event", "Resources Affected", "Summary"]);
-    expect(currentStepTitle()).toBe("Event");
+    expect(stepTitles()).toEqual([
+      "Maintenance Details",
+      "Resources Affected",
+      "Summary",
+    ]);
+    expect(currentStepTitle()).toBe("Maintenance Details");
   });
 
   test("starts at the next full hour and ends an hour later", async () => {
@@ -606,7 +610,7 @@ describe("Create Scheduled Maintenance Event", () => {
       await screen.findByText("Ends At must be after Starts At."),
     ).toBeInTheDocument();
     expect(createOrUpdateMock).not.toHaveBeenCalled();
-    expect(currentStepTitle()).toBe("Event");
+    expect(currentStepTitle()).toBe("Maintenance Details");
   });
 
   test("Event folds Owners and Labels under Advanced, at the end of the step", async () => {
@@ -761,7 +765,7 @@ describe("Create Scheduled Maintenance Event", () => {
     await goToNextStep("Resources Affected");
     await goToNextStep("Summary");
 
-    for (const heading of ["Event", "Resources Affected"]) {
+    for (const heading of ["Maintenance Details", "Resources Affected"]) {
       expect(
         within(form()).getByRole("heading", { level: 2, name: heading }),
       ).toBeInTheDocument();
@@ -885,7 +889,7 @@ describe("Create Scheduled Maintenance Event", () => {
     };
 
     expect(stepTitles()).toEqual([
-      german_("Event"),
+      german_("Maintenance Details"),
       german_("Resources Affected"),
       german_("Summary"),
     ]);
@@ -921,7 +925,7 @@ describe("Create Scheduled Maintenance Event", () => {
  * subscribers are told nothing - until a time picked first in Subscriber
  * Notifications. Right away stays what every event does.
  */
-describe("Create Scheduled Maintenance Event: when it is published", () => {
+describe("Create Maintenance Event: when it is published", () => {
   // The event starts at 10:00 UTC (the next full hour after 09:20).
   const BEFORE_THE_START: string = "2026-10-03T09:45";
   const AFTER_THE_START: string = "2026-10-03T10:30";

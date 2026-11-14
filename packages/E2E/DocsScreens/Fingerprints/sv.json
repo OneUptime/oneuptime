@@ -1,0 +1,557 @@
+{
+  "home-goal-website": {
+    "text": [
+      "Vad vill du göra först?",
+      "Veta när min webbplats eller mitt API ligger nere",
+      "Larma rätt person när något går sönder",
+      "Berätta för mina kunder med en statussida",
+      "Se mina loggar, mätvärden och spår",
+      "Hålla koll på mina servrar, Kubernetes eller molnet",
+      "Jag byter från ett annat verktyg",
+      "Jag tittar bara runt",
+      "Hoppa över",
+      "Fortsätt",
+      "checkbox: on",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off"
+    ],
+    "outline": [
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "button: Hoppa över",
+      "button: Fortsätt"
+    ],
+    "width": 902,
+    "height": 366
+  },
+  "home-goal-paging": {
+    "text": [
+      "Vad vill du göra först?",
+      "Veta när min webbplats eller mitt API ligger nere",
+      "Larma rätt person när något går sönder",
+      "Berätta för mina kunder med en statussida",
+      "Se mina loggar, mätvärden och spår",
+      "Hålla koll på mina servrar, Kubernetes eller molnet",
+      "Jag byter från ett annat verktyg",
+      "Jag tittar bara runt",
+      "Hoppa över",
+      "Fortsätt",
+      "checkbox: off",
+      "checkbox: on",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off"
+    ],
+    "outline": [
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "button: Hoppa över",
+      "button: Fortsätt"
+    ],
+    "width": 902,
+    "height": 366
+  },
+  "home-goal-status-page": {
+    "text": [
+      "Vad vill du göra först?",
+      "Veta när min webbplats eller mitt API ligger nere",
+      "Larma rätt person när något går sönder",
+      "Berätta för mina kunder med en statussida",
+      "Se mina loggar, mätvärden och spår",
+      "Hålla koll på mina servrar, Kubernetes eller molnet",
+      "Jag byter från ett annat verktyg",
+      "Jag tittar bara runt",
+      "Hoppa över",
+      "Fortsätt",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: on",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off"
+    ],
+    "outline": [
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "button: Hoppa över",
+      "button: Fortsätt"
+    ],
+    "width": 902,
+    "height": 366
+  },
+  "home-goals-three": {
+    "text": [
+      "Vad vill du göra först?",
+      "Veta när min webbplats eller mitt API ligger nere",
+      "Larma rätt person när något går sönder",
+      "Berätta för mina kunder med en statussida",
+      "Se mina loggar, mätvärden och spår",
+      "Hålla koll på mina servrar, Kubernetes eller molnet",
+      "Jag byter från ett annat verktyg",
+      "Jag tittar bara runt",
+      "Hoppa över",
+      "Fortsätt",
+      "checkbox: on",
+      "checkbox: on",
+      "checkbox: on",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off"
+    ],
+    "outline": [
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "button: Hoppa över",
+      "button: Fortsätt"
+    ],
+    "width": 902,
+    "height": 366
+  },
+  "website-down-address": {
+    "text": [
+      "1",
+      "Vad ska vi kontrollera?",
+      "OneUptime kontrollerar den var 5:e minut från flera platser. Om det inte kommer något svar, eller svaret är ett fel, öppnas en incident.",
+      "Adress till webbplats eller API",
+      "Det här är en API-endpoint",
+      "Börja kontrollera",
+      "Fler monitortyper",
+      "value: https://acme-commerce.example",
+      "checkbox: off"
+    ],
+    "outline": [
+      "field text: https://example.com",
+      "field checkbox: ",
+      "button: Börja kontrollera",
+      "link: Fler monitortyper"
+    ],
+    "width": 768,
+    "height": 298
+  },
+  "website-down-who": {
+    "text": [
+      "2",
+      "Vem ska få veta?",
+      "När den går ner öppnar OneUptime en incident och larmar de här personerna, var och en som deras ”Så når man mig” säger. Det börjar med dig, via e-post.",
+      "Vem som larmas",
+      "Lägg till teammedlemmar",
+      "AL",
+      "Ada Lovelace",
+      "Detta skapar jourpolicyn ”Default on-call policy”, som larmar dem vid varje ny incident och varje nytt larm i det här projektet.",
+      "Spara och fortsätt"
+    ],
+    "outline": [
+      "button: Lägg till teammedlemmar",
+      "button: Ta bort Ada Lovelace",
+      "button: Spara och fortsätt"
+    ],
+    "width": 768,
+    "height": 302
+  },
+  "website-down-test": {
+    "text": [
+      "3",
+      "Skicka ett test",
+      "Skicka ett testlarm till dig själv nu. Det skickas på samma sätt som ett riktigt larm skulle göra, och varje meddelande säger TEST. Bekräfta det från meddelandet för att slutföra.",
+      "Skicka ett testlarm till mig",
+      "Hoppa över testet"
+    ],
+    "outline": [
+      "button: Skicka ett testlarm till mig",
+      "button: Hoppa över testet"
+    ],
+    "width": 768,
+    "height": 178
+  },
+  "website-down-summary": {
+    "text": [
+      "acme-commerce.example är inställd",
+      "Kontrollerad",
+      "Var 5:e minut, från 2 platser.",
+      "När den går ner",
+      "Om det inte kommer något svar, eller svaret är ett fel, öppnar OneUptime en incident (Critical Incident).",
+      "Vem som får veta",
+      "Jourpolicyn ”Default on-call policy” larmar Ada Lovelace vid varje ny incident och varje nytt larm. Du äger den här övervakningen, så du får e-post när dess status ändras.",
+      "Testat",
+      "Ada Lovelace bekräftade det via e-post efter 14 sekunder.",
+      "Nästa steg",
+      "Visa den på en statussida",
+      "Bli larmad via SMS eller telefonsamtal",
+      "Öppna monitorn",
+      "Kontrollera en annan adress"
+    ],
+    "outline": [
+      "heading: acme-commerce.example är inställd",
+      "heading: Nästa steg",
+      "link: Visa den på en statussida",
+      "link: Bli larmad via SMS eller telefonsamtal",
+      "link: Öppna monitorn",
+      "button: Kontrollera en annan adress"
+    ],
+    "width": 768,
+    "height": 511
+  },
+  "paging-reach-you": {
+    "text": [
+      "1",
+      "Hur ska vi nå dig?",
+      "Ett larm går till varje metod du har verifierat. Lägg till din telefon för att få sms och samtal.",
+      "E-post",
+      "E-post · •••mple",
+      "Sms och telefonsamtal",
+      "Inget telefonnummer än.",
+      "SMS är avstängt i det här projektet, så larm som använder det skickas inte.",
+      "Telefonsamtal är avstängt i det här projektet, så larm som använder det skickas inte.",
+      "Sms och samtal betalas från projektets saldo, som är 0.00 USD. När du lägger till ett nummer skickas ett sms, så saldot måste vara mer än 1.00 USD.",
+      "Fyll på saldo",
+      "Slå på sms och samtal",
+      "Mobilapp eller webbläsare",
+      "Inte konfigurerat.",
+      "Skaffa OneUptime-appen eller slå på aviseringar i den här webbläsaren, från dina aviseringsmetoder.",
+      "Konfigurera appen eller den här webbläsaren",
+      "Fortsätt",
+      "Kontrollera igen"
+    ],
+    "outline": [
+      "button: Fyll på saldo",
+      "button: Slå på sms och samtal",
+      "link: Konfigurera appen eller den här webbläsaren",
+      "button: Fortsätt",
+      "button: Kontrollera igen"
+    ],
+    "width": 768,
+    "height": 632
+  },
+  "paging-phone": {
+    "text": [
+      "1",
+      "Hur ska vi nå dig?",
+      "Ett larm går till varje metod du har verifierat. Lägg till din telefon för att få sms och samtal.",
+      "E-post",
+      "E-post · •••mple",
+      "Sms och telefonsamtal",
+      "Inget telefonnummer än.",
+      "Sms och samtal betalas från projektets saldo, som är 20.00 USD. När du lägger till ett nummer skickas ett sms, så saldot måste vara mer än 1.00 USD.",
+      "Ditt telefonnummer",
+      "Skicka en kod till mig via sms",
+      "Mobilapp eller webbläsare",
+      "Inte konfigurerat.",
+      "Skaffa OneUptime-appen eller slå på aviseringar i den här webbläsaren, från dina aviseringsmetoder.",
+      "Konfigurera appen eller den här webbläsaren",
+      "Fortsätt",
+      "Kontrollera igen",
+      "placeholder: +15551234567"
+    ],
+    "outline": [
+      "field text: +15551234567",
+      "button: Skicka en kod till mig via sms",
+      "link: Konfigurera appen eller den här webbläsaren",
+      "button: Fortsätt",
+      "button: Kontrollera igen"
+    ],
+    "width": 768,
+    "height": 564
+  },
+  "paging-who-else": {
+    "text": [
+      "2",
+      "Vem mer har jour?",
+      "Detta skapar jourpolicyn ”Default on-call policy”. Den larmar först de här personerna, vid varje ny incident och varje nytt larm i det här projektet.",
+      "Larmas först",
+      "Lägg till teammedlemmar",
+      "AL",
+      "Ada Lovelace",
+      "Spara och fortsätt"
+    ],
+    "outline": [
+      "button: Lägg till teammedlemmar",
+      "button: Ta bort Ada Lovelace",
+      "button: Spara och fortsätt"
+    ],
+    "width": 768,
+    "height": 246
+  },
+  "paging-no-answer": {
+    "text": [
+      "3",
+      "Tänk om ingen svarar?",
+      "Ett larm väntar på att någon kvitterar det. Om ingen gör det i tid:",
+      "Larma någon annan",
+      "Larma samma personer igen",
+      "Gör inget mer",
+      "Minuter att vänta",
+      "Larmas sedan",
+      "Lägg till teammedlemmar",
+      "GH",
+      "Grace Hopper",
+      "Spara och fortsätt",
+      "radio: on",
+      "radio: off",
+      "radio: off",
+      "value: 30"
+    ],
+    "outline": [
+      "field radio: ",
+      "field radio: ",
+      "field radio: ",
+      "field number: ",
+      "button: Lägg till teammedlemmar",
+      "button: Ta bort Grace Hopper",
+      "button: Spara och fortsätt"
+    ],
+    "width": 768,
+    "height": 510
+  },
+  "paging-test": {
+    "text": [
+      "4",
+      "Skicka ett testlarm",
+      "Testa policyn nu: den larmar sin första eskaleringsregel som en riktig incident skulle göra, och varje meddelande säger TEST. Kvittera från meddelandet för att slutföra.",
+      "Testa den här policyn",
+      "Hoppa över testet"
+    ],
+    "outline": [
+      "button: Testa den här policyn",
+      "button: Hoppa över testet"
+    ],
+    "width": 768,
+    "height": 178
+  },
+  "paging-summary": {
+    "text": [
+      "Larmningen är konfigurerad",
+      "Vem som larmas",
+      "Varje ny incident och varje nytt larm kör ”Default on-call policy”, som larmar Ada Lovelace (E-post, SMS, Telefonsamtal).",
+      "Om ingen svarar",
+      "Om ingen kvitterar inom 30 minuter larmas Grace Hopper.",
+      "Testat",
+      "Ada Lovelace bekräftade det via e-post efter 14 sekunder.",
+      "Nästa steg",
+      "Turas om med ett jourschema",
+      "Anslut Slack eller Microsoft Teams",
+      "Larma bara under arbetstid för mindre brådskande incidenter",
+      "Se vem som kan larmas",
+      "Öppna jourpolicyn",
+      "Konfigurera en annan policy"
+    ],
+    "outline": [
+      "heading: Larmningen är konfigurerad",
+      "heading: Nästa steg",
+      "link: Turas om med ett jourschema",
+      "link: Anslut Slack eller Microsoft Teams",
+      "link: Larma bara under arbetstid för mindre brådskande incidenter",
+      "link: Se vem som kan larmas",
+      "link: Öppna jourpolicyn",
+      "button: Konfigurera en annan policy"
+    ],
+    "width": 768,
+    "height": 482
+  },
+  "status-page-pick": {
+    "text": [
+      "1",
+      "Ge den ett namn och välj vad den visar",
+      "Statussidans namn",
+      "Vad den visar",
+      "Varje monitor du väljer visas på sidan med sin aktuella status och sin upptid.",
+      "Markera alla",
+      "Rensa",
+      "1 av 1 vald",
+      "Acme website",
+      "Operational",
+      "Sidan är offentlig så fort du skapar den: alla med länken ser statusen för de monitorer du valde.",
+      "Skapa statussidan",
+      "value: Status för Acme Commerce",
+      "checkbox: on"
+    ],
+    "outline": [
+      "field text: Status för Acme",
+      "button: Markera alla",
+      "button: Rensa",
+      "field checkbox: ",
+      "button: Skapa statussidan"
+    ],
+    "width": 768,
+    "height": 388
+  },
+  "status-page-review": {
+    "text": [
+      "2",
+      "Det här ser dina kunder",
+      "Din statussida är live på den här länken. Här ser du vad den visar och vad som visas på den.",
+      "Status för Acme Commerce",
+      "DEN VISAR",
+      "Acme website",
+      "Operational",
+      "Offentlig länk",
+      "https://oneuptime.acme-commerce.example/status-page/90000000-0000-4000-8000-000000000020",
+      "En incident på någon av dessa monitorer visas här av sig själv, och prenumeranterna får e-post.",
+      "Larm visas aldrig här. De är till för ditt team.",
+      "Schemalagt underhåll och meddelanden visas när du publicerar dem.",
+      "Ser bra ut"
+    ],
+    "outline": [
+      "link: https://oneuptime.acme-commerce.example/status-page/90000000-0000-4000-8000-0000",
+      "button: Ser bra ut"
+    ],
+    "width": 768,
+    "height": 466
+  },
+  "status-page-summary": {
+    "text": [
+      "”Status för Acme Commerce” är live",
+      "Adress",
+      "https://oneuptime.acme-commerce.example/status-page/90000000-0000-4000-8000-000000000020",
+      "Visar",
+      "Acme website",
+      "Visas av sig själv",
+      "En incident på någon av dessa monitorer visas här av sig själv, och prenumeranterna får e-post.",
+      "Larm visas aldrig här. De är till för ditt team.",
+      "Schemalagt underhåll och meddelanden visas när du publicerar dem.",
+      "Gör den till din egen (valfritt)",
+      "Din egen domän Visa sidan på en adress som status.example.com.",
+      "Din logotyp och dina färger Få sidan att se ut som din produkt.",
+      "Vem som kan prenumerera Via e-post, SMS, Slack, Microsoft Teams eller webhook.",
+      "Privat i stället för offentlig Bara personer som du bjuder in, eller som loggar in, ser sidan.",
+      "Nästa steg",
+      "Publicera ett första meddelande",
+      "Schemalägg ett underhåll",
+      "Lägg till statusen på din webbplats",
+      "Öppna den här statussidans inställningar",
+      "Konfigurera en annan statussida"
+    ],
+    "outline": [
+      "heading: ”Status för Acme Commerce” är live",
+      "link: https://oneuptime.acme-commerce.example/status-page/90000000-0000-4000-8000-0000",
+      "heading: Gör den till din egen (valfritt)",
+      "link: Din egen domän",
+      "link: Din logotyp och dina färger",
+      "link: Vem som kan prenumerera",
+      "link: Privat i stället för offentlig",
+      "heading: Nästa steg",
+      "link: Publicera ett första meddelande",
+      "link: Schemalägg ett underhåll",
+      "link: Lägg till statusen på din webbplats",
+      "link: Öppna den här statussidans inställningar",
+      "button: Konfigurera en annan statussida"
+    ],
+    "width": 768,
+    "height": 682
+  },
+  "incident-feed": {
+    "text": [
+      "Incidentflöde",
+      "Allt som har hänt med den här incidenten: statusändringar, anteckningar, ägare och varje avisering som skickats.",
+      "Åtgärder",
+      "måndag 14 september 2026",
+      "I dag",
+      "BST",
+      "19:12",
+      "för 8 min sen",
+      "Maya Chen",
+      "changed Incident #1042 State to Resolved",
+      "19:09",
+      "för 11 min sen",
+      "Maya Chen",
+      "Private note: Rolling checkout-api back to 2026.09.14-1 to restore DB_POOL_MAX=40. Watching p95 on the checkout dashboard.",
+      "19:05",
+      "för 15 min sen",
+      "Maya Chen",
+      "took the Incident Commander role on Incident #1042.",
+      "19:04",
+      "för 16 min sen",
+      "Sam Rivera",
+      "changed Incident #1042 State to Acknowledged",
+      "19:01",
+      "för 19 min sen",
+      "On Call Policy Started Executing: On Call Policy Checkout primary on-call started executing for Incident #1042. Users on call on this policy will now be notified.",
+      "Incident #1042 Created:",
+      "Checkout API p95 latency above 2s:",
+      "The API monitor for POST /api/checkout reported p95 latency of 2.4s for 3 consecutive checks from the eu-west-1 probe.",
+      "🔴 Incident State: Created",
+      "⚠️ Severity: SEV-2",
+      "🌎 Resources Affected:",
+      "Checkout API p95 latency",
+      "Orders DB connection pool"
+    ],
+    "outline": [
+      "heading: Incidentflöde",
+      "button: Åtgärder",
+      "button: Fler alternativ",
+      "heading: måndag 14 september 2026",
+      "link: Incident #1042",
+      "link: Incident #1042",
+      "link: Incident #1042",
+      "link: Incident #1042",
+      "heading: Incident #1042 Created:",
+      "link: Checkout API p95 latency",
+      "link: Orders DB connection pool"
+    ],
+    "width": 576,
+    "height": 950
+  },
+  "incident-resolve": {
+    "text": [
+      "#1042",
+      "Bekräftad",
+      "SEV-2",
+      "Checkout API p95 latency above 2s",
+      "Lös",
+      "Skapad",
+      "Bekräftad",
+      "Löst",
+      "PÅGÅTT I",
+      "19 minuter",
+      "INCIDENTANSVARIG",
+      "MC",
+      "Maya Chen",
+      "ÄGARE",
+      "CS",
+      "Checkout SRE",
+      "SR",
+      "Sam Rivera",
+      "Lägg till",
+      "Lägg till ägare",
+      "MONITORER",
+      "Checkout API p95 latency",
+      "Orders DB connection pool"
+    ],
+    "outline": [
+      "heading: Checkout API p95 latency above 2s",
+      "button: Lös",
+      "button: Lägg till Lägg till ägare",
+      "link: Checkout API p95 latency",
+      "link: Orders DB connection pool"
+    ],
+    "width": 876,
+    "height": 299
+  }
+}

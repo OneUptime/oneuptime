@@ -34,10 +34,10 @@ Meld u aan als master-admin en open het Admin Dashboard met **Beheerdersinstelli
 :::tabs
 @tab SAML
 - Klik op **SAML-provider toevoegen**.
-- Voer een **Naam**, de **Sign On URL** en de **Issuer** van uw identiteitsprovider in en plak het **Public Certificate**. De rest staat al ingevuld onder **Meer velden**: de **Signature Method** (`RSA-SHA256`), de **Digest Method** (`SHA256`) en een beschrijving (`Sign in with` en de naam). Wijzig ze alleen als uw IdP dat vraagt. Bij het opslaan opent de pagina van de provider.
+- Voer een **Naam**, de **Aanmeldings-URL** en de **Uitgever** van uw identiteitsprovider in en plak het certificaat in het veld **Openbaar certificaat**. De rest staat al ingevuld onder **Meer velden**: de **Handtekeningmethode** (`RSA-SHA256`), de **Digest-methode** (`SHA256`) en een beschrijving (`Sign in with` en de naam). Wijzig ze alleen als uw IdP dat vraagt. Bij het opslaan opent de pagina van de provider.
 @tab OpenID Connect
 - Klik op **OIDC-provider toevoegen**.
-- Voer een **Naam**, de **Issuer URL** en de **Client ID** en het **Client Secret** van de app in die u in uw IdP hebt geregistreerd. De discovery-URL van de IdP in **Issuer URL** plakken werkt ook. De rest staat al ingevuld onder **Meer velden**: de **Discovery URL** (de issuer gevolgd door `/.well-known/openid-configuration`), de **Scopes** (`openid email profile`), de claimnamen `email` en `name`, en een beschrijving (`Sign in with` en de naam). Wijzig ze alleen als uw IdP dat vraagt. Bij het opslaan opent de pagina van de provider.
+- Voer een **Naam**, de **Uitgever-URL** en de **Client-ID** en het **Client-secret** van de app in die u in uw IdP hebt geregistreerd. De discovery-URL van de IdP in **Uitgever-URL** plakken werkt ook. De rest staat al ingevuld onder **Meer velden**: de **Discovery-URL** (de uitgever gevolgd door `/.well-known/openid-configuration`), de **Bereiken** (`openid email profile`), de claimnamen `email` en `name`, en een beschrijving (`Sign in with` en de naam). Wijzig ze alleen als uw IdP dat vraagt. Bij het opslaan opent de pagina van de provider.
 :::
 
 ### De URL's van OneUptime in uw identiteitsprovider zetten
@@ -150,7 +150,7 @@ De persoon heeft een account, maar hoort bij geen enkel project, en de provider 
 :::
 
 :::details "Issuer URL does not match"
-Bij een SAML-provider is de issuer in het antwoord van uw identiteitsprovider niet de **Issuer** die op de provider is opgeslagen. Kopieer hem opnieuw uit uw identiteitsprovider; beide moeten exact overeenkomen.
+Bij een SAML-provider is de uitgever in het antwoord van uw identiteitsprovider niet de **Uitgever** die op de provider is opgeslagen. Kopieer hem opnieuw uit uw identiteitsprovider; beide moeten exact overeenkomen.
 :::
 
 :::details "SAML Audience does not match"

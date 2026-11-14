@@ -535,7 +535,7 @@ describe("the API hands every caller the same asset facts", () => {
    * Service. Every column the asset details read must be readable with it,
    * or the sync's select is refused as a whole.
    */
-  test("an API key with Read Telemetry Service may read every column the details read", () => {
+  test("an API key with Read Inventory Item may read every column the details read", () => {
     const model: InventoryItem = new InventoryItem();
     for (const column of [
       "entityType",

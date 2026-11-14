@@ -43,7 +43,7 @@ Ett Slack-workspace kan være koblet til mer enn ett prosjekt, for eksempel prod
 :::steps
 ### Installer OneUptime i Slack-workspacet ditt
 
-Gå til **Prosjektinnstillinger** > **Arbeidsområde** > **Slack**, og klikk på **Koble til med Slack**. Velg workspacet, og gi OneUptime tillatelse. Slack sender deg tilbake til samme side, som nå viser hvilket workspace prosjektet er koblet til. Til et workspace er koblet til, inneholder seksjonen **Arbeidsområde** i menyene Hendelser, Varsler, Planlagt vedlikehold, Monitorer og Vakttjeneste **Koble til et arbeidsområde**, som også fører hit.
+Gå til **Prosjektinnstillinger** > **Arbeidsområde** > **Slack**, og klikk på **Koble til med Slack**. Velg workspacet, og gi OneUptime tillatelse. Slack sender deg tilbake til samme side, som nå viser hvilket workspace prosjektet er koblet til. Til et workspace er koblet til, inneholder seksjonen **Arbeidsområde** i menyene Hendelser, Varsler, Planlagt vedlikehold, Monitorer og Vakt **Koble til et arbeidsområde**, som også fører hit.
 
 ### Koble til din egen Slack-konto
 
@@ -55,7 +55,7 @@ Gå til **Hendelser** > **Arbeidsområde** > **Slack**. Seksjonen **Arbeidsområ
 
 ### Test regelen
 
-Klikk på **Testregel** i regelens rad. En testmelding kommer i kanalene regelen nevner. Se [Teste en regel](#teste-en-regel).
+Klikk på **Test regel** i regelens rad. En testmelding kommer i kanalene regelen nevner. Se [Teste en regel](#teste-en-regel).
 :::
 
 ## Slack Enterprise-organisasjoner
@@ -67,7 +67,7 @@ Med Slack Enterprise Grid kan ett prosjekt jobbe i flere workspacer i organisasj
 3. Kortet **Slack-arbeidsområder** viser disse workspacene. Klikk på **Oppdater** etter at OneUptime er lagt til i et nytt workspace.
 
 - **Hvilket workspace en regel bruker.** Varslingsregler velger **Slack-arbeidsområde** for kanalene sine. Står feltet tomt, bruker regelen standard-workspacet og leter først der etter kanalene den nevner. **Gjør til standard** på kortet endrer standarden. Fjernes OneUptime fra standard-workspacet, blir det første av de gjenværende workspacene i alfabetisk rekkefølge standard. Det forblir standard når OneUptime legges til i det gamle workspacet igjen.
-- **Et workspace OneUptime er fjernet fra.** En regel som velger det, poster ikke i et annet workspace i stedet: kortet til regelen, **Testregel** og varselloggene sier at OneUptime ikke lenger er lagt til i det. Kortet **Slack-kanal** sier det også når kanalen ligger i det workspacet. Legg OneUptime til i det workspacet igjen i organisasjonsinnstillingene i Slack, eller velg et annet workspace i regelen.
+- **Et workspace OneUptime er fjernet fra.** En regel som velger det, poster ikke i et annet workspace i stedet: kortet til regelen, **Test regel** og varselloggene sier at OneUptime ikke lenger er lagt til i det. Kortet **Slack-kanal** sier det også når kanalen ligger i det workspacet. Legg OneUptime til i det workspacet igjen i organisasjonsinnstillingene i Slack, eller velg et annet workspace i regelen.
 - **Hvor OneUptime fungerer.** Knapper, kommandoer, Home-fanen og OneUptime AI fungerer i hvert av disse workspacene, og medlemmer kobler til sin egen Slack-konto fra hvilket som helst av dem.
 - **Et prosjekt som er koblet til ett workspace.** Hører det workspacet til organisasjonen, beholder prosjektet reglene, kanalene og de tilkoblede kontoene sine når det installeres for hele organisasjonen med **Installer for organisasjonen** på samme side. Det workspacet blir standard.
 - **På en selvhostet server** tillater en Slack-app som er laget fra manifestet til OneUptime, dette allerede: manifestet setter `org_deploy_enabled`.
@@ -90,7 +90,7 @@ En varslingsregel sier hvilke hendelser som publiseres i Slack, og hvor. Hvert p
 | **Varsler** | **Varsler**, **Varselsepisoder**, **Sammendrag** |
 | **Planlagt vedlikehold** | Én liste med regler |
 | **Monitorer** | Én liste med regler |
-| **Vakttjeneste** | Én liste med regler |
+| **Vakt** | Én liste med regler |
 | **SLOs** | Én liste med regler |
 
 Å opprette en regel går gjennom fire trinn:
@@ -138,9 +138,9 @@ OneUptime-appen legger dem til, slik den legger til personene i kanalen til en r
 
 ## Teste en regel
 
-**Testregel** i en regels rad publiserer en testmelding for den regelen i kanalene den nevner, så du ser at den kommer frem. Hvis regelen oppretter en kanal for hver hendelse, oppretter testen også en og inviterer regelens folk inn i den.
+**Test regel** i en regels rad publiserer en testmelding for den regelen i kanalene den nevner, så du ser at den kommer frem. Hvis regelen oppretter en kanal for hver hendelse, oppretter testen også en og inviterer regelens folk inn i den.
 
-I likhet med **Send test** ved siden av en kanal i **Prosjektinnstillinger** > **Arbeidsområde** > **Slack** krever den tillatelse til å opprette varslingsregler: **Prosjekteier**, **Prosjektadministrator**, **Prosjektmedlem**, **Innstillingsadministrator**, **Innstillingsmedlem**, eller **Create Workspace Notification Rule** og **Read Workspace Notification Rule** i en egendefinert rolle. For en som bare kan se reglene, som en **Leser**, er **Testregel** låst, og verktøytipset sier hva som kreves; API-et avviser testen med "You do not have permission to send test notifications in this project." På OneUptime Cloud krever det **Growth**-planen å teste en regel, på samme måte som å legge til en.
+I likhet med **Send test** ved siden av en kanal i **Prosjektinnstillinger** > **Arbeidsområde** > **Slack** krever den tillatelse til å opprette varslingsregler: **Prosjekteier**, **Prosjektadministrator**, **Prosjektmedlem**, **Innstillingsadministrator**, **Innstillingsmedlem**, eller **Create Workspace Notification Rule** og **Read Workspace Notification Rule** i en egendefinert rolle. For en som bare kan se reglene, som en **Leser**, er **Test regel** låst, og verktøytipset sier hva som kreves; API-et avviser testen med "You do not have permission to send test notifications in this project." På OneUptime Cloud krever det **Growth**-planen å teste en regel, på samme måte som å legge til en.
 
 På OneUptime Cloud krever **Send test** ved siden av en kanal også **Growth**-planen, siden det å publisere i en kanal er det regler og sammendrag gjør. **Send test nå** på et sammendrag krever tillatelse til å opprette sammendrag (**Create Workspace Notification Summary** og **Read Workspace Notification Summary** i en egendefinert rolle) og, på OneUptime Cloud, **Growth**-planen; for alle andre er den låst, og verktøytipset sier hva som kreves. En MCP-klient som er koblet til med skrivebeskyttet tilgang, kan ikke sende noen test.
 
@@ -154,7 +154,7 @@ Skjemaet for et sammendrag har fire trinn: **Grunnleggende informasjon** (navnet
 
 ## Varslingsregler under Growth-planen
 
-På OneUptime Cloud hører varslingsregler og sammendrag til **Growth**-planen og høyere. Et prosjekt under den beholder reglene og sammendragene det allerede har, og de fortsetter å publisere i Slack. Derfor viser hvert produkts **Slack**-side (Hendelser, Varsler, Planlagt vedlikehold, Vakttjeneste, Monitorer) planmerknaden med dem under (**Varslingsregler som fortsatt er satt opp**, **Sammendrag som fortsatt er satt opp**): slett en regel, eller slå av eller slett et sammendrag. Å legge til eller endre regler og sammendrag krever **Growth**.
+På OneUptime Cloud hører varslingsregler og sammendrag til **Growth**-planen og høyere. Et prosjekt under den beholder reglene og sammendragene det allerede har, og de fortsetter å publisere i Slack. Derfor viser hvert produkts **Slack**-side (Hendelser, Varsler, Planlagt vedlikehold, Vakt, Monitorer) planmerknaden med dem under (**Varslingsregler som fortsatt er satt opp**, **Sammendrag som fortsatt er satt opp**): slett en regel, eller slå av eller slett et sammendrag. Å legge til eller endre regler og sammendrag krever **Growth**.
 
 ## Bli tilkalt i Slack
 
@@ -166,7 +166,7 @@ For å bli tilkalt med direktemelding når du har vakt, legger du til Slack som 
 3. Klikk på **Send Test Message** i raden. Meldingen kommer i direktemeldingene dine i Slack.
 :::
 
-Å legge den til setter den straks inn i vaktreglene dine, så tilkallinger når deg i Slack fra da av. Endre hvilke tilkallinger den får, under **Brukerinnstillinger** > **Vaktregler**.
+Å legge den til setter den straks inn i vaktreglene dine, så tilkallinger når deg i Slack fra da av. Endre hvilke tilkallinger den får, under **Brukerinnstillinger** > **Slik når man meg**.
 
 ## Lagre meldinger som notater
 
@@ -235,7 +235,7 @@ OneUptime svarer bare på det som er rettet til den.
 - **I et varsels egen kanal.** I kanalen OneUptime opprettet for et varsel, mens varselet er åpent, sier skjemaet at hendelsen opprettes fra det varselet, og begynner med varselets tittel og de ressursene det er knyttet til som du kan se. Hendelsen knyttes til varselet, slik en hendelse som opprettes fra varselets side gjør, og hendelsen til et privat varsel er også privat. Når du ikke kan knytte varsler til hendelser, opprettes hendelsen uten tilknytningen, og du får vite hvorfor.
 - **Hva et skjema kan nevne.** Hendelsen eller begivenheten opprettes med dine egne tillatelser og krediteres deg. En monitor, vaktpolicy, etikett, alvorlighetsgrad eller status du ikke kan lese, eller en fra et annet prosjekt, avvises som en prosjektet ikke har, selv fra et skjema som ble åpnet før tilgangen din endret seg, og ingenting opprettes. OneUptime forteller deg hvorfor i kanalen, i en melding bare du ser.
 
-**Execute On-Call Policy** på en hendelse, et varsel eller en episode fungerer på samme måte: den krever tillatelse til å kjøre en vaktpolicy (**Prosjekteier**, **Prosjektadministrator**, **Prosjektmedlem**, **Vaktadministrator** og **Vaktmedlem**, eller **Execute On-Call Duty Policy** i en egendefinert rolle) og til å lese den hendelsen, det varselet eller den episoden, og den tilbyr de aktive vaktpolicyene du kan lese.
+**Execute On-Call Policy** på en hendelse, et varsel eller en episode fungerer på samme måte: den krever tillatelse til å kjøre en vaktpolicy (**Prosjekteier**, **Prosjektadministrator**, **Prosjektmedlem**, **Vaktadministrator** og **Vaktmedlem**, eller **Execute On-Call Policies** i en egendefinert rolle) og til å lese den hendelsen, det varselet eller den episoden, og den tilbyr de aktive vaktpolicyene du kan lese.
 
 ## Tilkall noen fra Slack
 
@@ -246,7 +246,7 @@ OneUptime svarer bare på det som er rettet til den.
 - **Hvem som tilkalles med en gang.** Personene du nevner med @, og dem som har vakt i vaktplanene en brukergruppe du nevner med @, følger (se [Vakt-brukergrupper](#vakt-brukergrupper)), når en melding følger etter dem, eller uten melding i en hendelses eller et varsels egen kanal. OneUptime kjenner igjen en person på OneUptime-kontoen vedkommendes Slack-konto er koblet til, eller ellers på e-postadressen Slack har for vedkommende. Ingen utenfor prosjektet tilkalles.
 - **Alt annet åpner et skjema.** Uten noen nevnt med @, uten melding der tilkallingen trenger en, med `@here`, med en brukergruppe som ikke følger noen vaktplan du kan se, eller med en person OneUptime ikke kjenner igjen, åpnes skjemaet **Page someone** med det du skrev ferdig utfylt, og det sier hvem det ikke kunne velge. I en hendelses eller et varsels egen kanal åpnes det med den hendelsen eller det varselet. Velg personer, et team, en vaktplan, som tilkaller den som har vakt i den nå, eller en vaktpolicy, som tilkaller gjennom eskaleringsreglene sine, og send det inn. Et navn du skriver først, som i `/oneuptime page Primary The disk is full`, velger vaktplanen, teamet eller policyen med det navnet.
 - **Hvor det vises.** Kanalen viser tilkallingen som én melding som holdes oppdatert: hvem som ble tilkalt og hvordan, hvert team med navnet og personene sine etter, meldingen din, og hvem som bekreftet. Der OneUptime ikke kan poste, for eksempel i en privat kanal den ikke er invitert til, sier en melding bare du ser hvem som ble tilkalt, med en lenke til hendelsen eller varselet.
-- **Hvem som kan tilkalle.** I en hendelses eller et varsels egen kanal alle som kan kjøre en vaktpolicy (**Prosjekteier**, **Prosjektadministrator**, **Prosjektmedlem**, **Vaktadministrator** og **Vaktmedlem**, eller **Execute On-Call Duty Policy** i en egendefinert rolle) og lese den hendelsen eller det varselet. Alle andre steder oppretter tilkallingen et varsel, så den krever også tillatelse til å opprette et: **Prosjekteier**, **Prosjektadministrator** og **Prosjektmedlem**, eller **Vaktmedlem** sammen med **Varselmedlem** (**Execute On-Call Duty Policy** og **Create Alert** i en egendefinert rolle). Å tilkalle personer, et team eller en vaktplan direkte, uten en vaktpolicy bak tilkallingen, krever også tilgang til alle vaktpolicyene i prosjektet. Alle andre får beskjed om det der de kjørte kommandoen, og ingen tilkalles. På OneUptime Cloud krever tilkalling Growth-planen: under den sier OneUptime hvilken plan som kreves, og ingen tilkalles.
+- **Hvem som kan tilkalle.** I en hendelses eller et varsels egen kanal alle som kan kjøre en vaktpolicy (**Prosjekteier**, **Prosjektadministrator**, **Prosjektmedlem**, **Vaktadministrator** og **Vaktmedlem**, eller **Execute On-Call Policies** i en egendefinert rolle) og lese den hendelsen eller det varselet. Alle andre steder oppretter tilkallingen et varsel, så den krever også tillatelse til å opprette et: **Prosjekteier**, **Prosjektadministrator** og **Prosjektmedlem**, eller **Vaktmedlem** sammen med **Varselmedlem** (**Execute On-Call Policies** og **Create Alert** i en egendefinert rolle). Å tilkalle personer, et team eller en vaktplan direkte, uten en vaktpolicy bak tilkallingen, krever også tilgang til alle vaktpolicyene i prosjektet. Alle andre får beskjed om det der de kjørte kommandoen, og ingen tilkalles. På OneUptime Cloud krever tilkalling Growth-planen: under den sier OneUptime hvilken plan som kreves, og ingen tilkalles.
 
 For å holde personer orientert mens andre håndterer det, tilkaller du dem som observatører. I en hendelses eller et varsels egen kanal skriver du `as observers` etter hvem som skal tilkalles, som i `/oneuptime page @oversight as observers Team Y is on it`, eller velger **Observers: keep them informed** under **Page them as** i skjemaet. Tilkallingen deres sier at de er observatører, og bekrefter de den, sier det bare at de har sett den: Hendelsen eller varselet blir ikke bekreftet, ingen andres tilkalling stopper, og der tilkallingen vises, står det at de tilkalles som observatører. En tilkalling om noe nytt trenger noen som håndterer det, så alle andre steder avvises `as observers`, og ingen tilkalles.
 
@@ -257,7 +257,7 @@ Hold en Slack-brukergruppe, for eksempel `@payments-oncall`, lik dem som har vak
 :::steps
 ### Koble en brukergruppe til en vaktplan
 
-Åpne vaktplanen under **Vakttjeneste** > **Vaktplaner**. Klikk **Koble til brukergruppe** i kortet **Slack-brukergrupper**, og velg en av brukergruppene i arbeidsområdet ditt, eller **Opprett en ny brukergruppe** med et navn og et alias. Medlemmene byttes straks ut med dem som har vakt.
+Åpne vaktplanen under **Vakt** > **Vaktplaner**. Klikk **Koble til brukergruppe** i kortet **Slack-brukergrupper**, og velg en av brukergruppene i arbeidsområdet ditt, eller **Opprett en ny brukergruppe** med et navn og et alias. Medlemmene byttes straks ut med dem som har vakt.
 
 ### Koble den også til den sekundære vaktplanen
 
@@ -268,7 +268,7 @@ For en gruppe med både primær og sekundær vakt kobler du den samme gruppen ti
 - **Ingen har vakt.** Slack kan ikke beholde en brukergruppe uten medlemmer, så OneUptime slår av gruppen til noen har vakt, og slår den så på igjen.
 - **Tilkall gruppen.** `/oneuptime page @payments-oncall The checkout API is down` tilkaller dem som har vakt i vaktplanene gruppen følger. Se [Tilkall noen fra Slack](#tilkall-noen-fra-slack).
 - **Hva Slack krever.** Brukergrupper hører til de betalte abonnementene til Slack, og et arbeidsområde kan la bare eierne og administratorene endre dem: kortet sier hvilket, og hva du gjør. Hvis Slack ble koblet til før OneUptime kunne holde brukergrupper oppdatert, kobler du det til igjen én gang under **Prosjektinnstillinger** > **Arbeidsområde** > **Slack**.
-- **Hvem som kan koble til en.** Rollene som kan redigere vaktplaner: **Prosjekteier**, **Prosjektadministrator**, **Prosjektmedlem**, **Vaktadministrator** og **Vaktmedlem**, eller **Edit On-Call Duty Policy Schedule** i en egendefinert rolle. På OneUptime Cloud krever det abonnementet **Growth** å koble til en.
+- **Hvem som kan koble til en.** Rollene som kan redigere vaktplaner: **Prosjekteier**, **Prosjektadministrator**, **Prosjektmedlem**, **Vaktadministrator** og **Vaktmedlem**, eller **Edit On-Call Schedule** i en egendefinert rolle. På OneUptime Cloud krever det abonnementet **Growth** å koble til en.
 - **I en Slack Enterprise-organisasjon.** Når OneUptime er lagt til i to eller flere av workspacene dens, spør **Koble til brukergruppe** først hvilket **Slack-arbeidsområde** gruppen er i, og viser så brukergruppene i det workspacet. Kortet nevner workspacet til hver gruppe, og OneUptime holder gruppen oppdatert der.
 - **Koble fra.** OneUptime slutter å endre gruppen. Gruppen og medlemmene blir værende i Slack som de er.
 
@@ -333,7 +333,7 @@ Det OneUptime tar vare på av dette — navnet på arbeidsområdet, kanalene, Sl
 ## Feilsøking
 
 :::details En regel publiserer ingenting
-Sjekk regelens betingelser med **Testregel**: hvis testen kommer frem, passet ikke regelens betingelser på hendelsen. Hvis den ikke gjør det, sier Slack-siden hvorfor. For en privat kanal må du først invitere OneUptime-appen inn i den i Slack. Hver melding OneUptime publiserer, og hver melding Slack avviste, vises i **Prosjektinnstillinger** > **Varsler** > **Varsellogger**, på fanen **Arbeidsområde**.
+Sjekk regelens betingelser med **Test regel**: hvis testen kommer frem, passet ikke regelens betingelser på hendelsen. Hvis den ikke gjør det, sier Slack-siden hvorfor. For en privat kanal må du først invitere OneUptime-appen inn i den i Slack. Hver melding OneUptime publiserer, og hver melding Slack avviste, vises i **Prosjektinnstillinger** > **Varsler** > **Varsellogger**, på fanen **Arbeidsområde**.
 :::
 
 :::details Noen mangler i en regels kanal

@@ -37,6 +37,7 @@ import WorkspaceBase, {
   WorkspaceSendMessageResponse,
   WorkspaceThread,
 } from "../WorkspaceBase";
+import WorkspaceChannelNotFound from "../WorkspaceChannelNotFound";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
 import SlackifyMarkdown from "slackify-markdown";
 import { DropdownOption } from "../../../../UI/Components/Dropdown/Dropdown";
@@ -251,6 +252,7 @@ export default class SlackUtil extends WorkspaceBase {
     holdBackCodeBlockContent: true,
     countUrlLiterals: true,
     countWordUnderscores: true,
+    countAsMarked: false,
   };
 
   // Closes and reopens a ``` code block that a section boundary cuts through.
@@ -2030,8 +2032,10 @@ export default class SlackUtil extends WorkspaceBase {
     const workspaceChannelsToPostTo: Array<WorkspaceChannel> = [];
 
     /*
-     * The channels not posted in for a reason their rule's Notification
-     * Logs say: the workspace the rule picks no longer has OneUptime.
+     * The channels named by their name that are not posted in, each with
+     * the reason its rule's (or summary's) Notification Logs say: the
+     * workspace the rule picks no longer has OneUptime, or Slack has no
+     * channel of that name the bot can see.
      */
     const channelErrors: Array<{ channel: WorkspaceChannel; error: string }> =
       [];
@@ -2093,6 +2097,27 @@ export default class SlackUtil extends WorkspaceBase {
 
         // Not posted in: renamed, deleted, or private to the bot.
         posts.recordChannelNotFound();
+
+        /*
+         * Said, as Microsoft Teams and Mattermost say theirs: the rule's
+         * Notification Logs get an Error row naming the channel and what
+         * to do. Left out in silence, the rule looked as if it posted
+         * there, and the incident was never seen in that channel (#7115).
+         */
+        channelErrors.push({
+          channel: {
+            id: "",
+            name: channelName,
+            workspaceType: WorkspaceType.Slack,
+            ...(data.workspaceMessagePayload.teamId
+              ? { teamId: data.workspaceMessagePayload.teamId }
+              : {}),
+          },
+          error: WorkspaceChannelNotFound.getReason({
+            workspaceType: WorkspaceType.Slack,
+            channelName: channelName,
+          }),
+        });
       }
     }
 

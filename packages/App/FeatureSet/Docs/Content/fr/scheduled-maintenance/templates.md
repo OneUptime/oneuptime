@@ -15,7 +15,7 @@ Un modèle est un point de départ. Un événement créé à partir de lui est u
 
 ```mermaid title="Deux façons dont un modèle devient un événement"
 flowchart TB
-    template["Un modèle dans<br/>Modèles d'événement"] --> byhand["Créer à partir d'un modèle<br/>remplit le formulaire"]
+    template["Un modèle dans<br/>Modèles de maintenance"] --> byhand["Créer à partir d'un modèle<br/>remplit le formulaire"]
     template --> schedule["Récurrent activé<br/>vérifié chaque minute"]
     byhand --> event["Un nouvel événement<br/>dans Planifié"]
     schedule --> event
@@ -31,7 +31,7 @@ flowchart TB
 :::steps
 ### Ouvrir les modèles
 
-Allez dans **Maintenance planifiée → Paramètres → Modèles d'événement**. **Paramètres** est replié au départ dans le menu latéral : dépliez-le d'abord. Cliquez sur **Créer : Modèle de maintenance planifiée**.
+Allez dans **Maintenance planifiée → Paramètres → Modèles de maintenance**. **Paramètres** est replié au départ dans le menu latéral : dépliez-le d'abord. Cliquez sur **Créer : Modèle de maintenance planifiée**.
 
 ### Nommer le modèle
 
@@ -39,7 +39,7 @@ Dans **Informations du modèle**, donnez-lui un **Nom du modèle** et une **Desc
 
 ### Décrire l'événement
 
-Dans **Événement**, renseignez le **Titre** et la **Description** avec lesquels démarre chaque événement issu du modèle. **Propriétaires** et **Étiquettes** attendent sous **Plus de champs**.
+Dans **Détails de la maintenance**, renseignez le **Titre** et la **Description** avec lesquels démarre chaque événement issu du modèle. **Propriétaires** et **Étiquettes** attendent sous **Plus de champs**.
 
 ### Choisir ce qu'il affecte
 
@@ -68,7 +68,7 @@ Un modèle demande **Changer le statut du moniteur en** même quand il ne nomme 
 :::steps
 ### Choisir le modèle
 
-Dans **Maintenance planifiée → Tous les événements**, cliquez sur **Créer à partir d'un modèle**, puis choisissez un modèle sous **Sélectionner le modèle de maintenance planifiée**.
+Dans **Maintenance planifiée → Tous les événements de maintenance**, cliquez sur **Créer à partir d'un modèle**, puis choisissez un modèle sous **Sélectionner le modèle de maintenance planifiée**.
 
 ### Vérifier le formulaire
 
@@ -76,10 +76,10 @@ Cliquez sur **Créer à partir d'un modèle**. Le formulaire de création s'ouvr
 
 ### Créer l'événement
 
-Parcourez les étapes avec **Suivant**, puis cliquez sur **Créer un événement de maintenance planifiée** dans la vérification.
+Parcourez les étapes avec **Suivant**, puis cliquez sur **Créer un événement de maintenance** dans la vérification.
 :::
 
-Quand le projet n'a encore aucun modèle, **Créer à partir d'un modèle** le dit et renvoie vers **Modèles d'événement**.
+Quand le projet n'a encore aucun modèle, **Créer à partir d'un modèle** le dit et renvoie vers **Modèles de maintenance**.
 
 ## Événements récurrents
 
@@ -108,7 +108,7 @@ Une tâche vérifie les modèles récurrents chaque minute. Quand arrive la proc
 
 Ouvrez un modèle depuis la liste pour voir sa page :
 
-- **Détails du modèle de maintenance planifiée** montre ce avec quoi démarrent les nouveaux événements. Son **Modifier** parcourt **Informations du modèle**, **Événement**, **Pages de statut** et **Récurrent**.
+- **Détails du modèle de maintenance planifiée** montre ce avec quoi démarrent les nouveaux événements. Son **Modifier** parcourt **Informations du modèle**, **Détails de la maintenance**, **Pages de statut** et **Récurrent**.
 - **Ressources affectées** contient ses **Moniteurs**, leur **Changer le statut du moniteur en** et ses **Autres ressources affectées**, avec son propre **Modifier**.
 - **Propriétaires** liste les personnes et équipes à qui appartient chaque événement planifié à partir de lui.
 

@@ -281,7 +281,7 @@ Klient-ID-ene er offentlige: de sendes til dashbordet så det vet hvilke leveran
 ## Feilsøking
 
 :::details Ingen samtale ble startet for en hendelse
-Sjekk at regelen passet på hendelsen (**Testregel**), at trinnet **Video Call** er slått på, og at hendelsen ble opprettet som pågående: en hendelse som opprettes allerede løst, får ingen samtale. En regel som allerede startet en samtale for hendelsen med den tilkoblingen, starter ikke en til.
+Sjekk at regelen passet på hendelsen (**Test regel**), at trinnet **Video Call** er slått på, og at hendelsen ble opprettet som pågående: en hendelse som opprettes allerede løst, får ingen samtale. En regel som allerede startet en samtale for hendelsen med den tilkoblingen, starter ikke en til.
 :::
 
 :::details Feeden sier at samtalen ikke kunne startes

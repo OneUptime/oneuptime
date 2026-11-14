@@ -960,7 +960,7 @@ export default class MonitorStep extends DatabaseProperty {
     }
 
     if (!value.data.monitorCriteria) {
-      return "Monitor Criteria is required";
+      return "Criteria are required";
     }
 
     if (

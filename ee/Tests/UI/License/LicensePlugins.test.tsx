@@ -767,17 +767,23 @@ describe("who writes the license", () => {
     });
   };
 
+  // The details and their words: the words are data, with no React in them.
+  const DETAILS_FILES: ReadonlyArray<string> = [
+    "ee/AdminDashboard/License/LicenseDetails.tsx",
+    "ee/AdminDashboard/License/LicenseDetailsCopy.ts",
+  ];
+
   it("is out of the Dashboard's reach: its plugin bundles the details alone", () => {
     const reached: Array<string> = reachedFrom(
       path.join(REPOSITORY_ROOT, "ee/Dashboard/License/Plugins.ts"),
     );
 
-    expect(reached).toContain("ee/AdminDashboard/License/LicenseDetails.tsx");
+    expect(reached).toEqual(expect.arrayContaining([...DETAILS_FILES]));
     expect(
       reached.filter((file: string): boolean => {
         return (
           file.startsWith("ee/AdminDashboard/License/") &&
-          file !== "ee/AdminDashboard/License/LicenseDetails.tsx"
+          !DETAILS_FILES.includes(file)
         );
       }),
     ).toEqual([]);

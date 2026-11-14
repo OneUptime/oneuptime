@@ -29,7 +29,7 @@ flowchart TB
 | Página | Lo que contiene | La pregunta que responde |
 | --- | --- | --- |
 | **Métodos de notificación** | Tus direcciones de correo, números de teléfono, números de WhatsApp, cuentas de Telegram, Slack, Microsoft Teams y Mattermost, dispositivos push y webhooks | ¿Dónde puede contactarme OneUptime? |
-| **Reglas de guardia** | Para cada tipo de aviso y cada gravedad, qué método probar y después de cuánto tiempo | ¿Cómo me avisan mientras estoy de guardia? |
+| **Cómo contactarme** | Para cada tipo de aviso y cada gravedad, qué método probar y después de cuánto tiempo | ¿Cómo me avisan mientras estoy de guardia? |
 | **Ajustes de notificaciones** | Para cada evento sobre un registro que es tuyo o sobre tus turnos, qué canales usar | ¿De qué más me entero, y dónde? |
 
 Están separadas a propósito. Activar todos los canales en **Ajustes de notificaciones** nunca te avisa, y un método que no has verificado nunca se usa, digan lo que digan tus reglas.
@@ -44,7 +44,7 @@ Abre **Ajustes de usuario**, a la derecha de la barra que está debajo de la bar
 | Sección | Páginas |
 | --- | --- |
 | **Primeros pasos** | **Lista de configuración**: lo que queda por configurar, en el orden que importa |
-| **Alertas y notificaciones** | **Métodos de notificación**, **Reglas de guardia**, **Ajustes de notificaciones** y **Preferencias de correo**, que fija cuántos correos suman tus novedades |
+| **Alertas y notificaciones** | **Métodos de notificación**, **Cómo contactarme**, **Ajustes de notificaciones** y **Preferencias de correo**, que fija cuántos correos suman tus novedades |
 | **Registros de guardia** | **Registros de guardia**: cada vez que te avisaron en este proyecto, y lo que se envió |
 | **Política de llamadas entrantes** | **Números de teléfono entrantes**: el número al que te llama una política de llamadas entrantes |
 | **Calendario** | **Feed de calendario**: tus turnos en tu aplicación de calendario, y recordatorios antes de que empiecen |
@@ -53,17 +53,17 @@ Abre **Ajustes de usuario**, a la derecha de la barra que está debajo de la bar
 
 **Primeros pasos** y **Alertas y notificaciones** están abiertas; las demás secciones empiezan plegadas, y una sección se abre sola cuando estás en una de sus páginas. **Espacio de trabajo** solo aparece si el proyecto ha conectado Slack, Microsoft Teams o Mattermost.
 
-Los propietarios y administradores del proyecto también pueden ver tu configuración: en **Usuarios**, abren tu fila y su sección **De guardia**, con **Preparación**, **Métodos de notificación** y **Reglas de guardia**. Pueden añadir un método por ti allí, pero el código va al propio método, así que solo tú puedes verificarlo.
+Los propietarios y administradores del proyecto también pueden ver tu configuración: en **Usuarios**, abren tu fila y su sección **Guardia**, con **Preparación**, **Métodos de notificación** y **Cómo contactarme**. Pueden añadir un método por ti allí, pero el código va al propio método, así que solo tú puedes verificarlo.
 
 ## Con qué empiezas
 
 Cuando te unes a un proyecto con un correo de inicio de sesión verificado, OneUptime te configura para que un aviso siempre pueda llegarte:
 
 1. Tu correo de inicio de sesión se añade como método de correo verificado.
-2. Para cada gravedad, en cada una de las cuatro pestañas de **Reglas de guardia**, una regla te envía un correo en cuanto te avisan.
+2. Para cada gravedad, en cada una de las cuatro pestañas de **Cómo contactarme**, una regla te envía un correo en cuanto te avisan.
 3. Un conjunto de novedades sobre lo que es tuyo, y sobre tus turnos, se activa por correo. Consulta [Ajustes de notificaciones](/docs/notifications/notification-settings#qué-está-activado-para-un-miembro-nuevo).
 
-Cada método que verifiques después recibe las mismas reglas: una regla para cada gravedad, enviada en cuanto te avisan. Así que verificar un número de teléfono para SMS significa que cada aviso también te envía un SMS. Para dejar los SMS solo para los avisos críticos, elimina las reglas de SMS de las demás gravedades. Consulta [Reglas de guardia personales](/docs/notifications/on-call-rules#las-reglas-con-las-que-empiezas).
+Cada método que verifiques después recibe las mismas reglas: una regla para cada gravedad, enviada en cuanto te avisan. Así que verificar un número de teléfono para SMS significa que cada aviso también te envía un SMS. Para dejar los SMS solo para los avisos críticos, elimina las reglas de SMS de las demás gravedades. Consulta [Cómo contactarme](/docs/notifications/on-call-rules#las-reglas-con-las-que-empiezas).
 
 ## La lista de configuración
 
@@ -72,7 +72,7 @@ Cada método que verifiques después recibe las mismas reglas: una regla para ca
 | Sección | Lo que comprueba |
 | --- | --- |
 | **Para que podamos contactarte** | Tienes un método, cada método que añadiste está verificado, y al menos uno está en un canal que el proyecto ha activado |
-| **Cómo quieres que te avisen** | Cada gravedad tiene una regla, en cada una de las cuatro pestañas de **Reglas de guardia** |
+| **Cómo quieres que te avisen** | Cada gravedad tiene una regla, en cada una de las cuatro pestañas de **Cómo contactarme** |
 | **Mantenerse informado** | Te enteras de cuándo empieza un turno, y cada canal que activaste en **Ajustes de notificaciones** tiene detrás un método verificado |
 | **Deseable** | Un número para llamadas entrantes, tus cuentas de Slack y Microsoft Teams, un enlace de calendario y tus campos de perfil |
 
@@ -95,7 +95,7 @@ Un aviso puede llegarte para un tipo y una gravedad para los que no tienes regla
 2. Si no tienes ninguno, un método de pago, en este orden: SMS, una llamada, WhatsApp, Telegram. Es el primero que tengas verificado, en un canal que el proyecto ha activado.
 3. Si tampoco tienes ninguno de esos, un webhook.
 
-Recibes un correo avisándote, y también los propietarios de la política de guardia, o los del proyecto si la política no tiene. Si no hay nada verificado, el aviso no se puede entregar, y el correo dice eso. Estos correos se retienen mientras siguen llegando avisos, para que una tormenta de avisos no sea una tormenta de correos. Para añadir la regla que falta, consulta [Reglas de guardia personales](/docs/notifications/on-call-rules#cuando-una-gravedad-no-tiene-regla).
+Recibes un correo avisándote, y también los propietarios de la política de guardia, o los del proyecto si la política no tiene. Si no hay nada verificado, el aviso no se puede entregar, y el correo dice eso. Estos correos se retienen mientras siguen llegando avisos, para que una tormenta de avisos no sea una tormenta de correos. Para añadir la regla que falta, consulta [Cómo contactarme](/docs/notifications/on-call-rules#cuando-una-gravedad-no-tiene-regla).
 
 ## El idioma de tus avisos
 
@@ -131,7 +131,7 @@ Un número entra en tus reglas cuando se verifica. Haz clic en **Verificar** en 
 
 :::cards
 - [Métodos de notificación](/docs/notifications/notification-methods): Añade y verifica las direcciones en las que OneUptime puede contactarte.
-- [Reglas de guardia personales](/docs/notifications/on-call-rules): Decide qué método prueba cada aviso, y cuándo.
+- [Cómo contactarme](/docs/notifications/on-call-rules): Decide qué método prueba cada aviso, y cuándo.
 - [Ajustes de notificaciones](/docs/notifications/notification-settings): Elige las novedades de las que te enteras, y por qué canales.
 - [Reglas de escalado](/docs/on-call/escalation-rules): Cómo una política de guardia decide a quién avisar, nivel por nivel.
 :::

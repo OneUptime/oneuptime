@@ -38,6 +38,7 @@ import React, {
   useState,
 } from "react";
 import ChartCard from "../../../Components/TelemetryResource/ChartCard";
+import XAxisPrecision from "Common/UI/Components/Charts/Types/XAxis/XAxisPrecision";
 import { ResourceOverviewTile } from "../../../Components/TelemetryResource/ResourceOverview";
 import {
   formatProductAnalyticsAverage,
@@ -486,6 +487,7 @@ const RumApplicationProductAnalyticsEvents: FunctionComponent<
               syncId={`product-analytics-events-${modelId.toString()}`}
               showLegend={true}
               yAllowDecimals={false}
+              xAxisPrecision={XAxisPrecision.EVERY_DAY}
               loading={(trend.isLoading || isWaitingForNames) && !trend.data}
               description="Each day's count of the event, and of the people who did it that day. Days are in your time zone."
             />

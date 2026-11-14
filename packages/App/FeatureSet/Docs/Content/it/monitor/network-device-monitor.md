@@ -190,7 +190,7 @@ Ogni punto che mostra un dispositivo — l'elenco Dispositivi, la pagina Disposi
 | --- | --- |
 | **In servizio** | L'ultimo polling (ping o SNMP), o il monitor associato, ha raggiunto il dispositivo. |
 | **Fuori servizio** | L'ultimo polling (ping o SNMP), o il monitor associato, non ha potuto raggiungere il dispositivo. |
-| **In sospeso** | Ancora nessun verdetto: mai interrogato, nessuna sonda assegnata o nessun monitor associato. |
+| **In sospeso** | Ancora nessun verdetto: mai interrogato, nessuna sonda assegnata, nessun monitor associato, oppure il monitor associato è disattivato o archiviato. |
 
 | Qualificatore | Compare quando | Cosa fare |
 | --- | --- | --- |
@@ -198,6 +198,8 @@ Ogni punto che mostra un dispositivo — l'elenco Dispositivi, la pagina Disposi
 | **Nessuna sonda** | Il dispositivo è interrogato dalla sonda ma non ne ha una, o il suo polling è disattivato. | Assegna una sonda in grado di raggiungerlo; fino ad allora nulla lo interroga. |
 | **Nessun monitor** | Il dispositivo usa l'[override con monitor associato](#loverride-con-monitor-associato) e nulla è associato. | Associa un monitor, o riportalo al polling tramite sonda. |
 | **SNMP failing** | Attivo al ping, ma l'ultimo walk SNMP è fallito. | Controlla le credenziali, l'agente SNMP o un'ACL. |
+| **Monitoraggio disattivato** | Il monitoraggio del monitor associato è disattivato, quindi il dispositivo mostra **In sospeso** invece dello stato in cui il monitor è rimasto. | Riattiva il monitoraggio del monitor, o associa un altro monitor. |
+| **Monitor archiviato** | Il monitor associato è archiviato, quindi il dispositivo mostra **In sospeso** invece dello stato in cui il monitor è rimasto. | Ripristina il monitor dall'archivio, o associa un altro monitor. |
 
 L'elenco **Dispositivi** ha un filtro **SNMP** con tre valori: **OK** (l'ultimo walk è riuscito), **In errore** (l'ultimo walk è fallito) e **Not configured** (solo ping, senza credenziali o mai interrogato). «Quali dispositivi hanno credenziali che hanno smesso di funzionare» è a un clic di distanza. La colonna **Interfaces (Up / Down)** dell'elenco riporta **Senza SNMP** invece di `0 / 0` per un dispositivo che riceve il ping e non viene mai sottoposto a walk: zero porte funzionanti sarebbe un'affermazione diversa, e sbagliata.
 

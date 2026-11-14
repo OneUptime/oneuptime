@@ -88,6 +88,7 @@ Tudo o que as pessoas criam, alteram ou excluem em um projeto é registrado: mon
 | Feeds de atividade | Um feed mostra alterações que o registro de auditoria já registra. |
 | O estado de trabalho do OneUptime | Sessões dos leitores de páginas de status, tarefas na fila e outros estados que o OneUptime mantém enquanto trabalha. |
 | A configuração de notificações própria de uma pessoa | Os endereços, números e regras de plantão pessoais de cada pessoa são só dela. |
+| As preferências próprias de uma pessoa | Os produtos que cada pessoa fixa na sua própria barra superior são só dela, e só ela os vê. |
 
 Também fica registrado quando um administrador adiciona ou remove um método de notificação ou uma regra de plantão pessoal na conta de outra pessoa, sem o endereço ou o número em si.
 

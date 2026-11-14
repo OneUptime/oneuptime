@@ -1,6 +1,6 @@
 /*
  * The five pages docs overhaul task 37 added to the Telemetry group - the
- * Service Catalog and the Logs, Traces, Metrics and Exceptions explorers -
+ * Services and the Logs, Traces, Metrics and Exceptions explorers -
  * by the paths their suites name them with, where each sits in the nav, and
  * the words a translation keeps as written or words freely.
  *
@@ -37,7 +37,7 @@ export const TELEMETRY_EXPLORERS_PAGES: ReadonlyArray<TelemetryExplorersDocsPage
   [
     {
       page: SERVICES,
-      navTitle: "Service Catalog",
+      navTitle: "Services",
       navGroup: "Telemetry",
       after: "Ingestion Keys",
     },
@@ -45,7 +45,7 @@ export const TELEMETRY_EXPLORERS_PAGES: ReadonlyArray<TelemetryExplorersDocsPage
       page: LOGS_EXPLORER,
       navTitle: "Logs Explorer",
       navGroup: "Telemetry",
-      after: "Service Catalog",
+      after: "Services",
     },
     {
       page: TRACES_EXPLORER,
@@ -61,7 +61,7 @@ export const TELEMETRY_EXPLORERS_PAGES: ReadonlyArray<TelemetryExplorersDocsPage
     },
     {
       page: EXCEPTIONS,
-      navTitle: "Exception Tracking",
+      navTitle: "Exceptions",
       navGroup: "Telemetry",
       after: "Metrics Explorer",
     },
@@ -187,8 +187,8 @@ export const METRIC_PIPELINE_RULE_TYPES: ReadonlyArray<string> = [
 
 // The read permission each explorer page names, by page.
 export const SIGNAL_READ_PERMISSION_TITLES: Readonly<Record<string, string>> = {
-  [LOGS_EXPLORER]: "Read Telemetry Service Log",
-  [TRACES_EXPLORER]: "Read Telemetry Service Traces",
-  [METRICS_EXPLORER]: "Read Telemetry Service Metrics",
-  [EXCEPTIONS]: "Read Telemetry Service Exception",
+  [LOGS_EXPLORER]: "Read Logs",
+  [TRACES_EXPLORER]: "Read Traces",
+  [METRICS_EXPLORER]: "Read Metrics",
+  [EXCEPTIONS]: "Read Exceptions",
 };

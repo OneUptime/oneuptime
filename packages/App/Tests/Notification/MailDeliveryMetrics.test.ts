@@ -18,9 +18,16 @@ import EmailMessage from "Common/Types/Email/EmailMessage";
 import EmailServer from "Common/Types/Email/EmailServer";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import ObjectID from "Common/Types/ObjectID";
+import UserNotificationStatus from "Common/Types/UserNotification/UserNotificationStatus";
+import OnCallTimelineRows, {
+  StoredOnCallNotification,
+} from "Common/Tests/Server/TestingUtils/OnCallTimelineRows";
+import { STUCK_NOTIFICATION_STATUS_MESSAGE } from "Common/Server/Utils/OnCall/OnCallNotificationStatus";
+import UserOnCallLogTimelineService from "Common/Server/Services/UserOnCallLogTimelineService";
 import Port from "Common/Types/Port";
 import { SERVER_EMAIL_NOT_SET_UP_MESSAGE } from "Common/Types/ServerSending/ServerSendingWords";
 import MailService from "../../FeatureSet/Notification/Services/MailService";
+import { EMAIL_SENT_STATUS_MESSAGE } from "../../FeatureSet/Notification/Utils/EmailStatusMessage";
 import SendGridMailProvider from "../../FeatureSet/Notification/Services/MailProviders/SendGridMailProvider";
 import "../../FeatureSet/Notification/Utils/Handlebars";
 
@@ -82,7 +89,10 @@ jest.mock("Common/Server/Services/EmailLogService", () => {
 });
 
 jest.mock("Common/Server/Services/UserOnCallLogTimelineService", () => {
-  return { __esModule: true, default: { updateOneById: jest.fn() } };
+  return {
+    __esModule: true,
+    default: { findOneById: jest.fn(), updateOneBy: jest.fn() },
+  };
 });
 
 jest.mock("Common/Models/DatabaseModels/EmailLog", () => {
@@ -213,7 +223,15 @@ beforeAll(async () => {
   }
 });
 
+// The page's on-call log row (OnCallTimelineRows).
+let timeline: OnCallTimelineRows;
+
 beforeEach(() => {
+  // The page's on-call log row, written over Sending only (recordSendResult).
+  timeline = new OnCallTimelineRows();
+  timeline.add(TIMELINE_ID, UserNotificationStatus.Sending);
+  timeline.standIn(UserOnCallLogTimelineService);
+
   jest.clearAllMocks();
   sendCounterCalls.length = 0;
   sendDurationCalls.length = 0;
@@ -357,4 +375,217 @@ describe("an email", () => {
       outcome: "failure",
     });
   });
+});
+
+/*
+ * THE PAGE'S ON-CALL TIMELINE ENTRY (issue #7082). The send's result is
+ * written over Sending only - or over the stuck check's verdict, the
+ * result come late - at the version it read (recordSendResult): the person
+ * may have acknowledged or escalated the page meanwhile, from another of
+ * its messages, and their answer stays.
+ */
+describe("an email's on-call timeline entry", () => {
+  // What the person answered the page with, from another of its messages.
+  const ANSWERS: Array<{ status: UserNotificationStatus; message: string }> = [
+    {
+      status: UserNotificationStatus.Acknowledged,
+      message: "Notification Acknowledged",
+    },
+    {
+      status: UserNotificationStatus.PassedOn,
+      message: "Escalated from this notification.",
+    },
+  ];
+
+  interface MailOutcome {
+    name: string;
+    // The mail server answers so, and the email is sent.
+    send: () => Promise<void>;
+    status: UserNotificationStatus;
+    statusMessage: string;
+  }
+
+  const OUTCOMES: Array<MailOutcome> = [
+    {
+      name: "taken by the mail server",
+      send: async (): Promise<void> => {
+        await MailService.send(message(), {
+          emailServer: smtpServer("smtp.project.example.test"),
+          userOnCallLogTimelineId: TIMELINE_ID,
+        });
+      },
+      status: UserNotificationStatus.Sent,
+      statusMessage: EMAIL_SENT_STATUS_MESSAGE,
+    },
+    /*
+     * A failure the send does not retry. A mail server's refusal is retried
+     * for seconds (MailService.transportMail): it has tests of its own,
+     * below.
+     */
+    {
+      name: "not sent: the installation's mail server is not set up",
+      send: async (): Promise<void> => {
+        (getGlobalSMTPConfig as unknown as jest.Mock).mockResolvedValue(
+          null as never,
+        );
+
+        await expect(
+          MailService.send(message(), {
+            userOnCallLogTimelineId: TIMELINE_ID,
+          }),
+        ).rejects.toThrow(SERVER_EMAIL_NOT_SET_UP_MESSAGE);
+      },
+      status: UserNotificationStatus.Error,
+      statusMessage: SERVER_EMAIL_NOT_SET_UP_MESSAGE,
+    },
+  ];
+
+  // The project's mail server refuses every attempt at the email.
+  function refuseEveryAttempt(onAttempt?: () => void): void {
+    sendMail.mockImplementation(async (): Promise<{ messageId: string }> => {
+      if (onAttempt) {
+        onAttempt();
+      }
+
+      throw new Error("550 Mailbox unavailable");
+    });
+  }
+
+  function sendThroughTheProjectsServer(): Promise<void> {
+    return MailService.send(message(), {
+      emailServer: smtpServer("smtp.project.example.test"),
+      userOnCallLogTimelineId: TIMELINE_ID,
+    });
+  }
+
+  test("an email the mail server refuses, while its entry still says Sending: Error, in the mail server's words", async () => {
+    refuseEveryAttempt();
+
+    await expect(sendThroughTheProjectsServer()).rejects.toThrow("550");
+
+    expect(timeline.get(TIMELINE_ID)).toMatchObject({
+      status: UserNotificationStatus.Error,
+      statusMessage: "550 Mailbox unavailable",
+      version: 2,
+    });
+    expect(timeline.writes).toHaveLength(1);
+  }, 20000);
+
+  test("an email the mail server refuses, the person having acknowledged the page from another message while it was retried: the acknowledgement stays", async () => {
+    let attempts: number = 0;
+
+    refuseEveryAttempt((): void => {
+      attempts++;
+
+      // The person's acknowledgement lands as the first attempt is refused.
+      if (attempts === 1) {
+        const row: StoredOnCallNotification = timeline.get(TIMELINE_ID)!;
+        row.status = UserNotificationStatus.Acknowledged;
+        row.statusMessage = "Notification Acknowledged";
+        row.version++;
+      }
+    });
+
+    await expect(sendThroughTheProjectsServer()).rejects.toThrow("550");
+
+    expect(attempts).toBeGreaterThan(1);
+    expect(timeline.get(TIMELINE_ID)).toMatchObject({
+      status: UserNotificationStatus.Acknowledged,
+      statusMessage: "Notification Acknowledged",
+      version: 2,
+    });
+    expect(timeline.writes).toEqual([]);
+  }, 20000);
+
+  test.each(OUTCOMES)(
+    "an email $name, while its entry still says Sending: the entry says so",
+    async (outcome: MailOutcome) => {
+      await outcome.send();
+
+      expect(timeline.get(TIMELINE_ID)).toMatchObject({
+        status: outcome.status,
+        statusMessage: outcome.statusMessage,
+        version: 2,
+      });
+      expect(timeline.writes).toEqual([
+        {
+          id: TIMELINE_ID.toString(),
+          data: {
+            status: outcome.status,
+            statusMessage: outcome.statusMessage,
+          },
+        },
+      ]);
+    },
+  );
+
+  test.each(
+    ANSWERS.flatMap(
+      (answer: { status: UserNotificationStatus; message: string }) => {
+        return OUTCOMES.map((outcome: MailOutcome) => {
+          return {
+            answer: answer.status,
+            answerMessage: answer.message,
+            outcomeName: outcome.name,
+            outcome: outcome,
+          };
+        });
+      },
+    ),
+  )(
+    "a page already $answer, then an email $outcomeName: the answer stays",
+    async (row: {
+      answer: UserNotificationStatus;
+      answerMessage: string;
+      outcome: MailOutcome;
+    }) => {
+      timeline.add(TIMELINE_ID, row.answer, {
+        statusMessage: row.answerMessage,
+      });
+
+      await row.outcome.send();
+
+      expect(timeline.get(TIMELINE_ID)).toMatchObject({
+        status: row.answer,
+        statusMessage: row.answerMessage,
+        version: 1,
+      });
+      expect(timeline.writes).toEqual([]);
+    },
+  );
+
+  test.each(OUTCOMES)(
+    "an email $name after the stuck check settled its entry: its own result, come late, replaces the verdict",
+    async (outcome: MailOutcome) => {
+      timeline.add(TIMELINE_ID, UserNotificationStatus.Error, {
+        statusMessage: STUCK_NOTIFICATION_STATUS_MESSAGE,
+      });
+
+      await outcome.send();
+
+      expect(timeline.get(TIMELINE_ID)).toMatchObject({
+        status: outcome.status,
+        statusMessage: outcome.statusMessage,
+        version: 2,
+      });
+    },
+  );
+
+  test.each(OUTCOMES)(
+    "an email $name, acknowledged between the send's read of its entry and its write: the acknowledgement stays",
+    async (outcome: MailOutcome) => {
+      timeline.whenRead((row: StoredOnCallNotification) => {
+        row.status = UserNotificationStatus.Acknowledged;
+        row.statusMessage = "Notification Acknowledged";
+      });
+
+      await outcome.send();
+
+      expect(timeline.get(TIMELINE_ID)).toMatchObject({
+        status: UserNotificationStatus.Acknowledged,
+        statusMessage: "Notification Acknowledged",
+      });
+      expect(timeline.writes).toEqual([]);
+    },
+  );
 });

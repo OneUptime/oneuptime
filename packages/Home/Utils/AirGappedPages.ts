@@ -1414,12 +1414,12 @@ export const AirGappedTopicPages: Array<AirGappedTopicPage> = [
         },
         {
           key: "personal-rules",
-          title: "Personal on-call rules",
+          title: "How to Reach Me",
           description:
             "Each person chooses which of their methods is tried, and after how long.",
           icon: "settings",
           link: {
-            label: "Personal on-call rules",
+            label: "How to Reach Me",
             href: "/docs/notifications/on-call-rules",
           },
         },

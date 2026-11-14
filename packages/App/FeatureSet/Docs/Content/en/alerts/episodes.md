@@ -74,7 +74,7 @@ Everything else a rule can do is folded under **More fields** at the end of the 
 
 | Group                     | Settings                                                                                                   |
 | ------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| **On-Call & Ownership**   | **On-Call Duty Policies** to run when the rule opens an episode, and **Episode Owners**.                   |
+| **On-Call & Ownership**   | **On-Call Policies** to run when the rule opens an episode, and **Episode Owners**.                   |
 | **Episode Lifecycle**     | **Wait for more alerts**, a switch with a count, then **Reopen recently resolved episodes**, **Wait before resolving an episode** and **Resolve quiet episodes**, each a switch with its minutes. |
 | **Details**               | The rule's **Description**, the **Episode Title Template**, the **Episode Description Template** and **Episode Labels**. |
 
@@ -129,7 +129,7 @@ flowchart TB
     grouped -->|"Joins an episode"| none["Nothing more runs"]
 ```
 
-- **A new episode** runs the rule's **On-Call Duty Policies**, plus those of any matching rule on the **Episode Rules** tab of **Alerts → Rules → On-Call Rules**.
+- **A new episode** runs the rule's **On-Call Policies**, plus those of any matching rule on the **Episode Rules** tab of **Alerts → Rules → On-Call Rules**.
 - **An alert joining an open episode** runs only its own policies. The episode's do not run again.
 - **An alert waiting for more alerts** runs only its own policies too. When **Wait for more alerts** is on and the rule's policies are the only ones that page, a lone alert pages nobody until enough of them are ongoing.
 - **Answering an episode's page** acknowledges the episode, and with it every alert in it.

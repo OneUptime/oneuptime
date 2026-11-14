@@ -50,6 +50,7 @@ import IncidentEpisodeFeedService from "./IncidentEpisodeFeedService";
 import { IncidentEpisodeFeedEventType } from "../../Models/DatabaseModels/IncidentEpisodeFeed";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { ON_CALL_POLICY_ARCHIVED_NOT_EXECUTED_MESSAGE } from "../../Types/OnCallDutyPolicy/OnCallDutyPolicyArchive";
+import { ON_CALL_POLICY_HAS_NO_ESCALATION_RULES_MESSAGE } from "../../Types/OnCallDutyPolicy/OnCallPageLine";
 import {
   ON_CALL_POLICY_RUN_STARTED_EARLY_REASON_MAX_LENGTH,
   getOnCallPolicyRunPagingDueAt,
@@ -178,7 +179,7 @@ export class Service extends ProjectReferencesService<Model> {
       !RelationIdUtil.readConsistent(
         createBy.data as unknown as Record<string, unknown>,
         ["onCallDutyPolicyId", "onCallDutyPolicy"],
-        "On-Call Duty Policy",
+        "On-Call Policy",
       )
     ) {
       throw new BadDataException(ON_CALL_POLICY_REQUIRED_MESSAGE);
@@ -833,8 +834,7 @@ export class Service extends ProjectReferencesService<Model> {
           id: runId,
           data: {
             status: OnCallDutyPolicyStatus.Error,
-            statusMessage:
-              "No Escalation Rules in Policy. Please add escalation rules to this policy.",
+            statusMessage: ON_CALL_POLICY_HAS_NO_ESCALATION_RULES_MESSAGE,
           },
           props: {
             isRoot: true,
@@ -1136,7 +1136,7 @@ export class Service extends ProjectReferencesService<Model> {
     const policyId: ObjectID | null = RelationIdUtil.readConsistent(
       data as unknown as Record<string, unknown>,
       ["onCallDutyPolicyId", "onCallDutyPolicy"],
-      "On-Call Duty Policy",
+      "On-Call Policy",
     );
 
     if (!policyId) {
@@ -1497,8 +1497,7 @@ export class Service extends ProjectReferencesService<Model> {
         id: run.id!,
         data: {
           status: OnCallDutyPolicyStatus.Error,
-          statusMessage:
-            "No Escalation Rules in Policy. Please add escalation rules to this policy.",
+          statusMessage: ON_CALL_POLICY_HAS_NO_ESCALATION_RULES_MESSAGE,
         },
         props: {
           isRoot: true,

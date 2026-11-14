@@ -1,6 +1,7 @@
 import AggregationInterval from "../../../../Types/BaseDatabase/AggregationInterval";
-import OneUptimeDate from "../../../../Types/Date";
+import OneUptimeDate, { CalendarUnit } from "../../../../Types/Date";
 import NotImplementedException from "../../../../Types/Exception/NotImplementedException";
+import Timezone from "../../../../Types/Timezone";
 import SeriesPoints from "../Types/SeriesPoints";
 import XAxisMaxMin from "../Types/XAxis/XAxisMaxMin";
 import XAxisPrecision from "../Types/XAxis/XAxisPrecision";
@@ -68,6 +69,459 @@ export default class XAxisUtil {
 
   private static readonly MILLISECONDS_IN_A_DAY: number = 24 * 60 * 60 * 1000;
 
+  private static readonly MILLISECONDS_IN_AN_HOUR: number = 60 * 60 * 1000;
+
+  private static readonly MILLISECONDS_IN_A_MINUTE: number = 60 * 1000;
+
+  /*
+   * HOW THE AXIS STEPS, AND WHERE A POINT FALLS.
+   *
+   * Every step is taken on the clock of the timezone the reader configured
+   * (OneUptimeDate.getCurrentTimezone()), the zone the labels are read in,
+   * and never on the browser's: the browser can be in another zone, and
+   * when one of the two changes its clocks inside the window, a step of
+   * the browser's day was 23 or 25 hours of the reader's. A day slot then
+   * started an hour off the reader's midnight and named the day before:
+   * two slots read "25 Oct", their points shared a row, and the window's
+   * last day had no slot at all (issue #7127).
+   *
+   *  - A step of an hour or less is that many milliseconds. Clocks change
+   *    by whole hours, so these steps lie on an even grid of the reader's
+   *    clock through a change: the hour a fall-back repeats is two slots,
+   *    told apart by their zone (getWallClockLabelDetail), never one slot
+   *    holding both hours. (Lord Howe Island's change is half an hour, and
+   *    leaves one hour half an hour long: see getStartOfStepOnTheClock.)
+   *  - A step of two to twelve hours is a block of the reader's clock
+   *    (00:00-02:00, 02:00-04:00), as long as the clock says: the block a
+   *    clock change falls in is longer or shorter by the change, and still
+   *    one slot.
+   *  - A step of a day or more is a step of the reader's calendar: from
+   *    midnight to midnight, the 23 hours of a spring-forward day and the
+   *    25 of a fall-back day included.
+   *
+   * A point falls in the step its own instant does, read the same way
+   * (getBucketStart), and no Date setter is used for either: a setter reads
+   * and writes the browser's clock, and puts the second reading of a
+   * repeated hour back on the first.
+   */
+
+  // The width of a step of an hour or less; undefined for a longer one.
+  private static getStepOfAnHourOrLessInMs(
+    precision: XAxisPrecision,
+  ): number | undefined {
+    switch (precision) {
+      case XAxisPrecision.EVERY_SECOND:
+        return 1000;
+      case XAxisPrecision.EVERY_FIVE_SECONDS:
+        return 5 * 1000;
+      case XAxisPrecision.EVERY_TEN_SECONDS:
+        return 10 * 1000;
+      case XAxisPrecision.EVERY_THIRTY_SECONDS:
+        return 30 * 1000;
+      case XAxisPrecision.EVERY_MINUTE:
+        return XAxisUtil.MILLISECONDS_IN_A_MINUTE;
+      case XAxisPrecision.EVERY_FIVE_MINUTES:
+        return 5 * XAxisUtil.MILLISECONDS_IN_A_MINUTE;
+      case XAxisPrecision.EVERY_TEN_MINUTES:
+        return 10 * XAxisUtil.MILLISECONDS_IN_A_MINUTE;
+      case XAxisPrecision.EVERY_FIFTEEN_MINUTES:
+        return 15 * XAxisUtil.MILLISECONDS_IN_A_MINUTE;
+      case XAxisPrecision.EVERY_THIRTY_MINUTES:
+        return 30 * XAxisUtil.MILLISECONDS_IN_A_MINUTE;
+      case XAxisPrecision.EVERY_HOUR:
+        return XAxisUtil.MILLISECONDS_IN_AN_HOUR;
+      default:
+        return undefined;
+    }
+  }
+
+  // The length of a block of two to twelve hours; undefined for any other step.
+  private static getClockBlockInMs(
+    precision: XAxisPrecision,
+  ): number | undefined {
+    switch (precision) {
+      case XAxisPrecision.EVERY_TWO_HOURS:
+        return 2 * XAxisUtil.MILLISECONDS_IN_AN_HOUR;
+      case XAxisPrecision.EVERY_THREE_HOURS:
+        return 3 * XAxisUtil.MILLISECONDS_IN_AN_HOUR;
+      case XAxisPrecision.EVERY_SIX_HOURS:
+        return 6 * XAxisUtil.MILLISECONDS_IN_AN_HOUR;
+      case XAxisPrecision.EVERY_TWELVE_HOURS:
+        return 12 * XAxisUtil.MILLISECONDS_IN_AN_HOUR;
+      default:
+        return undefined;
+    }
+  }
+
+  // A step of a day or more, in units of the calendar; undefined for a shorter one.
+  private static getCalendarStep(
+    precision: XAxisPrecision,
+  ): { unit: CalendarUnit; count: number } | undefined {
+    switch (precision) {
+      case XAxisPrecision.EVERY_DAY:
+        return { unit: "day", count: 1 };
+      case XAxisPrecision.EVERY_TWO_DAYS:
+        return { unit: "day", count: 2 };
+      case XAxisPrecision.EVERY_WEEK:
+        return { unit: "day", count: 7 };
+      case XAxisPrecision.EVERY_TWO_WEEKS:
+        return { unit: "day", count: 14 };
+      case XAxisPrecision.EVERY_MONTH:
+        return { unit: "month", count: 1 };
+      case XAxisPrecision.EVERY_TWO_MONTHS:
+        return { unit: "month", count: 2 };
+      case XAxisPrecision.EVERY_THREE_MONTHS:
+        return { unit: "month", count: 3 };
+      case XAxisPrecision.EVERY_SIX_MONTHS:
+        return { unit: "month", count: 6 };
+      case XAxisPrecision.EVERY_YEAR:
+        return { unit: "year", count: 1 };
+      default:
+        return undefined;
+    }
+  }
+
+  // How far ahead of UTC the reader's clock is at `instant`, in milliseconds.
+  private static getClockOffsetInMs(instant: number): number {
+    return (
+      OneUptimeDate.getTimezoneOffsetInMinutes(new Date(instant)) *
+      XAxisUtil.MILLISECONDS_IN_A_MINUTE
+    );
+  }
+
+  /*
+   * What the reader's clock reads at `instant`, as the milliseconds of that
+   * reading counted as if it were UTC: midnight is a whole number of days.
+   */
+  private static toClockReading(instant: number): number {
+    return instant + XAxisUtil.getClockOffsetInMs(instant);
+  }
+
+  /*
+   * The offsets the reader's clock can have around a reading: those of a day
+   * before it and a day after it. A zone changes its clocks months apart, so
+   * no other offset is in effect within a day of it.
+   */
+  private static getClockOffsetsAround(reading: number): Array<number> {
+    return [
+      XAxisUtil.getClockOffsetInMs(reading - XAxisUtil.MILLISECONDS_IN_A_DAY),
+      XAxisUtil.getClockOffsetInMs(reading + XAxisUtil.MILLISECONDS_IN_A_DAY),
+    ];
+  }
+
+  /*
+   * Every instant at which the reader's clock reads `reading`, earliest
+   * first: one; none in the hour a spring-forward skips; two in the hour a
+   * fall-back repeats.
+   */
+  private static getInstantsReading(reading: number): Array<number> {
+    const instants: Array<number> = [];
+
+    for (const offset of XAxisUtil.getClockOffsetsAround(reading)) {
+      const instant: number = reading - offset;
+
+      if (
+        XAxisUtil.toClockReading(instant) === reading &&
+        !instants.includes(instant)
+      ) {
+        instants.push(instant);
+      }
+    }
+
+    return instants.sort((a: number, b: number): number => {
+      return a - b;
+    });
+  }
+
+  /*
+   * The instant the reader's clock changed between `before` and `after`,
+   * whose offsets differ: the first one with the offset `after` has. A zone
+   * changes its clocks months apart, so there is one change between them,
+   * and halving the span finds it to the millisecond.
+   */
+  private static getClockChangeBetween(before: number, after: number): number {
+    const offsetAfter: number = XAxisUtil.getClockOffsetInMs(after);
+    let low: number = before;
+    let high: number = after;
+
+    while (high - low > 1) {
+      const middle: number = Math.floor((low + high) / 2);
+
+      if (XAxisUtil.getClockOffsetInMs(middle) === offsetAfter) {
+        high = middle;
+      } else {
+        low = middle;
+      }
+    }
+
+    return high;
+  }
+
+  /*
+   * The instant the reader's clock resumes at after skipping `reading`: the
+   * spring-forward itself. The clock reads `reading` minus the earlier
+   * offset after it, and minus the later offset before it.
+   */
+  private static getClockResumingAfter(reading: number): number {
+    const offsets: Array<number> = XAxisUtil.getClockOffsetsAround(reading);
+
+    return XAxisUtil.getClockChangeBetween(
+      reading - Math.max(...offsets),
+      reading - Math.min(...offsets),
+    );
+  }
+
+  /*
+   * The instant a slot of a block of `blockInMs` stands at when the reader's
+   * clock should read `reading`: in a repeated hour its first reading. In an
+   * hour the clock skips, an instant of the same block, so every block keeps
+   * its one slot; the first of these that is in the block:
+   *
+   *  - where the clock read `reading` less the change, before the gap, so
+   *    the slot keeps the walk's minutes (London's 01:37 at 00:37 GMT);
+   *  - the block's start, if the clock read it before the gap (Troll
+   *    station's clocks go forward two hours, from 01:00 to 03:00, which
+   *    leaves the block from 00:00 only its first hour);
+   *  - where the clock resumes after the gap, the block's first instant
+   *    (New York's 02:00 at 03:00 EDT).
+   */
+  private static getInstantForBlockReading(
+    reading: number,
+    blockInMs: number,
+  ): number {
+    const readings: Array<number> = XAxisUtil.getInstantsReading(reading);
+
+    if (readings.length > 0) {
+      return readings[0]!;
+    }
+
+    const blockStart: number = Math.floor(reading / blockInMs) * blockInMs;
+    const offsets: Array<number> = XAxisUtil.getClockOffsetsAround(reading);
+    const beforeTheGap: number = reading - Math.max(...offsets);
+
+    if (XAxisUtil.toClockReading(beforeTheGap) >= blockStart) {
+      return beforeTheGap;
+    }
+
+    const blockStartBeforeTheGap: number = blockStart - Math.min(...offsets);
+
+    if (XAxisUtil.toClockReading(blockStartBeforeTheGap) === blockStart) {
+      return blockStartBeforeTheGap;
+    }
+
+    return XAxisUtil.getClockResumingAfter(reading);
+  }
+
+  /*
+   * The start of the step of an hour or less the reader's clock reads
+   * `value` in. Taken with the offset of `value` itself, so the two
+   * readings of a repeated hour are two different steps.
+   *
+   * A clock change on a whole hour falls between two steps. Lord Howe
+   * Island's clocks change by half an hour, so its change falls inside an
+   * hour: the hour starts where the clock took the offset of `value`, and
+   * is half an hour long.
+   */
+  private static getStartOfStepOnTheClock(value: Date, stepInMs: number): Date {
+    const instant: number = value.getTime();
+    const offset: number = XAxisUtil.getClockOffsetInMs(instant);
+    const start: number =
+      Math.floor((instant + offset) / stepInMs) * stepInMs - offset;
+
+    if (XAxisUtil.getClockOffsetInMs(start) === offset) {
+      return new Date(start);
+    }
+
+    return new Date(XAxisUtil.getClockChangeBetween(start, instant));
+  }
+
+  /*
+   * The start of the step after the one starting at `stepStart`: a step
+   * later, or sooner where the clock changes inside the step (see
+   * getStartOfStepOnTheClock).
+   */
+  private static getStartOfNextStepOnTheClock(
+    stepStart: number,
+    stepInMs: number,
+  ): number {
+    const lastStart: number = XAxisUtil.getStartOfStepOnTheClock(
+      new Date(stepStart + stepInMs - 1),
+      stepInMs,
+    ).getTime();
+
+    return lastStart === stepStart ? stepStart + stepInMs : lastStart;
+  }
+
+  /*
+   * Gives a step the walk passed over its slot. A walk of steps of an hour
+   * or less moves a fixed number of milliseconds, one slot in each step of
+   * the clock, as long as every step is that long; Lord Howe Island's
+   * half-hour change leaves an hour of half an hour, which a step of an
+   * hour can pass over when the window starts late in an hour. Its points
+   * would have no slot to go to.
+   */
+  private static withEveryStepOnTheClock(
+    slots: Array<Date>,
+    stepInMs: number,
+  ): Array<Date> {
+    const result: Array<Date> = [];
+
+    for (const slot of slots) {
+      const previous: Date | undefined = result[result.length - 1];
+
+      if (
+        previous &&
+        XAxisUtil.getClockOffsetInMs(previous.getTime()) !==
+          XAxisUtil.getClockOffsetInMs(slot.getTime())
+      ) {
+        const slotStart: number = XAxisUtil.getStartOfStepOnTheClock(
+          slot,
+          stepInMs,
+        ).getTime();
+        let next: number = XAxisUtil.getStartOfNextStepOnTheClock(
+          XAxisUtil.getStartOfStepOnTheClock(previous, stepInMs).getTime(),
+          stepInMs,
+        );
+
+        // Each step starts after the one before; anything else ends the search.
+        while (next > previous.getTime() && next < slotStart) {
+          result.push(new Date(next));
+
+          const following: number = XAxisUtil.getStartOfNextStepOnTheClock(
+            next,
+            stepInMs,
+          );
+
+          if (following <= next) {
+            break;
+          }
+
+          next = following;
+        }
+      }
+
+      result.push(slot);
+    }
+
+    return result;
+  }
+
+  /*
+   * The start of the block of the reader's clock (00:00-02:00, ...) `value`
+   * falls in. A block a fall-back falls in holds the repeated hour twice and
+   * starts at its first reading; a block whose first reading a
+   * spring-forward skips starts where the clock resumes.
+   */
+  private static getClockBlockStart(value: Date, blockInMs: number): Date {
+    const instant: number = value.getTime();
+    const blockReading: number =
+      Math.floor(XAxisUtil.toClockReading(instant) / blockInMs) * blockInMs;
+    const readings: Array<number> = XAxisUtil.getInstantsReading(
+      blockReading,
+    ).filter((reading: number): boolean => {
+      return reading <= instant;
+    });
+
+    if (readings.length > 0) {
+      return new Date(readings[0]!);
+    }
+
+    return new Date(XAxisUtil.getClockResumingAfter(blockReading));
+  }
+
+  /*
+   * An instant on the given day of the reader's calendar (a reading at
+   * midnight of it, day 0 being the last day of the month before, as Date
+   * counts): its noon, which no clock change moves to another day.
+   */
+  private static getNoonOfTheDay(
+    year: number,
+    month: number,
+    day: number,
+  ): Date {
+    const noon: number = Date.UTC(year, month, day, 12);
+
+    return new Date(noon - XAxisUtil.getClockOffsetInMs(noon));
+  }
+
+  /*
+   * The day a two-day or two-week step files `value` under: its day of the
+   * month on the reader's calendar, rounded down to an even one.
+   */
+  private static getEvenDayOfTheMonth(value: Date): Date {
+    const reading: Date = new Date(XAxisUtil.toClockReading(value.getTime()));
+
+    return XAxisUtil.getNoonOfTheDay(
+      reading.getUTCFullYear(),
+      reading.getUTCMonth(),
+      Math.floor(reading.getUTCDate() / 2) * 2,
+    );
+  }
+
+  /*
+   * The first month of the step of `months` months `value` falls in, on the
+   * reader's calendar: January, March, ... for two; January, April, ... for
+   * three; January and July for six.
+   */
+  private static getFirstMonthOfTheStep(value: Date, months: number): Date {
+    const reading: Date = new Date(XAxisUtil.toClockReading(value.getTime()));
+
+    return XAxisUtil.getNoonOfTheDay(
+      reading.getUTCFullYear(),
+      Math.floor(reading.getUTCMonth() / months) * months,
+      1,
+    );
+  }
+
+  /*
+   * The slot `steps` steps of this precision after `start`, counted from
+   * `start` itself rather than from the slot before, so a month step from
+   * the 31st lands on each month's last day instead of drifting to the
+   * 28th, and a day step from 02:30 keeps 02:30 after a spring-forward.
+   */
+  private static getIntervalAfterSteps(
+    start: Date,
+    precision: XAxisPrecision,
+    steps: number,
+  ): Date {
+    if (steps === 0) {
+      return XAxisUtil.cloneDate(start);
+    }
+
+    const stepInMs: number | undefined =
+      XAxisUtil.getStepOfAnHourOrLessInMs(precision);
+
+    if (stepInMs !== undefined) {
+      return new Date(start.getTime() + steps * stepInMs);
+    }
+
+    const blockInMs: number | undefined =
+      XAxisUtil.getClockBlockInMs(precision);
+
+    if (blockInMs !== undefined) {
+      return new Date(
+        XAxisUtil.getInstantForBlockReading(
+          XAxisUtil.toClockReading(start.getTime()) + steps * blockInMs,
+          blockInMs,
+        ),
+      );
+    }
+
+    const calendarStep: { unit: CalendarUnit; count: number } | undefined =
+      XAxisUtil.getCalendarStep(precision);
+
+    if (calendarStep) {
+      return OneUptimeDate.addRemoveCalendarUnits(
+        start,
+        calendarStep.unit,
+        steps * calendarStep.count,
+        OneUptimeDate.getCurrentTimezone(),
+      );
+    }
+
+    return XAxisUtil.cloneDate(start);
+  }
+
   /**
    * How much a wall-clock label has to say before it names exactly one
    * instant inside this window.
@@ -83,14 +537,17 @@ export default class XAxisUtil {
    * 2. The clocks go back inside the window, which replays a wall-clock
    *    hour, and no duration is short enough to be safe from it.
    *
-   *    It only bites when the configured timezone is not the one the
-   *    browser reports: intervals are stepped in browser wall-clock time
-   *    while labels are read in the configured zone, so a transition the
-   *    browser cannot see gets walked straight through. Measured on a 4h
-   *    window across London's fall-back — browser UTC, configured London:
-   *    49 intervals, 37 distinct. With both zones London the walker steps
-   *    over the repeated hour itself and the same window measures 37 and
-   *    37, so the zone suffix is redundant there but never wrong.
+   *    Steps of an hour or less are walked in milliseconds, so the walk
+   *    passes through the repeated hour in every zone - browser and
+   *    configured zone the same or not - and its two readings are two
+   *    slots. Measured on a 4h window across London's fall-back: 49
+   *    intervals, and without the zone 37 distinct labels. The zone
+   *    abbreviation is what tells "01:00 BST" from "01:00 GMT", for the
+   *    hourly tier as for the finer ones.
+   *
+   *    The offsets at the two ends find a change inside a window that
+   *    holds one. Steps this fine are only drawn over windows far shorter
+   *    than the months between a zone's two changes a year.
    */
   private static getWallClockLabelDetail(data: {
     xAxisMin: XAxisMaxMin;
@@ -129,6 +586,58 @@ export default class XAxisUtil {
   }
 
   /**
+   * Whether a day-and-month label ("12 Nov") has to carry its year to name
+   * exactly one day inside this window.
+   *
+   * Once a window holds a year, one day of the calendar falls in it twice:
+   * "Past 1 Year" on 12 Nov 2026 runs from 12 Nov 2025, so both ends read
+   * "12 Nov". A label is a bucket's identity (see above), so the two days
+   * became one bucket - this year's point joined last year's, and the slot
+   * at the right-hand end stayed empty. The day tiers only came from the
+   * duration ladder for windows of six weeks or less, where this never
+   * happens; a caller that pins them to its bucket size (a chart of one
+   * point a day, issue #6564; an SLO's daily history) can draw a year.
+   *
+   * The test is the calendar's, in the configured timezone: the window
+   * reaches the start of its first day a year on. A window that starts on
+   * 29 February reaches "a year on" (28 February) a day early, so it shows
+   * years one day sooner than it must, which reads just as well.
+   */
+  private static getDayLabelNeedsYear(data: {
+    xAxisMin: XAxisMaxMin;
+    xAxisMax: XAxisMaxMin;
+  }): boolean {
+    if (
+      typeof data.xAxisMin === "number" ||
+      typeof data.xAxisMax === "number"
+    ) {
+      return false;
+    }
+
+    const startDate: Date = OneUptimeDate.fromString(data.xAxisMin);
+    const endDate: Date = OneUptimeDate.fromString(data.xAxisMax);
+    const timezone: Timezone = OneUptimeDate.getCurrentTimezone();
+
+    const firstDayAYearOn: Date = OneUptimeDate.addRemoveYears(
+      OneUptimeDate.getStartOfDay(startDate, timezone),
+      1,
+      timezone,
+    );
+
+    return firstDayAYearOn.getTime() <= endDate.getTime();
+  }
+
+  /**
+   * The label for a bucket of a day or longer that starts on `value`:
+   * "12 Nov", or "12 Nov 2025" in a window of a year or more.
+   */
+  private static getDayLabel(value: Date, withYear: boolean): string {
+    return withYear
+      ? OneUptimeDate.getDateAsLocalDayMonthYearString(value)
+      : OneUptimeDate.getDateAsLocalDayMonthString(value);
+  }
+
+  /**
    * The label for a bucket finer than an hour: a bare wall clock where
    * that is unambiguous, and a day-qualified one where it is not.
    */
@@ -146,6 +655,21 @@ export default class XAxisUtil {
       : OneUptimeDate.getLocalTimeString(value, { includeSeconds });
 
     if (!detail.withZone) {
+      return base;
+    }
+
+    return `${base} ${OneUptimeDate.getLocalZoneAbbr(value)}`;
+  }
+
+  /**
+   * The label for an hour's bucket: "25 Oct, 01:00", with the zone when the
+   * clocks go back inside the window ("25 Oct, 01:00 BST"), since the hour
+   * they repeat is then two buckets with the same day and the same hour.
+   */
+  private static getHourLabel(value: Date, withZone: boolean): string {
+    const base: string = OneUptimeDate.getDateAsLocalDayMonthHourString(value);
+
+    if (!withZone) {
       return base;
     }
 
@@ -256,101 +780,57 @@ export default class XAxisUtil {
     const endDate: Date = new Date(data.xAxisMax as Date);
     const intervals: Array<Date> = [];
 
-    let currentDate: Date = new Date(startDate);
-
-    while (currentDate <= endDate) {
-      intervals.push(currentDate);
-      currentDate = XAxisUtil.getNextInterval(currentDate, precision);
+    if (
+      !Number.isFinite(startDate.getTime()) ||
+      !Number.isFinite(endDate.getTime())
+    ) {
+      return intervals;
     }
 
-    return intervals;
+    /*
+     * Each slot is counted from the window start (see
+     * getIntervalAfterSteps); a slot that is not after the one before it
+     * would walk for ever, so it ends the walk.
+     */
+    for (let steps: number = 0; ; steps++) {
+      const slot: Date = XAxisUtil.getIntervalAfterSteps(
+        startDate,
+        precision,
+        steps,
+      );
+      const previous: Date | undefined = intervals[intervals.length - 1];
+
+      if (
+        !(slot.getTime() <= endDate.getTime()) ||
+        (previous && slot.getTime() <= previous.getTime())
+      ) {
+        break;
+      }
+
+      intervals.push(slot);
+    }
+
+    const stepInMs: number | undefined =
+      XAxisUtil.getStepOfAnHourOrLessInMs(precision);
+
+    return stepInMs === undefined
+      ? intervals
+      : XAxisUtil.withEveryStepOnTheClock(intervals, stepInMs);
   }
 
   /*
    * The slot after `interval` on a grid of this precision: one step of the
-   * walk, in browser wall-clock time, so a step of a day across a clock
-   * change is 23 or 25 hours and a step of a month is that month's length.
-   * Returns a new Date; `interval` is left as it is.
+   * walk, on the reader's clock (see "How the axis steps" above), so a step
+   * of a day across one of its clock changes is 23 or 25 hours, a block of
+   * hours the change falls in is an hour longer or shorter, and a step of a
+   * month is that month's length. Returns a new Date; `interval` is left as
+   * it is.
    */
   public static getNextInterval(
     interval: Date,
     precision: XAxisPrecision,
   ): Date {
-    const currentDate: Date = new Date(interval);
-
-    switch (precision) {
-      case XAxisPrecision.EVERY_SECOND:
-        currentDate.setSeconds(currentDate.getSeconds() + 1);
-        break;
-      case XAxisPrecision.EVERY_FIVE_SECONDS:
-        currentDate.setSeconds(currentDate.getSeconds() + 5);
-        break;
-      case XAxisPrecision.EVERY_TEN_SECONDS:
-        currentDate.setSeconds(currentDate.getSeconds() + 10);
-        break;
-      case XAxisPrecision.EVERY_THIRTY_SECONDS:
-        currentDate.setSeconds(currentDate.getSeconds() + 30);
-        break;
-      case XAxisPrecision.EVERY_MINUTE:
-        currentDate.setMinutes(currentDate.getMinutes() + 1);
-        break;
-      case XAxisPrecision.EVERY_FIVE_MINUTES:
-        currentDate.setMinutes(currentDate.getMinutes() + 5);
-        break;
-      case XAxisPrecision.EVERY_TEN_MINUTES:
-        currentDate.setMinutes(currentDate.getMinutes() + 10);
-        break;
-      case XAxisPrecision.EVERY_FIFTEEN_MINUTES:
-        currentDate.setMinutes(currentDate.getMinutes() + 15);
-        break;
-      case XAxisPrecision.EVERY_THIRTY_MINUTES:
-        currentDate.setMinutes(currentDate.getMinutes() + 30);
-        break;
-      case XAxisPrecision.EVERY_HOUR:
-        currentDate.setHours(currentDate.getHours() + 1);
-        break;
-      case XAxisPrecision.EVERY_TWO_HOURS:
-        currentDate.setHours(currentDate.getHours() + 2);
-        break;
-      case XAxisPrecision.EVERY_THREE_HOURS:
-        currentDate.setHours(currentDate.getHours() + 3);
-        break;
-      case XAxisPrecision.EVERY_SIX_HOURS:
-        currentDate.setHours(currentDate.getHours() + 6);
-        break;
-      case XAxisPrecision.EVERY_TWELVE_HOURS:
-        currentDate.setHours(currentDate.getHours() + 12);
-        break;
-      case XAxisPrecision.EVERY_DAY:
-        currentDate.setDate(currentDate.getDate() + 1);
-        break;
-      case XAxisPrecision.EVERY_TWO_DAYS:
-        currentDate.setDate(currentDate.getDate() + 2);
-        break;
-      case XAxisPrecision.EVERY_WEEK:
-        currentDate.setDate(currentDate.getDate() + 7);
-        break;
-      case XAxisPrecision.EVERY_TWO_WEEKS:
-        currentDate.setDate(currentDate.getDate() + 14);
-        break;
-      case XAxisPrecision.EVERY_MONTH:
-        currentDate.setMonth(currentDate.getMonth() + 1);
-        break;
-      case XAxisPrecision.EVERY_TWO_MONTHS:
-        currentDate.setMonth(currentDate.getMonth() + 2);
-        break;
-      case XAxisPrecision.EVERY_THREE_MONTHS:
-        currentDate.setMonth(currentDate.getMonth() + 3);
-        break;
-      case XAxisPrecision.EVERY_SIX_MONTHS:
-        currentDate.setMonth(currentDate.getMonth() + 6);
-        break;
-      case XAxisPrecision.EVERY_YEAR:
-        currentDate.setFullYear(currentDate.getFullYear() + 1);
-        break;
-    }
-
-    return currentDate;
+    return XAxisUtil.getIntervalAfterSteps(interval, precision, 1);
   }
 
   /*
@@ -424,10 +904,11 @@ export default class XAxisUtil {
     /*
      * The trailing bucket's own width: one more step of the walk from its
      * start, rather than the precision's nominal length or the step before
-     * it. The walk steps in wall-clock time, so a month, a year or the day
-     * the clocks change is exactly as wide as it really is - the 23 hours
-     * of a spring-forward day, the 25 of a fall-back day, the 28 days of a
-     * February after a January of 31.
+     * it. The walk steps on the reader's clock and calendar, so a month, a
+     * year or a day their clocks change on is exactly as wide as it really
+     * is there - the 23 hours of a spring-forward day, the 25 of a
+     * fall-back day, the 28 days of a February after a January of 31 -
+     * whatever zone the browser is in.
      */
     const bucketWidthInMs: number =
       XAxisUtil.getNextInterval(
@@ -531,65 +1012,35 @@ export default class XAxisUtil {
    * otherwise a zoom lands up to one bucket late and can cut out the very
    * spike it was aimed at.
    *
-   * Sub-day tiers round with the same browser-local Date setters as the
-   * formatter, and EVERY_DAY groups by the calendar day in the configured
-   * timezone, as its label does. The coarser tiers mix the two in ways that
-   * do not reduce to one floor; they keep the slot start.
+   * Every tier finer than a day rounds on the reader's clock, as the
+   * formatter does (it labels exactly this instant), and EVERY_DAY groups
+   * by the calendar day in the configured timezone, as its label does. The
+   * coarser tiers label a day or a month that does not reduce to one
+   * instant the slot could start at; they keep the slot start.
    */
   public static getBucketStart(value: Date, precision: XAxisPrecision): Date {
-    const rounded: Date = this.cloneDate(value);
+    const stepInMs: number | undefined =
+      XAxisUtil.getStepOfAnHourOrLessInMs(precision);
 
-    switch (precision) {
-      case XAxisPrecision.EVERY_SECOND:
-        rounded.setMilliseconds(0);
-        return rounded;
-      case XAxisPrecision.EVERY_FIVE_SECONDS:
-        rounded.setSeconds(Math.floor(rounded.getSeconds() / 5) * 5, 0);
-        return rounded;
-      case XAxisPrecision.EVERY_TEN_SECONDS:
-        rounded.setSeconds(Math.floor(rounded.getSeconds() / 10) * 10, 0);
-        return rounded;
-      case XAxisPrecision.EVERY_THIRTY_SECONDS:
-        rounded.setSeconds(Math.floor(rounded.getSeconds() / 30) * 30, 0);
-        return rounded;
-      case XAxisPrecision.EVERY_MINUTE:
-        rounded.setSeconds(0, 0);
-        return rounded;
-      case XAxisPrecision.EVERY_FIVE_MINUTES:
-        rounded.setMinutes(Math.floor(rounded.getMinutes() / 5) * 5, 0, 0);
-        return rounded;
-      case XAxisPrecision.EVERY_TEN_MINUTES:
-        rounded.setMinutes(Math.floor(rounded.getMinutes() / 10) * 10, 0, 0);
-        return rounded;
-      case XAxisPrecision.EVERY_FIFTEEN_MINUTES:
-        rounded.setMinutes(Math.floor(rounded.getMinutes() / 15) * 15, 0, 0);
-        return rounded;
-      case XAxisPrecision.EVERY_THIRTY_MINUTES:
-        rounded.setMinutes(Math.floor(rounded.getMinutes() / 30) * 30, 0, 0);
-        return rounded;
-      case XAxisPrecision.EVERY_HOUR:
-        rounded.setMinutes(0, 0, 0);
-        return rounded;
-      case XAxisPrecision.EVERY_TWO_HOURS:
-        rounded.setHours(Math.floor(rounded.getHours() / 2) * 2, 0, 0, 0);
-        return rounded;
-      case XAxisPrecision.EVERY_THREE_HOURS:
-        rounded.setHours(Math.floor(rounded.getHours() / 3) * 3, 0, 0, 0);
-        return rounded;
-      case XAxisPrecision.EVERY_SIX_HOURS:
-        rounded.setHours(Math.floor(rounded.getHours() / 6) * 6, 0, 0, 0);
-        return rounded;
-      case XAxisPrecision.EVERY_TWELVE_HOURS:
-        rounded.setHours(Math.floor(rounded.getHours() / 12) * 12, 0, 0, 0);
-        return rounded;
-      case XAxisPrecision.EVERY_DAY:
-        return OneUptimeDate.getStartOfDay(
-          value,
-          OneUptimeDate.getCurrentTimezone(),
-        );
-      default:
-        return rounded;
+    if (stepInMs !== undefined) {
+      return XAxisUtil.getStartOfStepOnTheClock(value, stepInMs);
     }
+
+    const blockInMs: number | undefined =
+      XAxisUtil.getClockBlockInMs(precision);
+
+    if (blockInMs !== undefined) {
+      return XAxisUtil.getClockBlockStart(value, blockInMs);
+    }
+
+    if (precision === XAxisPrecision.EVERY_DAY) {
+      return OneUptimeDate.getStartOfDay(
+        value,
+        OneUptimeDate.getCurrentTimezone(),
+      );
+    }
+
+    return this.cloneDate(value);
   }
 
   public static getFormatter(data: {
@@ -600,99 +1051,51 @@ export default class XAxisUtil {
     const precision: XAxisPrecision = XAxisUtil.getPrecision(data);
 
     /*
-     * Computed once here rather than per tick: every sub-hour tier below
-     * needs the same answer, and it does not vary within a window.
+     * Computed once here rather than per tick: every tier of an hour or
+     * less below needs the same answer, and it does not vary within a
+     * window.
      */
     const labelDetail: { withDate: boolean; withZone: boolean } =
       XAxisUtil.getWallClockLabelDetail(data);
+    // Asked of the day and week tiers alone: the finer ones never use it.
+    const isDayTier: boolean =
+      precision === XAxisPrecision.EVERY_DAY ||
+      precision === XAxisPrecision.EVERY_TWO_DAYS ||
+      precision === XAxisPrecision.EVERY_WEEK ||
+      precision === XAxisPrecision.EVERY_TWO_WEEKS;
+    const isDayLabelWithYear: boolean =
+      isDayTier && XAxisUtil.getDayLabelNeedsYear(data);
+
+    /*
+     * Every tier finer than a day labels the start of the step its value
+     * falls in, read on the reader's clock (getBucketStart), so a point and
+     * the slot it belongs to always agree on the label.
+     */
+    const bucketStartOf: (value: Date) => Date = (value: Date): Date => {
+      return XAxisUtil.getBucketStart(value, precision);
+    };
 
     switch (precision) {
       case XAxisPrecision.EVERY_SECOND:
-        return (value: Date) => {
-          return XAxisUtil.getWallClockLabel(value, labelDetail, {
-            includeSeconds: true,
-          });
-        };
       case XAxisPrecision.EVERY_FIVE_SECONDS:
-        // round down to nearest 5 seconds
-        return (value: Date) => {
-          const roundedValue: Date = this.cloneDate(value);
-          const seconds: number = roundedValue.getSeconds();
-          const roundedSeconds: number = Math.floor(seconds / 5) * 5;
-          roundedValue.setSeconds(roundedSeconds, 0);
-
-          return XAxisUtil.getWallClockLabel(roundedValue, labelDetail, {
-            includeSeconds: true,
-          });
-        };
       case XAxisPrecision.EVERY_TEN_SECONDS:
-        // round down to nearest 10 seconds
-        return (value: Date) => {
-          const roundedValue: Date = this.cloneDate(value);
-          const seconds: number = roundedValue.getSeconds();
-          const roundedSeconds: number = Math.floor(seconds / 10) * 10;
-          roundedValue.setSeconds(roundedSeconds, 0);
-
-          return XAxisUtil.getWallClockLabel(roundedValue, labelDetail, {
-            includeSeconds: true,
-          });
-        };
       case XAxisPrecision.EVERY_THIRTY_SECONDS:
-        // round down to nearest 30 seconds
         return (value: Date) => {
-          const roundedValue: Date = this.cloneDate(value);
-          const seconds: number = roundedValue.getSeconds();
-          const roundedSeconds: number = Math.floor(seconds / 30) * 30;
-          roundedValue.setSeconds(roundedSeconds, 0);
-
-          return XAxisUtil.getWallClockLabel(roundedValue, labelDetail, {
-            includeSeconds: true,
-          });
+          return XAxisUtil.getWallClockLabel(
+            bucketStartOf(value),
+            labelDetail,
+            {
+              includeSeconds: true,
+            },
+          );
         };
       case XAxisPrecision.EVERY_MINUTE:
-        // round down to nearest minute
-        return (value: Date) => {
-          return XAxisUtil.getWallClockLabel(value, labelDetail);
-        };
       case XAxisPrecision.EVERY_FIVE_MINUTES:
-        // round down to nearest 5 minutes
-        return (value: Date) => {
-          const roundedValue: Date = this.cloneDate(value);
-          const minutes: number = roundedValue.getMinutes();
-          const roundedMinutes: number = Math.floor(minutes / 5) * 5;
-          roundedValue.setMinutes(roundedMinutes, 0, 0);
-
-          return XAxisUtil.getWallClockLabel(roundedValue, labelDetail);
-        };
       case XAxisPrecision.EVERY_TEN_MINUTES:
-        // round down to nearest 10 minutes
-        return (value: Date) => {
-          const roundedValue: Date = this.cloneDate(value);
-          const minutes: number = roundedValue.getMinutes();
-          const roundedMinutes: number = Math.floor(minutes / 10) * 10;
-          roundedValue.setMinutes(roundedMinutes, 0, 0);
-
-          return XAxisUtil.getWallClockLabel(roundedValue, labelDetail);
-        };
       case XAxisPrecision.EVERY_FIFTEEN_MINUTES:
-        // round down to nearest 15 minutes
-        return (value: Date) => {
-          const roundedValue: Date = this.cloneDate(value);
-          const minutes: number = roundedValue.getMinutes();
-          const roundedMinutes: number = Math.floor(minutes / 15) * 15;
-          roundedValue.setMinutes(roundedMinutes, 0, 0);
-
-          return XAxisUtil.getWallClockLabel(roundedValue, labelDetail);
-        };
       case XAxisPrecision.EVERY_THIRTY_MINUTES:
-        // round down to nearest 30 minutes
         return (value: Date) => {
-          const roundedValue: Date = this.cloneDate(value);
-          const minutes: number = roundedValue.getMinutes();
-          const roundedMinutes: number = Math.floor(minutes / 30) * 30;
-          roundedValue.setMinutes(roundedMinutes, 0, 0);
-
-          return XAxisUtil.getWallClockLabel(roundedValue, labelDetail);
+          return XAxisUtil.getWallClockLabel(bucketStartOf(value), labelDetail);
         };
       case XAxisPrecision.EVERY_HOUR:
         /*
@@ -700,64 +1103,25 @@ export default class XAxisUtil {
          * a bare "HH" repeats and is ambiguous.
          */
         return (value: Date) => {
-          const roundedValue: Date = this.cloneDate(value);
-          roundedValue.setMinutes(0, 0, 0);
-          return OneUptimeDate.getDateAsLocalDayMonthHourString(roundedValue);
+          return XAxisUtil.getHourLabel(
+            bucketStartOf(value),
+            labelDetail.withZone,
+          );
         };
       case XAxisPrecision.EVERY_TWO_HOURS:
-        return (value: Date) => {
-          const roundedValue: Date = this.cloneDate(value);
-          const hours: number = roundedValue.getHours();
-          const roundedHours: number = Math.floor(hours / 2) * 2;
-          roundedValue.setHours(roundedHours, 0, 0, 0);
-
-          return OneUptimeDate.getDateAsLocalDayMonthHourString(roundedValue);
-        };
       case XAxisPrecision.EVERY_THREE_HOURS:
-        // round down to nearest 3 hours
-        return (value: Date) => {
-          const roundedValue: Date = this.cloneDate(value);
-          const hours: number = roundedValue.getHours();
-          const roundedHours: number = Math.floor(hours / 3) * 3;
-          roundedValue.setHours(roundedHours, 0, 0, 0);
-
-          return OneUptimeDate.getDateAsLocalDayMonthHourString(roundedValue);
-        };
       case XAxisPrecision.EVERY_SIX_HOURS:
-        // round down to nearest 6 hours // HH:00 DD MMM
-        return (value: Date) => {
-          const roundedValue: Date = this.cloneDate(value);
-          const hours: number = roundedValue.getHours();
-          const roundedHours: number = Math.floor(hours / 6) * 6;
-          roundedValue.setHours(roundedHours, 0, 0, 0);
-
-          return OneUptimeDate.getDateAsLocalDayMonthHourString(roundedValue);
-        };
       case XAxisPrecision.EVERY_TWELVE_HOURS:
-        // round down to nearest 12 hours  // DD MMM, HH:00
+        /*
+         * "02 Mar, 14:00": the block's start. A block holds a repeated
+         * hour whole, so no two blocks ever read the same.
+         */
         return (value: Date) => {
-          const roundedValue: Date = this.cloneDate(value);
-          const hours: number = roundedValue.getHours();
-          const roundedHours: number = Math.floor(hours / 12) * 12;
-          roundedValue.setHours(roundedHours, 0, 0, 0);
-
-          return OneUptimeDate.getDateAsLocalDayMonthHourString(roundedValue);
+          return OneUptimeDate.getDateAsLocalDayMonthHourString(
+            bucketStartOf(value),
+          );
         };
       case XAxisPrecision.EVERY_DAY:
-        // round down to nearest day
-        return (value: Date) => {
-          return OneUptimeDate.getDateAsLocalDayMonthString(value);
-        };
-      case XAxisPrecision.EVERY_TWO_DAYS:
-        // round down to nearest 2 days
-        return (value: Date) => {
-          const roundedValue: Date = this.cloneDate(value);
-          const days: number = roundedValue.getDate();
-          const roundedDays: number = Math.floor(days / 2) * 2;
-          roundedValue.setDate(roundedDays);
-
-          return OneUptimeDate.getDateAsLocalDayMonthString(roundedValue);
-        };
       case XAxisPrecision.EVERY_WEEK:
         /*
          * Day and month both read in the configured timezone. These used
@@ -766,59 +1130,49 @@ export default class XAxisUtil {
          * midnight got a day from one date and a month from another.
          */
         return (value: Date) => {
-          return OneUptimeDate.getDateAsLocalDayMonthString(value);
+          return XAxisUtil.getDayLabel(value, isDayLabelWithYear);
         };
+      case XAxisPrecision.EVERY_TWO_DAYS:
       case XAxisPrecision.EVERY_TWO_WEEKS:
-        // round down to nearest 2 weeks. // DD MMM
+        // The day rounded down to an even one, on the configured calendar.
         return (value: Date) => {
-          const roundedValue: Date = this.cloneDate(value);
-          const days: number = roundedValue.getDate();
-          const roundedDays: number = Math.floor(days / 2) * 2;
-          roundedValue.setDate(roundedDays);
-
-          // Day and month both in the configured zone; see EVERY_WEEK.
-          return OneUptimeDate.getDateAsLocalDayMonthString(roundedValue);
+          return XAxisUtil.getDayLabel(
+            XAxisUtil.getEvenDayOfTheMonth(value),
+            isDayLabelWithYear,
+          );
         };
       case XAxisPrecision.EVERY_MONTH:
-        // round down to nearest month // MM YYYY
+        // "Mar 2026", in the configured timezone.
         return (value: Date) => {
           return OneUptimeDate.getDateAsLocalMonthYearString(value);
         };
-
       case XAxisPrecision.EVERY_TWO_MONTHS:
-        // round down to nearest 2 months // MM YYYY
         return (value: Date) => {
-          const roundedValue: Date = this.cloneDate(value);
-          const months: number = roundedValue.getMonth();
-          const roundedMonths: number = Math.floor(months / 2) * 2;
-          roundedValue.setMonth(roundedMonths);
-
-          return OneUptimeDate.getDateAsLocalMonthYearString(roundedValue);
+          return OneUptimeDate.getDateAsLocalMonthYearString(
+            XAxisUtil.getFirstMonthOfTheStep(value, 2),
+          );
         };
       case XAxisPrecision.EVERY_THREE_MONTHS:
-        // round down to nearest 3 months // MM YYYY
         return (value: Date) => {
-          const roundedValue: Date = this.cloneDate(value);
-          const months: number = roundedValue.getMonth();
-          const roundedMonths: number = Math.floor(months / 3) * 3;
-          roundedValue.setMonth(roundedMonths);
-
-          return OneUptimeDate.getDateAsLocalMonthYearString(roundedValue);
+          return OneUptimeDate.getDateAsLocalMonthYearString(
+            XAxisUtil.getFirstMonthOfTheStep(value, 3),
+          );
         };
       case XAxisPrecision.EVERY_SIX_MONTHS:
-        // round down to nearest 6 months // MM YYYY
         return (value: Date) => {
-          const roundedValue: Date = this.cloneDate(value);
-          const months: number = roundedValue.getMonth();
-          const roundedMonths: number = Math.floor(months / 6) * 6;
-          roundedValue.setMonth(roundedMonths);
-
-          return OneUptimeDate.getDateAsLocalMonthYearString(roundedValue);
+          return OneUptimeDate.getDateAsLocalMonthYearString(
+            XAxisUtil.getFirstMonthOfTheStep(value, 6),
+          );
         };
       case XAxisPrecision.EVERY_YEAR:
-        // round down to nearest year // YYYY
+        /*
+         * "2026": the year on the configured calendar, as the reader's
+         * language writes it ("۲۰۲۶" in Persian, "2026年" in Japanese), like
+         * the month and day ticks. Written with Latin digits on a Persian
+         * page, it stood apart from every other tick.
+         */
         return (value: Date) => {
-          return value.getFullYear().toString();
+          return OneUptimeDate.getDateAsLocalYearString(value);
         };
       default:
         throw new Error("Unsupported precision");

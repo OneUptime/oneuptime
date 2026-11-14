@@ -69,7 +69,7 @@ import Breadcrumbs from "Common/UI/Components/Breadcrumbs/Breadcrumbs";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import Detail from "Common/UI/Components/Detail/Detail";
-import Input from "Common/UI/Components/Input/Input";
+import Input, { InputType } from "Common/UI/Components/Input/Input";
 import TextArea from "Common/UI/Components/TextArea/TextArea";
 import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
 import ColorPicker from "Common/UI/Components/Forms/Fields/ColorPicker";
@@ -1024,6 +1024,22 @@ function Page() {
           </div>
           <div data-testid="field-empty">
             <Input placeholder="Monitor name" onChange={() => {}} />
+          </div>
+          {/* A site's longitude: a negative number, and an empty one's example. */}
+          <div data-testid="field-number">
+            <Input
+              type={InputType.NUMBER}
+              initialValue="-71.0589"
+              placeholder="-89.6501"
+              onChange={() => {}}
+            />
+          </div>
+          <div data-testid="field-number-empty">
+            <Input
+              type={InputType.NUMBER}
+              placeholder="-89.6501"
+              onChange={() => {}}
+            />
           </div>
           <div data-testid="textarea-english">
             <TextArea

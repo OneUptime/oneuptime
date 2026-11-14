@@ -232,7 +232,7 @@ describe("restored breadcrumb hierarchy", () => {
     [
       PageMap.SETTINGS_TELEMETRY_INGESTION_KEY_VIEW,
       getSettingsBreadcrumbs,
-      ["Project", "Settings", "Telemetry Ingestion Keys", "View Key"],
+      ["Project", "Settings", "Ingestion Keys", "View Key"],
       PageMap.SETTINGS_TELEMETRY_INGESTION_KEYS,
     ],
     [
@@ -263,7 +263,7 @@ describe("restored breadcrumb hierarchy", () => {
     [
       PageMap.ON_CALL_DUTY_POLICY_VIEW,
       getOnCallDutyBreadcrumbs,
-      ["Project", "On-Call Duty", "Policies", "View On-Call Policy"],
+      ["Project", "On-Call", "Policies", "View On-Call Policy"],
       PageMap.ON_CALL_DUTY_POLICIES,
     ],
     [
@@ -271,7 +271,7 @@ describe("restored breadcrumb hierarchy", () => {
       getOnCallDutyBreadcrumbs,
       [
         "Project",
-        "On-Call Duty",
+        "On-Call",
         "Policies",
         "View On-Call Policy",
         "Escalation Rules",
@@ -283,7 +283,7 @@ describe("restored breadcrumb hierarchy", () => {
       getOnCallDutyBreadcrumbs,
       [
         "Project",
-        "On-Call Duty",
+        "On-Call",
         "Policies",
         "View On-Call Policy",
         "Notification Logs",
@@ -293,13 +293,7 @@ describe("restored breadcrumb hierarchy", () => {
     [
       PageMap.ON_CALL_DUTY_POLICY_VIEW_AUDIT_LOGS,
       getOnCallDutyBreadcrumbs,
-      [
-        "Project",
-        "On-Call Duty",
-        "Policies",
-        "View On-Call Policy",
-        "Audit Logs",
-      ],
+      ["Project", "On-Call", "Policies", "View On-Call Policy", "Audit Logs"],
       PageMap.ON_CALL_DUTY_POLICY_VIEW,
     ],
     [
@@ -307,7 +301,7 @@ describe("restored breadcrumb hierarchy", () => {
       getOnCallDutyBreadcrumbs,
       [
         "Project",
-        "On-Call Duty",
+        "On-Call",
         "Policies",
         "View On-Call Policy",
         "Logs",
@@ -318,19 +312,13 @@ describe("restored breadcrumb hierarchy", () => {
     [
       PageMap.ON_CALL_DUTY_SCHEDULE_VIEW,
       getOnCallDutyBreadcrumbs,
-      ["Project", "On-Call Duty", "Schedules", "View On-Call Schedule"],
+      ["Project", "On-Call", "Schedules", "View On-Call Schedule"],
       PageMap.ON_CALL_DUTY_SCHEDULES,
     ],
     [
       PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_LAYERS,
       getOnCallDutyBreadcrumbs,
-      [
-        "Project",
-        "On-Call Duty",
-        "Schedules",
-        "View On-Call Schedule",
-        "Layers",
-      ],
+      ["Project", "On-Call", "Schedules", "View On-Call Schedule", "Layers"],
       PageMap.ON_CALL_DUTY_SCHEDULE_VIEW,
     ],
     [
@@ -338,7 +326,7 @@ describe("restored breadcrumb hierarchy", () => {
       getOnCallDutyBreadcrumbs,
       [
         "Project",
-        "On-Call Duty",
+        "On-Call",
         "Schedules",
         "View On-Call Schedule",
         "Notification Logs",
@@ -350,7 +338,7 @@ describe("restored breadcrumb hierarchy", () => {
       getOnCallDutyBreadcrumbs,
       [
         "Project",
-        "On-Call Duty",
+        "On-Call",
         "Schedules",
         "View On-Call Schedule",
         "Audit Logs",
@@ -362,7 +350,7 @@ describe("restored breadcrumb hierarchy", () => {
       getIncomingCallPolicyBreadcrumbs,
       [
         "Project",
-        "On-Call Duty",
+        "On-Call",
         "Incoming Call Policies",
         "View Policy",
         "Audit Logs",

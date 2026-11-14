@@ -37,7 +37,7 @@ El explorador tiene cinco pestañas:
 ## Antes de empezar
 
 - **Registros que llegan.** Envíelos con [OpenTelemetry](/docs/telemetry/open-telemetry), [Fluent Bit](/docs/telemetry/fluentbit), [Fluentd](/docs/telemetry/fluentd) o [Syslog](/docs/telemetry/syslog). La pestaña **Guía de configuración** muestra la configuración para su lenguaje o su recolector.
-- **Un rol que pueda leer telemetría.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member o Telemetry Viewer, o un rol personalizado con el permiso Read Telemetry Service Log. Su ámbito decide de quién son los registros que ve: consulte [Telemetría](/docs/permissions/index#telemetría).
+- **Un rol que pueda leer telemetría.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member o Telemetry Viewer, o un rol personalizado con el permiso Read Logs. Su ámbito decide de quién son los registros que ve: consulte [Telemetría](/docs/permissions/index#telemetría).
 
 ## Encontrar una línea de registro
 
@@ -141,7 +141,7 @@ OneUptime anota tres tipos de hallazgo:
 
 | Hallazgo | Cuándo lo registra OneUptime | La pull request |
 | --- | --- | --- |
-| **Registro de error** | Un servicio registró un mismo mensaje en Error o Fatal 20 veces o más en la hora, un mensaje con palabras propias y sin excepción. Un mensaje registrado con una excepción, o con un seguimiento de pila dentro, se sigue en [Seguimiento de excepciones](/docs/telemetry/exceptions) en su lugar. | Corrige por qué se registra el error, o lo registra en el nivel que le corresponde. |
+| **Registro de error** | Un servicio registró un mismo mensaje en Error o Fatal 20 veces o más en la hora, un mensaje con palabras propias y sin excepción. Un mensaje registrado con una excepción, o con un seguimiento de pila dentro, se sigue en [Excepciones](/docs/telemetry/exceptions) en su lugar. | Corrige por qué se registra el error, o lo registra en el nivel que le corresponde. |
 | **Registro faltante** | Al menos 20 spans de una operación fallaron en la hora, el 5 % o más de ellos, mientras al menos 100 registros del servicio llevan un ID de traza, y ninguna de las 20 solicitudes fallidas más recientes de la operación escribió una línea de registro. O un servicio envió 500 registros o más y 100 spans o más en la hora, y menos del 1 % de sus registros llevan un ID de traza. | Registra el fallo donde ocurre, o hace que los registros del servicio lleven el ID de traza. |
 | **Registro ruidoso** | Un mensaje registrado por debajo de Error es el 25 % o más de las líneas de un servicio en la hora, unas 10.000 líneas o más. | Registra la línea menos: en Debug, una vez por lote o nunca. |
 

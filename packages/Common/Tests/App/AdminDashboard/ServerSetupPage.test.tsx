@@ -460,6 +460,91 @@ describe("a test send", () => {
     );
     expect(describeServerTestSend(german, ACCEPTED)).toContain("Test-E-Mail");
   });
+
+  /*
+   * Issue #6605: in an Arabic or Persian sentence the number a test SMS or
+   * call went to read 14155550100+ - a number has no letter to say which
+   * way it reads, so it took the sentence's. It is set apart in an isolate
+   * that reads left to right (LRI ... PDI: phoneNumberInLine); an email
+   * address, and every English answer, read as they always did.
+   */
+  describe("the number a test went to, on a page read right to left", () => {
+    const LRI: string = String.fromCharCode(0x2066);
+    const PDI: string = String.fromCharCode(0x2069);
+    const NUMBER: string = "+14155550100";
+
+    function translatorFor(
+      language: string,
+    ): ReturnType<typeof createTranslator> {
+      const words: Record<string, string> = JSON.parse(
+        fs.readFileSync(path.join(LOCALES_DIR, `${language}.json`), "utf8"),
+      ) as Record<string, string>;
+
+      return createTranslator((text: string): string | undefined => {
+        return words[text];
+      }, language);
+    }
+
+    test.each([
+      ["ar", ServerSendingChannel.SMS],
+      ["ar", ServerSendingChannel.Call],
+      ["fa", ServerSendingChannel.SMS],
+      ["fa", ServerSendingChannel.Call],
+    ])(
+      "in %s, a test %s names its number set apart, reading left to right",
+      (language: string, channel: ServerSendingChannel) => {
+        const sentence: string = describeServerTestSend(
+          translatorFor(language),
+          {
+            channel: channel,
+            result: ServerTestSendResult.Accepted,
+            to: NUMBER,
+            sentThrough: "Twilio",
+            message: null,
+          },
+        );
+
+        expect(sentence).toContain(`${LRI}${NUMBER}${PDI}`);
+        expect(sentence.split(LRI)).toHaveLength(2);
+        expect(sentence).toContain("Twilio");
+      },
+    );
+
+    test("an email address is named as it is", () => {
+      const sentence: string = describeServerTestSend(
+        translatorFor("ar"),
+        ACCEPTED,
+      );
+
+      expect(sentence).toContain("ada@example.com");
+      expect(sentence).not.toContain(LRI);
+    });
+
+    test("in English a test SMS names its number as it always did", () => {
+      const sentence: string = describeServerTestSend(translatorFor("en"), {
+        channel: ServerSendingChannel.SMS,
+        result: ServerTestSendResult.Accepted,
+        to: NUMBER,
+        sentThrough: "Twilio",
+        message: null,
+      });
+
+      expect(sentence).toBe(`Twilio accepted the test SMS to ${NUMBER}.`);
+    });
+
+    test("an answer with no number sets nothing apart", () => {
+      const sentence: string = describeServerTestSend(translatorFor("ar"), {
+        channel: ServerSendingChannel.SMS,
+        result: ServerTestSendResult.NotSetUp,
+        to: "",
+        sentThrough: null,
+        message: "No Twilio account or SMS gateway is set up.",
+      });
+
+      expect(sentence).not.toContain(LRI);
+      expect(sentence).toContain("No Twilio account or SMS gateway is set up.");
+    });
+  });
 });
 
 describe("the settings pages' test card", () => {

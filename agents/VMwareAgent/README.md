@@ -15,7 +15,7 @@ Next to the collector, `docker-compose.yml` also runs the **OneUptime AI agent**
 - Docker Engine 20.10+ with the Docker Compose v2 plugin — or, for the [install without Docker](#quick-start--without-docker), a Linux machine (x86_64 or arm64) with systemd 235 or later — on any machine that can reach vCenter over HTTPS (TCP 443)
 - vCenter Server / ESXi **7.0 or later** (the receiver supports vSphere 7 and 8)
 - A vSphere user holding the built-in **Read-Only** role, propagated from the top-level vCenter object (see below)
-- A **OneUptime Telemetry Ingestion Key** — create one from *Project Settings → Telemetry Ingestion Keys*
+- A **OneUptime ingestion key** — create one from *Project Settings → Telemetry & APM → Ingestion Keys*
 
 ### Creating the read-only vSphere user
 
@@ -151,7 +151,7 @@ Docker Compose reads these from the `.env` next to `docker-compose.yml`; the ins
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `ONEUPTIME_URL` | Yes | Your OneUptime instance URL |
-| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Yes | Telemetry ingestion key (*Project Settings → Telemetry Ingestion Keys*) |
+| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Yes | Ingestion key (*Project Settings → Telemetry & APM → Ingestion Keys*) |
 | `VMWARE_VCENTER_NAME` | Yes | The name this vCenter registers under in OneUptime. Stamped on every metric as the `vmware.vcenter.name` resource attribute. Keep it stable — changing it registers a new vCenter (default: `vmware-vcenter`) |
 | `VCENTER_ENDPOINT` | Yes | Scheme + host of vCenter Server or a standalone ESXi host, **without** `/sdk`, e.g. `https://vcsa.example.com` |
 | `VCENTER_USERNAME` | Yes | vSphere user with the Read-Only role, e.g. `oneuptime@vsphere.local` (or `DOMAIN\user` for an AD identity source) |

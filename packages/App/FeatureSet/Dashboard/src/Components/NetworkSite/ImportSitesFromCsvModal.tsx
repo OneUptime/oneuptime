@@ -14,6 +14,7 @@ import {
   SiteImportSummary,
   runSiteImport,
 } from "../../Utils/NetworkSiteImportRunner";
+import { getCreatedImportResultLabel } from "../../Utils/ImportResultWords";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
@@ -24,6 +25,7 @@ import ObjectID from "Common/Types/ObjectID";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
+import SiteCoordinates from "./SiteCoordinates";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ProgressBar, {
   ProgressBarSize,
@@ -32,7 +34,7 @@ import TextArea from "Common/UI/Components/TextArea/TextArea";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { formatList, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
@@ -41,6 +43,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
 
 /*
  * Bulk CSV import for Network Sites, reached from the ⋯ menu on the Sites
@@ -354,11 +357,17 @@ const ImportSitesFromCsvModal: FunctionComponent<ComponentProps> = (
   const rows: Array<ParsedSiteRow> = parseResult?.rows || [];
   const parseErrors: Array<SiteCsvError> = parseResult?.errors || [];
 
-  const siteTypeNames: string = siteTypes
-    .map((siteType: NetworkSiteTypeOption) => {
+  /*
+   * The project's site types, listed the way the reader's language lists
+   * names - the way a problem's "Valid values" list beside it says them
+   * (Arabic and Persian set them apart with "،").
+   */
+  const siteTypeNames: string = formatList(
+    siteTypes.map((siteType: NetworkSiteTypeOption): string => {
       return siteType.name;
-    })
-    .join(", ");
+    }),
+    translator,
+  );
 
   const canImport: boolean = Boolean(
     parseResult && rows.length > 0 && parseErrors.length === 0,
@@ -487,7 +496,12 @@ const ImportSitesFromCsvModal: FunctionComponent<ComponentProps> = (
             <p className="mb-1 text-sm font-medium text-red-800">
               {translator.translateText("Fix these problems before importing:")}
             </p>
-            <ul className="list-disc space-y-0.5 pl-5">
+            {/*
+             * Each problem in the reader's language (the parser words it),
+             * after its line in the reader's digits, as the group import
+             * says it.
+             */}
+            <ul className="list-disc space-y-0.5 ps-5">
               {parseErrors.map(
                 (error: SiteCsvError, index: number): ReactElement => {
                   return (
@@ -495,7 +509,10 @@ const ImportSitesFromCsvModal: FunctionComponent<ComponentProps> = (
                       {error.line > 0
                         ? translator.translateTemplate(
                             "Line {{line}}: {{message}}",
-                            { line: error.line, message: error.message },
+                            {
+                              line: translator.formatNumber(error.line),
+                              message: errorInSentence(error.message),
+                            },
                           )
                         : error.message}
                     </li>
@@ -580,9 +597,11 @@ const ImportSitesFromCsvModal: FunctionComponent<ComponentProps> = (
                         <td className="px-3 py-2 text-gray-600">
                           {row.latitude !== undefined &&
                           row.longitude !== undefined ? (
-                            <bdi dir="ltr" data-testid="site-csv-coordinates">
-                              {`${row.latitude}, ${row.longitude}`}
-                            </bdi>
+                            <SiteCoordinates
+                              latitude={row.latitude}
+                              longitude={row.longitude}
+                              dataTestId="site-csv-coordinates"
+                            />
                           ) : (
                             "—"
                           )}
@@ -634,7 +653,7 @@ const ImportSitesFromCsvModal: FunctionComponent<ComponentProps> = (
                         <td className="px-3 py-2">
                           {result.status === "created" && (
                             <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
-                              {translator.translateText("Created")}
+                              {getCreatedImportResultLabel(translator)}
                             </span>
                           )}
                           {result.status === "failed" && (

@@ -44,9 +44,9 @@ export const COULD_NOT_LOAD_THIS_LIST: string = translationKey(
 );
 
 /*
- * "Monitors" -> "monitors", "On-Call Duty Policies" -> "on-call duty
- * policies", but "SLOs" and "API Keys" keep their acronyms ("SLOs", "API
- * keys") - lower-casing every letter, as the tables used to, gave "slos".
+ * "Monitors" -> "monitors", "On-Call Policies" -> "on-call policies", but
+ * "SLOs" and "API Keys" keep their acronyms ("SLOs", "API keys") -
+ * lower-casing every letter, as the tables used to, gave "slos".
  * This is the English casing; toSentenceTerm knows other languages'.
  */
 export const toSentenceNoun: (pluralLabel: string) => string = (

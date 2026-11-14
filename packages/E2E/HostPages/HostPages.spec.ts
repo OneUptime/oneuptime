@@ -626,11 +626,12 @@ test.describe("the Hosts list", () => {
         "host-fleet-attention-reason",
       ),
     ).toHaveText([
+      // German's own percent, as the tiles write theirs (#7106).
       fill(GERMAN, "{{mount}} {{percent}} full", {
         mount: "/var/lib/postgresql",
-        percent: "96%",
+        percent: "96\u00A0%",
       }),
-      fill(GERMAN, "Memory {{percent}} used", { percent: "92%" }),
+      fill(GERMAN, "Memory {{percent}} used", { percent: "92\u00A0%" }),
     ]);
     await expect(
       attentionRow(card, HOST_IDS["web03"]!).getByTestId(
@@ -693,14 +694,17 @@ test.describe("the Hosts list", () => {
     expect(summary).toContain("۲");
     expect(summary).not.toMatch(LATIN_DIGIT);
 
-    // The mount and the share set apart from the Persian sentence around them.
+    /*
+     * The mount and the share set apart from the Persian sentence around
+     * them, the share in Persian digits and Persian's percent sign (#7106).
+     */
     const reasons: Array<string> = await attentionRow(card, HOST_IDS["db01"]!)
       .getByTestId("host-fleet-attention-reason")
       .allTextContents();
     expect(reasons[0]).toBe(
       fill(PERSIAN, "{{mount}} {{percent}} full", {
         mount: isolated("/var/lib/postgresql"),
-        percent: isolated("96%"),
+        percent: isolated("۹۶٪"),
       }),
     );
     // A host's name reads the way it is written.
@@ -718,11 +722,11 @@ test.describe("the Hosts list", () => {
     await expect(
       tableRow(page, "Payments database").getByTestId("host-os"),
     ).toHaveAttribute("dir", "ltr");
-    // "of 64 GiB": the size set apart, so it never reads "GiB 64".
+    // "of 64 GiB" in Persian digits, set apart, so it never reads "GiB 64".
     await expect(
       tableRow(page, "Payments database").getByTestId("host-usage-memory"),
     ).toContainText(
-      fill(PERSIAN, "of {{total}}", { total: isolated("64 GiB") }),
+      fill(PERSIAN, "of {{total}}", { total: isolated("۶۴ GiB") }),
     );
 
     await expectNoSidewaysScroll(page);
@@ -1121,6 +1125,36 @@ test.describe("a host's Overview", () => {
         direction: await drawnDirection(page.getByTestId(testId).first()),
       }).toEqual({ testId: testId, direction: "ltr" });
     }
+    /*
+     * Its figures in Persian digits beyond the tiles too (#7106): the
+     * reasons' shares, the cached process count in Details, and the
+     * memory's size set apart, "۶۴ GiB" and never "GiB ۶۴".
+     */
+    const hostReasons: Array<string> = await attentionRow(
+      page.getByTestId("host-needs-attention"),
+      "host",
+    )
+      .getByTestId("host-needs-attention-reason")
+      .allTextContents();
+    expect(hostReasons.join(" ")).toContain("۹۲٪");
+    expect(hostReasons.join(" ")).not.toMatch(LATIN_DIGIT);
+    const details: Locator = page.getByTestId("detail-field");
+    await expect(
+      details
+        .filter({ hasText: PERSIAN["Process Count (cached)"] as string })
+        .getByTestId("detail-value"),
+    ).toHaveText("۲۱۴");
+    await expect(
+      details
+        .filter({ hasText: PERSIAN["Total Memory"] as string })
+        .getByTestId("detail-value")
+        .locator("bdi"),
+    ).toHaveText("۶۴ GiB");
+    await expect(
+      goldenTile(page, PERSIAN["Filesystem"] as string)
+        .getByTestId("golden-metric-tile-value")
+        .locator("bdi"),
+    ).toHaveText(/^[۰-۹٫]+٪$/);
     await expectNoSidewaysScroll(page);
     await screenshot(page, "host-overview-persian");
 

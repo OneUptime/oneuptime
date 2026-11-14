@@ -27,14 +27,14 @@ Numa instalação auto-hospedada, o servidor de e-mail do OneUptime é o definid
 
 ## Adicionar um servidor SMTP
 
-Adicione o servidor de e-mail de um projeto em **Configurações do projeto > Notificações > Configurações de notificação**, no cartão **Configurações SMTP Personalizadas**, em **Mais configurações**. Numa instalação auto-hospedada, o servidor pelo qual o próprio OneUptime envia é definido em **Admin Dashboard > Configurações > Notificações > E-mails**, no cartão **Configurações personalizadas de e-mail e SMTP**. Os dois formulários pedem o servidor e o remetente; o formulário de um projeto pede primeiro o **Provedor**.
+Adicione o servidor de e-mail de um projeto em **Configurações do projeto > Notificações > Canais de notificação**, no cartão **Configurações SMTP Personalizadas**, em **Mais configurações**. Numa instalação auto-hospedada, o servidor pelo qual o próprio OneUptime envia é definido em **Admin Dashboard > Configurações > Notificações > E-mails**, no cartão **Configurações personalizadas de e-mail e SMTP**. Os dois formulários pedem o servidor e o remetente; o formulário de um projeto pede primeiro o **Provedor**.
 
 :::steps
 ### Abrir o formulário
 
 :::tabs
 @tab Projeto
-Em **Configurações do projeto > Notificações > Configurações de notificação**, abra **Mais configurações** e clique em **Criar: Configuração SMTP** no cartão **Configurações SMTP Personalizadas**.
+Em **Configurações do projeto > Notificações > Canais de notificação**, abra **Mais configurações** e clique em **Criar: Configuração SMTP** no cartão **Configurações SMTP Personalizadas**.
 @tab Instância auto-hospedada
 No Admin Dashboard, abra **Configurações** e depois **Notificações > E-mails** no menu lateral (**Notificações** começa recolhido). No cartão **Configurações do servidor de e-mail**, clique em **Editar servidor** e defina **Tipo de servidor de e-mail** como `Custom SMTP`. Depois clique em **Editar config SMTP** no cartão **Configurações personalizadas de e-mail e SMTP**, que aparece abaixo.
 :::

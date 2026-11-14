@@ -293,7 +293,6 @@ export function getNotificationRuleCardColumns(
       field: {
         description: true,
       },
-      noValueMessage: "-",
       title: "Rule Description",
       type: FieldType.Text,
       showInListIf: (item: WorkspaceNotificationRule): boolean => {

@@ -191,6 +191,11 @@ function routesUnderTest(modelTriggerPath: string): Array<RouteUnderTest> {
       "INCOMING_EMAIL_TRIGGER_DELIVERY_PATH",
       "/workflow/incoming-email/deliver",
     ),
+    route(
+      "packages/App/API/AdminHealth.ts",
+      '"/doctor"',
+      "/api/admin/health/doctor",
+    ),
   ];
 }
 
@@ -300,6 +305,9 @@ async function startInstallation(): Promise<RunningInstallation> {
       }
 
       app.use("/workflow", componentRouter);
+
+      // The OneUptime Health router, where App/Index.ts mounts it: the doctor's POST.
+      app.use("/api/admin/health", require_("../../API/AdminHealth").default);
 
       app.use(require_("Common/Server/Utils/StartServer").expressErrorHandler);
 
@@ -496,6 +504,7 @@ describe("on each route, one client's different wrong keys", () => {
     `/workflow/update/${WORKFLOW_ID}`,
     "model trigger",
     "/workflow/incoming-email/deliver",
+    "/api/admin/health/doctor",
   ])(
     "%s: ten are answered as wrong, the next is refused with Retry-After, and so is the right key after it",
     async (name: string) => {

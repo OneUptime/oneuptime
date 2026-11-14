@@ -30,7 +30,8 @@ import { DocsKnownFailures } from "./DocsContentRules";
  *   codeClosed                   every code sample is closed
  *   pageLinks                    /docs links land on nav pages and headings
  *   inPageAnchors                #anchors land on a heading of the page
- *   images                       images and /docs/static/ files exist
+ *   images                       images, screenshots and /docs/static/ files exist
+ *   screenAlt                    every screenshot's alt text is in the page's language
  *   noRelativeLinks              no relative links ("./page.md", "page")
  *   rendered                     no raw ":::", "@tab" or "[!NOTE]" is shown
  *   placeholderLinks             an address to fill in is code, never a link

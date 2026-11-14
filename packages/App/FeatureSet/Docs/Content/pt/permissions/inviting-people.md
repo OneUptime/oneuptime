@@ -52,6 +52,8 @@ Digite o endereço em **E-mail**. Se nenhuma conta do OneUptime usa esse endere�
 ### Enviar o convite
 
 Clique em **Convidar**. O OneUptime envia o convite por e-mail e abre a página da pessoa. Ela aparece como **Convite enviado** até aceitar.
+
+Em um servidor auto-hospedado que ainda não consegue enviar e-mails, nenhum e-mail é enviado, e a pessoa aparece como **Convidado**. Um administrador mestre vê primeiro **Envie o link de convite**: copie o link, envie-o você mesmo à pessoa e depois clique em **Concluído**. Qualquer outra pessoa pede ao administrador do servidor que [configure o e-mail](/docs/emails/smtp#abrir-o-formulário).
 :::
 
 > [!TIP]
@@ -84,7 +86,7 @@ Filtre a lista por **Usuário**, **Status** ou **Equipe**. Clique em uma linha p
 | --- | --- |
 | **Perfil** | O nome, o endereço de e-mail, a foto e o ID de usuário dela. |
 | **Equipes** | As equipes de que ela participa. Adicione ou remova uma equipe aqui. |
-| **Prontidão**, **Métodos de notificação**, **Regras de Plantão** | Se ela pode ser acionada, e como. Visível para Project Owners, Project Admins, a própria pessoa e quem pode ler as regras de notificação dos outros. Veja [Prontidão e relatórios](/docs/on-call/readiness). |
+| **Prontidão**, **Métodos de notificação**, **Como me contatar** | Se ela pode ser acionada, e como. Visível para Project Owners, Project Admins, a própria pessoa e quem pode ler as regras de notificação dos outros. Veja [Prontidão e relatórios](/docs/on-call/readiness). |
 | **Campos personalizados** | Os campos personalizados do projeto para pessoas, quando há algum. |
 | **Remover do Projeto** | Tirar a pessoa do projeto. |
 
@@ -134,6 +136,8 @@ Um endereço pode receber 10 convites por hora, para projetos e páginas de stat
 
 :::details O e-mail de convite não chegou, ou o link expirou
 O convite não depende do e-mail. Peça à pessoa que se cadastre com o endereço convidado: o OneUptime envia para esse endereço um novo link para terminar de criar a conta. Quem já tem conta entra e encontra o convite esperando.
+
+Em um servidor auto-hospedado que ainda não consegue enviar e-mails, o cadastro também não consegue enviar um novo link por e-mail: em vez disso, pede à pessoa que solicite o seu link de convite. Depois que o administrador do servidor [configurar o e-mail](/docs/emails/smtp#abrir-o-formulário), o cadastro funciona como acima. Até lá, um administrador mestre pode remover a pessoa do projeto, convidá-la de novo e enviar a ela o novo link de convite, que funciona uma vez, só para esse endereço, por 7 dias.
 :::
 
 :::details Convidar Usuário diz que os usuários são gerenciados pelo SCIM Push Groups

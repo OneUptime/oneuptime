@@ -1,6 +1,6 @@
 # Runbook-regels
 
-Runbook-regels starten runbooks automatisch wanneer een **incident**, een **waarschuwing** of een **gepland onderhoudsevenement** ontstaat, zodat niemand er midden in een storing aan hoeft te denken om ze te starten. Elk product heeft een eigen regelpagina, in het menu **Regels**:
+Runbook-regels starten runbooks automatisch wanneer een **incident**, een **waarschuwing** of een **onderhoudsgebeurtenis** ontstaat, zodat niemand er midden in een storing aan hoeft te denken om ze te starten. Elk product heeft een eigen regelpagina, in het menu **Regels**:
 
 - Incidenten → Regels → **Runbook-regels**
 - Waarschuwingen → Regels → **Runbook-regels**

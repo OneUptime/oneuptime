@@ -26,7 +26,7 @@ flowchart TB
 
 - Une application web dont vous pouvez modifier et redéployer le code, avec ses dépendances installées via npm.
 - Les origines depuis lesquelles vos pages sont servies, par exemple `https://app.example.com`. Une clé Navigateur n'accepte les requêtes que depuis les origines que vous y listez.
-- Un rôle qui peut créer des clés d'ingestion : les propriétaires et administrateurs du projet le peuvent, ainsi que toute personne disposant de l'autorisation **Create Telemetry Ingestion Key**.
+- Un rôle qui peut créer des clés d'ingestion : les propriétaires et administrateurs du projet le peuvent, ainsi que toute personne disposant de l'autorisation Create Ingestion Key.
 
 ## Mise en place
 

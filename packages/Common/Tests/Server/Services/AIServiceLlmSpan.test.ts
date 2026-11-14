@@ -572,7 +572,7 @@ describe("AIService.executeWithLogging marks its span as an AI call", () => {
 
       await expect(
         AIService.executeWithLogging(request({ storeErrorDetails: false })),
-      ).rejects.toThrow("The AI provider request failed.");
+      ).rejects.toThrow("The LLM provider request failed.");
 
       const span: ReadableSpan = callSpan();
 

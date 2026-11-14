@@ -52,9 +52,9 @@ const SCREENSHOTS: string = path.resolve(
 
 // The words the pickers say, as the product writes them (CustomFieldFormFields).
 const FILES_HINT: string =
-  "Up to 10 files of 10 MB each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.";
+  "Up to 10 files of {{size}} each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.";
 const FILE_HINT: string =
-  "PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP, up to 10 MB.";
+  "PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP, up to {{size}}.";
 const FULL_NOTE: string =
   "This field holds up to 10 files. Remove one to add another.";
 
@@ -100,6 +100,96 @@ function accountsText(language: string, key: string): string {
 
 const GERMAN: Record<string, string> = dashboardLocale("de");
 const PERSIAN: Record<string, string> = dashboardLocale("fa");
+
+/*
+ * A picker's hint as a page draws it: its {{size}} is the picker's limit, in
+ * the reader's digits. On a page read from the right the limit is set apart
+ * (between U+2068 and U+2069), so it keeps its number first (issue #7233).
+ */
+const PERSIAN_SIZE: string = "\u06F1\u06F0 MB";
+const PERSIAN_LIMIT: string = `\u2068${PERSIAN_SIZE}\u2069`;
+
+function hintWith(template: string, size: string): string {
+  if (!template.includes("{{size}}")) {
+    throw new Error(`A hint without its {{size}}: ${template}`);
+  }
+
+  return template.replace("{{size}}", size);
+}
+
+interface DrawnLimit {
+  numberRight: number;
+  unitLeft: number;
+  isOneLine: boolean;
+}
+
+/*
+ * Where a limit inside a sentence is drawn - "۱۰ MB" - measured with a text
+ * Range over its number and one over its unit. Bare in a sentence read from
+ * the right it was drawn unit first ("MB ۱۰"); set apart, its number's box
+ * ends left of its unit's.
+ */
+async function drawnLimits(
+  locator: Locator,
+  limit: string,
+): Promise<Array<DrawnLimit>> {
+  return locator.evaluate(
+    (element: Element, size: string): Array<DrawnLimit> => {
+      const [number, unit] = size.split(" ") as [string, string];
+      const found: Array<DrawnLimit> = [];
+      const walker: TreeWalker = document.createTreeWalker(
+        element,
+        NodeFilter.SHOW_TEXT,
+      );
+      let node: Node | null = walker.nextNode();
+
+      while (node) {
+        const text: Text = node as Text;
+        const boxOf: (start: number, length: number) => DOMRect = (
+          start: number,
+          length: number,
+        ): DOMRect => {
+          const range: Range = document.createRange();
+          range.setStart(text, start);
+          range.setEnd(text, start + length);
+          return range.getBoundingClientRect();
+        };
+        let at: number = text.data.indexOf(size);
+
+        while (at >= 0) {
+          const numberBox: DOMRect = boxOf(at, number.length);
+          const unitBox: DOMRect = boxOf(at + number.length + 1, unit.length);
+
+          found.push({
+            numberRight: numberBox.right,
+            unitLeft: unitBox.left,
+            isOneLine: Math.abs(numberBox.top - unitBox.top) < 2,
+          });
+          at = text.data.indexOf(size, at + size.length);
+        }
+
+        node = walker.nextNode();
+      }
+
+      return found;
+    },
+    limit,
+  );
+}
+
+async function expectLimitNumberFirst(
+  locator: Locator,
+  limit: string,
+): Promise<void> {
+  const drawn: Array<DrawnLimit> = await drawnLimits(locator, limit);
+
+  expect(drawn, `${limit} is in the hint once`).toHaveLength(1);
+  expect(drawn[0]!.isOneLine, `${limit} on one line`).toBe(true);
+  expect(
+    drawn[0]!.numberRight,
+    `${limit} has its number left of its unit`,
+  ).toBeLessThanOrEqual(drawn[0]!.unitLeft);
+}
 
 // ---- test files -----------------------------------------------------------------
 
@@ -470,7 +560,7 @@ test.describe("a record's file custom fields: Edit", () => {
      * card says it - though the File the dialog is handed holds no bytes.
      */
     await expect(
-      picker(page, FILE_FIELD).locator("xpath=..").getByText("PDF • 47 KB", {
+      picker(page, FILE_FIELD).locator("xpath=..").getByText("PDF · 47 KB", {
         exact: true,
       }),
     ).toBeVisible();
@@ -485,7 +575,7 @@ test.describe("a record's file custom fields: Edit", () => {
       "gateway-errors.csv",
       "capture-eu-west-1.pcap",
     ]);
-    for (const metadata of ["PNG • 240 KB", "CSV • 18 KB", "PCAP • 2.4 MB"]) {
+    for (const metadata of ["PNG · 240 KB", "CSV · 18 KB", "PCAP · 2.4 MB"]) {
       await expect(
         picker(page, FILES_FIELD)
           .locator("xpath=..")
@@ -495,7 +585,9 @@ test.describe("a record's file custom fields: Edit", () => {
     await expect(
       picker(page, FILES_FIELD).locator("xpath=..").getByText("Uploaded files"),
     ).toHaveCount(1);
-    await expect(picker(page, FILES_FIELD)).toContainText(FILES_HINT);
+    await expect(picker(page, FILES_FIELD)).toContainText(
+      hintWith(FILES_HINT, "10 MB"),
+    );
     await expect(picker(page, FILES_FIELD)).toContainText("Add more files");
 
     await screenshot(page, "dialog-1280");
@@ -520,7 +612,9 @@ test.describe("a record's file custom fields: Edit", () => {
     // The zone's hint, nowhere near the link-coloured words.
     const byClick: Promise<import("@playwright/test").FileChooser> =
       page.waitForEvent("filechooser");
-    await picker(page, FILE_FIELD).getByText(FILE_HINT).click();
+    await picker(page, FILE_FIELD)
+      .getByText(hintWith(FILE_HINT, "10 MB"))
+      .click();
     expect((await byClick).isMultiple()).toBe(false);
 
     // From the keyboard: the zone is where it stops, and Enter opens it.
@@ -586,7 +680,7 @@ test.describe("a record's file custom fields: Edit", () => {
     await expect(
       picker(page, FILES_FIELD)
         .locator("xpath=..")
-        .getByText(`PNG • ${PNG_BYTES.length} B`, { exact: true }),
+        .getByText(`PNG · ${PNG_BYTES.length} B`, { exact: true }),
     ).toBeVisible();
 
     const uploads: Array<Upload> = (await dashboardFixture(page)).uploads;
@@ -748,7 +842,7 @@ test.describe("a record's file custom fields: Edit", () => {
     );
 
     await expect(picker(page, FILES_FIELD)).toContainText(
-      '"full-capture.pdf" exceeds the 10MB limit.',
+      '"full-capture.pdf" exceeds the 10 MB limit.',
     );
     expect((await dashboardFixture(page)).uploads).toEqual([]);
   });
@@ -890,7 +984,7 @@ test.describe("a record's file custom fields: Edit", () => {
     await openDialog(page, GERMAN["Edit Fields"] as string);
 
     await expect(picker(page, FILES_FIELD)).toContainText(
-      GERMAN[FILES_HINT] as string,
+      hintWith(GERMAN[FILES_HINT] as string, "10 MB"),
     );
     await expect(
       picker(page, FILE_FIELD)
@@ -922,16 +1016,19 @@ test.describe("a record's file custom fields: Edit", () => {
       .first();
     const [name, size] = await boxesInOneFrame([
       row.getByText("checkout-latency.png"),
-      row.getByText("240 KB"),
+      // Its size in Persian digits.
+      row.getByText("\u06F2\u06F4\u06F0 KB"),
     ]);
 
     expect(name!.x).toBeGreaterThan(size!.x);
     await screenshot(page, "card-fa-1280");
 
     await openDialog(page, PERSIAN["Edit Fields"] as string);
+    // The limit in Persian digits, number first, in the Persian sentence.
     await expect(picker(page, FILES_FIELD)).toContainText(
-      PERSIAN[FILES_HINT] as string,
+      hintWith(PERSIAN[FILES_HINT] as string, PERSIAN_LIMIT),
     );
+    await expectLimitNumberFirst(picker(page, FILES_FIELD), PERSIAN_SIZE);
     await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshot(page, "dialog-fa-1280");
   });
@@ -1001,7 +1098,7 @@ test.describe("a public form's file questions", () => {
     await expect(
       formPicker(page, "screenshot")
         .locator("xpath=..")
-        .getByText(`PNG • ${PNG_BYTES.length} B`, { exact: true }),
+        .getByText(`PNG · ${PNG_BYTES.length} B`, { exact: true }),
     ).toBeVisible();
     await expect(
       formPicker(page, "evidence")
@@ -1188,10 +1285,10 @@ test.describe("a public form's file questions", () => {
     await openForm(page, "", "de");
 
     await expect(formPicker(page, "evidence")).toContainText(
-      accountsText("de", FILES_HINT),
+      hintWith(accountsText("de", FILES_HINT), "10 MB"),
     );
     await expect(formPicker(page, "screenshot")).toContainText(
-      accountsText("de", FILE_HINT),
+      hintWith(accountsText("de", FILE_HINT), "10 MB"),
     );
     await formInput(page, "evidence").setInputFiles(csv("fehler.csv"));
     await expect(
@@ -1210,8 +1307,13 @@ test.describe("a public form's file questions", () => {
 
     await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
     await expect(formPicker(page, "evidence")).toContainText(
-      accountsText("fa", FILES_HINT),
+      hintWith(accountsText("fa", FILES_HINT), PERSIAN_LIMIT),
     );
+    await expect(formPicker(page, "screenshot")).toContainText(
+      hintWith(accountsText("fa", FILE_HINT), PERSIAN_LIMIT),
+    );
+    await expectLimitNumberFirst(formPicker(page, "evidence"), PERSIAN_SIZE);
+    await expectLimitNumberFirst(formPicker(page, "screenshot"), PERSIAN_SIZE);
     await formInput(page, "evidence").setInputFiles(csv("errors.csv"));
     await expect(
       page.getByText(accountsText("fa", "Chosen files")).first(),

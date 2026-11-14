@@ -101,7 +101,7 @@ const NEXT_STEPS: Array<NextStep> = [
   },
   {
     pageMapKey: PageMap.USER_VIEW_ON_CALL_RULES,
-    title: "On-call rules",
+    title: "How to Reach Me",
     icon: IconProp.BellRinging,
     getDescription: (
       context: UserOnCallContextValue,

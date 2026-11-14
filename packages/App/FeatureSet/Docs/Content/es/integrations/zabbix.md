@@ -143,7 +143,7 @@ En el paso **Criterios**, abre el primer criterio, el que marca el monitor como 
 
 - **Título del incidente**: `Zabbix: {{requestBody.name}} on {{requestBody.host}}`.
 - **Gravedad**: la gravedad de incidente que deben tener los problemas de Zabbix.
-- **Políticas de guardia**, en **De guardia**: las políticas a las que avisar.
+- **Políticas de guardia**, en **Guardia**: las políticas a las que avisar.
 - **Resolver incidente automáticamente**, en **Más campos**: déjalo activado, como viene. Sin él, las recuperaciones se ignoran y los incidentes siguen abiertos.
 
 ### Abrir un incidente por problema

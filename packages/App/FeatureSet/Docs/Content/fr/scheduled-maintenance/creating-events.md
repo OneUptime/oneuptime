@@ -31,7 +31,7 @@ flowchart TB
 :::steps
 ### Ouvrir le formulaire
 
-Allez dans **Maintenance planifiée → Tous les événements** et cliquez sur **Créer un événement de maintenance planifiée**. Le formulaire s'ouvre sur sa première étape, **Événement**.
+Allez dans **Maintenance planifiée → Tous les événements de maintenance** et cliquez sur **Créer un événement de maintenance**. Le formulaire s'ouvre sur sa première étape, **Détails de la maintenance**.
 
 ### Dire ce qui se passe et quand
 
@@ -47,7 +47,7 @@ Choisissez les pages de statut sous **Afficher l'événement sur ces pages de st
 
 ### Le créer
 
-Cliquez sur **Suivant** pour voir la vérification, relisez-la, puis cliquez sur **Créer un événement de maintenance planifiée**. La page de l'événement s'ouvre.
+Cliquez sur **Suivant** pour voir la vérification, relisez-la, puis cliquez sur **Créer un événement de maintenance**. La page de l'événement s'ouvre.
 :::
 
 Rien n'est envoyé tant que vous ne choisissez pas de page de statut : un événement affiché sur aucune page de statut ne prévient aucun abonné.
@@ -56,12 +56,12 @@ Rien n'est envoyé tant que vous ne choisissez pas de page de statut : un évén
 
 | Champ                                | Étape              | Valeur de départ                | Ce qu'il fait                                                                    |
 | ------------------------------------ | ------------------ | ------------------------------- | -------------------------------------------------------------------------------- |
-| **Titre**                            | **Événement**      | Vide, et obligatoire            | Nomme l'événement partout, sur vos pages de statut aussi.                        |
-| **Description**                      | **Événement**      | Vide                            | Explique les travaux à vos clients, en Markdown.                                 |
-| **Commence le**                      | **Événement**      | La prochaine heure pleine       | Quand l'événement commence, tout seul.                                           |
-| **Se termine le**                    | **Événement**      | Une heure après **Commence le** | Quand l'événement se termine, tout seul. Il doit venir après **Commence le**.    |
-| **Propriétaires**                    | **Événement**      | Personne                        | Les personnes et équipes à qui appartient l'événement et qui en sont informées. |
-| **Étiquettes**                       | **Événement**      | Aucune                          | Des étiquettes que les règles et les filtres peuvent cibler.                     |
+| **Titre**                            | **Détails de la maintenance**      | Vide, et obligatoire            | Nomme l'événement partout, sur vos pages de statut aussi.                        |
+| **Description**                      | **Détails de la maintenance**      | Vide                            | Explique les travaux à vos clients, en Markdown.                                 |
+| **Commence le**                      | **Détails de la maintenance**      | La prochaine heure pleine       | Quand l'événement commence, tout seul.                                           |
+| **Se termine le**                    | **Détails de la maintenance**      | Une heure après **Commence le** | Quand l'événement se termine, tout seul. Il doit venir après **Commence le**.    |
+| **Propriétaires**                    | **Détails de la maintenance**      | Personne                        | Les personnes et équipes à qui appartient l'événement et qui en sont informées. |
+| **Étiquettes**                       | **Détails de la maintenance**      | Aucune                          | Des étiquettes que les règles et les filtres peuvent cibler.                     |
 | **Moniteurs**                        | **Ressources affectées** | Aucun                     | Les moniteurs qui ne sont pas vérifiés pendant que l'événement est en cours.     |
 | **Changer le statut du moniteur en** | **Ressources affectées** | Aucun changement          | Le statut que ces moniteurs affichent pendant l'événement. Demandé dès qu'un moniteur est choisi. |
 | **Autres ressources affectées**      | **Ressources affectées** | Aucune                    | Hôtes, clusters, bases de données, sites réseau, services et plus.               |
@@ -75,13 +75,13 @@ Deux choses remplissent le formulaire pour vous en cours de route :
 
 ## Partir d'une ressource ou d'un modèle
 
-Dans l'onglet **Maintenance planifiée** d'un hôte, d'un cluster Kubernetes, Proxmox, Ceph ou Docker Swarm, d'un hôte Docker ou Podman, d'un vCenter, d'un cloud OpenStack, d'une baie de stockage, d'une flotte IoT, d'une base de données, d'une ressource cloud, d'un service ou d'un site réseau, **Créer un événement de maintenance planifiée** ouvre le même formulaire avec cette ressource déjà choisie sous **Autres ressources affectées**, et l'onglet liste les événements qui l'affectent. L'onglet d'un élément d'inventaire choisit l'hôte, le service ou le cluster Kubernetes vers lequel pointe l'élément.
+Dans l'onglet **Maintenance planifiée** d'un hôte, d'un cluster Kubernetes, Proxmox, Ceph ou Docker Swarm, d'un hôte Docker ou Podman, d'un vCenter, d'un cloud OpenStack, d'une baie de stockage, d'une flotte IoT, d'une base de données, d'une ressource cloud, d'un service ou d'un site réseau, **Créer un événement de maintenance** ouvre le même formulaire avec cette ressource déjà choisie sous **Autres ressources affectées**, et l'onglet liste les événements qui l'affectent. L'onglet d'un élément d'inventaire choisit l'hôte, le service ou le cluster Kubernetes vers lequel pointe l'élément.
 
 **Créer à partir d'un modèle**, à côté du bouton de création, vous demande de **Sélectionner le modèle de maintenance planifiée**, puis ouvre le formulaire rempli à partir du modèle. Voir [Modèles et événements récurrents](/docs/scheduled-maintenance/templates).
 
 ## Ce qui se passe à la création
 
-Au moment où vous cliquez sur **Créer un événement de maintenance planifiée**, OneUptime enchaîne ces étapes, dans cet ordre :
+Au moment où vous cliquez sur **Créer un événement de maintenance**, OneUptime enchaîne ces étapes, dans cet ordre :
 
 1. **Il reçoit un numéro et un état.** Le numéro vient d'un compteur par projet, affiché avec votre préfixe (`SM-42`). L'événement commence dans votre état planifié, quel que soit l'état indiqué par une requête.
 2. **Vos outils de chat en sont informés.** Les règles Slack et Microsoft Teams sous **Espace de travail** le publient dans leurs canaux, et une règle peut créer un canal pour l'événement. Son fil d'activité enregistre sa création.
@@ -90,7 +90,7 @@ Au moment où vous cliquez sur **Créer un événement de maintenance planifiée
 5. **Les règles de runbook démarrent** les runbooks qui correspondent à l'événement.
 6. **Les rappels sont planifiés**, quand une règle de rappel correspond, pour ses propriétaires.
 
-Dans la minute qui suit sa publication, immédiate sauf si vous avez choisi un **Publier le**, les abonnés de ses pages de statut sont prévenus qu'il est planifié, sauf si vous avez désactivé **Lorsque l'événement est planifié**. Le déclencheur de workflow **On Create Scheduled Maintenance Event** démarre tout workflow construit dessus, et ses propriétaires en sont informés s'ils ont activé cette notification : voir [Paramètres de notification](/docs/notifications/notification-settings).
+Dans la minute qui suit sa publication, immédiate sauf si vous avez choisi un **Publier le**, les abonnés de ses pages de statut sont prévenus qu'il est planifié, sauf si vous avez désactivé **Lorsque l'événement est planifié**. Le déclencheur de workflow **On Create Maintenance Event** démarre tout workflow construit dessus, et ses propriétaires en sont informés s'ils ont activé cette notification : voir [Paramètres de notification](/docs/notifications/notification-settings).
 
 ## Publier plus tard
 
@@ -113,7 +113,7 @@ Tout ce que contient le formulaire peut être modifié sur les pages de l'évén
 
 | Pour modifier                               | Allez dans                                                                     |
 | ------------------------------------------- | ------------------------------------------------------------------------------ |
-| Le titre, la fenêtre ou les étiquettes      | **Modifier** sur la carte **Détails de la maintenance** de sa **Vue d'ensemble**, étape **Événement** |
+| Le titre, la fenêtre ou les étiquettes      | **Modifier** sur la carte **Détails de la maintenance** de sa **Vue d'ensemble**, étape **Détails de la maintenance** |
 | Les pages de statut, quand il est publié, ou les rappels | Le même **Modifier**, étape **Pages de statut**                     |
 | Les moniteurs, leur statut ou les autres ressources | **Modifier** sur la carte **Ressources affectées**                       |
 | La description                              | **Description** dans son menu latéral                                          |
@@ -155,7 +155,7 @@ curl -X POST https://oneuptime.com/api/scheduled-maintenance \
 | `shouldStatusPageSubscribersBeNotifiedOnEventCreated` | L'interrupteur **Lorsque l'événement est planifié**. Les deux autres moments ont leurs propres champs. |
 | `publishOnStatusPageAt`                               | Quand l'événement est publié sur ses pages de statut et que ses abonnés sont prévenus qu'il est planifié. Omis, immédiatement. |
 
-Le même événement en code est la ressource Terraform `oneuptime_scheduled_maintenance_event` : voir [Exemples](/docs/terraform/examples#maintenance-planifiée). Un workflow en crée un avec son étape **Create One Scheduled Maintenance Event**, et `/oneuptime maintenance` ouvre le formulaire dans Slack : voir [Slack](/docs/workspace-connections/slack#créer-des-incidents-et-des-maintenances-depuis-slack).
+Le même événement en code est la ressource Terraform `oneuptime_scheduled_maintenance_event` : voir [Exemples](/docs/terraform/examples#maintenance-planifiée). Un workflow en crée un avec son étape **Create One Maintenance Event**, et `/oneuptime maintenance` ouvre le formulaire dans Slack : voir [Slack](/docs/workspace-connections/slack#créer-des-incidents-et-des-maintenances-depuis-slack).
 
 ## Dépannage
 

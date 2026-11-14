@@ -2,6 +2,9 @@
 
 En statusside er det offentlige ansiktet til alt du overvåker: én URL som kundene dine kan åpne i stedet for å skrive til deg og spørre om problemet bare er hos dem. Den viser gjeldende status for tjenestene du velger å vise, hendelsene du jobber med, vedlikeholdet du har planlagt og enhver kunngjøring du vil feste øverst. Se [Hvilken skal jeg bruke?](/docs/introduction/which-one#dashbord-offentlig-dashbord-eller-statusside) for å velge mellom en statusside og et dashbord.
 
+> [!TIP]
+> Ny her? Følg guiden først: [Publiser en statusside](/docs/guides/status-page).
+
 Når noe går i stykker klokken 2 om natten, er statussiden det første supportkøen din henviser til. Det er også derfra abonnentene dine blir varslet, så det lønner seg å sette den opp før du trenger den, ikke midt i nedetiden.
 
 :::cards
@@ -122,7 +125,7 @@ Den offentlige siden er en egen applikasjon, med et lite sett ruter:
 - `/rss`: strømmen.
 - `/login`, `/sso`, `/magic-link`, `/magic-link-login/:token` og `/master-password`: bare relevante på en privat side.
 
-Navigasjonslinjen øverst viser alltid **Oversikt**; resten vises bare når det er slått på. **Hendelser**, **Kunngjøringer** og **Planlagte hendelser** trenger hver sin bryter; **Abonner** trenger både **Vis abonnentside** og minst én påslått abonnementskanal. En privat side har også et element **Logg ut**.
+Navigasjonslinjen øverst viser alltid **Oversikt**; resten vises bare når det er slått på. **Hendelser**, **Kunngjøringer** og **Planlagt vedlikehold** trenger hver sin bryter; **Abonner** trenger både **Vis abonnentside** og minst én påslått abonnementskanal. En privat side har også et element **Logg ut**.
 
 En enkelt hendelse, episode, kunngjøring eller planlagt hendelse åpnes bare hvis siden ville vist den, uansett historikkvindu: en privat hendelse eller episode, en som er skjult på statussider, en planlagt hendelse som er skjult på statussider, eller en kunngjøring som er planlagt til senere, finnes heller ikke via lenken sin.
 
@@ -135,7 +138,7 @@ Oversikten er siden de fleste besøkende ser. Fra topp til bunn viser den:
 3. **En samlet oppetidsprosent**, hvis du har slått den på: på slutten av banneret med samlet status, så lenge alle ressurser er i drift. Av som standard.
 4. **Ressursgruppene**, hver med sine ressurser, gjeldende status og stolper med oppetidshistorikk.
 5. **Aktive hendelser**, med aktive episoder.
-6. **Planlagte vedlikeholdshendelser**.
+6. **Planlagt vedlikehold**.
 
 En nyopprettet side uten innhold viser en tom tilstand som ber deg legge til ressurser fra dashbordet — signalet om å gå til skjermen **Ressurser**.
 
@@ -151,7 +154,7 @@ Hva de besøkende ser, angis på ett kort: **Hva statussiden din viser**, under 
 - **Vis bare hendelser som er begrenset til denne siden** (`onlyShowScopedIncidents`): også i hendelsesraden, av som standard. Slå den på, så viser siden, og varsler abonnentene sine om, bare hendelsene som er begrenset til den med **Begrens til disse statussidene**. Hendelser som ikke er begrenset til noen side, også de som en monitor, Slack, Microsoft Teams, API-et eller KI åpner av seg selv, når aldri siden før noen legger siden til dem. Den bestemmer også hvilke hendelser som tar med episodene sine til siden, og derfor er den fortsatt tilgjengelig når **Vis hendelser** er av. For sider som deler monitorer, men betjener ulike målgrupper, se [Én statusside per målgruppe](/docs/status-pages/one-status-page-per-audience).
 - **Vis episoder** (`showEpisodesOnStatusPage`): på som standard, med **Vis de siste … dagene** (`showEpisodeHistoryInDays`, standard 14) og **Vis episodeetiketter** (`showEpisodeLabelsOnStatusPage`, av som standard). Episoder er en egen modell med egne endepunkter, ikke en visning av hendelser.
 - **Vis kunngjøringer** (`showAnnouncementsOnStatusPage`): på som standard, med **Vis de siste … dagene** (`showAnnouncementHistoryInDays`, standard 14).
-- **Vis planlagte vedlikeholdshendelser** (`showScheduledMaintenanceEventsOnStatusPage`): på som standard, med **Vis de siste … dagene** (`showScheduledEventHistoryInDays`, standard 14) og **Vis hendelsesetiketter** (`showScheduledEventLabelsOnStatusPage`, av som standard).
+- **Vis vedlikeholdshendelser** (`showScheduledMaintenanceEventsOnStatusPage`): på som standard, med **Vis de siste … dagene** (`showScheduledEventHistoryInDays`, standard 14) og **Vis etiketter for vedlikeholdshendelser** (`showScheduledEventLabelsOnStatusPage`, av som standard).
 - **Oppetidshistorikk**: alt om sidens oppetid, i én rad:
   - **Vis de siste … dagene** (`showUptimeHistoryInDays`) er lengden på oppetidsstolpen ved hver ressurs. Den er 90 som standard og må være mellom 1 og 90. Alle valg av **Vis oppetid %** og **Vis statushistorikkdiagram** for en ressurs eller gruppe leser dette tallet, og det gjør også den samlede oppetidsprosenten.
   - **Vis samlet oppetidsprosent** (`showOverallUptimePercentOnStatusPage`): av som standard. Slå den på, så avsluttes banneret med samlet status med en oppetidsprosent for hele siden, gjennomsnittet av ressursene og gruppene, så lenge alt er i drift. Mens den er på, velger **Presisjon** (`overallUptimePercentPrecision`) hvor mange desimaler den viser: `99%`, `99.9%`, `99.99%` (standard) eller `99.999%`. Hver ressurs og hver gruppe har sin egen presisjon.
@@ -165,7 +168,7 @@ Hva de besøkende ser, angis på ett kort: **Hva statussiden din viser**, under 
 
 Om siden viser et element **Abonner** (**Vis abonnentside**, `showSubscriberPageOnStatusPage`, på som standard), og hvilke kanaler besøkende kan abonnere på, angis ikke på denne skjermen: begge deler står på kortet **Kanaler** under **Abonnenter → Abonnentsinnstillinger** (se [Abonnementskanaler](/docs/status-pages/subscribers#abonnementskanaler)).
 
-Under kortet står **Eksporter Statusside som JSON**, som laster ned statussidens egne innstillinger til en fil du kan importere igjen, og **Archive status page** (se [Arkiver en statusside](#å-arkivere-en-statusside)). Den samlede oppetidsprosenten og nedetidsstatusene var tidligere to egne kort her, hver bak en knapp **Rediger**; nå er de rader på kortet.
+Under kortet står **Eksporter Statusside som JSON**, som laster ned statussidens egne innstillinger til en fil du kan importere igjen, og **Arkiver statusside** (se [Arkiver en statusside](#å-arkivere-en-statusside)). Den samlede oppetidsprosenten og nedetidsstatusene var tidligere to egne kort her, hver bak en knapp **Rediger**; nå er de rader på kortet.
 
 **Hvor fargene er.** Fargene på oppetidsstolpene er ikke her: **Standard stolpefarge** og fargereglene for stolpene ligger under **Flere innstillinger** i **Statussider → siden din → Merkevare → Merkevare**. Sidens **Tema** (lyst, mørkt eller slik hver besøkendes enhet er innstilt) er et kort øverst på den samme siden. Det finnes ingen innstilling for merkevarefarge; alt utover disse kontrollene gjør du med **Egendefinert CSS**.
 
@@ -225,7 +228,7 @@ Tre måter å vise status andre steder enn på selve siden.
 
 **RSS-strøm.** Hver statusside leverer `/rss`: en strøm med tittelen "{sidetittel} Updates", med **Sidetittel** angitt under **Merkevare**, eller sidens navn hvis den ikke har noen, og der elementene begynner med `Incident: `, `Announcement: ` og `Scheduled Maintenance: `. Hvert element er datert slik siden daterer det: en hendelse etter når den ble erklært, en kunngjøring etter når den ble publisert, og en planlagt vedlikeholdshendelse etter når den begynner, med beskrivelsen innledet av tidsvinduet. Nyttig for dem som heller vil hente oppdateringene dine inn i en strømleser eller en chatbot enn å abonnere via e-post.
 
-**Vedlikeholdskalender.** Hver statusside leverer også `/maintenance.ics`: det planlagte vedlikeholdet den viser, som en kalender Google Kalender, Apple Kalender eller Outlook kan abonnere på. Besøkende legger den til med **Abonner på kalender** på sidens side **Planlagte hendelser**, og én enkelt hendelse med **Legg til i kalender** på hendelsens egen side. Kalenderen til en privat side er tom, siden en kalenderapp ikke kan logge inn. Se [Vedlikeholdskalender](/docs/scheduled-maintenance/calendar#kalenderen-til-en-statusside).
+**Vedlikeholdskalender.** Hver statusside leverer også `/maintenance.ics`: det planlagte vedlikeholdet den viser, som en kalender Google Kalender, Apple Kalender eller Outlook kan abonnere på. Besøkende legger den til med **Abonner på kalender** på sidens side **Planlagt vedlikehold**, og én enkelt hendelse med **Legg til i kalender** på hendelsens egen side. Kalenderen til en privat side er tom, siden en kalenderapp ikke kan logge inn. Se [Vedlikeholdskalender](/docs/scheduled-maintenance/calendar#kalenderen-til-en-statusside).
 
 Hvis du heller vil hente dataene selv, bygger statussiden på offentlige lese-endepunkter for oversikten, hendelsene, de planlagte vedlikeholdshendelsene, kunngjøringene og episodene: se [Offentlig API](/docs/status-pages/public-api).
 
@@ -238,7 +241,7 @@ Arkiver en statusside for å ta den offline uten å slette den. En arkivert stat
 - **Forsvinner fra listen over statussider.** Du finner den under **Statussider → Avansert → Arkivert**.
 - **Beholder alt.** Ressursene, gruppene, merkevaren, domenene, de private brukerne og abonnentene beholdes, så når du fjerner den fra arkivet, kommer siden tilbake online akkurat slik den var.
 
-For å arkivere en statusside åpner du den og går til **Avansert → Avanserte innstillinger → Archive status page**. For å arkivere flere velger du dem i listen **Statussider** og velger **Arkiver**. For å hente tilbake en åpner du **Statussider → Avansert → Arkivert**, velger den og velger **Fjern fra arkiv**, eller du åpner den og klikker på **Fjern fra arkiv** i banneret øverst på sidene dens.
+For å arkivere en statusside åpner du den og går til **Avansert → Avanserte innstillinger → Arkiver statusside**. For å arkivere flere velger du dem i listen **Statussider** og velger **Arkiver**. For å hente tilbake en åpner du **Statussider → Avansert → Arkivert**, velger den og velger **Fjern fra arkiv**, eller du åpner den og klikker på **Fjern fra arkiv** i banneret øverst på sidene dens.
 
 ## Neste steg
 

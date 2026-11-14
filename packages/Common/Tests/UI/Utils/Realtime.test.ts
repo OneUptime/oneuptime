@@ -1375,4 +1375,42 @@ describe("Realtime (UI) subscriptions", () => {
       expect(heard).toEqual([]);
     });
   });
+
+  /*
+   * A part that only joins the connection the app opened - a side menu's
+   * count (UseLiveCount) - asks LiveConnection for it rather than importing
+   * Realtime, so a page that opens none (a status page) does not load
+   * socket.io. Realtime hands itself over as it opens the connection.
+   */
+  describe("the connection, for a part that only joins an open one", () => {
+    test("is there once the app opens it, and not before", async () => {
+      const { getOpenLiveConnection } = await import(
+        "../../../UI/Utils/LiveConnection"
+      );
+
+      expect(getOpenLiveConnection()).toBeNull();
+
+      Realtime.init();
+
+      expect(getOpenLiveConnection()).toBe(Realtime);
+      expect(mockSocketsCreated).toBe(1);
+    });
+
+    test("a subscription that opens the connection hands it over too", async () => {
+      const { getOpenLiveConnection } = await import(
+        "../../../UI/Utils/LiveConnection"
+      );
+
+      Realtime.listenToModelEvent(
+        {
+          modelType: Incident,
+          eventType: ModelEventType.Create,
+          tenantId: TENANT_ID,
+        },
+        () => {},
+      );
+
+      expect(getOpenLiveConnection()).toBe(Realtime);
+    });
+  });
 });

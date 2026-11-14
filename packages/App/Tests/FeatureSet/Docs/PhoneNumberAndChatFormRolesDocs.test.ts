@@ -187,7 +187,7 @@ describe("Docs: who can add and release an incoming call policy's phone numbers"
 
     expect(text).toContain("A team's block with no labels");
     expect(text).toContain(
-      "**Add Phone Number** and **Release** stay on the page, locked",
+      "**Add Phone Number** and **Release Number** stay on the page, locked",
     );
     expect(text).toContain("so it needs no billing permission");
   });

@@ -11,6 +11,7 @@ import UserNotificationRule from "../../../Models/DatabaseModels/UserNotificatio
 import UserPush from "../../../Models/DatabaseModels/UserPush";
 import Email from "../../../Types/Email";
 import ObjectID from "../../../Types/ObjectID";
+import { OnCallPageChannel } from "../../../Types/OnCallDutyPolicy/OnCallPageChannel";
 
 /*
  * A custom channel in the on-call rule form and the rule tables: offered by
@@ -223,7 +224,13 @@ describe("a rule's method cell", () => {
         reader({ customNotificationChannel: { name: "CorpoApp" } }),
       );
 
-    expect(items).toEqual([{ title: "Custom Channel", value: "CorpoApp" }]);
+    expect(items).toEqual([
+      {
+        method: OnCallPageChannel.CustomChannel,
+        title: "Custom Channel",
+        value: "CorpoApp",
+      },
+    ]);
   });
 
   test("never shows the URL, even when the relation carries it", () => {
@@ -261,7 +268,11 @@ describe("a rule's method cell", () => {
     rule.customNotificationChannel = channel("CorpoApp");
 
     expect(NotificationMethodUtil.getDisplayItems(rule)).toEqual([
-      { title: "Custom Channel", value: "CorpoApp" },
+      {
+        method: OnCallPageChannel.CustomChannel,
+        title: "Custom Channel",
+        value: "CorpoApp",
+      },
     ]);
   });
 });

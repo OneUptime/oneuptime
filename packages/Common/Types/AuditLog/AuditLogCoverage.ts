@@ -28,7 +28,7 @@ import TableColumnType from "../Database/TableColumnType";
  *     for the reason its kind gives (AUDIT_LOG_EXEMPTION_KINDS): what machines
  *     write and rewrite all day - logs, reports, feeds, working state - would
  *     bury every change a person made, and a person's own notification setup
- *     is theirs alone;
+ *     and preferences are theirs alone;
  *   - every other project-scoped model is audited on create, update and
  *     delete, with the configuration getDefaultAuditLogOn works out below.
  *
@@ -43,6 +43,7 @@ export enum AuditLogExemptionKind {
   ActivityFeed = "ActivityFeed",
   WorkingState = "WorkingState",
   PersonalSetup = "PersonalSetup",
+  PersonalPreference = "PersonalPreference",
 }
 
 export interface AuditLogExemptionKindDescription {
@@ -84,6 +85,11 @@ export const AUDIT_LOG_EXEMPTION_KINDS: Readonly<
     title: "A person's own notification setup",
     reason:
       "A person's own notification methods, rules and chat accounts, with addresses and numbers only they may read. An administrator changing someone else's is recorded separately, without the address or number.",
+  },
+  [AuditLogExemptionKind.PersonalPreference]: {
+    title: "A person's own preferences",
+    reason:
+      "What a person chose for themselves in a project, such as the products they pinned to the top bar. Only they see it and only they can change it, so an entry would tell nobody anything.",
   },
 };
 
@@ -237,6 +243,9 @@ export const AUDIT_LOG_EXEMPT_TABLES: Readonly<
   UserWebhook: AuditLogExemptionKind.PersonalSetup,
   UserWhatsApp: AuditLogExemptionKind.PersonalSetup,
   WorkspaceUserAuthToken: AuditLogExemptionKind.PersonalSetup,
+
+  // A person's own preferences.
+  ProjectUserPreference: AuditLogExemptionKind.PersonalPreference,
 };
 
 /*
@@ -611,6 +620,11 @@ const isWorkerTimestampName: (name: string) => boolean = (
 export interface AuditLogCoverageModel {
   tableName: string | null;
   singularName: string | null;
+  /*
+   * What the audit log stores a model renamed on screen under: the name it
+   * kept (Common/Utils/ModelApiName), as the recorder's resource type is.
+   */
+  apiSingularName?: string | null | undefined;
   getTenantColumn: () => string | null;
   getTableColumns: () => { columns: Array<string> };
   getTableColumnMetadata: (column: string) => TableColumnMetadata;
@@ -737,10 +751,12 @@ export const inferRootResource: (
       metadata.modelType as unknown as CoverageModelType,
     );
     const rootTable: string | null = root.tableName;
+    // The type the root's own entries are stored under, so the two match.
+    const rootType: string | null = root.apiSingularName || root.singularName;
 
     if (
       !rootTable ||
-      !root.singularName ||
+      !rootType ||
       rootTable === tableName ||
       !tableName.startsWith(rootTable) ||
       !AUDIT_LOG_ROOT_RESOURCE_TABLES.has(rootTable)
@@ -765,7 +781,7 @@ export const inferRootResource: (
     if (!found || rootTable.length > found.tableLength) {
       found = {
         tableLength: rootTable.length,
-        root: { resourceType: root.singularName, column: idColumn },
+        root: { resourceType: rootType, column: idColumn },
       };
       isTied = false;
     }

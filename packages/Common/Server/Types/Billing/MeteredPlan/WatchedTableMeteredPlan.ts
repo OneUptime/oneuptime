@@ -78,6 +78,14 @@ export default class WatchedTableMeteredPlan extends ServerMeteredPlan {
       meteredPlanSubscriptionId?: string | undefined;
     },
   ): Promise<void> {
+    /*
+     * A sample project (issue #6808) is never billed: nothing of it is
+     * counted, written or reported to the payment provider.
+     */
+    if (await ProjectService.isSampleProject(projectId)) {
+      return;
+    }
+
     const count: number =
       await WatchedTableMeteredPlan.countWatchedTables(projectId);
 

@@ -494,3 +494,81 @@ describe("SnmpInterfaceRateUtil.attachInterfaceRates — interface matching", ()
     expect(iface.inBitsPerSecond).toBe(100);
   });
 });
+
+/*
+ * OneUptime issue #7194. The current side of the delta is when OneUptime
+ * received the poll (`now`, the ingest API's stamp), not when a worker got
+ * to it: with a queue backlog the two differ by minutes, and two polls five
+ * minutes apart could be processed two seconds apart.
+ */
+describe("SnmpInterfaceRateUtil.attachInterfaceRates — the poll's receipt time", () => {
+  test("the window runs to `now` when it is given, not to the clock", () => {
+    const iface: SnmpInterface = currentInterface({ inOctets: 1500 });
+    const response: SnmpMonitorResponse = buildResponse([iface]);
+
+    SnmpInterfaceRateUtil.attachInterfaceRates({
+      snmpResponse: response,
+      previousWalkLog: previousWalkLog(),
+      // 120 s after the previous walk; the mocked clock says 60 s.
+      now: new Date("2026-07-16T12:02:00.000Z"),
+    });
+
+    // 1500 octets * 8 bits / 120 s = 100 bps.
+    expect(iface.inBitsPerSecond).toBe(100);
+  });
+
+  test("a poll processed long after it was received is rated over the window it was received in", () => {
+    // Processed ten minutes after it arrived.
+    jest
+      .spyOn(OneUptimeDate, "getCurrentDate")
+      .mockReturnValue(new Date("2026-07-16T12:11:00.000Z"));
+    const iface: SnmpInterface = currentInterface({ inOctets: 750 });
+    const response: SnmpMonitorResponse = buildResponse([iface]);
+
+    SnmpInterfaceRateUtil.attachInterfaceRates({
+      snmpResponse: response,
+      previousWalkLog: previousWalkLog(),
+      now: NOW,
+    });
+
+    // 750 octets * 8 bits / 60 s, not / 660 s.
+    expect(iface.inBitsPerSecond).toBe(100);
+  });
+
+  test.each([
+    ["received before the previous walk", "2026-07-16T11:59:00.000Z"],
+    ["received at the previous walk's own time", SIXTY_SECONDS_AGO],
+  ])(
+    "a poll %s gets no rate - no negative or empty window",
+    (_label: string, receivedAt: string) => {
+      const iface: SnmpInterface = currentInterface({ inOctets: 750 });
+      const response: SnmpMonitorResponse = buildResponse([iface]);
+
+      SnmpInterfaceRateUtil.attachInterfaceRates({
+        snmpResponse: response,
+        previousWalkLog: previousWalkLog(),
+        now: new Date(receivedAt),
+      });
+
+      expect(iface.inBitsPerSecond).toBeUndefined();
+      expect(iface.errorsPerSecond).toBeUndefined();
+    },
+  );
+
+  test.each([
+    ["no `now`", undefined],
+    ["an unreadable `now`", new Date("not a date")],
+  ])("%s falls back to the clock", (_label: string, now: Date | undefined) => {
+    const iface: SnmpInterface = currentInterface({ inOctets: 750 });
+    const response: SnmpMonitorResponse = buildResponse([iface]);
+
+    SnmpInterfaceRateUtil.attachInterfaceRates({
+      snmpResponse: response,
+      previousWalkLog: previousWalkLog(),
+      now: now,
+    });
+
+    // 750 octets * 8 bits / the mocked clock's 60 s.
+    expect(iface.inBitsPerSecond).toBe(100);
+  });
+});

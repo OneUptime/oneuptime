@@ -177,14 +177,16 @@ export const DATABASE_AGENT_COLLECTOR_VERSION: string = "0.161.0";
  * config). AgentKind.test.ts fails when an agent's files move on without
  * its constant.
  */
-export const PROXMOX_AGENT_VERSION: string = "0.161.1";
+export const PROXMOX_AGENT_VERSION: string = "0.161.2";
 
 /*
  * The collector the Proxmox agent runs: the image its docker-compose.yml
  * pins. Not PROXMOX_AGENT_VERSION: its files changed on the same collector -
  * 0.161.1, every node's start-on-boot and replication read from the node
- * itself, not from PVE_HOST alone (#5428) - so an agent still running the
- * old files reports 0.161.0 and is told to upgrade.
+ * itself, not from PVE_HOST alone (#5428); 0.161.2, the cluster read from the
+ * next node of PVE_NODES whose API answers when PVE_HOST's goes down
+ * (#6844) - so an agent still running older files reports what it reported
+ * and is told to upgrade.
  */
 export const PROXMOX_AGENT_COLLECTOR_VERSION: string = "0.161.0";
 /*

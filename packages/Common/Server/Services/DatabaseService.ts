@@ -11444,64 +11444,42 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * which is exactly how a "reliable" heartbeat quietly stops beating.
    *
    * Returns true when the row was updated, false when it was locked (or no
-   * longer exists).
+   * longer exists, or - with `expectedData` - no longer holds what the
+   * caller expected).
    */
   @CaptureSpan()
   public async updateColumnsByIdIfUnlockedWithoutHooks(input: {
     id: ObjectID;
     data: PartialEntity<TBaseModel>;
+    /*
+     * Optional compare-and-set guard, as for updateColumnsByIdWithoutHooks:
+     * every supplied property must still hold its value (null-safe) or the
+     * row is not written. Checked on the row as it is when the lock is
+     * taken - a row another writer changed after this statement began is
+     * judged by what that writer left - so a write that must never land on
+     * a deleted row (`deletedAt: null`) or over a value someone else just
+     * wrote can yield instead of queueing, too.
+     */
+    expectedData?: PartialEntity<TBaseModel>;
     skipUpdateDateColumn?: boolean;
   }): Promise<boolean> {
-    if (!input.id) {
-      throw new BadDataException("id is required");
-    }
+    const statement: ColumnsByIdUpdateStatement | null =
+      this.buildColumnsByIdUpdateStatement(
+        input,
+        "updateColumnsByIdIfUnlockedWithoutHooks",
+      );
 
-    const repository: Repository<TBaseModel> = this.getRepository();
-    const metadata: EntityMetadata = repository.metadata;
-    const driver: Driver = repository.manager.connection.driver;
-
-    const setClauses: Array<string> = [];
-    const params: Array<unknown> = [];
-
-    // Clamp on a shallow COPY — see updateColumnsByIdWithoutHooks.
-    const data: ObjectLiteral = this.truncateStringColumnsToMaxLength({
-      ...(input.data as ObjectLiteral),
-    });
-
-    for (const [propertyName, value] of Object.entries(data)) {
-      const column: ColumnMetadata | undefined =
-        metadata.findColumnWithPropertyName(propertyName);
-      if (!column) {
-        throw new BadDataException(
-          `updateColumnsByIdIfUnlockedWithoutHooks: unknown column "${propertyName}" on "${metadata.tableName}"`,
-        );
-      }
-      if (typeof value === "function") {
-        throw new BadDataException(
-          `updateColumnsByIdIfUnlockedWithoutHooks: SQL-expression values are not supported (column "${propertyName}"); pass a literal value.`,
-        );
-      }
-      params.push(driver.preparePersistentValue(value, column));
-      setClauses.push(`"${column.databaseName}" = $${params.length}`);
-    }
-
-    if (setClauses.length === 0) {
+    if (!statement) {
       return false;
     }
-
-    if (metadata.updateDateColumn && !input.skipUpdateDateColumn) {
-      setClauses.push(
-        `"${metadata.updateDateColumn.databaseName}" = CURRENT_TIMESTAMP`,
-      );
-    }
-
-    const primaryColumnName: string =
-      metadata.primaryColumns[0]?.databaseName || "_id";
-    params.push(input.id.toString());
 
     /*
      * The lock is taken by the sub-SELECT and inherited by the UPDATE within
      * the same implicit transaction, so the outer write never blocks either.
+     * The sub-SELECT carries the whole WHERE - the id and every expected
+     * value - so a row it can lock but that no longer matches is not
+     * written: a locking read re-checks its WHERE against the newest
+     * version of the row before it hands the row on.
      *
      * The UPDATE sits in a CTE so the statement is a SELECT of the rows it
      * wrote. TypeORM's postgres `query()` answers a top-level UPDATE with
@@ -11511,16 +11489,19 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
      * was written, none when it was locked or no longer exists.
      */
     const sql: string = `WITH "updated" AS (UPDATE "${
-      metadata.tableName
-    }" SET ${setClauses.join(", ")} WHERE "${primaryColumnName}" IN (SELECT "${
-      primaryColumnName
-    }" FROM "${metadata.tableName}" WHERE "${primaryColumnName}" = $${
-      params.length
-    } FOR UPDATE SKIP LOCKED) RETURNING "${primaryColumnName}") SELECT "${
-      primaryColumnName
-    }" FROM "updated"`;
+      statement.tableName
+    }" SET ${statement.setSql} WHERE "${
+      statement.primaryColumnName
+    }" IN (SELECT "${statement.primaryColumnName}" FROM "${
+      statement.tableName
+    }" WHERE ${statement.whereSql} FOR UPDATE SKIP LOCKED) RETURNING "${
+      statement.primaryColumnName
+    }") SELECT "${statement.primaryColumnName}" FROM "updated"`;
 
-    const result: unknown = await repository.manager.query(sql, params);
+    const result: unknown = await this.getRepository().manager.query(
+      sql,
+      statement.params,
+    );
 
     return Array.isArray(result) && result.length > 0;
   }

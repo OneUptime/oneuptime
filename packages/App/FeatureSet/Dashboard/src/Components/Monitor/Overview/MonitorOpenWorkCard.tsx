@@ -17,10 +17,11 @@ import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
 import Link from "Common/UI/Components/Link/Link";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
+import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 export interface ComponentProps {
   monitorId: ObjectID;
@@ -251,53 +252,71 @@ const MonitorOpenWorkCard: FunctionComponent<ComponentProps> = (
     const isLoading: boolean =
       incidentsState === "loading" || alertsState === "loading";
 
-    const notes: Array<string> = [];
+    // Each note: its key in the list, and what it says.
+    const notes: Array<{ key: string; content: ReactElement | string }> = [];
 
-    // An error is the hook's own sentence or the server's; either is looked up.
-    const errorText: (error: string | undefined | null) => string = (
-      error: string | undefined | null,
-    ): string => {
-      return translator.translateText(error || "") || "";
+    /*
+     * An error is the hook's own sentence or the server's: ErrorSentence
+     * looks it up in the reader's language, and says an error nobody
+     * explained (a gateway's 502, a server failure with its reference) the
+     * way the rest of the page does, the reference with its copy button
+     * (#7307).
+     */
+    const addErrorNote: (data: {
+      key: string;
+      template: string;
+      error: string | undefined | null;
+    }) => void = (data: {
+      key: string;
+      template: string;
+      error: string | undefined | null;
+    }): void => {
+      notes.push({
+        key: data.key,
+        content: <ErrorSentence template={data.template} error={data.error} />,
+      });
     };
 
     if (incidentsState === "forbidden") {
-      notes.push(
-        translator.translateTemplate(
+      notes.push({
+        key: "incidents-hidden",
+        content: translator.translateTemplate(
           "Incidents are hidden: you need permission to read incidents.",
         ),
-      );
+      });
     } else if (incidentsState === "error") {
-      notes.push(
-        translator.translateTemplate("Couldn't load incidents. {{error}}", {
-          error: errorText(incidents.error),
-        }),
-      );
+      addErrorNote({
+        key: "incidents-error",
+        template: translationKey("Couldn't load incidents. {{error}}"),
+        error: incidents.error,
+      });
     } else if (incidents.refreshError) {
-      notes.push(
-        translator.translateTemplate("Couldn't refresh incidents. {{error}}", {
-          error: errorText(incidents.refreshError),
-        }),
-      );
+      addErrorNote({
+        key: "incidents-refresh-error",
+        template: translationKey("Couldn't refresh incidents. {{error}}"),
+        error: incidents.refreshError,
+      });
     }
 
     if (alertsState === "forbidden") {
-      notes.push(
-        translator.translateTemplate(
+      notes.push({
+        key: "alerts-hidden",
+        content: translator.translateTemplate(
           "Alerts are hidden: you need permission to read alerts.",
         ),
-      );
+      });
     } else if (alertsState === "error") {
-      notes.push(
-        translator.translateTemplate("Couldn't load alerts. {{error}}", {
-          error: errorText(alerts.error),
-        }),
-      );
+      addErrorNote({
+        key: "alerts-error",
+        template: translationKey("Couldn't load alerts. {{error}}"),
+        error: alerts.error,
+      });
     } else if (alerts.refreshError) {
-      notes.push(
-        translator.translateTemplate("Couldn't refresh alerts. {{error}}", {
-          error: errorText(alerts.refreshError),
-        }),
-      );
+      addErrorNote({
+        key: "alerts-refresh-error",
+        template: translationKey("Couldn't refresh alerts. {{error}}"),
+        error: alerts.refreshError,
+      });
     }
 
     let list: ReactElement = <></>;
@@ -377,13 +396,22 @@ const MonitorOpenWorkCard: FunctionComponent<ComponentProps> = (
               to={alertsRoute}
             />
           </div>
-          {notes.map((note: string) => {
-            return (
-              <p key={note} className="mt-2">
-                {note}
-              </p>
-            );
-          })}
+          {notes.map(
+            (note: {
+              key: string;
+              content: ReactElement | string;
+            }): ReactElement => {
+              return (
+                <p
+                  key={note.key}
+                  className="mt-2"
+                  data-testid={`monitor-open-work-note-${note.key}`}
+                >
+                  {note.content}
+                </p>
+              );
+            },
+          )}
         </div>
       </div>
     );

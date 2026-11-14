@@ -36,7 +36,7 @@ flowchart TB
 
 ## Avant de commencer
 
-- Un projet OneUptime dans lequel vous pouvez créer des clés d'ingestion : les propriétaires et administrateurs du projet le peuvent, ainsi que toute personne disposant de la permission **Create Telemetry Ingestion Key**.
+- Un projet OneUptime dans lequel vous pouvez créer des clés d'ingestion : les propriétaires et administrateurs du projet le peuvent, ainsi que toute personne disposant de la permission Create Ingestion Key.
 - Une application à laquelle vous pouvez ajouter un SDK OpenTelemetry, ou un OpenTelemetry Collector.
 - Un accès HTTPS sortant (port 443) depuis votre application ou votre collector vers `oneuptime.com`, ou vers votre propre hôte OneUptime.
 
@@ -365,7 +365,7 @@ Sur HTTP, chaque signal a son propre chemin sous le point de terminaison. Les SD
 | Logs | `https://oneuptime.com/otlp/v1/logs` |
 | Profils | `https://oneuptime.com/otlp/v1/profiles` |
 
-Pour le profilage continu, la plupart des profileurs envoient plutôt vers le point de terminaison compatible Pyroscope — voir [Profilage continu](/docs/telemetry/profiles). Un collector qui exporte des profils OTLP doit définir le `profiles_endpoint` de l'exportateur sur `https://oneuptime.com/otlp/v1/profiles`, car par défaut il envoie les profils vers un chemin de développement que OneUptime ne sert pas.
+Pour le profilage continu, la plupart des profileurs envoient plutôt vers le point de terminaison compatible Pyroscope — voir [Profils](/docs/telemetry/profiles). Un collector qui exporte des profils OTLP doit définir le `profiles_endpoint` de l'exportateur sur `https://oneuptime.com/otlp/v1/profiles`, car par défaut il envoie les profils vers un chemin de développement que OneUptime ne sert pas.
 
 ### OTLP sur gRPC
 

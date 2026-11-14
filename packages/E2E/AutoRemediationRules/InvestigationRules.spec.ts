@@ -39,6 +39,17 @@ const GERMAN: Record<string, string> = JSON.parse(
   ),
 ) as Record<string, string>;
 
+// The Dashboard's Russian words, as the fixture draws them with ?lang=ru.
+const RUSSIAN: Record<string, string> = JSON.parse(
+  fs.readFileSync(
+    path.resolve(
+      __dirname,
+      "../../App/FeatureSet/Dashboard/src/Locales/ru.json",
+    ),
+    "utf8",
+  ),
+) as Record<string, string>;
+
 const CARD_TITLE: string = "AI rules";
 const CREATE: string = "Create AI Rule";
 const SAVE: string = "Save Changes";
@@ -88,6 +99,7 @@ interface OpenOptions {
   lane?: Lane;
   query?: string;
   isGerman?: boolean;
+  isRussian?: boolean;
   // The fixture's rules: two (saved, the default), or a full table (many).
   rules?: "saved" | "many";
 }
@@ -109,7 +121,11 @@ const openRulesCard: (
     .filter(Boolean)
     .join("&");
   const words: (english: string) => string = (english: string): string => {
-    return (options.isGerman && GERMAN[english]) || english;
+    return (
+      (options.isGerman && GERMAN[english]) ||
+      (options.isRussian && RUSSIAN[english]) ||
+      english
+    );
   };
 
   await page.goto(
@@ -202,6 +218,63 @@ const createNamed: (dialog: Locator, name: string) => Promise<void> = async (
   await dialog.getByRole("radio", { name: /^Don't fix/ }).click();
   await dialog.getByRole("textbox", { name: /^Name/ }).fill(name);
   await dialog.getByRole("button", { name: CREATE }).click();
+};
+
+/*
+ * Each fix pill as it is drawn, read in one frame: its words, those of
+ * them drawn on more than one line (a word broken in the middle, #7111),
+ * and whether any of it is cut short.
+ */
+interface FixPillDrawn {
+  text: string;
+  brokenWords: Array<string>;
+  isCut: boolean;
+}
+
+const readFixPills: (card: Locator) => Promise<Array<FixPillDrawn>> = async (
+  card: Locator,
+): Promise<Array<FixPillDrawn>> => {
+  return await card.evaluate((element: Element): Array<FixPillDrawn> => {
+    return Array.from(
+      element.querySelectorAll("[data-testid=ai-rule-fix] [data-testid=pill]"),
+    ).map((pill: Element): FixPillDrawn => {
+      const words: Element = pill.querySelector(
+        "[data-testid=pill-text]",
+      ) as Element;
+      const node: Node = words.firstChild as Node;
+      const text: string = node.textContent || "";
+      const brokenWords: Array<string> = [];
+      let start: number = 0;
+
+      // Each word's own boxes: on one line, or it was broken.
+      for (const word of text.split(" ")) {
+        const range: Range = document.createRange();
+        range.setStart(node, start);
+        range.setEnd(node, start + word.length);
+        const lineTops: Set<number> = new Set(
+          Array.from(range.getClientRects())
+            .filter((rect: DOMRect): boolean => {
+              return rect.width > 0;
+            })
+            .map((rect: DOMRect): number => {
+              return Math.round(rect.top / 4);
+            }),
+        );
+        if (lineTops.size > 1) {
+          brokenWords.push(word);
+        }
+        start += word.length + 1;
+      }
+
+      return {
+        text: text,
+        brokenWords: brokenWords,
+        isCut: [pill, words].some((part: Element): boolean => {
+          return part.scrollWidth > part.clientWidth + 1;
+        }),
+      };
+    });
+  });
 };
 
 const waitField: (dialog: Locator) => Locator = (dialog: Locator): Locator => {
@@ -391,6 +464,13 @@ test.describe("AI rules: when to investigate (issue #5074)", () => {
         ).toBe(true);
       }
 
+      // No word drawn over two lines (#7111).
+      expect(
+        (await readFixPills(card)).flatMap((pill: FixPillDrawn) => {
+          return pill.brokenWords;
+        }),
+      ).toEqual([]);
+
       const fit: TableFit = await card
         .locator("table")
         .evaluate((table: HTMLElement): TableFit => {
@@ -420,6 +500,82 @@ test.describe("AI rules: when to investigate (issue #5074)", () => {
       );
     });
   }
+
+  /*
+   * Russian's fix pills are its longest words: "Спрашивает перед
+   * исправлением". A pill wraps between its words and never inside one
+   * (#7111): with the shared [overflow-wrap:anywhere] a column held narrow
+   * could break "исправлением" in the middle. Here the column is made as
+   * narrow as a person can make it (its edge, Home), and every pill still
+   * reads whole, word by word, while the table keeps to its card.
+   */
+  test("in Russian at 1280px, the fix pills keep their words whole, even in the narrowest column a person can make (#7111)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await openRulesCard(page, {
+      query: "layout=page&rules=saved&lang=ru",
+      isRussian: true,
+    });
+    await expect(card.locator("tbody tr")).toHaveCount(6);
+
+    const fitsItsCard: () => Promise<boolean> = async (): Promise<boolean> => {
+      return await card
+        .locator("table")
+        .evaluate((table: HTMLElement): boolean => {
+          return (
+            table.parentElement!.scrollWidth <=
+            table.parentElement!.clientWidth + 1
+          );
+        });
+    };
+    const expectWhole: (label: string) => Promise<void> = async (
+      label: string,
+    ): Promise<void> => {
+      await expect
+        .poll(
+          async (): Promise<Array<FixPillDrawn>> => {
+            return await readFixPills(card);
+          },
+          { message: `${label}: a fix pill broke a word or was cut short` },
+        )
+        .toEqual(
+          [
+            RUSSIAN["Asks before fixing"],
+            RUSSIAN["Asks before fixing"],
+            RUSSIAN["Asks before fixing"],
+            RUSSIAN["Doesn't fix"],
+            RUSSIAN["Doesn't fix"],
+            RUSSIAN["Fixes without asking"],
+          ].map((text: string | undefined): FixPillDrawn => {
+            return { text: text || "", brokenWords: [], isCut: false };
+          }),
+        );
+      expect(await fitsItsCard(), `${label}: the table fits its card`).toBe(
+        true,
+      );
+    };
+
+    await expectWhole("as the table draws it");
+
+    // The column as narrow as its edge goes.
+    const header: Locator = card
+      .locator("thead th")
+      .filter({ hasText: RUSSIAN["Investigates and fixes"] as string });
+    const handle: Locator = header.getByRole("separator");
+    const before: number = (await header.boundingBox())!.width;
+    await handle.focus();
+    await page.keyboard.press("Home");
+    await expect
+      .poll(async (): Promise<number> => {
+        return (await header.boundingBox())!.width;
+      })
+      .toBeLessThan(before);
+
+    await expectWhole("at its narrowest");
+    await screenshot(page, "ai-rules-table-fixing-1280-ru-narrowest");
+  });
 
   test("a new rule asks Match, then Investigate, and starts on Right away, with no minutes asked; Fix names it", async ({
     page,

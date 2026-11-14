@@ -646,6 +646,158 @@ describe("POST /network-site/map — link lines", () => {
     expect(idsInAnyOperator(query["_id"])).toEqual([drawnMonitorId.toString()]);
   });
 
+  /*
+   * A monitor nobody checks - its monitoring turned off, or archived - holds
+   * only the status its last check saw (issue #6965). Its link is still a
+   * line, drawn as one with no status, never in that frozen color.
+   */
+  test.each([
+    {
+      label: "whose monitoring is turned off",
+      flags: { disableActiveMonitoring: true, isArchived: false },
+    },
+    {
+      label: "that is archived",
+      flags: { disableActiveMonitoring: false, isArchived: true },
+    },
+  ])(
+    "a link whose monitor $label comes back with no status on it",
+    async ({
+      flags,
+    }: {
+      flags: { disableActiveMonitoring: boolean; isArchived: boolean };
+    }) => {
+      const east: NetworkSite = makeSite({
+        name: "Region East",
+        latitude: 40.7,
+        longitude: -74,
+      });
+      const west: NetworkSite = makeSite({
+        name: "Region West",
+        latitude: 37.77,
+        longitude: -122.42,
+      });
+      const offline: MonitorStatus = makeStatus({
+        name: "Offline",
+        color: "#ef4444",
+        priority: 3,
+        isOperationalState: false,
+      });
+      const monitor: Monitor = makeMonitor(offline.id!);
+      monitor.disableActiveMonitoring = flags.disableActiveMonitoring;
+      monitor.isArchived = flags.isArchived;
+
+      mockSiteQueries([east, west], [east, west]);
+      linkService.findBy.mockResolvedValue([
+        makeLink({
+          name: "East to West WAN",
+          from: east,
+          to: west,
+          monitorId: monitor.id!,
+        }),
+      ] as never);
+      monitorService.findBy.mockResolvedValue([monitor] as never);
+      monitorStatusService.findBy.mockResolvedValue([offline] as never);
+
+      await callMap({});
+
+      const links: Array<JSONObject> = responseLinks();
+      expect(links).toHaveLength(1);
+      expect(links[0]!["name"]).toBe("East to West WAN");
+      expect(links[0]!["monitorStatus"]).toBeUndefined();
+    },
+  );
+
+  test("the link monitors are read with their two switches, beside their status", async () => {
+    const east: NetworkSite = makeSite({
+      name: "Region East",
+      latitude: 40.7,
+      longitude: -74,
+    });
+    const west: NetworkSite = makeSite({
+      name: "Region West",
+      latitude: 37.77,
+      longitude: -122.42,
+    });
+
+    mockSiteQueries([east, west], [east, west]);
+    linkService.findBy.mockResolvedValue([
+      makeLink({
+        name: "Primary",
+        from: east,
+        to: west,
+        monitorId: ObjectID.generate(),
+      }),
+    ] as never);
+
+    await callMap({});
+
+    const select: JSONObject = (
+      monitorService.findBy.mock.calls[0]![0] as JSONObject
+    )["select"] as JSONObject;
+    expect(select).toEqual({
+      _id: true,
+      currentMonitorStatusId: true,
+      isArchived: true,
+      disableActiveMonitoring: true,
+    });
+  });
+
+  // The rest of the map is drawn as before: one monitor off is not every monitor off.
+  test("beside it, a link whose monitor is checked keeps its color", async () => {
+    const east: NetworkSite = makeSite({
+      name: "Region East",
+      latitude: 40.7,
+      longitude: -74,
+    });
+    const west: NetworkSite = makeSite({
+      name: "Region West",
+      latitude: 37.77,
+      longitude: -122.42,
+    });
+    const offline: MonitorStatus = makeStatus({
+      name: "Offline",
+      color: "#ef4444",
+      priority: 3,
+      isOperationalState: false,
+    });
+    const turnedOff: Monitor = makeMonitor(offline.id!);
+    turnedOff.disableActiveMonitoring = true;
+    const checked: Monitor = makeMonitor(offline.id!);
+    checked.disableActiveMonitoring = false;
+    checked.isArchived = false;
+
+    mockSiteQueries([east, west], [east, west]);
+    linkService.findBy.mockResolvedValue([
+      makeLink({
+        name: "Turned off",
+        from: east,
+        to: west,
+        monitorId: turnedOff.id!,
+      }),
+      makeLink({
+        name: "Checked",
+        from: west,
+        to: east,
+        monitorId: checked.id!,
+      }),
+    ] as never);
+    monitorService.findBy.mockResolvedValue([turnedOff, checked] as never);
+    monitorStatusService.findBy.mockResolvedValue([offline] as never);
+
+    await callMap({});
+
+    const byName: Map<string, JSONObject> = new Map(
+      responseLinks().map((link: JSONObject): [string, JSONObject] => {
+        return [link["name"] as string, link];
+      }),
+    );
+    expect(byName.get("Turned off")!["monitorStatus"]).toBeUndefined();
+    expect(
+      (byName.get("Checked")!["monitorStatus"] as JSONObject)["name"],
+    ).toBe("Offline");
+  });
+
   test("the status query covers the link monitors as well as the sites", async () => {
     const east: NetworkSite = makeSite({
       name: "Region East",

@@ -6,7 +6,11 @@ import {
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
-import { CodeTaskState, CodeTaskTurnJSON } from "Common/Types/AI/CodeTask";
+import {
+  CodeTaskLinkedTurnJSON,
+  CodeTaskState,
+  CodeTaskTurnJSON,
+} from "Common/Types/AI/CodeTask";
 import AIRunStatus from "Common/Types/AI/AIRunStatus";
 import ObjectID from "Common/Types/ObjectID";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
@@ -24,6 +28,12 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  * Each turn is named by its place in the conversation and how it ended -
  * "Turn 2 · Failed" - with what was asked (or, for a turn nobody asked for
  * in Code, what started it) under it.
+ *
+ * A long task's page reads its first turn and its newest. A link can name
+ * a turn between them - shared in chat, or bookmarked when the task was
+ * shorter - and the page asks for that turn by name, shows its record and
+ * lists it at its place (issue #7130). A link that names a run of another
+ * task shows the task's first turn, and says so.
  *
  * React-free, so the page and the tests read one rule.
  */
@@ -133,57 +143,210 @@ export function getTurnSummaryLine(message: string): string {
   return `${firstLine.substring(0, MAX_TURN_SUMMARY_LENGTH - 1).trimEnd()}…`;
 }
 
-// A task's turns, in the order of its conversation.
+/*
+ * A task's turns, in the order of its conversation. A long task's page
+ * holds its first turn and its newest: the `turnsNotShown` between them
+ * still count, so each newer turn keeps its place - "Turn 1", then
+ * "Turn 7" when five are not shown.
+ */
 export function getCodeTaskLogTurns(
   turns: ReadonlyArray<CodeTaskTurnJSON>,
+  turnsNotShown: number = 0,
 ): Array<CodeTaskLogTurn> {
+  const skipped: number =
+    Number.isInteger(turnsNotShown) && turnsNotShown > 0 ? turnsNotShown : 0;
+
   return turns.map((turn: CodeTaskTurnJSON, index: number): CodeTaskLogTurn => {
-    const isQueued: boolean =
-      turn.state === CodeTaskState.Working &&
-      turn.status === AIRunStatus.Queued;
-
-    const asked: string = getTurnSummaryLine(turn.request?.message || "");
-    const recipe: string | undefined = CODE_TASK_RECIPE_LABELS[turn.recipe];
-
-    return {
-      runId: turn.runId,
-      number: index + 1,
-      stateLabel: isQueued
-        ? QUEUED_LABEL
-        : CODE_TASK_STATE_COPY[turn.state]?.label ?? turn.state,
-      summary: asked || recipe || "",
-      isSummaryTranslated: !asked && Boolean(recipe),
-    };
+    return toCodeTaskLogTurn(turn, index === 0 ? 1 : index + 1 + skipped);
   });
 }
 
-/*
- * The turn the page shows: the one its address names, when it is one of
- * the task's turns - else the task's first turn (the task's own id is its
- * first run's).
- */
-export function getShownTurnRunId(data: {
-  taskId: string;
-  turnParam: string | null | undefined;
-  turns?: ReadonlyArray<{ runId: string }> | undefined;
-}): string {
-  const turnParam: string = (data.turnParam || "").trim();
+// One turn, as the picker names it, at its place in the task.
+export function toCodeTaskLogTurn(
+  turn: CodeTaskTurnJSON,
+  number: number,
+): CodeTaskLogTurn {
+  const isQueued: boolean =
+    turn.state === CodeTaskState.Working && turn.status === AIRunStatus.Queued;
 
-  if (!turnParam || !ObjectID.isValidUUID(turnParam)) {
-    return data.taskId;
-  }
+  const asked: string = getTurnSummaryLine(turn.request?.message || "");
+  const recipe: string | undefined = CODE_TASK_RECIPE_LABELS[turn.recipe];
+
+  return {
+    runId: turn.runId,
+    number,
+    stateLabel: isQueued
+      ? QUEUED_LABEL
+      : CODE_TASK_STATE_COPY[turn.state]?.label ?? turn.state,
+    summary: asked || recipe || "",
+    isSummaryTranslated: !asked && Boolean(recipe),
+  };
+}
+
+/*
+ * One entry of the page's turn picker: a turn, or a line - never picked -
+ * where turns between two listed ones are not listed ("7 earlier turns
+ * are not shown").
+ */
+export type CodeTaskLogPickerEntry =
+  | { kind: "turn"; turn: CodeTaskLogTurn }
+  | { kind: "turnsNotShown"; count: number };
+
+/*
+ * The picker's entries, in the order of the task: the turns its page
+ * shows, a turn not shown that the address names (`linkedTurn`) at its
+ * place, and a line wherever turns between two listed ones are not listed.
+ * Turn 1 then Turn 9 reads as the task's numbering, not as turns gone
+ * missing; a turn named between them splits the line in two.
+ */
+export function getCodeTaskLogPickerEntries(data: {
+  turns: ReadonlyArray<CodeTaskTurnJSON>;
+  turnsNotShown?: number | undefined;
+  linkedTurn?: CodeTaskLinkedTurnJSON | null | undefined;
+}): Array<CodeTaskLogPickerEntry> {
+  const listed: Array<CodeTaskLogTurn> = getCodeTaskLogTurns(
+    data.turns,
+    data.turnsNotShown || 0,
+  );
+
+  const linked: CodeTaskLinkedTurnJSON | null | undefined = data.linkedTurn;
 
   if (
-    data.turns &&
-    data.turns.length > 0 &&
-    !data.turns.some((turn: { runId: string }): boolean => {
-      return turn.runId.toLowerCase() === turnParam.toLowerCase();
+    linked &&
+    Number.isInteger(linked.number) &&
+    linked.number > 1 &&
+    !listed.some((turn: CodeTaskLogTurn): boolean => {
+      return turn.runId.toLowerCase() === linked.turn.runId.toLowerCase();
     })
   ) {
-    return data.taskId;
+    listed.push(toCodeTaskLogTurn(linked.turn, linked.number));
+    listed.sort((left: CodeTaskLogTurn, right: CodeTaskLogTurn): number => {
+      return left.number - right.number;
+    });
   }
 
-  return turnParam;
+  const entries: Array<CodeTaskLogPickerEntry> = [];
+
+  listed.forEach((turn: CodeTaskLogTurn, index: number): void => {
+    const before: CodeTaskLogTurn | undefined = listed[index - 1];
+    const notListed: number = before ? turn.number - before.number - 1 : 0;
+
+    if (notListed > 0) {
+      entries.push({ kind: "turnsNotShown", count: notListed });
+    }
+
+    entries.push({ kind: "turn", turn });
+  });
+
+  return entries;
+}
+
+// The turn an address names, as the page keys it: its run id in lower case, or "" for none.
+export function getCodeTaskLogTurnKey(
+  turnParam: string | null | undefined,
+): string {
+  const turn: string = (turnParam || "").trim();
+
+  return turn && ObjectID.isValidUUID(turn) ? turn.toLowerCase() : "";
+}
+
+// What the page knows of a task's turns, as read.
+export interface CodeTaskLogTurnsRead {
+  turns: ReadonlyArray<{ runId: string }>;
+  linkedTurn?: { turn: { runId: string } } | null | undefined;
+}
+
+/*
+ * Whether a task as read holds the turn an address names (getCodeTaskLogTurnKey):
+ * one of the turns its page shows, the turn not shown it was asked for, or
+ * none named - the first.
+ */
+export function isCodeTaskLogTurnOf(
+  task: CodeTaskLogTurnsRead,
+  turnKey: string,
+): boolean {
+  if (!turnKey) {
+    return true;
+  }
+
+  return (
+    task.turns.some((turn: { runId: string }): boolean => {
+      return turn.runId.toLowerCase() === turnKey;
+    }) || task.linkedTurn?.turn.runId.toLowerCase() === turnKey
+  );
+}
+
+// The turn the page shows, and whether it may show it yet.
+export interface CodeTaskLogShownTurn {
+  // The turn whose record the page reads.
+  runId: string;
+  /*
+   * Whether the record may be shown: not while the task is read to tell
+   * whether the turn the address names is one of its own - so a record of
+   * another task's run is never shown under this task, not even while the
+   * task is read.
+   */
+  isKnown: boolean;
+  /*
+   * The address names a run that is not one of the task's turns - or
+   * something that is no run's id at all: the page shows the task's first
+   * turn instead, and says so.
+   */
+  isNotOfTask: boolean;
+}
+
+/*
+ * The turn the page shows: the one its address names, once the task's
+ * read says it is one of the task's turns - shown, or not shown and asked
+ * for by name; the task's first turn when the read says it is not (the
+ * task's own id is its first run's). While the task is read, the named
+ * turn's record is read too but not shown. A task that could not be read
+ * leaves the address as it is: the record's own read decides who may see
+ * it. A `turn` that is no run's id at all - a link cut short when it was
+ * pasted, a typo - names no turn of any task: the first turn, said so at
+ * once, with nothing to ask.
+ */
+export function getCodeTaskLogShownTurn(data: {
+  taskId: string;
+  turnParam: string | null | undefined;
+  // The task as read, and the address's turn it was read for ("" for none).
+  task?: CodeTaskLogTurnsRead | null | undefined;
+  taskReadFor?: string | null | undefined;
+  // The task's read for this address failed.
+  hasTaskReadFailed?: boolean | undefined;
+}): CodeTaskLogShownTurn {
+  const turnKey: string = getCodeTaskLogTurnKey(data.turnParam);
+  const turnParam: string = (data.turnParam || "").trim();
+
+  if (!turnParam) {
+    return { runId: data.taskId, isKnown: true, isNotOfTask: false };
+  }
+
+  // Never silently somewhere else (issue #7130), not even for a broken link.
+  if (!turnKey) {
+    return { runId: data.taskId, isKnown: true, isNotOfTask: true };
+  }
+
+  // The task's own first turn, by its id: nothing to ask.
+  if (turnKey === data.taskId.toLowerCase()) {
+    return { runId: turnParam, isKnown: true, isNotOfTask: false };
+  }
+
+  if (data.task) {
+    if (isCodeTaskLogTurnOf(data.task, turnKey)) {
+      return { runId: turnParam, isKnown: true, isNotOfTask: false };
+    }
+
+    if (data.taskReadFor === turnKey) {
+      return { runId: data.taskId, isKnown: true, isNotOfTask: true };
+    }
+  }
+
+  if (data.hasTaskReadFailed) {
+    return { runId: turnParam, isKnown: true, isNotOfTask: false };
+  }
+
+  return { runId: turnParam, isKnown: false, isNotOfTask: false };
 }
 
 // The Log page at one of a task's turns.

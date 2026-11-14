@@ -49,11 +49,22 @@ import { MemoryRouter } from "react-router-dom";
 let deviceRow: NetworkDevice | null = null;
 // The next reads fail, as a dropped connection's would.
 let isReadFailing: boolean = false;
+// While set, reads answer only once it settles: a read still on its way.
+let readHeldUntil: Promise<void> | null = null;
 let getItemRequests: Array<{
   modelType: unknown;
   id: ObjectID;
   select?: Record<string, unknown> | undefined;
 }> = [];
+let updateByIdRequests: Array<{
+  modelType: unknown;
+  id: ObjectID;
+  data: Record<string, unknown>;
+}> = [];
+// What the next save does: by default the server takes it.
+let answerUpdateById: () => Promise<unknown> = (): Promise<unknown> => {
+  return Promise.resolve({});
+};
 
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
@@ -70,7 +81,21 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
           return Promise.reject(new Error("The network went away."));
         }
 
+        if (readHeldUntil) {
+          return readHeldUntil.then((): NetworkDevice | null => {
+            return deviceRow;
+          });
+        }
+
         return Promise.resolve(deviceRow);
+      },
+      updateById: (request: {
+        modelType: unknown;
+        id: ObjectID;
+        data: Record<string, unknown>;
+      }): Promise<unknown> => {
+        updateByIdRequests.push(request);
+        return answerUpdateById();
       },
     },
   };
@@ -78,7 +103,13 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 
 import DeviceStatusHero from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceStatusHero";
 import {
+  TURN_MONITORING_ON_BUTTON_TEST_ID,
+  TURN_MONITORING_ON_ERROR_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/MonitoringSwitchCopy";
+import {
   BOUND_MONITOR_PENDING_TOOLTIP,
+  MONITORING_OFF_QUALIFIER,
+  MONITOR_ARCHIVED_QUALIFIER,
   NO_MONITOR_QUALIFIER,
   NO_PROBE_QUALIFIER,
   SNMP_FAILING_QUALIFIER,
@@ -88,12 +119,17 @@ import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap, {
   RouteUtil,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
+import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
 import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
 import Route from "../../../Types/API/Route";
 import { Green } from "../../../Types/BrandColors";
 import NetworkDeviceMonitoringMethod from "../../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import ObjectID from "../../../Types/ObjectID";
+import PermissionGate, {
+  PermissionGateResult,
+} from "../../../UI/Utils/PermissionGate";
+import { getJestSpyOn } from "../../Spy";
 
 /*
  * Below the imports on purpose: the jest.mock factory above is hoisted, which
@@ -219,6 +255,26 @@ function boundReportingMonitorBackedDevice(): NetworkDevice {
   });
 }
 
+/**
+ * (f) Monitor-backed and bound, but nothing checks the bound monitor - its
+ * monitoring turned off, or archived (issue #6965). The server leaves such
+ * a device's stamp empty, so it arrives with no status, as here.
+ */
+function boundToMonitorNotChecked(switches: {
+  disableActiveMonitoring: boolean;
+  isArchived: boolean;
+}): NetworkDevice {
+  const row: NetworkDevice = device({
+    monitoringMethod: NetworkDeviceMonitoringMethod.Monitor,
+    monitorId: MONITOR_ID,
+  });
+  const monitor: Monitor = new Monitor();
+  monitor.disableActiveMonitoring = switches.disableActiveMonitoring;
+  monitor.isArchived = switches.isArchived;
+  row.monitor = monitor;
+  return row;
+}
+
 async function renderHero(row: NetworkDevice): Promise<void> {
   deviceRow = row;
 
@@ -295,16 +351,40 @@ const MONITOR_CREATE_HREF: string = RouteUtil.populateRouteParams(
   RouteMap[PageMap.MONITOR_CREATE] as Route,
 ).toString();
 
+// Whether the reader may turn a monitor's monitoring on (its column's gate).
+let columnGate: PermissionGateResult = { isAllowed: true };
+
+// Lets every promise the last event started settle, as the browser would.
+async function settle(): Promise<void> {
+  await act(async () => {
+    for (let i: number = 0; i < 5; i++) {
+      await Promise.resolve();
+    }
+  });
+}
+
 describe("the device Overview status hero", () => {
   beforeEach(() => {
     deviceRow = null;
     isReadFailing = false;
+    readHeldUntil = null;
     getItemRequests = [];
+    updateByIdRequests = [];
+    answerUpdateById = (): Promise<unknown> => {
+      return Promise.resolve({});
+    };
+
+    columnGate = { isAllowed: true };
+    getJestSpyOn(PermissionGate, "checkColumnUpdate").mockImplementation(
+      (): PermissionGateResult => {
+        return columnGate;
+      },
+    );
   });
 
   afterEach(() => {
     cleanup();
-    jest.clearAllMocks();
+    jest.restoreAllMocks();
   });
 
   describe("a monitor-backed device with no monitor bound", () => {
@@ -587,6 +667,456 @@ describe("the device Overview status hero", () => {
 
       expect(snmpLine).toContain("Not configured");
       expect(snmpLine).not.toContain("Failing");
+    });
+  });
+
+  /*
+   * Issue #6965. A bound monitor nothing checks gives the device no verdict,
+   * and will not give one until it is checked again: the hero must not say
+   * "waiting for its monitor to report" - nothing will - but why it is
+   * Pending, and where it is put right: on the monitor.
+   */
+  describe("a monitor-backed device whose bound monitor is not checked", () => {
+    const MONITOR_VIEW_HREF: string = RouteUtil.populateRouteParams(
+      RouteMap[PageMap.MONITOR_VIEW] as Route,
+      { modelId: MONITOR_ID },
+    ).toString();
+
+    /*
+     * The qualifier names why; the caption under the verdict says what it
+     * means for the verdict - when it will change - and the Monitor Status
+     * tile says what the monitor is, in the words its own pages use. They
+     * used to be one sentence said twice, a tile apart.
+     */
+    test.each([
+      {
+        label: "monitoring turned off",
+        switches: { disableActiveMonitoring: true, isArchived: false },
+        qualifier: MONITORING_OFF_QUALIFIER,
+        caption: "Not checked until monitoring is back on",
+        tileText: "Monitoring is turned off",
+      },
+      {
+        label: "archived",
+        switches: { disableActiveMonitoring: false, isArchived: true },
+        qualifier: MONITOR_ARCHIVED_QUALIFIER,
+        caption: "Not checked until its monitor is unarchived",
+        tileText: "Its monitor is archived",
+      },
+      {
+        label: "archived with its monitoring off as well",
+        switches: { disableActiveMonitoring: true, isArchived: true },
+        qualifier: MONITOR_ARCHIVED_QUALIFIER,
+        caption: "Not checked until its monitor is unarchived",
+        tileText: "Its monitor is archived",
+      },
+    ])(
+      "$label: Pending with its qualifier, a caption that says until when, and the monitor one click away",
+      async ({
+        switches,
+        qualifier,
+        caption,
+        tileText,
+      }: {
+        switches: { disableActiveMonitoring: boolean; isArchived: boolean };
+        qualifier: { text: string; tooltip: string; pendingTooltip: string };
+        caption: string;
+        tileText: string;
+      }) => {
+        await renderHero(boundToMonitorNotChecked(switches));
+
+        expect(pillTexts()).toEqual(["Pending", qualifier.text]);
+
+        const tile: HTMLElement = screen.getByTestId(
+          "device-hero-monitor-not-checked",
+        );
+
+        // Each said once, each in its own tile.
+        expect(screen.getAllByText(caption)).toHaveLength(1);
+        expect(tile).not.toContainElement(screen.getByText(caption));
+        expect(screen.getAllByText(tileText)).toHaveLength(1);
+        expect(tile).toContainElement(screen.getByText(tileText));
+        expect(linkHref("Open monitor")).toBe(MONITOR_VIEW_HREF);
+
+        // Nothing it says belongs to a monitor that is about to report.
+        expect(screen.queryByTestId("device-hero-monitor-waiting")).toBeNull();
+        expect(
+          screen.queryByText("Reported by the monitor bound to this device"),
+        ).toBeNull();
+        // Nor to a device with nothing bound.
+        expect(screen.queryByText(NO_MONITOR_QUALIFIER.text)).toBeNull();
+        expect(screen.queryByText("No monitor bound")).toBeNull();
+        expect(screen.queryByText("Create Ping monitor")).toBeNull();
+        expect(screen.queryByText("Bind a monitor")).toBeNull();
+      },
+    );
+
+    test("explains Pending as a monitor nothing checks, and the qualifier as what to do", async () => {
+      await renderHero(
+        boundToMonitorNotChecked({
+          disableActiveMonitoring: true,
+          isArchived: false,
+        }),
+      );
+
+      const pendingTooltips: Array<string> = tooltipsAfterHovering("Pending");
+      expect(pendingTooltips).toContain(
+        MONITORING_OFF_QUALIFIER.pendingTooltip,
+      );
+      expect(pendingTooltips).not.toContain(BOUND_MONITOR_PENDING_TOOLTIP);
+      expect(pendingTooltips).not.toContain(
+        UNBOUND_MONITOR_BACKED_PENDING_TOOLTIP,
+      );
+
+      expect(tooltipsAfterHovering(MONITORING_OFF_QUALIFIER.text)).toContain(
+        MONITORING_OFF_QUALIFIER.tooltip,
+      );
+    });
+
+    test("an archived monitor's tooltips say archived, not off", async () => {
+      await renderHero(
+        boundToMonitorNotChecked({
+          disableActiveMonitoring: false,
+          isArchived: true,
+        }),
+      );
+
+      expect(tooltipsAfterHovering("Pending")).toContain(
+        MONITOR_ARCHIVED_QUALIFIER.pendingTooltip,
+      );
+      expect(tooltipsAfterHovering(MONITOR_ARCHIVED_QUALIFIER.text)).toContain(
+        MONITOR_ARCHIVED_QUALIFIER.tooltip,
+      );
+    });
+
+    /*
+     * Both switches as a checked monitor has them: the bound-and-quiet case
+     * above, word for word - the qualifier is only for a monitor nobody
+     * checks.
+     */
+    test("a bound monitor that is checked and has not reported keeps waiting for it", async () => {
+      await renderHero(
+        boundToMonitorNotChecked({
+          disableActiveMonitoring: false,
+          isArchived: false,
+        }),
+      );
+
+      expect(pillTexts()).toEqual(["Pending"]);
+      expect(
+        screen.getByTestId("device-hero-monitor-waiting"),
+      ).toHaveTextContent("Waiting for its monitor to report");
+      expect(
+        screen.queryByTestId("device-hero-monitor-not-checked"),
+      ).toBeNull();
+      expect(tooltipsAfterHovering("Pending")).toContain(
+        BOUND_MONITOR_PENDING_TOOLTIP,
+      );
+    });
+
+    /*
+     * The qualifier explains a Pending and nothing else. A row that still
+     * carries a status - read before the server took the stamp off it -
+     * shows that status as every other surface does, with nothing beside it
+     * claiming it has none.
+     */
+    test("a device that still carries its monitor's status shows it, with no qualifier", async () => {
+      const row: NetworkDevice = boundToMonitorNotChecked({
+        disableActiveMonitoring: true,
+        isArchived: false,
+      });
+      const status: MonitorStatus = new MonitorStatus();
+      status.name = "Operational";
+      status.color = Green;
+      status.isOfflineState = false;
+      row.currentMonitorStatus = status;
+
+      await renderHero(row);
+
+      expect(pillTexts()).toEqual(["Up", "Operational"]);
+      expect(
+        screen.queryByTestId("device-hero-monitor-not-checked"),
+      ).toBeNull();
+      expect(screen.queryByText(MONITORING_OFF_QUALIFIER.text)).toBeNull();
+    });
+
+    // A probe-polled device's poll decides it, whatever its monitor's switches.
+    test("a probe-polled device pointing at a monitor that is off is not qualified by it", async () => {
+      const row: NetworkDevice = device({
+        monitoringMethod: NetworkDeviceMonitoringMethod.Probe,
+        monitorId: MONITOR_ID,
+        probeId: PROBE_ID,
+        isPollingEnabled: true,
+      });
+      const monitor: Monitor = new Monitor();
+      monitor.disableActiveMonitoring = true;
+      monitor.isArchived = false;
+      row.monitor = monitor;
+
+      await renderHero(row);
+
+      expect(pillTexts()).toEqual(["Pending"]);
+      expect(screen.queryByText(MONITORING_OFF_QUALIFIER.text)).toBeNull();
+      expect(
+        screen.queryByTestId("device-hero-monitor-not-checked"),
+      ).toBeNull();
+    });
+
+    test("the hero asks for the bound monitor's two switches", async () => {
+      await renderHero(
+        boundToMonitorNotChecked({
+          disableActiveMonitoring: true,
+          isArchived: false,
+        }),
+      );
+
+      expect(getItemRequests[0]!.select).toMatchObject({
+        monitorId: true,
+        monitor: { disableActiveMonitoring: true, isArchived: true },
+      });
+    });
+
+    /*
+     * Turned off, the fix is one press, and the monitor's own pages make it
+     * with "Turn monitoring on" (useTurnMonitoringOn). The tile used to
+     * offer only "Open monitor": a trip to another page, to find the button
+     * there. Now the tile carries the same button, gated the same way.
+     */
+    describe("Turn monitoring on, in the Monitor Status tile", () => {
+      const turnedOff: () => NetworkDevice = (): NetworkDevice => {
+        return boundToMonitorNotChecked({
+          disableActiveMonitoring: true,
+          isArchived: false,
+        });
+      };
+
+      // The device as the save leaves it: stamped with its monitor's status.
+      const stampedAgain: () => NetworkDevice = (): NetworkDevice => {
+        const row: NetworkDevice = boundToMonitorNotChecked({
+          disableActiveMonitoring: false,
+          isArchived: false,
+        });
+        const status: MonitorStatus = new MonitorStatus();
+        status.name = "Operational";
+        status.color = Green;
+        status.isOfflineState = false;
+        row.currentMonitorStatus = status;
+        return row;
+      };
+
+      const turnOnButton: () => HTMLElement = (): HTMLElement => {
+        return screen.getByTestId(TURN_MONITORING_ON_BUTTON_TEST_ID);
+      };
+
+      test("sits in the tile beside Open monitor, as a link of the line's size", async () => {
+        await renderHero(turnedOff());
+
+        const tile: HTMLElement = screen.getByTestId(
+          "device-hero-monitor-not-checked",
+        );
+        const button: HTMLElement = screen.getByRole("button", {
+          name: "Turn monitoring on",
+        });
+
+        expect(tile).toContainElement(button);
+        expect(button).toBe(turnOnButton());
+        expect(button).toBeEnabled();
+        expect(linkHref("Open monitor")).toBe(MONITOR_VIEW_HREF);
+        // One line with the link beside it, its spinner at the line's height.
+        expect(button.parentElement).toBe(
+          screen.getByText("Open monitor").closest("a")!.parentElement,
+        );
+        expect(button).toHaveClass(
+          "text-xs",
+          "font-medium",
+          "[&_svg]:h-4",
+          "[&_svg]:w-4",
+          "[&_svg]:ms-0",
+        );
+        // Wrapped in a narrow tile, its words start where the tile's do.
+        expect(button).toHaveClass("text-start");
+      });
+
+      test("a press turns the bound monitor's monitoring on, stays busy until the device is read again, then shows the monitor's status", async () => {
+        let finishSave: () => void = (): void => {};
+        answerUpdateById = (): Promise<unknown> => {
+          return new Promise<unknown>((resolve: (value: unknown) => void) => {
+            finishSave = (): void => {
+              resolve({});
+            };
+          });
+        };
+
+        await renderHero(turnedOff());
+
+        fireEvent.click(turnOnButton());
+        await settle();
+
+        // Exactly what the Monitoring switch writes, to the bound monitor.
+        expect(updateByIdRequests).toHaveLength(1);
+        expect(updateByIdRequests[0]!.modelType).toBe(Monitor);
+        expect(updateByIdRequests[0]!.id.toString()).toBe(
+          MONITOR_ID.toString(),
+        );
+        expect(updateByIdRequests[0]!.data).toEqual({
+          disableActiveMonitoring: false,
+        });
+        expect(turnOnButton()).toBeDisabled();
+        expect(getItemRequests).toHaveLength(1);
+
+        // Saved: the device is read again, and that read is on its way.
+        let finishRead: () => void = (): void => {};
+        readHeldUntil = new Promise<void>((resolve: () => void) => {
+          finishRead = resolve;
+        });
+        deviceRow = stampedAgain();
+
+        await act(async () => {
+          finishSave();
+        });
+        await settle();
+
+        expect(getItemRequests).toHaveLength(2);
+        expect(getItemRequests[1]!.id.toString()).toBe(DEVICE_ID.toString());
+        // Still busy: no live button beside words that are no longer true.
+        expect(turnOnButton()).toBeDisabled();
+        expect(
+          screen.getByText("Monitoring is turned off"),
+        ).toBeInTheDocument();
+        expect(screen.queryByRole("alert")).toBeNull();
+
+        await act(async () => {
+          finishRead();
+        });
+
+        await waitFor(() => {
+          expect(
+            screen.queryByTestId("device-hero-monitor-not-checked"),
+          ).toBeNull();
+        });
+        // The monitor's verdict and its status word, and no qualifier.
+        expect(pillTexts()).toEqual(["Up", "Operational"]);
+        expect(screen.queryByText(MONITORING_OFF_QUALIFIER.text)).toBeNull();
+        expect(
+          screen.queryByTestId(TURN_MONITORING_ON_BUTTON_TEST_ID),
+        ).toBeNull();
+        // Read again in place: never the skeleton.
+        expect(screen.queryByTestId("device-status-hero-skeleton")).toBeNull();
+      });
+
+      test("pressed twice before it locks, it saves once", async () => {
+        await renderHero(turnedOff());
+
+        const button: HTMLElement = turnOnButton();
+        fireEvent.click(button);
+        fireEvent.click(button);
+        await settle();
+
+        expect(updateByIdRequests).toHaveLength(1);
+      });
+
+      test("a save the server refuses says why in the tile, reads nothing again, and can be tried again", async () => {
+        answerUpdateById = (): Promise<unknown> => {
+          return Promise.reject(
+            new Error("You do not have permission to update this Monitor."),
+          );
+        };
+
+        await renderHero(turnedOff());
+
+        fireEvent.click(turnOnButton());
+        await settle();
+
+        const alert: HTMLElement = screen.getByRole("alert");
+        expect(alert).toHaveTextContent(
+          "You do not have permission to update this Monitor.",
+        );
+        expect(alert).toBe(
+          screen.getByTestId(TURN_MONITORING_ON_ERROR_TEST_ID),
+        );
+        expect(
+          screen.getByTestId("device-hero-monitor-not-checked"),
+        ).toContainElement(alert);
+        expect(getItemRequests).toHaveLength(1);
+        expect(turnOnButton()).toBeEnabled();
+        expect(
+          screen.getByText("Monitoring is turned off"),
+        ).toBeInTheDocument();
+      });
+
+      test("someone who may not turn monitoring on sees it locked, with why, and a press writes nothing", async () => {
+        columnGate = {
+          isAllowed: false,
+          disabledReason:
+            "You do not have permission to update this Monitor. You need one of these permissions: Project Owner.",
+        };
+
+        await renderHero(turnedOff());
+
+        expect(turnOnButton()).toBeDisabled();
+        // The locked button's reason sits in the wrapper that takes its place.
+        expect(
+          screen.getByTestId(
+            `${TURN_MONITORING_ON_BUTTON_TEST_ID}-disabled-wrapper`,
+          ),
+        ).toContainElement(turnOnButton());
+
+        fireEvent.click(turnOnButton());
+        await settle();
+
+        expect(updateByIdRequests).toHaveLength(0);
+        // The monitor is still one click away.
+        expect(linkHref("Open monitor")).toBe(MONITOR_VIEW_HREF);
+      });
+
+      test("while the permissions are still loading it offers no button, rather than a lock it cannot explain", async () => {
+        columnGate = { isAllowed: false };
+
+        await renderHero(turnedOff());
+
+        expect(
+          screen.queryByTestId(TURN_MONITORING_ON_BUTTON_TEST_ID),
+        ).toBeNull();
+        expect(
+          screen.getByText("Monitoring is turned off"),
+        ).toBeInTheDocument();
+        expect(linkHref("Open monitor")).toBe(MONITOR_VIEW_HREF);
+      });
+
+      /*
+       * Archived wins over turned off: turning monitoring on would leave an
+       * archived monitor unchecked, so the tile offers no press that does
+       * nothing. It is unarchived on the monitor, which Open monitor opens.
+       */
+      test.each([
+        { label: "archived", disableActiveMonitoring: false },
+        {
+          label: "archived with its monitoring off as well",
+          disableActiveMonitoring: true,
+        },
+      ])(
+        "$label: no Turn monitoring on, only Open monitor",
+        async ({
+          disableActiveMonitoring,
+        }: {
+          disableActiveMonitoring: boolean;
+        }) => {
+          await renderHero(
+            boundToMonitorNotChecked({
+              disableActiveMonitoring,
+              isArchived: true,
+            }),
+          );
+
+          expect(
+            screen.queryByTestId(TURN_MONITORING_ON_BUTTON_TEST_ID),
+          ).toBeNull();
+          expect(
+            screen.queryByRole("button", { name: "Turn monitoring on" }),
+          ).toBeNull();
+          expect(linkHref("Open monitor")).toBe(MONITOR_VIEW_HREF);
+        },
+      );
     });
   });
 

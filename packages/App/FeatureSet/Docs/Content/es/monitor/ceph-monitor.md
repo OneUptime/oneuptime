@@ -69,7 +69,7 @@ Un monitor nuevo empieza con **Cluster Stopped Reporting**, en **Sobre qué aler
 
 ### Revisar los criterios
 
-Abre cada criterio en **Criterios del monitor** y revisa su **Métrica**, **Agregación**, **Condición** y **Umbral**. Una plantilla los rellena. Con **Custom Metric** o **Avanzado**, el monitor empieza con los [criterios predeterminados](#criterios-predeterminados), que solo detectan que la métrica no envía datos, así que define tu propio umbral.
+Abre cada criterio en **Criterios** y revisa su **Métrica**, **Agregación**, **Condición** y **Umbral**. Una plantilla los rellena. Con **Custom Metric** o **Avanzado**, el monitor empieza con los [criterios predeterminados](#criterios-predeterminados), que solo detectan que la métrica no envía datos, así que define tu propio umbral.
 
 ### Crear el monitor
 

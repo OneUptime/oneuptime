@@ -2,6 +2,8 @@
 
 Deze handleiding brengt u in ongeveer vijftien minuten van een nieuw account naar een werkende inrichting: een monitor die uw website elke vijf minuten controleert, een bereikbaarheidsbeleid dat u oproept wanneer de site uitvalt, en een statuspagina die uw klanten informeert. Ze volgt de checklist **Welkom bij OneUptime 👋** op de startpagina van uw project.
 
+Komt u van een andere tool? [Importeer dan eerst uw inrichting](/docs/introduction/getting-started#overstappen-van-een-andere-tool): uw monitoren, bereikbaarheidsschema's en statuspagina's gaan mee.
+
 ```mermaid title="Wat u in deze handleiding inricht"
 flowchart TB
     monitor["Websitemonitor"] -->|"site is down"| incident["Incident"]
@@ -32,6 +34,8 @@ Voer een **Projectnaam** in, bijvoorbeeld de naam van uw bedrijf. Bij OneUptime 
 
 ### Het project aanmaken
 
+![Start vraagt "Wat wil je eerst doen?", met de drie doelen van deze gids aangevinkt](screen:home-goals-three)
+
 Klik op **Project maken**. De startpagina van uw project opent, met bovenaan de checklist **Welkom bij OneUptime 👋**. Eerst vraagt het **Wat wil je eerst doen?**: vink **Weten wanneer mijn website of API plat ligt**, **De juiste persoon oproepen als er iets kapotgaat** en **Mijn klanten informeren met een statuspagina** aan, en klik op **Doorgaan**.
 :::
 
@@ -57,6 +61,8 @@ Laat de gekozen **Sondes** en het **Bewakingsinterval** **Elke 5 minuten** staan
 
 Om de controle te proberen voordat u opslaat, klikt u in de tweede stap op **Monitor testen**. Alle andere monitortypen staan beschreven in [Een monitor maken](/docs/monitor/create-monitor).
 
+Wilt u ook een API controleren, kiezen wie er wordt ingelicht en een testoproep sturen die bewijst dat het bericht u bereikt, volg dan de handleiding [Weten wanneer uw website of API uitvalt](/docs/guides/website-down).
+
 ## Opgeroepen worden bij uitval
 
 Zoals het nu is, wordt een incident zonder eigenaren per e-mail naar de eigenaren van het project gestuurd, en daar hoort u bij. Om opgeroepen te worden tot iemand reageert, maakt u een bereikbaarheidsbeleid aan: het eerste van een project wordt bij elk nieuw incident en elke nieuwe waarschuwing geactiveerd.
@@ -64,7 +70,7 @@ Zoals het nu is, wordt een incident zonder eigenaren per e-mail naar de eigenare
 :::steps
 ### Een bereikbaarheidsbeleid aanmaken
 
-Klik in de checklist op **Stel een bereikbaarheidsbeleid in**, of open **Bereikbaarheidsdienst** vanuit het menu **Producten**. Klik op **Bereikbaarheidsbeleid aanmaken** en voer een **Naam** in. Klik onder **Wie wordt als eerste opgeroepen?** op **Ontvanger toevoegen** en kies uzelf. Laat **Activeren bij elk nieuw incident en elke nieuwe waarschuwing** aan staan en klik op **Bereikbaarheidsbeleid aanmaken**.
+Klik in de checklist op **Stel een bereikbaarheidsbeleid in**, of open **Bereikbaarheid** vanuit het menu **Producten**. Klik op **Bereikbaarheidsbeleid aanmaken** en voer een **Naam** in. Klik onder **Wie wordt als eerste opgeroepen?** op **Ontvanger toevoegen** en kies uzelf. Laat **Activeren bij elk nieuw incident en elke nieuwe waarschuwing** aan staan en klik op **Bereikbaarheidsbeleid aanmaken**.
 
 ### De regel bekijken die het activeert
 
@@ -76,9 +82,11 @@ Uw inlog-e-mail is al een manier om u te bereiken. Om ook sms'jes of oproepen te
 :::
 
 > [!NOTE]
-> Sms en telefoonoproepen staan uit in een nieuw project. Een projecteigenaar, een Billing Admin of iemand met Manage Billing zet ze aan in de kaart **Meldingskanalen**, onder **Projectinstellingen → Meldingen → Meldingsinstellingen**.
+> Sms en telefoonoproepen staan uit in een nieuw project. Een projecteigenaar, een Billing Admin of iemand met Manage Billing zet ze aan in de kaart **Meldingskanalen**, onder **Projectinstellingen → Meldingen → Meldingskanalen**.
 
 Voor meer niveaus, roosters en hoe lang elk niveau wacht, zie [Escalatieregels](/docs/on-call/escalation-rules) en [Bereikbaarheidsschema's](/docs/on-call/schedules).
+
+Wilt u per sms, telefoonoproep en push worden opgeroepen, met de volgende persoon als niemand antwoordt en een testoproep die bewijst dat het werkt, volg dan de handleiding [Opgeroepen worden via telefoon, sms of push](/docs/guides/paging).
 
 ## Een statuspagina publiceren
 
@@ -98,6 +106,8 @@ Kies **Overzicht** in het zijmenu. De kaart **Link naar de statuspagina** linkt 
 
 Een nieuwe statuspagina is openbaar: iedereen met het adres kan haar openen. Hoe u haar uw eigen domein, logo en kleuren geeft, leest u in [Statuspagina – branding en domeinen](/docs/status-pages/branding-and-domains).
 
+Wilt u de statuspagina via HTTPS op uw eigen domein zetten, volg dan de handleiding [Een statuspagina publiceren](/docs/guides/status-page).
+
 ## Uw team uitnodigen
 
 Klik in de checklist op **Nodig je team uit**, of open **Gebruikers** vanuit het menu **Producten**, onder **Instellingen**. Klik op **Gebruiker uitnodigen**, voer het **E-mail**-adres in en kies een **Team**: het ledenteam is vooraf gekozen. Klik op **Uitnodigen**. OneUptime stuurt de uitnodiging per e-mail, en het team bepaalt wat de persoon mag doen. Zie [Gebruikers, teams en machtigingen](/docs/permissions/index).
@@ -113,9 +123,13 @@ Open **Incidenten** en klik op **Incident melden**. Voer een **Titel** in, bijvo
 
 ### Zien wat er gebeurt
 
+!["Incidentfeed" van een opgelost incident: wie werd opgeroepen en elke statuswijziging, nieuwste eerst](screen:incident-feed)
+
 Binnen een minuut of twee roept uw bereikbaarheidsbeleid u op, en verschijnt het incident op uw statuspagina.
 
 ### Het oplossen
+
+![Een incident in "Bevestigd", met "Oplossen" omcirkeld](screen:incident-resolve)
 
 Klik op de pagina van het incident op **Oplossen**. De oproepen stoppen, en het incident verdwijnt van uw statuspagina.
 :::

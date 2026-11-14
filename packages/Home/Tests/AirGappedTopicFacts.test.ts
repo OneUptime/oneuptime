@@ -1275,7 +1275,7 @@ const EVIDENCE: Record<string, Array<Evidence>> = {
     fact(
       "which of their methods is tried, and after how long",
       ON_CALL,
-      "Each person is reached through their personal on-call rules: which of their methods is tried, and after how long.",
+      "Each person is reached as their How to Reach Me says: which of their methods is tried, and after how long.",
     ),
   ],
   "on-call/capability/readiness": [

@@ -1,4 +1,5 @@
 import { JSONObject } from "Common/Types/JSON";
+import { phoneNumberInLine } from "Common/Types/PhoneNumberDirection";
 import { ServerSendingChannel } from "Common/Types/ServerSending/ServerSendingStatus";
 import {
   getServerTestSendSentence,
@@ -41,7 +42,11 @@ export const getServerTestSendFieldName: (
   return channel === ServerSendingChannel.Email ? "toEmail" : "toPhone";
 };
 
-// What a test answered, in the reader's language.
+/*
+ * What a test answered, in the reader's language. The phone number a test
+ * SMS or call went to reads +447700900123 in an Arabic sentence too
+ * (phoneNumberInLine): printed as it is, its "+" stood after its digits.
+ */
 export const describeServerTestSend: (
   translator: Translator,
   answer: ServerTestSendAnswer,
@@ -51,8 +56,13 @@ export const describeServerTestSend: (
 ): string => {
   const sentence: { template: string; values: Record<string, string> } =
     getServerTestSendSentence(answer);
+  const values: Record<string, string> = { ...sentence.values };
 
-  return translator.translateTemplate(sentence.template, sentence.values);
+  if (answer.channel !== ServerSendingChannel.Email && values["to"]) {
+    values["to"] = phoneNumberInLine(values["to"], translator.language);
+  }
+
+  return translator.translateTemplate(sentence.template, values);
 };
 
 export interface ComponentProps {

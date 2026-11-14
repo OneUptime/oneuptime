@@ -190,7 +190,7 @@ Every place that shows a device — the Devices list, a site's Devices page, the
 | --- | --- |
 | **Up** | The last poll (ping or SNMP), or the bound monitor, reached the device. |
 | **Down** | The last poll (ping or SNMP), or the bound monitor, could not reach the device. |
-| **Pending** | No verdict yet: never polled, no probe assigned, or no monitor bound. |
+| **Pending** | No verdict yet: never polled, no probe assigned, no monitor bound, or the bound monitor is turned off or archived. |
 
 | Qualifier | Shown when | What to do |
 | --- | --- | --- |
@@ -198,6 +198,8 @@ Every place that shows a device — the Devices list, a site's Devices page, the
 | **No probe** | The device is probe-polled but has no probe, or its polling is off. | Assign a probe that can reach it; nothing polls it until then. |
 | **No monitor** | The device uses the [bound-monitor override](#the-bound-monitor-override) and nothing is bound. | Bind a monitor, or switch it back to probe polling. |
 | **SNMP failing** | Up on ping, but the last SNMP walk failed. | Check the credentials, the SNMP agent or an ACL. |
+| **Monitoring off** | The bound monitor's monitoring is turned off, so the device reads **Pending** rather than the status the monitor was left at. | Turn the monitor's monitoring back on, or bind another monitor. |
+| **Monitor archived** | The bound monitor is archived, so the device reads **Pending** rather than the status the monitor was left at. | Unarchive the monitor, or bind another monitor. |
 
 The **Devices** list has an **SNMP** filter with three values: **OK** (the last walk succeeded), **Failing** (the last walk failed) and **Not configured** (pinged only, no credentials, or never polled). "Which devices have credentials that stopped working" is one click. The list's **Interfaces (Up / Down)** column reads **No SNMP** rather than `0 / 0` for a device that is pinged and never walked: zero working ports would be a different claim, and a wrong one.
 
@@ -824,7 +826,7 @@ Every monitor made from that template afterwards carries those values: those you
 
 A plain **Sync from Template** leaves custom fields alone: pushing criteria or an interval never rewrites the values on your monitors.
 
-## Monitoring Criteria
+## Criteria
 
 Criteria check each poll result and trap, and open incidents or alerts.
 

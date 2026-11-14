@@ -50,7 +50,6 @@ const WorkspaceLogsTable: FunctionComponent<WorkspaceLogsTableProps> = (
       field: { workspaceType: true },
       title: "Workspace",
       type: FieldType.Text,
-      noValueMessage: "-",
     },
     {
       field: { actionType: true },
@@ -96,11 +95,15 @@ const WorkspaceLogsTable: FunctionComponent<WorkspaceLogsTableProps> = (
         );
       },
     },
+    /*
+     * A row in no channel - a summary that cannot be sent as it is set up
+     * (#7116) - shows the quiet dash an empty cell has, as User does: a
+     * "-" of its own was drawn as dark as a channel's name.
+     */
     {
       field: { channelName: true },
       title: "Channel",
       type: FieldType.Text,
-      noValueMessage: "-",
     },
     {
       field: {
@@ -113,7 +116,6 @@ const WorkspaceLogsTable: FunctionComponent<WorkspaceLogsTableProps> = (
       title: "User",
       type: FieldType.Text,
       hideOnMobile: true,
-      noValueMessage: "-",
       getElement: (item: WorkspaceNotificationLog): ReactElement => {
         if (!item["user"]) {
           return <p>-</p>;

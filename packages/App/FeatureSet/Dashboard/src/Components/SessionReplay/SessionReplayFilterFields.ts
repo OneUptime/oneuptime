@@ -7,6 +7,16 @@ import {
 } from "./SessionReplayListFilters";
 import { TRIGGER_REASON_LABELS } from "./SessionReplayPlayability";
 import { shortVisitorId } from "./SessionReplayUserIdentity";
+import Permission from "Common/Types/Permission";
+import {
+  createTranslator,
+  DEFAULT_LANGUAGE,
+  Translator,
+} from "Common/Types/Translator";
+import {
+  getSessionReplayPermissionTitle,
+  SESSION_REPLAY_IDENTITY_PERMISSION,
+} from "./SessionReplayPermissionTitle";
 
 /*
  * One description of the advanced filters, shared by the two things that
@@ -32,6 +42,11 @@ export interface SessionReplayFilterField {
   type: FieldType;
   /* One line under the control explaining what the predicate really is. */
   hint?: string | undefined;
+  /*
+   * The grant the hint's "{{permission}}" names, by the title the roles
+   * screen lists (describeSessionReplayFilterHint fills it).
+   */
+  hintPermission?: Permission | undefined;
   options?: Array<DropdownOption> | undefined;
 }
 
@@ -56,7 +71,13 @@ export const TRIGGER_REASON_OPTIONS: Array<DropdownOption> = Object.values(
 export const SESSION_REPLAY_FILTER_FIELDS: Array<SessionReplayFilterField> = [
   {
     field: "search",
-    title: "Search",
+    /*
+     * The box's name is a noun: "Search" is the Search button's verb in
+     * every other language (German "Suchen", Hindi "खोजें"), and over
+     * a text box it read as a command (#7108). The same noun names
+     * Splunk's search setting and a hunt's Search step.
+     */
+    title: "Search query",
     placeholder: "checkout, a session id, a trace id",
     kind: SessionReplayFilterKind.Text,
     type: FieldType.Text,
@@ -73,9 +94,11 @@ export const SESSION_REPLAY_FILTER_FIELDS: Array<SessionReplayFilterField> = [
      * value shown in the "User & device" column - not the digest it is
      * stored under. The server hashes it with the same per-project
      * derivation the ingest used, so what a person can see is what a person
-     * can type.
+     * can type. The grant it needs is named as the roles screen lists it
+     * (#7096), never as an "identity permission" no screen shows.
      */
-    hint: "The exact reference your page passed to identify(). Needs the end-user identity permission; never written to the URL.",
+    hint: 'The exact reference your page passed to identify(). Needs the "{{permission}}" permission; never written to the URL.',
+    hintPermission: SESSION_REPLAY_IDENTITY_PERMISSION,
   },
   {
     field: "urlPrefix",
@@ -167,6 +190,31 @@ export const SESSION_REPLAY_FILTER_FIELDS: Array<SessionReplayFilterField> = [
     hint: "The name of one of your own signals, exactly as it is on the Frustration Signals page.",
   },
 ];
+
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
+
+/*
+ * The line under a field in the reader's language, or null for a field
+ * without one. A hint that names a grant has it filled in by the title the
+ * roles screen gives it ("Watch Session Replays"), in every language, so a
+ * project admin finds exactly that name there.
+ */
+export function describeSessionReplayFilterHint(
+  field: SessionReplayFilterField,
+  translator: Translator = ENGLISH,
+): string | null {
+  if (!field.hint) {
+    return null;
+  }
+
+  if (field.hintPermission) {
+    return translator.translateTemplate(field.hint, {
+      permission: getSessionReplayPermissionTitle(field.hintPermission),
+    });
+  }
+
+  return translator.translateText(field.hint) || field.hint;
+}
 
 export interface SessionReplayFilterChip {
   field: keyof SessionReplayAdvancedFilters;

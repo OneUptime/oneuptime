@@ -24,6 +24,7 @@ import {
   HoneycombLegendItem,
   HoneycombTile,
 } from "./DashboardResourceHoneycomb";
+import { getUnnamedText } from "./DashboardWidgetFallbackWords";
 
 /*
  * The vcenter receiver's vcenter.vm.name IS the display name, so a
@@ -157,7 +158,7 @@ function getVirtualMachineRoute(r: VMwareResource): Route | undefined {
 }
 
 function getVirtualMachineDisplayName(r: VMwareResource): string {
-  return (r.name as string) || (r.externalId as string) || "Unnamed";
+  return (r.name as string) || (r.externalId as string) || getUnnamedText();
 }
 
 function isTemplateRow(r: VMwareResource): boolean {
@@ -355,7 +356,10 @@ const DashboardVMwareVirtualMachineListComponentElement: FunctionComponent<
       componentId={props.componentId}
       publicResourceType="vmware-resource"
       title={args.title}
-      pluralLabel="virtual machines"
+      countLabel={{
+        one: "{{count}} virtual machine",
+        other: "{{count}} virtual machines",
+      }}
       emptyMessage="No virtual machines found"
       emptyIcon={IconProp.Cube}
       columns={COLUMNS}

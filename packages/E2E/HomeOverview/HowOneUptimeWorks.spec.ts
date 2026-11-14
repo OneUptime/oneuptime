@@ -324,7 +324,13 @@ test.describe("How OneUptime works, from Help", () => {
     await page.keyboard.press("Escape");
     // Escape put the definition away, not the dialog.
     await expect(dialog(page)).toBeVisible();
-    await expect(popover(page)).toBeHidden();
+    /*
+     * Put away: hidden at once, and gone from the page once its fade has run
+     * (DefinedTerm hides in 150 ms). Until then it is still there, and the
+     * next word's definition, shown the moment that word has focus, would be
+     * one of two.
+     */
+    await expect(popover(page)).toHaveCount(0);
     // Past Telemetry (its popover is put away), on to Infrastructure.
     await page.keyboard.press("Tab");
     await expect(word(page, "infrastructure")).toBeFocused();

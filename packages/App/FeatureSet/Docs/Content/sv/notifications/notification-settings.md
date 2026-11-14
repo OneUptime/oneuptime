@@ -106,14 +106,14 @@ Kontrollera att du har en verifierad metod på den kanalen under **Användarinst
 :::
 
 :::details Jag får fortfarande e-post efter att ha stängt av allt
-Larm följer dina jourregler, inte de här brytarna, och e-post om inloggning, säkerhet och fakturering är inte uppdateringar om saker. Varje projekt har egna inställningar, så kontrollera projektet som e-postmeddelandet kom från. Se [Personliga jourregler](/docs/notifications/on-call-rules).
+Larm följer dina jourregler, inte de här brytarna, och e-post om inloggning, säkerhet och fakturering är inte uppdateringar om saker. Varje projekt har egna inställningar, så kontrollera projektet som e-postmeddelandet kom från. Se [Så når man mig](/docs/notifications/on-call-rules).
 :::
 
 ## Nästa steg
 
 :::cards
 - [Aviseringsmetoder](/docs/notifications/notification-methods): Lägg till metoderna som dina inställningar skickar till.
-- [Personliga jourregler](/docs/notifications/on-call-rules): Bestäm hur ett larm når dig.
+- [Så når man mig](/docs/notifications/on-call-rules): Bestäm hur ett larm når dig.
 - [Aviseringssammanfattning](/docs/emails/notification-rollup): Färre, fylligare e-postmeddelanden under en skur.
 - [Så når OneUptime dig](/docs/notifications/index): Hur metoder, regler och inställningar hänger ihop.
 :::

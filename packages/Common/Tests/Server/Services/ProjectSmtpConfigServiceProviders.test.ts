@@ -99,6 +99,30 @@ describe("each provider is sent with its own key alone", () => {
     });
   });
 
+  test("Amazon SES: never the server's IAM role, whatever the row holds - a project's config signs in with its own key (#7000)", () => {
+    // A project's config has no such column; a value set on the row anyway is not read.
+    const row: ProjectSmtpConfig = config({
+      transportType: MailTransportType.AmazonSES,
+    });
+
+    Object.assign(row, {
+      amazonSesAuthenticationType: "Server IAM Role",
+      awsAuthenticationType: "Server IAM Role",
+    });
+
+    const emailServer: EmailServer =
+      ProjectSmtpConfigService.toEmailServer(row)!;
+
+    expect(emailServer.awsAuthenticationType).toBeUndefined();
+    // Its id goes along: the sender refuses the server's role to any config that has one.
+    expect(emailServer.id?.toString()).toBe(ID.toString());
+    expect(credentialsOf(emailServer)).toEqual({
+      awsAccessKeyId: "AKIAIOSFODNN7EXAMPLE",
+      awsSecretAccessKey: "ses-secret",
+      awsRegion: "us-east-1",
+    });
+  });
+
   test.each([
     [MailTransportType.SendGrid, "SG.key"],
     [MailTransportType.Postmark, "pm-token"],

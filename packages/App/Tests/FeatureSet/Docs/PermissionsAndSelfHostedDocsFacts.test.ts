@@ -209,7 +209,7 @@ const CONFIG_LINE: RegExp = /^([A-Z][A-Z0-9_]*)=(.*)$/;
  * the key it names, or else vapid.privateKey as it always was.
  */
 const VAPID_PRIVATE_KEY_FROM_SECRET_OR_VALUE: RegExp =
-  /^ *\{\{- if \$vapidPrivateKeySecret \}\}\n *valueFrom:\n *secretKeyRef:\n *name: \{\{ \$vapidPrivateKeySecret \| quote \}\}\n *key: \{\{ include "oneuptime\.vapid\.privateKeyKey" \$ \| quote \}\}\n *\{\{- else \}\}\n *value: \{\{ \$\.Values\.vapid\.privateKey \}\}\n *\{\{- end \}\}\n*$/;
+  /^ *\{\{- if \$vapidPrivateKeySecret \}\}\n *valueFrom:\n *secretKeyRef:\n *name: \{\{ \$vapidPrivateKeySecret \| quote \}\}\n *key: \{\{ include "oneuptime\.vapid\.privateKeyKey" \$ \| quote \}\}\n *\{\{- else \}\}\n *value: \{\{ include "oneuptime\.envValue" \$\.Values\.vapid\.privateKey \}\}\n *\{\{- end \}\}\n*$/;
 
 // "  services:" and each "  name:" under it, in a compose file.
 const COMPOSE_SERVICE: RegExp = /^ {2}([a-z0-9-]+):$/;
@@ -811,7 +811,7 @@ describe("Users, Teams & Permissions, against the dashboard and the server", () 
       new Set([
         "Basic > Labels",
         "Advanced > API Keys",
-        "Notifications > Notification Settings",
+        "Notifications > Notification Channels",
         "AI > AI Credits",
       ]),
     );
@@ -1589,12 +1589,12 @@ describe("Push Notifications: critical on-call alerts, against the server and th
     );
   });
 
-  it("names the On-Call Rules page where the user settings menu shows it, and the levels as a rule's row draws them", () => {
+  it("names the How to Reach Me page where the user settings menu shows it, and the levels as a rule's row draws them", () => {
     expect(
       objectMenu(readSource("userSettingsSideMenu")).get(
         "Alerts & Notifications",
       ),
-    ).toContain("On-Call Rules");
+    ).toContain("How to Reach Me");
 
     const control: string = readSource("pushLevelControl");
 
@@ -1607,10 +1607,10 @@ describe("Push Notifications: critical on-call alerts, against the server and th
     );
 
     expect(page).toContain(
-      "Under **User Settings > On-Call Rules**, every rule that notifies a phone is set to Critical alert, the default, or Standard, which follows the phone's sound settings",
+      "Under **User Settings > How to Reach Me**, every rule that notifies a phone is set to Critical alert, the default, or Standard, which follows the phone's sound settings",
     );
     expect(page).toContain(
-      "- Check the on-call rule for that severity under **User Settings > On-Call Rules**: a push rule set to Standard follows the phone's sound settings",
+      "- Check the on-call rule for that severity under **User Settings > How to Reach Me**: a push rule set to Standard follows the phone's sound settings",
     );
   });
 
@@ -2031,7 +2031,7 @@ describe("Push Notifications: the alarm sound and repeating a page, against the 
     );
 
     expect(page).toContain(
-      "Under **User Settings > On-Call Rules**, set **Repeat until acknowledged** when adding a push rule, or change it later on the rule's row",
+      "Under **User Settings > How to Reach Me**, set **Repeat until acknowledged** when adding a push rule, or change it later on the rule's row",
     );
   });
 });

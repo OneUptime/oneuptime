@@ -9,6 +9,11 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
   turns: Array<CodeTaskTurnJSON>;
+  /*
+   * How long AI worked on the turns a long task's page does not show
+   * (CodeTaskResponse.turnsNotShown): counted with the turns shown.
+   */
+  notShownMilliseconds?: number | undefined;
   className?: string | undefined;
   /*
    * A clock before the words, beside facts that each have their mark (a
@@ -19,8 +24,8 @@ export interface ComponentProps {
 
 /*
  * How long AI has worked on a task, over all its turns: what each took,
- * and the one at work so far, counted on its own clock. Nothing is said
- * before AI started.
+ * and the one at work so far, counted on its own clock - the turns a long
+ * task's page does not show included. Nothing is said before AI started.
  */
 export const getTaskWorkMilliseconds: (
   turns: Array<CodeTaskTurnJSON>,
@@ -56,9 +61,15 @@ const CodeTaskWorkTime: FunctionComponent<ComponentProps> = (
     },
   );
   const now: Date = useClockTick(false, { isEnabled: isWorking });
-  const total: number = getTaskWorkMilliseconds(props.turns, now);
+  const notShownMilliseconds: number =
+    props.notShownMilliseconds && props.notShownMilliseconds > 0
+      ? props.notShownMilliseconds
+      : 0;
+  const total: number =
+    getTaskWorkMilliseconds(props.turns, now) + notShownMilliseconds;
 
   if (
+    notShownMilliseconds === 0 &&
     !props.turns.some((turn: CodeTaskTurnJSON): boolean => {
       return Boolean(turn.startedAt);
     })

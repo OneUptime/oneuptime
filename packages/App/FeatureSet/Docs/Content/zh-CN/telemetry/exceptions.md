@@ -1,4 +1,4 @@
-# 异常跟踪
+# 异常
 
 异常跟踪收集你的代码抛出的错误，并把同一个错误的每次出现归并为一个异常，附带它的堆栈跟踪、趋势以及它发生时所在的请求。像处理待办清单一样分诊它们：修复、标记为已解决，或归档噪音，并让 AI 为它能修复的异常打开 pull request。
 
@@ -39,7 +39,7 @@ flowchart TB
 ## 开始之前
 
 - **正在到达的 span 或日志。** 使用 [OpenTelemetry](/docs/telemetry/open-telemetry) 为你的服务埋点。**设置指南** 标签页会显示适合你的语言的代码。
-- **可以读取遥测的角色。** Project Owner、Project Admin、Project Member、Viewer、Telemetry Admin、Telemetry Member 或 Telemetry Viewer，或者拥有 Read Telemetry Service Exception 权限的自定义角色。解决和归档需要 Project Owner 或 Project Admin，或者 Edit Telemetry Service Exception 权限。
+- **可以读取遥测的角色。** Project Owner、Project Admin、Project Member、Viewer、Telemetry Admin、Telemetry Member 或 Telemetry Viewer，或者拥有 Read Exceptions 权限的自定义角色。解决和归档需要 Project Owner 或 Project Admin，或者 Edit Exceptions 权限。
 
 ## 分诊列表
 

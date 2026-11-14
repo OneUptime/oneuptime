@@ -53,7 +53,7 @@ const MODEL_TABLE_FILE: string =
 const CARD_TITLES: Array<string> = [
   "Template Info",
   "Monitor Defaults",
-  "Monitoring Criteria",
+  "Criteria",
   "Monitoring Interval",
   "Labels",
   "Custom Field Defaults",
@@ -788,7 +788,7 @@ describe("what each sync copies", () => {
       sourceBetween(view, 'title="Sync Monitor from Template"', "onClose="),
     ).toContain("protectedFields");
     expect(section(page, "### Save")).toContain(
-      "The **Monitoring Criteria** card, and the confirmation of both syncs below, list the protected fields.",
+      "The **Criteria** card, and the confirmation of both syncs below, list the protected fields.",
     );
     expect(section(page, "### Sync")).toContain(
       "Use **Sync Criteria to Linked Monitors**, or **Sync from Template** on an individual linked monitor.",

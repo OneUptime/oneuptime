@@ -2,6 +2,9 @@
 
 L'astreinte, c'est la façon dont OneUptime amène quelqu'un sur un problème, à toute heure. Quand un incident, une alerte ou un épisode a besoin de quelqu'un, ses politiques d'astreinte alertent des personnes niveau par niveau jusqu'à ce que quelqu'un prenne en compte, et chaque personne est jointe comme elle l'a choisi : notification push, SMS, appel, e-mail ou message de chat. Cette page montre comment les éléments s'articulent et où se trouve chacun d'eux. Le [Glossaire](/docs/introduction/glossary#politique-dastreinte) explique en une phrase ou deux chaque mot qu'utilise l'astreinte.
 
+> [!TIP]
+> Vous débutez ? Suivez d'abord le guide : [Être alerté par appel, SMS ou push](/docs/guides/paging).
+
 :::cards
 - [Comment une alerte joint quelqu'un](#comment-une-alerte-joint-quelquun): D'un nouvel incident à la personne qui répond.
 - [Les éléments de base](#les-éléments-de-base): Politiques, règles d'escalade, plannings, remplacements et règles personnelles.
@@ -45,7 +48,7 @@ Les mots utilisés dans tout OneUptime se trouvent dans le [Glossaire](/docs/int
 | Règle d'escalade | Un niveau d'une politique : qui il alerte, et combien de temps il attend une prise en compte | [Règles d'escalade](/docs/on-call/escalation-rules) |
 | Planning d'astreinte | Qui est d'astreinte à chaque instant, à tour de rôle | [Plannings d'astreinte](/docs/on-call/schedules) |
 | Remplacement d'utilisateur | Qui remplace quelqu'un pendant son absence | [Remplacements d'utilisateur](/docs/on-call/user-overrides) |
-| Règles d'astreinte personnelles | Comment une personne est jointe : par quelle méthode, et au bout de combien de temps | [Règles d'astreinte personnelles](/docs/notifications/on-call-rules) |
+| Comment me joindre | Comment une personne est jointe : par quelle méthode, et au bout de combien de temps | [Comment me joindre](/docs/notifications/on-call-rules) |
 | Politique d'appels entrants | Un numéro de téléphone qui fait sonner la personne d'astreinte | [Politique d'appels entrants](/docs/on-call/incoming-call-policy) |
 
 Les politiques, les règles d'escalade, les plannings et les remplacements appartiennent au projet, sous **Astreinte**. Les méthodes de notification et les règles d'astreinte personnelles appartiennent à chaque personne, sous **Paramètres utilisateur** : un administrateur peut consulter la configuration de quelqu'un, mais seule cette personne peut vérifier son téléphone ou son e-mail. Voir [Comment OneUptime vous joint](/docs/notifications/index).

@@ -765,7 +765,7 @@ describe("fields read what is typed into them the way it is written", () => {
     );
   });
 
-  test("a number, a date and a time are laid out by the browser and left alone", () => {
+  test("on a page read left to right, a number, a date and a time are laid out by the browser and left alone", () => {
     const { container } = render(
       <>
         <Input type={InputType.NUMBER} />

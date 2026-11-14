@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 50830,
-    "untranslated": 9697
+    "keys": 51296,
+    "untranslated": 9518
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -44,6 +44,7 @@
     "CIDR",
     "CPU Ready",
     "CPU Ready {{percent}}",
+    "Cache",
     "Canonical Sunbeam",
     "Celsius",
     "ClickHouse",
@@ -51,6 +52,7 @@
     "CloudWatch Metric Streams",
     "Commit",
     "Commits",
+    "Community Edition",
     "Container",
     "Container {{container}}: {{reason}}",
     "Container {{id}}",
@@ -76,6 +78,7 @@
     "Element",
     "Embedding",
     "Endpoint",
+    "Enterprise Edition",
     "Export",
     "Fahrenheit",
     "Failover",
@@ -394,6 +397,7 @@
     "storefront-web",
     "svc-backup",
     "syslog",
+    "team",
     "timeout|connection refused",
     "vApp {{name}}",
     "vCenter",
@@ -409,6 +413,7 @@
     "{{count}} KB",
     "{{count}} Kubernetes",
     "{{count}} MB",
+    "{{count}} OSD",
     "{{count}} SLO",
     "{{count}} VM",
     "{{count}} app",
@@ -428,6 +433,7 @@
     "{{count}} mon",
     "{{count}} monitor",
     "{{count}} mons",
+    "{{count}} ms",
     "{{count}} person",
     "{{count}} placement group",
     "{{count}} placement groups",

@@ -138,7 +138,7 @@ Du kan tillhöra hur många projekt som helst. Projektväljaren uppe till vänst
 | --- | --- | --- |
 | **Checklista för konfiguration** | Leder dig genom allt nedan och visar vad som återstår. | |
 | **Aviseringsmetoder** | E-postadresserna, telefonnumren, apparna och webhookarna som OneUptime kan nå dig på. Din inloggningsadress läggs till åt dig. | |
-| **Jourregler** | Vilken metod som används, och efter hur lång tid, när en jourpolicy larmar dig. | [Eskaleringsregler](/docs/on-call/escalation-rules) |
+| **Så når man mig** | Vilken metod som används, och efter hur lång tid, när en jourpolicy larmar dig. | [Eskaleringsregler](/docs/on-call/escalation-rules) |
 | **Aviseringsinställningar** | Vilka uppdateringar om incidenter, larm, monitorer och mer du får, och på vilken kanal. | |
 | **E-postinställningar** | Hur många e-postmeddelanden du får: ett i taget, eller samlade. | [Aviseringssammanfattning](/docs/emails/notification-rollup) |
 | **Jourloggar** | Varje larm som skickats till dig, och vad som hände med det. | |

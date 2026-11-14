@@ -27,6 +27,12 @@ import PositiveNumber from "../../../../Types/PositiveNumber";
 import Version from "../../../../Types/Version";
 import WorkflowStatus from "../../../../Types/Workflow/WorkflowStatus";
 import { afterEach, describe, expect, test } from "@jest/globals";
+import {
+  AIActionCardWords,
+  describeAIActionCardWords,
+} from "../../../../Types/AI/AIActionWords";
+import { dashboardTranslator } from "../../../Helpers/DashboardLocales";
+import { expectReadCardWorded } from "../../../Helpers/ReadCardWords";
 
 /*
  * query_workflows and query_probes close the "is my automation running / is
@@ -791,5 +797,74 @@ describe("query_workflows / query_probes — permissions", () => {
   test("required permissions derive from the model read ACLs", () => {
     expect(QueryWorkflowsTool.requiredPermissions.length).toBeGreaterThan(0);
     expect(QueryProbesTool.requiredPermissions.length).toBeGreaterThan(0);
+  });
+});
+
+/*
+ * Issue #7175: a workflow with no runs leaves a card, and it said
+ * "Enabled", "Yes" and "Recent runs" in English on a German page. Its words
+ * are OneUptime's own now; its description is data.
+ */
+describe("query_workflows — the card of a workflow with no runs, in the reader's language", () => {
+  async function workflowCardWords(
+    workflow: Workflow,
+  ): Promise<AIActionCardWords> {
+    jest
+      .spyOn(WorkflowService, "findOneById")
+      .mockResolvedValue(workflow as never);
+    jest.spyOn(WorkflowLogService, "findBy").mockResolvedValue([] as never);
+
+    const result: ToolExecutionResult = await QueryWorkflowsTool.execute(
+      { workflowId: WORKFLOW_ID.toString() },
+      ctx,
+    );
+
+    expect(result.widget!.data["heading"]).toBe("Deploy notifier");
+
+    return expectReadCardWorded(result.widget);
+  }
+
+  test("enabled: its English, and German", async () => {
+    const words: AIActionCardWords = await workflowCardWords(buildWorkflow());
+
+    expect(describeAIActionCardWords(words)).toEqual({
+      kind: "Workflow",
+      line: "Notifies the team on deploys.",
+      facts: [
+        { label: "Enabled", value: "Yes" },
+        { label: "Recent runs", value: "0" },
+      ],
+    });
+    expect(describeAIActionCardWords(words, dashboardTranslator("de"))).toEqual(
+      {
+        kind: "Arbeitsablauf",
+        line: "Notifies the team on deploys.",
+        facts: [
+          { label: "Aktiviert", value: "Ja" },
+          { label: "Neueste Ausführungen", value: "0" },
+        ],
+      },
+    );
+  });
+
+  test("disabled and archived: No, and Yes - does not run, in the reader's words", async () => {
+    const workflow: Workflow = buildWorkflow({ enabled: false });
+    workflow.isArchived = true;
+
+    const words: AIActionCardWords = await workflowCardWords(workflow);
+
+    expect(describeAIActionCardWords(words).facts).toEqual([
+      { label: "Enabled", value: "No" },
+      { label: "Archived", value: "Yes - does not run" },
+      { label: "Recent runs", value: "0" },
+    ]);
+
+    for (const language of ["de", "fa", "ar"]) {
+      expect(
+        JSON.stringify(
+          describeAIActionCardWords(words, dashboardTranslator(language)),
+        ),
+      ).not.toMatch(/Enabled|Archived|Yes - does not run|Recent runs|"No"/);
+    }
   });
 });

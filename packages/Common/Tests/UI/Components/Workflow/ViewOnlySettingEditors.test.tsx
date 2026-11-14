@@ -844,7 +844,7 @@ describe("a record step's record and query editor on a view", () => {
     renderEditor(true, ModelColumnEditorMode.Query, '{"title": "x"}');
 
     await screen.findByText(
-      "Couldn't load this model's columns (The columns could not be loaded.). The query is shown as JSON.",
+      "Couldn't load this model's columns. The columns could not be loaded. The query is shown as JSON.",
     );
 
     expect(harness().textContent?.includes("You can still write")).toBe(false);

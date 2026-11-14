@@ -133,7 +133,7 @@ history is laid out from it with a seeded generator, so every run draws the same
 | `?triage=`    | the case AI card's other states: `failed` (CASE-141's only triage stopped with an error), `provider`, `credits` or `limit` (no LLM provider, no AI credits, the daily AI limit: nothing can be triaged), `injection` (CASE-137's data held text written to steer an AI; its benign read set aside for Inconclusive), `retry` (CASE-142's latest triage stopped; the read before it stays) and `auto-off` (Triage new cases is off) |
 | `?lang=`      | `de`, `es`, `fr`, `it`, `pt`, `nl`, `ru`, `ja` or `fa` (right to left): the Dashboard's words and its times ("vor 9 Minuten") in that language; the case lists are measured in the widest of them                                                                                                                                                                                                                                  |
 | `?team=`      | `long`: the SOC team is "Security Operations Center - Tier 2 Escalations (EMEA)", wherever a list or a picker names it                                                                                                                                                                                                                                                                                                             |
-| `?casesetup=` | `none`: the busy month with no case custom fields and no note templates yet; `fail`: the first read of the case fields, and the first of the note templates, fails (a 500), and the next answers (`Fixture/CaseSetupFixture.js`)                                                                                                                                                                                                   |
+| `?casesetup=` | `none`: the busy month with no case custom fields and no note templates yet; `fail`: the first read of the case fields, and the first of the note templates, fails (a 500), and the next answers; `fail-with-reference`: the same, with a reference; `fail-twice`: their first two reads fail; `notes-fail-with-reference`, `notes-fail-twice`: a case's notes; `notes-more-fail`: Load more's (`Fixture/CaseSetupFixture.js`)     |
 
 ## What the fixture records
 
@@ -608,9 +608,14 @@ INC-48213; two note templates, Containment checklist and Shift hand-over; and nu
 `CASE-` in front, the next number one past the highest case's (`GET /project/:id/numbering`). A new
 project (`?empty=1`) has no fields and no templates. `?casesetup=none` is the busy month with no case
 fields and no templates yet, and `?casesetup=fail` fails the first read of the case fields, and the
-first of the note templates (a 500); the next read answers. Turn on recommended turns on the project's
-traces, network flows and session replays beside its logs, as SecuritySetup does in OneUptime
-Community (no audit log), so the pipeline counts 4 sources after it.
+first of the note templates (a 500); the next read answers. `fail-with-reference` answers each
+failure as a server that could not explain it does, with its reference, and `fail-twice` fails the
+first two reads. `notes-fail-with-reference` and `notes-fail-twice` fail the first read, or the
+first two, of a case's notes the same way, and read the case setup as ever. `notes-more-fail` gives
+the spray case 26 older notes - more than a page of its notes feed - and fails Load more's first
+read the same way; the next answers. Turn on recommended
+turns on the project's traces, network flows and session replays beside its logs, as SecuritySetup
+does in OneUptime Community (no audit log), so the pipeline counts 4 sources after it.
 
 `CaseSetup.spec.ts` covers: Custom Fields, Note Templates and Numbering under Settings, after Case
 Statuses, each its own page with its entry lit and its trail; the fields' list; the case's
@@ -628,11 +633,19 @@ and tab name it, and its Edit dialogs say Edit Note Template; with no case field
 card, and the Templates menu offers Create a template; failed reads (`?casesetup=fail`) say why and
 read again with Try again, on the case's page, both settings lists and the Templates menu; on a phone
 the case's card rule meets its edges and its fields start under its title, in both themes; and the
-Overview card in German and the Templates menu in Persian read in that language. Its
+Overview card in German and the Templates menu in Persian read in that language. A case's notes
+feed whose notes did not load (`?casesetup=notes-fail-with-reference`, #7570) says why, what to do
+and its reference under its own heading, in English and Persian at 1280 and 390, with the
+reference's row centred and nothing scrolling sideways, and Try again reads the notes; pressed from
+the keyboard (`notes-fail-twice`), Try again keeps the focus - on Try again after another failure,
+then just before the notes. A Load more that fails (`?casesetup=notes-more-fail`, #7620) says what
+failed, then why, what to do and its reference, over the notes, in English and Persian at 1280
+and 390, with nothing scrolling sideways; dismissed from the keyboard, its banner leaves the focus
+on Load more, whose next press reads the notes. Its
 screenshots are named `case-custom-fields-*`, `case-custom-fields-settings-*`,
-`case-note-templates-*`, `case-note-template-*`, `case-numbering-*`,
-`case-overview-custom-fields-390-*` and `cases-business-unit-column-1280-light`, beside the other
-screenshots (below).
+`case-note-templates-*`, `case-note-template-*`, `case-notes-fail-*`, `case-notes-more-fail-*`,
+`case-numbering-*`, `case-overview-custom-fields-390-*` and
+`cases-business-unit-column-1280-light`, beside the other screenshots (below).
 
 ## Run it
 

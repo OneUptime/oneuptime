@@ -19,6 +19,10 @@
  */
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import OneUptimeDate from "../../../Types/Date";
+import {
+  forgetRememberedDateTexts,
+  setDateDisplayLanguage,
+} from "../../../Types/DateLanguage";
 import RangeStartAndEndDateTime from "../../../Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "../../../Types/Time/TimeRange";
 import Timezone from "../../../Types/Timezone";
@@ -31,7 +35,14 @@ import TelemetryTimeRangePicker, {
 import "@testing-library/jest-dom";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import React from "react";
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import fs from "fs";
 import path from "path";
 
@@ -96,10 +107,31 @@ function buttonText(prefix: string): string {
   return (screen.getByTestId(`${prefix}-button`).textContent || "").trim();
 }
 
+// A space, a no-break space or a narrow one: the same to a reader.
+const ANY_SPACE: RegExp = /\s/g;
+
+function spaced(text: string): string {
+  return text.replace(ANY_SPACE, " ");
+}
+
 afterEach(() => {
   cleanup();
   jest.restoreAllMocks();
   OneUptimeDate.setUserTimezone(null);
+  setDateDisplayLanguage(null);
+  forgetRememberedDateTexts();
+});
+
+/*
+ * The custom windows here are in 2024, and a window that is not all in the
+ * current year names its years on the button (issue #7124, see
+ * TimeRangeButtonYear.test.tsx). These tests are about everything else the
+ * label says, so "now" is pinned into 2024, where the label is the short one.
+ */
+beforeEach(() => {
+  jest
+    .spyOn(OneUptimeDate, "getCurrentDate")
+    .mockReturnValue(new Date("2024-06-15T12:00:00.000Z"));
 });
 
 describe.each(SURFACES)(
@@ -237,6 +269,63 @@ describe.each(SURFACES)(
         expect(summary).toContain("12:15:00 AM");
         expect(buttonText(surface.prefix)).toContain("8:00 PM");
         expect(buttonText(surface.prefix)).toContain("12:15 AM");
+      });
+    });
+
+    /*
+     * The reader's language writes a 12-hour time without a zero too
+     * (issue #7279): "오전 8:00", never "오전 08:00". A 24-hour time keeps
+     * it.
+     */
+    describe("in the reader's language", () => {
+      const MORNING: RangeStartAndEndDateTime = {
+        range: TimeRange.CUSTOM,
+        startAndEndDate: new InBetween<Date>(
+          new Date("2024-03-01T08:00:00.000Z"),
+          new Date("2024-03-01T09:05:00.000Z"),
+        ),
+      };
+
+      test.each<[string, string]>([
+        ["ko", "3월 1일 오전 8:00 – 3월 1일 오전 9:05"],
+        ["zh-TW", "3月1日 上午8:00 – 3月1日 上午9:05"],
+        ["hi", "1 मार्च, 8:00 am – 1 मार्च, 9:05 am"],
+        ["ar", "1 مارس، 8:00 ص – 1 مارس، 9:05 ص"],
+      ])(
+        "%s on a 12-hour machine has no leading zero: %s",
+        (language: string, expected: string) => {
+          pin(true);
+          setDateDisplayLanguage(language);
+          surface.render(MORNING);
+
+          expect(spaced(buttonText(surface.prefix))).toBe(expected);
+        },
+      );
+
+      test.each<[string, string]>([
+        ["ko", "3월 1일 08:00 – 3월 1일 09:05"],
+        ["zh-TW", "3月1日 08:00 – 3月1日 09:05"],
+        ["hi", "1 मार्च, 08:00 – 1 मार्च, 09:05"],
+        ["ar", "1 مارس، 08:00 – 1 مارس، 09:05"],
+      ])(
+        "%s on a 24-hour machine keeps it: %s",
+        (language: string, expected: string) => {
+          pin(false);
+          setDateDisplayLanguage(language);
+          surface.render(MORNING);
+
+          expect(spaced(buttonText(surface.prefix))).toBe(expected);
+        },
+      );
+
+      test("an afternoon on a 12-hour machine in Korean: 오후 2:30", () => {
+        pin(true);
+        setDateDisplayLanguage("ko");
+        surface.render(CUSTOM_AFTERNOON);
+
+        expect(spaced(buttonText(surface.prefix))).toBe(
+          "3월 1일 오후 2:30 – 3월 1일 오후 6:45",
+        );
       });
     });
 

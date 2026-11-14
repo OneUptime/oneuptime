@@ -126,7 +126,7 @@ Passkeys vereisen dat het adres van uw OneUptime met `https://` begint, en een p
 - Controleer of de telefoon meldingen van OneUptime On-Call toestaat, en of Niet storen of een Focus ze niet tegenhoudt.
 - Controleer in **Gebruikersinstellingen → Meldingsmethoden**, tabblad **Pushmeldingen**, of de telefoon in de lijst staat, en stuur hem een **Testmelding**.
 - Is hij gemarkeerd als **Ontvangt geen meldingen**, open dan de app terwijl u bent aangemeld: zie [Wanneer een telefoon zich opnieuw moet registreren](#wanneer-een-telefoon-zich-opnieuw-moet-registreren).
-- Controleer uw bereikbaarheidsregels onder **Gebruikersinstellingen → Bereikbaarheidsregels**: die bepalen welke oproepen welke methode bereiken.
+- Controleer uw bereikbaarheidsregels onder **Gebruikersinstellingen → Hoe ik bereikbaar ben**: die bepalen welke oproepen welke methode bereiken.
 - Controleer bij een zelf gehost OneUptime of de server zijn push-relay bereikt: zie [Pushmeldingen](/docs/self-hosted/push-notifications#netwerktoegang).
 :::
 
@@ -135,7 +135,7 @@ Zet het batterijgebruik van de app in de Android-instellingen voor OneUptime On-
 :::
 
 :::details Kritieke meldingen klinken niet door de stille modus heen
-Open in de app **Settings**: de regel onder **Critical On-Call Alerts** zegt wat er op die telefoon ontbreekt. Controleer daarna onder **Gebruikersinstellingen → Bereikbaarheidsregels** of de bereikbaarheidsregel die de oproep stuurde op **Kritieke waarschuwing** staat, niet op **Normaal**. Elke telefoon heeft een eigen schakelaar.
+Open in de app **Settings**: de regel onder **Critical On-Call Alerts** zegt wat er op die telefoon ontbreekt. Controleer daarna onder **Gebruikersinstellingen → Hoe ik bereikbaar ben** of de bereikbaarheidsregel die de oproep stuurde op **Kritieke waarschuwing** staat, niet op **Normaal**. Elke telefoon heeft een eigen schakelaar.
 :::
 
 ### Desktop-app

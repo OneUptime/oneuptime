@@ -1,5 +1,4 @@
 import BaseService from "./BaseService";
-import UserOnCallLogTimelineService from "./UserOnCallLogTimelineService";
 import WorkspaceNotificationLogService from "./WorkspaceNotificationLogService";
 import WorkspaceProjectAuthTokenService from "./WorkspaceProjectAuthTokenService";
 import SlackUtil from "../Utils/Workspace/Slack/Slack";
@@ -8,6 +7,8 @@ import MattermostUtil from "../Utils/Workspace/Mattermost/Mattermost";
 import WorkspaceNotificationText from "../Utils/Workspace/WorkspaceNotificationText";
 import { WorkspaceDirectMessageLocation } from "../Utils/Workspace/WorkspaceBase";
 import logger from "../Utils/Logger";
+import BlockedProjectNotifications from "../Utils/Notification/BlockedProjectNotifications";
+import { recordSendResult } from "../Utils/OnCall/OnCallNotificationStatus";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import NotificationDeliveryMetrics, {
   NotificationDeliveryChannel,
@@ -23,7 +24,6 @@ import {
 import WorkspaceProjectAuthToken from "../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
-import UserNotificationStatus from "../../Types/UserNotification/UserNotificationStatus";
 import WorkspaceNotificationActionType from "../../Types/Workspace/WorkspaceNotificationActionType";
 import WorkspaceNotificationStatus from "../../Types/Workspace/WorkspaceNotificationStatus";
 import { WorkspaceMessageBlock } from "../../Types/Workspace/WorkspaceMessagePayload";
@@ -82,8 +82,8 @@ export interface SendWorkspaceDirectMessageOptions {
   userId?: ObjectID | undefined;
   /*
    * When set, the on-call timeline row is flipped to Sent / Error after the
-   * send attempt, mirroring what the Notification FeatureSet does for the
-   * other channels.
+   * send attempt - while it still says Sending (OnCallNotificationStatus) -
+   * mirroring what the Notification FeatureSet does for the other channels.
    */
   userOnCallLogTimelineId?: ObjectID | undefined;
   incidentId?: ObjectID | undefined;
@@ -135,6 +135,21 @@ export class WorkspaceUserNotificationService extends BaseService {
       : null;
 
     try {
+      /*
+       * A project a master admin blocked, and a sample project (issue
+       * #6808), send nobody a direct message (BlockedProjectNotifications):
+       * the send fails with the reason, which the on-call timeline shows.
+       */
+      const silencedReason: string | null =
+        await BlockedProjectNotifications.getSilencedReason({
+          channel: `${workspaceDisplayName} message`,
+          projectId: options.projectId,
+        });
+
+      if (silencedReason) {
+        throw new BadDataException(silencedReason);
+      }
+
       if (!options.workspaceUserId) {
         throw new BadDataException(
           `This account is not connected to ${workspaceDisplayName}. Please go to User Settings and connect the account.`,
@@ -264,20 +279,19 @@ export class WorkspaceUserNotificationService extends BaseService {
       logger.error(logError);
     }
 
+    /*
+     * Written only while the page's timeline entry still says Sending
+     * (OnCallNotificationStatus): the person may have acknowledged the page,
+     * or escalated it, meanwhile - from another of its messages.
+     */
     if (options.userOnCallLogTimelineId) {
-      await UserOnCallLogTimelineService.updateOneById({
-        id: options.userOnCallLogTimelineId,
-        data: {
-          status: sendError
-            ? UserNotificationStatus.Error
-            : UserNotificationStatus.Sent,
-          statusMessage: sendError
-            ? sendError.message
-            : `Message sent on ${workspaceDisplayName}.`,
-        },
-        props: {
-          isRoot: true,
-        },
+      await recordSendResult({
+        userOnCallLogTimelineId: options.userOnCallLogTimelineId,
+        isSent: !sendError,
+        statusMessage: sendError
+          ? sendError.message ||
+            `Failed to send ${workspaceDisplayName} direct message.`
+          : `Message sent on ${workspaceDisplayName}.`,
       });
     }
 

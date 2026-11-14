@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 50830,
-    "untranslated": 5430
+    "keys": 51296,
+    "untranslated": 5278
   },
   "sameAsEnglish": [
     " incidents",
@@ -118,6 +118,7 @@
     "CPU Ready {{percent}}",
     "CPU.*high",
     "CSS",
+    "Cache",
     "Canada",
     "Canada (+1)",
     "Canonical Sunbeam",
@@ -491,6 +492,7 @@
     "Stacks",
     "Standard",
     "StatusPage",
+    "Suggestions",
     "Switch",
     "TLS",
     "TTL",
@@ -680,6 +682,7 @@
     "volume",
     "volumes",
     "workflow",
+    "workflows",
     "writesets",
     "x86",
     "z",
@@ -688,6 +691,7 @@
     "{{amount}}, ratio {{ratio}}",
     "{{count}} CPU",
     "{{count}} Kubernetes",
+    "{{count}} OSD",
     "{{count}} SLO",
     "{{count}} SMS",
     "{{count}} VM",
@@ -722,6 +726,7 @@
     "{{count}} minutes",
     "{{count}} mon",
     "{{count}} mons",
+    "{{count}} ms",
     "{{count}} note",
     "{{count}} notes",
     "{{count}} option",

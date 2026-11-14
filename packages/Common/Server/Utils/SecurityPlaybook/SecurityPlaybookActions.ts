@@ -872,13 +872,20 @@ export default class SecurityPlaybookActions {
     const product: string =
       workspaceType === WorkspaceType.Slack ? "Slack" : "Microsoft Teams";
     const errors: Array<string> = [];
+    let notSentReason: string | undefined = undefined;
     let threads: number = 0;
 
     for (const response of responses) {
       threads += (response.threads || []).length;
+      notSentReason = notSentReason || response.notSentReason || undefined;
 
       for (const error of response.errors || []) {
-        errors.push(`${error.channel}: ${error.error}`);
+        errors.push(
+          SecurityPlaybookActions.describeChannelError({
+            channelName: error.channel?.name || config.channelName,
+            error: error.error,
+          }),
+        );
       }
     }
 
@@ -886,7 +893,8 @@ export default class SecurityPlaybookActions {
       return failed(
         errors.length > 0
           ? errors.join(" ")
-          : `Nothing was posted: the project is not connected to ${product}, or the channel #${config.channelName} was not found.`,
+          : notSentReason ||
+              `Nothing was posted: the project is not connected to ${product}, or the channel #${config.channelName} was not found.`,
       );
     }
 
@@ -894,6 +902,29 @@ export default class SecurityPlaybookActions {
       mdText`Posted the case to ${product} channel **#${config.channelName}**.`,
       { feedEventType: SecurityCaseFeedEventType.Notification },
     );
+  }
+
+  /*
+   * Why the step did not post in a channel, as the step's error says it:
+   * the workspace's own words, which name the channel when it could not
+   * be found (WorkspaceChannelNotFound), or else the channel and then
+   * them. The channel was written as "[object Object]" before.
+   */
+  public static describeChannelError(data: {
+    channelName: string;
+    error: string;
+  }): string {
+    const channelName: string = (data.channelName || "")
+      .trim()
+      .replace(/^#+/, "");
+    const error: string =
+      (data.error || "").trim() || "The message was not posted.";
+
+    if (!channelName || error.includes(channelName)) {
+      return error;
+    }
+
+    return `#${channelName}: ${error}`;
   }
 
   // ---------- Escalate ----------

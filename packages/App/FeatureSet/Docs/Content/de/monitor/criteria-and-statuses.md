@@ -1,4 +1,4 @@
-# Monitorkriterien & Status
+# Kriterien & Status
 
 Die Kriterien eines Monitors entscheiden, was jede Prüfung bedeutet: ob der Monitor erreichbar ist oder ausgefallen, und ob OneUptime einen Vorfall deklariert oder eine Warnung erstellt. Status sind die Liste Ihres Projekts, in der ein Monitor sein kann, von **Betriebsbereit** bis **Offline**. Diese Seite erklärt beides für jeden Monitortyp; die eigene Seite jedes Typs nennt die Filter, die er anbietet.
 
@@ -111,7 +111,7 @@ Geheimnisse und personenbezogene Daten werden maskiert, bevor etwas behalten wir
 :::steps
 ### Die Kriterienseite öffnen
 
-Gehen Sie zu **Monitore** und öffnen Sie den Monitor. Klappen Sie in seinem Seitenmenü **Konfiguration** auf und klicken Sie auf **Kriterien**. Die Karte **Überwachungskriterien** zeigt jedes Kriterium, was es prüft und was es tut.
+Gehen Sie zu **Monitore** und öffnen Sie den Monitor. Klappen Sie in seinem Seitenmenü **Konfiguration** auf und klicken Sie auf **Kriterien**. Die Karte **Kriterien** zeigt jedes Kriterium, was es prüft und was es tut.
 
 ### Auf Überwachungskriterien bearbeiten klicken
 

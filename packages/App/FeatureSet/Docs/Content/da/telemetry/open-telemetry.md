@@ -36,7 +36,7 @@ flowchart TB
 
 ## Før du begynder
 
-- Et OneUptime-projekt, hvor du kan oprette indtagelsesnøgler: projektejere og -administratorer kan, og det kan alle med tilladelsen **Create Telemetry Ingestion Key** også.
+- Et OneUptime-projekt, hvor du kan oprette indtagelsesnøgler: projektejere og -administratorer kan, og det kan alle med tilladelsen Create Ingestion Key også.
 - En applikation, du kan føje et OpenTelemetry-SDK til, eller en OpenTelemetry Collector.
 - Udgående HTTPS (port 443) fra din applikation eller collector til `oneuptime.com` eller til din egen OneUptime-vært.
 
@@ -365,7 +365,7 @@ Over HTTP har hvert signal sin egen sti under endpointet. SDK'er og collectoren 
 | Logs | `https://oneuptime.com/otlp/v1/logs` |
 | Profiler | `https://oneuptime.com/otlp/v1/profiles` |
 
-Til kontinuerlig profilering sender de fleste profilere i stedet til det Pyroscope-kompatible endpoint — se [Kontinuerlig profilering](/docs/telemetry/profiles). En collector, der eksporterer OTLP-profiler, skal sætte exporterens `profiles_endpoint` til `https://oneuptime.com/otlp/v1/profiles`, fordi den som standard sender profiler til en udviklingssti, som OneUptime ikke betjener.
+Til kontinuerlig profilering sender de fleste profilere i stedet til det Pyroscope-kompatible endpoint — se [Profiler](/docs/telemetry/profiles). En collector, der eksporterer OTLP-profiler, skal sætte exporterens `profiles_endpoint` til `https://oneuptime.com/otlp/v1/profiles`, fordi den som standard sender profiler til en udviklingssti, som OneUptime ikke betjener.
 
 ### OTLP over gRPC
 

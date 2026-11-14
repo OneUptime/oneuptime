@@ -279,7 +279,21 @@ beforeAll(async () => {
       return undefined;
     },
   );
-  olderRelayApp.use(expressErrorHandler);
+  /*
+   * Its error handler, as it was before this server's own learned to say
+   * what an unexplained error means (#6836): any error that is not
+   * OneUptime's own is 500 "Server Error".
+   */
+  olderRelayApp.use(
+    (
+      _error: Error,
+      _req: ExpressRequest,
+      res: ExpressResponse,
+      _next: NextFunction,
+    ) => {
+      res.status(500).send({ error: "Server Error" });
+    },
+  );
   olderRelay = await listen(olderRelayApp);
   olderRelayUrl = `${originOf(olderRelay)}${RELAY_PATH}/send`;
 

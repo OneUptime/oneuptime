@@ -9,6 +9,7 @@ import MaintenanceReminderTimingField from "./MaintenanceReminderTimingField";
 import {
   DEFAULT_REMINDER_INTERVAL_IN_MINUTES,
   MAINTENANCE_REMINDER_INTERVAL_DESCRIPTION,
+  REMINDER_INTERVAL_VALIDATION,
   REMINDER_RULE_NAME_DESCRIPTION,
   followValueWithRuleName,
   getMaintenanceReminderRuleName,
@@ -100,6 +101,7 @@ export const getMaintenanceReminderRuleActionFields: () => Array<
       required: true,
       placeholder: "30",
       defaultValue: DEFAULT_REMINDER_INTERVAL_IN_MINUTES,
+      validation: REMINDER_INTERVAL_VALIDATION,
       onChange: followValueWithRuleName<ScheduledMaintenanceReminderRule>({
         column: "reminderIntervalInMinutes",
         makeName: getMaintenanceReminderRuleName,

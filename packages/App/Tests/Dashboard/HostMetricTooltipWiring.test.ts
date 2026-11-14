@@ -470,13 +470,26 @@ describe("Host overview", () => {
     const field: string = between(
       code,
       "field: { processCount: true, },",
-      "fieldType: FieldType.Number,",
+      "fieldType: FieldType.Element,",
     );
 
     expect(field).toContain('title: "Process Count (cached)"');
     expect(field).toContain(
       "description: HOST_METRIC_DESCRIPTIONS.processCountCached,",
     );
+  });
+
+  test("the cached process count is written in the reader's digits", () => {
+    const element: string = between(
+      code,
+      "field: { processCount: true, },",
+      "field: { agentVersion: true, },",
+    );
+
+    expect(element).toContain(
+      "translator.formatNumber(Number(item.processCount))",
+    );
+    expect(element).toContain("<EmptyValue />");
   });
 
   test("imports the (i) it draws", () => {

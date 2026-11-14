@@ -156,6 +156,13 @@ import Navigation from "../../../UI/Utils/Navigation";
 const NO_TYPE_MESSAGE: string =
   "This monitor has no monitor type, so its pages cannot be shown.";
 
+/*
+ * A read that fails with "Service unavailable", which says only that it
+ * failed: since #6836 it is said as a problem the server could not explain.
+ */
+const SERVER_COULD_NOT_EXPLAIN: string =
+  "The server ran into a problem it could not explain. Try again in a moment.";
+
 interface Deferred<T> {
   promise: Promise<T>;
   resolve: (value: T) => void;
@@ -502,14 +509,15 @@ describe("Monitor view layout - the monitor's type", () => {
     renderLayout();
     await flush();
 
-    expect(screen.getByText("Service unavailable")).toBeInTheDocument();
+    expect(screen.getByText(SERVER_COULD_NOT_EXPLAIN)).toBeInTheDocument();
+    expect(screen.queryByText("Service unavailable")).toBeNull();
     expect(screen.queryByTestId("monitor-page")).toBeNull();
 
     fireEvent.click(screen.getByTestId("refresh-button"));
     await flush();
 
     expect(typeReads).toEqual([MONITOR_A, MONITOR_A]);
-    expect(screen.queryByText("Service unavailable")).toBeNull();
+    expect(screen.queryByText(SERVER_COULD_NOT_EXPLAIN)).toBeNull();
     expect(heading()).toHaveTextContent("Monitor - Checkout API");
     expect(screen.getByTestId("monitor-page")).toBeInTheDocument();
   });
@@ -535,12 +543,12 @@ describe("Monitor view layout - the monitor's type", () => {
     renderLayout();
     await flush();
 
-    expect(screen.getByText("Service unavailable")).toBeInTheDocument();
+    expect(screen.getByText(SERVER_COULD_NOT_EXPLAIN)).toBeInTheDocument();
 
     openMonitorB();
     await flush();
 
-    expect(screen.queryByText("Service unavailable")).toBeNull();
+    expect(screen.queryByText(SERVER_COULD_NOT_EXPLAIN)).toBeNull();
     expect(screen.getByTestId("monitor-side-menu")).toHaveTextContent(
       `${MonitorType.Ping} menu for ${MONITOR_B}`,
     );

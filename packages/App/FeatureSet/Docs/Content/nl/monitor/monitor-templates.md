@@ -47,10 +47,10 @@ Kies onder **Standaardinstellingen voor monitor** het **Monitortype**, met dezel
 
 ### De criteria en het interval instellen
 
-Vul onder **Criteria** in wat er gecontroleerd wordt en de criteria, zoals bij [Monitor maken](/docs/monitor/create-monitor#criteria). Met de kaart **Template sync settings** bovenaan beschermt u velden tegen synchronisaties (zie [Waarden per monitor behouden](#waarden-per-monitor-behouden)). Voor een monitortype dat sondes controleren, vraagt de laatste stap, **Interval**, om het **Bewakingsinterval**. Klik op de laatste stap op **Monitorsjabloon aanmaken**.
+Vul onder **Criteria** in wat er gecontroleerd wordt en de criteria, zoals bij [Monitor maken](/docs/monitor/create-monitor#criteria). Met de kaart **Instellingen voor sjabloonsynchronisatie** bovenaan beschermt u velden tegen synchronisaties (zie [Waarden per monitor behouden](#waarden-per-monitor-behouden)). Voor een monitortype dat sondes controleren, vraagt de laatste stap, **Interval**, om het **Bewakingsinterval**. Klik op de laatste stap op **Monitorsjabloon aanmaken**.
 :::
 
-Het sjabloon wordt aan de lijst toegevoegd. Open het om de pagina te zien, met een kaart voor elk deel: **Sjablooninformatie**, **Standaardinstellingen voor monitor**, **Bewakingscriteria**, **Bewakingsinterval** (met **Minimale sonde-overeenstemming**), **Labels**, **Standaardwaarden voor aangepaste velden** (wanneer het project aangepaste monitorvelden heeft) en **Gekoppelde monitoren**. U wijzigt elk deel op zijn eigen kaart, bijvoorbeeld met **Criteria bewerken** of **Interval bewerken**.
+Het sjabloon wordt aan de lijst toegevoegd. Open het om de pagina te zien, met een kaart voor elk deel: **Sjablooninformatie**, **Standaardinstellingen voor monitor**, **Criteria**, **Bewakingsinterval** (met **Minimale sonde-overeenstemming**), **Labels**, **Standaardwaarden voor aangepaste velden** (wanneer het project aangepaste monitorvelden heeft) en **Gekoppelde monitoren**. U wijzigt elk deel op zijn eigen kaart, bijvoorbeeld met **Criteria bewerken** of **Interval bewerken**.
 
 ## Monitoren maken vanuit een sjabloon
 
@@ -85,22 +85,22 @@ Ga naar **Monitoren → Instellingen → Sjablonen** en open het sjabloon.
 
 ### De criteria bewerken
 
-Klik op de kaart **Bewakingscriteria** op **Criteria bewerken**.
+Klik op de kaart **Criteria** op **Criteria bewerken**.
 
 ### De velden beschermen
 
-Vink onder **Template sync settings** **Do not sync this field** aan naast elk veld dat u op de gekoppelde monitoren wilt behouden.
+Vink onder **Instellingen voor sjabloonsynchronisatie** **Dit veld niet synchroniseren** aan naast elk veld dat u op de gekoppelde monitoren wilt behouden.
 
 ### Opslaan
 
-Sla uw wijzigingen op. De kaart **Bewakingscriteria**, en de bevestiging van beide synchronisaties hieronder, tonen de beschermde velden.
+Sla uw wijzigingen op. De kaart **Criteria**, en de bevestiging van beide synchronisaties hieronder, tonen de beschermde velden.
 
 ### Synchroniseren
 
 Gebruik **Criteria synchroniseren naar gekoppelde monitoren**, of **Synchroniseren vanuit sjabloon** op één gekoppelde monitor.
 :::
 
-Bescherm bijvoorbeeld **Monitor destination** en **Request headers** op een API-sjabloon. Productie- en stagingmonitoren houden hun eigen URL's en headers, terwijl beide de bijgewerkte criteria van het sjabloon en de andere onbeschermde instellingen krijgen.
+Bescherm bijvoorbeeld **Monitordoel** en **Aanvraagheaders** op een API-sjabloon. Productie- en stagingmonitoren houden hun eigen URL's en headers, terwijl beide de bijgewerkte criteria van het sjabloon en de andere onbeschermde instellingen krijgen.
 
 Welke opties er zijn, hangt af van het monitortype. Daaronder vallen bestemmingen en poorten, HTTP-aanvraagopties, databaseverbindingen, DNS-instellingen, infrastructuurselectors en telemetriequery's. Samenhangende inloggegevens, zoals een clientcertificaat en de privésleutel ervan, worden samen behouden.
 
@@ -159,7 +159,7 @@ Laat de array weg of zet hem op `[]` om elke ondersteunde stapinstelling te sync
 | Logboeken, Security Events, Traces, AI / LLM, Metrieken, Uitzonderingen, Profielen | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor`, `profileMonitor` (de hele configuratie van de monitor) |
 | Sondestatus | `probeStatusMonitor.probeIds` |
 
-Infrastructuurmonitoren (Kubernetes, Docker Container, Host, Podman Container, Proxmox, Docker Swarm, Ceph, Opslagarray, IoT Device) bieden hun resourceselector, filters (alle behalve Host), metriekquery's en het tijdvenster van de query. Hun namen staan onder **Template sync settings** op een sjabloon van dat type.
+Infrastructuurmonitoren (Kubernetes, Docker Container, Host, Podman Container, Proxmox, Docker Swarm, Ceph, Opslagarray, IoT Device) bieden hun resourceselector, filters (alle behalve Host), metriekquery's en het tijdvenster van de query. Hun namen staan onder **Instellingen voor sjabloonsynchronisatie** op een sjabloon van dat type.
 :::
 
 ## Problemen oplossen

@@ -1,12 +1,30 @@
+import { DAYS_LEFT, LicenseStatusCopy } from "./LicenseSettingsCopy";
 import OneUptimeDate from "Common/Types/Date";
+import {
+  inEnglishDates,
+  isEnglishDateLanguage,
+  withDateDisplayLanguage,
+} from "Common/Types/DateLanguage";
+import {
+  ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS,
+  ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS,
+} from "Common/Types/EnterpriseLicense/EnterpriseLicensePeriods";
 import { JSONObject } from "Common/Types/JSON";
 import CloudMarketplace, {
   CloudMarketplaceUtil,
 } from "Common/Types/Marketplace/CloudMarketplace";
 import {
-  GRACE_ENFORCEMENT_SUMMARY,
+  ComposedValue,
+  composedValue,
+  createTranslator,
+  SentenceOptions,
+  TemplateValues,
+  Translator,
+} from "Common/Types/Translator";
+import {
+  GRACE_ENFORCEMENT_TEMPLATE,
   LICENSE_LAPSED_STATE,
-  TRIAL_ENFORCEMENT_SUMMARY,
+  TRIAL_ENFORCEMENT_TEMPLATE,
 } from "Common/UI/Components/EditionLabel/EditionLabel";
 import { LicenseSnapshot } from "Common/UI/Components/EditionLabel/LicenseDetails";
 import {
@@ -19,9 +37,49 @@ import VersionUtil from "Common/Utils/VersionUtil";
  * What Settings > License says about the license, read from the answer of
  * GET /global-config/license (or of a write, which answers with the same
  * body). Pure, and free of React.
+ *
+ * In the reader's language: every sentence is a key of LicenseStatusCopy
+ * (./LicenseSettingsCopy.ts), most of them the edition dialog's own, and
+ * each date is written as the sentence around it is. What the license client
+ * itself said (the server's message) is not OneUptime's to word: it is kept
+ * apart, as written, so the page draws it on a line of its own.
  */
 
 const DAY_IN_MS: number = 24 * 60 * 60 * 1000;
+
+// The sentences of a reader whose language is not known: English.
+const ENGLISH: Translator = createTranslator(undefined, "en");
+
+type DrawnOnThePageFunction = (translator: Translator) => Translator;
+
+/*
+ * The reader's translator, for sentences drawn on the page and nothing else
+ * (a summary is never stored or sent): each value is set apart from its
+ * sentence where it could move the words around it (SentenceOptions'
+ * setsValuesApart). On a Persian page "Enterprise Edition trial: 10 days
+ * left" keeps "Enterprise Edition" in Latin letters, and without the
+ * isolate the browser drew the days' Persian digits beside it, inside the
+ * Latin run: "دورهٔ آزمایشی ۱۰ :Enterprise Edition روز مانده" - the count on
+ * the wrong side of the colon, away from its "days left". A marketplace's
+ * name and a reporting problem in English sit in their own runs the same way.
+ */
+const drawnOnThePage: DrawnOnThePageFunction = (
+  translator: Translator,
+): Translator => {
+  return {
+    ...translator,
+    translateTemplate: (
+      template: string,
+      values?: TemplateValues,
+      options?: SentenceOptions,
+    ): string => {
+      return translator.translateTemplate(template, values, {
+        setsValuesApart: true,
+        ...options,
+      });
+    },
+  };
+};
 
 /*
  * What the license client (LicenseToken.ts) says when it has nothing to add
@@ -40,6 +98,12 @@ export interface LicenseStatusSummary {
   title: string;
   // Where the license stands and what to do, in a sentence or two.
   description: string;
+  /*
+   * What the license client said about it, as the server sent it: a
+   * diagnosis in English, drawn on a line of its own so it reads in its own
+   * direction on an Arabic or Persian page.
+   */
+  serverMessage?: string | undefined;
   // What happens if nobody does: smaller, so the form stays near the top.
   note?: string | undefined;
 }
@@ -78,6 +142,47 @@ const toText: ToStringFunction = (value: unknown): string => {
   return typeof value === "string" ? value : "";
 };
 
+type WriteDateFunction = (date: Date) => string;
+
+/*
+ * A date as the page writes one, with its day, its month and its year:
+ * "02 Mar 2026", "2. März 2026", "۲ مارس ۲۰۲۶" - in the page's language
+ * (OneUptimeDate's display language), never the browser's.
+ */
+export const writeLicenseDate: WriteDateFunction = (date: Date): string => {
+  return OneUptimeDate.getDateAsLocalDayMonthYearString(date);
+};
+
+type DateInSentenceFunction = (date: Date) => ComposedValue;
+
+/*
+ * A date inside a sentence, in the sentence's language: the reader's where
+ * their language words the sentence, English where it does not - so an
+ * English sentence never holds a German date.
+ */
+const dateInSentence: DateInSentenceFunction = (date: Date): ComposedValue => {
+  return composedValue((sentence: Translator): string => {
+    const write: () => string = (): string => {
+      return writeLicenseDate(date);
+    };
+
+    return isEnglishDateLanguage(sentence.language)
+      ? inEnglishDates(write)
+      : withDateDisplayLanguage(sentence.language, write);
+  });
+};
+
+type DaysLeftFunction = (daysLeft: number) => ComposedValue;
+
+// "10 days left", in the sentence's language, the count in the reader's digits.
+const daysLeftInSentence: DaysLeftFunction = (
+  daysLeft: number,
+): ComposedValue => {
+  return composedValue((sentence: Translator): string => {
+    return sentence.translatePlural(DAYS_LEFT, daysLeft);
+  });
+};
+
 /*
  * Enterprise Edition with no license yet, inside its first-run trial - or
  * holding a token it cannot date, which falls back to the same trial.
@@ -87,7 +192,9 @@ type PayloadCheckFunction = (payload: JSONObject) => boolean;
 export const isUnlicensedTrial: PayloadCheckFunction = (
   payload: JSONObject,
 ): boolean => {
-  return payload["status"] === "grace" && payload["graceReason"] === "unlicensed";
+  return (
+    payload["status"] === "grace" && payload["graceReason"] === "unlicensed"
+  );
 };
 
 // A real license (not the trial) is valid and loaded.
@@ -156,6 +263,7 @@ const hasLicenseInstalled: PayloadCheckFunction = (
 type DescribeMarketplaceFunction = (
   payload: JSONObject,
   marketplace: CloudMarketplace,
+  translator: Translator,
 ) => LicenseStatusSummary;
 
 /*
@@ -165,7 +273,9 @@ type DescribeMarketplaceFunction = (
 const describeMarketplace: DescribeMarketplaceFunction = (
   payload: JSONObject,
   marketplace: CloudMarketplace,
+  translator: Translator,
 ): LicenseStatusSummary => {
+  // The listing's own name, as it is written in every language.
   const name: string = CloudMarketplaceUtil.getDisplayName(marketplace);
   const billing: JSONObject =
     payload["marketplaceBilling"] &&
@@ -175,14 +285,21 @@ const describeMarketplace: DescribeMarketplaceFunction = (
       : {};
   const lastProblem: string = toText(billing["lastProblem"]);
   const problem: string = lastProblem
-    ? `Last reporting problem: ${lastProblem}`
+    ? translator.translateTemplate(LicenseStatusCopy.lastReportingProblem, {
+        problem: lastProblem,
+      })
     : "";
 
   if (payload["licenseValid"] === true && payload["status"] !== "grace") {
     return {
       tone: "healthy",
-      title: `Licensed through ${name}`,
-      description: `Every user of this installation is billed by the hour on your ${name} account. Enterprise features stay licensed for as long as ${name} accepts the installation's hourly usage reports.`,
+      title: translator.translateTemplate(LicenseStatusCopy.licensedThrough, {
+        marketplace: name,
+      }),
+      description: translator.translateTemplate(
+        LicenseStatusCopy.billedByTheHour,
+        { marketplace: name },
+      ),
       note: problem || undefined,
     };
   }
@@ -192,12 +309,21 @@ const describeMarketplace: DescribeMarketplaceFunction = (
 
     return {
       tone: "warning",
-      title: `${name} is not accepting usage reports`,
+      title: translator.translateTemplate(
+        LicenseStatusCopy.notAcceptingReports,
+        { marketplace: name },
+      ),
       description: joinSentences([
         graceEndsAt
-          ? `Every enterprise feature keeps working until ${graceEndsAt.toLocaleDateString()}.`
-          : "Every enterprise feature keeps working until the grace period ends.",
-        `Make sure this installation can reach ${name} and is set up as the listing's instructions say.`,
+          ? translator.translateTemplate(LicenseStatusCopy.keepsWorkingUntil, {
+              date: dateInSentence(graceEndsAt),
+            })
+          : translator.translateText(
+              LicenseStatusCopy.keepsWorkingUntilGraceEnds,
+            ),
+        translator.translateTemplate(LicenseStatusCopy.makeSureItCanReach, {
+          marketplace: name,
+        }),
       ]),
       note: problem || undefined,
     };
@@ -205,28 +331,35 @@ const describeMarketplace: DescribeMarketplaceFunction = (
 
   return {
     tone: "critical",
-    title: `${name} no longer licenses this installation`,
+    title: translator.translateTemplate(LicenseStatusCopy.noLongerLicenses, {
+      marketplace: name,
+    }),
     description: joinSentences([
-      toText(payload["message"]),
-      LICENSE_LAPSED_STATE,
+      translator.translateText(LICENSE_LAPSED_STATE),
       problem,
     ]),
+    serverMessage: toText(payload["message"]) || undefined,
   };
 };
 
 type DescribeLicenseStatusFunction = (
   payload: JSONObject,
   now?: Date | undefined,
+  translator?: Translator | undefined,
 ) => LicenseStatusSummary;
 
 export const describeLicenseStatus: DescribeLicenseStatusFunction = (
   payload: JSONObject,
   now?: Date | undefined,
+  readerTranslator: Translator = ENGLISH,
 ): LicenseStatusSummary => {
+  const translator: Translator = drawnOnThePage(readerTranslator);
+
   if (CloudMarketplaceUtil.isCloudMarketplace(payload["marketplace"])) {
     return describeMarketplace(
       payload,
       payload["marketplace"] as CloudMarketplace,
+      translator,
     );
   }
 
@@ -244,29 +377,38 @@ export const describeLicenseStatus: DescribeLicenseStatusFunction = (
         ),
       )
     : null;
-  const daysLeftText: string =
-    daysLeft === null
-      ? ""
-      : daysLeft === 1
-        ? "1 day left"
-        : `${daysLeft} days left`;
+
+  const translate: (text: string) => string = (text: string): string => {
+    return translator.translateText(text) || text;
+  };
 
   if (isUnlicensedTrial(payload)) {
     return {
       tone: "warning",
-      title: daysLeftText
-        ? `Enterprise Edition trial: ${daysLeftText}`
-        : "Enterprise Edition trial",
+      title:
+        daysLeft === null
+          ? translate(LicenseStatusCopy.trial)
+          : translator.translateTemplate(LicenseStatusCopy.trialDaysLeft, {
+              daysLeft: daysLeftInSentence(daysLeft),
+            }),
       description: joinSentences([
-        isInstalled
-          ? "A license is installed, but this installation cannot tell whether it is still current, so it is treating this as an unlicensed install."
-          : "No Enterprise license is installed.",
-        isInstalled ? message : "",
+        translate(
+          isInstalled
+            ? LicenseStatusCopy.installedButUnsure
+            : LicenseStatusCopy.noLicenseInstalled,
+        ),
         graceEndsAt
-          ? `Enterprise features stay fully available until ${graceEndsAt.toLocaleDateString()}.`
-          : "Enterprise features stay fully available during the trial.",
+          ? translator.translateTemplate(
+              LicenseStatusCopy.fullyAvailableUntil,
+              { date: dateInSentence(graceEndsAt) },
+            )
+          : translate(LicenseStatusCopy.fullyAvailable),
       ]),
-      note: TRIAL_ENFORCEMENT_SUMMARY,
+      serverMessage: isInstalled && message ? message : undefined,
+      // The number in the reader's digits, as the days left are.
+      note: translator.translateTemplate(TRIAL_ENFORCEMENT_TEMPLATE, {
+        days: translator.formatNumber(ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS),
+      }),
     };
   }
 
@@ -274,59 +416,81 @@ export const describeLicenseStatus: DescribeLicenseStatusFunction = (
     return {
       tone: "warning",
       title: graceEndsAt
-        ? `License expired, grace period until ${graceEndsAt.toLocaleDateString()}`
-        : "License expired, grace period",
+        ? translator.translateTemplate(LicenseStatusCopy.graceUntil, {
+            date: dateInSentence(graceEndsAt),
+          })
+        : translate(LicenseStatusCopy.grace),
       description: joinSentences([
         expiresAt
-          ? `The Enterprise license expired on ${expiresAt.toLocaleDateString()}.`
-          : "The Enterprise license expired.",
-        daysLeftText
-          ? `Every enterprise feature keeps working until the grace period ends (${daysLeftText}).`
-          : "Every enterprise feature keeps working until the grace period ends.",
-        "Renew the license with OneUptime, then refresh it here.",
+          ? translator.translateTemplate(LicenseStatusCopy.expiredOn, {
+              date: dateInSentence(expiresAt),
+            })
+          : translate(LicenseStatusCopy.expired),
+        daysLeft === null
+          ? translate(LicenseStatusCopy.keepsWorkingUntilGraceEnds)
+          : translator.translateTemplate(
+              LicenseStatusCopy.keepsWorkingUntilGraceEndsDaysLeft,
+              { daysLeft: daysLeftInSentence(daysLeft) },
+            ),
+        translate(LicenseStatusCopy.renewThenRefreshHere),
       ]),
-      note: GRACE_ENFORCEMENT_SUMMARY,
+      note: translator.translateTemplate(GRACE_ENFORCEMENT_TEMPLATE, {
+        days: translator.formatNumber(ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS),
+      }),
     };
   }
 
   if (payload["licenseValid"] !== true) {
+    /*
+     * An invalid license: this page's sentence says what it means and what
+     * to do, in the reader's language, and the license client's own message
+     * says why, as it was sent. With the message alone, a German or Persian
+     * admin's only explanation was an English sentence.
+     */
     if (status === "invalid") {
       return {
         tone: "critical",
-        title: "License not valid",
-        description:
-          message ||
-          "The stored license could not be verified. Validate the license again.",
-        note: LICENSE_LAPSED_STATE,
+        title: translate(LicenseStatusCopy.licenseNotValid),
+        description: translate(LicenseStatusCopy.couldNotBeVerified),
+        serverMessage: message || undefined,
+        note: translate(LICENSE_LAPSED_STATE),
       };
     }
 
     const reason: string =
       status === "expired"
         ? expiresAt
-          ? `The Enterprise license expired on ${expiresAt.toLocaleDateString()} and its grace period is over.`
-          : "The Enterprise license expired and its grace period is over."
-        : isInstalled
-          ? "A license is installed, but this installation cannot confirm that it is current, so nothing is licensed by it."
-          : "This installation has no valid Enterprise license.";
+          ? translator.translateTemplate(LicenseStatusCopy.expiredOnGraceOver, {
+              date: dateInSentence(expiresAt),
+            })
+          : translate(LicenseStatusCopy.expiredGraceOver)
+        : translate(
+            isInstalled
+              ? LicenseStatusCopy.installedButNotConfirmed
+              : LicenseStatusCopy.noValidLicenseInstalled,
+          );
 
     return {
       tone: "critical",
-      title: status === "expired" ? "License expired" : "No valid license",
-      description: joinSentences([
-        reason,
-        PLAIN_STATUS_MESSAGES.includes(message) ? "" : message,
-      ]),
-      note: LICENSE_LAPSED_STATE,
+      title: translate(
+        status === "expired"
+          ? LicenseStatusCopy.licenseExpired
+          : LicenseStatusCopy.noValidLicense,
+      ),
+      description: reason,
+      serverMessage:
+        message && !PLAIN_STATUS_MESSAGES.includes(message)
+          ? message
+          : undefined,
+      note: translate(LICENSE_LAPSED_STATE),
     };
   }
 
   if (payload["isEvaluation"] === true) {
     return {
       tone: "healthy",
-      title: "Evaluation license active",
-      description:
-        "This key was issued for evaluation and testing. It is not licensed for production use. Reach out whenever you are ready to go live and we will get a production license sorted for you.",
+      title: translate(LicenseStatusCopy.evaluationActive),
+      description: translate(LicenseStatusCopy.evaluationDescription),
     };
   }
 
@@ -334,16 +498,15 @@ export const describeLicenseStatus: DescribeLicenseStatusFunction = (
   if (payload["verification"] === "unverified") {
     return {
       tone: "healthy",
-      title: "License active",
-      description:
-        "This license was issued before OneUptime signed its licenses, so this installation cannot verify it offline. It keeps working; refreshing the license replaces it with a signed one once OneUptime issues them.",
+      title: translate(LicenseStatusCopy.licenseActive),
+      description: translate(LicenseStatusCopy.legacyDescription),
     };
   }
 
   return {
     tone: "healthy",
-    title: "License active",
-    description: "Enterprise features are on for this installation.",
+    title: translate(LicenseStatusCopy.licenseActive),
+    description: translate(LicenseStatusCopy.enterpriseFeaturesOn),
   };
 };
 
@@ -368,6 +531,10 @@ export const describeLicenseStatus: DescribeLicenseStatusFunction = (
  * A response that says nothing about the status is treated as a success, as it
  * always was: that is an older server or a build that does not report one, and
  * inventing a warning out of silence would be its own lie.
+ *
+ * The message is a key the page's Alert draws in the reader's language: the
+ * caller's success sentence, or this page's own warning. A message the server
+ * sent is shown as it was sent (the Alert finds no wording for it).
  */
 export interface LicenseWriteOutcome {
   isLicensed: boolean;
@@ -375,31 +542,29 @@ export interface LicenseWriteOutcome {
 }
 
 export const LICENSE_STORED_BUT_NOT_LICENSING: string =
-  "The license was stored, but this installation cannot confirm that it is current, so enterprise features are not being licensed by it. Refresh the license, or check it on oneuptime.com.";
+  LicenseStatusCopy.storedButNotLicensing;
 
 type DescribeLicenseWriteOutcomeFunction = (
   payload: JSONObject,
   successMessage: string,
 ) => LicenseWriteOutcome;
 
-export const describeLicenseWriteOutcome: DescribeLicenseWriteOutcomeFunction = (
-  payload: JSONObject,
-  successMessage: string,
-): LicenseWriteOutcome => {
-  const status: string = toText(payload["status"]);
-  const graceReason: string = toText(payload["graceReason"]);
+export const describeLicenseWriteOutcome: DescribeLicenseWriteOutcomeFunction =
+  (payload: JSONObject, successMessage: string): LicenseWriteOutcome => {
+    const status: string = toText(payload["status"]);
+    const graceReason: string = toText(payload["graceReason"]);
 
-  const isLicensedNow: boolean =
-    status === "" ||
-    status === "valid" ||
-    (status === "grace" && graceReason !== "unlicensed");
+    const isLicensedNow: boolean =
+      status === "" ||
+      status === "valid" ||
+      (status === "grace" && graceReason !== "unlicensed");
 
-  if (isLicensedNow) {
-    return { isLicensed: true, message: successMessage };
-  }
+    if (isLicensedNow) {
+      return { isLicensed: true, message: successMessage };
+    }
 
-  return {
-    isLicensed: false,
-    message: toText(payload["message"]) || LICENSE_STORED_BUT_NOT_LICENSING,
+    return {
+      isLicensed: false,
+      message: toText(payload["message"]) || LICENSE_STORED_BUT_NOT_LICENSING,
+    };
   };
-};

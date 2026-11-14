@@ -72,7 +72,7 @@ flowchart TB
 
 :::cards
 - [监视器组](/docs/monitor/monitor-groups): 把多个监视器汇总为一个状态。
-- [服务目录](/docs/telemetry/services): 你运行的每个应用，各占一个页面。
+- [服务](/docs/telemetry/services): 你运行的每个应用，各占一个页面。
 - [资产清单概览](/docs/inventory/overview): OneUptime 对你的环境所知道的一切。
 :::
 
@@ -132,7 +132,7 @@ flowchart TB
 
 ## 遥测
 
-**遥测** 是你的系统发送给 OneUptime 的内容：日志、指标、追踪、异常和性能剖析。应用通过 OpenTelemetry 发送，OneUptime 的代理则从主机、Kubernetes 集群、Docker 主机和其他基础设施发送。每个发送方都使用一个 **摄取密钥**，它在 **项目设置 → 遥测与 APM → 摄取密钥** 下创建。你可以搜索遥测数据、在仪表板上绘制图表，并用遥测监视器监控它；遥测监视器会像其他监视器一样产生事件和告警。在菜单中，**日志**、**指标**、**追踪**、**性能配置文件** 和 **异常** 各自打开一类数据；**AI / LLM** 跟踪你的 AI 的对话，**数据可观测性** 监视你数据库中的表，**拓扑** 则描绘这一切如何相互连接。
+**遥测** 是你的系统发送给 OneUptime 的内容：日志、指标、追踪、异常和性能剖析。应用通过 OpenTelemetry 发送，OneUptime 的代理则从主机、Kubernetes 集群、Docker 主机和其他基础设施发送。每个发送方都使用一个 **摄取密钥**，它在 **项目设置 → 遥测与 APM → 摄取密钥** 下创建。你可以搜索遥测数据、在仪表板上绘制图表，并用遥测监视器监控它；遥测监视器会像其他监视器一样产生事件和告警。在菜单中，**日志**、**指标**、**追踪**、**性能剖析** 和 **异常** 各自打开一类数据；**AI / LLM** 跟踪你的 AI 的对话，**数据可观测性** 监视你数据库中的表，**拓扑** 则描绘这一切如何相互连接。
 
 :::cards
 - [OpenTelemetry](/docs/telemetry/open-telemetry): 从你的应用发送日志、指标和追踪。
@@ -198,7 +198,7 @@ OneUptime 中有许多东西都叫作规则。每一种都会在新内容到来�
 
 :::cards
 - [事件设置与自动化](/docs/incidents/settings#事件创建时运行的规则): 创建事件时运行的规则，按顺序排列。
-- [个人值班规则](/docs/notifications/on-call-rules): 呼叫如何送达你。
+- [如何联系我](/docs/notifications/on-call-rules): 呼叫如何送达你。
 :::
 
 ## 后续步骤

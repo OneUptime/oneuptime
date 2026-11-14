@@ -4,6 +4,7 @@ import {
   DEFAULT_LANGUAGE,
   getTemplateAround,
   PluralTemplate,
+  SentenceOptions,
   TemplateAround,
   TemplateAroundOptions,
   TemplateValues,
@@ -64,13 +65,20 @@ export const translateTerm: (
 };
 
 /*
- * The sentence in the reader's language, with its values filled in.
+ * The sentence in the reader's language, with its values filled in - each
+ * set apart from its words when it is drawn on the page and nothing else
+ * (SentenceOptions' setsValuesApart).
  */
 export const translateTemplate: (
   template: string,
   values?: TemplateValues,
-) => string = (template: string, values: TemplateValues = {}): string => {
-  return getGlobalTranslator().translateTemplate(template, values);
+  options?: SentenceOptions,
+) => string = (
+  template: string,
+  values: TemplateValues = {},
+  options?: SentenceOptions,
+): string => {
+  return getGlobalTranslator().translateTemplate(template, values, options);
 };
 
 /*
@@ -80,12 +88,19 @@ export const translatePlural: (
   template: PluralTemplate,
   count: number,
   values?: TemplateValues,
+  options?: SentenceOptions,
 ) => string = (
   template: PluralTemplate,
   count: number,
   values: TemplateValues = {},
+  options?: SentenceOptions,
 ): string => {
-  return getGlobalTranslator().translatePlural(template, count, values);
+  return getGlobalTranslator().translatePlural(
+    template,
+    count,
+    values,
+    options,
+  );
 };
 
 /*

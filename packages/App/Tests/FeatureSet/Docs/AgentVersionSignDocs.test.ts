@@ -58,25 +58,15 @@ const DOCS_ONEUPTIME_URL: string = "https://oneuptime.com";
  * translation from the Dashboard's locale file), and their commands are the
  * ones the dialog shows. Markdown is not compiled, so this reads the guides.
  *
- * The infrastructure agent guides of docs task 21 (Kubernetes, Docker,
- * Podman, the host collector, Proxmox) name the Dashboard as each language's
- * Dashboard draws it, Persian included (drawnLabelIn). The other guides here
- * still keep the English labels in Persian (labelIn).
+ * Every guide here names the Dashboard as each language's Dashboard draws
+ * it, Persian included (drawnLabelIn).
  */
 
 const CONTENT_DIR: string = path.resolve(
   __dirname,
   "../../../FeatureSet/Docs/Content",
 );
-const LOCALES_DIR: string = path.resolve(
-  __dirname,
-  "../../../FeatureSet/Dashboard/src/Locales",
-);
-
-// The guides that keep the dashboard's English labels.
-const ENGLISH_LABEL_LANGUAGES: Array<string> = ["en", "fa"];
-
-// The task 21 guides: each language's drawn labels, Persian's included.
+// Each language's drawn labels, Persian's included.
 function drawnLabelIn(language: string, english: string): string {
   return drawnDashboardLabel(language, english);
 }
@@ -84,23 +74,6 @@ function drawnLabelIn(language: string, english: string): string {
 function readGuide(language: string, guide: string): string | null {
   const file: string = path.join(CONTENT_DIR, language, guide);
   return fs.existsSync(file) ? fs.readFileSync(file, "utf8") : null;
-}
-
-const locales: Map<string, Record<string, string>> = new Map();
-
-function labelIn(language: string, english: string): string {
-  if (ENGLISH_LABEL_LANGUAGES.includes(language)) {
-    return english;
-  }
-  let locale: Record<string, string> | undefined = locales.get(language);
-  if (!locale) {
-    locale = JSON.parse(
-      fs.readFileSync(path.join(LOCALES_DIR, `${language}.json`), "utf8"),
-    ) as Record<string, string>;
-    locales.set(language, locale);
-  }
-  expect(typeof locale[english]).toBe("string");
-  return locale[english] as string;
 }
 
 // A line that opens a component (":::tabs", "@tab Docker CLI") or closes one.
@@ -202,15 +175,7 @@ describe("the agents' guides say an outdated version shows a sign, in every lang
        * and names the Dashboard as each language's Dashboard draws it,
        * Persian included (RunbookDocsTranslations).
        */
-      const runnerVersion: string =
-        language === "fa"
-          ? (
-              JSON.parse(
-                fs.readFileSync(path.join(LOCALES_DIR, "fa.json"), "utf8"),
-              ) as Record<string, string>
-            )["Runner Version"] || "Runner Version"
-          : labelIn(language, "Runner Version");
-      expect(note).toContain(`**${runnerVersion}**`);
+      expect(note).toContain(`**${drawnLabelIn(language, "Runner Version")}**`);
       expect(guide).toContain(
         "```bash\n" + getRunnerUpgradeCommand() + "\n```",
       );

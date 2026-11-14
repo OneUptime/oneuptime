@@ -42,13 +42,13 @@ Vedi [Creare un monitor](/docs/monitor/create-monitor).
 
 Le regole di un monitor: cosa significa ogni risultato di un controllo. Vengono valutati in ordine, e il primo che corrisponde può cambiare lo stato del monitor, dichiarare un incidente, creare un avviso, o tutte e tre le cose.
 
-Altri nomi: **Criteri di monitoraggio**, **Criteri del monitor**, **Monitor Steps**. Vedi [Criteri e stati dei monitor](/docs/monitor/criteria-and-statuses).
+Altri nomi: **Criteri di monitoraggio**, **Criteri del monitor**, **Monitor Steps**. Vedi [Criteri e stati](/docs/monitor/criteria-and-statuses).
 
 ### Stato del monitor
 
 Com'è un monitor in questo momento. Ogni nuovo progetto ha tre stati del monitor, **Operativo**, **Degradato** e **Offline**, e puoi aggiungerne di tuoi.
 
-Vedi [Criteri e stati dei monitor](/docs/monitor/criteria-and-statuses).
+Vedi [Criteri e stati](/docs/monitor/criteria-and-statuses).
 
 ### Sonda
 
@@ -90,7 +90,7 @@ Vedi [Regole di escalation](/docs/on-call/escalation-rules).
 
 Chi è reperibile in ogni momento: le persone si danno il turno, e ciascuna passa le consegne alla successiva. Una regola di escalation che avvisa una pianificazione avvisa chi vi risulta reperibile in quel momento.
 
-Altri nomi: **Rotation**. Vedi [Pianificazioni di reperibilità](/docs/on-call/schedules).
+Altri nomi: **Rotation**, **Pianificazione della policy di reperibilità**. Vedi [Pianificazioni di reperibilità](/docs/on-call/schedules).
 
 ### Livello
 
@@ -103,6 +103,12 @@ Vedi [Pianificazioni di reperibilità](/docs/on-call/schedules#livelli).
 Un recapito a cui OneUptime può raggiungerti in un progetto: un indirizzo e-mail, un numero di telefono per SMS o chiamate, il tuo account Slack o Microsoft Teams, o l'app OneUptime sul tuo telefono. Ognuno aggiunge i propri in **Impostazioni utente**.
 
 Vedi [Metodi di notifica](/docs/notifications/notification-methods).
+
+### Come contattarmi
+
+Le tue regole per essere chiamato: quali dei tuoi metodi di notifica prova una chiamata, e dopo quanto tempo. Una scala copre ogni incidente, avviso ed episodio, e una gravità può avere regole proprie. Ogni persona imposta le proprie in **Impostazioni utente**.
+
+Altri nomi: **Regole di reperibilità personali**. Vedi [Come contattarmi](/docs/notifications/on-call-rules).
 
 ### Pagina di stato
 
@@ -118,7 +124,7 @@ Vedi [Iscritti e annunci](/docs/status-pages/subscribers).
 
 ### Manutenzione programmata
 
-Lavori previsti, annunciati in anticipo. Un evento passa per **Programmato**, **In corso**, **Terminato** e **Completato**, e le pagine di stato su cui viene mostrato ne informano visitatori e iscritti.
+Lavori previsti, annunciati in anticipo. Ogni evento di manutenzione passa per gli stati della manutenzione **Programmato**, **In corso**, **Terminato** e **Completato**, e le pagine di stato su cui viene mostrato ne informano visitatori e iscritti.
 
 Altri nomi: **Evento di manutenzione programmata**, **Evento pianificato**, **Evento**. Vedi [Panoramica della manutenzione programmata](/docs/scheduled-maintenance/index).
 
@@ -140,7 +146,7 @@ Vedi [Gruppi di monitor](/docs/monitor/monitor-groups).
 
 Un'applicazione o un microservizio che gestisci. OneUptime ne aggiunge uno la prima volta che ne arriva la telemetria, con il nome del suo `service.name`, e riunisce su un'unica pagina i suoi log, le tracce, le metriche, le eccezioni, gli incidenti e i proprietari.
 
-Altri nomi: **Catalogo servizi**, **Servizio di telemetria**. Vedi [Catalogo servizi](/docs/telemetry/services).
+Altri nomi: **Catalogo servizi**, **Servizio di telemetria**. Vedi [Servizi](/docs/telemetry/services).
 
 ### Host
 
@@ -256,7 +262,7 @@ Vedi [Regole per etichette e proprietari](/docs/configuration/label-and-owner-ru
 
 Un errore sollevato dal tuo codice. OneUptime raggruppa ogni occorrenza dello stesso errore in un'unica eccezione, con il suo stack trace, il suo andamento e le richieste in cui si è verificato.
 
-Altri nomi: **Tracciamento delle eccezioni**, `/telemetry-exception`. Vedi [Tracciamento delle eccezioni](/docs/telemetry/exceptions).
+Altri nomi: **Tracciamento delle eccezioni**, `/telemetry-exception`. Vedi [Eccezioni](/docs/telemetry/exceptions).
 
 ### Insight IA
 
@@ -300,7 +306,7 @@ Vedi [Esploratore tracce](/docs/telemetry/traces-explorer).
 
 Come la tua applicazione spende tempo di CPU e memoria, funzione per funzione, inviato da un profiler che invia i dati all'API compatibile con Pyroscope di OneUptime.
 
-Altri nomi: **Profili di prestazioni**, **Profilazione continua**. Vedi [Profilazione continua](/docs/telemetry/profiles).
+Altri nomi: **Profili di prestazioni**, **Profilazione continua**. Vedi [Profili](/docs/telemetry/profiles).
 
 ### IA / LLM
 
@@ -472,13 +478,13 @@ Vedi [Quale usare?](/docs/introduction/which-one#sonda-agente-collector-o-runner
 
 ### Regole di reperibilità
 
-Due cose diverse. In **Incidenti** e **Avvisi**, le regole di reperibilità scelgono le policy di reperibilità che un nuovo incidente o avviso esegue. In **Impostazioni utente**, le tue regole di reperibilità decidono quali dei tuoi metodi di notifica prova una chiamata, e dopo quanto tempo.
+In **Incidenti** e **Avvisi**, le regole di reperibilità scelgono le policy di reperibilità che un nuovo incidente o avviso esegue. Anche le regole personali su come una chiamata raggiunge qualcuno si chiamavano regole di reperibilità: ora sono **Come contattarmi**, in **Impostazioni utente**.
 
-Vedi [Impostazioni e automazione degli incidenti](/docs/incidents/settings#regole-di-reperibilità-degli-incidenti) e [Regole di reperibilità personali](/docs/notifications/on-call-rules).
+Vedi [Impostazioni e automazione degli incidenti](/docs/incidents/settings#regole-di-reperibilità-degli-incidenti) e [Come contattarmi](/docs/notifications/on-call-rules).
 
 ### Impostazioni notifiche
 
-Due pagine diverse. In **Impostazioni utente**, quali aggiornamenti ti arrivano su ciò che possiedi, e su quali canali. In **Impostazioni del progetto**, gli interruttori del progetto per SMS e chiamate, il suo credito per i messaggi, e il suo SMTP e Twilio.
+In **Impostazioni utente**, quali aggiornamenti ti arrivano su ciò che possiedi, e su quali canali. Anche gli interruttori del progetto per SMS e chiamate, il suo credito per i messaggi e il suo SMTP e Twilio si chiamavano impostazioni delle notifiche: ora sono **Canali di notifica**, in **Impostazioni del progetto**.
 
 Vedi [Impostazioni notifiche](/docs/notifications/notification-settings).
 

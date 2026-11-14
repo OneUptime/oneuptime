@@ -44,7 +44,7 @@ export function getUsersBreadcrumbs(path: string): Array<Link> | undefined {
       "Project",
       "Users",
       "View User",
-      "On-Call Rules",
+      "How to Reach Me",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.USER_VIEW_CUSTOM_FIELDS, [
       "Project",

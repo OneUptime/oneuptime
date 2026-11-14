@@ -22,8 +22,8 @@ import { OpenStackForecast } from "Common/Types/OpenStack/OpenStackForecast";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import TableColumnsToCsv from "Common/UI/Utils/TableColumnsToCsv";
-import { formatBytes } from "../../../Components/TelemetryResource/telemetryFormat";
 import { getReaderNumberLocale } from "Common/Types/DateLanguage";
+import { formatOpenStackBytes } from "./OpenStackFigures";
 
 /*
  * WHAT THE CAPACITY PAGE SAYS OF A SNAPSHOT.
@@ -50,18 +50,21 @@ export function getOpenStackCapacityResourceTitle(
   return OPENSTACK_CAPACITY_RESOURCE_TITLES[resourceClass] || resourceClass;
 }
 
-// An amount of a class, in what a person calls it. Placement counts memory in MB and disk in GB.
+/*
+ * An amount of a class, in what a person calls it, in the reader's digits ("۶٫۰ TiB", issue
+ * #7191). Placement counts memory in MB and disk in GB.
+ */
 export function formatOpenStackCapacityAmount(
   resourceClass: string,
   amount: number,
 ): string {
   switch (resourceClass) {
     case OPENSTACK_RESOURCE_MEMORY_MB:
-      return formatBytes(amount * 1024 * 1024);
+      return formatOpenStackBytes(amount * 1024 * 1024);
     case OPENSTACK_RESOURCE_DISK_GB:
-      return formatBytes(amount * 1024 * 1024 * 1024);
+      return formatOpenStackBytes(amount * 1024 * 1024 * 1024);
     case OPENSTACK_CAPACITY_RESOURCE_STORAGE_BYTES:
-      return formatBytes(amount);
+      return formatOpenStackBytes(amount);
     default:
       return Math.round(amount).toLocaleString(getReaderNumberLocale());
   }

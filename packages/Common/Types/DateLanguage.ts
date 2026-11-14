@@ -280,6 +280,112 @@ export const formatReaderNumber: (
 };
 
 /*
+ * A FIGURE ON ITS OWN, IN THE READER'S LANGUAGE.
+ *
+ * A tile's "97.5%", a cell's "16.0 GiB", a legend's "99.81%" were written
+ * with toFixed and a "%" of their own: Latin digits, a point and an ASCII
+ * percent sign whatever the page's language, so a Persian card put "97.5%"
+ * beside sentences that read "۳۹ از ۴۰", and a German one "97.5%" where
+ * German writes "97,5 %". A figure written here keeps the decimals it was
+ * written with - exactly `decimals` of them as toFixed writes them, or up
+ * to `decimals` with the trailing zeros dropped - in the reader's digits,
+ * decimal sign and percent sign: "97,5 %" in German, "۹۷٫۵٪" in Persian,
+ * Latin digits in Arabic (LATIN_DIGIT_LANGUAGES), with Intl's percent sign.
+ * A negative figure takes the language's own minus: in Persian a
+ * left-to-right mark and a minus sign (U+2212) before its digits, drawn
+ * before its number on a page read from the right.
+ *
+ * English reads exactly as toFixed wrote it: "97.5%", "1023.0", no
+ * thousands separator - what every English page, export and test has
+ * always read.
+ */
+export interface ReaderFigureOptions {
+  // The decimals the figure is written with, as toFixed's argument.
+  decimals: number;
+  // Up to `decimals`, trailing zeros dropped: 50 -> "50", 12.30 -> "12.3".
+  dropTrailingZeros?: boolean | undefined;
+  // The value is a percent, 97.5 for 97.5%: written with the percent sign.
+  isPercent?: boolean | undefined;
+  // The language to write it in: the page's (getDateDisplayLanguage) when left out.
+  language?: string | undefined;
+}
+
+const figureFormatCache: Map<string, Intl.NumberFormat | null> = new Map<
+  string,
+  Intl.NumberFormat | null
+>();
+
+const getFigureFormat: (
+  language: string,
+  options: ReaderFigureOptions,
+) => Intl.NumberFormat | null = (
+  language: string,
+  options: ReaderFigureOptions,
+): Intl.NumberFormat | null => {
+  const key: string = [
+    language,
+    options.decimals,
+    options.dropTrailingZeros ? "drop" : "keep",
+    options.isPercent ? "percent" : "decimal",
+  ].join("|");
+
+  if (!figureFormatCache.has(key)) {
+    let format: Intl.NumberFormat | null = null;
+
+    try {
+      format = new Intl.NumberFormat(getNumberLocale(language), {
+        style: options.isPercent ? "percent" : "decimal",
+        minimumFractionDigits: options.dropTrailingZeros ? 0 : options.decimals,
+        maximumFractionDigits: options.decimals,
+      });
+    } catch {
+      format = null;
+    }
+
+    figureFormatCache.set(key, format);
+  }
+
+  return figureFormatCache.get(key) || null;
+};
+
+export const formatReaderFigure: (
+  value: number,
+  options: ReaderFigureOptions,
+) => string = (value: number, options: ReaderFigureOptions): string => {
+  const decimals: number = Math.max(
+    0,
+    Math.min(20, Math.floor(options.decimals)),
+  );
+  const fixed: string = value.toFixed(decimals);
+  const english: string = `${
+    options.dropTrailingZeros ? Number(fixed).toString() : fixed
+  }${options.isPercent ? "%" : ""}`;
+  const language: string = normalizeLanguage(
+    options.language === undefined
+      ? getDateDisplayLanguage()
+      : options.language,
+  );
+
+  if (isEnglishDateLanguage(language) || !Number.isFinite(value)) {
+    return english;
+  }
+
+  const format: Intl.NumberFormat | null = getFigureFormat(language, {
+    ...options,
+    decimals: decimals,
+  });
+
+  if (!format) {
+    return english;
+  }
+
+  // Rounded once, as toFixed rounds it, so every language says the same figure.
+  const rounded: number = Number(fixed);
+
+  return format.format(options.isPercent ? rounded / 100 : rounded);
+};
+
+/*
  * THE ENGLISH OF A DATE WRITTEN IN ANOTHER LANGUAGE.
  *
  * Kept for the most recent texts only: a page writes its dates again on
@@ -457,6 +563,65 @@ export interface DateTextShape {
   twoDigitDay?: boolean | undefined;
 }
 
+/*
+ * How Intl writes the hour of a time of day on the reader's clock.
+ *
+ * A 12-hour time's hour has no leading zero in any language: "5:14 AM",
+ * "오전 5:14", "上午5:14", "5:14 am", "5:14 ص", "۵:۱۴ ق.ظ.". Asked for two
+ * digits there, Intl wrote "오전 05:14" and "05:14 ص" in every language but
+ * English, which moment writes "5:14 AM" (issue #7279). A 24-hour time keeps
+ * its zero: "05:14" - "numeric" would drop it in German, French, Japanese
+ * and most others ("5:14") while Korean, Hindi and Arabic keep it.
+ */
+export const getHourOption: (
+  use12HourFormat: boolean | undefined,
+) => "numeric" | "2-digit" = (
+  use12HourFormat: boolean | undefined,
+): "numeric" | "2-digit" => {
+  return use12HourFormat ? "numeric" : "2-digit";
+};
+
+const LOCALE_CLOCK_HOUR_OPTIONS: Map<string, "numeric" | "2-digit"> = new Map<
+  string,
+  "numeric" | "2-digit"
+>();
+
+/*
+ * The hour of a time that follows its language's own clock, not the
+ * reader's 12- or 24-hour setting: a calendar's grid, a chart's axis, a
+ * diagnostics line. Korean, Traditional Chinese, Hindi, Arabic and US
+ * English read a 12-hour clock ("오전 5:14", "5:14 ص", "5:14 AM"), the
+ * others a 24-hour one ("05:14"). A two-digit hour asked of the language's own clock
+ * wrote "오전 05:14" (issue #7279). `pinnedLocale` is a locale already made
+ * for the language (getNumberLocale, getDateLocale, getReaderDateLocale).
+ */
+export const getLocaleClockHourOption: (
+  pinnedLocale: string,
+) => "numeric" | "2-digit" = (pinnedLocale: string): "numeric" | "2-digit" => {
+  const remembered: "numeric" | "2-digit" | undefined =
+    LOCALE_CLOCK_HOUR_OPTIONS.get(pinnedLocale);
+
+  if (remembered) {
+    return remembered;
+  }
+
+  let hour: "numeric" | "2-digit" = "2-digit";
+
+  try {
+    hour = getHourOption(
+      new Intl.DateTimeFormat(pinnedLocale, {
+        hour: "numeric",
+      }).resolvedOptions().hour12,
+    );
+  } catch {
+    // A locale Intl refuses: the 24-hour hour, as before.
+  }
+
+  LOCALE_CLOCK_HOUR_OPTIONS.set(pinnedLocale, hour);
+
+  return hour;
+};
+
 // The Intl options a shape of OneUptimeDate's dates asks for.
 export const getDateTimeOptions: (
   shape: DateTextShape,
@@ -477,7 +642,7 @@ export const getDateTimeOptions: (
   }
 
   if (!shape.onlyShowDate) {
-    options.hour = "2-digit";
+    options.hour = getHourOption(shape.use12HourFormat);
     options.minute = "2-digit";
     options.hour12 = Boolean(shape.use12HourFormat);
 

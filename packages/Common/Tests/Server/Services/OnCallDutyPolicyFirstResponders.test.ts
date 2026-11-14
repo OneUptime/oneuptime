@@ -532,7 +532,7 @@ describe("refused before anything is saved", () => {
 
     await expect(attempt).rejects.toThrow(NotAuthorizedException);
     await expect(attempt).rejects.toThrow(
-      "It is read through its On-Call Policy, and you need one of these permissions to read On-Call Duty Policies:",
+      "It is read through its On-Call Policy, and you need one of these permissions to read On-Call Policies:",
     );
 
     expect(policyWasSaved()).toBe(false);

@@ -86,7 +86,7 @@ describe("getWorkspaceSummaryTestChannels", () => {
   test("an answer with no channels - a test refused before anything was posted, an older server - has none", () => {
     expect(
       getWorkspaceSummaryTestChannels({
-        message: "No channel names configured for summary",
+        message: "The summary has no channel to post in.",
       }),
     ).toEqual([]);
     expect(getWorkspaceSummaryTestChannels({ message: MESSAGE })).toEqual([]);

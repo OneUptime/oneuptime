@@ -1143,7 +1143,7 @@ describe("Needs attention", () => {
       within(steps[1]!).getByTestId("ai-agent-gap-number"),
     ).toHaveTextContent("2.");
     expect(steps[1]).toHaveTextContent(
-      "Add an AI provider for this project, or use OneUptime AI credits.",
+      "Add an LLM provider for this project, or use OneUptime AI credits.",
     );
 
     // Not a row per gap with the server's title and next step any more.

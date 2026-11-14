@@ -278,7 +278,7 @@ describe("parseGlossary", () => {
       "Telemetry Service",
     ]);
     expect(service.links).toEqual([
-      { title: "Service Catalog", url: "/docs/en/telemetry/services" },
+      { title: "Services", url: "/docs/en/telemetry/services" },
     ]);
   });
 });

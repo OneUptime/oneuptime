@@ -73,7 +73,7 @@ Click **Create Monitor**. The monitor opens on its **Overview** page, and its fi
 | **Span Status** | Spans with any of the chosen statuses: **Unset**, **Ok** or **Error**. | Empty: every status |
 | **Span name contains** | Spans whose name contains this text, ignoring case. | Empty: every span |
 | **Time window** (in **When to alert**) | Spans that started in the last 5 seconds up to the last 24 hours. | **Last 5 minutes** |
-| **Filter by Telemetry Service** (under **More fields**) | Spans from any of the chosen services. | Empty: every service |
+| **Filter by Service** (under **More fields**) | Spans from any of the chosen services. | Empty: every service |
 | **Filter by Infrastructure Entity** (under **More fields**) | Spans from any of the chosen hosts, pods, containers and other entities. | Empty: every entity |
 | **Filter by Attributes** (under **More fields**) | Spans whose attributes meet every condition. Each condition has its own operator, such as equals or contains. | Empty: no condition |
 
@@ -154,7 +154,7 @@ With 30 failed requests, the rule matches and the incident is declared. Once fiv
 ## Troubleshooting
 
 :::details The monitor counts no spans for my endpoint
-**Span name contains** is matched against the span's name, and instrumentation often names server spans after the route (`POST /api/checkout`) or only the method (`GET`). Find the exact name in the trace explorer. Then open the monitor's **Criteria** page (under **Configuration**) and click **Edit Monitoring Criteria**: **Matching spans** shows what the filters match right now.
+**Span name contains** is matched against the span's name, and instrumentation often names server spans after the route (`POST /api/checkout`) or only the method (`GET`). Find the exact name in the trace explorer. Then open the monitor's **Criteria** page (under **Configuration**) and click **Edit Criteria**: **Matching spans** shows what the filters match right now.
 :::
 
 :::details Successful requests are not counted when I filter on Ok

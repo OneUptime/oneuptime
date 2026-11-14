@@ -41,6 +41,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * EVERY ROW OF A TOP LIST (issue #5762): all the networks, applications or
@@ -262,10 +263,10 @@ const MerakiTrafficListModal: FunctionComponent<ComponentProps> = (
             role="alert"
             className="mb-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700"
           >
-            {translator.translateTemplate(
-              "Couldn't refresh — showing previously loaded data. {{error}}",
-              { error },
-            )}
+            <ErrorSentence
+              template="Couldn't refresh — showing previously loaded data. {{error}}"
+              error={error}
+            />
           </p>
         ) : (
           <></>

@@ -2,6 +2,9 @@
 
 En ressurs er én rad på statussiden din: en monitor eller en monitorgruppe, med et navn kundene dine forstår, gjeldende status og, hvis du vil, oppetid og historikk. Grupper er seksjoner som inneholder ressurser, slik at en side med førti monitorer leses som «API», «Webapp» og «Datapipeline» i stedet for én endeløs liste. Du bygger begge på én skjerm: åpne en statusside og velg **Ressurser** i sidemenyen.
 
+> [!TIP]
+> Ny her? Følg guiden først: [Publiser en statusside](/docs/guides/status-page).
+
 :::cards
 - [Legg til en monitor](#legg-til-en-monitor): Sett en monitor på siden, med navnet besøkende leser.
 - [Grupper](#grupper): Del siden opp i seksjoner, og nøst dem.

@@ -27,6 +27,7 @@ import CreateOneBaseModel from "../../../Server/Types/Workflow/Components/BaseMo
 import ProjectScopedReferenceValidator, {
   ProjectScopedReferenceException,
 } from "../../../Server/Utils/Database/ProjectScopedReferenceValidator";
+import CreatedNotificationHold from "../../../Server/Utils/Notification/CreatedNotificationHold";
 import WorkflowPrincipal from "../../../Server/Utils/Workflow/WorkflowPrincipal";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
@@ -582,6 +583,7 @@ describe("an incident declared from a template, as a workflow step", () => {
       IncidentTemplateOwnerUserService,
       "findBy",
     );
+    const held: SpyInstance = getJestSpyOn(CreatedNotificationHold, "hold");
 
     expect(await declare()).toBeInstanceOf(PastTheChecks);
 
@@ -595,9 +597,18 @@ describe("an incident declared from a template, as a workflow step", () => {
       OWNER_TEAM_ID,
     ]);
 
-    // Added as the dashboard adds a template's owners: nobody is told.
+    // Added as the dashboard adds a template's owners: nobody is told they are one.
     expect(createBy.miscDataProps?.["notifyOwners"]).toBeUndefined();
-    expect(inserted?.["isOwnerNotifiedOfResourceCreation"]).not.toBe(true);
+
+    /*
+     * Its "Incident Created" notification still goes to them: the incident
+     * is written as notified only to hold it until its owners are in
+     * (CreatedNotificationHold, #7210) - not because the step said nobody
+     * is to hear of it, which would leave it unheld.
+     */
+    expect(inserted?.["isOwnerNotifiedOfResourceCreation"]).toBe(true);
+    expect(held).toHaveBeenCalledTimes(1);
+    expect(held.mock.calls[0]![0]).toBe(createBy);
 
     // Read as the step - a Project Admin of the project - not as OneUptime.
     const readProps: DatabaseCommonInteractionProps = (

@@ -5,6 +5,7 @@ Projectinstellingen bevat wat voor het hele project geldt: de naam, de tools waa
 :::cards
 - [Een instelling vinden](#een-instelling-vinden): Wat elke sectie van het zijmenu bevat.
 - [De details van het project](#de-details-van-het-project): De naam, de ID en toegang voor ondersteuning.
+- [Producten](#producten): De producten die dit project toont, en de producten die het verbergt.
 - [Labels](#labels): Markeringen voor resources, machtigingen en regels.
 - [Het project verwijderen](#het-project-verwijderen): Wat het vraagt, en wat er meegaat.
 :::
@@ -30,10 +31,10 @@ flowchart LR
 
 | Sectie | Pagina's | Waar u meer leest |
 | --- | --- | --- |
-| **Basis** | **Project**, **Labels** | [De details van het project](#de-details-van-het-project), [Labels](#labels) |
+| **Basis** | **Project**, **Producten**, **Labels** | [De details van het project](#de-details-van-het-project), [Producten](#producten), [Labels](#labels) |
 | **Werkruimte** | **Slack**, **Microsoft Teams**, **Mattermost**, **Videogesprekken** | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Mattermost](/docs/workspace-connections/mattermost), [Videogesprekken](/docs/workspace-connections/video-calls) |
 | **Telemetrie & APM** | **Ingestiesleutels**, **Gegevensbewaring**, **Gebruik** | [Ingestiesleutels](/docs/telemetry/ingestion-keys), [Gegevensbewaring](/docs/telemetry/data-retention), [Telemetriegebruik](/docs/telemetry/usage) |
-| **Meldingen** | **Meldingsinstellingen**, **Meldingslogboeken**, **Mobiele apps** | [Meldingen](#meldingen) |
+| **Meldingen** | **Meldingskanalen**, **Meldingslogboeken**, **Mobiele apps** | [Meldingen](#meldingen) |
 | **AI** | **AI-functies**, **LLM-providers**, **Externe MCP-servers**, **AI-tegoeden**, **AI-logboeken**, **MCP-server** | [LLM-providers](/docs/ai/llm-provider), [Externe MCP-servers](/docs/ai/external-mcp-servers), [MCP-server](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#kostenbeheersing) |
 | **Geavanceerd** | **Domeinen**, **API-sleutels**, **Functievlaggen**, **Importeren uit een andere tool** | [Eigen domeinen](/docs/status-pages/branding-and-domains#aangepaste-domeinen), [API-sleutels](/docs/permissions/index#api-sleutels), [Functievlaggen](#functievlaggen), [Overstappen van Opsgenie](/docs/moving-to-oneuptime/opsgenie) en de andere overstapgidsen |
 | **Beveiliging** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
@@ -54,6 +55,20 @@ flowchart LR
 - **Data Residency**: in OneUptime Cloud, waar de gegevens van uw project horen te staan, als OneUptime dat heeft vastgelegd. Alleen OneUptime stelt dit in.
 
 **Toegang voor klantenondersteuning** bepaalt in OneUptime Cloud of het ondersteuningsteam van OneUptime het project mag openen. Zet **OneUptime-ondersteuning toegang geven tot dit project** aan als u hulp wilt: OneUptime vraagt het eerst, omdat ondersteuning dan alles in het project kan zien en wijzigen, en u klikt op **Ondersteuning toelaten**. Zet het uit zodra ze klaar zijn: dat wordt meteen opgeslagen. Project Owners en Project Admins wijzigen het.
+
+## Producten
+
+**Projectinstellingen → Basis → Producten** kiest de producten die dit project toont in het menu **Producten**, op Start en in de lijst van Zoeken. Elk product heeft een schakelaar die opslaat zodra u hem omzet: aan toont het product. Gebruikers, Teams en Projectinstellingen worden altijd getoond, en **Alle producten tonen** toont ze weer allemaal.
+
+Een verborgen product is niet uitgeschakeld. Het verhuist naar **Meer producten**, de laatste rij van het menu **Producten**: Zoeken vindt het nog steeds, de pagina's en de API blijven werken, en de gegevens blijven binnenkomen. Wie het heeft vastgezet, houdt het vastgezet.
+
+Op een zelf gehoste server kan een hoofdbeheerder een product ook voor alle projecten uitschakelen, onder **Instellingen → Producten** in het Admin Dashboard (zie [Draai alleen wat u nodig hebt](/docs/installation/docker-compose#draai-alleen-wat-u-nodig-hebt)). Zo'n product heeft hier geen schakelaar: het toont **Uitgeschakeld op deze server**, met wie het kan inschakelen.
+
+Een nieuw project begint met waarvoor het volgens de eigenaar op Start bedoeld is: de essenties, de instellingen en wat die doelen nodig hebben worden getoond, de rest wordt verborgen. Een project dat de vraag oversloeg, of dat ervoor werd aangemaakt, toont alle producten. Zodra iemand de lijst hier wijzigt, wijzigen de doelen hem niet meer.
+
+Elk product zegt wat het voor dit project is: **In gebruik**, **Niet ingesteld** of, in OneUptime Cloud, het abonnement dat het nodig heeft. Zodra een verborgen product gegevens ontvangt, meldt Start dat aan de projecteigenaren en -beheerders en biedt **Tonen** of **Verborgen houden** aan.
+
+Projecteigenaren, projectbeheerders en iedereen die het project mag bewerken, wijzigen hem; alle anderen in het project kunnen hem zien.
 
 ## Labels
 
@@ -81,7 +96,7 @@ Om een label uit te faseren, archiveert u het via het menu **⋯** van de rij in
 
 **Projectinstellingen → Meldingen** bevat hoe het project meldingen verstuurt:
 
-- **Meldingsinstellingen**: de kaart **Meldingskanalen** zet sms, telefoongesprekken, WhatsApp en Telegram aan of uit voor het project. Alle vier staan bij het begin uit. Een Project Owner, een **Factureringsbeheerder** of iemand met **Manage Billing** zet ze aan. De pagina bevat ook, ingeklapt onder **Meer instellingen**, de eigen mailservers van het project, in **Aangepaste SMTP-configuraties** (zie [SMTP](/docs/emails/smtp)), en het eigen Twilio-account (zie [Twilio-integratie](/docs/self-hosted/twilio-integration)). In OneUptime Cloud bevat ze het saldo waaruit deze berichten worden betaald: zie [Vooruitbetaalde saldi](/docs/configuration/billing#vooruitbetaalde-saldi).
+- **Meldingskanalen**: de kaart **Meldingskanalen** zet sms, telefoongesprekken, WhatsApp en Telegram aan of uit voor het project. Alle vier staan bij het begin uit. Een Project Owner, een **Factureringsbeheerder** of iemand met **Manage Billing** zet ze aan. De pagina bevat ook, ingeklapt onder **Meer instellingen**, de eigen mailservers van het project, in **Aangepaste SMTP-configuraties** (zie [SMTP](/docs/emails/smtp)), en het eigen Twilio-account (zie [Twilio-integratie](/docs/self-hosted/twilio-integration)). In OneUptime Cloud bevat ze het saldo waaruit deze berichten worden betaald: zie [Vooruitbetaalde saldi](/docs/configuration/billing#vooruitbetaalde-saldi).
 - **Meldingslogboeken**: elke melding die het project heeft verstuurd, met één tabblad per kanaal: **E-mail**, **SMS**, **WhatsApp**, **Telegram**, **Webhook**, **Oproep**, **Push** en **Werkruimte**.
 - **Mobiele apps**: waar u de apps voor iOS en Android vindt. Zie [Apps – Overzicht](/docs/mobile-desktop-apps/index).
 

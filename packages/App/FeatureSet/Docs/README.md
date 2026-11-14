@@ -66,6 +66,34 @@ so a new page or a new translation needs nothing more:
   (`/docs/<category>`) to the English copy of the category's first page,
   and the page as Markdown (`/docs/as-markdown/...`) is never indexed.
 
+## Search
+
+The docs' search box and the Documentation group of the product's Search
+(Cmd/Ctrl+K) both ask the docs server, `/docs/search/<lang>.json?q=`
+(`Utils/DocsSearch.ts`), as the reader types. It reads every page in the
+nav in full, split at its h2 and h3 headings, from the index Ask AI keeps
+per language (`Utils/AIDocsReader.ts`), so a new page or section needs
+nothing more to be found. It forgives:
+
+- a wrong letter (one up to seven letters, two from eight; never the first
+  letter): *escalaton* finds escalation;
+- the start of a word as it is typed: *kube* finds Kubernetes;
+- a reader's word for what the docs call otherwise: *pager* finds on-call
+  (`DOCS_SEARCH_SYNONYMS` in `Utils/DocsSearchWords.ts`, a short list per
+  language, which Ask AI reads too). Every word a list names must be a word
+  that language's docs use; `DocsSearchRealDocs` fails one that is not.
+
+A page's title counts most, then a section's heading, then its text, and a
+phrase typed word for word lands on its section. A guide - a page written to
+be followed from its first line to its last - goes above a reference page
+for the same words: mark it `isGuide: true` in `Utils/Nav.ts`.
+
+Search runs on the server, not in the browser: the whole docs as an index a
+browser could search measured 1.2 to 3 MB a language (470 KB to 1.6 MB
+compressed). Every installation serves its own docs, so it works on an
+air-gapped server too, and the page titles embedded in each page answer
+when the server cannot be reached.
+
 ## What a page looks like
 
 Every page answers, in this order: what is this, why would I use it, how do I
@@ -79,7 +107,7 @@ One or two sentences: what it is and what it is for.
 
 :::cards
 - [Create the monitor](#create-a-website-monitor): Five steps in the dashboard.
-- [Criteria](#monitoring-criteria): Decide when the site counts as down.
+- [Criteria](#criteria): Decide when the site counts as down.
 :::
 
 ## How it works
@@ -284,6 +312,26 @@ oneuptime:
 ```
 ````
 
+### Screenshots
+
+A picture of the real screen, drawn from the Dashboard's own pages by the
+offline fixtures in every docs language (#6823). Name the shot as the
+address of a Markdown image, and describe it in the page's own words:
+
+```markdown
+### Enter the address
+
+![The step "What should we check?", with "Start checking" ringed](screen:website-down-address)
+```
+
+The docs show the shot in the language the page is written in, or in
+English where it is not drawn in that language. Put it on the first line
+under a step's heading, where it answers "am I in the right place?"; every
+translation keeps the same address on the same line and writes its own alt
+text, never the English (`screenAlt`). The shots, how to add one and how
+they are kept current are in
+[packages/E2E/DocsScreens/README.md](../../../E2E/DocsScreens/README.md).
+
 ## Style
 
 - **Lead with the task.** The first paragraph says what the page helps the
@@ -342,6 +390,15 @@ page with no translation is served in English.
   digit (`HTTP 200 OK`, `config.toml (~/.codex)`): a line laid out right to
   left draws a number or punctuation that starts or ends it on its other
   side. `DiagramReadingDirection` checks every line of every page.
+- A browser never turns "→" round, so on a Persian page it points each step
+  of a path back at the one before. Write "←" beside a step in Persian words
+  (**تنظیمات پروژه ← پیشرفته**, `RunbookAgent` ← `Runner`), and keep "→"
+  between two steps left in Latin letters, which are drawn from the left
+  (**AWS Console → App Runner**). A page in any other language writes "←"
+  only as the left arrow key's name. `PathArrowsInRightToLeftSentences`
+  draws every page as the docs do and checks each arrow; the translation
+  suites read a path's steps whichever way its arrows point
+  (`DocsPageShape`: `pathSteps`, `pathWithArrows`).
 
 ## Checking your work
 
@@ -370,7 +427,9 @@ language, to the rules in `Tests/FeatureSet/Docs/DocsContentRules.ts`:
   the page as raw `:::`, `@tab` or `[!NOTE]`;
 - links land on a page in the nav and on a heading it has (never the title on
   line 1, which has no anchor), images and files under `/docs/static/` exist,
-  no link is relative, and no two headings of a page share an anchor;
+  a screenshot names a shot with its English picture and is described in
+  the page's own language, no link is relative, and no two headings of a
+  page share an anchor;
 - an address the reader fills in (`https://oneuptime.com/heartbeat/YOUR_KEY`,
   `/dashboards/<id>/view`) is written as code, between backticks: as a link,
   or as text, search engines follow it to a page that does not exist;

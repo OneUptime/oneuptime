@@ -31,7 +31,7 @@ async function renderProfilesMenu(): Promise<void> {
   await renderMenu(<ProfilesSideMenu />);
 }
 
-describe("Profiler side menu", () => {
+describe("Profiles side menu", () => {
   beforeEach(() => {
     setViewportWidth(DESKTOP_WIDTH);
     window.localStorage.clear();
@@ -45,8 +45,8 @@ describe("Profiler side menu", () => {
   test("the Profiler's pages, then its AI section, then help", async () => {
     await renderProfilesMenu();
 
-    expect(sectionTitlesInOrder()).toEqual(["Profiler", "AI", "Help"]);
-    expect(linksIn("Profiler")).toEqual([
+    expect(sectionTitlesInOrder()).toEqual(["Profiles", "AI", "Help"]);
+    expect(linksIn("Profiles")).toEqual([
       { title: "Overview", href: routeFor(PageMap.PROFILES) },
       { title: "All profiles", href: routeFor(PageMap.PROFILES_INSIGHTS) },
     ]);
@@ -68,7 +68,7 @@ describe("Profiler side menu", () => {
   test("folded on the Profiler's own pages, as every AI section is", async () => {
     await renderProfilesMenu();
 
-    expect(isExpanded("Profiler")).toBe(true);
+    expect(isExpanded("Profiles")).toBe(true);
     expect(isExpanded("AI")).toBe(false);
   });
 

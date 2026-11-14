@@ -1,0 +1,557 @@
+{
+  "home-goal-website": {
+    "text": [
+      "Wat wil je eerst doen?",
+      "Weten wanneer mijn website of API plat ligt",
+      "De juiste persoon oproepen als er iets kapotgaat",
+      "Mijn klanten informeren met een statuspagina",
+      "Mijn logs, metrics en traces zien",
+      "Mijn servers, Kubernetes of cloud in de gaten houden",
+      "Ik stap over van een andere tool",
+      "Ik kijk alleen even rond",
+      "Overslaan",
+      "Doorgaan",
+      "checkbox: on",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off"
+    ],
+    "outline": [
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "button: Overslaan",
+      "button: Doorgaan"
+    ],
+    "width": 902,
+    "height": 374
+  },
+  "home-goal-paging": {
+    "text": [
+      "Wat wil je eerst doen?",
+      "Weten wanneer mijn website of API plat ligt",
+      "De juiste persoon oproepen als er iets kapotgaat",
+      "Mijn klanten informeren met een statuspagina",
+      "Mijn logs, metrics en traces zien",
+      "Mijn servers, Kubernetes of cloud in de gaten houden",
+      "Ik stap over van een andere tool",
+      "Ik kijk alleen even rond",
+      "Overslaan",
+      "Doorgaan",
+      "checkbox: off",
+      "checkbox: on",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off"
+    ],
+    "outline": [
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "button: Overslaan",
+      "button: Doorgaan"
+    ],
+    "width": 902,
+    "height": 374
+  },
+  "home-goal-status-page": {
+    "text": [
+      "Wat wil je eerst doen?",
+      "Weten wanneer mijn website of API plat ligt",
+      "De juiste persoon oproepen als er iets kapotgaat",
+      "Mijn klanten informeren met een statuspagina",
+      "Mijn logs, metrics en traces zien",
+      "Mijn servers, Kubernetes of cloud in de gaten houden",
+      "Ik stap over van een andere tool",
+      "Ik kijk alleen even rond",
+      "Overslaan",
+      "Doorgaan",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: on",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off"
+    ],
+    "outline": [
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "button: Overslaan",
+      "button: Doorgaan"
+    ],
+    "width": 902,
+    "height": 374
+  },
+  "home-goals-three": {
+    "text": [
+      "Wat wil je eerst doen?",
+      "Weten wanneer mijn website of API plat ligt",
+      "De juiste persoon oproepen als er iets kapotgaat",
+      "Mijn klanten informeren met een statuspagina",
+      "Mijn logs, metrics en traces zien",
+      "Mijn servers, Kubernetes of cloud in de gaten houden",
+      "Ik stap over van een andere tool",
+      "Ik kijk alleen even rond",
+      "Overslaan",
+      "Doorgaan",
+      "checkbox: on",
+      "checkbox: on",
+      "checkbox: on",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off"
+    ],
+    "outline": [
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "button: Overslaan",
+      "button: Doorgaan"
+    ],
+    "width": 902,
+    "height": 374
+  },
+  "website-down-address": {
+    "text": [
+      "1",
+      "Wat moeten we controleren?",
+      "OneUptime controleert dit elke 5 minuten vanaf meerdere locaties. Als er geen antwoord komt, of het antwoord een fout is, wordt een incident geopend.",
+      "Adres van de website of API",
+      "Dit is een API-endpoint",
+      "Beginnen met controleren",
+      "Meer monitortypen",
+      "value: https://acme-commerce.example",
+      "checkbox: off"
+    ],
+    "outline": [
+      "field text: https://example.com",
+      "field checkbox: ",
+      "button: Beginnen met controleren",
+      "link: Meer monitortypen"
+    ],
+    "width": 768,
+    "height": 298
+  },
+  "website-down-who": {
+    "text": [
+      "2",
+      "Wie moet er op de hoogte worden gesteld?",
+      "Bij een storing opent OneUptime een incident en roept deze mensen op, ieder zoals zijn of haar ‘Hoe ik bereikbaar ben’ zegt. Het begint bij jou, per e-mail.",
+      "Wie wordt opgeroepen",
+      "Teamleden toevoegen",
+      "AL",
+      "Ada Lovelace",
+      "Hiermee wordt het bereikbaarheidsbeleid \"Default on-call policy\" aangemaakt, dat hen oproept voor elk nieuw incident en elke nieuwe waarschuwing in dit project.",
+      "Opslaan en doorgaan"
+    ],
+    "outline": [
+      "button: Teamleden toevoegen",
+      "button: Ada Lovelace verwijderen",
+      "button: Opslaan en doorgaan"
+    ],
+    "width": 768,
+    "height": 302
+  },
+  "website-down-test": {
+    "text": [
+      "3",
+      "Stuur een test",
+      "Stuur jezelf nu een testoproep. Die gaat uit zoals een echte oproep dat zou doen en elk bericht zegt TEST. Bevestig de oproep vanuit het bericht om af te ronden.",
+      "Stuur mij een testoproep",
+      "De test overslaan"
+    ],
+    "outline": [
+      "button: Stuur mij een testoproep",
+      "button: De test overslaan"
+    ],
+    "width": 768,
+    "height": 178
+  },
+  "website-down-summary": {
+    "text": [
+      "acme-commerce.example is ingesteld",
+      "Gecontroleerd",
+      "Elke 5 minuten, vanaf 2 locaties.",
+      "Bij een storing",
+      "Als er geen antwoord komt, of het antwoord een fout is, opent OneUptime een incident (Critical Incident).",
+      "Wie wordt ingelicht",
+      "Het bereikbaarheidsbeleid \"Default on-call policy\" roept Ada Lovelace op voor elk nieuw incident en elke nieuwe waarschuwing. Je bent eigenaar van deze monitor, dus je krijgt een e-mail wanneer de status ervan verandert.",
+      "Getest",
+      "Ada Lovelace heeft hem na 14 seconden per e-mail bevestigd.",
+      "Volgende stappen",
+      "Op een statuspagina tonen",
+      "Opgeroepen worden via SMS of telefoontje",
+      "Monitor openen",
+      "Een ander adres controleren"
+    ],
+    "outline": [
+      "heading: acme-commerce.example is ingesteld",
+      "heading: Volgende stappen",
+      "link: Op een statuspagina tonen",
+      "link: Opgeroepen worden via SMS of telefoontje",
+      "link: Monitor openen",
+      "button: Een ander adres controleren"
+    ],
+    "width": 768,
+    "height": 511
+  },
+  "paging-reach-you": {
+    "text": [
+      "1",
+      "Hoe moeten we je bereiken?",
+      "Een oproep gaat naar elke methode die je hebt geverifieerd. Voeg je telefoon toe om sms'jes en oproepen te krijgen.",
+      "E-mail",
+      "E-mail · •••mple",
+      "Sms en telefoongesprekken",
+      "Nog geen telefoonnummer.",
+      "SMS staat uit in dit project, dus oproepen die het gebruiken worden niet verstuurd.",
+      "Telefoonoproep staat uit in dit project, dus oproepen die het gebruiken worden niet verstuurd.",
+      "Sms'jes en oproepen worden betaald uit het tegoed van dit project, dat 0.00 USD is. Een nummer toevoegen stuurt een sms, dus het tegoed moet hoger zijn dan 1.00 USD.",
+      "Tegoed toevoegen",
+      "Sms en oproepen aanzetten",
+      "Mobiele app of browser",
+      "Niet ingericht.",
+      "Download de OneUptime-app of zet meldingen in deze browser aan, via je meldingsmethoden.",
+      "De app of deze browser inrichten",
+      "Doorgaan",
+      "Opnieuw controleren"
+    ],
+    "outline": [
+      "button: Tegoed toevoegen",
+      "button: Sms en oproepen aanzetten",
+      "link: De app of deze browser inrichten",
+      "button: Doorgaan",
+      "button: Opnieuw controleren"
+    ],
+    "width": 768,
+    "height": 652
+  },
+  "paging-phone": {
+    "text": [
+      "1",
+      "Hoe moeten we je bereiken?",
+      "Een oproep gaat naar elke methode die je hebt geverifieerd. Voeg je telefoon toe om sms'jes en oproepen te krijgen.",
+      "E-mail",
+      "E-mail · •••mple",
+      "Sms en telefoongesprekken",
+      "Nog geen telefoonnummer.",
+      "Sms'jes en oproepen worden betaald uit het tegoed van dit project, dat 20.00 USD is. Een nummer toevoegen stuurt een sms, dus het tegoed moet hoger zijn dan 1.00 USD.",
+      "Je telefoonnummer",
+      "Stuur me een code per sms",
+      "Mobiele app of browser",
+      "Niet ingericht.",
+      "Download de OneUptime-app of zet meldingen in deze browser aan, via je meldingsmethoden.",
+      "De app of deze browser inrichten",
+      "Doorgaan",
+      "Opnieuw controleren",
+      "placeholder: +15551234567"
+    ],
+    "outline": [
+      "field text: +15551234567",
+      "button: Stuur me een code per sms",
+      "link: De app of deze browser inrichten",
+      "button: Doorgaan",
+      "button: Opnieuw controleren"
+    ],
+    "width": 768,
+    "height": 584
+  },
+  "paging-who-else": {
+    "text": [
+      "2",
+      "Wie is er nog meer bereikbaar?",
+      "Hiermee wordt het bereikbaarheidsbeleid \"Default on-call policy\" aangemaakt. Het roept eerst deze mensen op, bij elk nieuw incident en elke nieuwe waarschuwing in dit project.",
+      "Eerst opgeroepen",
+      "Teamleden toevoegen",
+      "AL",
+      "Ada Lovelace",
+      "Opslaan en doorgaan"
+    ],
+    "outline": [
+      "button: Teamleden toevoegen",
+      "button: Ada Lovelace verwijderen",
+      "button: Opslaan en doorgaan"
+    ],
+    "width": 768,
+    "height": 246
+  },
+  "paging-no-answer": {
+    "text": [
+      "3",
+      "Wat als niemand antwoordt?",
+      "Een oproep wacht tot iemand hem bevestigt. Als niemand dat op tijd doet:",
+      "Iemand anders oproepen",
+      "Dezelfde mensen opnieuw oproepen",
+      "Verder niets doen",
+      "Minuten wachten",
+      "Daarna opgeroepen",
+      "Teamleden toevoegen",
+      "GH",
+      "Grace Hopper",
+      "Opslaan en doorgaan",
+      "radio: on",
+      "radio: off",
+      "radio: off",
+      "value: 30"
+    ],
+    "outline": [
+      "field radio: ",
+      "field radio: ",
+      "field radio: ",
+      "field number: ",
+      "button: Teamleden toevoegen",
+      "button: Grace Hopper verwijderen",
+      "button: Opslaan en doorgaan"
+    ],
+    "width": 768,
+    "height": 510
+  },
+  "paging-test": {
+    "text": [
+      "4",
+      "Een testoproep sturen",
+      "Test het beleid nu: het roept de eerste escalatieregel op zoals een echt incident zou doen, en elk bericht zegt TEST. Bevestig het vanuit het bericht om af te ronden.",
+      "Dit beleid testen",
+      "De test overslaan"
+    ],
+    "outline": [
+      "button: Dit beleid testen",
+      "button: De test overslaan"
+    ],
+    "width": 768,
+    "height": 178
+  },
+  "paging-summary": {
+    "text": [
+      "Oproepen zijn ingericht",
+      "Wie wordt opgeroepen",
+      "Elk nieuw incident en elke nieuwe waarschuwing voert \"Default on-call policy\" uit, dat Ada Lovelace (E-mail, SMS, Telefoonoproep) oproept.",
+      "Als niemand antwoordt",
+      "Als niemand binnen 30 minuten bevestigt, wordt Grace Hopper opgeroepen.",
+      "Getest",
+      "Ada Lovelace heeft hem na 14 seconden per e-mail bevestigd.",
+      "Volgende stappen",
+      "Om de beurt met een bereikbaarheidsrooster",
+      "Slack of Microsoft Teams koppelen",
+      "Bij minder dringende incidenten alleen tijdens werktijd oproepen",
+      "Zien wie er opgeroepen kan worden",
+      "Het bereikbaarheidsbeleid openen",
+      "Nog een beleid inrichten"
+    ],
+    "outline": [
+      "heading: Oproepen zijn ingericht",
+      "heading: Volgende stappen",
+      "link: Om de beurt met een bereikbaarheidsrooster",
+      "link: Slack of Microsoft Teams koppelen",
+      "link: Bij minder dringende incidenten alleen tijdens werktijd oproepen",
+      "link: Zien wie er opgeroepen kan worden",
+      "link: Het bereikbaarheidsbeleid openen",
+      "button: Nog een beleid inrichten"
+    ],
+    "width": 768,
+    "height": 482
+  },
+  "status-page-pick": {
+    "text": [
+      "1",
+      "Geef de pagina een naam en kies wat ze toont",
+      "Naam van de statuspagina",
+      "Wat ze toont",
+      "Elke monitor die u kiest, verschijnt op de pagina met zijn huidige status en uptime.",
+      "Alles selecteren",
+      "Wissen",
+      "1 van 1 gekozen",
+      "Acme website",
+      "Operational",
+      "Zodra u de pagina aanmaakt, is ze openbaar: iedereen met de link ziet de status van de monitoren die u hebt gekozen.",
+      "De statuspagina aanmaken",
+      "value: Status van Acme Commerce",
+      "checkbox: on"
+    ],
+    "outline": [
+      "field text: Status van Acme",
+      "button: Alles selecteren",
+      "button: Wissen",
+      "field checkbox: ",
+      "button: De statuspagina aanmaken"
+    ],
+    "width": 768,
+    "height": 408
+  },
+  "status-page-review": {
+    "text": [
+      "2",
+      "Dit zien uw klanten",
+      "Uw statuspagina staat live op deze link. Dit is wat ze toont en wat erop verschijnt.",
+      "Status van Acme Commerce",
+      "ZE TOONT",
+      "Acme website",
+      "Operational",
+      "Openbare link",
+      "https://oneuptime.acme-commerce.example/status-page/90000000-0000-4000-8000-000000000020",
+      "Een incident bij een van deze monitoren verschijnt hier vanzelf, en abonnees krijgen een e-mail.",
+      "Waarschuwingen verschijnen hier nooit. Ze zijn voor uw team.",
+      "Gepland onderhoud en aankondigingen verschijnen zodra u ze plaatst.",
+      "Ziet er goed uit"
+    ],
+    "outline": [
+      "link: https://oneuptime.acme-commerce.example/status-page/90000000-0000-4000-8000-0000",
+      "button: Ziet er goed uit"
+    ],
+    "width": 768,
+    "height": 466
+  },
+  "status-page-summary": {
+    "text": [
+      "\"Status van Acme Commerce\" staat live",
+      "Adres",
+      "https://oneuptime.acme-commerce.example/status-page/90000000-0000-4000-8000-000000000020",
+      "Toont",
+      "Acme website",
+      "Verschijnt vanzelf",
+      "Een incident bij een van deze monitoren verschijnt hier vanzelf, en abonnees krijgen een e-mail.",
+      "Waarschuwingen verschijnen hier nooit. Ze zijn voor uw team.",
+      "Gepland onderhoud en aankondigingen verschijnen zodra u ze plaatst.",
+      "Pas de pagina aan (optioneel)",
+      "Uw eigen domein Zet de pagina op een adres zoals status.example.com.",
+      "Uw logo en kleuren Laat de pagina eruitzien als uw product.",
+      "Wie zich kan abonneren Per e-mail, SMS, Slack, Microsoft Teams of webhook.",
+      "Privé in plaats van openbaar Alleen mensen die u uitnodigt, of die inloggen, zien de pagina.",
+      "Volgende stappen",
+      "Een eerste aankondiging plaatsen",
+      "Een onderhoud plannen",
+      "Voeg de status toe aan uw website",
+      "De instellingen van deze statuspagina openen",
+      "Nog een statuspagina instellen"
+    ],
+    "outline": [
+      "heading: \"Status van Acme Commerce\" staat live",
+      "link: https://oneuptime.acme-commerce.example/status-page/90000000-0000-4000-8000-0000",
+      "heading: Pas de pagina aan (optioneel)",
+      "link: Uw eigen domein",
+      "link: Uw logo en kleuren",
+      "link: Wie zich kan abonneren",
+      "link: Privé in plaats van openbaar",
+      "heading: Volgende stappen",
+      "link: Een eerste aankondiging plaatsen",
+      "link: Een onderhoud plannen",
+      "link: Voeg de status toe aan uw website",
+      "link: De instellingen van deze statuspagina openen",
+      "button: Nog een statuspagina instellen"
+    ],
+    "width": 768,
+    "height": 682
+  },
+  "incident-feed": {
+    "text": [
+      "Incidentfeed",
+      "Alles wat er met dit incident is gebeurd: statuswijzigingen, notities, eigenaren en elke verzonden melding.",
+      "Acties",
+      "maandag 14 september 2026",
+      "Vandaag",
+      "BST",
+      "19:12",
+      "8 min. geleden",
+      "Maya Chen",
+      "changed Incident #1042 State to Resolved",
+      "19:09",
+      "11 min. geleden",
+      "Maya Chen",
+      "Private note: Rolling checkout-api back to 2026.09.14-1 to restore DB_POOL_MAX=40. Watching p95 on the checkout dashboard.",
+      "19:05",
+      "15 min. geleden",
+      "Maya Chen",
+      "took the Incident Commander role on Incident #1042.",
+      "19:04",
+      "16 min. geleden",
+      "Sam Rivera",
+      "changed Incident #1042 State to Acknowledged",
+      "19:01",
+      "19 min. geleden",
+      "On Call Policy Started Executing: On Call Policy Checkout primary on-call started executing for Incident #1042. Users on call on this policy will now be notified.",
+      "Incident #1042 Created:",
+      "Checkout API p95 latency above 2s:",
+      "The API monitor for POST /api/checkout reported p95 latency of 2.4s for 3 consecutive checks from the eu-west-1 probe.",
+      "🔴 Incident State: Created",
+      "⚠️ Severity: SEV-2",
+      "🌎 Resources Affected:",
+      "Checkout API p95 latency",
+      "Orders DB connection pool"
+    ],
+    "outline": [
+      "heading: Incidentfeed",
+      "button: Acties",
+      "button: Meer opties",
+      "heading: maandag 14 september 2026",
+      "link: Incident #1042",
+      "link: Incident #1042",
+      "link: Incident #1042",
+      "link: Incident #1042",
+      "heading: Incident #1042 Created:",
+      "link: Checkout API p95 latency",
+      "link: Orders DB connection pool"
+    ],
+    "width": 576,
+    "height": 950
+  },
+  "incident-resolve": {
+    "text": [
+      "#1042",
+      "Bevestigd",
+      "SEV-2",
+      "Checkout API p95 latency above 2s",
+      "Oplossen",
+      "Aangemaakt",
+      "Bevestigd",
+      "Opgelost",
+      "BEZIG SINDS",
+      "19 minuten",
+      "INCIDENTCOMMANDANT",
+      "MC",
+      "Maya Chen",
+      "EIGENAREN",
+      "CS",
+      "Checkout SRE",
+      "SR",
+      "Sam Rivera",
+      "Toevoegen",
+      "Eigenaren toevoegen",
+      "MONITOREN",
+      "Checkout API p95 latency",
+      "Orders DB connection pool"
+    ],
+    "outline": [
+      "heading: Checkout API p95 latency above 2s",
+      "button: Oplossen",
+      "button: Toevoegen Eigenaren toevoegen",
+      "link: Checkout API p95 latency",
+      "link: Orders DB connection pool"
+    ],
+    "width": 876,
+    "height": 279
+  }
+}

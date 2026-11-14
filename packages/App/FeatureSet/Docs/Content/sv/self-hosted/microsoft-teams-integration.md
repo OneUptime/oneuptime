@@ -361,7 +361,7 @@ Bevilja **TeamsAppInstallation.ReadForTeam.All** (steg 2) så att OneUptime tala
 
 Installation sker per team. Att lägga till OneUptime i ett team gör ingenting för andra team, och det gör inte heller att ansluta integrationen: det ger *läsåtkomst* till Graph i hela klientorganisationen, och därför kan kanalväljaren visa dig kanaler från team där boten inte kan publicera. Slutför **steg 9** i varje team där du vill ha aviseringar.
 
-### "Testregel" fungerar men riktiga aviseringar kommer aldrig fram
+### "Testa regel" fungerar men riktiga aviseringar kommer aldrig fram
 
 Kontrollera vilka mål regeln faktiskt har aktiverade. En regel testar bara det den är inställd för: med **Skapa en kanal för varje incident** aktiverat skapar testet en kanal och publicerar i den, vilket bevisar att boten kan publicera *i det team där den kanalen skapades*, och ingenting om något annat team. **Projektinställningar > Aviseringar > Aviseringsloggar** registrerar varje testutskick, inklusive Microsofts exakta fel när ett misslyckas.
 

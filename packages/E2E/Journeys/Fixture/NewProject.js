@@ -34,6 +34,7 @@ import UserEmail from "Common/Models/DatabaseModels/UserEmail";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import BillingPaymentMethod from "Common/Models/DatabaseModels/BillingPaymentMethod";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import OnCallDutyPolicyEscalationRule from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
 import OnCallDutyPolicyEscalationRuleUser from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRuleUser";
 import IncidentOnCallRule from "Common/Models/DatabaseModels/IncidentOnCallRule";
@@ -335,6 +336,19 @@ export function dashboardHooks(project) {
       }
 
       /*
+       * Made by who is signed in (DatabaseService stamps createdByUserId): the
+       * guided setup looks for this person's own monitor for an address
+       * before it makes one (#7059).
+       */
+      if (!record.createdByUserId) {
+        store.update(Monitor, record._id, {
+          createdByUserId: new ObjectID(
+            project.signedInAs === "member" ? GRACE_ID : ADA_ID,
+          ),
+        });
+      }
+
+      /*
        * Its creator owns it (DatabaseService's auto-owner), and the probes a
        * new monitor starts with check it - each answering at once, as a
        * reachable website does (MonitorProbe's lastMonitoringLog), for the
@@ -360,6 +374,21 @@ export function dashboardHooks(project) {
               failureCause: "",
             },
           },
+        });
+      }
+    },
+
+    /*
+     * Made by who is signed in (DatabaseService stamps createdByUserId): the
+     * status page guided setup looks for this person's own page with the
+     * name typed before it makes one (#7252).
+     */
+    StatusPage: async (record) => {
+      if (!record.createdByUserId) {
+        store.update(StatusPage, record._id, {
+          createdByUserId: new ObjectID(
+            project.signedInAs === "member" ? GRACE_ID : ADA_ID,
+          ),
         });
       }
     },
@@ -419,6 +448,24 @@ export function dashboardHooks(project) {
       });
     },
 
+    /*
+     * UserCallService: a number already verified for SMS by this person is
+     * verified for calls with no second code (the on-call guided setup's
+     * "one number, one code", #6805).
+     */
+    UserCall: async (record) => {
+      const provenBySms = store.table(UserSMS).some((sms) => {
+        return (
+          sms.isVerified &&
+          String(sms.userId) === String(record.userId) &&
+          String(sms.phone) === String(record.phone)
+        );
+      });
+      if (provenBySms) {
+        store.update(UserCall, record._id, { isVerified: true });
+      }
+    },
+
     // OnCallDutyPolicyEscalationRuleService: its responders become join rows.
     OnCallDutyPolicyEscalationRule: async (rule, misc) => {
       for (const userId of (misc.users || []).map(String)) {
@@ -443,9 +490,87 @@ const VERIFIED_BY_ROUTE = {
   "user-sms": UserSMS,
 };
 
+/*
+ * On-Call Readiness for one person (OnCallReadinessService): their
+ * notification methods, each verified or not, and reachable while one is.
+ */
+function readinessOf(store, userId) {
+  const user = store.find(User, userId);
+  const methods = [];
+  for (const [ModelType, methodType, column] of [
+    [UserEmail, "Email", "email"],
+    [UserSMS, "SMS", "phone"],
+    [UserCall, "Call", "phone"],
+  ]) {
+    for (const row of store.table(ModelType)) {
+      if (String(row.userId) !== String(userId)) {
+        continue;
+      }
+      const value = String(row[column] || "");
+      methods.push({
+        methodId: String(row._id),
+        methodType,
+        maskedIdentifier: `•••${value.slice(-4)}`,
+        isVerified: Boolean(row.isVerified),
+      });
+    }
+  }
+  const isReachable = methods.some((method) => {
+    return method.isVerified;
+  });
+  return {
+    userId: String(userId),
+    userName: user ? String(user.name) : "",
+    userEmail: user ? String(user.email) : "",
+    status: isReachable ? "Ready" : "NotReachable",
+    methods,
+    coverage: [],
+    reasons: [],
+    reachedVia: ["Direct"],
+    teams: [],
+  };
+}
+
 // The API's own routes the journeys' pages call, answered for a new project.
 export function dashboardRoutes(project) {
   const store = project.store;
+  // What the owner said they came to do (Home's question); null until then.
+  let goals = null;
+
+  const welcomeAnswer = () => {
+    if (project.signedInAs === "member") {
+      return {
+        audience: WelcomeAudience.InvitedMember,
+        goals: null,
+        steps: [],
+      };
+    }
+
+    const checklist = buildWelcomeChecklist({
+      goals,
+      facts: {
+        reached: [],
+        hasRuleThatPagesSomeone: false,
+        hasFinishedImport: false,
+        serverCanSendEmail: true,
+      },
+      plan: { isFreePlan: false },
+      readerIsServerAdmin: false,
+    });
+
+    return {
+      audience: WelcomeAudience.SetUp,
+      goals,
+      shouldAskForGoals: goals === null,
+      canChooseGoals: true,
+      isHiddenForMe: false,
+      isFinished: false,
+      canSendEmail: true,
+      steps: checklist.steps,
+      doneCount: checklist.doneCount,
+      totalCount: checklist.totalCount,
+    };
+  };
 
   return [
     [
@@ -453,44 +578,14 @@ export function dashboardRoutes(project) {
        * Home's Welcome card (issue #6803), built with the real rules: a
        * project made a minute ago whose owner has not said yet what they
        * came to do sees the question; an invited member sees nothing (their
-       * own first hour is #6807). The journeys go by the products menu, as a
-       * newcomer who skips the card does.
+       * own first hour is #6807). Most journeys go by the products menu, as a
+       * newcomer who skips the card does; the on-call guided setup's answers
+       * it (#6805), and the checklist then follows the goals picked.
        */
       "GET",
       "/welcome-checklist",
       () => {
-        if (project.signedInAs === "member") {
-          return ok({
-            audience: WelcomeAudience.InvitedMember,
-            goals: null,
-            steps: [],
-          });
-        }
-
-        const checklist = buildWelcomeChecklist({
-          goals: null,
-          facts: {
-            reached: [],
-            hasRuleThatPagesSomeone: false,
-            hasFinishedImport: false,
-            serverCanSendEmail: true,
-          },
-          plan: { isFreePlan: false },
-          readerIsServerAdmin: false,
-        });
-
-        return ok({
-          audience: WelcomeAudience.SetUp,
-          goals: null,
-          shouldAskForGoals: true,
-          canChooseGoals: true,
-          isHiddenForMe: false,
-          isFinished: false,
-          canSendEmail: true,
-          steps: checklist.steps,
-          doneCount: checklist.doneCount,
-          totalCount: checklist.totalCount,
-        });
+        return ok(welcomeAnswer());
       },
     ],
     [
@@ -546,6 +641,60 @@ export function dashboardRoutes(project) {
           );
         }
         return ok({});
+      },
+    ],
+    [
+      // Home's question answered: the checklist follows the goals picked.
+      "POST",
+      "/welcome-checklist/goals",
+      ({ body }) => {
+        goals = Array.isArray(body.goals) ? body.goals.map(String) : [];
+        return ok(welcomeAnswer());
+      },
+    ],
+    [
+      // Whether a page reaches me (OnCallReadinessAPI), for the guided setup.
+      "GET",
+      /\/on-call-readiness\/user\/[0-9a-f-]+$/,
+      ({ url }) => {
+        return ok(readinessOf(store, url.pathname.split("/").pop()));
+      },
+    ],
+    [
+      // Whether a page reaches each person a policy pages.
+      "GET",
+      /\/on-call-readiness\/policy\/[0-9a-f-]+$/,
+      ({ url }) => {
+        const policyId = url.pathname.split("/").pop();
+        const userIds = [];
+        for (const row of store.table(OnCallDutyPolicyEscalationRuleUser)) {
+          const userId = String(row.userId);
+          if (
+            String(row.onCallDutyPolicyId) === policyId &&
+            !userIds.includes(userId)
+          ) {
+            userIds.push(userId);
+          }
+        }
+        const users = userIds.map((userId) => {
+          return readinessOf(store, userId);
+        });
+        return ok({
+          projectId: PROJECT_ID,
+          onCallDutyPolicyId: policyId,
+          readyCount: users.filter((user) => {
+            return user.status === "Ready";
+          }).length,
+          partiallyReadyCount: 0,
+          notReachableCount: users.filter((user) => {
+            return user.status === "NotReachable";
+          }).length,
+          isFallbackEnabled: true,
+          isTruncated: false,
+          users,
+          hasMore: false,
+          totalCount: users.length,
+        });
       },
     ],
     [
@@ -681,6 +830,14 @@ export function dashboardRoutes(project) {
             telegramCount: 0,
           },
         });
+      },
+    ],
+    [
+      // A test of a policy (the on-call guided setup's last step, #6805).
+      "POST",
+      "/on-call-test-page/page-policy",
+      () => {
+        return ok({ executionLogId: TEST_PAGE_LOG_ID });
       },
     ],
     [

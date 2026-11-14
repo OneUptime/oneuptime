@@ -2,6 +2,9 @@
 
 Uma política de plantão aciona as pessoas por níveis. Cada regra de escalonamento é um nível: quem é acionado e quanto tempo esperar que alguém confirme antes de acionar o próximo nível. As regras de uma política aparecem, em ordem, na página **Regras de escalonamento** dela.
 
+> [!TIP]
+> Novo por aqui? Siga primeiro o guia: [Ser acionado por telefone, SMS ou push](/docs/guides/paging).
+
 ```mermaid title="Uma política de plantão aciona nível a nível até alguém confirmar"
 flowchart TB
     trigger["Incidente ou alerta"] --> level1["Level 1 aciona"]
@@ -89,7 +92,7 @@ O resumo no topo da página **Regras de escalonamento** mostra a escada inteira:
 
 ### Como cada pessoa é contatada
 
-Cada pessoa que um nível aciona é contatada do jeito que as próprias regras de plantão dela mandam: **Configurações do usuário** > **Regras de Plantão**, com uma aba para incidentes, episódios de incidente, alertas e episódios de alerta, e um cartão por severidade que mostra qual método de notificação é tentado e depois de quanto tempo. Um administrador do projeto pode ver e mudar as regras de um membro em **Usuários** > o membro > **Regras de Plantão**. Veja [Regras de Plantão pessoais](/docs/notifications/on-call-rules).
+Cada pessoa que um nível aciona é contatada do jeito que as próprias regras de plantão dela mandam: **Configurações do usuário** > **Como me contatar**, com uma aba para incidentes, episódios de incidente, alertas e episódios de alerta, e um cartão por severidade que mostra qual método de notificação é tentado e depois de quanto tempo. Um administrador do projeto pode ver e mudar as regras de um membro em **Usuários** > o membro > **Como me contatar**. Veja [Como me contatar](/docs/notifications/on-call-rules).
 
 ```mermaid title="Quem um nível aciona e como cada pessoa é contatada"
 flowchart TB
@@ -166,14 +169,14 @@ Os proprietários do projeto recebem um e-mail sobre isso uma vez, até o saldo 
 
 Um acionamento que não conseguiu chegar ao serviço de notificações do OneUptime diz `Could not reach the Notification service to send this (ECONNREFUSED).`, com o código do erro de rede entre os parênteses. Um acionamento cujo envio nunca terminou, por exemplo porque um servidor reiniciou durante o envio, diz `Sending did not finish within 15 minutes, so this notification may not have been sent.` Se o envio terminar afinal, o resultado substitui essa mensagem.
 
-No OneUptime Cloud, cada SMS, chamada, mensagem de WhatsApp e de Telegram é pago com o saldo do projeto em **Configurações do projeto > Notificações > Configurações de notificação**: o custo exato sai do saldo quando o provedor aceita a mensagem, não importa quantas mensagens saiam ao mesmo tempo.
+No OneUptime Cloud, cada SMS, chamada, mensagem de WhatsApp e de Telegram é pago com o saldo do projeto em **Configurações do projeto > Notificações > Canais de notificação**: o custo exato sai do saldo quando o provedor aceita a mensagem, não importa quantas mensagens saiam ao mesmo tempo.
 
 - Com a **Recarga automática** ligada ali, a mensagem que encontra o saldo abaixo do limite adiciona primeiro o valor definido na recarga automática, cobrando o cartão do projeto; mensagens que o encontram baixo no mesmo momento cobram o cartão uma única vez.
-- Se essa cobrança falhar (não há forma de pagamento ou o cartão foi recusado), a recarga automática tenta o cartão de novo uma hora depois, e **Configurações de notificação** avisa isso no topo até lá. Adicionar saldo manualmente, ou salvar a recarga automática de novo, tenta na hora.
+- Se essa cobrança falhar (não há forma de pagamento ou o cartão foi recusado), a recarga automática tenta o cartão de novo uma hora depois, e **Canais de notificação** avisa isso no topo até lá. Adicionar saldo manualmente, ou salvar a recarga automática de novo, tenta na hora.
 - Os acionamentos continuam saindo com o saldo restante enquanto a recarga automática não consegue cobrar o cartão.
 
 > [!IMPORTANT]
-> SMS, chamadas telefônicas, WhatsApp e Telegram começam desligados em um projeto novo: no OneUptime Cloud, cada mensagem é paga com o saldo do projeto, e uma instalação auto-hospedada precisa antes de uma conta do Twilio, de um gateway de SMS e chamadas ou de um bot do Telegram configurado. Enquanto um canal está desligado, ninguém no projeto pode adicionar um método nele. Só um proprietário do projeto ou alguém com o papel **Administrador de cobrança** ou a permissão **Manage Billing** pode ligar um, no cartão **Canais de notificação** de **Configurações do projeto > Notificações > Configurações de notificação** — um administrador do projeto não pode. Todos os outros são informados exatamente de quem pode, onde quer que um canal esteja desligado: acima da própria lista de métodos nele, na lista de configuração deles e na mensagem que recebem quando algo precisa dele.
+> SMS, chamadas telefônicas, WhatsApp e Telegram começam desligados em um projeto novo: no OneUptime Cloud, cada mensagem é paga com o saldo do projeto, e uma instalação auto-hospedada precisa antes de uma conta do Twilio, de um gateway de SMS e chamadas ou de um bot do Telegram configurado. Enquanto um canal está desligado, ninguém no projeto pode adicionar um método nele. Só um proprietário do projeto ou alguém com o papel **Administrador de cobrança** ou a permissão **Manage Billing** pode ligar um, no cartão **Canais de notificação** de **Configurações do projeto > Notificações > Canais de notificação** — um administrador do projeto não pode. Todos os outros são informados exatamente de quem pode, onde quer que um canal esteja desligado: acima da própria lista de métodos nele, na lista de configuração deles e na mensagem que recebem quando algo precisa dele.
 
 ## Escalonar para a próxima pessoa da rotação
 

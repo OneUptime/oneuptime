@@ -15,9 +15,17 @@ import Route from "../../../Types/API/Route";
 import URL from "../../../Types/API/URL";
 import Dictionary from "../../../Types/Dictionary";
 import APIException from "../../../Types/Exception/ApiException";
+import { isEmptyErrorPhrase } from "../../../Types/Exception/ErrorMessageRule";
 import Exception from "../../../Types/Exception/Exception";
 import ProjectBlockedException from "../../../Types/Exception/ProjectBlockedException";
 import SessionEndedException from "../../../Types/Exception/SessionEndedException";
+import {
+  ERROR_REFERENCE_FIELD,
+  getUnexplainedServerErrorMessage,
+  isErrorReference,
+  SERVER_DOWN_MESSAGE,
+  UNEXPLAINED_ERROR_MESSAGES,
+} from "../../../Types/Exception/UnexplainedError";
 import { JSONObject } from "../../../Types/JSON";
 import JSONFunctions from "../../../Types/JSONFunctions";
 import {
@@ -30,6 +38,7 @@ import {
 } from "../../../Types/UserSession/SessionLength";
 import API, { AuthRetryContext } from "../../../Utils/API";
 import { IDENTITY_URL } from "../../Config";
+import { registerPageErrorReader } from "../ErrorReader";
 import BlockedProject from "../BlockedProject";
 
 /*
@@ -53,6 +62,17 @@ const sessionEnd: { reason: SessionEndReason | null } = { reason: null };
 
 // The session name of the Dashboard's and the Admin Dashboard's sign-in.
 const DASHBOARD_SESSION_NAME: string = "dashboard";
+
+/*
+ * What fetch() throws, as a TypeError, when a request gets no answer at all:
+ * Chrome's, Firefox's and Safari's words for it.
+ */
+const FETCH_FAILED_MESSAGES: ReadonlyArray<string> = [
+  "Failed to fetch",
+  "NetworkError when attempting to fetch resource.",
+  "Load failed",
+  "Network request failed",
+];
 
 class BaseAPI extends API {
   /*
@@ -531,6 +551,14 @@ class BaseAPI extends API {
   public static getFriendlyMessage(
     err: HTTPErrorResponse | Exception | unknown,
   ): string {
+    /*
+     * The sentences of an error nobody explained are written here: a card
+     * that puts one in a sentence of its own (errorInSentence) says it to
+     * the page's reader - Cloud or not, a master admin, a visitor (#7307).
+     * Told here, as a page runs: at load, API and User import each other.
+     */
+    registerPageErrorReader();
+
     if (err instanceof HTTPErrorResponse) {
       /*
        * A gateway's own 502 / 504 is a page, not a message: the server could
@@ -543,27 +571,40 @@ class BaseAPI extends API {
         const apiMessage: string =
           err.statusCode === 504 ? BaseAPI.getJsonErrorMessage(err) : "";
 
-        return (
-          apiMessage ||
-          "Error connecting to server. Please try again in few minutes."
-        );
+        // ErrorExplanation draws SERVER_DOWN_MESSAGE as what to do next.
+        return apiMessage || SERVER_DOWN_MESSAGE;
       }
 
-      return err.message || "Server Error. Please try again";
+      /*
+       * A failure the server could not explain names a reference to its
+       * log lines (Server/Utils/UnexplainedServerError): the sentence is
+       * built here from the reference, so ErrorExplanation can read it back
+       * and draw it in the reader's language with a copy button (#6836).
+       */
+      const reference: unknown = err.data
+        ? (err.data as JSONObject)[ERROR_REFERENCE_FIELD]
+        : undefined;
+
+      if (isErrorReference(reference)) {
+        return getUnexplainedServerErrorMessage(reference);
+      }
+
+      return BaseAPI.explainServerMessage(err.message);
     }
 
     if (err instanceof Error) {
-      return err.message || "Server Error. Please try again";
+      return BaseAPI.explainThrownError(err);
     }
 
     if (typeof err === "string") {
-      return err || "Server Error. Please try again";
+      return BaseAPI.explainServerMessage(err);
     }
 
     /*
      * Never surface a raw object as "[object Object]" — pull a message
-     * out of it (gateways/proxies often send `{ message }` or `{ error }`)
-     * or stringify it so the UI shows something actionable.
+     * out of it (gateways/proxies often send `{ message }` or `{ error }`).
+     * An object with neither is not something a person can read, so it
+     * gets the sentence for a page that failed.
      */
     if (err && typeof err === "object") {
       const obj: { message?: unknown; error?: unknown } = err as {
@@ -571,19 +612,70 @@ class BaseAPI extends API {
         error?: unknown;
       };
       if (typeof obj.message === "string" && obj.message) {
-        return obj.message;
+        return BaseAPI.explainServerMessage(obj.message);
       }
       if (typeof obj.error === "string" && obj.error) {
-        return obj.error;
-      }
-      try {
-        return JSON.stringify(err);
-      } catch {
-        return "Server Error. Please try again";
+        return BaseAPI.explainServerMessage(obj.error);
       }
     }
 
-    return "Server Error. Please try again";
+    return UNEXPLAINED_ERROR_MESSAGES.page;
+  }
+
+  /*
+   * A message as the reader should see it: as it came, unless it says
+   * nothing - "Server Error", "Internal Server Error", an empty body - when
+   * it becomes the sentence for a failure the server did not explain.
+   */
+  private static explainServerMessage(message: string | undefined): string {
+    if (isEmptyErrorPhrase(message)) {
+      return UNEXPLAINED_ERROR_MESSAGES.server;
+    }
+
+    return message as string;
+  }
+
+  /*
+   * What a thrown error says to a person (#6836). OneUptime's own
+   * exceptions, and errors code threw with a message on purpose, are shown
+   * as they are. These are not:
+   * - a request that got no answer at all (APIException "Request failed to
+   *   <url>. Network Error", fetch()'s TypeError "Failed to fetch"): the URL
+   *   and the browser's words become "OneUptime could not be reached";
+   * - the browser's own TypeError or ReferenceError ("Cannot read
+   *   properties of undefined"): always a developer's words, so the
+   *   sentence for a page that failed. A SyntaxError or RangeError is left
+   *   as it is: it can be about what the person typed ("Invalid regular
+   *   expression", JSON that does not parse);
+   * - an error with no message: the sentence for a page that failed.
+   */
+  private static explainThrownError(err: Error): string {
+    const message: string = (err.message || "").trim();
+
+    if (
+      err instanceof APIException &&
+      (message.startsWith("Request failed to ") ||
+        message === "No response received from server." ||
+        message.toLowerCase().replace(/\.$/, "") === "network error")
+    ) {
+      return UNEXPLAINED_ERROR_MESSAGES.unreachable;
+    }
+
+    const isBrowsersOwnError: boolean =
+      !(err instanceof Exception) &&
+      (err.constructor === TypeError || err.constructor === ReferenceError);
+
+    if (isBrowsersOwnError) {
+      return FETCH_FAILED_MESSAGES.includes(message)
+        ? UNEXPLAINED_ERROR_MESSAGES.unreachable
+        : UNEXPLAINED_ERROR_MESSAGES.page;
+    }
+
+    if (!message) {
+      return UNEXPLAINED_ERROR_MESSAGES.page;
+    }
+
+    return BaseAPI.explainServerMessage(message);
   }
 
   /*

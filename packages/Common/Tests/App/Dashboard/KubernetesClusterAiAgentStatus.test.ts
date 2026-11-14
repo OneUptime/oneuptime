@@ -46,6 +46,10 @@ import {
   AUTOMATIC_REMEDIATION_SETTINGS_LINKS,
   getAutomaticInvestigation,
   getAutomaticInvestigationConfirmation,
+  getAutomaticInvestigationSettingsLinks,
+  getAutomaticInvestigationTurnOn,
+  AUTOMATIC_INVESTIGATION_SETTINGS_LINKS,
+  AutomaticInvestigationSettingsLink,
   getAutomaticInvestigationLine,
   getAutomaticInvestigationTurnOnChanges,
   getAutomaticRemediation,
@@ -58,6 +62,7 @@ import {
   parseStatus,
   shouldShowWriteAccessCommands,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/KubernetesAiAgentStatus";
+import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import { KUBERNETES_AGENT_HELM_NAMESPACE } from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/DocumentationMarkdown";
 import {
   KubernetesAiAccessGap,
@@ -1528,7 +1533,7 @@ describe("Needs attention's steps", () => {
     ["project_ai_command_execution_disabled", "Turn on AI for this project."],
     [
       "llm_provider_missing",
-      "Add an AI provider for this project, or use OneUptime AI credits.",
+      "Add an LLM provider for this project, or use OneUptime AI credits.",
     ],
     // Not "or turn on auto-recharge": the gap shows when it cannot refill.
     ["ai_balance_insufficient", "Add AI credits to this project."],
@@ -2043,7 +2048,7 @@ describe("the automatic-investigation footer", () => {
         projectName: "Acme",
       }),
     ).toBe(
-      "This applies to every new incident and alert in Acme, not just this cluster. Limits live under Incidents → AI → Settings.",
+      "This applies to every new incident and alert in Acme, not just this cluster. Limits live under Incidents → AI → Settings and Alerts → AI → Settings.",
     );
     expect(
       getAutomaticInvestigationConfirmation({
@@ -2059,7 +2064,7 @@ describe("the automatic-investigation footer", () => {
         projectName: "Acme",
       }),
     ).toBe(
-      "This applies to every new alert in Acme, not just this cluster. Limits live under Incidents → AI → Settings.",
+      "This applies to every new alert in Acme, not just this cluster. Limits live under Alerts → AI → Settings.",
     );
   });
 
@@ -2072,11 +2077,11 @@ describe("the automatic-investigation footer", () => {
   test("each case is one whole sentence with a {{project}} slot", () => {
     expect(AUTOMATIC_INVESTIGATION_CONFIRMATIONS).toEqual({
       incidentsAndAlerts:
-        "This applies to every new incident and alert in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings.",
+        "This applies to every new incident and alert in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings and Alerts → AI → Settings.",
       incidents:
         "This applies to every new incident in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings.",
       alerts:
-        "This applies to every new alert in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings.",
+        "This applies to every new alert in {{project}}, not just this cluster. Limits live under Alerts → AI → Settings.",
     });
   });
 
@@ -2086,7 +2091,7 @@ describe("the automatic-investigation footer", () => {
         settings: { incidents: false, alerts: false },
       }),
     ).toBe(
-      "This applies to every new incident and alert in this project, not just this cluster. Limits live under Incidents → AI → Settings.",
+      "This applies to every new incident and alert in this project, not just this cluster. Limits live under Incidents → AI → Settings and Alerts → AI → Settings.",
     );
     expect(
       getAutomaticInvestigationConfirmation({
@@ -2094,7 +2099,7 @@ describe("the automatic-investigation footer", () => {
         projectName: "",
       }),
     ).toBe(
-      "This applies to every new alert in this project, not just this cluster. Limits live under Incidents → AI → Settings.",
+      "This applies to every new alert in this project, not just this cluster. Limits live under Alerts → AI → Settings.",
     );
   });
 
@@ -2108,6 +2113,111 @@ describe("the automatic-investigation footer", () => {
     ).toBe(
       "This applies to every new incident in Ops {{project}}, not just this cluster. Limits live under Incidents → AI → Settings.",
     );
+  });
+
+  /*
+   * #7158: the alerts' limits (Daily Alert AI Token Limit, Max Concurrent
+   * Alert Investigations, Alert Investigation Time Limit) are on the
+   * alerts' AI settings page, and the incidents' page has none of them. So
+   * the dialog names, and links to, the page of each kind it turns on, and
+   * no other.
+   */
+  test("the dialog turns on the kinds that are off", () => {
+    expect(
+      getAutomaticInvestigationTurnOn({ incidents: false, alerts: false }),
+    ).toBe("incidentsAndAlerts");
+    expect(
+      getAutomaticInvestigationTurnOn({ incidents: false, alerts: true }),
+    ).toBe("incidents");
+    expect(
+      getAutomaticInvestigationTurnOn({ incidents: true, alerts: false }),
+    ).toBe("alerts");
+  });
+
+  test("each sentence names only the AI settings pages of the kinds it turns on", () => {
+    type Named = { incidents: boolean; alerts: boolean };
+
+    const named: (settings: Named) => Named = (settings: Named): Named => {
+      const sentence: string = getAutomaticInvestigationConfirmation({
+        settings,
+        projectName: "Acme",
+      });
+
+      return {
+        incidents: sentence.includes("Incidents → AI → Settings"),
+        alerts: sentence.includes("Alerts → AI → Settings"),
+      };
+    };
+
+    expect(named({ incidents: false, alerts: false })).toEqual({
+      incidents: true,
+      alerts: true,
+    });
+    expect(named({ incidents: false, alerts: true })).toEqual({
+      incidents: true,
+      alerts: false,
+    });
+    expect(named({ incidents: true, alerts: false })).toEqual({
+      incidents: false,
+      alerts: true,
+    });
+  });
+
+  test("the links go to the same pages the sentence names", () => {
+    const linksOf: (settings: {
+      incidents: boolean;
+      alerts: boolean;
+    }) => Array<string> = (settings: {
+      incidents: boolean;
+      alerts: boolean;
+    }): Array<string> => {
+      return getAutomaticInvestigationSettingsLinks(settings).map(
+        (link: AutomaticInvestigationSettingsLink): string => {
+          return `${link.page}: ${link.label}`;
+        },
+      );
+    };
+
+    // Turning on alerts only: Open settings is the alerts' AI settings.
+    expect(linksOf({ incidents: true, alerts: false })).toEqual([
+      `${PageMap.ALERTS_SETTINGS_AI}: Open settings`,
+    ]);
+    // Incidents only, as before.
+    expect(linksOf({ incidents: false, alerts: true })).toEqual([
+      `${PageMap.INCIDENTS_SETTINGS_AI}: Open settings`,
+    ]);
+    // Both: one link a page, each named, so the reader tells them apart.
+    expect(linksOf({ incidents: false, alerts: false })).toEqual([
+      `${PageMap.INCIDENTS_SETTINGS_AI}: Incident AI settings`,
+      `${PageMap.ALERTS_SETTINGS_AI}: Alert AI settings`,
+    ]);
+  });
+
+  test("every case has links, and every link's label is a key", () => {
+    const english: Record<string, unknown> = JSON.parse(
+      fs.readFileSync(
+        path.resolve(
+          __dirname,
+          "../../../../App/FeatureSet/Dashboard/src/Locales/en.json",
+        ),
+        "utf8",
+      ),
+    ) as Record<string, unknown>;
+
+    expect(Object.keys(AUTOMATIC_INVESTIGATION_SETTINGS_LINKS).sort()).toEqual(
+      Object.keys(AUTOMATIC_INVESTIGATION_CONFIRMATIONS).sort(),
+    );
+
+    for (const links of Object.values(AUTOMATIC_INVESTIGATION_SETTINGS_LINKS)) {
+      expect(links.length).toBeGreaterThan(0);
+
+      for (const link of links) {
+        expect({ label: link.label, english: english[link.label] }).toEqual({
+          label: link.label,
+          english: link.label,
+        });
+      }
+    }
   });
 });
 

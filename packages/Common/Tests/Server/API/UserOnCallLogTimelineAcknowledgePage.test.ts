@@ -38,6 +38,16 @@ import Color from "../../../Types/Color";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Timezone from "../../../Types/Timezone";
+import UserNotificationStatus from "../../../Types/UserNotification/UserNotificationStatus";
+import { ON_CALL_PASS_ON_NO_BREAK_SPACE } from "../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
+import {
+  MAX_NOTIFICATION_WRITE_ATTEMPTS,
+  ON_CALL_NOTIFICATION_NOT_ACKNOWLEDGED_MESSAGE,
+} from "../../../Server/Utils/OnCall/OnCallNotificationStatus";
+import {
+  UpdateOneByInput,
+  updateNotificationWhileStill,
+} from "../TestingUtils/OnCallTimelineRows";
 import { beforeAll, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -149,6 +159,9 @@ const buildTimelineItem: BuildTimelineItem = (
 ): UserOnCallLogTimeline => {
   const timelineItem: UserOnCallLogTimeline = new UserOnCallLogTimeline();
   timelineItem.projectId = ObjectID.generate();
+  // As the send left it, at the first version.
+  timelineItem.status = UserNotificationStatus.Sent;
+  timelineItem.version = 1;
 
   const user: User = new User();
   user.timezone = Timezone.AmericaNew_York;
@@ -156,7 +169,32 @@ const buildTimelineItem: BuildTimelineItem = (
 
   Object.assign(timelineItem, overrides);
 
+  if (overrides.isAcknowledged && !overrides.status) {
+    timelineItem.status = UserNotificationStatus.Acknowledged;
+  }
+
   return timelineItem;
+};
+
+/*
+ * The notification the acknowledge route reads, and writes the
+ * acknowledgement to as OnCallNotificationStatus does: only while it still
+ * holds the status and the version read. The write, to look at.
+ */
+type GivenNotification = (timelineItem: UserOnCallLogTimeline) => jest.Mock;
+
+const givenNotification: GivenNotification = (
+  timelineItem: UserOnCallLogTimeline,
+): jest.Mock => {
+  jest
+    .spyOn(UserOnCallLogTimelineService, "findOneById")
+    .mockResolvedValue(timelineItem);
+
+  return jest
+    .spyOn(UserOnCallLogTimelineService, "updateOneBy")
+    .mockImplementation((async (updateBy: UpdateOneByInput) => {
+      return updateNotificationWhileStill(timelineItem, updateBy);
+    }) as never) as unknown as jest.Mock;
 };
 
 describe("the acknowledge page route", () => {
@@ -484,17 +522,14 @@ describe("the acknowledge route", () => {
       triggeredByAlertId: alertId,
     });
 
-    jest
-      .spyOn(UserOnCallLogTimelineService, "findOneById")
-      .mockResolvedValue(timelineItem);
-
-    const updateOneById: jest.Mock = jest
-      .spyOn(UserOnCallLogTimelineService, "updateOneById")
-      .mockResolvedValue(1) as unknown as jest.Mock;
+    const updateOneBy: jest.Mock = givenNotification(timelineItem);
 
     await callRoute(ACKNOWLEDGE_ROUTE, ObjectID.generate().toString());
 
-    expect(updateOneById).toHaveBeenCalledTimes(1);
+    expect(updateOneBy).toHaveBeenCalledTimes(1);
+    expect(timelineItem.status).toBe(UserNotificationStatus.Acknowledged);
+    expect(timelineItem.isAcknowledged).toBe(true);
+    expect(timelineItem.acknowledgedAt).toBeInstanceOf(Date);
 
     const redirect: jest.Mock = Response.redirect as unknown as jest.Mock;
 
@@ -508,16 +543,12 @@ describe("the acknowledge route", () => {
     const episodeId: ObjectID = ObjectID.generate();
     const projectId: ObjectID = ObjectID.generate();
 
-    jest.spyOn(UserOnCallLogTimelineService, "findOneById").mockResolvedValue(
+    givenNotification(
       buildTimelineItem({
         projectId: projectId,
         triggeredByAlertEpisodeId: episodeId,
       }),
     );
-
-    jest
-      .spyOn(UserOnCallLogTimelineService, "updateOneById")
-      .mockResolvedValue(1);
 
     await callRoute(ACKNOWLEDGE_ROUTE, ObjectID.generate().toString());
 
@@ -532,16 +563,12 @@ describe("the acknowledge route", () => {
     const episodeId: ObjectID = ObjectID.generate();
     const projectId: ObjectID = ObjectID.generate();
 
-    jest.spyOn(UserOnCallLogTimelineService, "findOneById").mockResolvedValue(
+    givenNotification(
       buildTimelineItem({
         projectId: projectId,
         triggeredByIncidentEpisodeId: episodeId,
       }),
     );
-
-    jest
-      .spyOn(UserOnCallLogTimelineService, "updateOneById")
-      .mockResolvedValue(1);
 
     await callRoute(ACKNOWLEDGE_ROUTE, ObjectID.generate().toString());
 
@@ -576,13 +603,13 @@ describe("the acknowledge route", () => {
 
     jest.spyOn(AlertService, "findOneById").mockResolvedValue(alert);
 
-    const updateOneById: jest.Mock = jest
-      .spyOn(UserOnCallLogTimelineService, "updateOneById")
+    const updateOneBy: jest.Mock = jest
+      .spyOn(UserOnCallLogTimelineService, "updateOneBy")
       .mockResolvedValue(1) as unknown as jest.Mock;
 
     await callRoute(ACKNOWLEDGE_ROUTE, ObjectID.generate().toString());
 
-    expect(updateOneById).not.toHaveBeenCalled();
+    expect(updateOneBy).not.toHaveBeenCalled();
     expect(renderedPath()).toContain("ViewMessage.ejs");
 
     const variables: JSONObject = renderedVariables();
@@ -601,14 +628,126 @@ describe("the acknowledge route", () => {
     expect(detailValue(variables, "Severity")).toBe("Critical");
   });
 
-  test("refuses a notification that points at nothing", async () => {
-    jest
-      .spyOn(UserOnCallLogTimelineService, "findOneById")
-      .mockResolvedValue(buildTimelineItem({}));
+  /*
+   * Issue #7082: the acknowledgement is written once, at the status and the
+   * version read. A second press - the button pressed twice, the link
+   * opened on two phones - landing between this press's read and its write
+   * acknowledges nothing again: this press is told what the page says now.
+   */
+  test("a second press landing between this one's read and its write: told it is acknowledged already, and acknowledged once", async () => {
+    const alertId: ObjectID = ObjectID.generate();
+    const timelineItem: UserOnCallLogTimeline = buildTimelineItem({
+      triggeredByAlertId: alertId,
+    });
+
+    const alert: Alert = new Alert();
+    alert.title = "CPU above 90% on prod-web-1";
+    alert.createdAt = RAISED_AT;
+    jest.spyOn(AlertService, "findOneById").mockResolvedValue(alert);
 
     jest
-      .spyOn(UserOnCallLogTimelineService, "updateOneById")
-      .mockResolvedValue(1);
+      .spyOn(UserOnCallLogTimelineService, "findOneById")
+      .mockResolvedValue(timelineItem);
+
+    let pressedMeanwhile: boolean = false;
+
+    const updateOneBy: jest.Mock = jest
+      .spyOn(UserOnCallLogTimelineService, "updateOneBy")
+      .mockImplementation((async (updateBy: UpdateOneByInput) => {
+        if (!pressedMeanwhile) {
+          // The other press lands first, and moves the version on.
+          pressedMeanwhile = true;
+          updateNotificationWhileStill(timelineItem, {
+            query: {
+              _id: updateBy.query["_id"],
+              status: timelineItem.status,
+              version: timelineItem.version,
+            },
+            data: {
+              status: UserNotificationStatus.Acknowledged,
+              statusMessage: "Notification Acknowledged",
+              isAcknowledged: true,
+              acknowledgedAt: RAISED_AT,
+            },
+          });
+        }
+
+        return updateNotificationWhileStill(timelineItem, updateBy);
+      }) as never) as unknown as jest.Mock;
+
+    await callRoute(ACKNOWLEDGE_ROUTE, ObjectID.generate().toString());
+
+    // This press's write found the notification moved on, read it again: acknowledged.
+    expect(updateOneBy).toHaveBeenCalledTimes(1);
+    expect(timelineItem.acknowledgedAt).toBe(RAISED_AT);
+    expect(Response.redirect).not.toHaveBeenCalled();
+    expect(Response.sendErrorResponse).not.toHaveBeenCalled();
+    expect(renderedPath()).toContain("ViewMessage.ejs");
+    // When the other press acknowledged it, in the person's own time zone, kept on one line.
+    expect(renderedVariables()["message"]).toBe(
+      `You already acknowledged this alert on ${"Jan 15, 2026, 4:30 AM EST"
+        .split(" ")
+        .join(ON_CALL_PASS_ON_NO_BREAK_SPACE)}.`,
+    );
+  });
+
+  test("a notification that keeps changing under every try: the press is told to try again, and nothing is claimed", async () => {
+    const timelineItem: UserOnCallLogTimeline = buildTimelineItem({
+      triggeredByAlertId: ObjectID.generate(),
+    });
+
+    jest
+      .spyOn(UserOnCallLogTimelineService, "findOneById")
+      .mockResolvedValue(timelineItem);
+
+    const updateOneBy: jest.Mock = jest
+      .spyOn(UserOnCallLogTimelineService, "updateOneBy")
+      .mockImplementation((async () => {
+        // Something else writes it every time, just before.
+        timelineItem.version = (timelineItem.version || 0) + 1;
+        return 0;
+      }) as never) as unknown as jest.Mock;
+
+    await callRoute(ACKNOWLEDGE_ROUTE, ObjectID.generate().toString());
+
+    expect(updateOneBy).toHaveBeenCalledTimes(MAX_NOTIFICATION_WRITE_ATTEMPTS);
+    expect(timelineItem.isAcknowledged).toBeFalsy();
+    expect(Response.redirect).not.toHaveBeenCalled();
+    expect(Response.render).not.toHaveBeenCalled();
+
+    const sendErrorResponse: jest.Mock =
+      Response.sendErrorResponse as unknown as jest.Mock;
+
+    expect(sendErrorResponse).toHaveBeenCalledTimes(1);
+    expect((sendErrorResponse.mock.calls[0]?.[2] as Error).message).toBe(
+      ON_CALL_NOTIFICATION_NOT_ACKNOWLEDGED_MESSAGE,
+    );
+  });
+
+  test.each([
+    UserNotificationStatus.Sending,
+    UserNotificationStatus.Error,
+    UserNotificationStatus.NotAnswered,
+    UserNotificationStatus.PassedOn,
+  ])(
+    "a notification at %s is acknowledged, and opens the record",
+    async (status: UserNotificationStatus) => {
+      const timelineItem: UserOnCallLogTimeline = buildTimelineItem({
+        triggeredByAlertId: ObjectID.generate(),
+        status: status,
+      });
+
+      givenNotification(timelineItem);
+
+      await callRoute(ACKNOWLEDGE_ROUTE, ObjectID.generate().toString());
+
+      expect(timelineItem.status).toBe(UserNotificationStatus.Acknowledged);
+      expect(Response.redirect).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  test("refuses a notification that points at nothing", async () => {
+    givenNotification(buildTimelineItem({}));
 
     await callRoute(ACKNOWLEDGE_ROUTE, ObjectID.generate().toString());
 

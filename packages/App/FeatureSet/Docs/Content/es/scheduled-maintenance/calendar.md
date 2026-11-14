@@ -21,15 +21,15 @@ flowchart TB
 
 ## La página del calendario
 
-Abre **Mantenimiento programado → Calendario de mantenimiento**, en la sección **Calendario** del menú lateral. **Todos los eventos** muestra los mismos eventos como una lista.
+Abre **Mantenimiento programado → Calendario de mantenimiento**, en la sección **Calendario** del menú lateral. **Todos los eventos de mantenimiento** muestra los mismos eventos como una lista.
 
 - El calendario se abre en este mes, con el día de hoy marcado. **Mes**, **Semana** y **Día** cambian cuánto muestra; muévete con las flechas y vuelve con **Hoy**. Las horas están en tu propia zona horaria.
 - Cada evento es un bloque del color de su estado, y los colores de los estados se nombran debajo del calendario. Haz clic en un evento para abrirlo.
 - Los filtros sobre el calendario funcionan como en la lista: elige un estado, una etiqueta o un propietario para ver solo esos eventos.
-- Un día que aún está por llegar muestra un **+** cuando señalas su semana. Abre **Crear evento de mantenimiento programado** con **Comienza en** ese día, a la hora que el formulario elegiría hoy. Solo lo ves si puedes crear eventos.
+- Un día que aún está por llegar muestra un **+** cuando señalas su semana. Abre **Crear evento de mantenimiento** con **Comienza en** ese día, a la hora que el formulario elegiría hoy. Solo lo ves si puedes crear eventos.
 - Una vista muestra hasta 500 eventos. Un mes más cargado lo indica: acótalo con los filtros o mira una semana.
 
-**Todos los eventos** antes cambiaba entre una lista y un calendario. Si tu navegador lo dejó por última vez en el calendario, **Todos los eventos** abre una vez el **Calendario de mantenimiento** y desde entonces es la lista.
+**Todos los eventos de mantenimiento** antes cambiaba entre una lista y un calendario. Si tu navegador lo dejó por última vez en el calendario, **Todos los eventos de mantenimiento** abre una vez el **Calendario de mantenimiento** y desde entonces es la lista.
 
 ## Calendarios externos
 

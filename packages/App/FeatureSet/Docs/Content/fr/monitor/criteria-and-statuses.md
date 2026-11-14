@@ -1,4 +1,4 @@
-# Critères et statuts des moniteurs
+# Critères et statuts
 
 Les critères d'un moniteur décident de ce que signifie chaque vérification : si le moniteur est disponible ou en panne, et si OneUptime déclare un incident ou crée une alerte. Les statuts sont la liste, propre à votre projet, de ce qu'un moniteur peut être, de **Opérationnel** à **Hors ligne**. Cette page explique les deux pour chaque type de moniteur ; la page de chaque type liste les filtres qu'il propose.
 
@@ -111,7 +111,7 @@ Les secrets et les données personnelles sont masqués avant que quoi que ce soi
 :::steps
 ### Ouvrir la page des critères
 
-Allez dans **Moniteurs** et ouvrez le moniteur. Dépliez **Configuration** dans son menu latéral et cliquez sur **Critères**. La carte **Critères de surveillance** montre chaque critère, ce qu'il vérifie et ce qu'il fait.
+Allez dans **Moniteurs** et ouvrez le moniteur. Dépliez **Configuration** dans son menu latéral et cliquez sur **Critères**. La carte **Critères** montre chaque critère, ce qu'il vérifie et ce qu'il fait.
 
 ### Cliquer sur Modifier les critères de surveillance
 

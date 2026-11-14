@@ -467,7 +467,6 @@ const Teams: FunctionComponent<PageComponentProps> = (
             field: {
               description: true,
             },
-            noValueMessage: "-",
             title: "Description",
             type: FieldType.LongText,
           },

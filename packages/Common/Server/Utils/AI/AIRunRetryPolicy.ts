@@ -30,9 +30,10 @@ import {
  *
  *  - a failure no repeat can get past: the provider refused the request
  *    (its key, its model, its access), the request no longer fits in the
- *    model's context window, there is no provider, or a limit or the budget
- *    was reached. The run fails at once and says why, and Try again is
- *    there once the cause is fixed;
+ *    model's context window, there is no provider, or a limit was reached -
+ *    the project's daily AI limits, or the incident's or alert's own daily
+ *    AI token limit, which a limit of 0 pauses. The run fails at once and
+ *    says why, and Try again is there once the cause is fixed;
  *  - an attempt its caller says may have changed something outside
  *    OneUptime (mayHaveChangedSomething): starting it again from the top
  *    could do it a second time, so it fails instead, for a person to look
@@ -86,6 +87,14 @@ export default class AIRunRetryPolicy {
       AIRunFailureKind.NotConfigured,
       AIRunFailureKind.LimitReached,
       AIRunFailureKind.CreditsUsedUp,
+      /*
+       * An incident's or alert's own daily AI token limit: paused until
+       * someone raises it, or used up until midnight UTC.
+       */
+      AIRunFailureKind.IncidentTokenLimitPaused,
+      AIRunFailureKind.IncidentTokenLimitUsedUp,
+      AIRunFailureKind.AlertTokenLimitPaused,
+      AIRunFailureKind.AlertTokenLimitUsedUp,
     ];
 
   // The kinds of failure that are the provider's: down, overloaded, slow.

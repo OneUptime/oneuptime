@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 50830,
-    "untranslated": 9453
+    "keys": 51296,
+    "untranslated": 9279
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -26,6 +26,7 @@
     "Canonical Sunbeam",
     "ClickHouse",
     "CloudKitty",
+    "Community Edition",
     "CrowdStrike",
     "DE",
     "DES",
@@ -36,6 +37,7 @@
     "Down + Out",
     "Edge",
     "Elasticsearch URL",
+    "Enterprise Edition",
     "Fluent Bit",
     "Gemini for Google Workspace",
     "Google SecOps",

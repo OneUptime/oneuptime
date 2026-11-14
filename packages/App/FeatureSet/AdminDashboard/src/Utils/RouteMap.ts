@@ -12,6 +12,7 @@ const RouteMap: Dictionary<Route> = {
    * `npm start`, the Welcome checklist (#6803) and the docs link to it.
    */
   [PageMap.SERVER_SETUP]: new Route(`/admin/setup`),
+  [PageMap.FEEDBACK]: new Route(`/admin/feedback`),
   [PageMap.HEALTH]: new Route(`/admin/health`),
   [PageMap.HEALTH_QUEUES]: new Route(`/admin/health/queues`),
   [PageMap.HEALTH_INSTANCE_LOGS]: new Route(`/admin/health/instance-logs`),
@@ -97,6 +98,7 @@ const RouteMap: Dictionary<Route> = {
     `/admin/settings/authentication`,
   ),
   [PageMap.SETTINGS_SSO]: new Route(`/admin/settings/sso`),
+  [PageMap.SETTINGS_PRODUCTS]: new Route(`/admin/settings/products`),
   /*
    * The instance-wide providers' own pages live under these. The two list
    * addresses were pages of their own; they open Single Sign-On now.

@@ -187,7 +187,7 @@ Invoke-RestMethod -Method Post `
 ```
 :::
 
-## Monitoring Criteria
+## Criteria
 
 You can configure criteria to determine when your service is considered online, degraded, or offline. Each criteria filter has a **Filter Type** (what to look at), a **Filter Condition** (how to compare it), and a **Value**.
 

@@ -25,7 +25,7 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 import { searchThroughGetList } from "./AffectedResourceSearchFake";
 
 /*
- * Create Scheduled Maintenance Event's Resources Affected step, drawn for
+ * Create Maintenance Event's Resources Affected step, drawn for
  * real - the page's own fields in the real ModelForm and BasicForm, the real
  * pickers and the status page suggestions under the status page picker -
  * with only the network, the clock, the permissions and the address stubbed.
@@ -376,7 +376,7 @@ async function create(): Promise<ScheduledMaintenance> {
   await walkToTheReview();
 
   fireEvent.click(
-    screen.getByRole("button", { name: "Create Scheduled Maintenance Event" }),
+    screen.getByRole("button", { name: "Create Maintenance Event" }),
   );
 
   await waitFor(() => {

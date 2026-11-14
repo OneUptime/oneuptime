@@ -27,6 +27,7 @@ import React, {
   useState,
 } from "react";
 import ChartCard from "../../../Components/TelemetryResource/ChartCard";
+import XAxisPrecision from "Common/UI/Components/Charts/Types/XAxis/XAxisPrecision";
 import { ResourceOverviewTile } from "../../../Components/TelemetryResource/ResourceOverview";
 import {
   fetchProductAnalyticsSummary,
@@ -352,6 +353,7 @@ const RumApplicationProductAnalyticsUsers: FunctionComponent<
               syncId={`product-analytics-users-${modelId.toString()}`}
               showLegend={true}
               yAllowDecimals={false}
+              xAxisPrecision={XAxisPrecision.EVERY_DAY}
               loading={trend.isLoading && !trend.data}
               description="Each day's count of people who came that day, in the 7 days ending that day, and in the 30 days ending that day. Days are in your time zone."
             />
@@ -365,6 +367,7 @@ const RumApplicationProductAnalyticsUsers: FunctionComponent<
               syncId={`product-analytics-users-${modelId.toString()}`}
               showLegend={true}
               yAllowDecimals={false}
+              xAxisPrecision={XAxisPrecision.EVERY_DAY}
               loading={trend.isLoading && !trend.data}
               description="People who came each day: those on their first visit, and those who had come before."
             />

@@ -28,7 +28,7 @@ flowchart LR
 ## 开始之前
 
 - **正在到达的遥测。** 服务地图需要追踪：请参阅 [OpenTelemetry](/docs/telemetry/open-telemetry)。基础设施视图需要一台发送数据的主机或一个集群：请参阅 [Kubernetes 代理](/docs/telemetry/kubernetes-agent)。网络视图需要网络设备：请参阅 [网络设备监控](/docs/monitor/network-device-monitor)。
-- **能够读取遥测的角色。** Project Owner、Project Admin、Project Member、Viewer、Telemetry Admin、Telemetry Member 或 Telemetry Viewer，或者拥有 Read Telemetry Service 权限的自定义角色。
+- **能够读取遥测的角色。** Project Owner、Project Admin、Project Member、Viewer、Telemetry Admin、Telemetry Member 或 Telemetry Viewer，或者拥有 Read Inventory Item 权限的自定义角色。
 
 ## 打开拓扑
 
@@ -114,7 +114,7 @@ OneUptime 每 10 分钟在你的追踪中查找一次服务之间的调用。当
 ## 后续步骤
 
 :::cards
-- [服务目录](/docs/telemetry/services): 关于一个服务的一切。
+- [服务](/docs/telemetry/services): 关于一个服务的一切。
 - [跟踪浏览器](/docs/telemetry/traces-explorer): 每个箭头背后的请求。
 - [资产清单概览](/docs/inventory/overview): 地图绘制的每个资源。
 - [网络设备监控](/docs/monitor/network-device-monitor): 把你的网络放到地图上。

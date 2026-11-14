@@ -66,6 +66,7 @@ import {
   TelemetryFirstStepsCopy,
   TelemetryFirstStepsSignal,
 } from "../Telemetry/TelemetryFirstSteps";
+import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 const PROFILE_TYPE_FILTER_OPTIONS: Array<{ label: string; value: string }> = [
   { label: "CPU time", value: "cpu" },
@@ -518,10 +519,12 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
       {pageError && (
         <div className="mb-4">
           <ErrorMessage
-            message={translator.translateTemplate(
-              "We couldn't load telemetry services. {{error}}",
-              { error: pageError },
-            )}
+            message={
+              <ErrorSentence
+                template="We couldn't load telemetry services. {{error}}"
+                error={pageError}
+              />
+            }
             onRefreshClick={() => {
               void loadServices();
             }}
@@ -532,10 +535,12 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
       {areAdvancedFiltersVisible && attributesError && (
         <div className="mb-4">
           <ErrorMessage
-            message={translator.translateTemplate(
-              "We couldn't load profile attributes. {{error}}",
-              { error: attributesError },
-            )}
+            message={
+              <ErrorSentence
+                template="We couldn't load profile attributes. {{error}}"
+                error={attributesError}
+              />
+            }
             onRefreshClick={() => {
               setAttributesLoaded(false);
               void loadAttributes();
@@ -638,8 +643,8 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
           isDeleteable={false}
           isEditable={false}
           isCreateable={false}
-          singularName="Performance Profile"
-          pluralName="Performance Profiles"
+          singularName="Performance profile"
+          pluralName="Profiles"
           name="Performance Profiles"
           isViewable={true}
           cardProps={

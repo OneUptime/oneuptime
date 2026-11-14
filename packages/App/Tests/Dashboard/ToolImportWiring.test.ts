@@ -248,7 +248,8 @@ describe("the page is reachable", () => {
       'title: "Security"',
     );
 
-    expect(titlesIn(basic)).toEqual(["Basic", "Project", "Labels"]);
+    // Products, the products the project shows, joined Basic (#6814).
+    expect(titlesIn(basic)).toEqual(["Basic", "Project", "Products", "Labels"]);
     expect(basic).not.toContain(`PageMap.${PAGE_ID}]`);
 
     expect(titlesIn(advanced)).toEqual([
@@ -358,7 +359,7 @@ describe("the page is reachable", () => {
       return section.title === "Basic";
     });
 
-    expect(pageTitlesOf(basic)).toEqual(["Project", "Labels"]);
+    expect(pageTitlesOf(basic)).toEqual(["Project", "Products", "Labels"]);
     expect(
       SEARCH_ENTRIES.filter((candidate: PageSearchIndexEntry): boolean => {
         return candidate.page.page === PAGE_ID;
@@ -430,8 +431,9 @@ describe("the page is reachable", () => {
 
   /*
    * The tools' names start like words OneUptime's own pages go by: "pager"
-   * (On-Call Policies), "ping", "uptime". Those still open OneUptime's own
-   * pages first; the import from a tool comes after them.
+   * (On-Call Policies), "uptime" (the website guided setup). Those still
+   * open OneUptime's own pages first; the import from a tool comes after
+   * them.
    */
   test("a word that starts a tool's name but that OneUptime's own pages go by still opens those pages first", () => {
     expect(firstFound("pager")).toMatch(/^On-Call Policies — /);
@@ -442,16 +444,27 @@ describe("the page is reachable", () => {
         first: expect.not.stringMatching(/^Import from /),
       });
     }
-  });
 
-  test("a word no page of OneUptime's own goes by, but a tool's name starts with, finds the imports from those tools, as it found the importer before", () => {
+    /*
+     * "uptime" is a keyword of the website guided setup (#6804), found by
+     * what people come to do: it opens first, and the imports from
+     * UptimeRobot and Uptime Kuma, which it no longer names alone, come
+     * right after it.
+     */
     expect(
       filterPaletteCommands(SEARCH_PAGES, "uptime")
-        .slice(0, 2)
+        .slice(0, 3)
         .map((match: PaletteCommandMatch): string => {
           return match.command.title;
         }),
-    ).toEqual(["Import from UptimeRobot", "Import from Uptime Kuma"]);
+    ).toEqual([
+      "Know when my website or API is down",
+      "Import from UptimeRobot",
+      "Import from Uptime Kuma",
+    ]);
+  });
+
+  test("a word no page of OneUptime's own goes by, but a tool's name starts with, finds the imports from those tools, as it found the importer before", () => {
     expect(firstFound("ping")).toBe(
       `Import from Pingdom — Project Settings › Advanced › ${PAGE_TITLE}`,
     );

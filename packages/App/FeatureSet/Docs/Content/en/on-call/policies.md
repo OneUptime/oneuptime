@@ -12,7 +12,7 @@ An on-call policy decides who is paged about an incident or alert, and who is ne
 ## Create a policy
 
 :::steps
-1. Go to **On-Call Duty → On-Call Policies** and click **Create On-Call Policy**.
+1. Go to **On-Call → On-Call Policies** and click **Create On-Call Policy**.
 2. Enter a **Name**, such as "Payments primary".
 3. Under **Who gets paged first?**, click **Add responder** and pick the on-call schedules, teams and people to page first.
 4. Click **Create On-Call Policy**. The policy opens on its **Escalation Rules** page, with **Level 1** in place.
@@ -22,7 +22,7 @@ An on-call policy decides who is paged about an incident or alert, and who is ne
 
 A project's first policy is also asked **Page this policy for every new incident and alert**, which starts on. It adds a rule under **Incidents → Rules → On-Call Rules** and one under **Alerts → Rules → On-Call Rules**, each matching everything and running this policy. It is asked of people who may add on-call rules, while the project has no on-call policy and no on-call rule.
 
-The **On-Call Duty Policies** list shows each policy's **Name**, **Description**, **Labels** and **Owners**. Select policies to **Add Labels**, **Remove Labels**, **Add Owner**, **Remove Owner**, **Archive**, **Export JSON** or delete them. **Import JSON** creates policies from an export: an export holds a policy's own settings, not its escalation rules or owners.
+The **On-Call Policies** list shows each policy's **Name**, **Description**, **Labels** and **Owners**. Select policies to **Add Labels**, **Remove Labels**, **Add Owner**, **Remove Owner**, **Archive**, **Export JSON** or delete them. **Import JSON** creates policies from an export: an export holds a policy's own settings, not its escalation rules or owners.
 
 ## What runs a policy
 
@@ -109,7 +109,7 @@ flowchart TB
 You find execution logs in three places:
 
 - the policy's own **Execution Logs**, under **Logs**;
-- **On-Call Duty → Advanced → Execution Logs**, for every policy, with direct pages from workflows and chat listed as **Direct page**;
+- **On-Call → Advanced → Execution Logs**, for every policy, with direct pages from workflows and chat listed as **Direct page**;
 - the **On-Call Executions** page of an incident or an alert.
 
 Each row shows what triggered the run, when, its **Status** and who acknowledged it. **View Timeline** opens its **Execution Timeline**: each escalation rule, who it paged, through which schedule, and how each page ended. **Notified Via** shows how each page reached its person: phone call, SMS, email, push notification and so on. A schedule with nobody on call shows **No one was on call** instead of a person. A level that paged nobody says why, with **Moved on at once** under it: the policy did not wait for it. On OneUptime Cloud, execution logs need the **Growth** plan.
@@ -119,13 +119,13 @@ Each row shows what triggered the run, when, its **Status** and who acknowledged
 Archiving takes a policy out of service and keeps everything: open the policy's **Settings** and click **Archive** on its archive card, or select policies in the list and choose **Archive**.
 
 - An archived policy pages no one. Incidents and alerts that use it skip it, and a run that is still escalating stops at its next step.
-- It leaves the **On-Call Policies** list for **On-Call Duty → Advanced → Archived Policies**, where **Unarchive** puts it back in service.
+- It leaves the **On-Call Policies** list for **On-Call → Advanced → Archived Policies**, where **Unarchive** puts it back in service.
 
 **Delete Policy**, under **Advanced**, deletes the policy with its escalation rules and user overrides. The list's delete asks first, and suggests archiving instead.
 
 ## Who can change a policy
 
-**Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** and **On-Call Member** can create, change and delete policies; **Viewer** and **On-Call Viewer** can read them. In a custom role, the permissions are **Create On-Call Duty Policy**, **Edit On-Call Duty Policy**, **Delete On-Call Duty Policy** and **Read On-Call Duty Policy**, and a role limited to some labels reaches only the policies carrying them. Adding owners and custom fields needs the **Growth** plan on OneUptime Cloud.
+**Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** and **On-Call Member** can create, change and delete policies; **Viewer** and **On-Call Viewer** can read them. In a custom role, the permissions are **Create On-Call Policy**, **Edit On-Call Policy**, **Delete On-Call Policy** and **Read On-Call Policy**, and a role limited to some labels reaches only the policies carrying them. Adding owners and custom fields needs the **Growth** plan on OneUptime Cloud.
 
 ## API and Terraform
 
@@ -149,7 +149,7 @@ To create a policy with its first level in one request, see [Creating rules with
 ## Troubleshooting
 
 :::details A policy ran, but nobody was paged
-Its run says **Execution Completed - No One Notified**. Open **View Timeline**: a row reading **No one was on call** points at a schedule with a gap, and a **Skipped** row's status message says why, such as someone away with nobody to cover. **On-Call Duty → Readiness** shows who could not be reached.
+Its run says **Execution Completed - No One Notified**. Open **View Timeline**: a row reading **No one was on call** points at a schedule with a gap, and a **Skipped** row's status message says why, such as someone away with nobody to cover. **On-Call → Readiness** shows who could not be reached.
 :::
 
 :::details The next level was paged a minute after its wait
@@ -161,7 +161,7 @@ The level before it had nobody to page: no responders, nobody on call in its sch
 :::
 
 :::details An incident lists a policy that paged nobody
-The policy is archived: an archived policy stays on the incidents and alerts that use it, and pages nobody, and its execution log says it was not executed. Unarchive it under **On-Call Duty → Advanced → Archived Policies**.
+The policy is archived: an archived policy stays on the incidents and alerts that use it, and pages nobody, and its execution log says it was not executed. Unarchive it under **On-Call → Advanced → Archived Policies**.
 :::
 
 ## Next steps

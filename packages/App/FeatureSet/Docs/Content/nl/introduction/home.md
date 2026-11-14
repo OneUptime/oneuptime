@@ -38,7 +38,7 @@ De regel bovenaan noemt het dringendste dat openstaat, in een bijpassende kleur:
 
 Ernaast staat wanneer Start het project voor het laatst heeft gelezen, en **Vernieuwen** leest het opnieuw. Komt u na een minuut of langer terug op een tabblad met Start, dan vernieuwt Start zich vanzelf.
 
-Zolang er nog niets wordt gemonitord, eindigt de regel met de knop **Maak je eerste monitor**, die het formulier opent waarmee je er een maakt. Alleen wie monitoren mag maken, ziet hem.
+Zolang er nog niets wordt gemonitord, eindigt de regel met de knop **Maak je eerste monitor**, die de begeleide installatie **Weten wanneer mijn website of API plat ligt** opent. Alleen wie monitoren mag maken, ziet hem.
 
 ### De vijf getallen
 
@@ -49,7 +49,7 @@ Elk getal telt iets, zegt of dat uw aandacht nodig heeft, en opent de lijst erac
 | **Actieve incidenten** | Incidenten die niet zijn opgelost | **Alles in orde** | **Incidenten → Actieve incidenten** |
 | **Actieve waarschuwingen** | Waarschuwingen die niet zijn opgelost | **Alles in orde** | **Waarschuwingen → Actieve waarschuwingen** |
 | **Niet-operationele monitoren** | Monitoren waarvan de status geen operationele status is. Gearchiveerde monitoren, en monitoren waarvan de bewaking uit staat, tellen niet mee. | **Alle operationeel** | **Monitoren → Niet operationeel** |
-| **Lopend onderhoud** | Geplande onderhoudsgebeurtenissen die nu lopen | **Geen lopend** | **Geplande onderhoud → Lopende gebeurtenissen** |
+| **Lopend onderhoud** | Geplande onderhoudsgebeurtenissen die nu lopen | **Geen lopend** | **Geplande onderhoud → Lopende onderhoudsgebeurtenissen** |
 | **SLO's in gevaar** | Ingeschakelde SLO's die in gevaar zijn of hun foutbudget hebben opgebruikt | **Budgetten gezond** | **SLOs** |
 
 Een getal boven nul toont **Vraagt aandacht**, of **Bezig** en **Budget raakt op** voor onderhoud en SLO's. Zolang er een SLO in gevaar is, opent **SLO's in gevaar** de lijst **SLOs**, gefilterd op die SLO's. Een project zonder monitoren ziet **Nog geen monitoren**, en een project zonder SLO's ziet **Nog geen SLO's**: een leeg project is niet hetzelfde als een gezond project. Die twee openen dan de lijsten **Monitoren** en **SLOs**, waar u er een aanmaakt.
@@ -63,18 +63,18 @@ Elke stap vinkt zichzelf af zodra het werkt, niet zodra er een record bestaat, e
 | Stap | Klaar wanneer | Opent |
 | --- | --- | --- |
 | **Importeer uit je huidige tool** | Een import uit een andere tool is afgerond. | **Importeren uit een andere tool** |
-| **Maak je eerste monitor** | De eerste controle komt binnen. | Het formulier **Monitor maken**, of de lijst **Monitoren** voor wie geen monitors mag maken. |
+| **Maak je eerste monitor** | De eerste controle komt binnen. | De begeleide installatie **Weten wanneer mijn website of API plat ligt**, of de lijst **Monitoren** voor wie geen monitors mag maken. |
 | **Verbind een server of cluster** | De eerste metrics komen binnen. | **Hosts** |
-| **Stuur je eerste logs, metrics of traces** | De eerste logs, metrics, traces, uitzonderingen of profielen van het project komen binnen. | **Logboeken** |
-| **Stel een bereikbaarheidsbeleid in** | Een testoproep wordt bevestigd, een oproep bereikt iemand, of een bereikbaarheidsregel voert een beleid uit dat iemand kan bereiken. | **Bereikbaarheidsdienst** |
-| **Publiceer een statuspagina** | Een statuspagina toont een monitor. | **Statuspagina's** |
+| **Stuur je eerste logs, metrics of traces** | De eerste logs, metrics, traces, uitzonderingen of profielen van het project komen binnen. | De begeleide installatie **Logboeken, metrieken en traces versturen en daarna waarschuwingen ontvangen** |
+| **Stel een bereikbaarheidsbeleid in** | Een testoproep wordt bevestigd, een oproep bereikt iemand, of een bereikbaarheidsregel voert een beleid uit dat iemand kan bereiken. | De begeleide installatie **De juiste persoon oproepen als er iets kapotgaat** |
+| **Publiceer een statuspagina** | Een statuspagina toont een monitor. | De begeleide installatie **Publiceer een statuspagina**, of de lijst **Statuspagina's** voor wie geen statuspagina's mag maken. |
 | **Nodig je team uit** | Iemand accepteert je uitnodiging. | **Gebruikers** |
 
 De stap die je eerst doet, is gemarkeerd met **Volgende stap**. In het Free-abonnement van OneUptime Cloud, met één persoon, zegt **Nodig je team uit** dat het het Growth-abonnement nodig heeft, en opent het **Facturering**. Op een zelfgehoste server die nog geen e-mail kan versturen, zien de beheerders van de server eerst **Deze server kan nog geen e-mail versturen**; dat opent het beheerdashboard.
 
-Als je vanuit een stap een monitor, een statuspagina of een bereikbaarheidsbeleid maakt, zegt de pagina waarop je terechtkomt wat er volgt, met **Terug naar de inrichting**.
+Een begeleide installatie doet het hele werk op één pagina, stap voor stap, en eindigt met wat ze heeft ingesteld en wat je daarna doet. Zoek later op de naam om er een opnieuw te openen.
 
-Onder de stappen toont **Hoe OneUptime werkt** de vier kernproducten in de volgorde waarin een probleem ze doorloopt: **Monitoren**, **Incidenten & waarschuwingen**, **Bereikbaarheidsdienst** en **Statuspagina's**. Klik op een ervan om het te openen. Daaronder staat wat die kringloop voedt, telemetrie en infrastructuur, met links naar [Kernbegrippen](/docs/introduction/core-concepts) en [Woordenlijst](/docs/introduction/glossary).
+Onder de stappen toont **Hoe OneUptime werkt** de vier kernproducten in de volgorde waarin een probleem ze doorloopt: **Monitoren**, **Incidenten & waarschuwingen**, **Bereikbaarheid** en **Statuspagina's**. Klik op een ervan om het te openen. Daaronder staat wat die kringloop voedt, telemetrie en infrastructuur, met links naar [Kernbegrippen](/docs/introduction/core-concepts) en [Woordenlijst](/docs/introduction/glossary).
 
 ```mermaid title="Wanneer de welkomstchecklist verschijnt"
 flowchart TB
@@ -93,6 +93,10 @@ De checklist verdwijnt voor iedereen zodra elke stap klaar is. Om hem eerder te 
 
 **Vraagt aandacht** toont bij naam wat de getallen tellen: de open incidenten, de open waarschuwingen, de monitoren die niet operationeel zijn, de SLO's in gevaar en het lopende onderhoud, het dringendste eerst. Elke rij toont de ernst of status, zegt wanneer een incident of waarschuwing begon en wanneer het onderhoud eindigt, en opent het item. Van elke soort staan er hooguit vijf, met **Alle tonen** voor de rest, dat dezelfde lijst opent als het getal ervan. Als er niets openstaat, staat er **Niets vraagt je aandacht**.
 
+### Inrichtingsstatus
+
+Als iets in de inrichting van het project zou verhinderen dat mensen een melding krijgen, eindigt **Vraagt aandacht** met **Instellen**: hoeveel dingen een blik nodig hebben. Die regel opent **Inrichtingsstatus**, met wat er verkeerd is ingericht, het ergste eerst, onder **Oproepen komen niet aan**, **Het oplossen waard** en **Suggesties**: een monitor die niemand oproept, een bereikbaarheidsbeleid dat door niets wordt uitgevoerd, iemand die niet kan worden opgeroepen, sms uitgeschakeld, een bereikbaarheidsschema zonder iemand van dienst, een statuspagina die geen monitor toont. Elke bevinding zegt in één zin wat er mis is, met de knop die de oplossing opent, en de bevindingen van een monitor zijn de onderbrekingen die zijn kaart **Als dit uitvalt** noemt. Een bevinding die je team bewust zo laat, kun je met een reden voor iedereen verbergen en terugzetten vanuit **Genegeerd**. Zoeken vindt de pagina als **Inrichtingsstatus**, en AI vragen beantwoordt "is mijn inrichting in orde?" op basis ervan.
+
 ### Je project
 
 **Je project** telt de **Monitoren**, **Statuspagina's**, **Bereikbaarheidsbeleid**, **SLOs**, **Services**, **Dashboards** en **Workflows** van het project, zonder de gearchiveerde. Elke rij opent de bijbehorende lijst. Een soort waarvan het project er nog geen heeft, toont **Instellen** in plaats van een getal.
@@ -101,16 +105,19 @@ De checklist verdwijnt voor iedereen zodra elke stap klaar is. Om hem eerder te 
 
 ### Verken OneUptime
 
-**Verken OneUptime** toont de producten van het menu **Producten** één categorie tegelijk, te beginnen met de essenties. Elk product zegt waarvoor het dient en opent als u erop klikt.
+**Verken OneUptime** toont de producten van het menu **Producten** één categorie tegelijk, te beginnen met de essenties. Elk product zegt waarvoor het dient en opent als u erop klikt. De producten die uw project verbergt, ontbreken daar.
 
 ## Uw weg vinden
 
-Alles in OneUptime staat onder **Producten** in de bovenste balk. Het menu toont zijn groepen als de rijen van één lijst, en opent altijd met de eerste ervan, de essenties, uitgeklapt: Monitoren, Incidenten, Waarschuwingen, Bereikbaarheidsdienst, Statuspagina's, Geplande onderhoud en SLOs. Elke andere groep (Observability, Beveiliging, AI, Code, Bronnen, Infrastructuur, Cloud, Dashboards & automatisering en Instellingen) is ingeklapt tot een rij van dezelfde lijst. Elke rij noemt de producten van de groep en zegt hoeveel het er zijn. Klik op een rij om hem uit of in te klappen, of ga er met de pijltjestoetsen naartoe en druk op **Enter**.
+Alles in OneUptime staat onder **Producten** in de bovenste balk. Het menu toont zijn groepen als de rijen van één lijst, en opent altijd met de eerste ervan, de essenties, uitgeklapt: Monitoren, Incidenten, Waarschuwingen, Bereikbaarheid, Statuspagina's, Geplande onderhoud en SLOs. Elke andere groep (Observability, Beveiliging, AI, Code, Bronnen, Infrastructuur, Cloud, Dashboards & automatisering en Instellingen) is ingeklapt tot een rij van dezelfde lijst. Elke rij noemt de producten van de groep en zegt hoeveel het er zijn. Klik op een rij om hem uit of in te klappen, of ga er met de pijltjestoetsen naartoe en druk op **Enter**.
 
 - **Zoeken vindt alles.** Typ in het zoekvak van het menu om elk product te vinden op naam, op wat het doet, of op een bekend woord zoals `k8s` of `RUM`. Zoeken kijkt ook in de ingeklapte groepen.
 - **U begint waar u bent.** De groep van de pagina waarop u bent, klapt vanzelf uit, en de producten die u onlangs hebt geopend, staan bovenaan.
 - **Uw keuzes blijven.** Het menu onthoudt in uw browser welke van de andere groepen u hebt uit- of ingeklapt. De essenties zijn elke keer dat u het menu opent weer uitgeklapt, ook als u ze had ingeklapt.
 - **Op een telefoon** toont de menuknop de producten op dezelfde manier: de essenties uitgeklapt bovenaan, en elke andere groep als één rij die met een tik opent.
+- **Producten die het project niet gebruikt.** Een projecteigenaar of -beheerder kan ze verbergen onder **Projectinstellingen → Basis → Producten**. Een verborgen product verhuist naar **Meer producten**, de laatste rij van het menu: Zoeken vindt het nog steeds, de pagina's blijven werken en de gegevens blijven binnenkomen. Zodra er een gegevens ontvangt, meldt Start dat aan wie het weer kan tonen.
+- **Vastzetten.** Houd een product in de bovenbalk, naast **Start** en **Producten**: druk op de punaise op zijn kaart in het menu, of op **Vastzetten** naast de titel van zijn pagina. U kunt er vijf vastzetten, en ze volgen u in elke browser. Op een telefoon staan uw vastgezette producten bovenaan in het menu.
+- **Wat in gebruik is.** In elke groep behalve de essenties en de instellingen staan de producten die uw project gebruikt vooraan, en een product dat u nog niet hebt ingesteld zegt **Niet ingesteld**. In OneUptime Cloud noemt een product dat uw abonnement niet bevat het abonnement dat het wel bevat.
 
 ### De balken bovenaan
 
@@ -122,7 +129,7 @@ Twee balken lopen bovenaan over elke pagina.
 | Rechtsboven | **Zoeken** en **AI vragen**, de meldingenbel met wat u nu nodig heeft (actieve incidenten en waarschuwingen, het bereikbaarheidsbeleid waarin u dienst hebt, openstaande uitnodigingen), **Hulp**, en uw foto, die het menu van uw [account](/docs/introduction/your-account) opent. |
 | Daaronder | **Start** en **Producten** links, **Gebruikersinstellingen** rechts: hoe OneUptime u in dit project bereikt. |
 
-**Hulp** begint met wat u helpt leren: **Snelstart**, **Hoe OneUptime werkt**, **Woordenlijst** en deze documentatie (**Documentatie**). Daaronder staan de lijst **Keyboard shortcuts** en ondersteuning per e-mail en op Slack. Op een smal scherm, zoals een telefoon, verdwijnen **Zoeken**, **AI vragen** en **Hulp** om ruimte te besparen; de bel en uw foto blijven.
+**Hulp** begint met wat u helpt leren: **Snelstart**, **Hoe OneUptime werkt**, **Woordenlijst** en deze documentatie (**Documentatie**). Daaronder staan de lijst **Sneltoetsen** en ondersteuning per e-mail en op Slack. Op een tablet of in een smal venster verdwijnt **AI vragen** om ruimte te besparen: u vindt het tussen de acties in **Zoeken**. Op een telefoon staan **Zoeken** en **Hulp** in de lijst van de menuknop, helemaal bovenaan en helemaal onderaan; de bel en uw foto blijven.
 
 Een woord met een stippellijn eronder, zoals **Sondes** in het formulier van een nieuwe monitor, zegt wat het betekent als u ernaar wijst, er met Tab naartoe gaat of erop tikt. Met **Lees meer** opent u het woord in de [Woordenlijst](/docs/introduction/glossary).
 
@@ -142,9 +149,10 @@ Boven de titel van elke pagina toont een pad zoals *Project › Docker › Inste
 Druk op **Cmd+K** (Mac) of **Ctrl+K** (Windows en Linux), of klik op het zoekpictogram in de bovenste balk, en begin te typen. Zoeken vindt:
 
 - **Elke pagina in de menu's**, onder de naam die het menu haar geeft: API-sleutels, Gevarenzone, Bereikbaarheidsschema's, Ernst van incident, uw eigen Meldingsmethoden. Elk resultaat zegt waar het staat, zoals *Projectinstellingen › Geavanceerd*, zodat pagina's met dezelfde naam (Aangepaste velden bij Incidenten, Waarschuwingen en Monitoren) makkelijk uit elkaar te houden zijn.
-- **De instellingen op een pagina**, onder de naam die hun kaart of schakelaar toont: *SSO vereisen voor inloggen* vindt SSO, en *Meldingskanalen* vindt Meldingsinstellingen. Typ de naam in het Engels of in uw eigen taal.
+- **De instellingen op een pagina**, onder de naam die hun kaart of schakelaar toont: *SSO vereisen voor inloggen* vindt SSO, en *Aangepaste SMTP-configuraties* vindt Meldingskanalen. Typ de naam in het Engels of in uw eigen taal.
 - **Acties**, naar wat u wilt doen: Incident melden, Monitor maken of Delete Project, dat de Gevarenzone opent. Een actie die iets verandert, wordt alleen aangeboden aan wie die mag uitvoeren.
 - **Uw monitoren, incidenten, waarschuwingen, statuspagina's en bereikbaarheidsbeleid**, op naam, en incidenten en waarschuwingen ook op nummer, zoals `INC-42`. Elk resultaat van een incident of waarschuwing begint met zijn nummer, zodat twee met dezelfde titel uit elkaar te houden zijn.
+- **De documentatie**, in een groep *Documentatie* onder al het andere: de pagina's en secties waarvan de woorden overeenkomen met wat u typt, in uw taal, ook met een typfout. Elke opent in een nieuw tabblad, zodat u uw plek houdt.
 
 Zoeken leest wat u typt zoals u het bedoelt:
 
@@ -157,7 +165,7 @@ Met een leeg zoekvak toont Zoeken de pagina's die u onlangs hebt geopend, de act
 
 ## Sneltoetsen
 
-Druk overal in het dashboard op `?` om alle sneltoetsen te zien, of open **Hulp** en kies **Keyboard shortcuts**. Op een Mac is `Mod` de Command-toets; op Windows en Linux is het Ctrl.
+Druk overal in het dashboard op `?` om alle sneltoetsen te zien, of open **Hulp** en kies **Sneltoetsen**. Op een Mac is `Mod` de Command-toets; op Windows en Linux is het Ctrl.
 
 | Toetsen | Wat ze doen |
 | --- | --- |
@@ -177,7 +185,7 @@ Druk op `g` en dan op een letter om direct naar een product te gaan. Druk de let
 | `g` dan `m` | Monitoren |
 | `g` dan `i` | Incidenten |
 | `g` dan `a` | Waarschuwingen |
-| `g` dan `o` | Bereikbaarheidsdienst |
+| `g` dan `o` | Bereikbaarheid |
 | `g` dan `s` | Statuspagina's |
 | `g` dan `e` | Geplande onderhoud |
 | `g` dan `d` | Dashboards |

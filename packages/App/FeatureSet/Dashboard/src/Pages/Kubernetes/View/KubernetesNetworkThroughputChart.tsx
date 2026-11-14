@@ -32,6 +32,7 @@ import {
 import { useEmbeddedMetricCardRefreshNonce } from "../../../Components/Metrics/EmbeddedMetricCardRefresh";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 export const NETWORK_THROUGHPUT_SKELETON_TEST_ID: string =
   "chart-loading-skeleton";
@@ -276,10 +277,10 @@ const KubernetesNetworkThroughputChart: FunctionComponent<ComponentProps> = (
             className="h-4 w-4 shrink-0 text-red-500"
           />
           <span>
-            {translator.translateTemplate(
-              "Couldn't refresh — showing previously loaded data. {{error}}",
-              { error: error },
-            )}
+            <ErrorSentence
+              template="Couldn't refresh — showing previously loaded data. {{error}}"
+              error={error}
+            />
           </span>
         </div>
       ) : null}

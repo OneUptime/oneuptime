@@ -203,7 +203,7 @@ function props(overrides?: Partial<ComponentProps>): ComponentProps {
   return {
     query: { projectId: PROJECT_ID } as Query<ScheduledMaintenance>,
     states: STATES,
-    title: "Scheduled Maintenance Events",
+    title: "Maintenance Events",
     description: "Every scheduled maintenance event of this project.",
     buttons: [],
     canCreate: true,

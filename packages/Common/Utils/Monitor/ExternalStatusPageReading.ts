@@ -5,6 +5,7 @@ import {
 } from "../../Types/StatusPage/StatusPageSummary";
 import ExternalStatusPageComponentStatusUtil from "./ExternalStatusPageComponentStatusUtil";
 import { withoutTrailingSlashes } from "../TrailingRuns";
+import { fillTemplate, translationKey } from "../../Types/Translator";
 
 /*
  * WHAT A STATUS PAGE SAYS, READ FROM ITS ANSWERS.
@@ -37,9 +38,21 @@ export const EXTERNAL_STATUS_PAGE_MAX_INCIDENTS: number = 1000;
 // The name an incident goes by when the page gives it none.
 export const EXTERNAL_STATUS_PAGE_UNNAMED_INCIDENT: string = "Unknown incident";
 
+/*
+ * ONEUPTIME'S OWN NOTES ON A ONEUPTIME PAGE'S COMPONENT.
+ *
+ * A OneUptime page's resource is described by its status's name, which is
+ * the page's own word - unless the page gives it no status, when the probe
+ * writes a note of its own as the component's description. Each is a
+ * translation key (the Dashboard's npm run i18n:extract reads this
+ * directory), so the monitor's summary draws it in the reader's language
+ * (readOneUptimeNote) while the probe stores the English, as every check's
+ * description is stored.
+ */
+
 // A OneUptime page's component's description when the page does not show its status.
 export const EXTERNAL_STATUS_PAGE_ONEUPTIME_STATUS_NOT_SHOWN: string =
-  "The status page does not show this resource's status.";
+  translationKey("The status page does not show this resource's status.");
 
 /*
  * A OneUptime page's component's description when nothing checks it: its
@@ -47,7 +60,71 @@ export const EXTERNAL_STATUS_PAGE_ONEUPTIME_STATUS_NOT_SHOWN: string =
  * status (StatusPageSummaryResource.isMonitored).
  */
 export const EXTERNAL_STATUS_PAGE_ONEUPTIME_NOT_MONITORED: string =
-  "The status page shows this resource as not monitored.";
+  translationKey("The status page shows this resource as not monitored.");
+
+/*
+ * A OneUptime page's component's description while a scheduled maintenance
+ * event in progress affects it: the events' titles - the page's own words -
+ * after the note, or the note alone when they have none. The note alone
+ * only repeats the component's status (Under Maintenance), which the
+ * summary says once, so it is no translation key.
+ */
+export const EXTERNAL_STATUS_PAGE_ONEUPTIME_UNDER_MAINTENANCE: string =
+  "Under maintenance";
+
+export const EXTERNAL_STATUS_PAGE_ONEUPTIME_UNDER_MAINTENANCE_OF: string =
+  translationKey("Under maintenance: {{events}}");
+
+// What comes before the events' titles in a note of maintenance.
+const UNDER_MAINTENANCE_OF_PREFIX: string =
+  EXTERNAL_STATUS_PAGE_ONEUPTIME_UNDER_MAINTENANCE_OF.slice(
+    0,
+    EXTERNAL_STATUS_PAGE_ONEUPTIME_UNDER_MAINTENANCE_OF.indexOf("{{events}}"),
+  );
+
+// The notes that are whole sentences, with nothing of the page's in them.
+const ONEUPTIME_SENTENCE_NOTES: ReadonlyArray<string> = [
+  EXTERNAL_STATUS_PAGE_ONEUPTIME_STATUS_NOT_SHOWN,
+  EXTERNAL_STATUS_PAGE_ONEUPTIME_NOT_MONITORED,
+];
+
+/*
+ * WHY A ONEUPTIME PAGE COULD NOT BE READ.
+ *
+ * With the OneUptime Status Page provider chosen, a page that answers but
+ * will not let the probe in fails the check, and the probe writes why as
+ * the check's failure cause (ExternalStatusPageMonitor's
+ * tryOneUptimeStatusPage): a private page (sign-in or password), or one
+ * whose IP allowlist leaves the probe out. Each is a translation key, as
+ * the notes above are, so the monitor's summary draws its Error in the
+ * reader's language (readOneUptimeFailureCause) while the probe stores the
+ * English: monitor criteria and logs compare that English, so it never
+ * changes.
+ */
+export const EXTERNAL_STATUS_PAGE_ONEUPTIME_PRIVATE_MESSAGE: string =
+  translationKey(
+    "This status page is private: only people who sign in to it, or who know its password, can read it. Only a public status page can be watched.",
+  );
+
+export const EXTERNAL_STATUS_PAGE_ONEUPTIME_IP_NOT_ALLOWED_MESSAGE: string =
+  translationKey(
+    "This status page lets in only the IP addresses on its allowlist, and this probe's address is not one of them. Add the probe's address to the allowlist, or watch the page from a probe inside that network.",
+  );
+
+// The failure causes the probe writes in OneUptime's words, each a whole sentence.
+const ONEUPTIME_FAILURE_CAUSES: ReadonlyArray<string> = [
+  EXTERNAL_STATUS_PAGE_ONEUPTIME_PRIVATE_MESSAGE,
+  EXTERNAL_STATUS_PAGE_ONEUPTIME_IP_NOT_ALLOWED_MESSAGE,
+];
+
+/*
+ * One of OneUptime's notes, read back from a component's description: the
+ * note's English (a translation key) and the page's words that fill it.
+ */
+export interface ExternalStatusPageOneUptimeNote {
+  template: string;
+  values: Record<string, string>;
+}
 
 // A page's component, before the monitor's scope is applied.
 export interface ExternalStatusPageComponent {
@@ -510,8 +587,11 @@ export default class ExternalStatusPageReading {
           if (resource.isUnderMaintenance) {
             description =
               titles.length > 0
-                ? `Under maintenance: ${titles.join(", ")}`
-                : "Under maintenance";
+                ? fillTemplate(
+                    EXTERNAL_STATUS_PAGE_ONEUPTIME_UNDER_MAINTENANCE_OF,
+                    { events: titles.join(", ") },
+                  )
+                : EXTERNAL_STATUS_PAGE_ONEUPTIME_UNDER_MAINTENANCE;
           } else if (!resource.isMonitored) {
             description = EXTERNAL_STATUS_PAGE_ONEUPTIME_NOT_MONITORED;
           } else if (!resource.currentStatus) {
@@ -565,5 +645,57 @@ export default class ExternalStatusPageReading {
       );
 
     return { components: components, incidents: incidents };
+  }
+
+  /*
+   * One of OneUptime's own notes on a OneUptime page's component, read
+   * back from the description readOneUptimeSummary wrote, so it can be
+   * drawn in the reader's language: the note's English, and the page's
+   * words in it - the maintenance events' titles, as written. Null for any
+   * other description, which is the page's own words and stays as written.
+   *
+   * Only a OneUptime page's description is read this way (the caller asks
+   * for that provider): an Atlassian Statuspage's component can be
+   * described "Under maintenance: ..." by the people who run it.
+   */
+  public static readOneUptimeNote(
+    description: string | undefined,
+  ): ExternalStatusPageOneUptimeNote | null {
+    const text: string = (description || "").trim();
+
+    if (ONEUPTIME_SENTENCE_NOTES.includes(text)) {
+      return { template: text, values: {} };
+    }
+
+    if (text.startsWith(UNDER_MAINTENANCE_OF_PREFIX)) {
+      const events: string = text.slice(UNDER_MAINTENANCE_OF_PREFIX.length);
+
+      if (events.trim()) {
+        return {
+          template: EXTERNAL_STATUS_PAGE_ONEUPTIME_UNDER_MAINTENANCE_OF,
+          values: { events: events },
+        };
+      }
+    }
+
+    return null;
+  }
+
+  /*
+   * One of OneUptime's failure causes, read back from a check's failure
+   * cause: its English, a translation key, when the cause is exactly one of
+   * them (a private page, a page whose IP allowlist leaves the probe out);
+   * null for any other cause - the network's, a provider's, an older
+   * probe's - which stays as written.
+   *
+   * Only a check of a OneUptime page is read this way (the caller asks for
+   * that provider).
+   */
+  public static readOneUptimeFailureCause(
+    failureCause: string | undefined,
+  ): string | null {
+    const text: string = (failureCause || "").trim();
+
+    return ONEUPTIME_FAILURE_CAUSES.includes(text) ? text : null;
   }
 }

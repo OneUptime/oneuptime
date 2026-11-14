@@ -93,7 +93,7 @@ const RECORD_KINDS: Array<RecordKind> = [
   },
   {
     viewKey: "SCHEDULED_MAINTENANCE_VIEW",
-    viewTitle: "View Scheduled Maintenance Event",
+    viewTitle: "View Maintenance Event",
     builder: getScheduleMaintenanceBreadcrumbs,
   },
   {
@@ -417,7 +417,7 @@ describe("an on-call policy's and schedule's pages lead back to it", () => {
       trail.map((link: Link): string => {
         return link.title;
       }),
-    ).toEqual(["Project", "On-Call Duty", "Policies", "View On-Call Policy"]);
+    ).toEqual(["Project", "On-Call", "Policies", "View On-Call Policy"]);
     expect(trail[2]!.to.toString()).toBe(
       `/dashboard/${PROJECT_ID}/on-call-duty/policies`,
     );

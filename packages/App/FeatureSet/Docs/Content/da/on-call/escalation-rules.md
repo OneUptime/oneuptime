@@ -2,6 +2,9 @@
 
 En vagtpolitik tilkalder folk i niveauer. Hver eskaleringsregel er ét niveau: hvem der tilkaldes, og hvor længe der ventes på, at nogen kvitterer, før næste niveau tilkaldes. En politiks regler står i rækkefølge på dens side **Eskaleringsregler**.
 
+> [!TIP]
+> Ny her? Følg guiden først: [Bliv tilkaldt via opkald, SMS eller push](/docs/guides/paging).
+
 ```mermaid title="En vagtpolitik tilkalder niveau for niveau, indtil nogen kvitterer"
 flowchart TB
     trigger["Hændelse eller advarsel"] --> level1["Level 1 tilkalder"]
@@ -29,7 +32,7 @@ flowchart TB
 Når du opretter en vagtpolitik på siden **Vagtpolitikker**, beder formularen om dens **Navn** og **Hvem tilkaldes først?**. Spørgsmålet bruger samme vælger som **Underret**: vagtplaner, teams og personer, så mange du har brug for. Dem, du vælger, bliver politikkens første eskaleringsregel, **Level 1**, som venter **30 minutter** på en kvittering, før næste niveau tilkaldes.
 
 :::steps
-1. Gå til **Vagtordning** > **Vagtpolitikker**, og klik på **Opret Vagtpolitik**.
+1. Gå til **Vagt** > **Vagtpolitikker**, og klik på **Opret Vagtpolitik**.
 2. Indtast et **Navn**.
 3. Klik under **Hvem tilkaldes først?** på **Tilføj modtager**, og vælg de vagtplaner, teams og personer, der skal tilkaldes først.
 4. Klik på **Opret Vagtpolitik**. Den nye politik åbner derefter på sin side **Eskaleringsregler**, hvor du kan tilføje flere niveauer.
@@ -89,7 +92,7 @@ Oversigten øverst på siden **Eskaleringsregler** viser hele stigen: hvornår h
 
 ### Sådan nås hver person
 
-Hver person, et niveau tilkalder, nås sådan, som personens egne vagtregler siger: **Brugerindstillinger** > **Vagtregler**, med en fane for hændelser, hændelsesepisoder, advarsler og advarselsepisoder og et kort pr. alvorlighed, der viser, hvilken notifikationsmetode der prøves og efter hvor lang tid. En projektadministrator kan se og ændre et medlems regler under **Brugere** > medlemmet > **Vagtregler**. Se [Personlige vagtregler](/docs/notifications/on-call-rules).
+Hver person, et niveau tilkalder, nås sådan, som personens egne vagtregler siger: **Brugerindstillinger** > **Sådan når man mig**, med en fane for hændelser, hændelsesepisoder, advarsler og advarselsepisoder og et kort pr. alvorlighed, der viser, hvilken notifikationsmetode der prøves og efter hvor lang tid. En projektadministrator kan se og ændre et medlems regler under **Brugere** > medlemmet > **Sådan når man mig**. Se [Sådan når man mig](/docs/notifications/on-call-rules).
 
 ```mermaid title="Hvem et niveau tilkalder, og hvordan hver person nås"
 flowchart TB
@@ -166,14 +169,14 @@ Projektets ejere får én e-mail om det, indtil saldoen er fyldt op, eller kanal
 
 Et tilkald, der ikke kunne nå OneUptimes notifikationstjeneste, siger `Could not reach the Notification service to send this (ECONNREFUSED).`, med netværksfejlens kode i parentesen. Et tilkald, hvis afsendelse aldrig blev færdig, for eksempel fordi en server genstartede under afsendelsen, siger `Sending did not finish within 15 minutes, so this notification may not have been sent.` Bliver afsendelsen alligevel færdig, erstatter resultatet den besked.
 
-På OneUptime Cloud betales hver SMS, hvert opkald, hver WhatsApp- og Telegram-besked af projektets saldo på **Projektindstillinger > Notifikationer > Notifikationsindstillinger**: den præcise pris trækkes fra saldoen, når udbyderen tager imod beskeden, uanset hvor mange beskeder der går ud på én gang.
+På OneUptime Cloud betales hver SMS, hvert opkald, hver WhatsApp- og Telegram-besked af projektets saldo på **Projektindstillinger > Notifikationer > Notifikationskanaler**: den præcise pris trækkes fra saldoen, når udbyderen tager imod beskeden, uanset hvor mange beskeder der går ud på én gang.
 
 - Er **Automatisk genopfyldning** slået til dér, lægger den besked, der finder saldoen under tærsklen, først det beløb til, som automatisk genopfyldning er sat til, og trækker det på projektets kort; beskeder, der finder saldoen lav i samme øjeblik, trækker på kortet én gang.
-- Mislykkes trækket (der er ingen betalingsmetode, eller kortet blev afvist), prøver automatisk genopfyldning kortet igen en time senere, og **Notifikationsindstillinger** siger det øverst indtil da. At tilføje saldo manuelt eller gemme automatisk genopfyldning igen prøver med det samme.
+- Mislykkes trækket (der er ingen betalingsmetode, eller kortet blev afvist), prøver automatisk genopfyldning kortet igen en time senere, og **Notifikationskanaler** siger det øverst indtil da. At tilføje saldo manuelt eller gemme automatisk genopfyldning igen prøver med det samme.
 - Tilkald bliver ved med at gå ud på den resterende saldo, mens automatisk genopfyldning ikke kan trække på kortet.
 
 > [!IMPORTANT]
-> SMS, telefonopkald, WhatsApp og Telegram er slået fra i et nyt projekt: på OneUptime Cloud betales hver besked af projektets saldo, og en selvhostet installation skal først have en Twilio-konto, en SMS- og opkaldsgateway eller en Telegram-bot sat op. Så længe en kanal er slået fra, kan ingen i projektet tilføje en metode på den. Kun en projektejer, en **Faktureringsadministrator** eller en person med tilladelsen **Manage Billing** kan slå en til, i kortet **Notifikationskanaler** på **Projektindstillinger > Notifikationer > Notifikationsindstillinger** — en projektadministrator kan ikke. Alle andre får præcis at vide, hvem der kan, overalt hvor en kanal er slået fra: over deres egen liste over metoder på den, på deres opsætningstjekliste og i den besked, de får, når noget har brug for den.
+> SMS, telefonopkald, WhatsApp og Telegram er slået fra i et nyt projekt: på OneUptime Cloud betales hver besked af projektets saldo, og en selvhostet installation skal først have en Twilio-konto, en SMS- og opkaldsgateway eller en Telegram-bot sat op. Så længe en kanal er slået fra, kan ingen i projektet tilføje en metode på den. Kun en projektejer, en **Faktureringsadministrator** eller en person med tilladelsen **Manage Billing** kan slå en til, i kortet **Notifikationskanaler** på **Projektindstillinger > Notifikationer > Notifikationskanaler** — en projektadministrator kan ikke. Alle andre får præcis at vide, hvem der kan, overalt hvor en kanal er slået fra: over deres egen liste over metoder på den, på deres opsætningstjekliste og i den besked, de får, når noget har brug for den.
 
 ## Eskalér til den næste person i rotationen
 

@@ -49,6 +49,10 @@ import { MattermostConnectionTeam } from "Common/Models/DatabaseModels/Workspace
 import FilterCondition from "Common/Types/Filter/FilterCondition";
 import { isFilterConditionNeeded } from "Common/Types/Filter/FilterConditionUtil";
 import WorkspaceSummaryScheduleUtil from "Common/Utils/Workspace/WorkspaceSummarySchedule";
+import WorkspaceSummarySetup, {
+  MAX_LOOKBACK_DAYS,
+  MIN_LOOKBACK_DAYS,
+} from "Common/Utils/Workspace/WorkspaceSummarySetup";
 import WorkspaceSummaryFirstSendPreview from "./WorkspaceSummaryFirstSendPreview";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -464,16 +468,11 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
               });
           }
 
-          // Parse channel names from comma-separated string
-          if (values.channelNames && typeof values.channelNames === "string") {
-            values.channelNames = (values.channelNames as unknown as string)
-              .split(",")
-              .map((name: string) => {
-                return name.trim();
-              })
-              .filter((name: string) => {
-                return name.length > 0;
-              });
+          // The channel names typed, comma-separated, as the list they name.
+          if (values.channelNames) {
+            values.channelNames = WorkspaceSummarySetup.readChannelNames(
+              values.channelNames,
+            );
           }
 
           // Default to "All" if none selected
@@ -517,6 +516,30 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
               NotificationRuleConditionUtil.withoutEmptyConditions(
                 values.filters,
               );
+          }
+
+          return Promise.resolve(values);
+        }}
+        /*
+         * An edit saves what a create does. Channel Names edited in its
+         * text box went to the server as the text typed, "#ops, #alerts",
+         * saved as it was, and the summary was then posted in a channel
+         * per letter; it is the list it names. With nothing to include
+         * picked, it includes everything, as a new summary does - one
+         * saved with nothing could never be sent (#7116).
+         */
+        onBeforeUpdate={(values: WorkspaceNotificationSummary) => {
+          if (values.channelNames !== undefined) {
+            values.channelNames = WorkspaceSummarySetup.readChannelNames(
+              values.channelNames,
+            );
+          }
+
+          if (
+            Array.isArray(values.summaryItems) &&
+            values.summaryItems.length === 0
+          ) {
+            values.summaryItems = [WorkspaceNotificationSummaryItem.All];
           }
 
           return Promise.resolve(values);
@@ -765,6 +788,15 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
              * until a number was typed.
              */
             defaultValue: 7,
+            /*
+             * 1 to 365 days, as the server holds every write to
+             * (WorkspaceSummarySetup): it took 0, which the server refused
+             * by the column's name, and -5, which it saved.
+             */
+            validation: {
+              minValue: MIN_LOOKBACK_DAYS,
+              maxValue: MAX_LOOKBACK_DAYS,
+            },
           },
           {
             field: {
@@ -1045,7 +1077,6 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
             field: {
               sendFirstReportAt: true,
             },
-            noValueMessage: "-",
             title: "First Report",
             type: FieldType.DateTime,
           },
@@ -1055,12 +1086,15 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
             },
             title: "Lookback",
             type: FieldType.Element,
+            // The days the summary covers, read as its report reads them.
             getElement: (value: WorkspaceNotificationSummary): ReactElement => {
               return (
                 <span>
                   {translator.translatePlural(
                     { one: "{{count}} day", other: "{{count}} days" },
-                    value.numberOfDaysOfData || 0,
+                    WorkspaceSummarySetup.getLookbackDays(
+                      value.numberOfDaysOfData,
+                    ),
                   )}
                 </span>
               );
@@ -1078,7 +1112,6 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
             field: {
               nextSendAt: true,
             },
-            noValueMessage: "-",
             title: "Next Send",
             type: FieldType.DateTime,
           },
@@ -1094,7 +1127,9 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
               other:
                 'Send the "{{name}}" summary to {{workspace}} now, with the last {{count}} days of data. The regular schedule is not affected.',
             },
-            testSummary.numberOfDaysOfData || 7,
+            WorkspaceSummarySetup.getLookbackDays(
+              testSummary.numberOfDaysOfData,
+            ),
             { name: testSummary.name || "", workspace: workspaceName },
           )}
           submitButtonText={"Send Now"}

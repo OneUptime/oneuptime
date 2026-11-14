@@ -28,6 +28,7 @@ import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { StateListType } from "../StateOrder";
 import { getClientResourceName } from "./ClientResourceNames";
+import { getApiSingularName } from "../ModelApiName";
 import {
   describePersonEmail,
   getPersonEmailColumnName,
@@ -165,11 +166,13 @@ export function toCliCommandName(singularName: string): string {
 export function getCliResourceName(model: {
   tableName: string | null | undefined;
   singularName: string | null | undefined;
+  // A model renamed on screen keeps its command by the name the API keeps.
+  apiSingularName?: string | null | undefined;
 }): string {
   const tableName: string = model.tableName || "";
 
   return toCliCommandName(
-    getClientResourceName(tableName, model.singularName || tableName),
+    getClientResourceName(tableName, getApiSingularName(model) || tableName),
   );
 }
 

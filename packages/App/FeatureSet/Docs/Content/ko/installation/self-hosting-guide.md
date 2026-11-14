@@ -139,13 +139,7 @@ npm run doctor
 
 모든 컨테이너, `config.env`, `HOST`가 이 서버에 도달하는지, 인증서와 남은 디스크를 확인하고, 이메일과 프로브처럼 OneUptime이 스스로 보는 상태를 묻습니다. 문제마다 해결 방법이 함께 나옵니다: [설치 확인하기](/docs/installation/docker-compose#설치-확인하기)를 참고하세요.
 @tab Kubernetes
-차트의 진단 스크립트를 내려받아 클러스터에 대해 실행합니다. 읽기만 하며, 찾은 내용을 심각한 순서로 요약하며 끝납니다:
-
-```bash
-curl -sLO https://raw.githubusercontent.com/OneUptime/oneuptime/main/HelmChart/Public/diagnose.sh
-chmod +x diagnose.sh
-./diagnose.sh
-```
+[차트 문제 해결 가이드](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Public/oneuptime/docs/troubleshooting.md#run-it)에 나온 대로 차트의 진단 스크립트를 클러스터에 대해 실행합니다. 읽기만 하며, 찾은 내용을 심각한 순서로 요약하며 끝납니다.
 :::
 
 **제대로 되었다면** doctor가 **Everything looks right.**로 끝나고 `0`으로 종료합니다. 고칠 것이 있으면 `1`로, 확인을 실행하지 못하면 `2`로 종료합니다. Kubernetes에서는 요약에 `CRITICAL` 항목이 없습니다.

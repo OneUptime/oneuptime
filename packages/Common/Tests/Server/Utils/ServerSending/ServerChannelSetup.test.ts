@@ -14,6 +14,7 @@ import { EmailServerType } from "../../../../Models/DatabaseModels/GlobalConfig"
 import { CallAndSmsProvider } from "../../../../Types/CallAndSMS/CallAndSmsProvider";
 import { TwilioConfigUse } from "../../../../Types/CallAndSMS/TwilioConfigUse";
 import Email from "../../../../Types/Email";
+import AmazonSesAuthenticationType from "../../../../Types/Email/AmazonSesAuthenticationType";
 import Hostname from "../../../../Types/API/Hostname";
 import MailTransportType from "../../../../Types/Email/MailTransportType";
 import SMTPAuthenticationType from "../../../../Types/Email/SMTPAuthenticationType";
@@ -209,6 +210,71 @@ describe("email", () => {
         amazonSesAccessKeyId: "   ",
       }),
     ).toBe("Amazon SES: the Access Key ID is not set under Settings > Emails.");
+    expect(
+      ServerChannelSetup.getEmailSetUpProblem(
+        leftBlank(ses, "amazonSesSecretAccessKey"),
+      ),
+    ).toBe(
+      "Amazon SES: the Secret Access Key is not set under Settings > Emails.",
+    );
+
+    /*
+     * An access key picked, or a choice the sender does not know: the same.
+     * The column is free text in Postgres, so a row can hold a value the
+     * enum lacks.
+     */
+    for (const amazonSesAuthenticationType of [
+      AmazonSesAuthenticationType.AccessKey,
+      "Instance Profile" as AmazonSesAuthenticationType,
+    ]) {
+      expect(
+        ServerChannelSetup.getEmailSetUpProblem({
+          ...leftBlank(ses, "amazonSesAccessKeyId"),
+          amazonSesAuthenticationType,
+        }),
+      ).toBe(
+        "Amazon SES: the Access Key ID is not set under Settings > Emails.",
+      );
+    }
+  });
+
+  test("Amazon SES signing in with the server's IAM role needs no key, only a real Region and a sender (#7000)", () => {
+    const role: ServerChannelSetupSettings = {
+      emailServerType: EmailServerType.AmazonSES,
+      amazonSesAuthenticationType: AmazonSesAuthenticationType.ServerIamRole,
+      amazonSesRegion: "eu-west-1",
+      amazonSesFromEmail: new Email("alerts@example.com"),
+    };
+
+    expect(ServerChannelSetup.getEmailSetUpProblem(role)).toBeNull();
+    expect(
+      ServerChannelSetup.getEmailSetUpProblem(
+        leftBlank(role, "amazonSesRegion"),
+      ),
+    ).toBe(
+      "Amazon SES: the Region (an AWS Region code, such as us-east-1) is not set under Settings > Emails.",
+    );
+    expect(
+      ServerChannelSetup.getEmailSetUpProblem({
+        ...role,
+        amazonSesRegion: "moon-1",
+      }),
+    ).toBe(
+      "Amazon SES: the Region (an AWS Region code, such as us-east-1) is not set under Settings > Emails.",
+    );
+    expect(
+      ServerChannelSetup.getEmailSetUpProblem(
+        leftBlank(role, "amazonSesFromEmail"),
+      ),
+    ).toBe("Amazon SES: the From Email is not set under Settings > Emails.");
+
+    // A key kept from before is never asked for, nor read.
+    expect(
+      ServerChannelSetup.getEmailSetUpProblem({
+        ...role,
+        amazonSesAccessKeyId: "   ",
+      }),
+    ).toBeNull();
   });
 
   test("Mailgun needs its key, a sending domain and a sender", () => {

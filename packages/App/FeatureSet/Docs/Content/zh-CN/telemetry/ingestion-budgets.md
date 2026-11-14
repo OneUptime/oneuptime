@@ -34,7 +34,7 @@ flowchart TB
 ## 开始之前
 
 - **实例和项目的预算需要 Admin Dashboard。** 在自托管安装上，只有实例管理员可以设置它们。项目的所有者和管理员可以看到项目的预算，但无法更改。
-- **密钥的自有预算需要能够编辑摄取密钥的角色。** Project Owner 或 Project Admin，或者拥有 Edit Telemetry Ingestion Key 权限的自定义角色。
+- **密钥的自有预算需要能够编辑摄取密钥的角色。** Project Owner 或 Project Admin，或者拥有 Edit Ingestion Key 权限的自定义角色。
 - **查看预算需要能看到项目用量的角色。** 能看到 [遥测用量](/docs/telemetry/usage) 页面的角色，都能在该页面上看到项目的预算。
 
 ## 设置所有项目的默认预算

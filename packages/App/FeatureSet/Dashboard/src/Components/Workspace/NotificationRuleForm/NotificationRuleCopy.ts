@@ -273,7 +273,9 @@ export const RULE_PLURAL_NAMES: ByEventType = {
  * "Contains Any"), and these are their words, listed so each is translated:
  * a German reader read "Vorfallsstatus Contains Any". A test holds the lists
  * to the enums. They are not imported here, which keeps this module free of
- * the condition module and the UI it reaches.
+ * the condition module and the UI it reaches. A field whose stored value has
+ * words of its own (CHECK_ON_LABELS: "On Call Duty Policy Name" is shown as
+ * "On-Call Policy Name") is listed by those words.
  */
 export const CONDITION_FIELD_WORDS: ReadonlyArray<string> = [
   translationKey("Monitor Name"),
@@ -305,9 +307,9 @@ export const CONDITION_FIELD_WORDS: ReadonlyArray<string> = [
   translationKey("Monitor Labels"),
   translationKey("Scheduled Maintenance Labels"),
   translationKey("Monitors"),
-  translationKey("On Call Duty Policy Name"),
-  translationKey("On Call Duty Policy Description"),
-  translationKey("On Call Duty Policy Labels"),
+  translationKey("On-Call Policy Name"),
+  translationKey("On-Call Policy Description"),
+  translationKey("On-Call Policy Labels"),
   translationKey("Security Case Title"),
   translationKey("Security Case Description"),
   translationKey("Security Case Priority"),

@@ -34,6 +34,7 @@ import {
   ReplaySignal,
   makeIdleBackendSignalsSlot,
 } from "./ReplaySignalTypes";
+import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
 
 /*
  * Fetching the backend side of a session - its logs, spans and exception
@@ -721,7 +722,7 @@ export function classifyBackendSignalsFailure(
       status: "error",
       errorMessage: translator.translateTemplate(
         "Loading {{noun}} failed: {{message}}. Retry.",
-        { noun: noun, message: message },
+        { noun: noun, message: errorInSentence(message) },
       ),
     };
   }
@@ -761,7 +762,7 @@ export function describePartialBackendSignalsFailure(
   if (message.length > 0) {
     return translator.translateTemplate(
       "Some linked {{noun}} did not load: {{message}}. Retry.",
-      { noun: noun, message: message },
+      { noun: noun, message: errorInSentence(message) },
     );
   }
 

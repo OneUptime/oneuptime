@@ -190,7 +190,7 @@ type CollapseGapsFunction = (text: string, longest: number) => string;
  * read only until more than `longest` characters are kept, which is all a
  * quote needs to know it must be cut. A loop rather than a pattern with a
  * quantifier, which an answer a megabyte long must not be read with
- * (AGENTS.md, "Megabyte-long values").
+ * (Docs/notifications/README.md, "Megabyte-long values").
  */
 const collapseGaps: CollapseGapsFunction = (
   text: string,
@@ -252,7 +252,7 @@ type ExcerptFunction = (
  * markup. The message is plain text, shown as text; a chat mention in it
  * ("<@U123>") is text too, and Markdown that ever places it into a feed or
  * a chat does so with mdText, which breaks one in every value it places
- * (AGENTS.md, "Feed and chat Markdown").
+ * (Docs/notifications/README.md, "Feed and chat Markdown").
  *
  * An answer may be up to a megabyte (OAUTH2_TOKEN_RESPONSE_MAX_BYTES), and
  * every step reads it in time that grows with its length alone: the single

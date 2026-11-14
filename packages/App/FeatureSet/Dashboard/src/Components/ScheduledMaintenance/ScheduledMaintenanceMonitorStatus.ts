@@ -12,7 +12,7 @@ import {
  * with a line saying why.
  *
  * So until the event starts the Edit asks it right under the monitors, as
- * Create Scheduled Maintenance Event does (only once a monitor is picked);
+ * Create Maintenance Event does (only once a monitor is picked);
  * from then on it shows the status read-only and sends nothing for it. The
  * server holds the same line (ScheduledMaintenanceService refuses a change
  * once the event has started), by the same rule

@@ -73,7 +73,7 @@ A new monitor starts on **Host Stopped Reporting**, under **What to alert on**. 
 
 ### Check the criteria
 
-Open each criteria under **Monitor Criteria** and check its **Metric**, **Aggregation**, **Condition** and **Threshold**. A template fills these in. With **Custom Metric** or **Advanced**, the monitor starts with the [default criteria](#default-criteria), which only notice the metric sending no data, so set your own threshold.
+Open each criteria under **Criteria** and check its **Metric**, **Aggregation**, **Condition** and **Threshold**. A template fills these in. With **Custom Metric** or **Advanced**, the monitor starts with the [default criteria](#default-criteria), which only notice the metric sending no data, so set your own threshold.
 
 ### Create the monitor
 
@@ -175,7 +175,7 @@ The **Host Metric** list offers these metrics. Each carries `resource.host.name`
 
 The query builder in **Advanced** lists every metric the host sends, not only these.
 
-## Monitoring criteria
+## Criteria
 
 A criteria compares one of the monitor's queries or formulas with a threshold. A Host monitor's criteria have no **Filter Type**: every rule checks the metric value, with these fields.
 

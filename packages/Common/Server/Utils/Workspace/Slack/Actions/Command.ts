@@ -296,7 +296,9 @@ export default class SlackCommandActions {
         return Response.sendErrorResponse(
           data.req,
           data.res,
-          new BadRequestException("Invalid request"),
+          new BadRequestException(
+            "Slack sent a command OneUptime does not recognise. Type /oneuptime help to see the commands.",
+          ),
         );
     }
   }

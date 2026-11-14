@@ -351,7 +351,7 @@ describe("a rule's LLM provider", () => {
         403,
         {
           message:
-            "You do not have permission to read this project's AI providers.",
+            "You do not have permission to read this project's LLM providers.",
         },
         {},
       ),

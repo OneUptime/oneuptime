@@ -9,6 +9,7 @@ import {
   WEBSITE_DOWN_COPY,
   WEBSITE_DOWN_POLICY_NAME,
   WEBSITE_DOWN_SETUP,
+  WEBSITE_DOWN_SETUP_GUIDE_DOCS_PATH,
   WebsiteAddress,
   WebsiteDownProgressFacts,
   WebsiteDownRunValue,
@@ -16,6 +17,7 @@ import {
   WebsiteDownSummaryRow,
   WhoIsToldFacts,
   WhoIsToldMode,
+  areWhoIsToldCountsKnown,
   describeFirstCheck,
   getIncidentSeverityId,
   getMonitorAddress,
@@ -153,12 +155,17 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
   const [addressError, setAddressError] = useState<string>("");
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [saveError, setSaveError] = useState<string>("");
+  // The address was one this person's monitor checks already (#7059).
+  const [isExistingMonitor, setIsExistingMonitor] = useState<boolean>(false);
 
   // Step 2's people: you, to start with.
   const [people, setPeople] = useState<PeoplePickerValue>({
     [PeoplePickerKind.User]: userId ? [userId] : [],
   });
   const [peopleError, setPeopleError] = useState<string>("");
+  // Save and continue found a policy made meanwhile elsewhere (#7059).
+  const [isPolicyMadeElsewhere, setIsPolicyMadeElsewhere] =
+    useState<boolean>(false);
 
   // Step 3.
   const [showNotReceivedHelp, setShowNotReceivedHelp] =
@@ -475,13 +482,30 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
     setIsSaving(true);
 
     try {
-      const monitorId: string = await WebsiteDownApi.createMonitor({
-        address: address,
-        isApi: isApi,
-        translator: translator,
-      });
-      saveRun({ [WebsiteDownRunValue.MonitorId]: monitorId });
-      setMonitor(await WebsiteDownApi.loadMonitor(monitorId));
+      /*
+       * A monitor this person already has for the address is this run's:
+       * a run the browser lost (a private window, another device) or a
+       * start over makes no second one (#7059).
+       */
+      const existing: WebsiteDownMonitorRecord | null =
+        await WebsiteDownApi.findOwnMonitor({
+          address: address,
+          userId: userId,
+        });
+
+      if (existing) {
+        saveRun({ [WebsiteDownRunValue.MonitorId]: existing.id });
+        setIsExistingMonitor(true);
+        setMonitor(existing);
+      } else {
+        const monitorId: string = await WebsiteDownApi.createMonitor({
+          address: address,
+          isApi: isApi,
+          translator: translator,
+        });
+        saveRun({ [WebsiteDownRunValue.MonitorId]: monitorId });
+        setMonitor(await WebsiteDownApi.loadMonitor(monitorId));
+      }
     } catch (err) {
       setSaveError(API.getFriendlyMessage(err));
     }
@@ -489,10 +513,26 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
     setIsSaving(false);
   };
 
+  /*
+   * A monitor found rather than made says so first, then what its check
+   * found. A name or host typed as one long word wraps inside the step.
+   */
   const checkContent: ReactElement = monitor ? (
     <div className="space-y-4">
+      {isExistingMonitor ? (
+        <p
+          className="break-words text-sm text-gray-500"
+          data-testid="guided-setup-existing-monitor"
+        >
+          {translator.translateTemplate(WEBSITE_DOWN_COPY.existingMonitor, {
+            name: monitor.name,
+          })}
+        </p>
+      ) : (
+        <></>
+      )}
       <p
-        className={`text-sm ${
+        className={`break-words text-sm ${
           checkSentence?.isDown ? "text-amber-700" : "text-gray-700"
         }`}
         data-testid="guided-setup-first-check"
@@ -607,6 +647,33 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
     setIsSaving(true);
 
     try {
+      /*
+       * Asked again before the policy is made: another tab or device may
+       * have made the project's first one since this page read it. Then the
+       * project's own policies decide, the step says why, and nothing is
+       * made twice (#7059). Counts that cannot be read now make nothing on
+       * a guess: the step stays open to try again.
+       */
+      const latestFacts: WhoIsToldFacts =
+        await WebsiteDownApi.loadWhoIsToldFacts();
+
+      if (!areWhoIsToldCountsKnown(latestFacts)) {
+        setSaveError(
+          translator.translateText(WEBSITE_DOWN_COPY.couldNotSave) || "",
+        );
+        setIsSaving(false);
+        return;
+      }
+
+      const latestMode: WhoIsToldMode = getWhoIsToldMode(latestFacts);
+
+      if (latestMode !== WhoIsToldMode.CreatePolicy) {
+        setWhoFacts(latestFacts);
+        setIsPolicyMadeElsewhere(latestMode === WhoIsToldMode.ExistingPolicy);
+        setIsSaving(false);
+        return;
+      }
+
       const policyId: string = await WebsiteDownApi.createPolicy({
         userIds: pickedUserIds,
         teamIds: pickedTeamIds,
@@ -683,6 +750,16 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
         </>
       ) : (
         <>
+          {isPolicyMadeElsewhere && mode === WhoIsToldMode.ExistingPolicy ? (
+            <p
+              className="text-sm text-gray-500"
+              data-testid="guided-setup-policy-made-elsewhere"
+            >
+              {translator.translateText(WEBSITE_DOWN_COPY.policyMadeElsewhere)}
+            </p>
+          ) : (
+            <></>
+          )}
           <p
             className="text-sm text-gray-700"
             data-testid="guided-setup-who-help"
@@ -911,7 +988,14 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
       </h3>
       <ul className="mt-2 space-y-1">
         <li>
-          <AppLink to={routeOf(PageMap.STATUS_PAGES)} className={linkClassName}>
+          {/*
+           * The status page guided setup (#6806), which lists this monitor
+           * to pick.
+           */}
+          <AppLink
+            to={routeOf(PageMap.STATUS_PAGES_GUIDED_SETUP)}
+            className={linkClassName}
+          >
             {translator.translateText(WEBSITE_DOWN_COPY.nextStatusPage) || ""}
           </AppLink>
         </li>
@@ -951,6 +1035,8 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
             setSummaryExtras(null);
             setAddressText("");
             setIsApi(false);
+            setIsExistingMonitor(false);
+            setIsPolicyMadeElsewhere(false);
             setShowNotReceivedHelp(false);
             setOpenStepKey(WebsiteDownStep.Check);
             // The project may have a policy now: who is told is asked afresh.
@@ -976,6 +1062,7 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
       }}
       summary={summary}
       isFinished={isWebsiteDownFinished(facts)}
+      guideDocsPath={WEBSITE_DOWN_SETUP_GUIDE_DOCS_PATH}
     />
   );
 };

@@ -400,9 +400,27 @@ describe("the card an action leaves: its facts beside their names, or under them
     expect(facts.className.split(" ")).not.toContain("grid");
     // Two columns where the card has room.
     expect(facts.className).toContain("[@container(min-width:22rem)]:grid");
+    /*
+     * The names take at most 40% of the card, and wrap there: a long
+     * name never leaves the values a narrow column (issue #7175).
+     */
     expect(facts.className).toContain(
-      "[@container(min-width:22rem)]:grid-cols-[auto,1fr]",
+      "[@container(min-width:22rem)]:grid-cols-[fit-content(40%)_minmax(0,1fr)]",
     );
+    expect(facts.className).not.toContain("grid-cols-[auto");
+    for (const label of within(facts).getAllByTestId(
+      "ai-chat-resource-card-fact-label",
+    )) {
+      expect(label.className).toContain("break-words");
+      expect(label.className).toContain("min-w-0");
+    }
+    // A value takes up to four lines: an escalation rule's sentence whole.
+    for (const value of within(facts).getAllByTestId(
+      "ai-chat-resource-card-fact-value",
+    )) {
+      expect(value.className).toContain("line-clamp-4");
+      expect(value.className).not.toContain("line-clamp-2");
+    }
 
     for (const pair of within(facts).getAllByTestId(
       "ai-chat-resource-card-fact",

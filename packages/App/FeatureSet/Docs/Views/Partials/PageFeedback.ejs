@@ -1,0 +1,62 @@
+<%
+/*
+ * "Was this page helpful?" (issue #6822), at the foot of every page.
+ *
+ * Yes or no; after a no, what went wrong. Where analytics is set up
+ * (OneUptime Cloud: feedback.isSent, Utils/DocsFeedback.ts), the page's
+ * script posts the answer to /docs/feedback, with the reader's consent, and
+ * a no offers four reasons in one click. Anywhere else nothing is posted:
+ * a no offers "Tell us on GitHub", with the page's name filled in, and the
+ * reader decides whether to send it. The script shows the question only
+ * once it runs, so a page without it shows nothing to click.
+ */
+var feedbackMode = feedback && feedback.isSent ? 'send' : 'local';
+var feedbackReasons = [
+    { key: 'unclear', label: t('ui.feedbackReasonUnclear') },
+    { key: 'missing', label: t('ui.feedbackReasonMissing') },
+    { key: 'wrong', label: t('ui.feedbackReasonWrong') },
+    { key: 'not_found', label: t('ui.feedbackReasonNotFound') }
+];
+%>
+<section class="docs-feedback" role="group" aria-labelledby="docs-feedback-question"
+         data-docs-feedback
+         data-feedback-mode="<%= feedbackMode %>"
+         data-feedback-page="<%= feedback.page %>"
+         data-feedback-language="<%= lang %>"
+         hidden>
+    <div class="docs-feedback__ask" data-feedback-step="ask">
+        <p class="docs-feedback__question" id="docs-feedback-question"><%- t('ui.feedbackQuestion') %></p>
+        <div class="docs-feedback__answers">
+            <button type="button" class="docs-feedback__button" data-feedback-answer="yes">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 10v12"/><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z"/></svg>
+                <span><%- t('ui.feedbackYes') %></span>
+            </button>
+            <button type="button" class="docs-feedback__button" data-feedback-answer="no">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 14V2"/><path d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z"/></svg>
+                <span><%- t('ui.feedbackNo') %></span>
+            </button>
+        </div>
+    </div>
+
+    <p class="docs-feedback__thanks" data-feedback-step="thanks" role="status" hidden><%- t('ui.feedbackThanks') %></p>
+
+    <div class="docs-feedback__no" data-feedback-step="no" hidden>
+        <% if (feedbackMode === 'send') { %>
+        <p class="docs-feedback__question" role="status"><%- t('ui.feedbackWhatWentWrong') %></p>
+        <div class="docs-feedback__reasons">
+            <% feedbackReasons.forEach(function (reason) { %>
+            <button type="button" class="docs-feedback__reason" data-feedback-reason="<%= reason.key %>"><%- reason.label %></button>
+            <% }) %>
+        </div>
+        <% } else { %>
+        <p class="docs-feedback__question" role="status"><%- t('ui.feedbackTellUs') %></p>
+        <% } %>
+        <a class="docs-feedback__github docs-link"
+           href="<%= feedback.githubIssueUrl %>"
+           target="_blank"
+           rel="noopener noreferrer"
+           data-feedback-github><%- t('ui.feedbackTellUsOnGithub') %>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+        </a>
+    </div>
+</section>

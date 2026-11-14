@@ -202,7 +202,7 @@ Pour tester un déclencheur d'événement sans attendre l'événement, cliquez s
 | **Incident**                               | Réagir quand un incident est déclaré, modifié (pris en compte, résolu) ou supprimé.         |
 | **Alerte**                                 | Les trois mêmes événements, pour les alertes.                                               |
 | **Moniteur**                               | Réagir quand un moniteur est ajouté, modifié ou retiré.                                     |
-| **Événement de maintenance planifiée**     | Annoncer automatiquement une fenêtre de maintenance dès qu'elle est planifiée.              |
+| **Événement de maintenance**     | Annoncer automatiquement une fenêtre de maintenance dès qu'elle est planifiée.              |
 | **Abonné à la page de statut**             | Souhaiter la bienvenue à quelqu'un qui s'abonne à une page de statut.                       |
 | **Politique d'astreinte**                  | Synchroniser les modifications de politique avec un autre système de planning.              |
 

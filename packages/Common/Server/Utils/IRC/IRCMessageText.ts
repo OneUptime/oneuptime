@@ -11,10 +11,10 @@
  * The text can be anything a trigger carried - a synthetic monitor's
  * screenshot arrives as megabytes of base64 on one line, and a webhook's body
  * can be megabytes of blank lines - so nothing here runs a regular expression
- * over it (see "Megabyte-long values" in AGENTS.md). The text is read once,
- * a character at a time; what is not sent (blank lines, control characters,
- * a long run of spaces) costs a comparison and no more, and reading stops as
- * soon as there are more lines than can be sent.
+ * over it (see "Megabyte-long values" in Docs/notifications/README.md). The
+ * text is read once, a character at a time; what is not sent (blank lines,
+ * control characters, a long run of spaces) costs a comparison and no more, and
+ * reading stops as soon as there are more lines than can be sent.
  */
 
 export interface PreparedIRCText {

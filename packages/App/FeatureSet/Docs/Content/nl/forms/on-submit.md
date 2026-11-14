@@ -1,6 +1,6 @@
 # Wat een inzending aanmaakt
 
-Elke inzending via een formulier maakt één record aan in je project: een **incident** of een **geplande onderhoudsgebeurtenis**. De pagina **Bij verzenden** van een formulier toont welke, en hoe elk veld van het nieuwe record wordt ingevuld — uit een antwoord, uit een standaardwaarde, uit een instelling die altijd geldt, of uit het incidentsjabloon. **Instellingen bewerken** wijzigt de standaardwaarden en wat altijd geldt.
+Elke inzending via een formulier maakt één record aan in je project: een **incident** of een **onderhoudsgebeurtenis**. De pagina **Bij verzenden** van een formulier toont welke, en hoe elk veld van het nieuwe record wordt ingevuld — uit een antwoord, uit een standaardwaarde, uit een instelling die altijd geldt, of uit het incidentsjabloon. **Instellingen bewerken** wijzigt de standaardwaarden en wat altijd geldt.
 
 :::cards
 - [Hoe een inzending een incident wordt](#hoe-een-inzending-een-incident-wordt): Elk veld van het nieuwe incident, en waar de waarde ervan vandaan komt.

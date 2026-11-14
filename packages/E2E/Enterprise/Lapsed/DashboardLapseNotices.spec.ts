@@ -125,7 +125,7 @@ const LAPSED_SCREENS: ReadonlyArray<LapsedScreen> = [
     noticeTitle: AUDIT_LOGS_LAPSED_TITLE,
     actionsNoticeTitle: "",
     enterpriseCopy:
-      "When enabled, every create, update and delete action on your project's resources will be recorded in the audit log",
+      "When enabled, every create, update and delete action on your project's resources, and every sign-in and sign-out of its members, will be recorded in the audit log",
     graceNoticeTestId: AUDIT_LOGS_GRACE_NOTICE_TEST_ID,
   },
   {

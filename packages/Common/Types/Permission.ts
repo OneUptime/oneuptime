@@ -13,7 +13,7 @@ export enum PermissionGroup {
   SLO = "SLO",
   StatusPage = "Status Page",
   ScheduledMaintenance = "Scheduled Maintenance",
-  OnCallDutyPolicy = "On-Call Duty Policy",
+  OnCallDutyPolicy = "On-Call",
   Telemetry = "Telemetry",
   Workflow = "Workflow",
   Runbook = "Runbook",
@@ -22,7 +22,7 @@ export enum PermissionGroup {
   AutoRemediation = "AI Rules",
   Team = "Team",
   Billing = "Billing",
-  ServiceCatalog = "Service Catalog",
+  ServiceCatalog = "Services",
   Settings = "Settings",
   AIAgent = "AI Agent",
   Probe = "Probe",
@@ -1566,25 +1566,25 @@ enum Permission {
   EditIncomingCallPolicyOwnerUser = "EditIncomingCallPolicyOwnerUser",
   ReadIncomingCallPolicyOwnerUser = "ReadIncomingCallPolicyOwnerUser",
 
-  // On-Call Duty Policy Label Rule Permissions
+  // On-Call Policy Label Rule Permissions
   CreateOnCallDutyPolicyLabelRule = "CreateOnCallDutyPolicyLabelRule",
   DeleteOnCallDutyPolicyLabelRule = "DeleteOnCallDutyPolicyLabelRule",
   EditOnCallDutyPolicyLabelRule = "EditOnCallDutyPolicyLabelRule",
   ReadOnCallDutyPolicyLabelRule = "ReadOnCallDutyPolicyLabelRule",
 
-  // On-Call Duty Policy Owner Rule Permissions
+  // On-Call Policy Owner Rule Permissions
   CreateOnCallDutyPolicyOwnerRule = "CreateOnCallDutyPolicyOwnerRule",
   DeleteOnCallDutyPolicyOwnerRule = "DeleteOnCallDutyPolicyOwnerRule",
   EditOnCallDutyPolicyOwnerRule = "EditOnCallDutyPolicyOwnerRule",
   ReadOnCallDutyPolicyOwnerRule = "ReadOnCallDutyPolicyOwnerRule",
 
-  // On-Call Duty Schedule Label Rule Permissions
+  // On-Call Schedule Label Rule Permissions
   CreateOnCallDutyPolicyScheduleLabelRule = "CreateOnCallDutyPolicyScheduleLabelRule",
   DeleteOnCallDutyPolicyScheduleLabelRule = "DeleteOnCallDutyPolicyScheduleLabelRule",
   EditOnCallDutyPolicyScheduleLabelRule = "EditOnCallDutyPolicyScheduleLabelRule",
   ReadOnCallDutyPolicyScheduleLabelRule = "ReadOnCallDutyPolicyScheduleLabelRule",
 
-  // On-Call Duty Schedule Owner Rule Permissions
+  // On-Call Schedule Owner Rule Permissions
   CreateOnCallDutyPolicyScheduleOwnerRule = "CreateOnCallDutyPolicyScheduleOwnerRule",
   DeleteOnCallDutyPolicyScheduleOwnerRule = "DeleteOnCallDutyPolicyScheduleOwnerRule",
   EditOnCallDutyPolicyScheduleOwnerRule = "EditOnCallDutyPolicyScheduleOwnerRule",
@@ -2862,7 +2862,7 @@ export class PermissionHelper {
         permission: Permission.OnCallAdmin,
         title: "On-Call Admin",
         description:
-          "Creates, changes and deletes on-call duty policies with their escalation rules, on-call schedules with their layers, and user overrides. On-call rules and custom fields take Project Admin. Incoming call policies are not part of it.",
+          "Creates, changes and deletes on-call policies with their escalation rules, on-call schedules with their layers, and user overrides. On-call rules and custom fields take Project Admin. Incoming call policies are not part of it.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2872,7 +2872,7 @@ export class PermissionHelper {
         permission: Permission.OnCallMember,
         title: "On-Call Member",
         description:
-          "Same as On-Call Admin: creates, changes and deletes on-call duty policies with their escalation rules, on-call schedules with their layers, and user overrides.",
+          "Same as On-Call Admin: creates, changes and deletes on-call policies with their escalation rules, on-call schedules with their layers, and user overrides.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2881,7 +2881,7 @@ export class PermissionHelper {
       {
         permission: Permission.OnCallViewer,
         title: "On-Call Viewer",
-        description: "Read-only access to on-call duty policies and schedules.",
+        description: "Read-only access to on-call policies and schedules.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -3223,9 +3223,9 @@ export class PermissionHelper {
 
       {
         permission: Permission.CreateTelemetryIngestionKey,
-        title: "Create Telemetry Ingestion Key",
+        title: "Create Ingestion Key",
         description:
-          "This permission can create Telemetry Ingestion Keys of this project",
+          "This permission can create ingestion keys of this project",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -3233,9 +3233,9 @@ export class PermissionHelper {
       },
       {
         permission: Permission.DeleteTelemetryIngestionKey,
-        title: "Delete Telemetry Ingestion Key",
+        title: "Delete Ingestion Key",
         description:
-          "This permission can delete Telemetry Ingestion Keys of this project.",
+          "This permission can delete ingestion keys of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -3243,9 +3243,8 @@ export class PermissionHelper {
       },
       {
         permission: Permission.EditTelemetryIngestionKey,
-        title: "Edit Telemetry Ingestion Key",
-        description:
-          "This permission can edit Telemetry Ingestion Keys of this project.",
+        title: "Edit Ingestion Key",
+        description: "This permission can edit ingestion keys of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -3253,9 +3252,8 @@ export class PermissionHelper {
       },
       {
         permission: Permission.ReadTelemetryIngestionKey,
-        title: "Read Telemetry Ingestion Key",
-        description:
-          "This permission can read Telemetry Ingestion Keys of this project.",
+        title: "Read Ingestion Key",
+        description: "This permission can read ingestion keys of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -4064,7 +4062,7 @@ export class PermissionHelper {
 
       {
         permission: Permission.CreateOnCallDutyPolicyFeed,
-        title: "Create On Call Duty Policy Feed",
+        title: "Create On-Call Policy Feed",
         description:
           "This permission can create log of an on-call policy in this project.",
         isAssignableToTenant: true,
@@ -4074,7 +4072,7 @@ export class PermissionHelper {
       },
       {
         permission: Permission.EditOnCallDutyPolicyFeed,
-        title: "Edit On Call Duty Policy Feed",
+        title: "Edit On-Call Policy Feed",
         description:
           "This permission can edit log of an on-call policy in this project.",
         isAssignableToTenant: true,
@@ -4084,7 +4082,7 @@ export class PermissionHelper {
       },
       {
         permission: Permission.ReadOnCallDutyPolicyFeed,
-        title: "Read On Call Duty Policy Feed",
+        title: "Read On-Call Policy Feed",
         description:
           "This permission can read log of an on-call policy in this project.",
         isAssignableToTenant: true,
@@ -6637,9 +6635,9 @@ export class PermissionHelper {
 
       {
         permission: Permission.ReadProjectOnCallDutyPolicyExecutionLogTimeline,
-        title: "Read On-Call Duty Policy Execution Log Timeline",
+        title: "Read On-Call Policy Execution Log Timeline",
         description:
-          "This permission can read teams in on-call duty execution log timeline.",
+          "This permission can read teams in on-call policy execution log timeline.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -6648,8 +6646,8 @@ export class PermissionHelper {
 
       {
         permission: Permission.ReadProjectOnCallDutyPolicyExecutionLog,
-        title: "Read On-Call Duty Policy Execution Log",
-        description: "This permission can read on-call duty execution log.",
+        title: "Read On-Call Policy Execution Log",
+        description: "This permission can read on-call policy execution log.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -6663,12 +6661,13 @@ export class PermissionHelper {
          * Execute On-Call Policy, Page now on a page OneUptime AI holds, a
          * chat's /oneuptime page, the API. Named after what it allows, as
          * the lock on those buttons names it ("You need this permission:
-         * Execute On-Call Duty Policy."), not after the row it writes - and
-         * as its siblings name the policy (Create, Edit, Read On-Call Duty
-         * Policy), so it is never the record's button's own words, which a
-         * translated page draws in its language.
+         * Execute On-Call Policies."), not after the row it writes, and never
+         * the record's button's own words ("Execute On-Call Policy"), which a
+         * translated page draws in its language while it names permissions
+         * in English. It was "Execute On-Call Duty Policy" until the product
+         * became On-Call (#6817); the plural keeps it apart from the button.
          */
-        title: "Execute On-Call Duty Policy",
+        title: "Execute On-Call Policies",
         description:
           "This permission can execute on-call policies: page their escalation rules about an incident, an alert or an episode.",
         isAssignableToTenant: true,
@@ -6679,9 +6678,9 @@ export class PermissionHelper {
 
       {
         permission: Permission.CreateProjectOnCallDutyPolicyEscalationRuleTeam,
-        title: "Create On-Call Duty Policy Escalation Rule",
+        title: "Create On-Call Policy Escalation Rule",
         description:
-          "This permission can create teams in on-call duty escalation rule this project.",
+          "This permission can create teams in on-call escalation rule this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -6689,9 +6688,9 @@ export class PermissionHelper {
       },
       {
         permission: Permission.DeleteProjectOnCallDutyPolicyEscalationRuleTeam,
-        title: "Delete On-Call Duty Policy Escalation Rule Team",
+        title: "Delete On-Call Policy Escalation Rule Team",
         description:
-          "This permission can delete teams in on-call duty escalation rule of this project.",
+          "This permission can delete teams in on-call escalation rule of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -6699,9 +6698,9 @@ export class PermissionHelper {
       },
       {
         permission: Permission.EditProjectOnCallDutyPolicyEscalationRuleTeam,
-        title: "Edit On-Call Duty Policy Escalation Rule Team",
+        title: "Edit On-Call Policy Escalation Rule Team",
         description:
-          "This permission can edit teams in on-call duty escalation rule of this project.",
+          "This permission can edit teams in on-call escalation rule of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -6709,9 +6708,9 @@ export class PermissionHelper {
       },
       {
         permission: Permission.ReadProjectOnCallDutyPolicyEscalationRuleTeam,
-        title: "Read On-Call Duty Policy Escalation Rule Team",
+        title: "Read On-Call Policy Escalation Rule Team",
         description:
-          "This permission can read teams in on-call duty escalation rule of this project.",
+          "This permission can read teams in on-call escalation rule of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -6886,12 +6885,12 @@ export class PermissionHelper {
         group: PermissionGroup.OnCallDutyPolicy,
       },
 
-      // On-Call Duty Policy Label Rule Permissions
+      // On-Call Policy Label Rule Permissions
       {
         permission: Permission.CreateOnCallDutyPolicyLabelRule,
-        title: "Create On-Call Duty Policy Label Rule",
+        title: "Create On-Call Policy Label Rule",
         description:
-          "This permission can create On-Call Duty Policy Label Rule of this project.",
+          "This permission can create On-Call Policy Label Rule of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -6899,9 +6898,9 @@ export class PermissionHelper {
       },
       {
         permission: Permission.DeleteOnCallDutyPolicyLabelRule,
-        title: "Delete On-Call Duty Policy Label Rule",
+        title: "Delete On-Call Policy Label Rule",
         description:
-          "This permission can delete On-Call Duty Policy Label Rule of this project.",
+          "This permission can delete On-Call Policy Label Rule of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -6909,9 +6908,9 @@ export class PermissionHelper {
       },
       {
         permission: Permission.EditOnCallDutyPolicyLabelRule,
-        title: "Edit On-Call Duty Policy Label Rule",
+        title: "Edit On-Call Policy Label Rule",
         description:
-          "This permission can edit On-Call Duty Policy Label Rule of this project.",
+          "This permission can edit On-Call Policy Label Rule of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -6919,21 +6918,21 @@ export class PermissionHelper {
       },
       {
         permission: Permission.ReadOnCallDutyPolicyLabelRule,
-        title: "Read On-Call Duty Policy Label Rule",
+        title: "Read On-Call Policy Label Rule",
         description:
-          "This permission can read On-Call Duty Policy Label Rule of this project.",
+          "This permission can read On-Call Policy Label Rule of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.OnCallDutyPolicy,
       },
 
-      // On-Call Duty Policy Owner Rule Permissions
+      // On-Call Policy Owner Rule Permissions
       {
         permission: Permission.CreateOnCallDutyPolicyOwnerRule,
-        title: "Create On-Call Duty Policy Owner Rule",
+        title: "Create On-Call Policy Owner Rule",
         description:
-          "This permission can create On-Call Duty Policy Owner Rule of this project.",
+          "This permission can create On-Call Policy Owner Rule of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -6941,9 +6940,9 @@ export class PermissionHelper {
       },
       {
         permission: Permission.DeleteOnCallDutyPolicyOwnerRule,
-        title: "Delete On-Call Duty Policy Owner Rule",
+        title: "Delete On-Call Policy Owner Rule",
         description:
-          "This permission can delete On-Call Duty Policy Owner Rule of this project.",
+          "This permission can delete On-Call Policy Owner Rule of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -6951,9 +6950,9 @@ export class PermissionHelper {
       },
       {
         permission: Permission.EditOnCallDutyPolicyOwnerRule,
-        title: "Edit On-Call Duty Policy Owner Rule",
+        title: "Edit On-Call Policy Owner Rule",
         description:
-          "This permission can edit On-Call Duty Policy Owner Rule of this project.",
+          "This permission can edit On-Call Policy Owner Rule of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -6961,16 +6960,16 @@ export class PermissionHelper {
       },
       {
         permission: Permission.ReadOnCallDutyPolicyOwnerRule,
-        title: "Read On-Call Duty Policy Owner Rule",
+        title: "Read On-Call Policy Owner Rule",
         description:
-          "This permission can read On-Call Duty Policy Owner Rule of this project.",
+          "This permission can read On-Call Policy Owner Rule of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.OnCallDutyPolicy,
       },
 
-      // On-Call Duty Schedule Label Rule Permissions
+      // On-Call Schedule Label Rule Permissions
       {
         permission: Permission.CreateOnCallDutyPolicyScheduleLabelRule,
         title: "Create On-Call Schedule Label Rule",
@@ -7012,7 +7011,7 @@ export class PermissionHelper {
         group: PermissionGroup.OnCallDutyPolicy,
       },
 
-      // On-Call Duty Schedule Owner Rule Permissions
+      // On-Call Schedule Owner Rule Permissions
       {
         permission: Permission.CreateOnCallDutyPolicyScheduleOwnerRule,
         title: "Create On-Call Schedule Owner Rule",
@@ -7165,9 +7164,9 @@ export class PermissionHelper {
       {
         permission:
           Permission.CreateProjectOnCallDutyPolicyEscalationRuleSchedule,
-        title: "Create On-Call Duty Policy Escalation Rule Schedule",
+        title: "Create On-Call Policy Escalation Rule Schedule",
         description:
-          "This permission can create teams in on-call duty escalation rule schedule this project.",
+          "This permission can create teams in on-call escalation rule schedule this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -7176,9 +7175,9 @@ export class PermissionHelper {
       {
         permission:
           Permission.DeleteProjectOnCallDutyPolicyEscalationRuleSchedule,
-        title: "Delete On-Call Duty Policy Escalation Rule Schedule",
+        title: "Delete On-Call Policy Escalation Rule Schedule",
         description:
-          "This permission can delete teams in on-call duty escalation rule schedule of this project.",
+          "This permission can delete teams in on-call escalation rule schedule of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -7187,9 +7186,9 @@ export class PermissionHelper {
       {
         permission:
           Permission.EditProjectOnCallDutyPolicyEscalationRuleSchedule,
-        title: "Edit On-Call Duty Policy Escalation Rule Schedule",
+        title: "Edit On-Call Policy Escalation Rule Schedule",
         description:
-          "This permission can edit teams in on-call duty escalation rule schedule of this project.",
+          "This permission can edit teams in on-call escalation rule schedule of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -7198,9 +7197,9 @@ export class PermissionHelper {
       {
         permission:
           Permission.ReadProjectOnCallDutyPolicyEscalationRuleSchedule,
-        title: "Read On-Call Duty Policy Escalation Rule Schedule",
+        title: "Read On-Call Policy Escalation Rule Schedule",
         description:
-          "This permission can read teams in on-call duty escalation rule schedule of this project.",
+          "This permission can read teams in on-call escalation rule schedule of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -7246,9 +7245,9 @@ export class PermissionHelper {
 
       {
         permission: Permission.CreateProjectOnCallDutyPolicyEscalationRuleUser,
-        title: "Create On-Call Duty Policy Escalation Rule User",
+        title: "Create On-Call Policy Escalation Rule User",
         description:
-          "This permission can create on-call duty escalation rule this project.",
+          "This permission can create on-call escalation rule this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -7256,9 +7255,9 @@ export class PermissionHelper {
       },
       {
         permission: Permission.DeleteProjectOnCallDutyPolicyEscalationRuleUser,
-        title: "Delete On-Call Duty Policy Escalation Rule User",
+        title: "Delete On-Call Policy Escalation Rule User",
         description:
-          "This permission can delete on-call duty escalation rule of this project.",
+          "This permission can delete on-call escalation rule of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -7266,9 +7265,9 @@ export class PermissionHelper {
       },
       {
         permission: Permission.EditProjectOnCallDutyPolicyEscalationRuleUser,
-        title: "Edit On-Call Duty Policy Escalation Rule User",
+        title: "Edit On-Call Policy Escalation Rule User",
         description:
-          "This permission can edit on-call duty escalation rule of this project.",
+          "This permission can edit on-call escalation rule of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -7276,9 +7275,9 @@ export class PermissionHelper {
       },
       {
         permission: Permission.ReadProjectOnCallDutyPolicyEscalationRuleUser,
-        title: "Read On-Call Duty Policy Escalation Rule User",
+        title: "Read On-Call Policy Escalation Rule User",
         description:
-          "This permission can read on-call duty escalation rule of this project.",
+          "This permission can read on-call escalation rule of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -7287,9 +7286,9 @@ export class PermissionHelper {
 
       {
         permission: Permission.CreateProjectOnCallDutyPolicyEscalationRule,
-        title: "Create On-Call Duty Policy Escalation Rule",
+        title: "Create On-Call Policy Escalation Rule",
         description:
-          "This permission can create on-call duty escalation rule this project.",
+          "This permission can create on-call escalation rule this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -7297,9 +7296,9 @@ export class PermissionHelper {
       },
       {
         permission: Permission.DeleteProjectOnCallDutyPolicyEscalationRule,
-        title: "Delete On-Call Duty Policy Escalation Rule",
+        title: "Delete On-Call Policy Escalation Rule",
         description:
-          "This permission can delete on-call duty escalation rule of this project.",
+          "This permission can delete on-call escalation rule of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -7307,9 +7306,9 @@ export class PermissionHelper {
       },
       {
         permission: Permission.EditProjectOnCallDutyPolicyEscalationRule,
-        title: "Edit On-Call Duty Policy Escalation Rule",
+        title: "Edit On-Call Policy Escalation Rule",
         description:
-          "This permission can edit on-call duty escalation rule of this project.",
+          "This permission can edit on-call escalation rule of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -7317,9 +7316,9 @@ export class PermissionHelper {
       },
       {
         permission: Permission.ReadProjectOnCallDutyPolicyEscalationRule,
-        title: "Read On-Call Duty Policy Escalation Rule",
+        title: "Read On-Call Policy Escalation Rule",
         description:
-          "This permission can read on-call duty escalation rule of this project.",
+          "This permission can read on-call escalation rule of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -7339,9 +7338,9 @@ export class PermissionHelper {
 
       {
         permission: Permission.CreateOnCallDutyPolicyUserOverride,
-        title: "Create On-Call Duty Policy User Override",
+        title: "Create On-Call Policy User Override",
         description:
-          "This permission can create on-call duty policy user override this project.",
+          "This permission can create on-call policy user override this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -7349,9 +7348,9 @@ export class PermissionHelper {
       },
       {
         permission: Permission.DeleteOnCallDutyPolicyUserOverride,
-        title: "Delete On-Call Duty Policy User Override",
+        title: "Delete On-Call Policy User Override",
         description:
-          "This permission can delete on-call duty policy user override of this project.",
+          "This permission can delete on-call policy user override of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -7359,9 +7358,9 @@ export class PermissionHelper {
       },
       {
         permission: Permission.EditOnCallDutyPolicyUserOverride,
-        title: "Edit On-Call Duty Policy User Override",
+        title: "Edit On-Call Policy User Override",
         description:
-          "This permission can edit on-call duty policy user override of this project.",
+          "This permission can edit on-call policy user override of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -7369,9 +7368,9 @@ export class PermissionHelper {
       },
       {
         permission: Permission.ReadOnCallDutyPolicyUserOverride,
-        title: "Read On-Call Duty Policy User Override",
+        title: "Read On-Call Policy User Override",
         description:
-          "This permission can read on-call duty policy user override of this project.",
+          "This permission can read on-call policy user override of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -7380,8 +7379,8 @@ export class PermissionHelper {
 
       {
         permission: Permission.CreateProjectOnCallDutyPolicy,
-        title: "Create On-Call Duty Policy",
-        description: "This permission can create on-call duty this project.",
+        title: "Create On-Call Policy",
+        description: "This permission can create on-call this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -7389,8 +7388,8 @@ export class PermissionHelper {
       },
       {
         permission: Permission.DeleteProjectOnCallDutyPolicy,
-        title: "Delete On-Call Duty Policy",
-        description: "This permission can delete on-call duty of this project.",
+        title: "Delete On-Call Policy",
+        description: "This permission can delete on-call of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
         isRolePermission: false,
@@ -7398,8 +7397,8 @@ export class PermissionHelper {
       },
       {
         permission: Permission.EditProjectOnCallDutyPolicy,
-        title: "Edit On-Call Duty Policy",
-        description: "This permission can edit on-call duty of this project.",
+        title: "Edit On-Call Policy",
+        description: "This permission can edit on-call of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
         isRolePermission: false,
@@ -7407,8 +7406,8 @@ export class PermissionHelper {
       },
       {
         permission: Permission.ReadProjectOnCallDutyPolicy,
-        title: "Read On-Call Duty Policy",
-        description: "This permission can read on-call duty of this project.",
+        title: "Read On-Call Policy",
+        description: "This permission can read on-call of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
         isRolePermission: false,
@@ -7469,9 +7468,9 @@ export class PermissionHelper {
 
       {
         permission: Permission.CreateProjectOnCallDutyPolicySchedule,
-        title: "Create On-Call Duty Policy Schedule",
+        title: "Create On-Call Schedule",
         description:
-          "This permission can create on-call duty schedule this project.",
+          "This permission can create on-call schedule this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -7479,9 +7478,9 @@ export class PermissionHelper {
       },
       {
         permission: Permission.DeleteProjectOnCallDutyPolicySchedule,
-        title: "Delete On-Call Duty Policy Schedule",
+        title: "Delete On-Call Schedule",
         description:
-          "This permission can delete on-call duty schedule of this project.",
+          "This permission can delete on-call schedule of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
         isRolePermission: false,
@@ -7489,9 +7488,9 @@ export class PermissionHelper {
       },
       {
         permission: Permission.EditProjectOnCallDutyPolicySchedule,
-        title: "Edit On-Call Duty Policy Schedule",
+        title: "Edit On-Call Schedule",
         description:
-          "This permission can edit on-call duty schedule of this project.",
+          "This permission can edit on-call schedule of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
         isRolePermission: false,
@@ -7499,9 +7498,9 @@ export class PermissionHelper {
       },
       {
         permission: Permission.ReadProjectOnCallDutyPolicySchedule,
-        title: "Read On-Call Duty Policy Schedule",
+        title: "Read On-Call Schedule",
         description:
-          "This permission can read on-call duty schedule of this project.",
+          "This permission can read on-call schedule of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
         isRolePermission: false,
@@ -7703,9 +7702,9 @@ export class PermissionHelper {
 
       {
         permission: Permission.CreateTelemetryService,
-        title: "Create Telemetry Service",
+        title: "Create Inventory Item",
         description:
-          "This permission can create Telemetry Service this project.",
+          "This permission can create the inventory's items in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -7713,9 +7712,9 @@ export class PermissionHelper {
       },
       {
         permission: Permission.DeleteTelemetryService,
-        title: "Delete Telemetry Service",
+        title: "Delete Inventory Item",
         description:
-          "This permission can delete Telemetry Service of this project.",
+          "This permission can delete the inventory's items in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
         isRolePermission: false,
@@ -7723,9 +7722,9 @@ export class PermissionHelper {
       },
       {
         permission: Permission.EditTelemetryService,
-        title: "Edit Telemetry Service",
+        title: "Edit Inventory Item",
         description:
-          "This permission can edit Telemetry Service of this project.",
+          "This permission can edit the inventory's items in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
         isRolePermission: false,
@@ -7733,8 +7732,9 @@ export class PermissionHelper {
       },
       {
         permission: Permission.ReadTelemetryService,
-        title: "Read Telemetry Service",
-        description: "This permission can read Service of this project.",
+        title: "Read Inventory Item",
+        description:
+          "This permission can read the inventory's items in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
         isRolePermission: false,
@@ -8311,9 +8311,8 @@ export class PermissionHelper {
 
       {
         permission: Permission.CreateTelemetryServiceLog,
-        title: "Create Telemetry Service Log",
-        description:
-          "This permission can create Telemetry Service Log this project.",
+        title: "Create Logs",
+        description: "This permission can create the logs of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -8321,9 +8320,8 @@ export class PermissionHelper {
       },
       {
         permission: Permission.DeleteTelemetryServiceLog,
-        title: "Delete Telemetry Service Log",
-        description:
-          "This permission can delete Telemetry Service Log of this project.",
+        title: "Delete Logs",
+        description: "This permission can delete the logs of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -8331,9 +8329,8 @@ export class PermissionHelper {
       },
       {
         permission: Permission.EditTelemetryServiceLog,
-        title: "Edit Telemetry Service Log",
-        description:
-          "This permission can edit Telemetry Service Log of this project.",
+        title: "Edit Logs",
+        description: "This permission can edit the logs of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -8341,9 +8338,8 @@ export class PermissionHelper {
       },
       {
         permission: Permission.ReadTelemetryServiceLog,
-        title: "Read Telemetry Service Log",
-        description:
-          "This permission can read Telemetry Service Log of this project.",
+        title: "Read Logs",
+        description: "This permission can read the logs of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -10223,9 +10219,9 @@ export class PermissionHelper {
 
       {
         permission: Permission.CreateTelemetryException,
-        title: "Create Telemetry Service Exception",
+        title: "Create Exceptions",
         description:
-          "This permission can create Telemetry Service Exception this project.",
+          "This permission can create the exceptions of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -10233,9 +10229,9 @@ export class PermissionHelper {
       },
       {
         permission: Permission.DeleteTelemetryException,
-        title: "Delete Telemetry Service Exception",
+        title: "Delete Exceptions",
         description:
-          "This permission can delete Telemetry Service Exception of this project.",
+          "This permission can delete the exceptions of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -10243,9 +10239,8 @@ export class PermissionHelper {
       },
       {
         permission: Permission.EditTelemetryException,
-        title: "Edit Telemetry Service Exception",
-        description:
-          "This permission can edit Telemetry Service Exception of this project.",
+        title: "Edit Exceptions",
+        description: "This permission can edit the exceptions of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -10253,9 +10248,8 @@ export class PermissionHelper {
       },
       {
         permission: Permission.ReadTelemetryException,
-        title: "Read Telemetry Service Exception",
-        description:
-          "This permission can read Telemetry Service Exception of this project.",
+        title: "Read Exceptions",
+        description: "This permission can read the exceptions of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -13554,9 +13548,9 @@ export class PermissionHelper {
 
       {
         permission: Permission.CreateServiceTelemetryService,
-        title: "Create Service Telemetry Service",
+        title: "Create Service Telemetry Link",
         description:
-          "This permission can create Service Telemetry Service in this project.",
+          "This permission can create the links between services and their telemetry in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -13564,9 +13558,9 @@ export class PermissionHelper {
       },
       {
         permission: Permission.DeleteServiceTelemetryService,
-        title: "Delete Service Telemetry Service",
+        title: "Delete Service Telemetry Link",
         description:
-          "This permission can delete Service Telemetry Service of this project.",
+          "This permission can delete the links between services and their telemetry in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -13574,9 +13568,9 @@ export class PermissionHelper {
       },
       {
         permission: Permission.EditServiceTelemetryService,
-        title: "Edit Service Telemetry Service",
+        title: "Edit Service Telemetry Link",
         description:
-          "This permission can edit Service Telemetry Service of this project.",
+          "This permission can edit the links between services and their telemetry in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -13584,9 +13578,9 @@ export class PermissionHelper {
       },
       {
         permission: Permission.ReadServiceTelemetryService,
-        title: "Read Service Telemetry Service",
+        title: "Read Service Telemetry Link",
         description:
-          "This permission can read Service Telemetry Service of this project.",
+          "This permission can read the links between services and their telemetry in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -13637,9 +13631,8 @@ export class PermissionHelper {
 
       {
         permission: Permission.CreateTelemetryServiceTraces,
-        title: "Create Telemetry Service Traces",
-        description:
-          "This permission can create Telemetry Service Traces this project.",
+        title: "Create Traces",
+        description: "This permission can create the traces of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -13647,9 +13640,8 @@ export class PermissionHelper {
       },
       {
         permission: Permission.DeleteTelemetryServiceTraces,
-        title: "Delete Telemetry Service Traces",
-        description:
-          "This permission can delete Telemetry Service Traces of this project.",
+        title: "Delete Traces",
+        description: "This permission can delete the traces of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -13657,9 +13649,8 @@ export class PermissionHelper {
       },
       {
         permission: Permission.EditTelemetryServiceTraces,
-        title: "Edit Telemetry Service Traces",
-        description:
-          "This permission can edit Telemetry Service Traces of this project.",
+        title: "Edit Traces",
+        description: "This permission can edit the traces of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -13667,9 +13658,8 @@ export class PermissionHelper {
       },
       {
         permission: Permission.ReadTelemetryServiceTraces,
-        title: "Read Telemetry Service Traces",
-        description:
-          "This permission can read Telemetry Service Traces of this project.",
+        title: "Read Traces",
+        description: "This permission can read the traces of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -13678,9 +13668,8 @@ export class PermissionHelper {
 
       {
         permission: Permission.CreateTelemetryServiceMetrics,
-        title: "Create Telemetry Service Metrics",
-        description:
-          "This permission can create Telemetry Service Metrics this project.",
+        title: "Create Metrics",
+        description: "This permission can create the metrics of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -13688,9 +13677,8 @@ export class PermissionHelper {
       },
       {
         permission: Permission.DeleteTelemetryServiceMetrics,
-        title: "Delete Telemetry Service Metrics",
-        description:
-          "This permission can delete Telemetry Service Metrics of this project.",
+        title: "Delete Metrics",
+        description: "This permission can delete the metrics of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -13698,9 +13686,8 @@ export class PermissionHelper {
       },
       {
         permission: Permission.EditTelemetryServiceMetrics,
-        title: "Edit Telemetry Service Metrics",
-        description:
-          "This permission can edit Telemetry Service Metrics of this project.",
+        title: "Edit Metrics",
+        description: "This permission can edit the metrics of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -13708,9 +13695,8 @@ export class PermissionHelper {
       },
       {
         permission: Permission.ReadTelemetryServiceMetrics,
-        title: "Read Telemetry Service Metrics",
-        description:
-          "This permission can read Telemetry Service Metrics of this project.",
+        title: "Read Metrics",
+        description: "This permission can read the metrics of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -13719,9 +13705,8 @@ export class PermissionHelper {
 
       {
         permission: Permission.CreateTelemetryServiceProfiles,
-        title: "Create Telemetry Service Profiles",
-        description:
-          "This permission can create Telemetry Service Profiles this project.",
+        title: "Create Profiles",
+        description: "This permission can create the profiles of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -13729,9 +13714,8 @@ export class PermissionHelper {
       },
       {
         permission: Permission.DeleteTelemetryServiceProfiles,
-        title: "Delete Telemetry Service Profiles",
-        description:
-          "This permission can delete Telemetry Service Profiles of this project.",
+        title: "Delete Profiles",
+        description: "This permission can delete the profiles of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -13739,9 +13723,8 @@ export class PermissionHelper {
       },
       {
         permission: Permission.EditTelemetryServiceProfiles,
-        title: "Edit Telemetry Service Profiles",
-        description:
-          "This permission can edit Telemetry Service Profiles of this project.",
+        title: "Edit Profiles",
+        description: "This permission can edit the profiles of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -13749,9 +13732,8 @@ export class PermissionHelper {
       },
       {
         permission: Permission.ReadTelemetryServiceProfiles,
-        title: "Read Telemetry Service Profiles",
-        description:
-          "This permission can read Telemetry Service Profiles of this project.",
+        title: "Read Profiles",
+        description: "This permission can read the profiles of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -16498,9 +16480,9 @@ export class PermissionHelper {
 
       {
         permission: Permission.CreateOnCallDutyPolicyOwnerUser,
-        title: "Create On Call Duty Policy User Owner",
+        title: "Create On-Call Policy User Owner",
         description:
-          "This permission can create On Call Duty Policy User Owner this project.",
+          "This permission can create On-Call Policy User Owner this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -16508,9 +16490,9 @@ export class PermissionHelper {
       },
       {
         permission: Permission.DeleteOnCallDutyPolicyOwnerUser,
-        title: "Delete On Call Duty Policy User Owner",
+        title: "Delete On-Call Policy User Owner",
         description:
-          "This permission can delete On Call Duty Policy User Owner of this project.",
+          "This permission can delete On-Call Policy User Owner of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -16518,9 +16500,9 @@ export class PermissionHelper {
       },
       {
         permission: Permission.EditOnCallDutyPolicyOwnerUser,
-        title: "Edit On Call Duty Policy User Owner",
+        title: "Edit On-Call Policy User Owner",
         description:
-          "This permission can edit On Call Duty Policy User Owner of this project.",
+          "This permission can edit On-Call Policy User Owner of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -16528,9 +16510,9 @@ export class PermissionHelper {
       },
       {
         permission: Permission.ReadOnCallDutyPolicyOwnerUser,
-        title: "Read On Call Duty Policy User Owner",
+        title: "Read On-Call Policy User Owner",
         description:
-          "This permission can read On Call Duty Policy User Owner of this project.",
+          "This permission can read On-Call Policy User Owner of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -16539,9 +16521,9 @@ export class PermissionHelper {
 
       {
         permission: Permission.CreateOnCallDutyPolicyOwnerTeam,
-        title: "Create On Call Duty Policy Team Owner",
+        title: "Create On-Call Policy Team Owner",
         description:
-          "This permission can create On Call Duty Policy Team Owner this project.",
+          "This permission can create On-Call Policy Team Owner this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -16549,9 +16531,9 @@ export class PermissionHelper {
       },
       {
         permission: Permission.DeleteOnCallDutyPolicyOwnerTeam,
-        title: "Delete On Call Duty Policy Team Owner",
+        title: "Delete On-Call Policy Team Owner",
         description:
-          "This permission can delete On Call Duty Policy Team Owner of this project.",
+          "This permission can delete On-Call Policy Team Owner of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -16559,9 +16541,9 @@ export class PermissionHelper {
       },
       {
         permission: Permission.EditOnCallDutyPolicyOwnerTeam,
-        title: "Edit On Call Duty Policy Team Owner",
+        title: "Edit On-Call Policy Team Owner",
         description:
-          "This permission can edit On Call Duty Policy Team Owner of this project.",
+          "This permission can edit On-Call Policy Team Owner of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -16569,9 +16551,9 @@ export class PermissionHelper {
       },
       {
         permission: Permission.ReadOnCallDutyPolicyOwnerTeam,
-        title: "Read On Call Duty Policy Team Owner",
+        title: "Read On-Call Policy Team Owner",
         description:
-          "This permission can read On Call Duty Policy Team Owner of this project.",
+          "This permission can read On-Call Policy Team Owner of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -16580,9 +16562,9 @@ export class PermissionHelper {
 
       {
         permission: Permission.CreateOnCallDutyPolicyScheduleOwnerUser,
-        title: "Create On Call Duty Schedule User Owner",
+        title: "Create On-Call Schedule User Owner",
         description:
-          "This permission can create On Call Duty Schedule User Owner this project.",
+          "This permission can create On-Call Schedule User Owner this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -16590,9 +16572,9 @@ export class PermissionHelper {
       },
       {
         permission: Permission.DeleteOnCallDutyPolicyScheduleOwnerUser,
-        title: "Delete On Call Duty Schedule User Owner",
+        title: "Delete On-Call Schedule User Owner",
         description:
-          "This permission can delete On Call Duty Schedule User Owner of this project.",
+          "This permission can delete On-Call Schedule User Owner of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -16600,9 +16582,9 @@ export class PermissionHelper {
       },
       {
         permission: Permission.EditOnCallDutyPolicyScheduleOwnerUser,
-        title: "Edit On Call Duty Schedule User Owner",
+        title: "Edit On-Call Schedule User Owner",
         description:
-          "This permission can edit On Call Duty Schedule User Owner of this project.",
+          "This permission can edit On-Call Schedule User Owner of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -16610,9 +16592,9 @@ export class PermissionHelper {
       },
       {
         permission: Permission.ReadOnCallDutyPolicyScheduleOwnerUser,
-        title: "Read On Call Duty Schedule User Owner",
+        title: "Read On-Call Schedule User Owner",
         description:
-          "This permission can read On Call Duty Schedule User Owner of this project.",
+          "This permission can read On-Call Schedule User Owner of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -16621,9 +16603,9 @@ export class PermissionHelper {
 
       {
         permission: Permission.CreateOnCallDutyPolicyScheduleOwnerTeam,
-        title: "Create On Call Duty Schedule Team Owner",
+        title: "Create On-Call Schedule Team Owner",
         description:
-          "This permission can create On Call Duty Schedule Team Owner this project.",
+          "This permission can create On-Call Schedule Team Owner this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -16631,9 +16613,9 @@ export class PermissionHelper {
       },
       {
         permission: Permission.DeleteOnCallDutyPolicyScheduleOwnerTeam,
-        title: "Delete On Call Duty Schedule Team Owner",
+        title: "Delete On-Call Schedule Team Owner",
         description:
-          "This permission can delete On Call Duty Schedule Team Owner of this project.",
+          "This permission can delete On-Call Schedule Team Owner of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -16641,9 +16623,9 @@ export class PermissionHelper {
       },
       {
         permission: Permission.EditOnCallDutyPolicyScheduleOwnerTeam,
-        title: "Edit On Call Duty Schedule Team Owner",
+        title: "Edit On-Call Schedule Team Owner",
         description:
-          "This permission can edit On Call Duty Schedule Team Owner of this project.",
+          "This permission can edit On-Call Schedule Team Owner of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -16651,9 +16633,9 @@ export class PermissionHelper {
       },
       {
         permission: Permission.ReadOnCallDutyPolicyScheduleOwnerTeam,
-        title: "Read On Call Duty Schedule Team Owner",
+        title: "Read On-Call Schedule Team Owner",
         description:
-          "This permission can read On Call Duty Schedule Team Owner of this project.",
+          "This permission can read On-Call Schedule Team Owner of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

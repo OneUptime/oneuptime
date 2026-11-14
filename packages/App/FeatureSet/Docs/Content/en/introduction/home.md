@@ -38,7 +38,7 @@ The line at the top names the most urgent thing that is open, in a matching colo
 
 Beside it, Home says when it last read the project, and **Refresh** reads it again. When you come back to a Home tab after a minute or more, it refreshes by itself.
 
-While nothing is monitored yet, the line ends on **Create your first monitor**, which opens the form that creates one. Only people who are allowed to create monitors see it.
+While nothing is monitored yet, the line ends on **Create your first monitor**, which opens the guided setup **Know when my website or API is down**. Only people who are allowed to create monitors see it.
 
 ### The five numbers
 
@@ -49,7 +49,7 @@ Each number counts something, says whether that needs you, and opens the list be
 | **Active incidents** | Incidents that are not resolved | **All clear** | **Incidents → Active Incidents** |
 | **Active alerts** | Alerts that are not resolved | **All clear** | **Alerts → Active Alerts** |
 | **Not operational monitors** | Monitors whose status is not an operational one. Archived monitors, and monitors with monitoring turned off, are left out. | **All operational** | **Monitors → Not Operational** |
-| **Ongoing maintenance** | Scheduled maintenance events in progress | **None ongoing** | **Scheduled Maintenance → Ongoing Events** |
+| **Ongoing maintenance** | Scheduled maintenance events in progress | **None ongoing** | **Scheduled Maintenance → Ongoing Maintenance Events** |
 | **SLOs at risk** | Turned-on SLOs that are at risk or have used up their error budget | **Budgets healthy** | **SLOs** |
 
 A count above zero reads **Needs attention**, or **In progress** and **Budget burning** for maintenance and SLOs. While any SLO is at risk, **SLOs at risk** opens the **SLOs** list filtered to those SLOs. A project with no monitors yet sees **No monitors yet**, and one with no SLOs sees **No SLOs yet**: an empty project is not the same as a healthy one. Those two then open the **Monitors** and **SLOs** lists, where you create one.
@@ -63,18 +63,18 @@ Each step ticks itself off when the thing works, not when a record exists, and e
 | Step | Done when | Opens |
 | --- | --- | --- |
 | **Import from your current tool** | An import from another tool finishes. | **Import from another tool** |
-| **Create your first monitor** | Its first check comes in. | The **Create Monitor** form, or the **Monitors** list for someone who may not create monitors. |
+| **Create your first monitor** | Its first check comes in. | The guided setup **Know when my website or API is down**, or the **Monitors** list for someone who may not create monitors. |
 | **Connect a server or cluster** | Its first metrics arrive. | **Hosts** |
-| **Send your first logs, metrics or traces** | The project's first logs, metrics, traces, exceptions or profiles arrive. | **Logs** |
-| **Set up an on-call policy** | A test page is acknowledged, a page reaches someone, or an on-call rule runs a policy that can reach someone. | **On-Call Duty** |
-| **Publish a status page** | A status page shows a monitor. | **Status Pages** |
+| **Send your first logs, metrics or traces** | The project's first logs, metrics, traces, exceptions or profiles arrive. | The guided setup **Send logs, metrics and traces, then get alerted** |
+| **Set up an on-call policy** | A test page is acknowledged, a page reaches someone, or an on-call rule runs a policy that can reach someone. | The guided setup **Page the right person when something breaks** |
+| **Publish a status page** | A status page shows a monitor. | The guided setup **Publish a status page**, or the **Status Pages** list for someone who may not create status pages. |
 | **Invite your team** | Someone accepts your invitation. | **Users** |
 
 The step to do first is marked **Next step**. On OneUptime Cloud's Free plan, which has one person, **Invite your team** says it needs the Growth plan, and opens **Billing**. On a self-hosted server that cannot send email yet, the server's admins see **This server cannot send email yet** first; it opens the Admin Dashboard.
 
-When you create a monitor, a status page or an on-call policy from a step, the page you land on says what is next, with **Back to setup**.
+A guided setup does the whole job on one page, a step at a time, and ends with what it set up and what to do next. To open one again later, search for its name.
 
-Under the steps, **How OneUptime works** shows the four core products in the order a problem flows through them: **Monitors**, **Incidents & Alerts**, **On-Call Duty** and **Status Pages**. Click one to open it. Under them it says what feeds that loop, telemetry and infrastructure, and links to [Core Concepts](/docs/introduction/core-concepts) and the [Glossary](/docs/introduction/glossary).
+Under the steps, **How OneUptime works** shows the four core products in the order a problem flows through them: **Monitors**, **Incidents & Alerts**, **On-Call** and **Status Pages**. Click one to open it. Under them it says what feeds that loop, telemetry and infrastructure, and links to [Core Concepts](/docs/introduction/core-concepts) and the [Glossary](/docs/introduction/glossary).
 
 ```mermaid title="When the welcome checklist shows"
 flowchart TB
@@ -93,6 +93,10 @@ The checklist goes away for everyone once every step is done. To hide it sooner,
 
 **Needs attention** lists, by name, what the numbers count: the open incidents, the open alerts, the monitors that are not operational, the SLOs at risk and the maintenance in progress, the most urgent first. Each row shows its severity or status, says when an incident or alert started and when maintenance ends, and opens the record. Each kind shows up to five, with **View all** for the rest, which opens the same list as its number. When nothing is open, it says **Nothing needs your attention**.
 
+### Setup health
+
+When something in the project's setup would stop people from being told, **Needs attention** ends with **Setup**: how many things need a look. It opens **Setup Health**, which lists what is misconfigured, worst first, under **Pages Will Not Arrive**, **Worth Fixing** and **Suggestions**: a monitor that pages nobody, an on-call policy nothing runs, a responder who can't be paged, SMS switched off, a schedule with nobody on call, a status page that shows no monitor. Each finding says what is wrong in one sentence, with the button that opens its fix, and a monitor's findings are the breaks its **When this goes down** card names. A finding your team leaves as it is on purpose can be dismissed with a reason, for everyone, and restored from **Dismissed**. Search finds the page as **Setup Health**, and Ask AI answers "is my setup OK?" from it.
+
 ### Your project
 
 **Your project** counts the project's **Monitors**, **Status Pages**, **On-Call Policies**, **SLOs**, **Services**, **Dashboards** and **Workflows**, leaving archived ones out. Each row opens its list. A kind the project has none of says **Set up** instead of a number.
@@ -101,16 +105,19 @@ The checklist goes away for everyone once every step is done. To hide it sooner,
 
 ### Explore OneUptime
 
-**Explore OneUptime** shows the products of the **Products** menu one category at a time, starting with the essentials. Each product says what it is for and opens it when you click it.
+**Explore OneUptime** shows the products of the **Products** menu one category at a time, starting with the essentials. Each product says what it is for and opens it when you click it. The products your project hides are left out.
 
 ## Finding your way around
 
-Everything in OneUptime is under **Products** in the top bar. The menu lists its groups as the rows of one list, and always opens with the first of them, the essentials, open: Monitors, Incidents, Alerts, On-Call Duty, Status Pages, Scheduled Maintenance and SLOs. Every other group (Observability, Security, AI, Code, Resources, Infrastructure, Cloud, Dashboards & Automation and Settings) is folded into a row of the same list. Each row names the products the group holds and says how many. Click a row to open it or fold it, or move to it with the arrow keys and press **Enter**.
+Everything in OneUptime is under **Products** in the top bar. The menu lists its groups as the rows of one list, and always opens with the first of them, the essentials, open: Monitors, Incidents, Alerts, On-Call, Status Pages, Scheduled Maintenance and SLOs. Every other group (Observability, Security, AI, Code, Resources, Infrastructure, Cloud, Dashboards & Automation and Settings) is folded into a row of the same list. Each row names the products the group holds and says how many. Click a row to open it or fold it, or move to it with the arrow keys and press **Enter**.
 
 - **Search finds everything.** Type in the menu's search box to find any product by its name, by what it does, or by a familiar word such as `k8s` or `RUM`. Search looks inside the folded groups too.
 - **You start where you are.** The group of the page you are on opens by itself, and the products you opened recently are listed at the top.
 - **Your choices stay.** The menu remembers, on your browser, which of the other groups you opened or folded. The essentials are open again each time you open the menu, even if you folded them.
 - **On a phone**, the menu button lists the products the same way: the essentials open at the top, and every other group as one row that opens on a tap.
+- **Products the project does not use.** A Project Owner or Admin can hide them on **Project Settings → Basic → Products**. A hidden product moves under **More products**, the last row of the menu: Search still finds it, its pages keep working and its data keeps arriving. When one starts receiving data, Home says so to the people who can show it again.
+- **Pins.** Keep a product in the top bar, beside **Home** and **Products**: press the pin on its card in the menu, or **Pin** beside its page's title. You can pin five, and they follow you to every browser. On a phone, your pins come first in the menu.
+- **What is in use.** In each group but the essentials and Settings, the products your project uses come first, and one you have not set up yet says **Not set up**. On OneUptime Cloud, a product your plan does not include names the plan that does.
 
 ### The bars at the top
 
@@ -122,7 +129,7 @@ Two bars run across the top of every page.
 | Top right | **Search** and **Ask AI**, the notification bell with what needs you now (active incidents and alerts, the on-call policies you are on duty for, pending invitations), **Help**, and your picture, which opens your [account](/docs/introduction/your-account) menu. |
 | Below them | **Home** and **Products** on the left, **User Settings** on the right: how OneUptime reaches you in this project. |
 
-**Help** starts with what helps you learn: the **Quickstart**, **How OneUptime works**, the **Glossary** and these docs (**Documentation**). Under them are the **Keyboard shortcuts** list and support by email and on Slack. On a narrow screen, such as a phone, **Search**, **Ask AI** and **Help** are left out to save room; the bell and your picture stay.
+**Help** starts with what helps you learn: the **Quickstart**, **How OneUptime works**, the **Glossary** and these docs (**Documentation**). Under them are the **Keyboard shortcuts** list and support by email and on Slack. On a tablet or in a narrow window, **Ask AI** is left out to save room: it is among the actions in **Search**. On a phone, **Search** and **Help** move into the menu button's list, at its top and at its bottom; the bell and your picture stay.
 
 A word with a dotted line under it, such as **Probes** on a new monitor's form, says what it means when you point at it, tab to it or tap it. Its **Read more** opens the word in the [Glossary](/docs/introduction/glossary).
 
@@ -142,9 +149,10 @@ Over every page's title, a trail such as *Project › Docker › Settings › Ow
 Press **Cmd+K** (Mac) or **Ctrl+K** (Windows and Linux), or click the search icon in the top bar, and start typing. Search finds:
 
 - **Every page in the menus**, by the name the menu gives it: API Keys, Danger Zone, On-Call Schedules, Incident Severity, your own Notification Methods. Each result says where it lives, such as *Project Settings › Advanced*, so pages that share a name (Custom Fields in Incidents, Alerts and Monitors) are easy to tell apart.
-- **The settings on a page**, by the name their card or switch shows: *Require SSO for Login* finds SSO, and *Notification Channels* finds Notification Settings. Type the name in English or in your language.
+- **The settings on a page**, by the name their card or switch shows: *Require SSO for Login* finds SSO, and *Custom SMTP Configs* finds Notification Channels. Type the name in English or in your language.
 - **Actions**, by what you want to do: Declare Incident, Create Monitor, or Delete Project, which opens the Danger Zone. An action that changes something is offered only to people allowed to do it.
 - **Your monitors, incidents, alerts, status pages and on-call policies**, by name, and incidents and alerts by number too, such as `INC-42`. Each incident and alert result starts with its number, so two of one title are told apart.
+- **The docs**, in a *Documentation* group under everything else: the pages and sections whose words match what you typed, in your language, even with a typo. Each opens in a new tab, so you keep your place.
 
 Search reads what you type the way you mean it:
 
@@ -177,7 +185,7 @@ Press `g`, then a letter, to go straight to a product. Press the letter within 1
 | `g` then `m` | Monitors |
 | `g` then `i` | Incidents |
 | `g` then `a` | Alerts |
-| `g` then `o` | On-Call Duty |
+| `g` then `o` | On-Call |
 | `g` then `s` | Status Pages |
 | `g` then `e` | Scheduled Maintenance |
 | `g` then `d` | Dashboards |

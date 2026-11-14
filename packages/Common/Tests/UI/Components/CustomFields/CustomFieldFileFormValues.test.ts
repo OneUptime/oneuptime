@@ -21,6 +21,7 @@ import Field from "../../../../UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "../../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import FileModel from "../../../../Models/DatabaseModels/File";
 import {
+  CUSTOM_FIELD_FILE_MAX_SIZE_IN_BYTES,
   CUSTOM_FIELD_FILE_TYPES,
   CUSTOM_FIELD_MAX_FILES,
   CustomFieldFile,
@@ -115,11 +116,29 @@ describe("setCustomFieldFilePicker", () => {
   });
 
   test("the sentences say what the server holds a file to", () => {
-    expect(CUSTOM_FIELD_FILE_HINT).toContain("10 MB");
     expect(CUSTOM_FIELD_FILES_HINT).toContain(
       `Up to ${CUSTOM_FIELD_MAX_FILES} files`,
     );
     expect(CUSTOM_FIELD_FILE_TYPES).not.toContain(MimeType.svg);
+  });
+
+  /*
+   * Each sentence's {{size}} is the picker's limit, filled in the reader's
+   * digits (getFilePickerPromptWords): the picker holds the server's.
+   */
+  test("the limit the sentences name is the picker's, which is the server's", () => {
+    expect(CUSTOM_FIELD_FILE_HINT).toContain("up to {{size}}.");
+    expect(CUSTOM_FIELD_FILES_HINT).toContain("of {{size}} each");
+
+    for (const isMultiple of [false, true]) {
+      const field: Field<JSONObject> = { title: "Evidence" };
+
+      setCustomFieldFilePicker({ field: field, isMultiple: isMultiple });
+
+      expect(field.maxFileSizeInBytes).toBe(
+        CUSTOM_FIELD_FILE_MAX_SIZE_IN_BYTES,
+      );
+    }
   });
 });
 

@@ -3,7 +3,7 @@
 OneUptime のメールを、SMTP サーバーの代わりにメールプロバイダーの HTTPS API から送信します。対応しているのは Amazon SES、SendGrid、Mailgun、Postmark、Resend です。プロジェクトでは SMTP 設定でプロバイダーを選べます。セルフホストのインストールでは、OneUptime 自身のメールをすべてプロバイダー経由で送信できます。API にはポート 443 の HTTPS で接続するため、SMTP のポートをブロックしているネットワークからでもメールを送信でき、各プロバイダーのキーは暗号化して保存されます。
 
 :::cards
-- [Amazon SES](#amazon-ses): IAM のアクセスキーと、送信者を検証したリージョン。
+- [Amazon SES](#amazon-ses): IAM のアクセスキー、またはサーバー自身の IAM ロールと、送信者を検証したリージョン。
 - [SendGrid](#sendgrid): Mail Send のアクセス権を持つ API キー。
 - [Mailgun](#mailgun): API キー、送信ドメインとそのリージョン。
 - [Postmark](#postmark): サーバーの API トークン。
@@ -15,7 +15,7 @@ OneUptime のメールを、SMTP サーバーの代わりにメールプロバ�
 
 :::tabs
 @tab プロジェクト
-**プロジェクト設定 > 通知 > 通知設定** で **その他の設定** を開き、**カスタム SMTP 設定** カードで **SMTP 設定を作成** をクリックします。**プロバイダー** ステップで **名前** を入力し、プロバイダーを選びます。次のステップではそのプロバイダーの設定を、**送信者** ステップでは **送信元メールアドレス** と **差出人名** を尋ねられます。保存すると、設定の行にある **テストメールを送信** で動作を確認できます。
+**プロジェクト設定 > 通知 > 通知チャネル** で **その他の設定** を開き、**カスタム SMTP 設定** カードで **SMTP 設定を作成** をクリックします。**プロバイダー** ステップで **名前** を入力し、プロバイダーを選びます。次のステップではそのプロバイダーの設定を、**送信者** ステップでは **送信元メールアドレス** と **差出人名** を尋ねられます。保存すると、設定の行にある **テストメールを送信** で動作を確認できます。
 @tab セルフホストのインスタンス
 Admin Dashboard で **設定** を開き、**通知 > メール** を開きます。**メールサーバー設定** カードで **サーバーを編集** をクリックし、**メールサーバーの種類** としてプロバイダーを選びます。その下に **Amazon SES設定** のようなプロバイダーのカードが表示されます。**Amazon SESを編集** のような編集ボタンをクリックし、プロバイダーの設定と **送信者** ステップを入力します。必要な設定がそろうまでは、カードに足りないものが表示され、メールはどれも、入力すべき設定を示して拒否されます。
 :::
@@ -54,10 +54,44 @@ OneUptime 用の IAM ユーザーを作成して、検証したアイデンテ�
 }
 ```
 
+AWS 上のセルフホスト環境では、キーを使わずに、同じポリシーで [サーバーの IAM ロールでサインインする](#サーバーの-iam-ロールでサインインする) こともできます。
+
 ### Amazon SES のステップを入力する
 
 **アクセスキー ID** と **シークレットアクセスキー**、そしてアイデンティティを検証した **リージョン** (`us-east-1` など) を入力します。
 :::
+
+### サーバーの IAM ロールでサインインする
+
+AWS 上のセルフホスト環境は、AWS がサーバーに与える IAM ロールとして自身のメールを送信でき、OneUptime にアクセスキーは保存されません。AWS が発行する認証情報は数時間で期限切れになり、OneUptime は期限が切れる前に新しいものを取得します。これはサーバー自身のメール専用です。プロジェクトの Amazon SES 設定は常にアクセスキーでサインインします。サーバーのロールはプロジェクトのものではなく、サーバー自身の AWS ID だからです。
+
+ロールに上記のポリシーを付け、OneUptime をそのロールで実行します。
+
+:::tabs
+@tab Amazon EKS
+サービスアカウントの IAM ロールを使う場合は、クラスターの OIDC プロバイダーを信頼するポリシーでロールを作成し、Helm チャートにそのロールの ARN を持つサービスアカウントを作成させます。OneUptime の app と worker の Pod はこのアカウントで実行されます。
+
+```yaml title="values.yaml"
+serviceAccount:
+  create: true
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::123456789012:role/oneuptime-ses
+```
+
+EKS Pod Identity を使う場合は、代わりにロールとそのサービスアカウントの Pod Identity の関連付けを作成し、アノテーションは省きます。
+@tab Amazon ECS
+ロールを OneUptime のタスク定義の **Task role** に設定します。
+@tab Amazon EC2
+ロールをインスタンスプロファイルとしてインスタンスにアタッチします。インスタンス上の Docker で OneUptime を実行する場合は、コンテナからアクセスできるように、インスタンスメタデータのホップ制限を 2 に上げます。
+
+```bash
+aws ec2 modify-instance-metadata-options --instance-id <instance-id> --http-put-response-hop-limit 2 --http-endpoint enabled
+```
+:::
+
+次に Admin Dashboard で **Amazon SESを編集** をクリックし、**認証タイプ** として **このサーバーの IAM ロール** を選び、**リージョン** を入力します。保存すると、それまでに保存されていたアクセスキーは削除されます。
+
+OneUptime は AWS SDK と同じ場所を、次の順序で探してサーバーの認証情報を見つけます: 環境の `AWS_ACCESS_KEY_ID` と `AWS_SECRET_ACCESS_KEY`、Web ID トークン (`AWS_ROLE_ARN` と `AWS_WEB_IDENTITY_TOKEN_FILE`)、Amazon ECS と EKS Pod Identity のコンテナ認証情報エンドポイント、最後に EC2 のインスタンスメタデータサービス (IMDSv2)。
 
 ## SendGrid
 
@@ -89,6 +123,14 @@ Resend の **Domains** でドメインを追加して検証し、**API Keys** �
 
 :::details "The access key may not send with Amazon SES"
 IAM ユーザーのポリシーで、アイデンティティに対する `ses:SendEmail` が許可されていません。上記のポリシーを追加してください。
+:::
+
+:::details "This server has no AWS credentials"
+サーバーは IAM ロールでサインインしますが、AWS が認証情報を与えていません。[サーバーの IAM ロールでサインインする](#サーバーの-iam-ロールでサインインする) のとおりにロールで実行してから、OneUptime の Pod またはタスクを再起動してください。Pod は起動時にロールの設定を受け取ります。Amazon EC2 上の Docker では、インスタンスメタデータのホップ制限が低すぎる場合もメッセージに示されます。
+:::
+
+:::details "This server's IAM role may not send with Amazon SES" または "did not let this server assume the role"
+ロールのポリシーで、アイデンティティに対する `ses:SendEmail` が許可されていません。上記のポリシーを追加してください。または Amazon EKS では、ロールの信頼ポリシーで、クラスターの OIDC プロバイダーと OneUptime のサービスアカウントに対する `sts:AssumeRoleWithWebIdentity` が許可されていません。
 :::
 
 :::details "Mailgun has no domain … in its US region"

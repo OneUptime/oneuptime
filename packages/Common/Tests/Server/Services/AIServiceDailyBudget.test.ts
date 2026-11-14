@@ -652,11 +652,19 @@ describe("AIService.executeWithLogging budget exhaustion message", () => {
   });
 
   test.each([
-    ["incident", "Incidents > AI > Settings"],
-    ["alert", "Alerts > AI > Settings"],
+    [
+      "incident",
+      "Incidents → AI → Settings → More settings",
+      "Daily Incident AI Token Limit",
+    ],
+    [
+      "alert",
+      "Alerts → AI → Settings → More settings",
+      "Daily Alert AI Token Limit",
+    ],
   ])(
-    "an exhausted %s lane names where its limit is set now",
-    async (lane: string, location: string) => {
+    "an exhausted %s lane names its limit and where it is set now",
+    async (lane: string, location: string, limitName: string) => {
       const projectId: ObjectID = ObjectID.generate();
       const subject: { incidentId?: ObjectID; alertId?: ObjectID } =
         lane === "incident"
@@ -696,7 +704,9 @@ describe("AIService.executeWithLogging budget exhaustion message", () => {
       });
 
       await expect(call).rejects.toThrow(location);
+      await expect(call).rejects.toThrow(limitName);
       await expect(call).rejects.not.toThrow(/AI > Investigation/);
+      await expect(call).rejects.not.toThrow(/tomorrow/i);
       expect(completion).not.toHaveBeenCalled();
     },
   );

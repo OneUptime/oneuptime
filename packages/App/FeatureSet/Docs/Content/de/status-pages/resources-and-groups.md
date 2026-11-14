@@ -2,6 +2,9 @@
 
 Eine Ressource ist eine Zeile auf Ihrer Statusseite: ein Monitor oder eine Monitor-Gruppe, mit einem Namen, den Ihre Kunden verstehen, ihrem aktuellen Status und, wenn Sie möchten, ihrer Verfügbarkeit und ihrem Verlauf. Gruppen sind Abschnitte, die Ressourcen enthalten, sodass sich eine Seite mit vierzig Monitoren als „API“, „Web-App“ und „Datenpipeline“ liest statt als endlose Liste. Beides bauen Sie auf einem Bildschirm: Öffnen Sie eine Statusseite und wählen Sie **Ressourcen** in ihrem Seitenmenü.
 
+> [!TIP]
+> Neu hier? Folgen Sie zuerst der Anleitung: [Eine Statusseite veröffentlichen](/docs/guides/status-page).
+
 :::cards
 - [Einen Monitor hinzufügen](#einen-monitor-hinzufügen): Einen Monitor auf die Seite bringen, mit dem Namen, den Besucher lesen.
 - [Gruppen](#gruppen): Die Seite in Abschnitte teilen und diese verschachteln.

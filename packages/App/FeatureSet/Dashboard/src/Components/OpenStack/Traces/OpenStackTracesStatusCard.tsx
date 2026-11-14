@@ -107,7 +107,7 @@ const OpenStackTracesStatusCard: FunctionComponent<ComponentProps> = (
       description={isNative ? NATIVE_WORDS : SIGNED_ONLY_WORDS}
     >
       <div
-        className="space-y-3 p-4 text-sm text-gray-700"
+        className="space-y-3 text-sm text-gray-700"
         data-testid="openstack-traces-status"
       >
         {props.traced.lastSpanAt ? (

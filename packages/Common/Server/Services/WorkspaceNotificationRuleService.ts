@@ -27,6 +27,7 @@ import WorkspaceBase, {
   WorkspaceSendMessageResponse,
   WorkspaceThread,
 } from "../Utils/Workspace/WorkspaceBase";
+import WorkspaceChannelNotFound from "../Utils/Workspace/WorkspaceChannelNotFound";
 import WorkspaceUtil from "../Utils/Workspace/Workspace";
 import MicrosoftTeamsUtil from "../Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import Dictionary from "../../Types/Dictionary";
@@ -663,9 +664,18 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
               rule.workspaceType!,
             ).doesChannelExist(doesChannelExistData);
 
+          /*
+           * In the words the rule's Notification Logs give a channel that
+           * cannot be found when the rule posts for real
+           * (WorkspaceChannelNotFound): Test Failed and the logs say one
+           * thing.
+           */
           if (!channelExists) {
             throw new BadDataException(
-              `Channel ${channel.name} does not exist. If this channel is private, you need to invite OneUptime bot to the channel and try again.`,
+              WorkspaceChannelNotFound.getReason({
+                workspaceType: rule.workspaceType!,
+                channelName: channel.name,
+              }),
             );
           }
         } catch (err) {
@@ -5522,15 +5532,14 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         });
 
       if (!onCallDutyPolicy) {
-        logger.debug(
-          "On Call Duty Policy not found for ID:",
-          {} as LogAttributes,
-        );
+        logger.debug("On-call policy not found for ID:", {} as LogAttributes);
         logger.debug(
           data.notificationFor.onCallDutyPolicyId,
           {} as LogAttributes,
         );
-        throw new BadDataException("On Call Duty Policy ID not found");
+        throw new BadDataException(
+          "The on-call policy this notification is for was not found. It may have been deleted.",
+        );
       }
 
       const onCallDutyPolicyLabels: Array<Label> =

@@ -248,6 +248,27 @@ describe("NetworkInventoryUtil.recordResolvedAddress", () => {
     expect(mergedEntry()["value"]).toBe("10.0.0.2");
   });
 
+  /*
+   * A poll processed after a newer one - a retried job, or one that waited
+   * longer in the queue (issue #7389) - resolved the name before the
+   * reading on record was taken. It does not put its address back over it.
+   */
+  test("a reading taken after this poll's stands: an older poll does not put its address back", async () => {
+    mockServices();
+
+    expect(
+      await record(
+        deviceAt(
+          "core-fw-01.acme.example",
+          recordedAddress("10.0.0.2", new Date(NOW.getTime() + 5 * 60 * 1000)),
+        ),
+        { hostname: "core-fw-01.acme.example", address: "10.0.0.1" },
+      ),
+    ).toBe(false);
+    expect(mergeSpy).not.toHaveBeenCalled();
+    expect(probeSpy).not.toHaveBeenCalled();
+  });
+
   test("a probe whose name cannot be read is credited by its id alone", async () => {
     mockServices();
     probeSpy.mockRejectedValueOnce(new Error("connection reset"));
@@ -262,6 +283,29 @@ describe("NetworkInventoryUtil.recordResolvedAddress", () => {
       type: "probe",
       id: PROBE_ID.toString(),
     });
+  });
+
+  /*
+   * OneUptime issue #7194. The merge never waits for the device: held by
+   * another writer, it is left as it is, and the next poll - finding the
+   * same stale record - writes it then.
+   */
+  test("never waits for a device another writer holds, and says it wrote nothing", async () => {
+    mockServices();
+    // The merge skipped the device: written to none.
+    mergeSpy.mockResolvedValueOnce(0);
+
+    expect(
+      await record(deviceAt("core-fw-01.acme.example"), {
+        hostname: "core-fw-01.acme.example",
+        address: "10.0.0.1",
+      }),
+    ).toBe(false);
+
+    const input: { skipLockedDevices?: boolean } = mergeSpy.mock
+      .calls[0]![0] as never;
+
+    expect(input.skipLockedDevices).toBe(true);
   });
 });
 

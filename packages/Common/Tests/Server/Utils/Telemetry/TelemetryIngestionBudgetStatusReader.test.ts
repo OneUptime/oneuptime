@@ -55,10 +55,13 @@ import TelemetryIngestionBudgetCounter, {
   TelemetryIngestionBudgetDayKeyParts,
 } from "../../../../Server/Utils/Telemetry/TelemetryIngestionBudgetCounter";
 import TelemetryIngestionKeyService from "../../../../Server/Services/TelemetryIngestionKeyService";
+import HTTPResponse from "../../../../Types/API/HTTPResponse";
+import { JSONObject } from "../../../../Types/JSON";
 import ProductType from "../../../../Types/MeteredPlan/ProductType";
 import ObjectID from "../../../../Types/ObjectID";
 import {
   getEmptyTelemetryIngestionBudgetStoredSettings,
+  readTelemetryIngestionBudgetStatus,
   TELEMETRY_INGESTION_BUDGET_BYTES_PER_GB,
   TELEMETRY_INGESTION_BUDGET_BYTES_PER_MB,
   TelemetryIngestionBudgetLimitSource,
@@ -394,5 +397,148 @@ describe("TelemetryIngestionBudgetStatusReader.getProjectStatus", () => {
         scope([TelemetryIngestionBudgetState.NoBudget]),
       ),
     ).toBe(TelemetryIngestionBudgetState.Ok);
+  });
+});
+
+/*
+ * Issue #6486: the Dashboard and the Admin Dashboard read every answer of
+ * the status API through readTelemetryIngestionBudgetStatus, which reads an
+ * answer that is not a status as none (the explorers' banner draws nothing,
+ * the budget card says the read failed). So every answer this server writes
+ * must read back as itself once it has crossed the wire - sent as JSON and
+ * parsed as the browser's API client parses it - or a used-up budget would
+ * go untold, and a field added to the status later but not to the reader
+ * would be dropped without a word.
+ */
+describe("what the Dashboard reads back of each answer", () => {
+  // As the API sends it and the browser's API client hands it over.
+  const overTheWire: (status: TelemetryIngestionBudgetStatus) => unknown = (
+    status: TelemetryIngestionBudgetStatus,
+  ): unknown => {
+    return new HTTPResponse<JSONObject>(
+      200,
+      JSON.parse(JSON.stringify(status)) as JSONObject,
+      {},
+    ).data;
+  };
+
+  const readsBackAsItself: (status: TelemetryIngestionBudgetStatus) => void = (
+    status: TelemetryIngestionBudgetStatus,
+  ): void => {
+    const read: TelemetryIngestionBudgetStatus | null =
+      readTelemetryIngestionBudgetStatus(overTheWire(status));
+
+    // Field for field: nothing dropped, and nothing added as undefined.
+    expect(read).toStrictEqual(status);
+  };
+
+  test("a busy day in a time zone of its own: used up, past warning, keys of their own", async () => {
+    (
+      TelemetryIngestionBudgetSettings.getInstanceSettings as unknown as MockFn
+    ).mockResolvedValue({
+      budgets: withLogs(10, 5),
+      warningPercent: 75,
+      resetTime: "05:30",
+      timezone: "Asia/Kolkata",
+    } as never);
+    (
+      TelemetryIngestionBudgetSettings.getProjectOverrides as unknown as MockFn
+    ).mockResolvedValue(withLogs(2) as never);
+    (
+      TelemetryIngestionKeyService.findBy as unknown as MockFn
+    ).mockResolvedValue([
+      {
+        id: new ObjectID(KEY_ID),
+        name: "Edge collector",
+        logsDailyIngestionBudgetInGB: 1,
+      },
+      {
+        id: new ObjectID(OTHER_KEY_ID),
+        name: "",
+        tracesDailyIngestionBudgetInGB: 2,
+      },
+    ] as never);
+    (
+      TelemetryIngestionBudgetCounter.readDayCounters as unknown as MockFn
+    ).mockImplementation((async (
+      days: Array<TelemetryIngestionBudgetDayKeyParts>,
+    ) => {
+      return days.map((day: TelemetryIngestionBudgetDayKeyParts) => {
+        if (day.signalSlug !== "logs") {
+          return counters({ usedBytes: 3 * MB, throttledRequests: 2 });
+        }
+
+        return counters({
+          usedBytes: 2 * GB,
+          droppedBytes: GB,
+          droppedRequests: 40,
+          warningCrossedAt: new Date("2026-11-09T06:30:00Z"),
+          exhaustedAt: new Date("2026-11-09T09:45:00Z"),
+        });
+      });
+    }) as never);
+
+    const status: TelemetryIngestionBudgetStatus =
+      await TelemetryIngestionBudgetStatusReader.getProjectStatus({
+        projectId: PROJECT_ID,
+        now: NOW,
+      });
+
+    // The answer is the busy one this test means it to be.
+    expect(status.timezone).toBe("Asia/Kolkata");
+    expect(status.resetTime).toBe("05:30");
+    expect(status.warningPercent).toBe(75);
+    expect(status.project.signals[0]!.state).toBe(
+      TelemetryIngestionBudgetState.Exhausted,
+    );
+    expect(status.project.signals[0]!.dailyBudgetSource).toBe(
+      TelemetryIngestionBudgetLimitSource.Project,
+    );
+    expect(status.project.signals[0]!.exhaustedAt).toBe(
+      "2026-11-09T09:45:00.000Z",
+    );
+    expect(status.ingestionKeys).toHaveLength(2);
+    expect(status.ingestionKeys[0]!.ingestionKeyName).toBe("");
+
+    readsBackAsItself(status);
+  });
+
+  test("a project with no budget, the default", async () => {
+    (
+      TelemetryIngestionBudgetSettings.getInstanceSettings as unknown as MockFn
+    ).mockResolvedValue({
+      budgets: getEmptyTelemetryIngestionBudgetStoredSettings(),
+      warningPercent: 80,
+      resetTime: "00:00",
+      timezone: "UTC",
+    } as never);
+
+    const status: TelemetryIngestionBudgetStatus =
+      await TelemetryIngestionBudgetStatusReader.getProjectStatus({
+        projectId: PROJECT_ID,
+        now: NOW,
+      });
+
+    expect(status.project.signals[0]!.state).toBe(
+      TelemetryIngestionBudgetState.NoBudget,
+    );
+
+    readsBackAsItself(status);
+  });
+
+  test("counters that could not be read: every figure null", async () => {
+    (
+      TelemetryIngestionBudgetCounter.readDayCounters as unknown as MockFn
+    ).mockResolvedValue(null as never);
+
+    const status: TelemetryIngestionBudgetStatus =
+      await TelemetryIngestionBudgetStatusReader.getProjectStatus({
+        projectId: PROJECT_ID,
+        now: NOW,
+      });
+
+    expect(status.countersAvailable).toBe(false);
+
+    readsBackAsItself(status);
   });
 });

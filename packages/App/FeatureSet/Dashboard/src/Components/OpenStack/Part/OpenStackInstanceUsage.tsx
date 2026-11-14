@@ -31,7 +31,11 @@ import {
 } from "../../../Pages/OpenStack/Utils/OpenStackUsage";
 import GoldenMetricTile from "../../Infrastructure/GoldenMetricTile";
 import ResourceMetricsTab from "../../Infrastructure/ResourceMetricsTab";
-import { formatOpenStackBytes } from "../OpenStackResourceList";
+import {
+  formatOpenStackBytes,
+  formatOpenStackChartBytes,
+  formatOpenStackPercent,
+} from "../OpenStackResourceList";
 import {
   addOpenStackRates,
   formatOpenStackRate,
@@ -96,8 +100,9 @@ function useOpenStackInstanceUsageRead(data: {
   }, [part.externalId, part.cloudName, part.refreshToken]);
 }
 
+// A chart's axis and tooltip keep Latin digits, as every chart does.
 function formatBytesPerSecond(value: number): string {
-  return `${formatOpenStackBytes(value)}/s`;
+  return `${formatOpenStackChartBytes(value)}/s`;
 }
 
 function formatPercentValue(value: number): string {
@@ -166,7 +171,11 @@ const OpenStackInstanceUsageTiles: FunctionComponent<{
         icon={IconProp.CPUChip}
         iconColor="blue"
         value={
-          usage.cpuPercent === null ? "—" : `${Math.round(usage.cpuPercent)}%`
+          usage.cpuPercent === null
+            ? "—"
+            : formatOpenStackPercent(usage.cpuPercent, {
+                language: translator.language,
+              })
         }
         sublabel={
           flavor?.vcpuCapacity
@@ -194,12 +203,21 @@ const OpenStackInstanceUsageTiles: FunctionComponent<{
         value={memory === null ? "—" : formatOpenStackBytes(memory)}
         sublabel={
           flavorMemory
-            ? translator.translateTemplate("of {{amount}} from its flavor", {
-                amount: formatOpenStackBytes(flavorMemory),
-              })
+            ? translator.translateTemplate(
+                "of {{amount}} from its flavor",
+                {
+                  amount: formatOpenStackBytes(flavorMemory, {
+                    language: translator.language,
+                  }),
+                },
+                /*
+                 * A sentence, read the page's way, the size set apart: "۴٫۰
+                 * GiB" keeps its number first in a Persian one (issue #7191).
+                 */
+                { setsValuesApart: true },
+              )
             : "Not reported"
         }
-        isSublabelAsWritten={Boolean(flavorMemory)}
         percent={percentOf(memory, flavorMemory)}
         description="What the guest says it is using, or without a balloon driver in the guest, what it holds on its hypervisor, which is more than its flavor because the process running it counts too. Its flavor says what it was promised."
       />
@@ -210,7 +228,9 @@ const OpenStackInstanceUsageTiles: FunctionComponent<{
         value={
           usage.contentionPercent === null
             ? "—"
-            : `${Math.round(usage.contentionPercent)}%`
+            : formatOpenStackPercent(usage.contentionPercent, {
+                language: translator.language,
+              })
         }
         sublabel={
           usage.contentionPercent === null
@@ -243,10 +263,10 @@ const OpenStackInstanceUsageTiles: FunctionComponent<{
                   read: formatOpenStackRate(usage.diskReadBytesPerSecond),
                   written: formatOpenStackRate(usage.diskWriteBytesPerSecond),
                 },
+                { setsValuesApart: true },
               )
             : "Not reported"
         }
-        isSublabelAsWritten={hasDisk}
         description="What this instance's disks are really reading and writing, over the last quarter of an hour. Its flavor says how much disk it has, and this says how busy that is."
       />
       <GoldenMetricTile
@@ -284,10 +304,10 @@ const OpenStackInstanceUsageTiles: FunctionComponent<{
                     usage.networkTransmitBytesPerSecond,
                   ),
                 },
+                { setsValuesApart: true },
               )
             : "Not reported"
         }
-        isSublabelAsWritten={hasNetwork}
         description="What this instance's network interfaces are really moving, over the last quarter of an hour."
       />
     </div>
@@ -381,6 +401,8 @@ export const OpenStackInstanceUsageCharts: FunctionComponent<{
                   ? "—"
                   : formatOpenStackBytes(flavor.diskCapacityBytes),
             },
+            // Each value set apart: "۴٫۰ GiB" keeps its number first in a Persian sentence.
+            { setsValuesApart: true },
           )}
         </p>
       ) : (
@@ -417,7 +439,7 @@ export const OpenStackInstanceUsageCharts: FunctionComponent<{
               ),
               metricName: OpenStackInstanceMetric.MemoryUsage,
               legend: translationKey("In use"),
-              format: formatOpenStackBytes,
+              format: formatOpenStackChartBytes,
             }),
             chart({
               variable: "instance_memory_held",
@@ -427,7 +449,7 @@ export const OpenStackInstanceUsageCharts: FunctionComponent<{
               ),
               metricName: OpenStackInstanceMetric.MemoryResident,
               legend: translationKey("Held"),
-              format: formatOpenStackBytes,
+              format: formatOpenStackChartBytes,
             }),
             chart({
               variable: "instance_disk_read",

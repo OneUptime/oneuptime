@@ -187,8 +187,120 @@ export interface UseDropdownHorizontalAlignmentOptions {
 export function useDropdownHorizontalAlignment(
   options: UseDropdownHorizontalAlignmentOptions,
 ): DropdownHorizontalAlignment {
-  const [alignment, setAlignment] = useState<DropdownHorizontalAlignment>(
-    DropdownHorizontalAlignment.Left,
+  return useDropdownPlacement(options).alignment;
+}
+
+/*
+ * HOW FAR A POPUP SLIDES TO STAY ON THE SCREEN.
+ *
+ * getDropdownHorizontalAlignment picks the edge of the trigger a popup hangs
+ * from. A popup wider than the room on either side of its trigger - a 28rem
+ * picker under a button in the middle of a 390px phone - still runs off the
+ * screen at whichever edge it picks. This is how far it then slides along
+ * the line, away from the edge it hangs from, to sit inside the viewport's
+ * gutters: 0 when it fits where it hangs. It never slides past the far
+ * gutter, so a popup wider than the room between them keeps its own start
+ * on the screen.
+ *
+ * The popup is taken at most as wide as the viewport between its gutters,
+ * as every dropdown is styled (max-w-[calc(100vw-1rem)] for the default
+ * 8px gutters): a 448px picker on a 390px phone is 374px wide there.
+ */
+export function getDropdownShiftToFit(
+  input: DropdownAlignmentInput & { alignment: DropdownHorizontalAlignment },
+): number {
+  const margin: number =
+    input.viewportMargin === undefined
+      ? DEFAULT_DROPDOWN_VIEWPORT_MARGIN_IN_PX
+      : input.viewportMargin;
+
+  if (
+    !Number.isFinite(input.dropdownWidth) ||
+    !Number.isFinite(input.viewportWidth) ||
+    !Number.isFinite(input.anchorLeft) ||
+    !Number.isFinite(input.anchorRight) ||
+    input.dropdownWidth <= 0 ||
+    input.viewportWidth <= 0
+  ) {
+    return 0;
+  }
+
+  const width: number = Math.min(
+    input.dropdownWidth,
+    Math.max(0, input.viewportWidth - 2 * margin),
+  );
+
+  if (input.alignment === DropdownHorizontalAlignment.Right) {
+    // Grows leftwards from the trigger's right edge: slides right.
+    const overflow: number = margin - (input.anchorRight - width);
+    const room: number = input.viewportWidth - margin - input.anchorRight;
+
+    return Math.max(0, Math.min(overflow, room));
+  }
+
+  // Grows rightwards from the trigger's left edge: slides left.
+  const overflow: number =
+    input.anchorLeft + width - (input.viewportWidth - margin);
+  const room: number = input.anchorLeft - margin;
+
+  return Math.max(0, Math.min(overflow, room));
+}
+
+// The edge a popup hangs from, and how far it slides from there to fit.
+export interface DropdownPlacement {
+  alignment: DropdownHorizontalAlignment;
+  shiftInPx: number;
+}
+
+export const DEFAULT_DROPDOWN_PLACEMENT: DropdownPlacement = {
+  alignment: DropdownHorizontalAlignment.Left,
+  shiftInPx: 0,
+};
+
+// Where a popup goes: the edge with room (or the least short of it), then the slide that keeps it on the screen.
+export function getDropdownPlacement(
+  input: DropdownAlignmentInput,
+): DropdownPlacement {
+  const alignment: DropdownHorizontalAlignment =
+    getDropdownHorizontalAlignment(input);
+
+  return {
+    alignment: alignment,
+    shiftInPx: getDropdownShiftToFit({ ...input, alignment: alignment }),
+  };
+}
+
+/*
+ * The inline style that slides a popup by its placement's shift: a negative
+ * inset on the side it hangs from, pulling it past its trigger's edge. Written
+ * with logical properties, so on a page that reads right to left it slides
+ * the mirrored way, as getDropdownAlignmentClassName's left-0 and right-0 do
+ * (Styles/TailwindReadingDirection.js); the shift is measured in that
+ * mirrored frame (getDropdownAnchorEdges). Empty when the popup fits.
+ */
+export function getDropdownShiftStyle(
+  placement: DropdownPlacement,
+): React.CSSProperties {
+  if (!(placement.shiftInPx > 0)) {
+    return {};
+  }
+
+  return placement.alignment === DropdownHorizontalAlignment.Right
+    ? { insetInlineEnd: `${-placement.shiftInPx}px` }
+    : { insetInlineStart: `${-placement.shiftInPx}px` };
+}
+
+/*
+ * useDropdownHorizontalAlignment's edge, with the slide that keeps a popup
+ * too wide for either side of its trigger on the screen (getDropdownShiftToFit).
+ * Hand the alignment to getDropdownAlignmentClassName and the placement to
+ * getDropdownShiftStyle.
+ */
+export function useDropdownPlacement(
+  options: UseDropdownHorizontalAlignmentOptions,
+): DropdownPlacement {
+  const [placement, setPlacement] = useState<DropdownPlacement>(
+    DEFAULT_DROPDOWN_PLACEMENT,
   );
 
   const {
@@ -224,19 +336,24 @@ export function useDropdownHorizontalAlignment(
           viewportWidth: viewportWidth,
           isRightToLeft: isRightToLeftElement(anchor),
         });
-
-      setAlignment(
-        getDropdownHorizontalAlignment({
-          anchorLeft: edges.anchorLeft,
-          anchorRight: edges.anchorRight,
-          dropdownWidth: getDropdownWidthToFit({
-            measuredWidthInPx: measuredWidth,
-            dropdownWidthInPx: dropdownWidthInPx,
-          }),
-          viewportWidth: viewportWidth,
-          viewportMargin: viewportMargin,
+      const next: DropdownPlacement = getDropdownPlacement({
+        anchorLeft: edges.anchorLeft,
+        anchorRight: edges.anchorRight,
+        dropdownWidth: getDropdownWidthToFit({
+          measuredWidthInPx: measuredWidth,
+          dropdownWidthInPx: dropdownWidthInPx,
         }),
-      );
+        viewportWidth: viewportWidth,
+        viewportMargin: viewportMargin,
+      });
+
+      // The same placement keeps its object, so a scroll re-renders nothing.
+      setPlacement((current: DropdownPlacement): DropdownPlacement => {
+        return current.alignment === next.alignment &&
+          current.shiftInPx === next.shiftInPx
+          ? current
+          : next;
+      });
     };
 
     measure();
@@ -250,5 +367,5 @@ export function useDropdownHorizontalAlignment(
     };
   }, [isOpen, anchorRef, dropdownRef, dropdownWidthInPx, viewportMargin]);
 
-  return alignment;
+  return placement;
 }

@@ -3,6 +3,10 @@ import { ProductEventName } from "Common/Types/Analytics/ProductEvent";
 import useDashboardNavigationItems, {
   DashboardNavigationItems,
 } from "../../Utils/NavigationItems";
+import { getItemPlacement } from "../../Utils/ProjectProducts/ProductsMenu";
+import { ProjectProductsState } from "../../Utils/ProjectProducts/ProjectProductsStore";
+import useProjectProducts from "../../Utils/ProjectProducts/UseProjectProducts";
+import { ProductPlacement } from "Common/Types/Product/ProjectProducts";
 import EventName from "../../Utils/EventName";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -21,6 +25,7 @@ import {
   getEntitySearchSpecs,
   getPageSearchCommandRanking,
   getVisibleActionIds,
+  withoutActionsOfProductsOff,
   isQuestion,
   isRoutePathNavigable,
   PageSearchAvailability,
@@ -39,10 +44,22 @@ import {
 } from "./DashboardCommandPaletteHelpers";
 import { openAskAi } from "../AIChat/AskAiEvents";
 import {
+  getProductOfPage,
+  getProductOfPath,
+} from "../../Utils/ProjectProducts/ProductOfRoute";
+import { getOffProducts } from "Common/Types/Product/ServerProducts";
+import ProductKey from "Common/Types/Product/ProductKey";
+import {
   HowOneUptimeWorksOpenedFrom,
   openHowOneUptimeWorks,
 } from "../Home/HowOneUptimeWorksDialog";
+import {
+  GiveFeedbackOpenedFrom,
+  openGiveFeedback,
+} from "../Feedback/GiveFeedbackDialog";
 import { getPageSearchAreas } from "./PageSearchIndex";
+import { useProductFeedbackSettings } from "Common/UI/Utils/ProductFeedback";
+import { ProductFeedbackSettings } from "Common/Types/ProductFeedback/ProductFeedback";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import GlossaryTerm from "Common/Types/Docs/GlossaryTerm";
@@ -70,7 +87,9 @@ import {
 import KeyboardKey from "Common/UI/Components/KeyboardShortcut/KeyboardKey";
 import { ADMIN_DASHBOARD_URL, BILLING_ENABLED } from "Common/UI/Config";
 import GlobalEvents from "Common/UI/Utils/GlobalEvents";
+import { DocsSearchHit, searchDocs } from "Common/UI/Utils/DocsSearch";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import LeaveGuard from "Common/UI/Utils/LeaveGuard";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 import ThemeUtil, {
@@ -107,6 +126,7 @@ import React, {
 } from "react";
 import { useTranslation } from "react-i18next";
 import PermissionGate from "Common/UI/Utils/PermissionGate";
+import { isDashboardRecordingConfigured } from "../../Utils/DashboardRecording/DashboardRecordingConfig";
 
 /*
  * The dashboard's command palette host: always mounted (App.tsx, next to
@@ -270,6 +290,47 @@ function createEntitySearchProvider<
 }
 
 /*
+ * Search's Documentation group (#6822): the docs pages and sections that
+ * answer what was typed, from the installation's own docs search (the one
+ * the docs' search box asks), opened in a new tab. A read that fails shows
+ * nothing, never an error.
+ */
+export function createDocsSearchProvider(data: {
+  sectionTitle: string;
+  language?: string | undefined;
+  onNavigate: () => void;
+}): PaletteSearchProvider {
+  return {
+    id: "docs",
+    title: data.sectionTitle,
+    search: async (searchText: string): Promise<Array<PaletteSearchResult>> => {
+      const hits: Array<DocsSearchHit> = await searchDocs({
+        query: searchText,
+        language: data.language,
+      });
+
+      return hits.map(
+        (hit: DocsSearchHit, index: number): PaletteSearchResult => {
+          return {
+            id: `docs-${index}-${hit.url}`,
+            title: hit.title,
+            description: hit.where,
+            icon: IconProp.Book,
+            iconColor: "indigo",
+            onSelect: () => {
+              data.onNavigate();
+              Navigation.navigate(URL.fromString(hit.url), {
+                openInNewTab: true,
+              });
+            },
+          };
+        },
+      );
+    },
+  };
+}
+
+/*
  * Whether the current project has monitor groups turned on, as its menu
  * reads it. The palette is mounted outside the pages' error boundary, so a
  * stored project it cannot read leaves Monitor Groups out rather than take
@@ -294,6 +355,9 @@ const DashboardCommandPalette: FunctionComponent<ComponentProps> = (
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const theme: Theme = useTheme();
   const themePreference: ThemePreference = useThemePreference();
+  // Give feedback is offered once the server says it takes feedback (#6832).
+  const feedbackSettings: ProductFeedbackSettings | null =
+    useProductFeedbackSettings();
 
   const closePalette: () => void = useCallback((): void => {
     setIsOpen(false);
@@ -400,6 +464,20 @@ const DashboardCommandPalette: FunctionComponent<ComponentProps> = (
     useDashboardNavigationItems();
 
   /*
+   * The project's products (#6814): one it hides is found by searching, and
+   * left out of what browsing lists; one switched off on the server is not
+   * offered at all.
+   */
+  const products: ProjectProductsState = useProjectProducts();
+  /*
+   * Switched off on the server (#6815): its actions, its records, its pages
+   * and Ask AI's row are left out too.
+   */
+  const offProducts: Array<ProductKey> = getOffProducts(
+    products.answer.offOnServer || {},
+  );
+
+  /*
    * Navigate to a PageMap entry, refusing routes whose populated path still
    * carries a ":param" placeholder (no project selected) — same guard the
    * breadcrumbs use. Closes the palette first so navigation feels instant.
@@ -449,8 +527,14 @@ const DashboardCommandPalette: FunctionComponent<ComponentProps> = (
           templatePath: (item.activeRoute || item.route).toString(),
         };
       }),
-      ...moreMenuItems.map(
-        (item: MoreMenuItem): PaletteNavigationCatalogEntry => {
+      ...moreMenuItems
+        .filter((item: MoreMenuItem): boolean => {
+          return (
+            getItemPlacement({ item: item, answer: products.answer }) !==
+            ProductPlacement.Off
+          );
+        })
+        .map((item: MoreMenuItem): PaletteNavigationCatalogEntry => {
           return {
             title: item.title,
             description: item.description,
@@ -460,9 +544,11 @@ const DashboardCommandPalette: FunctionComponent<ComponentProps> = (
             category: item.category || essentialsCategory,
             routePath: item.route.toString(),
             templatePath: (item.activeRoute || item.route).toString(),
+            isSearchOnly:
+              getItemPlacement({ item: item, answer: products.answer }) ===
+              ProductPlacement.Hidden,
           };
-        },
-      ),
+        }),
       {
         title: rightElement.title,
         description: rightElement.description,
@@ -486,6 +572,7 @@ const DashboardCommandPalette: FunctionComponent<ComponentProps> = (
             icon: descriptor.icon,
             iconColor: descriptor.iconColor,
             category: descriptor.category,
+            isSearchOnly: descriptor.isSearchOnly,
             searchPriority: PALETTE_SEARCH_PRIORITY.product,
             onSelect: () => {
               closePalette();
@@ -503,15 +590,20 @@ const DashboardCommandPalette: FunctionComponent<ComponentProps> = (
       PermissionGate.getHeldPermissions();
     const isMasterAdmin: boolean = User.isMasterAdmin();
 
-    const visibleActionIds: Array<PaletteActionId> = getVisibleActionIds({
-      ...computeCreateActionGates({
-        held: heldPermissions,
-        isMasterAdmin,
-      }),
-      hasProjectSelected,
-      isMasterAdmin,
-      isThemeFollowingDevice: themePreference === ThemePreference.System,
-    });
+    const visibleActionIds: Array<PaletteActionId> =
+      withoutActionsOfProductsOff(
+        getVisibleActionIds({
+          ...computeCreateActionGates({
+            held: heldPermissions,
+            isMasterAdmin,
+          }),
+          hasProjectSelected,
+          isMasterAdmin,
+          isThemeFollowingDevice: themePreference === ThemePreference.System,
+          canGiveFeedback: feedbackSettings?.isOn === true,
+        }),
+        offProducts,
+      );
 
     const actionsCategory: string = t(
       "commandPalette.categories.actions",
@@ -703,6 +795,30 @@ const DashboardCommandPalette: FunctionComponent<ComponentProps> = (
           );
         },
       },
+      /*
+       * Tell OneUptime what was hard (#6832): the dialog Help opens, kept
+       * on this server for its admins.
+       */
+      "action-give-feedback": {
+        id: "action-give-feedback",
+        title: t("help.giveFeedback", "Give feedback"),
+        icon: IconProp.ChatBubbleLeftRight,
+        iconColor: "indigo",
+        category: actionsCategory,
+        keywords: [
+          "feedback",
+          "suggestion",
+          "confusing",
+          "hard",
+          "report a problem",
+          "tell us",
+          "help",
+        ],
+        onSelect: () => {
+          closePalette();
+          openGiveFeedback(GiveFeedbackOpenedFrom.CommandPalette);
+        },
+      },
       "action-active-incidents": {
         id: "action-active-incidents",
         title: t("commandPalette.actions.activeIncidents", "Active Incidents"),
@@ -778,6 +894,7 @@ const DashboardCommandPalette: FunctionComponent<ComponentProps> = (
     pageAvailability = {
       isBillingEnabled: BILLING_ENABLED,
       isMonitorGroupsEnabled: isMonitorGroupsEnabled(),
+      isDashboardRecordingOn: isDashboardRecordingConfigured(),
       canDeleteProject:
         hasProjectSelected &&
         canDeleteProject({ held: heldPermissions, isMasterAdmin }),
@@ -827,9 +944,21 @@ const DashboardCommandPalette: FunctionComponent<ComponentProps> = (
 
               closePalette();
 
-              if (project) {
-                onProjectSelected(project);
+              if (!project) {
+                return;
               }
+
+              /*
+               * The switch reloads the app in the other project: a page
+               * holding unsaved work asks first, before anything switches
+               * (LeaveGuard), as the project picker's own switch does.
+               */
+              LeaveGuard.whenLeaving(
+                `/dashboard/${descriptor.projectId}`,
+                () => {
+                  onProjectSelected(project);
+                },
+              );
             },
           };
         })
@@ -887,6 +1016,20 @@ const DashboardCommandPalette: FunctionComponent<ComponentProps> = (
 
       searchProviders = ENTITY_SEARCH_KINDS.filter(
         (kind: EntitySearchKind): boolean => {
+          // Records of a product switched off on the server are not offered.
+          const viewPage: PageMap | undefined = specs.find(
+            (spec: PaletteEntitySearchSpec): boolean => {
+              return spec.id === kind.specId;
+            },
+          )?.viewPageMap;
+          const product: ProductKey | null = viewPage
+            ? getProductOfPage(viewPage)
+            : null;
+
+          if (product && offProducts.includes(product)) {
+            return false;
+          }
+
           return canSearchRecordsOf({
             model: new kind.modelType(),
             held: heldPermissions,
@@ -906,6 +1049,21 @@ const DashboardCommandPalette: FunctionComponent<ComponentProps> = (
         });
       });
     }
+
+    /*
+     * --- the docs (#6822), under the pages and records -------------------
+     * Read from the installation's own docs search, in the reader's
+     * language, with or without a project; each opens in a new tab, so
+     * the page the person was on stays where it was.
+     */
+    searchProviders = [
+      ...(searchProviders || []),
+      createDocsSearchProvider({
+        sectionTitle: t("help.documentation", "Documentation"),
+        language,
+        onNavigate: closePalette,
+      }),
+    ];
   }
 
   /*
@@ -920,6 +1078,7 @@ const DashboardCommandPalette: FunctionComponent<ComponentProps> = (
         currentProjectId,
         translator.language,
         pageAvailability,
+        offProducts,
         pageCatalogEntries.map(
           (entry: PaletteNavigationCatalogEntry): Array<string> => {
             return [entry.routePath, entry.title];
@@ -966,35 +1125,43 @@ const DashboardCommandPalette: FunctionComponent<ComponentProps> = (
         return translator.translateText(text) || text;
       },
       catalog: pageCatalogEntries,
-    }).map((descriptor: PageSearchCommandDescriptor): PaletteCommand => {
-      return {
-        id: descriptor.id,
-        title: descriptor.title,
-        titleAliases: descriptor.titleAliases,
-        keywords: descriptor.keywords,
-        breadcrumb: descriptor.breadcrumb,
-        breadcrumbKeywords: descriptor.breadcrumbKeywords,
-        icon: descriptor.icon,
-        iconColor: descriptor.iconColor,
-        /*
-         * A setting is listed among the pages, by how well it matches: in
-         * a group of its own, a page that only held the words somewhere in
-         * a keyword ("processors" for "sso") was drawn above "Require SSO
-         * for Login".
-         */
-        category: descriptor.isAction ? actionsCategory : pagesCategory,
-        isSearchOnly: true,
-        /*
-         * Between equally good matches a page before a setting, and a
-         * setting never before its page.
-         */
-        ...getPageSearchCommandRanking(descriptor),
-        onSelect: () => {
-          closePalette();
-          Navigation.navigate(new Route(descriptor.routePath));
-        },
-      };
-    });
+    })
+      .filter((descriptor: PageSearchCommandDescriptor): boolean => {
+        // A page of a product switched off on the server is not offered.
+        const product: ProductKey | null = getProductOfPath(
+          descriptor.routePath,
+        );
+        return !product || !offProducts.includes(product);
+      })
+      .map((descriptor: PageSearchCommandDescriptor): PaletteCommand => {
+        return {
+          id: descriptor.id,
+          title: descriptor.title,
+          titleAliases: descriptor.titleAliases,
+          keywords: descriptor.keywords,
+          breadcrumb: descriptor.breadcrumb,
+          breadcrumbKeywords: descriptor.breadcrumbKeywords,
+          icon: descriptor.icon,
+          iconColor: descriptor.iconColor,
+          /*
+           * A setting is listed among the pages, by how well it matches: in
+           * a group of its own, a page that only held the words somewhere in
+           * a keyword ("processors" for "sso") was drawn above "Require SSO
+           * for Login".
+           */
+          category: descriptor.isAction ? actionsCategory : pagesCategory,
+          isSearchOnly: true,
+          /*
+           * Between equally good matches a page before a setting, and a
+           * setting never before its page.
+           */
+          ...getPageSearchCommandRanking(descriptor),
+          onSelect: () => {
+            closePalette();
+            Navigation.navigate(new Route(descriptor.routePath));
+          },
+        };
+      });
   }, [pageCommandsKey]);
 
   if (pageCommands.length > 0) {
@@ -1025,7 +1192,7 @@ const DashboardCommandPalette: FunctionComponent<ComponentProps> = (
   const getFallbackCommands: (query: string) => Array<PaletteCommand> = (
     query: string,
   ): Array<PaletteCommand> => {
-    if (!isQuestion(query)) {
+    if (!isQuestion(query) || offProducts.includes(ProductKey.AIChat)) {
       return [];
     }
 

@@ -22,6 +22,7 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 export interface ComponentProps {
   monitorId: ObjectID;
@@ -236,9 +237,10 @@ const MonitorProbesCard: FunctionComponent<ComponentProps> = (
       if (props.probes.status === "error") {
         return (
           <p className="text-sm text-red-700">
-            {translator.translateTemplate("Couldn't load probes. {{error}}", {
-              error: props.probes.error || "",
-            })}
+            <ErrorSentence
+              template="Couldn't load probes. {{error}}"
+              error={props.probes.error || ""}
+            />
           </p>
         );
       }
@@ -300,10 +302,10 @@ const MonitorProbesCard: FunctionComponent<ComponentProps> = (
         )}
         {props.probes.refreshError ? (
           <p className="mt-2 text-xs text-gray-500">
-            {translator.translateTemplate(
-              "Couldn't refresh probes. {{error}}",
-              { error: props.probes.refreshError || "" },
-            )}
+            <ErrorSentence
+              template="Couldn't refresh probes. {{error}}"
+              error={props.probes.refreshError || ""}
+            />
           </p>
         ) : (
           <></>

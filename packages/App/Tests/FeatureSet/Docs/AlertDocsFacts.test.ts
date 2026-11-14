@@ -18,6 +18,7 @@ import {
   SEEDED_TEXT,
 } from "./AlertDocsPages";
 import { readPage } from "./DocsContentSupport";
+import { GETTING_STARTED_PLACES, exploreCardLines } from "./GettingStartedPage";
 import {
   MenuSection,
   developerSection,
@@ -312,15 +313,12 @@ describe("the Alerts group in the docs", () => {
       "en",
       "introduction/getting-started",
     );
-    const incidentResponse: string = section(
+    // Explore the docs folds each sidebar section since #6822.
+    const cards: Array<string> = exploreCardLines(
       gettingStarted,
-      "### Incident Response",
+      GETTING_STARTED_PLACES.explore,
+      "Incident Response",
     );
-    const cards: Array<string> = incidentResponse
-      .split("\n")
-      .filter((line: string): boolean => {
-        return line.startsWith("- [");
-      });
     const incidentsCard: number = cards.findIndex((line: string): boolean => {
       return line.includes("(/docs/incidents/index)");
     });
@@ -1723,7 +1721,7 @@ describe("who hears about an alert", () => {
       readDashboardSource("Components/NotificationRule/OnCallRuleKinds.ts"),
     ).toContain('tabName: "Alerts",');
     expect(hears).toContain(
-      "under **User Settings → On-Call Rules**, on the **Alerts** tab.",
+      "under **User Settings → How to Reach Me**, on the **Alerts** tab.",
     );
     expect(hears).toContain(
       "under **User Settings → Notification Settings**, on the **Alerts** tab",
@@ -2190,7 +2188,7 @@ describe("alert episodes and grouping rules", () => {
     }
 
     expect(boldNames(table[0]?.[1] || "")).toEqual([
-      "On-Call Duty Policies",
+      "On-Call Policies",
       GROUPING_RULE_COPY.episodeOwnersTitle,
     ]);
     expect(boldNames(table[1]?.[1] || "")).toEqual([
@@ -2477,7 +2475,7 @@ describe("alert episodes and grouping rules", () => {
       ),
     ).toBe(true);
     expect(page).toContain(
-      "**A new episode** runs the rule's **On-Call Duty Policies**, plus those of any matching rule on the **Episode Rules** tab of **Alerts → Rules → On-Call Rules**.",
+      "**A new episode** runs the rule's **On-Call Policies**, plus those of any matching rule on the **Episode Rules** tab of **Alerts → Rules → On-Call Rules**.",
     );
   });
 
@@ -2765,7 +2763,7 @@ describe("alert rules and settings", () => {
     );
     expect(form).toContain('{ title: "Match", id: "match-criteria" },');
     expect(form).toContain('{ title: "On-Call Policies", id: "on-call" },');
-    expect(form).toContain('title: "On-Call Duty Policies",');
+    expect(form).toContain('title: "On-Call Policies",');
     expect(form).toContain('allPicks: translationKey("Page {{policies}}"),');
     expect(form).toContain("doNotShowWhenCreating: true,");
     expect(
@@ -2776,7 +2774,7 @@ describe("alert rules and settings", () => {
       "Create Alert On-Call Rule",
       "Match",
       "On-Call Policies",
-      "On-Call Duty Policies",
+      "On-Call Policies",
       "Name",
       "Description",
       "More fields",

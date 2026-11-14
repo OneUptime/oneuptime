@@ -1,0 +1,557 @@
+{
+  "home-goal-website": {
+    "text": [
+      "Was möchten Sie zuerst tun?",
+      "Wissen, wenn meine Website oder API ausfällt",
+      "Die richtige Person alarmieren, wenn etwas ausfällt",
+      "Meine Kunden über eine Statusseite informieren",
+      "Meine Logs, Metriken und Traces sehen",
+      "Meine Server, Kubernetes oder Cloud überwachen",
+      "Ich wechsle von einem anderen Tool",
+      "Ich sehe mich nur um",
+      "Überspringen",
+      "Weiter",
+      "checkbox: on",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off"
+    ],
+    "outline": [
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "button: Überspringen",
+      "button: Weiter"
+    ],
+    "width": 902,
+    "height": 366
+  },
+  "home-goal-paging": {
+    "text": [
+      "Was möchten Sie zuerst tun?",
+      "Wissen, wenn meine Website oder API ausfällt",
+      "Die richtige Person alarmieren, wenn etwas ausfällt",
+      "Meine Kunden über eine Statusseite informieren",
+      "Meine Logs, Metriken und Traces sehen",
+      "Meine Server, Kubernetes oder Cloud überwachen",
+      "Ich wechsle von einem anderen Tool",
+      "Ich sehe mich nur um",
+      "Überspringen",
+      "Weiter",
+      "checkbox: off",
+      "checkbox: on",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off"
+    ],
+    "outline": [
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "button: Überspringen",
+      "button: Weiter"
+    ],
+    "width": 902,
+    "height": 366
+  },
+  "home-goal-status-page": {
+    "text": [
+      "Was möchten Sie zuerst tun?",
+      "Wissen, wenn meine Website oder API ausfällt",
+      "Die richtige Person alarmieren, wenn etwas ausfällt",
+      "Meine Kunden über eine Statusseite informieren",
+      "Meine Logs, Metriken und Traces sehen",
+      "Meine Server, Kubernetes oder Cloud überwachen",
+      "Ich wechsle von einem anderen Tool",
+      "Ich sehe mich nur um",
+      "Überspringen",
+      "Weiter",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: on",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off"
+    ],
+    "outline": [
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "button: Überspringen",
+      "button: Weiter"
+    ],
+    "width": 902,
+    "height": 366
+  },
+  "home-goals-three": {
+    "text": [
+      "Was möchten Sie zuerst tun?",
+      "Wissen, wenn meine Website oder API ausfällt",
+      "Die richtige Person alarmieren, wenn etwas ausfällt",
+      "Meine Kunden über eine Statusseite informieren",
+      "Meine Logs, Metriken und Traces sehen",
+      "Meine Server, Kubernetes oder Cloud überwachen",
+      "Ich wechsle von einem anderen Tool",
+      "Ich sehe mich nur um",
+      "Überspringen",
+      "Weiter",
+      "checkbox: on",
+      "checkbox: on",
+      "checkbox: on",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off"
+    ],
+    "outline": [
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "button: Überspringen",
+      "button: Weiter"
+    ],
+    "width": 902,
+    "height": 366
+  },
+  "website-down-address": {
+    "text": [
+      "1",
+      "Was sollen wir prüfen?",
+      "OneUptime prüft es alle 5 Minuten von mehreren Standorten aus. Kommt keine Antwort oder eine Fehlerantwort, wird ein Vorfall eröffnet.",
+      "Adresse der Website oder API",
+      "Dies ist ein API-Endpunkt",
+      "Prüfung starten",
+      "Weitere Monitortypen",
+      "value: https://acme-commerce.example",
+      "checkbox: off"
+    ],
+    "outline": [
+      "field text: https://example.com",
+      "field checkbox: ",
+      "button: Prüfung starten",
+      "link: Weitere Monitortypen"
+    ],
+    "width": 768,
+    "height": 298
+  },
+  "website-down-who": {
+    "text": [
+      "2",
+      "Wer soll informiert werden?",
+      "Bei einem Ausfall eröffnet OneUptime einen Vorfall und alarmiert diese Personen, jede so, wie es ihr „Wie ich erreichbar bin“ festlegt. Den Anfang machen Sie, per E-Mail.",
+      "Wer alarmiert wird",
+      "Teammitglieder hinzufügen",
+      "AL",
+      "Ada Lovelace",
+      "Dadurch wird die Bereitschaftsrichtlinie „Default on-call policy“ erstellt, die sie bei jedem neuen Vorfall und jeder neuen Warnung in diesem Projekt alarmiert.",
+      "Speichern und weiter"
+    ],
+    "outline": [
+      "button: Teammitglieder hinzufügen",
+      "button: Ada Lovelace entfernen",
+      "button: Speichern und weiter"
+    ],
+    "width": 768,
+    "height": 302
+  },
+  "website-down-test": {
+    "text": [
+      "3",
+      "Test senden",
+      "Senden Sie sich jetzt eine Test-Alarmierung. Sie wird genauso versendet wie eine echte Alarmierung, und jede Nachricht enthält den Hinweis TEST. Bestätigen Sie sie in der Nachricht, um abzuschließen.",
+      "Mir eine Test-Alarmierung senden",
+      "Test überspringen"
+    ],
+    "outline": [
+      "button: Mir eine Test-Alarmierung senden",
+      "button: Test überspringen"
+    ],
+    "width": 768,
+    "height": 178
+  },
+  "website-down-summary": {
+    "text": [
+      "acme-commerce.example ist eingerichtet",
+      "Geprüft",
+      "Alle 5 Minuten, von 2 Standorten aus.",
+      "Bei einem Ausfall",
+      "Kommt keine Antwort oder eine Fehlerantwort, eröffnet OneUptime einen Vorfall (Critical Incident).",
+      "Wer informiert wird",
+      "Die Bereitschaftsrichtlinie „Default on-call policy“ alarmiert Ada Lovelace bei jedem neuen Vorfall und jeder neuen Warnung. Sie sind Eigentümer dieses Monitors und erhalten daher eine E-Mail, wenn sich sein Status ändert.",
+      "Getestet",
+      "Ada Lovelace hat sie nach 14 Sekunden per E-Mail bestätigt.",
+      "Nächste Schritte",
+      "Auf einer Statusseite anzeigen",
+      "Per SMS oder Anruf alarmiert werden",
+      "Monitor öffnen",
+      "Andere Adresse prüfen"
+    ],
+    "outline": [
+      "heading: acme-commerce.example ist eingerichtet",
+      "heading: Nächste Schritte",
+      "link: Auf einer Statusseite anzeigen",
+      "link: Per SMS oder Anruf alarmiert werden",
+      "link: Monitor öffnen",
+      "button: Andere Adresse prüfen"
+    ],
+    "width": 768,
+    "height": 511
+  },
+  "paging-reach-you": {
+    "text": [
+      "1",
+      "Wie sollen wir dich erreichen?",
+      "Eine Alarmierung geht an jede Methode, die du bestätigt hast. Füge deine Telefonnummer hinzu, um per SMS und Anruf erreicht zu werden.",
+      "E-Mail",
+      "E-Mail · •••mple",
+      "SMS und Anrufe",
+      "Noch keine Telefonnummer.",
+      "SMS ist in diesem Projekt ausgeschaltet, daher werden Alarmierungen darüber nicht gesendet.",
+      "Telefonanruf ist in diesem Projekt ausgeschaltet, daher werden Alarmierungen darüber nicht gesendet.",
+      "SMS und Anrufe werden vom Guthaben dieses Projekts bezahlt, das 0.00 USD beträgt. Beim Hinzufügen einer Nummer wird eine SMS gesendet, daher muss das Guthaben über 1.00 USD liegen.",
+      "Guthaben aufladen",
+      "SMS und Anrufe einschalten",
+      "Mobile App oder Browser",
+      "Nicht eingerichtet.",
+      "Hol dir die OneUptime-App oder aktiviere Benachrichtigungen in diesem Browser, über deine Benachrichtigungsmethoden.",
+      "App oder diesen Browser einrichten",
+      "Weiter",
+      "Erneut prüfen"
+    ],
+    "outline": [
+      "button: Guthaben aufladen",
+      "button: SMS und Anrufe einschalten",
+      "link: App oder diesen Browser einrichten",
+      "button: Weiter",
+      "button: Erneut prüfen"
+    ],
+    "width": 768,
+    "height": 652
+  },
+  "paging-phone": {
+    "text": [
+      "1",
+      "Wie sollen wir dich erreichen?",
+      "Eine Alarmierung geht an jede Methode, die du bestätigt hast. Füge deine Telefonnummer hinzu, um per SMS und Anruf erreicht zu werden.",
+      "E-Mail",
+      "E-Mail · •••mple",
+      "SMS und Anrufe",
+      "Noch keine Telefonnummer.",
+      "SMS und Anrufe werden vom Guthaben dieses Projekts bezahlt, das 20.00 USD beträgt. Beim Hinzufügen einer Nummer wird eine SMS gesendet, daher muss das Guthaben über 1.00 USD liegen.",
+      "Deine Telefonnummer",
+      "Code per SMS senden",
+      "Mobile App oder Browser",
+      "Nicht eingerichtet.",
+      "Hol dir die OneUptime-App oder aktiviere Benachrichtigungen in diesem Browser, über deine Benachrichtigungsmethoden.",
+      "App oder diesen Browser einrichten",
+      "Weiter",
+      "Erneut prüfen",
+      "placeholder: +15551234567"
+    ],
+    "outline": [
+      "field text: +15551234567",
+      "button: Code per SMS senden",
+      "link: App oder diesen Browser einrichten",
+      "button: Weiter",
+      "button: Erneut prüfen"
+    ],
+    "width": 768,
+    "height": 584
+  },
+  "paging-who-else": {
+    "text": [
+      "2",
+      "Wer hat sonst Bereitschaft?",
+      "Dadurch wird die Bereitschaftsrichtlinie „Default on-call policy“ erstellt. Sie alarmiert zuerst diese Personen, bei jedem neuen Vorfall und jeder neuen Warnung in diesem Projekt.",
+      "Zuerst alarmiert",
+      "Teammitglieder hinzufügen",
+      "AL",
+      "Ada Lovelace",
+      "Speichern und weiter"
+    ],
+    "outline": [
+      "button: Teammitglieder hinzufügen",
+      "button: Ada Lovelace entfernen",
+      "button: Speichern und weiter"
+    ],
+    "width": 768,
+    "height": 246
+  },
+  "paging-no-answer": {
+    "text": [
+      "3",
+      "Was, wenn niemand antwortet?",
+      "Eine Alarmierung wartet, bis jemand sie bestätigt. Wenn das niemand rechtzeitig tut:",
+      "Jemand anderen alarmieren",
+      "Dieselben Personen erneut alarmieren",
+      "Nichts weiter tun",
+      "Wartezeit in Minuten",
+      "Als Nächstes alarmiert",
+      "Teammitglieder hinzufügen",
+      "GH",
+      "Grace Hopper",
+      "Speichern und weiter",
+      "radio: on",
+      "radio: off",
+      "radio: off",
+      "value: 30"
+    ],
+    "outline": [
+      "field radio: ",
+      "field radio: ",
+      "field radio: ",
+      "field number: ",
+      "button: Teammitglieder hinzufügen",
+      "button: Grace Hopper entfernen",
+      "button: Speichern und weiter"
+    ],
+    "width": 768,
+    "height": 510
+  },
+  "paging-test": {
+    "text": [
+      "4",
+      "Test-Alarmierung senden",
+      "Teste die Richtlinie jetzt: Sie alarmiert ihre erste Eskalationsregel wie bei einem echten Vorfall, und jede Nachricht enthält TEST. Bestätige sie in der Nachricht, um abzuschließen.",
+      "Diese Richtlinie testen",
+      "Test überspringen"
+    ],
+    "outline": [
+      "button: Diese Richtlinie testen",
+      "button: Test überspringen"
+    ],
+    "width": 768,
+    "height": 178
+  },
+  "paging-summary": {
+    "text": [
+      "Die Alarmierung ist eingerichtet",
+      "Wer alarmiert wird",
+      "Jeder neue Vorfall und jede neue Warnung führt „Default on-call policy“ aus, das Ada Lovelace (E-Mail, SMS, Telefonanruf) alarmiert.",
+      "Wenn niemand antwortet",
+      "Bestätigt niemand innerhalb von 30 Minuten, wird Grace Hopper alarmiert.",
+      "Getestet",
+      "Ada Lovelace hat sie nach 14 Sekunden per E-Mail bestätigt.",
+      "Nächste Schritte",
+      "Mit einem Bereitschaftsplan abwechseln",
+      "Slack oder Microsoft Teams verbinden",
+      "Bei weniger dringenden Vorfällen nur während der Arbeitszeit alarmieren",
+      "Sehen, wer alarmiert werden kann",
+      "Bereitschaftsrichtlinie öffnen",
+      "Weitere Richtlinie einrichten"
+    ],
+    "outline": [
+      "heading: Die Alarmierung ist eingerichtet",
+      "heading: Nächste Schritte",
+      "link: Mit einem Bereitschaftsplan abwechseln",
+      "link: Slack oder Microsoft Teams verbinden",
+      "link: Bei weniger dringenden Vorfällen nur während der Arbeitszeit alarmieren",
+      "link: Sehen, wer alarmiert werden kann",
+      "link: Bereitschaftsrichtlinie öffnen",
+      "button: Weitere Richtlinie einrichten"
+    ],
+    "width": 768,
+    "height": 482
+  },
+  "status-page-pick": {
+    "text": [
+      "1",
+      "Benennen Sie sie und wählen Sie aus, was sie zeigt",
+      "Name der Statusseite",
+      "Was sie zeigt",
+      "Jeder ausgewählte Monitor erscheint auf der Seite mit seinem aktuellen Status und seiner Verfügbarkeit.",
+      "Alle auswählen",
+      "Löschen",
+      "1 von 1 ausgewählt",
+      "Acme website",
+      "Operational",
+      "Die Seite ist öffentlich, sobald Sie sie erstellen: Jeder mit dem Link sieht den Status der ausgewählten Monitore.",
+      "Statusseite erstellen",
+      "value: Status von Acme Commerce",
+      "checkbox: on"
+    ],
+    "outline": [
+      "field text: Status von Acme",
+      "button: Alle auswählen",
+      "button: Löschen",
+      "field checkbox: ",
+      "button: Statusseite erstellen"
+    ],
+    "width": 768,
+    "height": 408
+  },
+  "status-page-review": {
+    "text": [
+      "2",
+      "Das sehen Ihre Kunden",
+      "Ihre Statusseite ist unter diesem Link live. Hier sehen Sie, was sie zeigt und was darauf erscheint.",
+      "Status von Acme Commerce",
+      "SIE ZEIGT",
+      "Acme website",
+      "Operational",
+      "Öffentlicher Link",
+      "https://oneuptime.acme-commerce.example/status-page/90000000-0000-4000-8000-000000000020",
+      "Ein Vorfall bei einem dieser Monitore erscheint hier von selbst, und die Abonnenten werden per E-Mail benachrichtigt.",
+      "Warnungen erscheinen hier nie. Sie sind für Ihr Team bestimmt.",
+      "Geplante Wartungen und Ankündigungen erscheinen, sobald Sie sie veröffentlichen.",
+      "Sieht gut aus"
+    ],
+    "outline": [
+      "link: https://oneuptime.acme-commerce.example/status-page/90000000-0000-4000-8000-0000",
+      "button: Sieht gut aus"
+    ],
+    "width": 768,
+    "height": 486
+  },
+  "status-page-summary": {
+    "text": [
+      "„Status von Acme Commerce“ ist live",
+      "Adresse",
+      "https://oneuptime.acme-commerce.example/status-page/90000000-0000-4000-8000-000000000020",
+      "Zeigt",
+      "Acme website",
+      "Erscheint von selbst",
+      "Ein Vorfall bei einem dieser Monitore erscheint hier von selbst, und die Abonnenten werden per E-Mail benachrichtigt.",
+      "Warnungen erscheinen hier nie. Sie sind für Ihr Team bestimmt.",
+      "Geplante Wartungen und Ankündigungen erscheinen, sobald Sie sie veröffentlichen.",
+      "Individuell anpassen (optional)",
+      "Ihre eigene Domain Stellen Sie die Seite unter einer Adresse wie status.example.com bereit.",
+      "Ihr Logo und Ihre Farben Gestalten Sie die Seite so, dass sie wie Ihr Produkt aussieht.",
+      "Wer abonnieren kann Per E-Mail, SMS, Slack, Microsoft Teams oder Webhook.",
+      "Privat statt öffentlich Nur Personen, die Sie einladen oder die sich anmelden, sehen die Seite.",
+      "Nächste Schritte",
+      "Erste Ankündigung veröffentlichen",
+      "Wartung planen",
+      "Status auf Ihrer Website einbinden",
+      "Einstellungen dieser Statusseite öffnen",
+      "Weitere Statusseite einrichten"
+    ],
+    "outline": [
+      "heading: „Status von Acme Commerce“ ist live",
+      "link: https://oneuptime.acme-commerce.example/status-page/90000000-0000-4000-8000-0000",
+      "heading: Individuell anpassen (optional)",
+      "link: Ihre eigene Domain",
+      "link: Ihr Logo und Ihre Farben",
+      "link: Wer abonnieren kann",
+      "link: Privat statt öffentlich",
+      "heading: Nächste Schritte",
+      "link: Erste Ankündigung veröffentlichen",
+      "link: Wartung planen",
+      "link: Status auf Ihrer Website einbinden",
+      "link: Einstellungen dieser Statusseite öffnen",
+      "button: Weitere Statusseite einrichten"
+    ],
+    "width": 768,
+    "height": 702
+  },
+  "incident-feed": {
+    "text": [
+      "Vorfalls-Feed",
+      "Alles, was mit diesem Vorfall geschehen ist: Statusänderungen, Notizen, Eigentümer und jede gesendete Benachrichtigung.",
+      "Aktionen",
+      "Montag, 14. September 2026",
+      "Heute",
+      "BST",
+      "19:12",
+      "vor 8 Min.",
+      "Maya Chen",
+      "changed Incident #1042 State to Resolved",
+      "19:09",
+      "vor 11 Min.",
+      "Maya Chen",
+      "Private note: Rolling checkout-api back to 2026.09.14-1 to restore DB_POOL_MAX=40. Watching p95 on the checkout dashboard.",
+      "19:05",
+      "vor 15 Min.",
+      "Maya Chen",
+      "took the Incident Commander role on Incident #1042.",
+      "19:04",
+      "vor 16 Min.",
+      "Sam Rivera",
+      "changed Incident #1042 State to Acknowledged",
+      "19:01",
+      "vor 19 Min.",
+      "On Call Policy Started Executing: On Call Policy Checkout primary on-call started executing for Incident #1042. Users on call on this policy will now be notified.",
+      "Incident #1042 Created:",
+      "Checkout API p95 latency above 2s:",
+      "The API monitor for POST /api/checkout reported p95 latency of 2.4s for 3 consecutive checks from the eu-west-1 probe.",
+      "🔴 Incident State: Created",
+      "⚠️ Severity: SEV-2",
+      "🌎 Resources Affected:",
+      "Checkout API p95 latency",
+      "Orders DB connection pool"
+    ],
+    "outline": [
+      "heading: Vorfalls-Feed",
+      "button: Aktionen",
+      "button: Weitere Optionen",
+      "heading: Montag, 14. September 2026",
+      "link: Incident #1042",
+      "link: Incident #1042",
+      "link: Incident #1042",
+      "link: Incident #1042",
+      "heading: Incident #1042 Created:",
+      "link: Checkout API p95 latency",
+      "link: Orders DB connection pool"
+    ],
+    "width": 576,
+    "height": 950
+  },
+  "incident-resolve": {
+    "text": [
+      "#1042",
+      "Bestätigt",
+      "SEV-2",
+      "Checkout API p95 latency above 2s",
+      "Beheben",
+      "Erstellt",
+      "Bestätigt",
+      "Behoben",
+      "LÄUFT SEIT",
+      "19 Minuten",
+      "VORFALL-KOMMANDANT",
+      "MC",
+      "Maya Chen",
+      "EIGENTÜMER",
+      "CS",
+      "Checkout SRE",
+      "SR",
+      "Sam Rivera",
+      "Hinzufügen",
+      "Eigentümer hinzufügen",
+      "MONITORE",
+      "Checkout API p95 latency",
+      "Orders DB connection pool"
+    ],
+    "outline": [
+      "heading: Checkout API p95 latency above 2s",
+      "button: Beheben",
+      "button: Hinzufügen Eigentümer hinzufügen",
+      "link: Checkout API p95 latency",
+      "link: Orders DB connection pool"
+    ],
+    "width": 876,
+    "height": 279
+  }
+}

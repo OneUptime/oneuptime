@@ -1,5 +1,6 @@
 import Analytics from "../../Utils/Analytics";
 import Breadcrumbs from "../Breadcrumbs/Breadcrumbs";
+import { PRODUCT_TEXT_CLASS_NAME } from "../../Utils/ProductText";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import IsolatedText from "../IsolatedText/IsolatedText";
 import PageLoader from "../Loader/PageLoader";
@@ -381,18 +382,24 @@ const Page: FunctionComponent<ComponentProps> = (
                       className={PAGE_TITLE_ROW_CLASS_NAME}
                       data-testid={PAGE_TITLE_ROW_TEST_ID}
                     >
-                      <h1 className="min-w-0 text-xl font-semibold leading-7 text-gray-900 sm:text-xl sm:tracking-tight sm:truncate">
+                      <h1
+                        className={`min-w-0 text-xl font-semibold leading-7 text-gray-900 sm:text-xl sm:tracking-tight sm:truncate ${PRODUCT_TEXT_CLASS_NAME}`}
+                      >
                         {translatedTitle}
                       </h1>
                       {props.titleRight}
                     </div>
                   ) : (
-                    <h1 className="text-xl font-semibold leading-7 text-gray-900 sm:text-xl sm:tracking-tight sm:truncate">
+                    <h1
+                      className={`text-xl font-semibold leading-7 text-gray-900 sm:text-xl sm:tracking-tight sm:truncate ${PRODUCT_TEXT_CLASS_NAME}`}
+                    >
                       {translatedTitle}
                     </h1>
                   )}
                   {translatedDescription && (
-                    <p className="max-w-3xl text-sm leading-6 text-gray-500">
+                    <p
+                      className={`max-w-3xl text-sm leading-6 text-gray-500 ${PRODUCT_TEXT_CLASS_NAME}`}
+                    >
                       {translatedDescription}
                     </p>
                   )}

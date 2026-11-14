@@ -34,10 +34,10 @@
 :::tabs
 @tab SAML
 - **SAML 공급자 추가**를 클릭합니다.
-- **이름**, ID 공급자의 **Sign On URL**과 **Issuer**를 입력하고 **Public Certificate**를 붙여 넣습니다. 나머지는 **추가 필드**에 이미 채워져 있습니다. **Signature Method**(`RSA-SHA256`), **Digest Method**(`SHA256`), 설명(`Sign in with`와 이름)입니다. IdP에서 필요한 경우에만 변경하세요. 저장하면 공급자 페이지가 열립니다.
+- **이름**, ID 공급자의 **로그인 URL**과 **발급자**를 입력하고 **공개 인증서**를 붙여 넣습니다. 나머지는 **추가 필드**에 이미 채워져 있습니다. **서명 방법**(`RSA-SHA256`), **다이제스트 방법**(`SHA256`), 설명(`Sign in with`와 이름)입니다. IdP에서 필요한 경우에만 변경하세요. 저장하면 공급자 페이지가 열립니다.
 @tab OpenID Connect
 - **OIDC 공급자 추가**를 클릭합니다.
-- **이름**, **Issuer URL**, 그리고 IdP에 등록한 앱의 **Client ID**와 **Client Secret**을 입력합니다. **Issuer URL**에 IdP의 검색 URL을 붙여 넣어도 됩니다. 나머지는 **추가 필드**에 이미 채워져 있습니다. **Discovery URL**(발급자 뒤에 `/.well-known/openid-configuration`을 붙인 값), **Scopes**(`openid email profile`), `email`과 `name` 클레임 이름, 설명(`Sign in with`와 이름)입니다. IdP에서 필요한 경우에만 변경하세요. 저장하면 공급자 페이지가 열립니다.
+- **이름**, **발급자 URL**, 그리고 IdP에 등록한 앱의 **클라이언트 ID**와 **클라이언트 시크릿**을 입력합니다. **발급자 URL**에 IdP의 검색 URL을 붙여 넣어도 됩니다. 나머지는 **추가 필드**에 이미 채워져 있습니다. **검색 URL**(발급자 뒤에 `/.well-known/openid-configuration`을 붙인 값), **범위**(`openid email profile`), `email`과 `name` 클레임 이름, 설명(`Sign in with`와 이름)입니다. IdP에서 필요한 경우에만 변경하세요. 저장하면 공급자 페이지가 열립니다.
 :::
 
 ### OneUptime의 URL을 ID 공급자에 복사
@@ -150,7 +150,7 @@ flowchart TB
 :::
 
 :::details "Issuer URL does not match"
-SAML 공급자의 경우, ID 공급자 응답의 발급자가 공급자에 저장된 **Issuer**와 다릅니다. ID 공급자에서 다시 복사하세요. 두 값은 정확히 일치해야 합니다.
+SAML 공급자의 경우, ID 공급자 응답의 발급자가 공급자에 저장된 **발급자**와 다릅니다. ID 공급자에서 다시 복사하세요. 두 값은 정확히 일치해야 합니다.
 :::
 
 :::details "SAML Audience does not match"

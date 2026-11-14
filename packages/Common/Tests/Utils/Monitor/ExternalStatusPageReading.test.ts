@@ -5,13 +5,19 @@ import StatusPageSummaryUtil, {
 import ExternalStatusPageReading, {
   EXTERNAL_STATUS_PAGE_MAX_COMPONENTS,
   EXTERNAL_STATUS_PAGE_MAX_INCIDENTS,
+  EXTERNAL_STATUS_PAGE_ONEUPTIME_IP_NOT_ALLOWED_MESSAGE,
   EXTERNAL_STATUS_PAGE_ONEUPTIME_NOT_MONITORED,
+  EXTERNAL_STATUS_PAGE_ONEUPTIME_PRIVATE_MESSAGE,
   EXTERNAL_STATUS_PAGE_ONEUPTIME_STATUS_NOT_SHOWN,
+  EXTERNAL_STATUS_PAGE_ONEUPTIME_UNDER_MAINTENANCE,
+  EXTERNAL_STATUS_PAGE_ONEUPTIME_UNDER_MAINTENANCE_OF,
   EXTERNAL_STATUS_PAGE_UNNAMED_INCIDENT,
   ExternalStatusPageComponent,
   ExternalStatusPageContents,
   ExternalStatusPageIncident,
+  ExternalStatusPageOneUptimeNote,
 } from "../../../Utils/Monitor/ExternalStatusPageReading";
+import { fillTemplate } from "../../../Types/Translator";
 import {
   CLOUDFLARE_PAGE,
   GITHUB_INCIDENTS,
@@ -606,6 +612,186 @@ describe("a OneUptime status page", () => {
   });
 });
 
+/*
+ * ONEUPTIME'S OWN NOTES, READ BACK (#6990).
+ *
+ * A OneUptime page's resource with no status of its own is described by a
+ * note the probe writes in OneUptime's words. The monitor's summary draws
+ * that note in the reader's language: readOneUptimeNote reads it back from
+ * the description as its English (a translation key) and the page's words
+ * in it. Anything else - the page's status name, another page's words - is
+ * no note.
+ */
+describe("OneUptime's own notes on a component, read back", () => {
+  const page: FakeStatusPage = {
+    groups: [{ id: "5e300000-0000-4000-8000-000000000c01", name: "Core" }],
+    resources: [
+      {
+        id: "5e300000-0000-4000-8000-000000000d01",
+        name: "Checkout API",
+        groupId: "5e300000-0000-4000-8000-000000000c01",
+        monitorId: "5e300000-0000-4000-8000-000000000a01",
+        statusId: FAKE_STATUSES.operational.id,
+      },
+      {
+        id: "5e300000-0000-4000-8000-000000000d02",
+        name: "Storefront",
+        monitorId: "5e300000-0000-4000-8000-000000000a02",
+        statusId: FAKE_STATUSES.degraded.id,
+      },
+      {
+        id: "5e300000-0000-4000-8000-000000000d03",
+        name: "Search",
+        monitorId: "5e300000-0000-4000-8000-000000000a03",
+        statusId: FAKE_STATUSES.offline.id,
+        isMonitoringOff: true,
+      },
+      {
+        id: "5e300000-0000-4000-8000-000000000d04",
+        name: "Orders database",
+        monitorId: "5e300000-0000-4000-8000-000000000a04",
+        statusId: FAKE_STATUSES.operational.id,
+      },
+    ],
+    maintenance: [
+      {
+        id: "5e300000-0000-4000-8000-000000000e01",
+        title: "Database upgrade",
+        state: "ongoing",
+        startsAt: new Date(Date.now() - 60 * 60 * 1000),
+        monitorIds: ["5e300000-0000-4000-8000-000000000a04"],
+      },
+      {
+        id: "5e300000-0000-4000-8000-000000000e02",
+        title: "Replica resync",
+        state: "ongoing",
+        startsAt: new Date(Date.now() - 30 * 60 * 1000),
+        monitorIds: ["5e300000-0000-4000-8000-000000000a04"],
+      },
+    ],
+  };
+
+  function descriptions(): Array<string | undefined> {
+    const summary: StatusPageSummary = StatusPageSummaryUtil.fromJSON(
+      fakeSummaryJSON(page),
+    )!;
+    // The page hides the Storefront's status.
+    summary.resources[1]!.currentStatus = null;
+
+    return ExternalStatusPageReading.readOneUptimeSummary(
+      summary,
+    ).components.map((component: ExternalStatusPageComponent) => {
+      return component.description;
+    });
+  }
+
+  test("the notes are translation keys, worded as the probe writes them", () => {
+    expect(EXTERNAL_STATUS_PAGE_ONEUPTIME_STATUS_NOT_SHOWN).toBe(
+      "The status page does not show this resource's status.",
+    );
+    expect(EXTERNAL_STATUS_PAGE_ONEUPTIME_NOT_MONITORED).toBe(
+      "The status page shows this resource as not monitored.",
+    );
+    expect(EXTERNAL_STATUS_PAGE_ONEUPTIME_UNDER_MAINTENANCE_OF).toBe(
+      "Under maintenance: {{events}}",
+    );
+    expect(EXTERNAL_STATUS_PAGE_ONEUPTIME_UNDER_MAINTENANCE).toBe(
+      "Under maintenance",
+    );
+  });
+
+  test("the probe writes each note as before: the English, the events' titles joined", () => {
+    expect(descriptions()).toEqual([
+      "Operational",
+      EXTERNAL_STATUS_PAGE_ONEUPTIME_STATUS_NOT_SHOWN,
+      EXTERNAL_STATUS_PAGE_ONEUPTIME_NOT_MONITORED,
+      "Under maintenance: Database upgrade, Replica resync",
+    ]);
+  });
+
+  test("every note the probe writes reads back as its key, the page's words as written", () => {
+    expect(
+      descriptions().map((description: string | undefined) => {
+        return ExternalStatusPageReading.readOneUptimeNote(description);
+      }),
+    ).toEqual([
+      // The page's own status name: no note.
+      null,
+      {
+        template: EXTERNAL_STATUS_PAGE_ONEUPTIME_STATUS_NOT_SHOWN,
+        values: {},
+      },
+      {
+        template: EXTERNAL_STATUS_PAGE_ONEUPTIME_NOT_MONITORED,
+        values: {},
+      },
+      {
+        template: EXTERNAL_STATUS_PAGE_ONEUPTIME_UNDER_MAINTENANCE_OF,
+        values: { events: "Database upgrade, Replica resync" },
+      },
+    ]);
+  });
+
+  test("a note read back and filled again is the description the probe wrote", () => {
+    for (const description of descriptions()) {
+      const note: ExternalStatusPageOneUptimeNote | null =
+        ExternalStatusPageReading.readOneUptimeNote(description);
+
+      if (!note) {
+        continue;
+      }
+
+      expect(fillTemplate(note.template, note.values)).toBe(description);
+    }
+  });
+
+  test("a note with space around it is still the note", () => {
+    expect(
+      ExternalStatusPageReading.readOneUptimeNote(
+        `  ${EXTERNAL_STATUS_PAGE_ONEUPTIME_NOT_MONITORED}\n`,
+      ),
+    ).toEqual({
+      template: EXTERNAL_STATUS_PAGE_ONEUPTIME_NOT_MONITORED,
+      values: {},
+    });
+  });
+
+  test("anything else is no note", () => {
+    for (const description of [
+      undefined,
+      "",
+      "Operational",
+      "Degraded",
+      // The note alone only repeats the status, which the summary says once.
+      EXTERNAL_STATUS_PAGE_ONEUPTIME_UNDER_MAINTENANCE,
+      // No event named after it.
+      "Under maintenance: ",
+      "Under maintenance:   ",
+      // Not the note: other casing, or more words around it.
+      "under maintenance: Database upgrade",
+      "The status page shows this resource as not monitored",
+      "The status page shows this resource as not monitored. Ask its owner.",
+      "Note: The status page does not show this resource's status.",
+    ]) {
+      expect({
+        description,
+        note: ExternalStatusPageReading.readOneUptimeNote(description),
+      }).toEqual({ description, note: null });
+    }
+  });
+
+  test("an event's title keeps whatever it holds, a colon or the note's own words", () => {
+    expect(
+      ExternalStatusPageReading.readOneUptimeNote(
+        "Under maintenance: Phase 2: Under maintenance: replicas",
+      ),
+    ).toEqual({
+      template: EXTERNAL_STATUS_PAGE_ONEUPTIME_UNDER_MAINTENANCE_OF,
+      values: { events: "Phase 2: Under maintenance: replicas" },
+    });
+  });
+});
+
 describe("what a page may list", () => {
   test("at most so many components, and so many incidents", () => {
     const components: Array<JSONObject> = [];
@@ -642,5 +828,69 @@ describe("what a page may list", () => {
         summary: { components, ongoing_incidents: incidents },
       })!.components,
     ).toHaveLength(EXTERNAL_STATUS_PAGE_MAX_COMPONENTS);
+  });
+});
+
+/*
+ * Why a OneUptime page turned the probe away (#7222): the probe stores the
+ * English, which monitor criteria and logs compare, and the summary reads
+ * it back - exactly those words, nothing like them - to draw it in the
+ * reader's language.
+ */
+describe("OneUptime's failure causes, read back", () => {
+  test("the probe's words, as it always wrote them", () => {
+    expect(EXTERNAL_STATUS_PAGE_ONEUPTIME_PRIVATE_MESSAGE).toBe(
+      "This status page is private: only people who sign in to it, or who know its password, can read it. Only a public status page can be watched.",
+    );
+    expect(EXTERNAL_STATUS_PAGE_ONEUPTIME_IP_NOT_ALLOWED_MESSAGE).toBe(
+      "This status page lets in only the IP addresses on its allowlist, and this probe's address is not one of them. Add the probe's address to the allowlist, or watch the page from a probe inside that network.",
+    );
+  });
+
+  test("each reads back as itself", () => {
+    for (const cause of [
+      EXTERNAL_STATUS_PAGE_ONEUPTIME_PRIVATE_MESSAGE,
+      EXTERNAL_STATUS_PAGE_ONEUPTIME_IP_NOT_ALLOWED_MESSAGE,
+    ]) {
+      expect(ExternalStatusPageReading.readOneUptimeFailureCause(cause)).toBe(
+        cause,
+      );
+    }
+  });
+
+  test("with space round it, it still reads back, trimmed", () => {
+    expect(
+      ExternalStatusPageReading.readOneUptimeFailureCause(
+        ` ${EXTERNAL_STATUS_PAGE_ONEUPTIME_PRIVATE_MESSAGE}\n`,
+      ),
+    ).toBe(EXTERNAL_STATUS_PAGE_ONEUPTIME_PRIVATE_MESSAGE);
+  });
+
+  test("words close to them, but not the same, are not OneUptime's", () => {
+    for (const cause of [
+      EXTERNAL_STATUS_PAGE_ONEUPTIME_PRIVATE_MESSAGE.slice(0, -1),
+      `${EXTERNAL_STATUS_PAGE_ONEUPTIME_PRIVATE_MESSAGE} (HTTP 401)`,
+      EXTERNAL_STATUS_PAGE_ONEUPTIME_IP_NOT_ALLOWED_MESSAGE.toUpperCase(),
+      `Error: ${EXTERNAL_STATUS_PAGE_ONEUPTIME_IP_NOT_ALLOWED_MESSAGE}`,
+      EXTERNAL_STATUS_PAGE_ONEUPTIME_NOT_MONITORED,
+    ]) {
+      expect(
+        ExternalStatusPageReading.readOneUptimeFailureCause(cause),
+      ).toBeNull();
+    }
+  });
+
+  test("any other cause, or none, is not OneUptime's", () => {
+    for (const cause of [
+      "HTTP status 503",
+      "Request timed out",
+      "",
+      "   ",
+      undefined,
+    ]) {
+      expect(
+        ExternalStatusPageReading.readOneUptimeFailureCause(cause),
+      ).toBeNull();
+    }
   });
 });

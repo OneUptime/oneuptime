@@ -10,7 +10,7 @@ import {
 } from "@testing-library/react";
 import * as fs from "fs";
 import * as path from "path";
-import React from "react";
+import React, { ReactElement, useRef } from "react";
 import {
   afterEach,
   beforeEach,
@@ -27,6 +27,7 @@ import DefinedTerm, {
   DEFINED_TERM_CLASS_NAME,
   DEFINED_TERM_DEFINITION_TEST_ID,
   DEFINED_TERM_LOADING_TEXT,
+  DEFINED_TERM_POPOVER_CLASS_NAME,
   DEFINED_TERM_POPOVER_TEST_ID,
   DEFINED_TERM_READ_MORE_TEST_ID,
   DEFINED_TERM_READ_MORE_TEXT,
@@ -34,6 +35,10 @@ import DefinedTerm, {
   DEFINED_TERM_UNAVAILABLE_TEXT,
 } from "../../../../UI/Components/Glossary/DefinedTerm";
 import { clearGlossaryReads } from "../../../../UI/Utils/Glossary";
+import {
+  PRODUCT_TEXT_CLASS_NAME,
+  withProductText,
+} from "../../../../UI/Utils/ProductText";
 
 /*
  * A word with its definition (#6819): the word is a button with a dotted
@@ -472,6 +477,59 @@ describe("opening the definition", () => {
     await waitHidden();
   });
 
+  /*
+   * A word inside something its words name - a form field's title names
+   * the field (FieldLabel) - is given a place after it for its definition,
+   * so the definition is no part of that name.
+   */
+  test("is drawn in the place its word is given, still named by the word and reached by Tab from it", async () => {
+    const Title: () => ReactElement = (): ReactElement => {
+      const place: React.RefObject<HTMLSpanElement> =
+        useRef<HTMLSpanElement>(null);
+
+      return (
+        <div>
+          <span data-testid="title">
+            <DefinedTerm term={GlossaryTerm.Criteria} popoverPlace={place}>
+              Criteria
+            </DefinedTerm>{" "}
+            (Optional)
+          </span>
+          <span data-testid="place" ref={place} />
+          <button type="button" data-testid="next">
+            Next
+          </button>
+        </div>
+      );
+    };
+
+    render(<Title />);
+
+    fireEvent.mouseEnter(word());
+    await definitionShown();
+
+    const box: HTMLElement = popover() as HTMLElement;
+
+    expect(screen.getByTestId("place")).toContainElement(box);
+    expect(screen.getByTestId("title")).not.toContainElement(box);
+    expect(screen.getByRole("dialog", { name: "Criteria" })).toContainElement(
+      box,
+    );
+
+    const readMore: HTMLElement = screen.getByTestId(
+      DEFINED_TERM_READ_MORE_TEST_ID,
+    );
+
+    expect(
+      word().compareDocumentPosition(readMore) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      readMore.compareDocumentPosition(screen.getByTestId("next")) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
   test("every word on a page shares one read of the glossary, and sends nothing to analytics", async () => {
     render(
       <div>
@@ -591,6 +649,68 @@ describe("what the popover says", () => {
       "href",
       `${DOCS}/en/introduction/glossary#runbook`,
     );
+  });
+
+  /*
+   * The popover is drawn inside its word's parent, so it would take on that
+   * parent's type: a row name in small capitals ("When this goes down" names
+   * its On-call policy row so), or a card title's weight.
+   */
+  test("reads in its own type, not in the capitals, spacing or weight around its word", async () => {
+    render(
+      <span className="text-xs font-semibold uppercase tracking-wide">
+        <DefinedTerm term={GlossaryTerm.Criteria}>Criteria</DefinedTerm>
+      </span>,
+    );
+
+    fireEvent.mouseEnter(word());
+    await definitionShown();
+
+    const box: HTMLElement = popover() as HTMLElement;
+
+    expect(box.closest(".uppercase")).not.toBeNull();
+    // Its own type, and the mark of the product's words, which draws nothing.
+    expect(box.className).toBe(
+      withProductText(DEFINED_TERM_POPOVER_CLASS_NAME),
+    );
+    expect(box).toHaveClass(
+      "text-sm",
+      "font-normal",
+      "normal-case",
+      "tracking-normal",
+    );
+  });
+});
+
+/*
+ * A recording of the first-run pages masks every word on the page but the
+ * product's own (Utils/ProductText). A definition is the product's own
+ * words wherever it is drawn - beside its word, after a field's title
+ * (DefinedTermInFieldLabel.test.tsx) or after a heading
+ * (DefinedTermInCardTitle.test.tsx) - so its popover carries the mark
+ * itself. The words around it, its word among them, are the page's to mark.
+ */
+describe("in a recording of the page", () => {
+  test("the definition is recorded as written, and the line around it is left to the page", async () => {
+    render(
+      <p data-testid="line">
+        Each check is held to its{" "}
+        <DefinedTerm term={GlossaryTerm.Criteria}>criteria</DefinedTerm>.
+      </p>,
+    );
+
+    fireEvent.mouseEnter(word());
+
+    const definition: HTMLElement = await definitionShown();
+    const box: HTMLElement = popover() as HTMLElement;
+    const marked: string = `.${PRODUCT_TEXT_CLASS_NAME}`;
+
+    expect(definition.closest(marked)).toBe(box);
+    expect(
+      screen.getByTestId(DEFINED_TERM_READ_MORE_TEST_ID).closest(marked),
+    ).toBe(box);
+    expect(screen.getByTestId("line").closest(marked)).toBeNull();
+    expect(word().closest(marked)).toBeNull();
   });
 });
 

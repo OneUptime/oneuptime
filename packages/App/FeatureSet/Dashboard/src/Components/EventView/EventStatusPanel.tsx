@@ -3,11 +3,13 @@ import Color from "Common/Types/Color";
 import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Icon from "Common/UI/Components/Icon/Icon";
+import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
 import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import MoreMenuSection from "Common/UI/Components/MoreMenu/MoreMenuSection";
 import Pill from "Common/UI/Components/Pill/Pill";
 import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
+import { getLineDirection } from "Common/UI/Utils/LineDirection";
 import { PermissionGateResult } from "Common/UI/Utils/PermissionGate";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import { StateMoveList } from "Common/Utils/StateMove";
@@ -21,12 +23,14 @@ import {
   EVENT_HEADER_FACT_CLASS_NAME,
   EVENT_HEADER_FACT_LABEL_CLASS_NAME,
   EVENT_HEADER_FACT_LABEL_ICON_CLASS_NAME,
+  EVENT_HEADER_FACT_LABEL_TEXT_CLASS_NAME,
   EVENT_HEADER_FACT_VALUE_CLASS_NAME,
   EVENT_HEADER_LOCKED_WRAPPER_CLASS_NAME,
   EVENT_HEADER_MENU_WRAPPER_CLASS_NAME,
   EVENT_HEADER_NOTICE_CLASS_NAMES,
   EVENT_HEADER_NUMBER_CLASS_NAME,
   EVENT_HEADER_TEST_IDS,
+  EVENT_HEADER_TITLE_WORDS_CLASS_NAME,
   EVENT_HEADER_TOP_SECTION_CLASS_NAME,
   EventHeaderActionWidthInput,
   EventHeaderNoticeTone,
@@ -104,6 +108,16 @@ export interface EventPanelMenuItem {
  */
 export interface EventStatusFact {
   label: string;
+  /*
+   * The label is a name someone typed, not one of the product's words: the
+   * project's own name for its primary role ("Incident Lead") over the
+   * person who holds it. It is a line of its own that reads the way it is
+   * written (IsolatedLine): on an Arabic or Persian page an English role
+   * name wraps from its own start beside its icon, its brackets and full
+   * stops where they were typed. A built-in name ("Incident Commander") is
+   * still looked up in the reader's language first.
+   */
+  isLabelTyped?: boolean | undefined;
   value: string | ReactElement;
   icon?: IconProp | undefined;
 }
@@ -177,7 +191,7 @@ export interface ComponentProps {
 const EventStatusPanel: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const { translateString } = useTranslateValue();
+  const { translateString, language } = useTranslateValue();
 
   /*
    * The states the panel draws and offers: an archived state only while
@@ -642,7 +656,26 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
               className={topRow.title}
               data-testid={EVENT_HEADER_TEST_IDS.title}
             >
-              {props.title}
+              {/*
+               * The title reads the way it is written. One that reads the
+               * other way from the page (an English title on an Arabic
+               * page) is a line of its own inside the heading
+               * (EVENT_HEADER_TITLE_WORDS_CLASS_NAME): it wraps from its
+               * own start and keeps its full stop at its own end, while
+               * the heading keeps its place and its whole width in the
+               * header. One that reads the page's way is drawn as it
+               * always was.
+               */}
+              {getLineDirection(props.title, language) ? (
+                <IsolatedLine
+                  as="span"
+                  text={props.title}
+                  className={EVENT_HEADER_TITLE_WORDS_CLASS_NAME}
+                  dataTestId={EVENT_HEADER_TEST_IDS.titleWords}
+                />
+              ) : (
+                props.title
+              )}
             </h2>
           )}
 
@@ -710,9 +743,17 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
                       className={EVENT_HEADER_FACT_LABEL_ICON_CLASS_NAME}
                     />
                   )}
-                  <span className="min-w-0 break-words">
-                    {translateLabel(fact.label)}
-                  </span>
+                  {fact.isLabelTyped ? (
+                    <IsolatedLine
+                      as="span"
+                      text={translateLabel(fact.label)}
+                      className={EVENT_HEADER_FACT_LABEL_TEXT_CLASS_NAME}
+                    />
+                  ) : (
+                    <span className={EVENT_HEADER_FACT_LABEL_TEXT_CLASS_NAME}>
+                      {translateLabel(fact.label)}
+                    </span>
+                  )}
                 </dt>
                 <dd className={EVENT_HEADER_FACT_VALUE_CLASS_NAME}>
                   {fact.value}

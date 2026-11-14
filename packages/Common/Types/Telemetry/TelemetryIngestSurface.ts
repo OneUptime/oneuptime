@@ -70,11 +70,12 @@ enum TelemetryIngestSurface {
   ResourceAiAgent = "resource-ai-agent",
   /*
    * The OpAMP supervisor OneUptime's host installer puts on a host
-   * (POST /opamp/v1): it reports the collector's state and receives the
-   * config the host runs. Server keys only - a page never manages a
-   * collector - and a key pinned to one service is refused there: a host's
-   * collector sends the host's telemetry, not one service's. Not an
-   * identity registration surface (below): one key serves a whole fleet,
+   * (POST /telemetry/opamp/v1, or /opamp/v1 from a host installed before
+   * the installers moved to /telemetry): it reports the collector's state
+   * and receives the config the host runs. Server keys only - a page never
+   * manages a collector - and a key pinned to one service is refused there:
+   * a host's collector sends the host's telemetry, not one service's. Not
+   * an identity registration surface (below): one key serves a whole fleet,
    * each host polling every 30 seconds, which that surfaces' default
    * requests-per-minute ceiling would refuse.
    */

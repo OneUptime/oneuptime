@@ -78,7 +78,6 @@ const ServiceSourceMaps: FunctionComponent<
             },
             title: "Size (bytes)",
             type: FieldType.Number,
-            noValueMessage: "-",
           },
           {
             field: {

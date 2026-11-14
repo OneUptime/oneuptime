@@ -3,6 +3,8 @@ import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { formatMilliseconds } from "../../../Utils/Milliseconds";
+import AttemptLine, { AttemptLinePart } from "./AttemptLine";
 
 export interface ComponentProps {
   attempts: Array<ProbeAttempt>;
@@ -37,46 +39,48 @@ const ProbeAttemptsView: FunctionComponent<ComponentProps> = (
           const attemptedAt: Date = new Date(attempt.attemptedAt);
           const responseReceivedAt: Date = new Date(attempt.responseReceivedAt);
 
+          const parts: Array<AttemptLinePart> = [
+            {
+              text: translator.translateTemplate(
+                "Attempt {{number}}/{{total}}",
+                {
+                  number: translator.formatNumber(
+                    attempt.attemptNumber ?? index + 1,
+                  ),
+                  total: translator.formatNumber(totalAttempts),
+                },
+              ),
+            },
+            {
+              text:
+                translator.translateText(failed ? "Failed" : "Succeeded") ||
+                (failed ? "Failed" : "Succeeded"),
+              className: failed ? "text-red-700" : "text-green-700",
+            },
+          ];
+
+          if (typeof attempt.responseTimeInMs === "number") {
+            parts.push({
+              text: formatMilliseconds(translator, attempt.responseTimeInMs, {
+                maximumFractionDigits: 0,
+              }),
+            });
+          }
+
+          if (typeof attempt.responseCode === "number") {
+            parts.push({
+              text: translator.translateTemplate("HTTP {{code}}", {
+                code: attempt.responseCode,
+              }),
+            });
+          }
+
           return (
             <li
               key={attempt.attemptNumber ?? index}
               className="text-sm text-gray-700"
             >
-              <div>
-                <span className="font-mono">
-                  {translator.translateTemplate(
-                    "Attempt {{number}}/{{total}}",
-                    {
-                      number: attempt.attemptNumber,
-                      total: totalAttempts,
-                    },
-                  )}
-                </span>
-                <span className="mx-2 text-gray-400">—</span>
-                <span className={failed ? "text-red-700" : "text-green-700"}>
-                  {translator.translateText(failed ? "Failed" : "Succeeded")}
-                </span>
-                {typeof attempt.responseTimeInMs === "number" && (
-                  <>
-                    <span className="mx-2 text-gray-400">—</span>
-                    <span>
-                      {translator.translateTemplate("{{value}} ms", {
-                        value: Math.round(attempt.responseTimeInMs),
-                      })}
-                    </span>
-                  </>
-                )}
-                {typeof attempt.responseCode === "number" && (
-                  <>
-                    <span className="mx-2 text-gray-400">—</span>
-                    <span>
-                      {translator.translateTemplate("HTTP {{code}}", {
-                        code: attempt.responseCode,
-                      })}
-                    </span>
-                  </>
-                )}
-              </div>
+              <AttemptLine testId="probe-attempt-line" parts={parts} />
               <div className="ml-4 mt-1 text-xs text-gray-500">
                 {translator.translateTemplate(
                   "Started {{started}} → Responded {{responded}}",

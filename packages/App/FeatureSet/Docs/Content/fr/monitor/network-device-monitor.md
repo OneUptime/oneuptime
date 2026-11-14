@@ -190,7 +190,7 @@ Chaque endroit qui montre un équipement — la liste des appareils, la page App
 | --- | --- |
 | **En service** | La dernière interrogation (ping ou SNMP), ou le moniteur lié, a joint l'équipement. |
 | **Hors service** | La dernière interrogation (ping ou SNMP), ou le moniteur lié, n'a pas pu joindre l'équipement. |
-| **En attente** | Pas encore de verdict : jamais interrogé, aucune sonde assignée ou aucun moniteur lié. |
+| **En attente** | Pas encore de verdict : jamais interrogé, aucune sonde assignée, aucun moniteur lié, ou le moniteur lié est désactivé ou archivé. |
 
 | Qualificatif | Affiché quand | Que faire |
 | --- | --- | --- |
@@ -198,6 +198,8 @@ Chaque endroit qui montre un équipement — la liste des appareils, la page App
 | **Aucune sonde** | L'équipement est interrogé par sonde mais n'en a pas, ou son interrogation est désactivée. | Assignez une sonde qui peut le joindre ; rien ne l'interroge d'ici là. |
 | **Aucun moniteur** | L'équipement utilise le [remplacement par un moniteur lié](#le-remplacement-par-un-moniteur-lié) et rien n'est lié. | Liez un moniteur, ou repassez-le en interrogation par sonde. |
 | **SNMP failing** | Joignable par ping, mais le dernier parcours SNMP a échoué. | Vérifiez les identifiants, l'agent SNMP ou une ACL. |
+| **Surveillance désactivée** | La surveillance du moniteur lié est désactivée, donc l'équipement affiche **En attente** plutôt que le statut où le moniteur a été laissé. | Réactivez la surveillance du moniteur, ou liez un autre moniteur. |
+| **Moniteur archivé** | Le moniteur lié est archivé, donc l'équipement affiche **En attente** plutôt que le statut où le moniteur a été laissé. | Désarchivez le moniteur, ou liez un autre moniteur. |
 
 La liste **Appareils** a un filtre **SNMP** à trois valeurs : **OK** (le dernier parcours a réussi), **En échec** (le dernier parcours a échoué) et **Non configuré** (seulement pingué, pas d'identifiants, ou jamais interrogé). « Quels équipements ont des identifiants qui ne marchent plus » est donc à un clic. La colonne **Interfaces (actives / hors service)** de la liste indique **Pas de SNMP** au lieu de `0 / 0` pour un équipement pingué et jamais interrogé : zéro port fonctionnel serait une autre affirmation, et une fausse.
 

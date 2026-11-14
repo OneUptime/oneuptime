@@ -739,8 +739,8 @@ describe("what runs inside the network", () => {
       ),
     ).toBe(true);
     expectFileToSay(
-      "AGENTS.md",
-      "### Emails load nothing from outside the installation",
+      "Docs/notifications/README.md",
+      "## Emails load nothing from outside the installation",
     );
     expectFileToSay(
       docsPagePath("self-hosted/architecture"),

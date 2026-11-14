@@ -58,6 +58,10 @@ describe("the promo code's answers", () => {
     "This promocode has already been used.",
     "This promocode is assigned to a different user and cannot be used.",
     "Promocode is not valid for this plan. Please select the Growth plan.",
+    // Reworded to say what to do next (#6836), and still the field's.
+    "This promo code is not valid. Check it for typos, or leave Promo Code empty to create the project without it.",
+    "This promo code has already been used. Leave Promo Code empty to create the project without it.",
+    "This promo code belongs to another account. Leave Promo Code empty to create the project without it.",
   ];
 
   test.each(promoAnswers)("%p is the promo code's", (message: string) => {
@@ -94,9 +98,15 @@ describe("the name's answer", () => {
   });
 
   test("ProjectService still says it in those words", () => {
+    // Reworded to say what to do next (#6836): still "same name".
     expect(thrownMessages()).toContain(
-      "Project with the same name already exists",
+      "You already have a project with the same name. Choose another name.",
     );
+    expect(
+      isProjectNameServerError(
+        "You already have a project with the same name. Choose another name.",
+      ),
+    ).toBe(true);
   });
 });
 

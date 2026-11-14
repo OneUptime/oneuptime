@@ -261,7 +261,9 @@ export default class EmailInlineImages {
    * holds it, escaped. For an image the email renderer leaves out before
    * attach() ever sees it, so the reader sees the same note: a copy of a
    * screenshot past what references may copy into one email field
-   * (Server/Types/Markdown, MAX_EMAIL_HELD_TEXT_IN_REFERENCES).
+   * (Server/Types/Markdown, MAX_EMAIL_HELD_TEXT_IN_REFERENCES), or a copy
+   * of an image from the web past what copies of addresses may write in it
+   * (MAX_EMAIL_COPIED_HTML_IN_REFERENCES).
    */
   public static getTooLargeImageNotice(altText: string): string {
     return getLeftOutImageNotice(altText, TOO_LARGE_REASON);

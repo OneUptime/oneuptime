@@ -26,7 +26,7 @@ Jede Minute liest OneUptime die Profile, die zu den Filtern des Monitors passen 
 
 ## Bevor Sie beginnen
 
-- Ihre Dienste senden kontinuierliche Profiling-Daten an OneUptime, über Grafana Alloy (eBPF), ein Pyroscope-SDK oder den OneUptime-Kubernetes-Agent. Siehe [Kontinuierliches Profiling](/docs/telemetry/profiles).
+- Ihre Dienste senden kontinuierliche Profiling-Daten an OneUptime, über Grafana Alloy (eBPF), ein Pyroscope-SDK oder den OneUptime-Kubernetes-Agent. Siehe [Profile](/docs/telemetry/profiles).
 - Um eine Funktion zu beobachten, kennen Sie ihren Namen oder einen Teil ihres Datei- oder Paketpfads, so wie der Profiler sie zeigt.
 
 ## Einen Profile-Monitor erstellen
@@ -34,7 +34,7 @@ Jede Minute liest OneUptime die Profile, die zu den Filtern des Monitors passen 
 :::steps
 ### Aus dem Profiler oder über Monitor erstellen beginnen
 
-Am schnellsten geht es von der Funktion selbst aus: Öffnen Sie in **Leistungsprofile** die Funktion und klicken Sie auf den Link, der eine Warnung zu ihrem Anteil anbietet. **Monitor erstellen** öffnet sich mit einem Monitor, der für diese Funktion und ihren Dienst ausgefüllt ist, mit einem Schwellenwert über dem, was sie heute beansprucht, wie unter [Beispiel: Eine Funktion wird schwerer](#beispiel-eine-funktion-wird-schwerer) beschrieben. Andernfalls gehen Sie zu **Monitore** und klicken auf **Monitor erstellen**.
+Am schnellsten geht es von der Funktion selbst aus: Öffnen Sie in **Profile** die Funktion und klicken Sie auf den Link, der eine Warnung zu ihrem Anteil anbietet. **Monitor erstellen** öffnet sich mit einem Monitor, der für diese Funktion und ihren Dienst ausgefüllt ist, mit einem Schwellenwert über dem, was sie heute beansprucht, wie unter [Beispiel: Eine Funktion wird schwerer](#beispiel-eine-funktion-wird-schwerer) beschrieben. Andernfalls gehen Sie zu **Monitore** und klicken auf **Monitor erstellen**.
 
 ### Profiles wählen
 
@@ -84,7 +84,7 @@ Setzen Sie die ID des Dienstes in `telemetryServiceIds`, oder lassen Sie die Lis
 | `attributes` | Profile, deren Attribute diese Werte haben. | Leer: keine Bedingung |
 | `lastXSecondsOfProfiles` | Profile, die innerhalb dieser Anzahl Sekunden vor der Auswertung begonnen haben. | Keiner: immer setzen, sonst wird jedes gespeicherte Profil gezählt und die Anzahl fällt nie auf 0 |
 
-Alle Filter, die Sie setzen, müssen passen, damit ein Profil gelesen wird. Im Formular setzt **Funktion** den Wert `functionName`, **Was analysiert werden soll** setzt `profileTypes` (**Jede Profilart** lässt es leer), **Profile überwachen für (Zeit)** setzt `lastXSecondsOfProfiles`, und **Nach Telemetrie-Dienst filtern** und **Nach Infrastruktur-Entität filtern** setzen `telemetryServiceIds` und `entityKeys`.
+Alle Filter, die Sie setzen, müssen passen, damit ein Profil gelesen wird. Im Formular setzt **Funktion** den Wert `functionName`, **Was analysiert werden soll** setzt `profileTypes` (**Jede Profilart** lässt es leer), **Profile überwachen für (Zeit)** setzt `lastXSecondsOfProfiles`, und **Nach Dienst filtern** und **Nach Infrastruktur-Entität filtern** setzen `telemetryServiceIds` und `entityKeys`.
 
 ## Wie er ausgewertet wird
 
@@ -127,7 +127,7 @@ Für Profilanzahlen gibt es keine Anomaliebedingungen: Es gibt keine Baseline, m
 
 `parseOrder` im Checkout-Dienst beansprucht 18 % seiner CPU-Zeit. Ein Deployment, das eine größere Nutzlast parst, soll nicht unbemerkt bleiben:
 
-1. Wählen Sie in **Leistungsprofile** den Checkout-Dienst und öffnen Sie `parseOrder`.
+1. Wählen Sie in **Profile** den Checkout-Dienst und öffnen Sie `parseOrder`.
 2. Klicken Sie auf den Link, der eine Warnung zu ihrem Anteil anbietet. Der Profiler schlägt 30 % vor: die Hälfte über dem heutigen Anteil, mindestens 10 Punkte mehr, aufgerundet auf ein Vielfaches von 5.
 3. **Monitor erstellen** öffnet sich mit einem Profile-Monitor des Checkout-Dienstes, der **CPU-Zeit** über die **Letzte 5 Minuten** liest, mit zwei Kriterien: **Funktionsanteil (in %)** **Größer als** `30` löst eine Warnung aus, die sich selbst behebt, und setzt den Monitor auf beeinträchtigt; **Kleiner als oder gleich** `30` setzt ihn auf betriebsbereit. Der Vorfall ist ausgefüllt, aber ausgeschaltet: Schalten Sie ihn ein, um jemanden zu alarmieren.
 4. Klicken Sie auf **Monitor erstellen**.
@@ -157,7 +157,7 @@ Kein Frame im Fenster enthält den Funktionstext. Öffnen Sie die Funktion im Pr
 ## Nächste Schritte
 
 :::cards
-- [Kontinuierliches Profiling](/docs/telemetry/profiles): Profile senden und im Profiler lesen.
+- [Profile](/docs/telemetry/profiles): Profile senden und im Profiler lesen.
 - [Monitor-Schritte](/docs/terraform/monitor-steps): Die Schrittkonfiguration aus Terraform übergeben.
 - [Traces-Überwachung](/docs/monitor/traces-monitor): Auf fehlschlagende Spans warnen.
 - [Metriken-Überwachung](/docs/monitor/metrics-monitor): Auf CPU, Speicher und andere Metriken warnen.

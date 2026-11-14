@@ -236,6 +236,10 @@ curl -fsSL https://oneuptime.com/docs/static/scripts/host-collector/install.sh |
 HTTP `401`: 키가 틀렸거나 만료되었거나 삭제되었습니다. HTTP `422`: 키가 비활성화되었거나, 브라우저 키이거나, 서비스 하나에 고정되어 있습니다. **호스트 추가**에서 활성화된 서버 키를 선택하고 명령을 다시 실행하세요. 호스트의 키가 교체됩니다.
 :::
 
+:::details 명령에서 OneUptime을 찾을 수 없다고 표시됨
+HTTP `404`: 컬렉터가 구성을 요청하는 주소, 즉 OneUptime URL 뒤에 `/telemetry/opamp/v1`을 붙인 주소가 OneUptime에 닿지 않습니다. `--url`(Windows에서는 `-Url`)이 OneUptime을 여는 주소이고 그 뒤에 아무것도 붙어 있지 않은지 확인하세요. OneUptime 앞에 자체 프록시나 로드 밸런서가 있다면 `/otlp`처럼 `/telemetry/opamp/v1`도 OneUptime으로 보내도록 설정하세요. 컬렉터는 30초마다 계속 요청하므로, 주소가 올바르게 동작하는 즉시 호스트가 연결됩니다.
+:::
+
 :::details 호스트가 표시되지 않음
 호스트가 HTTPS로 OneUptime URL에 연결할 수 있는지 확인한 뒤, [호스트의 컬렉터 확인](#호스트의-컬렉터-확인)에 있는 해당 시스템용 명령으로 컬렉터 로그를 읽으세요.
 :::

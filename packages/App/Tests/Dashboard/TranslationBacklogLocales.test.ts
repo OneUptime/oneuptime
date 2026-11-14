@@ -241,8 +241,8 @@ const BACKLOG_WORDS: Readonly<Record<string, ReadonlyArray<string>>> = {
     "log",
     "Live",
   ],
-  Profiler: [
-    "Profiler",
+  Profiles: [
+    "Profiles",
     "Samples",
     "Reset zoom",
     "Called by",

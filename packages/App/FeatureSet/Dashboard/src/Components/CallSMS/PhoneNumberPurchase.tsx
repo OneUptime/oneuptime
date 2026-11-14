@@ -33,6 +33,8 @@ import {
 } from "./IncomingCallPhoneNumberLock";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import PhoneNumberText from "Common/UI/Components/PhoneNumber/PhoneNumberText";
+import { phoneNumberInLine } from "Common/Types/PhoneNumberDirection";
 
 // Available phone number from search
 interface AvailablePhoneNumber {
@@ -239,7 +241,12 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
       setSuccessMessage(
         translator.translateTemplate(
           "Phone number {{phoneNumber}} has been reserved and configured for this policy.",
-          { phoneNumber: selectedNumber.phoneNumber },
+          {
+            phoneNumber: phoneNumberInLine(
+              selectedNumber.phoneNumber,
+              translator.language,
+            ),
+          },
         ),
       );
       setShowSuccessModal(true);
@@ -292,7 +299,12 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
         releasedPhoneNumber
           ? translator.translateTemplate(
               "{{phoneNumber}} has been released back to Twilio.",
-              { phoneNumber: releasedPhoneNumber },
+              {
+                phoneNumber: phoneNumberInLine(
+                  releasedPhoneNumber,
+                  translator.language,
+                ),
+              },
             )
           : (translator.translateText(
               "The phone number has been released back to Twilio.",
@@ -381,7 +393,12 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
       setSuccessMessage(
         translator.translateTemplate(
           "Phone number {{phoneNumber}} has been assigned and configured for this policy.",
-          { phoneNumber: selectedOwnedNumber.phoneNumber },
+          {
+            phoneNumber: phoneNumberInLine(
+              selectedOwnedNumber.phoneNumber,
+              translator.language,
+            ),
+          },
         ),
       );
       setShowSuccessModal(true);
@@ -458,8 +475,14 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
                       {translator.translateText("Phone Number")}
                     </p>
                     <p className="text-lg font-semibold text-green-700 break-all">
-                      {phoneNumberText ||
-                        translator.translateText("Unknown phone number")}
+                      {phoneNumberText ? (
+                        <PhoneNumberText
+                          phoneNumber={phoneNumberText}
+                          dataTestId="incoming-call-policy-phone-number-value"
+                        />
+                      ) : (
+                        translator.translateText("Unknown phone number")
+                      )}
                     </p>
                     {phoneNumber.countryCode ? (
                       <p className="text-xs text-gray-500">
@@ -474,7 +497,7 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
                 </div>
                 <div className="ml-auto shrink-0">
                   <Button
-                    title="Release"
+                    title="Release Number"
                     buttonStyle={ButtonStyleType.DANGER_OUTLINE}
                     icon={IconProp.Trash}
                     disabled={releaseLock.isLocked}
@@ -659,11 +682,17 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
                     className="flex items-center justify-between p-4 bg-white border rounded-lg hover:bg-gray-50"
                   >
                     <div>
+                      {/*
+                       * The name Twilio gives the number - the number
+                       * written out, "(415) 555-0100", unless someone
+                       * named it - and the number, each read the way it
+                       * is written in every language (PhoneNumberText).
+                       */}
                       <p className="font-medium text-gray-900">
-                        {number.friendlyName}
+                        <PhoneNumberText phoneNumber={number.friendlyName} />
                       </p>
                       <p className="text-sm text-gray-500">
-                        {number.phoneNumber}
+                        <PhoneNumberText phoneNumber={number.phoneNumber} />
                       </p>
                       {isInUse && (
                         <p className="text-xs text-yellow-600 mt-1">
@@ -774,7 +803,9 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
                       >
                         <div>
                           <p className="font-medium text-gray-900">
-                            {number.friendlyName}
+                            <PhoneNumberText
+                              phoneNumber={number.friendlyName}
+                            />
                           </p>
                           <p className="text-sm text-gray-500">
                             {number.locality && `${number.locality}, `}
@@ -949,10 +980,12 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
                 ? translator.translateTemplate(
                     "Are you sure you want to release {{phoneNumber}}? This action will return the number to Twilio and it may not be available to reserve again.",
                     {
-                      phoneNumber:
+                      phoneNumber: phoneNumberInLine(
                         getIncomingCallPolicyPhoneNumberText(
                           phoneNumberToRelease,
                         ),
+                        translator.language,
+                      ),
                     },
                   )
                 : "Are you sure you want to release this phone number? This action will return the number to Twilio and it may not be available to reserve again."
@@ -978,7 +1011,12 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
             title="Confirm Reservation"
             description={translator.translateTemplate(
               "Are you sure you want to reserve {{phoneNumber}}? This will be charged to your Twilio account.",
-              { phoneNumber: selectedNumber.friendlyName },
+              {
+                phoneNumber: phoneNumberInLine(
+                  selectedNumber.friendlyName,
+                  translator.language,
+                ),
+              },
             )}
             error={error}
             submitButtonText="Reserve"
@@ -1003,11 +1041,21 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
               selectedOwnedNumber.voiceUrl
                 ? translator.translateTemplate(
                     "Use {{phoneNumber}} for this policy? Its current webhook will be pointed at OneUptime.",
-                    { phoneNumber: selectedOwnedNumber.friendlyName },
+                    {
+                      phoneNumber: phoneNumberInLine(
+                        selectedOwnedNumber.friendlyName,
+                        translator.language,
+                      ),
+                    },
                   )
                 : translator.translateTemplate(
                     "Are you sure you want to use {{phoneNumber}} for this policy? The webhook will be configured automatically.",
-                    { phoneNumber: selectedOwnedNumber.friendlyName },
+                    {
+                      phoneNumber: phoneNumberInLine(
+                        selectedOwnedNumber.friendlyName,
+                        translator.language,
+                      ),
+                    },
                   )
             }
             error={error}
@@ -1107,7 +1155,7 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
           },
         ]}
       >
-        <div className="p-6">{renderPhoneNumbers()}</div>
+        {renderPhoneNumbers()}
       </Card>
       {renderModals()}
     </>

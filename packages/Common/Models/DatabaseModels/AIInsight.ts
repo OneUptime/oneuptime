@@ -365,8 +365,8 @@ export default class AIInsight extends BaseModel {
     type: TableColumnType.ObjectID,
     required: false,
     canReadOnRelationQuery: true,
-    title: "Telemetry Service ID",
-    description: "ID of the telemetry service this insight is about.",
+    title: "Service ID",
+    description: "ID of the service this insight is about.",
   })
   @Column({
     type: ColumnType.ObjectID,

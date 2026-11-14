@@ -57,7 +57,7 @@ Klik på **Test monitor**, vælg en sonde under **Vælg sonde** og klik på **K�
 
 ### Gennemgå kriterierne
 
-**Monitorkriterier** starter med [standardkriterierne](#standardkriterier): offline, når serveren ikke leverer pålidelig tid, online, når den gør. Tilpas dem efter behov, og klik på **Næste**.
+**Kriterier** starter med [standardkriterierne](#standardkriterier): offline, når serveren ikke leverer pålidelig tid, online, når den gør. Tilpas dem efter behov, og klik på **Næste**.
 
 ### Vælg sonder og opret
 

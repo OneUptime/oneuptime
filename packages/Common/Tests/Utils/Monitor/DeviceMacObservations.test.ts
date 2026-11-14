@@ -221,3 +221,49 @@ describe("the plan is deterministic", () => {
     ]);
   });
 });
+
+/*
+ * OneUptime issue #7389: `now` is when the table was read - for a walk, when
+ * OneUptime received the poll - and two polls of one router are not always
+ * processed in the order they were received. A reading taken after this
+ * table was read is newer evidence, and stands.
+ */
+describe("a reading taken after this table was read", () => {
+  test("stands, however much this table disagrees", () => {
+    expect(
+      observe([
+        device({
+          macAddress: OTHER_MAC,
+          isMacAddressLearned: true,
+          observedMacAddress: OTHER_MAC,
+          observedAt: NOW + 1,
+        }),
+      ]),
+    ).toEqual([]);
+  });
+
+  test("stands for a typed MAC too: its disagreement with the typed MAC is newer", () => {
+    expect(
+      observe([
+        device({
+          macAddress: MAC,
+          observedMacAddress: OTHER_MAC,
+          observedAt: NOW + 1,
+        }),
+      ]),
+    ).toEqual([]);
+  });
+
+  test("taken at this very moment, it is judged as any other", () => {
+    expect(
+      observe([
+        device({
+          macAddress: OTHER_MAC,
+          isMacAddressLearned: true,
+          observedMacAddress: OTHER_MAC,
+          observedAt: NOW,
+        }),
+      ]),
+    ).toEqual([{ deviceId: "device-1", macAddress: MAC, ipAddress: IP }]);
+  });
+});

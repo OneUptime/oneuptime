@@ -37,6 +37,7 @@ import React, {
   useState,
 } from "react";
 import ChartCard from "../../../Components/TelemetryResource/ChartCard";
+import XAxisPrecision from "Common/UI/Components/Charts/Types/XAxis/XAxisPrecision";
 import { ResourceOverviewTile } from "../../../Components/TelemetryResource/ResourceOverview";
 import {
   fetchProductAnalyticsBreakdown,
@@ -451,6 +452,7 @@ const RumApplicationProductAnalyticsSessions: FunctionComponent<
             syncId={`product-analytics-sessions-${modelId.toString()}`}
             showLegend={true}
             yAllowDecimals={false}
+            xAxisPrecision={XAxisPrecision.EVERY_DAY}
             loading={trend.isLoading && !trend.data}
             description="Sessions that started each day, by the kind of device they came from. Days are in your time zone."
           />

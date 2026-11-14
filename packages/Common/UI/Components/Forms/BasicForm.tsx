@@ -1,5 +1,6 @@
 import readAsWritten from "../IsolatedText/ReadAsWritten";
 import API from "../../Utils/API/API";
+import FormRefusals, { FormRefusalKind } from "../../Utils/FormRefusals";
 import UiAnalytics from "../../Utils/Analytics";
 import DropdownUtil from "../../Utils/Dropdown";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
@@ -22,6 +23,9 @@ import {
 } from "../Dropdown/Dropdown";
 import { getDropdownChange } from "../Dropdown/DropdownChange";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
+import ErrorExplanation, {
+  isUnexplainedErrorMessage,
+} from "../ErrorMessage/ErrorExplanation";
 import CollapsibleFormSection from "./CollapsibleFormSection";
 import FormField from "./Fields/FormField";
 import { loadFormFieldControls } from "./Fields/FormFieldControls";
@@ -161,6 +165,12 @@ export interface BaseComponentProps<T> {
   disableAutofocus?: undefined | boolean;
   hideSubmitButton?: undefined | boolean;
   error?: string | undefined;
+  /*
+   * What the form was doing, in the reader's language - "The monitor was
+   * not saved." - said first when the error is one nobody explained
+   * (ErrorExplanation).
+   */
+  whatFailed?: string | undefined;
   onFormStepChange?: undefined | ((stepId: string) => void);
   /*
    * Whether the step on screen is the last one. A host that draws its own
@@ -1082,6 +1092,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
 
       if (Object.keys(validationErrors).length > 0) {
         // errors on form, do not submit.
+        FormRefusals.report(FormRefusalKind.Invalid);
         return;
       }
 
@@ -1167,6 +1178,8 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
         submitValues();
         return;
       }
+
+      FormRefusals.report(FormRefusalKind.Invalid);
 
       // Show every failing field's error, on whichever step it is.
       const touchedFields: Dictionary<boolean> = {};
@@ -1536,7 +1549,19 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                 )}
                 {props.error && !serverErrorFieldName && (
                   <div className="mb-3">
-                    <Alert title={props.error} type={AlertType.DANGER} />
+                    <Alert
+                      title={
+                        isUnexplainedErrorMessage(props.error) ? (
+                          <ErrorExplanation
+                            message={props.error}
+                            whatFailed={props.whatFailed}
+                          />
+                        ) : (
+                          props.error
+                        )
+                      }
+                      type={AlertType.DANGER}
+                    />
                   </div>
                 )}
 

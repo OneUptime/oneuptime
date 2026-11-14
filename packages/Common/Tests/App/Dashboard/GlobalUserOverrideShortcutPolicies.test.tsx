@@ -912,7 +912,7 @@ describe("Skip until… for a member whose permission covers only some policies"
 
     expect(
       within(modal).getByText(
-        "This applies to every on-call policy. To end it early, delete it under On-Call Duty > Advanced > User Overrides.",
+        "This applies to every on-call policy. To end it early, delete it under On-Call > Advanced > User Overrides.",
       ),
     ).toBeInTheDocument();
     expect(within(modal).queryByRole("checkbox")).toBeNull();

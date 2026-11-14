@@ -131,7 +131,7 @@ const RULE_B_ID: ObjectID = new ObjectID(
  * operator different stories.
  */
 const NO_RULES_MESSAGE: string =
-  "No notification rules found for this user. User should add the rules in User Settings > On-Call Rules.";
+  "No notification rules found for this user. User should add the rules in User Settings > How to Reach Me.";
 
 /* The channel the stubbed fallback claims to have delivered on. */
 const FALLBACK_CHANNEL: string = "Email";
@@ -597,7 +597,7 @@ describe("UserOnCallLogService.onCreateSuccess - zero matching notification rule
     expect(updates[1]!.data.status).toBe(UserNotificationExecutionStatus.Error);
     expect(updates[1]!.data.statusMessage).toBe(NO_RULES_MESSAGE);
     expect(updates[1]!.data.statusMessage).toContain(
-      "User Settings > On-Call Rules",
+      "User Settings > How to Reach Me",
     );
 
     expect(timeline).toHaveLength(1);

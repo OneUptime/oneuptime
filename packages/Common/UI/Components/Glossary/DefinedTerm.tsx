@@ -7,6 +7,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   ReactNode,
+  useContext,
   useEffect,
   useId,
   useRef,
@@ -22,10 +23,22 @@ import {
   shortenDefinition,
 } from "../../Utils/Glossary";
 import { wasLastInputFromKeyboard } from "../../Utils/InputModality";
+import { withProductText } from "../../Utils/ProductText";
 import { Translator, translationKey } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import Icon from "../Icon/Icon";
+import WasThisClear from "../Feedback/WasThisClear";
 import { TOOLTIP_PLUGINS } from "../Tooltip/TooltipEscape";
+import {
+  DefinitionPlace,
+  DefinitionPlaceContext,
+} from "./DefinitionsDrawnAfter";
+import {
+  DEFINED_TERM_CLASS_NAME,
+  DEFINED_TERM_TEST_ID,
+  keepDefinedTermKeys,
+  keepDefinedTermPress,
+} from "./DefinedTermWord";
 
 /*
  * A WORD WITH ITS DEFINITION.
@@ -50,6 +63,10 @@ import { TOOLTIP_PLUGINS } from "../Tooltip/TooltipEscape";
  * link. A press keeps the popover open while the pointer moves on to read
  * it - on a phone the finger lifts at once - and the next press, a press
  * anywhere else or Escape puts it away.
+ *
+ * A form field's, a card's and a table column's titles draw it through
+ * LazyDefinedTerm, so the pages that never mark a word - the sign-in pages,
+ * a status page, a public dashboard - do not load it.
  */
 
 export interface ComponentProps {
@@ -58,9 +75,21 @@ export interface ComponentProps {
   // The word as the page draws it, already in the reader's language.
   children: ReactNode;
   dataTestId?: string | undefined;
+  /*
+   * Where the definition is drawn, when not beside its word: for a word
+   * inside something its words name. A form field's title names its field
+   * (Forms/Fields/FieldLabel), and a field is named by every word inside
+   * its title, so a definition drawn there was read out as part of the
+   * field's name while it showed. The place comes right after the word in
+   * the page's order, so Tab still goes from the word to Read more. A word
+   * in a heading is given one by the heading (DefinitionsDrawnAfter).
+   */
+  popoverPlace?: React.RefObject<HTMLElement> | undefined;
 }
 
-export const DEFINED_TERM_TEST_ID: string = "defined-term";
+// The word, as its place draws it too (DefinedTermWord).
+export { DEFINED_TERM_CLASS_NAME, DEFINED_TERM_TEST_ID };
+
 export const DEFINED_TERM_POPOVER_TEST_ID: string = "defined-term-popover";
 export const DEFINED_TERM_DEFINITION_TEST_ID: string =
   "defined-term-definition";
@@ -78,14 +107,21 @@ export const DEFINED_TERM_UNAVAILABLE_TEXT: string = translationKey(
 );
 
 /*
- * The word: its own font and colour, with a dotted line under it that
- * darkens on hover, and the focus ring every control has.
+ * The popover is drawn inside its word's parent, so it would take on that
+ * parent's type: a card title's weight, or the capitals and wide letter
+ * spacing of a row name drawn in small capitals ("When this goes down"
+ * names its On-call policy row so). A definition reads in the popover's
+ * own type, whatever its word is in.
  */
-export const DEFINED_TERM_CLASS_NAME: string =
-  "inline cursor-help rounded-sm bg-transparent p-0 text-start underline decoration-gray-400 decoration-dotted decoration-1 underline-offset-4 hover:decoration-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1";
-
 export const DEFINED_TERM_POPOVER_CLASS_NAME: string =
-  "w-72 max-w-full space-y-1.5 px-1 py-1 text-start text-sm focus:outline-none";
+  "w-72 max-w-full space-y-1.5 px-1 py-1 text-start text-sm font-normal normal-case tracking-normal focus:outline-none";
+
+// The topic a definition's "Was this clear?" is kept under: "term.criteria".
+export const getDefinedTermFeedbackTopic: (term: GlossaryTerm) => string = (
+  term: GlossaryTerm,
+): string => {
+  return `term.${term}`;
+};
 
 type ReadState =
   | { status: "idle" }
@@ -123,13 +159,21 @@ const DefinedTermPopover: FunctionComponent<PopoverProps> = (
   return (
     <div
       data-testid={DEFINED_TERM_POPOVER_TEST_ID}
-      className={DEFINED_TERM_POPOVER_CLASS_NAME}
+      /*
+       * The product's own words, wherever the definition is drawn
+       * (Utils/ProductText): a recording of the first-run pages shows it as
+       * written after a heading or a field's title, outside their marked
+       * words, as much as beside its word.
+       */
+      className={withProductText(DEFINED_TERM_POPOVER_CLASS_NAME)}
       onClick={(event: React.MouseEvent<HTMLDivElement>): void => {
         /*
          * The popover is drawn beside its word, which can be inside a
-         * field's <label> or a clickable card: a click on its words must
-         * not tick that label's box or open that card. A click on Read
-         * more still follows the link.
+         * <label> or a clickable card, and a click inside it reaches what
+         * its word is drawn in wherever it is placed (React hands it on
+         * through the portal): a click on its words must not tick that
+         * label's box or open that card. A click on Read more still
+         * follows the link.
          */
         event.stopPropagation();
 
@@ -185,6 +229,18 @@ const DefinedTermPopover: FunctionComponent<PopoverProps> = (
           className="h-3.5 w-3.5 flex-shrink-0"
         />
       </a>
+      {/*
+       * Whether the definition helped (#6832), once it is there to judge:
+       * a quiet thumb up or down, only where OneUptime may ask this person.
+       */}
+      {definition && props.read.status === "ready" ? (
+        <WasThisClear
+          topic={getDefinedTermFeedbackTopic(props.term)}
+          className="border-t border-gray-100 pt-1.5"
+        />
+      ) : (
+        <></>
+      )}
     </div>
   );
 };
@@ -194,12 +250,28 @@ const DefinedTerm: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const triggerId: string = useId();
+  // The word itself, which names the button.
+  const wordId: string = `${triggerId}-word`;
   const [read, setRead] = useState<ReadState>({ status: "idle" });
   const instanceRef: React.MutableRefObject<Instance | null> =
     useRef<Instance | null>(null);
   // The event that last asked the popover to show.
   const lastTriggerRef: React.MutableRefObject<string> = useRef<string>("");
   const isMountedRef: React.MutableRefObject<boolean> = useRef<boolean>(true);
+  /*
+   * The place right after the heading this word is in (a card's title,
+   * DefinitionsDrawnAfter), asked for now that the word can show its
+   * definition - unless the word was given a place of its own.
+   */
+  const headingPlace: DefinitionPlace | undefined = useContext(
+    DefinitionPlaceContext,
+  );
+
+  useEffect(() => {
+    if (!props.popoverPlace) {
+      headingPlace?.ask();
+    }
+  }, [headingPlace, props.popoverPlace]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -237,11 +309,20 @@ const DefinedTerm: FunctionComponent<ComponentProps> = (
   /*
    * An interactive popover is placed in its word's parent, at its end: the
    * span of its own puts it right after the word, so Tab goes from the word
-   * to Read more, and not first through what follows the word.
+   * to Read more, and not first through what follows the word. A place
+   * given for it (popoverPlace) comes right after the word too, and so does
+   * a heading's, right after the heading.
    */
   return (
     <span className="inline">
       <Tippy
+        appendTo={(reference: Element): Element => {
+          return (
+            props.popoverPlace?.current ||
+            headingPlace?.element.current ||
+            (reference.parentNode as Element)
+          );
+        }}
         content={
           <DefinedTermPopover
             term={props.term}
@@ -318,24 +399,22 @@ const DefinedTerm: FunctionComponent<ComponentProps> = (
         <button
           type="button"
           id={triggerId}
+          /*
+           * Named by its own word. A field's <label> with no `for` (a
+           * dropdown's, a picker's) takes this button for the control it
+           * labels, so the button was named by that label - nothing on a
+           * required field, "(Optional)" on another - and the field, named
+           * by the label, could lose its title from its own name ("Probes",
+           * "Incident Severity").
+           */
+          aria-labelledby={wordId}
           data-testid={props.dataTestId || DEFINED_TERM_TEST_ID}
           data-glossary-term={props.term}
           className={DEFINED_TERM_CLASS_NAME}
-          onClick={(event: React.MouseEvent<HTMLButtonElement>): void => {
-            event.preventDefault();
-            event.stopPropagation();
-          }}
-          /*
-           * A card that is itself a button hears Enter and Space bubble up
-           * and would open; they are this word's.
-           */
-          onKeyDown={(event: React.KeyboardEvent<HTMLButtonElement>): void => {
-            if (event.key === "Enter" || event.key === " ") {
-              event.stopPropagation();
-            }
-          }}
+          onClick={keepDefinedTermPress}
+          onKeyDown={keepDefinedTermKeys}
         >
-          {props.children}
+          <span id={wordId}>{props.children}</span>
         </button>
       </Tippy>
     </span>

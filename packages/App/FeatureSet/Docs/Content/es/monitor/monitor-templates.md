@@ -50,7 +50,7 @@ En **Valores predeterminados del monitor**, elija el **Tipo de monitor**, con el
 En **Criterios**, rellene qué comprobar y los criterios, como en [Crear monitor](/docs/monitor/create-monitor#criterios). La tarjeta **Ajustes de sincronización de la plantilla** de la parte superior le permite proteger campos de las sincronizaciones (consulte [Conservar valores propios de cada monitor](#conservar-valores-propios-de-cada-monitor)). En un tipo de monitor que comprueban las sondas, el último paso, **Intervalo**, pide el **Intervalo de monitoreo**. Haga clic en **Crear Plantilla de monitor** en el último paso.
 :::
 
-La plantilla se añade a la lista. Ábrala para ver su página, con una tarjeta para cada parte: **Información de la plantilla**, **Valores predeterminados del monitor**, **Criterios de monitoreo**, **Intervalo de monitoreo** (con **Acuerdo mínimo de sondas**), **Etiquetas**, **Valores predeterminados de campos personalizados** (cuando el proyecto tiene campos personalizados de monitor) y **Monitores vinculados**. Cambia cada parte en su propia tarjeta, por ejemplo con **Editar criterios** o **Editar intervalo**.
+La plantilla se añade a la lista. Ábrala para ver su página, con una tarjeta para cada parte: **Información de la plantilla**, **Valores predeterminados del monitor**, **Criterios**, **Intervalo de monitoreo** (con **Acuerdo mínimo de sondas**), **Etiquetas**, **Valores predeterminados de campos personalizados** (cuando el proyecto tiene campos personalizados de monitor) y **Monitores vinculados**. Cambia cada parte en su propia tarjeta, por ejemplo con **Editar criterios** o **Editar intervalo**.
 
 ## Crear monitores a partir de una plantilla
 
@@ -85,7 +85,7 @@ Vaya a **Monitores → Ajustes → Plantillas** y abra la plantilla.
 
 ### Editar sus criterios
 
-En la tarjeta **Criterios de monitoreo**, haga clic en **Editar criterios**.
+En la tarjeta **Criterios**, haga clic en **Editar criterios**.
 
 ### Proteger los campos
 
@@ -93,14 +93,14 @@ En **Ajustes de sincronización de la plantilla**, marque **No sincronizar este 
 
 ### Guardar
 
-Guarde los cambios. La tarjeta **Criterios de monitoreo**, y la confirmación de las dos sincronizaciones de abajo, listan los campos protegidos.
+Guarde los cambios. La tarjeta **Criterios**, y la confirmación de las dos sincronizaciones de abajo, listan los campos protegidos.
 
 ### Sincronizar
 
 Use **Sincronizar criterios con los monitores vinculados**, o **Sincronizar desde la plantilla** en un monitor vinculado concreto.
 :::
 
-Por ejemplo, proteja **Monitor destination** y **Request headers** en una plantilla de API. Los monitores de producción y de staging conservan sus propias URL y encabezados, mientras ambos reciben los criterios actualizados de la plantilla y sus demás ajustes no protegidos.
+Por ejemplo, proteja **Destino del monitor** y **Encabezados de la solicitud** en una plantilla de API. Los monitores de producción y de staging conservan sus propias URL y encabezados, mientras ambos reciben los criterios actualizados de la plantilla y sus demás ajustes no protegidos.
 
 Las opciones disponibles dependen del tipo de monitor. Incluyen destinos y puertos, opciones de solicitud HTTP, conexiones de base de datos, ajustes de DNS, selectores de infraestructura y consultas de telemetría. Las credenciales relacionadas, como un certificado de cliente y su clave privada, se conservan juntas.
 

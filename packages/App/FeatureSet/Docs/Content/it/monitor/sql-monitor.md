@@ -31,7 +31,7 @@ La sonda riporta solo:
 
 | Valore | Che cos'è |
 |---|---|
-| **Row Count** | Il numero di righe restituite dalla query (limitato dal limite Max Rows). |
+| **Numero di righe** | Il numero di righe restituite dalla query (limitato dal limite Max Rows). |
 | **Valore scalare** | La prima colonna della prima riga. È il valore naturale di una query in stile `SELECT COUNT(*)`. |
 | **First Row** | La prima riga come coppie colonna/valore, mostrata nel riepilogo del controllo come contesto. |
 | **Execution Time** | Quanto è durato il controllo, in millisecondi, compresa la connessione e non solo la query. |
@@ -204,7 +204,7 @@ WHERE status = 'CANCELLED'
 :::
 
 > [!TIP]
-> Per una query in stile `COUNT(*)`, il conteggio è disponibile sia come **Row Count** (che vale `1`, perché viene restituita una riga) sia come **Valore scalare** (il conteggio stesso, dalla prima colonna). Per avvisi su «quanti», confrontate con il **Valore scalare**.
+> Per una query in stile `COUNT(*)`, il conteggio è disponibile sia come **Numero di righe** (che vale `1`, perché viene restituita una riga) sia come **Valore scalare** (il conteggio stesso, dalla prima colonna). Per avvisi su «quanti», confrontate con il **Valore scalare**.
 
 ## Usare un segreto del monitor per la password
 

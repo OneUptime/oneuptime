@@ -19,13 +19,13 @@ total budget = (100% − target) × window length
 
 | Meta | Janela de 7 dias | Janela de 28 dias | Janela de 30 dias | Janela de 90 dias |
 | --- | --- | --- | --- | --- |
-| 99% | 1h 40m 48s | 6h 43m 12s | 7h 12m | 21h 36m |
-| 99.5% | 50m 24s | 3h 21m 36s | 3h 36m | 10h 48m |
-| 99.9% | 10m 5s | 40m 19s | 43m 12s | 2h 9m 36s |
-| 99.95% | 5m 2s | 20m 10s | 21m 36s | 1h 4m 48s |
-| 99.99% | 1m 0s | 4m 2s | 4m 19s | 12m 58s |
+| 99% | 1 h 40 min 48 s | 6 h 43 min 12 s | 7 h 12 min | 21 h 36 min |
+| 99,5% | 50 min 24 s | 3 h 21 min 36 s | 3 h 36 min | 10 h 48 min |
+| 99,9% | 10 min 5 s | 40 min 19 s | 43 min 12 s | 2 h 9 min 36 s |
+| 99,95% | 5 min 2 s | 20 min 10 s | 21 min 36 s | 1 h 4 min 48 s |
+| 99,99% | 1 min 0 s | 4 min 2 s | 4 min 19 s | 12 min 58 s |
 
-A página **Configurações** do SLO mostra o orçamento que a meta permite ao lado da meta, por exemplo "43m 12s de indisponibilidade por janela de 30 dias".
+A página **Configurações** do SLO mostra o orçamento que a meta permite ao lado da meta, por exemplo "43 min 12 s de inatividade por janela de 30 dias".
 
 ### O orçamento de um SLO com vários monitores
 
@@ -35,7 +35,7 @@ No modo **Média de segundos dos monitores**, o orçamento é contado em segundo
 
 ### O orçamento de um mês do calendário
 
-Um SLO de mês do calendário tem o orçamento do mês inteiro desde o primeiro dia: um SLO de 99,9% em um mês de 31 dias tem todos os seus 44m 38s no dia 1. O orçamento não é proporcional à parte do mês que já passou, então uma queda de um minuto na manhã do dia 1 gasta um minuto do orçamento do mês.
+Um SLO de mês do calendário tem o orçamento do mês inteiro desde o primeiro dia: um SLO de 99,9% em um mês de 31 dias tem todos os seus 44 min 38 s no dia 1. O orçamento não é proporcional à parte do mês que já passou, então uma queda de um minuto na manhã do dia 1 gasta um minuto do orçamento do mês.
 
 ## Orçamento restante
 

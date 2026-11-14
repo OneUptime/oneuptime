@@ -281,7 +281,7 @@ Os IDs de cliente são públicos: eles são enviados ao painel para que ele saib
 ## Solução de problemas
 
 :::details Nenhuma chamada foi iniciada para um incidente
-Verifique se a regra correspondeu ao incidente (**Regra de teste**), se a etapa **Video Call** dela está ativada e se o incidente foi declarado em andamento: um incidente criado já resolvido não recebe chamada. Uma regra que já iniciou uma chamada para o incidente com essa conexão não inicia outra.
+Verifique se a regra correspondeu ao incidente (**Testar regra**), se a etapa **Video Call** dela está ativada e se o incidente foi declarado em andamento: um incidente criado já resolvido não recebe chamada. Uma regra que já iniciou uma chamada para o incidente com essa conexão não inicia outra.
 :::
 
 :::details O feed diz que a chamada não pôde ser iniciada

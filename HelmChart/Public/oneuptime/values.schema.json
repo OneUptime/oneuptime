@@ -2162,6 +2162,15 @@
             },
             "additionalProperties": false
         },
+        "products": {
+            "type": "object",
+            "properties": {
+                "onThisServer": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false
+        },
         "sourceMaps": {
             "type": "object",
             "properties": {
@@ -2773,7 +2782,8 @@
                     "type": [
                         "string",
                         "null"
-                    ]
+                    ],
+                    "description": "Headers OneUptime's own telemetry is exported with: name=value, several separated by ';'. A value may hold '='."
                 },
                 "kubernetesClusterName": {
                     "type": [

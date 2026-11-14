@@ -147,7 +147,6 @@ const ProjectTeams: FunctionComponent = (): ReactElement => {
               field: {
                 description: true,
               },
-              noValueMessage: "-",
               title: "Description",
               type: FieldType.LongText,
             },

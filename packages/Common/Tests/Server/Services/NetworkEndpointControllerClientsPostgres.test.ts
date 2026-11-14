@@ -2,6 +2,7 @@ import Entities from "../../../Models/DatabaseModels/Index";
 import PostgresAppInstance from "../../../Server/Infrastructure/PostgresDatabase";
 import NetworkEndpointService, {
   EndpointControllerClient,
+  EndpointWriteCounts,
 } from "../../../Server/Services/NetworkEndpointService";
 import ObjectID from "../../../Types/ObjectID";
 import {
@@ -112,7 +113,9 @@ describePostgres("a controller's clients written to Postgres", () => {
     });
   };
 
-  const walk: (now: Date) => Promise<void> = (now: Date): Promise<void> => {
+  const walk: (now: Date) => Promise<EndpointWriteCounts> = (
+    now: Date,
+  ): Promise<EndpointWriteCounts> => {
     return NetworkEndpointService.upsertDiscoveredEndpoints({
       projectId: PROJECT_ID,
       deviceId: OTHER_SWITCH_ID,

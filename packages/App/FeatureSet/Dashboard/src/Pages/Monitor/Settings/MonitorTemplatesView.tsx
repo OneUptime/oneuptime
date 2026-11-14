@@ -64,6 +64,8 @@ import React, {
 } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
+  ComposedValue,
+  composedValue,
   translatableTerm,
   translationKey,
   Translator,
@@ -107,10 +109,22 @@ const MonitorTemplatesView: FunctionComponent<
     MonitorStepsType | undefined
   >(undefined);
 
-  const protectedFieldsSummary: string = getMonitorTemplateSyncFieldSummary({
-    monitorType: monitorType || MonitorType.Manual,
-    monitorSteps: templateMonitorSteps,
-  });
+  /*
+   * What the template's steps keep from a sync, for the two sync
+   * confirmations: built in the language their sentence is filled in, so a
+   * dialog never says the summary in one language and the rest in another.
+   */
+  const protectedFieldsSummary: ComposedValue = composedValue(
+    (sentence: Translator): string => {
+      return getMonitorTemplateSyncFieldSummary(
+        {
+          monitorType: monitorType || MonitorType.Manual,
+          monitorSteps: templateMonitorSteps,
+        },
+        sentence,
+      );
+    },
+  );
 
   /*
    * The default monitor name this template gives the monitors it creates.
@@ -848,7 +862,7 @@ const MonitorTemplatesView: FunctionComponent<
           key={monitorType}
           name="Monitoring Criteria"
           cardProps={{
-            title: "Monitoring Criteria",
+            title: "Criteria",
             description:
               "What this template watches for and when it should fire.",
             buttons: [

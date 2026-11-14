@@ -170,7 +170,7 @@ const IncidentAffectedResources: FunctionComponent<ComponentProps> = (
         {hasDisplayLabels ? (
           <SeriesLabelsViewer seriesLabels={seriesLabels} />
         ) : (
-          <div className="py-2 text-sm text-gray-400">
+          <div className="text-sm text-gray-500">
             {translator.translateText("No resource labels on this incident.")}
           </div>
         )}

@@ -155,7 +155,7 @@ flowchart TB
 ## 后续步骤
 
 :::cards
-- [监视器条件与状态](/docs/monitor/criteria-and-statuses): 是什么设置了每个监视器的状态。
+- [条件与状态](/docs/monitor/criteria-and-statuses): 是什么设置了每个监视器的状态。
 - [状态页资源与分组](/docs/status-pages/resources-and-groups): 布置状态页上的行。
 - [订阅者与公告](/docs/status-pages/subscribers): 把组的事件告诉客户。
 :::

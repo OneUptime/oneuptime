@@ -43,7 +43,7 @@ En Microsoft 365-organisation kan vara ansluten till mer än ett projekt, till e
 :::steps
 ### Ge administratörsmedgivande
 
-Gå till **Projektinställningar** > **Arbetsyta** > **Microsoft Teams** och klicka på **Bevilja administratörssamtycke**. En Microsoft 365-administratör loggar in och tillåter OneUptime-appen för organisationen. Kortet säger sedan **Admin Consent Completed**. Tills en arbetsyta är ansluten innehåller avsnittet **Arbetsyta** i menyerna Incidenter, Larm, Schemalagt underhåll, Monitorer och Jourtjänst **Anslut en arbetsyta**, som också leder hit.
+Gå till **Projektinställningar** > **Arbetsyta** > **Microsoft Teams** och klicka på **Bevilja administratörssamtycke**. En Microsoft 365-administratör loggar in och tillåter OneUptime-appen för organisationen. Kortet säger sedan **Admin Consent Completed**. Tills en arbetsyta är ansluten innehåller avsnittet **Arbetsyta** i menyerna Incidenter, Larm, Schemalagt underhåll, Monitorer och Jour **Anslut en arbetsyta**, som också leder hit.
 
 ### Anslut ditt konto
 
@@ -64,7 +64,7 @@ Varje person länkar sitt eget Microsoft Teams-konto under **Användarinställni
 
 ### Lägg till en aviseringsregel
 
-Gå till **Incidenter** > **Arbetsyta** > **Microsoft Teams**. Avsnittet **Arbetsyta** visar bara de chattarbetsytor som ditt projekt har anslutit, så **Microsoft Teams** visas där så snart det är anslutet. Skapa en regel, till exempel en som publicerar i en Teams-kanal när en incident skapas, och klicka sedan på **Testregel** på dess rad.
+Gå till **Incidenter** > **Arbetsyta** > **Microsoft Teams**. Avsnittet **Arbetsyta** visar bara de chattarbetsytor som ditt projekt har anslutit, så **Microsoft Teams** visas där så snart det är anslutet. Skapa en regel, till exempel en som publicerar i en Teams-kanal när en incident skapas, och klicka sedan på **Testa regel** på dess rad.
 :::
 
 > [!NOTE]
@@ -88,7 +88,7 @@ En aviseringsregel anger vilka händelser som publiceras i Microsoft Teams, och 
 | **Larm** | **Larm**, **Larmepisoder**, **Sammanfattning** |
 | **Schemalagt underhåll** | En lista med regler |
 | **Monitorer** | En lista med regler |
-| **Jourtjänst** | En lista med regler |
+| **Jour** | En lista med regler |
 | **SLOs** | En lista med regler |
 
 Att skapa en regel går igenom fyra steg:
@@ -122,9 +122,9 @@ En aviseringsregel kan tillhöra team. **Ansvariga team** under **Fler fält** f
 
 ## Testa en regel
 
-**Testregel** på en regels rad publicerar ett testmeddelande för den regeln i de kanaler den anger, så att du ser att det kommer fram. Om regeln skapar en kanal för varje händelse skapar testet också en och bjuder in regelns personer till den.
+**Testa regel** på en regels rad publicerar ett testmeddelande för den regeln i de kanaler den anger, så att du ser att det kommer fram. Om regeln skapar en kanal för varje händelse skapar testet också en och bjuder in regelns personer till den.
 
-Precis som **Skicka test** bredvid en kanal i **Projektinställningar** > **Arbetsyta** > **Microsoft Teams** kräver den behörighet att skapa aviseringsregler: **Projektägare**, **Projektadministratör**, **Projektmedlem**, **Inställningsadministratör**, **Inställningsmedlem**, eller **Create Workspace Notification Rule** och **Read Workspace Notification Rule** i en anpassad roll. För den som bara får se reglerna, som en **Tittare**, är **Testregel** låst, och dess verktygstips anger vad som krävs; API:et avvisar personens test med "You do not have permission to send test notifications in this project." På OneUptime Cloud kräver det **Growth**-planen att testa en regel, precis som att lägga till en.
+Precis som **Skicka test** bredvid en kanal i **Projektinställningar** > **Arbetsyta** > **Microsoft Teams** kräver den behörighet att skapa aviseringsregler: **Projektägare**, **Projektadministratör**, **Projektmedlem**, **Inställningsadministratör**, **Inställningsmedlem**, eller **Create Workspace Notification Rule** och **Read Workspace Notification Rule** i en anpassad roll. För den som bara får se reglerna, som en **Tittare**, är **Testa regel** låst, och dess verktygstips anger vad som krävs; API:et avvisar personens test med "You do not have permission to send test notifications in this project." På OneUptime Cloud kräver det **Growth**-planen att testa en regel, precis som att lägga till en.
 
 På OneUptime Cloud kräver **Skicka test** bredvid en kanal eller en chatt också **Growth**-planen, eftersom att publicera i en kanal är vad regler och sammanfattningar gör. **Skicka test nu** på en sammanfattning kräver behörighet att skapa sammanfattningar (**Create Workspace Notification Summary** och **Read Workspace Notification Summary** i en anpassad roll) och, på OneUptime Cloud, **Growth**-planen; för alla andra är den låst, och dess verktygstips anger vad som krävs. En MCP-klient som är ansluten med skrivskyddad åtkomst kan inte skicka något test.
 
@@ -138,7 +138,7 @@ Formuläret för en sammanfattning har fyra steg: **Grundläggande information**
 
 ## Aviseringsregler under Growth-planen
 
-På OneUptime Cloud ingår aviseringsregler och sammanfattningar i **Growth**-planen och uppåt. Ett projekt under den behåller de regler och sammanfattningar det redan har, och de fortsätter att publicera i Microsoft Teams. Därför visar varje produkts **Microsoft Teams**-sida (Incidenter, Larm, Schemalagt underhåll, Jourtjänst, Monitorer) planmeddelandet med dem listade nedanför (**Aviseringsregler som fortfarande är konfigurerade**, **Sammanfattningar som fortfarande är konfigurerade**): ta bort en regel, eller stäng av eller ta bort en sammanfattning. Att lägga till eller ändra regler och sammanfattningar kräver **Growth**.
+På OneUptime Cloud ingår aviseringsregler och sammanfattningar i **Growth**-planen och uppåt. Ett projekt under den behåller de regler och sammanfattningar det redan har, och de fortsätter att publicera i Microsoft Teams. Därför visar varje produkts **Microsoft Teams**-sida (Incidenter, Larm, Schemalagt underhåll, Jour, Monitorer) planmeddelandet med dem listade nedanför (**Aviseringsregler som fortfarande är konfigurerade**, **Sammanfattningar som fortfarande är konfigurerade**): ta bort en regel, eller stäng av eller ta bort en sammanfattning. Att lägga till eller ändra regler och sammanfattningar kräver **Growth**.
 
 ## Bli larmad i Microsoft Teams
 
@@ -150,7 +150,7 @@ För att bli larmad via direktmeddelande när du har jour lägger du till Micros
 3. Klicka på **Send Test Message** på dess rad. Meddelandet kommer i dina chattar i Microsoft Teams.
 :::
 
-Att lägga till den lägger in den i dina jourregler direkt, så larm når dig i Microsoft Teams från och med då. Ändra vilka larm den får under **Användarinställningar** > **Jourregler**.
+Att lägga till den lägger in den i dina jourregler direkt, så larm når dig i Microsoft Teams från och med då. Ändra vilka larm den får under **Användarinställningar** > **Så når man mig**.
 
 ## Spara meddelanden som anteckningar
 
@@ -208,7 +208,7 @@ Att skriva `incident` eller `maintenance` till OneUptime-boten öppnar ett formu
 - **I ett larms egen kanal.** Skrivet i den kanal som OneUptime skapade för ett larm öppnar `incident`, så länge larmet är öppet, ett kort som säger att incidenten deklareras från det larmet, och som börjar med larmets titel och de resurser det är kopplat till som personen som bad om kortet får se. Incidenten kopplas till larmet, precis som en incident som deklareras från larmets sida, och incidenten för ett privat larm är också privat. När personen som skickar kortet inte får koppla larm till incidenter deklareras incidenten utan kopplingen, och boten berättar varför.
 - **Vad ett formulär får ange.** I en kanal eller en gruppchatt får alla som är där skicka formuläret, och det skickas som den som gör det, med personens egna behörigheter. Incidenten eller händelsen skapas med de behörigheterna och tillskrivs den personen. En monitor, jourpolicy, etikett, allvarlighetsgrad eller status som personen inte får läsa, eller en från ett annat projekt, avvisas som en som projektet inte har, och inget skapas: boten svarar "One of the values you picked ... is not available in this project any more. Please pick it again."
 
-**Execute On-Call Policy** på en incident, ett larm eller en episod fungerar på samma sätt: den kräver behörighet att köra en jourpolicy (**Projektägare**, **Projektadministratör**, **Projektmedlem**, **Jouradministratör** och **Jourmedlem**, eller **Execute On-Call Duty Policy** i en anpassad roll) och att läsa den incidenten, det larmet eller den episoden, och den erbjuder de aktiva jourpolicyer som personen får läsa. Att visa en monitor eller en jourpolicy från ett kort läser den också som den person som tryckte på knappen.
+**Execute On-Call Policy** på en incident, ett larm eller en episod fungerar på samma sätt: den kräver behörighet att köra en jourpolicy (**Projektägare**, **Projektadministratör**, **Projektmedlem**, **Jouradministratör** och **Jourmedlem**, eller **Execute On-Call Policies** i en anpassad roll) och att läsa den incidenten, det larmet eller den episoden, och den erbjuder de aktiva jourpolicyer som personen får läsa. Att visa en monitor eller en jourpolicy från ett kort läser den också som den person som tryckte på knappen.
 
 ## Larma någon från Microsoft Teams
 
@@ -219,7 +219,7 @@ I en kanal eller en gruppchatt larmar `@OneUptime page @Nawaz Dhandala The check
 - **Vem som larmas direkt.** Personerna du nämner med @, och de som har jour i de scheman som en tagg du nämner med @ följer (se [Jourtaggar](#jourtaggar)), när ett meddelande följer efter dem, eller utan meddelande i en incidents eller ett larms egen kanal. OneUptime känner igen en person på det OneUptime-konto som personens Microsoft Teams-konto är anslutet till, eller annars på personens e-postadress i Microsoft Teams. Ingen utanför projektet larmas.
 - **Allt annat får ett kort.** Utan någon nämnd med @, som i en personlig chatt med boten, utan meddelande där larmningen behöver ett, med en tagg som inte följer något jourschema du kan se, eller med en person som OneUptime inte känner igen, svarar boten med kortet **Page someone**, med det du skrev ifyllt, och säger vem den inte kunde välja. I en incidents eller ett larms egen kanal öppnas kortet med den incidenten eller det larmet. Välj personer, ett team, ett jourschema, som larmar den som har jour i det just nu, eller en jourpolicy, som larmar genom sina eskaleringsregler, och skicka kortet. Alla i konversationen får skicka kortet, som sig själva. När det har larmat tas kortet bort, så att ingen larmar med det två gånger.
 - **Var det syns.** Konversationen visar larmningen som ett enda kort som hålls uppdaterat: vem som larmades och hur, varje team med sitt namn och sina personer efter, ditt meddelande, och vem som bekräftade. Där boten inte kan posta det, säger dess svar vem som larmades, med en länk till incidenten eller larmet.
-- **Vem som får larma.** I en incidents eller ett larms egen kanal alla som får köra en jourpolicy (**Projektägare**, **Projektadministratör**, **Projektmedlem**, **Jouradministratör** och **Jourmedlem**, eller **Execute On-Call Duty Policy** i en anpassad roll) och läsa den incidenten eller det larmet. Överallt annars skapar larmningen ett larm, så den kräver också behörighet att skapa ett: **Projektägare**, **Projektadministratör** och **Projektmedlem**, eller **Jourmedlem** tillsammans med **Larmmedlem** (**Execute On-Call Duty Policy** och **Create Alert** i en anpassad roll). Att larma personer, ett team eller ett schema direkt, utan en jourpolicy bakom larmningen, kräver också åtkomst till alla projektets jourpolicyer. Alla andra får veta det i ett svar, och ingen larmas. På OneUptime Cloud kräver larmning Growth-planen: under den säger OneUptime vilken plan som krävs, och ingen larmas.
+- **Vem som får larma.** I en incidents eller ett larms egen kanal alla som får köra en jourpolicy (**Projektägare**, **Projektadministratör**, **Projektmedlem**, **Jouradministratör** och **Jourmedlem**, eller **Execute On-Call Policies** i en anpassad roll) och läsa den incidenten eller det larmet. Överallt annars skapar larmningen ett larm, så den kräver också behörighet att skapa ett: **Projektägare**, **Projektadministratör** och **Projektmedlem**, eller **Jourmedlem** tillsammans med **Larmmedlem** (**Execute On-Call Policies** och **Create Alert** i en anpassad roll). Att larma personer, ett team eller ett schema direkt, utan en jourpolicy bakom larmningen, kräver också åtkomst till alla projektets jourpolicyer. Alla andra får veta det i ett svar, och ingen larmas. På OneUptime Cloud kräver larmning Growth-planen: under den säger OneUptime vilken plan som krävs, och ingen larmas.
 
 För att hålla personer informerade medan andra hanterar det larmar du dem som observatörer. Skriv `as observers` efter vem du larmar i en incidents eller ett larms egen kanal, som i `@OneUptime page @Oversight as observers Team Y is on it`, eller välj **Observers: keep them informed** under **Page them as** på kortet. Deras larmning säger att de är observatörer, och bekräftar de den säger det bara att de har sett den: incidenten eller larmet bekräftas inte, ingen annans larmning stoppas, och där larmningen visas står det att de larmas som observatörer. En larmning om något nytt behöver någon som hanterar det, så överallt annars avvisas `as observers`, och ingen larmas.
 
@@ -230,7 +230,7 @@ Håll en tagg i Microsoft Teams, till exempel `@Payments on-call`, lika med dem 
 :::steps
 ### Anslut en tagg till ett schema
 
-Öppna schemat under **Jourtjänst** > **Jourscheman**. Klicka på **Anslut tagg** i dess kort **Taggar i Microsoft Teams**, välj teamet och namnge taggen: teamets tagg med det namnet, eller en ny som OneUptime skapar. Medlemmarna ersätts direkt med dem som har jour.
+Öppna schemat under **Jour** > **Jourscheman**. Klicka på **Anslut tagg** i dess kort **Taggar i Microsoft Teams**, välj teamet och namnge taggen: teamets tagg med det namnet, eller en ny som OneUptime skapar. Medlemmarna ersätts direkt med dem som har jour.
 
 ### Anslut den även till det sekundära schemat
 
@@ -241,7 +241,7 @@ För en tagg med både den primära och den sekundära jouren ansluter du samma 
 - **Ingen har jour.** OneUptime tar bort alla från taggen tills någon har jour. En ny tagg behöver någon från teamet som har jour, eftersom Microsoft Teams inte skapar taggar utan medlemmar.
 - **Larma taggen.** `@OneUptime page @Payments on-call The checkout API is down` larmar dem som har jour i de scheman taggen följer. Se [Larma någon från Microsoft Teams](#larma-någon-från-microsoft-teams).
 - **Vad Microsoft 365 kräver.** Att ändra taggar kräver appens behörighet `TeamworkTag.ReadWrite.All`, som en Microsoft 365-administratör beviljar med **Bevilja administratörssamtycke** under **Projektinställningar** > **Arbetsyta** > **Microsoft Teams**. Om din organisation gav samtycke innan OneUptime kunde hålla taggar uppdaterade, ger du det igen en gång.
-- **Vem som får ansluta en.** De roller som får redigera scheman: **Projektägare**, **Projektadministratör**, **Projektmedlem**, **Jouradministratör** och **Jourmedlem**, eller **Edit On-Call Duty Policy Schedule** i en anpassad roll. På OneUptime Cloud kräver det abonnemanget **Growth** att ansluta en.
+- **Vem som får ansluta en.** De roller som får redigera scheman: **Projektägare**, **Projektadministratör**, **Projektmedlem**, **Jouradministratör** och **Jourmedlem**, eller **Edit On-Call Schedule** i en anpassad roll. På OneUptime Cloud kräver det abonnemanget **Growth** att ansluta en.
 - **Koppla från.** OneUptime slutar ändra taggen. Taggen och dess medlemmar stannar i Microsoft Teams som de är.
 
 ## Hantera en incident från Microsoft Teams

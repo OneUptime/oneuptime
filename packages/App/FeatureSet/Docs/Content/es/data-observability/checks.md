@@ -8,13 +8,13 @@ Añade una comprobación en la pestaña **Comprobaciones** de una tabla:
 
 | Comprobación | Qué lee |
 | --- | --- |
-| **Null Percent** | Porcentaje de filas cuya columna está vacía |
-| **Duplicate Percent** | Porcentaje de valores que repiten el de otra fila |
-| **Distinct Count** | Cuántos valores distintos contiene la columna |
+| **Porcentaje de nulos** | Porcentaje de filas cuya columna está vacía |
+| **Porcentaje de duplicados** | Porcentaje de valores que repiten el de otra fila |
+| **Recuento de valores distintos** | Cuántos valores distintos contiene la columna |
 | **Mínimo**, **Máximo**, **Promedio**, **Suma** | De una columna numérica (la suma de cero filas es 0) |
-| **Invalid Percent** | Porcentaje de valores que están fuera de una lista que proporcionas |
-| **Format Mismatch Percent** | Porcentaje de valores que no están en un formato que eliges, como Email, UUID o Country Code, o que no coinciden con una expresión regular tuya (todos los motores salvo SQL Server y Dataverse) |
-| **Orphan Count** | Filas cuyo valor no tiene correspondencia en la columna de otra tabla |
+| **Porcentaje de valores no válidos** | Porcentaje de valores que están fuera de una lista que proporcionas |
+| **Porcentaje de formato incorrecto** | Porcentaje de valores que no están en un formato que eliges, como Email, UUID o Country Code, o que no coinciden con una expresión regular tuya (todos los motores salvo SQL Server y Dataverse) |
+| **Recuento de filas huérfanas** | Filas cuyo valor no tiene correspondencia en la columna de otra tabla |
 | **Número de filas** | Filas de la tabla, sobre todo útil con **Segmentar por** |
 | **SQL personalizado** | El número que devuelve un SELECT tuyo de solo lectura, llamado `value` (en MongoDB, el de un pipeline de agregación) |
 | **Filas con error** | Cuántas filas devuelve un SELECT tuyo de solo lectura: las filas que no deberían existir. 0 es saludable (en MongoDB, los documentos con los que termina un pipeline) |
@@ -37,7 +37,7 @@ Cada comprobación se ejecuta cada 15 minutos, cada hora, cada 6 horas o cada d�
 
 Configura **Alertar cuando** para alertar sobre una comprobación:
 
-- **Unusually High** o **Unusually Low** compara cada valor con su propia línea base aprendida para esa hora de la semana.
+- **Inusualmente alto** o **Inusualmente bajo** compara cada valor con su propia línea base aprendida para esa hora de la semana.
 - **Por encima de** o **Por debajo de** lo compara con un umbral.
 
 Al guardar la comprobación se crea un monitor de métricas para ella, en tu nombre y con tus permisos. Si vacías la condición, se elimina el monitor.
@@ -48,13 +48,13 @@ El **Estado** de una comprobación, en **Comprobaciones** y en la pestaña **Com
 
 Una comprobación compite con tu aplicación por la base de datos, y en un almacén de datos que factura por lo que lee una consulta, cuesta dinero. Tres cosas lo mantienen bajo control:
 
-- **Porcentaje de muestra** lee una parte de las filas en lugar de todas, para una comprobación que lee una tasa: Null Percent, Promedio, Invalid Percent y Format Mismatch Percent. La mayoría de los motores se saltan páginas enteras de la tabla; MySQL, Redshift, ClickHouse y MongoDB siguen leyendo todas las filas, y se ahorran el trabajo con el resto. Dataverse no toma muestras: una comprobación allí lee todas las filas. Una vista puede rechazarlo, y la comprobación lo indica.
+- **Porcentaje de muestra** lee una parte de las filas en lugar de todas, para una comprobación que lee una tasa: Porcentaje de nulos, Promedio, Porcentaje de valores no válidos y Porcentaje de formato incorrecto. La mayoría de los motores se saltan páginas enteras de la tabla; MySQL, Redshift, ClickHouse y MongoDB siguen leyendo todas las filas, y se ahorran el trabajo con el resto. Dataverse no toma muestras: una comprobación allí lee todas las filas. Una vista puede rechazarlo, y la comprobación lo indica.
 - **Máximo que puede leer una comprobación (GB)**, en **Ajustes**, detiene una comprobación en BigQuery o Athena antes de que lea más de esos gigabytes. Es 10 hasta que lo cambies.
 - **Esperar cuando una base de datos está ocupada**, en **Ajustes**, deja las comprobaciones pendientes para la siguiente recopilación cuando una base de datos de PostgreSQL, MySQL o SQL Server parece ocupada. Está activado hasta que lo desactives, y la base de datos indica cuándo esperaron las comprobaciones.
 
 ## Filas que fallan
 
-Un número dice que algo va mal; unas pocas filas dicen qué. **Guardar filas que fallan** en **Ajustes** guarda hasta 20 de las filas que encontró una comprobación Failing Rows, Invalid Percent, Format Mismatch Percent u Orphan Count, y **Filas con error** en la comprobación las muestra. Está desactivado hasta que lo actives. Las columnas sensibles se enmascaran donde se lee la fila, según lo que Seguridad de datos encontró en ellas o según sus nombres, así que lo que sale de la base de datos, o de una sonda, ya está enmascarado. Una columna sensible que ningún análisis haya encontrado y cuyo nombre no la delate se guarda tal cual.
+Un número dice que algo va mal; unas pocas filas dicen qué. **Guardar filas que fallan** en **Ajustes** guarda hasta 20 de las filas que encontró una comprobación Filas con error, Porcentaje de valores no válidos, Porcentaje de formato incorrecto o Recuento de filas huérfanas, y **Filas con error** en la comprobación las muestra. Está desactivado hasta que lo actives. Las columnas sensibles se enmascaran donde se lee la fila, según lo que Seguridad de datos encontró en ellas o según sus nombres, así que lo que sale de la base de datos, o de una sonda, ya está enmascarado. Una columna sensible que ningún análisis haya encontrado y cuyo nombre no la delate se guarda tal cual.
 
 Las filas se almacenan en OneUptime: en los servidores de OneUptime con OneUptime Cloud, y en los tuyos con una instalación autoalojada. Cualquiera que pueda leer las comprobaciones del proyecto puede verlas. Una comprobación guarda solo las filas de su última ejecución, y al desactivar **Guardar filas que fallan** se elimina lo que guardó cada comprobación.
 
@@ -106,7 +106,7 @@ Las copias se desvían: el almacén de datos tiene menos pedidos que la base de 
 
 - **Número de filas**
 - **Suma** de una columna
-- **Distinct Count** de una columna
+- **Recuento de valores distintos** de una columna
 - **SQL personalizado**: una consulta de solo lectura que devuelve un número, llamado `value`
 
 Tiene una tolerancia: una cantidad fija (**Absoluta**) o un porcentaje del valor de la fuente (**Porcentaje**). Cada lado lo lee una comprobación propia, que la conciliación crea y mantiene, junto con la recopilación de su base de datos, de modo que una conciliación puede comparar una tabla de PostgreSQL de tu red con su copia en Snowflake. Los dos valores se comparan en cuanto ambos se han leído con no más de 15 minutos de diferencia. Una conciliación escribe:

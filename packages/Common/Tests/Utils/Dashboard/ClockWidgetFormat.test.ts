@@ -29,6 +29,7 @@ import {
   resolveClockTimezone,
   resolveUse12HourFormat,
 } from "../../../Utils/Dashboard/ClockWidgetFormat";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 /*
  * A Monday afternoon in UTC, deliberately picked so the same instant lands on
@@ -85,6 +86,7 @@ function makeDisplay(
     time: "18:07",
     seconds: null,
     meridiem: null,
+    isMeridiemFirst: false,
     dateText: "Mon, Aug 3",
     zoneAbbreviation: "UTC",
     timezone: "UTC",
@@ -550,6 +552,289 @@ describe("ClockWidgetFormat", () => {
         expect(secondOnePm.zoneAbbreviation).toBe("EST");
       });
     });
+
+    /*
+     * #7093: every board read "Thu, Nov 12" and "PM", and a Persian one
+     * drew Latin digits beside Persian words. The date and the meridiem
+     * are the reader's language's words now, in the clock's zone and on
+     * the Gregorian calendar, and the figures the digits the Dashboard
+     * writes in that language. English is written as it always was.
+     */
+    describe("in the reader's language", () => {
+      // Thursday 12 November 2026, 9:05:07 in the evening in UTC.
+      const EVENING: Date = new Date("2026-11-12T21:05:07.000Z");
+      // The same Thursday, 9:05:07 in the morning.
+      const MORNING: Date = new Date("2026-11-12T09:05:07.000Z");
+
+      const LATIN_DIGIT: RegExp = /[0-9]/;
+      // Any digit at all, Latin or not.
+      const ANY_DIGIT: RegExp = /\p{Nd}/u;
+
+      const clockIn: (data: {
+        language: string | undefined;
+        date?: Date;
+        timezone?: string;
+        hourFormat?: ClockWidgetHourFormat;
+      }) => ClockWidgetDisplay = (data: {
+        language: string | undefined;
+        date?: Date;
+        timezone?: string;
+        hourFormat?: ClockWidgetHourFormat;
+      }): ClockWidgetDisplay => {
+        return getClockWidgetDisplay({
+          date: data.date || EVENING,
+          timezone: data.timezone || "UTC",
+          hourFormat: data.hourFormat || ClockWidgetHourFormat.TwelveHour,
+          showSeconds: true,
+          showDate: true,
+          showTimezoneAbbreviation: true,
+          language: data.language,
+        });
+      };
+
+      // Whether `text` has a digit and every digit in it is a Latin one.
+      const writesOnlyLatinDigits: (text: string | null) => boolean = (
+        text: string | null,
+      ): boolean => {
+        const value: string = text || "";
+
+        return (
+          LATIN_DIGIT.test(value) &&
+          !ANY_DIGIT.test(value.replace(/[0-9]/g, ""))
+        );
+      };
+
+      it("writes English as it always was, with no language or an English one", () => {
+        const english: ClockWidgetDisplay = clockIn({ language: undefined });
+
+        expect(english.time).toBe("9:05");
+        expect(english.seconds).toBe("07");
+        expect(english.meridiem).toBe("PM");
+        expect(english.isMeridiemFirst).toBe(false);
+        expect(english.dateText).toBe("Thu, Nov 12");
+        expect(english.zoneAbbreviation).toBe("UTC");
+        expect(clockIn({ language: undefined, date: MORNING }).meridiem).toBe(
+          "AM",
+        );
+
+        for (const language of ["en", "en-GB", "en-US", "EN", " en ", ""]) {
+          expect(clockIn({ language: language })).toEqual(english);
+        }
+      });
+
+      it("writes the date in German: Do., 12. Nov.", () => {
+        const display: ClockWidgetDisplay = clockIn({ language: "de" });
+
+        expect(display.dateText).toBe("Do., 12. Nov.");
+        expect(display.time).toBe("9:05");
+        expect(display.seconds).toBe("07");
+        // German has no words of its own for it: Intl writes AM and PM.
+        expect(display.meridiem).toBe("PM");
+        expect(clockIn({ language: "de", date: MORNING }).meridiem).toBe("AM");
+        expect(display.isMeridiemFirst).toBe(false);
+      });
+
+      it("writes Persian digits and Persian words in Persian", () => {
+        const evening: ClockWidgetDisplay = clockIn({ language: "fa" });
+        const morning: ClockWidgetDisplay = clockIn({
+          language: "fa",
+          date: MORNING,
+        });
+
+        expect(evening.time).toBe("۹:۰۵");
+        expect(evening.seconds).toBe("۰۷");
+        expect(evening.meridiem).toBe("ب.ظ.");
+        expect(morning.meridiem).toBe("ق.ظ.");
+        expect(morning.time).toBe("۹:۰۵");
+        expect(evening.isMeridiemFirst).toBe(false);
+        expect(evening.dateText).toBe("پنجشنبه ۱۲ نوامبر");
+
+        for (const text of [
+          evening.time,
+          evening.seconds,
+          evening.meridiem,
+          evening.dateText,
+          morning.meridiem,
+        ]) {
+          expect(text).not.toMatch(LATIN_DIGIT);
+        }
+      });
+
+      it("writes a Persian 24-hour clock in Persian digits, with no meridiem", () => {
+        const display: ClockWidgetDisplay = clockIn({
+          language: "fa",
+          hourFormat: ClockWidgetHourFormat.TwentyFourHour,
+        });
+
+        expect(display.time).toBe("۲۱:۰۵");
+        expect(display.seconds).toBe("۰۷");
+        expect(display.meridiem).toBeNull();
+        expect(display.isMeridiemFirst).toBe(false);
+      });
+
+      it("puts the Japanese meridiem before the time, in Japanese", () => {
+        const evening: ClockWidgetDisplay = clockIn({ language: "ja" });
+
+        expect(evening.meridiem).toBe("午後");
+        expect(clockIn({ language: "ja", date: MORNING }).meridiem).toBe(
+          "午前",
+        );
+        expect(evening.isMeridiemFirst).toBe(true);
+        expect(evening.time).toBe("9:05");
+        expect(evening.seconds).toBe("07");
+        expect(evening.dateText).toBe("11月12日(木)");
+      });
+
+      it("puts the Korean and Chinese meridiems before the time too", () => {
+        const korean: ClockWidgetDisplay = clockIn({ language: "ko" });
+        const simplified: ClockWidgetDisplay = clockIn({ language: "zh-CN" });
+        const traditional: ClockWidgetDisplay = clockIn({
+          language: "zh-TW",
+        });
+
+        expect(korean.meridiem).toBe("오후");
+        expect(korean.isMeridiemFirst).toBe(true);
+        expect(korean.dateText).toBe("11월 12일 (목)");
+        expect(clockIn({ language: "ko", date: MORNING }).meridiem).toBe(
+          "오전",
+        );
+
+        expect(simplified.meridiem).toBe("下午");
+        expect(simplified.isMeridiemFirst).toBe(true);
+        expect(simplified.dateText).toBe("11月12日周四");
+        expect(clockIn({ language: "zh-CN", date: MORNING }).meridiem).toBe(
+          "上午",
+        );
+
+        expect(traditional.meridiem).toBe("下午");
+        expect(traditional.isMeridiemFirst).toBe(true);
+        expect(traditional.dateText).toBe("11月12日週四");
+      });
+
+      it("writes Arabic words with the Latin digits Arabic pages write", () => {
+        const evening: ClockWidgetDisplay = clockIn({ language: "ar" });
+
+        expect(evening.time).toBe("9:05");
+        expect(evening.seconds).toBe("07");
+        expect(evening.meridiem).toBe("م");
+        expect(clockIn({ language: "ar", date: MORNING }).meridiem).toBe("ص");
+        expect(evening.isMeridiemFirst).toBe(false);
+        expect(evening.dateText).toBe("الخميس، 12 نوفمبر");
+        expect(writesOnlyLatinDigits(evening.dateText)).toBe(true);
+      });
+
+      it("writes every Dashboard language's own date, in its digits", () => {
+        for (const language of DASHBOARD_LANGUAGES) {
+          const display: ClockWidgetDisplay = clockIn({ language: language });
+
+          // Not one of them writes the date the English way.
+          expect(display.dateText).not.toBe("Thu, Nov 12");
+          expect(display.dateText).toContain(language === "fa" ? "۱۲" : "12");
+
+          // A meridiem in a 12-hour clock, whatever the language calls it.
+          expect((display.meridiem || "").trim()).not.toBe("");
+
+          if (language === "fa") {
+            expect(display.time).toBe("۹:۰۵");
+            expect(display.dateText).not.toMatch(LATIN_DIGIT);
+          } else {
+            // Latin digits everywhere else, Arabic too.
+            expect(display.time).toBe("9:05");
+            expect(display.seconds).toBe("07");
+            expect(writesOnlyLatinDigits(display.dateText)).toBe(true);
+          }
+
+          // The meridiem leads only in Chinese, Japanese and Korean.
+          expect(display.isMeridiemFirst).toBe(
+            ["ja", "ko", "zh-CN", "zh-TW"].includes(language),
+          );
+        }
+      });
+
+      it("reads the date and the meridiem in the clock's zone, not the viewer's", () => {
+        OneUptimeDate.setUserTimezone(Timezone.UTC);
+
+        // 21:05 in UTC is 06:05 on Friday morning in Tokyo.
+        const german: ClockWidgetDisplay = clockIn({
+          language: "de",
+          timezone: "Asia/Tokyo",
+        });
+        const japanese: ClockWidgetDisplay = clockIn({
+          language: "ja",
+          timezone: "Asia/Tokyo",
+        });
+        const persian: ClockWidgetDisplay = clockIn({
+          language: "fa",
+          timezone: "Asia/Tokyo",
+        });
+
+        expect(german.dateText).toBe("Fr., 13. Nov.");
+        expect(german.time).toBe("6:05");
+        expect(german.meridiem).toBe("AM");
+        expect(japanese.dateText).toBe("11月13日(金)");
+        expect(japanese.meridiem).toBe("午前");
+        expect(persian.dateText).toBe("جمعه ۱۳ نوامبر");
+        expect(persian.time).toBe("۶:۰۵");
+        expect(persian.meridiem).toBe("ق.ظ.");
+      });
+
+      it("writes the Gregorian date in Persian and Arabic, never another calendar", () => {
+        // The Solar Hijri date of 12 November 2026 is 21 Aban 1405.
+        expect(clockIn({ language: "fa" }).dateText).toContain("نوامبر");
+        expect(clockIn({ language: "fa" }).dateText).not.toContain("آبان");
+        expect(clockIn({ language: "ar" }).dateText).toContain("نوفمبر");
+      });
+
+      it("reads English for a language Intl does not know", () => {
+        for (const language of ["xx", "!!", "not a language"]) {
+          const display: ClockWidgetDisplay = clockIn({ language: language });
+
+          expect(display.time).toBe("9:05");
+          expect(display.seconds).toBe("07");
+          expect(display.meridiem).toBe("PM");
+          expect(display.isMeridiemFirst).toBe(false);
+          expect(display.dateText).toBe("Thu, Nov 12");
+        }
+      });
+
+      it("keeps the date, the seconds and the zone off when they are switched off", () => {
+        for (const language of ["de", "fa", "ja", "ar"]) {
+          const display: ClockWidgetDisplay = getClockWidgetDisplay({
+            date: EVENING,
+            timezone: "UTC",
+            hourFormat: ClockWidgetHourFormat.TwelveHour,
+            showSeconds: false,
+            showDate: false,
+            showTimezoneAbbreviation: false,
+            language: language,
+          });
+
+          expect(display.dateText).toBeNull();
+          expect(display.seconds).toBeNull();
+          expect(display.zoneAbbreviation).toBeNull();
+          expect(display.meridiem).not.toBeNull();
+        }
+      });
+
+      it("keeps the caption, the zone and the fallback flag as they were", () => {
+        const english: ClockWidgetDisplay = clockIn({
+          language: undefined,
+          timezone: "Europe/Berlin",
+        });
+
+        for (const language of ["de", "fa", "ja", "ar"]) {
+          const display: ClockWidgetDisplay = clockIn({
+            language: language,
+            timezone: "Europe/Berlin",
+          });
+
+          expect(display.label).toBe(english.label);
+          expect(display.timezone).toBe(english.timezone);
+          expect(display.zoneAbbreviation).toBe(english.zoneAbbreviation);
+          expect(display.isFallbackTimezone).toBe(false);
+        }
+      });
+    });
   });
 
   describe("getClockGmtOffsetText", () => {
@@ -956,6 +1241,88 @@ describe("ClockWidgetFormat", () => {
       );
 
       expect(both).toBeGreaterThan(bare);
+    });
+
+    /*
+     * #7093: the meridiem is the reader's words now. A Chinese, Japanese
+     * or Korean character is as wide as it is tall - an em, where a digit
+     * is 0.62 of one - so "午後" takes more room than "PM" and the digits
+     * are sized for it rather than overflowing a narrow tile.
+     */
+    it("charges a Chinese, Japanese or Korean meridiem its characters' full width", () => {
+      const bare: number = getClockTimeWidthInFontUnits(
+        makeDisplay({ meridiem: null }),
+      );
+
+      // " " + "PM": three digit widths at the secondary size.
+      expect(
+        getClockTimeWidthInFontUnits(makeDisplay({ meridiem: "PM" })) - bare,
+      ).toBeCloseTo(3 * CLOCK_SECONDARY_FONT_SCALE * 0.62);
+
+      for (const meridiem of ["午後", "오후", "下午"]) {
+        // " " at a digit's width, then two characters an em wide each.
+        expect(
+          getClockTimeWidthInFontUnits(makeDisplay({ meridiem: meridiem })) -
+            bare,
+        ).toBeCloseTo((0.62 + 2) * CLOCK_SECONDARY_FONT_SCALE);
+      }
+    });
+
+    it("charges any other meridiem a digit's width a character", () => {
+      const bare: number = getClockTimeWidthInFontUnits(
+        makeDisplay({ meridiem: null }),
+      );
+
+      // " " + "ب.ظ." and " " + "p. m.": five and six characters.
+      expect(
+        getClockTimeWidthInFontUnits(makeDisplay({ meridiem: "ب.ظ." })) - bare,
+      ).toBeCloseTo(5 * CLOCK_SECONDARY_FONT_SCALE * 0.62);
+      expect(
+        getClockTimeWidthInFontUnits(makeDisplay({ meridiem: "p. m." })) - bare,
+      ).toBeCloseTo(6 * CLOCK_SECONDARY_FONT_SCALE * 0.62);
+    });
+
+    it("sizes a Japanese clock's digits so its meridiem still fits the tile", () => {
+      const japanese: ClockWidgetDisplay = makeDisplay({
+        time: "11:52",
+        seconds: "09",
+        meridiem: "午後",
+        isMeridiemFirst: true,
+      });
+      const english: ClockWidgetDisplay = makeDisplay({
+        time: "11:52",
+        seconds: "09",
+        meridiem: "PM",
+      });
+
+      for (const widthInPx of [160, 200, 240, 320]) {
+        const japaneseSize: number = getClockDigitalFontSizeInPx({
+          widthInPx: widthInPx,
+          heightInPx: 400,
+          display: japanese,
+        });
+
+        // Wider words leave the digits a little smaller, never larger.
+        expect(japaneseSize).toBeLessThanOrEqual(
+          getClockDigitalFontSizeInPx({
+            widthInPx: widthInPx,
+            heightInPx: 400,
+            display: english,
+          }),
+        );
+
+        if (japaneseSize > MIN_FONT_SIZE_IN_PX) {
+          // Within a floating-point rounding of the box's edge.
+          expect(
+            japaneseSize * getClockTimeWidthInFontUnits(japanese),
+          ).toBeLessThanOrEqual(
+            widthInPx -
+              CHROME_HORIZONTAL_IN_PX -
+              HORIZONTAL_PADDING_IN_PX +
+              1e-9,
+          );
+        }
+      }
     });
   });
 

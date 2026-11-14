@@ -68,7 +68,7 @@ Die App zeigt jeweils ein Projekt: Tippen Sie oben auf einem Bildschirm auf den 
 Klicken Sie in der Zeile des Geräts auf **Testbenachrichtigung**. Auf dem Gerät kommt eine Mitteilung an; tippen Sie darauf, um die App zu öffnen.
 :::
 
-Ihre Bereitschaftsregeln entscheiden, welche Alarme an das Gerät gehen und wie schnell: siehe **Benutzereinstellungen → Bereitschaftsregeln**. Ein neues Gerät bekommt dieselben Standardregeln wie jede andere Methode, die Sie hinzufügen.
+Ihre Bereitschaftsregeln entscheiden, welche Alarme an das Gerät gehen und wie schnell: siehe **Benutzereinstellungen → Wie ich erreichbar bin**. Ein neues Gerät bekommt dieselben Standardregeln wie jede andere Methode, die Sie hinzufügen.
 
 ## Den Stummmodus durchbrechen
 
@@ -132,7 +132,7 @@ Die App konnte `https://<your-oneuptime>/api/status` nicht erreichen. Prüfen Si
 - Prüfen Sie, dass **Mitteilungen erlauben** unter **Einstellungen → Mitteilungen → OneUptime On-Call** eingeschaltet ist und kein Fokus Alarme zurückhält.
 - Prüfen Sie, dass das Gerät unter **Push-Benachrichtigungen** in **Benutzereinstellungen → Benachrichtigungsmethoden** steht, und senden Sie ihm eine **Testbenachrichtigung**.
 - Ist das Gerät mit **Keine Benachrichtigungen** markiert, öffnen Sie die App, während Sie angemeldet sind. Sie registriert das Gerät erneut; siehe [Wenn sich ein Telefon neu registrieren muss](/docs/mobile-desktop-apps/faq-troubleshooting#wenn-sich-ein-telefon-neu-registrieren-muss).
-- Prüfen Sie Ihre Bereitschaftsregeln unter **Benutzereinstellungen → Bereitschaftsregeln**.
+- Prüfen Sie Ihre Bereitschaftsregeln unter **Benutzereinstellungen → Wie ich erreichbar bin**.
 - Prüfen Sie bei einem selbst gehosteten OneUptime, dass Ihr Server sein Push-Relay erreicht: siehe [Push-Benachrichtigungen](/docs/self-hosted/push-notifications#netzwerkzugriff).
 :::
 

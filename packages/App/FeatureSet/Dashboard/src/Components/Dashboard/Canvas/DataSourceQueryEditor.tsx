@@ -34,6 +34,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { getUnnamedText } from "../Components/DashboardWidgetFallbackWords";
 
 export interface ComponentProps {
   component: DashboardBaseComponent;
@@ -123,16 +124,20 @@ const DataSourceQueryEditor: FunctionComponent<ComponentProps> = (
     return single ? [single] : [];
   }, [componentArguments, isChart]);
 
+  /*
+   * A data source with no name, or no type, is named in the reader's
+   * words (#7091); a name and a type it has are drawn as they are.
+   */
   const dropdownOptions: Array<DropdownOption> = useMemo(() => {
     return dataSources.map((dataSource: DataSourceModel) => {
       return {
         value: dataSource._id?.toString() || "",
-        label: `${dataSource.name || "Unnamed"} (${
-          dataSource.dataSourceType || "Unknown"
+        label: `${dataSource.name || getUnnamedText(translator)} (${
+          dataSource.dataSourceType || translator.translateText("Unknown")
         })`,
       };
     });
-  }, [dataSources]);
+  }, [dataSources, translator.language]);
 
   const writeConfigs: (next: Array<DataSourceQueryConfig>) => void = (
     next: Array<DataSourceQueryConfig>,

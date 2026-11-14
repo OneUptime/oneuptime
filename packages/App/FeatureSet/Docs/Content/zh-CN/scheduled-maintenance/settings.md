@@ -20,7 +20,7 @@
 | **标签规则**       | 为匹配的事件添加标签。                                              |
 | **提醒规则** | 按固定间隔提醒所有者，直到事件完成。                                |
 
-**设置** 分组包含 **事件状态** （在 [维护状态](/docs/scheduled-maintenance/states) 中介绍）、 **事件模板** （在 [模板与周期性事件](/docs/scheduled-maintenance/templates) 中介绍），以及 **备注模板** 、 **公开备注审批** 、 **自定义字段** 、 **测量** 、 **日历设置** 和 **编号规则** 。 **日历设置** 在 [维护日历](/docs/scheduled-maintenance/calendar#外部日历) 中介绍，其余在下文介绍。
+**设置** 分组包含 **维护状态** （在 [维护状态](/docs/scheduled-maintenance/states) 中介绍）、 **维护模板** （在 [模板与周期性事件](/docs/scheduled-maintenance/templates) 中介绍），以及 **备注模板** 、 **公开备注审批** 、 **自定义字段** 、 **测量** 、 **日历设置** 和 **编号规则** 。 **日历设置** 在 [维护日历](/docs/scheduled-maintenance/calendar#外部日历) 中介绍，其余在下文介绍。
 
 **工作区** 分组包含把事件发布到频道的 Slack 和 Microsoft Teams 规则。请参阅 [Slack](/docs/workspace-connections/slack#通知规则) 和 [Microsoft Teams](/docs/workspace-connections/microsoft-teams#通知规则)。
 
@@ -92,7 +92,7 @@ API 和 Terraform 会拒绝等事件开始又在开始时停止的规则：这�
 
 ### 备注模板
 
-**计划维护 → 设置 → 备注模板** 保存用于维护更新的预写文本。 **计划维护事件的公开或私密备注模板** 卡片列出这些模板； **创建计划维护备注模板** 会要求填写 **模板名称** 、 **模板描述** 和 **备注** 。当有人在事件上撰写公开或私人备注，或更改事件状态时，会提供模板，且其文本在发布前可以编辑。与故障事件的备注模板不同，维护备注模板不会填入任何变量。
+**计划维护 → 设置 → 备注模板** 保存用于维护更新的预写文本。 **维护事件的公开或私有备注模板** 卡片列出这些模板； **创建计划维护备注模板** 会要求填写 **模板名称** 、 **模板描述** 和 **备注** 。当有人在事件上撰写公开或私人备注，或更改事件状态时，会提供模板，且其文本在发布前可以编辑。与故障事件的备注模板不同，维护备注模板不会填入任何变量。
 
 ### 公开备注审批
 
@@ -117,7 +117,7 @@ API 和 Terraform 会拒绝等事件开始又在开始时停止的规则：这�
 
 ## 工作流
 
-每个维护模型都有以其命名的工作流触发器和操作： **On Create Scheduled Maintenance Event** 、 **On Update Scheduled Maintenance Event** 、 **On Create or Update Scheduled Maintenance Event** 和 **On Delete Scheduled Maintenance Event** ， **Scheduled Maintenance State Timeline** 及其他模型也有同样的触发器，还有 **Create One Scheduled Maintenance Event** 和 **Update One Scheduled Maintenance Event** 等操作。自定义字段定义和测量值是例外：它们没有工作流步骤。请参阅 [工作流概览](/docs/workflows/index)。
+每个维护模型都有以其命名的工作流触发器和操作： **On Create Maintenance Event** 、 **On Update Maintenance Event** 、 **On Create or Update Maintenance Event** 和 **On Delete Maintenance Event** ， **Scheduled Maintenance State Timeline** 及其他模型也有同样的触发器，还有 **Create One Maintenance Event** 和 **Update One Maintenance Event** 等操作。自定义字段定义和测量值是例外：它们没有工作流步骤。请参阅 [工作流概览](/docs/workflows/index)。
 
 ## 谁可以更改这些内容
 
@@ -142,8 +142,8 @@ API 和 Terraform 会拒绝等事件开始又在开始时停止的规则：这�
 ## 后续步骤
 
 :::cards
-- [维护状态](/docs/scheduled-maintenance/states): 事件状态页面，以及每个状态的作用。
-- [模板与周期性事件](/docs/scheduled-maintenance/templates): 深入介绍事件模板页面。
+- [维护状态](/docs/scheduled-maintenance/states): 维护状态页面，以及每个状态的作用。
+- [模板与周期性事件](/docs/scheduled-maintenance/templates): 深入介绍维护模板页面。
 - [标签与所有者规则](/docs/configuration/label-and-owner-rules): 逐步介绍规则表单。
 - [通知设置](/docs/notifications/notification-settings): 每个所有者如何选择接收哪些通知。
 :::

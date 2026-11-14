@@ -145,6 +145,10 @@ import FeedMarkdown, {
   mdText,
   MarkdownText,
 } from "Common/Utils/Markdown/FeedMarkdown";
+import CreatedNotificationHold, {
+  OwnersAddedBy,
+} from "Common/Server/Utils/Notification/CreatedNotificationHold";
+import CreateBy from "Common/Server/Types/Database/CreateBy";
 
 /*
  * How far in the future the next full evaluation is scheduled, and the
@@ -3494,31 +3498,46 @@ async function createSloRecordAlert(data: {
     toIdStub(context.sloId, ServiceLevelObjective),
   ];
 
-  const createdAlert: Alert | undefined = await AlertService.create({
+  /*
+   * Its owners are added right after the create, and its owners' "Alert
+   * Created" notification waits for them (CreatedNotificationHold): until
+   * they are in, or adding them failed.
+   */
+  const createBy: CreateBy<Alert> = {
     data: alert,
     props: {
       isRoot: true,
     },
-  });
+  };
 
-  /*
-   * The alert exists from here on, so nothing below may throw: returning true
-   * is what gets it stamped, and an unstamped alert is one the resolution
-   * branch never closes (the next tick would adopt it, but only after a
-   * failure had already been logged against a page that did go out). Both
-   * helpers catch and log their own failures.
-   */
-  await addSloRecordOwners({
-    output: "alert",
-    context: context,
-    source: source,
-    recordId: createdAlert?.id || undefined,
-    ownerUsers: rule.alertOwnerUsers,
-    ownerTeams: rule.alertOwnerTeams,
-    addSloOwners: rule.addSloOwnersAsOwners === true,
-    fire: fire,
-    logAttributes: logAttributes,
-  });
+  CreatedNotificationHold.willAddOwners(createBy, OwnersAddedBy.Caller);
+
+  let createdAlert: Alert | undefined;
+
+  try {
+    createdAlert = await AlertService.create(createBy);
+
+    /*
+     * The alert exists from here on, so nothing below may throw: returning
+     * true is what gets it stamped, and an unstamped alert is one the
+     * resolution branch never closes (the next tick would adopt it, but
+     * only after a failure had already been logged against a page that did
+     * go out). Both helpers catch and log their own failures.
+     */
+    await addSloRecordOwners({
+      output: "alert",
+      context: context,
+      source: source,
+      recordId: createdAlert?.id || undefined,
+      ownerUsers: rule.alertOwnerUsers,
+      ownerTeams: rule.alertOwnerTeams,
+      addSloOwners: rule.addSloOwnersAsOwners === true,
+      fire: fire,
+      logAttributes: logAttributes,
+    });
+  } finally {
+    await CreatedNotificationHold.ownersAreIn(createBy, OwnersAddedBy.Caller);
+  }
 
   await postSloRecordRaisedFeedItem({
     output: "alert",
@@ -3707,25 +3726,36 @@ async function declareSloRecordIncident(data: {
     toIdStub(context.sloId, ServiceLevelObjective),
   ];
 
-  const createdIncident: Incident | undefined = await IncidentService.create({
+  // Its owners' "Incident Created" notification waits for them, as the alert's.
+  const createBy: CreateBy<Incident> = {
     data: incident,
     props: {
       isRoot: true,
     },
-  });
+  };
 
-  // The incident exists: nothing below may cost it its stamp (see the alert).
-  await addSloRecordOwners({
-    output: "incident",
-    context: context,
-    source: source,
-    recordId: createdIncident?.id || undefined,
-    ownerUsers: rule.incidentOwnerUsers,
-    ownerTeams: rule.incidentOwnerTeams,
-    addSloOwners: rule.addSloOwnersAsOwners === true,
-    fire: fire,
-    logAttributes: logAttributes,
-  });
+  CreatedNotificationHold.willAddOwners(createBy, OwnersAddedBy.Caller);
+
+  let createdIncident: Incident | undefined;
+
+  try {
+    createdIncident = await IncidentService.create(createBy);
+
+    // The incident exists: nothing below may cost it its stamp (see the alert).
+    await addSloRecordOwners({
+      output: "incident",
+      context: context,
+      source: source,
+      recordId: createdIncident?.id || undefined,
+      ownerUsers: rule.incidentOwnerUsers,
+      ownerTeams: rule.incidentOwnerTeams,
+      addSloOwners: rule.addSloOwnersAsOwners === true,
+      fire: fire,
+      logAttributes: logAttributes,
+    });
+  } finally {
+    await CreatedNotificationHold.ownersAreIn(createBy, OwnersAddedBy.Caller);
+  }
 
   await postSloRecordRaisedFeedItem({
     output: "incident",

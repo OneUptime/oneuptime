@@ -100,6 +100,28 @@ const formatInEnglish: (parts: RelativeTimeParts) => string = (
     : `in ${magnitude} ${unit}`;
 };
 
+/*
+ * A time already put in a unit, in the reader's language: Intl's words,
+ * plural forms and digits (getNumberLocale), or English where Intl cannot.
+ * For a caller that puts a time in its unit its own way - a note's age, in
+ * whole minutes and hours - and says it as Home does.
+ */
+export const formatRelativeTimeParts: (data: {
+  parts: RelativeTimeParts;
+  language?: string | undefined;
+}) => string = (data: {
+  parts: RelativeTimeParts;
+  language?: string | undefined;
+}): string => {
+  try {
+    return new Intl.RelativeTimeFormat(getNumberLocale(data.language || "en"), {
+      numeric: "auto",
+    }).format(data.parts.value, data.parts.unit);
+  } catch {
+    return formatInEnglish(data.parts);
+  }
+};
+
 export const formatRelativeTime: (data: {
   date: Date;
   now: Date;
@@ -109,18 +131,13 @@ export const formatRelativeTime: (data: {
   now: Date;
   language?: string | undefined;
 }): string => {
-  const parts: RelativeTimeParts = getRelativeTimeParts({
-    date: data.date,
-    now: data.now,
+  return formatRelativeTimeParts({
+    parts: getRelativeTimeParts({
+      date: data.date,
+      now: data.now,
+    }),
+    language: data.language,
   });
-
-  try {
-    return new Intl.RelativeTimeFormat(getNumberLocale(data.language || "en"), {
-      numeric: "auto",
-    }).format(parts.value, parts.unit);
-  } catch {
-    return formatInEnglish(parts);
-  }
 };
 
 // Whether a time is close enough to now to say "just now" instead.

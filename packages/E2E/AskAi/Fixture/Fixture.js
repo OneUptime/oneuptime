@@ -27,11 +27,33 @@
  *                    waiting to post a public status update on incident
  *                    #42 and add a private note to it, each with its
  *                    arguments, which leave their two cards once run;
- *                    code, one waiting to commit three files whose card
+ *                    code, one waiting to commit four files whose card
  *                    names what it would write over unseen - a file
  *                    changed since Ask AI read it, one read in an earlier
- *                    answer and one read earlier in this answer, left
- *                    out of the conversation since (issue #6570)
+ *                    answer, one read earlier in this answer, left out of
+ *                    the conversation since (issue #6570), and one read
+ *                    whole in two parts, the first left out since (issue
+ *                    #6984);
+ *                    monitors, "Which monitors are down right now?"
+ *                    answered with two monitors read by id - one
+ *                    Offline, one whose monitoring is off - and the
+ *                    monitors table, its long names beside "Operational"
+ *                    (issues #6968 and #6969); each card's words as
+ *                    query_monitors stores them, so they are drawn in
+ *                    the reader's language (issue #7175);
+ *                    readcards, "What do we have for payments?" answered
+ *                    with every card a read leaves - a monitor, an SLO, a
+ *                    team, an on-call policy and schedule, a status page,
+ *                    a runbook, a workflow and a security case - each
+ *                    built by its tool's own builder (issue #7175);
+ *                    setup, one waiting on a
+ *                    setup plan - a website monitor and the project's
+ *                    first on-call policy, the SMS the person asked for
+ *                    missing a number (issue #6829) - whose approved
+ *                    parts leave their cards and the test page offer;
+ *                    setup-busy, the same in a busy project, which pages
+ *                    people already and has a status page: a website
+ *                    monitor, and that monitor put on the page
  *   - run=hold       an answer being written stays written-so-far until
  *                    window.__askAiFixture.finish() is called (it finishes
  *                    on its own, a step a poll, by default)
@@ -40,8 +62,8 @@
  *                    LLM provider
  *   - fail=send      sending a question fails; conversations, the history
  *                    cannot be read
- *   - lang=de        the Dashboard's German words (fa: Persian, right to
- *                    left)
+ *   - lang=de        the Dashboard's German words (fa: Persian, ar:
+ *                    Arabic, each right to left)
  *   - words=none     the approval card's action was saved before actions
  *                    stored their words: only its English, as conversations
  *                    saved then read
@@ -77,6 +99,7 @@ import AICopilot from "../../../App/FeatureSet/Dashboard/src/Pages/AICopilot/AIC
 import EventName from "../../../App/FeatureSet/Dashboard/src/Utils/EventName";
 import DE from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
 import FA from "../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
+import AR from "../../../App/FeatureSet/Dashboard/src/Locales/ar.json";
 import AIConversation from "Common/Models/DatabaseModels/AIConversation";
 import AIConversationMessage from "Common/Models/DatabaseModels/AIConversationMessage";
 import AIRun from "Common/Models/DatabaseModels/AIRun";
@@ -94,6 +117,8 @@ import {
   AI_ACTION_CARD_LINES,
   AI_ACTION_CODE_FILE,
   AI_ACTION_LINES,
+  AI_ACTION_NAME,
+  AI_ACTION_NEW_MONITOR,
   AI_ACTION_PLURAL_LINES,
   AI_ACTION_PLURAL_TITLES,
   AI_ACTION_TITLES,
@@ -111,8 +136,25 @@ import {
   AIChatToolActionStatus,
   AIChatWidgetType,
 } from "Common/Types/AI/AIChatTypes";
+import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
+import WidgetBuilder from "Common/Server/Utils/AI/Toolbox/WidgetBuilder";
+import {
+  getEmptyRunbookCardWords,
+  getEmptyTeamCardWords,
+  getMonitorCardWords,
+  getOnCallPolicyCardWords,
+  getOnCallScheduleCardWords,
+  getSecurityCaseCardWords,
+  getSloCardWords,
+  getStatusPageCardWords,
+  getUnrunWorkflowCardWords,
+} from "Common/Server/Utils/AI/Toolbox/ReadCardWords";
+import { SecurityEntityType } from "Common/Types/SecurityCase/SecurityEntity";
+import SliType from "Common/Types/ServiceLevelObjective/SliType";
+import SloStatus from "Common/Types/ServiceLevelObjective/SloStatus";
+import SloWindowType from "Common/Types/ServiceLevelObjective/SloWindowType";
 import API from "Common/UI/Utils/API/API";
 import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 import GlobalEvents from "Common/UI/Utils/GlobalEvents";
@@ -134,7 +176,7 @@ const OPEN_STATE_ID = "50000000-0000-4000-8000-000000000001";
 const RESOLVED_STATE_ID = "50000000-0000-4000-8000-000000000002";
 
 const params = new URLSearchParams(window.location.search);
-const language = ["de", "fa"].includes(params.get("lang"))
+const language = ["de", "fa", "ar"].includes(params.get("lang"))
   ? params.get("lang")
   : "en";
 const historyKind = ["some", "many"].includes(params.get("history"))
@@ -147,6 +189,10 @@ const threadKind = [
   "rich",
   "actions",
   "code",
+  "monitors",
+  "readcards",
+  "setup",
+  "setup-busy",
 ].includes(params.get("thread"))
   ? params.get("thread")
   : "";
@@ -484,13 +530,15 @@ function incidentNoteActions(status) {
 }
 
 /*
- * A commit of three files on fix/login, as the server stores it
+ * A commit of four files on fix/login, as the server stores it
  * (CodeWriteTools, CodeFilesSeen): its title, and a caution for each kind
  * of file it would write over unseen, in the order the card weighs them -
  * a file changed on the branch since Ask AI read it, one read in an
- * earlier answer, and one read earlier in this answer whose read the
- * conversation has left out since (issue #6570). Ask AI writes each file
- * whole, so the card names them before anyone approves it.
+ * earlier answer, one read earlier in this answer whose read the
+ * conversation has left out since (issue #6570), and one Ask AI read all
+ * of in two parts, the first of them left out since: read, and no longer
+ * all in hand - never "read only part of" (issue #6984). Ask AI writes
+ * each file whole, so the card names them before anyone approves it.
  */
 const CODE_BRANCH = "fix/login";
 
@@ -503,7 +551,7 @@ function codeFiles(paths) {
 }
 
 const CODE_CHANGE_WORDS = {
-  title: aiActionPluralSentence(AI_ACTION_PLURAL_TITLES.commitFiles, 3, {
+  title: aiActionPluralSentence(AI_ACTION_PLURAL_TITLES.commitFiles, 4, {
     branch: CODE_BRANCH,
   }),
   description: [
@@ -525,6 +573,11 @@ const CODE_CHANGE_WORDS = {
       1,
       { files: codeFiles(["src/billing/charge.ts"]) },
     ),
+    aiActionPluralSentence(
+      AI_ACTION_PLURAL_LINES.codeFilesPartNoLongerInHand,
+      1,
+      { files: codeFiles(["src/billing/ledger.ts"]) },
+    ),
   ],
 };
 
@@ -544,12 +597,307 @@ function codeChangeAction(status) {
         { filePath: "src/billing/refund.ts", content: "export {};\n" },
         { filePath: "README.md", content: "# Billing\n" },
         { filePath: "src/billing/charge.ts", content: "export {};\n" },
+        { filePath: "src/billing/ledger.ts", content: "export {};\n" },
       ],
     },
     isMutation: true,
     requiresApproval: true,
     status,
   };
+}
+
+/*
+ * "Monitor example.com every minute and text me if it is down" (issue
+ * #6829): one plan on one card, as the server stores it (SetupTools) - a
+ * website monitor and the project's first on-call policy, each said in
+ * plain words, the paging part saying the number for texts is missing.
+ */
+const SETUP_QUESTION =
+  "Monitor example.com every minute and text me if it is down.";
+const SETUP_POLICY_NAME = "Default on-call policy";
+const SETUP_POLICY_ID = "70000000-0000-4000-8000-000000000001";
+const SETUP_MONITOR_ID = "60000000-0000-4000-8000-000000000001";
+
+const SETUP_MONITOR_WORDS = {
+  title: aiActionSentence(AI_ACTION_TITLES.setUpWebsiteMonitoring, {
+    address: "example.com",
+  }),
+  description: [
+    aiActionPluralSentence(AI_ACTION_PLURAL_LINES.websiteMonitorChecks, 1, {
+      url: "https://example.com",
+    }),
+    aiActionPluralSentence(AI_ACTION_PLURAL_LINES.checkedFromLocations, 2),
+    aiActionSentence(AI_ACTION_LINES.monitorOpensIncident, {
+      severity: "Critical Incident",
+    }),
+    aiActionSentence(AI_ACTION_LINES.monitorOwnerEmailed),
+  ],
+  describedArguments: ["address", "isApi", "checkEveryMinutes"],
+};
+
+const SETUP_PAGING_WORDS = {
+  title: aiActionSentence(AI_ACTION_TITLES.createOnCallPolicy, {
+    policy: JSON.stringify(SETUP_POLICY_NAME),
+  }),
+  description: [
+    aiActionSentence(AI_ACTION_LINES.pagesYouForEveryNewEvent),
+    aiActionSentence(AI_ACTION_LINES.noVerifiedPhoneForSms),
+  ],
+  describedArguments: [
+    "includeMe",
+    "reachMeBy",
+    "userIds",
+    "teamIds",
+    "otherPeople",
+    "pagedTeams",
+  ],
+};
+
+// The plan's two parts, each with the status the person's decision left it.
+function setupActions(monitorStatus, pagingStatus) {
+  const monitor = describeAIActionWords(SETUP_MONITOR_WORDS);
+  const paging = describeAIActionWords(SETUP_PAGING_WORDS);
+
+  return [
+    {
+      id: "call_setup_monitor",
+      toolName: "set_up_website_monitoring",
+      title: monitor.title,
+      description: monitor.description,
+      words: SETUP_MONITOR_WORDS,
+      ...(monitorStatus === AIChatToolActionStatus.Executed
+        ? { widgetId: "W1" }
+        : {}),
+      arguments: {
+        address: "example.com",
+        checkEveryMinutes: 1,
+        isApi: false,
+      },
+      isMutation: true,
+      requiresApproval: true,
+      status: monitorStatus,
+    },
+    {
+      id: "call_setup_paging",
+      toolName: "set_up_paging",
+      title: paging.title,
+      description: paging.description,
+      words: SETUP_PAGING_WORDS,
+      ...(pagingStatus === AIChatToolActionStatus.Executed
+        ? { widgetId: "W2" }
+        : {}),
+      arguments: {
+        reachMeBy: ["sms"],
+        includeMe: true,
+        userIds: [USER_ID],
+        teamIds: [],
+        otherPeople: [],
+        pagedTeams: [],
+      },
+      isMutation: true,
+      requiresApproval: true,
+      status: pagingStatus,
+    },
+  ];
+}
+
+// The card the approved monitor leaves: it offers a test page to yourself.
+function setupMonitorCard(minutes) {
+  return [
+    "W1",
+    "Monitor set up",
+    "example.com",
+    {
+      kind: aiActionTerm(AI_ACTION_CARD_KINDS.monitor),
+      line: [
+        aiActionPluralSentence(
+          AI_ACTION_PLURAL_LINES.checkedEveryMinutes,
+          minutes,
+        ),
+      ],
+      facts: [
+        aiActionCardFact(AI_ACTION_CARD_FACTS.address, "https://example.com"),
+      ],
+    },
+    {
+      type: AIChatCitationTargetType.MonitorView,
+      params: { monitorId: SETUP_MONITOR_ID },
+    },
+    { kind: "self" },
+  ];
+}
+
+// Cards as WidgetBuilder.actionCard writes them.
+function toSetupCards(cards) {
+  return cards.map(([id, title, heading, words, link, testPage]) => {
+    const english = describeAIActionCardWords(words);
+    return {
+      id,
+      type: AIChatWidgetType.ResourceCard,
+      title,
+      data: {
+        resourceType: english.kind,
+        heading,
+        subheading: english.line,
+        fields: english.facts,
+        words,
+        link,
+        ...(testPage ? { testPage } : {}),
+      },
+    };
+  });
+}
+
+/*
+ * The same kind of request in a busy project (?thread=setup-busy): its own
+ * on-call policies page people already, so no policy is proposed beside
+ * them, and it has a status page - "Monitor example.com and show it on our
+ * status page" is the monitor, checked every 5 minutes as nobody asked for
+ * another interval, and that monitor put on the project's status page.
+ */
+const SETUP_BUSY_QUESTION =
+  "Monitor example.com and show it on our status page.";
+const SETUP_STATUS_PAGE_NAME = "Acme status";
+const SETUP_STATUS_PAGE_ID = "80000000-0000-4000-8000-000000000001";
+
+const SETUP_BUSY_MONITOR_WORDS = {
+  ...SETUP_MONITOR_WORDS,
+  description: [
+    aiActionPluralSentence(AI_ACTION_PLURAL_LINES.websiteMonitorChecks, 5, {
+      url: "https://example.com",
+    }),
+    aiActionPluralSentence(AI_ACTION_PLURAL_LINES.checkedFromLocations, 2),
+    aiActionSentence(AI_ACTION_LINES.monitorOpensIncident, {
+      severity: "Critical Incident",
+    }),
+    aiActionSentence(AI_ACTION_LINES.monitorOwnerEmailed),
+  ],
+};
+
+const SETUP_STATUS_PAGE_WORDS = {
+  title: aiActionSentence(AI_ACTION_TITLES.addMonitorsToStatusPage, {
+    statusPage: JSON.stringify(SETUP_STATUS_PAGE_NAME),
+  }),
+  description: [
+    aiActionSentence(AI_ACTION_LINES.adds, {
+      resources: aiActionList([
+        aiActionSentence(AI_ACTION_NEW_MONITOR, {
+          name: JSON.stringify("example.com"),
+        }),
+      ]),
+    }),
+  ],
+  namedArguments: ["statusPage", "statusPageId"],
+  describedArguments: ["monitors"],
+};
+
+// The busy project's plan: the monitor, and its place on the status page.
+function setupBusyActions(monitorStatus, statusPageStatus) {
+  const monitor = describeAIActionWords(SETUP_BUSY_MONITOR_WORDS);
+  const statusPage = describeAIActionWords(SETUP_STATUS_PAGE_WORDS);
+
+  return [
+    {
+      id: "call_setup_monitor",
+      toolName: "set_up_website_monitoring",
+      title: monitor.title,
+      description: monitor.description,
+      words: SETUP_BUSY_MONITOR_WORDS,
+      ...(monitorStatus === AIChatToolActionStatus.Executed
+        ? { widgetId: "W1" }
+        : {}),
+      arguments: { address: "example.com", isApi: false },
+      isMutation: true,
+      requiresApproval: true,
+      status: monitorStatus,
+    },
+    {
+      id: "call_setup_status_page",
+      toolName: "add_monitors_to_status_page",
+      title: statusPage.title,
+      description: statusPage.description,
+      words: SETUP_STATUS_PAGE_WORDS,
+      ...(statusPageStatus === AIChatToolActionStatus.Executed
+        ? { widgetId: "W2" }
+        : {}),
+      arguments: {
+        statusPage: SETUP_STATUS_PAGE_NAME,
+        statusPageId: SETUP_STATUS_PAGE_ID,
+        monitors: ["example.com"],
+      },
+      isMutation: true,
+      requiresApproval: true,
+      status: statusPageStatus,
+    },
+  ];
+}
+
+// The cards the busy project's approved parts leave.
+function setupBusyCards(data) {
+  const cards = [];
+
+  if (data.monitor) {
+    cards.push(setupMonitorCard(5));
+  }
+
+  if (data.statusPage) {
+    cards.push([
+      "W2",
+      "Monitors added to the status page",
+      SETUP_STATUS_PAGE_NAME,
+      {
+        kind: aiActionTerm(AI_ACTION_CARD_KINDS.statusPage),
+        line: [
+          aiActionSentence(AI_ACTION_CARD_LINES.monitorsAdded, {
+            monitors: aiActionList([
+              aiActionSentence(AI_ACTION_NAME, {
+                name: JSON.stringify("example.com"),
+              }),
+            ]),
+          }),
+        ],
+      },
+      {
+        type: AIChatCitationTargetType.StatusPageView,
+        params: { statusPageId: SETUP_STATUS_PAGE_ID },
+      },
+      null,
+    ]);
+  }
+
+  return toSetupCards(cards);
+}
+
+// The cards the approved parts leave, each offering its test page.
+function setupCards(data) {
+  const cards = [];
+
+  if (data.monitor) {
+    cards.push(setupMonitorCard(1));
+  }
+
+  if (data.paging) {
+    cards.push([
+      "W2",
+      "On-call policy created",
+      SETUP_POLICY_NAME,
+      {
+        kind: aiActionTerm(AI_ACTION_CARD_KINDS.onCallPolicy),
+        line: [aiActionSentence(AI_ACTION_CARD_LINES.pagesYouForEveryNewEvent)],
+      },
+      {
+        type: AIChatCitationTargetType.OnCallPolicyView,
+        params: { onCallDutyPolicyId: SETUP_POLICY_ID },
+      },
+      {
+        kind: "policy",
+        policyId: SETUP_POLICY_ID,
+        policyName: SETUP_POLICY_NAME,
+      },
+    ]);
+  }
+
+  return toSetupCards(cards);
 }
 
 // The cards the two leave once run (WidgetBuilder.actionCard).
@@ -610,6 +958,349 @@ let richConversation = null;
 let actionsConversation = null;
 // The conversation waiting to commit three files (?thread=code).
 let codeConversation = null;
+// The conversation waiting on a setup plan (?thread=setup).
+let setupConversation = null;
+// The same in a project that pages people already (?thread=setup-busy).
+let setupBusyConversation = null;
+// The conversation that looked monitors up (?thread=monitors).
+let monitorsConversation = null;
+
+/*
+ * The card query_monitors leaves for a monitor read by id, built as the
+ * tool builds it (WidgetBuilder.resourceCard): a read's, drawn plain, with
+ * its status's own colour - gray when its monitoring is off (issue #6968) -
+ * and its words, which the chat says in the reader's language: its type,
+ * "Last status" and "Off - not checked" OneUptime's words, its status as
+ * the project named it (issue #7175).
+ */
+function monitorCard({
+  id,
+  name,
+  monitorId,
+  monitorType,
+  statusName,
+  isMonitoringOff,
+  statusColor,
+}) {
+  return {
+    ...WidgetBuilder.resourceCard({
+      title: `Monitor ${name}`,
+      heading: name,
+      words: getMonitorCardWords({
+        monitorType,
+        statusName,
+        isMonitoringOff,
+        isArchived: false,
+      }),
+      statusColor,
+      link: {
+        type: AIChatCitationTargetType.MonitorView,
+        params: { monitorId },
+      },
+    }),
+    id,
+  };
+}
+
+/*
+ * "Which monitors are down right now?", answered: the two monitors it read
+ * by id, and the monitors table query_monitors lists them in - a monitor
+ * named by its URL, with no spaces to wrap at, beside statuses that are
+ * one word each (issue #6969).
+ */
+function seedMonitorsAnswer() {
+  monitorsConversation = conversationOf("Monitors down right now", 2);
+  messageOf(monitorsConversation.id.toString(), AIChatMessageRole.User, {
+    contentInMarkdown: "Which monitors are down right now?",
+    createdAt: minutesAgo(3),
+  });
+  messageOf(monitorsConversation.id.toString(), AIChatMessageRole.Assistant, {
+    contentInMarkdown:
+      "One monitor is down: **Checkout API** has been Offline since its last check. **Backup Job** is not checked: its monitoring is off, so its status is the last one it had.",
+    widgets: [
+      monitorCard({
+        id: "W1",
+        name: "Checkout API",
+        monitorId: "60000000-0000-4000-8000-000000000001",
+        monitorType: MonitorType.Website,
+        statusName: "Offline",
+        isMonitoringOff: false,
+        statusColor: "#fd625e",
+      }),
+      monitorCard({
+        id: "W2",
+        name: "Backup Job",
+        monitorId: "60000000-0000-4000-8000-000000000004",
+        monitorType: MonitorType.IncomingRequest,
+        statusName: "Operational",
+        isMonitoringOff: true,
+        statusColor: "#6b7280",
+      }),
+      {
+        id: "W3",
+        type: AIChatWidgetType.Table,
+        title: "Monitors (4)",
+        data: {
+          columns: [
+            { key: "name", title: "Monitor", type: "text" },
+            { key: "type", title: "Type", type: "text" },
+            { key: "currentStatus", title: "Status", type: "text" },
+          ],
+          rows: [
+            {
+              name: "Checkout API",
+              type: "Website",
+              currentStatus: "Offline",
+            },
+            {
+              name: "https://payments.example.com/api/v2/health/checkout",
+              type: "Website",
+              currentStatus: "Operational",
+            },
+            {
+              name: "legacy-payments-api",
+              type: "API",
+              currentStatus: "Operational",
+            },
+            {
+              name: "Backup Job",
+              type: "Incoming Request",
+              currentStatus: "Disabled",
+            },
+          ],
+          link: { type: AIChatCitationTargetType.Monitors },
+        },
+      },
+    ],
+    createdAt: minutesAgo(2),
+  });
+}
+
+// The conversation that looked up one of each record a read leaves a card for (?thread=readcards).
+let readCardsConversation = null;
+
+/*
+ * Every card a read leaves, each built as its tool builds it
+ * (WidgetBuilder.resourceCard with its builder in ReadCardWords): the
+ * kind, the line and each fact's name are OneUptime's words, which the
+ * chat says in the reader's language, and the names, the statuses the
+ * project chose, a URL and an entity's value are data, drawn as written
+ * (issue #7175). One of each, with the facts each tool says most.
+ */
+function readCards() {
+  const read = (id, title, heading, words, link, statusColor) => {
+    return {
+      ...WidgetBuilder.resourceCard({
+        title,
+        heading,
+        words,
+        link,
+        ...(statusColor ? { statusColor } : {}),
+      }),
+      id,
+    };
+  };
+
+  return [
+    read(
+      "R1",
+      "Monitor payments-api",
+      "payments-api",
+      getMonitorCardWords({
+        monitorType: MonitorType.API,
+        statusName: "Degraded",
+        isMonitoringOff: false,
+        isArchived: false,
+        ownerTeamNames: "Payments, SRE",
+        ownerUserNames: "Ana Souza",
+      }),
+      {
+        type: AIChatCitationTargetType.MonitorView,
+        params: { monitorId: "60000000-0000-4000-8000-000000000002" },
+      },
+      "#f59e0b",
+    ),
+    read(
+      "R2",
+      "SLO Checkout availability",
+      "Checkout availability",
+      getSloCardWords({
+        description: "Checkout requests that succeed, over 30 days.",
+        targetPercentage: 99.9,
+        windowType: SloWindowType.Rolling,
+        windowDays: 30,
+        sliType: SliType.MonitorUptime,
+        isArchived: false,
+        isEnabled: true,
+        sloStatus: SloStatus.AtRisk,
+        currentSliPercentage: 99.874,
+        errorBudgetRemainingPercentage: 12.5,
+        currentBurnRate: 2.4,
+        monitorNames: "Checkout API, payments-api",
+        monitorRules: { isVisible: true, count: 2, enabledCount: 1 },
+        burnRateRules: { isVisible: true, count: 3 },
+        policyTiers: {
+          currentName: "Freeze risky deploys",
+          isVisible: true,
+          count: 2,
+        },
+        deploymentsAllowed: false,
+      }),
+      {
+        type: AIChatCitationTargetType.SloView,
+        params: { sloId: "61000000-0000-4000-8000-000000000001" },
+      },
+    ),
+    read(
+      "R3",
+      "Team",
+      "Database reliability",
+      getEmptyTeamCardWords({
+        description: "Owns the payments databases and their backups.",
+      }),
+      { type: AIChatCitationTargetType.Teams },
+    ),
+    read(
+      "R4",
+      "On-call policy: Payments primary",
+      "Payments primary",
+      getOnCallPolicyCardWords({
+        description: "Pages for every payments incident.",
+        isArchived: false,
+        rules: [
+          {
+            order: 1,
+            users: ["Ana Souza"],
+            teams: ["SRE"],
+            schedules: [],
+            escalateAfterInMinutes: 15,
+          },
+          {
+            order: 2,
+            name: "Database team",
+            users: [],
+            teams: [],
+            schedules: ["Payments weekly rotation"],
+            escalateAfterInMinutes: 30,
+          },
+          {
+            order: 3,
+            users: [],
+            teams: [],
+            schedules: [],
+            escalateAfterInMinutes: 0,
+          },
+        ],
+      }),
+      {
+        type: AIChatCitationTargetType.OnCallPolicyView,
+        params: { onCallDutyPolicyId: "62000000-0000-4000-8000-000000000001" },
+      },
+    ),
+    read(
+      "R5",
+      "On-call schedule 'Payments weekly rotation'",
+      "Payments weekly rotation",
+      getOnCallScheduleCardWords({
+        onCallNow: "Ana Souza",
+        rosterStartAt: minutesAgo(60 * 26),
+        rosterHandoffAt: minutesAgo(-60 * 142),
+        nextUp: "Jonas Müller",
+        rosterNextStartAt: minutesAgo(-60 * 142),
+      }),
+      { type: AIChatCitationTargetType.OnCallPolicies },
+    ),
+    read(
+      "R6",
+      "Status page: Acme Status",
+      "Acme Status",
+      getStatusPageCardWords({
+        description: "Checkout, payments and backups, for our customers.",
+        isPublic: true,
+        isArchived: false,
+        publicUrl: "https://status.acme.example.com",
+        resourceCount: 3,
+        resources: [
+          {
+            name: "Checkout",
+            source: { name: "Checkout API", isMonitorGroup: false },
+            isNotMonitored: false,
+          },
+          {
+            name: "Payments",
+            source: { name: "Payments stack", isMonitorGroup: true },
+            isNotMonitored: false,
+          },
+          { name: "Backups", isNotMonitored: true },
+        ],
+        activeSubscribers: 1284,
+      }),
+      {
+        type: AIChatCitationTargetType.StatusPageView,
+        params: { statusPageId: "63000000-0000-4000-8000-000000000001" },
+      },
+    ),
+    read(
+      "R7",
+      "Runbook",
+      "Restart the payments worker",
+      getEmptyRunbookCardWords({
+        description: "Drains the queue, then restarts the worker.",
+        isEnabled: false,
+      }),
+      {
+        type: AIChatCitationTargetType.RunbookView,
+        params: { runbookId: "64000000-0000-4000-8000-000000000001" },
+      },
+    ),
+    read(
+      "R8",
+      'Workflow "Page on-call when a deploy fails"',
+      "Page on-call when a deploy fails",
+      getUnrunWorkflowCardWords({
+        description: "Runs on every failed deploy of payments-api.",
+        isEnabled: true,
+        isArchived: false,
+      }),
+      {
+        type: AIChatCitationTargetType.WorkflowView,
+        params: { workflowId: "65000000-0000-4000-8000-000000000001" },
+      },
+    ),
+    read(
+      "R9",
+      "Security case",
+      "SC-17 Sign-ins from a new country",
+      getSecurityCaseCardWords({
+        statusName: "Investigating",
+        priorityName: "High",
+        detectionCount: 4,
+        entities: [
+          { type: SecurityEntityType.IpAddress, value: "203.0.113.7" },
+          { type: SecurityEntityType.User, value: "ana@acme.example.com" },
+        ],
+      }),
+      {
+        type: AIChatCitationTargetType.SecurityCaseView,
+        params: { securityCaseId: "66000000-0000-4000-8000-000000000001" },
+      },
+    ),
+  ];
+}
+
+function seedReadCardsAnswer() {
+  readCardsConversation = conversationOf("What we have for payments", 2);
+  messageOf(readCardsConversation.id.toString(), AIChatMessageRole.User, {
+    contentInMarkdown: "What do we have set up for payments?",
+    createdAt: minutesAgo(3),
+  });
+  messageOf(readCardsConversation.id.toString(), AIChatMessageRole.Assistant, {
+    contentInMarkdown:
+      "Here is everything set up for payments: its monitor, SLO, team, on-call, status page, runbook, workflow and open security case.",
+    widgets: readCards(),
+    createdAt: minutesAgo(2),
+  });
+}
 
 function seedRichAnswer() {
   richConversation = conversationOf("Payments health this week", 3);
@@ -812,6 +1503,47 @@ function seedHistory() {
     });
   }
 
+  if (threadKind === "setup") {
+    setupConversation = conversationOf("Monitor example.com and text me", 2);
+    messageOf(setupConversation.id.toString(), AIChatMessageRole.User, {
+      contentInMarkdown: SETUP_QUESTION,
+      createdAt: minutesAgo(2),
+    });
+    messageOf(setupConversation.id.toString(), AIChatMessageRole.Assistant, {
+      contentInMarkdown: "",
+      status: AIChatMessageStatus.WaitingForApproval,
+      toolActions: setupActions(
+        AIChatToolActionStatus.Pending,
+        AIChatToolActionStatus.Pending,
+      ),
+      createdAt: minutesAgo(2),
+    });
+  }
+
+  if (threadKind === "setup-busy") {
+    setupBusyConversation = conversationOf(
+      "Monitor example.com on our status page",
+      2,
+    );
+    messageOf(setupBusyConversation.id.toString(), AIChatMessageRole.User, {
+      contentInMarkdown: SETUP_BUSY_QUESTION,
+      createdAt: minutesAgo(2),
+    });
+    messageOf(
+      setupBusyConversation.id.toString(),
+      AIChatMessageRole.Assistant,
+      {
+        contentInMarkdown: "",
+        status: AIChatMessageStatus.WaitingForApproval,
+        toolActions: setupBusyActions(
+          AIChatToolActionStatus.Pending,
+          AIChatToolActionStatus.Pending,
+        ),
+        createdAt: minutesAgo(2),
+      },
+    );
+  }
+
   if (threadKind === "actions") {
     actionsConversation = conversationOf("Update the status page", 5);
     messageOf(actionsConversation.id.toString(), AIChatMessageRole.User, {
@@ -825,6 +1557,14 @@ function seedHistory() {
       toolActions: incidentNoteActions(AIChatToolActionStatus.Pending),
       createdAt: minutesAgo(5),
     });
+  }
+
+  if (threadKind === "monitors") {
+    seedMonitorsAnswer();
+  }
+
+  if (threadKind === "readcards") {
+    seedReadCardsAnswer();
   }
 
   if (historyKind === "none") {
@@ -868,6 +1608,10 @@ fixture.conversationIds = {
   rich: richConversation?.id.toString(),
   actions: actionsConversation?.id.toString(),
   code: codeConversation?.id.toString(),
+  monitors: monitorsConversation?.id.toString(),
+  readcards: readCardsConversation?.id.toString(),
+  setup: setupConversation?.id.toString(),
+  "setup-busy": setupBusyConversation?.id.toString(),
 };
 
 // ---- a run, written step by step as the dialog polls --------------------------
@@ -1213,6 +1957,64 @@ function respondToApproval(data) {
     return decision.approved;
   });
 
+  /*
+   * A setup plan: each part as the person decided it - an approved one
+   * leaves its card, which offers its test page, a skipped one is not made.
+   */
+  if (data.conversationId === setupConversation?.id.toString()) {
+    const isApproved = (id) => {
+      return (data.decisions || []).some((decision) => {
+        return decision.toolCallId === id && decision.approved;
+      });
+    };
+    const monitor = isApproved("call_setup_monitor");
+    const paging = isApproved("call_setup_paging");
+    const statusOf = (approvedPart) => {
+      return approvedPart
+        ? AIChatToolActionStatus.Executed
+        : AIChatToolActionStatus.Denied;
+    };
+
+    message.toolActions = setupActions(statusOf(monitor), statusOf(paging));
+    message.status = AIChatMessageStatus.Completed;
+    message.contentInMarkdown =
+      monitor || paging
+        ? "example.com is checked every minute, and the Default on-call policy pages you for every new incident and alert. Texts reach you once you add and verify your phone number in Notification Methods. Send yourself a test page to be sure it works."
+        : "I did not set anything up.";
+    message.widgets = setupCards({ monitor, paging });
+    message.aiRunId = runOf({ toolCallCount: 4, totalTokens: 7310 }).id;
+    return {};
+  }
+
+  // The busy project's plan: its own policies still decide who is paged.
+  if (data.conversationId === setupBusyConversation?.id.toString()) {
+    const isApproved = (id) => {
+      return (data.decisions || []).some((decision) => {
+        return decision.toolCallId === id && decision.approved;
+      });
+    };
+    const monitor = isApproved("call_setup_monitor");
+    const statusPage = isApproved("call_setup_status_page");
+    const statusOf = (approvedPart) => {
+      return approvedPart
+        ? AIChatToolActionStatus.Executed
+        : AIChatToolActionStatus.Denied;
+    };
+
+    message.toolActions = setupBusyActions(
+      statusOf(monitor),
+      statusOf(statusPage),
+    );
+    message.status = AIChatMessageStatus.Completed;
+    message.contentInMarkdown =
+      monitor || statusPage
+        ? "example.com is checked every 5 minutes and shown on Acme status. Your project's own on-call policies decide who is paged when it goes down: ask who is told when example.com goes down to see them. Send yourself a test page to be sure it reaches you."
+        : "I did not set anything up.";
+    message.widgets = setupBusyCards({ monitor, statusPage });
+    message.aiRunId = runOf({ toolCallCount: 5, totalTokens: 8120 }).id;
+    return {};
+  }
+
   // The status update and the note: both run, and leave their two cards.
   if (data.conversationId === actionsConversation?.id.toString()) {
     message.toolActions = incidentNoteActions(
@@ -1310,6 +2112,7 @@ await i18next.use(initReactI18next).init({
     en: { translation: {} },
     de: { translation: DE },
     fa: { translation: FA },
+    ar: { translation: AR },
   },
   interpolation: { escapeValue: false },
   keySeparator: false,

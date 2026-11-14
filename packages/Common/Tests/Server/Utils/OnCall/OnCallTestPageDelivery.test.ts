@@ -26,6 +26,8 @@ import { getOnCallTestPageSentBy } from "../../../../Types/OnCallDutyPolicy/OnCa
 import logger from "../../../../Server/Utils/Logger";
 import UserNotificationRule from "../../../../Models/DatabaseModels/UserNotificationRule";
 import UserOnCallLogTimeline from "../../../../Models/DatabaseModels/UserOnCallLogTimeline";
+import HTTPErrorResponse from "../../../../Types/API/HTTPErrorResponse";
+import HTTPResponse from "../../../../Types/API/HTTPResponse";
 import URL from "../../../../Types/API/URL";
 import CallRequest, { GatherInput } from "../../../../Types/Call/CallRequest";
 import { CustomChannelEvent } from "../../../../Types/CustomNotificationChannel/CustomNotificationChannelPayload";
@@ -34,7 +36,13 @@ import EmailTemplateType from "../../../../Types/Email/EmailTemplateType";
 import { JSONObject } from "../../../../Types/JSON";
 import PushNotificationLevel from "../../../../Types/NotificationRule/PushNotificationLevel";
 import ObjectID from "../../../../Types/ObjectID";
-import { OnCallTestPageRecordKind } from "../../../../Types/OnCallDutyPolicy/OnCallTestPage";
+import {
+  OnCallTestPageDelivery as OnCallTestPageResultDelivery,
+  OnCallTestPageLineCode,
+  OnCallTestPageRecordKind,
+} from "../../../../Types/OnCallDutyPolicy/OnCallTestPage";
+import { OnCallPageChannel } from "../../../../Types/OnCallDutyPolicy/OnCallPageChannel";
+import { toDelivery } from "../../../../Server/Services/OnCallTestPageService";
 import Phone from "../../../../Types/Phone";
 import PushDeviceType from "../../../../Types/PushNotification/PushDeviceType";
 import PushNotificationMessage from "../../../../Types/PushNotification/PushNotificationMessage";
@@ -495,6 +503,181 @@ describe("a send that fails", () => {
       statusMessage: "No devices provided",
     });
     expect(UserOnCallLogTimelineService.updateOneById).not.toHaveBeenCalled();
+  });
+
+  /*
+   * Issue #7083: an error answer from the Notification service does not
+   * throw - API.post hands it back - so the row said Sending until the
+   * stuck check. Each request's answer is read where it is sent.
+   */
+  describe("a request the Notification service answered with an error", () => {
+    const PHONE: Record<string, unknown> = {
+      id: METHOD_ID,
+      phone: new Phone("+15550100"),
+      isVerified: true,
+    };
+
+    const REQUESTS: Array<[string, Record<string, unknown>, () => jest.Mock]> =
+      [
+        [
+          "email",
+          EMAIL,
+          (): jest.Mock => {
+            return MailService.sendMail as jest.Mock;
+          },
+        ],
+        [
+          "SMS",
+          { userSms: PHONE },
+          (): jest.Mock => {
+            return SmsService.sendSms as jest.Mock;
+          },
+        ],
+        [
+          "call",
+          { userCall: PHONE },
+          (): jest.Mock => {
+            return CallService.makeCall as jest.Mock;
+          },
+        ],
+        [
+          "WhatsApp",
+          { userWhatsApp: PHONE },
+          (): jest.Mock => {
+            return WhatsAppService.sendWhatsAppMessage as jest.Mock;
+          },
+        ],
+        [
+          "Telegram",
+          {
+            userTelegram: {
+              id: METHOD_ID,
+              telegramChatId: "12345",
+              isVerified: true,
+            },
+          },
+          (): jest.Mock => {
+            return TelegramService.sendTelegramMessage as jest.Mock;
+          },
+        ],
+        [
+          "webhook",
+          {
+            userWebhook: {
+              id: METHOD_ID,
+              webhookUrl: "https://hooks.example.com/on-call",
+              secret: "s3cret",
+            },
+          },
+          (): jest.Mock => {
+            return WebhookService.sendWebhook as jest.Mock;
+          },
+        ],
+      ];
+
+    test.each(REQUESTS)(
+      "%s: a refusal is Error, in the answer's words",
+      async (
+        _name: string,
+        methods: Record<string, unknown>,
+        sender: () => jest.Mock,
+      ) => {
+        sender().mockResolvedValue(
+          new HTTPErrorResponse(
+            400,
+            { message: "Not valid for this project." },
+            {},
+          ) as never,
+        );
+
+        await deliver(methods);
+        await settle();
+
+        expect(createdRows).toHaveLength(1);
+        expect(timeline.get(createdRows[0]!.id!)).toMatchObject({
+          status: UserNotificationStatus.Error,
+          statusMessage:
+            "The Notification service refused to send this (HTTP 400): Not valid for this project.",
+        });
+        expect(
+          UserOnCallLogTimelineService.updateOneById,
+        ).not.toHaveBeenCalled();
+      },
+    );
+
+    test.each(REQUESTS)(
+      "%s: any other error answer is Error, saying it may not have been sent",
+      async (
+        _name: string,
+        methods: Record<string, unknown>,
+        sender: () => jest.Mock,
+      ) => {
+        sender().mockResolvedValue(new HTTPErrorResponse(503, {}, {}) as never);
+
+        await deliver(methods);
+        await settle();
+
+        expect(timeline.get(createdRows[0]!.id!)).toMatchObject({
+          status: UserNotificationStatus.Error,
+          statusMessage:
+            "The Notification service answered with an error (HTTP 503), so this may not have been sent.",
+        });
+      },
+    );
+
+    test("a success answer leaves the row to the Notification service's own result", async () => {
+      (MailService.sendMail as jest.Mock).mockResolvedValue(
+        new HTTPResponse<JSONObject>(200, {}, {}) as never,
+      );
+
+      await deliver(EMAIL);
+      await settle();
+
+      expect(timeline.get(createdRows[0]!.id!)!.status).toBe(
+        UserNotificationStatus.Sending,
+      );
+      expect(timeline.writes).toEqual([]);
+    });
+
+    test("the person acknowledging the test before the answer: their answer stays", async () => {
+      (MailService.sendMail as jest.Mock).mockResolvedValue(
+        new HTTPErrorResponse(500, { message: "Server Error" }, {}) as never,
+      );
+      timeline.whenRead((row: StoredOnCallNotification) => {
+        row.status = UserNotificationStatus.Acknowledged;
+      });
+
+      await deliver(EMAIL);
+      await settle();
+
+      expect(timeline.get(createdRows[0]!.id!)!.status).toBe(
+        UserNotificationStatus.Acknowledged,
+      );
+      expect(timeline.writes).toEqual([]);
+    });
+
+    test("a custom channel's answer is read by its own client: nothing is written here", async () => {
+      (
+        CustomNotificationChannelDeliveryService.send as jest.Mock
+      ).mockResolvedValue({
+        ok: false,
+        statusCode: 500,
+        message:
+          "The Notification service answered with an error (HTTP 500), so this may not have been sent.",
+      } as never);
+
+      await deliver({
+        customNotificationChannelId: CHANNEL_ID,
+        customNotificationChannel: { name: "Pager App", isEnabled: true },
+      });
+      await settle();
+
+      expect(createdRows).toHaveLength(1);
+      expect(timeline.get(createdRows[0]!.id!)!.status).toBe(
+        UserNotificationStatus.Sending,
+      );
+      expect(timeline.writes).toEqual([]);
+    });
   });
 });
 
@@ -1100,5 +1283,176 @@ describe("what every message says (readContext)", () => {
 
     expect(attempted).toBe(true);
     expect(MailService.sendMail).toHaveBeenCalledTimes(1);
+  });
+});
+
+/*
+ * ISSUE #7260: A MESSAGE A TEST DID NOT SEND NAMES ITS METHOD, AND ITS RESULT
+ * READS ITS LINE AS A CODE.
+ *
+ * Its row keeps the English line every reader of the execution logs reads,
+ * word for word. It names the method it is about - an email, SMS or call row
+ * named none, as a WhatsApp or Telegram row always did - so the test's
+ * result says which method it was (toDelivery), and reads the line into a
+ * code the Dashboard words in the reader's language.
+ */
+describe("a method that is not verified: named, and read as a code (#7260)", () => {
+  const CASES: Array<
+    [string, Record<string, unknown>, string, OnCallPageChannel, string]
+  > = [
+    [
+      "an email",
+      {
+        userEmail: {
+          id: METHOD_ID,
+          email: new Email("ana@example.com"),
+          isVerified: false,
+        },
+      },
+      "userEmailId",
+      OnCallPageChannel.Email,
+      "Email notification not sent because email ana@example.com is not verified.",
+    ],
+    [
+      "an SMS",
+      {
+        userSms: {
+          id: METHOD_ID,
+          phone: new Phone("+15550100"),
+          isVerified: false,
+        },
+      },
+      "userSmsId",
+      OnCallPageChannel.SMS,
+      "SMS not sent because phone +15550100 is not verified.",
+    ],
+    [
+      "a call",
+      {
+        userCall: {
+          id: METHOD_ID,
+          phone: new Phone("+15550100"),
+          isVerified: false,
+        },
+      },
+      "userCallId",
+      OnCallPageChannel.Call,
+      "Call not sent because phone +15550100 is not verified.",
+    ],
+    [
+      "a WhatsApp message",
+      {
+        userWhatsApp: {
+          id: METHOD_ID,
+          phone: new Phone("+15550100"),
+          isVerified: false,
+        },
+      },
+      "userWhatsAppId",
+      OnCallPageChannel.WhatsApp,
+      "WhatsApp message not sent because phone +15550100 is not verified.",
+    ],
+    [
+      "a Telegram message",
+      {
+        userTelegram: {
+          id: METHOD_ID,
+          telegramChatId: "12345",
+          isVerified: false,
+        },
+      },
+      "userTelegramId",
+      OnCallPageChannel.Telegram,
+      "Telegram message not sent because the Telegram account is not verified.",
+    ],
+    [
+      "a Slack message",
+      { userSlack: { id: METHOD_ID, slackUserId: "U1", isVerified: false } },
+      "userSlackId",
+      OnCallPageChannel.Slack,
+      "Slack message not sent because the Slack account is not verified.",
+    ],
+  ];
+
+  test.each(CASES)(
+    "%s: the row's English as it was, its method named, its line read as a code",
+    async (
+      _name: string,
+      methods: Record<string, unknown>,
+      column: string,
+      channel: OnCallPageChannel,
+      english: string,
+    ) => {
+      expect(await deliver(methods)).toBe(false);
+      expect(createdRows).toHaveLength(1);
+
+      const row: UserOnCallLogTimeline = createdRows[0]!;
+
+      expect(row.status).toBe(UserNotificationStatus.Error);
+      expect(row.statusMessage).toBe(english);
+      expect(
+        (row as unknown as Record<string, ObjectID | undefined>)[
+          column
+        ]?.toString(),
+      ).toBe(METHOD_ID.toString());
+
+      row.id = new ObjectID("abababab-abab-4bab-8bab-abababababab");
+      row.createdAt = new Date("2026-11-12T09:00:00.000Z");
+
+      const result: OnCallTestPageResultDelivery = toDelivery({
+        delivery: row,
+        isDelivered: false,
+      });
+
+      expect(result.channel).toBe(channel);
+      // The English stays, for every other reader of the API.
+      expect(result.statusMessage).toBe(english);
+      expect(result.statusMessageCode).toEqual({
+        code: OnCallTestPageLineCode.MethodNotVerified,
+        channel: channel,
+      });
+    },
+  );
+
+  test("a custom channel that is off: its row names it, and the result reads it as the channel's", async () => {
+    await deliver({
+      customNotificationChannelId: CHANNEL_ID,
+      customNotificationChannel: { name: "Pager App", isEnabled: false },
+    });
+
+    const row: UserOnCallLogTimeline = createdRows[0]!;
+
+    expect(row.statusMessage).toBe("Not sent: Pager App is turned off.");
+
+    row.id = new ObjectID("abababab-abab-4bab-8bab-abababababab");
+
+    expect(
+      toDelivery({ delivery: row, isDelivered: false }).statusMessageCode,
+    ).toEqual({
+      code: OnCallTestPageLineCode.MethodNotVerified,
+      channel: OnCallPageChannel.CustomChannel,
+    });
+  });
+
+  test("a message that went out carries no code: its line is not one a reader words", async () => {
+    await deliver({
+      userSms: {
+        id: METHOD_ID,
+        phone: new Phone("+15550100"),
+        isVerified: true,
+      },
+    });
+
+    const row: UserOnCallLogTimeline = createdRows[0]!;
+
+    row.id = new ObjectID("abababab-abab-4bab-8bab-abababababab");
+
+    const result: OnCallTestPageResultDelivery = toDelivery({
+      delivery: row,
+      isDelivered: false,
+    });
+
+    expect(result.statusMessage).toBe(row.statusMessage);
+    expect(result.statusMessageCode).toBeUndefined();
   });
 });

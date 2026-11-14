@@ -48,6 +48,7 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
+import { isReaderLanguage } from "../../Types/ReaderLanguage";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import DataAssetFeedService from "../Services/DataAssetFeedService";
 import DataAssetService, {
@@ -465,6 +466,14 @@ export default class DataObservabilityAPI extends BaseAPI<
           dataAssetId: new ObjectID(dataAssetId),
           sentence:
             typeof body["sentence"] === "string" ? body["sentence"] : "",
+          /*
+           * The language the person reads OneUptime in (#7220): kept only
+           * when it is a code the Dashboard is read in, so nothing else
+           * sent here ever reaches the prompt. Anything else is English.
+           */
+          language: isReaderLanguage(body["language"])
+            ? (body["language"] as string)
+            : undefined,
         })) as unknown as JSONObject;
       },
     );

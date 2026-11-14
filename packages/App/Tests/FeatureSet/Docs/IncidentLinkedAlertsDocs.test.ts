@@ -36,6 +36,8 @@ import {
   getFeedEventTypeLabel,
 } from "Common/UI/Components/Feed/FeedOptions";
 import { INCIDENT_PREFILL_RESOURCE_KEYS } from "Common/Utils/Incident/IncidentFromAlerts";
+import { drawnDashboardLabel } from "./DocsDashboardLabels";
+import { pathWithArrows } from "./DocsPageShape";
 import { escapeRegExp } from "./DocsTranslationChecks";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
@@ -54,7 +56,7 @@ import path from "path";
  * truth - the nav and its translations, the side menus and link pages, the
  * shared constants, the model's access lists, the Project columns, the feed
  * enums and entry wording - and checks the shipped pages still tell the same
- * story.
+ * story, naming the Dashboard as each language's Dashboard draws it (#7100).
  */
 
 const REPO_ROOT: string = path.resolve(__dirname, "../../../..");
@@ -277,9 +279,26 @@ const INCIDENT_LINKED_ALERTS_SETTINGS_FILE: string = path.join(
   "App/FeatureSet/Dashboard/src/Pages/Incidents/Settings/IncidentLinkedAlertsSettings.tsx",
 );
 
-// Where both pages tell readers to find the switches: a Settings page of their own.
-const LINKED_ALERTS_SETTINGS_PATH: string =
-  "**Incidents → Settings → Linked Alerts**";
+// A Dashboard label in bold, as this language's Dashboard draws it.
+function bold(language: string, english: string): string {
+  return `**${drawnDashboardLabel(language, english)}**`;
+}
+
+/*
+ * Where both pages tell readers to find the switches: a Settings page of
+ * their own, with the arrows the language's pages draw between its steps
+ * ("←" beside a Persian step, #7611).
+ */
+function linkedAlertsSettingsPath(language: string): string {
+  return `**${pathWithArrows(
+    ["Incidents", "Settings", "Linked Alerts"].map(
+      (segment: string): string => {
+        return drawnDashboardLabel(language, segment);
+      },
+    ),
+    language,
+  )}**`;
+}
 const LINKED_ALERTS_SETTINGS_URL: string =
   "/dashboard/{projectId}/incidents/settings/linked-alerts";
 
@@ -1311,8 +1330,8 @@ describe("Incident Linked Alerts docs", () => {
           expect({
             language: language,
             page: page.title,
-            named: markdown.includes(`**${page.title}**`),
-            sectionNamed: markdown.includes(`**${page.section}**`),
+            named: markdown.includes(bold(language, page.title)),
+            sectionNamed: markdown.includes(bold(language, page.section)),
           }).toEqual({
             language: language,
             page: page.title,
@@ -1329,8 +1348,10 @@ describe("Incident Linked Alerts docs", () => {
 
         expect({
           language: language,
-          incidentPage: markdown.includes(`- **${incidentPage.title}** — `),
-          alertPage: markdown.includes(`**${alertPage.title}**`),
+          incidentPage: markdown.includes(
+            `- ${bold(language, incidentPage.title)} — `,
+          ),
+          alertPage: markdown.includes(bold(language, alertPage.title)),
         }).toEqual({ language: language, incidentPage: true, alertPage: true });
       }
     });
@@ -1491,7 +1512,7 @@ describe("Incident Linked Alerts docs", () => {
         const translated: string = readPage(LINKED_ALERTS_PAGE, language);
 
         for (const eventType of LINK_FEED_EVENT_TYPES) {
-          const entry: string = `**${getFeedEventTypeLabel(eventType)}** (\`${eventType}\`)`;
+          const entry: string = `${bold(language, getFeedEventTypeLabel(eventType))} (\`${eventType}\`)`;
 
           expect({
             language: language,
@@ -1505,7 +1526,7 @@ describe("Incident Linked Alerts docs", () => {
         }
 
         // The filter that lists them: the feed ⋯ menu's item, named as it is there.
-        expect(translated).toContain(`**${FEED_OPTIONS_TEXT.filter}**`);
+        expect(translated).toContain(bold(language, FEED_OPTIONS_TEXT.filter));
       }
     });
 
@@ -1600,7 +1621,7 @@ describe("Incident Linked Alerts docs", () => {
             language: language,
             name: name,
             named: readPage(LINKED_ALERTS_PAGE, language).includes(
-              `**${name}**`,
+              bold(language, name),
             ),
           }).toEqual({ language: language, name: name, named: true });
         }
@@ -1624,12 +1645,14 @@ describe("Incident Linked Alerts docs", () => {
         const markdown: string = readPage(LINKED_ALERTS_PAGE, language);
         const phrase: string = (
           BULK_ACTION_PHRASE[language] as (verb: string) => string
-        )(verb);
+        )(drawnDashboardLabel(language, verb));
 
         expect({
           language: language,
           bulkActionNamed: markdown.includes(phrase),
-          deleteNamed: markdown.includes("**Delete**"),
+          deleteNamed:
+            markdown.includes("**Delete**") ||
+            markdown.includes(bold(language, "Delete")),
         }).toEqual({
           language: language,
           bulkActionNamed: true,
@@ -1784,7 +1807,7 @@ describe("Incident Linked Alerts docs", () => {
         const row: string =
           tableRowStartingWith(
             readPage(LINKED_ALERTS_PAGE, language),
-            "**Resources Affected**",
+            bold(language, "Resources Affected"),
           ) || "";
 
         for (const productName of productNames) {
@@ -1806,7 +1829,7 @@ describe("Incident Linked Alerts docs", () => {
         const row: string =
           tableRowStartingWith(
             readPage(LINKED_ALERTS_PAGE, language),
-            "**Private Incident**",
+            bold(language, "Private Incident"),
           ) || "";
 
         expect({
@@ -1845,8 +1868,11 @@ describe("Incident Linked Alerts docs", () => {
           "(private alert)",
           "(private incident)",
           "Declared from 3 alerts:",
-          `**${incidentCreated}**`,
-          `**${getFeedEventTypeLabel(IncidentFeedEventType.AlertLinked)}**`,
+          bold(language, incidentCreated),
+          bold(
+            language,
+            getFeedEventTypeLabel(IncidentFeedEventType.AlertLinked),
+          ),
         ]) {
           expect({
             language: language,
@@ -1915,7 +1941,7 @@ describe("Incident Linked Alerts docs", () => {
               language: language,
               page: page,
               column: column,
-              named: translated.includes(`- **${title}** — `),
+              named: translated.includes(`- ${bold(language, title)} — `),
             }).toEqual({
               language: language,
               page: page,
@@ -1965,7 +1991,7 @@ describe("Incident Linked Alerts docs", () => {
 
       const cardReference: Record<string, string> = {
         en: `**${cardTitle}** card`,
-        fa: `کارت **${cardTitle}**`,
+        fa: `کارت ${bold("fa", cardTitle || "")}`,
       };
 
       for (const language of ALL_LANGUAGES) {
@@ -1975,7 +2001,7 @@ describe("Incident Linked Alerts docs", () => {
           expect({
             language: language,
             page: page,
-            path: translated.includes(LINKED_ALERTS_SETTINGS_PATH),
+            path: translated.includes(linkedAlertsSettingsPath(language)),
             card: translated.includes(cardReference[language] as string),
           }).toEqual({
             language: language,
@@ -2038,7 +2064,7 @@ describe("Incident Linked Alerts docs", () => {
 
         // The settings table has a row for the new page.
         expect(
-          tableRowStartingWith(settings, `**${LINKED_ALERTS_TITLE}**`),
+          tableRowStartingWith(settings, bold(language, LINKED_ALERTS_TITLE)),
         ).toBeDefined();
       }
     });
@@ -2251,7 +2277,7 @@ describe("Incident Linked Alerts docs", () => {
         const headerWays: Array<string> = waysIn.filter(
           (line: string): boolean => {
             return stateButtons.every((label: string): boolean => {
-              return line.includes(`**${label}**`);
+              return line.includes(bold(language, label));
             });
           },
         );
@@ -2264,11 +2290,11 @@ describe("Incident Linked Alerts docs", () => {
           stale: markdown.includes(TWO_WAYS_IN[language] as string),
           waysIn: waysIn.length,
           allDeclare: waysIn.every((line: string): boolean => {
-            return line.includes("**Declare Incident**");
+            return line.includes(bold(language, "Declare Incident"));
           }),
           headerWays: headerWays.length,
           linkedIncidentsWays: waysIn.filter((line: string): boolean => {
-            return line.includes("**Linked Incidents**");
+            return line.includes(bold(language, "Linked Incidents"));
           }).length,
         }).toEqual({
           language: language,
@@ -2380,7 +2406,10 @@ describe("Incident Linked Alerts docs", () => {
           withoutAlertIds:
             cases[1]?.includes(`\`${INCIDENT_ALERT_IDS_TO_LINK_KEY}\``) ===
             true,
-          noAcknowledgedState: cases[2]?.includes("Acknowledged") === true,
+          noAcknowledgedState:
+            cases[2]?.includes(
+              drawnDashboardLabel(language, "Acknowledged"),
+            ) === true,
           noPermission: permissionNames.every((name: string): boolean => {
             return cases[3]?.includes(name) === true;
           }),
@@ -2689,12 +2718,12 @@ describe("Incident Linked Alerts docs", () => {
         expect({
           language: language,
           reminders:
-            section.includes(`**${stopWhen}**`) &&
-            section.includes(`**${ReminderStopState.Acknowledged}**`),
+            section.includes(bold(language, stopWhen)) &&
+            section.includes(bold(language, ReminderStopState.Acknowledged)),
           notRecalled: section.includes(NOT_RECALLED[language] as string),
           episode: section.includes(EPISODE_WORD[language] as string),
           // The declare form's step with the on-call policies.
-          onCallStep: section.includes("**On-Call & Roles**"),
+          onCallStep: section.includes(bold(language, "On-Call & Roles")),
         }).toEqual({
           language: language,
           reminders: true,
@@ -3059,7 +3088,7 @@ describe("Incident Linked Alerts docs", () => {
             readPage(page, language),
           ).prose.filter((line: string): boolean => {
             return (
-              line.includes("**Declare Incident**") &&
+              line.includes(bold(language, "Declare Incident")) &&
               docsLinks(line).has(LINKED_ALERTS_URL)
             );
           });

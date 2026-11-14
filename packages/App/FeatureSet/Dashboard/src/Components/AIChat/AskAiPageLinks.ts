@@ -88,7 +88,7 @@ export const getDashboardPageTemplate: (
 
 /*
  * The docs page a DocsPage citation opens, as its address under the docs
- * ("/docs/de/monitor/website-monitor#ssl"), or undefined.
+ * ("/docs/de/monitor/website-monitor#test-it"), or undefined.
  */
 export const getDocsPageAddress: (
   target: AIChatCitationTarget | undefined,

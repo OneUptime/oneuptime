@@ -1,4 +1,5 @@
 import WorkspaceUserNotificationService from "../../../Server/Services/WorkspaceUserNotificationService";
+import ProjectService from "../../../Server/Services/ProjectService";
 import WorkspaceProjectAuthTokenService from "../../../Server/Services/WorkspaceProjectAuthTokenService";
 import WorkspaceNotificationLogService from "../../../Server/Services/WorkspaceNotificationLogService";
 import UserOnCallLogTimelineService from "../../../Server/Services/UserOnCallLogTimelineService";
@@ -18,6 +19,11 @@ import {
   WorkspacePayloadMarkdown,
 } from "../../../Types/Workspace/WorkspaceMessagePayload";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
+import { ON_CALL_NOTIFICATION_ACKNOWLEDGED_MESSAGE } from "../../../Server/Utils/OnCall/OnCallNotificationStatus";
+import { ON_CALL_PAGE_PASSED_ON_DELIVERY_MESSAGE } from "../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
+import OnCallTimelineRows, {
+  StoredOnCallNotification,
+} from "../TestingUtils/OnCallTimelineRows";
 import { describe, expect, test, beforeEach, afterEach } from "@jest/globals";
 
 /*
@@ -40,7 +46,11 @@ import { describe, expect, test, beforeEach, afterEach } from "@jest/globals";
  *      row is flipped to Sent on success and Error (with the send error's own
  *      message) on failure — mirroring what the Notification FeatureSet does
  *      for SMS/Call/Telegram, because the on-call timeline is the one surface
- *      a responder and an operator both read.
+ *      a responder and an operator both read. Flipped only while it still
+ *      says Sending, at the version read (OnCallNotificationStatus): the
+ *      person may have acknowledged or escalated the page meanwhile, from
+ *      another of its messages, and that answer stays (issue #7082). The
+ *      row is held in memory (OnCallTimelineRows).
  *
  *   4. FAILURE ISOLATION. A failed WORKSPACE LOG write must never turn a
  *      delivered page into a reported failure, and a failed send must still be
@@ -86,6 +96,11 @@ describe("WorkspaceUserNotificationService.sendDirectMessageToUser", () => {
   let mattermostSend: jest.SpyInstance;
   let createLog: jest.SpyInstance;
   let updateTimeline: jest.SpyInstance;
+  let timeline: OnCallTimelineRows;
+
+  function timelineRow(): StoredOnCallNotification {
+    return timeline.get(TIMELINE_ID)!;
+  }
 
   beforeEach(() => {
     jest.spyOn(logger, "error").mockImplementation((): void => {
@@ -112,9 +127,14 @@ describe("WorkspaceUserNotificationService.sendDirectMessageToUser", () => {
       .spyOn(WorkspaceNotificationLogService, "createWorkspaceLog")
       .mockResolvedValue({} as never);
 
-    updateTimeline = jest
-      .spyOn(UserOnCallLogTimelineService, "updateOneById")
-      .mockResolvedValue(undefined as never);
+    // The page's timeline row, as written when the page went out.
+    timeline = new OnCallTimelineRows();
+    timeline.add(TIMELINE_ID, UserNotificationStatus.Sending, {
+      statusMessage: "Sending Slack direct message.",
+    });
+    timeline.standIn(UserOnCallLogTimelineService);
+    updateTimeline =
+      UserOnCallLogTimelineService.updateOneBy as unknown as jest.SpyInstance;
   });
 
   afterEach(() => {
@@ -431,19 +451,125 @@ describe("WorkspaceUserNotificationService.sendDirectMessageToUser", () => {
       });
 
       expect(updateTimeline).toHaveBeenCalledTimes(1);
-      const arg: {
-        id: ObjectID;
-        data: { status: UserNotificationStatus; statusMessage: string };
-        props: { isRoot: boolean };
-      } = updateTimeline.mock.calls[0][0] as {
-        id: ObjectID;
-        data: { status: UserNotificationStatus; statusMessage: string };
-        props: { isRoot: boolean };
-      };
-      expect(arg.id.toString()).toBe(TIMELINE_ID.toString());
-      expect(arg.data.status).toBe(UserNotificationStatus.Sent);
-      expect(arg.data.statusMessage).toBe("Message sent on Slack.");
-      expect(arg.props.isRoot).toBe(true);
+      expect(updateTimeline).toHaveBeenCalledWith({
+        query: {
+          _id: TIMELINE_ID.toString(),
+          status: UserNotificationStatus.Sending,
+          version: 1,
+        },
+        data: {
+          status: UserNotificationStatus.Sent,
+          statusMessage: "Message sent on Slack.",
+        },
+        props: { isRoot: true },
+      });
+      expect(timelineRow()).toMatchObject({
+        status: UserNotificationStatus.Sent,
+        statusMessage: "Message sent on Slack.",
+      });
+    });
+
+    test.each([
+      [
+        UserNotificationStatus.Acknowledged,
+        ON_CALL_NOTIFICATION_ACKNOWLEDGED_MESSAGE,
+      ],
+      [
+        UserNotificationStatus.PassedOn,
+        ON_CALL_PAGE_PASSED_ON_DELIVERY_MESSAGE,
+      ],
+    ])(
+      "answered meanwhile from another of the page's messages (%s): the answer stays, sent or not",
+      async (status: UserNotificationStatus, statusMessage: string) => {
+        timelineRow().status = status;
+        timelineRow().statusMessage = statusMessage;
+
+        await WorkspaceUserNotificationService.sendDirectMessageToUser({
+          projectId: PROJECT_ID,
+          workspaceType: WorkspaceType.Slack,
+          workspaceUserId: SLACK_USER_ID,
+          messageBlocks: markdownBlocks(),
+          userOnCallLogTimelineId: TIMELINE_ID,
+        });
+
+        slackSend.mockRejectedValue(new Error("channel_not_found") as never);
+
+        await expect(
+          WorkspaceUserNotificationService.sendDirectMessageToUser({
+            projectId: PROJECT_ID,
+            workspaceType: WorkspaceType.Slack,
+            workspaceUserId: SLACK_USER_ID,
+            messageBlocks: markdownBlocks(),
+            userOnCallLogTimelineId: TIMELINE_ID,
+          }),
+        ).rejects.toThrow("channel_not_found");
+
+        expect(timelineRow()).toMatchObject({
+          status: status,
+          statusMessage: statusMessage,
+        });
+        expect(timeline.writes).toEqual([]);
+      },
+    );
+
+    test("acknowledged while the message was on its way: Sent is not written over it", async () => {
+      // Teams takes its time; the person acknowledges from the email meanwhile.
+      teamsSend.mockImplementation((async (): Promise<void> => {
+        timelineRow().status = UserNotificationStatus.Acknowledged;
+        timelineRow().statusMessage = ON_CALL_NOTIFICATION_ACKNOWLEDGED_MESSAGE;
+        timelineRow().version++;
+      }) as never);
+
+      await WorkspaceUserNotificationService.sendDirectMessageToUser({
+        projectId: PROJECT_ID,
+        workspaceType: WorkspaceType.MicrosoftTeams,
+        workspaceUserId: TEAMS_USER_ID,
+        messageBlocks: markdownBlocks(),
+        userOnCallLogTimelineId: TIMELINE_ID,
+      });
+
+      expect(timelineRow()).toMatchObject({
+        status: UserNotificationStatus.Acknowledged,
+        statusMessage: ON_CALL_NOTIFICATION_ACKNOWLEDGED_MESSAGE,
+      });
+      expect(timeline.writes).toEqual([]);
+    });
+
+    test("acknowledged between the timeline's read and its write: the acknowledgement stays", async () => {
+      timeline.whenRead((row: StoredOnCallNotification) => {
+        row.status = UserNotificationStatus.Acknowledged;
+        row.statusMessage = ON_CALL_NOTIFICATION_ACKNOWLEDGED_MESSAGE;
+      });
+
+      await WorkspaceUserNotificationService.sendDirectMessageToUser({
+        projectId: PROJECT_ID,
+        workspaceType: WorkspaceType.Mattermost,
+        workspaceUserId: MATTERMOST_USER_ID,
+        messageBlocks: markdownBlocks(),
+        userOnCallLogTimelineId: TIMELINE_ID,
+      });
+
+      expect(timelineRow().status).toBe(UserNotificationStatus.Acknowledged);
+      expect(timeline.writes).toEqual([]);
+    });
+
+    test("an error with no words of its own still says what failed", async () => {
+      slackSend.mockRejectedValue(new Error("") as never);
+
+      await expect(
+        WorkspaceUserNotificationService.sendDirectMessageToUser({
+          projectId: PROJECT_ID,
+          workspaceType: WorkspaceType.Slack,
+          workspaceUserId: SLACK_USER_ID,
+          messageBlocks: markdownBlocks(),
+          userOnCallLogTimelineId: TIMELINE_ID,
+        }),
+      ).rejects.toThrow();
+
+      expect(timelineRow()).toMatchObject({
+        status: UserNotificationStatus.Error,
+        statusMessage: "Failed to send Slack direct message.",
+      });
     });
 
     test("a failed send flips the timeline row to Error carrying the send error's own message", async () => {
@@ -700,6 +826,12 @@ describe("WorkspaceUserNotificationService.sendDirectMessageToUser - where the m
     errorLog = jest.spyOn(logger, "error").mockImplementation((): void => {
       return undefined;
     });
+    /*
+     * The project may send (BlockedProjectNotifications.getSilencedReason):
+     * neither blocked nor a sample project (#6808).
+     */
+    jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
+    jest.spyOn(ProjectService, "isSampleProject").mockResolvedValue(false);
     connected("T0TEAM");
     jest
       .spyOn(SlackUtil, "sendDirectMessageToUser")
@@ -713,9 +845,11 @@ describe("WorkspaceUserNotificationService.sendDirectMessageToUser - where the m
     createLog = jest
       .spyOn(WorkspaceNotificationLogService, "createWorkspaceLog")
       .mockResolvedValue({} as never);
-    updateTimeline = jest
-      .spyOn(UserOnCallLogTimelineService, "updateOneById")
-      .mockResolvedValue(undefined as never);
+    const timeline: OnCallTimelineRows = new OnCallTimelineRows();
+    timeline.add(TIMELINE_ID, UserNotificationStatus.Sending);
+    timeline.standIn(UserOnCallLogTimelineService);
+    updateTimeline =
+      UserOnCallLogTimelineService.updateOneBy as unknown as jest.SpyInstance;
   });
 
   afterEach(() => {

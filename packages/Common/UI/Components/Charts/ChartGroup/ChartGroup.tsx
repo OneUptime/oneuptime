@@ -464,9 +464,12 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
               {/* Header strip — title, meta icons, the always-visible zoom hint */}
               <div className="border-b border-gray-100 px-4 py-2.5">
                 <div className="flex items-center">
+                  {/*
+                   * No id: it was a card's, the same on every chart, and
+                   * repeated on every page with two charts.
+                   */}
                   <h2
                     data-testid="card-details-heading"
-                    id="card-details-heading"
                     className={`min-w-0 truncate text-sm font-semibold leading-6 text-gray-900${
                       lineOf(chart.title).alignment
                     }`}

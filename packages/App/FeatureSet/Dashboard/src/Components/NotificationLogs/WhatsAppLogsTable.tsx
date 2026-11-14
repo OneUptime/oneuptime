@@ -82,7 +82,6 @@ const WhatsAppLogsTable: FunctionComponent<WhatsAppLogsTableProps> = (
       field: { toNumber: true },
       title: "To",
       type: FieldType.Phone,
-      noValueMessage: "-",
     },
     {
       field: {
@@ -95,7 +94,6 @@ const WhatsAppLogsTable: FunctionComponent<WhatsAppLogsTableProps> = (
       title: "User",
       type: FieldType.Text,
       hideOnMobile: true,
-      noValueMessage: "-",
       getElement: (item: WhatsAppLog): ReactElement => {
         if (!item["user"]) {
           return <p>-</p>;

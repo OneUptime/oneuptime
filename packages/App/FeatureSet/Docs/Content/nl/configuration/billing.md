@@ -125,7 +125,7 @@ Sms-berichten, oproepen, WhatsApp- en Telegram-berichten worden uit het saldo va
 
 | Saldo | Waar |
 | --- | --- |
-| Sms, oproepen, WhatsApp en Telegram | **Projectinstellingen → Meldingen → Meldingsinstellingen** |
+| Sms, oproepen, WhatsApp en Telegram | **Projectinstellingen → Meldingen → Meldingskanalen** |
 | OneUptime AI | **Projectinstellingen → AI → AI-tegoeden** |
 
 :::steps

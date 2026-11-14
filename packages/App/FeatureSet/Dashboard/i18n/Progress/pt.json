@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 50830,
-    "untranslated": 9683
+    "keys": 51296,
+    "untranslated": 9504
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -48,6 +48,7 @@
     "CPU Ready",
     "CPU Ready {{percent}}",
     "CPUs",
+    "Cache",
     "Canonical Sunbeam",
     "Celsius",
     "Chat",
@@ -61,6 +62,7 @@
     "Clusters",
     "Commit",
     "Commits",
+    "Community Edition",
     "Configs",
     "Console",
     "Content Security Policy",
@@ -90,6 +92,7 @@
     "Endpoint",
     "Endpoints",
     "Enter",
+    "Enterprise Edition",
     "Fahrenheit",
     "Failover",
     "Fatal",
@@ -218,7 +221,6 @@
     "PostgreSQL",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
     "Powered by OneUptime",
-    "Profiler",
     "Prompt",
     "Pull Requests",
     "Pull request",
@@ -438,6 +440,8 @@
     "{{count}} KB",
     "{{count}} Kubernetes",
     "{{count}} MB",
+    "{{count}} OSD",
+    "{{count}} OSDs",
     "{{count}} SLO",
     "{{count}} SLOs",
     "{{count}} SMS",
@@ -463,6 +467,7 @@
     "{{count}} mon",
     "{{count}} monitor",
     "{{count}} mons",
+    "{{count}} ms",
     "{{count}} namespace",
     "{{count}} namespaces",
     "{{count}} placement group",
@@ -492,6 +497,7 @@
     "{{gigabytes}} GB",
     "{{in}} in",
     "{{minutes}} min",
+    "{{name}} (monitor: {{monitor}})",
     "{{tokens}} tokens",
     "{{up}}/{{count}} OSD up",
     "{{up}}/{{count}} OSDs up",

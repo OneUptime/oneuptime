@@ -1145,3 +1145,35 @@ describe("the helpers, on these pages' shapes", () => {
     }
   });
 });
+
+/*
+ * Issue #6529: what a long task's page shows - its first turn and its
+ * newest, and how many turns are not shown - said in every language, with
+ * the numbers the English sentence states (AiDocsFacts holds them to
+ * MAX_TURNS_PER_TASK) on the translated line beside it, in the language's
+ * own digits.
+ */
+describe("a long task's page, in every language", () => {
+  const english: Array<string> = englishPage(CODE_PAGE).split("\n");
+  const lineIndex: number = english.findIndex((line: string): boolean => {
+    return line.includes("turns shows its first turn and its newest");
+  });
+
+  it("is said on one line of the English page", () => {
+    expect(lineIndex).toBeGreaterThan(0);
+    expect(numbersIn(english[lineIndex]!)).toEqual(["199", "200"]);
+  });
+
+  it.each(LANGUAGES)(
+    "%s states the same numbers on that line",
+    (language: string) => {
+      const translated: string = readPage(language, CODE_PAGE).split("\n")[
+        lineIndex
+      ]!;
+
+      expect(numbersIn(translated)).toEqual(
+        expect.arrayContaining(numbersIn(english[lineIndex]!)),
+      );
+    },
+  );
+});

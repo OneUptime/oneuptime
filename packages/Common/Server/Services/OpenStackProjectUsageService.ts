@@ -136,6 +136,29 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * 0 is a sort value: a project that has cost nothing, and one that has
+   * used no vCPU-hours where nothing has a price. Its rows are written by
+   * saveReading's own INSERT today, which the required-column check never
+   * sees, but that check reads 0 as missing, so a row written through
+   * create() would be refused as "sortValue is required". Any number is a
+   * value of it; anything else is still read as the check reads it.
+   */
+  protected override isRequiredColumnValueGiven(
+    column: string,
+    value: unknown,
+  ): boolean {
+    if (
+      column === "sortValue" &&
+      typeof value === "number" &&
+      Number.isFinite(value)
+    ) {
+      return true;
+    }
+
+    return super.isRequiredColumnValueGiven(column, value);
+  }
+
+  /*
    * What the inventory says each project holds now. Six statements, however many instances there
    * are: the first is the one that reads every instance's row.
    */

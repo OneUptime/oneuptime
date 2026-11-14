@@ -308,7 +308,7 @@ describe("a host's cells in German and in Persian", () => {
     expect(screen.getByTestId("host-status-reason").textContent).toContain(
       fill(german["{{mount}} {{percent}} full"] as string, {
         mount: "/var/lib/postgresql",
-        percent: "97%",
+        percent: "97\u00A0%",
       }),
     );
     cleanup();
@@ -327,7 +327,7 @@ describe("a host's cells in German and in Persian", () => {
     expect(screen.getByTestId("host-status-reason").textContent).toContain(
       fill(persian["{{mount}} {{percent}} full"] as string, {
         mount: isolated("/var/lib/postgresql"),
-        percent: isolated("97%"),
+        percent: isolated("۹۷٪"),
       }),
     );
     cleanup();

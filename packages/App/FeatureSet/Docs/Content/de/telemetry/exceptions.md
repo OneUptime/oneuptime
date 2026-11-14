@@ -1,4 +1,4 @@
-# Ausnahmenverfolgung
+# Ausnahmen
 
 Die Ausnahmenverfolgung sammelt die Fehler, die Ihr Code wirft, und fasst jedes Vorkommen desselben Fehlers zu einer Ausnahme zusammen, mit ihrem Stack-Trace, ihrem Verlauf und den Anfragen, in denen sie auftrat. Arbeiten Sie sie wie eine Aufgabenliste ab: beheben, als behoben markieren oder das Rauschen archivieren, und lassen Sie die KI einen Pull Request für die öffnen, die sie beheben kann.
 
@@ -39,7 +39,7 @@ flowchart TB
 ## Bevor Sie beginnen
 
 - **Eintreffende Spans oder Protokolle.** Instrumentieren Sie Ihre Dienste mit [OpenTelemetry](/docs/telemetry/open-telemetry). Der Tab **Einrichtungsanleitung** zeigt den Code für Ihre Sprache.
-- **Eine Rolle, die Telemetrie lesen darf.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member oder Telemetry Viewer, oder eine eigene Rolle mit der Berechtigung Read Telemetry Service Exception. Beheben und Archivieren erfordern Project Owner oder Project Admin oder die Berechtigung Edit Telemetry Service Exception.
+- **Eine Rolle, die Telemetrie lesen darf.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member oder Telemetry Viewer, oder eine eigene Rolle mit der Berechtigung Read Exceptions. Beheben und Archivieren erfordern Project Owner oder Project Admin oder die Berechtigung Edit Exceptions.
 
 ## Die Liste sichten
 

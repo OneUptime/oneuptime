@@ -143,7 +143,7 @@ export default class ScheduledMaintenanceMeasurementValue extends BaseModel {
     modelType: ScheduledMaintenance,
     title: "Scheduled Maintenance",
     description:
-      "Relation to Scheduled Maintenance Event this measurement value was computed for",
+      "Relation to Maintenance Event this measurement value was computed for",
   })
   @ManyToOne(
     () => {
@@ -181,7 +181,7 @@ export default class ScheduledMaintenanceMeasurementValue extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Scheduled Maintenance ID",
     description:
-      "ID of the Scheduled Maintenance Event this measurement value was computed for",
+      "ID of the Maintenance Event this measurement value was computed for",
   })
   @Column({
     type: ColumnType.ObjectID,

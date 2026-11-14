@@ -52,6 +52,8 @@ Skriv adressen i **E-post**. Om inget OneUptime-konto använder den ännu ber di
 ### Skicka inbjudan
 
 Klicka på **Bjud in**. OneUptime skickar inbjudan via e-post och öppnar personens sida. Personen visas som **Inbjudan skickad** tills inbjudan har accepterats.
+
+På en egenvärdad server som inte kan skicka e-post ännu skickas inget mejl, och personen visas som **Inbjuden**. En huvudadministratör ser först **Skicka deras inbjudningslänk**: kopiera länken, skicka den själv till personen och klicka sedan på **Klar**. Alla andra ber serverns administratör att [konfigurera e-post](/docs/emails/smtp#öppna-formuläret).
 :::
 
 > [!TIP]
@@ -84,7 +86,7 @@ Filtrera listan efter **Användare**, **Status** eller **Team**. Klicka på en r
 | --- | --- |
 | **Profil** | Namn, e-postadress, bild och användar-ID. |
 | **Team** | Teamen personen är med i. Lägg till eller ta bort ett team här. |
-| **Beredskap**, **Aviseringsmetoder**, **Jourregler** | Om personen kan larmas, och hur. Visas för Project Owners, Project Admins, personen själv och alla som kan läsa andras aviseringsregler. Se [Beredskap och rapporter](/docs/on-call/readiness). |
+| **Beredskap**, **Aviseringsmetoder**, **Så når man mig** | Om personen kan larmas, och hur. Visas för Project Owners, Project Admins, personen själv och alla som kan läsa andras aviseringsregler. Se [Beredskap och rapporter](/docs/on-call/readiness). |
 | **Anpassade fält** | Projektets anpassade fält för personer, om det har några. |
 | **Ta bort från projekt** | Ta bort personen från projektet. |
 
@@ -134,6 +136,8 @@ En adress kan få 10 inbjudningar i timmen, till projekt och privata statussidor
 
 :::details Inbjudningsmeddelandet kom aldrig fram, eller länken har gått ut
 Inbjudan beror inte på e-postmeddelandet. Be personen registrera sig med den inbjudna adressen: OneUptime skickar en ny länk till den adressen för att slutföra kontot. Den som redan har ett konto loggar in och hittar inbjudan.
+
+På en egenvärdad server som inte kan skicka e-post ännu kan inte heller registreringen mejla en ny länk: i stället ber den personen att be om sin inbjudningslänk. När serverns administratör har [konfigurerat e-post](/docs/emails/smtp#öppna-formuläret) fungerar registreringen som ovan. Till dess kan en huvudadministratör ta bort personen från projektet, bjuda in personen igen och skicka den nya inbjudningslänken, som fungerar en gång, bara för den adressen, i 7 dagar.
 :::
 
 :::details Bjud in användare säger att användarna hanteras av SCIM Push Groups

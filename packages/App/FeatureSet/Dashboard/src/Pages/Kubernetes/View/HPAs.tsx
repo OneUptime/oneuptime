@@ -134,23 +134,27 @@ const KubernetesClusterHPAs: FunctionComponent<
           title: "Min Replicas",
           key: "minReplicas",
           description: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.hpaMinReplicas,
+          isCount: true,
         },
         {
           title: "Max Replicas",
           key: "maxReplicas",
           description: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.hpaMaxReplicas,
+          isCount: true,
         },
         {
           title: "Current",
           key: "currentReplicas",
           description:
             KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.hpaCurrentReplicas,
+          isCount: true,
         },
         {
           title: "Desired",
           key: "desiredReplicas",
           description:
             KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.hpaDesiredReplicas,
+          isCount: true,
         },
       ]}
       getViewRoute={(resource: KubernetesResource): Route => {

@@ -301,7 +301,16 @@ describe("with white-labelling allowed", () => {
 
     render(<WhiteLabelSettingsPage />);
 
-    expect(await screen.findByText("Server Error")).toBeInTheDocument();
+    /*
+     * A bare "Server Error" explains nothing, so the page says what it
+     * means instead (#6836).
+     */
+    expect(
+      await screen.findByText(
+        "The server ran into a problem it could not explain. Try again in a moment.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Server Error")).toBeNull();
   });
 });
 

@@ -37,9 +37,10 @@ import { describe, expect, test } from "@jest/globals";
  *     every time memory goes over 75% is a Host monitor, built from its
  *     memory template - one that exists, with a threshold the page says
  *     is a starting point;
- *   - that Ask AI cannot create monitors, and asked for one, says so,
- *     checks the value now and offers an alert - what the prompt tells it,
- *     and true of the toolbox, which writes no monitor.
+ *   - that Ask AI sets up only website and API monitors (#6829), and asked
+ *     for another kind, says so, checks the value now and offers an alert -
+ *     what the prompt tells it, and true of the toolbox, whose one monitor
+ *     writer is set_up_website_monitoring.
  *
  * Every language says it on the English paragraph's line, linking the Host
  * monitor's templates under that language's own heading.
@@ -128,25 +129,50 @@ describe("the Ask AI page says which to ask for, and what an alert rule is", () 
     );
   });
 
-  test("Ask AI cannot create monitors: no tool of its toolbox writes one", () => {
+  /*
+   * Issue #6829: Ask AI sets up website and API monitors, as the website
+   * guided setup does, and no other kind - so a memory threshold is still a
+   * monitor a person creates, as the page and the prompt both say.
+   */
+  test("Ask AI sets up only website and API monitors: the toolbox's one monitor writer is set_up_website_monitoring", () => {
     const monitorWriters: Array<string> = AIToolbox.getTools()
       .filter((tool: ObservabilityTool): boolean => {
-        return Boolean(tool.isMutation) && tool.name.includes("monitor");
+        return (
+          Boolean(tool.isMutation) &&
+          tool.name.includes("monitor") &&
+          // It puts monitors on a status page, and creates none.
+          tool.name !== "add_monitors_to_status_page"
+        );
       })
       .map((tool: ObservabilityTool): string => {
         return tool.name;
       });
 
-    expect(PARAGRAPH).toContain("Ask AI cannot create monitors.");
-    expect(monitorWriters).toEqual([]);
+    expect(PARAGRAPH).toContain(
+      "Ask AI sets up only website and API monitors (see [Set things up](#set-things-up)).",
+    );
+    expect(monitorWriters).toEqual(["set_up_website_monitoring"]);
+    expect(
+      AIToolbox.getToolByName("set_up_website_monitoring")?.inputSchema,
+    ).toEqual(
+      expect.objectContaining({
+        properties: expect.objectContaining({
+          address: expect.anything(),
+          isApi: expect.anything(),
+        }),
+      }),
+    );
     expect(INCIDENTS_ALERTS_AND_MONITORS_SECTION).toContain(
-      "asks for a monitor, and no tool here creates one",
+      "The only monitor a tool here sets up watches a website or API address",
+    );
+    expect(INCIDENTS_ALERTS_AND_MONITORS_SECTION).toContain(
+      'For any other condition ("alert me when memory goes above 75%") no tool here creates one',
     );
   });
 
-  test("asked for one, it says so, checks the value now and offers an alert: what the prompt tells it to do", () => {
+  test("asked for another kind, it says so, checks the value now and offers an alert: what the prompt tells it to do", () => {
     expect(PARAGRAPH).toContain(
-      "Asked for one, it says so, checks the value now, and offers to raise an alert if it is already over.",
+      "Asked for another kind, it says so, checks the value now, and offers to raise an alert if it is already over.",
     );
     expect(INCIDENTS_ALERTS_AND_MONITORS_SECTION).toContain(
       "say so plainly, read the condition now with the metric tools, and if it holds now, offer to raise an alert about it",

@@ -22,6 +22,11 @@ import {
 } from "./DocsContentSupport";
 import { stripHtmlTags } from "./DocsHtmlText";
 import {
+  SCREEN_SCHEME,
+  screenFile,
+  screenNameOf,
+} from "../../../FeatureSet/Docs/Screens/DocsScreenFiles";
+import {
   decodeHtmlEntities,
   markupAsSpaces,
 } from "Common/Tests/Helpers/HtmlText";
@@ -194,6 +199,7 @@ export type DocsRuleId =
   | "pageLinks"
   | "inPageAnchors"
   | "images"
+  | "screenAlt"
   | "noRelativeLinks"
   | "rendered"
   | "placeholderLinks"
@@ -249,6 +255,9 @@ const NOT_PAGE_FILES: Array<string> = ["llms.txt", "llms-full.txt"];
 const ABSOLUTE_DOCS_LINK: RegExp =
   /^https?:\/\/(?:www\.)?oneuptime\.com\/docs\//;
 const QUERY_OR_HASH: RegExp = /[?#]/;
+// A screenshot as a page writes it: ![alt text](screen:<shot>).
+const SCREEN_IMAGE: RegExp =
+  /!\[((?:\\.|[^\]\\])*)\]\(\s*(screen:[^)\s]*)\s*\)/g;
 const NOT_A_WORD: RegExp = /[^a-z0-9]+/;
 // Words any two titles may share without being about the same thing.
 const STOP_WORDS: Array<string> = [
@@ -414,6 +423,52 @@ const titleWords: (text: string) => Set<string> = (
     }
   }
   return words;
+};
+
+/*
+ * A page's screenshots (#6823), in order: each shot it names and the alt
+ * text it describes it with, outside code.
+ */
+export interface DocsScreenImage {
+  target: string;
+  alt: string;
+  line: number;
+}
+
+export const screenImagesOf: (
+  scanned: ScannedPage,
+) => Array<DocsScreenImage> = (
+  scanned: ScannedPage,
+): Array<DocsScreenImage> => {
+  const lines: Set<number> = new Set(
+    scanned.links
+      .filter((link: DocsLink): boolean => {
+        return link.isImage && link.target.startsWith(SCREEN_SCHEME);
+      })
+      .map((link: DocsLink): number => {
+        return link.line;
+      }),
+  );
+  const screens: Array<DocsScreenImage> = [];
+
+  for (const line of Array.from(lines).sort((a: number, b: number) => {
+    return a - b;
+  })) {
+    const text: string = (scanned.lines[line - 1] || "").replace(
+      /`+[^`]*`+/g,
+      "",
+    );
+
+    for (const match of text.matchAll(SCREEN_IMAGE)) {
+      screens.push({
+        target: match[2]!,
+        alt: match[1]!.replace(/\\(.)/g, "$1"),
+        line: line,
+      });
+    }
+  }
+
+  return screens;
 };
 
 /*
@@ -827,6 +882,35 @@ export const DOCS_CONTENT_RULES: Array<DocsContentRule> = [
           }
 
           /*
+           * A screenshot (#6823) names a shot, not a file: it is a picture,
+           * and the shot has its English picture, which every language
+           * falls back to (Docs/Screens/DocsScreenFiles.ts).
+           */
+          if (link.target.startsWith(SCREEN_SCHEME)) {
+            const name: string | null = screenNameOf(link.target);
+
+            if (!link.isImage) {
+              failures.push({
+                page: page,
+                lang: lang,
+                line: link.line,
+                detail: `-> ${link.target} (a screenshot is shown as an image: ![alt text](${link.target}))`,
+              });
+            } else if (
+              name === null ||
+              !docs.corpus.staticFileExists(screenFile("en", name))
+            ) {
+              failures.push({
+                page: page,
+                lang: lang,
+                line: link.line,
+                detail: `-> ${link.target} (no such screenshot: list it in Docs/Screens/DocsScreenList.ts and run npm run docs-screens in packages/E2E)`,
+              });
+            }
+            continue;
+          }
+
+          /*
            * Every link into /docs/static/ - an image, a reference-style
            * image's definition, a file to download - names a file there.
            */
@@ -857,6 +941,62 @@ export const DOCS_CONTENT_RULES: Array<DocsContentRule> = [
             });
           }
         }
+      }
+
+      return failures;
+    },
+  },
+  {
+    id: "screenAlt",
+    title: "describe every screenshot in words of the page's own language",
+    scope: "every-language",
+    suite: "content",
+    check: (docs: DocsReader, lang: string): Array<DocsRuleFailure> => {
+      const failures: Array<DocsRuleFailure> = [];
+
+      for (const page of docs.pages(lang)) {
+        const screens: Array<DocsScreenImage> = screenImagesOf(
+          docs.scan(lang, page),
+        );
+
+        if (screens.length === 0) {
+          continue;
+        }
+
+        /*
+         * The English page's alt text for the same screenshot, in the same
+         * place: a translation that copies it reads English to a reader of
+         * another language, and to their screen reader.
+         */
+        const english: Array<DocsScreenImage> =
+          lang === "en" || !docs.hasPage("en", page)
+            ? []
+            : screenImagesOf(docs.scan("en", page));
+
+        screens.forEach((screen: DocsScreenImage, index: number): void => {
+          const alt: string = screen.alt.trim();
+          const theirs: DocsScreenImage | undefined = english[index];
+
+          if (!alt) {
+            failures.push({
+              page: page,
+              lang: lang,
+              line: screen.line,
+              detail: `-> ${screen.target} (no alt text: say in words what the screenshot shows)`,
+            });
+          } else if (
+            theirs &&
+            theirs.target === screen.target &&
+            theirs.alt.trim() === alt
+          ) {
+            failures.push({
+              page: page,
+              lang: lang,
+              line: screen.line,
+              detail: `-> ${screen.target} (the alt text is the English page's: translate it)`,
+            });
+          }
+        });
       }
 
       return failures;

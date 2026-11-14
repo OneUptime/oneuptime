@@ -2,6 +2,9 @@
 
 OneUptime Kubernetes एजेंट एक Helm चार्ट है जो आपके क्लस्टर के मेट्रिक्स, इवेंट और पॉड लॉग, eBPF से कैप्चर किए गए एप्लिकेशन ट्रेस, और हर नोड के OS मेट्रिक्स इकट्ठा करके OneUptime को भेजता है। एक `helm install` इसे लगा देता है, आपके ऐप के कोड में कोई बदलाव किए बिना। [Kubernetes मॉनिटर](/docs/monitor/kubernetes-monitor) इसके भेजे डेटा पर अलर्ट करते हैं।
 
+> [!NOTE]
+> यह पेज Helm से एजेंट को चरण-दर-चरण इंस्टॉल करता है, आपके प्लेटफ़ॉर्म के लिए एक प्रीसेट के साथ। हर विकल्प, Amazon EKS ऐड-ऑन, OpenShift और Kubernetes AI एजेंट [Kubernetes एजेंट](/docs/telemetry/kubernetes-agent) पर हैं, जो इसका पूरा संदर्भ है।
+
 :::cards
 - [एजेंट इंस्टॉल करें](#एजेंट-इंस्टॉल-करें): Helm के साथ चार चरण।
 - [प्रीसेट चुनें](#प्रीसेट-चुनें): मानक क्लस्टर, GKE Autopilot, EKS Fargate या OpenShift।
@@ -331,7 +334,7 @@ kubectl logs -n oneuptime-agent -l component=ebpf-instrument --tail=200
 
 ## निरंतर CPU प्रोफ़ाइलिंग
 
-[OpenTelemetry eBPF Profiler](https://github.com/open-telemetry/opentelemetry-ebpf-profiler) भी हर नोड पर चल सकता है, `otel/opentelemetry-collector-ebpf-profiler` इमेज के रूप में। यह हर प्रोसेस जो चला रहा है उसका सेकंड में 19 बार सैंपल लेता है, Go, Java, .NET, Python, Ruby, Node.js, PHP, Perl, C, C++ और Rust में, और प्रोफ़ाइल OneUptime को भेजता है। वे **उत्पाद → प्रदर्शन प्रोफाइल** के अंतर्गत, और हर ट्रेस स्पैन पर फ़्लेम ग्राफ़ के रूप में दिखती हैं।
+[OpenTelemetry eBPF Profiler](https://github.com/open-telemetry/opentelemetry-ebpf-profiler) भी हर नोड पर चल सकता है, `otel/opentelemetry-collector-ebpf-profiler` इमेज के रूप में। यह हर प्रोसेस जो चला रहा है उसका सेकंड में 19 बार सैंपल लेता है, Go, Java, .NET, Python, Ruby, Node.js, PHP, Perl, C, C++ और Rust में, और प्रोफ़ाइल OneUptime को भेजता है। वे **उत्पाद → प्रोफ़ाइल** के अंतर्गत, और हर ट्रेस स्पैन पर फ़्लेम ग्राफ़ के रूप में दिखती हैं।
 
 **प्रोफ़ाइलिंग डिफ़ॉल्ट रूप से बंद है:** इसमें प्रति नोड eBPF इंस्ट्रूमेंटेशन से ज़्यादा CPU और मेमोरी लगती है। इसे `--set profiling.enabled=true` से चालू करें।
 

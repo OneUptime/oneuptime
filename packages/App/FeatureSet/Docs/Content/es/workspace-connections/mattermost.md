@@ -100,7 +100,7 @@ Para recibir avisos por mensaje directo cuando estás de guardia, añade Matterm
 3. Haz clic en **Enviar mensaje de prueba** en su fila. El mensaje llega como mensaje directo del bot del proyecto.
 :::
 
-Al añadirlo, entra de inmediato en tus reglas de guardia, así que a partir de entonces los avisos te llegan en Mattermost. Cambia qué avisos recibe en **Ajustes de usuario** > **Reglas de guardia**. Cada aviso lleva un enlace para reconocerlo y otro para escalarlo. Al desconectar tu cuenta de Mattermost se quitan este método y las reglas de guardia que lo usan.
+Al añadirlo, entra de inmediato en tus reglas de guardia, así que a partir de entonces los avisos te llegan en Mattermost. Cambia qué avisos recibe en **Ajustes de usuario** > **Cómo contactarme**. Cada aviso lleva un enlace para reconocerlo y otro para escalarlo. Al desconectar tu cuenta de Mattermost se quitan este método y las reglas de guardia que lo usan.
 
 ## Reglas de notificación
 

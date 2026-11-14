@@ -25,6 +25,8 @@ import {
   getTemplateConfig,
 } from "../../Types/Dashboard/DashboardTemplates";
 import DashboardViewConfig from "../../Types/Dashboard/DashboardViewConfig";
+import Query from "../Types/Database/Query";
+import QueryHelper from "../Types/Database/QueryHelper";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import ObjectID from "../../Types/ObjectID";
 import { JSONObject } from "../../Types/JSON";
@@ -165,6 +167,40 @@ export class Service extends ProjectReferencesService<Model> {
     );
   }
 
+  /*
+   * Gives a dashboard being created the widgets of a template, and
+   * answers them: null for a template with none of its own. A create
+   * that names a template (DASHBOARD_TEMPLATE_MISC_DATA_KEY) is given
+   * them in onBeforeCreate; the sample project, which writes its
+   * dashboard without hooks, asks here. One place sets a dashboard's
+   * stored config from a template (DashboardStoredConfigReaders).
+   */
+  public applyTemplate(
+    dashboard: Model,
+    templateType: DashboardTemplateType,
+  ): DashboardViewConfig | null {
+    const templateConfig: DashboardViewConfig | null =
+      getTemplateConfig(templateType);
+
+    if (templateConfig) {
+      dashboard.dashboardViewConfig = templateConfig;
+    }
+
+    return templateConfig;
+  }
+
+  /*
+   * The dashboards whose stored layout names a record: a widget's
+   * filter holds the record's id, so the layout's text holds it (Used
+   * By). A search of the stored text, which reads no layout into a
+   * board (DashboardStoredConfigReaders).
+   */
+  public getQueryForLayoutsNaming(recordId: ObjectID): Query<Model> {
+    return {
+      dashboardViewConfig: QueryHelper.textContainsAnyOf([recordId.toString()]),
+    };
+  }
+
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
@@ -202,13 +238,7 @@ export class Service extends ProjectReferencesService<Model> {
         templateType as DashboardTemplateType,
       )
     ) {
-      const templateConfig: DashboardViewConfig | null = getTemplateConfig(
-        templateType as DashboardTemplateType,
-      );
-
-      if (templateConfig) {
-        createBy.data.dashboardViewConfig = templateConfig;
-      }
+      this.applyTemplate(createBy.data, templateType as DashboardTemplateType);
     }
 
     /*
@@ -448,6 +478,23 @@ export class Service extends ProjectReferencesService<Model> {
     } catch (err) {
       logger.error(
         `Could not tell whether the project of dashboard ${dashboard.id?.toString()} is blocked; its public link answers as usual.`,
+      );
+      logger.error(err);
+    }
+
+    /*
+     * Nor does a sample project's (issue #6808): nothing in a sample is ever
+     * public, so its dashboard's public link answers as for none, whatever
+     * a member switched on. It fails open, as above: the dashboard's own
+     * settings still decide who reads it.
+     */
+    try {
+      if (await ProjectService.isSampleProject(dashboard.projectId)) {
+        return null;
+      }
+    } catch (err) {
+      logger.error(
+        `Could not tell whether the project of dashboard ${dashboard.id?.toString()} is a sample project; its public link answers as usual.`,
       );
       logger.error(err);
     }

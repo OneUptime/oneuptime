@@ -393,7 +393,7 @@ describe("incident custom fields docs", () => {
           expect({ language: language, name: name, quoted: true }).toEqual({
             language: language,
             name: name,
-            quoted: names.has(name),
+            quoted: names.has(drawnActionLabel(language, name)),
           });
         }
       },
@@ -476,7 +476,7 @@ describe("incident custom fields docs", () => {
         expect(incidentTypes).toEqual(
           Object.values(CUSTOM_FIELD_TYPE_LABELS).map(
             (label: string): string => {
-              return `**${label}**`;
+              return `**${drawnActionLabel(language, label)}**`;
             },
           ),
         );
@@ -1198,6 +1198,11 @@ describe("incident custom fields docs", () => {
 
         expect(needs.has(PlanType.Scale)).toBe(true);
         expect(needs.has(PlanType.Growth)).toBe(true);
+        /*
+         * A plan's name is written as the Dashboard shows it in every
+         * language, as on the invoice - Persian included, although its
+         * locale has a word for growth.
+         */
         expect(
           boldText(readPage(DECLARING_PAGE, language)).has(PlanType.Growth),
         ).toBe(true);
@@ -1395,7 +1400,12 @@ describe("incident custom fields docs", () => {
       );
     });
 
-    test("quotes only on-screen names the English section quotes too", () => {
+    /*
+     * The section names the Dashboard as the Persian Dashboard draws it
+     * (#7100): a name it quotes in Latin letters is one the English
+     * section quotes too, and one the Persian Dashboard draws that way.
+     */
+    test("quotes in Latin letters only names the Persian Dashboard draws that way", () => {
       const english: Set<string> = boldText(
         sectionOf(
           readPage(SETTINGS_PAGE, "en"),
@@ -1413,12 +1423,11 @@ describe("incident custom fields docs", () => {
         return !PERSIAN_LETTER.test(name);
       });
 
-      expect(untranslated.length).toBeGreaterThan(10);
-
       for (const name of untranslated) {
-        expect({ name: name, inEnglish: true }).toEqual({
+        expect({ name: name, inEnglish: true, drawnSo: true }).toEqual({
           name: name,
           inEnglish: english.has(name),
+          drawnSo: drawnActionLabel("fa", name) === name,
         });
       }
     });

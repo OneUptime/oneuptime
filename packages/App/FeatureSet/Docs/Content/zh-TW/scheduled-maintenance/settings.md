@@ -20,7 +20,7 @@
 | **標籤規則**       | 為符合的事件加入標籤。                                              |
 | **提醒規則** | 依固定間隔提醒擁有者，直到事件完成。                                |
 
-**設定** 區段包含 **事件狀態** （在 [維護狀態](/docs/scheduled-maintenance/states) 中介紹）、 **事件範本** （在 [範本與週期性事件](/docs/scheduled-maintenance/templates) 中介紹），以及 **備註範本** 、 **公開備註核准** 、 **自訂欄位** 、 **測量** 、 **行事曆設定** 和 **編號規則** 。 **行事曆設定** 在 [維護行事曆](/docs/scheduled-maintenance/calendar#外部行事曆) 中介紹，其餘在下文介紹。
+**設定** 區段包含 **維護狀態** （在 [維護狀態](/docs/scheduled-maintenance/states) 中介紹）、 **維護範本** （在 [範本與週期性事件](/docs/scheduled-maintenance/templates) 中介紹），以及 **備註範本** 、 **公開備註核准** 、 **自訂欄位** 、 **測量** 、 **行事曆設定** 和 **編號規則** 。 **行事曆設定** 在 [維護行事曆](/docs/scheduled-maintenance/calendar#外部行事曆) 中介紹，其餘在下文介紹。
 
 **工作區** 區段包含把事件發佈到頻道的 Slack 和 Microsoft Teams 規則。請參閱 [Slack](/docs/workspace-connections/slack#通知規則) 和 [Microsoft Teams](/docs/workspace-connections/microsoft-teams#通知規則)。
 
@@ -92,7 +92,7 @@ API 和 Terraform 會拒絕等事件開始又在開始時停止的規則：這�
 
 ### 備註範本
 
-**排定維護 → 設定 → 備註範本** 保存用於維護更新的預寫文字。 **排定維護事件的公開或私人備註範本** 卡片列出這些範本； **建立排定維護備註範本** 會要求填寫 **範本名稱** 、 **範本描述** 和 **備註** 。當有人在事件上撰寫公開或私人備註，或變更事件狀態時，會提供範本，且其文字在發佈前可以編輯。與故障事件的備註範本不同，維護備註範本不會填入任何變數。
+**排定維護 → 設定 → 備註範本** 保存用於維護更新的預寫文字。 **維護事件的公開或私人備註範本** 卡片列出這些範本； **建立排定維護備註範本** 會要求填寫 **範本名稱** 、 **範本描述** 和 **備註** 。當有人在事件上撰寫公開或私人備註，或變更事件狀態時，會提供範本，且其文字在發佈前可以編輯。與故障事件的備註範本不同，維護備註範本不會填入任何變數。
 
 ### 公開備註核准
 
@@ -117,7 +117,7 @@ API 和 Terraform 會拒絕等事件開始又在開始時停止的規則：這�
 
 ## 工作流程
 
-每個維護模型都有以其命名的工作流程觸發器和操作： **On Create Scheduled Maintenance Event** 、 **On Update Scheduled Maintenance Event** 、 **On Create or Update Scheduled Maintenance Event** 和 **On Delete Scheduled Maintenance Event** ， **Scheduled Maintenance State Timeline** 及其他模型也有同樣的觸發器，還有 **Create One Scheduled Maintenance Event** 和 **Update One Scheduled Maintenance Event** 等操作。自訂欄位定義和測量值是例外：它們沒有工作流程步驟。請參閱 [工作流程概觀](/docs/workflows/index)。
+每個維護模型都有以其命名的工作流程觸發器和操作： **On Create Maintenance Event** 、 **On Update Maintenance Event** 、 **On Create or Update Maintenance Event** 和 **On Delete Maintenance Event** ， **Scheduled Maintenance State Timeline** 及其他模型也有同樣的觸發器，還有 **Create One Maintenance Event** 和 **Update One Maintenance Event** 等操作。自訂欄位定義和測量值是例外：它們沒有工作流程步驟。請參閱 [工作流程概觀](/docs/workflows/index)。
 
 ## 誰可以變更這些內容
 
@@ -142,8 +142,8 @@ API 和 Terraform 會拒絕等事件開始又在開始時停止的規則：這�
 ## 後續步驟
 
 :::cards
-- [維護狀態](/docs/scheduled-maintenance/states): 事件狀態頁面，以及每個狀態的作用。
-- [範本與週期性事件](/docs/scheduled-maintenance/templates): 深入介紹事件範本頁面。
+- [維護狀態](/docs/scheduled-maintenance/states): 維護狀態頁面，以及每個狀態的作用。
+- [範本與週期性事件](/docs/scheduled-maintenance/templates): 深入介紹維護範本頁面。
 - [標籤與擁有者規則](/docs/configuration/label-and-owner-rules): 逐步介紹規則表單。
 - [通知設定](/docs/notifications/notification-settings): 每個擁有者如何選擇接收哪些通知。
 :::

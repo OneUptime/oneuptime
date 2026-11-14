@@ -75,6 +75,17 @@ const HEARTBEATS: Array<[string, HeartbeatCall]> = [
       return ProxmoxClusterService.updateLastSeen(id);
     },
   ],
+  /*
+   * The Proxmox cluster's ingest heartbeat - the one the fenced maintenance
+   * pass acts on when the row is gone (issue #7439 split the agent heard
+   * from the cluster read).
+   */
+  [
+    "ProxmoxClusterService.updateAgentLastSeen",
+    (id: ObjectID): Promise<ResourceHeartbeatResult> => {
+      return ProxmoxClusterService.updateAgentLastSeen(id);
+    },
+  ],
   [
     "VMwareVCenterService.updateLastSeen",
     (id: ObjectID): Promise<ResourceHeartbeatResult> => {

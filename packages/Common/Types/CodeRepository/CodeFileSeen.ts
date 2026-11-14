@@ -70,6 +70,13 @@ import {
  * earlier in this answer and writes it from memory - or, when only an
  * earlier answer showed it, it read it in an earlier answer.
  *
+ * And a line Ask AI no longer has is not one it never read (issue #6984):
+ * a file read in two parts, the first of them left out since, was read
+ * all of it. Of a version some of whose lines are in hand, the lines no
+ * read of it ever showed are the ones it never read; the others it read
+ * earlier and no longer has, and is told so - every line read, it read
+ * the file and no longer has part of it.
+ *
  * And a line Ask AI saw is not every value in it (issue #6364): what looks
  * like a secret or personal data reads as a placeholder, "[redacted-ip]",
  * so a version Ask AI writes whole puts the placeholder where the value
@@ -532,8 +539,17 @@ export enum CodeFileUnseen {
    */
   ReadEarlierInThisAnswer = "ReadEarlierInThisAnswer",
   /*
+   * Ask AI read every line of this version, but no longer has some of them
+   * (issue #6984): it read the file in parts, and a part was read in an
+   * earlier answer, or earlier in this answer and left out since. The
+   * change writes those lines from memory.
+   */
+  PartNoLongerInHand = "PartNoLongerInHand",
+  /*
    * Ask AI saw this version, but only some of its lines (issue #6330): the
-   * change writes all of it, and drops what Ask AI never saw.
+   * change writes all of it, and drops what Ask AI never saw. Of the lines
+   * it does not have, those it read earlier and no longer has are said
+   * apart from those it never read (issue #6984).
    */
   ReadInPart = "ReadInPart",
   // The branch could not be read, so nothing can be said of it.
@@ -556,11 +572,50 @@ export interface CodeFileUnseenFinding {
   // ReadInPart: how many lines the file has, and the runs of them Ask AI never saw.
   lineCount?: number | undefined;
   linesNotRead?: Array<AIChatLineRange> | undefined;
+  /*
+   * ReadInPart and PartNoLongerInHand: the runs of lines Ask AI read
+   * earlier and no longer has (issue #6984) - never one it never read.
+   * PartNoLongerInHand has its lineCount too.
+   */
+  linesNoLongerInHand?: Array<AIChatLineRange> | undefined;
   // ValuesHidden: each placeholder Ask AI's version holds more often than the branch's file does.
   placeholdersWritten?: Array<CodeFilePlaceholderWritten> | undefined;
   // ValuesHidden: the branch's file could not be read, so none of its own placeholders were counted.
   branchTextNotRead?: boolean | undefined;
 }
+
+type LinesOfVersionFunction = (data: {
+  views: ReadonlyArray<CodeFileView>;
+  fingerprint: string;
+}) => { linesShown: AIChatLinesShown | undefined } | null;
+
+/*
+ * What the views of one version showed of it, added up, on whichever
+ * branch - one version is the same lines everywhere: all of it when
+ * linesShown is left out. Null when none of them is of that version.
+ */
+const getLinesOfVersion: LinesOfVersionFunction = (data: {
+  views: ReadonlyArray<CodeFileView>;
+  fingerprint: string;
+}): { linesShown: AIChatLinesShown | undefined } | null => {
+  const ofVersion: Array<CodeFileView> = data.views.filter(
+    (view: CodeFileView): boolean => {
+      return view.fingerprint === data.fingerprint;
+    },
+  );
+
+  if (ofVersion.length === 0) {
+    return null;
+  }
+
+  let shown: AIChatLinesShown | undefined = ofVersion[0]!.linesShown;
+
+  for (const view of ofVersion.slice(1)) {
+    shown = addLinesShown(shown, view.linesShown);
+  }
+
+  return { linesShown: shown };
+};
 
 type FindLinesNotReadFunction = (data: {
   views: ReadonlyArray<CodeFileView>;
@@ -582,21 +637,10 @@ const findLinesNotRead: FindLinesNotReadFunction = (data: {
     return null;
   }
 
-  const ofVersion: Array<CodeFileView> = data.views.filter(
-    (view: CodeFileView): boolean => {
-      return view.fingerprint === data.fingerprint;
-    },
-  );
-
-  if (ofVersion.length === 0) {
-    return null;
-  }
-
-  let shown: AIChatLinesShown | undefined = ofVersion[0]!.linesShown;
-
-  for (const view of ofVersion.slice(1)) {
-    shown = addLinesShown(shown, view.linesShown);
-  }
+  const shown: AIChatLinesShown | undefined = getLinesOfVersion({
+    views: data.views,
+    fingerprint: data.fingerprint,
+  })?.linesShown;
 
   if (!shown) {
     return null;
@@ -632,7 +676,10 @@ type FindLinesNotInHandFunction = (data: {
  * it still has - a view from an earlier answer, or of a result this answer
  * has left out since (issue #6570), says only that it saw the version.
  * None of it in hand: read earlier in this answer when this answer showed
- * it, else read in an earlier answer.
+ * it, else read in an earlier answer. Some of it: of the lines not in
+ * hand, those no view of the version ever showed are the ones Ask AI never
+ * read, and the rest it read and no longer has (issue #6984) - all of them
+ * read, it read the file and no longer has part of it.
  */
 const findLinesNotInHand: FindLinesNotInHandFunction = (data: {
   views: ReadonlyArray<CodeFileView>;
@@ -659,16 +706,56 @@ const findLinesNotInHand: FindLinesNotInHandFunction = (data: {
     return view.fingerprint === fingerprint;
   };
 
-  if (!data.viewsInHand.some(showsVersion)) {
+  const inHand: { linesShown: AIChatLinesShown | undefined } | null =
+    getLinesOfVersion({ views: data.viewsInHand, fingerprint: fingerprint });
+
+  if (!inHand) {
     return data.viewsInThisAnswer?.some(showsVersion)
       ? { unseen: CodeFileUnseen.ReadEarlierInThisAnswer }
       : { unseen: CodeFileUnseen.ReadInEarlierAnswer };
   }
 
-  return findLinesNotRead({
-    views: data.viewsInHand,
-    fingerprint: fingerprint,
+  // Every line in hand.
+  if (!inHand.linesShown) {
+    return null;
+  }
+
+  /*
+   * What every view of the version showed, in hand or not: what Ask AI
+   * ever read of it. The lines in hand are always among them.
+   */
+  const ever: { linesShown: AIChatLinesShown | undefined } | null =
+    getLinesOfVersion({ views: data.views, fingerprint: fingerprint });
+  const everShown: AIChatLinesShown | undefined = ever
+    ? addLinesShown(ever.linesShown, inHand.linesShown)
+    : inHand.linesShown;
+  const lineCount: number = everShown
+    ? everShown.lineCount
+    : inHand.linesShown.lineCount;
+  const linesNotRead: Array<AIChatLineRange> = everShown
+    ? getLinesNotShown(everShown)
+    : [];
+  const linesNoLongerInHand: Array<AIChatLineRange> = getLinesNotShown({
+    lineCount: lineCount,
+    ranges: [...inHand.linesShown.ranges, ...linesNotRead],
   });
+
+  if (linesNotRead.length > 0) {
+    return {
+      unseen: CodeFileUnseen.ReadInPart,
+      lineCount: lineCount,
+      linesNotRead: linesNotRead,
+      ...(linesNoLongerInHand.length > 0 ? { linesNoLongerInHand } : {}),
+    };
+  }
+
+  return linesNoLongerInHand.length > 0
+    ? {
+        unseen: CodeFileUnseen.PartNoLongerInHand,
+        lineCount: lineCount,
+        linesNoLongerInHand: linesNoLongerInHand,
+      }
+    : null;
 };
 
 type FindCodeFileUnseenFunction = (data: {
@@ -867,22 +954,30 @@ const isRecord: IsRecordFunction = (
   return value !== null && typeof value === "object" && !Array.isArray(value);
 };
 
-type ReadLinesNotReadFunction = (
-  finding: Record<string, unknown>,
-) => { lineCount: number; linesNotRead: Array<AIChatLineRange> } | null;
+type ReadLinesNotReadFunction = (finding: Record<string, unknown>) => {
+  lineCount: number;
+  linesNotRead?: Array<AIChatLineRange>;
+  linesNoLongerInHand?: Array<AIChatLineRange>;
+} | null;
 
 /*
- * The lines a finding of a file read in part says Ask AI never saw, or
- * null for none that are well formed: a note for the pull request's
- * reviewer, so a damaged one leaves out the note, never the finding.
+ * The lines a finding of a file read in part says Ask AI never saw, and
+ * those it read earlier and no longer had (issue #6984), or null for none
+ * that are well formed: a note for the pull request's reviewer, so a
+ * damaged one leaves out the note, never the finding.
  */
 const readLinesNotRead: ReadLinesNotReadFunction = (
   finding: Record<string, unknown>,
-): { lineCount: number; linesNotRead: Array<AIChatLineRange> } | null => {
+): {
+  lineCount: number;
+  linesNotRead?: Array<AIChatLineRange>;
+  linesNoLongerInHand?: Array<AIChatLineRange>;
+} | null => {
   const lineCount: unknown = finding["lineCount"];
 
   if (
-    finding["unseen"] !== CodeFileUnseen.ReadInPart ||
+    (finding["unseen"] !== CodeFileUnseen.ReadInPart &&
+      finding["unseen"] !== CodeFileUnseen.PartNoLongerInHand) ||
     typeof lineCount !== "number" ||
     !Number.isSafeInteger(lineCount) ||
     lineCount < 1
@@ -890,14 +985,27 @@ const readLinesNotRead: ReadLinesNotReadFunction = (
     return null;
   }
 
-  const linesNotRead: Array<AIChatLineRange> | null = readAIChatLineRanges(
-    finding["linesNotRead"],
+  const linesNotRead: Array<AIChatLineRange> | null =
+    finding["unseen"] === CodeFileUnseen.ReadInPart
+      ? readAIChatLineRanges(finding["linesNotRead"], lineCount)
+      : null;
+  const linesNoLongerInHand: Array<AIChatLineRange> | null =
+    finding["linesNoLongerInHand"] === undefined
+      ? null
+      : readAIChatLineRanges(finding["linesNoLongerInHand"], lineCount);
+  const read: {
+    lineCount: number;
+    linesNotRead?: Array<AIChatLineRange>;
+    linesNoLongerInHand?: Array<AIChatLineRange>;
+  } = {
     lineCount,
-  );
+    ...(linesNotRead && linesNotRead.length > 0 ? { linesNotRead } : {}),
+    ...(linesNoLongerInHand && linesNoLongerInHand.length > 0
+      ? { linesNoLongerInHand }
+      : {}),
+  };
 
-  return linesNotRead && linesNotRead.length > 0
-    ? { lineCount, linesNotRead }
-    : null;
+  return read.linesNotRead || read.linesNoLongerInHand ? read : null;
 };
 
 type ReadValuesHiddenFunction = (finding: Record<string, unknown>) => {

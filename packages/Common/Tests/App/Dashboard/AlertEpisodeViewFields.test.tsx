@@ -663,7 +663,7 @@ describe("Alert Episode overview: details column", () => {
       "Episode Severity",
       "Alert Count",
       "Grouping Rule",
-      "On-Call Duty Policies",
+      "On-Call Policies",
       "Labels",
     ]);
 

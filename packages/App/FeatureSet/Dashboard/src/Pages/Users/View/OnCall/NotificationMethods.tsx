@@ -49,6 +49,10 @@ import React, {
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
+import NotificationMethodUtil from "Common/UI/Utils/NotificationMethodUtil";
+import PhoneNumberText from "Common/UI/Components/PhoneNumber/PhoneNumberText";
+import { phoneNumberInLine } from "Common/Types/PhoneNumberDirection";
 
 /*
  * Users > View > Notification Methods — where a project owner or admin can set
@@ -106,6 +110,56 @@ const CHANNEL_ICONS: Dictionary<IconProp> = {
   WhatsApp: IconProp.WhatsApp,
   Telegram: IconProp.Telegram,
   Webhook: IconProp.Webhook,
+};
+
+/*
+ * Whether a method's identifier is a phone number ("+1 ••• ••• 4821": SMS,
+ * Call, WhatsApp), which reads left to right in every language: printed
+ * as it was, an Arabic page drew it "4821 ••• ••• 1+" (PhoneNumberText).
+ */
+const isPhoneNumberChannel: (methodType: string) => boolean = (
+  methodType: string,
+): boolean => {
+  return NotificationMethodUtil.isPhoneNumberMethod(methodType);
+};
+
+/*
+ * A method's masked identifier as the page draws it: a phone number read
+ * +1 ••• ••• 4821 in every language, any other identifier - an address, a
+ * handle, a device's name - the way it is written (IsolatedText).
+ */
+interface MaskedIdentifierProps {
+  method: AdminMethodWire;
+  className?: string | undefined;
+}
+
+const MaskedIdentifier: FunctionComponent<MaskedIdentifierProps> = (
+  props: MaskedIdentifierProps,
+): ReactElement => {
+  const translator: Translator = useTranslator();
+
+  if (isPhoneNumberChannel(props.method.methodType)) {
+    return (
+      <PhoneNumberText
+        phoneNumber={props.method.maskedIdentifier}
+        className={props.className}
+        dataTestId="admin-notification-method-identifier"
+      />
+    );
+  }
+
+  // A device registered without a name in the reader's words.
+  return (
+    <IsolatedText
+      text={NotificationMethodUtil.getIdentifierText(
+        translator,
+        props.method.methodType,
+        props.method.maskedIdentifier,
+      )}
+      className={props.className}
+      dataTestId="admin-notification-method-identifier"
+    />
+  );
 };
 
 /*
@@ -718,9 +772,12 @@ const UserViewNotificationMethods: FunctionComponent<
                 className="h-3.5 w-3.5 flex-shrink-0 text-gray-400"
               />
               <span className="font-medium text-gray-900">
-                {method.methodType}
+                {NotificationMethodUtil.getMethodName(
+                  translator,
+                  method.methodType,
+                )}
               </span>
-              <span className="text-gray-500">{method.maskedIdentifier}</span>
+              <MaskedIdentifier method={method} className="text-gray-500" />
 
               {method.isVerified ? (
                 <span className="ml-auto inline-flex items-center rounded-md bg-emerald-50 px-1.5 py-0.5 text-[11px] font-medium text-emerald-700 ring-1 ring-inset ring-emerald-200">
@@ -807,7 +864,7 @@ const UserViewNotificationMethods: FunctionComponent<
           />
         ) : (
           translator.translateText(
-            "Channels that are off in this project are not offered. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings → Notifications → Notification Settings.",
+            "Channels that are off in this project are not offered. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings → Notifications → Notification Channels.",
           )
         )}
       </span>
@@ -847,10 +904,13 @@ const UserViewNotificationMethods: FunctionComponent<
   };
 
   const getDeletionDescription: () => ReactElement = (): ReactElement => {
-    const identifierElement: ReactElement = (
-      <span className="font-medium text-gray-900">
-        {methodToDelete?.maskedIdentifier}
-      </span>
+    const identifierElement: ReactElement = methodToDelete ? (
+      <MaskedIdentifier
+        method={methodToDelete}
+        className="font-medium text-gray-900"
+      />
+    ) : (
+      <></>
     );
 
     return (
@@ -861,7 +921,11 @@ const UserViewNotificationMethods: FunctionComponent<
               template="This removes the {{methodType}} method {{identifier}} from {{name}}'s account, and every notification rule that points at it goes with it."
               slots={{ identifier: identifierElement }}
               values={{
-                methodType: methodToDelete?.methodType || "",
+                methodType: methodToDelete
+                  ? NotificationMethodUtil.getMethodNameInSentence(
+                      methodToDelete.methodType,
+                    )
+                  : "",
                 name: displayName,
               }}
             />
@@ -869,7 +933,13 @@ const UserViewNotificationMethods: FunctionComponent<
             <TranslatedSentence
               template="This removes the {{methodType}} method {{identifier}} from this user's account, and every notification rule that points at it goes with it."
               slots={{ identifier: identifierElement }}
-              values={{ methodType: methodToDelete?.methodType || "" }}
+              values={{
+                methodType: methodToDelete
+                  ? NotificationMethodUtil.getMethodNameInSentence(
+                      methodToDelete.methodType,
+                    )
+                  : "",
+              }}
             />
           )}
         </p>
@@ -1091,6 +1161,13 @@ const UserViewNotificationMethods: FunctionComponent<
                     required: true,
                     placeholder: "you@company.com or +15551234567",
                     disableSpellCheck: true,
+                    /*
+                     * An email address and a phone number both read left
+                     * to right in every language: typed on a Persian or
+                     * Arabic page, "+15551234567" took the page's way and
+                     * put its "+" after its digits (#7180).
+                     */
+                    readsLeftToRight: true,
                   }
                 : {
                     field: {
@@ -1113,7 +1190,15 @@ const UserViewNotificationMethods: FunctionComponent<
         <ConfirmModal
           title={translator.translateTemplate(
             "Remove this {{methodType}} method?",
-            { methodType: methodToDelete.methodType },
+            {
+              /*
+               * In the sentence's language and cased as its middle:
+               * "Remove this phone call method?" (getMethodNameInSentence).
+               */
+              methodType: NotificationMethodUtil.getMethodNameInSentence(
+                methodToDelete.methodType,
+              ),
+            },
           )}
           description={getDeletionDescription()}
           submitButtonText="Remove"
@@ -1140,7 +1225,15 @@ const UserViewNotificationMethods: FunctionComponent<
           title="Resend verification code"
           description={translator.translateTemplate(
             "We will send a new verification code to {{identifier}}. Only {{name}} can read it and enter it.",
-            { identifier: resendMethod.maskedIdentifier, name: firstName },
+            {
+              identifier: isPhoneNumberChannel(resendMethod.methodType)
+                ? phoneNumberInLine(
+                    resendMethod.maskedIdentifier,
+                    translator.language,
+                  )
+                : resendMethod.maskedIdentifier,
+              name: firstName,
+            },
           )}
           submitButtonText="Resend code"
           isLoading={isSaving}

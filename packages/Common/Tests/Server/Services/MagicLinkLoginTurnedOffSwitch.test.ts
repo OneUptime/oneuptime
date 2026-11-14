@@ -113,6 +113,24 @@ async function isTurnedOff(
   return await on.getMagicLinkLoginTurnedOff();
 }
 
+/*
+ * The reads of the switch itself. A write's other hooks read the row too:
+ * a write of the push switch starts push's sending health again (#6877),
+ * which reads the row's serverSendingHealth, not this switch.
+ */
+function readsOfTheSwitch(spy: jest.SpyInstance = reads): number {
+  return spy.mock.calls.filter((call: Array<unknown>): boolean => {
+    const select: Record<string, unknown> | undefined = (
+      call[0] as { select?: Record<string, unknown> } | undefined
+    )?.select;
+
+    return (
+      select !== undefined &&
+      Object.keys(select).includes("disableMagicLinkLogin")
+    );
+  }).length;
+}
+
 beforeEach(() => {
   now = START;
   stored = settingsRow(false);
@@ -298,7 +316,7 @@ describe("a write of the server's settings (onUpdateSuccess)", () => {
       await hooksOf(server).onUpdateSuccess(writeOf(data), [CONFIG_ID]);
 
       await isTurnedOff();
-      expect(reads).toHaveBeenCalledTimes(1);
+      expect(readsOfTheSwitch()).toBe(1);
     },
   );
 });

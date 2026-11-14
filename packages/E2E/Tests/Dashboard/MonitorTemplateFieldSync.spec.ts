@@ -307,7 +307,8 @@ test.describe("Monitor template field sync settings", () => {
     });
     await next.click();
     await page
-      .getByText("Monitor Criteria", { exact: true })
+      .getByTestId("card-details-heading")
+      .getByText("Criteria", { exact: true })
       .first()
       .waitFor({ state: "visible", timeout: 60000 });
     await expect(createForm.getByRole("textbox").first()).toHaveValue(

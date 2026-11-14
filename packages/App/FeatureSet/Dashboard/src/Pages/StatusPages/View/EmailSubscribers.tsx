@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import Route from "Common/Types/API/Route";
 import useStatusPageBulkAdd, {
   StatusPageBulkAdd,
 } from "../../../Components/StatusPage/useStatusPageBulkAdd";
@@ -467,6 +468,10 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             singularName="Subscriber"
             pluralName="Subscribers"
             createVerb="Add"
+            /* The docs page for this list (#6822): who can subscribe, by which channel, and what they are sent. */
+            documentationLink={Route.fromString(
+              "/docs/status-pages/subscribers",
+            )}
             cardProps={{
               title: "Email Subscribers",
               description:

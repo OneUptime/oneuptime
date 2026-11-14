@@ -422,7 +422,10 @@ export const getOidcProviderFormFields: GetOidcProviderFormFieldsFunction = <
      * one left out of a new provider. A status page provider made before
      * this may have no name claim at all, and editing it must not stop on a
      * field nobody asked for. The placeholder shows the value an empty one
-     * stands for.
+     * stands for, as the identity provider names it: drawn as written in
+     * every language (isPlaceholderIdentifier), since "email" and "name"
+     * are interface words too, and German read the email claim's as
+     * "E-Mail" (#7625).
      */
     {
       field: { scopes: true } as unknown as SelectFormFields<TEntity>,
@@ -432,6 +435,7 @@ export const getOidcProviderFormFields: GetOidcProviderFormFieldsFunction = <
       description:
         "Space-separated list of OIDC scopes to request. Must include 'openid'.",
       placeholder: DEFAULT_OIDC_SCOPES,
+      isPlaceholderIdentifier: true,
       defaultValue: DEFAULT_OIDC_SCOPES,
       stepId: "sign-in",
       disableSpellCheck: true,
@@ -448,6 +452,7 @@ export const getOidcProviderFormFields: GetOidcProviderFormFieldsFunction = <
       description:
         "Name of the ID token / userinfo claim that contains the user's email address.",
       placeholder: DEFAULT_OIDC_EMAIL_CLAIM_NAME,
+      isPlaceholderIdentifier: true,
       defaultValue: DEFAULT_OIDC_EMAIL_CLAIM_NAME,
       stepId: "sign-in",
       disableSpellCheck: true,
@@ -461,6 +466,7 @@ export const getOidcProviderFormFields: GetOidcProviderFormFieldsFunction = <
       description:
         "Name of the ID token / userinfo claim that contains the user's display name.",
       placeholder: DEFAULT_OIDC_NAME_CLAIM_NAME,
+      isPlaceholderIdentifier: true,
       defaultValue: DEFAULT_OIDC_NAME_CLAIM_NAME,
       stepId: "sign-in",
       disableSpellCheck: true,

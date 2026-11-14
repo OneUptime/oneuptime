@@ -444,6 +444,37 @@ Om PostgreSQL te herstellen, stelt u de waarden `DATABASE_RESTORE_*` in `config.
 > [!CAUTION]
 > `restore.sh` verwijdert elk object uit de back-up uit de doeldatabase voordat het opnieuw wordt aangemaakt. Het vraagt dit voordat het begint; controleer de databasenaam die het toont.
 
+## Draai alleen wat u nodig hebt
+
+Veel servers draaien OneUptime voor één taak, zoals websites bewaken en een statuspagina publiceren. Een hoofdbeheerder kan de producten die niemand gebruikt uitschakelen, voor alle projecten op de server tegelijk, onder **Instellingen > Producten** in het Admin Dashboard.
+
+- **Voorinstellingen** zetten elke schakelaar met één klik: **Monitoring en statuspagina's** houdt Monitoren, Incidenten, Bereikbaarheid, Statuspagina's en Geplande onderhoud; **Incidentrespons** voegt Waarschuwingen, SLOs, Workflows en Runbooks toe; **Alles** houdt elk product. **Producten een voor een kiezen** zet één product om. Gebruikers, Teams en Projectinstellingen staan altijd aan.
+- Een product dat uit staat, verdwijnt uit het menu **Producten** van elk project, van Start en uit Zoeken, en **Projectinstellingen > Producten** toont het als uitgeschakeld. Een link naar een van zijn pagina's zegt dat het product op deze server is uitgeschakeld en wie het kan inschakelen.
+- De API weigert records van het product aan te maken, te wijzigen of te verwijderen, en AI vragen laat het weg. Lezen werkt nog steeds, omdat producten die aan blijven records van andere tonen: een incident noemt zijn monitors.
+- Er wordt niets verwijderd, en wat al draait, blijft draaien: monitors blijven controleren, gepubliceerde statuspagina's blijven online en telemetrie blijft binnenkomen, tenzij u ook de opname stopt. Een product dat weer wordt ingeschakeld, komt terug zoals het was.
+
+Om de producten als code in te stellen, zet u `SERVER_PRODUCTS` in `config.env` (Helm: `products.onThisServer`) op `everything`, `monitoring-and-status-pages`, `incident-response`, of op de producten die aan moeten blijven, op sleutel, zoals `monitors,incidents,on-call,status-pages`. Het is een beginwaarde: zodra een beheerder **Instellingen > Producten** opslaat, geldt wat die heeft opgeslagen.
+
+### Het profiel Monitoring en statuspagina's
+
+Voor een server die alleen websites en API's bewaakt en statuspagina's publiceert, stelt u deze waarden in `config.env` in en voert u daarna `npm start` uit:
+
+```bash
+SERVER_PRODUCTS=monitoring-and-status-pages
+DISABLE_TELEMETRY_INGESTION=true
+GLOBAL_RUNNER_REPLICAS=0
+MQTT_INGEST_ENABLED=false
+```
+
+| Instelling | Wat ze doet |
+| --- | --- |
+| `SERVER_PRODUCTS=monitoring-and-status-pages` | Elk project biedt Monitoren, Incidenten, Bereikbaarheid, Statuspagina's en Geplande onderhoud. |
+| `DISABLE_TELEMETRY_INGESTION=true` | OneUptime bewaart niets van de logs, metrics, traces of profielen die het krijgt. Logboeken, Metrieken, Traces, Prestatieprofielen en Uitzonderingen staan als uitgeschakeld. |
+| `GLOBAL_RUNNER_REPLICAS=0` | De service `global-runner` start niet. Alleen runbooks en de codecorrecties van OneUptime AI gebruiken hem. |
+| `MQTT_INGEST_ENABLED=false` | De MQTT-listeners waar IoT-apparaten naar sturen, staan uit. |
+
+Zes services draaien nog: `ingress`, `app`, `probe-1`, `postgres`, `clickhouse` en `valkey`. ClickHouse blijft, omdat monitors hun resultaten en logs erin bewaren. Stel op Kubernetes `products.onThisServer: monitoring-and-status-pages`, `telemetry.disableIngestion: true` en `globalRunner.enabled: false` in uw Helm-values in. Bepaal de grootte van de server aan de hand van de [vereisten](#vereisten).
+
 ## OneUptime bijwerken
 
 Maak eerst een back-up en voer daarna uit:

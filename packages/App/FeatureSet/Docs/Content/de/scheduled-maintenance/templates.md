@@ -15,7 +15,7 @@ Eine Vorlage ist ein Ausgangspunkt. Ein daraus erstelltes Ereignis ist eine Kopi
 
 ```mermaid title="Zwei Wege, wie aus einer Vorlage ein Ereignis wird"
 flowchart TB
-    template["Eine Vorlage<br/>in Ereignis-Vorlagen"] --> byhand["Aus Vorlage erstellen<br/>füllt das Formular aus"]
+    template["Eine Vorlage<br/>in Wartungsvorlagen"] --> byhand["Aus Vorlage erstellen<br/>füllt das Formular aus"]
     template --> schedule["Wiederkehrend an<br/>jede Minute geprüft"]
     byhand --> event["Ein neues Ereignis<br/>in Geplant"]
     schedule --> event
@@ -31,7 +31,7 @@ flowchart TB
 :::steps
 ### Die Vorlagen öffnen
 
-Gehen Sie zu **Geplante Wartung → Einstellungen → Ereignis-Vorlagen**. **Einstellungen** ist im Seitenmenü zunächst eingeklappt: Klappen Sie es zuerst auf. Klicken Sie auf **Vorlage für geplante Wartung erstellen**.
+Gehen Sie zu **Geplante Wartung → Einstellungen → Wartungsvorlagen**. **Einstellungen** ist im Seitenmenü zunächst eingeklappt: Klappen Sie es zuerst auf. Klicken Sie auf **Vorlage für geplante Wartung erstellen**.
 
 ### Die Vorlage benennen
 
@@ -39,7 +39,7 @@ Geben Sie ihr unter **Vorlageninformationen** einen **Vorlagenname** und eine **
 
 ### Das Ereignis beschreiben
 
-Füllen Sie unter **Ereignis** den **Titel** und die **Beschreibung** aus, mit denen jedes Ereignis daraus beginnt. **Eigentümer** und **Beschriftungen** liegen unter **Weitere Felder**.
+Füllen Sie unter **Wartungsdetails** den **Titel** und die **Beschreibung** aus, mit denen jedes Ereignis daraus beginnt. **Eigentümer** und **Beschriftungen** liegen unter **Weitere Felder**.
 
 ### Auswählen, was sie betrifft
 
@@ -68,7 +68,7 @@ Eine Vorlage fragt nach **Monitor-Status ändern in**, auch wenn sie keine Monit
 :::steps
 ### Die Vorlage wählen
 
-Klicken Sie unter **Geplante Wartung → Alle Ereignisse** auf **Aus Vorlage erstellen** und wählen Sie eine Vorlage unter **Vorlage für geplante Wartung auswählen**.
+Klicken Sie unter **Geplante Wartung → Alle Wartungsereignisse** auf **Aus Vorlage erstellen** und wählen Sie eine Vorlage unter **Vorlage für geplante Wartung auswählen**.
 
 ### Das Formular prüfen
 
@@ -76,10 +76,10 @@ Klicken Sie auf **Aus Vorlage erstellen**. Das Formular öffnet sich mit den Ant
 
 ### Das Ereignis erstellen
 
-Gehen Sie die Schritte mit **Weiter** durch und klicken Sie dann in der Überprüfung auf **Geplantes Wartungsereignis erstellen**.
+Gehen Sie die Schritte mit **Weiter** durch und klicken Sie dann in der Überprüfung auf **Wartungsereignis erstellen**.
 :::
 
-Hat das Projekt noch keine Vorlage, sagt **Aus Vorlage erstellen** das und verlinkt auf **Ereignis-Vorlagen**.
+Hat das Projekt noch keine Vorlage, sagt **Aus Vorlage erstellen** das und verlinkt auf **Wartungsvorlagen**.
 
 ## Wiederkehrende Ereignisse
 
@@ -108,7 +108,7 @@ Ein Job prüft die wiederkehrenden Vorlagen jede Minute. Wenn die nächste Zeit 
 
 Öffnen Sie eine Vorlage aus der Liste, um ihre Seite zu sehen:
 
-- **Vorlagendetails der geplanten Wartung** zeigt, womit neue Ereignisse beginnen. Ihr **Bearbeiten** führt durch **Vorlageninformationen**, **Ereignis**, **Statusseiten** und **Wiederkehrend**.
+- **Vorlagendetails der geplanten Wartung** zeigt, womit neue Ereignisse beginnen. Ihr **Bearbeiten** führt durch **Vorlageninformationen**, **Wartungsdetails**, **Statusseiten** und **Wiederkehrend**.
 - **Betroffene Ressourcen** enthält ihre **Monitore**, deren **Monitor-Status ändern in** und ihre **Andere betroffene Ressourcen**, mit einem eigenen **Bearbeiten**.
 - **Eigentümer** listet die Personen und Teams auf, denen jedes aus ihr geplante Ereignis gehört.
 

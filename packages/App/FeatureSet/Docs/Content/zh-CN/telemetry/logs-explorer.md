@@ -37,7 +37,7 @@ flowchart TB
 ## 开始之前
 
 - **正在到达的日志。** 通过 [OpenTelemetry](/docs/telemetry/open-telemetry)、[Fluent Bit](/docs/telemetry/fluentbit)、[Fluentd](/docs/telemetry/fluentd) 或 [Syslog](/docs/telemetry/syslog) 发送。**设置指南** 标签页会显示适合你的语言或采集器的配置。
-- **可以读取遥测的角色。** Project Owner、Project Admin、Project Member、Viewer、Telemetry Admin、Telemetry Member 或 Telemetry Viewer，或者拥有 Read Telemetry Service Log 权限的自定义角色。角色的范围决定你能看到谁的日志：参见 [遥测](/docs/permissions/index#遥测)。
+- **可以读取遥测的角色。** Project Owner、Project Admin、Project Member、Viewer、Telemetry Admin、Telemetry Member 或 Telemetry Viewer，或者拥有 Read Logs 权限的自定义角色。角色的范围决定你能看到谁的日志：参见 [遥测](/docs/permissions/index#遥测)。
 
 ## 查找日志行
 
@@ -141,7 +141,7 @@ OneUptime 会记录三类发现：
 
 | 发现 | OneUptime 何时记录 | 拉取请求 |
 | --- | --- | --- |
-| **错误日志** | 某个服务在这一小时内以 Error 或 Fatal 记录同一条消息 20 次或更多，且该消息有自己的词语、不带异常。带着异常或包含堆栈跟踪记录的消息会改在 [异常跟踪](/docs/telemetry/exceptions) 中跟踪。 | 修复该错误被记录的原因，或以它应有的级别记录它。 |
+| **错误日志** | 某个服务在这一小时内以 Error 或 Fatal 记录同一条消息 20 次或更多，且该消息有自己的词语、不带异常。带着异常或包含堆栈跟踪记录的消息会改在 [异常](/docs/telemetry/exceptions) 中跟踪。 | 修复该错误被记录的原因，或以它应有的级别记录它。 |
 | **缺失的日志记录** | 某个操作的跨度在这一小时内至少有 20 个失败，占其 5% 或更多，同时该服务至少有 100 条日志带有追踪 ID，而该操作最近 20 个失败的请求都没有写下任何日志行。或者某个服务在这一小时内发送了 500 条或更多日志和 100 个或更多跨度，而带有追踪 ID 的日志不到 1%。 | 在失败发生的地方记录该失败，或让该服务的日志带上追踪 ID。 |
 | **噪声日志** | 一条以低于 Error 的级别记录的消息，占某个服务这一小时内日志行的 25% 或更多，约 10,000 行或更多。 | 减少记录该行：改为 Debug、每批记录一次，或完全不记录。 |
 

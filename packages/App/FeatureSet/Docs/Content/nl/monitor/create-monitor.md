@@ -18,7 +18,7 @@ Ga naar **Monitoren** en klik op **Monitor maken**. Het formulier opent op de ee
 
 De eerste vraag is het **Monitortype**: wat wilt u bewaken?
 
-- De zes types die het vaakst worden gemaakt staan bovenaan: **Website**, **API**, **Ping**, **Poort**, **SSL Certificate** en **Inkomende aanvraag**, voor heartbeats van cronjobs en webhooks.
+- De zes types die het vaakst worden gemaakt staan bovenaan: **Website**, **API**, **Ping**, **Poort**, **SSL-certificaat** en **Inkomende aanvraag**, voor heartbeats van cronjobs en webhooks.
 - **Meer monitortypen** toont alle andere types onder hun categorie, zoals **Infrastructuur** (Kubernetes, Docker, host) en **Telemetrie** (logboeken, metrieken, traces). **Handmatig**, een monitor waarvan u de status zelf instelt, en **Sondestatus**, die u laat weten wanneer een probe de verbinding verliest, staan onder **Overig**.
 - Of typ in het zoekvak. Het kent de woorden die u al gebruikt, zoals `k8s`, `postgres`, `heartbeat` of `tls`, en **Enter** kiest de eerste treffer.
 
@@ -44,7 +44,7 @@ Voor een monitor die sondes controleren, voert **Monitor testen** de controle é
 
 ### De criteria nakijken
 
-Daaronder bepalen de **Monitorcriteria** wanneer de monitor van status verandert, een incident meldt of een waarschuwing maakt. Een nieuwe monitor begint met criteria die bij de meeste monitoren passen, elk ingeklapt tot één regel die zegt wat het controleert en wat het doet. Een nieuwe websitemonitor wordt bijvoorbeeld als offline gemarkeerd en meldt een incident wanneer de site niet antwoordt of antwoordt met een foutstatuscode.
+Daaronder bepalen de **Criteria** wanneer de monitor van status verandert, een incident meldt of een waarschuwing maakt. Een nieuwe monitor begint met criteria die bij de meeste monitoren passen, elk ingeklapt tot één regel die zegt wat het controleert en wat het doet. Een nieuwe websitemonitor wordt bijvoorbeeld als offline gemarkeerd en meldt een incident wanneer de site niet antwoordt of antwoordt met een foutstatuscode.
 
 Klik op een criterium om het te openen en te wijzigen. **Criteria toevoegen** voegt er een toe, geopend en klaar om in te vullen. Om de volgorde te wijzigen, sleept u een criterium aan de greep links ervan.
 
@@ -72,11 +72,11 @@ flowchart TB
     end
 ```
 
-Incidenten en waarschuwingen die automatisch worden opgelost, zoals die van de standaardcriteria, lossen zichzelf op zodra hun criterium niet meer overeenkomt. Een monitor die door meer dan één sonde wordt gecontroleerd, verandert pas wanneer zijn sondes het eens zijn: standaard moet elke ingeschakelde en verbonden sonde tot hetzelfde resultaat komen. Om minder te eisen, stelt u **Sonde-overeenstemming** in op de pagina **Configuratie → Sondes en interval** van de monitor. Alles wat een criterium kan bevatten, en de statussen die een monitor kan tonen, vindt u in [Monitorcriteria en statussen](/docs/monitor/criteria-and-statuses).
+Incidenten en waarschuwingen die automatisch worden opgelost, zoals die van de standaardcriteria, lossen zichzelf op zodra hun criterium niet meer overeenkomt. Een monitor die door meer dan één sonde wordt gecontroleerd, verandert pas wanneer zijn sondes het eens zijn: standaard moet elke ingeschakelde en verbonden sonde tot hetzelfde resultaat komen. Om minder te eisen, stelt u **Sonde-overeenstemming** in op de pagina **Configuratie → Sondes en interval** van de monitor. Alles wat een criterium kan bevatten, en de statussen die een monitor kan tonen, vindt u in [Criteria en statussen](/docs/monitor/criteria-and-statuses).
 
 ## Sondes en interval
 
-Monitoren die sondes controleren eindigen met deze stap: Website, API, Ping, IP, Poort, SSL Certificate, DNS, DNSSEC, NTP, Domein, SQL Query, Database Health, Synthetic Monitor, Custom JavaScript Code en External Status Page. **Sondes** zijn de machines die de controles uitvoeren, en de standaardsondes van uw project zijn al geselecteerd. Het **Bewakingsinterval** begint bij **Elke 5 minuten**.
+Monitoren die sondes controleren eindigen met deze stap: Website, API, Ping, IP, Poort, SSL-certificaat, DNS, DNSSEC, NTP, Domein, SQL Query, Database Health, Synthetic Monitor, Custom JavaScript Code en External Status Page. **Sondes** zijn de machines die de controles uitvoeren, en de standaardsondes van uw project zijn al geselecteerd. Het **Bewakingsinterval** begint bij **Elke 5 minuten**.
 
 :::steps
 ### De sondes kiezen
@@ -85,7 +85,7 @@ Houd de geselecteerde **Sondes** of kies andere. Een monitor zonder sondes wordt
 
 ### Kiezen hoe vaak er gecontroleerd wordt
 
-Kies een **Bewakingsinterval**, van **Elke minuut** tot **Elke week**. Monitoren van het type Synthetic Monitor, Custom JavaScript Code en SSL Certificate krijgen intervallen van 5 minuten of langer aangeboden.
+Kies een **Bewakingsinterval**, van **Elke minuut** tot **Elke week**. Monitoren van het type Synthetic Monitor, Custom JavaScript Code en SSL-certificaat krijgen intervallen van 5 minuten of langer aangeboden.
 
 ### De monitor maken
 
@@ -103,7 +103,7 @@ Elk monitortype heeft een eigen pagina met zijn instellingen, zijn standaardcrit
 :::cards
 - [Website-monitor](/docs/monitor/website-monitor): Controleren of een pagina laadt, en wat die antwoordt.
 - [API-monitor](/docs/monitor/api-monitor): Een endpoint aanroepen met een methode, headers en een body.
-- [Monitorcriteria en statussen](/docs/monitor/criteria-and-statuses): Wat de status van elke monitor bepaalt.
+- [Criteria en statussen](/docs/monitor/criteria-and-statuses): Wat de status van elke monitor bepaalt.
 - [Monitorsjablonen](/docs/monitor/monitor-templates): Veel monitoren maken vanuit één configuratie en ze gelijk houden.
 - [Monitorgroepen](/docs/monitor/monitor-groups): Meerdere monitoren tot één status samenvoegen.
 - [Incidenten](/docs/incidents/index): Wat er gebeurt nadat een monitor een incident meldt.

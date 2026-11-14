@@ -63,7 +63,7 @@ Cliquez sur **Tester le moniteur**, choisissez une sonde sous **Sélectionner la
 
 ### Passer en revue les critères
 
-**Critères du moniteur** commence avec les [critères par défaut](#critères-par-défaut) : hors ligne quand l'adresse ne répond pas, en ligne quand elle répond. Modifiez-les si besoin, puis cliquez sur **Suivant**.
+**Critères** commence avec les [critères par défaut](#critères-par-défaut) : hors ligne quand l'adresse ne répond pas, en ligne quand elle répond. Modifiez-les si besoin, puis cliquez sur **Suivant**.
 
 ### Choisir les sondes et créer
 

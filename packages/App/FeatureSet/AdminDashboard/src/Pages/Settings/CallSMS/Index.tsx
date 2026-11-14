@@ -240,6 +240,12 @@ const Settings: FunctionComponent = (): ReactElement => {
               "Every SMS goes out from one of these: the one in the recipient's country, or else the first.",
             // The list the error under the field gives: no one country's.
             placeholder: PHONE_NUMBER_LIST_EXAMPLE,
+            /*
+             * A list of numbers reads left to right in every language, its
+             * example with it: on a Persian or Arabic page the example's
+             * "+" went after its digits (#7180).
+             */
+            readsLeftToRight: true,
             customValidation: (
               values: FormValues<GlobalConfig>,
             ): string | null => {
@@ -262,6 +268,12 @@ const Settings: FunctionComponent = (): ReactElement => {
               "Numbers to send SMS from if yours can only make calls. Each SMS uses the one in the recipient's country, or the first.",
             // The list the error under the field gives: no one country's.
             placeholder: PHONE_NUMBER_LIST_EXAMPLE,
+            /*
+             * A list of numbers reads left to right in every language, its
+             * example with it: on a Persian or Arabic page the example's
+             * "+" went after its digits (#7180).
+             */
+            readsLeftToRight: true,
             customValidation: (
               values: FormValues<GlobalConfig>,
             ): string | null => {
@@ -285,6 +297,8 @@ const Settings: FunctionComponent = (): ReactElement => {
             description:
               "Numbers to use instead of the primary one when they match the recipient's country code.",
             placeholder: "+441234567890, +461234567890",
+            // A list of numbers reads left to right, as the ones above.
+            readsLeftToRight: true,
             customValidation: (
               values: FormValues<GlobalConfig>,
             ): string | null => {
@@ -345,7 +359,11 @@ const Settings: FunctionComponent = (): ReactElement => {
                 twilioSmsPhoneNumbers: true,
               },
               title: "Twilio SMS Phone Numbers",
-              fieldType: FieldType.LongText,
+              /*
+               * Each number of the list read +447700900123 in every
+               * language, separated the reader's way (Detail's Phone).
+               */
+              fieldType: FieldType.Phone,
               // Without them, SMS go out from the numbers calls do.
               placeholder: t("pages.settings.callSms.smsSameAsCalls"),
               // An account used for calls only sends no SMS, from any number.
@@ -358,7 +376,7 @@ const Settings: FunctionComponent = (): ReactElement => {
                 twilioSecondaryPhoneNumbers: true,
               },
               title: "Twilio Secondary Phone Numbers",
-              fieldType: FieldType.LongText,
+              fieldType: FieldType.Phone,
               placeholder: t("common.none"),
               showIf: (item: GlobalConfig): boolean => {
                 return TwilioConfigUses.makesCalls(item.twilioUsedFor);

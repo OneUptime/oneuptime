@@ -48,6 +48,7 @@ import {
 } from "Common/Utils/Slo/SloProjection";
 import { formatSloPercent } from "Common/Utils/Slo/SloWidgetFormat";
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
+import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 export interface ComponentProps {
   sloId: ObjectID;
@@ -317,10 +318,10 @@ const SloOverviewHero: FunctionComponent<ComponentProps> = (
 
         {props.refreshError ? (
           <p role="alert" className="mt-4 text-sm text-red-700">
-            {translator.translateTemplate(
-              "Could not refresh — showing the last numbers that loaded. {{error}}",
-              { error: props.refreshError },
-            )}
+            <ErrorSentence
+              template="Could not refresh — showing the last numbers that loaded. {{error}}"
+              error={props.refreshError}
+            />
           </p>
         ) : null}
       </div>

@@ -1114,6 +1114,44 @@ describe("Authoring a Dashboard, against the product", () => {
     );
   });
 
+  it("says Cancel asks only when something changed, and leaving asks while changes are unsaved (issue #7173)", () => {
+    const toolbar: string = readSource(TOOLBAR);
+    const view: string = readSource(DASHBOARD_VIEW);
+    const editAndSave: string = sectionOf(page, "## Edit and save");
+
+    // Cancel with nothing changed goes straight back to view mode.
+    expect(toolbar).toContain("if (props.hasUnsavedChanges === false) {");
+    expect(view).toContain("hasUnsavedChanges={hasUnsavedChanges}");
+    expect(editAndSave).toContain(
+      `${bold("Cancel")} goes back to view mode. If you changed something, it asks first`,
+    );
+
+    /*
+     * Leaving: the board's own question, held while the board differs from
+     * the one editing started from - the beforeunload dialog included.
+     */
+    expect(view).toContain("useLeaveGuard(hasUnsavedChanges)");
+    expect(view).toContain("useUnsavedChanges(hasUnsavedChanges)");
+    expect(view).toContain('title={"Leave without saving?"}');
+    expect(view).toContain('submitButtonText={"Discard Changes"}');
+    expect(view).toContain('closeButtonText={"Keep Editing"}');
+    expect(editAndSave).toContain(
+      `A link in the side menu, the breadcrumbs or the top bar, or your browser's back and forward buttons, open ${bold(
+        "Leave without saving?",
+      )} with the same two choices: ${bold(
+        "Keep Editing",
+      )} stays on the dashboard with your changes, and ${bold(
+        "Discard Changes",
+      )} goes on to the page you were opening.`,
+    );
+    expect(editAndSave).toContain(
+      "Closing or reloading the tab asks with your browser's own dialog.",
+    );
+    expect(editAndSave).toContain(
+      "A dashboard you opened for editing and did not change asks nothing, and neither does one you just saved.",
+    );
+  });
+
   it("says saving stores the defaults set while editing, and editing pauses auto-refresh and drops a zoom", () => {
     const view: string = readSource(DASHBOARD_VIEW);
     const editAndSave: string = sectionOf(page, "## Edit and save");

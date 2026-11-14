@@ -35,6 +35,7 @@ import {
   getRecommendedThreatIntelListText,
 } from "./ThreatIntelSourcesCopy";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
+import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
 
 export const THREAT_INTEL_RECOMMENDED_LISTS_ID: string =
   "threat-intel-recommended-lists";
@@ -181,7 +182,7 @@ const ThreatIntelRecommendedLists: FunctionComponent<ComponentProps> = (
       setError(
         translator.translateTemplate("Could not add {{list}}: {{reason}}", {
           list: list.title,
-          reason: API.getFriendlyMessage(err),
+          reason: errorInSentence(API.getFriendlyMessage(err)),
         }),
       );
     }

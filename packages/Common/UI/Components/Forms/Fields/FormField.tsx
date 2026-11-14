@@ -988,6 +988,7 @@ const FormField: <T extends GenericObject>(
                 dataTestId={props.field.dataTestId}
                 disableSpellCheck={props.field.disableSpellCheck}
                 autoGrow={props.field.autoGrow}
+                readsLeftToRight={props.field.readsLeftToRight}
                 onChange={async (value: string) => {
                   onChange(value);
                   props.setFieldValue(props.fieldName, value);
@@ -1423,6 +1424,8 @@ const FormField: <T extends GenericObject>(
                     ? "tel"
                     : undefined
                 }
+                // A list of phone numbers typed as text reads so too.
+                readsLeftToRight={props.field.readsLeftToRight}
                 onChange={(value: string) => {
                   onChange(value);
                   props.setFieldValue(props.fieldName, value);
@@ -1438,7 +1441,16 @@ const FormField: <T extends GenericObject>(
                     ? inputInitialValue
                     : String(inputInitialValue ?? "")
                 }
-                placeholder={translatedPlaceholder || ""}
+                /*
+                 * An identifier (a claim's name) reads as written in every
+                 * language: looked up neither here nor in Input.
+                 */
+                placeholder={
+                  props.field.isPlaceholderIdentifier
+                    ? props.field.placeholder || ""
+                    : translatedPlaceholder || ""
+                }
+                isPlaceholderIdentifier={props.field.isPlaceholderIdentifier}
               />,
             )}
         </div>

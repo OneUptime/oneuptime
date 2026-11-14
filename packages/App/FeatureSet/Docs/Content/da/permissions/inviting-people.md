@@ -52,6 +52,8 @@ Skriv adressen i **E-mail**. Hvis ingen OneUptime-konto bruger den endnu, beder 
 ### Send invitationen
 
 Klik på **Inviter**. OneUptime sender invitationen pr. e-mail og åbner personens side. Personen vises som **Invitation sendt**, indtil invitationen er accepteret.
+
+På en selvhostet server, der endnu ikke kan sende e-mails, sendes der ingen e-mail, og personen vises som **Inviteret**. En masteradministrator ser først **Send dem deres invitationslink**: kopiér linket, send det selv til personen, og klik så på **Færdig**. Alle andre beder serverens administrator om at [sætte e-mail op](/docs/emails/smtp#åbn-formularen).
 :::
 
 > [!TIP]
@@ -84,7 +86,7 @@ Filtrér listen efter **Bruger**, **Status** eller **Team**. Klik på en række 
 | --- | --- |
 | **Profil** | Navn, e-mailadresse, billede og bruger-ID. |
 | **Teams** | De teams, personen er med i. Tilføj eller fjern et team her. |
-| **Parathed**, **Notifikationsmetoder**, **Vagtregler** | Om personen kan blive tilkaldt, og hvordan. Vises for Project Owners, Project Admins, personen selv og alle, der må læse andres notifikationsregler. Se [Parathed og rapporter](/docs/on-call/readiness). |
+| **Parathed**, **Notifikationsmetoder**, **Sådan når man mig** | Om personen kan blive tilkaldt, og hvordan. Vises for Project Owners, Project Admins, personen selv og alle, der må læse andres notifikationsregler. Se [Parathed og rapporter](/docs/on-call/readiness). |
 | **Brugerdefinerede felter** | Projektets brugerdefinerede felter for personer, hvis det har nogen. |
 | **Fjern fra projekt** | Tag personen ud af projektet. |
 
@@ -134,6 +136,8 @@ I OneUptime Cloud har et projekt på Free-planen plads til én person. Skift pla
 
 :::details Invitationsmailen kom ikke frem, eller linket er udløbet
 Invitationen afhænger ikke af e-mailen. Bed personen om at tilmelde sig med den inviterede adresse: OneUptime sender den adresse et nyt link til at gøre kontoen færdig. Den, der allerede har en konto, logger ind og finder invitationen.
+
+På en selvhostet server, der endnu ikke kan sende e-mails, kan en tilmelding heller ikke e-maile personen et nyt link: tilmeldingen beder i stedet personen om at bede om sit invitationslink. Når serverens administrator har [sat e-mail op](/docs/emails/smtp#åbn-formularen), virker tilmeldingen som ovenfor. Indtil da kan en masteradministrator fjerne personen fra projektet, invitere personen igen og sende det nye invitationslink, som virker én gang, kun for den adresse, i 7 dage.
 :::
 
 :::details Inviter bruger siger, at brugerne styres af SCIM Push Groups

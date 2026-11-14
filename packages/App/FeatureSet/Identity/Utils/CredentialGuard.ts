@@ -62,9 +62,17 @@ export default class CredentialGuard {
    * `fieldLabel` is echoed to the caller, so keep it to the field's public name -- never
    * interpolate the value itself, which would turn the guard into an oracle.
    */
-  public static assertPresent(value: unknown, fieldLabel: string): void {
+  public static assertPresent(
+    value: unknown,
+    fieldLabel: string,
+    /*
+     * What to say instead of "<label> is required." where a person meets
+     * it - a link that lost its token says what to do next (#6836).
+     */
+    message?: string | undefined,
+  ): void {
     if (!this.isPresent(value)) {
-      throw new BadDataException(`${fieldLabel} is required.`);
+      throw new BadDataException(message || `${fieldLabel} is required.`);
     }
   }
 
@@ -73,10 +81,14 @@ export default class CredentialGuard {
    * deterministic regardless of which combination the caller omitted.
    */
   public static assertAllPresent(
-    fields: Array<{ value: unknown; label: string }>,
+    fields: Array<{
+      value: unknown;
+      label: string;
+      message?: string | undefined;
+    }>,
   ): void {
     for (const field of fields) {
-      this.assertPresent(field.value, field.label);
+      this.assertPresent(field.value, field.label, field.message);
     }
   }
 }

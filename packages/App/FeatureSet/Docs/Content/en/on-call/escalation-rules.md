@@ -2,6 +2,9 @@
 
 An on-call policy pages people in levels. Each escalation rule is one level: who gets paged, and how long to wait for somebody to acknowledge before the next level is paged. A policy's rules are listed, in order, on its **Escalation Rules** page.
 
+> [!TIP]
+> New here? Follow the guide first: [Get Paged by Phone, SMS or Push](/docs/guides/paging).
+
 ```mermaid title="An on-call policy pages level by level until someone acknowledges"
 flowchart TB
     trigger["Incident or alert"] --> level1["Level 1 pages"]
@@ -29,7 +32,7 @@ flowchart TB
 When you create an on-call policy on the **On-Call Policies** page, the form asks for its **Name** and **Who gets paged first?**. The question uses the same picker as **Notify**: on-call schedules, teams and people, as many as you need. Whoever you pick becomes the policy's first escalation rule, **Level 1**, which waits **30 minutes** for an acknowledgement before the next level is paged.
 
 :::steps
-1. Go to **On-Call Duty** > **On-Call Policies** and click **Create On-Call Policy**.
+1. Go to **On-Call** > **On-Call Policies** and click **Create On-Call Policy**.
 2. Enter a **Name**.
 3. Under **Who gets paged first?**, click **Add responder** and pick the on-call schedules, teams and people to page first.
 4. Click **Create On-Call Policy**. The new policy then opens on its **Escalation Rules** page, where you can add more levels.
@@ -89,7 +92,7 @@ The summary at the top of the **Escalation Rules** page shows the whole ladder: 
 
 ### How each person is reached
 
-Each person a level pages is reached the way their own on-call rules say: **User Settings** > **On-Call Rules**, with a tab for incidents, incident episodes, alerts and alert episodes, and a card per severity listing which notification method is tried and after how long. A project admin can see and change a member's rules under **Users** > the member > **On-Call Rules**. See [Personal On-Call Rules](/docs/notifications/on-call-rules).
+Each person a level pages is reached the way they set it up in How to Reach Me: **User Settings** > **How to Reach Me**, with a tab for incidents, incident episodes, alerts and alert episodes, and a card per severity listing which notification method is tried and after how long. A project admin can see and change a member's rules under **Users** > the member > **How to Reach Me**. See [How to Reach Me](/docs/notifications/on-call-rules).
 
 ```mermaid title="Who a level pages, and how each person is reached"
 flowchart TB
@@ -102,7 +105,7 @@ flowchart TB
     schedule -->|"whoever is on call"| person["Person paged"]
     team -->|"every member"| person
     user -->|directly| person
-    person --> rules["Their On-Call Rules"]
+    person --> rules["Their How to Reach Me"]
     rules --> methods["Their notification methods"]
 ```
 
@@ -166,14 +169,14 @@ The project's owners are emailed about it once, until the balance is topped up o
 
 A page that could not reach OneUptime's notification service says `Could not reach the Notification service to send this (ECONNREFUSED).`, with the network error's code in the brackets. A page whose send never finished, for example because a server restarted while sending it, says `Sending did not finish within 15 minutes, so this notification may not have been sent.` If the send finishes after all, its result replaces that message.
 
-On OneUptime Cloud each SMS, call, WhatsApp and Telegram message is paid from the project's balance on **Project Settings > Notifications > Notification Settings**: its exact cost comes off the balance when the provider takes it, however many messages go out at once.
+On OneUptime Cloud each SMS, call, WhatsApp and Telegram message is paid from the project's balance on **Project Settings > Notifications > Notification Channels**: its exact cost comes off the balance when the provider takes it, however many messages go out at once.
 
 - With **Auto Recharge** on there, the message that finds the balance below its threshold adds the amount Auto Recharge is set to first, charging the project's card; messages that find it low at the same moment charge the card once.
-- If that charge fails (there is no payment method, or the card was declined), Auto Recharge tries the card again an hour later, and **Notification Settings** says so at the top until then. Adding balance by hand, or saving Auto Recharge again, tries at once.
+- If that charge fails (there is no payment method, or the card was declined), Auto Recharge tries the card again an hour later, and **Notification Channels** says so at the top until then. Adding balance by hand, or saving Auto Recharge again, tries at once.
 - Pages keep going out on the balance that is left while Auto Recharge cannot charge the card.
 
 > [!IMPORTANT]
-> SMS, phone calls, WhatsApp and Telegram start off in a new project: on OneUptime Cloud every message is paid from the project's balance, and a self-hosted installation needs a Twilio account, an SMS and call gateway or a Telegram bot set up first. Until a channel is on, nobody in the project can add a method on it. Only a project owner, a **Billing Admin** or someone with the **Manage Billing** permission can turn one on, in the **Notification Channels** card on **Project Settings > Notifications > Notification Settings** — a project admin cannot. Everyone else is told exactly who can, wherever a channel is off: above their own list of methods on it, on their setup checklist, and in the message they get when something needs it.
+> SMS, phone calls, WhatsApp and Telegram start off in a new project: on OneUptime Cloud every message is paid from the project's balance, and a self-hosted installation needs a Twilio account, an SMS and call gateway or a Telegram bot set up first. Until a channel is on, nobody in the project can add a method on it. Only a project owner, a **Billing Admin** or someone with the **Manage Billing** permission can turn one on, in the **Notification Channels** card on **Project Settings > Notifications > Notification Channels** — a project admin cannot. Everyone else is told exactly who can, wherever a channel is off: above their own list of methods on it, on their setup checklist, and in the message they get when something needs it.
 
 ## Escalating to the next person in the rotation
 

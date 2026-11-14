@@ -1,0 +1,557 @@
+{
+  "home-goal-website": {
+    "text": [
+      "您想先做什么？",
+      "在我的网站或 API 宕机时知道",
+      "出现故障时呼叫合适的人",
+      "用状态页面告知我的客户",
+      "查看我的日志、指标和追踪",
+      "监控我的服务器、Kubernetes 或云",
+      "我正在从其他工具迁移",
+      "只是随便看看",
+      "跳过",
+      "继续",
+      "checkbox: on",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off"
+    ],
+    "outline": [
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "button: 跳过",
+      "button: 继续"
+    ],
+    "width": 902,
+    "height": 366
+  },
+  "home-goal-paging": {
+    "text": [
+      "您想先做什么？",
+      "在我的网站或 API 宕机时知道",
+      "出现故障时呼叫合适的人",
+      "用状态页面告知我的客户",
+      "查看我的日志、指标和追踪",
+      "监控我的服务器、Kubernetes 或云",
+      "我正在从其他工具迁移",
+      "只是随便看看",
+      "跳过",
+      "继续",
+      "checkbox: off",
+      "checkbox: on",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off"
+    ],
+    "outline": [
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "button: 跳过",
+      "button: 继续"
+    ],
+    "width": 902,
+    "height": 366
+  },
+  "home-goal-status-page": {
+    "text": [
+      "您想先做什么？",
+      "在我的网站或 API 宕机时知道",
+      "出现故障时呼叫合适的人",
+      "用状态页面告知我的客户",
+      "查看我的日志、指标和追踪",
+      "监控我的服务器、Kubernetes 或云",
+      "我正在从其他工具迁移",
+      "只是随便看看",
+      "跳过",
+      "继续",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: on",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off"
+    ],
+    "outline": [
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "button: 跳过",
+      "button: 继续"
+    ],
+    "width": 902,
+    "height": 366
+  },
+  "home-goals-three": {
+    "text": [
+      "您想先做什么？",
+      "在我的网站或 API 宕机时知道",
+      "出现故障时呼叫合适的人",
+      "用状态页面告知我的客户",
+      "查看我的日志、指标和追踪",
+      "监控我的服务器、Kubernetes 或云",
+      "我正在从其他工具迁移",
+      "只是随便看看",
+      "跳过",
+      "继续",
+      "checkbox: on",
+      "checkbox: on",
+      "checkbox: on",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off"
+    ],
+    "outline": [
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "button: 跳过",
+      "button: 继续"
+    ],
+    "width": 902,
+    "height": 366
+  },
+  "website-down-address": {
+    "text": [
+      "1",
+      "我们要检查什么？",
+      "OneUptime 每 5 分钟从多个位置检查一次。如果没有响应，或响应出错，就会创建事件。",
+      "网站或 API 地址",
+      "这是一个 API 端点",
+      "开始检查",
+      "更多监视器类型",
+      "value: https://acme-commerce.example",
+      "checkbox: off"
+    ],
+    "outline": [
+      "field text: https://example.com",
+      "field checkbox: ",
+      "button: 开始检查",
+      "link: 更多监视器类型"
+    ],
+    "width": 768,
+    "height": 278
+  },
+  "website-down-who": {
+    "text": [
+      "2",
+      "要通知谁？",
+      "宕机时，OneUptime 会创建事件，并按这些人各自的“如何联系我”呼叫他们。首先收到电子邮件的是你。",
+      "呼叫对象",
+      "添加团队成员",
+      "AL",
+      "Ada Lovelace",
+      "这会创建值班策略“Default on-call policy”，在此项目中每出现一个新事件和警报，都会呼叫他们。",
+      "保存并继续"
+    ],
+    "outline": [
+      "button: 添加团队成员",
+      "button: 移除 Ada Lovelace",
+      "button: 保存并继续"
+    ],
+    "width": 768,
+    "height": 262
+  },
+  "website-down-test": {
+    "text": [
+      "3",
+      "发送测试",
+      "现在给自己发送一条测试呼叫。它的发送方式与真实呼叫相同，每条消息都标有 TEST。在消息中确认即可完成。",
+      "给我发送测试呼叫",
+      "跳过测试"
+    ],
+    "outline": [
+      "button: 给我发送测试呼叫",
+      "button: 跳过测试"
+    ],
+    "width": 768,
+    "height": 178
+  },
+  "website-down-summary": {
+    "text": [
+      "acme-commerce.example 已设置完成",
+      "检查时间",
+      "每 5 分钟，来自 2 个位置。",
+      "宕机时",
+      "如果没有响应，或响应出错，OneUptime 会创建一个事件（Critical Incident）。",
+      "会通知谁",
+      "值班策略“Default on-call policy”会在每个新事件和警报出现时呼叫 Ada Lovelace。 你是此监视器的所有者，所以它状态变化时你会收到电子邮件。",
+      "已测试",
+      "Ada Lovelace 在 14 秒 后通过电子邮件确认。",
+      "下一步",
+      "在状态页上显示",
+      "通过 SMS 或电话接收呼叫",
+      "打开监控器",
+      "检查其他地址"
+    ],
+    "outline": [
+      "heading: acme-commerce.example 已设置完成",
+      "heading: 下一步",
+      "link: 在状态页上显示",
+      "link: 通过 SMS 或电话接收呼叫",
+      "link: 打开监控器",
+      "button: 检查其他地址"
+    ],
+    "width": 768,
+    "height": 471
+  },
+  "paging-reach-you": {
+    "text": [
+      "1",
+      "我们该如何联系你？",
+      "呼叫会发送到你验证过的每种方式。添加你的电话，即可接收短信和电话。",
+      "电子邮件",
+      "电子邮件 · •••mple",
+      "短信和电话",
+      "还没有电话号码。",
+      "此项目已关闭 SMS，因此使用它的呼叫不会发送。",
+      "此项目已关闭 电话，因此使用它的呼叫不会发送。",
+      "短信和电话费用从此项目的余额中扣除，当前余额为 0.00 USD。添加号码会发送一条短信，因此余额必须高于 1.00 USD。",
+      "充值余额",
+      "开启短信和电话",
+      "移动应用或浏览器",
+      "未设置。",
+      "在你的通知方式中获取 OneUptime 应用，或在此浏览器中开启通知。",
+      "设置应用或此浏览器",
+      "继续",
+      "重新检查"
+    ],
+    "outline": [
+      "button: 充值余额",
+      "button: 开启短信和电话",
+      "link: 设置应用或此浏览器",
+      "button: 继续",
+      "button: 重新检查"
+    ],
+    "width": 768,
+    "height": 552
+  },
+  "paging-phone": {
+    "text": [
+      "1",
+      "我们该如何联系你？",
+      "呼叫会发送到你验证过的每种方式。添加你的电话，即可接收短信和电话。",
+      "电子邮件",
+      "电子邮件 · •••mple",
+      "短信和电话",
+      "还没有电话号码。",
+      "短信和电话费用从此项目的余额中扣除，当前余额为 20.00 USD。添加号码会发送一条短信，因此余额必须高于 1.00 USD。",
+      "你的电话号码",
+      "通过短信发送验证码",
+      "移动应用或浏览器",
+      "未设置。",
+      "在你的通知方式中获取 OneUptime 应用，或在此浏览器中开启通知。",
+      "设置应用或此浏览器",
+      "继续",
+      "重新检查",
+      "placeholder: +15551234567"
+    ],
+    "outline": [
+      "field text: +15551234567",
+      "button: 通过短信发送验证码",
+      "link: 设置应用或此浏览器",
+      "button: 继续",
+      "button: 重新检查"
+    ],
+    "width": 768,
+    "height": 524
+  },
+  "paging-who-else": {
+    "text": [
+      "2",
+      "还有谁值班？",
+      "这会创建值班策略“Default on-call policy”。在此项目中每出现一个新事件和警报，它都会先呼叫这些人。",
+      "首先呼叫",
+      "添加团队成员",
+      "AL",
+      "Ada Lovelace",
+      "保存并继续"
+    ],
+    "outline": [
+      "button: 添加团队成员",
+      "button: 移除 Ada Lovelace",
+      "button: 保存并继续"
+    ],
+    "width": 768,
+    "height": 226
+  },
+  "paging-no-answer": {
+    "text": [
+      "3",
+      "如果无人响应怎么办？",
+      "呼叫会等待有人确认。如果没有人及时确认：",
+      "呼叫其他人",
+      "再次呼叫同一批人",
+      "不再执行任何操作",
+      "等待分钟数",
+      "接着呼叫",
+      "添加团队成员",
+      "GH",
+      "Grace Hopper",
+      "保存并继续",
+      "radio: on",
+      "radio: off",
+      "radio: off",
+      "value: 30"
+    ],
+    "outline": [
+      "field radio: ",
+      "field radio: ",
+      "field radio: ",
+      "field number: ",
+      "button: 添加团队成员",
+      "button: 移除 Grace Hopper",
+      "button: 保存并继续"
+    ],
+    "width": 768,
+    "height": 510
+  },
+  "paging-test": {
+    "text": [
+      "4",
+      "发送测试呼叫",
+      "立即测试该策略：它会像真实事件一样呼叫第一条升级规则，每条消息都标有 TEST。在消息中确认即可完成。",
+      "测试此策略",
+      "跳过测试"
+    ],
+    "outline": [
+      "button: 测试此策略",
+      "button: 跳过测试"
+    ],
+    "width": 768,
+    "height": 178
+  },
+  "paging-summary": {
+    "text": [
+      "呼叫已设置",
+      "呼叫对象",
+      "每个新事件或警报都会运行“Default on-call policy”，它会呼叫 Ada Lovelace (电子邮件, SMS, 电话)。",
+      "如果无人响应",
+      "如果 30 分钟内无人确认，将呼叫 Grace Hopper。",
+      "已测试",
+      "Ada Lovelace 在 14 秒 后通过电子邮件确认。",
+      "下一步",
+      "使用值班排班轮流值班",
+      "连接 Slack 或 Microsoft Teams",
+      "不太紧急的事件只在工作时间呼叫",
+      "查看谁可以被呼叫",
+      "打开值班策略",
+      "设置另一个策略"
+    ],
+    "outline": [
+      "heading: 呼叫已设置",
+      "heading: 下一步",
+      "link: 使用值班排班轮流值班",
+      "link: 连接 Slack 或 Microsoft Teams",
+      "link: 不太紧急的事件只在工作时间呼叫",
+      "link: 查看谁可以被呼叫",
+      "link: 打开值班策略",
+      "button: 设置另一个策略"
+    ],
+    "width": 768,
+    "height": 482
+  },
+  "status-page-pick": {
+    "text": [
+      "1",
+      "命名并选择要显示的内容",
+      "状态页名称",
+      "显示的内容",
+      "您选择的每个监视器都会连同其当前状态和可用性显示在页面上。",
+      "全选",
+      "清除",
+      "已选择 1 / 1",
+      "Acme website",
+      "Operational",
+      "页面创建后即公开：任何拥有链接的人都能看到您所选监视器的状态。",
+      "创建状态页",
+      "value: Acme Commerce 状态",
+      "checkbox: on"
+    ],
+    "outline": [
+      "field text: Acme 状态",
+      "button: 全选",
+      "button: 清除",
+      "field checkbox: ",
+      "button: 创建状态页"
+    ],
+    "width": 768,
+    "height": 388
+  },
+  "status-page-review": {
+    "text": [
+      "2",
+      "这是客户看到的内容",
+      "您的状态页已通过此链接上线。以下是它显示的内容以及会出现在其中的内容。",
+      "Acme Commerce 状态",
+      "它显示",
+      "Acme website",
+      "Operational",
+      "公开链接",
+      "https://oneuptime.acme-commerce.example/status-page/90000000-0000-4000-8000-000000000020",
+      "这些监视器中任何一个出现事件时，会自动显示在这里，并向订阅者发送电子邮件。",
+      "警报永远不会显示在这里。它们是给您的团队看的。",
+      "计划维护和公告在您发布后才会显示。",
+      "看起来不错"
+    ],
+    "outline": [
+      "link: https://oneuptime.acme-commerce.example/status-page/90000000-0000-4000-8000-0000",
+      "button: 看起来不错"
+    ],
+    "width": 768,
+    "height": 466
+  },
+  "status-page-summary": {
+    "text": [
+      "“Acme Commerce 状态”已上线",
+      "地址",
+      "https://oneuptime.acme-commerce.example/status-page/90000000-0000-4000-8000-000000000020",
+      "显示内容",
+      "Acme website",
+      "自动显示",
+      "这些监视器中任何一个出现事件时，会自动显示在这里，并向订阅者发送电子邮件。",
+      "警报永远不会显示在这里。它们是给您的团队看的。",
+      "计划维护和公告在您发布后才会显示。",
+      "打造专属风格（可选）",
+      "您自己的域名 在 status.example.com 这样的地址提供该页面。",
+      "您的徽标和颜色 让页面看起来像您的产品。",
+      "谁可以订阅 通过电子邮件、SMS、Slack、Microsoft Teams 或 Webhook。",
+      "私有而非公开 只有您邀请的人或登录的人才能看到该页面。",
+      "后续步骤",
+      "发布第一条公告",
+      "安排维护",
+      "将状态添加到您的网站",
+      "打开此状态页的设置",
+      "设置另一个状态页"
+    ],
+    "outline": [
+      "heading: “Acme Commerce 状态”已上线",
+      "link: https://oneuptime.acme-commerce.example/status-page/90000000-0000-4000-8000-0000",
+      "heading: 打造专属风格（可选）",
+      "link: 您自己的域名",
+      "link: 您的徽标和颜色",
+      "link: 谁可以订阅",
+      "link: 私有而非公开",
+      "heading: 后续步骤",
+      "link: 发布第一条公告",
+      "link: 安排维护",
+      "link: 将状态添加到您的网站",
+      "link: 打开此状态页的设置",
+      "button: 设置另一个状态页"
+    ],
+    "width": 768,
+    "height": 682
+  },
+  "incident-feed": {
+    "text": [
+      "事件信息流",
+      "此事件发生过的一切：状态变化、备注、所有者以及发送的每条通知。",
+      "操作",
+      "2026年9月14日星期一",
+      "今天",
+      "BST",
+      "19:12",
+      "8分钟前",
+      "Maya Chen",
+      "changed Incident #1042 State to Resolved",
+      "19:09",
+      "11分钟前",
+      "Maya Chen",
+      "Private note: Rolling checkout-api back to 2026.09.14-1 to restore DB_POOL_MAX=40. Watching p95 on the checkout dashboard.",
+      "19:05",
+      "15分钟前",
+      "Maya Chen",
+      "took the Incident Commander role on Incident #1042.",
+      "19:04",
+      "16分钟前",
+      "Sam Rivera",
+      "changed Incident #1042 State to Acknowledged",
+      "19:01",
+      "19分钟前",
+      "On Call Policy Started Executing: On Call Policy Checkout primary on-call started executing for Incident #1042. Users on call on this policy will now be notified.",
+      "Incident #1042 Created:",
+      "Checkout API p95 latency above 2s:",
+      "The API monitor for POST /api/checkout reported p95 latency of 2.4s for 3 consecutive checks from the eu-west-1 probe.",
+      "🔴 Incident State: Created",
+      "⚠️ Severity: SEV-2",
+      "🌎 Resources Affected:",
+      "Checkout API p95 latency",
+      "Orders DB connection pool"
+    ],
+    "outline": [
+      "heading: 事件信息流",
+      "button: 操作",
+      "button: 更多选项",
+      "heading: 2026年9月14日星期一",
+      "link: Incident #1042",
+      "link: Incident #1042",
+      "link: Incident #1042",
+      "link: Incident #1042",
+      "heading: Incident #1042 Created:",
+      "link: Checkout API p95 latency",
+      "link: Orders DB connection pool"
+    ],
+    "width": 576,
+    "height": 927
+  },
+  "incident-resolve": {
+    "text": [
+      "#1042",
+      "已确认",
+      "SEV-2",
+      "Checkout API p95 latency above 2s",
+      "解决",
+      "已创建",
+      "已确认",
+      "已解决",
+      "已持续",
+      "19分钟",
+      "事件指挥官",
+      "MC",
+      "Maya Chen",
+      "所有者",
+      "CS",
+      "Checkout SRE",
+      "SR",
+      "Sam Rivera",
+      "添加",
+      "添加所有者",
+      "监视器",
+      "Checkout API p95 latency",
+      "Orders DB connection pool"
+    ],
+    "outline": [
+      "heading: Checkout API p95 latency above 2s",
+      "button: 解决",
+      "button: 添加 添加所有者",
+      "link: Checkout API p95 latency",
+      "link: Orders DB connection pool"
+    ],
+    "width": 876,
+    "height": 299
+  }
+}

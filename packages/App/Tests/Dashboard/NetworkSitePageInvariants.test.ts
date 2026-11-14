@@ -72,7 +72,15 @@ describe("NetworkSite View page selects every column it renders", () => {
   test("the Coordinates row still reads both columns", () => {
     // If this stops being true, the select above is no longer needed.
     expect(source).toContain("item.longitude === undefined");
-    expect(source).toContain(squash("{item.latitude}, {item.longitude}"));
+    /*
+     * Drawn as one left-to-right isolate (SiteCoordinates, #7099), so the
+     * minus sign keeps its place on an Arabic or Persian page.
+     */
+    expect(source).toContain(
+      squash(
+        "<SiteCoordinates latitude={item.latitude} longitude={item.longitude} />",
+      ),
+    );
   });
 });
 

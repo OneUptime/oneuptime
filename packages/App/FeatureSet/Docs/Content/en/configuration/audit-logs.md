@@ -87,9 +87,10 @@ Everything people create, change or delete in a project is recorded: monitors, i
 | What agents and telemetry report | Discovered resources, readings and usage change with every report, not because anybody changed them. |
 | Activity feeds | A feed lists changes the audit log already records. |
 | OneUptime's working state | Status page readers' sessions, queued jobs and other state OneUptime keeps while it works. |
-| A person's own notification setup | Each person's addresses, numbers and personal on-call rules are theirs alone. |
+| A person's own notification setup | Each person's addresses, numbers and How to Reach Me are theirs alone. |
+| A person's own preferences | The products each person pins to their own top bar are theirs alone, and only they see them. |
 
-An administrator adding or removing a notification method or a personal on-call rule on someone else's account is recorded too, without the address or number itself.
+An administrator adding or removing a notification method or a rule in How to Reach Me on someone else's account is recorded too, without the address or number itself.
 
 Fields only OneUptime writes, such as when a host was last seen, are left out of every entry, and so are fields nobody may read. When OneUptime writes one because someone asked it to, such as merging an exception into another or resetting a webhook URL, the entry records it as their change. Keys, tokens and passwords are recorded as `[REDACTED]`: the entry shows they changed, never their value. A workflow's steps are recorded as what changed, naming a step's settings but never what was typed into them, and moving a step on the canvas is not recorded.
 

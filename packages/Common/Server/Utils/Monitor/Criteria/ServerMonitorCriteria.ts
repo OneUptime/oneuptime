@@ -138,7 +138,7 @@ export default class ServerMonitorCriteria {
       ).receivingMinutes;
     }
 
-    logger.debug("Server Monitor Criteria Filter");
+    logger.debug("Server monitor criteria filter");
     logger.debug(`Monitor ID: ${input.dataToProcess.monitorId}`);
     logger.debug(`Check On: ${input.criteriaFilter.checkOn}`);
     logger.debug(`Difference in Minutes: ${differenceInMinutes}`);

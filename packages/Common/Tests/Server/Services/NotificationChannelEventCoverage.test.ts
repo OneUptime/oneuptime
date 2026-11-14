@@ -29,8 +29,11 @@ import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentEpisode from "../../../Models/DatabaseModels/IncidentEpisode";
 import UserNotificationRule from "../../../Models/DatabaseModels/UserNotificationRule";
 import UserOnCallLogTimeline from "../../../Models/DatabaseModels/UserOnCallLogTimeline";
+import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
+import HTTPResponse from "../../../Types/API/HTTPResponse";
 import URL from "../../../Types/API/URL";
 import Email from "../../../Types/Email";
+import { JSONObject } from "../../../Types/JSON";
 import Phone from "../../../Types/Phone";
 import ObjectID from "../../../Types/ObjectID";
 import BadDataException from "../../../Types/Exception/BadDataException";
@@ -2408,6 +2411,239 @@ describe("UserNotificationRuleService channel x event coverage", () => {
             );
           }),
         ).toBe(true);
+      },
+    );
+  });
+
+  /*
+   * Issue #7083: a request the Notification service answered with an error
+   * does not throw - API.post hands the answer back - so no .catch heard
+   * of it, and the row said Sending until the stuck check. Each request's
+   * answer is read where it is sent, on every channel, for every event.
+   */
+  describe("a request the Notification service answered with an error says so on the row it created", () => {
+    // Sent in this process: nothing answers, so nothing is read.
+    const IN_PROCESS_CHANNEL_NAMES: Array<string> = [
+      "Slack",
+      "Microsoft Teams",
+      "Mattermost",
+      "Push",
+    ];
+
+    interface ErrorAnswer {
+      answer: () => HTTPErrorResponse;
+      says: string;
+    }
+
+    const ERROR_ANSWERS: Record<string, ErrorAnswer> = {
+      "a refusal": {
+        answer: (): HTTPErrorResponse => {
+          return new HTTPErrorResponse(
+            400,
+            { message: "Phone number is not valid." },
+            {},
+          );
+        },
+        says: "The Notification service refused to send this (HTTP 400): Phone number is not valid.",
+      },
+      "a server error": {
+        answer: (): HTTPErrorResponse => {
+          return new HTTPErrorResponse(500, { message: "Server Error" }, {});
+        },
+        says: "The Notification service answered with an error (HTTP 500), so this may not have been sent: Server Error.",
+      },
+      "a proxy's error page": {
+        answer: (): HTTPErrorResponse => {
+          return new HTTPErrorResponse(
+            502,
+            "<html><body><h1>502 Bad Gateway</h1></body></html>" as unknown as JSONObject,
+            {},
+          );
+        },
+        says: "The Notification service answered with an error (HTTP 502), so this may not have been sent.",
+      },
+    };
+
+    const ANSWER_GRID: Array<[string, string, string]> = [];
+
+    for (const [channelName, eventName] of FULL_MATRIX) {
+      for (const answerName of Object.keys(ERROR_ANSWERS)) {
+        ANSWER_GRID.push([channelName, eventName, answerName]);
+      }
+    }
+
+    let timeline: OnCallTimelineRows;
+
+    function row(): StoredOnCallNotification {
+      return timeline.get(TIMELINE_ID)!;
+    }
+
+    async function settle(): Promise<void> {
+      for (let i: number = 0; i < 5; i++) {
+        await new Promise<void>((resolve: () => void) => {
+          setTimeout(resolve, 0);
+        });
+      }
+    }
+
+    async function answerCell(
+      channelName: string,
+      eventName: string,
+      answer: unknown,
+    ): Promise<void> {
+      const channel: ChannelSpec = channelSpec(channelName);
+
+      channel.sender().mockResolvedValue(answer as never);
+
+      await deliverCell(channel, eventSpec(eventName));
+      await settle();
+
+      expect(channel.sender()).toHaveBeenCalledTimes(1);
+      expect(spies.timelineUpdate).not.toHaveBeenCalled();
+    }
+
+    beforeEach(() => {
+      timeline = new OnCallTimelineRows();
+      timeline.add(TIMELINE_ID, UserNotificationStatus.Sending, {
+        statusMessage: "Sending.",
+      });
+      timeline.standIn(UserOnCallLogTimelineService);
+    });
+
+    test("the channels sent in this process are the ones the grid leaves out", () => {
+      expect(
+        CHANNEL_NAMES.filter((channelName: string) => {
+          const sender: jest.SpyInstance = channelSpec(channelName).sender();
+
+          return sender === spies.push || sender === spies.workspace;
+        }),
+      ).toEqual(IN_PROCESS_CHANNEL_NAMES);
+    });
+
+    test.each<[string, string, string]>(ANSWER_GRID)(
+      "%s for %s, %s",
+      async (
+        channelName: string,
+        eventName: string,
+        answerName: string,
+      ): Promise<void> => {
+        const errorAnswer: ErrorAnswer = ERROR_ANSWERS[answerName]!;
+
+        await answerCell(channelName, eventName, errorAnswer.answer());
+
+        if (IN_PROCESS_CHANNEL_NAMES.includes(channelName)) {
+          // Its sender writes its own result: what it resolves is not read.
+          expect(row()).toMatchObject({
+            status: UserNotificationStatus.Sending,
+            statusMessage: "Sending.",
+            version: 1,
+          });
+          expect(timeline.writes).toEqual([]);
+          return;
+        }
+
+        expect(row()).toMatchObject({
+          status: UserNotificationStatus.Error,
+          statusMessage: errorAnswer.says,
+        });
+        expect(timeline.writes).toEqual([
+          {
+            id: TIMELINE_ID.toString(),
+            data: {
+              status: UserNotificationStatus.Error,
+              statusMessage: errorAnswer.says,
+            },
+          },
+        ]);
+        expect(UserOnCallLogTimelineService.updateOneBy).toHaveBeenCalledWith({
+          query: {
+            _id: TIMELINE_ID.toString(),
+            status: UserNotificationStatus.Sending,
+            version: 1,
+          },
+          data: {
+            status: UserNotificationStatus.Error,
+            statusMessage: errorAnswer.says,
+          },
+          props: { isRoot: true },
+        });
+      },
+    );
+
+    test.each<[string, string]>(FULL_MATRIX)(
+      "%s for %s, a success answer: the row is left for the service's own result",
+      async (channelName: string, eventName: string): Promise<void> => {
+        await answerCell(
+          channelName,
+          eventName,
+          new HTTPResponse<JSONObject>(200, {}, {}),
+        );
+
+        expect(row()).toMatchObject({
+          status: UserNotificationStatus.Sending,
+          version: 1,
+        });
+        expect(timeline.writes).toEqual([]);
+      },
+    );
+
+    test.each<[string, string]>(FULL_MATRIX)(
+      "%s for %s: a row the service already wrote - Sent - stays, whatever it answered after",
+      async (channelName: string, eventName: string): Promise<void> => {
+        row().status = UserNotificationStatus.Sent;
+        row().statusMessage = "Message sent.";
+
+        await answerCell(
+          channelName,
+          eventName,
+          ERROR_ANSWERS["a server error"]!.answer(),
+        );
+
+        expect(row()).toMatchObject({
+          status: UserNotificationStatus.Sent,
+          statusMessage: "Message sent.",
+          version: 1,
+        });
+        expect(timeline.writes).toEqual([]);
+      },
+    );
+
+    // The requests to the Notification service, whose answer is read.
+    const REQUEST_MATRIX: Array<[string, string]> = FULL_MATRIX.filter(
+      ([channelName]: [string, string]) => {
+        return !IN_PROCESS_CHANNEL_NAMES.includes(channelName);
+      },
+    );
+
+    test("every request to the Notification service is in the requests' grid, for every event", () => {
+      expect(REQUEST_MATRIX).toHaveLength(
+        (CHANNEL_NAMES.length - IN_PROCESS_CHANNEL_NAMES.length) *
+          EVENT_NAMES.length,
+      );
+    });
+
+    test.each<[string, string]>(REQUEST_MATRIX)(
+      "%s for %s: the person acknowledging between the read and the write stays - read again, and left",
+      async (channelName: string, eventName: string): Promise<void> => {
+        timeline.whenRead((stored: StoredOnCallNotification) => {
+          stored.status = UserNotificationStatus.Acknowledged;
+          stored.statusMessage = "Acknowledged by email.";
+        });
+
+        await answerCell(
+          channelName,
+          eventName,
+          ERROR_ANSWERS["a refusal"]!.answer(),
+        );
+
+        expect(row()).toMatchObject({
+          status: UserNotificationStatus.Acknowledged,
+          statusMessage: "Acknowledged by email.",
+        });
+        expect(timeline.writes).toEqual([]);
+        expect(UserOnCallLogTimelineService.findOneById).toHaveBeenCalledTimes(
+          2,
+        );
       },
     );
   });

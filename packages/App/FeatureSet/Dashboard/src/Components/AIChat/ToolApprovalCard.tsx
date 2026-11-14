@@ -3,6 +3,7 @@ import {
   AIChatToolAction,
   AIChatToolActionStatus,
 } from "Common/Types/AI/AIChatTypes";
+import { isAISetupAction } from "Common/Types/AI/AISetupActions";
 import { JSONObject } from "Common/Types/JSON";
 import IconProp from "Common/Types/Icon/IconProp";
 import { createTranslator } from "Common/Types/Translator";
@@ -63,6 +64,23 @@ export function argsPreview(
       return `${part.label}: ${part.value}`;
     })
     .join(ARGUMENT_SEPARATOR);
+}
+
+// The line a setup plan's card ends with (#6829).
+export const SETUP_PLAN_END: string = translationKey("Nothing else changes.");
+
+/*
+ * Whether the actions waiting are a setup plan (#6829): every one of them a
+ * setup action - a monitor, who is paged, a status page - so the card can
+ * say nothing else changes. A plan mixed with any other action is not.
+ */
+export function isSetupPlan(pending: ReadonlyArray<AIChatToolAction>): boolean {
+  return (
+    pending.length > 0 &&
+    pending.every((action: AIChatToolAction): boolean => {
+      return isAISetupAction(action.toolName);
+    })
+  );
 }
 
 const statusChipTone: { [key in AIChatToolActionStatus]: string } = {
@@ -440,6 +458,20 @@ const ToolApprovalCard: FunctionComponent<ComponentProps> = (
               );
             })}
           </div>
+
+          {/*
+           * A setup plan (#6829): every part is a line above, and nothing
+           * else is made - said once, under the last part, so the person
+           * approves what is listed and only that.
+           */}
+          {isSetupPlan(pending) && (
+            <p
+              data-testid="tool-approval-setup-plan-end"
+              className="mt-2 text-[11px] leading-relaxed text-amber-800"
+            >
+              {translator.translateText(SETUP_PLAN_END)}
+            </p>
+          )}
 
           {props.interactive && (
             <div className="mt-3 flex items-center gap-2">

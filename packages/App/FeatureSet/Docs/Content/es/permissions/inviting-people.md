@@ -52,6 +52,8 @@ Escriba su dirección en **Correo electrónico**. Si ninguna cuenta de OneUptime
 ### Enviar la invitación
 
 Haga clic en **Invitar**. OneUptime envía la invitación por correo y abre la página de la persona. Aparece como **Invitación enviada** hasta que acepta.
+
+En un servidor autoalojado que aún no puede enviar correos electrónicos, no sale ningún correo y la persona aparece como **Invitado**. Un administrador maestro ve primero **Envíale su enlace de invitación**: copie el enlace, envíeselo usted mismo y luego haga clic en **Hecho**. Cualquier otra persona pide al administrador del servidor que [configure el correo](/docs/emails/smtp#abrir-el-formulario).
 :::
 
 > [!TIP]
@@ -84,7 +86,7 @@ Filtre la lista por **Usuario**, **Estado** o **Equipo**. Haga clic en una fila 
 | --- | --- |
 | **Perfil** | Su nombre, su dirección de correo, su foto y su ID de usuario. |
 | **Equipos** | Los equipos de los que forma parte. Añada o quite un equipo aquí. |
-| **Preparación**, **Métodos de notificación**, **Reglas de guardia** | Si se le puede avisar de una guardia, y cómo. Lo ven los Project Owners, los Project Admins, la propia persona y quien pueda leer las reglas de notificación de los demás. Consulte [Preparación e informes](/docs/on-call/readiness). |
+| **Preparación**, **Métodos de notificación**, **Cómo contactarme** | Si se le puede avisar de una guardia, y cómo. Lo ven los Project Owners, los Project Admins, la propia persona y quien pueda leer las reglas de notificación de los demás. Consulte [Preparación e informes](/docs/on-call/readiness). |
 | **Campos personalizados** | Los campos personalizados del proyecto para personas, si los tiene. |
 | **Eliminar del proyecto** | Sacarla del proyecto. |
 
@@ -134,6 +136,8 @@ A una dirección se le pueden enviar 10 invitaciones por hora, a proyectos y pá
 
 :::details El correo de invitación no llegó, o su enlace caducó
 La invitación no depende del correo. Pídale que se registre con la dirección invitada: OneUptime envía a esa dirección un enlace nuevo para terminar de crear la cuenta. Quien ya tiene una cuenta inicia sesión y encuentra la invitación esperándole.
+
+En un servidor autoalojado que aún no puede enviar correos electrónicos, registrarse tampoco puede enviarle un enlace nuevo por correo: en su lugar, le indica que pida su enlace de invitación. Cuando el administrador del servidor haya [configurado el correo](/docs/emails/smtp#abrir-el-formulario), registrarse funciona como se describe arriba. Hasta entonces, un administrador maestro puede quitar a la persona del proyecto, volver a invitarla y enviarle el nuevo enlace de invitación, que funciona una vez, solo para esa dirección, durante 7 días.
 :::
 
 :::details Invitar usuario dice que los usuarios se gestionan con SCIM Push Groups

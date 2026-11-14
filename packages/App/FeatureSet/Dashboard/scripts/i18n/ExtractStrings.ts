@@ -174,8 +174,27 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     directory: "packages/Common/Types/Monitor/MonitorCriteriaInstance.ts",
     kind: "keys",
   },
+  /*
+   * A monitor template's Template sync settings (#7546): the name of each
+   * field a linked monitor can keep its own value for, and what it keeps
+   * together, as the card and its summary line say them. Only the words the
+   * file marks are read: each field's path is stored in a template's
+   * doNotSyncFields as written.
+   */
+  {
+    directory: "packages/Common/Types/Monitor/MonitorTemplateSyncField.ts",
+    kind: "keys",
+  },
   // A cron schedule in words: the monitor's interval, a workflow's schedule.
   { directory: "packages/Common/Utils/CronScheduleText.ts", kind: "ui" },
+  /*
+   * What each Setup health finding says (#6812): the server sends its
+   * template, and the page says it in the reader's language.
+   */
+  {
+    directory: "packages/Common/Types/SetupHealth/SetupHealth.ts",
+    kind: "ui",
+  },
   /*
    * Why an email was not sent when the server has no email set up: the
    * project's Email Logs show it in the reader's language. Only the words
@@ -365,6 +384,15 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
   {
     directory:
       "packages/Common/Types/CustomDomain/CustomDomainServerReadiness.ts",
+    kind: "keys",
+  },
+  /*
+   * An error nobody explained (#6836): what happened, what to do next and
+   * where to look, which ErrorExplanation says in the reader's language.
+   * Only the words the file marks are read.
+   */
+  {
+    directory: "packages/Common/Types/Exception/UnexplainedError.ts",
     kind: "keys",
   },
   /*
@@ -645,6 +673,17 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     directory: "packages/Common/Server/Utils/Monitor/LogGroupCriteriaFanOut.ts",
     kind: "keys",
   },
+  /*
+   * The checks a table's columns call for (Data Observability's Suggested
+   * Checks, #7221): each one's name and why it is suggested, as whole
+   * sentences with the names they give as values, for the Dashboard to
+   * word in the reader's language. Only the words the file marks are read.
+   */
+  {
+    directory:
+      "packages/Common/Types/DataObservability/DataCheckSuggestions.ts",
+    kind: "keys",
+  },
 ];
 
 /*
@@ -654,11 +693,18 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
  * out of every locale file (a test in ee/ holds every frontend's locales to
  * that). BackupSetting and BackupRun are the instance's backups, which only
  * the Admin Dashboard shows, in words of its own (ee/AdminDashboard/Backups).
+ * ProductFeedback is what people told the server, which only the Admin
+ * Dashboard's Feedback page shows (#6832).
  */
 export const SKIPPED_SOURCE_FILES: ReadonlySet<string> = new Set<string>([
   "packages/Common/Models/DatabaseModels/EnterpriseLicense.ts",
   "packages/Common/Models/DatabaseModels/BackupSetting.ts",
   "packages/Common/Models/DatabaseModels/BackupRun.ts",
+  /*
+   * What people told OneUptime (#6832): only the Admin Dashboard's Feedback
+   * page reads it, in words of its own.
+   */
+  "packages/Common/Models/DatabaseModels/ProductFeedback.ts",
 ]);
 
 /*
@@ -787,9 +833,11 @@ const CODE_ELEMENTS: ReadonlySet<string> = new Set<string>([
 
 /*
  * Components whose `template` attribute is a sentence they translate:
- * <TranslatedSentence template="{{field}} is {{value}}" ... />.
+ * <TranslatedSentence template="{{field}} is {{value}}" ... />, and
+ * ErrorSentence, a TranslatedSentence with an error in it (#7307).
  */
 const TEMPLATE_COMPONENTS: ReadonlySet<string> = new Set<string>([
+  "ErrorSentence",
   "NamedSentence",
   "TranslatedSentence",
 ]);

@@ -127,8 +127,8 @@ kubectl get service --namespace <namespace>
 | 일어나는 일 | 에디션 라벨에 표시되는 것 |
 | --- | --- |
 | 마켓플레이스가 매시간의 보고를 받아들임 | 마켓플레이스를 통해 라이선스를 받은 Enterprise Edition. |
-| 72시간 동안 받아들여진 보고가 없음 | **Enterprise Edition (Marketplace Reports Failing)**: 30일 유예 기간 동안 모든 엔터프라이즈 기능이 계속 동작합니다. |
-| 마켓플레이스가 이 설치는 구독되어 있지 않다고 응답하거나, 유예 기간이 끝남 | **Enterprise Edition (Marketplace Subscription Ended)**: [라이선스가 만료될](/docs/self-hosted/enterprise#라이선스가-만료되었거나-없을-때) 때와 마찬가지로 엔터프라이즈 기능이 멈춥니다. |
+| 72시간 동안 받아들여진 보고가 없음 | **Enterprise Edition(마켓플레이스 보고 실패)**: 30일 유예 기간 동안 모든 엔터프라이즈 기능이 계속 동작합니다. |
+| 마켓플레이스가 이 설치는 구독되어 있지 않다고 응답하거나, 유예 기간이 끝남 | **Enterprise Edition(마켓플레이스 구독 종료)**: [라이선스가 만료될](/docs/self-hosted/enterprise#라이선스가-만료되었거나-없을-때) 때와 마찬가지로 엔터프라이즈 기능이 멈춥니다. |
 
 마켓플레이스가 거부하는 것은 해지되거나 일시 중지된 구독, 또는 구매한 설치가 아닌 설치입니다. 어떤 경우에도 모니터링, 알림, 인시던트, 온콜, 상태 페이지는 계속 동작하며, 아무것도 삭제되지 않습니다. 다시 구독하면 다음 보고가 받아들여지는 즉시 Enterprise Edition의 라이선스가 다시 부여되며, 다시 시작할 필요는 없습니다.
 
@@ -162,7 +162,7 @@ OneUptime은 새 릴리스가 시작될 때 데이터베이스를 마이그레�
 
 ## 문제 해결
 
-:::details 에디션 라벨에 Enterprise Edition (Marketplace Reports Failing)이 표시됩니다
+:::details 에디션 라벨에 Enterprise Edition(마켓플레이스 보고 실패)가 표시됩니다
 OneUptime이 마켓플레이스에 보고하지 못하고 있습니다. 이에 관해 OneUptime이 남기는 로그 줄은 모두 `OneUptime Enterprise marketplace billing`으로 시작하며, 사용량을 "cannot be reported"라고 하는 줄에 무엇이 빠졌는지가 나옵니다. 흔한 원인은 다음과 같습니다.
 
 - **AWS:** `oneuptime` 서비스 계정에 IAM 역할이 없거나, 역할에 `AWSMarketplaceMeteringFullAccess` 정책이 없습니다(`AWSMarketplaceMeteringRegisterUsage`만으로는 부족합니다). 역할에 정책을 연결하거나, [AWS Marketplace](#aws-marketplace)의 `eksctl` 명령으로 역할을 만든 뒤 `kubectl rollout restart deployment --namespace oneuptime`으로 OneUptime의 파드를 다시 시작하세요.
@@ -173,7 +173,7 @@ OneUptime이 마켓플레이스에 보고하지 못하고 있습니다. 이에 �
 문제를 고치는 동안 사용량은 보관되며, OneUptime이 다시 보고할 수 있게 되면 청구됩니다. 30일보다 오래된 사용량은 청구되지 않습니다.
 :::
 
-:::details 에디션 라벨에 Enterprise Edition (Marketplace Subscription Ended)가 표시됩니다
+:::details 에디션 라벨에 Enterprise Edition(마켓플레이스 구독 종료)가 표시됩니다
 마켓플레이스가 설치를 거부했습니다. 구독이 해지되었거나 일시 중지되었거나, 설치가 마켓플레이스에서 구매한 설치가 아닙니다. 마켓플레이스에서 구독을 확인하고 다시 구독하세요. 다음으로 받아들여진 보고가 Enterprise Edition의 라이선스를 다시 부여합니다. 유예 기간 내내 보고가 계속 실패했을 때도 같은 라벨이 표시됩니다.
 :::
 

@@ -1,0 +1,69 @@
+# The products every project on the server offers as it starts (#6815):
+# products.onThisServer reaches the app as SERVER_PRODUCTS. Admin Dashboard >
+# Settings > Products wins once an admin saves it; until then this is the
+# server's list. A value that never reached the container would leave a
+# server configured as code with every product on, so each value is pinned:
+# the default, a preset, and a list of product keys.
+suite: server products
+release:
+  name: oneuptime
+  namespace: oneuptime
+tests:
+  - it: starts every server with every product on
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SERVER_PRODUCTS
+            value: "everything"
+
+  - it: passes a preset through
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      products.onThisServer: monitoring-and-status-pages
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SERVER_PRODUCTS
+            value: "monitoring-and-status-pages"
+
+  - it: passes a list of product keys through as written
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      products.onThisServer: "monitors,incidents,on-call,status-pages"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SERVER_PRODUCTS
+            value: "monitors,incidents,on-call,status-pages"
+
+  - it: reaches the worker too, which serves the same API
+    templates:
+      - templates/worker.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      worker.enabled: true
+      products.onThisServer: incident-response
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SERVER_PRODUCTS
+            value: "incident-response"

@@ -1030,7 +1030,7 @@ test.describe("Traces → AI → a finding's triage", () => {
         await expect(notice).toBeVisible({ timeout: 60000 });
         await expect(notice.getByText("Triage did not finish")).toBeVisible();
         await expect(page.getByTestId("ai-triage-failure-cause")).toHaveText(
-          "The AI provider did not answer within 120 seconds.",
+          "The LLM provider did not answer within 120 seconds.",
         );
         await expect(page.getByTestId("ai-triage-failure-tries")).toHaveText(
           "OneUptime tried 3 times.",
@@ -1093,7 +1093,7 @@ test.describe("Traces → AI → a finding's triage", () => {
           "Attempt 3 of 3",
         );
         await expect(activity.getByTestId("activity-attempt-end")).toHaveText(
-          "Stopped: The AI provider did not answer within 120 seconds.",
+          "Stopped: The LLM provider did not answer within 120 seconds.",
         );
         await expect(triageCard(page).getByText("Triaging…")).toHaveCount(0);
         // Nothing on a triage that stopped moves: no spinner, no pulse.
@@ -1208,7 +1208,7 @@ test.describe("Traces → AI → a finding's triage", () => {
 
     await expect(notice).toBeVisible({ timeout: 60000 });
     await expect(page.getByTestId("ai-triage-failure-cause")).toHaveText(
-      "The AI provider did not answer within 120 seconds.",
+      "The LLM provider did not answer within 120 seconds.",
     );
     await expect(notice.getByRole("button", { name: "Try again" })).toHaveCount(
       0,
@@ -1238,7 +1238,7 @@ test.describe("Traces → AI → a finding's triage", () => {
     const activity: Locator = triageActivity(page);
 
     await expect(activity.getByTestId("activity-attempt-end")).toHaveText(
-      /^Did not finish: The AI provider did not answer within 120 seconds\. Trying again at \d{1,2}:\d{2}(\s?[AP]M)?\.$/,
+      /^Did not finish: The LLM provider did not answer within 120 seconds\. Trying again at \d{1,2}:\d{2}(\s?[AP]M)?\.$/,
     );
     await expect(activity.getByText("Thinking", { exact: true })).toHaveCount(
       1,

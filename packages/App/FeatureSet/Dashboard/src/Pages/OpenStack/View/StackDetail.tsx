@@ -340,20 +340,28 @@ const StackOverview: FunctionComponent<{
                     name: owned.data?.volumes[id],
                   });
                 })}
-              </ul>
-            )}
-            {notListed > 0 ? (
-              <p
-                className="px-5 py-3 text-xs text-gray-500 md:px-6"
-                data-testid="openstack-stack-owns-more"
-              >
-                {translator.translatePlural(
-                  { one: "and {{count}} more", other: "and {{count}} more" },
-                  notListed,
+                {/*
+                 * The list's last row: the list runs to the card's edges
+                 * and its bottom, so a line drawn under it would sit in
+                 * the card's padding, over the last row.
+                 */}
+                {notListed > 0 ? (
+                  <li
+                    className="px-5 py-3 text-xs text-gray-500 md:px-6"
+                    data-testid="openstack-stack-owns-more"
+                  >
+                    {translator.translatePlural(
+                      {
+                        one: "and {{count}} more",
+                        other: "and {{count}} more",
+                      },
+                      notListed,
+                    )}
+                  </li>
+                ) : (
+                  <></>
                 )}
-              </p>
-            ) : (
-              <></>
+              </ul>
             )}
           </Card>
         </div>

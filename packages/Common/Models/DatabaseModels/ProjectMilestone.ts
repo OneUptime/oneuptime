@@ -128,6 +128,7 @@ export default class ProjectMilestone extends BaseModel {
     description:
       "Which milestone the project reached, such as first_monitor_created or first_check_result_received.",
     example: ActivationMilestone.FirstMonitorCreated,
+    allowedValues: Object.values(ActivationMilestone),
   })
   @Column({
     type: ColumnType.ShortText,

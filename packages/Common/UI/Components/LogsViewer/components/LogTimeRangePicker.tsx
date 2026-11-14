@@ -28,9 +28,15 @@ const LogTimeRangePicker: FunctionComponent<LogTimeRangePickerProps> = (
    * the picker only reads "Custom". The reset button beside it is the way
    * back for anyone who does not know to double-click a chart, and the only
    * one for keyboard users. It renders nothing unless the viewer is zoomed.
+   *
+   * No wider than the row it sits in, as TelemetryTimeRangePicker: a custom
+   * range that names its years ("Nov 12, 2025, 9:49 AM – Nov 12, 2026, 9:49
+   * AM") is wider than a phone's toolbar row, and the picker cuts it short
+   * (the whole range is its tooltip) only when this group may shrink. Sized
+   * to its content, it ran past the card's edge at 390px.
    */
   return (
-    <div className="inline-flex items-center gap-1.5">
+    <div className="inline-flex min-w-0 max-w-full items-center gap-1.5">
       <TimeRangePickerDropdown
         value={props.value}
         onChange={props.onChange}

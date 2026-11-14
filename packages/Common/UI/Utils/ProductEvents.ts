@@ -26,19 +26,76 @@ import { JSONObject } from "../../Types/JSON";
  * and only with the visitor's consent and without Global Privacy Control.
  * It never throws: a page never breaks because of an event.
  */
+/*
+ * The only events a sample project sends (issue #6808): nothing done inside
+ * one is a project getting value, so the activation funnel never sees it.
+ */
+export const SAMPLE_PROJECT_EVENTS: ReadonlyArray<ProductEventName> = [
+  ProductEventName.SampleProjectStarted,
+  ProductEventName.SampleProjectDeleted,
+];
+
+/*
+ * Told each event as it is sent, by its name and its own reviewed
+ * properties (not the common ones): on OneUptime Cloud, a recording of the
+ * Dashboard's setup pages marks each one on its timeline by the same name,
+ * so a replay and the funnel speak one language (#6834).
+ */
+export type ProductEventListener = (
+  name: ProductEventName,
+  properties: JSONObject,
+) => void;
+
+const productEventListeners: Set<ProductEventListener> =
+  new Set<ProductEventListener>();
+
 export default class ProductEvents {
   public static send(name: ProductEventName, properties?: JSONObject): void {
     try {
+      if (
+        ProductEvents.isInSampleProject() &&
+        !SAMPLE_PROJECT_EVENTS.includes(name)
+      ) {
+        return;
+      }
+
+      const ownProperties: JSONObject = toProductEventProperties({
+        name: name,
+        properties: properties,
+        isCloud: ProductEvents.isCloud(),
+      });
+
       UiAnalytics.capture(name, {
         ...ProductEvents.getCommonProperties(),
-        ...toProductEventProperties({
-          name: name,
-          properties: properties,
-          isCloud: ProductEvents.isCloud(),
-        }),
+        ...ownProperties,
       });
+
+      for (const listener of Array.from(productEventListeners)) {
+        try {
+          listener(name, { ...ownProperties });
+        } catch {
+          // A listener's mistake is never the page's.
+        }
+      }
     } catch {
       // An event is never worth an error on the page.
+    }
+  }
+
+  public static subscribe(listener: ProductEventListener): () => void {
+    productEventListeners.add(listener);
+
+    return (): void => {
+      productEventListeners.delete(listener);
+    };
+  }
+
+  // Whether the page is in a sample project (Project.isSampleProject).
+  public static isInSampleProject(): boolean {
+    try {
+      return ProjectUtil.getCurrentProject()?.isSampleProject === true;
+    } catch {
+      return false;
     }
   }
 

@@ -7,6 +7,7 @@ import PublicAddressCopy from "../../FeatureSet/Dashboard/src/Components/CustomD
 import DashboardSharingCopy, {
   DASHBOARD_EXAMPLE_DOMAIN,
 } from "../../FeatureSet/Dashboard/src/Components/Dashboard/Sharing/DashboardSharingCopy";
+import { AI_ACTION_CARD_FACTS } from "Common/Types/AI/AIActionWords";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -69,6 +70,14 @@ const PUBLIC_ADDRESSES: string = path.join(
   "Components",
   "CustomDomain",
   "PublicAddresses.tsx",
+);
+
+const STATUS_PAGE_GUIDED_SETUP_COPY: string = path.join(
+  DASHBOARD_SRC,
+  "Components",
+  "GuidedSetup",
+  "StatusPage",
+  "StatusPageSetup.ts",
 );
 
 const THEME_CSS_PATH: string = path.join(
@@ -277,9 +286,16 @@ describe("the words, in every language", () => {
   // The sentences the cards no longer draw.
   const GONE_KEYS: Array<string> = [
     "Open it to see your status page as visitors do.",
-    "Public link",
     "Copy the public link",
   ];
+
+  /*
+   * "Public link" left the cards with those two, but the status page
+   * guided setup's last step (#6806) and the card Ask AI leaves for a
+   * status page it set up (#6829) name the page's address by it, so the
+   * key is back, translated. The cards and their list still never say it.
+   */
+  const PUBLIC_LINK: string = "Public link";
 
   const PLACEHOLDER: RegExp = /\{\{\w+\}\}/g;
 
@@ -324,6 +340,32 @@ describe("the words, in every language", () => {
   test.each(GONE_KEYS)("%s is gone from every locale file", (key: string) => {
     for (const code of Object.keys(locales)) {
       expect([code, key in locales[code]!]).toEqual([code, false]);
+    }
+  });
+
+  test("Public link is the guided setup's and Ask AI's word, translated, and the cards never say it", () => {
+    expect([
+      ...Object.values(StatusPageOverviewCopy),
+      ...Object.values(PublicAddressCopy),
+      ...Object.values(DashboardSharingCopy),
+    ]).not.toContain(PUBLIC_LINK);
+
+    for (const file of [STATUS_PAGE_CARD, DASHBOARD_CARD, PUBLIC_ADDRESSES]) {
+      expect(codeOf(file)).not.toContain(`"${PUBLIC_LINK}"`);
+    }
+
+    expect(codeOf(STATUS_PAGE_GUIDED_SETUP_COPY)).toContain(
+      `linkLabel: translationKey("${PUBLIC_LINK}")`,
+    );
+    expect(AI_ACTION_CARD_FACTS.publicLink).toBe(PUBLIC_LINK);
+
+    expect(locales["en"]![PUBLIC_LINK]).toBe(PUBLIC_LINK);
+
+    for (const code of NON_ENGLISH) {
+      const value: unknown = locales[code]![PUBLIC_LINK];
+
+      expect([code, typeof value]).toEqual([code, "string"]);
+      expect([code, value === PUBLIC_LINK]).toEqual([code, false]);
     }
   });
 

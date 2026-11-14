@@ -1,6 +1,6 @@
 # What a Submission Creates
 
-Every submission through a form creates one record in your project: an **incident** or a **scheduled maintenance event**. A form's **On Submit** page shows which, and how each field of the new record is filled in — from an answer, from a default, from a setting that always applies, or from the incident template. **Edit Settings** changes the defaults and what always applies.
+Every submission through a form creates one record in your project: an **incident** or a **maintenance event**. A form's **On Submit** page shows which, and how each field of the new record is filled in — from an answer, from a default, from a setting that always applies, or from the incident template. **Edit Settings** changes the defaults and what always applies.
 
 :::cards
 - [How a submission becomes an incident](#how-a-submission-becomes-an-incident): Every field of the new incident, and where its value comes from.

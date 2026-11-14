@@ -182,10 +182,7 @@ const OpenStackApiChecksCard: FunctionComponent<ComponentProps> = (
         }
         buttons={buttons}
       >
-        <div
-          className="space-y-4 p-4 text-sm"
-          data-testid="openstack-api-checks"
-        >
+        <div className="space-y-4 text-sm" data-testid="openstack-api-checks">
           {saveError ? <ErrorMessage message={saveError} /> : <></>}
 
           {!isOn ? (

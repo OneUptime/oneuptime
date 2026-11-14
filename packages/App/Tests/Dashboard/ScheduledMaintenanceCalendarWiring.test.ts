@@ -210,7 +210,7 @@ describe("the routes", () => {
 
     // The calendar by the name its side menu entry and its card give it.
     expect(trail).toContain(
-      'PageMap.SCHEDULED_MAINTENANCE_EVENTS_CALENDAR, ["Project", "Scheduled Maintenance Events", "Maintenance Calendar"]',
+      'PageMap.SCHEDULED_MAINTENANCE_EVENTS_CALENDAR, ["Project", "Scheduled Maintenance", "Maintenance Calendar"]',
     );
     expect(trail).toContain(
       'PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_CALENDAR, ["Project", "Scheduled Maintenance", "Settings", "Calendar Settings"]',

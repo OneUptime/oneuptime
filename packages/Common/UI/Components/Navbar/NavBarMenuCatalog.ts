@@ -286,3 +286,29 @@ export function useCategoryFolds(
 
   return { isEnabled, isOpen, toggle };
 }
+
+// The heading of the hidden products' row when the caller names none.
+export const DEFAULT_HIDDEN_PRODUCTS_TITLE: string = "More products";
+
+/*
+ * The hidden products as the list holds them: each under the hidden row's
+ * title in place of its own category, after every listed product, so the
+ * row is the list's last one and folds, opens, searches and moves the
+ * keyboard cursor the way a category does.
+ */
+export const getMenuItemsWithHidden: (data: {
+  items: ReadonlyArray<MoreMenuItem>;
+  hiddenItems?: ReadonlyArray<MoreMenuItem> | undefined;
+  hiddenTitle: string;
+}) => Array<MoreMenuItem> = (data: {
+  items: ReadonlyArray<MoreMenuItem>;
+  hiddenItems?: ReadonlyArray<MoreMenuItem> | undefined;
+  hiddenTitle: string;
+}): Array<MoreMenuItem> => {
+  return [
+    ...data.items,
+    ...(data.hiddenItems || []).map((item: MoreMenuItem): MoreMenuItem => {
+      return { ...item, category: data.hiddenTitle };
+    }),
+  ];
+};

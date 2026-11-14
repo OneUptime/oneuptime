@@ -115,6 +115,7 @@ const KubernetesClusterDeploymentConfigs: FunctionComponent<
           title: "Ready",
           key: "ready",
           description: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.deploymentReady,
+          isCount: true,
         },
         { title: "Latest Version", key: "latestVersion" },
         { title: "Strategy", key: "strategy" },

@@ -13,6 +13,8 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import InMemoryTTLCache from "../Infrastructure/InMemoryTTLCache";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ProjectBlockedException from "../../Types/Exception/ProjectBlockedException";
+import ForbiddenException from "../../Types/Exception/ForbiddenException";
+import { SAMPLE_PROJECT_REFUSALS } from "../../Types/SampleProject/SampleProject";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import TelemetryIngestionKeyPolicy from "../../Types/Telemetry/TelemetryIngestionKeyPolicy";
 import TelemetryIngestionKeyType from "../../Types/Telemetry/TelemetryIngestionKeyType";
@@ -232,6 +234,18 @@ export class Service extends DatabaseService<Model> {
           },
         );
       }
+    }
+
+    /*
+     * A sample project (issue #6808) takes no telemetry: what it shows was
+     * written once when it was made, and a key would let real data in - and
+     * be metered. Refused for everyone, with what to do instead.
+     */
+    const keyProjectId: ObjectID | undefined =
+      createBy.props.tenantId || createBy.data.projectId;
+
+    if (keyProjectId && (await ProjectService.isSampleProject(keyProjectId))) {
+      throw new BadDataException(SAMPLE_PROJECT_REFUSALS.telemetryIngestion);
     }
 
     if (IsBillingEnabled) {
@@ -513,6 +527,13 @@ export class Service extends DatabaseService<Model> {
        */
       if (await ProjectService.isProjectBlocked(policy.projectId)) {
         throw new ProjectBlockedException();
+      }
+
+      // Nor does a sample project (issue #6808), which never has a key.
+      if (await ProjectService.isSampleProject(policy.projectId)) {
+        throw new ForbiddenException(
+          SAMPLE_PROJECT_REFUSALS.telemetryIngestion,
+        );
       }
 
       /*
@@ -985,7 +1006,7 @@ export class Service extends DatabaseService<Model> {
     for (const affectedKey of affectedKeys) {
       if (affectedKey.keyType === TelemetryIngestionKeyType.Browser) {
         throw new BadDataException(
-          `A Browser ingestion key must keep at least one allowed origin. Clearing the list would stop the key accepting any telemetry - turn the key off or delete it instead. (Key ID: ${affectedKey._id})`,
+          `A Browser ingestion key must keep at least one allowed origin. Clearing the list would stop the key accepting any telemetry - turn the key off or delete it instead. The key's ID is ${affectedKey._id}.`,
         );
       }
     }

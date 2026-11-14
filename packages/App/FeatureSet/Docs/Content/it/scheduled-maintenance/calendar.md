@@ -21,15 +21,15 @@ flowchart TB
 
 ## La pagina del calendario
 
-Aprite **Manutenzione programmata → Calendario della manutenzione**, nella sezione **Calendario** del menu laterale. **Tutti gli eventi** mostra gli stessi eventi come elenco.
+Aprite **Manutenzione programmata → Calendario della manutenzione**, nella sezione **Calendario** del menu laterale. **Tutti gli eventi di manutenzione** mostra gli stessi eventi come elenco.
 
 - Il calendario si apre sul mese corrente, con il giorno di oggi evidenziato. **Mese**, **Settimana** e **Giorno** cambiano quanto ne mostra; spostatevi con le frecce e tornate indietro con **Oggi**. Gli orari sono nel vostro fuso orario.
 - Ogni evento è un blocco nel colore del suo stato, e i colori degli stati sono indicati sotto il calendario. Fate clic su un evento per aprirlo.
 - I filtri sopra il calendario funzionano come nell'elenco: scegliete uno stato, un'etichetta o un proprietario per vedere solo quegli eventi.
-- Un giorno ancora da venire mostra un **+** quando puntate sulla sua settimana. Apre **Crea evento di manutenzione programmata** con **Inizia il** in quel giorno, all'ora che il modulo sceglierebbe oggi. Lo vedete solo se potete creare eventi.
+- Un giorno ancora da venire mostra un **+** quando puntate sulla sua settimana. Apre **Crea evento di manutenzione** con **Inizia il** in quel giorno, all'ora che il modulo sceglierebbe oggi. Lo vedete solo se potete creare eventi.
 - Una vista mostra fino a 500 eventi. Un mese più affollato lo segnala: restringetelo con i filtri o guardate una settimana.
 
-**Tutti gli eventi** un tempo passava da un elenco a un calendario. Se il vostro browser l'ha lasciato l'ultima volta sul calendario, **Tutti gli eventi** apre una volta il **Calendario della manutenzione** e da allora è l'elenco.
+**Tutti gli eventi di manutenzione** un tempo passava da un elenco a un calendario. Se il vostro browser l'ha lasciato l'ultima volta sul calendario, **Tutti gli eventi di manutenzione** apre una volta il **Calendario della manutenzione** e da allora è l'elenco.
 
 ## Calendari esterni
 

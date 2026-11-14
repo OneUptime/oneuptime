@@ -1,15 +1,16 @@
 /*
  * Scheduled Maintenance shows its events two ways, each a page of its own:
- * All Events, the list, and Maintenance Calendar, under the side menu's
- * Calendar section. The list and the calendar share their card, filters and
- * buttons (ScheduledMaintenanceTable), drawn as one or the other.
+ * All Maintenance Events, the list, and Maintenance Calendar, under the side
+ * menu's Calendar section. The list and the calendar share their card,
+ * filters and buttons (ScheduledMaintenanceTable), drawn as one or the other.
  *
  * The calendar used to be the Calendar half of a List | Calendar switch on
  * the list, the reader's choice remembered in their browser. A reader who
  * left it on Calendar is taken to the calendar's page the first time they
- * open All Events again, and the old choice is forgotten: from then on All
- * Events is the list, and the calendar is where the side menu says. The
- * switch never put the view in the page's address, so no link carries it.
+ * open All Maintenance Events again, and the old choice is forgotten: from
+ * then on All Maintenance Events is the list, and the calendar is where the
+ * side menu says. The switch never put the view in the page's address, so no
+ * link carries it.
  */
 export enum ScheduledMaintenanceView {
   List = "list",

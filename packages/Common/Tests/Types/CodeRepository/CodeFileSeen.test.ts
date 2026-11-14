@@ -1051,7 +1051,8 @@ describe("every interleaving of reads, pushes, Ask AI's own commits, proposals a
           unseen !== CodeFileUnseen.ReadInPart &&
           unseen !== CodeFileUnseen.ValuesHidden &&
           unseen !== CodeFileUnseen.ReadInEarlierAnswer &&
-          unseen !== CodeFileUnseen.ReadEarlierInThisAnswer
+          unseen !== CodeFileUnseen.ReadEarlierInThisAnswer &&
+          unseen !== CodeFileUnseen.PartNoLongerInHand
         );
       }),
     ]) {
@@ -1068,5 +1069,7 @@ describe("every interleaving of reads, pushes, Ask AI's own commits, proposals a
     expect(said[CodeFileUnseen.ReadInEarlierAnswer]).toBeUndefined();
     // And none was left out of it since (issue #6570).
     expect(said[CodeFileUnseen.ReadEarlierInThisAnswer]).toBeUndefined();
+    // So every line it read is still in hand (issue #6984).
+    expect(said[CodeFileUnseen.PartNoLongerInHand]).toBeUndefined();
   });
 });

@@ -36,8 +36,10 @@ import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
  *     push since, and a file read elsewhere is still read elsewhere;
  *   - but their lines are not in hand: none of the version in hand says
  *     Ask AI read it earlier in this answer - not in an earlier answer,
- *     since this answer showed it - and some says it read only part of it
- *     (#6330); the lines still in hand decide;
+ *     since this answer showed it - and some says which of the rest it
+ *     never read (#6330) and which it read and no longer has (#6984): a
+ *     file read in two halves, the first left out, was read all of, and
+ *     is never said to be read only in part;
  *   - reading the version again after the read was left out says nothing.
  */
 
@@ -115,6 +117,21 @@ const LEFT_OUT: Omit<CodeFileUnseenFinding, "filePath"> = {
 
 const EARLIER_ANSWER: Omit<CodeFileUnseenFinding, "filePath"> = {
   unseen: CodeFileUnseen.ReadInEarlierAnswer,
+};
+
+// Every line read, these no longer in hand (issue #6984).
+const noLongerInHand: (
+  lineCount: number,
+  ...ranges: Array<AIChatLineRange>
+) => Omit<CodeFileUnseenFinding, "filePath"> = (
+  lineCount: number,
+  ...ranges: Array<AIChatLineRange>
+): Omit<CodeFileUnseenFinding, "filePath"> => {
+  return {
+    unseen: CodeFileUnseen.PartNoLongerInHand,
+    lineCount,
+    linesNoLongerInHand: ranges,
+  };
 };
 
 type DecideFunction = (data: {
@@ -345,7 +362,7 @@ describe("what a commit says of a file whose read was left out", () => {
     ).toBeNull();
   });
 
-  test("read again in part: only part of it in hand - read in part, never both", () => {
+  test("read whole, left out, read again in part: the rest was read and is no longer in hand - never said as not read", () => {
     expect(
       decide({
         records: [
@@ -354,14 +371,10 @@ describe("what a commit says of a file whose read was left out", () => {
         ],
         now: file("a"),
       }),
-    ).toEqual({
-      unseen: CodeFileUnseen.ReadInPart,
-      lineCount: 800,
-      linesNotRead: [range(1, 400)],
-    });
+    ).toEqual(noLongerInHand(800, range(1, 400)));
   });
 
-  test("two halves, the first left out and the second in hand: the first is not in hand", () => {
+  test("the issue's case (#6984): two halves, the first left out and the second in hand - read all of it, and no longer has the first", () => {
     expect(
       decide({
         records: [
@@ -370,11 +383,88 @@ describe("what a commit says of a file whose read was left out", () => {
         ],
         now: file("a"),
       }),
+    ).toEqual(noLongerInHand(800, range(1, 400)));
+  });
+
+  test("two halves read on two branches, the one on main left out: the same version, so read all of it", () => {
+    expect(
+      decide({
+        records: [
+          leftOut(see("main", "a", lines(800, 1, 400))),
+          see("fix/login", "a", lines(800, 401, 800)),
+        ],
+        now: file("a"),
+      }),
+    ).toEqual(noLongerInHand(800, range(1, 400)));
+  });
+
+  test("a part never read and a part left out: each said as what it is", () => {
+    expect(
+      decide({
+        records: [
+          leftOut(see("fix/login", "a", lines(800, 1, 300))),
+          see("fix/login", "a", lines(800, 301, 600)),
+        ],
+        now: file("a"),
+      }),
     ).toEqual({
       unseen: CodeFileUnseen.ReadInPart,
       lineCount: 800,
-      linesNotRead: [range(1, 400)],
+      linesNotRead: [range(601, 800)],
+      linesNoLongerInHand: [range(1, 300)],
     });
+    // Runs of each, in order, around what is in hand.
+    expect(
+      decide({
+        records: [
+          leftOut(see("fix/login", "a", lines(800, 1, 100))),
+          leftOut(see("fix/login", "a", lines(800, 701, 800))),
+          see("fix/login", "a", lines(800, 201, 300)),
+          see("fix/login", "a", lines(800, 351, 700)),
+        ],
+        now: file("a"),
+      }),
+    ).toEqual({
+      unseen: CodeFileUnseen.ReadInPart,
+      lineCount: 800,
+      linesNotRead: [range(101, 200), range(301, 350)],
+      linesNoLongerInHand: [range(1, 100), range(701, 800)],
+    });
+  });
+
+  test("a part read in an earlier answer, the rest in this one: read all of it, and no longer has that part", () => {
+    expect(
+      decide({
+        records: [
+          earlier(see("fix/login", "a", lines(800, 1, 400))),
+          see("fix/login", "a", lines(800, 401, 800)),
+        ],
+        now: file("a"),
+      }),
+    ).toEqual(noLongerInHand(800, range(1, 400)));
+    // One line no longer in hand is a line, not a run.
+    expect(
+      decide({
+        records: [
+          earlier(see("fix/login", "a", lines(800, 1, 1))),
+          see("fix/login", "a", lines(800, 2, 800)),
+        ],
+        now: file("a"),
+      }),
+    ).toEqual(noLongerInHand(800, range(1, 1)));
+  });
+
+  test("a part left out and read again in this answer: in hand, and nothing to say", () => {
+    expect(
+      decide({
+        records: [
+          leftOut(see("fix/login", "a", lines(800, 1, 400))),
+          see("fix/login", "a", lines(800, 401, 800)),
+          see("fix/login", "a", lines(800, 1, 400)),
+        ],
+        now: file("a"),
+      }),
+    ).toBeNull();
   });
 
   test("two halves, both left out: none of it in hand", () => {
@@ -389,11 +479,12 @@ describe("what a commit says of a file whose read was left out", () => {
     ).toEqual(LEFT_OUT);
   });
 
-  test("a short read kept whole while a later, longer read of the same version was left out: its lines are still in hand", () => {
+  test("a short read kept whole while a later, longer read of the same version was left out: its lines are still in hand, and the rest read and no longer in hand", () => {
     /*
      * A note is never longer than what it replaces, so a result of a few
      * lines stays in the conversation while a later read of the whole file
-     * is left out: the lines the short one showed are still in hand.
+     * is left out: the lines the short one showed are still in hand, and
+     * the others Ask AI read, in the whole read, and no longer has.
      */
     expect(
       decide({
@@ -403,11 +494,7 @@ describe("what a commit says of a file whose read was left out", () => {
         ],
         now: file("a"),
       }),
-    ).toEqual({
-      unseen: CodeFileUnseen.ReadInPart,
-      lineCount: 800,
-      linesNotRead: [range(4, 800)],
-    });
+    ).toEqual(noLongerInHand(800, range(4, 800)));
   });
 
   test("a whole read in hand, and a later read of the same version left out: still all in hand", () => {
@@ -621,7 +708,10 @@ const oracle: (data: {
   /*
    * Of a version, on each branch, the events since the model last saw
    * another version there: this turn's showed it in this answer, and of
-   * those the ones not left out are in hand.
+   * those the ones not left out are in hand. Every one of them, of any
+   * turn and left out or not, showed the model those lines once (issue
+   * #6984): a line not in hand that one of them showed was read and is
+   * no longer in hand, and one that none showed was never read.
    */
   const linesOf: (
     version: string,
@@ -629,6 +719,8 @@ const oracle: (data: {
     version: string,
   ): Omit<CodeFileUnseenFinding, "filePath"> | null => {
     const inHand: Set<number> = new Set<number>();
+    const ever: Set<number> = new Set<number>();
+    let everAll: boolean = false;
     let anyInHand: boolean = false;
     let inThisAnswer: boolean = false;
 
@@ -641,6 +733,18 @@ const oracle: (data: {
       }
 
       for (const event of on.slice(from)) {
+        if (event.shown === "all") {
+          everAll = true;
+        } else {
+          for (
+            let line: number = event.shown.first;
+            line <= event.shown.last;
+            line++
+          ) {
+            ever.add(line);
+          }
+        }
+
         if (event.turn !== data.lastTurn) {
           continue;
         }
@@ -673,24 +777,44 @@ const oracle: (data: {
 
     const lineCount: number = data.lineCounts.get(version)!;
     const notRead: Array<AIChatLineRange> = [];
+    const notInHand: Array<AIChatLineRange> = [];
+    const addTo: (runs: Array<AIChatLineRange>, line: number) => void = (
+      runs: Array<AIChatLineRange>,
+      line: number,
+    ): void => {
+      const previous: AIChatLineRange | undefined = runs[runs.length - 1];
+
+      if (previous && previous.last === line - 1) {
+        previous.last = line;
+      } else {
+        runs.push(range(line, line));
+      }
+    };
 
     for (let line: number = 1; line <= lineCount; line++) {
       if (inHand.has(line)) {
         continue;
       }
 
-      const previous: AIChatLineRange | undefined = notRead[notRead.length - 1];
-
-      if (previous && previous.last === line - 1) {
-        previous.last = line;
-      } else {
-        notRead.push(range(line, line));
-      }
+      addTo(everAll || ever.has(line) ? notInHand : notRead, line);
     }
 
-    return notRead.length === 0
+    if (notRead.length > 0) {
+      return {
+        unseen: CodeFileUnseen.ReadInPart,
+        lineCount,
+        linesNotRead: notRead,
+        ...(notInHand.length > 0 ? { linesNoLongerInHand: notInHand } : {}),
+      };
+    }
+
+    return notInHand.length === 0
       ? null
-      : { unseen: CodeFileUnseen.ReadInPart, lineCount, linesNotRead: notRead };
+      : {
+          unseen: CodeFileUnseen.PartNoLongerInHand,
+          lineCount,
+          linesNoLongerInHand: notInHand,
+        };
   };
 
   const target: OracleEvent | undefined = lastOn(data.branchName);
@@ -738,6 +862,10 @@ const oracle: (data: {
       }
     : { unseen: CodeFileUnseen.NotRead };
 };
+
+// A file read in part with lines no longer in hand besides: counted on its own.
+const READ_IN_PART_AND_NO_LONGER_IN_HAND: string =
+  "ReadInPart and PartNoLongerInHand";
 
 describe("every history of turns with reads left out, against an oracle", () => {
   test("agrees with the oracle, kept whole or as the chat runner keeps it", () => {
@@ -856,16 +984,24 @@ describe("every history of turns with reads left out, against an oracle", () => 
           found: expected,
         });
 
-        const outcome: string = expected ? expected.unseen : "nothing";
+        const outcome: string = !expected
+          ? "nothing"
+          : expected.linesNoLongerInHand &&
+              expected.unseen === CodeFileUnseen.ReadInPart
+            ? READ_IN_PART_AND_NO_LONGER_IN_HAND
+            : expected.unseen;
         said[outcome] = (said[outcome] || 0) + 1;
       }
     }
 
+    // Each outcome is met, the two kinds of lines not in hand apart and together.
     for (const outcome of [
       "nothing",
       CodeFileUnseen.ReadEarlierInThisAnswer,
       CodeFileUnseen.ReadInEarlierAnswer,
       CodeFileUnseen.ReadInPart,
+      CodeFileUnseen.PartNoLongerInHand,
+      READ_IN_PART_AND_NO_LONGER_IN_HAND,
       CodeFileUnseen.ChangedSinceRead,
       CodeFileUnseen.ReadOnAnotherBranch,
       CodeFileUnseen.NotRead,

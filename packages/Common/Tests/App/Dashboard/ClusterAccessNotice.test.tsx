@@ -27,6 +27,8 @@ import {
   KubernetesAiRemediationMode,
   KubernetesClusterAiAccessStatus,
 } from "../../../Types/Kubernetes/KubernetesClusterAiAccess";
+import { Translator } from "../../../UI/Utils/TranslateTemplate";
+import { dashboardTranslator } from "../../Helpers/DashboardLocales";
 import { goTo, PROJECT_ID } from "./SideMenuHarness";
 
 /*
@@ -219,6 +221,63 @@ describe("describeFinishedRunKubectlUsage", () => {
       "OneUptime AI ran 2 read-only kubectl commands during this investigation (1 more could not run — see Investigation activity).",
     );
   });
+
+  /*
+   * The notes in brackets are clauses, set off with the semicolon of the
+   * script they are written in (#7607): the Latin "; " stood between
+   * Japanese, Persian and Arabic ones.
+   */
+  test.each([
+    ["ja", "；"],
+    ["fa", "؛ "],
+    ["ar", "؛ "],
+  ])(
+    "in %s, the notes in brackets are set off with %s",
+    (language: string, semicolon: string) => {
+      const translator: Translator = dashboardTranslator(language);
+      const note: (english: string, count: number) => string = (
+        english: string,
+        count: number,
+      ): string => {
+        return translator.translatePlural(
+          { one: english, other: english },
+          count,
+        );
+      };
+
+      const ran: string =
+        describeFinishedRunKubectlUsage(
+          activity({ executed: 3, succeeded: 1, notRun: 2 }),
+          translator,
+        )?.text || "";
+
+      expect(ran).toContain(
+        `${note("{{count}} returned an error", 2)}${semicolon}${note(
+          "{{count}} more could not run",
+          2,
+        )}`,
+      );
+      expect(ran).not.toContain(";");
+
+      const noneSucceeded: string =
+        describeFinishedRunKubectlUsage(
+          activity({ executed: 1, succeeded: 0, notRun: 1, unknown: 1 }),
+          translator,
+        )?.text || "";
+
+      expect(noneSucceeded).toContain(
+        `${note("{{count}} more could not run", 1)}${semicolon}${translator.translatePlural(
+          {
+            one: "{{count}} more returned no result, so whether it ran is unknown",
+            other:
+              "{{count}} more returned no result, so whether they ran is unknown",
+          },
+          1,
+        )}`,
+      );
+      expect(noneSucceeded).not.toContain(";");
+    },
+  );
 
   test("never trusts a succeeded count above the commands that ran", () => {
     expect(usageText(activity({ executed: 1, succeeded: 4 }))).toBe(

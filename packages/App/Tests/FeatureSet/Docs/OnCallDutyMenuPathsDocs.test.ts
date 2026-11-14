@@ -15,21 +15,22 @@ import fs from "fs";
 import path from "path";
 
 /*
- * THE DOCS SEND READERS DOWN ON-CALL DUTY'S REAL MENU, IN EVERY LANGUAGE.
+ * THE DOCS SEND READERS DOWN ON-CALL'S REAL MENU, IN EVERY LANGUAGE.
  *
- * On-Call Duty's side menu folds its Advanced section (User Overrides,
- * Execution Logs, Archived Policies), Reports, Workspace, Settings and
- * Developer: a page in one is not on screen until its section is opened, so
- * a path to it names the section. The On-Call Schedules page told readers a
- * skip "is listed under On-Call Duty > User Overrides", without Advanced, in
- * all seventeen languages. Markdown is not compiled, so these hold every
- * page, in every language, to the menu as it is drawn - as the product's own
- * texts are held (OnCallDutyMenuPathsInProductText):
+ * On-Call's side menu (On-Call Duty's, until #6817) folds its Advanced
+ * section (User Overrides, Execution Logs, Archived Policies), Reports,
+ * Workspace, Settings and Developer: a page in one is not on screen until
+ * its section is opened, so a path to it names the section. The On-Call
+ * Schedules page told readers a skip "is listed under On-Call Duty > User
+ * Overrides", without Advanced, in all seventeen languages. Markdown is not
+ * compiled, so these hold every page, in every language, to the menu as it
+ * is drawn - as the product's own texts are held
+ * (OnCallDutyMenuPathsInProductText):
  *
- *   - every path written with the English names ("On-Call Duty → Advanced →
- *     User Overrides", "**On-Call Duty** > **Readiness**") walks the menu;
- *   - no page goes from On-Call Duty straight to a page of a folded section
- *     in the words its language's Dashboard draws them.
+ *   - every path written with the English names ("On-Call → Advanced → User
+ *     Overrides", "**On-Call** > **Readiness**") walks the menu;
+ *   - no page goes from On-Call straight to a page of a folded section in
+ *     the words its language's Dashboard draws them.
  *
  * Each language's own words are matched as written, not as whole words, so
  * the check holds for languages without spaces between words too.
@@ -41,6 +42,39 @@ const CONTENT_DIR: string = path.resolve(
 );
 
 const MENU: SettingsMenu = onCallDutyMenu();
+
+const MOBILE_APP: string = path.resolve(__dirname, "../../../../MobileApp");
+
+/*
+ * The mobile app is "OneUptime On-Call", and it has an On-Call tab: one name
+ * with the Dashboard's menu since #6817. A path through the app's name (the
+ * phone's own "Settings → Apps → OneUptime On-Call → Battery") or through
+ * the tab ("In the mobile app: **On-Call** > **Add shifts to my calendar**")
+ * walks the app, not the Dashboard, so it is not held to the Dashboard's
+ * menu. The tab's buttons are listed here; the checks below hold each to
+ * the app's own source, so the list cannot name what the app does not draw.
+ */
+const MOBILE_APP_NAME: string = "OneUptime On-Call";
+const MOBILE_APP_ON_CALL_TAB_BUTTONS: ReadonlyArray<string> = [
+  "Add shifts to my calendar",
+];
+
+// A page's text with the mobile app's own paths taken out.
+function withoutMobileAppPaths(text: string): string {
+  let readable: string = readableText(text).split(MOBILE_APP_NAME).join("");
+
+  for (const button of MOBILE_APP_ON_CALL_TAB_BUTTONS) {
+    readable = readable.replace(
+      new RegExp(
+        `${escapeRegExp(ON_CALL_DUTY)}\\s*(?:->|>|→|›)\\s*(?=${escapeRegExp(button)})`,
+        "gu",
+      ),
+      "",
+    );
+  }
+
+  return readable;
+}
 
 interface DocsPage {
   language: string;
@@ -100,7 +134,8 @@ const FOLDED_PAGES: ReadonlyArray<FoldedPage> = MENU.sections
 /*
  * Where a text goes from On-Call Duty straight to a page of a folded
  * section, in the words a language's Dashboard draws them, with what it
- * should name in between.
+ * should name in between. A Persian page points "←" from a step in Persian
+ * words (#7611).
  */
 function foldedSectionsLeftOut(text: string, language: string): Array<string> {
   const readable: string = readableText(text);
@@ -109,7 +144,7 @@ function foldedSectionsLeftOut(text: string, language: string): Array<string> {
 
   for (const folded of FOLDED_PAGES) {
     const pattern: RegExp = new RegExp(
-      `${escapeRegExp(menuName)}\\s*(?:->|>|→)\\s*${escapeRegExp(
+      `${escapeRegExp(menuName)}\\s*(?:->|>|→|←)\\s*${escapeRegExp(
         drawnDashboardLabel(language, folded.page),
       )}`,
       "u",
@@ -133,13 +168,13 @@ const PAGES: ReadonlyArray<DocsPage> = SUPPORTED_DOCS_LANGUAGE_CODES.flatMap(
 );
 
 describe("the checks themselves", () => {
-  it("knows the pages of On-Call Duty's folded sections", () => {
+  it("knows the pages of On-Call's folded sections", () => {
     expect(FOLDED_PAGES).toEqual(
       expect.arrayContaining([
         { section: "Advanced", page: "User Overrides" },
         { section: "Advanced", page: "Execution Logs" },
         { section: "Advanced", page: "Archived Policies" },
-        { section: "Reports", page: "User On Call Time" },
+        { section: "Reports", page: "User On-Call Time" },
         { section: "Settings", page: "Custom Fields" },
       ]),
     );
@@ -158,14 +193,15 @@ describe("the checks themselves", () => {
   });
 
   it.each([
-    ["en", "It is listed under **On-Call Duty** > **User Overrides**."],
-    ["da", "Det står under **Vagtordning** > **Brugertilsidesættelser**."],
+    ["en", "It is listed under **On-Call** > **User Overrides**."],
+    ["da", "Det står under **Vagt** > **Brugertilsidesættelser**."],
     ["ja", "**オンコール** > **ユーザーオーバーライド** に一覧表示され"],
     // No space before the next word, as Japanese and Chinese often write it.
     ["ja", "オンコール > ユーザーオーバーライドで削除してください。"],
     ["zh-CN", "它列在 **值班** > **用户覆盖** 下"],
-    ["fa", "در **کشیک آنکال** > **جایگزینی‌های کاربر** فهرست می‌شود"],
-    ["de", "Siehe **Bereitschaftsdienst → Ausführungsprotokolle**."],
+    ["fa", "در **آنکال** > **جایگزینی‌های کاربر** فهرست می‌شود"],
+    ["fa", "در **آنکال ← جایگزینی‌های کاربر** فهرست می‌شود"],
+    ["de", "Siehe **Bereitschaft → Ausführungsprotokolle**."],
   ])(
     "flags a %s path that leaves the folded section out: %s",
     (language: string, text: string) => {
@@ -176,7 +212,7 @@ describe("the checks themselves", () => {
   it.each([
     [
       "da",
-      "Det står under **Vagtordning** > **Avanceret** > **Brugertilsidesættelser**.",
+      "Det står under **Vagt** > **Avanceret** > **Brugertilsidesættelser**.",
     ],
     [
       "ja",
@@ -184,16 +220,58 @@ describe("the checks themselves", () => {
     ],
     ["zh-CN", "它列在 **值班** > **高级** > **用户覆盖** 下"],
     // A page of an open section needs nothing in between.
-    ["de", "Öffnen Sie **Bereitschaftsdienst** > **Bereitschaftspläne**."],
+    ["de", "Öffnen Sie **Bereitschaft** > **Bereitschaftspläne**."],
   ])(
     "follows a %s path that names it: %s",
     (language: string, text: string) => {
       expect(foldedSectionsLeftOut(text, language)).toEqual([]);
     },
   );
+
+  it("leaves the mobile app's paths to the app, and still reads the Dashboard's beside them", () => {
+    const text: string = [
+      "Open **Settings → Apps → OneUptime On-Call → Battery** and choose **Unrestricted**.",
+      "In the mobile app: **On-Call** > **Add shifts to my calendar**.",
+      "In the Dashboard: **On-Call** > **Readiness**.",
+    ].join("\n");
+
+    expect(pathsThrough(text, MENU)).toHaveLength(3);
+    expect(
+      pathsThrough(withoutMobileAppPaths(text), MENU).map(
+        (written: WrittenPath): string => {
+          return [written.menu, ...written.steps].join(" > ");
+        },
+      ),
+    ).toEqual(["On-Call > Readiness"]);
+  });
+
+  it("names the app as the app does, and only buttons its On-Call tab draws, which the Dashboard's menu does not have", () => {
+    const appConfig: { expo: { name: string } } = JSON.parse(
+      fs.readFileSync(path.join(MOBILE_APP, "app.json"), "utf8"),
+    ) as { expo: { name: string } };
+    const onCallTab: string = fs.readFileSync(
+      path.join(MOBILE_APP, "src", "screens", "OnCallOverviewScreen.tsx"),
+      "utf8",
+    );
+    const dashboardItems: Array<string> = MENU.sections.flatMap(
+      (menuSection: SettingsMenuSection): Array<string> => {
+        return [menuSection.title, ...menuSection.items];
+      },
+    );
+
+    expect(appConfig.expo.name).toBe(MOBILE_APP_NAME);
+
+    for (const button of MOBILE_APP_ON_CALL_TAB_BUTTONS) {
+      expect({ button, drawn: onCallTab.includes(`"${button}"`) }).toEqual({
+        button,
+        drawn: true,
+      });
+      expect(dashboardItems).not.toContain(button);
+    }
+  });
 });
 
-describe("every docs page sends readers down On-Call Duty's real menu", () => {
+describe("every docs page sends readers down On-Call's real menu", () => {
   it("is checked in every docs language", () => {
     expect(SUPPORTED_DOCS_LANGUAGE_CODES).toHaveLength(17);
     expect(
@@ -203,16 +281,16 @@ describe("every docs page sends readers down On-Call Duty's real menu", () => {
     ).toBeGreaterThan(100);
   });
 
-  it("finds the English pages' On-Call Duty paths to check", () => {
+  it("finds the English pages' On-Call paths to check", () => {
     const english: Array<WrittenPath> = PAGES.filter(
       (page: DocsPage): boolean => {
         return page.language === "en";
       },
     ).flatMap((page: DocsPage): Array<WrittenPath> => {
-      return pathsThrough(page.text, MENU);
+      return pathsThrough(withoutMobileAppPaths(page.text), MENU);
     });
 
-    // The On Call pages, the import guides, the chat pages.
+    // The On-Call pages, the import guides, the chat pages.
     expect(english.length).toBeGreaterThan(20);
     expect(
       english.map((written: WrittenPath): string => {
@@ -220,11 +298,11 @@ describe("every docs page sends readers down On-Call Duty's real menu", () => {
       }),
     ).toEqual(
       expect.arrayContaining([
-        "On-Call Duty > Advanced > User Overrides",
-        "On-Call Duty > Advanced > Execution Logs",
-        "On-Call Duty > Advanced > Archived Policies",
-        "On-Call Duty > Reports > User On Call Time",
-        "On-Call Duty > Readiness",
+        "On-Call > Advanced > User Overrides",
+        "On-Call > Advanced > Execution Logs",
+        "On-Call > Advanced > Archived Policies",
+        "On-Call > Reports > User On-Call Time",
+        "On-Call > Readiness",
       ]),
     );
   });
@@ -241,7 +319,7 @@ describe("every docs page sends readers down On-Call Duty's real menu", () => {
           return page.language === language;
         },
       ).flatMap((page: DocsPage): Array<string> => {
-        return pathsThrough(page.text, MENU).flatMap(
+        return pathsThrough(withoutMobileAppPaths(page.text), MENU).flatMap(
           (written: WrittenPath): Array<string> => {
             return written.problems.map((problem: string): string => {
               return `${page.page}: "${written.text}" ${problem}`;
@@ -259,7 +337,7 @@ describe("every docs page sends readers down On-Call Duty's real menu", () => {
       return [language];
     }),
   )(
-    "%s: no path goes from On-Call Duty straight to a page of a folded section, as its Dashboard draws them",
+    "%s: no path goes from On-Call straight to a page of a folded section, as its Dashboard draws them",
     (language: string) => {
       const leftOut: Array<string> = PAGES.filter((page: DocsPage): boolean => {
         return page.language === language;
@@ -280,7 +358,7 @@ describe("every docs page sends readers down On-Call Duty's real menu", () => {
       return [language];
     }),
   )(
-    "%s: the schedules page lists a skip under On-Call Duty, Advanced, User Overrides",
+    "%s: the schedules page lists a skip under On-Call, Advanced, User Overrides",
     (language: string) => {
       const page: string = fs.readFileSync(
         path.join(CONTENT_DIR, language, "on-call", "schedules.md"),

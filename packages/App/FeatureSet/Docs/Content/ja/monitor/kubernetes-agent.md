@@ -2,6 +2,9 @@
 
 OneUptime Kubernetes エージェントは Helm チャートで、クラスターのメトリクス、イベント、Pod ログ、eBPF で取得したアプリケーショントレース、ノードごとの OS メトリクスを収集し、OneUptime に送信します。`helm install` を 1 回実行するだけで配置でき、アプリのコードを変更する必要はありません。[Kubernetes モニター](/docs/monitor/kubernetes-monitor) は、エージェントが送信するデータでアラートを出します。
 
+> [!NOTE]
+> このページでは、プラットフォーム用のプリセットを使い、Helm でエージェントを順を追ってインストールします。すべてのオプション、Amazon EKS アドオン、OpenShift、Kubernetes AI エージェントについては、完全なリファレンスである [Kubernetes エージェント](/docs/telemetry/kubernetes-agent) を参照してください。
+
 :::cards
 - [エージェントをインストールする](#エージェントをインストールする): Helm を使った四つのステップ。
 - [プリセットを選ぶ](#プリセットを選ぶ): 標準のクラスター、GKE Autopilot、EKS Fargate、OpenShift。
@@ -331,7 +334,7 @@ kubectl logs -n oneuptime-agent -l component=ebpf-instrument --tail=200
 
 ## 継続的な CPU プロファイリング
 
-[OpenTelemetry eBPF Profiler](https://github.com/open-telemetry/opentelemetry-ebpf-profiler) も、`otel/opentelemetry-collector-ebpf-profiler` イメージとして各ノードで実行できます。Go、Java、.NET、Python、Ruby、Node.js、PHP、Perl、C、C++、Rust で、すべてのプロセスが実行している内容を 1 秒間に 19 回サンプリングし、プロファイルを OneUptime に送信します。プロファイルは **製品 → パフォーマンスプロファイル** に表示され、トレースの各スパンにもフレームグラフとして表示されます。
+[OpenTelemetry eBPF Profiler](https://github.com/open-telemetry/opentelemetry-ebpf-profiler) も、`otel/opentelemetry-collector-ebpf-profiler` イメージとして各ノードで実行できます。Go、Java、.NET、Python、Ruby、Node.js、PHP、Perl、C、C++、Rust で、すべてのプロセスが実行している内容を 1 秒間に 19 回サンプリングし、プロファイルを OneUptime に送信します。プロファイルは **製品 → プロファイル** に表示され、トレースの各スパンにもフレームグラフとして表示されます。
 
 **プロファイリングはデフォルトではオフです。** ノードあたりの CPU とメモリのコストが eBPF インストルメンテーションより大きいためです。`--set profiling.enabled=true` でオンにしてください。
 

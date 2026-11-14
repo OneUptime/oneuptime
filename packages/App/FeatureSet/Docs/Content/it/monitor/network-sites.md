@@ -38,7 +38,7 @@ Lo stato di ogni sito deriva da tutti i dispositivi del suo sottoalbero, giudica
 
 ## La gerarchia
 
-I siti formano un albero. Ogni sito ha un **Site Type** e, facoltativamente, un sito padre. I tipi di sito sono l'elenco del progetto, in **Rete → Impostazioni → Tipi di sito**, e un nuovo progetto parte con Account Type, Region, Franchisee, Market e Unit, in quest'ordine dall'alto, più Data Center e Other. I tipi formano una propria gerarchia (**Parent Site Type**), che decide quali siti possono essere padre di un sito. Un tipo contrassegnato come **Is Unit Level** è il livello foglia del tuo parco, il singolo negozio o la singola filiale: i suoi siti contengono dispositivi, non altri siti.
+I siti formano un albero. Ogni sito ha un **Tipo di sito** e, facoltativamente, un sito padre. I tipi di sito sono l'elenco del progetto, in **Rete → Impostazioni → Tipi di sito**, e un nuovo progetto parte con Account Type, Region, Franchisee, Market e Unit, in quest'ordine dall'alto, più Data Center e Other. I tipi formano una propria gerarchia (**Parent Site Type**), che decide quali siti possono essere padre di un sito. Un tipo contrassegnato come **Is Unit Level** è il livello foglia del tuo parco, il singolo negozio o la singola filiale: i suoi siti contengono dispositivi, non altri siti.
 
 Il tipo, il nome, la descrizione, il padre e la posizione di un sito si modificano in un unico punto: la scheda **Site Settings** nella pagina **Impostazioni** del sito. La panoramica del sito li mostra con un link **Modifica nelle impostazioni**, e l'elenco **Siti** aggiunge siti ma non li modifica.
 
@@ -54,7 +54,7 @@ Ogni dispositivo è collegato a un sito. Il sottoalbero di un sito è il sito st
 Vai su **Rete → Siti** e fai clic su **Aggiungi: Sito**.
 
 ### Dire cos'è il sito
-Nel passaggio **Site Details**, scegli il **Site Type** (che tipo di luogo è: una regione, un negozio, un data center) e digita un **Nome**. Il **Codice del sito**, la descrizione, l'indirizzo e la latitudine e la longitudine che collocano il sito sulla mappa sono chiusi sotto **Altri campi**: compilali ora o più tardi. Il codice di un sito è un codice breve, come il numero di un negozio o di un punto vendita (`1216`); le [regole di denominazione](/docs/monitor/network-device-monitor#dare-un-nome-ai-dispositivi-secondo-la-tua-convenzione-di-denominazione) lo inseriscono nei nomi dei dispositivi con `{site.code}`.
+Nel passaggio **Site Details**, scegli il **Tipo di sito** (che tipo di luogo è: una regione, un negozio, un data center) e digita un **Nome**. Il **Codice del sito**, la descrizione, l'indirizzo e la latitudine e la longitudine che collocano il sito sulla mappa sono chiusi sotto **Altri campi**: compilali ora o più tardi. Il codice di un sito è un codice breve, come il numero di un negozio o di un punto vendita (`1216`); le [regole di denominazione](/docs/monitor/network-device-monitor#dare-un-nome-ai-dispositivi-secondo-la-tua-convenzione-di-denominazione) lo inseriscono nei nomi dei dispositivi con `{site.code}`.
 
 ### Collocarlo nell'albero
 Nel passaggio **Hierarchy**, scegli il **Parent Site** se il sito si trova sotto un altro. Lascialo vuoto per tenere il sito al livello più alto.
@@ -67,7 +67,7 @@ Nella pagina **Siti figli** di un sito, **Aggiungi: Sito figlio** chiede solo il
 
 ### Importare i siti da un file CSV
 
-Per portare dentro un intero parco in una volta, apri il menu in cima all'elenco **Siti** e fai clic su **Import from CSV**. Il file richiede una riga di intestazione; le colonne possono essere in qualsiasi ordine e i loro nomi non distinguono tra maiuscole e minuscole:
+Per portare dentro un intero parco in una volta, apri il menu in cima all'elenco **Siti** e fai clic su **Importa da CSV**. Il file richiede una riga di intestazione; le colonne possono essere in qualsiasi ordine e i loro nomi non distinguono tra maiuscole e minuscole:
 
 ```csv title="sites.csv"
 name,siteType,parentName,address,latitude,longitude
@@ -141,6 +141,7 @@ Le due policy qui concordano, e conta più di quanto sembri:
 - I dispositivi che non hanno mai riferito nulla non votano mai. Un dispositivo in attesa del suo primo polling non è la prova di un disservizio, quindi viene escluso da entrambi i lati della quota, e una regione a metà dell'onboarding viene valutata sulla metà che ha risposto.
 - Un dispositivo interrogato dalla sonda, il tipo normale, vota con l'esito del suo ultimo polling: raggiungibile via ping o SNMP, non quanto tempo fa è riuscito l'ultima volta. Un dispositivo che risponde al ping mentre il suo walk SNMP fallisce è raggiungibile e vota così; il sito dice che è attivo, e la riga del dispositivo riporta **SNMP failing** perché qualcuno sistemi le credenziali.
 - Un dispositivo basato su un monitor, passato all'override con monitor associato nella sua pagina Impostazioni, vota con lo stato del monitor associato, perché nulla lo interroga. Senza nulla di associato non ha mai riferito, quindi non vota affatto.
+- Un dispositivo basato su un monitor il cui monitor non viene controllato, perché il suo monitoraggio è disattivato o è archiviato, non vota nemmeno lui: lo stato di quel monitor è solo ciò che ha visto il suo ultimo controllo. Il dispositivo risulta **In sospeso**, con **Monitoraggio disattivato** o **Monitor archiviato** accanto, finché il monitoraggio del monitor non viene riattivato o il monitor non viene ripristinato dall'archivio.
 
 Un monitor del dispositivo di rete su un dispositivo interrogato dalla sonda non cambia come vota il dispositivo. Un monitor con un criterio «interfaccia inattiva, quindi Offline» marchierebbe come Offline uno switch che risponde a ogni ping, e una sola porta spenta renderebbe rosso un intero sito mentre ogni riga di dispositivo sotto di esso riporta Up: il sito contraddirebbe l'elenco che riassume. Per un dispositivo interrogato, il polling è la fonte della sua salute; il monitor serve ad aprire incidenti.
 
@@ -185,7 +186,7 @@ Una media sui figli pesa un negozio con due dispositivi quanto un centro di dist
 
 ## Manutenzione programmata per i siti di rete
 
-Collega i siti a un evento di manutenzione programmata in **Altre risorse interessate**, nel passaggio **Risorse interessate** dell'evento, come faresti con un host. La pagina **Manutenzione programmata** di un sito elenca gli eventi collegati, e il suo **Crea evento di manutenzione programmata** apre il modulo con il sito già scelto.
+Collega i siti a un evento di manutenzione programmata in **Altre risorse interessate**, nel passaggio **Risorse interessate** dell'evento, come faresti con un host. La pagina **Manutenzione programmata** di un sito elenca gli eventi collegati, e il suo **Crea evento di manutenzione** apre il modulo con il sito già scelto.
 
 Una finestra su un padre copre tutto ciò che sta sotto: una finestra su una regione copre ogni mercato e ogni unità al suo interno, compresi i siti creati dopo la pianificazione della finestra, quindi un cambio di operatore regionale non deve elencare quattrocento negozi.
 
@@ -214,6 +215,8 @@ La scheda **Alerting** nella pagina **Impostazioni** di un sito ha **Alert When 
 
 Genera avvisi solo sul cambiamento: attivarlo su un sito che è già non in salute arma il cambiamento successivo invece di avvisare sul passato. Degraded non è operativo, quindi un sito con la policy a percentuale genera un avviso appena uno dei suoi dispositivi che riferiscono diventa inattivo, come fa un sito con la policy dello stato peggiore; l'avviso resta aperto, senza un secondo, mentre il sito passa tra Degraded e Offline, e il suo titolo indica lo stato raggiunto per primo dal sito.
 
+Quando nulla in un sito riferisce più uno stato, perché i monitor dietro i suoi dispositivi hanno il monitoraggio disattivato, sono archiviati o sono stati eliminati, il sito torna a nessuno stato invece di mantenere l'ultimo, e il suo avviso aperto si risolve con questo motivo come causa. Un dispositivo che riferisce di nuovo un problema apre un nuovo avviso.
+
 ## Risoluzione dei problemi
 
 :::details Una regione è sempre rossa
@@ -225,7 +228,11 @@ Per il sito non è mai stato eseguito un riepilogo, quindi non ha righe nella cr
 :::
 
 :::details Un dispositivo non conta per il suo sito
-I dispositivi archiviati, e i dispositivi che non hanno ancora riferito, non votano mai. Anche un dispositivo basato su un monitor senza alcun monitor associato non ha mai riferito. Controlla lo stato del dispositivo: un dispositivo **In sospeso** inizia a votare dopo il suo primo polling.
+I dispositivi archiviati, e i dispositivi che non hanno ancora riferito, non votano mai. Anche un dispositivo basato su un monitor senza alcun monitor associato non ha mai riferito. Controlla lo stato del dispositivo: un dispositivo **In sospeso** inizia a votare dopo il suo primo polling. Uno con **Monitoraggio disattivato** o **Monitor archiviato** accanto torna a votare non appena il monitoraggio del suo monitor viene riattivato o il monitor viene ripristinato dall'archivio.
+:::
+
+:::details Un sito non ha più uno stato
+Nulla nel sito riferisce uno stato: i monitor dietro i suoi dispositivi hanno il monitoraggio disattivato, sono archiviati o sono stati eliminati, quindi l'ultimo stato del sito è stato tolto e il suo avviso risolto. Riattiva il monitoraggio di quei monitor, o ripristinali dall'archivio, e lo stato del sito torna a essere calcolato dai suoi dispositivi.
 :::
 
 :::details L'avviso di un sito non è scattato

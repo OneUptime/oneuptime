@@ -35,6 +35,7 @@ import {
 } from "./DocsTranslationChecks";
 import { describe, expect, it } from "@jest/globals";
 import { isPermissionTitleKeptInEnglish } from "./DocsRoleNames";
+import { pathWithArrows } from "./DocsPageShape";
 
 /*
  * The seven Workflows pages - the overview, authoring, triggers, components,
@@ -193,6 +194,11 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
     "Message",
     "Incident ID",
     "Alert ID",
+    /*
+     * Page As itself, which Persian's Dashboard words: the Paging section
+     * names it as the step does (WorkflowPageStepDocs).
+     */
+    "Page As",
     // Page As's choices, Dashboard labels too: the Builder names them in English.
     "Responders",
     "Observers",
@@ -585,11 +591,12 @@ describe.each(LANGUAGES)("%s workflow pages", (language: string) => {
       const translated: string = readPage(language, entry.page);
       const missing: Array<string> = menuPaths(english)
         .map((segments: Array<string>): string => {
-          return segments
-            .map((segment: string): string => {
+          return pathWithArrows(
+            segments.map((segment: string): string => {
               return drawnActionLabel(language, segment);
-            })
-            .join(PATH_SEPARATOR);
+            }),
+            language,
+          );
         })
         .filter((localized: string): boolean => {
           return !translated.includes(`**${localized}**`);

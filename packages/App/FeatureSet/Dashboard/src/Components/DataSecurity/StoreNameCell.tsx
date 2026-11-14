@@ -86,13 +86,17 @@ export const STORE_NAME_LINE_CLASS_NAME: string =
  * The kind, then the region after a dot - or on the next line when the
  * two do not fit side by side (a list beside the side menu leaves the name
  * 168 pixels): both kept whole rather than "AWS S3 Bucket · eu-west-…".
- * Each piece brings its dot in its padding at its start, and the row is
- * moved back by as much inside a clip, so the piece a line starts with
- * shows none.
+ * A kind longer than the whole line wraps at its spaces (a table's cell
+ * keeps its text on one line, so it says so) rather than being cut:
+ * Persian and Arabic write a cloud's kind in their own words around its
+ * product's name, and Google BigQuery's dataset is longer than the line
+ * there. Each piece brings its dot in its padding at its start, and the
+ * row is moved back by as much inside a clip, so the piece a line starts
+ * with shows none.
  */
 export const STORE_KIND_ROW_CLASS_NAME: string = "-ms-3 flex flex-wrap";
 export const STORE_KIND_PIECE_CLASS_NAME: string =
-  "min-w-0 max-w-full truncate ps-3";
+  "min-w-0 max-w-full whitespace-normal break-words ps-3";
 export const STORE_REGION_PIECE_CLASS_NAME: string =
   "relative min-w-0 max-w-full truncate ps-3 font-mono before:absolute before:start-0 before:w-3 before:text-center before:font-sans before:content-['·']";
 

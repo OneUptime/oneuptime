@@ -236,6 +236,10 @@ Verten blir værende i OneUptime med historikken: Arkiver eller slett den i list
 HTTP `401`: Nøkkelen er feil, har utløpt eller ble slettet. HTTP `422`: Den er deaktivert, er en nettlesernøkkel eller er låst til én tjeneste. Velg en aktivert servernøkkel i **Legg til vert** og kjør kommandoen igjen: Den erstatter nøkkelen på verten.
 :::
 
+:::details Kommandoen sier at OneUptime ikke ble funnet
+HTTP `404`: Adressen der innsamleren ber om konfigurasjonen sin, OneUptime-URL-en din etterfulgt av `/telemetry/opamp/v1`, når ikke OneUptime. Sjekk at `--url` (`-Url` på Windows) er adressen du åpner OneUptime på, uten noe etter. Hvis en egen proxy eller lastbalanserer står foran OneUptime, la den sende `/telemetry/opamp/v1` til OneUptime, slik den sender `/otlp`. Innsamleren fortsetter å spørre hvert 30. sekund, så verten kobler til så snart adressen virker.
+:::
+
 :::details Verten dukker ikke opp
 Sjekk at verten når OneUptime-URL-en din over HTTPS, og les deretter innsamlerens logg med kommandoen for systemet under [Sjekk innsamleren til en vert](#sjekk-innsamleren-til-en-vert).
 :::

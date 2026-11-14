@@ -44,6 +44,7 @@ import StatusPageViewMcp from "../Pages/StatusPages/View/Mcp";
 import StatusPageAnnouncements from "../Pages/StatusPages/Announcements";
 
 import AnnouncementCreate from "../Pages/StatusPages/AnnouncementCreate";
+import StatusPagesGuidedSetup from "../Pages/StatusPages/GuidedSetup";
 import RemountOnAddressChange from "../Components/CreateFromRecord/RemountOnAddressChange";
 
 import AnnouncementView from "../Pages/StatusPages/AnnouncementView";
@@ -313,6 +314,17 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
           mountPageKey: PageMap.STATUS_PAGES_ROOT,
         })}
       </PageRoute>
+
+      {/* Guided setup: publish a status page (#6806), with no side menu. */}
+      <PageRoute
+        path={StatusPagesRoutePath[PageMap.STATUS_PAGES_GUIDED_SETUP] || ""}
+        element={
+          <StatusPagesGuidedSetup
+            {...props}
+            pageRoute={RouteMap[PageMap.STATUS_PAGES_GUIDED_SETUP] as Route}
+          />
+        }
+      />
 
       <PageRoute
         path={StatusPagesRoutePath[PageMap.ANNOUNCEMENT_CREATE] || ""}

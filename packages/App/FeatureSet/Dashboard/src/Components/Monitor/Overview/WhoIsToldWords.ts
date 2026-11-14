@@ -24,6 +24,7 @@ import {
 import ObjectID from "Common/Types/ObjectID";
 import { OnCallPageChannel } from "Common/Types/OnCallDutyPolicy/OnCallPageChannel";
 import { OnCallTestPageRecordKind } from "Common/Types/OnCallDutyPolicy/OnCallTestPage";
+import { joinSentences } from "Common/UI/Components/DeleteConfirmation/DeleteConsequences";
 import {
   composedValue,
   PluralTemplate,
@@ -65,6 +66,12 @@ const OWNER_SENTENCES: Readonly<
   [WhoIsToldOwnersSource.Named]: {
     named: translationKey("It emails its owners ({{names}})."),
     unnamed: translationKey("It emails its owners."),
+  },
+  [WhoIsToldOwnersSource.OwnerRules]: {
+    named: translationKey(
+      "It emails the owners added by owner rules ({{names}}).",
+    ),
+    unnamed: translationKey("It emails the owners added by owner rules."),
   },
   [WhoIsToldOwnersSource.ProjectOwners]: {
     named: translationKey("It emails the project's owners ({{names}})."),
@@ -265,7 +272,7 @@ const FIX_WORDS: Readonly<Record<WhoIsToldFix, string>> = {
   [WhoIsToldFix.OnCallPolicy]: translationKey("Open On-Call Policy"),
   [WhoIsToldFix.OnCallReadiness]: translationKey("Open Readiness"),
   [WhoIsToldFix.ProjectNotificationSettings]: translationKey(
-    "Open Notification Settings",
+    "Open Notification Channels",
   ),
   [WhoIsToldFix.ProjectBilling]: translationKey("Open Billing"),
   [WhoIsToldFix.ServerSettings]: translationKey("Open Admin Dashboard"),
@@ -497,4 +504,16 @@ export function getWhoIsToldSentences(
   }
 
   return sentences;
+}
+
+/*
+ * The card's first words as one paragraph, run together the way the
+ * reader's script writes them: a space after each sentence, but none after
+ * a full-width stop (Japanese, Chinese). "" when no criteria does anything.
+ */
+export function getWhoIsToldSummary(
+  result: Pick<WhoIsToldResult, "criteria">,
+  translator: Translator,
+): string {
+  return joinSentences(getWhoIsToldSentences(result, translator));
 }

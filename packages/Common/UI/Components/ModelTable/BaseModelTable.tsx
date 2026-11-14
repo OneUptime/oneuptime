@@ -1,6 +1,6 @@
 import Includes from "../../../Types/BaseDatabase/Includes";
 import GlossaryTerm from "../../../Types/Docs/GlossaryTerm";
-import DefinedTerm from "../Glossary/DefinedTerm";
+import DefinedTerm from "../Glossary/LazyDefinedTerm";
 import { BILLING_ENABLED, getAllEnvVars } from "../../Config";
 import { GetReactElementFunction } from "../../Types/FunctionTypes";
 import API from "../../Utils/API/API";

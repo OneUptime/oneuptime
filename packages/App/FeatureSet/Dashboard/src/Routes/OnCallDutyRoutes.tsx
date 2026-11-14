@@ -15,6 +15,7 @@ import OnCallDutyExecutionLogs from "../Pages/OnCallDuty/OnCallDutyExecutionLogs
 
 import OnCallDutyUserOverrides from "../Pages/OnCallDuty/UserOverrides";
 import OnCallDutyReadiness from "../Pages/OnCallDuty/Readiness";
+import OnCallDutyGuidedSetup from "../Pages/OnCallDuty/GuidedSetup";
 import OnCallDutyCalendarFeeds from "../Pages/OnCallDuty/CalendarFeeds";
 import OnCallDutyScheduleTimeline from "../Pages/OnCallDuty/ScheduleTimeline";
 
@@ -471,6 +472,20 @@ const OnCallDutyRoutes: FunctionComponent<ComponentProps> = (
           mountPageKey: PageMap.ON_CALL_DUTY_ROOT,
         })}
       </PageRoute>
+
+      {/*
+       * Guided setup: page the right person, and escalate (#6805). Its own
+       * page, outside the side menu's layout, as Monitors' guided setup is.
+       */}
+      <PageRoute
+        path={OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_GUIDED_SETUP] || ""}
+        element={
+          <OnCallDutyGuidedSetup
+            {...props}
+            pageRoute={RouteMap[PageMap.ON_CALL_DUTY_GUIDED_SETUP] as Route}
+          />
+        }
+      />
 
       <PageRoute
         path={OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_POLICY_VIEW] || ""}

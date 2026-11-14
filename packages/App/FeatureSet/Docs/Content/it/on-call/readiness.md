@@ -58,7 +58,7 @@ Solo la persona stessa può aggiungere e verificare i propri metodi di notifica 
 3. Confermate. Ogni persona riceve un'e-mail che nomina ciò che manca nella sua configurazione, con un link alla pagina che lo sistema.
 :::
 
-Un banner indica poi quanti promemoria sono stati inviati, saltati o non riusciti, e perché per ciascuno di quelli non inviati. Nessuno riceve più di un promemoria ogni 24 ore, e un invio raggiunge al massimo 250 persone. Inviare promemoria richiede **Proprietario del progetto**, **Amministratore del progetto** o **Amministratore della reperibilità**, oppure **Edit On-Call Duty Policy** in un ruolo personalizzato.
+Un banner indica poi quanti promemoria sono stati inviati, saltati o non riusciti, e perché per ciascuno di quelli non inviati. Nessuno riceve più di un promemoria ogni 24 ore, e un invio raggiunge al massimo 250 persone. Inviare promemoria richiede **Proprietario del progetto**, **Amministratore del progetto** o **Amministratore della reperibilità**, oppure **Edit On-Call Policy** in un ruolo personalizzato.
 
 ## La prontezza in altre pagine
 
@@ -108,5 +108,5 @@ Viene inviata solo in una settimana in cui qualcuno è **Irraggiungibile** o **D
 :::cards
 - [Come OneUptime vi raggiunge](/docs/notifications/index): I metodi, le regole e il ripiego dietro ogni stato.
 - [Metodi di notifica](/docs/notifications/notification-methods): Aggiungere e verificare i modi in cui OneUptime raggiunge qualcuno.
-- [Regole di reperibilità personali](/docs/notifications/on-call-rules): Colmare le lacune, gravità per gravità.
+- [Come contattarmi](/docs/notifications/on-call-rules): Colmare le lacune, gravità per gravità.
 :::

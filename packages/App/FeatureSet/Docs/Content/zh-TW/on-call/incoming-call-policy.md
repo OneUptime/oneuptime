@@ -38,7 +38,7 @@ flowchart TB
 :::steps
 ### 新增您的 Twilio 帳戶
 
-前往 **專案設定** > **通知** > **通知設定** ，展開 **更多設定** 。在 **Twilio 設定** 卡片中點選 **建立 Twilio 設定** ，然後填寫表單：
+前往 **專案設定** > **通知** > **通知管道** ，展開 **更多設定** 。在 **Twilio 設定** 卡片中點選 **建立 Twilio 設定** ，然後填寫表單：
 
 - **名稱** 和 **描述** ：帳戶的用途，例如「客服專線」。
 - **Twilio 帳戶 SID** ：來自 Twilio Console。以 `AC` 開頭。
@@ -143,7 +143,7 @@ OneUptime 會使用 Twilio 設定的 Auth Token 驗證每個請求上的 Twilio 
 
 OneUptime 會把號碼的語音 webhook 設為 `https://<your host>/notification/incoming-call/voice` ，在自行託管的安裝上由 `HOST` 和 `HTTP_PROTOCOL` 建構。若要把策略移到另一個 Twilio 帳戶，請先釋出其號碼：只有在策略沒有號碼時才能變更帳戶。
 
-若要釋出號碼，請點選其旁邊的 **釋出** ，並以 **釋出號碼** 確認。
+若要釋出號碼，請點選其旁邊的 **釋出號碼** ，並以 **釋出號碼** 確認。
 
 > [!CAUTION]
 > 釋出號碼會把它歸還給 Twilio，即使是透過 **使用現有電話號碼** 帶來的號碼，而且您可能無法再次取得它。刪除策略或其使用的 Twilio 設定也會釋出其號碼。
@@ -160,7 +160,7 @@ OneUptime 會把號碼的語音 webhook 設為 `https://<your host>/notification
 
 每個人在每個專案中只能有一個已驗證的號碼。若要更換號碼，請先刪除舊號碼。這些號碼與待命呼叫使用的 **通知方式** 中的電話號碼分開。請參閱 [通知方式](/docs/notifications/notification-methods)。
 
-來電號碼透過簡訊驗證，因此必須先為專案開啟 **SMS** 。專案擁有者、 **帳單管理員** 或擁有 **Manage Billing** 的人可以在 **專案設定 > 通知 > 通知設定** 上的 **通知管道** 卡片中開啟它。
+來電號碼透過簡訊驗證，因此必須先為專案開啟 **SMS** 。專案擁有者、 **帳單管理員** 或擁有 **Manage Billing** 的人可以在 **專案設定 > 通知 > 通知管道** 上的 **通知管道** 卡片中開啟它。
 
 ## 語音訊息和策略設定
 
@@ -228,7 +228,7 @@ Twilio 以文字轉語音朗讀這些訊息，因此請依您希望聽到的樣�
 - **查詢號碼** - 在 Twilio 中搜尋要預訂的號碼，或列出您的 Twilio 帳戶已有的號碼 - 需要讀取來電策略的權限，以及讀取通話與簡訊設定的權限，因為它會透過其中之一讀取您的 Twilio 帳戶。 **專案擁有者** 、 **專案管理員** 、 **專案成員** 、 **檢視者** 、 **設定管理員** 、 **設定成員** 和 **設定檢視者** 都擁有這兩項。在自訂角色中，就是 **Read Incoming Call Policy** 和 **Read Call and SMS** 。
 - **預訂號碼、使用已有號碼和釋出號碼** 需要編輯來電策略的權限： **專案擁有者** 、 **專案管理員** 、 **專案成員** 、 **設定管理員** 和 **設定成員** ，或自訂角色中的 **Edit Incoming Call Policy** 。它們會變更您可以編輯的策略的號碼：若角色僅限某些標籤，則是帶有這些標籤的策略。
 
-團隊在這些權限之一上不帶標籤的封鎖會取消該權限。對其他人來說， **新增電話號碼** 和 **釋出** 仍留在頁面上但處於鎖定狀態，其提示會說明需要什麼。API 會用一句說明所需權限的話拒絕其請求："Looking up phone numbers needs permission to read incoming call policies and call and SMS settings." 或 "Adding or releasing a phone number needs permission to edit incoming call policies." 預訂號碼的費用記入您自己的 Twilio 帳戶，而不是您的 OneUptime 餘額，因此不需要帳務權限。
+團隊在這些權限之一上不帶標籤的封鎖會取消該權限。對其他人來說， **新增電話號碼** 和 **釋出號碼** 仍留在頁面上但處於鎖定狀態，其提示會說明需要什麼。API 會用一句說明所需權限的話拒絕其請求："Looking up phone numbers needs permission to read incoming call policies and call and SMS settings." 或 "Adding or releasing a phone number needs permission to edit incoming call policies." 預訂號碼的費用記入您自己的 Twilio 帳戶，而不是您的 OneUptime 餘額，因此不需要帳務權限。
 
 ## 使用 API 或 Terraform 建立策略
 

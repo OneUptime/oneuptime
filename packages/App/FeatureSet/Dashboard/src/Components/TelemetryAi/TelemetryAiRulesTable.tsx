@@ -151,6 +151,10 @@ export const TelemetryAiRuleDoesCell: FunctionComponent<
         {describeTelemetryAiRuleTiming(props.rule.onlyIfOpenAfterMinutes)}
       </span>
       <div data-testid={AI_RULE_TEST_IDS.fixColumn}>
+        {/*
+         * Wraps between its words, never inside one (#7111): a column held
+         * narrow broke a longer language's word in the middle.
+         */}
         <Pill
           color={
             fix === AiRuleFix.DoNotFix
@@ -161,6 +165,7 @@ export const TelemetryAiRuleDoesCell: FunctionComponent<
           }
           text={AI_RULE_FIX_TEXT[fix]}
           isWrapping={true}
+          isKeepingWordsWhole={true}
         />
       </div>
     </div>

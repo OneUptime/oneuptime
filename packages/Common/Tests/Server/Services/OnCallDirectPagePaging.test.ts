@@ -877,7 +877,7 @@ describe("a direct page pages its targets", () => {
         }),
       ).rejects.toThrow(
         new BadDataException(
-          "triggeredByIncidentId is required when userNotificationEventType is IncidentCreated",
+          "An on-call policy run for a new incident must name the incident.",
         ),
       );
 
@@ -896,7 +896,7 @@ describe("a direct page pages its targets", () => {
           targets: targets({ userIds: [JANE] }),
         }),
       ).rejects.toThrow(
-        "triggeredByAlertId is required when userNotificationEventType is AlertCreated",
+        "An on-call policy run for a new alert must name the alert.",
       );
 
       expect(paged()).toEqual([]);

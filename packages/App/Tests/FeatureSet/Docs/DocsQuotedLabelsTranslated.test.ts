@@ -376,8 +376,11 @@ const STORAGE_ARRAY_TEMPLATE_TABLES: ReadonlyArray<string> = [
 const BOLD: RegExp = /\*\*([^*\n]+?)\*\*/g;
 const INLINE_CODE: RegExp = /`[^`\n]*`/g;
 const FENCE: RegExp = /^\s*(?:```|~~~)/;
-// A menu path's separators: "Network → Devices", Persian "شبکه > دستگاه‌ها".
-const PATH_SEPARATOR: RegExp = / → | > /;
+/*
+ * A menu path's separators: "Network → Devices", Persian "شبکه > دستگاه‌ها",
+ * or Persian "شبکه ← دستگاه‌ها" in one span (#7611).
+ */
+const PATH_SEPARATOR: RegExp = / → | ← | > /;
 const COLONS: ReadonlyArray<string> = [":", "："];
 
 function valueOf(language: string, key: string): string {
@@ -889,6 +892,12 @@ describe("the checks above", () => {
     expect(
       boldWords("Go to **Network → Devices** and click **Add Device**."),
     ).toEqual(["Network", "Devices", "Add Device"]);
+    // A Persian path in one span, its arrows "←" beside Persian steps (#7611).
+    expect(boldWords("به **حوادث ← تنظیمات ← Slack** بروید.")).toEqual([
+      "حوادث",
+      "تنظیمات",
+      "Slack",
+    ]);
     expect(boldWords("- **Stale:** the **Instances** tab")).toEqual([
       "Stale",
       "Instances",

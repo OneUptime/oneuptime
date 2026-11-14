@@ -83,6 +83,14 @@ html.dark .oueb-part {
   --oueb-warning-icon: #fbbf24;
 }
 
+/*
+ * The screen's own box too, not only what is inside it: it is as wide as its
+ * place, its padding inside that width. Tailwind's preflight makes every box
+ * so, but a page whose Tailwind runtime did not arrive - the connection
+ * dropped as it loaded - has no preflight, and its card (Common/Server/Views/
+ * Partials/EntryLoadFailure.ejs) ran past the window by its padding.
+ */
+.oneuptime-error-boundary,
 .oneuptime-error-boundary *,
 .oneuptime-error-boundary *::before,
 .oneuptime-error-boundary *::after,

@@ -24,6 +24,7 @@ import {
 import englishLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import germanLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/de.json";
 import japaneseLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/ja.json";
+import persianLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
 import moment from "moment-timezone";
 
 /*
@@ -57,6 +58,10 @@ const german: Translator = createTranslator(
 const japanese: Translator = createTranslator(
   lookupIn(japaneseLocale as Locale),
   "ja",
+);
+const persian: Translator = createTranslator(
+  lookupIn(persianLocale as Locale),
+  "fa",
 );
 
 const ON_24: WorkingHoursTextOptions = {
@@ -211,6 +216,53 @@ describe("the hours and their zone", () => {
         ),
       ),
     ).toBe("Mon–Thu 08:30–18:00; Fri 08:30–15:00 (Europe/London)");
+  });
+
+  /*
+   * Each day's hours are a clause, set off with the semicolon of the script
+   * the day names are written in (#7607): the Latin "; " stood between
+   * Japanese and Persian days.
+   */
+  test("different hours on some days, in Japanese and Persian, take that script's semicolon", () => {
+    const hours: RestrictionTimes = WorkingHours.fromSimpleHours({
+      days: [0, 1, 2, 3],
+      from: "08:30",
+      to: "18:00",
+      timezone: LONDON,
+    });
+    const friday: RestrictionTimes = WorkingHours.fromSimpleHours({
+      days: [4],
+      from: "08:30",
+      to: "15:00",
+      timezone: LONDON,
+    });
+    hours.weeklyRestrictionTimes = [
+      ...hours.weeklyRestrictionTimes,
+      ...friday.weeklyRestrictionTimes,
+    ];
+    const inLanguage: (translator: Translator) => string | null = (
+      translator: Translator,
+    ): string | null => {
+      return plain(
+        describeWorkingHours(
+          {
+            whenToPage: OnCallRuleWhenToPage.WorkingHours,
+            workingHours: hours,
+            workingHoursTimezone: LONDON,
+          },
+          { translator: translator, use12HourFormat: false },
+        ),
+      );
+    };
+
+    expect(inLanguage(japanese)).toBe(
+      "月–木 08:30–18:00；金 08:30–15:00 (Europe/London)",
+    );
+
+    const inPersian: string = inLanguage(persian) || "";
+
+    expect(inPersian).toContain("08:30–18:00؛ ");
+    expect(inPersian).not.toContain(";");
   });
 
   test("hours over a weekend say where they begin and end", () => {

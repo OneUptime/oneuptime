@@ -44,7 +44,7 @@ flowchart TB
 
 :::steps
 ### فهرست vCenterها را باز کنید
-در OneUptime، **VMware → همهٔ vCenterها** را باز کنید و روی **اتصال vCenter** کلیک کنید.
+در OneUptime، **VMware ← همهٔ vCenterها** را باز کنید و روی **اتصال vCenter** کلیک کنید.
 
 ### نشانی و حساب را وارد کنید
 نشانی‌ای را که vSphere Client را با آن باز می‌کنید وارد کنید، مانند `https://vcsa.example.com`، نام کاربری را همراه با دامنه‌اش، مانند `oneuptime@vsphere.local`، و رمز عبور آن را. پرابی را که به vCenter می‌رسد برگزینید.

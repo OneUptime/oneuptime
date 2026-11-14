@@ -312,7 +312,6 @@ export function getLastSeenColumn(): Column<StorageArrayResource> {
     type: FieldType.DateTime,
     hideOnMobile: true,
     isHiddenByDefault: true,
-    noValueMessage: "—",
   };
 }
 

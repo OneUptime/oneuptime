@@ -1,4 +1,5 @@
 import "@testing-library/jest-dom";
+import { withProductText } from "../../../UI/Utils/ProductText";
 import {
   afterEach,
   beforeEach,
@@ -174,7 +175,10 @@ describe.each(CASES)(
       );
 
       expect(title).toHaveTextContent(previewCase.title);
-      expect(title.className).toBe(CARD_SECTION_TITLE_CLASS_NAME);
+      // Its words are the product's own, readable in a recording of the setup pages (#6834).
+      expect(title.className).toBe(
+        withProductText(CARD_SECTION_TITLE_CLASS_NAME),
+      );
     });
 
     test("draws no rule or heading of its own: no larger, lighter heading over a 32px rule", async () => {

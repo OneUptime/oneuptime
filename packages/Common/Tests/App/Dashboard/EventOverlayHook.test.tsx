@@ -7,7 +7,14 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
+import type { SpyInstance } from "jest-mock";
 import * as React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
@@ -70,6 +77,7 @@ import useEventTimeReferenceLines, {
 import ChartTimeReferenceLineProps from "../../../UI/Components/Charts/Types/TimeReferenceLineProps";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import ObjectID from "../../../Types/ObjectID";
+import Navigation from "../../../UI/Utils/Navigation";
 import ProjectUtil from "../../../UI/Utils/Project";
 
 const WINDOW: InBetween<Date> = new InBetween<Date>(
@@ -491,5 +499,208 @@ describe("useEventTimeReferenceLines: leaving out the page's own event", () => {
       "Incident: Another incident",
       "Incident: This incident",
     ]);
+  });
+});
+
+/*
+ * A dashboard widget's live preview, in its settings dialog, is drawn over
+ * a board being edited, and nothing asks before leaving a board with
+ * widgets not saved yet (issue #6859). There an incident's or an alert's
+ * marker is drawn as on the board, and its click opens nothing
+ * (opensEvents: false). Anywhere else - the option left out - it opens the
+ * event, as it always has.
+ */
+describe("useEventTimeReferenceLines: markers that open nothing (opensEvents)", () => {
+  const INCIDENT_ID: string = "11111111-0000-4000-8000-000000006859";
+  const ALERT_ID: string = "22222222-0000-4000-8000-000000006859";
+
+  function OpeningProbe(props: {
+    opensEvents?: boolean | undefined;
+  }): React.ReactElement {
+    const { lines, markerCount }: EventTimeReferenceLines =
+      useEventTimeReferenceLines({
+        enabled: true,
+        window: WINDOW,
+        opensEvents: props.opensEvents,
+      });
+
+    return (
+      <div data-testid="opening-probe" data-count={markerCount}>
+        {lines.map((line: ChartTimeReferenceLineProps, index: number) => {
+          return (
+            <button
+              key={index}
+              type="button"
+              data-testid="opening-marker"
+              data-clickable={line.onClick ? "yes" : "no"}
+              data-color={line.color}
+              data-kind={line.kind || "none"}
+              onClick={() => {
+                line.onClick?.();
+              }}
+            >
+              {line.label}
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
+
+  let navigateSpy: SpyInstance<typeof Navigation.navigate>;
+
+  beforeEach(() => {
+    navigateSpy = jest
+      .spyOn(Navigation, "navigate")
+      .mockImplementation((): void => {});
+
+    getListMock.mockImplementation((args: { modelType: { name: string } }) => {
+      if (args.modelType.name === "Incident") {
+        return Promise.resolve({
+          data: [
+            {
+              id: new ObjectID(INCIDENT_ID),
+              createdAt: "2026-08-20T10:10:00.000Z",
+              title: "API is down",
+              incidentSeverity: { color: "#123456" },
+            },
+          ],
+        });
+      }
+      return Promise.resolve({
+        data: [
+          {
+            id: new ObjectID(ALERT_ID),
+            createdAt: "2026-08-20T10:20:00.000Z",
+            title: "High latency",
+          },
+        ],
+      });
+    });
+    analyticsGetListMock.mockResolvedValue({
+      data: [
+        {
+          time: "2026-08-20T10:03:00.000Z",
+          title: "v2.31.0",
+          eventType: "deployment",
+        },
+      ],
+    });
+  });
+
+  async function openingMarkers(): Promise<Array<HTMLElement>> {
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("opening-probe").getAttribute("data-count"),
+      ).toBe("3");
+    });
+
+    return screen.getAllByTestId("opening-marker");
+  }
+
+  function markerNamed(
+    markers: Array<HTMLElement>,
+    label: string,
+  ): HTMLElement {
+    const found: HTMLElement | undefined = markers.find(
+      (marker: HTMLElement): boolean => {
+        return marker.textContent === label;
+      },
+    );
+
+    if (!found) {
+      throw new Error(`no marker named ${label}`);
+    }
+
+    return found;
+  }
+
+  test("left out, an incident's and an alert's markers open them", async () => {
+    render(<OpeningProbe />);
+
+    const markers: Array<HTMLElement> = await openingMarkers();
+    const incident: HTMLElement = markerNamed(markers, "Incident: API is down");
+    const alert: HTMLElement = markerNamed(markers, "Alert: High latency");
+
+    expect(incident.dataset["clickable"]).toBe("yes");
+    expect(alert.dataset["clickable"]).toBe("yes");
+    expect(markerNamed(markers, "Deploy: v2.31.0").dataset["clickable"]).toBe(
+      "no",
+    );
+
+    fireEvent.click(incident);
+    fireEvent.click(alert);
+
+    expect(navigateSpy).toHaveBeenCalledTimes(2);
+    expect(String(navigateSpy.mock.calls[0]?.[0])).toContain(INCIDENT_ID);
+    expect(String(navigateSpy.mock.calls[1]?.[0])).toContain(ALERT_ID);
+  });
+
+  test("true is the same as left out", async () => {
+    render(<OpeningProbe opensEvents={true} />);
+
+    const markers: Array<HTMLElement> = await openingMarkers();
+
+    fireEvent.click(markerNamed(markers, "Incident: API is down"));
+
+    expect(navigateSpy).toHaveBeenCalledTimes(1);
+    expect(String(navigateSpy.mock.calls[0]?.[0])).toContain(INCIDENT_ID);
+  });
+
+  test("false: every marker drawn as it is, and none opens anything", async () => {
+    render(<OpeningProbe opensEvents={false} />);
+
+    const markers: Array<HTMLElement> = await openingMarkers();
+
+    expect(
+      markers.map((marker: HTMLElement): string => {
+        return marker.textContent || "";
+      }),
+    ).toEqual(
+      expect.arrayContaining([
+        "Incident: API is down",
+        "Alert: High latency",
+        "Deploy: v2.31.0",
+      ]),
+    );
+
+    for (const marker of markers) {
+      expect(marker.dataset["clickable"]).toBe("no");
+      fireEvent.click(marker);
+    }
+
+    // Each keeps its colour and its kind: only the click is gone.
+    const incident: HTMLElement = markerNamed(markers, "Incident: API is down");
+    expect(incident.dataset["color"]).toBe("#123456");
+    expect(incident.dataset["kind"]).not.toBe("none");
+    expect(navigateSpy).not.toHaveBeenCalled();
+  });
+
+  test("turned off and on again, the markers stay and nothing is read again", async () => {
+    const { rerender } = render(<OpeningProbe />);
+
+    await openingMarkers();
+
+    const incidentReads: number = getListMock.mock.calls.length;
+    const changeReads: number = analyticsGetListMock.mock.calls.length;
+
+    rerender(<OpeningProbe opensEvents={false} />);
+
+    let markers: Array<HTMLElement> = screen.getAllByTestId("opening-marker");
+    expect(markers).toHaveLength(3);
+    expect(
+      markerNamed(markers, "Incident: API is down").dataset["clickable"],
+    ).toBe("no");
+
+    rerender(<OpeningProbe opensEvents={true} />);
+
+    markers = screen.getAllByTestId("opening-marker");
+    expect(markers).toHaveLength(3);
+    expect(
+      markerNamed(markers, "Incident: API is down").dataset["clickable"],
+    ).toBe("yes");
+
+    expect(getListMock.mock.calls.length).toBe(incidentReads);
+    expect(analyticsGetListMock.mock.calls.length).toBe(changeReads);
   });
 });

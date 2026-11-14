@@ -39,6 +39,9 @@ import ObjectID from "../../../Types/ObjectID";
 import PushDeviceType from "../../../Types/PushNotification/PushDeviceType";
 import UserNotificationStatus from "../../../Types/UserNotification/UserNotificationStatus";
 import API, { APIRequestOptions } from "../../../Utils/API";
+import OnCallTimelineRows, {
+  OnCallNotificationWrite,
+} from "../TestingUtils/OnCallTimelineRows";
 import FakeSortedSetRedis from "../TestingUtils/Redis/FakeSortedSetRedis";
 import { Expo, ExpoPushMessage, ExpoPushTicket } from "expo-server-sdk";
 
@@ -81,7 +84,14 @@ function receiptIdOf(index: number): string {
 let redis: FakeSortedSetRedis;
 let tickets: Map<string, ExpoPushTicket | Error>;
 let createdLogs: Array<PushNotificationLog>;
-let timelineUpdates: Array<{ status: unknown; statusMessage: unknown }>;
+let timeline: OnCallTimelineRows;
+
+// What was written to the page's on-call timeline row, in order.
+function timelineUpdates(): Array<OnCallNotificationWrite["data"]> {
+  return timeline.writes.map((write: OnCallNotificationWrite) => {
+    return write.data;
+  });
+}
 let logIds: Array<string>;
 
 function kept(): Array<[PendingExpoPushReceipt, number]> {
@@ -143,7 +153,9 @@ beforeEach(() => {
   ]);
 
   createdLogs = [];
-  timelineUpdates = [];
+  // The page's timeline row, as written when the page went out.
+  timeline = new OnCallTimelineRows();
+  timeline.add(TIMELINE_ID, UserNotificationStatus.Sending);
   logIds = [
     "7f000000-0000-4000-8000-000000000411",
     "7f000000-0000-4000-8000-000000000412",
@@ -176,14 +188,7 @@ beforeEach(() => {
       return log;
     }) as never);
 
-  jest
-    .spyOn(UserOnCallLogTimelineService, "updateOneById")
-    .mockImplementation((async (updateBy: {
-      data: { status: unknown; statusMessage: unknown };
-    }) => {
-      timelineUpdates.push(updateBy.data);
-      return 1;
-    }) as never);
+  timeline.standIn(UserOnCallLogTimelineService);
 
   jest.spyOn(UserPushService, "markExpoPushTokenAsGone").mockResolvedValue(1);
 });
@@ -232,7 +237,7 @@ describe("a push Expo accepts, sent with this deployment's Expo access token", (
       expect(EXPO_PUSH_RECEIPT_FIRST_CHECK_AFTER_MS).toBe(15 * MINUTE);
 
       // The page itself is reported as it always was.
-      expect(timelineUpdates).toEqual([
+      expect(timelineUpdates()).toEqual([
         {
           status: UserNotificationStatus.Sent,
           statusMessage: "Push notification sent successfully",
@@ -414,7 +419,7 @@ describe("a push Expo accepts, sent with this deployment's Expo access token", (
     });
 
     expect(failure).toBeNull();
-    expect(timelineUpdates).toEqual([
+    expect(timelineUpdates()).toEqual([
       {
         status: UserNotificationStatus.Sent,
         statusMessage: "Push notification sent successfully",

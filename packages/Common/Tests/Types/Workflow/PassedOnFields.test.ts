@@ -213,7 +213,10 @@ describe("getFieldPathSegments", () => {
     expect(getFieldPathSegments("[0].name")).toEqual(["", "name"]);
   });
 
-  // It is read with a loop: a quantifier is not safe on a long one (AGENTS.md).
+  /*
+   * It is read with a loop: a quantifier is not safe on a long one
+   * (Docs/notifications/README.md, "Megabyte-long values").
+   */
   test("reads a name megabytes long", () => {
     const name: string = "x".repeat(4 * 1024 * 1024);
 

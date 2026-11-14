@@ -9,6 +9,7 @@ import AppLink from "../../Components/AppLink/AppLink";
 import MonitorStatusElement from "../../Components/MonitorStatus/MonitorStatusElement";
 import { NETWORK_SITE_METRIC_DESCRIPTIONS } from "../../Components/MetricDescriptions/NetworkSiteMetricDescriptions";
 import ImportSitesFromCsvModal from "../../Components/NetworkSite/ImportSitesFromCsvModal";
+import SiteCoordinates from "../../Components/NetworkSite/SiteCoordinates";
 import {
   fetchAllNetworkSiteTypeOptions,
   fetchParentNetworkSiteOptions,
@@ -777,9 +778,13 @@ const NetworkSites: FunctionComponent<
                   </span>
                 );
               }
+              // Left to right in every language (SiteCoordinates).
               return (
                 <span className="text-sm text-gray-600">
-                  {item.latitude}, {item.longitude}
+                  <SiteCoordinates
+                    latitude={item.latitude}
+                    longitude={item.longitude}
+                  />
                 </span>
               );
             },

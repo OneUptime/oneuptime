@@ -16,6 +16,7 @@ import { JSONObject } from "Common/Types/JSON";
 import Permission from "Common/Types/Permission";
 import { mdText } from "Common/Utils/Markdown/FeedMarkdown";
 import { visibleText } from "Common/Tests/Helpers/HtmlText";
+import { drawnDashboardLabel } from "./DocsDashboardLabels";
 import { escapeRegExp } from "./DocsTranslationChecks";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
@@ -148,17 +149,17 @@ const TEMPLATE_SETTING_SECTION: Record<string, string> = {
 
 const DASHBOARD_ONLY_SECTION: Record<string, string> = {
   en: "Required on Create is checked by the dashboard only",
-  fa: "Required on Create فقط در داشبورد بررسی می‌شود",
+  fa: `${drawnDashboardLabel("fa", "Required on Create")} فقط در داشبورد بررسی می‌شود`,
 };
 
 const DETAILS_SECTION: Record<string, string> = {
   en: "Details — your incident custom fields",
-  fa: "Details — فیلدهای سفارشی حادثه شما",
+  fa: `${drawnDashboardLabel("fa", "Details")} — فیلدهای سفارشی حادثه شما`,
 };
 
 const STEP_ONE_SECTION: Record<string, string> = {
   en: "Step 1 — Incident Details",
-  fa: "گام ۱ — Incident Details",
+  fa: `گام ۱ — ${drawnDashboardLabel("fa", "Incident Details")}`,
 };
 
 const WAYS_SECTION: Record<string, string> = {
@@ -183,7 +184,7 @@ const TEMPLATE_EDITORS_CAN_CHANGE_THEM: Record<string, string> = {
 
 const DETAILS_STEP_IS_DASHBOARD_ONLY_TOO: Record<string, string> = {
   en: "**Required on Create** is checked by the dashboard only, and so is a template's **Custom Fields on Create**.",
-  fa: "**Required on Create** فقط در داشبورد بررسی می‌شود، و **Custom Fields on Create** یک قالب هم همین‌طور.",
+  fa: `**${drawnDashboardLabel("fa", "Required on Create")}** فقط در داشبورد بررسی می‌شود، و **${drawnDashboardLabel("fa", "Custom Fields on Create")}** یک قالب هم همین‌طور.`,
 };
 
 /*
@@ -310,14 +311,16 @@ const FIVE_ROUTES: Record<string, string> = {
 };
 
 // Where the Markdown editor's list and paste handling is mentioned.
-const EDITOR_WORDS: ReadonlyArray<string> = [
-  "**Indent**",
-  "**Outdent**",
-  "Tab",
-  "Shift+Tab",
-  "Word",
-  "Google Docs",
-];
+function editorWords(language: string): Array<string> {
+  return [
+    `**${drawnDashboardLabel(language, "Indent")}**`,
+    `**${drawnDashboardLabel(language, "Outdent")}**`,
+    "Tab",
+    "Shift+Tab",
+    "Word",
+    "Google Docs",
+  ];
+}
 
 // How each language names the editor's two modes, as a sentence starts.
 const VISUAL_MODE: Record<string, string> = {
@@ -963,13 +966,20 @@ describe("Incident docs", () => {
 
         const names: Set<string> = boldText(setting);
 
-        expect(names.has(TEMPLATE_SETTING_NAME)).toBe(true);
+        expect(
+          names.has(drawnDashboardLabel(language, TEMPLATE_SETTING_NAME)),
+        ).toBe(true);
 
         for (const option of TEMPLATE_SETTING_OPTIONS) {
           expect({
             language: language,
             option: option,
-            row: Boolean(tableRowStartingWith(setting, `**${option}**`)),
+            row: Boolean(
+              tableRowStartingWith(
+                setting,
+                `**${drawnDashboardLabel(language, option)}**`,
+              ),
+            ),
           }).toEqual({ language: language, option: option, row: true });
         }
 
@@ -977,9 +987,11 @@ describe("Incident docs", () => {
           setting.includes(HIDDEN_KEEPS_TEMPLATE_VALUE[language] as string),
         ).toBe(true);
         // The wizard step is listed with the template's other steps.
-        expect(templates.includes(`- **${TEMPLATE_SETTING_NAME}** — `)).toBe(
-          true,
-        );
+        expect(
+          templates.includes(
+            `- **${drawnDashboardLabel(language, TEMPLATE_SETTING_NAME)}** — `,
+          ),
+        ).toBe(true);
       }
     });
 
@@ -1125,7 +1137,9 @@ describe("Incident docs", () => {
 
         expect({
           language: language,
-          named: boldText(details).has(TEMPLATE_SETTING_NAME),
+          named: boldText(details).has(
+            drawnDashboardLabel(language, TEMPLATE_SETTING_NAME),
+          ),
           linked: docsLinks(details).some((link: DocsLink): boolean => {
             return (
               link.page === SETTINGS_PAGE &&
@@ -1163,7 +1177,7 @@ describe("Incident docs", () => {
           expect({
             language: language,
             label: label,
-            named: names.has(label),
+            named: names.has(drawnDashboardLabel(language, label)),
           }).toEqual({ language: language, label: label, named: true });
         }
       }
@@ -1435,7 +1449,7 @@ describe("Incident docs", () => {
         );
         const notes: string = readPage(NOTES_PAGE, language);
 
-        for (const words of EDITOR_WORDS) {
+        for (const words of editorWords(language)) {
           expect({
             language: language,
             words: words,
@@ -1555,7 +1569,7 @@ describe("Incident docs", () => {
         expect({
           language: language,
           toggle: ["Markdown", "Visual"].filter((name: string): boolean => {
-            return boldText(stepOne).has(name);
+            return boldText(stepOne).has(drawnDashboardLabel(language, name));
           }),
           splits: sentenceWith(
             stepOne,
@@ -1572,12 +1586,16 @@ describe("Incident docs", () => {
           atTheCursor: atTheCursor.startsWith(markdownMode),
           atTheCursorButtons: ["Code Block", "Table"].filter(
             (name: string): boolean => {
-              return boldText(atTheCursor).has(name);
+              return boldText(atTheCursor).has(
+                drawnDashboardLabel(language, name),
+              );
             },
           ),
           markdownUndo: markdownUndo.length,
           notUndone: UNDO_BYPASSING_BUTTONS.filter((name: string): boolean => {
-            return boldText(markdownUndo[0] || "").has(name);
+            return boldText(markdownUndo[0] || "").has(
+              drawnDashboardLabel(language, name),
+            );
           }),
         }).toEqual({
           language: language,

@@ -37,7 +37,7 @@ flowchart TB
 ## Перед началом
 
 - **Поступающие трассировки.** Инструментируйте свои сервисы с помощью [OpenTelemetry](/docs/telemetry/open-telemetry). Вкладка **Руководство по настройке** показывает код для вашего языка.
-- **Роль, которая читает телеметрию.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member или Telemetry Viewer либо пользовательская роль с разрешением Read Telemetry Service Traces. Её область определяет, чьи спаны вы видите: см. [Телеметрия](/docs/permissions/index#телеметрия).
+- **Роль, которая читает телеметрию.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member или Telemetry Viewer либо пользовательская роль с разрешением Read Traces. Её область определяет, чьи спаны вы видите: см. [Телеметрия](/docs/permissions/index#телеметрия).
 
 ## Найти запрос
 
@@ -183,6 +183,6 @@ OneUptime AI сам открывает не более 5 пул-реквесто
 :::cards
 - [Синтаксис поиска](/docs/telemetry/search-syntax): Все фильтры, которые понимает поле поиска.
 - [Мониторинг трассировок](/docs/monitor/traces-monitor): Получайте оповещения о неудачных или медленных запросах.
-- [Отслеживание исключений](/docs/telemetry/exceptions): Разбирайте ошибки, которые записывают ваши спаны.
+- [Исключения](/docs/telemetry/exceptions): Разбирайте ошибки, которые записывают ваши спаны.
 - [Обозреватель журналов](/docs/telemetry/logs-explorer): Читайте строки логов, которые записал запрос.
 :::

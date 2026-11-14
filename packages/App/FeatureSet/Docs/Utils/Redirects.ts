@@ -20,6 +20,7 @@ export const NOT_PAGE_CATEGORIES: Array<string> = [
   "static",
   "as-markdown",
   "search-index",
+  "search",
 ];
 
 // Path segments that are not names: a browser would read them as steps up.

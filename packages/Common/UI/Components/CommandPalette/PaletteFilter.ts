@@ -120,7 +120,11 @@ const KEYWORD_EXACT_BONUS: number = 8;
 // The query inside a keyword is weaker evidence than inside the title.
 const KEYWORD_SUBSTRING_PENALTY: number = 6;
 
-// The shortest query found inside a keyword: one or two letters are anywhere.
+/*
+ * The shortest query found inside a keyword: one or two letters are
+ * anywhere. Inside a title they are still found, but never push a fallback
+ * out (filterPaletteCommands).
+ */
 const KEYWORD_SUBSTRING_MIN_LENGTH: number = 3;
 
 // A context match that found query words in the title is worth more.
@@ -940,13 +944,20 @@ export const filterPaletteCommands: (
   /*
    * A command that gives way (searchPenalty) never pushes another's
    * fallback out: "ak" still finds API Keys by its initials although
-   * "Import from StatusCake" holds the letters.
+   * "Import from StatusCake" holds the letters. Nor do one or two letters
+   * inside a word of a title, which a title that is a sentence nearly always
+   * holds: "ak" is inside "Page the right person when something breaks" too.
+   * They are still listed, after the initials.
    */
+  const isShortQuery: boolean =
+    preparedQuery.compact.length < KEYWORD_SUBSTRING_MIN_LENGTH;
+
   const hasBetterMatches: boolean = matches.some(
     (entry: IndexedMatch): boolean => {
       return (
         !FALLBACK_RANKS.has(entry.match.rank) &&
-        !entry.match.command.searchPenalty
+        !entry.match.command.searchPenalty &&
+        !(isShortQuery && entry.match.rank === PaletteMatchRank.Substring)
       );
     },
   );

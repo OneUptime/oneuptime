@@ -763,9 +763,9 @@ describe("megabytes on one line", () => {
 /*
  * The same, in a node process whose regular expressions are no longer
  * optimized - the state a long-running server reaches, where a quantifier
- * over megabytes runs V8 out of stack (AGENTS.md, "Megabyte-long values").
- * esbuild bundles the classifier in that process, as the screenshot email
- * test does.
+ * over megabytes runs V8 out of stack (Docs/notifications/README.md,
+ * "Megabyte-long values"). esbuild bundles the classifier in that process, as
+ * the screenshot email test does.
  */
 const COMMON_ROOT: string = path.resolve(__dirname, "..", "..", "..", "..");
 

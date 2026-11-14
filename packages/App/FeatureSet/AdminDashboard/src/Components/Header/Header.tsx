@@ -40,9 +40,15 @@ const DashboardHeader: FunctionComponent = (): ReactElement => {
             {/*
              * The Enterprise plugin's license details, read here in render
              * (never at module load); the Community stub has none.
+             *
+             * Below lg the header holds the logo, the pill, help and the
+             * profile button: a long state in a long language ("Enterprise
+             * Edition (Marketplace-Berichte schlagen fehl) Abrechnung
+             * prüfen") ran over the logo, so the pill is held to a width
+             * there and wraps its action onto a second line.
              */}
             <EditionLabel
-              className="mr-3 max-md:hidden md:inline-flex"
+              className="mr-3 max-md:hidden md:inline-flex max-lg:max-w-[26rem]"
               licenseDetails={getAdminDashboardPlugins().LicenseDetails}
             />
             <div className="max-lg:hidden items-center lg:flex">

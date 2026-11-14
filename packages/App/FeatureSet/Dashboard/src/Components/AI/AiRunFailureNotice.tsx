@@ -3,6 +3,11 @@ import LlmProvider from "Common/Models/DatabaseModels/LlmProvider";
 import Project from "Common/Models/DatabaseModels/Project";
 import { AIRunFailureKind } from "Common/Types/AI/AIRunAttempt";
 import { PROJECT_AI_DAILY_TOKEN_LIMIT_COLUMN } from "Common/Types/AI/ProjectAiDailyLimits";
+import {
+  AI_LANE_ADVANCED_COLUMNS,
+  AiLane,
+  AiLaneAdvancedCard,
+} from "../AISettings/ProjectAiSettingsCopy";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -67,7 +72,47 @@ export interface AiRunFailureSettingsLink {
   // A translation key: the page's name, as the product's other links to it say it.
   label: string;
   page: PageMap;
+  /*
+   * The card on the page the link lands on, when the fix is under the
+   * page's More settings: the page opens them at that card.
+   */
+  card?: AiLaneAdvancedCard | undefined;
   isAllowed: boolean;
+}
+
+/*
+ * The incident's (alert's) own daily AI token limit is on the record's AI
+ * settings page, in the Daily limits card under More settings: the link
+ * the AI card's other reasons give the page by, and only to who may change
+ * the field there.
+ */
+function getRecordTokenLimitLink(lane: AiLane): AiRunFailureSettingsLink {
+  return {
+    label:
+      lane === AiLane.Alert
+        ? translationKey("Review alert AI settings")
+        : translationKey("Review incident AI settings"),
+    page:
+      lane === AiLane.Alert
+        ? PageMap.ALERTS_SETTINGS_AI
+        : PageMap.INCIDENTS_SETTINGS_AI,
+    card: AiLaneAdvancedCard.DailyLimits,
+    isAllowed: PermissionGate.checkColumnUpdate(
+      new Project(),
+      AI_LANE_ADVANCED_COLUMNS[lane].dailyTokens,
+    ).isAllowed,
+  };
+}
+
+// Where a settings link goes: the page, at its card when it names one.
+export function getAiRunFailureSettingsRoute(
+  link: AiRunFailureSettingsLink,
+): Route {
+  const route: Route = RouteUtil.populateRouteParams(
+    RouteMap[link.page] as Route,
+  );
+
+  return link.card ? new Route(`${route.toString()}#${link.card}`) : route;
 }
 
 export function getAiRunFailureSettingsLink(
@@ -106,6 +151,13 @@ export function getAiRunFailureSettingsLink(
           PROJECT_AI_DAILY_TOKEN_LIMIT_COLUMN,
         ).isAllowed,
       };
+    // The incident's or alert's own daily AI token limit, paused or used up.
+    case AIRunFailureKind.IncidentTokenLimitPaused:
+    case AIRunFailureKind.IncidentTokenLimitUsedUp:
+      return getRecordTokenLimitLink(AiLane.Incident);
+    case AIRunFailureKind.AlertTokenLimitPaused:
+    case AIRunFailureKind.AlertTokenLimitUsedUp:
+      return getRecordTokenLimitLink(AiLane.Alert);
     // Credits are used up only where billing is on: AI Credits is listed then.
     case AIRunFailureKind.CreditsUsedUp:
       return {
@@ -167,9 +219,7 @@ const AiRunFailureNotice: FunctionComponent<ComponentProps> = (
             )}
             {settingsLink && isSettingsLinkShown ? (
               <Link
-                to={RouteUtil.populateRouteParams(
-                  RouteMap[settingsLink.page] as Route,
-                )}
+                to={getAiRunFailureSettingsRoute(settingsLink)}
                 className={NOTICE_LINK_CLASS_NAME}
                 dataTestId={`${testId}-settings`}
               >

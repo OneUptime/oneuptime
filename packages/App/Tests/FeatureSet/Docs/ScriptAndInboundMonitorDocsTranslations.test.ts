@@ -22,6 +22,7 @@ import {
   strayMarkers,
   tableShape,
 } from "./DocsTranslationChecks";
+import { pathWithArrows } from "./DocsPageShape";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -172,8 +173,17 @@ const PROSE: Record<string, Array<string>> = {
    * reads badly in a sentence.
    */
   [CUSTOM_CODE_MONITOR]: ["probe"],
-  // The probe's operating system, a row of the Windows Integrated Authentication table.
-  [SQL_MONITOR]: ["probe", "Windows"],
+  [SQL_MONITOR]: [
+    "probe",
+    // The probe's operating system, a row of the Windows Integrated Authentication table.
+    "Windows",
+    /*
+     * A control's lead in the Security model table. The Template sync
+     * settings card names its field Statement timeout too (#7546); the
+     * form's label the page names is Statement Timeout (ms).
+     */
+    "Statement timeout",
+  ],
   [SYNTHETIC_MONITOR]: ["probe"],
   /*
    * "taken from the **first** matching element" and "Put the dead-man's
@@ -201,7 +211,6 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Least-privilege database user",
     "Read-only execution",
     "Single-statement, allow-listed queries",
-    "Statement timeout",
     "Bounded rows",
     "Credential redaction",
     "read-only database user",
@@ -744,11 +753,12 @@ describe.each(LANGUAGES)("%s", (language: string) => {
       const translated: string = readPage(language, entry.page);
       const missing: Array<string> = menuPaths(english)
         .map((segments: Array<string>): string => {
-          return segments
-            .map((segment: string): string => {
+          return pathWithArrows(
+            segments.map((segment: string): string => {
               return drawnActionLabel(language, segment);
-            })
-            .join(PATH_SEPARATOR);
+            }),
+            language,
+          );
         })
         .filter((localized: string): boolean => {
           return !translated.includes(`**${localized}**`);

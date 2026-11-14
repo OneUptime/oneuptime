@@ -1834,11 +1834,17 @@ describe("ForeignHiddenRuleGuard over the real source tree", () => {
      * including bracketed arbitrary variants - rather than skipping them.
      */
     expect(sitesIn(NAVBAR_FILE)).toContain(NEW_NAVBAR_CLASS);
+    // The header's rail names its widths once, as constants (#7037).
     expect(
       sitesIn(
         "packages/App/FeatureSet/Dashboard/src/Components/Header/Header.tsx",
       ),
-    ).toContain("max-lg:hidden items-center gap-2 lg:flex");
+    ).toEqual(
+      expect.arrayContaining([
+        "max-md:hidden items-center md:flex",
+        "max-lg:hidden items-center lg:flex",
+      ]),
+    );
     expect(
       sitesIn("packages/Common/UI/Components/SideMenu/SideMenu.tsx").some(
         (text: string): boolean => {

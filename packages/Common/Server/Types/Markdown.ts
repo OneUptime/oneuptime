@@ -1,4 +1,11 @@
-import { Marked, MarkedOptions, Renderer, marked } from "marked";
+import {
+  Marked,
+  MarkedOptions,
+  Renderer,
+  Tokenizer,
+  Tokens,
+  marked,
+} from "marked";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import markdownSlugify from "./MarkdownSlugify";
 import { addCodeBreakOpportunities } from "./MarkdownCodeBreaks";
@@ -23,6 +30,17 @@ import {
   getBase64Runs,
   holdBackBase64Data,
 } from "../../Utils/Markdown/Base64Data";
+import {
+  LinkReferenceDefinition,
+  NestedLinkReferenceDefinition,
+  forEachBracketedLabel,
+  getLinkReferenceDefinitions,
+} from "../../Utils/Markdown/LinkReferenceDefinitions";
+import {
+  IsCodeFunction,
+  isDigitCode,
+  isWordCode,
+} from "../../Utils/RegExpCharacterClasses";
 import {
   holdBackOverLongLines,
   holdBackOverLongText,
@@ -111,16 +129,19 @@ const HELD_DATA_CLOSE_CODE: number = 0xe006;
 export const MAX_MARKED_EMAIL_MARKDOWN_LENGTH: number = 1024 * 1024;
 
 /*
- * The most held-back text the copies of addresses an email field's images
- * and links are given put back, in all (withHeldDataInUrls). marked writes
- * a link reference definition's address into every reference to it, so a
+ * The most the copies of screenshots an email field's references are given
+ * may put back, in characters, in all (withHeldDataInUrls). marked writes a
+ * link reference definition's address into every reference to it, so a
  * screenshot defined once can be shown many times - and a screenshot of
  * 1 MB referenced 200 times was 280 MB of HTML before its images went out
  * as attachments, took seconds to render, and one of 2.25 MB referenced 200
  * times made more than V8's longest string: marked failed, and the email
- * went out as its Markdown in text (issue #6481). The text's own copy of a
- * held-back text - an image's own address, or the first reference to a
- * definition - does not count: the text holds it once already.
+ * went out as its Markdown in text (issue #6481). A copy of a screenshot is
+ * an image whose address is an inline image (parseInlineImageDataUri),
+ * which goes out as an attachment; every other copy stays in the email's
+ * HTML, and counts against MAX_EMAIL_COPIED_HTML_IN_REFERENCES. The text's
+ * own copy - an image's own address, or the first reference to a
+ * definition - counts against neither: the text holds it once already.
  *
  * Why 8 MiB:
  *   - an email attaches at most MaxEmailInlineImageBytes (2 MB, about
@@ -140,12 +161,37 @@ export const MAX_MARKED_EMAIL_MARKDOWN_LENGTH: number = 1024 * 1024;
 export const MAX_EMAIL_HELD_TEXT_IN_REFERENCES: number = 8 * 1024 * 1024;
 
 /*
+ * The most HTML the copies of addresses that stay in an email field's HTML
+ * - a link's, an image's from the web - may write in one render, in all;
+ * and the copies of titles as much again (withHeldDataInUrls, #6962).
+ * marked writes a definition's address and title into every reference to
+ * it, and those copies are the field's HTML, which an email holds to
+ * MAX_EMAIL_FIELD_HTML_BYTES: two hundred references to an image address of
+ * 60 KB, or to one with a title of 2 KB, were more than a field keeps, so
+ * the field was cut to fit - and the cut took the definition at its end,
+ * and every reference showed as Markdown. Past it, a copy's title is left
+ * out, an image is the note an email leaves in place of an image too large
+ * to include, and a link is its text.
+ *
+ * Why a quarter of a field each: addresses and titles together take at
+ * most half of what a field keeps, and the text the other half; and a short
+ * address or title - a page's address, an error's first line - is copied
+ * into hundreds of references within it, as it always was.
+ */
+export const MAX_EMAIL_COPIED_HTML_IN_REFERENCES: number =
+  MAX_EMAIL_FIELD_HTML_BYTES / 4;
+
+/*
  * What marked is given of an email's Markdown at most, once what is too
  * long for it is held back (Utils/Markdown/SlowMarkdown): blocks whose
  * emphasis, code spans, links or escapes would make it look ahead through
  * them for too long, and blocks nested too deep, are written as text.
  * marked reads lines, lists and tables in linear time, so their number is
- * not limited.
+ * not limited. A block is counted as marked reads it (countAsMarked,
+ * #7228): a link or a reference whose label closes costs it a copy of the
+ * block, and a link's address and title, or a definition's, are read once -
+ * so a paragraph of a thousand references, or a link to an address with a
+ * long query, reaches marked and renders as links.
  */
 export const EMAIL_SLOW_MARKDOWN_LIMITS: SlowMarkdownLimits = {
   maxInlineWork: SLOW_MARKDOWN_MAX_INLINE_WORK,
@@ -158,6 +204,7 @@ export const EMAIL_SLOW_MARKDOWN_LIMITS: SlowMarkdownLimits = {
   holdBackCodeBlockContent: false,
   countUrlLiterals: false,
   countWordUnderscores: false,
+  countAsMarked: true,
 };
 
 /*
@@ -187,6 +234,9 @@ interface MarkdownImagePosition {
 const IMAGE_DATA_URL_PREFIX: RegExp =
   /^data:[a-z0-9.+-]+\/[a-z0-9.+-]+;base64,$/i;
 
+// The longest an image's data: URL is read for, before its data.
+const IMAGE_DATA_URL_PREFIX_MAX_LENGTH: number = 64;
+
 /*
  * How far from an image's data its "![" may be, and its ")": the length of
  * an alt text or a title (findImageAround).
@@ -208,46 +258,290 @@ interface HeldBackMarkdown {
    * them: none when it holds none.
    */
   heldIn: (value: string) => Array<number>;
-  // How long restore(value) is, without putting anything back.
-  restoredLength: (value: string) => number;
-}
-
-// A held-back text's token in a value: the text's index, and its length.
-interface HeldToken {
-  index: number;
-  length: number;
 }
 
 /*
- * What becomes of an image's or a link's address that holds held-back text
- * (withHeldDataInUrls): put back, the whole address ("kept"); or not put
- * back, because an email cannot keep the address whatever was held back of
- * it ("refused"), or because it is a copy past
- * MAX_EMAIL_HELD_TEXT_IN_REFERENCES ("leftOut").
+ * EMAIL Markdown as cutEmailMarkdown reads it (readEmailMarkdownToCut): its
+ * line breaks as marked reads them, its base64 runs and its link reference
+ * definitions.
+ */
+interface EmailMarkdownToCut {
+  markdown: string;
+  runs: Array<Base64Run>;
+  definitions: Array<LinkReferenceDefinition>;
+}
+
+/*
+ * A link reference definition as a field cut to fit writes it on a line of
+ * its own (cutEmailMarkdown): whole, without its title, or empty - and what
+ * the first two weigh (getEmailMarkdownWeight), the line break after them
+ * left out.
+ */
+interface CutDefinitionLines {
+  whole: string;
+  wholeWeight: number;
+  withoutTitle: string;
+  withoutTitleWeight: number;
+  empty: string;
+}
+
+/*
+ * What becomes of an image's or a link's address (withHeldDataInUrls): put
+ * back whole for the renderer ("kept") - the text's own, or a copy within
+ * its budget (`isCopy`); or not, because an email cannot keep the address
+ * ("refused"), or because it is a copy past its budget ("leftOut").
  */
 type HeldAddress =
-  | { fate: "kept"; href: string }
+  | { fate: "kept"; href: string; isCopy: boolean }
   | { fate: "refused" }
   | { fate: "leftOut" };
 
 /*
+ * What each copy of an address costs, learned from its first copy: a
+ * screenshot's (`isScreenshot`: an inline image, which goes out as an
+ * attachment), the characters it puts back, of
+ * MAX_EMAIL_HELD_TEXT_IN_REFERENCES; any other's, the HTML the renderer
+ * writes of it - ASCII alone, so its bytes - of
+ * MAX_EMAIL_COPIED_HTML_IN_REFERENCES. null when the renderer does not keep
+ * the address: each copy is then its text or alt text, and costs nothing.
+ */
+type CopyVerdict = { isScreenshot: boolean; cost: number } | null;
+
+/*
+ * An address as marked gives it to the renderer - a definition's mark, or
+ * an image's or a link's own address - as withHeldDataInUrls reads it, once
+ * for every image or link it is given to.
+ */
+interface HeldAddressReading {
+  // The address as marked read it: what was held back of it still held back.
+  address: string;
+  // Whether it is a link reference definition's, given to its every reference.
+  isDefinition: boolean;
+  // The held-back texts it holds, by index.
+  indexes: Array<number>;
+  // Whether an email cannot keep it, whatever was held back of it.
+  isRefused: boolean;
+  // What a copy of it costs: judged when its first copy is put back.
+  verdict: CopyVerdict | undefined;
+}
+
+/*
+ * A title as marked gives it to the renderer - a definition's mark, or an
+ * image's or a link's own title - as withHeldDataInUrls reads it, once for
+ * every image or link it is given to.
+ */
+interface HeldTitleReading {
+  // The title as marked writes it: escaped for its attribute.
+  title: string;
+  // The held-back texts it holds, by index.
+  indexes: Array<number>;
+  // The HTML it writes, in bytes.
+  size: number;
+}
+
+/*
  * How withHeldDataInUrls judges one kind of address - an image's, or a
- * link's - as the email renderer judges it, and what it has learned of the
- * copies of that kind in one render.
+ * link's - as the email renderer judges it, and what it has read of the
+ * addresses of that kind in one render.
  */
 interface HeldAddressRules {
   // The schemes the renderer keeps an address of this kind with.
   schemes: ReadonlyArray<string>;
   // Whether a data: address of this kind can still be an inline image.
   mayBeInlineImage: boolean;
-  // Whether the renderer keeps an address of this kind, put back whole.
-  isKept: (href: string) => boolean;
+  // What a copy of an address of this kind, put back whole, costs.
+  judge: (href: string) => CopyVerdict;
+  // The addresses read, by the address as marked gives it.
+  readings: Map<string, HeldAddressReading>;
+}
+
+// A link reference definition as marked read it (EmailMarkedTokenizer).
+interface MarkedDefinition {
+  href: string;
+  // Escaped as marked escapes a title (escapeLikeMarkedTitle); null for none.
+  title: string | null;
+}
+
+// What marked's tokenizer writes in a title for each character it escapes.
+const MARKED_TITLE_ESCAPES: Readonly<Record<string, string>> = {
+  "&": "&amp;",
+  "<": "&lt;",
+  ">": "&gt;",
+  '"': "&quot;",
+  "'": "&#39;",
+};
+
+// What [a-fA-F0-9] matches.
+const isHexDigitCode: IsCodeFunction = (code: number): boolean => {
+  return (
+    isDigitCode(code) ||
+    (code >= 0x41 && code <= 0x46) ||
+    (code >= 0x61 && code <= 0x66)
+  );
+};
+
+/*
+ * Whether `text` from `at` - just after an "&" - reads as marked reads a
+ * character reference it leaves as it is: "#", one to seven digits and
+ * ";"; "#x" or "#X", one to six hexadecimal digits and ";"; or a word
+ * (letters, digits and "_") and ";".
+ */
+const startsCharacterReference: (text: string, at: number) => boolean = (
+  text: string,
+  at: number,
+): boolean => {
+  let end: number = at;
+
+  if (text.charAt(at) === "#") {
+    const isHex: boolean =
+      text.charAt(at + 1) === "x" || text.charAt(at + 1) === "X";
+    const digitsStart: number = at + (isHex ? 2 : 1);
+
+    end = digitsStart;
+
+    const isDigit: IsCodeFunction = isHex ? isHexDigitCode : isDigitCode;
+
+    while (end < text.length && isDigit(text.charCodeAt(end))) {
+      end++;
+    }
+
+    return (
+      end > digitsStart &&
+      end - digitsStart <= (isHex ? 6 : 7) &&
+      text.charAt(end) === ";"
+    );
+  }
+
+  while (end < text.length && isWordCode(text.charCodeAt(end))) {
+    end++;
+  }
+
+  return end > at && text.charAt(end) === ";";
+};
+
+/*
+ * `title` escaped as marked's tokenizer escapes a link's or an image's title
+ * (`escape` in marked, not encoding): "<", ">", '"' and "'", and an "&"
+ * that does not start a character reference - "&amp;", "&#39;" and
+ * "&copy;" stay as they are written. Read with a loop: a title can be as
+ * long as the lines it is on.
+ */
+const escapeLikeMarkedTitle: (title: string) => string = (
+  title: string,
+): string => {
+  let escaped: string = "";
+  let copiedUpTo: number = 0;
+
+  for (let index: number = 0; index < title.length; index++) {
+    const character: string = title.charAt(index);
+    const replacement: string | undefined = MARKED_TITLE_ESCAPES[character];
+
+    if (
+      replacement === undefined ||
+      (character === "&" && startsCharacterReference(title, index + 1))
+    ) {
+      continue;
+    }
+
+    escaped += title.slice(copiedUpTo, index) + replacement;
+    copiedUpTo = index + 1;
+  }
+
+  return copiedUpTo === 0 ? title : escaped + title.slice(copiedUpTo);
+};
+
+/*
+ * marked's tokenizer for one email render, which gives each link reference
+ * definition's address and title marks of their own in their place. marked
+ * writes a definition's address and title into every reference to it
+ * (`outputLink`), so the renderer is given the marks wherever an image or a
+ * link is a reference, and reads from them which definition it refers to
+ * (addressOf, titleOf): the first reference to take the address has the
+ * text's own copy, every later one a copy (withHeldDataInUrls) - whether or
+ * not anything of it was held back. An image or a link of its own is never
+ * given a mark.
+ *
+ * And marked holds a mark for each reference, not a title: it escapes a
+ * definition's title again for every reference, so a title of 60 KB with a
+ * quote in it, referenced a hundred thousand times, was gigabytes before
+ * anything was rendered. The title is escaped once, here, as marked would
+ * have escaped it.
+ *
+ * A mark is HELD_DATA_OPEN, "a" for an address or "t" for a title, the
+ * definition's number and HELD_DATA_CLOSE. No Markdown marked reads holds
+ * one: a sentinel in the input is held back (holdBackFromMarked), and the
+ * token of a held-back text holds digits alone.
+ */
+class EmailMarkedTokenizer extends Tokenizer {
+  // The definitions as marked read them, by their number.
+  private readonly definitions: Array<MarkedDefinition> = [];
+
+  public override def(src: string): Tokens.Def | undefined {
+    const token: Tokens.Def | undefined = super.def(src);
+
+    if (token) {
+      const number: number = this.definitions.length;
+
+      this.definitions.push({
+        href: token.href,
+        title: token.title ? escapeLikeMarkedTitle(token.title) : null,
+      });
+      token.href = EmailMarkedTokenizer.mark("a", number);
+
+      if (token.title) {
+        token.title = EmailMarkedTokenizer.mark("t", number);
+      }
+    }
+
+    return token;
+  }
+
   /*
-   * Whether the renderer keeps the address a copy put back, by the address
-   * as marked gives it: every copy of one definition's address is the
-   * same, so the first copy put back decides for the others.
+   * The address of the definition `href` marks; null when `href` is no
+   * mark - an image's or a link's own address.
    */
-  verdicts: Map<string, boolean>;
+  public addressOf(href: string): string | null {
+    const number: number | null = this.markedNumber(href, "a");
+
+    return number === null ? null : this.definitions[number]!.href;
+  }
+
+  /*
+   * The title of the definition `title` marks, escaped as marked escapes a
+   * title; null when `title` is no mark - an image's or a link's own title.
+   */
+  public titleOf(title: string): string | null {
+    const number: number | null = this.markedNumber(title, "t");
+
+    return number === null ? null : this.definitions[number]!.title;
+  }
+
+  private static mark(kind: string, number: number): string {
+    return `${HELD_DATA_OPEN}${kind}${number}${HELD_DATA_CLOSE}`;
+  }
+
+  // The number of the definition `value` marks as `kind`, or null.
+  private markedNumber(value: string, kind: string): number | null {
+    if (
+      typeof value !== "string" ||
+      value.length < 4 ||
+      value.charCodeAt(0) !== HELD_DATA_OPEN_CODE ||
+      value.charAt(1) !== kind ||
+      value.charCodeAt(value.length - 1) !== HELD_DATA_CLOSE_CODE
+    ) {
+      return null;
+    }
+
+    const digits: string = value.slice(2, -1);
+    const number: number = Number(digits);
+
+    return Number.isInteger(number) &&
+      number >= 0 &&
+      number < this.definitions.length &&
+      String(number) === digits
+      ? number
+      : null;
+  }
 }
 
 // Puts back what was held back: as it was written, or escaped for HTML.
@@ -1040,11 +1334,13 @@ export default class Markdown {
    * attachments they go out as, so a screenshot does not count. A text whose
    * HTML is more - a log or a response body of megabytes, a table, whose
    * HTML is some thirty times its Markdown - is cut (cutEmailMarkdown: at a
-   * line break where it can be, never inside an image) and rendered again,
-   * shorter in proportion and with a margin, a few times at most, and ends
-   * with EMAIL_TRUNCATED_TEXT_NOTE_HTML. A text far longer than that is cut
-   * before it is first rendered: rendering megabytes only to drop them is
-   * wasted work. A text that fits renders exactly as it always has.
+   * line break where it can be, never inside an image or a link reference
+   * definition, and with the definitions its kept references need) and
+   * rendered again, shorter in proportion and with a margin, a few times at
+   * most, and ends with EMAIL_TRUNCATED_TEXT_NOTE_HTML. A text far longer
+   * than that is cut before it is first rendered: rendering megabytes only
+   * to drop them is wasted work. A text that fits renders exactly as it
+   * always has.
    */
   private static async convertToEmailHtml(
     markdown: string,
@@ -1066,19 +1362,29 @@ export default class Markdown {
     let kept: number | null =
       weight > MAX_EMAIL_FIELD_HTML_BYTES ? MAX_EMAIL_FIELD_HTML_BYTES : null;
     let html: string = "";
+    // What the cut reads, made the first time the text is cut.
+    let toCut: EmailMarkdownToCut | null = null;
 
     for (
       let attempt: number = 0;
       attempt <= MAX_EMAIL_FIT_ATTEMPTS;
       attempt++
     ) {
-      html =
-        kept === null
-          ? await Markdown.renderEmailMarkdown(markdown, renderer)
-          : (await Markdown.renderEmailMarkdown(
-              Markdown.cutEmailMarkdown(markdown, kept, runs),
-              renderer,
-            )) + EMAIL_TRUNCATED_TEXT_NOTE_HTML;
+      if (kept === null) {
+        html = await Markdown.renderEmailMarkdown(markdown, renderer);
+      } else {
+        toCut = toCut ?? Markdown.readEmailMarkdownToCut(markdown, runs);
+        html =
+          (await Markdown.renderEmailMarkdown(
+            Markdown.cutEmailMarkdown(
+              toCut.markdown,
+              kept,
+              toCut.runs,
+              toCut.definitions,
+            ),
+            renderer,
+          )) + EMAIL_TRUNCATED_TEXT_NOTE_HTML;
+      }
 
       const sizeInBytes: number = EmailSize.getFieldSizeInBytes(html);
 
@@ -1130,8 +1436,11 @@ export default class Markdown {
     }
 
     try {
+      // A tokenizer of its own: it marks this text's definitions.
+      const tokenizer: EmailMarkedTokenizer = new EmailMarkedTokenizer();
       const emailBody: string = await marked(held.markdown, {
-        renderer: Markdown.withHeldDataInUrls(renderer, held),
+        renderer: Markdown.withHeldDataInUrls(renderer, held, tokenizer),
+        tokenizer: tokenizer,
       });
 
       return held.restoreEscaped(emailBody);
@@ -1167,6 +1476,71 @@ export default class Markdown {
     }, markdown.length);
   }
 
+  /*
+   * The weight of markdown[start, end) (getEmailMarkdownWeight): its length,
+   * less the base64 runs in it. The runs are in order, so the first that
+   * reaches into it is found by halves.
+   */
+  private static getEmailWeightBetween(
+    runs: Array<Base64Run>,
+    start: number,
+    end: number,
+  ): number {
+    let low: number = 0;
+    let high: number = runs.length;
+
+    while (low < high) {
+      const middle: number = Math.floor((low + high) / 2);
+
+      if (runs[middle]!.end <= start) {
+        low = middle + 1;
+      } else {
+        high = middle;
+      }
+    }
+
+    let weight: number = end - start;
+
+    for (
+      let index: number = low;
+      index < runs.length && runs[index]!.start < end;
+      index++
+    ) {
+      const run: Base64Run = runs[index]!;
+
+      weight -= Math.min(end, run.end) - Math.max(start, run.start);
+    }
+
+    return weight;
+  }
+
+  /*
+   * EMAIL Markdown as cutEmailMarkdown reads it: its line breaks as marked
+   * reads them ("\r\n" and "\r" are "\n"), so a definition is where marked
+   * finds it; its base64 runs (`runs`, when that is all the same); and its
+   * link reference definitions.
+   */
+  private static readEmailMarkdownToCut(
+    markdown: string,
+    runs: Array<Base64Run>,
+  ): EmailMarkdownToCut {
+    if (markdown.indexOf("\r") === -1) {
+      return {
+        markdown: markdown,
+        runs: runs,
+        definitions: getLinkReferenceDefinitions(markdown),
+      };
+    }
+
+    const source: string = markdown.replace(/\r\n|\r/g, "\n");
+
+    return {
+      markdown: source,
+      runs: getBase64Runs(source),
+      definitions: getLinkReferenceDefinitions(source),
+    };
+  }
+
   // Where `weight` of `markdown` ends, counting no base64 run.
   private static getPositionOfWeight(
     markdown: string,
@@ -1200,7 +1574,10 @@ export default class Markdown {
     run: Base64Run,
   ): MarkdownImagePosition | null {
     // "](" and "data:image/<type>;base64," right before the data.
-    const prefixStart: number = Math.max(0, run.start - 64);
+    const prefixStart: number = Math.max(
+      0,
+      run.start - IMAGE_DATA_URL_PREFIX_MAX_LENGTH,
+    );
     const addressIndex: number = markdown
       .slice(prefixStart, run.start)
       .lastIndexOf("](");
@@ -1281,20 +1658,239 @@ export default class Markdown {
   /*
    * The start of EMAIL Markdown up to `weight` (getEmailMarkdownWeight: an
    * inline image's data weighs nothing, so an image before the cut stays
-   * whole). Cut at the last line break in the second half of that, so a line
-   * is not split where it can be helped, else between whole characters -
-   * and never inside an image: an image the cut would split is left out,
-   * from its "![", so none of its data is left as text.
+   * whole), with the link reference definitions it needs (#6963).
+   *
+   * Cut where getEmailCut cuts: at a line break where it can be, never
+   * inside an image or a definition. marked reads a definition wherever it
+   * is, and a description most often defines its screenshot at its end, so
+   * a cut that keeps a reference would leave out what it refers to, and the
+   * reference would show as Markdown. So each definition of a label the
+   * kept part refers to - "![alt][label]", "[text][label]", "[label][]",
+   * "[label]", whatever its case - and does not define itself comes along:
+   * the first of the cut part's definitions of it, as marked reads the
+   * first. They go before the kept part, a blank line between: there each
+   * is a definition whatever the cut ends inside - a code block, a list, an
+   * HTML comment - and a definition renders nothing, so the email reads as
+   * it would with them anywhere. One written in a block quote or a list
+   * item goes as marked reads it there, without the quote's markers and the
+   * item's indentation (getCutDefinitionLines, #7230): before the kept part
+   * it is no quote or list, but a definition all the same.
+   *
+   * They count toward `weight`, and a screenshot's data in one weighs
+   * nothing. The kept part is cut shorter to make room for them - to half
+   * of `weight` at the least - and a definition still too heavy goes
+   * without its title, or else as an empty one ("[label]: <>"), whose
+   * references show their text or alt text: never Markdown. Room is made
+   * for every one as an empty one before any is written whole, and goes to
+   * the lightest first - a screenshot's, before a long title's or
+   * address's. A definition whose empty one does not fit either goes
+   * without, so the cut text never weighs more than `weight`.
+   *
+   * "\r\n" and "\r" are read as "\n", as marked reads them, whenever the
+   * text has to be cut (`runs` and `definitions` are those of the text cut:
+   * convertToEmailHtml reads them once for every attempt).
    */
   public static cutEmailMarkdown(
     markdown: string,
     weight: number,
     runs: Array<Base64Run> = getBase64Runs(markdown),
+    definitions?: Array<LinkReferenceDefinition>,
   ): string {
     if (Markdown.getEmailMarkdownWeight(markdown, runs) <= weight) {
       return markdown;
     }
 
+    if (definitions === undefined || markdown.indexOf("\r") !== -1) {
+      const toCut: EmailMarkdownToCut = Markdown.readEmailMarkdownToCut(
+        markdown,
+        runs,
+      );
+
+      return Markdown.cutEmailMarkdown(
+        toCut.markdown,
+        weight,
+        toCut.runs,
+        toCut.definitions,
+      );
+    }
+
+    let cut: number = Markdown.getEmailCut(markdown, weight, runs, definitions);
+    let needed: Array<LinkReferenceDefinition> = Markdown.getDefinitionsNeeded(
+      markdown,
+      cut,
+      definitions,
+    );
+
+    if (needed.length === 0) {
+      return markdown.slice(0, cut).trimEnd();
+    }
+
+    // Each definition on a line of its own, and a blank line after them.
+    const neededWeight: number = needed.reduce(
+      (sum: number, definition: LinkReferenceDefinition): number => {
+        return (
+          sum +
+          Markdown.getCutDefinitionLines(markdown, runs, definition)
+            .wholeWeight +
+          1
+        );
+      },
+      1,
+    );
+
+    if (Markdown.getEmailWeightBetween(runs, 0, cut) + neededWeight > weight) {
+      cut = Markdown.getEmailCut(
+        markdown,
+        Math.max(weight - neededWeight, Math.ceil(weight / 2)),
+        runs,
+        definitions,
+      );
+      needed = Markdown.getDefinitionsNeeded(markdown, cut, definitions);
+    }
+
+    // What the kept part leaves, a blank line after the definitions.
+    const kept: string = markdown.slice(0, cut).trimEnd();
+    let room: number =
+      weight - Markdown.getEmailWeightBetween(runs, 0, kept.length) - 1;
+
+    /*
+     * Each as an empty definition first, where one fits - its references
+     * are then their text - and then as much of each as fits: the lightest
+     * first both times. Written in the order of the text.
+     */
+    const forms: Array<CutDefinitionLines> = needed.map(
+      (definition: LinkReferenceDefinition): CutDefinitionLines => {
+        return Markdown.getCutDefinitionLines(markdown, runs, definition);
+      },
+    );
+    const lightestFirst: Array<number> = forms
+      .map((_form: CutDefinitionLines, index: number): number => {
+        return index;
+      })
+      .sort((one: number, other: number): number => {
+        return (
+          forms[one]!.wholeWeight - forms[other]!.wholeWeight || one - other
+        );
+      });
+    const lines: Array<string | null> = needed.map((): null => {
+      return null;
+    });
+
+    for (const index of lightestFirst) {
+      const empty: string = forms[index]!.empty;
+
+      if (empty.length + 1 <= room) {
+        lines[index] = empty;
+        room -= empty.length + 1;
+      }
+    }
+
+    for (const index of lightestFirst) {
+      const empty: string | null = lines[index] ?? null;
+
+      if (empty === null) {
+        continue;
+      }
+
+      const form: CutDefinitionLines = forms[index]!;
+      const whole: number = form.wholeWeight - empty.length;
+      const withoutTitle: number = form.withoutTitleWeight - empty.length;
+
+      if (whole <= room) {
+        lines[index] = form.whole;
+        room -= whole;
+      } else if (withoutTitle <= room) {
+        lines[index] = form.withoutTitle;
+        room -= withoutTitle;
+      }
+    }
+
+    let written: string = "";
+
+    for (const line of lines) {
+      if (line !== null) {
+        written += `${line}\n`;
+      }
+    }
+
+    return written ? `${written}\n${kept}` : kept;
+  }
+
+  /*
+   * How a field cut to fit writes `definition` on a line of its own, before
+   * its kept part (cutEmailMarkdown): as it is written - or, when it is in
+   * a block quote or a list item, as marked reads it there (`nested`),
+   * without the quote's markers and the item's indentation, which would
+   * make a quote or a list of it there (#7230), and from its "[": a line
+   * indented past its item's indentation is no less a definition. Its
+   * address is the text's own either way, so a screenshot's data in it
+   * weighs nothing; the rest of a nested one weighs all it is long, never
+   * less than the cut text does.
+   */
+  private static getCutDefinitionLines(
+    markdown: string,
+    runs: Array<Base64Run>,
+    definition: LinkReferenceDefinition,
+  ): CutDefinitionLines {
+    const nested: NestedLinkReferenceDefinition | undefined = definition.nested;
+
+    if (!nested) {
+      return {
+        whole: markdown.slice(definition.start, definition.end),
+        wholeWeight: Markdown.getEmailWeightBetween(
+          runs,
+          definition.start,
+          definition.end,
+        ),
+        withoutTitle: markdown.slice(
+          definition.start,
+          definition.destinationEnd,
+        ),
+        withoutTitleWeight: Markdown.getEmailWeightBetween(
+          runs,
+          definition.start,
+          definition.destinationEnd,
+        ),
+        empty: `[${markdown.slice(definition.labelStart, definition.labelEnd)}]: <>`,
+      };
+    }
+
+    // The base64 its address holds, which weighs nothing.
+    const addressData: number =
+      definition.destinationEnd -
+      definition.destinationStart -
+      Markdown.getEmailWeightBetween(
+        runs,
+        definition.destinationStart,
+        definition.destinationEnd,
+      );
+    // Its "[", after the up to three spaces a definition may be indented.
+    const from: number = nested.labelStart - 1;
+
+    return {
+      whole: nested.text.slice(from),
+      wholeWeight: nested.text.length - from - addressData,
+      withoutTitle: nested.text.slice(from, nested.destinationEnd),
+      withoutTitleWeight: nested.destinationEnd - from - addressData,
+      empty: `[${nested.text.slice(nested.labelStart, nested.labelEnd)}]: <>`,
+    };
+  }
+
+  /*
+   * Where cutEmailMarkdown cuts EMAIL Markdown to `weight`: at the last line
+   * break in the second half of that, so a line is not split where it can
+   * be helped, else between whole characters - and never inside an image or
+   * a link reference definition. An image the cut would split is left out,
+   * from its "![", so none of its data is left as text; a definition, from
+   * the start of its line, so the kept part does not end with what reads as
+   * a definition of half its address.
+   */
+  private static getEmailCut(
+    markdown: string,
+    weight: number,
+    runs: Array<Base64Run>,
+    definitions: Array<LinkReferenceDefinition>,
+  ): number {
     let cut: number = Markdown.getPositionOfWeight(markdown, runs, weight);
     const half: number = Markdown.getPositionOfWeight(
       markdown,
@@ -1338,7 +1934,83 @@ export default class Markdown {
       }
     }
 
-    return markdown.slice(0, cut).trimEnd();
+    /*
+     * The definitions are in order, so the last to start before the cut is
+     * found by halves.
+     */
+    let low: number = 0;
+    let high: number = definitions.length;
+
+    while (low < high) {
+      const middle: number = Math.floor((low + high) / 2);
+
+      if (definitions[middle]!.start < cut) {
+        low = middle + 1;
+      } else {
+        high = middle;
+      }
+    }
+
+    const split: LinkReferenceDefinition | undefined = definitions[low - 1];
+
+    if (split && split.end > cut) {
+      cut = split.start;
+    }
+
+    return cut;
+  }
+
+  /*
+   * The link reference definitions EMAIL Markdown cut at `cut` needs, in
+   * the order of the text: for each label a bracket of the kept part holds
+   * (forEachBracketedLabel) that no definition of the kept part defines,
+   * the first definition of it after the cut - the one marked reads.
+   */
+  private static getDefinitionsNeeded(
+    markdown: string,
+    cut: number,
+    definitions: Array<LinkReferenceDefinition>,
+  ): Array<LinkReferenceDefinition> {
+    const keptLabels: Set<string> = new Set<string>();
+    const cutOff: Map<string, LinkReferenceDefinition> = new Map<
+      string,
+      LinkReferenceDefinition
+    >();
+
+    for (const definition of definitions) {
+      if (definition.start < cut) {
+        keptLabels.add(definition.label);
+      } else if (
+        !keptLabels.has(definition.label) &&
+        !cutOff.has(definition.label)
+      ) {
+        cutOff.set(definition.label, definition);
+      }
+    }
+
+    if (cutOff.size === 0) {
+      return [];
+    }
+
+    const needed: Set<LinkReferenceDefinition> =
+      new Set<LinkReferenceDefinition>();
+
+    forEachBracketedLabel(markdown, 0, cut, (label: string): void => {
+      const definition: LinkReferenceDefinition | undefined = cutOff.get(label);
+
+      if (definition) {
+        needed.add(definition);
+      }
+    });
+
+    return Array.from(needed).sort(
+      (
+        one: LinkReferenceDefinition,
+        other: LinkReferenceDefinition,
+      ): number => {
+        return one.start - other.start;
+      },
+    );
   }
 
   /*
@@ -1407,9 +2079,6 @@ export default class Markdown {
       restoreEscaped: asIs,
       heldIn: (): Array<number> => {
         return [];
-      },
-      restoredLength: (value: string): number => {
-        return value.length;
       },
     };
 
@@ -1532,30 +2201,20 @@ export default class Markdown {
         return putBack(value, true);
       },
       heldIn: (value: string): Array<number> => {
-        return Markdown.getHeldTokens(value).map((token: HeldToken): number => {
-          return token.index;
-        });
-      },
-      restoredLength: (value: string): number => {
-        return Markdown.getHeldTokens(value).reduce(
-          (length: number, token: HeldToken): number => {
-            return length - token.length + (held[token.index] ?? "").length;
-          },
-          value.length,
-        );
+        return Markdown.getHeldIndexes(value);
       },
     };
   }
 
   /*
-   * The tokens of held-back text in `value` (holdBackFromMarked), in order.
-   * Read with indexOf, as putBack reads them.
+   * The held-back texts `value` holds (holdBackFromMarked), by index, in
+   * order. Read with indexOf, as putBack reads them.
    */
-  private static getHeldTokens(value: string): Array<HeldToken> {
-    const tokens: Array<HeldToken> = [];
+  private static getHeldIndexes(value: string): Array<number> {
+    const indexes: Array<number> = [];
 
     if (typeof value !== "string") {
-      return tokens;
+      return indexes;
     }
 
     let readUpTo: number = 0;
@@ -1571,14 +2230,11 @@ export default class Markdown {
         break;
       }
 
-      tokens.push({
-        index: Number(value.slice(open + 1, close)),
-        length: close + 1 - open,
-      });
+      indexes.push(Number(value.slice(open + 1, close)));
       readUpTo = close + 1;
     }
 
-    return tokens;
+    return indexes;
   }
 
   /*
@@ -1588,32 +2244,119 @@ export default class Markdown {
    * MailService sends as an attachment: written as text, its data would be
    * megabytes of base64 in the email. An image whose data is not an image
    * this sends (parseInlineImageDataUri) is its alt text.
+   *
+   * A link reference definition whose address is a data: URL of base64 -
+   * a screenshot defined once for the images that refer to it (#6481) - is
+   * its image the same way, with its label for alt text, or its label when
+   * the data is no image this sends: its references are text here, and its
+   * data is never written out as text (#6962). Line breaks are read as
+   * marked reads them, so a definition is where marked finds it.
    */
   private static getEmailTextHtml(markdown: string): string {
-    const text: string = String(markdown ?? "");
+    const written: string = String(markdown ?? "");
+    const text: string =
+      written.indexOf("\r") === -1
+        ? written
+        : written.replace(/\r\n|\r/g, "\n");
     let html: string = "";
     let copiedUpTo: number = 0;
+    // Found the first time data is in no inline image: most texts have none.
+    let definitions: Array<LinkReferenceDefinition> | null = null;
+    let definitionIndex: number = 0;
+
+    // An image of `address`, or `alt` alone when it is no image this sends.
+    const writeImage: (
+      start: number,
+      end: number,
+      address: string,
+      alt: string,
+    ) => void = (
+      start: number,
+      end: number,
+      address: string,
+      alt: string,
+    ): void => {
+      const image: InlineImageDataUri | null = parseInlineImageDataUri(address);
+
+      html += Markdown.getEmailLinesHtml(text.slice(copiedUpTo, start));
+      html += image
+        ? `<img src="${Markdown.escapeHtml(image.dataUri)}" alt="${Markdown.escapeHtml(alt)}" style="${EMAIL_IMAGE_STYLE}">`
+        : Markdown.escapeHtml(alt);
+      copiedUpTo = end;
+    };
 
     for (const run of getBase64Runs(text, 1)) {
+      if (run.start < copiedUpTo) {
+        continue;
+      }
+
       const found: MarkdownImagePosition | null = Markdown.findImageAround(
         text,
         run,
       );
 
-      if (found === null || found.start < copiedUpTo) {
+      if (found !== null) {
+        if (found.start >= copiedUpTo) {
+          writeImage(
+            found.start,
+            found.end,
+            text.slice(found.addressStart, found.addressEnd),
+            text.slice(found.start + 2, found.addressStart - 2),
+          );
+        }
+
         continue;
       }
 
-      const alt: string = text.slice(found.start + 2, found.addressStart - 2);
-      const image: InlineImageDataUri | null = parseInlineImageDataUri(
-        text.slice(found.addressStart, found.addressEnd),
-      );
+      definitions = definitions ?? getLinkReferenceDefinitions(text);
 
-      html += Markdown.getEmailLinesHtml(text.slice(copiedUpTo, found.start));
-      html += image
-        ? `<img src="${Markdown.escapeHtml(image.dataUri)}" alt="${Markdown.escapeHtml(alt)}" style="${EMAIL_IMAGE_STYLE}">`
-        : Markdown.escapeHtml(alt);
-      copiedUpTo = found.end;
+      // The definitions are in order, as the runs are.
+      while (
+        definitionIndex < definitions.length &&
+        definitions[definitionIndex]!.destinationEnd < run.end
+      ) {
+        definitionIndex++;
+      }
+
+      const definition: LinkReferenceDefinition | undefined =
+        definitions[definitionIndex];
+
+      if (!definition || definition.start < copiedUpTo) {
+        continue;
+      }
+
+      const bracketed: boolean =
+        text.charAt(definition.destinationStart) === "<";
+      const addressStart: number =
+        definition.destinationStart + (bracketed ? 1 : 0);
+
+      // Its address is the run's data: URL, as an image's is (findImageAround).
+      if (
+        run.start < addressStart ||
+        run.start - addressStart > IMAGE_DATA_URL_PREFIX_MAX_LENGTH ||
+        !IMAGE_DATA_URL_PREFIX.test(text.slice(addressStart, run.start))
+      ) {
+        continue;
+      }
+
+      /*
+       * Its label as marked reads it: in a block quote or a list item,
+       * without the markers and indentation of the lines it runs over.
+       */
+      const nested: NestedLinkReferenceDefinition | undefined =
+        definition.nested;
+
+      writeImage(
+        definition.start,
+        definition.end,
+        text.slice(
+          addressStart,
+          definition.destinationEnd - (bracketed ? 1 : 0),
+        ),
+        nested
+          ? nested.text.slice(nested.labelStart, nested.labelEnd)
+          : text.slice(definition.labelStart, definition.labelEnd),
+      );
     }
 
     html += Markdown.getEmailLinesHtml(text.slice(copiedUpTo));
@@ -1636,72 +2379,111 @@ export default class Markdown {
   /*
    * `renderer`, with every link and image URL it is given put back together
    * first (see holdBackFromMarked), so it judges the URL the author wrote -
-   * but never more of it than an email can use:
+   * but never more of it than an email can use. marked writes a link
+   * reference definition's address and title into every reference to it,
+   * and `definitions` - the tokenizer that read the text
+   * (EmailMarkedTokenizer) - says which definition a reference's are:
    *
-   *   - The text holds each held-back text once, and the first image or
-   *     link to put one back - into its address or its title - puts back
-   *     the text's own: an image's or a link's own address, or the first
-   *     reference to a link reference definition. It renders as it always
-   *     has. Every later one puts back a copy: marked writes a definition's
-   *     address and title into every reference to it.
-   *   - Copies of addresses are put back while they come to at most
-   *     MAX_EMAIL_HELD_TEXT_IN_REFERENCES characters in all, in the order of
-   *     the text, images and links alike. Past that, an image is the note
-   *     an email leaves in place of an image too large to include
-   *     (EmailInlineImages.getTooLargeImageNotice), and a link is its text.
-   *     So two references to a screenshot still show it twice, from one
-   *     attachment, and two hundred show it as often as the budget holds,
-   *     then the note.
-   *   - A copy of a title is not put back: its image or link goes without
-   *     it, as the dashboard's viewer leaves a long title out of the
-   *     references past its budget. A title holds held-back text when it is
-   *     long - most often the middle of a definition's line over 64 KB - and
-   *     each copy would be that much HTML, which an email field holds to
-   *     MAX_EMAIL_FIELD_HTML_BYTES: cut to fit, the text lost its
-   *     definition, and every reference to it showed as Markdown.
+   *   - The first reference to a definition to take its address has the
+   *     text's own copy, as an image or a link has its own address: it
+   *     renders as it always has, however long. Every later reference has
+   *     a copy.
+   *   - A copy of a screenshot - an image whose address is an inline image,
+   *     sent once as an attachment however often it shows - is put back
+   *     while the copies of screenshots come to at most
+   *     MAX_EMAIL_HELD_TEXT_IN_REFERENCES characters, in the order of the
+   *     text (#6481). Any other copy of an address - a link's, an image's
+   *     from the web - stays in the email's HTML, and is put back while the
+   *     HTML such copies write comes to at most
+   *     MAX_EMAIL_COPIED_HTML_IN_REFERENCES (#6962). Past its budget, an
+   *     image is the note an email leaves in place of an image too large to
+   *     include (EmailInlineImages.getTooLargeImageNotice), and a link is its
+   *     text. So two references to a screenshot still show it twice, from
+   *     one attachment, and two hundred show it as often as the budget
+   *     holds, then the note.
+   *   - A copy of a title stays in the HTML too, and is kept while the
+   *     copies of titles write at most MAX_EMAIL_COPIED_HTML_IN_REFERENCES:
+   *     past that, its image or link goes without it. A copy of a title that
+   *     holds held-back text - most often the middle of a definition's line
+   *     over 64 KB - is never kept, as the dashboard's viewer leaves a long
+   *     title out of the references past its budget.
    *   - An address an email cannot keep, whatever was held back of it, is
    *     not put back at all (isRefusedWhateverFollows): a link to a scheme
    *     an email does not link to - a data: link, whatever it carries - and
    *     an image from a scheme it does not load that cannot be an inline
    *     image. The link is its text and the image its alt text, as they
-   *     always were, and neither takes anything of the budget.
-   *   - An address the renderer does not keep once it is put back - a
-   *     data:image/png address whose data is no image, a link whose
-   *     scheme was held back with the rest of it - has its first copy put
-   *     back and judged as the renderer judges it, and its later copies
-   *     never put back: each copy is its text or alt text, as the renderer
-   *     makes it, and none takes anything of the budget. (A copy past the
-   *     budget is not put back to be judged: an image is the note.)
+   *     always were, and neither takes anything of a budget, nor the text's
+   *     own copy.
+   *   - The first copy of any other address is put back whole and judged as
+   *     the renderer judges it (HeldAddressRules.judge), and the verdict
+   *     holds for its later copies. An address the renderer does not keep -
+   *     a data:image/png address whose data is no image, a link whose
+   *     scheme was held back with the rest of it - is then its text or alt
+   *     text at every copy, as the renderer makes it, and takes nothing of a
+   *     budget.
    *
-   * What it counts is counted for one render: each render starts afresh.
+   * Each address and title is read once, however many references it is
+   * given to, so a reference that is not put back costs no more than its
+   * text. An address or a title of a few dozen characters, referenced
+   * hundreds of times, is within every budget, and renders exactly as it
+   * always has. What it counts is counted for one render: each render
+   * starts afresh.
    */
   private static withHeldDataInUrls(
     renderer: Renderer,
     held: HeldBackMarkdown,
+    definitions: EmailMarkedTokenizer,
   ): Renderer {
     const restoring: Renderer = Object.create(renderer) as Renderer;
 
     // The held-back texts an address or a title has put back, by index.
     const putBack: Set<number> = new Set<number>();
-    // What the copies of addresses have put back, in characters.
-    let copied: number = 0;
+    /*
+     * The definitions whose address a reference has taken the text's own
+     * copy of, by their mark.
+     */
+    const ownTaken: Set<string> = new Set<string>();
+    // What the copies have taken of their budgets.
+    let copiedScreenshots: number = 0;
+    let copiedAddresses: number = 0;
+    let copiedTitles: number = 0;
+    // The titles read, by the title as marked gives it.
+    const titles: Map<string, HeldTitleReading> = new Map<
+      string,
+      HeldTitleReading
+    >();
 
     const imageRules: HeldAddressRules = {
       schemes: EMAIL_IMAGE_SCHEMES,
       mayBeInlineImage: true,
-      isKept: (href: string): boolean => {
-        return Markdown.getEmailImageSource(href) !== null;
+      // As getEmailImageSource keeps it.
+      judge: (href: string): CopyVerdict => {
+        if (parseInlineImageDataUri(href) !== null) {
+          return { isScreenshot: true, cost: href.length };
+        }
+
+        const url: string | null = Markdown.getEmailUrl(
+          href,
+          EMAIL_IMAGE_SCHEMES,
+        );
+
+        return url === null ? null : { isScreenshot: false, cost: url.length };
       },
-      verdicts: new Map<string, boolean>(),
+      readings: new Map<string, HeldAddressReading>(),
     };
 
     const linkRules: HeldAddressRules = {
       schemes: EMAIL_LINK_SCHEMES,
       mayBeInlineImage: false,
-      isKept: (href: string): boolean => {
-        return Markdown.getEmailUrl(href, EMAIL_LINK_SCHEMES) !== null;
+      judge: (href: string): CopyVerdict => {
+        const url: string | null = Markdown.getEmailUrl(
+          href,
+          EMAIL_LINK_SCHEMES,
+        );
+
+        return url === null ? null : { isScreenshot: false, cost: url.length };
       },
-      verdicts: new Map<string, boolean>(),
+      readings: new Map<string, HeldAddressReading>(),
     };
 
     const isCopy: (indexes: Array<number>) => boolean = (
@@ -1720,89 +2502,163 @@ export default class Markdown {
       }
     };
 
+    const readAddress: (
+      href: string,
+      rules: HeldAddressRules,
+    ) => HeldAddressReading = (
+      href: string,
+      rules: HeldAddressRules,
+    ): HeldAddressReading => {
+      let reading: HeldAddressReading | undefined = rules.readings.get(href);
+
+      if (reading === undefined) {
+        const definitionAddress: string | null = definitions.addressOf(href);
+        const address: string = definitionAddress ?? href;
+        const indexes: Array<number> = held.heldIn(address);
+
+        reading = {
+          address: address,
+          isDefinition: definitionAddress !== null,
+          indexes: indexes,
+          isRefused:
+            indexes.length > 0 &&
+            Markdown.isRefusedWhateverFollows(
+              address.slice(0, address.indexOf(HELD_DATA_OPEN)),
+              rules.schemes,
+              rules.mayBeInlineImage,
+            ),
+          verdict: undefined,
+        };
+        rules.readings.set(href, reading);
+      }
+
+      return reading;
+    };
+
+    /*
+     * The address an image or a link is rendered with, from `href` as
+     * marked gives it.
+     */
     const takeAddress: (
       href: string,
       rules: HeldAddressRules,
     ) => HeldAddress = (href: string, rules: HeldAddressRules): HeldAddress => {
-      const indexes: Array<number> = held.heldIn(href);
+      const reading: HeldAddressReading = readAddress(href, rules);
 
-      if (indexes.length === 0) {
-        return { fate: "kept", href: href };
-      }
-
-      if (
-        Markdown.isRefusedWhateverFollows(
-          href.slice(0, href.indexOf(HELD_DATA_OPEN)),
-          rules.schemes,
-          rules.mayBeInlineImage,
-        )
-      ) {
+      if (reading.isRefused) {
         return { fate: "refused" };
       }
+
+      const putBackWhole: () => string = (): string => {
+        return reading.indexes.length === 0
+          ? reading.address
+          : held.restore(reading.address);
+      };
 
       // The text's own: put back, for the renderer to judge as it always has.
-      if (!isCopy(indexes)) {
-        notePutBack(indexes);
+      if (
+        reading.isDefinition ? !ownTaken.has(href) : !isCopy(reading.indexes)
+      ) {
+        if (reading.isDefinition) {
+          ownTaken.add(href);
+        }
 
-        return { fate: "kept", href: held.restore(href) };
+        notePutBack(reading.indexes);
+
+        return { fate: "kept", href: putBackWhole(), isCopy: false };
       }
 
-      const verdict: boolean | undefined = rules.verdicts.get(href);
+      let restored: string | null = null;
 
-      if (verdict === false) {
+      if (reading.verdict === undefined) {
+        restored = putBackWhole();
+        reading.verdict = rules.judge(restored);
+      }
+
+      const verdict: CopyVerdict = reading.verdict;
+
+      // Nothing of it goes into the HTML, so it takes nothing of a budget.
+      if (verdict === null) {
         return { fate: "refused" };
       }
 
-      const length: number = held.restoredLength(href);
-
-      if (copied + length > MAX_EMAIL_HELD_TEXT_IN_REFERENCES) {
-        return { fate: "leftOut" };
-      }
-
-      const restored: string = held.restore(href);
-
-      if (verdict === undefined) {
-        const isKept: boolean = rules.isKept(restored);
-
-        rules.verdicts.set(href, isKept);
-
-        // Nothing of it goes into the HTML, so it takes nothing of the budget.
-        if (!isKept) {
-          return { fate: "refused" };
+      if (verdict.isScreenshot) {
+        if (
+          copiedScreenshots + verdict.cost >
+          MAX_EMAIL_HELD_TEXT_IN_REFERENCES
+        ) {
+          return { fate: "leftOut" };
         }
+
+        copiedScreenshots += verdict.cost;
+      } else {
+        if (
+          copiedAddresses + verdict.cost >
+          MAX_EMAIL_COPIED_HTML_IN_REFERENCES
+        ) {
+          return { fate: "leftOut" };
+        }
+
+        copiedAddresses += verdict.cost;
       }
 
-      copied += length;
-      notePutBack(indexes);
+      notePutBack(reading.indexes);
 
-      return { fate: "kept", href: restored };
+      return { fate: "kept", href: restored ?? putBackWhole(), isCopy: true };
     };
 
     /*
-     * The title an image or a link is rendered with: as marked gives it,
-     * what was held back of it put back with the rest of the HTML
-     * (restoreEscaped) - or none, for a copy of held-back text.
+     * The title an image or a link is rendered with, as marked writes it -
+     * what was held back of it is put back with the rest of the HTML
+     * (restoreEscaped) - or none: for a copy of a title that holds
+     * held-back text, or one past what copies of titles may write. A title
+     * goes with a copy of an address (`isCopyOfAddress`) as a copy.
      */
-    const takeTitle: (title: string | null | undefined) => string | null = (
+    const takeTitle: (
       title: string | null | undefined,
+      isCopyOfAddress: boolean,
+    ) => string | null = (
+      title: string | null | undefined,
+      isCopyOfAddress: boolean,
     ): string | null => {
       if (!title) {
         return title ?? null;
       }
 
-      const indexes: Array<number> = held.heldIn(title);
+      let reading: HeldTitleReading | undefined = titles.get(title);
 
-      if (indexes.length === 0) {
-        return title;
+      if (reading === undefined) {
+        const written: string = definitions.titleOf(title) ?? title;
+
+        reading = {
+          title: written,
+          indexes: held.heldIn(written),
+          size: EmailSize.getHtmlSizeInBytes(written),
+        };
+        titles.set(title, reading);
       }
 
-      if (isCopy(indexes)) {
+      if (reading.indexes.length > 0) {
+        if (isCopy(reading.indexes)) {
+          return null;
+        }
+
+        notePutBack(reading.indexes);
+
+        return reading.title;
+      }
+
+      if (!isCopyOfAddress) {
+        return reading.title;
+      }
+
+      if (copiedTitles + reading.size > MAX_EMAIL_COPIED_HTML_IN_REFERENCES) {
         return null;
       }
 
-      notePutBack(indexes);
+      copiedTitles += reading.size;
 
-      return title;
+      return reading.title;
     };
 
     restoring.link = function (
@@ -1818,7 +2674,12 @@ export default class Markdown {
         return text;
       }
 
-      return renderer.link.call(this, address.href, takeTitle(title), text);
+      return renderer.link.call(
+        this,
+        address.href,
+        takeTitle(title, address.isCopy),
+        text,
+      );
     };
 
     restoring.image = function (
@@ -1837,7 +2698,12 @@ export default class Markdown {
         return EmailInlineImages.getTooLargeImageNotice(text);
       }
 
-      return renderer.image.call(this, address.href, takeTitle(title), text);
+      return renderer.image.call(
+        this,
+        address.href,
+        takeTitle(title, address.isCopy),
+        text,
+      );
     };
 
     return restoring;

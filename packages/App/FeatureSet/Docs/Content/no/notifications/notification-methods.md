@@ -2,6 +2,9 @@
 
 En varselmetode er en adresse OneUptime kan nå deg på i ett prosjekt: en e-postadresse, et telefonnummer for SMS eller anrop, et WhatsApp-nummer, en Telegram-konto, Slack-, Microsoft Teams- eller Mattermost-kontoen din, en telefon eller nettleser for push-varsler, eller en webhook. Du legger dem til under **Brukerinnstillinger → Varselmetoder**, verifiserer dem, og OneUptime begynner straks å bruke dem til tilkallingene dine.
 
+> [!TIP]
+> Ny her? Følg guiden først: [Bli varslet via telefon, SMS eller push](/docs/guides/paging).
+
 :::cards
 - [Velg en metode](#velg-en-metode): Hva hver metode trenger, og hvordan den verifiseres.
 - [Legg til og verifiser en metode](#legg-til-og-verifiser-en-metode): E-post, SMS, anrop og WhatsApp, med en kode på 6 sifre.
@@ -170,7 +173,7 @@ En webhook trenger ingen verifisering, så når du legger den til, legges reglen
 
 **SMS**, **Telefonanrop**, **WhatsApp** og **Telegram** er slått av i hvert nytt prosjekt, fordi hver melding koster penger: I OneUptime Cloud betales den fra prosjektets saldo, og SMS og anrop går i stedet gjennom prosjektets egen Twilio-konto når standardkontoen sender dem. E-post, push, Slack, Microsoft Teams, Mattermost og webhooks er alltid slått på.
 
-Så lenge en kanal er slått av, kan ingen i prosjektet legge til en metode på den: kortet har ingen legg-til-knapp, og sier hvem som kan slå den på. En prosjekteier, en **Faktureringsadministrator** eller noen med **Manage Billing** slår den på, i kortet **Varslingskanaler** under **Prosjektinnstillinger → Varsler → Varselinnstillinger**. En prosjektadministrator kan ikke det. I en selvdriftet OneUptime trenger SMS og anrop i tillegg en Twilio-konto eller en gateway du selv drifter, og Telegram en bot som serverens administrator kobler til; se [Twilio-integrasjon](/docs/self-hosted/twilio-integration) og [SMS- og anropsgateway](/docs/self-hosted/sms-and-call-gateway).
+Så lenge en kanal er slått av, kan ingen i prosjektet legge til en metode på den: kortet har ingen legg-til-knapp, og sier hvem som kan slå den på. En prosjekteier, en **Faktureringsadministrator** eller noen med **Manage Billing** slår den på, i kortet **Varslingskanaler** under **Prosjektinnstillinger → Varsler → Varslingskanaler**. En prosjektadministrator kan ikke det. I en selvdriftet OneUptime trenger SMS og anrop i tillegg en Twilio-konto eller en gateway du selv drifter, og Telegram en bot som serverens administrator kobler til; se [Twilio-integrasjon](/docs/self-hosted/twilio-integration) og [SMS- og anropsgateway](/docs/self-hosted/sms-and-call-gateway).
 
 ## Slett en metode
 
@@ -197,7 +200,7 @@ Sjekk at telefonen står under **Enheter for push-varsler**, og send den et **Te
 ## Neste steg
 
 :::cards
-- [Personlige vaktregler](/docs/notifications/on-call-rules): Bestem hvilken metode hver tilkalling prøver, og når.
+- [Slik når man meg](/docs/notifications/on-call-rules): Bestem hvilken metode hver tilkalling prøver, og når.
 - [Varselinnstillinger](/docs/notifications/notification-settings): Velg oppdateringene du får vite om, og via hvilke kanaler.
 - [Apper – Oversikt](/docs/mobile-desktop-apps/index): Få tilkallinger på telefonen eller datamaskinen.
 - [Slik når OneUptime deg](/docs/notifications/index): Hvordan metoder, regler og innstillinger henger sammen.

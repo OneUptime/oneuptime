@@ -236,6 +236,10 @@ L'host resta in OneUptime con la sua cronologia: archivialo o eliminalo nell'ele
 HTTP `401`: la chiave è errata, è scaduta o è stata eliminata. HTTP `422`: è disattivata, è una chiave per browser o è vincolata a un solo servizio. Scegli una chiave server attiva in **Aggiungi host** ed esegui di nuovo il comando: sostituisce la chiave sull'host.
 :::
 
+:::details Il comando dice che OneUptime non è stato trovato
+HTTP `404`: l'indirizzo a cui il collector chiede la sua configurazione, il tuo URL di OneUptime seguito da `/telemetry/opamp/v1`, non raggiunge OneUptime. Controlla che `--url` (`-Url` su Windows) sia l'indirizzo con cui apri OneUptime, senza nient'altro dopo. Se davanti a OneUptime c'è un tuo proxy o load balancer, fagli inoltrare `/telemetry/opamp/v1` a OneUptime, come inoltra `/otlp`. Il collector continua a chiedere ogni 30 secondi, quindi l'host si connette non appena l'indirizzo funziona.
+:::
+
 :::details L'host non compare
 Controlla che l'host raggiunga il tuo URL di OneUptime tramite HTTPS, poi leggi il log del collector con il comando per il suo sistema in [Controllare il collector di un host](#controllare-il-collector-di-un-host).
 :::

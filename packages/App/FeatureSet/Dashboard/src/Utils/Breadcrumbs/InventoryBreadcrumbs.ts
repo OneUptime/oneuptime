@@ -62,7 +62,7 @@ export function getInventoryBreadcrumbs(path: string): Array<Link> | undefined {
     ),
     ...buildInventoryDetailBreadcrumbs(
       PageMap.INVENTORY_VIEW_PROFILES,
-      "Performance Profiles",
+      "Profiles",
     ),
     ...buildInventoryDetailBreadcrumbs(
       PageMap.INVENTORY_VIEW_EXCEPTIONS,

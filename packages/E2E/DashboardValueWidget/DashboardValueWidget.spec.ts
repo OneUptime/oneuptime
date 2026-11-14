@@ -1155,20 +1155,51 @@ test.describe("the Value widgets on the dashboard inside OneUptime", () => {
     };
 
     await expect(setup).toHaveCount(1);
-    await expect(setup).toContainText("Click to configure metric");
+    /*
+     * Viewing, a click on the widget opens nothing: it says what is
+     * missing, not to click (issue #7160).
+     */
+    await expect(setup).toContainText("No metric picked yet.");
+    await expect(setup).not.toContainText("Click");
     expect(await linesOutside()).toEqual([]);
+
+    await shoot(page, testInfo, "setup-3x1-viewing", setup);
 
     await page.getByRole("button", { name: "More dashboard options" }).click();
     await page.getByText("Edit Dashboard").click();
 
     // Editing, the drag handle takes 16px more off a tile one unit tall.
     await expect(page.getByText("Save Changes")).toBeVisible();
-    await expect(setup).toContainText("Click to configure metric");
+    // Editing, a click on it opens its settings: it says so.
+    await expect(setup).toContainText("Click to configure a metric");
+    await expect(setup).not.toContainText("No metric picked yet.");
     // The widget's generic name gives way to what to do.
     await expect(setup).not.toContainText("Value Widget");
     expect(await linesOutside()).toEqual([]);
 
     await shoot(page, testInfo, "setup-3x1-editing", setup);
+
+    /*
+     * The click opens its settings, whose Live Preview draws the widget
+     * again: there a click opens nothing, and the settings are right below.
+     * Editing, the board's own layer over the widget takes the click.
+     */
+    const tile: { x: number; y: number; width: number; height: number } | null =
+      await setup.boundingBox();
+
+    expect(tile).not.toBeNull();
+    await page.mouse.click(
+      tile!.x + tile!.width / 2,
+      tile!.y + tile!.height / 2,
+    );
+
+    const preview: Locator = page.getByTestId("widget-settings-preview");
+
+    await expect(preview).toContainText("Pick a metric in the settings below.");
+    await expect(preview).not.toContainText("Click");
+    await expect(preview).not.toContainText("No metric picked yet.");
+
+    await shoot(page, testInfo, "setup-3x1-settings-preview", preview);
   });
 
   test("draw a series that never moves across the middle, with '→ 0%' in grey", async ({

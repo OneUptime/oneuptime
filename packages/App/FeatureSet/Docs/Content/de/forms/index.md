@@ -1,6 +1,6 @@
 # Formulare – Übersicht
 
-Ein Formular ist eine Seite, die jeder mit ihrem Link ausfüllen kann, ohne OneUptime-Konto. Jede Einreichung legt etwas in Ihrem Projekt an: einen **Vorfall** für Problemmeldungen oder ein **Ereignis geplanter Wartung** für Änderungs- und Wartungsanfragen. Sie bauen die Fragen des Formulars in einem Drag-and-Drop-Editor, legen fest, wie aus den Antworten der Datensatz wird, und teilen den Link mit den Personen, die es nutzen sollen.
+Ein Formular ist eine Seite, die jeder mit ihrem Link ausfüllen kann, ohne OneUptime-Konto. Jede Einreichung legt etwas in Ihrem Projekt an: einen **Vorfall** für Problemmeldungen oder ein **Wartungsereignis** für Änderungs- und Wartungsanfragen. Sie bauen die Fragen des Formulars in einem Drag-and-Drop-Editor, legen fest, wie aus den Antworten der Datensatz wird, und teilen den Link mit den Personen, die es nutzen sollen.
 
 Verwenden Sie ein Formular, wenn die Menschen, die ein Problem bemerken – oder eine Änderung brauchen –, nicht die sind, die Ihre Vorfälle und Wartungen bearbeiten: Support-Mitarbeiter, Kollegen aus einer anderen Abteilung, eine Filialleitung, das Betriebsteam eines Kunden. Sie öffnen den Link, beantworten Ihre Fragen und klicken auf **Senden**. Ihr Team erhält einen gewöhnlichen Vorfall oder ein gewöhnliches Ereignis, mit den Antworten in seinen Feldern und einer privaten Notiz, die festhält, wer es geschickt hat.
 
@@ -257,7 +257,7 @@ Die Antwort auf eine Dateifrage sind die Dateien, wie sie gespeichert wurden, je
 
 ### Workflows
 
-Formulare haben die erzeugten Workflow-Komponenten – **On Create Form**, **On Update Form** und so weiter. Um auf das zu reagieren, was ein Formular angelegt hat, verwenden Sie **On Create Incident** oder **On Create Scheduled Maintenance Event**.
+Formulare haben die erzeugten Workflow-Komponenten – **On Create Form**, **On Update Form** und so weiter. Um auf das zu reagieren, was ein Formular angelegt hat, verwenden Sie **On Create Incident** oder **On Create Maintenance Event**.
 
 ### Die eigenen Endpunkte der öffentlichen Seite
 

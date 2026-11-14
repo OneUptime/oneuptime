@@ -59,7 +59,7 @@ flowchart TB
 
 ### 必要なものだけを与える
 
-読み取り専用のエクスポートに必要な権限は **Read Telemetry Service** の 1 つです。インベントリは独自の権限を持たず、テレメトリの権限を共有します。キーのページで **権限を追加** をクリックして選びます。値を書き戻すには **Edit Telemetry Service** も追加します。
+読み取り専用のエクスポートに必要な権限は **Read Inventory Item** の 1 つです。インベントリは独自の権限を持たず、テレメトリの権限を共有します。キーのページで **権限を追加** をクリックして選びます。値を書き戻すには **Edit Inventory Item** も追加します。
 
 ### キーをコピーする
 
@@ -232,9 +232,9 @@ ENTITY-MIB の行はデバイスの最初の SNMP ウォークの後に埋まり
 
 ## 書き戻し
 
-同じエンドポイントは書き込みも受け付けるため、同期で `customFields` に値を送れます。たとえば、CMDB がすでに管理している資産タグを、対応する OneUptime の項目に付与できます。それにはキーに **Edit Telemetry Service** が必要です。
+同じエンドポイントは書き込みも受け付けるため、同期で `customFields` に値を送れます。たとえば、CMDB がすでに管理している資産タグを、対応する OneUptime の項目に付与できます。それにはキーに **Edit Inventory Item** が必要です。
 
-OneUptime から見えないものの項目も、`POST /api/inventory-item` で追加できます。`entityType` に `external.service`、`external.database`、`appliance` のいずれかを、そして `displayName` を指定します。識別キーは OneUptime が計算し、これらの項目が期限切れになることはありません。これには **Create Telemetry Service** を持つキーが必要です。
+OneUptime から見えないものの項目も、`POST /api/inventory-item` で追加できます。`entityType` に `external.service`、`external.database`、`appliance` のいずれかを、そして `displayName` を指定します。識別キーは OneUptime が計算し、これらの項目が期限切れになることはありません。これには **Create Inventory Item** を持つキーが必要です。
 
 ## トラブルシューティング
 
@@ -243,7 +243,7 @@ OneUptime Cloud では、API キーはプロジェクトが **Growth** 以上の
 :::
 
 :::details すべてのリクエストが 422 You do not have permissions を返す
-キーにインベントリを読み取る権限がありません。**権限は後で選択** で作成したキーは、権限を得るまで何もできません。[始める前に](#始める前に) のとおり、キーのページで **Read Telemetry Service** を追加してください。
+キーにインベントリを読み取る権限がありません。**権限は後で選択** で作成したキーは、権限を得るまで何もできません。[始める前に](#始める前に) のとおり、キーのページで **Read Inventory Item** を追加してください。
 :::
 
 :::details 必要な列がないまま一覧が返ってくる

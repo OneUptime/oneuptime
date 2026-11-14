@@ -26,7 +26,7 @@ Ogni minuto, OneUptime legge i profili che corrispondono ai filtri del monitor e
 
 ## Prima di iniziare
 
-- I vostri servizi inviano dati di profilazione continua a OneUptime, tramite Grafana Alloy (eBPF), un SDK Pyroscope o l'agente Kubernetes di OneUptime. Vedete [Profilazione continua](/docs/telemetry/profiles).
+- I vostri servizi inviano dati di profilazione continua a OneUptime, tramite Grafana Alloy (eBPF), un SDK Pyroscope o l'agente Kubernetes di OneUptime. Vedete [Profili](/docs/telemetry/profiles).
 - Per osservare una funzione, ne conoscete il nome, o una parte del percorso del suo file o pacchetto, come lo mostra il Profiler.
 
 ## Creare un monitor profili
@@ -34,7 +34,7 @@ Ogni minuto, OneUptime legge i profili che corrispondono ai filtri del monitor e
 :::steps
 ### Partire dal Profiler, oppure da Crea monitor
 
-La via più rapida parte dalla funzione stessa: in **Profili di prestazioni**, aprite la funzione e fate clic sul link che propone un avviso sulla sua quota. **Crea monitor** si apre con il monitor già compilato per quella funzione e il suo servizio, con una soglia sopra quanto occupa oggi, come descritto in [Esempio pratico: una funzione diventa più pesante](#esempio-pratico-una-funzione-diventa-più-pesante). Altrimenti andate in **Monitor** e fate clic su **Crea monitor**.
+La via più rapida parte dalla funzione stessa: in **Profili**, aprite la funzione e fate clic sul link che propone un avviso sulla sua quota. **Crea monitor** si apre con il monitor già compilato per quella funzione e il suo servizio, con una soglia sopra quanto occupa oggi, come descritto in [Esempio pratico: una funzione diventa più pesante](#esempio-pratico-una-funzione-diventa-più-pesante). Altrimenti andate in **Monitor** e fate clic su **Crea monitor**.
 
 ### Scegliere Profiles
 
@@ -84,7 +84,7 @@ Inserite l'ID del servizio in `telemetryServiceIds`, oppure lasciate vuoto l'ele
 | `attributes` | Profili i cui attributi hanno questi valori. | Vuoto: nessuna condizione |
 | `lastXSecondsOfProfiles` | Profili iniziati entro questo numero di secondi prima della valutazione. | Nessuno: impostatelo sempre, altrimenti viene contato ogni profilo memorizzato e il conteggio non scende mai a 0 |
 
-Tutti i filtri che impostate devono corrispondere perché un profilo venga letto. Nel modulo, **Funzione** imposta `functionName`, **Cosa analizzare** imposta `profileTypes` (**Ogni tipo di profilo** lo lascia vuoto), **Monitora i profili per (tempo)** imposta `lastXSecondsOfProfiles`, e **Filtra per servizio di telemetria** e **Filtra per entità dell'infrastruttura** impostano `telemetryServiceIds` ed `entityKeys`.
+Tutti i filtri che impostate devono corrispondere perché un profilo venga letto. Nel modulo, **Funzione** imposta `functionName`, **Cosa analizzare** imposta `profileTypes` (**Ogni tipo di profilo** lo lascia vuoto), **Monitora i profili per (tempo)** imposta `lastXSecondsOfProfiles`, e **Filtra per servizio** e **Filtra per entità dell'infrastruttura** impostano `telemetryServiceIds` ed `entityKeys`.
 
 ## Come viene valutato
 
@@ -127,7 +127,7 @@ I conteggi dei profili non hanno condizioni di anomalia: non c'è un riferimento
 
 Nel servizio di checkout, `parseOrder` occupa il 18% del suo tempo CPU. Un deploy che analizza un payload più grande non deve passare inosservato:
 
-1. In **Profili di prestazioni**, scegliete il servizio di checkout e aprite `parseOrder`.
+1. In **Profili**, scegliete il servizio di checkout e aprite `parseOrder`.
 2. Fate clic sul link che propone un avviso sulla sua quota. Il Profiler suggerisce il 30%: metà in più della quota di oggi, almeno 10 punti in più, arrotondato per eccesso a un multiplo di 5.
 3. **Crea monitor** si apre su un monitor profili del servizio di checkout che legge il **Tempo CPU** degli **Ultimi 5 minuti**, con due criteri: **Quota della funzione (in %)** **Maggiore di** `30` genera un avviso, che si risolve da solo, e segna il monitor come degradato; **Minore o uguale a** `30` lo segna come operativo. L'incidente è compilato ma disattivato: attivatelo per chiamare qualcuno.
 4. Fate clic su **Crea monitor**.
@@ -157,7 +157,7 @@ Nessun frame nella finestra contiene il testo della funzione. Aprite la funzione
 ## Passaggi successivi
 
 :::cards
-- [Profilazione continua](/docs/telemetry/profiles): Inviare profili e leggerli nel Profiler.
+- [Profili](/docs/telemetry/profiles): Inviare profili e leggerli nel Profiler.
 - [Passaggi del monitor](/docs/terraform/monitor-steps): Passare la configurazione del passaggio da Terraform.
 - [Monitor tracce](/docs/monitor/traces-monitor): Avvisare sugli span non riusciti.
 - [Monitor metriche](/docs/monitor/metrics-monitor): Avvisare su CPU, memoria e altre metriche.

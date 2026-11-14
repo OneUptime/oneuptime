@@ -82,7 +82,7 @@ stateDiagram-v2
 | **Reliability first** | 剩余 25% 或更少 | Reliability comes first. Only reliability improvements and critical fixes ship until the budget recovers. | 允许 |
 | **Budget exhausted** | 剩余 0% 或更少 | The error budget is spent. Freeze non-critical releases: only fixes for this SLO's reliability and security fixes ship until the budget is back. | 已冻结 |
 
-在你开启之前，它们都不会触发警报或声明事件。**Budget exhausted** 会冻结部署，正如它的约定所说，确认窗口中也会这样标注它：参见 [部署闸门](#部署闸门)。在部署闸门推出之前添加的级别不会冻结任何部署，除非你为它们开启该开关。只会添加 SLO 还没有的级别：名称相同或阈值相同的级别，无论开启与否，都算已存在。因此，从第二个标签页或通过 API 请求两次，也不会重复添加任何内容。以这种方式添加的每个级别都会在 SLO 的审计日志中记录为由你添加。
+在你开启之前，它们都不会触发警报或声明事件。**Budget exhausted** 会冻结部署，正如它的约定所说，确认窗口中也会这样标注它：参见 [部署闸门](#部署闸门)。在部署闸门推出之前添加的级别不会冻结任何部署，除非你为它们开启该开关。只会添加 SLO 还没有的级别：名称相同或阈值相同的级别，无论开启与否，都算已存在。因此，从第二个标签页或通过 API 请求两次，也不会重复添加任何内容。如果其中某个级别无法添加，就一个也不会添加：SLO 保持原样，你可以再试一次。以这种方式添加的每个级别都会在 SLO 的审计日志中记录为由你添加。
 
 ## 级别显示在哪里
 

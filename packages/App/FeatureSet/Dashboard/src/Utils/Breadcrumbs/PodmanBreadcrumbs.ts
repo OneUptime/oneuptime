@@ -127,7 +127,7 @@ export function getPodmanBreadcrumbs(path: string): Array<Link> | undefined {
       "Project",
       "Podman",
       "View Host",
-      "Performance Profiles",
+      "Profiles",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.PODMAN_HOST_VIEW_OWNERS, [
       "Project",

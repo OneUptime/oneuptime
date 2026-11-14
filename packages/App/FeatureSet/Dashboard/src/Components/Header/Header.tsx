@@ -87,6 +87,16 @@ export interface ComponentProps {
  */
 export const HEADER_COUNT_REFRESH_INTERVAL_IN_MS: number = 5000;
 
+/*
+ * The widths an entry of the header's right rail is drawn from (see the
+ * rail below): from md (768px), where the phone's menu stops, for Search and
+ * Help; from lg (1024px) for Upgrade and Ask AI.
+ */
+export const FROM_TABLET_WIDTH_CLASS_NAME: string =
+  "max-md:hidden items-center md:flex";
+export const FROM_LAPTOP_WIDTH_CLASS_NAME: string =
+  "max-lg:hidden items-center lg:flex";
+
 const DashboardHeader: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -934,28 +944,47 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
         rightComponents={
           <>
             {/*
-             * Upgrade, Search and Ask AI are wide-screen entries: two of them
-             * exist to advertise a keyboard chord, and none of the three is
-             * worth the width on a phone. They are grouped rather than moved so
-             * the desktop rail keeps the order it has always had.
+             * Each entry of the rail says from which width it is drawn, in
+             * the order the desktop rail has always had: Upgrade, Search,
+             * Ask AI, the bell, Help, the profile button.
              *
-             * `max-lg:hidden`, not `hidden`: a foreign `.hidden` rule (browser
-             * extension, user stylesheet) would otherwise take them off every
-             * screen, desktop included — see Common's NavBar desktop view.
+             * - Search and Help from md (768px). Below md the phone's menu
+             *   carries them both (NavBar's mobileMenuTop and
+             *   mobileMenuBottom, #6816), and that menu is drawn only below
+             *   md, so from md the header has to (#7037): between 768 and
+             *   1023px they were in neither, and Search, Help, How OneUptime
+             *   works and the Glossary could not be reached at all on a
+             *   tablet. Help is one square button, and Search fits beside
+             *   it with the project's name still there, in German and
+             *   Arabic too.
+             * - Upgrade and Ask AI from lg (1024px). Ask AI's words alone
+             *   are wider than a tablet's header has to spare in some
+             *   languages (Arabic's are over 200px), and Search reaches it
+             *   (its Ask AI action) on a phone and a tablet alike. Upgrade
+             *   is a link to Billing, which Project Settings has too.
+             *
+             * `max-md:hidden` and `max-lg:hidden`, not `hidden`: a foreign
+             * `.hidden` rule (browser extension, user stylesheet) would
+             * otherwise take them off every screen, desktop included — see
+             * Common's NavBar desktop view.
              */}
-            <div className="max-lg:hidden items-center gap-2 lg:flex">
-              {BILLING_ENABLED &&
-              props.selectedProject?.id &&
-              props.selectedProject.paymentProviderPlanId &&
-              SubscriptionPlan.isFreePlan(
-                props.selectedProject.paymentProviderPlanId,
-                getAllEnvVars(),
-              ) ? (
+            {BILLING_ENABLED &&
+            props.selectedProject?.id &&
+            props.selectedProject.paymentProviderPlanId &&
+            SubscriptionPlan.isFreePlan(
+              props.selectedProject.paymentProviderPlanId,
+              getAllEnvVars(),
+            ) ? (
+              <div className={FROM_LAPTOP_WIDTH_CLASS_NAME}>
                 <Upgrade />
-              ) : (
-                <></>
-              )}
+              </div>
+            ) : (
+              <></>
+            )}
+            <div className={FROM_TABLET_WIDTH_CLASS_NAME}>
               <Search />
+            </div>
+            <div className={FROM_LAPTOP_WIDTH_CLASS_NAME}>
               <AskAI />
             </div>
             {/*
@@ -968,7 +997,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
               items={buildNotificationItems()}
               onItemClick={handleNotificationItemClick}
             />
-            <div className="max-lg:hidden items-center lg:flex">
+            <div className={FROM_TABLET_WIDTH_CLASS_NAME}>
               <Help />
             </div>
             <UserProfile

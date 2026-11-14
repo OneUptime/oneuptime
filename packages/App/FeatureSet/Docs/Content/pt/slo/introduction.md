@@ -195,17 +195,17 @@ A página **Configurações** reúne como um SLO mede, um cartão para cada cois
 
 | Cartão | O que você muda | Bom saber |
 | --- | --- | --- |
-| **Objetivo** | **Meta (%)** e **Limite de risco (%)**, com **Editar objetivo**. | Mostra a indisponibilidade que a meta permite, por exemplo "43m 12s de indisponibilidade por janela de 30 dias". |
+| **Objetivo** | **Meta (%)** e **Limite de risco (%)**, com **Editar objetivo**. | Mostra a indisponibilidade que a meta permite, por exemplo "43 min 12 s de inatividade por janela de 30 dias". |
 | **Período de conformidade** | **Tipo de janela**, **Janela (dias)** e **Fuso horário**, com **Editar período**. | As regras de taxa de consumo mantêm seus limites quando a janela muda, então revise-as depois. |
 | **Cálculo de inatividade** | **Modo de vários monitores** e **Status de monitor de indisponibilidade**, com **Editar cálculo de inatividade**. | Sem nenhum status, contam todos os status não operacionais, inclusive os adicionados depois. |
 | **Avaliação** | O interruptor **Avaliar este SLO**, que salva assim que você o muda. | Desligá-lo pede confirmação, porque também resolve os alertas e incidentes de taxa de consumo abertos do SLO. |
-| **Archive SLO** | **Arquivar** ou **Desarquivar**. | Veja [Arquivar um SLO](#arquivar-um-slo). |
+| **Arquivar: SLO** | **Arquivar** ou **Desarquivar**. | Veja [Arquivar um SLO](#arquivar-um-slo). |
 
 Depois de uma mudança na meta, no período ou no cálculo da indisponibilidade, o OneUptime avalia o SLO de novo na execução seguinte.
 
 ## Arquivar um SLO
 
-Arquive um SLO que você não mede mais, mas quer guardar, como um serviço desativado ou a meta do ano passado. Arquive-o em **Configurações** → **Archive SLO**, ou selecione SLOs na lista e escolha **Arquivar**.
+Arquive um SLO que você não mede mais, mas quer guardar, como um serviço desativado ou a meta do ano passado. Arquive-o em **Configurações** → **Arquivar: SLO**, ou selecione SLOs na lista e escolha **Arquivar**.
 
 Um SLO arquivado:
 

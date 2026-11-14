@@ -194,7 +194,7 @@ journey(
       `${DASHBOARD}/monitors/${MONITOR}?seed=monitor`,
       page.getByRole("heading", { name: "Acme website" }).first(),
     );
-    await person.openProduct("On-Call Duty");
+    await person.openProduct("On-Call");
     await person.press(/Create On-Call Policy/);
     await person.type("Name", "Website on-call");
     await person.press("Add responder");
@@ -275,7 +275,7 @@ journey(
       page.getByRole("heading", { name: "Home" }),
     );
     await person.openProduct("Project Settings");
-    await person.sideMenu("Notification Settings", "Notifications");
+    await person.sideMenu("Notification Channels", "Notifications");
     await person.toggle(/^Phone Calls/);
     await person.press("Recharge Balance");
     await person.type(/Amount/, "20");
@@ -287,7 +287,7 @@ journey(
     // The number gets a code as it is added: the Verify dialog opens.
     await person.type(/code/i, VERIFICATION_CODE);
     await person.submit("Verify");
-    await person.openProduct("On-Call Duty");
+    await person.openProduct("On-Call");
     await person.press(/Create On-Call Policy/);
     await person.type("Name", "Website on-call");
     await person.press("Add responder");
@@ -317,6 +317,79 @@ journey(
     expect(
       writesTo(log, "OnCallDutyPolicyEscalationRule")[0]?.misc?.["users"],
     ).toEqual([GRACE]);
+  },
+);
+
+/*
+ * 3b. The same job in the on-call guided setup (#6805), on OneUptime Cloud:
+ * from Home's question to a test page of the policy acknowledged, on one
+ * page - SMS and calls on and paid for, one number and one code for both,
+ * a policy that pages me for every new incident and alert, Grace after 30
+ * minutes, and the test.
+ */
+journey(
+  "paged-by-phone-guided",
+  async (person: Journey, page: Page) => {
+    await person.begin(
+      `${DASHBOARD}/home/?billing=on`,
+      page.getByRole("heading", { name: "Home" }),
+    );
+    await person.tick(/Page the right person when something breaks/);
+    await person.press("Continue");
+    await person.press(/Set up an on-call policy/);
+    await person.press("Turn on SMS and phone calls");
+    await person.press("Add balance");
+    await person.type(/Amount/, "20");
+    await person.submit("Recharge");
+    await person.type("Your phone number", "+15550100123");
+    await person.submit("Text me a code");
+    await person.type(/code/i, VERIFICATION_CODE);
+    await person.submit("Verify");
+    await expect(
+      page.getByTestId("on-call-setup-reach-phone-value"),
+    ).toContainText("Phone call");
+    await person.press("Continue");
+    // You are picked to be paged first; everyone is reached, so it moves on.
+    await person.press("Save and continue");
+    await person.press("Add teammates");
+    await person.option(/^Grace Hopper/);
+    await person.closeList();
+    await person.press("Save and continue");
+    await person.press("Test this policy");
+    // Acknowledged from the email: the dialog gives way to the result.
+    await person.submit("Send test page");
+    await person.press("Continue");
+    await expect(page.getByTestId("guided-setup-summary")).toContainText(
+      "Grace Hopper is paged",
+    );
+  },
+  (log: FixtureLog) => {
+    expect(
+      writesTo(log, "Project", "update").map((write: FixtureWrite) => {
+        return write.data;
+      }),
+    ).toEqual([
+      { enableSmsNotifications: true, enableCallNotifications: true },
+      { smsOrCallCurrentBalanceInUSDCents: 2000 },
+    ]);
+    // One number, one code: verified by text, and for calls with no second.
+    expect(writesTo(log, "UserSMS")).toHaveLength(1);
+    expect(writesTo(log, "UserSMS", "update")[0]?.data).toEqual({
+      isVerified: true,
+    });
+    expect(writesTo(log, "UserCall")).toHaveLength(1);
+    const [policy] = writesTo(log, "OnCallDutyPolicy");
+    expect(policy?.misc?.["users"]).toEqual([ADA]);
+    expect(policy?.misc?.["pageForEveryNewIncidentAndAlert"]).toBe(true);
+    expect(
+      writesTo(log, "OnCallDutyPolicyEscalationRule")[0]?.misc?.["users"],
+    ).toEqual([GRACE]);
+    // The test page went to the policy, and was acknowledged.
+    expect(
+      log.api.filter((call: FixtureApiCall) => {
+        return call.path.endsWith("/on-call-test-page/page-policy");
+      }),
+    ).toHaveLength(1);
   },
 );
 

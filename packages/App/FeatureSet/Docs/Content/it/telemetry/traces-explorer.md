@@ -37,7 +37,7 @@ L'esploratore ha cinque schede:
 ## Prima di iniziare
 
 - **Tracce in arrivo.** Strumentate i vostri servizi con [OpenTelemetry](/docs/telemetry/open-telemetry). La scheda **Guida alla configurazione** mostra il codice per il vostro linguaggio.
-- **Un ruolo che può leggere la telemetria.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member o Telemetry Viewer, oppure un ruolo personalizzato con il permesso Read Telemetry Service Traces. Il suo ambito decide di chi sono gli span che vedete: vedere [Telemetria](/docs/permissions/index#telemetria).
+- **Un ruolo che può leggere la telemetria.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member o Telemetry Viewer, oppure un ruolo personalizzato con il permesso Read Traces. Il suo ambito decide di chi sono gli span che vedete: vedere [Telemetria](/docs/permissions/index#telemetria).
 
 ## Trovare una richiesta
 
@@ -183,6 +183,6 @@ Ogni riga è uno span, non una richiesta: con **Entry spans**, l'impostazione pr
 :::cards
 - [Sintassi di ricerca](/docs/telemetry/search-syntax): Ogni filtro che la casella di ricerca comprende.
 - [Monitor tracce](/docs/monitor/traces-monitor): Ricevere un avviso per richieste fallite o lente.
-- [Tracciamento delle eccezioni](/docs/telemetry/exceptions): Smistare gli errori che i vostri span registrano.
+- [Eccezioni](/docs/telemetry/exceptions): Smistare gli errori che i vostri span registrano.
 - [Esploratore log](/docs/telemetry/logs-explorer): Leggere le righe di log scritte da una richiesta.
 :::

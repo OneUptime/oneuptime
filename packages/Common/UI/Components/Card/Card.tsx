@@ -1,6 +1,8 @@
 import GlossaryTerm from "../../../Types/Docs/GlossaryTerm";
-import DefinedTerm from "../Glossary/DefinedTerm";
+import DefinedTerm from "../Glossary/LazyDefinedTerm";
+import DefinitionsDrawnAfter from "../Glossary/DefinitionsDrawnAfter";
 import readAsWritten from "../IsolatedText/ReadAsWritten";
+import { withProductText } from "../../Utils/ProductText";
 import useTranslator from "../../Utils/UseTranslator";
 import { Translator } from "../../Utils/TranslateTemplate";
 import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
@@ -657,25 +659,45 @@ const Card: FunctionComponent<ComponentProps> = (
     );
   };
 
+  const titleClassName: string =
+    isSection || isFormSection
+      ? CARD_SECTION_TITLE_CLASS_NAME
+      : CARD_TITLE_CLASS_NAME;
+
+  /*
+   * The heading names the card by the words inside it, so the definition of
+   * a defined term in it is drawn right after it (DefinitionsDrawnAfter):
+   * drawn in it, the definition - a dialog named by its word - named the
+   * heading a second time while it showed ("Criteria Criteria", #7594).
+   * That holds for a word Card draws (titleGlossaryTerm) and for one an
+   * element title draws (a table's, beside its plan's badge). It has no id:
+   * every card's heading had the same one, repeated on any page with two
+   * cards, and nothing pointed at it.
+   */
   const titleElement: ReactElement | false | "" | undefined =
     translatedTitle && (
-      <h2
-        data-testid="card-details-heading"
-        id="card-details-heading"
-        className={
-          isSection || isFormSection
-            ? CARD_SECTION_TITLE_CLASS_NAME
-            : CARD_TITLE_CLASS_NAME
-        }
-      >
-        {props.titleGlossaryTerm && typeof translatedTitle === "string" ? (
-          <DefinedTerm term={props.titleGlossaryTerm}>
-            {translatedTitle}
-          </DefinedTerm>
-        ) : (
-          translatedTitle
-        )}
-      </h2>
+      <DefinitionsDrawnAfter>
+        <h2
+          data-testid="card-details-heading"
+          /*
+           * A title in words is the product's own (Utils/ProductText); one
+           * that is an element may carry a record's name, and stays masked.
+           */
+          className={
+            typeof translatedTitle === "string"
+              ? withProductText(titleClassName)
+              : titleClassName
+          }
+        >
+          {props.titleGlossaryTerm && typeof translatedTitle === "string" ? (
+            <DefinedTerm term={props.titleGlossaryTerm}>
+              {translatedTitle}
+            </DefinedTerm>
+          ) : (
+            translatedTitle
+          )}
+        </h2>
+      </DefinitionsDrawnAfter>
     );
 
   const hasDescription: boolean = Boolean(translatedDescription);
@@ -846,7 +868,11 @@ const Card: FunctionComponent<ComponentProps> = (
     translatedDescription && (
       <DescriptionTag
         data-testid="card-description"
-        className={descriptionClassName}
+        className={
+          typeof translatedDescription === "string"
+            ? withProductText(descriptionClassName)
+            : descriptionClassName
+        }
       >
         {readAsWritten(translatedDescription, translator.language)}
       </DescriptionTag>

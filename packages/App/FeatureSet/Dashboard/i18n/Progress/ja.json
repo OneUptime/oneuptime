@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 50830,
+    "keys": 51223,
     "untranslated": 1275
   },
   "sameAsEnglish": [
@@ -361,6 +361,7 @@
     "{{count}} B",
     "{{count}} KB",
     "{{count}} MB",
+    "{{count}} ms",
     "{{count}} vCPU",
     "{{format}} JSON",
     "{{gigabytes}} GB",

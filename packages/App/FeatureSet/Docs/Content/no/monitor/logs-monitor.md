@@ -72,7 +72,7 @@ Klikk på **Opprett monitor**. Monitoren åpnes på siden **Oversikt**, og den f
 | **Tidsvindu** (i **Når det skal varsles**) | Logger fra de siste 5 sekundene opp til de siste 24 timene. | **Siste 5 minutter** |
 | **Grupper etter attributter** | Ikke et filter: teller hver kombinasjon av disse attributtenes verdier for seg. | Tom: én telling |
 | **Løst av attributter** | Ikke et filter: loggen som løser en gruppe. Vises så snart **Grupper etter attributter** har et attributt; se [Løst av en logg](#løst-av-en-logg). | Tom: en gruppe løses når loggene dens stopper |
-| **Filtrer etter telemetritjeneste** (under **Flere felt**) | Logger fra en av de valgte tjenestene. | Tom: alle tjenester |
+| **Filtrer etter tjeneste** (under **Flere felt**) | Logger fra en av de valgte tjenestene. | Tom: alle tjenester |
 | **Filtrer etter infrastrukturenhet** (under **Flere felt**) | Logger fra en av de valgte vertene, podene, containerne og andre entitetene. | Tom: alle entiteter |
 | **Filtrer etter attributter** (under **Flere felt**) | Logger der attributtene oppfyller alle vilkår. Hvert vilkår har sin egen operator, som «er lik» eller «inneholder». | Tom: ingen vilkår |
 
@@ -140,7 +140,7 @@ Du vil ha en hendelse når checkout-tjenesten logger mer enn 50 feil på fem min
 
 - **Loggalvorlighetsgrad**: **Feil**
 - **Tidsvindu**: **Siste 5 minutter**
-- **Filtrer etter telemetritjeneste**: `checkout`
+- **Filtrer etter tjeneste**: `checkout`
 - **Når det skal varsles**: **Mer enn** `50`
 - **Hva som skjer**: **Erklær en hendelse**
 
@@ -240,7 +240,7 @@ Verdien til hvert Group By-attributt er en [malvariabel](/docs/monitor/incident-
 ## Feilsøking
 
 :::details Monitoren er frakoblet, men tjenesten min logger
-Antallet var 0, så filtrene samsvarer ikke med noen av loggene tjenesten sender. Åpne monitorens side **Kriterier** (under **Konfigurasjon**), og klikk på **Rediger overvåkingskriterier**: **Samsvarende logger** viser hva filtrene velger ut akkurat nå, og diagrammet i **Når det skal varsles** teller dem i hvert vindu. De vanligste årsakene er en alvorlighetsgrad valgt etter teksten loggeren skriver ut i stedet for alvorlighetsnummeret (se [Loggalvorlighetsgrad](#loggalvorlighetsgrad)), et tjeneste- eller attributtfilter som ikke samsvarer, og et tidsvindu som er kortere enn pausen mellom tjenestens logger.
+Antallet var 0, så filtrene samsvarer ikke med noen av loggene tjenesten sender. Åpne monitorens side **Kriterier** (under **Konfigurasjon**), og klikk på **Rediger kriterier**: **Samsvarende logger** viser hva filtrene velger ut akkurat nå, og diagrammet i **Når det skal varsles** teller dem i hvert vindu. De vanligste årsakene er en alvorlighetsgrad valgt etter teksten loggeren skriver ut i stedet for alvorlighetsnummeret (se [Loggalvorlighetsgrad](#loggalvorlighetsgrad)), et tjeneste- eller attributtfilter som ikke samsvarer, og et tidsvindu som er kortere enn pausen mellom tjenestens logger.
 :::
 
 :::details Det var en økning, men ingenting varslet

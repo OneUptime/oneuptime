@@ -2,6 +2,9 @@
 
 Uma página de status é a face pública de tudo o que você monitora: uma única URL que seus clientes podem abrir em vez de escrever para você perguntando se o problema é só com eles. Ela mostra o status atual dos serviços que você escolhe expor, os incidentes em que você está trabalhando, a manutenção que você planejou e qualquer anúncio que queira fixar no topo. Para escolher entre uma página de status e um painel, veja [Qual devo usar?](/docs/introduction/which-one#painel-painel-público-ou-página-de-status).
 
+> [!TIP]
+> Novo por aqui? Siga primeiro o guia: [Publicar uma página de status](/docs/guides/status-page).
+
 Quando algo quebra às 2 da manhã, a página de status é a primeira coisa para a qual sua fila de suporte aponta. É também de onde seus assinantes são notificados, então vale a pena configurá-la antes de precisar dela, não no meio da indisponibilidade.
 
 :::cards
@@ -122,7 +125,7 @@ A página pública é um aplicativo próprio, com um pequeno conjunto de rotas:
 - `/rss`: o feed.
 - `/login`, `/sso`, `/magic-link`, `/magic-link-login/:token` e `/master-password`: relevantes apenas em uma página privada.
 
-A barra de navegação superior sempre mostra **Visão geral**; o resto só aparece quando está ligado. **Incidentes**, **Anúncios** e **Eventos agendados** precisam cada um do seu interruptor; **Inscrever-se** precisa tanto de **Mostrar página de assinantes** quanto de pelo menos um canal de inscrição ligado. Uma página privada também tem um item **Sair**.
+A barra de navegação superior sempre mostra **Visão geral**; o resto só aparece quando está ligado. **Incidentes**, **Anúncios** e **Manutenção programada** precisam cada um do seu interruptor; **Inscrever-se** precisa tanto de **Mostrar página de assinantes** quanto de pelo menos um canal de inscrição ligado. Uma página privada também tem um item **Sair**.
 
 Um único incidente, episódio, anúncio ou evento agendado só abre se a página o listaria, qualquer que seja sua janela de histórico: um incidente ou episódio privado, um oculto das páginas de status, um evento agendado oculto das páginas de status ou um anúncio agendado para mais tarde também não é encontrado pelo link.
 
@@ -135,7 +138,7 @@ A visão geral é a página que a maioria dos visitantes vê. De cima para baixo
 3. **Um percentual geral de tempo de atividade**, se você o ligou: no fim do banner de status geral, enquanto todos os recursos estiverem operacionais. Desligado por padrão.
 4. **Os grupos de recursos**, cada um com seus recursos, o status atual deles e as barras de histórico de tempo de atividade.
 5. **Incidentes ativos**, com os episódios ativos.
-6. **Eventos de manutenção agendada**.
+6. **Manutenção programada**.
 
 Uma página recém-criada sem conteúdo mostra um estado vazio pedindo que você adicione recursos pelo painel, o sinal para ir à tela **Recursos**.
 
@@ -151,7 +154,7 @@ O que os visitantes veem é definido em um único cartão: **O que sua página d
 - **Mostrar apenas incidentes limitados a esta página** (`onlyShowScopedIncidents`): também na linha de incidentes, desligado por padrão. Ligue-o e a página mostra, e notifica a seus assinantes, apenas os incidentes limitados a ela com **Limitar a estas páginas de status**. Incidentes não limitados a nenhuma página, incluindo os que um monitor, o Slack, o Microsoft Teams, a API ou a IA abrem sozinhos, nunca chegam a ela até que alguém adicione a página a eles. Ele também decide quais incidentes trazem seus episódios para a página, por isso continua disponível quando **Mostrar incidentes** está desligado. Para páginas que compartilham monitores mas atendem públicos diferentes, veja [Uma página de status por público](/docs/status-pages/one-status-page-per-audience).
 - **Mostrar episódios** (`showEpisodesOnStatusPage`): ligado por padrão, com **Mostrar … dias de histórico** (`showEpisodeHistoryInDays`, 14 por padrão) e **Mostrar rótulos de episódios** (`showEpisodeLabelsOnStatusPage`, desligado por padrão). Episódios são um modelo próprio com seus próprios endpoints, não uma visão dos incidentes.
 - **Mostrar anúncios** (`showAnnouncementsOnStatusPage`): ligado por padrão, com **Mostrar … dias de histórico** (`showAnnouncementHistoryInDays`, 14 por padrão).
-- **Mostrar eventos de manutenção programada** (`showScheduledMaintenanceEventsOnStatusPage`): ligado por padrão, com **Mostrar … dias de histórico** (`showScheduledEventHistoryInDays`, 14 por padrão) e **Mostrar rótulos de eventos** (`showScheduledEventLabelsOnStatusPage`, desligado por padrão).
+- **Mostrar eventos de manutenção** (`showScheduledMaintenanceEventsOnStatusPage`): ligado por padrão, com **Mostrar … dias de histórico** (`showScheduledEventHistoryInDays`, 14 por padrão) e **Mostrar os rótulos dos eventos de manutenção** (`showScheduledEventLabelsOnStatusPage`, desligado por padrão).
 - **Histórico de tempo de atividade**: tudo sobre o tempo de atividade da página, em uma linha:
   - **Mostrar … dias de histórico** (`showUptimeHistoryInDays`) é o comprimento da barra de tempo de atividade ao lado de cada recurso. É 90 por padrão e precisa estar entre 1 e 90. Toda opção **Mostrar % de tempo de atividade** e **Mostrar gráfico de histórico de status** de um recurso ou grupo lê esse número, assim como o percentual geral de tempo de atividade.
   - **Mostrar percentual geral de tempo de atividade** (`showOverallUptimePercentOnStatusPage`): desligado por padrão. Ligue-o e o banner de status geral termina com um percentual de tempo de atividade para a página inteira, a média de seus recursos e grupos, enquanto tudo estiver operacional. Enquanto ele está ligado, **Precisão** (`overallUptimePercentPrecision`) escolhe quantas casas decimais ele mostra: `99%`, `99.9%`, `99.99%` (o padrão) ou `99.999%`. Cada recurso e cada grupo tem sua própria precisão.
@@ -165,7 +168,7 @@ O que os visitantes veem é definido em um único cartão: **O que sua página d
 
 Se a página mostra um item **Inscrever-se** (**Mostrar página de assinantes**, `showSubscriberPageOnStatusPage`, ligado por padrão) e por quais canais os visitantes podem se inscrever não é definido nesta tela: as duas coisas ficam no cartão **Canais** de **Assinantes → Configurações de assinantes** (veja [Canais de inscrição](/docs/status-pages/subscribers#canais-de-inscrição)).
 
-Abaixo do cartão ficam **Exportar como JSON: Página de status**, que baixa as configurações da própria página de status em um arquivo que você pode importar de novo, e **Archive status page** (veja [Arquivar uma página de status](#arquivar-uma-página-de-status)). O percentual geral de tempo de atividade e os status de indisponibilidade eram antes dois cartões próprios aqui, cada um atrás de um botão **Editar**; agora são linhas do cartão.
+Abaixo do cartão ficam **Exportar como JSON: Página de status**, que baixa as configurações da própria página de status em um arquivo que você pode importar de novo, e **Arquivar: página de status** (veja [Arquivar uma página de status](#arquivar-uma-página-de-status)). O percentual geral de tempo de atividade e os status de indisponibilidade eram antes dois cartões próprios aqui, cada um atrás de um botão **Editar**; agora são linhas do cartão.
 
 **Onde ficam as cores.** As cores das barras de tempo de atividade não ficam aqui: a **Cor Padrão da Barra** e as regras de cor das barras ficam em **Mais configurações** em **Páginas de status → sua página → Marca → Marca**. O **Tema** da página (claro, escuro ou conforme o dispositivo de cada visitante) é um cartão perto do topo dessa mesma página. Não existe nenhuma configuração de cor da marca; tudo o que vai além desses controles é feito com **CSS Personalizado**.
 
@@ -225,7 +228,7 @@ Três formas de mostrar o status em outro lugar que não a própria página.
 
 **Feed RSS.** Toda página de status serve `/rss`: um feed intitulado "{título da página} Updates", com o **Título da página** definido em **Marca**, ou o nome dela se não tiver um, e cujos itens começam com `Incident: `, `Announcement: ` e `Scheduled Maintenance: `. Cada item é datado como a página o data: um incidente pelo momento em que foi declarado, um aviso pelo momento em que foi publicado, e um evento de manutenção programada pelo momento em que começa, com a descrição abrindo pela janela dele. Útil para quem prefere levar suas atualizações para um leitor ou um chatbot em vez de se inscrever por e-mail.
 
-**Calendário de manutenção.** Toda página de status também serve `/maintenance.ics`: a manutenção programada que ela mostra, como um calendário que o Google Agenda, o Calendário da Apple ou o Outlook podem assinar. Os visitantes o adicionam com **Subscrever o calendário** na página **Eventos agendados**, e um único evento com **Adicionar ao calendário** na própria página do evento. O calendário de uma página privada fica vazio, já que um app de calendário não consegue entrar. Veja [Calendário de manutenção](/docs/scheduled-maintenance/calendar#o-calendário-de-uma-página-de-status).
+**Calendário de manutenção.** Toda página de status também serve `/maintenance.ics`: a manutenção programada que ela mostra, como um calendário que o Google Agenda, o Calendário da Apple ou o Outlook podem assinar. Os visitantes o adicionam com **Subscrever o calendário** na página **Manutenção programada**, e um único evento com **Adicionar ao calendário** na própria página do evento. O calendário de uma página privada fica vazio, já que um app de calendário não consegue entrar. Veja [Calendário de manutenção](/docs/scheduled-maintenance/calendar#o-calendário-de-uma-página-de-status).
 
 Se você preferir buscar os dados por conta própria, a página de status se apoia em endpoints públicos de leitura para a visão geral, os incidentes, os eventos de manutenção programada, os anúncios e os episódios: veja [API pública](/docs/status-pages/public-api).
 
@@ -238,7 +241,7 @@ Arquive uma página de status para tirá-la do ar sem excluí-la. Uma página de
 - **Sai da lista de páginas de status.** Você a encontra em **Páginas de status → Avançado → Arquivado**.
 - **Mantém tudo.** Seus recursos, grupos, marca, domínios, usuários privados e assinantes são mantidos, então desarquivá-la coloca a página de volta no ar exatamente como estava.
 
-Para arquivar uma página de status, abra-a e vá a **Avançado → Configurações avançadas → Archive status page**. Para arquivar várias, selecione-as na lista **Páginas de status** e escolha **Arquivar**. Para recuperar uma, abra **Páginas de status → Avançado → Arquivado**, selecione-a e escolha **Desarquivar**, ou abra-a e clique em **Desarquivar** no banner no topo das páginas dela.
+Para arquivar uma página de status, abra-a e vá a **Avançado → Configurações avançadas → Arquivar: página de status**. Para arquivar várias, selecione-as na lista **Páginas de status** e escolha **Arquivar**. Para recuperar uma, abra **Páginas de status → Avançado → Arquivado**, selecione-a e escolha **Desarquivar**, ou abra-a e clique em **Desarquivar** no banner no topo das páginas dela.
 
 ## Próximos passos
 

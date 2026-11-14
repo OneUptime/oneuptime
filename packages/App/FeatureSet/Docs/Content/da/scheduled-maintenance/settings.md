@@ -20,7 +20,7 @@ Konfigurationen af vedligeholdelse findes i **Planlagt vedligeholdelse**, ikke i
 | **Etiketregler**   | Tilføjer etiketter til matchende begivenheder.                         |
 | **Påmindelsesregler** | Minder ejerne om begivenheden med et interval, indtil den er fuldført. |
 
-Sektionen **Indstillinger** rummer **Begivenhedsstatus**, som er beskrevet på [Vedligeholdelsestilstande](/docs/scheduled-maintenance/states), **Begivenhedsskabeloner**, som er beskrevet på [Skabeloner og tilbagevendende begivenheder](/docs/scheduled-maintenance/templates), og derefter **Noteskabeloner**, **Godkendelse af offentlige noter**, **Brugerdefinerede felter**, **Målinger**, **Kalenderindstillinger** og **Nummerering**. **Kalenderindstillinger** er beskrevet på [Vedligeholdelseskalender](/docs/scheduled-maintenance/calendar#eksterne-kalendere), resten nedenfor.
+Sektionen **Indstillinger** rummer **Vedligeholdelsesstatus**, som er beskrevet på [Vedligeholdelsestilstande](/docs/scheduled-maintenance/states), **Vedligeholdelsesskabeloner**, som er beskrevet på [Skabeloner og tilbagevendende begivenheder](/docs/scheduled-maintenance/templates), og derefter **Noteskabeloner**, **Godkendelse af offentlige noter**, **Brugerdefinerede felter**, **Målinger**, **Kalenderindstillinger** og **Nummerering**. **Kalenderindstillinger** er beskrevet på [Vedligeholdelseskalender](/docs/scheduled-maintenance/calendar#eksterne-kalendere), resten nedenfor.
 
 Sektionen **Arbejdsområde** rummer de Slack- og Microsoft Teams-regler, der poster begivenheder i kanaler. Se [Slack](/docs/workspace-connections/slack#notifikationsregler) og [Microsoft Teams](/docs/workspace-connections/microsoft-teams#notifikationsregler).
 
@@ -92,7 +92,7 @@ Disse påmindelser er til dit team. De påmindelser, dine statussideabonnenter f
 
 ### Noteskabeloner
 
-**Planlagt vedligeholdelse → Indstillinger → Noteskabeloner** rummer færdigskrevet tekst til opdateringer om vedligeholdelse. Kortet **Skabeloner til offentlige eller private noter for planlagte vedligeholdelseshændelser** viser dem; **Opret Noteskabelon for planlagt vedligeholdelse** beder om et **Skabelonnavn**, en **Skabelonbeskrivelse** og **Note**. En skabelon tilbydes, når nogen skriver en offentlig eller privat note på en begivenhed, og når de ændrer dens tilstand, og dens tekst kan redigeres, før den postes. I modsætning til noteskabeloner for hændelser udfylder noteskabeloner for vedligeholdelse ingen variabler.
+**Planlagt vedligeholdelse → Indstillinger → Noteskabeloner** rummer færdigskrevet tekst til opdateringer om vedligeholdelse. Kortet **Skabeloner til offentlige eller private noter for vedligeholdelseshændelser** viser dem; **Opret Noteskabelon for planlagt vedligeholdelse** beder om et **Skabelonnavn**, en **Skabelonbeskrivelse** og **Note**. En skabelon tilbydes, når nogen skriver en offentlig eller privat note på en begivenhed, og når de ændrer dens tilstand, og dens tekst kan redigeres, før den postes. I modsætning til noteskabeloner for hændelser udfylder noteskabeloner for vedligeholdelse ingen variabler.
 
 ### Godkendelse af offentlige noter
 
@@ -117,7 +117,7 @@ Kortet **Næste nummer** nedenunder sætter det nummer, den næste begivenhed f�
 
 ## Workflows
 
-Hver vedligeholdelsesmodel har workflow-udløsere og -handlinger, opkaldt efter den: **On Create Scheduled Maintenance Event**, **On Update Scheduled Maintenance Event**, **On Create or Update Scheduled Maintenance Event** og **On Delete Scheduled Maintenance Event**, det samme for **Scheduled Maintenance State Timeline** og de andre, og handlinger som **Create One Scheduled Maintenance Event** og **Update One Scheduled Maintenance Event**. Definitioner af brugerdefinerede felter og måleværdier er undtagelserne: de har ingen workflow-trin. Se [Workflows – Oversigt](/docs/workflows/index).
+Hver vedligeholdelsesmodel har workflow-udløsere og -handlinger, opkaldt efter den: **On Create Maintenance Event**, **On Update Maintenance Event**, **On Create or Update Maintenance Event** og **On Delete Maintenance Event**, det samme for **Scheduled Maintenance State Timeline** og de andre, og handlinger som **Create One Maintenance Event** og **Update One Maintenance Event**. Definitioner af brugerdefinerede felter og måleværdier er undtagelserne: de har ingen workflow-trin. Se [Workflows – Oversigt](/docs/workflows/index).
 
 ## Hvem der kan ændre dem
 
@@ -142,8 +142,8 @@ Kontrollér, at en påmindelsesregel matcher begivenhedens etiketter, at begiven
 ## Næste skridt
 
 :::cards
-- [Vedligeholdelsestilstande](/docs/scheduled-maintenance/states): Siden Begivenhedsstatus, og hvad hver tilstand gør.
-- [Skabeloner og tilbagevendende begivenheder](/docs/scheduled-maintenance/templates): Siden Begivenhedsskabeloner i dybden.
+- [Vedligeholdelsestilstande](/docs/scheduled-maintenance/states): Siden Vedligeholdelsesstatus, og hvad hver tilstand gør.
+- [Skabeloner og tilbagevendende begivenheder](/docs/scheduled-maintenance/templates): Siden Vedligeholdelsesskabeloner i dybden.
 - [Etiket- og ejerregler](/docs/configuration/label-and-owner-rules): Regelformularen trin for trin.
 - [Notifikationsindstillinger](/docs/notifications/notification-settings): Hvordan hver ejer vælger, hvad der når frem til dem.
 :::

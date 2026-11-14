@@ -197,7 +197,7 @@ export default class SecurityEvent extends AnalyticsBaseModel {
         key: "primaryEntityId",
         title: "Source ID",
         description:
-          "ID of the resource the security event is attributed to (a Telemetry Service representing the security source, e.g. 'Google SecOps')",
+          "ID of the resource the security event is attributed to (a service representing the security source, e.g. 'Google SecOps')",
         required: true,
         type: TableColumnType.ObjectID,
         accessControl: defaultColumnAccessControl,

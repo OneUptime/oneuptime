@@ -473,8 +473,11 @@ describe("a storage array's Overview in German", () => {
     expect(reasons).toContain(
       sentence(DE, "{{count}} critical alerts open_one", { count: "1" }),
     );
+    // How full in German's own percent, as the capacity tile writes it.
     expect(reasons).toContain(
-      sentence(DE, "{{percent}} of usable capacity used", { percent: "92%" }),
+      sentence(DE, "{{percent}} of usable capacity used", {
+        percent: "92\u00A0%",
+      }),
     );
     expect(reasons).toContain(
       sentence(DE, "Read latency {{latency}}", { latency: "6.1 ms" }),
@@ -659,7 +662,7 @@ describe("a storage array's Overview in Persian", () => {
     );
     expect(reasons).toContain(
       sentence(FA, "{{percent}} of usable capacity used", {
-        percent: "⁨92%⁩",
+        percent: "⁨۹۲٪⁩",
       }),
     );
     expect(reasons).toContain(worded(FA, "Reports failed"));

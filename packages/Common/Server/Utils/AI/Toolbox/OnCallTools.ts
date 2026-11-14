@@ -34,6 +34,11 @@ import Select from "../../../Types/Database/Select";
 import ToolResultSerializer, { SerializedResult } from "./Serializer";
 import WidgetBuilder from "./WidgetBuilder";
 import {
+  EscalationRuleCardData,
+  getOnCallPolicyCardWords,
+  getOnCallScheduleCardWords,
+} from "./ReadCardWords";
+import {
   ObservabilityTool,
   ToolArgs,
   ToolContext,
@@ -328,7 +333,7 @@ export const ARCHIVED_ON_CALL_POLICY_NOTE: string =
 export const QueryOnCallPoliciesTool: ObservabilityTool = {
   name: "query_on_call_policies",
   description:
-    "Query on-call duty policies in this project — who gets paged and in what order. List mode returns each policy (id, name, description) with its escalation rule chain: rule order plus the users, teams and schedules each rule pages. Pass onCallPolicyId to get full details of one policy. Archived policies page no one and are left out of the list. Use this to find the id to pass to page_on_call_policy, get_on_call_status or query_on_call_pages.",
+    "Query on-call policies in this project — who gets paged and in what order. List mode returns each policy (id, name, description) with its escalation rule chain: rule order plus the users, teams and schedules each rule pages. Pass onCallPolicyId to get full details of one policy. Archived policies page no one and are left out of the list. Use this to find the id to pass to page_on_call_policy, get_on_call_status or query_on_call_pages.",
   inputSchema: {
     type: "object",
     properties: {
@@ -424,17 +429,18 @@ export const QueryOnCallPoliciesTool: ObservabilityTool = {
       const serialized: SerializedResult =
         ToolResultSerializer.serializeRows(rows);
 
-      const ruleFields: Array<{ label: string; value: string }> = rules.map(
-        (rule: OnCallDutyPolicyEscalationRule) => {
-          const targetText: string = formatRuleTargets(
-            escalation.targetsByRuleId.get(rule.id?.toString() || ""),
-          );
-          const escalateText: string = rule.escalateAfterInMinutes
-            ? ` (escalates after ${rule.escalateAfterInMinutes}m)`
-            : "";
+      // Each rule as the card says it: whom it pages, by kind and name.
+      const ruleCards: Array<EscalationRuleCardData> = rules.map(
+        (rule: OnCallDutyPolicyEscalationRule): EscalationRuleCardData => {
+          const targets: EscalationRuleTargets | undefined =
+            escalation.targetsByRuleId.get(rule.id?.toString() || "");
           return {
-            label: `Rule ${rule.order ?? "?"}${rule.name ? ` — ${rule.name}` : ""}`,
-            value: `${targetText}${escalateText}`,
+            order: rule.order,
+            name: rule.name,
+            users: targets?.users || [],
+            teams: targets?.teams || [],
+            schedules: targets?.schedules || [],
+            escalateAfterInMinutes: rule.escalateAfterInMinutes,
           };
         },
       );
@@ -455,22 +461,13 @@ export const QueryOnCallPoliciesTool: ObservabilityTool = {
         widget: policy
           ? WidgetBuilder.resourceCard({
               title: `On-call policy: ${policy.name || ""}`.trim(),
-              resourceType: "On-Call Policy",
               heading: policy.name || onCallPolicyId.toString(),
-              subheading: policy.description,
-              fields: [
-                ...(policy.isArchived === true
-                  ? [{ label: "Archived", value: "Yes - pages no one" }]
-                  : []),
-                ...(ruleFields.length > 0
-                  ? ruleFields
-                  : [
-                      {
-                        label: "Escalation rules",
-                        value: "None configured",
-                      },
-                    ]),
-              ],
+              // In the reader's language (issue #7175).
+              words: getOnCallPolicyCardWords({
+                description: policy.description || undefined,
+                isArchived: policy.isArchived === true,
+                rules: ruleCards,
+              }),
               link: {
                 type: AIChatCitationTargetType.OnCallPolicyView,
                 params: { onCallDutyPolicyId: onCallPolicyId.toString() },
@@ -742,30 +739,6 @@ export const GetOnCallStatusTool: ObservabilityTool = {
       const onCallNow: string =
         (rows[0]?.["onCallNow"] as string | undefined) || NO_ONE_ON_CALL;
 
-      const cardFields: Array<{ label: string; value: string }> = [];
-      if (schedule?.rosterStartAt) {
-        cardFields.push({
-          label: "On call since",
-          value: schedule.rosterStartAt.toISOString(),
-        });
-      }
-      if (schedule?.rosterHandoffAt) {
-        cardFields.push({
-          label: "Hands off at",
-          value: schedule.rosterHandoffAt.toISOString(),
-        });
-      }
-      const nextUp: string | undefined = nameOf(schedule?.nextUserOnRoster);
-      if (nextUp) {
-        cardFields.push({ label: "Next up", value: nextUp });
-      }
-      if (schedule?.rosterNextStartAt) {
-        cardFields.push({
-          label: "Next shift starts",
-          value: schedule.rosterNextStartAt.toISOString(),
-        });
-      }
-
       return {
         dataForLlm: serialized.text,
         rowCount: serialized.rowCount,
@@ -778,13 +751,18 @@ export const GetOnCallStatusTool: ObservabilityTool = {
         widget: schedule
           ? WidgetBuilder.resourceCard({
               title: `On-call schedule '${schedule.name || ""}'`.trim(),
-              resourceType: "On-Call Schedule",
               heading: schedule.name || scheduleId.toString(),
-              subheading:
-                onCallNow === NO_ONE_ON_CALL
-                  ? NO_ONE_ON_CALL
-                  : `On call now: ${onCallNow}`,
-              fields: cardFields,
+              /*
+               * In the reader's language (issue #7175): who is on call by
+               * name, and the shift's moments in the reader's time zone.
+               */
+              words: getOnCallScheduleCardWords({
+                onCallNow: onCallNow === NO_ONE_ON_CALL ? undefined : onCallNow,
+                rosterStartAt: schedule.rosterStartAt || undefined,
+                rosterHandoffAt: schedule.rosterHandoffAt || undefined,
+                nextUp: nameOf(schedule.nextUserOnRoster),
+                rosterNextStartAt: schedule.rosterNextStartAt || undefined,
+              }),
               link: { type: AIChatCitationTargetType.OnCallPolicies },
             })
           : undefined,

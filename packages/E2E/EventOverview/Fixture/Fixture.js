@@ -6924,15 +6924,18 @@ function aiOffReason(investigation) {
       description: isRecorded
         ? `AI was disabled for this project when this ${kind} was created, so its automatic investigation did not start.`
         : "AI is currently disabled for this project, so new automatic investigations cannot start.",
-      nextStep:
-        "Review project AI settings (Project Settings → AI → AI Features) for new records. Existing records are not automatically retried when AI is enabled.",
+      nextStep: isRecorded
+        ? "Review the Enable AI switch under Project Settings → AI → AI Features for new records. Existing records are not automatically retried when AI is enabled."
+        : "Turn on Enable AI under Project Settings → AI → AI Features to investigate new records. Existing records are not automatically retried.",
     },
     automatic_investigation_disabled: {
       title: isRecorded
         ? `Automatic ${kind} investigation was off at creation`
         : `Automatic ${kind} investigation is currently turned off`,
       description: `Automatic investigation was not enabled for ${kind}s when this ${kind} was created. Alerts and incidents have separate investigation settings.`,
-      nextStep: `Review automatic ${kind} investigation settings for new ${kind}s. Enabling investigation later does not automatically retry this ${kind}.`,
+      nextStep: isRecorded
+        ? `Review the Investigate new ${kind}s switch under ${kind === "alert" ? "Alerts" : "Incidents"} → AI → Settings for new ${kind}s. Turning it on later does not automatically retry this ${kind}.`
+        : `Turn on Investigate new ${kind}s under ${kind === "alert" ? "Alerts" : "Incidents"} → AI → Settings for new ${kind}s. Existing records are not automatically retried.`,
     },
     no_investigation_rule_matched: {
       title: isRecorded
@@ -6943,13 +6946,12 @@ function aiOffReason(investigation) {
     },
     severity_below_threshold: {
       title: isRecorded
-        ? "Severity was below the investigation threshold at creation"
-        : "Severity is below the current investigation threshold",
+        ? "Severity was below the minimum for AI investigation at creation"
+        : "Severity is currently below the minimum for AI investigation",
       description: isRecorded
-        ? `When this ${kind} was created, its ${severityName} severity did not meet the minimum ${minimumSeverityName} investigation severity.`
-        : `This ${kind}'s ${severityName} severity does not meet the minimum ${minimumSeverityName} investigation severity.`,
-      nextStep:
-        "Review the minimum investigation severity in AI settings. Changes apply to new records and do not retry this record.",
+        ? `When this ${kind} was created, its ${severityName} severity did not meet the minimum severity for AI investigation (${minimumSeverityName}).`
+        : `This ${kind}'s ${severityName} severity does not meet the minimum severity for AI investigation (${minimumSeverityName}).`,
+      nextStep: `Review the minimum severity for AI investigation under ${kind === "alert" ? "Alerts" : "Incidents"} → AI → Settings → More settings. Changes apply to new records and do not retry this record.`,
     },
   }[code];
   return {

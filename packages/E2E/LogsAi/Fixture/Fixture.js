@@ -45,6 +45,13 @@ import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import ProductType from "Common/Types/MeteredPlan/ProductType";
+import {
+  TELEMETRY_INGESTION_BUDGET_BYTES_PER_GB,
+  TelemetryIngestionBudgetLimitSource,
+  TelemetryIngestionBudgetState,
+} from "Common/Types/Telemetry/TelemetryIngestionBudget";
+import { ingestionBudgetStatus } from "../../SecurityOperations/Fixture/IngestionBudgetFixture.js";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import API from "Common/UI/Utils/API/API";
@@ -72,6 +79,8 @@ const USER_ID = "80000000-0000-4000-8000-000000000001";
 const failures = new Set(
   (params.get("fail") || "").split(",").filter((value) => value.length > 0),
 );
+// What the ingestion budget read answers: see handleApi.
+const budgetScenario = params.get("budget") || "";
 
 /*
  * Every time is relative to page load. The spec pins the browser clock, so
@@ -108,6 +117,39 @@ function ok(data) {
 
 function fail(status, message) {
   throw new HTTPErrorResponse(status, { message }, {});
+}
+
+/*
+ * Today's budgets as the server answers them while the project's Logs budget
+ * (the instance default, 10 GB) is used up: refused since 09:30, until the
+ * budget day resets.
+ */
+function logsBudgetUsedUp(now) {
+  const status = ingestionBudgetStatus(now);
+
+  return {
+    ...status,
+    project: {
+      ...status.project,
+      signals: status.project.signals.map((signal) => {
+        if (signal.signal !== ProductType.Logs) {
+          return signal;
+        }
+        return {
+          ...signal,
+          dailyBudgetBytes: 10 * TELEMETRY_INGESTION_BUDGET_BYTES_PER_GB,
+          dailyBudgetSource: TelemetryIngestionBudgetLimitSource.Instance,
+          usedBytes: 10 * TELEMETRY_INGESTION_BUDGET_BYTES_PER_GB,
+          droppedBytes: 2 * TELEMETRY_INGESTION_BUDGET_BYTES_PER_GB,
+          droppedRequests: 40,
+          percentUsed: 100,
+          state: TelemetryIngestionBudgetState.Exhausted,
+          warningCrossedAt: status.dayStartsAt,
+          exhaustedAt: new Date(now.getTime() - 150 * 60 * 1000).toISOString(),
+        };
+      }),
+    },
+  };
 }
 
 function findInsight(id) {
@@ -157,11 +199,20 @@ async function handleApi(method, options) {
   }
 
   /*
-   * The explorers' daily ingestion budget banner: no budget is modelled, so
-   * the read fails the way it does on a server without the figures, and the
-   * banner stays away. An empty answer would be read as a status.
+   * The explorers' daily ingestion budget banner. By default no budget is
+   * modelled, so the read fails the way it does on a server without the
+   * figures, and the banner stays away. ?budget=used-up answers today's Logs
+   * budget used up, so the banner draws; ?budget=unreadable answers {}, the
+   * answer that is not a status which once took every explorer down (issue
+   * #6486), so the banner must draw nothing and the page stay whole.
    */
   if (url.includes("/telemetry-ingestion-budget")) {
+    if (budgetScenario === "used-up") {
+      return ok(logsBudgetUsedUp(new Date(NOW)));
+    }
+    if (budgetScenario === "unreadable") {
+      return ok({});
+    }
     return new HTTPErrorResponse(404, { message: "Not modelled" }, {});
   }
 

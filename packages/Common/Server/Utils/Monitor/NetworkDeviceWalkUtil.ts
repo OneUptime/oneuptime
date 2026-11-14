@@ -182,6 +182,26 @@ export default class NetworkDeviceWalkUtil {
       NetworkDeviceWalkUtil.toPingMonitorResponse(data.pingResponse);
 
     /*
+     * One receipt time for the poll - for its rates and for the baseline
+     * kept below: when OneUptime's ingest API received it, not when this
+     * worker got to it (OneUptime issue #7194). A rate is a counter's growth
+     * over the time between two polls. Timed by the worker, a poll that sat
+     * in a queue backlog was rated over the seconds between two dequeues
+     * instead of the minutes between two polls, so draining a backlog read
+     * every interface's traffic as a burst many times its size - for the
+     * charts and for every rate criteria. The ingest API's clock is
+     * OneUptime's own, as the baseline's time always was; a job queued
+     * before the stamp existed has none, and is timed now.
+     */
+    const receivedAt: Date =
+      data.dataReceivedAt && !isNaN(data.dataReceivedAt.getTime())
+        ? data.dataReceivedAt
+        : OneUptimeDate.getCurrentDate();
+    const previousWalkLog: JSONObject | undefined = device.lastWalkLog as
+      | JSONObject
+      | undefined;
+
+    /*
      * Interface rates are counter deltas against the previous walk. Compute
      * them on the FULL interface set, before inventory pruning, so muted
      * ports still get fresh rates in the inventory table. Nothing to do on
@@ -190,21 +210,16 @@ export default class NetworkDeviceWalkUtil {
     if (data.snmpResponse) {
       SnmpInterfaceRateUtil.attachInterfaceRates({
         snmpResponse: data.snmpResponse,
-        previousWalkLog: device.lastWalkLog as JSONObject | undefined,
+        previousWalkLog: previousWalkLog,
+        now: receivedAt,
       });
     }
 
     /*
      * The same for the counter OIDs a poll reads (SNMP OID Rate (per
      * second)): each one's growth since the previous poll that read it,
-     * against the counters the device's lastWalkLog keeps. One receipt
-     * time for the poll, for the rate and for the counters kept below.
+     * against the counters the device's lastWalkLog keeps.
      */
-    const receivedAt: Date = OneUptimeDate.getCurrentDate();
-    const previousWalkLog: JSONObject | undefined = device.lastWalkLog as
-      | JSONObject
-      | undefined;
-
     if (data.snmpResponse) {
       SnmpOidRateUtil.attachOidRates({
         snmpResponse: data.snmpResponse,
@@ -261,6 +276,11 @@ export default class NetworkDeviceWalkUtil {
      * update path, whereas this is a delta-baseline cache write that happens
      * every five minutes and would otherwise be the only thing moving the
      * counter at all.
+     *
+     * A poll received BEFORE the one the baseline already holds - it waited
+     * longer in the queue than the poll after it, a retried job, say - is
+     * not put back over it: the newer reading stays the baseline, and this
+     * one, older than it, has no rate either (a negative window).
      */
     const hasWalkedInterfaces: boolean = Boolean(
       data.snmpResponse &&
@@ -268,7 +288,24 @@ export default class NetworkDeviceWalkUtil {
         data.snmpResponse.interfaces.length > 0,
     );
 
-    if (data.snmpResponse && (hasWalkedInterfaces || counterBaseline)) {
+    const previousCounters: SnmpOidCounterBaseline | undefined =
+      SnmpOidRateUtil.readBaseline(previousWalkLog);
+
+    const replacesInterfaces: boolean =
+      hasWalkedInterfaces &&
+      NetworkDeviceWalkUtil.isReceivedAfter(
+        receivedAt,
+        previousWalkLog?.["monitoredAt"],
+      );
+
+    const replacesCounters: boolean =
+      Boolean(counterBaseline) &&
+      NetworkDeviceWalkUtil.isReceivedAfter(
+        receivedAt,
+        previousCounters?.readAt,
+      );
+
+    if (data.snmpResponse && (replacesInterfaces || replacesCounters)) {
       /*
        * What the next poll's rates are computed against, and nothing else.
        *
@@ -287,7 +324,7 @@ export default class NetworkDeviceWalkUtil {
        * a correct (longer) window, and one that read no counter leaves the
        * counters theirs.
        */
-      const lastWalkLog: JSONObject = hasWalkedInterfaces
+      const lastWalkLog: JSONObject = replacesInterfaces
         ? {
             snmpResponse: {
               interfaces: JSON.parse(
@@ -305,29 +342,18 @@ export default class NetworkDeviceWalkUtil {
               : {}),
           };
 
-      const keptCounters: SnmpOidCounterBaseline | undefined =
-        counterBaseline || SnmpOidRateUtil.readBaseline(previousWalkLog);
+      const keptCounters: SnmpOidCounterBaseline | undefined = replacesCounters
+        ? counterBaseline
+        : previousCounters;
 
       if (keptCounters) {
         lastWalkLog[SNMP_OID_COUNTER_BASELINE_KEY] =
           keptCounters as unknown as JSONObject;
       }
 
-      await NetworkDeviceService.updateColumnsByIdWithoutHooks({
-        id: device.id,
-        data: {
-          lastWalkLog: lastWalkLog,
-        } as any,
-        /*
-         * The hooked path finds rows with `withDeleted: false`, so a device
-         * deleted between the read at the top of this walk and here was
-         * never written to. The raw path matches on `_id` alone, so keep
-         * that guard explicitly — a walk still in flight must not push a
-         * fresh log back onto a row the user just deleted.
-         */
-        expectedData: {
-          deletedAt: null,
-        },
+      await NetworkDeviceWalkUtil.writeWalkBaseline({
+        deviceId: device.id,
+        lastWalkLog: lastWalkLog,
       });
     }
 
@@ -358,7 +384,8 @@ export default class NetworkDeviceWalkUtil {
      * Transceivers: this poll's optics folded into what the device had
      * stored, and judged - before inventory, metrics and criteria read the
      * response. Never fatal: a poll that cannot judge its optics leaves the
-     * stored ones alone.
+     * stored ones alone. Timed at the poll's receipt, like everything else
+     * the poll saw (OneUptime issue #7389).
      */
     let transceiverSnapshot: Array<NetworkDeviceTransceiver> | undefined =
       undefined;
@@ -367,7 +394,7 @@ export default class NetworkDeviceWalkUtil {
       transceiverSnapshot = NetworkDeviceWalkUtil.applyTransceivers({
         device: device,
         snmpResponse: data.snmpResponse,
-        now: OneUptimeDate.getCurrentDate(),
+        now: receivedAt,
       });
     } catch (err) {
       logger.error(
@@ -379,7 +406,9 @@ export default class NetworkDeviceWalkUtil {
     /*
      * Inventory sync also prunes data.snmpResponse.interfaces down to
      * monitored ports, so the metrics and criteria below only see ports the
-     * user cares about.
+     * user cares about. It stamps what the poll saw with the same receipt
+     * time, and writes nothing a newer poll of the device has written
+     * already (OneUptime issue #7389).
      */
     await NetworkInventoryUtil.updateFromWalk({
       projectId: device.projectId,
@@ -390,6 +419,7 @@ export default class NetworkDeviceWalkUtil {
       snmpTableSnapshot: snmpTableSnapshot,
       transceiverSnapshot: transceiverSnapshot,
       probeId: data.probeId,
+      receivedAt: receivedAt,
       dnsResolution: data.pingResponse
         ? {
             hostname:
@@ -768,6 +798,87 @@ export default class NetworkDeviceWalkUtil {
       templateTables: templateTables,
       deviceTables: device.snmpTables,
     }).tables;
+  }
+
+  /*
+   * Whether a poll received at `receivedAt` is newer than a reading the
+   * baseline keeps, stamped `storedAt` (an ISO string out of jsonb). A
+   * baseline with no readable time is replaced, as one with none at all.
+   */
+  public static isReceivedAfter(receivedAt: Date, storedAt: unknown): boolean {
+    if (typeof storedAt !== "string" && !(storedAt instanceof Date)) {
+      return true;
+    }
+
+    const stored: Date = new Date(storedAt);
+
+    if (isNaN(stored.getTime())) {
+      return true;
+    }
+
+    return receivedAt.getTime() > stored.getTime();
+  }
+
+  /*
+   * Writes a poll's rate baseline (NetworkDevice.lastWalkLog) - and never
+   * waits for the row, and never fails the poll (OneUptime issue #7194).
+   *
+   * This write used to queue for the device's row lock like any UPDATE, and
+   * it was the one write of the walk pipeline without a try/catch: whenever
+   * another writer held the device - the probe's claim of it, the inventory
+   * of a poll still in flight, a router's ARP table merging readings into
+   * hundreds of devices - for longer than lock_timeout, it failed with
+   * "canceling statement due to lock timeout" and took the whole job with
+   * it. The queue retried the job from the start, twice, so a busy database
+   * got up to three times the work for each such poll, and the telemetry
+   * queue fell further behind.
+   *
+   * A baseline that is not written loses nothing: the next poll's rates are
+   * worked out against the one before, over a window that much longer, and
+   * are just as right. So the write yields - FOR UPDATE SKIP LOCKED,
+   * updateColumnsByIdIfUnlockedWithoutHooks - instead of queueing, and
+   * anything else that goes wrong with it is logged rather than thrown. The
+   * same guard as before: never onto a device deleted while the poll was
+   * in flight.
+   */
+  public static async writeWalkBaseline(data: {
+    deviceId: ObjectID;
+    lastWalkLog: JSONObject;
+  }): Promise<boolean> {
+    try {
+      const written: boolean =
+        await NetworkDeviceService.updateColumnsByIdIfUnlockedWithoutHooks({
+          id: data.deviceId,
+          data: {
+            lastWalkLog: data.lastWalkLog,
+          } as any,
+          /*
+           * The hooked path finds rows with `withDeleted: false`, so a
+           * device deleted between the read at the top of this walk and
+           * here was never written to. The raw path matches on `_id` alone,
+           * so keep that guard explicitly — a walk still in flight must not
+           * push a fresh log back onto a row the user just deleted.
+           */
+          expectedData: {
+            deletedAt: null,
+          } as any,
+        });
+
+      if (!written) {
+        logger.debug(
+          `Network device ${data.deviceId.toString()}: rate baseline not written - another writer held the device, or it was deleted. The next poll's rates use the baseline before.`,
+        );
+      }
+
+      return written;
+    } catch (err) {
+      logger.warn(
+        `Network device ${data.deviceId.toString()}: rate baseline not written; the next poll's rates use the baseline before. ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+      return false;
+    }
   }
 
   /*

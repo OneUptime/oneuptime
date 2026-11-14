@@ -79,7 +79,7 @@ Un champ laissé vide se rabat sur le paramètre suivant de l'ordre ci-dessus, d
 
 Ouvrez la page **Paramètres** du service ou de la ressource, puis **Plus de paramètres**. Sa carte **Conservation des données de télémétrie** contient **Conserver les données de télémétrie pendant (jours)**, un seul nombre pour tout ce qu'il envoie, et sa carte **Rétention par type de télémétrie** a les mêmes champs que celle du projet. Laissez un champ vide pour utiliser les paramètres du projet.
 
-Les services, les hôtes, les clusters Kubernetes, les hôtes Docker et Podman, les clusters Docker Swarm, Proxmox et Ceph, les baies de stockage, les vCenter, les bases de données, les fonctions serverless, les environnements cloud, les applications RUM et les flottes IoT ont tous ces cartes. Voir le [Catalogue de services](/docs/telemetry/services#modifier-un-service) pour la page **Paramètres** d'un service.
+Les services, les hôtes, les clusters Kubernetes, les hôtes Docker et Podman, les clusters Docker Swarm, Proxmox et Ceph, les baies de stockage, les vCenter, les bases de données, les fonctions serverless, les environnements cloud, les applications RUM et les flottes IoT ont tous ces cartes. Voir [Services](/docs/telemetry/services#modifier-un-service) pour la page **Paramètres** d'un service.
 
 ### Quand le plan ou la licence n'inclut plus les remplacements
 
@@ -121,6 +121,6 @@ Les enregistrements expirés n'apparaissent plus dans les recherches, les graphi
 :::cards
 - [Clés d'ingestion](/docs/telemetry/ingestion-keys): Envoyer de la télémétrie dans votre projet.
 - [Filtres de suppression et règles de masquage](/docs/telemetry/drop-filters-and-scrub-rules): Ne garder que la télémétrie dont vous avez besoin.
-- [Catalogue de services](/docs/telemetry/services): Fixer la rétention propre d'un service.
+- [Services](/docs/telemetry/services): Fixer la rétention propre d'un service.
 - [Édition Enterprise](/docs/self-hosted/enterprise): Ce qu'apportent les remplacements de rétention.
 :::

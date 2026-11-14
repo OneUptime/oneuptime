@@ -1391,7 +1391,7 @@ describe("raising an alert, and what an alert rule is (issue #5301)", () => {
   );
 
   test.each(Object.values(AIChatPermissionMode))(
-    "the %s prompt says a rule is a monitor, which no tool creates, and what to do instead",
+    "the %s prompt says a rule is a monitor, that only a website or API monitor is set up by a tool, and what to do instead",
     (permissionMode: AIChatPermissionMode) => {
       const prompt: string = promptFor(permissionMode);
 
@@ -1399,7 +1399,10 @@ describe("raising an alert, and what an alert rule is (issue #5301)", () => {
         "An incident or an alert is created once, now, and watches nothing.",
       );
       expect(prompt).toContain(
-        'A request to be alerted when or whenever something happens ("alert me when memory goes above 75%") asks for a monitor, and no tool here creates one',
+        "A request to be alerted when or whenever something happens asks for a monitor. The only monitor a tool here sets up watches a website or API address (set_up_website_monitoring",
+      );
+      expect(prompt).toContain(
+        'For any other condition ("alert me when memory goes above 75%") no tool here creates one',
       );
       expect(prompt).toContain(
         "say so plainly, read the condition now with the metric tools, and if it holds now, offer to raise an alert about it",
@@ -1421,16 +1424,26 @@ describe("raising an alert, and what an alert rule is (issue #5301)", () => {
     }
   });
 
-  test("the claim that no tool creates a monitor holds: no tool of the toolbox writes one", () => {
+  /*
+   * Issue #6829: the one monitor Ask AI sets up is the website guided
+   * setup's - a Website or API monitor - so the claim that no tool creates
+   * any other kind holds.
+   */
+  test("the claim that only a website or API monitor is set up holds: the toolbox's one monitor writer is set_up_website_monitoring", () => {
     const monitorWriters: Array<string> = AIToolbox.getTools()
       .filter((tool: ObservabilityTool): boolean => {
-        return Boolean(tool.isMutation) && tool.name.includes("monitor");
+        return (
+          Boolean(tool.isMutation) &&
+          tool.name.includes("monitor") &&
+          // It puts monitors on a status page, and creates none.
+          tool.name !== "add_monitors_to_status_page"
+        );
       })
       .map((tool: ObservabilityTool): string => {
         return tool.name;
       });
 
-    expect(monitorWriters).toEqual([]);
+    expect(monitorWriters).toEqual(["set_up_website_monitoring"]);
     expect(AIToolbox.getToolByName("create_monitor")).toBeUndefined();
   });
 

@@ -81,7 +81,7 @@ new BatchSpanProcessor(exporter, { maxExportBatchSize: 100 });
 
 **`422`.** OneUptime کلید را اینجا رد کرد، و پیام می‌گوید چرا. `Origin https://app.example.com is not allowed for this browser ingestion key.` یعنی مبدأ دقیق صفحه، با طرح و هر درگاهی، در **مبداهای مجاز** کلید نیست. `This telemetry ingestion key has been disabled.` یعنی کسی کلید را خاموش کرده است.
 
-**`429`.** **Requests Per Minute Limit** کلید مصرف شده است: `Too many telemetry requests for this ingestion key. Please retry later.` کلید Browser برای همه بازدیدکنندگانتان با هم ۶۰۰۰ درخواست در دقیقه اجازه می‌دهد، مگر آنکه محدودیت خودتان را روی کلید بگذارید.
+**`429`.** **محدودیت درخواست در دقیقه** کلید مصرف شده است: `Too many telemetry requests for this ingestion key. Please retry later.` کلید Browser برای همه بازدیدکنندگانتان با هم ۶۰۰۰ درخواست در دقیقه اجازه می‌دهد، مگر آنکه محدودیت خودتان را روی کلید بگذارید.
 
 **`403` با یک صفحه HTML، یا بدنه‌ای خالی.** OneUptime هر ردی را با JSON پاسخ می‌دهد، پس این یکی از چیزی جلوی آن آمده، معمولاً دیواره آتش برنامه وب روی دامنه خودتان، اگر OneUptime را از راه آن پراکسی می‌کنید. دیواره آتش OTLP/JSON را تجزیه می‌کند و هر صفت اسپن را با قاعده‌های تزریقش می‌سنجد، پس نشانی‌ای با رشته پرس‌وجو روی یک اسپن برای مسدود شدن بس است، و لاگ دیواره آتش قاعده را نام می‌برد. محموله OTLP را فقط روی مسیرهای OTLP از بازرسی کنار بگذارید: [درخواست‌های OpenTelemetry شما هم مسدود می‌شوند](/docs/rum/session-replay-troubleshooting#درخواستهای-opentelemetry-شما-هم-مسدود-میشوند) نشان می‌دهد چگونه، و ضبط‌کننده بازپخش پشت همان دیواره آتش را هم پوشش می‌دهد.
 

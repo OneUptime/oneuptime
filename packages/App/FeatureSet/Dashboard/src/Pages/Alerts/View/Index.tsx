@@ -155,6 +155,7 @@ import PermissionGate, {
   PermissionGateOptions,
 } from "Common/UI/Utils/PermissionGate";
 import { usePrivateRecordGateOptions } from "Common/UI/Utils/PrivateRecordScope";
+import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 // What the alert's state gate asks about: a row of its state timeline.
 const PRIVATE_RECORD_STATE_TIMELINE: AlertStateTimeline =
@@ -975,10 +976,10 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           className="mb-5 flex flex-col gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 sm:flex-row sm:items-center sm:justify-between"
         >
           <span className="min-w-0 break-words">
-            {translator.translateTemplate(
-              "Could not refresh this alert. {{error}}",
-              { error: refreshError },
-            )}
+            <ErrorSentence
+              template="Could not refresh this alert. {{error}}"
+              error={refreshError}
+            />
           </span>
           <div className="flex shrink-0 items-center gap-3">
             <button
@@ -1809,7 +1810,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                       _id: true,
                     },
                   },
-                  title: "On-Call Duty Policies",
+                  title: "On-Call Policies",
                   fieldType: FieldType.Element,
                   getElement: (item: Alert): ReactElement => {
                     return (

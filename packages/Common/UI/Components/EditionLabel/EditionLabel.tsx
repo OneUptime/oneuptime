@@ -44,6 +44,7 @@ import CloudMarketplace, {
 } from "../../../Types/Marketplace/CloudMarketplace";
 import {
   fillTemplate,
+  formatList,
   Translator,
   translationKey,
 } from "../../Utils/TranslateTemplate";
@@ -60,6 +61,8 @@ import UpdateStatusUtil, {
   UpdateStatus,
 } from "../../../Types/UpdateCheck/UpdateStatus";
 import { getReaderDateLocale } from "../../../Types/DateLanguage";
+import { getIsolatedLine } from "../IsolatedText/IsolatedLine";
+import { ReadingDirection } from "../../../Types/ReadingDirection";
 
 /*
  * The edition pill and its dialog. This component only READS the license
@@ -147,6 +150,38 @@ export const GRACE_ENFORCEMENT_SUMMARY: string = fillTemplate(
 export const LICENSE_LAPSED_STATE: string = translationKey(
   "SCIM provisioning is off and your identity provider's SCIM requests are refused. Audit logging is not recording. Enterprise configuration is read-only and the enterprise admin dashboards are locked. Everything resumes, without a restart, as soon as a valid license is added, and core monitoring is never affected.",
 );
+
+/*
+ * The pill's accessible name: the words it shows - the edition, the
+ * evaluation tag when there is one, and the action - so voice-control users
+ * can activate it by the words they see (WCAG 2.5.3, Label in Name).
+ *
+ * Joined as the reader's language lists words (formatList): ", " in most,
+ * "، " in Arabic and Persian, "、" in Chinese and Japanese. A template of
+ * placeholders alone ("{{edition}}, {{action}}") has no words to translate,
+ * so every language got English's Latin comma: a braille display and the
+ * text read back showed "," in an Arabic or Persian name (#7133).
+ */
+export const getEditionPillAccessibleName: (data: {
+  edition: string;
+  evaluationTag: string | null;
+  action: string;
+  translator: Translator;
+}) => string = (data: {
+  edition: string;
+  evaluationTag: string | null;
+  action: string;
+  translator: Translator;
+}): string => {
+  return formatList(
+    [
+      data.edition,
+      ...(data.evaluationTag ? [data.evaluationTag] : []),
+      data.action,
+    ],
+    data.translator,
+  );
+};
 
 type LicenseStatus = "valid" | "grace" | "expired" | "missing" | "invalid";
 
@@ -1151,7 +1186,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
 
   /*
    * The pill tag is shown whenever a valid evaluation license is active, so an
-   * admin sees "Evaluation" without opening the modal.
+   * admin sees "Evaluation license" without opening the modal.
    */
   const showEvaluationTag: boolean =
     IS_ENTERPRISE_EDITION && licenseValid && isEvaluationLicense;
@@ -1171,6 +1206,22 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
    */
   const showVersionCard: boolean =
     !configError && !isConfigLoading && Boolean(currentVersion);
+
+  /*
+   * The company a license names reads the way its name is written: a Latin
+   * name in an Arabic or Persian dialog is cut short at its own end
+   * ("Nordwind Logistik und Daten...") rather than losing its start
+   * ("...wind Logistik und Datenverarbeitung GmbH"), and still sits under
+   * its label (LineDirection).
+   */
+  const licensedToLine: {
+    dir: ReadingDirection | undefined;
+    className: string;
+  } = getIsolatedLine({
+    text: globalConfig?.enterpriseCompanyName,
+    pageLanguage: translator.language,
+    className: "mt-1 truncate text-sm font-medium text-gray-900",
+  });
 
   const modalRightElement: ReactElement | undefined = showLicenseDetails ? (
     <span
@@ -1203,19 +1254,30 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
     </span>
   ) : undefined;
 
+  /*
+   * One line where it fits. Where it does not - a phone's sign-in page, the
+   * Admin Dashboard's header beside the logo, or a language whose words are
+   * longer than English's ("Enterprise Edition (Testphase, noch 10 Tage)
+   * Details anzeigen") - the pill wraps between its parts, never inside the
+   * tag or the action ("EVALUATION / LICENSE", "View / details"), and its
+   * corners round a two-line box (rounded-2xl is a full pill on one line).
+   */
+  const PILL_LAYOUT_CLASS_NAME: string =
+    "group inline-flex max-w-full flex-wrap items-center justify-center gap-x-2 gap-y-0.5 rounded-2xl border px-3 py-1 text-center text-xs font-medium shadow-sm transition focus:outline-none focus-visible:ring-2";
+
   const pillClassName: string =
     pillTone === "alerted"
-      ? "group inline-flex items-center gap-2 rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-medium text-red-700 shadow-sm transition hover:border-red-300 hover:bg-red-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
+      ? `${PILL_LAYOUT_CLASS_NAME} border-red-200 bg-red-50 text-red-700 hover:border-red-300 hover:bg-red-100 focus-visible:ring-red-400`
       : pillTone === "warning"
-        ? "group inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-800 shadow-sm transition hover:border-amber-300 hover:bg-amber-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
-        : "group inline-flex items-center gap-2 rounded-full border border-indigo-100 bg-white px-3 py-1 text-xs font-medium text-indigo-700 shadow-sm transition hover:border-indigo-300 hover:bg-indigo-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400";
+        ? `${PILL_LAYOUT_CLASS_NAME} border-amber-200 bg-amber-50 text-amber-800 hover:border-amber-300 hover:bg-amber-100 focus-visible:ring-amber-400`
+        : `${PILL_LAYOUT_CLASS_NAME} border-indigo-100 bg-white text-indigo-700 hover:border-indigo-300 hover:bg-indigo-50 focus-visible:ring-indigo-400`;
 
   const pillCtaTextClassName: string =
     pillTone === "alerted"
-      ? "text-[11px] text-red-500 group-hover:text-red-600"
+      ? "whitespace-nowrap text-[11px] text-red-500 group-hover:text-red-600"
       : pillTone === "warning"
-        ? "text-[11px] text-amber-600 group-hover:text-amber-700"
-        : "text-[11px] text-indigo-500 group-hover:text-indigo-600";
+        ? "whitespace-nowrap text-[11px] text-amber-600 group-hover:text-amber-700"
+        : "whitespace-nowrap text-[11px] text-indigo-500 group-hover:text-indigo-600";
 
   /*
    * A published security advisory affects the version this installation
@@ -1484,7 +1546,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
       "Last usage report accepted {{date}}: {{quantity}} user-hours.",
       {
         date: date.toLocaleString(getReaderDateLocale()),
-        quantity: String(quantity),
+        quantity: translator.formatNumber(quantity),
       },
     );
   })();
@@ -1631,6 +1693,12 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
           data-testid="enterprise-license-trial-notice"
           className="rounded-xl border border-amber-200 bg-amber-50 p-5"
         >
+          {/*
+           * The days left set apart from the title: in Persian it keeps
+           * "Enterprise Edition" in Latin letters, and the browser drew the
+           * count's digits inside that Latin run, on the far side of the
+           * colon from its "days left" (#7132's review).
+           */}
           <h4 className="text-sm font-semibold text-amber-900">
             {graceDaysLeftText
               ? translator.translateTemplate(
@@ -1638,6 +1706,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                   {
                     daysLeft: graceDaysLeftText,
                   },
+                  { setsValuesApart: true },
                 )
               : translator.translateText("Enterprise Edition trial")}
           </h4>
@@ -1656,8 +1725,11 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                 : translator.translateText(
                     "Enterprise features stay fully available, counted from the first time this installation ran the Enterprise Edition.",
                   ),
+              // The number in the reader's digits, as the days left are.
               translator.translateTemplate(TRIAL_ENFORCEMENT_TEMPLATE, {
-                days: ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS,
+                days: translator.formatNumber(
+                  ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS,
+                ),
               }),
             ].join(" ")}
           </p>
@@ -1722,7 +1794,9 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                     "Every enterprise feature keeps working until the grace period ends.",
                   ),
               translator.translateTemplate(GRACE_ENFORCEMENT_TEMPLATE, {
-                days: ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS,
+                days: translator.formatNumber(
+                  ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS,
+                ),
               }),
             ].join(" ")}
           </p>
@@ -1941,7 +2015,8 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                       {translator.translateText("Licensed to")}
                     </dt>
                     <dd
-                      className="mt-1 truncate text-sm font-medium text-gray-900"
+                      className={licensedToLine.className}
+                      dir={licensedToLine.dir}
                       title={globalConfig?.enterpriseCompanyName || undefined}
                     >
                       {globalConfig?.enterpriseCompanyName ||
@@ -2127,40 +2202,52 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
         type="button"
         onClick={openDialog}
         className={`${pillClassName} ${props.className ? props.className : ""}`}
-        /*
-         * Accessible name must include the visible text (WCAG 2.5.3 Label in
-         * Name) so voice-control users can activate it by the words they see
-         * ("{editionName}" and "{ctaLabel}", e.g. "Learn more").
-         */
-        aria-label={translator.translateTemplate(
-          showEvaluationTag
-            ? "{{edition}}, Evaluation, {{action}}"
-            : "{{edition}}, {{action}}",
-          {
-            edition: editionName,
-            action: translator.translateText(ctaLabel) || ctaLabel,
-          },
-        )}
+        aria-label={getEditionPillAccessibleName({
+          edition: editionName,
+          evaluationTag: showEvaluationTag
+            ? translator.translateText("Evaluation license") ||
+              "Evaluation license"
+            : null,
+          action: translator.translateText(ctaLabel) || ctaLabel,
+          translator: translator,
+        })}
       >
-        {pillTone !== "normal" && (
-          <Icon
-            icon={
-              pillTone === "alerted"
-                ? IconProp.Alert
-                : IconProp.ExclaimationCircle
-            }
-            className={`h-3 w-3 ${
-              pillTone === "alerted" ? "text-red-600" : "text-amber-600"
-            }`}
-          />
-        )}
+        {/*
+         * The marks stay beside the edition they mark: a state too long
+         * for the line ("Enterprise Edition (лицензия истекла, льготный
+         * период)") wraps inside its own words, never leaving the dot
+         * alone on a line above it.
+         */}
         <span
-          className={`h-2 w-2 rounded-full transition group-hover:scale-110 ${indicatorColor}`}
-        ></span>
-        <span className="tracking-wide">{editionName}</span>
+          className="inline-flex min-w-0 items-center gap-2"
+          data-testid="edition-label-pill-edition"
+        >
+          {pillTone !== "normal" && (
+            <Icon
+              icon={
+                pillTone === "alerted"
+                  ? IconProp.Alert
+                  : IconProp.ExclaimationCircle
+              }
+              className={`h-3 w-3 shrink-0 ${
+                pillTone === "alerted" ? "text-red-600" : "text-amber-600"
+              }`}
+            />
+          )}
+          <span
+            className={`h-2 w-2 shrink-0 rounded-full transition group-hover:scale-110 ${indicatorColor}`}
+          ></span>
+          <span className="min-w-0 tracking-wide">{editionName}</span>
+        </span>
+        {/*
+         * "Evaluation license", the dialog's own heading for it, and not
+         * "Evaluation": that word is also an SLO card's title, which a
+         * language words as assessing (German "Auswertung"), never as a
+         * license for trying the product out.
+         */}
         {showEvaluationTag && (
-          <span className="inline-flex items-center rounded-full bg-violet-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-violet-700">
-            {translator.translateText("Evaluation")}
+          <span className="inline-flex items-center whitespace-nowrap rounded-full bg-violet-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-violet-700">
+            {translator.translateText("Evaluation license")}
           </span>
         )}
         <span className={pillCtaTextClassName}>

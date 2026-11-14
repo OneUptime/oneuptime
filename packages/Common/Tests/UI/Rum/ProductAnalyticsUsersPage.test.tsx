@@ -16,6 +16,9 @@ import { JSONObject } from "../../../Types/JSON";
 import Route from "../../../Types/API/Route";
 import OneUptimeDate from "../../../Types/Date";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import { XAxis as ChartXAxis } from "../../../UI/Components/Charts/Types/XAxis/XAxis";
+import XAxisPrecision from "../../../UI/Components/Charts/Types/XAxis/XAxisPrecision";
+import XAxisType from "../../../UI/Components/Charts/Types/XAxis/XAxisType";
 
 /*
  * Product Analytics > Users (Pages/Rum/View/ProductAnalyticsUsers.tsx),
@@ -330,6 +333,13 @@ function deferred(): Deferred {
   return { promise: promise, resolve: resolve };
 }
 
+/* The time axis each drawing of a chart asked for, first to last. */
+function chartAxes(): Array<ChartXAxis> {
+  return lineChartMock.mock.calls.map((call: Array<unknown>): ChartXAxis => {
+    return (call[0] as { xAxis: ChartXAxis }).xAxis;
+  });
+}
+
 beforeEach(() => {
   postMock.mockReset();
   lineChartMock.mockReset();
@@ -566,6 +576,38 @@ describe("ProductAnalyticsUsers charts", () => {
       ["2026-09-01T00:00:00.000Z", 90],
       ["2026-09-02T00:00:00.000Z", 95],
     ]);
+  });
+
+  it("both charts ask for a day axis: their ticks name days, never clock times", async () => {
+    /*
+     * One point a day (issue #6564): left to the window's length, two days
+     * counted read "01 Sep, 00:00" under the charts.
+     */
+    mockReads({});
+
+    renderPage();
+
+    await waitFor(() => {
+      expect(screen.getAllByTestId("line-chart")).toHaveLength(2);
+    });
+
+    const axes: Array<ChartXAxis> = chartAxes();
+
+    expect(axes.length).toBeGreaterThanOrEqual(2);
+    for (const axis of axes) {
+      expect(axis.options.type).toBe(XAxisType.Time);
+      expect(axis.options.precision).toBe(XAxisPrecision.EVERY_DAY);
+    }
+
+    // From the first day's start to the last day's: the two days counted.
+    const last: ChartXAxis = axes[axes.length - 1]!;
+
+    expect((last.options.min as Date).toISOString()).toBe(
+      "2026-09-01T00:00:00.000Z",
+    );
+    expect((last.options.max as Date).toISOString()).toBe(
+      "2026-09-02T00:00:00.000Z",
+    );
   });
 
   it("a refused trend says so where the charts go, and the tiles stay", async () => {

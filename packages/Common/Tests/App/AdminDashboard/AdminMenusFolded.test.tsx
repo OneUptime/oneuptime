@@ -214,6 +214,8 @@ describe("Admin Settings: only Basic starts open", () => {
     [PageMap.SETTINGS_GLOBAL_RUNNERS, "Runbooks", "Global Runners"],
     // Single sign-on, under Basic: no folded "Authentication" section of its own.
     [PageMap.SETTINGS_SSO, "Basic", "Single Sign-On"],
+    // The products every project on the server offers (#6815), under Basic.
+    [PageMap.SETTINGS_PRODUCTS, "Basic", "Products"],
     [PageMap.SETTINGS_API_KEY, "API and Integrations", "API Key"],
     // Every project's default telemetry ingestion budgets (#5917).
     [PageMap.SETTINGS_INGESTION_BUDGETS, "Telemetry", "Ingestion Budgets"],
@@ -233,9 +235,11 @@ describe("Admin Settings: only Basic starts open", () => {
    * Single sign-on is one entry under Basic, beside Authentication: the SAML
    * and OIDC providers and Require SSO for Login on one page. It was "Global
    * SSO" and "Global OIDC" in a folded section that was also called
-   * Authentication, and the switch was on the Authentication page.
+   * Authentication, and the switch was on the Authentication page. Products
+   * (#6815) follows them: what the server offers every project is as basic
+   * as who may sign in.
    */
-  test("Basic holds Authentication and Single Sign-On, and nothing is called Global SSO", async () => {
+  test("Basic holds Authentication, Single Sign-On and Products, and nothing is called Global SSO", async () => {
     goTo(adminRoute(PageMap.SETTINGS_AUTHENTICATION));
     await renderMenu(<AdminSettingsSideMenu />);
 
@@ -243,12 +247,16 @@ describe("Admin Settings: only Basic starts open", () => {
       linksIn("Basic").map((link: MenuLink): string => {
         return link.title;
       }),
-    ).toEqual(["Authentication", "Single Sign-On"]);
+    ).toEqual(["Authentication", "Single Sign-On", "Products"]);
     expect(
       linksIn("Basic").map((link: MenuLink): string => {
         return link.href;
       }),
-    ).toEqual(["/admin/settings/authentication", "/admin/settings/sso"]);
+    ).toEqual([
+      "/admin/settings/authentication",
+      "/admin/settings/sso",
+      "/admin/settings/products",
+    ]);
     expect(document.body.textContent).not.toMatch(/Global (SSO|OIDC)/);
   });
 

@@ -21,6 +21,7 @@ check, from what the fixture's server kept, that the job was really done.
 | Make sure I am told when the monitor goes down | the website monitor's page | an on-call policy pages me for every new incident and alert |
 | Know when my website or API is down (guided setup) | Home, in a new project | the monitor checks the address, an on-call policy pages me for every new incident and alert, and my test page was acknowledged |
 | Get paged by phone and escalate to a teammate (Cloud) | Home, on OneUptime Cloud | calls are on and paid for, my number is verified, and a policy calls me, then pages Grace |
+| Get paged by phone and escalate to a teammate (Cloud, guided setup) | Home, on OneUptime Cloud | SMS and calls are on and paid for, my number is verified for both, a policy pages me for every new incident and alert, then Grace, and its test page was acknowledged |
 | Publish a status page that shows the monitor | Home, with the website monitor | the status page shows the monitor |
 | Send first telemetry and get an alert on it | Home, in a new project | the first logs are in and a Logs monitor alerts on them |
 | As an invited member, make myself reachable | Home, as a member, SMS on for the project | my phone number is verified for SMS |
@@ -156,4 +157,8 @@ CI=1 npm run test-journeys-ui
 The table of every journey is written to
 `output/playwright/journeys-ui/journey-report.md`, ready to paste into a pull request,
 and printed at the end of the run. `Journeys/JourneyCounter.spec.ts`, in the same
-suite, holds the counter and the driver to synthetic pages.
+suite, holds the counter and the driver to synthetic pages, and
+`Journeys/GuidedSetupRun.spec.ts` holds the website-down guided setup's run to what the
+fixture's server kept, uncounted: a reload goes back to the step it was on, a run
+the browser lost makes no second monitor for the same address (#7059), and on a phone
+the step's note and first check wrap a long address inside the step.

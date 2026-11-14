@@ -8,7 +8,8 @@
  * (EmptyValues).
  *
  * Paths are read with loops: what a reference reads can be any length, and a
- * regular expression's quantifier is not safe on a long one (AGENTS.md).
+ * regular expression's quantifier is not safe on a long one
+ * (Docs/notifications/README.md, "Megabyte-long values").
  */
 
 import { JSONObject } from "../JSON";

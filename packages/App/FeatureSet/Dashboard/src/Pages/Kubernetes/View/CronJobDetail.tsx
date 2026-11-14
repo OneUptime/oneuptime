@@ -33,6 +33,7 @@ import KubernetesMetricsTab from "../../../Components/Kubernetes/KubernetesMetri
 import { KubernetesCronJobObject } from "../Utils/KubernetesObjectParser";
 import { fetchLatestK8sObject } from "../Utils/KubernetesObjectFetcher";
 import KubernetesResourceUtils from "../Utils/KubernetesResourceUtils";
+import { formatKubernetesCount } from "../Utils/KubernetesCount";
 import KubernetesCpuUtils, {
   NodeAllocatableCpu,
 } from "../Utils/KubernetesCpuUtils";
@@ -303,13 +304,15 @@ const KubernetesClusterCronJobDetail: FunctionComponent<
         title: "Successful Jobs History Limit",
         description:
           KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.cronJobSuccessfulJobsHistoryLimit,
-        value: String(cronJobObject.spec.successfulJobsHistoryLimit ?? "N/A"),
+        value: formatKubernetesCount(
+          cronJobObject.spec.successfulJobsHistoryLimit,
+        ),
       },
       {
         title: "Failed Jobs History Limit",
         description:
           KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.cronJobFailedJobsHistoryLimit,
-        value: String(cronJobObject.spec.failedJobsHistoryLimit ?? "N/A"),
+        value: formatKubernetesCount(cronJobObject.spec.failedJobsHistoryLimit),
       },
       {
         title: "Last Schedule Time",
@@ -320,7 +323,7 @@ const KubernetesClusterCronJobDetail: FunctionComponent<
       {
         title: "Active Jobs",
         description: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.cronJobActiveJobs,
-        value: String(cronJobObject.status.activeCount ?? 0),
+        value: formatKubernetesCount(cronJobObject.status.activeCount ?? 0),
       },
       {
         title: "Created",

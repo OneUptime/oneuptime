@@ -1,8 +1,10 @@
 import { describe, expect, test } from "@jest/globals";
 import {
+  RESOURCE_AGENT_HEARD_WINDOW_MS,
   ResourceConnectionState,
   getResourceConnectionState,
   getResourceLastSeenDate,
+  isResourceAgentHeard,
   isResourceStatusConnected,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceConnection/ResourceConnectionState";
 
@@ -128,5 +130,144 @@ describe("getResourceConnectionState", () => {
         ResourceConnectionState.Disconnected,
       ]).size,
     ).toBe(3);
+  });
+});
+
+/*
+ * Issue #7439: an agent that reads its resource from an API (a Proxmox
+ * cluster) keeps a second clock, agentLastSeenAt. While the agent was heard
+ * recently and the resource is not connected, the agent is running but
+ * cannot read the resource - the API needs looking at, not the agent.
+ */
+describe("getResourceConnectionState with the agent's own clock", () => {
+  const NOW: Date = new Date("2026-11-13T12:00:00.000Z");
+  const minutesAgo: (minutes: number) => Date = (minutes: number): Date => {
+    return new Date(NOW.getTime() - minutes * 60 * 1000);
+  };
+
+  test("read before, not now, the agent heard: the read stopped", () => {
+    expect(
+      getResourceConnectionState({
+        status: "disconnected",
+        lastSeenAt: minutesAgo(25),
+        agentLastSeenAt: minutesAgo(2),
+        now: NOW,
+      }),
+    ).toBe(ResourceConnectionState.ReadingStopped);
+  });
+
+  test("never read, the agent heard: no read yet", () => {
+    expect(
+      getResourceConnectionState({
+        status: "disconnected",
+        lastSeenAt: null,
+        agentLastSeenAt: minutesAgo(1),
+        now: NOW,
+      }),
+    ).toBe(ResourceConnectionState.NotReadYet);
+  });
+
+  test("Connected wins, whatever the agent's clock says", () => {
+    for (const agentLastSeenAt of [minutesAgo(1), minutesAgo(90), null]) {
+      expect(
+        getResourceConnectionState({
+          status: "connected",
+          lastSeenAt: minutesAgo(1),
+          agentLastSeenAt,
+          now: NOW,
+        }),
+      ).toBe(ResourceConnectionState.Connected);
+    }
+  });
+
+  test("an agent last heard longer ago than the window has stopped: Disconnected, or never connected", () => {
+    expect(
+      getResourceConnectionState({
+        status: "disconnected",
+        lastSeenAt: minutesAgo(60),
+        agentLastSeenAt: minutesAgo(16),
+        now: NOW,
+      }),
+    ).toBe(ResourceConnectionState.Disconnected);
+    expect(
+      getResourceConnectionState({
+        status: "disconnected",
+        lastSeenAt: undefined,
+        agentLastSeenAt: minutesAgo(16),
+        now: NOW,
+      }),
+    ).toBe(ResourceConnectionState.NeverConnected);
+  });
+
+  test("without the agent's clock - every other resource - the three states are all there is", () => {
+    expect(
+      getResourceConnectionState({
+        status: "disconnected",
+        lastSeenAt: minutesAgo(25),
+        now: NOW,
+      }),
+    ).toBe(ResourceConnectionState.Disconnected);
+    expect(
+      getResourceConnectionState({ status: "disconnected", lastSeenAt: null }),
+    ).toBe(ResourceConnectionState.NeverConnected);
+  });
+
+  test("an ISO string from the API reads as a Date does", () => {
+    expect(
+      getResourceConnectionState({
+        status: "disconnected",
+        lastSeenAt: minutesAgo(25).toISOString(),
+        agentLastSeenAt: minutesAgo(2).toISOString(),
+        now: NOW,
+      }),
+    ).toBe(ResourceConnectionState.ReadingStopped);
+  });
+
+  test("an agentLastSeenAt that is not a date is never heard", () => {
+    expect(
+      getResourceConnectionState({
+        status: "disconnected",
+        lastSeenAt: minutesAgo(25),
+        agentLastSeenAt: "not a date",
+        now: NOW,
+      }),
+    ).toBe(ResourceConnectionState.Disconnected);
+  });
+});
+
+describe("isResourceAgentHeard", () => {
+  const NOW: Date = new Date("2026-11-13T12:00:00.000Z");
+
+  test("the window is the server's own 15 minutes", () => {
+    expect(RESOURCE_AGENT_HEARD_WINDOW_MS).toBe(15 * 60 * 1000);
+  });
+
+  test("heard up to and including 15 minutes ago, not a millisecond more", () => {
+    const edge: Date = new Date(NOW.getTime() - RESOURCE_AGENT_HEARD_WINDOW_MS);
+    expect(isResourceAgentHeard({ agentLastSeenAt: edge, now: NOW })).toBe(
+      true,
+    );
+    expect(
+      isResourceAgentHeard({
+        agentLastSeenAt: new Date(edge.getTime() - 1),
+        now: NOW,
+      }),
+    ).toBe(false);
+  });
+
+  test("a time a little ahead of the reader's clock still counts as heard", () => {
+    expect(
+      isResourceAgentHeard({
+        agentLastSeenAt: new Date(NOW.getTime() + 90 * 1000),
+        now: NOW,
+      }),
+    ).toBe(true);
+  });
+
+  test("never heard is not heard", () => {
+    expect(isResourceAgentHeard({ agentLastSeenAt: null, now: NOW })).toBe(
+      false,
+    );
+    expect(isResourceAgentHeard({ agentLastSeenAt: undefined })).toBe(false);
   });
 });

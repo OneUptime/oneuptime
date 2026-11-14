@@ -1,4 +1,5 @@
 import {
+  Download,
   expect,
   Locator,
   Page,
@@ -8,6 +9,7 @@ import {
 import { readFileSync } from "fs";
 import fs from "fs/promises";
 import path from "path";
+import { inflateSync } from "zlib";
 import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
@@ -1468,6 +1470,90 @@ async function yAxisLabels(
     );
 }
 
+/*
+ * A table cell's text as it was laid out: the text of each line, how wide
+ * its text may be, and each break that fell inside a part of a word - not
+ * at a space, a hyphen or a slash - with how wide that part is. A part is
+ * a text of its own: the words between a long word's or a path's places
+ * to wrap (DataTableWidget draws a <wbr> between them), or a run of words.
+ * A part broken inside is wider than the room, give or take the half
+ * pixel its letters' boxes are rounded by (PART_ROUNDING).
+ */
+const PART_ROUNDING: number = 0.5;
+
+interface CellLayout {
+  lines: Array<string>;
+  room: number;
+  brokenParts: Array<{ part: string; width: number }>;
+}
+
+async function cellLayoutOf(cell: Locator): Promise<CellLayout> {
+  return cell.evaluate((element: Element): CellLayout => {
+    const style: CSSStyleDeclaration = window.getComputedStyle(element);
+    // To the fraction of a pixel: clientWidth is rounded to a whole one.
+    const room: number =
+      element.getBoundingClientRect().width -
+      parseFloat(style.paddingLeft) -
+      parseFloat(style.paddingRight) -
+      parseFloat(style.borderLeftWidth) -
+      parseFloat(style.borderRightWidth);
+    // Where a line may end without breaking a part: a space, a hyphen, a slash.
+    const wrapsAfter: RegExp = /[\s/\\-]/;
+    const lines: Array<string> = [];
+    const brokenParts: Array<{ part: string; width: number }> = [];
+    let line: string = "";
+    let top: number | null = null;
+    const walker: TreeWalker = document.createTreeWalker(
+      element,
+      NodeFilter.SHOW_TEXT,
+    );
+
+    for (
+      let node: Node | null = walker.nextNode();
+      node;
+      node = walker.nextNode()
+    ) {
+      const text: string = node.textContent || "";
+      for (let index: number = 0; index < text.length; index++) {
+        const letter: Range = document.createRange();
+        letter.setStart(node, index);
+        letter.setEnd(node, index + 1);
+        const box: DOMRect | undefined = Array.from(
+          letter.getClientRects(),
+        ).find((rect: DOMRect): boolean => {
+          return rect.width > 0;
+        });
+
+        if (box) {
+          const boxTop: number = Math.round(box.top);
+          if (top !== null && boxTop > top + 2) {
+            lines.push(line);
+            line = "";
+            if (index > 0 && !wrapsAfter.test(text[index - 1]!)) {
+              const part: Range = document.createRange();
+              part.selectNodeContents(node);
+              brokenParts.push({
+                part: text,
+                width: Array.from(part.getClientRects()).reduce(
+                  (sum: number, rect: DOMRect): number => {
+                    return sum + rect.width;
+                  },
+                  0,
+                ),
+              });
+            }
+          }
+          top = boxTop;
+        }
+        line += text[index];
+      }
+    }
+    lines.push(line);
+
+    return { lines, room, brokenParts };
+  });
+}
+
 test.describe("what an answer carries fits where it is drawn", () => {
   test("a citation reads as a footnote, never as inline code", async ({
     page,
@@ -1589,6 +1675,52 @@ test.describe("what an answer carries fits where it is drawn", () => {
     );
 
     await screenshot(page, "rich-table-390");
+  });
+
+  /*
+   * A path - an endpoint, a URL - has no spaces to wrap at. Kept whole when
+   * its parts were short, "POST /ledger/entries" was as wide as a long word,
+   * and the table above no longer fit a 390 pixel phone (issue #6969). It
+   * may break anywhere now, after its slashes first: never "/ledger/en"
+   * over "tries", and a part of it is broken only when it is wider than
+   * its column.
+   */
+  test("on a phone a path wraps after its slashes, and a part of it breaks only when it is wider than its column", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await load(page, "thread=rich");
+    await expect(askAi(page)).toBeVisible();
+    await settle(page);
+
+    const table: Locator = page.locator("table").filter({
+      hasText: "Endpoint",
+    });
+    await table.scrollIntoViewIfNeeded();
+    await settle(page);
+
+    // Four columns a row: the endpoints are the first.
+    const cells: Locator = table.getByTestId("ai-chat-table-cell");
+    const ledger: Locator = cells.nth(8);
+    await expect(ledger).toHaveAttribute("title", "POST /ledger/entries");
+
+    const ledgerLayout: CellLayout = await cellLayoutOf(ledger);
+    expect(ledgerLayout.lines.join("")).toBe("POST /ledger/entries");
+    expect(ledgerLayout.lines.length).toBeGreaterThanOrEqual(2);
+    for (const line of ledgerLayout.lines.slice(0, -1)) {
+      expect(line, JSON.stringify(ledgerLayout.lines)).toMatch(/[\s/]$/);
+    }
+
+    for (const row of [0, 1, 2]) {
+      const layout: CellLayout = await cellLayoutOf(cells.nth(row * 4));
+      for (const broken of layout.brokenParts) {
+        expect(broken.width, broken.part).toBeGreaterThan(
+          layout.room - PART_ROUNDING,
+        );
+      }
+    }
   });
 
   /*
@@ -2010,7 +2142,7 @@ test.describe("by keyboard", () => {
     const panel: Box = await boxOf(askAi(page));
 
     for (const control of [
-      { title: "Choose AI provider", menu: "AI provider" },
+      { title: "Choose LLM provider", menu: "LLM provider" },
       {
         title: "Choose what the AI is allowed to do",
         menu: "AI permissions",
@@ -2043,12 +2175,12 @@ test.describe("by keyboard", () => {
   }) => {
     await load(page);
     await openAskAi(page);
-    await expect(page.getByTitle("Choose AI provider")).toHaveCount(0);
+    await expect(page.getByTitle("Choose LLM provider")).toHaveCount(0);
 
     await load(page, "providers=two");
     await openAskAi(page);
-    await page.getByTitle("Choose AI provider").click();
-    const menu: Locator = page.getByRole("menu", { name: "AI provider" });
+    await page.getByTitle("Choose LLM provider").click();
+    const menu: Locator = page.getByRole("menu", { name: "LLM provider" });
     await expect(menu.getByRole("menuitemradio")).toHaveCount(2);
     await page.keyboard.press("Escape");
     await expect(menu).toHaveCount(0);
@@ -3419,7 +3551,12 @@ test.describe("an action's arguments and the cards it leaves", () => {
  * marked at its start, in the order the card weighs them.
  */
 
-// The thread's three cautions, in the order the card weighs them (?thread=code).
+/*
+ * The thread's four cautions, in the order the card weighs them
+ * (?thread=code). The last is of a file Ask AI read all of, in two parts,
+ * the first of them left out since: read, so never "read only part of"
+ * (issue #6984).
+ */
 const CODE_CAUTION_KEYS: Array<[string, Record<string, string>]> = [
   [
     "These {{count}} files changed on {{branch}} after Ask AI read them, and Ask AI's versions undo those changes: {{files}}._one",
@@ -3433,13 +3570,22 @@ const CODE_CAUTION_KEYS: Array<[string, Record<string, string>]> = [
     "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}._one",
     { files: "src/billing/charge.ts" },
   ],
+  [
+    "Ask AI read these {{count}} files and no longer has part of their text, and its versions replace all of them: {{files}}._one",
+    { files: "src/billing/ledger.ts" },
+  ],
 ];
 
 const CODE_CAUTIONS: Array<string> = [
   "This file changed on fix/login after Ask AI read it, and Ask AI's version undoes that change: src/billing/refund.ts.",
   "Ask AI read this file in an earlier answer and no longer has its text, and its version replaces all of it: README.md.",
   "Ask AI read this file earlier in this answer and no longer has its text, and its version replaces all of it: src/billing/charge.ts.",
+  "Ask AI read this file and no longer has part of its text, and its version replaces all of it: src/billing/ledger.ts.",
 ];
+
+// The card's amber, one mark a caution: in the light theme, and in the dark.
+const CAUTION_AMBER: string = "rgb(217, 119, 6)";
+const CAUTION_AMBER_DARK: string = "rgb(252, 211, 77)";
 
 // Each caution of the card: its line, its mark and its sentence.
 interface CautionBoxes {
@@ -3516,7 +3662,7 @@ async function expectCautionsALineEach(
   const { action, cautions } = await cautionBoxes(page);
   const lineHeight: number = await cautionLineHeight(page);
 
-  expect(cautions).toHaveLength(3);
+  expect(cautions).toHaveLength(CODE_CAUTIONS.length);
 
   for (const caution of cautions) {
     for (const box of [caution.line, caution.mark, caution.sentence]) {
@@ -3584,11 +3730,11 @@ test.describe("a code change's cautions", () => {
 
     const action: Locator = page.getByTestId("tool-approval-action");
     await expect(action.getByTestId("tool-approval-title")).toHaveText(
-      "Commit 3 files to fix/login",
+      "Commit 4 files to fix/login",
     );
 
     const cautions: Locator = action.getByTestId("tool-approval-caution");
-    await expect(cautions).toHaveCount(3);
+    await expect(cautions).toHaveCount(CODE_CAUTIONS.length);
     for (let index: number = 0; index < CODE_CAUTIONS.length; index++) {
       // Each keeps the space that went before it in the card's text.
       expect((await wordsOf(cautions.nth(index))).trim()).toBe(
@@ -3603,16 +3749,26 @@ test.describe("a code change's cautions", () => {
     await expectCautionsALineEach(page, "ltr");
 
     // Marked in the card's amber, the colour of its own heading.
-    expect(await markColours(page)).toEqual([
-      "rgb(217, 119, 6)",
-      "rgb(217, 119, 6)",
-      "rgb(217, 119, 6)",
-    ]);
+    expect(await markColours(page)).toEqual(
+      CODE_CAUTIONS.map((): string => {
+        return CAUTION_AMBER;
+      }),
+    );
+
+    /*
+     * A file read whole and partly lost since is said to be read, and no
+     * longer all in hand: never "read only part of" (issue #6984).
+     */
+    const partLost: string = (
+      await wordsOf(cautions.nth(CODE_CAUTIONS.length - 1))
+    ).trim();
+    expect(partLost).toContain("no longer has part of its text");
+    expect(partLost).not.toContain("only part");
 
     // The commit's message and its files still read under its cautions.
     expect(await argumentRows(action)).toEqual([
       "Commit message: fix: round charges and refunds to the cent",
-      "Files: 3",
+      "Files: 4",
     ]);
 
     await screenshot(page, "code-cautions-1280");
@@ -3627,12 +3783,14 @@ test.describe("a code change's cautions", () => {
     await expect(askAi(page)).toBeVisible();
     await settle(page);
 
-    await expect(page.getByTestId("tool-approval-caution")).toHaveCount(3);
-    expect(await markColours(page)).toEqual([
-      "rgb(252, 211, 77)",
-      "rgb(252, 211, 77)",
-      "rgb(252, 211, 77)",
-    ]);
+    await expect(page.getByTestId("tool-approval-caution")).toHaveCount(
+      CODE_CAUTIONS.length,
+    );
+    expect(await markColours(page)).toEqual(
+      CODE_CAUTIONS.map((): string => {
+        return CAUTION_AMBER_DARK;
+      }),
+    );
 
     await screenshot(page, "code-cautions-1280-dark");
   });
@@ -3651,7 +3809,7 @@ test.describe("a code change's cautions", () => {
 
       const words: Record<string, string> = dashboardWords("fa");
       const cautions: Locator = page.getByTestId("tool-approval-caution");
-      await expect(cautions).toHaveCount(3);
+      await expect(cautions).toHaveCount(CODE_CAUTION_KEYS.length);
 
       for (let index: number = 0; index < CODE_CAUTION_KEYS.length; index++) {
         const [key, values] = CODE_CAUTION_KEYS[index]!;
@@ -3679,5 +3837,1106 @@ test.describe("a code change's cautions", () => {
       await expectNothingScrollsSideways(page);
       await screenshot(page, "code-cautions-390-fa");
     });
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Monitors looked up, and the monitors table (issues #6968, #6969 and #7175)
+ * ---------------------------------------------------------------------------
+ *
+ * "Which monitors are down right now?", answered with two monitors read by
+ * id and the table query_monitors lists them in (?thread=monitors).
+ *
+ *   - Every card a tool left was drawn as a write's - green, with a check -
+ *     so a monitor that was Offline, or whose monitoring was off, had a
+ *     green check beside it. A read's card is plain now, as the other
+ *     widgets are, its status's own colour a dot before the line that
+ *     names it: the Offline red, and gray for monitoring off.
+ *   - The table let every word break anywhere, and on a 360 pixel phone
+ *     its Status column drew "Operational" as "Operationa" over "l". A
+ *     word is whole now; only a long one, or a path - a URL, an endpoint -
+ *     may break anywhere, after its slashes first.
+ */
+
+interface StatusDot {
+  color: string;
+  dot: { left: number; right: number; top: number; bottom: number };
+  words: { left: number; right: number; top: number; bottom: number };
+}
+
+// A card's status dot, and the words of the line it stands before, in one read.
+async function statusDotOf(card: Locator): Promise<StatusDot> {
+  return card.evaluate((element: Element): StatusDot => {
+    const line: Element = element.querySelector(
+      '[data-testid="ai-chat-resource-card-line"]',
+    )!;
+    const dot: Element = line.querySelector(
+      '[data-testid="ai-chat-resource-card-status-dot"]',
+    )!;
+    const range: Range = document.createRange();
+    range.setStartAfter(dot);
+    range.setEnd(line, line.childNodes.length);
+    const words: DOMRect = range.getBoundingClientRect();
+    const box: DOMRect = dot.getBoundingClientRect();
+
+    return {
+      color: window.getComputedStyle(dot).backgroundColor,
+      dot: {
+        left: box.left,
+        right: box.right,
+        top: box.top,
+        bottom: box.bottom,
+      },
+      words: {
+        left: words.left,
+        right: words.right,
+        top: words.top,
+        bottom: words.bottom,
+      },
+    };
+  });
+}
+
+interface CardLook {
+  origin: string | null;
+  background: string;
+  border: string;
+  kind: string;
+  checks: number;
+  greens: number;
+}
+
+// How a card is drawn: its surface, its edge, its kind's colour, any check or green.
+async function cardLookOf(card: Locator): Promise<CardLook> {
+  return card.evaluate((element: Element): CardLook => {
+    const style: CSSStyleDeclaration = window.getComputedStyle(element);
+    const kind: Element = element.querySelector(
+      '[data-testid="ai-chat-resource-card-kind"]',
+    )!;
+
+    return {
+      origin: element.getAttribute("data-card-origin"),
+      background: style.backgroundColor,
+      border: style.borderTopColor,
+      kind: window.getComputedStyle(kind).color,
+      checks: element.querySelectorAll(
+        '[data-testid="ai-chat-resource-card-done"]',
+      ).length,
+      greens: element.querySelectorAll('[class*="emerald"]').length,
+    };
+  });
+}
+
+// The lines a cell's text was laid out on.
+async function linesOfCell(cell: Locator): Promise<number> {
+  return cell.evaluate((element: Element): number => {
+    const range: Range = document.createRange();
+    range.selectNodeContents(element);
+    return new Set(
+      Array.from(range.getClientRects()).map((rect: DOMRect): number => {
+        return Math.round(rect.top);
+      }),
+    ).size;
+  });
+}
+
+test.describe("monitors looked up, and the monitors table", () => {
+  test("a monitor looked up is drawn plain - no green, no check - its status a dot in its own colour, light and dark", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const theme of ["light", "dark"]) {
+      await load(
+        page,
+        theme === "dark" ? "theme=dark&thread=monitors" : "thread=monitors",
+      );
+      await expect(askAi(page)).toBeVisible();
+      await settle(page);
+
+      const cards: Locator = page.getByTestId("ai-chat-resource-card");
+      await expect(cards).toHaveCount(2);
+      await expect(cards.nth(0)).toContainText("Checkout API");
+      await expect(cards.nth(1)).toContainText("Backup Job");
+      await cards.nth(1).scrollIntoViewIfNeeded();
+      await settle(page);
+
+      for (const card of await cards.all()) {
+        expect(await cardLookOf(card)).toEqual(
+          theme === "dark"
+            ? {
+                origin: "read",
+                // The dark theme's surface and edge, as the other widgets have.
+                background: "rgb(23, 32, 51)",
+                border: "rgb(71, 85, 105)",
+                kind: expect.any(String),
+                checks: 0,
+                greens: 0,
+              }
+            : {
+                origin: "read",
+                background: "rgb(255, 255, 255)",
+                border: "rgb(229, 231, 235)",
+                kind: "rgb(107, 114, 128)",
+                checks: 0,
+                greens: 0,
+              },
+        );
+      }
+
+      if (theme === "dark") {
+        // Its kind is read on the dark surface.
+        expect(
+          await luminanceOf(
+            cards.nth(0).getByTestId("ai-chat-resource-card-kind"),
+            "color",
+          ),
+        ).toBeGreaterThan(0.25);
+      }
+
+      // Offline in its own red; monitoring off in gray: in either theme.
+      const offline: StatusDot = await statusDotOf(cards.nth(0));
+      const disabled: StatusDot = await statusDotOf(cards.nth(1));
+      expect(offline.color).toBe("rgb(253, 98, 94)");
+      expect(disabled.color).toBe("rgb(107, 114, 128)");
+
+      for (const drawn of [offline, disabled]) {
+        // A dot, 8 pixels round, before the words, on their line.
+        expect(drawn.dot.right - drawn.dot.left).toBeCloseTo(8, 0);
+        expect(drawn.dot.bottom - drawn.dot.top).toBeCloseTo(8, 0);
+        expect(drawn.dot.right).toBeLessThanOrEqual(drawn.words.left);
+        expect(drawn.words.left - drawn.dot.right).toBeLessThanOrEqual(8);
+        const middle: number = (drawn.dot.top + drawn.dot.bottom) / 2;
+        expect(middle).toBeGreaterThan(drawn.words.top);
+        expect(middle).toBeLessThan(drawn.words.bottom);
+      }
+
+      await expect(
+        cards.nth(0).getByTestId("ai-chat-resource-card-line"),
+      ).toHaveText("Offline");
+      await expect(
+        cards.nth(1).getByTestId("ai-chat-resource-card-line"),
+      ).toHaveText("Disabled");
+
+      await screenshot(
+        page,
+        theme === "dark" ? "monitor-cards-1280-dark" : "monitor-cards-1280",
+      );
+    }
+  });
+
+  test.describe("on a phone, in Persian", () => {
+    test.use({ viewport: { width: 390, height: 844 } });
+
+    test("right to left, the dot stands where the line starts: at its right", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await load(page, "lang=fa&thread=monitors");
+      await expect(askAi(page)).toBeVisible();
+      await settle(page);
+
+      const cards: Locator = page.getByTestId("ai-chat-resource-card");
+      await expect(cards).toHaveCount(2);
+      await cards.nth(0).scrollIntoViewIfNeeded();
+      await settle(page);
+
+      for (const card of await cards.all()) {
+        const drawn: StatusDot = await statusDotOf(card);
+        expect(drawn.dot.left).toBeGreaterThanOrEqual(drawn.words.right);
+        expect(drawn.dot.left - drawn.words.right).toBeLessThanOrEqual(8);
+
+        const look: CardLook = await cardLookOf(card);
+        expect(look.checks).toBe(0);
+        expect(look.greens).toBe(0);
+      }
+
+      await expectNothingScrollsSideways(page);
+      await screenshot(page, "monitor-cards-390-fa");
+    });
+  });
+
+  test.describe("on a 360 pixel phone", () => {
+    test.use({ viewport: { width: 360, height: 780 } });
+
+    test("the monitors table keeps Operational whole on its line, and wraps a monitor's long URL inside the table", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await load(page, "thread=monitors");
+      await expect(askAi(page)).toBeVisible();
+      await settle(page);
+
+      const table: Locator = page.locator("table").filter({
+        hasText: "legacy-payments-api",
+      });
+      await table.scrollIntoViewIfNeeded();
+      await settle(page);
+
+      // Nothing hidden past the card's edge, waiting to be scrolled to.
+      const fit: { table: number; room: number } = await table.evaluate(
+        (element: Element): { table: number; room: number } => {
+          return {
+            table: element.scrollWidth,
+            room: (element.parentElement as HTMLElement).clientWidth,
+          };
+        },
+      );
+      expect(fit.table).toBeLessThanOrEqual(fit.room);
+
+      const rows: Locator = table.locator("tbody tr");
+      await expect(rows).toHaveCount(4);
+
+      const statuses: Array<string> = [];
+      for (const row of await rows.all()) {
+        const status: Locator = row.getByTestId("ai-chat-table-cell").nth(2);
+        statuses.push((await status.textContent()) || "");
+        // One line each: "Operational" is never "Operationa" over "l".
+        expect(await linesOfCell(status)).toBe(1);
+      }
+      expect(statuses).toEqual([
+        "Offline",
+        "Operational",
+        "Operational",
+        "Disabled",
+      ]);
+
+      /*
+       * The URL has no spaces to wrap at: it wraps inside the table, after
+       * its slashes first, and anywhere in a part wider than its column.
+       * Its scheme stays with its host: "https://" alone took a line of
+       * the three a cell shows, and said nothing.
+       */
+      const url: Locator = rows.nth(1).getByTestId("ai-chat-table-cell").nth(0);
+      await expect(url).toHaveAttribute(
+        "title",
+        "https://payments.example.com/api/v2/health/checkout",
+      );
+      expect(await linesOfCell(url)).toBeGreaterThanOrEqual(2);
+      const urlLayout: CellLayout = await cellLayoutOf(url);
+      expect(urlLayout.lines.join("")).toBe(
+        "https://payments.example.com/api/v2/health/checkout",
+      );
+      expect(urlLayout.lines[0]!.length).toBeGreaterThan("https://".length);
+      for (const broken of urlLayout.brokenParts) {
+        expect(broken.width, broken.part).toBeGreaterThan(
+          urlLayout.room - PART_ROUNDING,
+        );
+      }
+      const tableBox: Box = await boxOf(table);
+      const urlBox: Box = await boxOf(url);
+      expect(urlBox.x + urlBox.width).toBeLessThanOrEqual(
+        tableBox.x + tableBox.width + 0.5,
+      );
+      // ...and still leaves the other two columns most of their room.
+      expect(urlBox.width).toBeLessThan(tableBox.width * 0.6);
+
+      await expectNothingScrollsSideways(page);
+      await screenshot(page, "monitors-table-360");
+    });
+  });
+
+  /*
+   * Broken anywhere, the URL's host was cut mid-name wherever the column
+   * ended: "https://payments.ex" over "ample.com/api/v2/" in the panel at
+   * 1024 pixels, "https://payments.example.c" over "om/..." at 1280. It
+   * wraps before its host's dots now, as a style guide breaks a URL, and
+   * after its slashes: each name whole on its line.
+   */
+  test("a monitor's URL wraps after its slashes and before its host's dots, each name whole: in the panel at 1280 and 1024, and on a 390 pixel phone", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const URL_NAME: string =
+      "https://payments.example.com/api/v2/health/checkout";
+
+    for (const width of [1280, 1024, 390]) {
+      await page.setViewportSize({ width, height: 844 });
+      await load(page, "thread=monitors");
+      await expect(askAi(page)).toBeVisible();
+      await settle(page);
+
+      const table: Locator = page.locator("table").filter({
+        hasText: "legacy-payments-api",
+      });
+      await table.scrollIntoViewIfNeeded();
+      await settle(page);
+
+      const url: Locator = table
+        .locator("tbody tr")
+        .nth(1)
+        .getByTestId("ai-chat-table-cell")
+        .nth(0);
+      await expect(url).toHaveAttribute("title", URL_NAME);
+
+      const layout: CellLayout = await cellLayoutOf(url);
+      const lines: string = JSON.stringify(layout.lines);
+      expect(layout.lines.join(""), lines).toBe(URL_NAME);
+      // Too long for one line, at every width...
+      expect(layout.lines.length, lines).toBeGreaterThanOrEqual(2);
+      // ...and never broken inside a name: no part is wider than the column.
+      expect(layout.brokenParts, `${width}: ${lines}`).toEqual([]);
+      for (let index: number = 0; index < layout.lines.length - 1; index++) {
+        // Each line ends after a slash, or the next starts with the host's dot.
+        expect(
+          layout.lines[index]!.endsWith("/") ||
+            layout.lines[index + 1]!.startsWith("."),
+          `${width}: ${lines}`,
+        ).toBe(true);
+      }
+      // The scheme stays with the host's first name.
+      expect(layout.lines[0]!.startsWith("https://payments"), lines).toBe(true);
+    }
+
+    await screenshot(page, "monitors-table-url-390");
+  });
+
+  /*
+   * Issue #7175: the cards said "MONITOR", "Type", "Website", "Disabled",
+   * "Last status" and "Off - not checked" in English on a German or
+   * Persian page. They say OneUptime's words in the reader's language now
+   * - the status the project named as named - and the dot stays before the
+   * line, on the side it reads from, on a phone and beside the page.
+   */
+  for (const language of ["de", "fa"]) {
+    test(`a monitor looked up, in ${language === "de" ? "German" : "Persian"} at 1280 and 390 pixels: every word of ours in the reader's language, the status as named, the dot before the line`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      const words: Record<string, string> = dashboardWords(language);
+      const isRightToLeft: boolean = language === "fa";
+
+      for (const width of [1280, 390]) {
+        await page.setViewportSize({ width, height: 844 });
+        await load(page, `lang=${language}&thread=monitors`);
+        await expect(askAi(page)).toBeVisible();
+        await settle(page);
+
+        const cards: Locator = page.getByTestId("ai-chat-resource-card");
+        await expect(cards).toHaveCount(2);
+        const offline: Locator = cards.nth(0);
+        const disabled: Locator = cards.nth(1);
+        await offline.scrollIntoViewIfNeeded();
+        await settle(page);
+
+        const factsOf: (
+          card: Locator,
+          part: "label" | "value",
+        ) => Promise<Array<string>> = async (
+          card: Locator,
+          part: "label" | "value",
+        ): Promise<Array<string>> => {
+          const texts: Array<string> = [];
+          for (const fact of await card
+            .getByTestId(`ai-chat-resource-card-fact-${part}`)
+            .all()) {
+            texts.push(await wordsOf(fact));
+          }
+          return texts;
+        };
+
+        for (const card of [offline, disabled]) {
+          expect(
+            await wordsOf(card.getByTestId("ai-chat-resource-card-kind")),
+          ).toBe(filled(words, "Monitor"));
+        }
+
+        // The status the project named, as named; monitoring off in the reader's words.
+        expect(
+          await wordsOf(offline.getByTestId("ai-chat-resource-card-line")),
+        ).toBe("Offline");
+        expect(
+          await wordsOf(disabled.getByTestId("ai-chat-resource-card-line")),
+        ).toBe(filled(words, "Disabled"));
+
+        expect(await factsOf(offline, "label")).toEqual([
+          filled(words, "Type"),
+        ]);
+        expect(await factsOf(offline, "value")).toEqual([
+          filled(words, "Website"),
+        ]);
+        expect(await factsOf(disabled, "label")).toEqual([
+          filled(words, "Type"),
+          filled(words, "Last status"),
+          filled(words, "Monitoring"),
+        ]);
+        expect(await factsOf(disabled, "value")).toEqual([
+          filled(words, "Incoming Request"),
+          "Operational",
+          filled(words, "Off - not checked"),
+        ]);
+
+        // None of OneUptime's words left in English.
+        for (const card of [offline, disabled]) {
+          const text: string = await wordsOf(card);
+          for (const english of [
+            "Monitor",
+            "Disabled",
+            "Last status",
+            "Off - not checked",
+            "Incoming Request",
+            "Type",
+          ]) {
+            expect(text, `${language} ${width}: ${text}`).not.toContain(
+              english,
+            );
+          }
+        }
+
+        // The dot before the line's words, on the side they read from.
+        for (const card of [offline, disabled]) {
+          const drawn: StatusDot = await statusDotOf(card);
+          if (isRightToLeft) {
+            expect(drawn.dot.left).toBeGreaterThanOrEqual(drawn.words.right);
+            expect(drawn.dot.left - drawn.words.right).toBeLessThanOrEqual(8);
+          } else {
+            expect(drawn.dot.right).toBeLessThanOrEqual(drawn.words.left);
+            expect(drawn.words.left - drawn.dot.right).toBeLessThanOrEqual(8);
+          }
+          const middle: number = (drawn.dot.top + drawn.dot.bottom) / 2;
+          expect(middle).toBeGreaterThan(drawn.words.top);
+          expect(middle).toBeLessThan(drawn.words.bottom);
+
+          const look: CardLook = await cardLookOf(card);
+          expect(look.origin).toBe("read");
+          expect(look.checks).toBe(0);
+          expect(look.greens).toBe(0);
+        }
+
+        await expectNothingScrollsSideways(page);
+        await screenshot(page, `monitor-cards-${width}-${language}-words`);
+      }
+    });
+  }
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Every card a read leaves, in the reader's language and in the PDF (issues
+ * #7175 and #7202)
+ * ---------------------------------------------------------------------------
+ *
+ * "What do we have set up for payments?", answered with one card of each
+ * kind a read leaves (?thread=readcards): a monitor, an SLO, a team, an
+ * on-call policy and schedule, a status page, a runbook, a workflow and a
+ * security case, each built by its tool's own builder. OneUptime's words
+ * on them are the reader's; the names, statuses and descriptions the
+ * project wrote are data, as written.
+ */
+
+// The kind each card says, in order: the Dashboard's word for it.
+const READ_CARD_KINDS: Array<string> = [
+  "Monitor",
+  "SLO",
+  "Team",
+  "On-call policy",
+  "On-call schedule",
+  "Status page",
+  "Runbook",
+  "Workflow",
+  "Security case",
+];
+
+/*
+ * What the project wrote on the cards (Fixture.js readCards), longest
+ * first: names, statuses, descriptions, a URL and an entity's value.
+ * Never translated.
+ */
+const READ_CARD_DATA: Array<string> = [
+  "Checkout requests that succeed, over 30 days.",
+  "Owns the payments databases and their backups.",
+  "Checkout, payments and backups, for our customers.",
+  "Drains the queue, then restarts the worker.",
+  "Runs on every failed deploy of payments-api.",
+  "Pages for every payments incident.",
+  "SC-17 Sign-ins from a new country",
+  "Page on-call when a deploy fails",
+  "Restart the payments worker",
+  "https://status.acme.example.com",
+  "Payments weekly rotation",
+  "Checkout availability",
+  "Freeze risky deploys",
+  "ana@acme.example.com",
+  "Database reliability",
+  "Payments primary",
+  "Payments stack",
+  "Database team",
+  "Investigating",
+  "Checkout API",
+  "Jonas Müller",
+  "payments-api",
+  "203.0.113.7",
+  "Acme Status",
+  "Ana Souza",
+  "Degraded",
+  "Checkout",
+  "Payments",
+  "Backups",
+  "High",
+  "SRE",
+];
+
+/*
+ * The words in Latin letters an Arabic page keeps: names the Arabic
+ * Dashboard writes in them (SLO, SLI, API, URL, IP, the time zone), and
+ * Deployments, which its locale keeps in English (i18n/Progress/ar.json).
+ */
+const ARABIC_LATIN_WORDS: Array<string> = [
+  "SLO",
+  "SLI",
+  "API",
+  "URL",
+  "IP",
+  "GMT",
+  "Deployments",
+];
+
+// OneUptime's own English on the cards, which a German page never shows.
+const READ_CARD_ENGLISH: Array<string> = [
+  "Owner teams",
+  "Owner users",
+  "Target",
+  "Window",
+  "Rolling",
+  "Monitor uptime",
+  "At Risk",
+  "Current SLI",
+  "Error budget left",
+  "Burn rate",
+  "Monitor rules",
+  "enabled",
+  "Error budget policy tier",
+  "Frozen by",
+  "No members",
+  "Description",
+  "Rule ",
+  "Pages ",
+  "escalates",
+  "On call",
+  "Hands off",
+  "Next up",
+  "Next shift",
+  "Visibility",
+  "Public",
+  "Resources shown",
+  "monitor group",
+  "not monitored",
+  "Active subscribers",
+  "Disabled",
+  "Steps",
+  "Enabled",
+  "Recent runs",
+  "Detections",
+  "Entities",
+  "IP Address",
+];
+
+// A text with the project's own words taken out.
+function withoutReadCardData(text: string): string {
+  let left: string = text;
+  for (const data of READ_CARD_DATA) {
+    left = left.split(data).join(" ");
+  }
+  return left;
+}
+
+const LATIN_WORD: RegExp = /[A-Za-z]+/g;
+
+// The width of a card's facts list and of each of its names, in one frame.
+interface FactColumns {
+  list: number;
+  labels: Array<number>;
+}
+
+async function factColumnsOf(card: Locator): Promise<FactColumns> {
+  return card
+    .getByTestId("ai-chat-resource-card-facts")
+    .evaluate((list: Element): FactColumns => {
+      return {
+        list: list.getBoundingClientRect().width,
+        labels: Array.from(
+          list.querySelectorAll(
+            '[data-testid="ai-chat-resource-card-fact-label"]',
+          ),
+        ).map((label: Element): number => {
+          return label.getBoundingClientRect().width;
+        }),
+      };
+    });
+}
+
+test.describe("every card a read leaves", () => {
+  for (const language of ["ar", "de"]) {
+    test(`in ${language === "ar" ? "Arabic" : "German"} at 1280 and 390 pixels: each in the reader's words, every value whole, the names within 40% of the card`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      const words: Record<string, string> = dashboardWords(language);
+
+      for (const width of [1280, 390]) {
+        await page.setViewportSize({ width, height: 844 });
+        await load(page, `lang=${language}&thread=readcards`);
+        await expect(askAi(page)).toBeVisible();
+        await settle(page);
+
+        const cards: Locator = page.getByTestId("ai-chat-resource-card");
+        await expect(cards).toHaveCount(READ_CARD_KINDS.length);
+
+        for (const [index, kind] of READ_CARD_KINDS.entries()) {
+          const card: Locator = cards.nth(index);
+          expect(
+            await wordsOf(card.getByTestId("ai-chat-resource-card-kind")),
+          ).toBe(filled(words, kind));
+
+          /*
+           * Every value whole: an escalation rule's "then escalates after
+           * 30 minutes" was cut to "nach 3..." in German.
+           */
+          expect(
+            await anyCut(card.getByTestId("ai-chat-resource-card-fact-value")),
+            `${language} ${width}: card ${index + 1}`,
+          ).toBe(false);
+
+          const text: string = withoutReadCardData(await wordsOf(card));
+
+          if (language === "ar") {
+            // Every word left in Latin letters is one the Arabic page keeps.
+            for (const word of text.match(LATIN_WORD) || []) {
+              expect(
+                ARABIC_LATIN_WORDS,
+                `${width}: card ${index + 1} says "${word}" in ${text}`,
+              ).toContain(word);
+            }
+          } else {
+            for (const english of READ_CARD_ENGLISH) {
+              expect(
+                text,
+                `${width}: card ${index + 1} says "${english}"`,
+              ).not.toContain(english);
+            }
+          }
+        }
+
+        /*
+         * Beside their values, the names take at most 40% of the card: a
+         * long one wraps there rather than leaving every value a narrow
+         * column. On a phone each name is over its value.
+         */
+        if (width === 1280) {
+          for (let index: number = 0; index < READ_CARD_KINDS.length; index++) {
+            const columns: FactColumns = await factColumnsOf(cards.nth(index));
+            for (const label of columns.labels) {
+              expect(label).toBeLessThanOrEqual(columns.list * 0.4 + 1);
+            }
+          }
+        }
+
+        await expectNothingScrollsSideways(page);
+        await screenshot(page, `read-cards-${width}-${language}`);
+      }
+    });
+  }
+
+  /*
+   * Issue #7202: the PDF drew the first line of a card's long name, line
+   * and facts. Each is whole now; a read's card has no title over it that
+   * says its kind and name again, as the chat has none; and an on-call
+   * shift's moments read as the export writes dates, not as ISO text.
+   */
+  test("the conversation's PDF: every card's words, no title repeating a card's name, and moments as the export writes dates", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await load(page, "thread=readcards");
+    await expect(askAi(page)).toBeVisible();
+    await settle(page);
+
+    await askAi(page)
+      .getByRole("button", { name: "Download conversation" })
+      .click();
+    const downloading: Promise<Download> = page.waitForEvent("download");
+    await page.getByText("Download as PDF", { exact: true }).click();
+    const download: Download = await downloading;
+    const lines: Array<string> = pdfTextLines(
+      readFileSync(await download.path()),
+    );
+    const text: string = lines.join(" ");
+
+    // The cards' own lines, each drawn whole on a line of its own.
+    for (const line of [
+      "MONITOR",
+      "payments-api",
+      "Owner teams",
+      "Payments, SRE",
+      "Frozen by the error budget policy",
+      "Owns the payments databases and their backups.",
+      "Rule 2 - Database team",
+      'Pages on-call schedule "Payments weekly rotation", then escalates after 30 minutes',
+      "Pages no one",
+      "On call now: Ana Souza",
+      "Oct 26 2026, 13:00 GMT",
+      "Nov 02 2026, 13:00 GMT",
+      "Jonas Müller",
+      "3: Checkout (monitor: Checkout API), Payments (monitor group: Payments stack), Backups - not monitored",
+      "IP Address: 203.0.113.7, User: ana@acme.example.com",
+    ]) {
+      expect(lines, `the PDF draws "${line}"`).toContain(line);
+    }
+
+    // The ISO text a card stores for a moment is never printed.
+    expect(text).not.toContain("2026-10-26T13:00:00.000Z");
+    expect(text).not.toContain("T13:00:00");
+
+    // No title over a read's card says its kind and name again.
+    for (const title of [
+      "Monitor payments-api",
+      "SLO Checkout availability",
+      "On-call policy: Payments primary",
+      "Status page: Acme Status",
+    ]) {
+      expect(lines).not.toContain(title);
+    }
+
+    // The team's line says it has no members: no "Members 0" under it.
+    expect(lines).toContain("No members");
+    expect(lines).not.toContain("Members");
+
+    // Nothing cut short: every part fits in the lines it takes.
+    for (const line of lines) {
+      expect(line.endsWith("..."), line).toBe(false);
+    }
+  });
+});
+
+/*
+ * The text a PDF draws, line by line: every string its content streams
+ * show (Tj), in order. jsPDF compresses its streams (Flate) and writes each
+ * line the export draws as one string.
+ */
+function pdfTextLines(pdf: Buffer): Array<string> {
+  const raw: string = pdf.toString("latin1");
+  const lines: Array<string> = [];
+  const STREAM: string = "stream\n";
+  const END: string = "\nendstream";
+  let from: number = 0;
+
+  for (;;) {
+    const start: number = raw.indexOf(STREAM, from);
+    if (start === -1) {
+      break;
+    }
+    const end: number = raw.indexOf(END, start);
+    if (end === -1) {
+      break;
+    }
+    from = end + END.length;
+
+    let content: string;
+    try {
+      content = inflateSync(
+        Buffer.from(raw.slice(start + STREAM.length, end), "latin1"),
+      ).toString("latin1");
+    } catch {
+      // Not a compressed content stream.
+      continue;
+    }
+
+    lines.push(...shownStrings(content));
+  }
+
+  return lines;
+}
+
+// Whether a character is an octal digit, as a PDF string's escapes write them.
+function isOctalDigit(char: string | undefined): boolean {
+  return char !== undefined && char >= "0" && char <= "7";
+}
+
+// The strings a content stream shows with Tj, their escapes read.
+function shownStrings(content: string): Array<string> {
+  const shown: Array<string> = [];
+  let at: number = content.indexOf("(");
+
+  while (at !== -1) {
+    let text: string = "";
+    let index: number = at + 1;
+    let depth: number = 1;
+
+    while (index < content.length) {
+      const char: string = content[index]!;
+
+      if (char === "\\") {
+        let octal: string = "";
+        while (
+          octal.length < 3 &&
+          isOctalDigit(content[index + 1 + octal.length])
+        ) {
+          octal += content[index + 1 + octal.length]!;
+        }
+        if (octal) {
+          text += String.fromCharCode(parseInt(octal, 8));
+          index += 1 + octal.length;
+          continue;
+        }
+        const next: string = content[index + 1] || "";
+        text += next === "n" ? "\n" : next === "r" ? "\r" : next;
+        index += 2;
+        continue;
+      }
+
+      if (char === "(") {
+        depth++;
+      } else if (char === ")") {
+        depth--;
+        if (depth === 0) {
+          break;
+        }
+      }
+
+      text += char;
+      index++;
+    }
+
+    let after: number = index + 1;
+    while (content[after] === " " || content[after] === "\n") {
+      after++;
+    }
+    if (content.startsWith("Tj", after)) {
+      shown.push(text);
+    }
+
+    at = content.indexOf("(", index + 1);
+  }
+
+  return shown;
+}
+
+/*
+ * "MONITOR EXAMPLE.COM EVERY MINUTE AND TEXT ME IF IT IS DOWN" (issue
+ * #6829): one plan on one card, each part a line in plain words with its
+ * own Allow and Skip, ending "Nothing else changes."; approved, each part
+ * leaves the card of what it made, and the answer offers the test page of
+ * the policy it made - or one to yourself, for a monitor alone.
+ */
+
+// The decisions of the last approval card the fixture was sent.
+function lastDecisions(
+  fixtureState: FixtureState,
+): Array<{ toolCallId: string; approved: boolean }> | undefined {
+  return fixtureState.approvals[fixtureState.approvals.length - 1]?.decisions;
+}
+
+test.describe("a setup plan", () => {
+  test("waits on one card, each part in plain words - the missing number said - and ends: nothing else changes", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await load(page, "thread=setup");
+    await expect(askAi(page)).toBeVisible();
+    await settle(page);
+
+    await expect(
+      askAi(page).getByText("The AI wants to perform 2 actions"),
+    ).toBeVisible();
+    const [monitor, paging] = [
+      page.getByTestId("tool-approval-action").nth(0),
+      page.getByTestId("tool-approval-action").nth(1),
+    ];
+    await expect(monitor.getByTestId("tool-approval-title")).toHaveText(
+      "Set up monitoring for example.com",
+    );
+    await expect(monitor.getByTestId("tool-approval-description")).toHaveText(
+      "A website monitor checks https://example.com every minute. It is checked from 2 locations. If it does not answer, or answers with an error, OneUptime opens an incident (Critical Incident). You own this monitor, so you are emailed when its status changes.",
+    );
+    await expect(paging.getByTestId("tool-approval-title")).toHaveText(
+      'Create on-call policy "Default on-call policy"',
+    );
+    await expect(paging.getByTestId("tool-approval-description")).toHaveText(
+      "Pages you for every new incident and alert. You have no verified phone number for texts yet. Add one in Notification Methods, and pages reach you by SMS too.",
+    );
+    // What the card says in words is not said again as arguments.
+    await expect(page.getByTestId("tool-approval-arguments")).toHaveCount(0);
+    await expect(page.getByTestId("tool-approval-setup-plan-end")).toHaveText(
+      "Nothing else changes.",
+    );
+
+    await screenshot(page, "setup-plan-1280");
+  });
+
+  test("approved, each part leaves its card, and the answer offers the policy's test page", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await load(page, "thread=setup");
+    await expect(askAi(page)).toBeVisible();
+    await settle(page);
+
+    await page.getByRole("button", { name: "Run 2 actions" }).click();
+
+    const cards: Locator = page.getByTestId("ai-chat-resource-card");
+    await expect(cards).toHaveCount(2);
+    await expect(
+      cards.nth(0).getByTestId("ai-chat-resource-card-line"),
+    ).toHaveText("Checked every minute");
+    await expect(
+      cards.nth(1).getByTestId("ai-chat-resource-card-line"),
+    ).toHaveText("Pages you for every new incident and alert");
+    await expect(page.getByTestId("ask-ai-send-test-page")).toHaveText(
+      "Test this policy",
+    );
+    await expect(page.getByTestId("tool-approval-setup-plan-end")).toHaveCount(
+      0,
+    );
+
+    const fixtureState: FixtureState = await state(page);
+    expect(lastDecisions(fixtureState)).toEqual([
+      { toolCallId: "call_setup_monitor", approved: true },
+      { toolCallId: "call_setup_paging", approved: true },
+    ]);
+    expect(fixtureState.unhandled).toEqual([]);
+
+    await screenshot(page, "setup-done-1280");
+  });
+
+  test("in a busy project: no policy beside its own, the monitor put on its status page, and a test page to yourself", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await load(page, "thread=setup-busy");
+    await expect(askAi(page)).toBeVisible();
+    await settle(page);
+
+    const [monitor, statusPage] = [
+      page.getByTestId("tool-approval-action").nth(0),
+      page.getByTestId("tool-approval-action").nth(1),
+    ];
+    await expect(monitor.getByTestId("tool-approval-title")).toHaveText(
+      "Set up monitoring for example.com",
+    );
+    await expect(monitor.getByTestId("tool-approval-description")).toHaveText(
+      "A website monitor checks https://example.com every 5 minutes. It is checked from 2 locations. If it does not answer, or answers with an error, OneUptime opens an incident (Critical Incident). You own this monitor, so you are emailed when its status changes.",
+    );
+    await expect(statusPage.getByTestId("tool-approval-title")).toHaveText(
+      'Add monitors to status page "Acme status"',
+    );
+    await expect(
+      statusPage.getByTestId("tool-approval-description"),
+    ).toHaveText('Adds "example.com" (new).');
+    // The project pages people already: its own policies decide, none is proposed.
+    await expect(page.getByTestId("tool-approval-action")).toHaveCount(2);
+    await expect(askAi(page).getByText("Create on-call policy")).toHaveCount(0);
+    // The page and the monitor are named in words, not as arguments.
+    await expect(page.getByTestId("tool-approval-arguments")).toHaveCount(0);
+    await expect(page.getByTestId("tool-approval-setup-plan-end")).toHaveText(
+      "Nothing else changes.",
+    );
+    await screenshot(page, "setup-busy-plan-1280");
+
+    await page.getByRole("button", { name: "Run 2 actions" }).click();
+
+    const cards: Locator = page.getByTestId("ai-chat-resource-card");
+    await expect(cards).toHaveCount(2);
+    await expect(
+      cards.nth(0).getByTestId("ai-chat-resource-card-line"),
+    ).toHaveText("Checked every 5 minutes");
+    await expect(
+      cards.nth(1).getByTestId("ai-chat-resource-card-line"),
+    ).toHaveText('Added "example.com"');
+    // No policy was made: the test page goes to the person who set it up.
+    await expect(page.getByTestId("ask-ai-send-test-page")).toHaveText(
+      "Send me a test page",
+    );
+
+    const fixtureState: FixtureState = await state(page);
+    expect(lastDecisions(fixtureState)).toEqual([
+      { toolCallId: "call_setup_monitor", approved: true },
+      { toolCallId: "call_setup_status_page", approved: true },
+    ]);
+    expect(fixtureState.unhandled).toEqual([]);
+    await expectNothingScrollsSideways(page);
+
+    await screenshot(page, "setup-busy-done-1280");
+  });
+
+  test("a part skipped is not made, and a monitor alone offers a test page to yourself", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await load(page, "thread=setup");
+    await expect(askAi(page)).toBeVisible();
+    await settle(page);
+
+    await page
+      .getByTestId("tool-approval-action")
+      .nth(1)
+      .getByRole("button", { name: "Skip" })
+      .click();
+    await page.getByRole("button", { name: "Run 1 action" }).click();
+
+    await expect(page.getByTestId("ai-chat-resource-card")).toHaveCount(1);
+    await expect(page.getByTestId("ask-ai-send-test-page")).toHaveText(
+      "Send me a test page",
+    );
+    expect(lastDecisions(await state(page))).toEqual([
+      { toolCallId: "call_setup_monitor", approved: true },
+      { toolCallId: "call_setup_paging", approved: false },
+    ]);
+  });
+
+  test("in German, in the dark, and right to left on a phone in Persian, nothing wider than the screen", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await load(page, "lang=de&thread=setup");
+    await expect(askAi(page)).toBeVisible();
+    await settle(page);
+
+    const german: Record<string, string> = dashboardWords("de");
+    await expect(page.getByTestId("tool-approval-setup-plan-end")).toHaveText(
+      german["Nothing else changes."]!,
+    );
+    await screenshot(page, "setup-plan-1280-de");
+
+    await load(page, "theme=dark&thread=setup");
+    await expect(askAi(page)).toBeVisible();
+    await settle(page);
+    await screenshot(page, "setup-plan-1280-dark");
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await load(page, "lang=fa&thread=setup");
+    await expect(askAi(page)).toBeVisible();
+    await settle(page);
+
+    const persian: Record<string, string> = dashboardWords("fa");
+    await expect(page.getByTestId("tool-approval-setup-plan-end")).toHaveText(
+      persian["Nothing else changes."]!,
+    );
+    await expectNothingScrollsSideways(page);
+    await screenshot(page, "setup-plan-390-fa");
+
+    await page
+      .getByTestId("tool-approval-action")
+      .first()
+      .scrollIntoViewIfNeeded();
+    await page
+      .getByRole("button", {
+        name: persian["Run {{count}} actions"]!.replace("{{count}}", "۲"),
+      })
+      .click();
+    await expect(page.getByTestId("ai-chat-resource-card")).toHaveCount(2);
+    await expectNothingScrollsSideways(page);
+    await screenshot(page, "setup-done-390-fa");
   });
 });

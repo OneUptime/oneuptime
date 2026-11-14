@@ -113,7 +113,11 @@ export const LLM_CALL_KIND_TITLES: Record<LlmCallKind, string> = {
   [LlmCallKind.Agent]: translationKey("Agent run"),
   [LlmCallKind.Tool]: translationKey("Tool"),
   [LlmCallKind.Embedding]: translationKey("Embedding"),
-  [LlmCallKind.Retrieval]: translationKey("Search"),
+  /*
+   * A noun, beside "Embedding" and "Tool": "Search" is the Search
+   * button's verb in every other language (#7108).
+   */
+  [LlmCallKind.Retrieval]: translationKey("Retrieval"),
   [LlmCallKind.Other]: translationKey("Other"),
 };
 

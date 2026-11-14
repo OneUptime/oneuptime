@@ -83,7 +83,9 @@ describe("UserSmsAPI", () => {
 
   describe("POST /user-sms/verify", () => {
     it("should handle required item ID", async () => {
-      const error: BadDataException = new BadDataException("Invalid item ID");
+      const error: BadDataException = new BadDataException(
+        "The request did not say which notification method to verify. Reload the page and try again.",
+      );
       mockRequest.body = {};
       await mockRouter
         .match("post", "/user-sms/verify")
@@ -97,7 +99,9 @@ describe("UserSmsAPI", () => {
     });
 
     it("should handle required code", async () => {
-      const error: BadDataException = new BadDataException("Invalid code");
+      const error: BadDataException = new BadDataException(
+        "Enter the code from the message we sent.",
+      );
       mockRequest.body = {
         itemId: "item1",
       };
@@ -113,7 +117,9 @@ describe("UserSmsAPI", () => {
     });
 
     it("should handle Item not found", async () => {
-      const error: BadDataException = new BadDataException("Item not found");
+      const error: BadDataException = new BadDataException(
+        "This notification method is not in your list any more. Add it again, then verify it.",
+      );
       mockRequest.body = {
         itemId: "item1",
         code: 123456,
@@ -140,7 +146,9 @@ describe("UserSmsAPI", () => {
     });
 
     it("should handle Invalid user ID", async () => {
-      const error: BadDataException = new BadDataException("Invalid user ID");
+      const error: BadDataException = new BadDataException(
+        "This notification method is not in your list any more. Add it again, then verify it.",
+      );
       mockRequest.body = {
         itemId: "item1",
         code: "123456",
@@ -214,7 +222,9 @@ describe("UserSmsAPI", () => {
       expect(Response.sendErrorResponse).toHaveBeenCalledWith(
         mockRequest,
         mockResponse,
-        new BadDataException("Item not found"),
+        new BadDataException(
+          "This notification method is not in your list any more. Add it again, then verify it.",
+        ),
       );
       expect(UserSmsService.updateOneById).not.toHaveBeenCalled();
       expect(
@@ -224,7 +234,9 @@ describe("UserSmsAPI", () => {
     });
 
     it("should handle Invalid code", async () => {
-      const error: BadDataException = new BadDataException("Invalid code");
+      const error: BadDataException = new BadDataException(
+        "That code is not right. Enter the code from the latest message we sent, or send a new code.",
+      );
       mockRequest.body = {
         itemId: ITEM_ID,
         code: "123457",
@@ -274,7 +286,9 @@ describe("UserSmsAPI", () => {
       expect(response).toHaveBeenCalledWith(
         mockRequest,
         mockResponse,
-        new BadDataException("Invalid code"),
+        new BadDataException(
+          "That code is not right. Enter the code from the latest message we sent, or send a new code.",
+        ),
       );
     });
 
@@ -429,7 +443,9 @@ describe("UserSmsAPI", () => {
 
   describe("POST /user-sms/resend-verification-code", () => {
     it("should handle required item ID", async () => {
-      const error: BadDataException = new BadDataException("Invalid item ID");
+      const error: BadDataException = new BadDataException(
+        "The request did not say which notification method to verify. Reload the page and try again.",
+      );
       mockRequest.body = {};
       await mockRouter
         .match("post", "/user-sms/resend-verification-code")
@@ -443,7 +459,9 @@ describe("UserSmsAPI", () => {
     });
 
     it("should handle Item not found", async () => {
-      const error: BadDataException = new BadDataException("Item not found");
+      const error: BadDataException = new BadDataException(
+        "This notification method is not in your list any more. Add it again, then verify it.",
+      );
       mockRequest.body = {
         itemId: "item1",
       };
@@ -489,7 +507,9 @@ describe("UserSmsAPI", () => {
       expect(Response.sendErrorResponse).toHaveBeenCalledWith(
         mockRequest,
         mockResponse,
-        new BadDataException("Invalid user ID"),
+        new BadDataException(
+          "Sign in again, then verify this notification method.",
+        ),
       );
       expect(UserSmsService.findOneById).not.toHaveBeenCalled();
       expect(UserSmsService.resendVerificationCode).not.toHaveBeenCalled();
@@ -500,7 +520,9 @@ describe("UserSmsAPI", () => {
      * code for an item that belongs to a different user.
      */
     it("should reject an itemId that belongs to another user", async () => {
-      const error: BadDataException = new BadDataException("Invalid user ID");
+      const error: BadDataException = new BadDataException(
+        "This notification method is not in your list any more. Add it again, then verify it.",
+      );
       mockRequest.body = {
         itemId: "item1",
       };

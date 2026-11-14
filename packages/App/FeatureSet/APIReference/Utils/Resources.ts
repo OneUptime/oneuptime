@@ -74,22 +74,30 @@ export default class ResourceUtil {
     );
   }
 
+  /*
+   * The resources the reference opens with, by table: a name people read
+   * can change (On-Call Duty became On-Call, #6817), and a featured page
+   * named by it would silently drop out. On-call policies had, since the
+   * list named them "On-Call Duty", which no model was called.
+   */
+  public static readonly FEATURED_TABLES: ReadonlyArray<string> = [
+    "Monitor",
+    "ScheduledMaintenance",
+    "StatusPage",
+    "Incident",
+    "Team",
+    "OnCallDutyPolicy",
+    "Label",
+    "TeamMember",
+  ];
+
   // Get featured resources that are pre-selected
   public static getFeaturedResources(): Array<ModelDocumentation> {
-    const featuredResources: Array<string> = [
-      "Monitor",
-      "Scheduled Maintenance Event",
-      "Status Page",
-      "Incident",
-      "Team",
-      "On-Call Duty",
-      "Label",
-      "Team Member",
-    ];
-
     return ResourceUtil.getResources().filter(
       (resource: ModelDocumentation) => {
-        return featuredResources.includes(resource.name);
+        return ResourceUtil.FEATURED_TABLES.includes(
+          resource.model.tableName || "",
+        );
       },
     );
   }

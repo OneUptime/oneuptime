@@ -45,7 +45,7 @@ flowchart TB
 
 ## 开始之前
 
-- **能够管理摄取密钥的角色。** Project Owner 或 Project Admin，或者拥有 Create Telemetry Ingestion Key 权限的自定义角色。Telemetry 角色不包括摄取密钥。
+- **能够管理摄取密钥的角色。** Project Owner 或 Project Admin，或者拥有 Create Ingestion Key 权限的自定义角色。Telemetry 角色不包括摄取密钥。
 - **在 OneUptime Cloud 上，需要付款方式。** 遥测按用量计费，因此 Free 套餐的项目需要先添加付款方式才能创建密钥。此时创建对话框最后会有一个显示价格的 **账单** 步骤。
 
 ## 创建摄取密钥
@@ -85,7 +85,7 @@ x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_KEY
 
 ## 锁定浏览器密钥
 
-浏览器密钥位于你的页面中，任何人都能复制它。以下设置限制了副本能做的事。在密钥页面上通过 **编辑遥测摄取 Key** 修改它们。
+浏览器密钥位于你的页面中，任何人都能复制它。以下设置限制了副本能做的事。在密钥页面上通过 **编辑摄取密钥** 修改它们。
 
 | 设置 | 作用 |
 | --- | --- |
@@ -104,7 +104,7 @@ x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_KEY
 ]
 ```
 
-[服务目录](/docs/telemetry/services#服务如何进入目录) 说明了固定的名称如何决定服务。Kubernetes 代理的 Runner 和 AI 代理，以及基础设施 AI 代理，不会使用固定了名称的密钥注册：请给它们一个没有固定名称的服务器密钥。
+[服务](/docs/telemetry/services#服务如何进入目录) 说明了固定的名称如何决定服务。Kubernetes 代理的 Runner 和 AI 代理，以及基础设施 AI 代理，不会使用固定了名称的密钥注册：请给它们一个没有固定名称的服务器密钥。
 
 ## 轮换、停用或删除密钥
 
@@ -112,9 +112,9 @@ x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_KEY
 
 | 目的 | 操作 | 发送方看到的结果 |
 | --- | --- | --- |
-| 立即停用密钥，之后还能恢复 | 点击 **编辑遥测摄取 Key**，打开 **访问与限制** 并关闭 **已启用**。状态会显示 **Disabled — telemetry refused**。 | 重新启用之前返回 `422` |
+| 立即停用密钥，之后还能恢复 | 点击 **编辑摄取密钥**，打开 **访问与限制** 并关闭 **已启用**。状态会显示 **Disabled — telemetry refused**。 | 重新启用之前返回 `422` |
 | 替换泄露的密钥值 | 点击 **重置密钥** 并确认。密钥保留其设置，并获得一个新的密钥值。 | 发送新密钥值之前返回 `401` |
-| 永久停用密钥 | 点击页面底部的 **删除遥测摄取 Key**。 | `401` |
+| 永久停用密钥 | 点击页面底部的 **删除摄取密钥**。 | `401` |
 
 要在不丢失数据的情况下更换密钥值，请创建第二个密钥，把发送方迁移过去，等旧密钥的 **Last Used At** 不再变化后再删除它。**Last Used At** 每隔几分钟更新一次，而不是每个请求都更新。
 
@@ -155,7 +155,7 @@ x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_KEY
 
 :::cards
 - [OpenTelemetry](/docs/telemetry/open-telemetry): 用你的密钥发送追踪、指标和日志。
-- [服务目录](/docs/telemetry/services): 查看你的遥测所归入的服务。
+- [服务](/docs/telemetry/services): 查看你的遥测所归入的服务。
 - [数据保留](/docs/telemetry/data-retention): 决定数据保留多长时间。
 - [丢弃过滤器与清理规则](/docs/telemetry/drop-filters-and-scrub-rules): 在存储之前丢弃或掩码数据。
 - [摄取预算](/docs/telemetry/ingestion-budgets): 限制每个密钥一天内最多可发送多少。

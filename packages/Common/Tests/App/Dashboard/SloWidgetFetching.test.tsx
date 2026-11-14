@@ -422,9 +422,7 @@ describe("SLO widget on a public dashboard", () => {
   test("does not fetch anything for an unconfigured widget", async () => {
     renderWidget({ displayType: SloWidgetDisplayType.Tile });
 
-    expect(
-      await screen.findByText("Click to select an SLO"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("No SLO picked yet.")).toBeInTheDocument();
     expect(getListMock).not.toHaveBeenCalled();
     expect(publicRequests.length).toBe(0);
   });

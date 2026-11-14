@@ -11,11 +11,13 @@ import { useTranslation } from "react-i18next";
 /*
  * SEARCH AND HELP ON A PHONE (#6816).
  *
- * Below 1024 pixels the header leaves out Search, Ask AI and Help, to keep
- * its width; below 768 the products menu is the phone's menu toggle. So on
- * a phone there was no way to Search, the docs or support at all. The
- * phone's menu now starts with Search and ends with Help, and the header
- * stays as narrow as it was.
+ * Below 768 pixels (Common's PHONE_MENU_BELOW_WIDTH_IN_PX) the products
+ * menu is the phone's menu toggle, and the header leaves out Search, Ask AI
+ * and Help to keep its width. So on a phone there was no way to Search, the
+ * docs or support at all. The phone's menu now starts with Search and ends
+ * with Help, and the header stays as narrow as it was. From 768 up the
+ * header draws Search and Help itself (#7037), so each is in exactly one of
+ * the two at every width; Ask AI, from 1024 up, is in Search below that.
  */
 
 export const PHONE_MENU_SEARCH_TEST_ID: string = "navbar-mobile-search";

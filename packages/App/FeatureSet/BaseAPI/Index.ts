@@ -970,6 +970,9 @@ import RumSessionPinService, {
 import RumProductAnalyticsSavedViewService, {
   Service as RumProductAnalyticsSavedViewServiceType,
 } from "Common/Server/Services/RumProductAnalyticsSavedViewService";
+import ProjectUserPreferenceService, {
+  Service as ProjectUserPreferenceServiceType,
+} from "Common/Server/Services/ProjectUserPreferenceService";
 import ProjectMilestoneService, {
   Service as ProjectMilestoneServiceType,
 } from "Common/Server/Services/ProjectMilestoneService";
@@ -1706,6 +1709,7 @@ import RumSessionErasureRequest from "Common/Models/DatabaseModels/RumSessionEra
 import RumSessionPin from "Common/Models/DatabaseModels/RumSessionPin";
 import RumProductAnalyticsSavedView from "Common/Models/DatabaseModels/RumProductAnalyticsSavedView";
 import ProjectMilestone from "Common/Models/DatabaseModels/ProjectMilestone";
+import ProjectUserPreference from "Common/Models/DatabaseModels/ProjectUserPreference";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import DockerHostOwnerTeam from "Common/Models/DatabaseModels/DockerHostOwnerTeam";
 import DockerHostOwnerUser from "Common/Models/DatabaseModels/DockerHostOwnerUser";
@@ -2082,9 +2086,15 @@ import MetricType from "Common/Models/DatabaseModels/MetricType";
 import OnCallDutyPolicyAPI from "Common/Server/API/OnCallDutyPolicyAPI";
 import OnCallReadinessAPI from "Common/Server/API/OnCallReadinessAPI";
 import OnCallTestPageAPI from "Common/Server/API/OnCallTestPageAPI";
+import PagingLadderAPI from "Common/Server/API/PagingLadderAPI";
 import WhoIsToldAPI from "Common/Server/API/WhoIsToldAPI";
+import SetupHealthAPI from "Common/Server/API/SetupHealthAPI";
+import UsedByAPI from "Common/Server/API/UsedByAPI";
 import WelcomeChecklistAPI from "Common/Server/API/WelcomeChecklistAPI";
+import SampleProjectAPI from "Common/Server/API/SampleProjectAPI";
+import ProjectProductsAPI from "Common/Server/API/ProjectProductsAPI";
 import TelemetryUsageAPI from "Common/Server/API/TelemetryUsageAPI";
+import ProductFeedbackAPI from "Common/Server/API/ProductFeedbackAPI";
 import TelemetryIngestionBudgetAPI from "Common/Server/API/TelemetryIngestionBudgetAPI";
 import ToolImportAPI from "Common/Server/API/ToolImportAPI";
 import NetworkDeviceDiscoveryImportAPI from "Common/Server/API/NetworkDeviceDiscoveryImportAPI";
@@ -5928,6 +5938,19 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
+    /*
+     * What a person chose for themselves in a project (issue #6814): the
+     * products they pinned. Root-only: nobody reads or writes a row through
+     * these routes; ProjectProductsAPI reads and writes the caller's own.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<ProjectUserPreference, ProjectUserPreferenceServiceType>(
+        ProjectUserPreference,
+        ProjectUserPreferenceService,
+      ).getRouter(),
+    );
+
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<DockerHost, DockerHostServiceType>(
@@ -6561,11 +6584,33 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, OnCallTestPageAPI);
 
     /*
+     * How to reach me (PagingLadderAPI, #6820): save a paging ladder as a
+     * person's on-call rules, in every card of the grid, in one request. A
+     * bare router for the same reason as OnCallReadinessAPI.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, PagingLadderAPI);
+
+    /*
      * Who is told when a monitor goes down (WhoIsToldAPI): the chain from a
      * monitor to the people it reaches, and every break in it. A bare
      * router for the same reason as OnCallReadinessAPI.
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, WhoIsToldAPI);
+
+    /*
+     * Setup health (SetupHealthAPI, #6812): what is misconfigured in the
+     * project, each finding with its fix, and the counts Home says. A bare
+     * router for the same reason as OnCallReadinessAPI.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, SetupHealthAPI);
+
+    /*
+     * What refers to a record (UsedByAPI, #6813): the status pages that
+     * show a monitor, the policies that page a schedule, the monitors that
+     * watch a service, and the rest, read with the caller's permissions. A
+     * bare router for the same reason as OnCallReadinessAPI.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, UsedByAPI);
 
     /*
      * The Welcome checklist on Home (issue #6803): the project's goals and
@@ -6575,6 +6620,34 @@ const BaseAPIFeatureSet: FeatureSet = {
      * own checks are the gate.
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, WelcomeChecklistAPI);
+
+    /*
+     * A person's sample project (issue #6808): made in one click to look
+     * around in, and deleted from its banner. A bare router for the same
+     * reason as WelcomeChecklistAPI: no model's CRUD, and the sample is made
+     * as OneUptime (root), so its own checks are the gate.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, SampleProjectAPI);
+
+    /*
+     * Asking people how things went (issue #6832): the question at the end
+     * of a guided setup, Give feedback, Was this clear? and the first-week
+     * check-in, kept on this server for its master admins (Admin Dashboard
+     * > Feedback). A bare router for the same reason as OnCallReadinessAPI:
+     * ProductFeedback has no CRUD API, and the service writes as root, so
+     * the router's own checks are the gate.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, ProductFeedbackAPI);
+
+    /*
+     * A project's products (issue #6814): the ones it hides, the ones the
+     * person asking pinned, what is in use and the plan each needs, in one
+     * answer; and the routes that show and hide a product and keep a
+     * person's pins. A bare router for the same reason as
+     * WelcomeChecklistAPI: no model's CRUD, and the service reads and
+     * writes as root, so its own checks are the gate.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, ProjectProductsAPI);
 
     /*
      * Telemetry usage (Project Settings > Telemetry & APM > Usage, and the

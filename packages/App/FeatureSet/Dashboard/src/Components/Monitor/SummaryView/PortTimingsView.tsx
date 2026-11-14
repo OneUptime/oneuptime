@@ -1,9 +1,14 @@
 import PortMonitorTimings from "Common/Types/Monitor/PortMonitor/PortMonitorTimings";
 import React, { FunctionComponent, ReactElement } from "react";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { formatMilliseconds } from "../../../Utils/Milliseconds";
 import {
+  TIMING_BAR_TRACK_CLASS_NAME,
   TIMING_LABEL_CLASS_NAME,
+  TIMING_ROW_CLASS_NAME,
+  TIMING_ROW_TEST_ID,
+  TIMING_ROWS_CLASS_NAME,
   TIMING_VALUE_CLASS_NAME,
 } from "./SummaryFacts";
 
@@ -17,10 +22,14 @@ interface ConnectionPhase {
   colorClassName: string;
 }
 
-const formatDurationInMs: (durationInMs: number) => string = (
+// A phase's time in the reader's language, to two decimals: "8.12 ms".
+const formatDurationInMs: (
+  translator: Translator,
   durationInMs: number,
-): string => {
-  return `${Math.round(durationInMs * 100) / 100} ms`;
+) => string = (translator: Translator, durationInMs: number): string => {
+  return formatMilliseconds(translator, durationInMs, {
+    maximumFractionDigits: 2,
+  });
 };
 
 /*
@@ -36,12 +45,12 @@ const PortTimingsView: FunctionComponent<ComponentProps> = (
 
   const phases: Array<ConnectionPhase> = [
     {
-      label: "DNS Lookup",
+      label: translationKey("DNS Lookup"),
       valueInMs: timings.dnsLookupInMs ?? -1,
       colorClassName: "bg-indigo-400",
     },
     {
-      label: "TCP Connect",
+      label: translationKey("TCP Connect"),
       valueInMs: timings.tcpConnectInMs ?? -1,
       colorClassName: "bg-sky-400",
     },
@@ -75,7 +84,7 @@ const PortTimingsView: FunctionComponent<ComponentProps> = (
           "Time spent resolving the target and establishing the TCP connection.",
         )}
       </div>
-      <div className="space-y-2">
+      <div className={TIMING_ROWS_CLASS_NAME}>
         {phases.map((phase: ConnectionPhase) => {
           const percent: number =
             totalConnectionInMs > 0
@@ -83,16 +92,22 @@ const PortTimingsView: FunctionComponent<ComponentProps> = (
               : 0;
 
           return (
-            <div key={phase.label} className="flex items-center text-sm">
-              <div className={TIMING_LABEL_CLASS_NAME}>{phase.label}</div>
-              <div className="flex-1 mx-2">
+            <div
+              key={phase.label}
+              className={TIMING_ROW_CLASS_NAME}
+              data-testid={TIMING_ROW_TEST_ID}
+            >
+              <div className={TIMING_LABEL_CLASS_NAME}>
+                {translator.translateText(phase.label)}
+              </div>
+              <div className={TIMING_BAR_TRACK_CLASS_NAME}>
                 <div
                   className={`h-3 rounded ${phase.colorClassName}`}
                   style={{ width: `${Math.max(percent, 1)}%` }}
                 ></div>
               </div>
               <div className={TIMING_VALUE_CLASS_NAME}>
-                {formatDurationInMs(phase.valueInMs)}
+                {formatDurationInMs(translator, phase.valueInMs)}
               </div>
             </div>
           );

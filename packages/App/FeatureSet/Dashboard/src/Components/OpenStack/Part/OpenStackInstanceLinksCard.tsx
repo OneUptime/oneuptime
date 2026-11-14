@@ -10,7 +10,11 @@ import {
 import Card from "Common/UI/Components/Card/Card";
 import { useCardRuledListClassName } from "Common/UI/Components/Card/CardSurface";
 import Link from "Common/UI/Components/Link/Link";
-import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  toLabelTerm,
+  Translator,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 import { getKubernetesPartRoute } from "../../../Pages/Kubernetes/Utils/KubernetesPartRoutes";
@@ -80,8 +84,16 @@ export const OpenStackReachList: FunctionComponent<{
         className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-sm md:px-6"
       >
         <span className="flex min-w-0 items-center gap-2">
+          {/*
+           * What the link is, as a label: "Kubernetes cluster" is worded
+           * for the middle of a sentence in some languages ("clúster de
+           * Kubernetes"), and starts with a capital here.
+           */}
           <span className="text-xs text-gray-500">
-            {translator.translateText(data.label)}
+            {toLabelTerm(
+              translator.translateText(data.label) || data.label,
+              translator.language,
+            )}
           </span>
           <Link to={data.to} className={LINK_CLASS_NAME}>
             <bdi>{data.name}</bdi>

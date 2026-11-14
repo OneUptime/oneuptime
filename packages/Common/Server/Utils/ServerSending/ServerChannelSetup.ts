@@ -11,6 +11,9 @@ import CallAndSmsProviders from "../../../Types/CallAndSMS/CallAndSmsProvider";
 import TwilioConfig from "../../../Types/CallAndSMS/TwilioConfig";
 import TwilioPhoneNumbers from "../../../Types/CallAndSMS/TwilioPhoneNumbers";
 import { isAwsRegion } from "../../../Types/Cloud/AwsRegionCode";
+import AmazonSesAuthenticationType, {
+  toAmazonSesAuthenticationType,
+} from "../../../Types/Email/AmazonSesAuthenticationType";
 import { isMailgunDomain } from "../../../Types/Email/MailgunDomain";
 import MailTransportType from "../../../Types/Email/MailTransportType";
 import SMTPAuthenticationType from "../../../Types/Email/SMTPAuthenticationType";
@@ -51,6 +54,7 @@ export const SERVER_CHANNEL_SETUP_SELECT: Select<GlobalConfig> = {
   sendgridApiKey: true,
   sendgridFromEmail: true,
   sendgridFromName: true,
+  amazonSesAuthenticationType: true,
   amazonSesAccessKeyId: true,
   amazonSesSecretAccessKey: true,
   amazonSesRegion: true,
@@ -94,6 +98,7 @@ export const SERVER_CHANNEL_SETTING_COLUMNS: Readonly<
     "sendgridApiKey",
     "sendgridFromEmail",
     "sendgridFromName",
+    "amazonSesAuthenticationType",
     "amazonSesAccessKeyId",
     "amazonSesSecretAccessKey",
     "amazonSesRegion",
@@ -190,6 +195,7 @@ export type ServerChannelSetupSettings = Partial<
     | "sendgridApiKey"
     | "sendgridFromEmail"
     | "sendgridFromName"
+    | "amazonSesAuthenticationType"
     | "amazonSesAccessKeyId"
     | "amazonSesSecretAccessKey"
     | "amazonSesRegion"
@@ -273,15 +279,24 @@ export default class ServerChannelSetup {
     return null;
   }
 
-  // getGlobalEmailProviderServer, Amazon SES.
+  /*
+   * getGlobalEmailProviderServer, Amazon SES: an access key, unless it
+   * signs in with the server's IAM role, which needs none (#7000). Whether
+   * the server has a role at all is known only by asking AWS: the test
+   * email asks.
+   */
   private static getAmazonSesProblem(
     config: ServerChannelSetupSettings,
   ): string | null {
-    if (!text(config.amazonSesAccessKeyId)) {
+    const usesServerIamRole: boolean =
+      toAmazonSesAuthenticationType(config.amazonSesAuthenticationType) ===
+      AmazonSesAuthenticationType.ServerIamRole;
+
+    if (!usesServerIamRole && !text(config.amazonSesAccessKeyId)) {
       return notSet("Amazon SES", "Access Key ID");
     }
 
-    if (!text(config.amazonSesSecretAccessKey)) {
+    if (!usesServerIamRole && !text(config.amazonSesSecretAccessKey)) {
       return notSet("Amazon SES", "Secret Access Key");
     }
 

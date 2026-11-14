@@ -14,6 +14,12 @@ import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
 import API from "../../Utils/API";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import BlockedProjectNotifications from "../Utils/Notification/BlockedProjectNotifications";
+import logger from "../Utils/Logger";
+import UserOnCallLogTimelineService from "./UserOnCallLogTimelineService";
+import {
+  SAMPLE_PERSON_NOT_SENT_REASON,
+  isSamplePersonEmail,
+} from "../../Types/SampleProject/SampleProject";
 import { NotificationDeliveryChannel } from "../Utils/Telemetry/NotificationDeliveryMetrics";
 
 export class MailService extends BaseService {
@@ -58,6 +64,27 @@ export class MailService extends BaseService {
 
     if (blockedProjectRefusal) {
       return blockedProjectRefusal;
+    }
+
+    /*
+     * A sample person (issue #6808) is not real, and their address is on
+     * the reserved .invalid domain: nothing is sent to one, whatever sends
+     * it - a project's notification, an invitation, an account email - and
+     * whichever project it names.
+     */
+    if (isSamplePersonEmail(mail.toEmail)) {
+      logger.debug(SAMPLE_PERSON_NOT_SENT_REASON);
+
+      await UserOnCallLogTimelineService.markNotSent({
+        userOnCallLogTimelineId: options?.userOnCallLogTimelineId,
+        reason: SAMPLE_PERSON_NOT_SENT_REASON,
+      });
+
+      return new HTTPErrorResponse(
+        403,
+        { message: SAMPLE_PERSON_NOT_SENT_REASON },
+        {},
+      );
     }
 
     const body: JSONObject = {

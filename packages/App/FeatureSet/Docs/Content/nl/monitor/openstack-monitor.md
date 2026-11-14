@@ -57,7 +57,7 @@ Een nieuwe monitor begint bij **Cloud Stopped Reporting**, onder **Waarover te w
 
 ### Controleer de criteria
 
-Open elk criterium onder **Monitorcriteria** en controleer de **Metriek**, **Aggregatie**, **Voorwaarde** en **Drempel**. Een sjabloon vult deze in. Bij **Custom Metric** of **Geavanceerd** start de monitor met de standaardcriteria, die alleen merken dat de metriek geen gegevens meer stuurt. Stel dus uw eigen drempel in.
+Open elk criterium onder **Criteria** en controleer de **Metriek**, **Aggregatie**, **Voorwaarde** en **Drempel**. Een sjabloon vult deze in. Bij **Custom Metric** of **Geavanceerd** start de monitor met de standaardcriteria, die alleen merken dat de metriek geen gegevens meer stuurt. Stel dus uw eigen drempel in.
 
 ### Maak de monitor
 

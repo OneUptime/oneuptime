@@ -2,6 +2,9 @@
 
 Une ressource est une ligne de votre page de statut : un moniteur ou un groupe de moniteurs, avec un nom que vos clients comprennent, son statut actuel et, si vous le souhaitez, sa disponibilité et son historique. Les groupes sont des sections qui contiennent des ressources, si bien qu'une page de quarante moniteurs se lit comme « API », « Application web » et « Pipeline de données » plutôt que comme une liste sans fin. Vous construisez les deux sur un seul écran : ouvrez une page de statut et choisissez **Ressources** dans son menu latéral.
 
+> [!TIP]
+> Vous débutez ? Suivez d'abord le guide : [Publier une page de statut](/docs/guides/status-page).
+
 :::cards
 - [Ajouter un moniteur](#ajouter-un-moniteur): Mettre un moniteur sur la page, avec le nom que lisent les visiteurs.
 - [Groupes](#groupes): Diviser la page en sections, et les imbriquer.

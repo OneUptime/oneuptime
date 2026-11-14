@@ -190,7 +190,7 @@ Elke plek die een apparaat toont — de lijst Apparaten, de Apparaten-pagina van
 | --- | --- |
 | **Online** | De laatste poll (ping of SNMP), of de gekoppelde monitor, heeft het apparaat bereikt. |
 | **Offline** | De laatste poll (ping of SNMP), of de gekoppelde monitor, kon het apparaat niet bereiken. |
-| **In behandeling** | Nog geen oordeel: nooit gepolld, geen sonde toegewezen, of geen monitor gekoppeld. |
+| **In behandeling** | Nog geen oordeel: nooit gepolld, geen sonde toegewezen, geen monitor gekoppeld, of de gekoppelde monitor staat uit of is gearchiveerd. |
 
 | Toevoeging | Verschijnt wanneer | Wat te doen |
 | --- | --- | --- |
@@ -198,6 +198,8 @@ Elke plek die een apparaat toont — de lijst Apparaten, de Apparaten-pagina van
 | **Geen sonde** | Het apparaat wordt door een sonde gepolld maar heeft er geen, of het pollen staat uit. | Wijs een sonde toe die het kan bereiken; tot dan pollt niets het. |
 | **Geen monitor** | Het apparaat gebruikt de [override met gekoppelde monitor](#de-override-met-gekoppelde-monitor) en er is niets gekoppeld. | Koppel een monitor, of zet het terug op pollen door de sonde. |
 | **SNMP failing** | Bereikbaar via ping, maar de laatste SNMP-walk is mislukt. | Controleer de inloggegevens, de SNMP-agent of een ACL. |
+| **Bewaking uit** | De bewaking van de gekoppelde monitor staat uit, dus het apparaat toont **In behandeling** in plaats van de status waarin de monitor is blijven staan. | Zet de bewaking van de monitor weer aan, of koppel een andere monitor. |
+| **Monitor gearchiveerd** | De gekoppelde monitor is gearchiveerd, dus het apparaat toont **In behandeling** in plaats van de status waarin de monitor is blijven staan. | Haal de monitor uit het archief, of koppel een andere monitor. |
 
 De lijst **Apparaten** heeft een filter **SNMP** met drie waarden: **OK** (de laatste walk is gelukt), **Mislukt** (de laatste walk is mislukt) en **Not configured** (alleen ping, geen inloggegevens, of nooit gepolld). "Welke apparaten hebben inloggegevens die niet meer werken" is één klik. De kolom **Interfaces (Up / Down)** van de lijst toont **Geen SNMP** in plaats van `0 / 0` voor een apparaat dat gepingd en nooit gewalkt wordt: nul werkende poorten zou een andere bewering zijn, en een onjuiste.
 

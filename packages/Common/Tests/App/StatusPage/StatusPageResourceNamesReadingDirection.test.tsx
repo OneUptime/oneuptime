@@ -67,7 +67,11 @@ jest.mock(
 import ResourceList, {
   RESOURCE_ROW_NAME_CLASS_NAME,
 } from "../../../UI/Components/StatusPage/ResourceList";
-import ResourceGrid from "../../../UI/Components/StatusPage/ResourceGrid";
+import ResourceGrid, {
+  RESOURCE_GRID_ORPHAN_AXES_CLASS_NAME,
+  RESOURCE_GRID_ORPHAN_AXIS_CLASS_NAME,
+} from "../../../UI/Components/StatusPage/ResourceGrid";
+import { isWrappingLineClassName } from "../../../UI/Components/IsolatedText/IsolatedLine";
 import {
   RESOURCE_BARE_NAME_CLASS_NAME,
   RESOURCE_CHIP_NAME_CLASS_NAME,
@@ -277,16 +281,20 @@ const drawGrid: (data: {
   language: string;
   resources: Array<StatusPageResource>;
   isMonitorGroupsFeatureEnabled?: boolean | undefined;
+  rowLabel?: string | undefined;
+  columnLabel?: string | undefined;
 }) => void = (data: {
   language: string;
   resources: Array<StatusPageResource>;
   isMonitorGroupsFeatureEnabled?: boolean | undefined;
+  rowLabel?: string | undefined;
+  columnLabel?: string | undefined;
 }): void => {
   render(
     <I18nextProvider i18n={instances[data.language]!}>
       <ResourceGrid
-        rowLabel="Region"
-        columnLabel="Service"
+        rowLabel={data.rowLabel || "Region"}
+        columnLabel={data.columnLabel || "Service"}
         rowValues={["EU"]}
         columnValues={["API"]}
         statusPageResources={data.resources}
@@ -1024,6 +1032,215 @@ describe("a grid's chip: its name ends in '...' at its own end", () => {
       expect(nameLineIn(holder)).toHaveAttribute("dir", "ltr");
       expect(reachedIn(holder, RESOURCE_CHIP_NAME_CLASS_NAME)).toHaveLength(1);
       expect(screen.queryByTestId(GRID_NAME_TEST_ID)).toBeNull();
+    },
+  );
+});
+
+/*
+ * A RESOURCE OFF THE GRID SAYS WHERE IT IS: "Region: Mars · Service: API"
+ * (#7087). That line was the page's: on an Arabic or Persian page an
+ * English one too long for its chip was cut where the page's lines end,
+ * its start - "...acific · Service: Search". Now it is a line of its own
+ * that reads the way its words are written (IsolatedLine), each name and
+ * value read its own way in it (IsolatedText), and the whole of it shows
+ * on hover. Either value can be the one that keeps the resource off the
+ * grid, so each axis is a piece of its own (an inline-block that is cut
+ * short at its own end) and the line wraps between the two, never inside
+ * one: on a phone, one line cut short kept only "Region: Asia Pacific · S...".
+ */
+describe("a resource off the grid: the line that says where it is", () => {
+  const AXES_TEST_ID: string = "status-page-resource-grid-orphan-axes";
+  const AXIS_TEST_ID: string = "status-page-resource-grid-orphan-axis";
+  const LONG_ROW: string = "europe-west1-legacy-datacenter";
+  const LONG_COLUMN: string = "Background workers (legacy queue)";
+
+  /*
+   * What sets the two axes apart, as the page's language sets two facts
+   * apart (InlineSeparator): a bullet on a Persian page, where a middle dot
+   * reads as its zero.
+   */
+  const dotOf: (language: string) => string = (language: string): string => {
+    return language === "fa" ? "•" : "·";
+  };
+
+  // Each name and value on the line: its words and the way it reads.
+  const partsOf: (
+    line: HTMLElement,
+  ) => Array<{ text: string; dir: string | null }> = (
+    line: HTMLElement,
+  ): Array<{ text: string; dir: string | null }> => {
+    return Array.from(line.querySelectorAll("bdi")).map(
+      (part: Element): { text: string; dir: string | null } => {
+        return { text: part.textContent || "", dir: part.getAttribute("dir") };
+      },
+    );
+  };
+
+  // The line's two axes: the row's, with the dot, then the column's.
+  const axesOf: (line: HTMLElement) => Array<HTMLElement> = (
+    line: HTMLElement,
+  ): Array<HTMLElement> => {
+    const axes: Array<HTMLElement> = within(line).getAllByTestId(AXIS_TEST_ID);
+
+    expect(axes).toHaveLength(2);
+
+    for (const axis of axes) {
+      expect(axis.tagName).toBe("SPAN");
+      expect(axis.parentElement).toBe(line);
+      expect(axis.getAttribute("class")).toBe(
+        RESOURCE_GRID_ORPHAN_AXIS_CLASS_NAME,
+      );
+    }
+
+    return axes;
+  };
+
+  test("each axis is one piece, cut short at its own end, and the line wraps only between the two", () => {
+    expect(RESOURCE_GRID_ORPHAN_AXIS_CLASS_NAME).toBe(
+      "inline-block max-w-full truncate align-top",
+    );
+    expect(RESOURCE_GRID_ORPHAN_AXES_CLASS_NAME).toBe(
+      "whitespace-normal text-gray-500",
+    );
+    // A line that wraps, so IsolatedLine sizes it to its words.
+    expect(isWrappingLineClassName(RESOURCE_GRID_ORPHAN_AXES_CLASS_NAME)).toBe(
+      true,
+    );
+  });
+
+  test.each(RIGHT_TO_LEFT_LANGUAGES)(
+    "on an %s page an English line reads left to right, from its own start, each axis ending in '...' at its own end",
+    (language: string) => {
+      drawGrid({
+        language: language,
+        resources: [
+          monitorResource({
+            name: ENGLISH_MONITOR,
+            rowAxisValue: LONG_ROW,
+            columnAxisValue: LONG_COLUMN,
+          }),
+        ],
+      });
+
+      const line: HTMLElement = screen.getByTestId(AXES_TEST_ID);
+      const whole: string = `Region: ${LONG_ROW} ${dotOf(language)} Service: ${LONG_COLUMN}`;
+
+      expect(line).toHaveAttribute("dir", "ltr");
+      /*
+       * A line that wraps: as wide as its words, at the page's start, each
+       * of its lines from its own start.
+       */
+      expect(line.getAttribute("class")).toBe(
+        `${RESOURCE_GRID_ORPHAN_AXES_CLASS_NAME} ${CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME}`,
+      );
+      expect(line.textContent).toBe(whole);
+      expect(line).toHaveAttribute("title", whole);
+
+      const axes: Array<HTMLElement> = axesOf(line);
+
+      expect(axes[0]!.textContent).toBe(
+        `Region: ${LONG_ROW} ${dotOf(language)}`,
+      );
+      expect(axes[1]!.textContent).toBe(`Service: ${LONG_COLUMN}`);
+      expect(partsOf(line)).toEqual([
+        { text: "Region", dir: "ltr" },
+        { text: LONG_ROW, dir: "ltr" },
+        { text: "Service", dir: "ltr" },
+        { text: LONG_COLUMN, dir: "ltr" },
+      ]);
+
+      // Under the resource's name, in the box that gives way to its buttons.
+      expect(line.previousElementSibling).toBe(
+        screen.getByTestId(GRID_ORPHAN_NAME_TEST_ID),
+      );
+      expect(line.parentElement).toHaveClass("min-w-0", "flex-1");
+    },
+  );
+
+  test.each(RIGHT_TO_LEFT_LANGUAGES)(
+    "on an %s page a line in the page's letters reads the page's way, and an English value in it reads its own",
+    (language: string) => {
+      drawGrid({
+        language: language,
+        rowLabel: "المنطقة",
+        columnLabel: "الخدمة",
+        resources: [
+          monitorResource({
+            name: ENGLISH_MONITOR,
+            rowAxisValue: "القاهرة الجديدة",
+            columnAxisValue: "API",
+          }),
+        ],
+      });
+
+      const line: HTMLElement = screen.getByTestId(AXES_TEST_ID);
+
+      expect(line).not.toHaveAttribute("dir");
+      expect(line.getAttribute("class")).toBe(
+        RESOURCE_GRID_ORPHAN_AXES_CLASS_NAME,
+      );
+      expect(
+        axesOf(line).map((axis: HTMLElement) => {
+          return axis.textContent;
+        }),
+      ).toEqual([`المنطقة: القاهرة الجديدة ${dotOf(language)}`, "الخدمة: API"]);
+      expect(partsOf(line)).toEqual([
+        { text: "المنطقة", dir: "rtl" },
+        { text: "القاهرة الجديدة", dir: "rtl" },
+        { text: "الخدمة", dir: "rtl" },
+        { text: "API", dir: "ltr" },
+      ]);
+    },
+  );
+
+  test("on an English page the line reads as it did: no dir, its words, the two axes side by side", () => {
+    drawGrid({
+      language: "en",
+      resources: [
+        monitorResource({
+          name: ENGLISH_MONITOR,
+          rowAxisValue: "Mars",
+          columnAxisValue: "API",
+        }),
+      ],
+    });
+
+    const line: HTMLElement = screen.getByTestId(AXES_TEST_ID);
+
+    expect(line.tagName).toBe("DIV");
+    expect(line).not.toHaveAttribute("dir");
+    expect(line.getAttribute("class")).toBe(
+      RESOURCE_GRID_ORPHAN_AXES_CLASS_NAME,
+    );
+    expect(line.textContent).toBe("Region: Mars · Service: API");
+    expect(
+      axesOf(line).map((axis: HTMLElement) => {
+        return axis.textContent;
+      }),
+    ).toEqual(["Region: Mars ·", "Service: API"]);
+    // A space between the two pieces: where the line may wrap.
+    expect(axesOf(line)[0]!.nextSibling?.textContent).toBe(" ");
+  });
+
+  test.each(["en", ...RIGHT_TO_LEFT_LANGUAGES])(
+    "on an %s page a value the resource lacks is a dash, which reads either way",
+    (language: string) => {
+      drawGrid({
+        language: language,
+        resources: [
+          monitorResource({
+            name: ENGLISH_MONITOR,
+            rowAxisValue: "Mars",
+          }),
+        ],
+      });
+
+      const line: HTMLElement = screen.getByTestId(AXES_TEST_ID);
+
+      expect(line.textContent).toBe(
+        `Region: Mars ${dotOf(language)} Service: —`,
+      );
+      expect(partsOf(line)[3]).toEqual({ text: "—", dir: null });
     },
   );
 });

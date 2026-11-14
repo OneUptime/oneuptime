@@ -193,7 +193,7 @@ describe("notification channel verification code issuance", () => {
 
       await expect(
         UserEmailService.resendVerificationCode(ITEM_ID),
-      ).rejects.toThrow("not found");
+      ).rejects.toThrow("is not in your list any more");
     });
 
     /*
@@ -207,7 +207,11 @@ describe("notification channel verification code issuance", () => {
 
       await expect(
         UserEmailService.resendVerificationCode(ITEM_ID),
-      ).rejects.toThrow(new BadDataException("Item not found"));
+      ).rejects.toThrow(
+        new BadDataException(
+          "This notification method is not in your list any more. Add it again, then verify it.",
+        ),
+      );
 
       expect(MailService.sendMail).not.toHaveBeenCalled();
       expect(updateOneById).not.toHaveBeenCalled();
@@ -231,7 +235,7 @@ describe("notification channel verification code issuance", () => {
 
       await expect(
         UserEmailService.resendVerificationCode(ITEM_ID),
-      ).rejects.toThrow("not found");
+      ).rejects.toThrow("is not in your list any more");
     });
 
     it("refuses a row that is already verified", async () => {

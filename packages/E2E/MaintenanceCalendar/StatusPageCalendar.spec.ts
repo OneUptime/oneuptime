@@ -7,7 +7,7 @@ import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * A status page's calendar buttons, end to end in a browser, on the real
- * Scheduled Events pages against the fixture's in-page API
+ * Scheduled Maintenance pages against the fixture's in-page API
  * (StatusPageFixture.js).
  *
  * Subscribe to calendar on the list puts the page's maintenance in a
@@ -85,7 +85,7 @@ function origin(page: Page): string {
   return new URL(page.url()).origin;
 }
 
-test.describe("Subscribe to calendar, on the Scheduled Events page", () => {
+test.describe("Subscribe to calendar, on the Scheduled Maintenance page", () => {
   test("at the page's address under OneUptime: Google, the device's app and the link, all to the page's maintenance.ics", async ({
     page,
   }: {

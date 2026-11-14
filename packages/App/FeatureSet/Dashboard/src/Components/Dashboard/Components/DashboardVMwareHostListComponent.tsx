@@ -25,6 +25,10 @@ import {
   HoneycombTile,
 } from "./DashboardResourceHoneycomb";
 import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
+import {
+  getStandaloneText,
+  getUnnamedText,
+} from "./DashboardWidgetFallbackWords";
 
 /*
  * The vcenter receiver stamps identity on RESOURCE attributes, so a
@@ -179,7 +183,7 @@ function getHostRoute(r: VMwareResource): Route | undefined {
 }
 
 function getHostDisplayName(r: VMwareResource): string {
-  return (r.name as string) || (r.externalId as string) || "Unnamed";
+  return (r.name as string) || (r.externalId as string) || getUnnamedText();
 }
 
 function getHostLoad(r: VMwareResource): {
@@ -242,7 +246,7 @@ function getPercentTextColor(value: unknown): string {
 function renderHostRow(r: VMwareResource): ReactElement {
   const id: string = (r._id as string) || "";
   const name: string = getHostDisplayName(r);
-  const clusterName: string = (r.clusterName as string) || "Standalone";
+  const clusterName: string = (r.clusterName as string) || getStandaloneText();
   const vcenterName: string = (r.vmwareVCenter?.name as string) || "—";
   const route: Route | undefined = getHostRoute(r);
 
@@ -316,7 +320,10 @@ function buildHostTile(r: VMwareResource): HoneycombTile {
       details: [
         { label: "vCenter", value: (r.vmwareVCenter?.name as string) || "—" },
         { label: "Datacenter", value: (r.datacenterName as string) || "—" },
-        { label: "Cluster", value: (r.clusterName as string) || "Standalone" },
+        {
+          label: "Cluster",
+          value: (r.clusterName as string) || getStandaloneText(),
+        },
         {
           label: "CPU",
           value: `${formatPercent(r.latestCpuPercent)} of ${formatMhz(
@@ -364,7 +371,10 @@ const DashboardVMwareHostListComponentElement: FunctionComponent<
       componentId={props.componentId}
       publicResourceType="vmware-resource"
       title={args.title}
-      pluralLabel="hosts"
+      countLabel={{
+        one: "{{count}} host",
+        other: "{{count}} hosts",
+      }}
       emptyMessage="No ESXi hosts found"
       emptyIcon={IconProp.ServerStack}
       columns={COLUMNS}

@@ -829,7 +829,7 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicy> {
     createdItem: OnCallDutyPolicy,
   ): Promise<OnCallDutyPolicy> {
     if (!createdItem.id) {
-      throw new BadDataException("On Call Policy id not found.");
+      throw new BadDataException("The new on-call policy has no ID.");
     }
 
     // Activation event for marketing funnels.
@@ -851,7 +851,7 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicy> {
         );
       } catch (error) {
         logger.error(
-          `Error applying on-call duty policy rules in OnCallDutyPolicyService.onCreateSuccess: ${error}`,
+          `Error applying on-call policy rules in OnCallDutyPolicyService.onCreateSuccess: ${error}`,
           {
             projectId: createdItem.projectId?.toString(),
             onCallDutyPolicyId: createdItem.id?.toString(),
@@ -876,13 +876,15 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicy> {
     });
 
     if (!onCallPolicy) {
-      throw new BadDataException("On Call Policy not found.");
+      throw new BadDataException(
+        "The new on-call policy was not found. It may have been deleted.",
+      );
     }
 
     const createdByUserId: ObjectID | undefined | null =
       createdItem.createdByUserId || createdItem.createdByUser?.id;
 
-    let feedInfoInMarkdown: string = mdText`#### 📞 On Call Policy Created: 
+    let feedInfoInMarkdown: string = mdText`#### 📞 On-Call Policy Created: 
               
 **${onCallPolicy.name || "No name provided."}**:
     
@@ -1107,7 +1109,7 @@ ${FeedMarkdown.asMarkdown(onCallPolicy.description || "No description provided."
       !options.triggeredByIncidentId
     ) {
       throw new BadDataException(
-        "triggeredByIncidentId is required when userNotificationEventType is IncidentCreated",
+        "An on-call policy run for a new incident must name the incident.",
       );
     }
 
@@ -1117,7 +1119,7 @@ ${FeedMarkdown.asMarkdown(onCallPolicy.description || "No description provided."
       !options.triggeredByAlertId
     ) {
       throw new BadDataException(
-        "triggeredByAlertId is required when userNotificationEventType is AlertCreated",
+        "An on-call policy run for a new alert must name the alert.",
       );
     }
 
@@ -1127,7 +1129,7 @@ ${FeedMarkdown.asMarkdown(onCallPolicy.description || "No description provided."
       !options.triggeredByAlertEpisodeId
     ) {
       throw new BadDataException(
-        "triggeredByAlertEpisodeId is required when userNotificationEventType is AlertEpisodeCreated",
+        "An on-call policy run for a new alert episode must name the episode.",
       );
     }
 
@@ -1137,7 +1139,7 @@ ${FeedMarkdown.asMarkdown(onCallPolicy.description || "No description provided."
       !options.triggeredByIncidentEpisodeId
     ) {
       throw new BadDataException(
-        "triggeredByIncidentEpisodeId is required when userNotificationEventType is IncidentEpisodeCreated",
+        "An on-call policy run for a new incident episode must name the episode.",
       );
     }
 
@@ -1154,7 +1156,7 @@ ${FeedMarkdown.asMarkdown(onCallPolicy.description || "No description provided."
 
     if (!policy) {
       throw new BadDataException(
-        `On-Call Duty Policy with id ${policyId.toString()} not found`,
+        `The on-call policy ${policyId.toString()} no longer exists. It may have been deleted.`,
       );
     }
 

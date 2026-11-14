@@ -16,19 +16,26 @@ import UserOnCallLogTimeline from "../../../../Models/DatabaseModels/UserOnCallL
 import PostgresAppInstance from "../../../../Server/Infrastructure/PostgresDatabase";
 import UserOnCallLogTimelineService from "../../../../Server/Services/UserOnCallLogTimelineService";
 import {
+  ON_CALL_NOTIFICATION_ACKNOWLEDGED_MESSAGE,
+  recordAcknowledgement,
+  recordPassOn,
   recordProviderReport,
   recordSendResult,
   STUCK_NOTIFICATION_STATUS_MESSAGE,
 } from "../../../../Server/Utils/OnCall/OnCallNotificationStatus";
 import {
+  recordNotificationRequestAnswer,
   recordNotificationRequestFailure,
   recordSendFailure,
 } from "../../../../Server/Utils/OnCall/OnCallSendFailure";
 import {
   MAX_STUCK_NOTIFICATIONS_PER_RUN,
+  NotificationsSettledBeforeTheCheckSummary,
+  settleNotificationsStuckBeforeTheCheck,
   settleStuckNotifications,
   StuckNotificationCheckSummary,
 } from "../../../../Server/Utils/OnCall/OnCallStuckNotifications";
+import HTTPErrorResponse from "../../../../Types/API/HTTPErrorResponse";
 import ObjectID from "../../../../Types/ObjectID";
 import UserNotificationStatus from "../../../../Types/UserNotification/UserNotificationStatus";
 import {
@@ -71,7 +78,18 @@ import { PostgresQueryRunner } from "typeorm/driver/postgres/PostgresQueryRunner
  *     which only the version read tells;
  *   - a page's request that never reached the Notification service writes
  *     Error over Sending only; one that got no answer writes nothing; and a
- *     send that finishes after the stuck verdict writes its result over it.
+ *     send that finishes after the stuck verdict writes its result over it;
+ *   - a request the Notification service answered with an error writes
+ *     Error with the answer's words over Sending or the stuck verdict only
+ *     (issue #7083);
+ *   - the person's acknowledgement is written with when, in the same
+ *     statement, over whatever the send wrote - once; an escalation never
+ *     over an acknowledgement (issue #7082);
+ *   - the notifications left Sending before the check existed - written
+ *     longer ago than the day it reads - are settled once by the statement
+ *     the data migration runs, page by page, served by the same partial
+ *     index; the newer, the deleted and the ones that moved on are left
+ *     (issue #7085).
  */
 const describePostgres: typeof describe.skip =
   process.env["RUN_POSTGRES_ONCALL_STUCK_NOTIFICATIONS_TESTS"] === "true"
@@ -86,6 +104,11 @@ interface StoredRow {
   statusMessage: string;
   version: number;
 }
+
+const DAY: number = 24 * 60 * 60 * 1000;
+
+// What a statement that settles the old notifications looks like, as sent.
+const SETTLES_THE_OLD: RegExp = /^\s*WITH "page" AS/;
 
 describePostgres(
   "on-call notifications that never got a result, against Postgres",
@@ -673,6 +696,525 @@ describePostgres(
           });
         },
       );
+    });
+
+    describe("a request the Notification service answered with an error (issue #7083)", () => {
+      const REFUSED: string =
+        "The Notification service refused to send this (HTTP 400): Phone number +1 555 is not valid.";
+
+      function refusal(): HTTPErrorResponse {
+        return new HTTPErrorResponse(
+          400,
+          { message: "Phone number +1 555 is not valid." },
+          {},
+        );
+      }
+
+      test("Sending: Error, in the answer's words", async () => {
+        const id: ObjectID = await seed({
+          status: UserNotificationStatus.Sending,
+          age: 1000,
+        });
+
+        expect(
+          await recordNotificationRequestAnswer({
+            userOnCallLogTimelineId: id,
+            answer: refusal(),
+          }),
+        ).toBe(true);
+        expect(await rowOf(id)).toEqual({
+          status: UserNotificationStatus.Error,
+          statusMessage: REFUSED,
+          version: 2,
+        });
+      });
+
+      test("the stuck verdict: replaced by the request's own result, come late", async () => {
+        const id: ObjectID = await seed({
+          status: UserNotificationStatus.Error,
+          age: 20 * MINUTE,
+          statusMessage: STUCK_NOTIFICATION_STATUS_MESSAGE,
+        });
+
+        await recordNotificationRequestAnswer({
+          userOnCallLogTimelineId: id,
+          answer: refusal(),
+        });
+
+        expect(await rowOf(id)).toEqual({
+          status: UserNotificationStatus.Error,
+          statusMessage: REFUSED,
+          version: 2,
+        });
+      });
+
+      test.each([
+        [UserNotificationStatus.Sent, "SMS sent."],
+        [UserNotificationStatus.Acknowledged, "Acknowledged by SMS."],
+        [UserNotificationStatus.Error, "Twilio: the number is unreachable."],
+      ])(
+        "a notification already %s stays",
+        async (status: UserNotificationStatus, message: string) => {
+          const id: ObjectID = await seed({
+            status: status,
+            age: 1000,
+            statusMessage: message,
+          });
+
+          expect(
+            await recordNotificationRequestAnswer({
+              userOnCallLogTimelineId: id,
+              answer: refusal(),
+            }),
+          ).toBe(false);
+          expect(await rowOf(id)).toEqual({
+            status: status,
+            statusMessage: message,
+            version: 1,
+          });
+        },
+      );
+    });
+
+    describe("the person's answers (issue #7082)", () => {
+      beforeEach(() => {
+        /*
+         * The update hook acknowledges the page, the run and the record -
+         * rows this clone does not hold. What the write itself does is
+         * what is pinned here.
+         */
+        jest
+          .spyOn(
+            UserOnCallLogTimelineService as unknown as {
+              onUpdateSuccess: (onUpdate: unknown) => Promise<unknown>;
+            },
+            "onUpdateSuccess",
+          )
+          .mockImplementation(async (onUpdate: unknown) => {
+            return onUpdate;
+          });
+      });
+
+      afterEach(() => {
+        const hook: unknown = (
+          UserOnCallLogTimelineService as unknown as Record<string, unknown>
+        )["onUpdateSuccess"];
+
+        if (jest.isMockFunction(hook)) {
+          hook.mockRestore();
+        }
+      });
+
+      async function acknowledgedOf(
+        id: ObjectID,
+      ): Promise<{ isAcknowledged: boolean; acknowledgedAt: Date | null }> {
+        const rows: Array<{
+          isAcknowledged: boolean;
+          acknowledgedAt: Date | null;
+        }> = await database.query(
+          `SELECT "isAcknowledged", "acknowledgedAt" FROM "${schema}"."UserOnCallLogTimeline" WHERE "_id" = $1`,
+          [id.toString()],
+        );
+
+        return rows[0]!;
+      }
+
+      test.each([
+        [UserNotificationStatus.Sending, "Sending SMS."],
+        [UserNotificationStatus.Sent, "SMS sent."],
+        [UserNotificationStatus.Error, "Twilio: the number is unreachable."],
+        [UserNotificationStatus.NotAnswered, "Call not answered."],
+        [UserNotificationStatus.PassedOn, "Escalated from this notification."],
+      ])(
+        "an acknowledgement over %s: Acknowledged, with when, in the same statement",
+        async (status: UserNotificationStatus, message: string) => {
+          const id: ObjectID = await seed({
+            status: status,
+            age: 1000,
+            statusMessage: message,
+          });
+          const acknowledgedAt: Date = new Date(now.getTime() - 1000);
+
+          expect(
+            await recordAcknowledgement({
+              userOnCallLogTimelineId: id,
+              statusMessage: ON_CALL_NOTIFICATION_ACKNOWLEDGED_MESSAGE,
+              acknowledgedAt: acknowledgedAt,
+            }),
+          ).toBe(true);
+          expect(await rowOf(id)).toEqual({
+            status: UserNotificationStatus.Acknowledged,
+            statusMessage: ON_CALL_NOTIFICATION_ACKNOWLEDGED_MESSAGE,
+            version: 2,
+          });
+
+          const acknowledged: {
+            isAcknowledged: boolean;
+            acknowledgedAt: Date | null;
+          } = await acknowledgedOf(id);
+
+          expect(acknowledged.isAcknowledged).toBe(true);
+          expect(new Date(acknowledged.acknowledgedAt!).getTime()).toBe(
+            acknowledgedAt.getTime(),
+          );
+        },
+      );
+
+      test("a second acknowledgement writes nothing: the page is acknowledged once", async () => {
+        const id: ObjectID = await seed({
+          status: UserNotificationStatus.Sent,
+          age: 1000,
+        });
+
+        await recordAcknowledgement({
+          userOnCallLogTimelineId: id,
+          statusMessage: ON_CALL_NOTIFICATION_ACKNOWLEDGED_MESSAGE,
+        });
+
+        expect(
+          await recordAcknowledgement({
+            userOnCallLogTimelineId: id,
+            statusMessage: ON_CALL_NOTIFICATION_ACKNOWLEDGED_MESSAGE,
+          }),
+        ).toBe(false);
+        expect((await rowOf(id)).version).toBe(2);
+      });
+
+      test("a send's result that comes after the acknowledgement writes nothing over it", async () => {
+        const id: ObjectID = await seed({
+          status: UserNotificationStatus.Sending,
+          age: 1000,
+        });
+
+        await recordAcknowledgement({
+          userOnCallLogTimelineId: id,
+          statusMessage: ON_CALL_NOTIFICATION_ACKNOWLEDGED_MESSAGE,
+        });
+
+        expect(
+          await recordSendResult({
+            userOnCallLogTimelineId: id,
+            isSent: false,
+            statusMessage: "Twilio: the number is unreachable.",
+          }),
+        ).toBe(false);
+        expect(await rowOf(id)).toEqual({
+          status: UserNotificationStatus.Acknowledged,
+          statusMessage: ON_CALL_NOTIFICATION_ACKNOWLEDGED_MESSAGE,
+          version: 2,
+        });
+      });
+
+      test("an escalation never over an acknowledgement", async () => {
+        const id: ObjectID = await seed({
+          status: UserNotificationStatus.Acknowledged,
+          age: 1000,
+          statusMessage: ON_CALL_NOTIFICATION_ACKNOWLEDGED_MESSAGE,
+        });
+
+        expect(
+          await recordPassOn({
+            userOnCallLogTimelineId: id,
+            statusMessage: "Escalated from this notification.",
+          }),
+        ).toBe(false);
+        expect(await rowOf(id)).toEqual({
+          status: UserNotificationStatus.Acknowledged,
+          statusMessage: ON_CALL_NOTIFICATION_ACKNOWLEDGED_MESSAGE,
+          version: 1,
+        });
+      });
+
+      test("an escalation over what the send wrote: Passed On", async () => {
+        const id: ObjectID = await seed({
+          status: UserNotificationStatus.Sent,
+          age: 1000,
+        });
+
+        expect(
+          await recordPassOn({
+            userOnCallLogTimelineId: id,
+            statusMessage: "Escalated from this notification.",
+          }),
+        ).toBe(true);
+        expect(await rowOf(id)).toEqual({
+          status: UserNotificationStatus.PassedOn,
+          statusMessage: "Escalated from this notification.",
+          version: 2,
+        });
+      });
+    });
+
+    describe("the notifications left Sending before the check existed (issue #7085)", () => {
+      async function settleTheOld(
+        perStatement?: number,
+      ): Promise<NotificationsSettledBeforeTheCheckSummary> {
+        return await settleNotificationsStuckBeforeTheCheck({
+          now: now,
+          ...(perStatement !== undefined ? { perStatement: perStatement } : {}),
+        });
+      }
+
+      test("settles what is still Sending and was written more than a day ago - page by page, to the last - and nothing else", async () => {
+        const oldest: ObjectID = await seed({
+          status: UserNotificationStatus.Sending,
+          age: 90 * DAY,
+        });
+        const older: ObjectID = await seed({
+          status: UserNotificationStatus.Sending,
+          age: 3 * DAY,
+        });
+        const old: ObjectID = await seed({
+          status: UserNotificationStatus.Sending,
+          age: DAY + HOUR,
+        });
+        const lastDay: ObjectID = await seed({
+          status: UserNotificationStatus.Sending,
+          age: 23 * HOUR,
+        });
+        const oldButAnswered: ObjectID = await seed({
+          status: UserNotificationStatus.Acknowledged,
+          age: 3 * DAY,
+          statusMessage: "Acknowledged by SMS.",
+        });
+        const oldAndDeleted: ObjectID = await seed({
+          status: UserNotificationStatus.Sending,
+          age: 3 * DAY,
+          isDeleted: true,
+        });
+
+        await expect(settleTheOld(2)).resolves.toEqual({
+          found: 3,
+          settled: 3,
+          statements: 2,
+        });
+
+        for (const id of [oldest, older, old]) {
+          expect(await rowOf(id)).toEqual({
+            status: UserNotificationStatus.Error,
+            statusMessage: STUCK_NOTIFICATION_STATUS_MESSAGE,
+            version: 2,
+          });
+        }
+
+        expect(await rowOf(lastDay)).toEqual({
+          status: UserNotificationStatus.Sending,
+          statusMessage: "Sending SMS.",
+          version: 1,
+        });
+        expect(await rowOf(oldButAnswered)).toEqual({
+          status: UserNotificationStatus.Acknowledged,
+          statusMessage: "Acknowledged by SMS.",
+          version: 1,
+        });
+        expect(await rowOf(oldAndDeleted)).toEqual({
+          status: UserNotificationStatus.Sending,
+          statusMessage: "Sending SMS.",
+          version: 1,
+        });
+      });
+
+      test("the oldest first: a page holds the oldest still Sending", async () => {
+        const ids: Array<ObjectID> = [];
+
+        for (const age of [5 * DAY, 9 * DAY, 2 * DAY, 7 * DAY]) {
+          ids.push(
+            await seed({ status: UserNotificationStatus.Sending, age: age }),
+          );
+        }
+
+        // The first page only - two - then the walk is stopped.
+        let statements: number = 0;
+        const realQuery: PostgresQueryRunner["query"] =
+          PostgresQueryRunner.prototype.query;
+        PostgresQueryRunner.prototype.query = function (
+          this: PostgresQueryRunner,
+          ...args: Parameters<PostgresQueryRunner["query"]>
+        ): ReturnType<PostgresQueryRunner["query"]> {
+          if (SETTLES_THE_OLD.test(args[0])) {
+            statements++;
+
+            if (statements > 1) {
+              return Promise.reject(new Error("stopped after the first page"));
+            }
+          }
+
+          return realQuery.apply(this, args);
+        };
+
+        try {
+          await expect(settleTheOld(2)).rejects.toThrow(
+            "stopped after the first page",
+          );
+        } finally {
+          PostgresQueryRunner.prototype.query = realQuery;
+        }
+
+        const statuses: Array<string> = [];
+
+        for (const id of ids) {
+          statuses.push((await rowOf(id)).status);
+        }
+
+        // 5 days, 9 days, 2 days, 7 days: the 9 and the 7 were the oldest.
+        expect(statuses).toEqual([
+          UserNotificationStatus.Sending,
+          UserNotificationStatus.Error,
+          UserNotificationStatus.Sending,
+          UserNotificationStatus.Error,
+        ]);
+      });
+
+      test("written straight to the table - no hook tells the record's feed or the run's chat message of a page long over - its version moved on, and when it was written", async () => {
+        const id: ObjectID = await seed({
+          status: UserNotificationStatus.Sending,
+          age: 3 * DAY,
+        });
+
+        const service: Record<string, (...args: Array<unknown>) => unknown> =
+          UserOnCallLogTimelineService as unknown as Record<
+            string,
+            (...args: Array<unknown>) => unknown
+          >;
+
+        // The update hooks, watched for this run only.
+        const hooks: Array<ReturnType<typeof jest.spyOn>> = [
+          "onBeforeUpdate",
+          "onUpdateSuccess",
+        ].map((name: string): ReturnType<typeof jest.spyOn> => {
+          return jest.spyOn(service, name);
+        });
+
+        // Stood in for the whole suite: counted, not restored.
+        const triggers: Array<jest.Mock> = [
+          service["onTriggerWorkflow"] as unknown as jest.Mock,
+          service["onTriggerRealtime"] as unknown as jest.Mock,
+        ];
+        const triggeredBefore: Array<number> = triggers.map(
+          (trigger: jest.Mock): number => {
+            return trigger.mock.calls.length;
+          },
+        );
+
+        try {
+          await settleTheOld();
+
+          for (const hook of hooks) {
+            expect(hook).not.toHaveBeenCalled();
+          }
+
+          expect(
+            triggers.map((trigger: jest.Mock): number => {
+              return trigger.mock.calls.length;
+            }),
+          ).toEqual(triggeredBefore);
+        } finally {
+          for (const hook of hooks) {
+            hook.mockRestore();
+          }
+        }
+
+        const rows: Array<{ updatedAt: Date; createdAt: Date }> =
+          await database.query(
+            `SELECT "updatedAt", "createdAt" FROM "${schema}"."UserOnCallLogTimeline" WHERE "_id" = $1`,
+            [id.toString()],
+          );
+
+        expect(new Date(rows[0]!.updatedAt).getTime()).toBeGreaterThanOrEqual(
+          now.getTime(),
+        );
+        expect((await rowOf(id)).version).toBe(2);
+      });
+
+      test("run again, it finds none: settled once", async () => {
+        const id: ObjectID = await seed({
+          status: UserNotificationStatus.Sending,
+          age: 3 * DAY,
+        });
+
+        await settleTheOld();
+
+        await expect(settleTheOld()).resolves.toEqual({
+          found: 0,
+          settled: 0,
+          statements: 1,
+        });
+        expect((await rowOf(id)).version).toBe(2);
+      });
+
+      test("a send that finishes after all writes its result over the verdict, as over the check's", async () => {
+        const id: ObjectID = await seed({
+          status: UserNotificationStatus.Sending,
+          age: 3 * DAY,
+        });
+
+        await settleTheOld();
+
+        expect(
+          await recordSendResult({
+            userOnCallLogTimelineId: id,
+            isSent: true,
+            statusMessage: "SMS sent.",
+          }),
+        ).toBe(true);
+        expect(await rowOf(id)).toEqual({
+          status: UserNotificationStatus.Sent,
+          statusMessage: "SMS sent.",
+          version: 3,
+        });
+      });
+
+      test("its page is served by the partial index of the notifications that say Sending", async () => {
+        const indexes: Array<{ indexname: string }> = await database.query(
+          `SELECT "indexname" FROM pg_indexes
+         WHERE "schemaname" = $1 AND "tablename" = 'UserOnCallLogTimeline' AND "indexdef" LIKE '%''Sending''%'`,
+          [schema],
+        );
+
+        expect(indexes).toHaveLength(1);
+
+        const sent: Array<{ sql: string; parameters: Array<unknown> }> = [];
+        const realQuery: PostgresQueryRunner["query"] =
+          PostgresQueryRunner.prototype.query;
+        PostgresQueryRunner.prototype.query = function (
+          this: PostgresQueryRunner,
+          ...args: Parameters<PostgresQueryRunner["query"]>
+        ): ReturnType<PostgresQueryRunner["query"]> {
+          if (SETTLES_THE_OLD.test(args[0])) {
+            sent.push({ sql: args[0], parameters: args[1] || [] });
+          }
+
+          return realQuery.apply(this, args);
+        };
+
+        try {
+          await settleTheOld();
+        } finally {
+          PostgresQueryRunner.prototype.query = realQuery;
+        }
+
+        expect(sent).toHaveLength(1);
+
+        // EXPLAIN plans a data-modifying statement without running it.
+        const plan: string = await database.transaction(
+          async (manager: EntityManager): Promise<string> => {
+            await manager.query(`SET LOCAL enable_seqscan = off`);
+
+            const lines: Array<{ "QUERY PLAN": string }> = await manager.query(
+              `EXPLAIN ${sent[0]!.sql}`,
+              sent[0]!.parameters,
+            );
+
+            return lines
+              .map((line: { "QUERY PLAN": string }) => {
+                return line["QUERY PLAN"];
+              })
+              .join("\n");
+          },
+        );
+
+        expect(plan).toContain(indexes[0]!.indexname);
+      });
     });
   },
 );

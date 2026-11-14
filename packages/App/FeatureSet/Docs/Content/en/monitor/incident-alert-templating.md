@@ -32,7 +32,7 @@ flowchart TB
 :::steps
 ### Open the monitor's criteria
 
-Go to **Monitors**, open the monitor, and click **Criteria** in its side menu. Click **Edit Monitoring Criteria**.
+Go to **Monitors**, open the monitor, and click **Criteria** in its side menu. Click **Edit Criteria**.
 
 ### Turn on the incident or the alert
 

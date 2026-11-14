@@ -16,6 +16,7 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
 import DataSourceEgressGuard, { PinnedAgents } from "../DataSource/EgressGuard";
 import ClaudeModels from "./ClaudeModels";
 import LLMProviderHTTPException from "./LLMProviderHTTPException";
+import LLMProviderExchangeRecorder from "./LLMProviderExchangeRecorder";
 import RejectedRequestParameter from "./RejectedRequestParameter";
 import LlmProviderEndpoint, {
   AzureOpenAIRequestEndpoint,
@@ -1275,20 +1276,48 @@ export default class LLMService {
     options: RequestOptions;
     logAttributes: LogAttributes;
   }): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> {
+    const startedAt: number = Date.now();
+
     try {
-      return await API.post<JSONObject>({
-        url: URL.fromString(data.requestUrl),
-        data: data.body,
-        headers: data.headers,
-        options: data.options,
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await API.post<JSONObject>({
+          url: URL.fromString(data.requestUrl),
+          data: data.body,
+          headers: data.headers,
+          options: data.options,
+        });
+
+      // Test LLM Provider shows what was sent and what came back (#7080).
+      LLMProviderExchangeRecorder.capture({
+        method: "POST",
+        url: data.requestUrl,
+        requestHeaders: data.headers,
+        requestBody: data.body,
+        statusCode: response.statusCode,
+        responseHeaders: response.headers,
+        responseBody: response.data,
+        startedAt: startedAt,
       });
+
+      return response;
     } catch (error) {
-      throw this.toAddressFreeProviderError({
+      const providerError: Error = this.toAddressFreeProviderError({
         providerName: data.providerName,
         error: error,
         timeoutInMs: data.options.timeout,
         logAttributes: data.logAttributes,
       });
+
+      LLMProviderExchangeRecorder.capture({
+        method: "POST",
+        url: data.requestUrl,
+        requestHeaders: data.headers,
+        requestBody: data.body,
+        error: providerError.message,
+        startedAt: startedAt,
+      });
+
+      throw providerError;
     }
   }
 
@@ -2074,26 +2103,50 @@ export default class LLMService {
 
     let response: HTTPResponse<JSONObject | JSONArray> | HTTPErrorResponse;
 
+    const modelsRequestHeaders: Headers = {
+      Accept: "application/json",
+      // As on the chat request: a keyless server refuses an empty token.
+      ...(data.config.apiKey
+        ? { Authorization: `Bearer ${data.config.apiKey}` }
+        : {}),
+    };
+    const modelsRequestStartedAt: number = Date.now();
+
     try {
       response = await API.get<JSONObject | JSONArray>({
         url: URL.fromString(modelsUrl),
-        headers: {
-          Accept: "application/json",
-          // As on the chat request: a keyless server refuses an empty token.
-          ...(data.config.apiKey
-            ? { Authorization: `Bearer ${data.config.apiKey}` }
-            : {}),
-        },
+        headers: modelsRequestHeaders,
         options: requestOptions,
       });
     } catch (error) {
-      throw this.toAddressFreeProviderError({
+      const providerError: Error = this.toAddressFreeProviderError({
         providerName: providerName,
         error: error,
         timeoutInMs: requestOptions.timeout,
         logAttributes: logAttributes,
       });
+
+      LLMProviderExchangeRecorder.capture({
+        method: "GET",
+        url: modelsUrl,
+        requestHeaders: modelsRequestHeaders,
+        error: providerError.message,
+        startedAt: modelsRequestStartedAt,
+      });
+
+      throw providerError;
     }
+
+    // Test LLM Provider shows the model list request too (#7080).
+    LLMProviderExchangeRecorder.capture({
+      method: "GET",
+      url: modelsUrl,
+      requestHeaders: modelsRequestHeaders,
+      statusCode: response.statusCode,
+      responseHeaders: response.headers,
+      responseBody: response.data,
+      startedAt: modelsRequestStartedAt,
+    });
 
     if (response instanceof HTTPErrorResponse) {
       this.throwProviderHTTPError({

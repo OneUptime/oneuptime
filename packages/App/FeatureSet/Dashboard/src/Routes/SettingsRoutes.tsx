@@ -28,6 +28,8 @@ import SettingsTelemetrySettings from "../Pages/Settings/TelemetrySettings";
 
 import SettingLabels from "../Pages/Settings/Labels";
 
+import SettingsProducts from "../Pages/Settings/Products";
+
 import SettingFeatureFlags from "../Pages/Settings/FeatureFlags";
 
 import SettingsDomains from "../Pages/Settings/Domains";
@@ -517,6 +519,16 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
             <SettingLabels
               {...props}
               pageRoute={RouteMap[PageMap.SETTINGS_LABELS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_PRODUCTS)}
+          element={
+            <SettingsProducts
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_PRODUCTS] as Route}
             />
           }
         />

@@ -37,7 +37,7 @@ O explorador tem cinco abas:
 ## Antes de começar
 
 - **Registros chegando.** Envie-os com [OpenTelemetry](/docs/telemetry/open-telemetry), [Fluent Bit](/docs/telemetry/fluentbit), [Fluentd](/docs/telemetry/fluentd) ou [Syslog](/docs/telemetry/syslog). A aba **Guia de configuração** mostra a configuração para a sua linguagem ou o seu coletor.
-- **Uma função que possa ler telemetria.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member ou Telemetry Viewer, ou uma função personalizada com a permissão Read Telemetry Service Log. O escopo dela decide de quem são os registros que você vê: veja [Telemetria](/docs/permissions/index#telemetria).
+- **Uma função que possa ler telemetria.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member ou Telemetry Viewer, ou uma função personalizada com a permissão Read Logs. O escopo dela decide de quem são os registros que você vê: veja [Telemetria](/docs/permissions/index#telemetria).
 
 ## Encontrar uma linha de registro
 
@@ -141,7 +141,7 @@ O OneUptime registra três tipos de constatação:
 
 | Constatação | Quando o OneUptime a registra | O pull request |
 | --- | --- | --- |
-| **Log de erro** | Um serviço registrou uma mesma mensagem em Error ou Fatal 20 vezes ou mais na hora, uma mensagem com palavras próprias e sem exceção. Uma mensagem registrada com uma exceção, ou com um stack trace dentro, é acompanhada em [Rastreamento de exceções](/docs/telemetry/exceptions) em vez disso. | Corrige o motivo de o erro ser registrado, ou o registra no nível que ele merece. |
+| **Log de erro** | Um serviço registrou uma mesma mensagem em Error ou Fatal 20 vezes ou mais na hora, uma mensagem com palavras próprias e sem exceção. Uma mensagem registrada com uma exceção, ou com um stack trace dentro, é acompanhada em [Exceções](/docs/telemetry/exceptions) em vez disso. | Corrige o motivo de o erro ser registrado, ou o registra no nível que ele merece. |
 | **Logs ausentes** | Pelo menos 20 spans de uma operação falharam na hora, 5% ou mais deles, enquanto pelo menos 100 logs do serviço trazem um ID de traço, e nenhuma das 20 requisições com falha mais recentes da operação escreveu uma linha de log. Ou um serviço enviou 500 logs ou mais e 100 spans ou mais na hora, e menos de 1% dos seus logs trazem um ID de traço. | Registra a falha onde ela acontece, ou faz os logs do serviço trazerem o ID de traço. |
 | **Log ruidoso** | Uma mensagem registrada abaixo de Error é 25% ou mais das linhas de um serviço na hora, cerca de 10.000 linhas ou mais. | Registra a linha menos: em Debug, uma vez por lote ou nunca. |
 

@@ -38,7 +38,7 @@ flowchart TB
 :::steps
 ### Legg til Twilio-kontoen din
 
-Gå til **Prosjektinnstillinger** > **Varsler** > **Varselinnstillinger**, og åpne **Flere innstillinger**. Klikk på **Opprett Twilio-konfigurasjon** i kortet **Twilio-konfigurasjon**, og fyll ut skjemaet:
+Gå til **Prosjektinnstillinger** > **Varsler** > **Varslingskanaler**, og åpne **Flere innstillinger**. Klikk på **Opprett Twilio-konfigurasjon** i kortet **Twilio-konfigurasjon**, og fyll ut skjemaet:
 
 - **Navn** og **Beskrivelse**: hva kontoen brukes til, for eksempel "Supportlinje".
 - **Twilio-konto-SID**: fra Twilio Console. Den starter med `AC`.
@@ -48,7 +48,7 @@ Gå til **Prosjektinnstillinger** > **Varsler** > **Varselinnstillinger**, og å
 
 ### Opprett policyen
 
-Gå til **Vakttjeneste** > **Retningslinjer for innkommende anrop**, og klikk på **Opprett Retningslinjer for innkommende anrop**. Gi den et **Navn**, for eksempel "Supportlinje"; **Beskrivelse** og **Etiketter** er valgfrie, under **Flere felt**. Den nye policyen åpnes på sin **Oversikt**.
+Gå til **Vakt** > **Retningslinjer for innkommende anrop**, og klikk på **Opprett Retningslinjer for innkommende anrop**. Gi den et **Navn**, for eksempel "Supportlinje"; **Beskrivelse** og **Etiketter** er valgfrie, under **Flere felt**. Den nye policyen åpnes på sin **Oversikt**.
 
 ### Velg Twilio-kontoen
 
@@ -143,7 +143,7 @@ Et nummer som allerede sender anropene sine et annet sted, sier "Currently has a
 
 OneUptime setter nummerets voice-webhook til `https://<your host>/notification/incoming-call/voice`, bygget fra `HOST` og `HTTP_PROTOCOL` på en selvdriftet installasjon. For å flytte en policy til en annen Twilio-konto frigir du først numrene: kontoen kan bare endres mens policyen ikke har noen.
 
-For å frigi et nummer klikker du på **Frigi** ved siden av det og bekrefter med **Frigi nummer**.
+For å frigi et nummer klikker du på **Frigi nummer** ved siden av det og bekrefter med **Frigi nummer**.
 
 > [!CAUTION]
 > Å frigi et nummer gir det tilbake til Twilio, også et nummer du tok med via **Bruk eksisterende telefonnummer**, og du får det kanskje ikke igjen. Å slette en policy, eller Twilio-konfigurasjonen den bruker, frigir også numrene.
@@ -160,7 +160,7 @@ En regel ringer en person på nummeret personen har verifisert for innkommende a
 
 Hver person kan ha ett verifisert nummer per prosjekt. For å endre det sletter du først det gamle nummeret. Disse numrene er atskilt fra telefonnumrene under **Varselmetoder**, som vaktvarsler bruker. Se [Varselmetoder](/docs/notifications/notification-methods).
 
-Numre for innkommende anrop verifiseres på SMS, så **SMS** må først være slått på for prosjektet. En prosjekteier, en **Faktureringsadministrator** eller noen med **Manage Billing** slår det på i kortet **Varslingskanaler** på **Prosjektinnstillinger > Varsler > Varselinnstillinger**.
+Numre for innkommende anrop verifiseres på SMS, så **SMS** må først være slått på for prosjektet. En prosjekteier, en **Faktureringsadministrator** eller noen med **Manage Billing** slår det på i kortet **Varslingskanaler** på **Prosjektinnstillinger > Varsler > Varslingskanaler**.
 
 ## Talemeldinger og innstillinger for policyen
 
@@ -228,7 +228,7 @@ Telefonnumrene til en policy følger de samme rollene som selve policyen:
 - **Slå opp numre** - søke i Twilio etter et nummer å reservere, eller vise numrene Twilio-kontoen din allerede har - krever tillatelse til å lese policyer for innkommende anrop og til å lese konfigurasjoner for anrop og SMS, fordi det leser Twilio-kontoen din gjennom en av dem. **Prosjekteier**, **Prosjektadministrator**, **Prosjektmedlem**, **Leser**, **Innstillingsadministrator**, **Innstillingsmedlem** og **Innstillingsleser** har begge. I en egendefinert rolle er det **Read Incoming Call Policy** og **Read Call and SMS**.
 - **Reservere et nummer, bruke et eksisterende og frigi et** krever tillatelse til å redigere policyer for innkommende anrop: **Prosjekteier**, **Prosjektadministrator**, **Prosjektmedlem**, **Innstillingsadministrator** og **Innstillingsmedlem**, eller **Edit Incoming Call Policy** i en egendefinert rolle. De endrer numrene til en policy du kan redigere: med en rolle som er begrenset til bestemte etiketter, policyene som har de etikettene.
 
-En blokkering fra et team uten etiketter på en av disse tillatelsene tar den bort. For alle andre blir **Legg til telefonnummer** og **Frigi** stående på siden, låst, og verktøytipset deres sier hva som kreves. API-et avviser forespørselen deres med en setning som sier hva som kreves: "Looking up phone numbers needs permission to read incoming call policies and call and SMS settings." eller "Adding or releasing a phone number needs permission to edit incoming call policies." Å reservere et nummer belastes din egen Twilio-konto, ikke OneUptime-saldoen din, så det krever ingen faktureringstillatelse.
+En blokkering fra et team uten etiketter på en av disse tillatelsene tar den bort. For alle andre blir **Legg til telefonnummer** og **Frigi nummer** stående på siden, låst, og verktøytipset deres sier hva som kreves. API-et avviser forespørselen deres med en setning som sier hva som kreves: "Looking up phone numbers needs permission to read incoming call policies and call and SMS settings." eller "Adding or releasing a phone number needs permission to edit incoming call policies." Å reservere et nummer belastes din egen Twilio-konto, ikke OneUptime-saldoen din, så det krever ingen faktureringstillatelse.
 
 ## Opprett policyer med API-et eller Terraform
 

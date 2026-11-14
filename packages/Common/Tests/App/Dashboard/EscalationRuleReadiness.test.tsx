@@ -1195,15 +1195,15 @@ describe("The readiness detail", () => {
       "does not cover Sam Doe, so they are unknown rather than ready",
     );
     /*
-     * Where the full list is, as the bar names the product: On-Call Duty,
-     * not "On-Call", which is no menu.
+     * Where the full list is, as the bar names the product: On-Call, not
+     * "On-Call Duty", its name until #6817.
      */
     expect(screen.getByTestId("rule-responder-unchecked")).toHaveTextContent(
-      "Open On-Call Duty > Readiness for the full list.",
+      "Open On-Call > Readiness for the full list.",
     );
     expect(
       screen.getByTestId("rule-responder-unchecked"),
-    ).not.toHaveTextContent("On-Call > Readiness");
+    ).not.toHaveTextContent("On-Call Duty");
   });
 
   test("a team that could not be read says so, and says what follows from it", () => {

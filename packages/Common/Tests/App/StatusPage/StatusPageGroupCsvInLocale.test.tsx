@@ -177,7 +177,12 @@ describe("a CSV problem's words, in the reader's language", () => {
       worded(AR, 'Unknown {{column}} "{{value}}". Valid values: {{values}}.', {
         column: setApart("viewMode"),
         value: setApart("Cards"),
-        values: setApart("List, Grid"),
+        /*
+         * Since #7201 the values are listed as the reader's language lists
+         * them (formatList): Arabic joins them with its own comma, inside
+         * the one isolate.
+         */
+        values: setApart("List، Grid"),
       }),
     ]);
 

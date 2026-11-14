@@ -27,6 +27,7 @@ import {
   translateTemplate,
   translateText,
 } from "Common/UI/Utils/TranslateTemplate";
+import { getUnnamedText } from "./DashboardWidgetFallbackWords";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardProxmoxGuestListComponent;
@@ -146,11 +147,7 @@ function getGuestStatus(r: ProxmoxResource): {
 }
 
 function getGuestDisplayName(r: ProxmoxResource): string {
-  return (
-    (r.name as string) ||
-    (r.externalId as string) ||
-    (translateText("Unnamed") as string)
-  );
+  return (r.name as string) || (r.externalId as string) || getUnnamedText();
 }
 
 function renderGuestRow(r: ProxmoxResource): ReactElement {
@@ -276,7 +273,10 @@ const DashboardProxmoxGuestListComponentElement: FunctionComponent<
       componentId={props.componentId}
       publicResourceType="proxmox-resource"
       title={args.title}
-      pluralLabel="guests"
+      countLabel={{
+        one: "{{count}} guest",
+        other: "{{count}} guests",
+      }}
       emptyMessage="No Proxmox guests found"
       emptyIcon={IconProp.Cube}
       columns={COLUMNS}

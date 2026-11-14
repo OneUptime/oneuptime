@@ -136,7 +136,7 @@ const OpenStackInstanceRequests: FunctionComponent<{
       title="Requests"
       description="The requests this instance's lines belong to, the ones that failed first. Open one to read it across every service, in time order."
     >
-      <ul className="p-4 text-sm" data-testid="openstack-instance-requests">
+      <ul className="text-sm" data-testid="openstack-instance-requests">
         {requests
           .slice(0, REQUESTS_SHOWN)
           .map((request: OpenStackRequestSummary): ReactElement => {

@@ -30,6 +30,8 @@ import StatusPageSummaryUtil, {
 } from "Common/Types/StatusPage/StatusPageSummary";
 import ExternalStatusPageReading, {
   AtlassianStatuspageUrls,
+  EXTERNAL_STATUS_PAGE_ONEUPTIME_IP_NOT_ALLOWED_MESSAGE,
+  EXTERNAL_STATUS_PAGE_ONEUPTIME_PRIVATE_MESSAGE,
   ExternalStatusPageComponent,
   ExternalStatusPageContents,
   ExternalStatusPageIncident,
@@ -49,6 +51,18 @@ export {
 } from "Common/Utils/Monitor/ExternalStatusPageReading";
 
 /*
+ * Why a OneUptime status page could not be read, when that provider was
+ * chosen (tryOneUptimeStatusPage): the page answered, and would not let this
+ * probe in. Translation keys in Common (ExternalStatusPageReading), so the
+ * monitor's summary draws them in the reader's language; the probe stores
+ * the English, which monitor criteria and logs compare.
+ */
+export {
+  EXTERNAL_STATUS_PAGE_ONEUPTIME_IP_NOT_ALLOWED_MESSAGE,
+  EXTERNAL_STATUS_PAGE_ONEUPTIME_PRIVATE_MESSAGE,
+};
+
+/*
  * Retries when neither the caller nor the step config sets one: three
  * attempts, the same as before retries were counted after the first attempt.
  */
@@ -66,23 +80,33 @@ export const EXTERNAL_STATUS_PAGE_XML_MAX_DEPTH: number = 64;
 const HTML_DOCTYPE_PATTERN: RegExp = /^<!doctype\s+html(?:\s|>)/i;
 
 /*
- * Why a OneUptime status page could not be read, when that provider was
- * chosen (tryOneUptimeStatusPage): the page answered, and would not let this
- * probe in.
- */
-export const EXTERNAL_STATUS_PAGE_ONEUPTIME_PRIVATE_MESSAGE: string =
-  "This status page is private: only people who sign in to it, or who know its password, can read it. Only a public status page can be watched.";
-
-export const EXTERNAL_STATUS_PAGE_ONEUPTIME_IP_NOT_ALLOWED_MESSAGE: string =
-  "This status page lets in only the IP addresses on its allowlist, and this probe's address is not one of them. Add the probe's address to the allowlist, or watch the page from a probe inside that network.";
-
-/*
  * A feed's items of the last 24 hours count as active incidents
  * (isRecentFeedItem); an item dated up to 5 minutes ahead counts too.
  */
 export const EXTERNAL_STATUS_PAGE_FEED_ACTIVE_WINDOW_IN_MS: number =
   24 * 60 * 60 * 1000;
 export const EXTERNAL_STATUS_PAGE_FEED_CLOCK_SKEW_IN_MS: number = 5 * 60 * 1000;
+
+/*
+ * A page that answered, and would not let this probe in, when its provider
+ * was chosen: a definite answer, so the check fails at once with why - no
+ * retry, and no reachability check after it (a BadDataException fails
+ * closed). It names the provider that read the page, so the failed check
+ * still says which provider it was: the summary's Provider fact, and its
+ * Error in the reader's language when the words are OneUptime's
+ * (ExternalStatusPageReading.readOneUptimeFailureCause).
+ */
+export class ExternalStatusPageRefusedException extends BadDataException {
+  public readonly provider: ExternalStatusPageProviderType;
+
+  public constructor(
+    provider: ExternalStatusPageProviderType,
+    message: string,
+  ) {
+    super(message);
+    this.provider = provider;
+  }
+}
 
 export interface ExternalStatusPageQueryOptions {
   timeout?: number | undefined;
@@ -581,6 +605,11 @@ export default class ExternalStatusPageMonitorUtil {
         activeIncidentCount: 0,
         responseTimeInMs: responseTimeInMs,
         failureCause: (err as Error).message || (err as Error).toString(),
+        // The provider that read a page which would not let the probe in.
+        provider:
+          err instanceof ExternalStatusPageRefusedException
+            ? err.provider
+            : undefined,
         probeAttempts: options.attempts,
         totalAttempts: options.attempts.length,
       };
@@ -843,13 +872,15 @@ export default class ExternalStatusPageMonitorUtil {
       });
 
       if (response.status === 401 && data.isChosen) {
-        throw new BadDataException(
+        throw new ExternalStatusPageRefusedException(
+          ExternalStatusPageProviderType.OneUptime,
           EXTERNAL_STATUS_PAGE_ONEUPTIME_PRIVATE_MESSAGE,
         );
       }
 
       if (response.status === 403 && data.isChosen) {
-        throw new BadDataException(
+        throw new ExternalStatusPageRefusedException(
+          ExternalStatusPageProviderType.OneUptime,
           EXTERNAL_STATUS_PAGE_ONEUPTIME_IP_NOT_ALLOWED_MESSAGE,
         );
       }

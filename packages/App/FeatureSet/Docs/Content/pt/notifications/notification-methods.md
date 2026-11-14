@@ -2,6 +2,9 @@
 
 Um método de notificação é um endereço em que o OneUptime pode encontrar você em um projeto: um endereço de e-mail, um número de telefone para SMS ou chamadas, um número do WhatsApp, uma conta do Telegram, a sua conta do Slack, do Microsoft Teams ou do Mattermost, um telefone ou navegador para notificações push, ou um webhook. Você os adiciona em **Configurações do usuário → Métodos de notificação**, verifica, e o OneUptime começa a usá-los nos seus acionamentos na hora.
 
+> [!TIP]
+> Novo por aqui? Siga primeiro o guia: [Ser acionado por telefone, SMS ou push](/docs/guides/paging).
+
 :::cards
 - [Escolha um método](#escolha-um-método): O que cada método precisa, e como ele é verificado.
 - [Adicione e verifique um método](#adicione-e-verifique-um-método): E-mail, SMS, chamadas e WhatsApp, com um código de 6 dígitos.
@@ -170,7 +173,7 @@ Um webhook não precisa de verificação, então adicioná-lo adiciona as regras
 
 **SMS**, **Chamadas telefônicas**, **WhatsApp** e **Telegram** começam desativados em todo projeto novo, porque cada mensagem custa dinheiro: no OneUptime Cloud ela é paga com o saldo do projeto, e SMS e chamadas passam pela conta Twilio do próprio projeto quando a conta padrão os envia. E-mail, push, Slack, Microsoft Teams, Mattermost e webhooks estão sempre ativados.
 
-Enquanto um canal está desativado, ninguém no projeto pode adicionar um método nele: o cartão dele não tem botão de adicionar, e diz quem pode ativá-lo. Um proprietário do projeto, um **Administrador de cobrança** ou alguém com **Manage Billing** o ativa, no cartão **Canais de notificação** em **Configurações do projeto → Notificações → Configurações de notificação**. Um administrador do projeto não pode. Em um OneUptime auto-hospedado, SMS e chamadas também precisam de uma conta Twilio ou de um gateway que você mesmo mantém, e o Telegram de um bot que o administrador do servidor conecta; veja [Integração do Twilio](/docs/self-hosted/twilio-integration) e [Gateway de SMS e chamadas](/docs/self-hosted/sms-and-call-gateway).
+Enquanto um canal está desativado, ninguém no projeto pode adicionar um método nele: o cartão dele não tem botão de adicionar, e diz quem pode ativá-lo. Um proprietário do projeto, um **Administrador de cobrança** ou alguém com **Manage Billing** o ativa, no cartão **Canais de notificação** em **Configurações do projeto → Notificações → Canais de notificação**. Um administrador do projeto não pode. Em um OneUptime auto-hospedado, SMS e chamadas também precisam de uma conta Twilio ou de um gateway que você mesmo mantém, e o Telegram de um bot que o administrador do servidor conecta; veja [Integração do Twilio](/docs/self-hosted/twilio-integration) e [Gateway de SMS e chamadas](/docs/self-hosted/sms-and-call-gateway).
 
 ## Exclua um método
 
@@ -197,7 +200,7 @@ Confira se o telefone aparece em **Dispositivos de Notificação Push**, e envie
 ## Próximos passos
 
 :::cards
-- [Regras de Plantão pessoais](/docs/notifications/on-call-rules): Decida qual método cada acionamento tenta, e quando.
+- [Como me contatar](/docs/notifications/on-call-rules): Decida qual método cada acionamento tenta, e quando.
 - [Configurações de notificação](/docs/notifications/notification-settings): Escolha as novidades de que você fica sabendo, e por quais canais.
 - [Visão geral dos aplicativos](/docs/mobile-desktop-apps/index): Receba os acionamentos no seu telefone ou computador.
 - [Como o OneUptime chega até você](/docs/notifications/index): Como métodos, regras e configurações se encaixam.

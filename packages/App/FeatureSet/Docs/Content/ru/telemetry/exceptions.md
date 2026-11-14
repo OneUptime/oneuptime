@@ -1,4 +1,4 @@
-# Отслеживание исключений
+# Исключения
 
 Отслеживание исключений собирает ошибки, которые выбрасывает ваш код, и объединяет все появления одной и той же ошибки в одно исключение с его трассировкой стека, динамикой и запросами, в которых оно произошло. Разбирайте их как список дел: исправляйте, отмечайте как устранённые или архивируйте шум, а ИИ пусть открывает pull request для тех, что он может исправить.
 
@@ -39,7 +39,7 @@ flowchart TB
 ## Перед началом
 
 - **Поступающие спаны или логи.** Инструментируйте свои сервисы с помощью [OpenTelemetry](/docs/telemetry/open-telemetry). Вкладка **Руководство по настройке** показывает код для вашего языка.
-- **Роль, которая читает телеметрию.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member или Telemetry Viewer либо пользовательская роль с разрешением Read Telemetry Service Exception. Чтобы устранять и архивировать, нужны Project Owner или Project Admin либо разрешение Edit Telemetry Service Exception.
+- **Роль, которая читает телеметрию.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member или Telemetry Viewer либо пользовательская роль с разрешением Read Exceptions. Чтобы устранять и архивировать, нужны Project Owner или Project Admin либо разрешение Edit Exceptions.
 
 ## Разбор списка
 

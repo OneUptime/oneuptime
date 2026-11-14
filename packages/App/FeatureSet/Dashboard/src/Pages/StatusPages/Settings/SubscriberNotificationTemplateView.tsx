@@ -364,7 +364,7 @@ const SubscriberNotificationTemplateView: FunctionComponent<
             : "Available variables you can use in your template body based on the selected event type."
         }
       >
-        <div className="p-4 space-y-4">
+        <div className="space-y-4">
           <MarkdownViewer
             text={getSubscriberNotificationTemplateVariablesDocumentation(
               eventType,

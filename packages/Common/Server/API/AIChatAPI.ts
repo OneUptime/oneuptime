@@ -55,6 +55,8 @@ import ChatRunCancellation, {
   ChatRunCancellationResult,
 } from "../Utils/AI/Chat/ChatRunCancellation";
 import logger from "../Utils/Logger";
+import ServerProducts from "../Utils/ServerProducts/ServerProducts";
+import ProductKey from "../../Types/Product/ProductKey";
 
 const MAX_USER_MESSAGE_LENGTH: number = 8000;
 const MAX_CONCURRENT_RUNS_PER_PROJECT: number = 3;
@@ -89,6 +91,12 @@ router.post(
       const projectId: ObjectID =
         CommonAPI.assertAuthenticatedProjectMember(props);
       const userId: ObjectID = props.userId!;
+
+      /*
+       * Ask AI (the products menu's Chat) switched off on this server
+       * (#6815): no new turn, and the answer says who can switch it on.
+       */
+      await ServerProducts.assertProductIsOn(ProductKey.AIChat);
 
       const content: string = (req.body["content"] as string) || "";
 
@@ -134,7 +142,7 @@ router.post(
 
         if (!isAccessible) {
           throw new BadDataException(
-            "The selected AI provider is not available for this project.",
+            "The selected LLM provider is not available for this project.",
           );
         }
       }
@@ -522,7 +530,7 @@ router.post(
         databaseProps: props,
         allowedPermissions: new LlmProvider().getReadPermissions(),
         errorMessage:
-          "You do not have permission to read this project's AI providers.",
+          "You do not have permission to read this project's LLM providers.",
       });
 
       const [providers, defaultProvider, project]: [

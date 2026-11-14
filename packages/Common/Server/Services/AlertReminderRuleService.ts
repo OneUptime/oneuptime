@@ -17,6 +17,9 @@ import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLim
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 import RuleCriteriaMatcher from "../../Utils/Rules/RuleCriteriaMatcher";
 import { RuleEvaluation } from "../Utils/PatternWorkScope";
+import CreateBy from "../Types/Database/CreateBy";
+import UpdateBy from "../Types/Database/UpdateBy";
+import ReminderIntervalCheck from "../Utils/Rules/ReminderIntervalCheck";
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -24,6 +27,24 @@ export class Service extends ProjectReferencesService<Model> {
     if (IsBillingEnabled) {
       this.hardDeleteItemsOlderThanInDays("createdAt", 3 * 365); // 3 years
     }
+  }
+
+  /*
+   * The interval is a whole number of minutes from 1 to a year
+   * (Types/Reminder/ReminderInterval), however the rule is saved - the
+   * Dashboard, the API, Terraform, MCP or a workflow. Checked before
+   * anything the rule names is looked up: the value alone decides.
+   */
+  protected override async checkCreateBeforeReferences(
+    createBy: CreateBy<Model>,
+  ): Promise<void> {
+    ReminderIntervalCheck.check(createBy.data);
+  }
+
+  protected override async checkUpdateBeforeReferences(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    ReminderIntervalCheck.check(updateBy.data);
   }
 
   @CaptureSpan()

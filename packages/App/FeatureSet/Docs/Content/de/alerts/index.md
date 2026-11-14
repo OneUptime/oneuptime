@@ -158,7 +158,7 @@ Eine Episode, die eine private Warnung öffnet, ist nicht privat und zeigt desha
 
 ## Wer von einer Warnung erfährt
 
-- **Die Bereitschaft.** Die Bereitschaftsrichtlinien der Warnung alarmieren ihre Personen, jede so, wie sie es unter **Benutzereinstellungen → Bereitschaftsregeln** auf dem Tab **Warnungen** eingerichtet hat. Wer auf die Alarmierung antwortet, bestätigt die Warnung, und die Alarmierung endet.
+- **Die Bereitschaft.** Die Bereitschaftsrichtlinien der Warnung alarmieren ihre Personen, jede so, wie sie es unter **Benutzereinstellungen → Wie ich erreichbar bin** auf dem Tab **Warnungen** eingerichtet hat. Wer auf die Alarmierung antwortet, bestätigt die Warnung, und die Alarmierung endet.
 - **Ihre Eigentümer.** Per E-Mail, sofern sie unter **Benutzereinstellungen → Benachrichtigungseinstellungen** auf dem Tab **Warnungen** keine anderen Kanäle gewählt haben: **Warnung erstellt**, **Warnungsstatus geändert** und **Warnungserinnerung** sind standardmäßig eingeschaltet, **Warnungsnotiz veröffentlicht** und **Als Eigentümer der Warnung hinzugefügt** sind aus, bis jemand sie einschaltet. Eine Warnung ohne Eigentümer benachrichtigt stattdessen die Eigentümer des Projekts.
 - **Ihre Chat-Werkzeuge.** **Warnungen → Arbeitsbereich** enthält die Slack- und Microsoft-Teams-Regeln, die Warnungen und Episoden in Kanäle posten. Siehe [Slack](/docs/workspace-connections/slack) und [Microsoft Teams](/docs/workspace-connections/microsoft-teams).
 

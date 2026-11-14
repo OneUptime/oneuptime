@@ -1324,7 +1324,7 @@ test("a database just connected, not read yet: one step of five done, and the Ov
   await screenshot(page, "data-observability-connected-1440");
 });
 
-test("an Overview that cannot be read says why, and Refresh reads it again; it never offers to connect a first database", async ({
+test("an Overview that cannot be read says why, and Try again reads it again; it never offers to connect a first database", async ({
   page,
 }: {
   page: Page;
@@ -1333,9 +1333,21 @@ test("an Overview that cannot be read says why, and Refresh reads it again; it n
 
   const refresh: Locator = page.getByTestId("refresh-button");
   await expect(refresh).toBeVisible();
+  /*
+   * The server's answer says nothing ("Something went wrong. Please try
+   * again."): the page says it could not be explained, and what to do next,
+   * and offers Try again (#6836).
+   */
+  await expect(page.getByTestId("error-what-failed")).toHaveText(
+    "This did not finish.",
+  );
+  await expect(page.getByTestId("error-why-and-next")).toHaveText(
+    "The server ran into a problem it could not explain. Try again in a moment.",
+  );
   await expect(
     page.getByText("Something went wrong. Please try again."),
-  ).toBeVisible();
+  ).toHaveCount(0);
+  await expect(refresh).toHaveText("Try again");
   await expect(showcase(page)).toHaveCount(0);
   await expect(needsAttention(page)).toHaveCount(0);
   await expect(setupSteps(page)).toHaveCount(0);

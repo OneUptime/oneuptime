@@ -33,7 +33,7 @@ När åsidosättningen tar slut är utlarmningarna personens egna igen. **Tidsli
 :::steps
 ### Öppna åsidosättningarna
 
-Gå till **Jourtjänst → Avancerad → Användaråsidosättningar** för att täcka upp för någon i varje jourpolicy, eller till en policys egen sida **Användaråsidosättningar**, under **Avancerad**, för att täcka upp för personen bara i den policyn. Klicka på **Lägg till Användaråsidosättning**.
+Gå till **Jour → Avancerad → Användaråsidosättningar** för att täcka upp för någon i varje jourpolicy, eller till en policys egen sida **Användaråsidosättningar**, under **Avancerad**, för att täcka upp för personen bara i den policyn. Klicka på **Lägg till Användaråsidosättning**.
 
 ### Ange vem som är borta
 
@@ -54,7 +54,7 @@ Varje åsidosättning är en rad: **Borta**, **Täcks av**, **Börjar** och **Sl
 
 | Tillagd under | Kort | Gäller för |
 | --- | --- | --- |
-| **Jourtjänst → Avancerad → Användaråsidosättningar** | **Globala användaråsidosättningar** | Varje jourpolicy i projektet |
+| **Jour → Avancerad → Användaråsidosättningar** | **Globala användaråsidosättningar** | Varje jourpolicy i projektet |
 | En policys **Användaråsidosättningar** | **Jourpolicyns användaråsidosättningar** | Bara den policyn |
 
 När två åsidosättningar för samma person överlappar vinner policyns egen över en global, och en som anger vem som täcker upp vinner över en som hoppar över. En utlarmning utan policy, från ett arbetsflöde eller från chatt, följer bara de globala åsidosättningarna.
@@ -68,9 +68,9 @@ När någon lämnar projektet tas varje åsidosättning som nämner hen och inte
 
 ## Vem som får lägga till åsidosättningar
 
-**Projektägare**, **Projektadministratör**, **Projektmedlem**, **Jouradministratör** och **Jourmedlem** får lägga till och ta bort åsidosättningar; **Tittare** och **Jourtittare** får se dem. I en anpassad roll heter behörigheterna **Create On-Call Duty Policy User Override**, **Delete On-Call Duty Policy User Override** och **Read On-Call Duty Policy User Override**. På **Tidslinje för jourscheman** ser bara personer som får läsa åsidosättningar vems pass som täcks upp.
+**Projektägare**, **Projektadministratör**, **Projektmedlem**, **Jouradministratör** och **Jourmedlem** får lägga till och ta bort åsidosättningar; **Tittare** och **Jourtittare** får se dem. I en anpassad roll heter behörigheterna **Create On-Call Policy User Override**, **Delete On-Call Policy User Override** och **Read On-Call Policy User Override**. På **Tidslinje för jourscheman** ser bara personer som får läsa åsidosättningar vems pass som täcks upp.
 
-En åsidosättning på en policy följer policyns omfattning. Ge ett team **Jourmedlem** begränsad till de policyer det äger, eller till sin etikett, så lägger dess medlemmar till och tar bort åsidosättningar bara på de policyerna. En global åsidosättning gäller för varje policy, även ett annat teams, så att lägga till eller ta bort en kräver behörigheten för åsidosättningar över hela projektet. Med en snävare behörighet är **Lägg till Användaråsidosättning** och **Ta bort** under **Jourtjänst → Avancerad → Användaråsidosättningar** låsta och säger varför. **Hoppa över till…** i ett schemas lager och **Hitta ersättare** på dina kommande pass, som lägger till globala åsidosättningar, erbjuder i stället de policyer du får lägga till åsidosättningar på, med en åsidosättning per policy, och det gör även ersättaren i mobilappen; där du inte får på någon av dem är de låsta och säger varför. Teamet lägger till sina åsidosättningar på varje policys egen sida **Användaråsidosättningar**. Detsamma gäller API:et: en åsidosättning utan `onCallDutyPolicyId` avvisas för en behörighet som är begränsad till etiketter eller till ägda policyer.
+En åsidosättning på en policy följer policyns omfattning. Ge ett team **Jourmedlem** begränsad till de policyer det äger, eller till sin etikett, så lägger dess medlemmar till och tar bort åsidosättningar bara på de policyerna. En global åsidosättning gäller för varje policy, även ett annat teams, så att lägga till eller ta bort en kräver behörigheten för åsidosättningar över hela projektet. Med en snävare behörighet är **Lägg till Användaråsidosättning** och **Ta bort** under **Jour → Avancerad → Användaråsidosättningar** låsta och säger varför. **Hoppa över till…** i ett schemas lager och **Hitta ersättare** på dina kommande pass, som lägger till globala åsidosättningar, erbjuder i stället de policyer du får lägga till åsidosättningar på, med en åsidosättning per policy, och det gör även ersättaren i mobilappen; där du inte får på någon av dem är de låsta och säger varför. Teamet lägger till sina åsidosättningar på varje policys egen sida **Användaråsidosättningar**. Detsamma gäller API:et: en åsidosättning utan `onCallDutyPolicyId` avvisas för en behörighet som är begränsad till etiketter eller till ägda policyer.
 
 I OneUptime Cloud kräver användaråsidosättningar abonnemanget **Growth**.
 
@@ -105,11 +105,11 @@ En åsidosättning där personen som är borta och den som täcker upp är samma
 ## Felsökning
 
 :::details Personen på semester larmades ändå
-Kontrollera var åsidosättningen lades till. En på en policys sida **Användaråsidosättningar** gäller bara den policyn, och andra policyer larmar fortfarande personen: lägg till den under **Jourtjänst → Avancerad → Användaråsidosättningar** för att täcka varje policy. Kontrollera också **Börjar** och **Slutar**: tiderna visas i din tidszon.
+Kontrollera var åsidosättningen lades till. En på en policys sida **Användaråsidosättningar** gäller bara den policyn, och andra policyer larmar fortfarande personen: lägg till den under **Jour → Avancerad → Användaråsidosättningar** för att täcka varje policy. Kontrollera också **Börjar** och **Slutar**: tiderna visas i din tidszon.
 :::
 
 :::details Den som täcker upp larmades inte heller
-Hen nås via sina egna personliga jourregler och verifierade metoder. Slå upp hen under **Jourtjänst → Beredskap**, och kontrollera körningen i policyns **Exekveringsloggar**.
+Hen nås via sina egna personliga jourregler och verifierade metoder. Slå upp hen under **Jour → Beredskap**, och kontrollera körningen i policyns **Exekveringsloggar**.
 :::
 
 :::details Jag kan inte lägga till en åsidosättning

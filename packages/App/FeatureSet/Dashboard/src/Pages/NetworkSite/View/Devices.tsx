@@ -6,6 +6,7 @@ import { NETWORK_DEVICE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDe
 import { NETWORK_SITE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/NetworkSiteMetricDescriptions";
 import DeviceStatusUtil, {
   BOUND_MONITOR_PENDING_TOOLTIP,
+  DEVICE_BOUND_MONITOR_SELECT,
   DEVICE_STATUS_SELECT,
   DeviceReachabilityResult,
   NEVER_POLLED_PENDING_TOOLTIP,
@@ -17,6 +18,7 @@ import DeviceStatusUtil, {
   PROBE_POLLED_UP_TOOLTIP,
   SNMP_FAILING_QUALIFIER,
   UNBOUND_MONITOR_BACKED_PENDING_TOOLTIP,
+  getBoundMonitorNotCheckedQualifier,
   getStaleTooltip,
   hasNoSnmpInventory,
   isSnmpFailing,
@@ -90,6 +92,8 @@ const NetworkSiteDevices: FunctionComponent<
           interfacesDown: true,
           // For the "No monitor" qualifier beside a monitor-backed Pending.
           monitorId: true,
+          // For the "Monitoring off" and "Monitor archived" qualifiers.
+          ...DEVICE_BOUND_MONITOR_SELECT,
         }}
         columns={[
           {
@@ -115,6 +119,17 @@ const NetworkSiteDevices: FunctionComponent<
                * have is how a real ping outage gets missed.
                */
               const isMonitorBacked: boolean = reachability.isMonitorBacked;
+
+              /*
+               * Bound to a monitor that is not checked - monitoring off, or
+               * archived: Pending, as the monitor gives no verdict (issue
+               * #6965), with a qualifier that says why.
+               */
+              const notCheckedQualifier: {
+                text: string;
+                tooltip: string;
+                pendingTooltip: string;
+              } | null = getBoundMonitorNotCheckedQualifier(item);
 
               let verdictPill: ReactElement;
 
@@ -153,9 +168,11 @@ const NetworkSiteDevices: FunctionComponent<
                     tooltip={
                       isMonitorBacked && isUnboundMonitorBackedDevice(item)
                         ? UNBOUND_MONITOR_BACKED_PENDING_TOOLTIP
-                        : isMonitorBacked
-                          ? BOUND_MONITOR_PENDING_TOOLTIP
-                          : NEVER_POLLED_PENDING_TOOLTIP
+                        : notCheckedQualifier
+                          ? notCheckedQualifier.pendingTooltip
+                          : isMonitorBacked
+                            ? BOUND_MONITOR_PENDING_TOOLTIP
+                            : NEVER_POLLED_PENDING_TOOLTIP
                     }
                   />
                 );
@@ -179,6 +196,21 @@ const NetworkSiteDevices: FunctionComponent<
                     color={Gray500}
                     size={PillSize.Small}
                     tooltip={NO_MONITOR_QUALIFIER.tooltip}
+                  />,
+                );
+              }
+
+              if (
+                notCheckedQualifier &&
+                reachability.status === NetworkDeviceStatus.Pending
+              ) {
+                qualifierPills.push(
+                  <Pill
+                    key="monitor-not-checked"
+                    text={notCheckedQualifier.text}
+                    color={Gray500}
+                    size={PillSize.Small}
+                    tooltip={notCheckedQualifier.tooltip}
                   />,
                 );
               }

@@ -35,12 +35,17 @@ import {
   RESOURCE_COLUMN_TONE_CLASS_NAMES,
   ResourceColumnTone,
 } from "../Infrastructure/ResourceTable";
-import { formatBytes } from "../TelemetryResource/telemetryFormat";
 import {
   countOpenStackRows,
   fetchOpenStackApiStates,
   fetchOpenStackNames,
 } from "../../Pages/OpenStack/Utils/OpenStackPartData";
+import {
+  formatOpenStackBytes,
+  formatOpenStackChartBytes,
+  formatOpenStackCount,
+  formatOpenStackPercent,
+} from "../../Pages/OpenStack/Utils/OpenStackFigures";
 import {
   OPENSTACK_SERVICE_OF_KIND,
   OpenStackAllocationKey,
@@ -223,6 +228,44 @@ function getFactCellText(value: string): ReactElement {
 }
 
 /*
+ * What is promised out of what can be, in a cell. One value on its own reads
+ * its own way ("۶٫۰ TiB", getFactCellText). A pair is a sentence: it reads
+ * the page's way with each value set apart, so a Persian cell draws "۴۸۰ GiB
+ * از ۱٫۰ TiB" from the right with each number before its unit. In a bdi the
+ * pair would take the direction of its first size's unit, and a Persian
+ * reader would read it backwards (issue #7191).
+ */
+function getAmountCell(data: {
+  taken: number | null | undefined;
+  capacity: number | null | undefined;
+  format: (value: number) => string;
+  // After the pair, in the same line: " (۱۹%)".
+  after?: string | undefined;
+}): ReactElement {
+  const isPair: boolean =
+    data.taken !== null &&
+    data.taken !== undefined &&
+    data.capacity !== null &&
+    data.capacity !== undefined;
+  const text: string = formatOpenStackAmount({
+    taken: data.taken,
+    capacity: data.capacity,
+    format: data.format,
+    setsValuesApart: isPair,
+  });
+
+  if (!text) {
+    return getFactCellText("");
+  }
+
+  return isPair ? (
+    <span data-testid="openstack-amount-cell">{`${text}${data.after || ""}`}</span>
+  ) : (
+    getFactCellText(`${text}${data.after || ""}`)
+  );
+}
+
+/*
  * A column read from `facts`, what OpenStack says about one kind and no other.
  * Never sorted: the server orders by columns, and facts is not one.
  */
@@ -348,7 +391,9 @@ export function getOpenStackAllocationColumn(data: {
         return getFactCellText("");
       }
       const percent: string =
-        line.percent === null ? "" : ` (${Math.round(line.percent)}%)`;
+        line.percent === null
+          ? ""
+          : ` (${formatOpenStackPercent(line.percent)})`;
       const ratio: string = formatOpenStackAllocationRatio(line.ratio);
       return (
         <div className="flex flex-col">
@@ -361,7 +406,12 @@ export function getOpenStackAllocationColumn(data: {
                   : undefined
             }
           >
-            <bdi>{`${text}${percent}`}</bdi>
+            {getAmountCell({
+              taken: line.taken,
+              capacity: line.capacity,
+              format: data.format,
+              after: percent,
+            })}
           </span>
           {line.isLastKnown ? (
             <span className="text-xs text-gray-500">
@@ -381,10 +431,16 @@ export function getOpenStackAllocationColumn(data: {
   };
 }
 
+/*
+ * setsValuesApart: the pair is drawn on the page and nowhere else, so each
+ * value is set apart from its words (SentenceOptions): "۴۸۰ GiB" reads with
+ * its number first in a Persian sentence. Never for what is exported.
+ */
 export function formatOpenStackAmount(data: {
   taken: number | null | undefined;
   capacity: number | null | undefined;
   format: (value: number) => string;
+  setsValuesApart?: boolean | undefined;
 }): string {
   const taken: string =
     data.taken === null || data.taken === undefined
@@ -396,21 +452,25 @@ export function formatOpenStackAmount(data: {
       : data.format(data.capacity);
 
   if (taken && capacity) {
-    return translateTemplate("{{used}} of {{total}}", {
-      used: taken,
-      total: capacity,
-    });
+    return translateTemplate(
+      "{{used}} of {{total}}",
+      {
+        used: taken,
+        total: capacity,
+      },
+      { setsValuesApart: Boolean(data.setsValuesApart) },
+    );
   }
   return taken || capacity;
 }
 
-export function formatOpenStackBytes(bytes: number): string {
-  return formatBytes(bytes);
-}
-
-export function formatOpenStackCount(count: number): string {
-  return Number.isInteger(count) ? String(count) : count.toFixed(1);
-}
+// Where they have always been read from; written in OpenStackFigures (React-free).
+export {
+  formatOpenStackBytes,
+  formatOpenStackChartBytes,
+  formatOpenStackCount,
+  formatOpenStackPercent,
+};
 
 // "12 of 64": what is promised, and what can be. Its title says "allocated".
 export function getOpenStackAmountColumn(data: {
@@ -444,12 +504,15 @@ export function getOpenStackAmountColumn(data: {
     },
     getElement: (row: OpenStackResource): ReactElement => {
       const tone: ResourceColumnTone | undefined = data.getTone?.(row);
+      const cell: ReactElement = getAmountCell({
+        taken: row[data.field],
+        capacity: row[data.capacityField],
+        format: data.format,
+      });
       return tone ? (
-        <span className={RESOURCE_COLUMN_TONE_CLASS_NAMES[tone]}>
-          {getFactCellText(getText(row))}
-        </span>
+        <span className={RESOURCE_COLUMN_TONE_CLASS_NAMES[tone]}>{cell}</span>
       ) : (
-        getFactCellText(getText(row))
+        cell
       );
     },
     getExportValue: getText,

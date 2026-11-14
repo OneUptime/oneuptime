@@ -1,14 +1,18 @@
 import { describe, expect, test } from "@jest/globals";
 import DeviceStatusUtil, {
+  DEVICE_BOUND_MONITOR_SELECT,
   DEVICE_MIN_STALE_WINDOW_IN_MINUTES,
   DEVICE_MISSED_POLL_ALLOWANCE,
   DEVICE_STATUS_SELECT,
   DeviceReachabilityResult,
+  MONITORING_OFF_QUALIFIER,
+  MONITOR_ARCHIVED_QUALIFIER,
   NO_MONITOR_QUALIFIER,
   NO_PROBE_QUALIFIER,
   NO_SNMP_INTERFACES_LABEL,
   NetworkDeviceStatus,
   SNMP_FAILING_QUALIFIER,
+  getBoundMonitorNotCheckedQualifier,
   hasNoSnmpInventory,
   isSnmpFailing,
   isUnboundMonitorBackedDevice,
@@ -823,6 +827,8 @@ describe("the qualifier vocabulary", () => {
     ["No probe", NO_PROBE_QUALIFIER],
     ["SNMP failing", SNMP_FAILING_QUALIFIER],
     ["No SNMP", NO_SNMP_INTERFACES_LABEL],
+    ["Monitoring off", MONITORING_OFF_QUALIFIER],
+    ["Monitor archived", MONITOR_ARCHIVED_QUALIFIER],
   ])(
     "%s is its own word, and explains what to do about it",
     (expected: string, qualifier: { text: string; tooltip: string }) => {
@@ -853,5 +859,155 @@ describe("the qualifier vocabulary", () => {
     expect(NO_SNMP_INTERFACES_LABEL.tooltip.toLowerCase()).toContain(
       "pinged only",
     );
+  });
+});
+
+/*
+ * Issue #6965: a monitor-backed device bound to a monitor nothing checks -
+ * its monitoring turned off, or archived - takes no status from it (the
+ * server leaves the stamp empty), so it reads Pending. The qualifier beside
+ * that Pending says why, and what puts it back, instead of the bound
+ * monitor's "waiting for its first check" sentence, which would never come
+ * true.
+ */
+describe("getBoundMonitorNotCheckedQualifier", () => {
+  const MONITOR_ID: ObjectID = new ObjectID(
+    "66666666-6666-4666-8666-666666666666",
+  );
+
+  test("monitoring turned off on the bound monitor: Monitoring off", () => {
+    expect(
+      getBoundMonitorNotCheckedQualifier({
+        monitoringMethod: "Monitor",
+        monitorId: MONITOR_ID,
+        monitor: { disableActiveMonitoring: true, isArchived: false },
+      }),
+    ).toBe(MONITORING_OFF_QUALIFIER);
+  });
+
+  test("the bound monitor archived: Monitor archived", () => {
+    expect(
+      getBoundMonitorNotCheckedQualifier({
+        monitoringMethod: "Monitor",
+        monitorId: MONITOR_ID.toString(),
+        monitor: { disableActiveMonitoring: false, isArchived: true },
+      }),
+    ).toBe(MONITOR_ARCHIVED_QUALIFIER);
+  });
+
+  // Unarchiving is what puts the monitor back; its switch matters after that.
+  test("archived and turned off: archived wins", () => {
+    expect(
+      getBoundMonitorNotCheckedQualifier({
+        monitoringMethod: "Monitor",
+        monitorId: MONITOR_ID,
+        monitor: { disableActiveMonitoring: true, isArchived: true },
+      }),
+    ).toBe(MONITOR_ARCHIVED_QUALIFIER);
+  });
+
+  test("a bound monitor that is checked: no qualifier", () => {
+    expect(
+      getBoundMonitorNotCheckedQualifier({
+        monitoringMethod: "Monitor",
+        monitorId: MONITOR_ID,
+        monitor: { disableActiveMonitoring: false, isArchived: false },
+      }),
+    ).toBeNull();
+  });
+
+  /*
+   * A row read without the relation - a page that did not ask for
+   * DEVICE_BOUND_MONITOR_SELECT, or a monitor the reader may not see - reads
+   * as checked, as MonitoringOff.isMonitored reads a monitor read without
+   * the two switches: the page says what it said before, never a false
+   * "Monitoring off".
+   */
+  test.each([
+    ["no relation at all", undefined],
+    ["a null relation", null],
+    ["a relation without the switches", {}],
+    [
+      "switches read as null",
+      { disableActiveMonitoring: null, isArchived: null },
+    ],
+  ])(
+    "%s: no qualifier",
+    (
+      _label: string,
+      monitor:
+        | {
+            disableActiveMonitoring?: boolean | null | undefined;
+            isArchived?: boolean | null | undefined;
+          }
+        | null
+        | undefined,
+    ) => {
+      expect(
+        getBoundMonitorNotCheckedQualifier({
+          monitoringMethod: "Monitor",
+          monitorId: MONITOR_ID,
+          monitor: monitor,
+        }),
+      ).toBeNull();
+    },
+  );
+
+  // "No monitor" is that device's qualifier, decided elsewhere.
+  test("a monitor-backed device with nothing bound: no qualifier, whatever the relation says", () => {
+    expect(
+      getBoundMonitorNotCheckedQualifier({
+        monitoringMethod: "Monitor",
+        monitorId: null,
+        monitor: { disableActiveMonitoring: true, isArchived: true },
+      }),
+    ).toBeNull();
+  });
+
+  /*
+   * A probe-polled device is judged by its poll, never by the monitor its
+   * row happens to point at, so the switches of that monitor say nothing
+   * about its status.
+   */
+  test.each([["Probe"], ["SNMP"], [undefined], [null]])(
+    "a device whose method %p reads as Probe: no qualifier",
+    (method: string | null | undefined) => {
+      expect(
+        getBoundMonitorNotCheckedQualifier({
+          monitoringMethod: method,
+          monitorId: MONITOR_ID,
+          monitor: { disableActiveMonitoring: true, isArchived: true },
+        }),
+      ).toBeNull();
+    },
+  );
+
+  test("each says what puts the device back, and sits beside Pending", () => {
+    expect(MONITORING_OFF_QUALIFIER.tooltip).toContain(
+      "Turn monitoring back on",
+    );
+    expect(MONITOR_ARCHIVED_QUALIFIER.tooltip).toContain("Unarchive");
+
+    for (const qualifier of [
+      MONITORING_OFF_QUALIFIER,
+      MONITOR_ARCHIVED_QUALIFIER,
+    ]) {
+      // Its site leaves it out: the reason the site's color moved.
+      expect(qualifier.tooltip).toContain("its site leaves it out");
+      expect(qualifier.pendingTooltip).toContain("Nothing checks this device");
+      expect(qualifier.pendingTooltip).not.toBe(qualifier.tooltip);
+    }
+  });
+
+  /*
+   * The relation the qualifier reads, and nothing the verdict reads: the
+   * rule never sees the switches (the stamp is already empty), and
+   * DEVICE_STATUS_SELECT is pinned whole above.
+   */
+  test("DEVICE_BOUND_MONITOR_SELECT asks for the bound monitor's two switches, and only those", () => {
+    expect(DEVICE_BOUND_MONITOR_SELECT).toEqual({
+      monitor: { disableActiveMonitoring: true, isArchived: true },
+    });
+    expect(Object.keys(DEVICE_STATUS_SELECT)).not.toContain("monitor");
   });
 });

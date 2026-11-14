@@ -581,9 +581,16 @@ describe("the card", () => {
     listSpy.mockRejectedValueOnce(new Error("Something went wrong."));
     renderCard();
 
+    /*
+     * A bare "Something went wrong." explains nothing, so the card says what
+     * it means instead (#6836).
+     */
     expect(
-      await screen.findByText("Something went wrong."),
+      await screen.findByText(
+        "The server ran into a problem it could not explain. Try again in a moment.",
+      ),
     ).toBeInTheDocument();
+    expect(screen.queryByText("Something went wrong.")).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: /refresh|try again/i }));
 

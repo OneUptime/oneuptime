@@ -1257,7 +1257,9 @@ describe("POST /verify-totp-enrolment", () => {
     const result: InvokeResult = await postEnrolment({ code: "000000" });
 
     expect(sessionViolations()).toEqual([]);
-    expect(refusalMessage(result)).toBe("Invalid code.");
+    expect(refusalMessage(result)).toBe(
+      "That code is not right. Enter the 6-digit code your authenticator app shows now.",
+    );
     expect(totpUpdateOneById).not.toHaveBeenCalled();
   });
 
@@ -1384,7 +1386,9 @@ describe("POST /verify-totp-enrolment", () => {
     });
 
     expect(sessionViolations()).toEqual([]);
-    expect(refusalMessage(result)).toBe("Invalid two factor auth id.");
+    expect(refusalMessage(result)).toBe(
+      "This authenticator is no longer set up for your account. Go back and sign in again.",
+    );
 
     const query: JSONObject = (
       totpFindOneBy.mock.calls[0] as Array<{ query: JSONObject }>
@@ -1468,7 +1472,9 @@ describe("POST /verify-totp-enrolment", () => {
 
     const result: InvokeResult = await postEnrolment({ code: "123456" });
 
-    expect(refusalMessage(result)).toBe("Invalid two factor auth id.");
+    expect(refusalMessage(result)).toBe(
+      "This authenticator is no longer set up for your account. Go back and sign in again.",
+    );
     expect(sessionViolations()).toEqual([]);
 
     const query: JSONObject = (
@@ -1739,7 +1745,9 @@ describe("POST /verify-totp-enrolment", () => {
     });
 
     expect(sessionViolations()).toEqual([]);
-    expect(refusalMessage(result)).toBe("Invalid code.");
+    expect(refusalMessage(result)).toBe(
+      "That code is not right. Enter the 6-digit code your authenticator app shows now.",
+    );
   });
 
   /*

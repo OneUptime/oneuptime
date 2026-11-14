@@ -55,6 +55,10 @@ $ErrorActionPreference = "Stop"
 Set-StrictMode -Version 2
 
 $ServiceName = "oneuptime-collector"
+# Where the supervisor asks OneUptime for its config, under the OneUptime
+# URL: under /telemetry, which every OneUptime sends to its app, whatever
+# sits in front of it.
+$OpAmpPath = "/telemetry/opamp/v1"
 $InstallDir = Join-Path $env:ProgramFiles "OneUptime Collector"
 $DataDir = Join-Path $env:ProgramData "OneUptime Collector"
 $StateDir = Join-Path $DataDir "state"
@@ -241,7 +245,7 @@ $config = @"
 # Written by the OneUptime host collector installer. To change it, run the
 # installer again; the collector's own config comes from OneUptime.
 server:
-  endpoint: $(ConvertTo-YamlString "$Url/opamp/v1")
+  endpoint: $(ConvertTo-YamlString "$Url$OpAmpPath")
   headers:
     x-oneuptime-token: $(ConvertTo-YamlString $Key)
 
@@ -328,11 +332,12 @@ else {
 $startedAt = Get-Date
 Start-Service -Name $ServiceName
 
-# The HTTP status OneUptime refused the supervisor's key with, if it did,
-# read from this run's events; empty while it has not.
+# The HTTP status the supervisor was turned away with, if it was, read from
+# this run's events; empty while it has not been. 401, 403 and 422 refuse
+# the key; 404 says OneUptime is not at the address it asks for its config.
 function Get-RefusedStatus {
     $events = Get-WinEvent -FilterHashtable @{ LogName = "Application"; ProviderName = $ServiceName; StartTime = $startedAt } -ErrorAction SilentlyContinue
-    foreach ($status in @("401", "403", "422")) {
+    foreach ($status in @("401", "403", "422", "404")) {
         foreach ($logEvent in @($events)) {
             if ($null -ne $logEvent -and $logEvent.Message -like "*response from server: $status*") {
                 return $status
@@ -346,6 +351,16 @@ Write-Host "Waiting for OneUptime to send this host its config..."
 $deadline = (Get-Date).AddSeconds(60)
 while ((Get-Date) -lt $deadline) {
     $refusal = Get-RefusedStatus
+    if ($refusal -eq "404") {
+        Write-Host ""
+        Write-Host "OneUptime was not found at $Url$OpAmpPath (HTTP 404)."
+        Write-Host "That is where the collector asks for its config. Check that -Url is the address you open"
+        Write-Host "OneUptime at, such as https://oneuptime.com, with nothing after it. If a proxy or load balancer"
+        Write-Host "of yours sits in front of OneUptime, have it send $OpAmpPath to OneUptime, as it does /otlp."
+        Write-Host "The collector stays installed and asks again every 30 seconds."
+        # A throw, not exit, as below.
+        Stop-WithError "OneUptime was not found at $Url$OpAmpPath (HTTP 404)."
+    }
     if ($refusal) {
         Write-Host ""
         Write-Host "OneUptime refused the key (HTTP $refusal)."

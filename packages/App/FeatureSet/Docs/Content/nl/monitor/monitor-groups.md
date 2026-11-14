@@ -155,7 +155,7 @@ Dat is de regel: de groep toont haar slechtste monitor. Open **Monitoren** in de
 ## Volgende stappen
 
 :::cards
-- [Monitorcriteria en statussen](/docs/monitor/criteria-and-statuses): Wat de status van elke monitor bepaalt.
+- [Criteria en statussen](/docs/monitor/criteria-and-statuses): Wat de status van elke monitor bepaalt.
 - [Statuspagina – bronnen en groepen](/docs/status-pages/resources-and-groups): De rijen van een statuspagina indelen.
 - [Abonnees en aankondigingen](/docs/status-pages/subscribers): Klanten informeren over de incidenten van een groep.
 :::

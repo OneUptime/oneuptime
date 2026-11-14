@@ -2,6 +2,13 @@ export interface NavLink {
   // Stable English title — also used as a translation key.
   title: string;
   url: string;
+  /*
+   * A guide: a page written to be followed from its first line to its last
+   * to get one job done (the Quickstart, the Self-Hosting Guide, and the
+   * guides of #6821). Docs search ranks a guide above a reference page for
+   * the same words (Utils/DocsSearch.ts).
+   */
+  isGuide?: boolean | undefined;
 }
 
 export interface NavGroup {
@@ -70,6 +77,7 @@ const DocsNav: NavGroup[] = [
       {
         title: "Quickstart",
         url: "/docs/introduction/quickstart",
+        isGuide: true,
       },
       {
         title: "Core Concepts",
@@ -90,6 +98,35 @@ const DocsNav: NavGroup[] = [
       {
         title: "Your Account",
         url: "/docs/introduction/your-account",
+      },
+    ],
+  },
+  /*
+   * One page per job people come to OneUptime with (#6821), each followed
+   * from its first line to its last: what you will have, what you need,
+   * the steps (walking the product's guided setup where there is one),
+   * how to check it worked, what can go wrong and what to do next.
+   * Getting Started's "What do you want to do?" opens them, and the
+   * reference pages they replace for a newcomer point to them first.
+   */
+  {
+    title: "Guides",
+    section: "Get Started",
+    links: [
+      {
+        title: "Know When Your Website or API Is Down",
+        url: "/docs/guides/website-down",
+        isGuide: true,
+      },
+      {
+        title: "Get Paged by Phone, SMS or Push",
+        url: "/docs/guides/paging",
+        isGuide: true,
+      },
+      {
+        title: "Publish a Status Page",
+        url: "/docs/guides/status-page",
+        isGuide: true,
       },
     ],
   },
@@ -161,7 +198,7 @@ const DocsNav: NavGroup[] = [
         url: "/docs/monitor/monitor-templates",
       },
       {
-        title: "Monitor Criteria & Statuses",
+        title: "Criteria & Statuses",
         url: "/docs/monitor/criteria-and-statuses",
       },
       {
@@ -489,7 +526,7 @@ const DocsNav: NavGroup[] = [
     ],
   },
   {
-    title: "On Call",
+    title: "On-Call",
     section: "Incident Response",
     links: [
       {
@@ -547,7 +584,7 @@ const DocsNav: NavGroup[] = [
         url: "/docs/notifications/notification-methods",
       },
       {
-        title: "Personal On-Call Rules",
+        title: "How to Reach Me",
         url: "/docs/notifications/on-call-rules",
       },
       {
@@ -662,7 +699,7 @@ const DocsNav: NavGroup[] = [
        * explorers share.
        */
       {
-        title: "Service Catalog",
+        title: "Services",
         url: "/docs/telemetry/services",
       },
       {
@@ -678,7 +715,7 @@ const DocsNav: NavGroup[] = [
         url: "/docs/telemetry/metrics-explorer",
       },
       {
-        title: "Exception Tracking",
+        title: "Exceptions",
         url: "/docs/telemetry/exceptions",
       },
       {
@@ -724,7 +761,7 @@ const DocsNav: NavGroup[] = [
         url: "/docs/telemetry/ingestion-budgets",
       },
       {
-        title: "Continuous Profiling",
+        title: "Profiles",
         url: "/docs/telemetry/profiles",
       },
       {
@@ -1691,6 +1728,7 @@ const DocsNav: NavGroup[] = [
       {
         title: "Self-Hosting Guide",
         url: "/docs/installation/self-hosting-guide",
+        isGuide: true,
       },
       {
         title: "Docker Compose",

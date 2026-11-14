@@ -100,6 +100,6 @@ Een probe is losgekoppeld na drie minuten zonder heartbeat, en nog later nadat O
 
 :::cards
 - [Aangepaste probes](/docs/probe/custom-probe): Draai een probe in uw eigen netwerk.
-- [Monitorcriteria en statussen](/docs/monitor/criteria-and-statuses): Hoe criteria de status van een monitor bepalen.
+- [Criteria en statussen](/docs/monitor/criteria-and-statuses): Hoe criteria de status van een monitor bepalen.
 - [Incident- en waarschuwingssjablonen](/docs/monitor/incident-alert-templating): Formuleer het incident dat een monitor meldt.
 :::

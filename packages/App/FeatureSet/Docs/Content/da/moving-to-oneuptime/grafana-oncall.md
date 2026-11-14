@@ -83,10 +83,10 @@ En forhåndsvisning gemmes i en dag. Kun den person, der læste kontoen, kan mar
 
 :::steps
 ### Tjek vagtplanerne
-Åbn hver vagtplan under **Vagtordning** > **Vagtplaner**, og tjek, hvem der har vagt nu, og hvem der er den næste.
+Åbn hver vagtplan under **Vagt** > **Vagtplaner**, og tjek, hvem der har vagt nu, og hvem der er den næste.
 
 ### Sørg for, at alle kan tilkaldes
-Inviterede personer accepterer deres invitation og tilføjer derefter et telefonnummer, en e-mailadresse eller mobilappen, de kan tilkaldes på. **Vagtordning** > **Parathed** viser, hvem der endnu ikke kan nås.
+Inviterede personer accepterer deres invitation og tilføjer derefter et telefonnummer, en e-mailadresse eller mobilappen, de kan tilkaldes på. **Vagt** > **Parathed** viser, hvem der endnu ikke kan nås.
 
 ### Fortsæt dine hændelsesnumre
 Hvis dit team omtaler hændelser ved nummer, så lad OneUptimes numre starte efter dit sidste i Grafana OnCall: Under **Hændelser** > **Indstillinger** > **Nummerering** sætter du **Næste hændelsesnummer** på kortet **Næste nummer** til nummeret efter det. Et nummer betyder så aldrig to forskellige hændelser.

@@ -425,7 +425,7 @@ describe("Monitor criteria page — resolved references", () => {
       expect(screen.getByText("checkout")).toBeInTheDocument();
     });
 
-    expect(screen.getByText("Telemetry Services")).toBeInTheDocument();
+    expect(screen.getByText("Services")).toBeInTheDocument();
   });
 
   it("names the network device a network device monitor alerts on", async () => {

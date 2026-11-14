@@ -45,6 +45,13 @@
  *                              is refused, as the server refuses a second
  *                              row for an owner
  *              maintenance     every ScheduledMaintenance list fails
+ *              who-is-told     the FIRST who-is-told request fails, as a
+ *                              gateway's 502 does ("When this goes down"
+ *                              says so; its Try again reads it again)
+ *              who-is-told-reference  the FIRST who-is-told request fails
+ *                              as a failure the server could not explain
+ *                              does: a 500 naming the reference of its log
+ *                              lines (1f0c9a2b)
  *   ?maintenance=1  the subject monitor has scheduled maintenance on its
  *              uptime strip: a completed database upgrade two days ago and
  *              load balancer patching in progress now. Without it the
@@ -96,7 +103,24 @@
  *              project's owners and pages Ana Lopez through Primary
  *              On-Call) | nobody (no on-call rule matches, so nobody is
  *              paged - the break and its Set Up Paging link) | hidden
- *              (paging runs through a policy the reader may not see).
+ *              (paging runs through a policy the reader may not see, an
+ *              owner rule and a status page they may not see) | rules
+ *              (owner rules add the owners it emails, and a second status
+ *              page shows it through a monitor group) | gaps (the policy
+ *              pages Ben Ito as the next in Weekly Rotation's rotation,
+ *              and two targets of its first level reach nobody: Team Night
+ *              Shift has no members, and nobody is on call in schedule
+ *              Holiday Cover now). Each "why them" and "who is not paged"
+ *              comes as the server sends it: a code with its name, beside
+ *              its English.
+ *   ?usedBy=   what "Used by" answers for a monitor (GET /used-by/
+ *              monitor/:monitorId, and /:relation for See all's pages):
+ *              none (default: nothing refers to it, so the card says what
+ *              to do next) | used (five status pages - one more the reader
+ *              may not see - a monitor group, an SLO, maintenance coming up
+ *              and two workflows the reader may not see; See all pages the
+ *              status pages fifty at a time). ?fail=used-by fails the FIRST
+ *              read, as a gateway's 502 does; Try again reads it again.
  *   ?settings=1  the subject monitor's Settings page
  *              (/monitors/<id>/settings) is the production one rather than
  *              the stub every other page has: its Monitoring card, and the
@@ -203,6 +227,11 @@ import Probe, {
 } from "Common/Models/DatabaseModels/Probe";
 import Project from "Common/Models/DatabaseModels/Project";
 import { getWhoIsToldBreaks } from "Common/Types/Monitor/WhoIsTold";
+import {
+  UsedByRecordKind,
+  UsedByRelation,
+  getUsedByRelations,
+} from "Common/Types/UsedBy/UsedBy";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import Service from "Common/Models/DatabaseModels/Service";
@@ -210,6 +239,10 @@ import Team from "Common/Models/DatabaseModels/Team";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import User from "Common/Models/DatabaseModels/User";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import {
+  ERROR_REFERENCE_FIELD,
+  getUnexplainedServerErrorMessage,
+} from "Common/Types/Exception/UnexplainedError";
 import HTTPMethod from "Common/Types/API/HTTPMethod";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import CommonURL from "Common/Types/API/URL";
@@ -242,6 +275,7 @@ import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import { APP_API_URL } from "Common/UI/Config";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import API from "Common/UI/Utils/API/API";
+import BaseAPI from "Common/Utils/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -335,8 +369,12 @@ const previewMode = ["empty", "fail"].includes(params.get("preview"))
 const securityMode = ["news", "quiet"].includes(params.get("security"))
   ? params.get("security")
   : "none";
+// What "Used by" answers (?usedBy=).
+const usedByMode = params.get("usedBy") === "used" ? "used" : "none";
 // What "When this goes down" answers (?whoIsTold=).
-const whoIsToldMode = ["nobody", "hidden"].includes(params.get("whoIsTold"))
+const whoIsToldMode = ["nobody", "hidden", "rules", "gaps"].includes(
+  params.get("whoIsTold"),
+)
   ? params.get("whoIsTold")
   : "pages";
 
@@ -3202,6 +3240,106 @@ AnalyticsModelAPI.aggregate = async (options) => {
 
 let hasFailedUptimeSummary = false;
 let hasFailedPreview = false;
+let hasFailedWhoIsTold = false;
+let hasFailedUsedBy = false;
+
+/*
+ * What refers to a monitor, as UsedByService answers it: every relation of
+ * the kind in its order, each with how many the reader may see, how many
+ * they may not, and its rows. With ?usedBy=used, the subject monitor is on
+ * five status pages (and one the reader may not see), in a monitor group,
+ * measured by an SLO, named by maintenance coming up, and named by two
+ * workflows the reader may not see. Nothing refers to any other monitor.
+ */
+function usedById(index) {
+  return `71300000-0000-4000-8000-${String(index).padStart(12, "0")}`;
+}
+
+const USED_BY_ROWS = {
+  [UsedByRelation.MonitorStatusPages]: {
+    hiddenCount: 1,
+    rows: [
+      "Acme public status",
+      "Acme partner status",
+      "Checkout status",
+      "EU customers",
+      "Internal operations",
+    ].map((name, index) => {
+      return { id: usedById(100 + index), name: name };
+    }),
+  },
+  [UsedByRelation.MonitorGroups]: {
+    hiddenCount: 0,
+    rows: [{ id: usedById(200), name: "Checkout path" }],
+  },
+  [UsedByRelation.MonitorSlos]: {
+    hiddenCount: 0,
+    rows: [{ id: usedById(300), name: "Checkout availability 99.9%" }],
+  },
+  [UsedByRelation.MonitorScheduledMaintenance]: {
+    hiddenCount: 0,
+    rows: [
+      { id: usedById(400), name: "Load balancer patching", number: "SM-12" },
+    ],
+  },
+  [UsedByRelation.MonitorWorkflows]: { hiddenCount: 2, rows: [] },
+};
+
+function usedByRowsOf(monitorId, relation) {
+  const isSubject =
+    monitorId === ID.monitor(MONITOR_DEFINITIONS[subjectType].number);
+
+  if (usedByMode !== "used" || !isSubject) {
+    return { hiddenCount: 0, rows: [] };
+  }
+
+  return USED_BY_ROWS[relation] || { hiddenCount: 0, rows: [] };
+}
+
+// GET /used-by/monitor/:monitorId[/:relation][?skip=&limit=].
+function usedBy(parsed) {
+  const parts = parsed.pathname.split("/used-by/")[1].split("/");
+  const monitorId = parts[1];
+  const relation = parts[2];
+
+  if (relation) {
+    const found = usedByRowsOf(monitorId, relation);
+    const skip = Number(parsed.searchParams.get("skip")) || 0;
+    const limit = Number(parsed.searchParams.get("limit")) || 50;
+
+    return {
+      recordKind: UsedByRecordKind.Monitor,
+      recordId: monitorId,
+      relation: relation,
+      rowKind: getUsedByRelations(UsedByRecordKind.Monitor).find(
+        (description) => {
+          return description.relation === relation;
+        },
+      ).rowKind,
+      count: found.rows.length,
+      hiddenCount: found.hiddenCount,
+      pageStart: skip,
+      pageSize: limit,
+      rows: found.rows.slice(skip, skip + limit),
+    };
+  }
+
+  return {
+    recordKind: UsedByRecordKind.Monitor,
+    recordId: monitorId,
+    groups: getUsedByRelations(UsedByRecordKind.Monitor).map((description) => {
+      const found = usedByRowsOf(monitorId, description.relation);
+
+      return {
+        relation: description.relation,
+        rowKind: description.rowKind,
+        count: found.rows.length,
+        hiddenCount: found.hiddenCount,
+        rows: found.rows.slice(0, 3),
+      };
+    }),
+  };
+}
 
 /*
  * POST /security-case/resource-security for a monitor, as the server answers
@@ -3283,12 +3421,43 @@ function whoIsTold(monitorId) {
     return String(item._id) === monitorId;
   });
   const isHidden = whoIsToldMode === "hidden";
+  const hasOwnerRules = whoIsToldMode === "rules" || isHidden;
   const owners = {
     source: "ProjectOwners",
     userNames: ["Ana Lopez"],
     teamNames: [],
-    hasOwnerRules: false,
   };
+  // Who the incident emails: owner rules add Ben Ito and Checkout SRE.
+  const incidentOwners = hasOwnerRules
+    ? {
+        source: "OwnerRules",
+        userNames: ["Ben Ito"],
+        teamNames: ["Checkout SRE"],
+      }
+    : owners;
+  /*
+   * Why the policy pages Ben Ito, and the targets of its first level that
+   * reach nobody (?whoIsTold=gaps): codes with their names, beside the
+   * English, as OnCallTestPageService.readFirstLevel writes them.
+   */
+  const isGaps = whoIsToldMode === "gaps";
+  const benReachedThroughCode = isGaps
+    ? { code: "ScheduleNextInRotation", name: "Weekly Rotation" }
+    : { code: "Schedule", name: "Weekly Rotation" };
+  const notPagedCodes = isGaps
+    ? [
+        {
+          code: "TeamHasNoMembers",
+          teamName: "Night Shift",
+          message: "Team Night Shift has no members.",
+        },
+        {
+          code: "NobodyOnCall",
+          scheduleName: "Holiday Cover",
+          message: "Nobody is on call in schedule Holiday Cover now.",
+        },
+      ]
+    : [];
   const policy = {
     id: "5f000000-0000-4000-8000-0000000000a1",
     name: isHidden ? "" : "Primary On-Call",
@@ -3309,13 +3478,19 @@ function whoIsTold(monitorId) {
           {
             userId: "5f000000-0000-4000-8000-0000000000c2",
             name: "Ben Ito",
-            reachedThrough: "Schedule Weekly Rotation",
+            reachedThrough: isGaps
+              ? "Schedule Weekly Rotation (next in rotation)"
+              : "Schedule Weekly Rotation",
+            reachedThroughCode: benReachedThroughCode,
             channels: ["Push"],
             isFallback: true,
             isReachable: true,
           },
         ],
-    notPaged: [],
+    notPaged: notPagedCodes.map((notPaged) => {
+      return notPaged.message;
+    }),
+    notPagedCodes: isHidden ? [] : notPagedCodes,
   };
   const criteria = [
     {
@@ -3335,8 +3510,17 @@ function whoIsTold(monitorId) {
       events: [
         {
           kind: "Incident",
+          title: `${monitor ? monitor.name : "Monitor"} is offline`,
           severityName: "Critical",
-          owners: owners,
+          owners: incidentOwners,
+          ownerRules: hasOwnerRules
+            ? [
+                {
+                  id: "5f000000-0000-4000-8000-0000000000e1",
+                  name: isHidden ? "" : "Checkout monitors",
+                },
+              ]
+            : [],
           rules:
             whoIsToldMode === "nobody"
               ? []
@@ -3348,7 +3532,19 @@ function whoIsTold(monitorId) {
                 ],
           policies: whoIsToldMode === "nobody" ? [] : [policy],
           statusPages: [
-            { id: "5f000000-0000-4000-8000-0000000000d1", name: "Public Status" },
+            {
+              id: "5f000000-0000-4000-8000-0000000000d1",
+              name: "Public Status",
+            },
+            // Shows the monitor through a monitor group it is in.
+            ...(hasOwnerRules
+              ? [
+                  {
+                    id: "5f000000-0000-4000-8000-0000000000d2",
+                    name: isHidden ? "" : "Payments Status",
+                  },
+                ]
+              : []),
           ],
         },
       ],
@@ -3392,6 +3588,20 @@ async function handleApi(method, options) {
     headers: serialize(options.headers) || {},
   });
   const parsed = new window.URL(url);
+
+  /*
+   * GET /global-config/vars, which anybody may read, as the server answers
+   * it (GlobalConfigAPI.buildVarsResponse): Create Monitor's card asks
+   * whether the server can send email (#6877). This one can, so the card
+   * says what it always said.
+   */
+  if (method === "GET" && parsed.pathname.endsWith("/global-config/vars")) {
+    return ok({
+      disableUserProjectCreation: false,
+      disablePushNotifications: false,
+      canSendEmail: true,
+    });
+  }
 
   if (
     method === "GET" &&
@@ -3557,7 +3767,43 @@ async function handleApi(method, options) {
 
   // Who is told when a monitor goes down (?whoIsTold=).
   if (method === "GET" && parsed.pathname.includes("/who-is-told/monitor/")) {
+    if (failures.has("who-is-told") && !hasFailedWhoIsTold) {
+      hasFailedWhoIsTold = true;
+      /*
+       * A gateway's 502: the server could not be reached. Answered, not
+       * thrown, as API.get answers an error response.
+       */
+      return fail(502, "Bad Gateway");
+    }
+
+    if (failures.has("who-is-told-reference") && !hasFailedWhoIsTold) {
+      hasFailedWhoIsTold = true;
+      /*
+       * A failure the server could not explain, as its last-resort handler
+       * answers it (Server/Utils/UnexplainedServerError): its sentence and
+       * the reference of its log lines.
+       */
+      return new HTTPErrorResponse(
+        500,
+        {
+          message: getUnexplainedServerErrorMessage("1f0c9a2b"),
+          [ERROR_REFERENCE_FIELD]: "1f0c9a2b",
+        },
+        {},
+      );
+    }
+
     return ok(whoIsTold(parsed.pathname.split("/").pop()));
+  }
+
+  // What refers to a monitor (?usedBy=).
+  if (method === "GET" && parsed.pathname.includes("/used-by/monitor/")) {
+    if (failures.has("used-by") && !hasFailedUsedBy) {
+      hasFailedUsedBy = true;
+      return fail(502, "Bad Gateway");
+    }
+
+    return ok(usedBy(parsed));
   }
 
   // What Security Events says about the hosts a monitor checks (?security=).
@@ -3572,21 +3818,27 @@ async function handleApi(method, options) {
   return ok({ data: [], count: 0 });
 }
 
-API.get = async (options) => {
-  return handleApi("GET", options);
-};
-API.post = async (options) => {
-  return handleApi("POST", options);
-};
-API.put = async (options) => {
-  return handleApi("PUT", options);
-};
-API.delete = async (options) => {
-  return handleApi("DELETE", options);
-};
-API.fetch = async (options) => {
-  return handleApi(options.method || "GET", options);
-};
+/*
+ * The Dashboard's API, and the base one under it: GlobalConfigUtil reads
+ * GET /global-config/vars through that one.
+ */
+for (const api of [API, BaseAPI]) {
+  api.get = async (options) => {
+    return handleApi("GET", options);
+  };
+  api.post = async (options) => {
+    return handleApi("POST", options);
+  };
+  api.put = async (options) => {
+    return handleApi("PUT", options);
+  };
+  api.delete = async (options) => {
+    return handleApi("DELETE", options);
+  };
+  api.fetch = async (options) => {
+    return handleApi(options.method || "GET", options);
+  };
+}
 
 // The production helpers, handed the page's i18next instance before it starts.
 followLanguageForPage(i18next);

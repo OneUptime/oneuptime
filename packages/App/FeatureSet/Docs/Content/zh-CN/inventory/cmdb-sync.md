@@ -59,7 +59,7 @@ flowchart TB
 
 ### 只授予所需的权限
 
-只读导出需要一个权限，即 **Read Telemetry Service**：资产清单共用遥测权限，而没有自己的权限。在密钥的页面上点击 **添加权限** 并选择它。要写回值，还需添加 **Edit Telemetry Service**。
+只读导出需要一个权限，即 **Read Inventory Item**：资产清单共用遥测权限，而没有自己的权限。在密钥的页面上点击 **添加权限** 并选择它。要写回值，还需添加 **Edit Inventory Item**。
 
 ### 复制密钥
 
@@ -232,9 +232,9 @@ ENTITY-MIB 行会在设备的首次 SNMP 遍历之后填充。未被遍历的设
 
 ## 写回
 
-相同的端点也接受写入，因此同步可以把值推送到 `customFields`：例如，把你的 CMDB 已拥有的资产标签标注到对应的 OneUptime 条目上。为此，密钥需要 **Edit Telemetry Service**。
+相同的端点也接受写入，因此同步可以把值推送到 `customFields`：例如，把你的 CMDB 已拥有的资产标签标注到对应的 OneUptime 条目上。为此，密钥需要 **Edit Inventory Item**。
 
-你也可以为 OneUptime 看不到的东西添加条目：使用 `POST /api/inventory-item`，`entityType` 为 `external.service`、`external.database` 或 `appliance`，并提供 `displayName`。OneUptime 会为你计算身份键，这些条目永远不会过期。为此，密钥需要 **Create Telemetry Service**。
+你也可以为 OneUptime 看不到的东西添加条目：使用 `POST /api/inventory-item`，`entityType` 为 `external.service`、`external.database` 或 `appliance`，并提供 `displayName`。OneUptime 会为你计算身份键，这些条目永远不会过期。为此，密钥需要 **Create Inventory Item**。
 
 ## 故障排查
 
@@ -243,7 +243,7 @@ ENTITY-MIB 行会在设备的首次 SNMP 遍历之后填充。未被遍历的设
 :::
 
 :::details 每个请求都返回 422 You do not have permissions
-该密钥没有任何可读取资产清单的权限。用 **稍后选择权限** 创建的密钥在获得权限之前什么也做不了：按照 [开始之前](#开始之前) 的说明，在其页面上添加 **Read Telemetry Service**。
+该密钥没有任何可读取资产清单的权限。用 **稍后选择权限** 创建的密钥在获得权限之前什么也做不了：按照 [开始之前](#开始之前) 的说明，在其页面上添加 **Read Inventory Item**。
 :::
 
 :::details 列表返回时缺少我需要的列

@@ -2,6 +2,9 @@
 
 The OneUptime Kubernetes agent is a Helm chart that collects your cluster's metrics, events and pod logs, application traces captured with eBPF, and per-node OS metrics, and sends them to OneUptime. One `helm install` puts it in place, with no code changes in your apps. [Kubernetes monitors](/docs/monitor/kubernetes-monitor) alert on what it sends.
 
+> [!NOTE]
+> This page installs the agent with Helm, step by step, with a preset for your platform. Every option, the Amazon EKS add-on, OpenShift and the Kubernetes AI agent are on [Kubernetes Agent](/docs/telemetry/kubernetes-agent), its full reference.
+
 :::cards
 - [Install the agent](#install-the-agent): Four steps with Helm.
 - [Pick a preset](#pick-a-preset): Standard clusters, GKE Autopilot, EKS Fargate or OpenShift.
@@ -331,7 +334,7 @@ kubectl logs -n oneuptime-agent -l component=ebpf-instrument --tail=200
 
 ## Continuous CPU profiling
 
-The [OpenTelemetry eBPF Profiler](https://github.com/open-telemetry/opentelemetry-ebpf-profiler) can run on every node too, as the `otel/opentelemetry-collector-ebpf-profiler` image. It samples what every process is running, 19 times a second, in Go, Java, .NET, Python, Ruby, Node.js, PHP, Perl, C, C++ and Rust, and sends the profiles to OneUptime. They appear under **Products → Performance Profiles**, and as a flame graph on each trace span.
+The [OpenTelemetry eBPF Profiler](https://github.com/open-telemetry/opentelemetry-ebpf-profiler) can run on every node too, as the `otel/opentelemetry-collector-ebpf-profiler` image. It samples what every process is running, 19 times a second, in Go, Java, .NET, Python, Ruby, Node.js, PHP, Perl, C, C++ and Rust, and sends the profiles to OneUptime. They appear under **Products → Profiles**, and as a flame graph on each trace span.
 
 **Profiling is off by default:** it costs more CPU and memory per node than the eBPF instrumentation. Turn it on with `--set profiling.enabled=true`.
 

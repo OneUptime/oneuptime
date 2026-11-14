@@ -88,7 +88,7 @@ Een voorbeeld wordt een dag bewaard. Alleen wie het account heeft uitgelezen, ka
 Open elke monitor onder **Monitoren** en controleer de eerste resultaten. Een heartbeatmonitor heeft een nieuw adres: laat de taak die hem aanroept daarnaar wijzen.
 
 ### Kies wie er bericht krijgt
-Voeg eigenaren toe aan uw monitoren, of bereikbaarheidsbeleid onder **Bereikbaarheidsdienst** > **Bereikbaarheidsbeleid** aan de incidenten die ze openen, zodat de juiste mensen het horen als er iets uitvalt.
+Voeg eigenaren toe aan uw monitoren, of bereikbaarheidsbeleid onder **Bereikbaarheid** > **Bereikbaarheidsbeleid** aan de incidenten die ze openen, zodat de juiste mensen het horen als er iets uitvalt.
 
 ### Schakel de controles in StatusCake uit
 Zodra OneUptime hetzelfde controleert, pauzeert u de controles in StatusCake, zodat niemand twee keer bericht krijgt.

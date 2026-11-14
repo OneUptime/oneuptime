@@ -39,6 +39,8 @@ import {
   prose,
   tableShape,
 } from "./DocsTranslationChecks";
+import { exploreCardLines, exploreSections } from "./GettingStartedPage";
+import { pathWithArrows } from "./DocsPageShape";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -65,8 +67,9 @@ import path from "path";
  *     (USER_MENU_LABELS, SIGN_IN_LABELS).
  *   - Bold words that are Dashboard labels only by coincidence - a concept
  *     introduced in prose, a list item's lead - are PROSE, with why.
- *   - Getting Started's section headings are the docs' own sidebar section
- *     titles (Docs/Locales navSections), in sidebar order.
+ *   - Getting Started's folded sections under Explore the docs are the
+ *     docs' own sidebar section titles (Docs/Locales navSections), in
+ *     sidebar order.
  */
 
 const LANGUAGES: Array<string> = SUPPORTED_DOCS_LANGUAGE_CODES.filter(
@@ -233,28 +236,6 @@ function menuPaths(markdown: string): Array<Array<string>> {
     });
 }
 
-// The headings of a page under the "## " heading at an index, up to the next.
-function subheadingsOf(
-  scanned: ScannedPage,
-  sectionIndex: number,
-): Array<DocsHeading> {
-  const sections: Array<DocsHeading> = scanned.headings.filter(
-    (heading: DocsHeading): boolean => {
-      return heading.level === 2;
-    },
-  );
-  const start: DocsHeading = sections[sectionIndex] as DocsHeading;
-  const end: DocsHeading | undefined = sections[sectionIndex + 1];
-
-  return scanned.headings.filter((heading: DocsHeading): boolean => {
-    return (
-      heading.level === 3 &&
-      heading.line > start.line &&
-      (end === undefined || heading.line < end.line)
-    );
-  });
-}
-
 // The index of the English "## " heading with this text.
 function englishSectionIndex(page: string, text: string): number {
   const index: number = scanMarkdown(englishPage(page))
@@ -331,7 +312,7 @@ const ESSENTIALS: ReadonlyArray<{ key: string; english: string }> = [
   { key: "monitorsTitle", english: "Monitors" },
   { key: "incidentsTitle", english: "Incidents" },
   { key: "alertsTitle", english: "Alerts" },
-  { key: "onCallDutyTitle", english: "On-Call Duty" },
+  { key: "onCallDutyTitle", english: "On-Call" },
   { key: "statusPagesTitle", english: "Status Pages" },
   { key: "scheduledMaintenanceTitle", english: "Scheduled Maintenance" },
   { key: "slosTitle", english: "SLOs" },
@@ -359,7 +340,7 @@ const SEARCH_ACTIONS: ReadonlyArray<string> = [
  */
 const SEARCH_SETTINGS: ReadonlyArray<[string, string]> = [
   ["Require SSO for Login", "SSO"],
-  ["Notification Channels", "Notification Settings"],
+  ["Custom SMTP Configs", "Notification Channels"],
 ];
 
 /*
@@ -406,6 +387,77 @@ function sectionAt(markdown: string, sectionIndex: number): string {
   const end: number | undefined = starts[sectionIndex + 1];
 
   return lines.slice(start, end).join("\n");
+}
+
+/*
+ * The lines under the heading a page has where the English Home page has
+ * this one, up to the next heading: the headings of a translation sit at the
+ * English ones' places (each page's "headings, tables and list items").
+ */
+function homeSectionLike(markdown: string, englishHeading: string): string {
+  const englishHeadings: Array<DocsHeading> = scanMarkdown(
+    englishPage(HOME),
+  ).headings;
+  const index: number = englishHeadings.findIndex(
+    (heading: DocsHeading): boolean => {
+      return heading.text === englishHeading;
+    },
+  );
+
+  expect({ heading: englishHeading, found: index >= 0 }).toEqual({
+    heading: englishHeading,
+    found: true,
+  });
+
+  const headings: Array<DocsHeading> = scanMarkdown(markdown).headings;
+  const start: DocsHeading = headings[index] as DocsHeading;
+  const end: DocsHeading | undefined = headings[index + 1];
+
+  return markdown
+    .split("\n")
+    .slice(start.line - 1, end ? end.line - 1 : undefined)
+    .join("\n");
+}
+
+// The welcome checklist table's body rows: one per step.
+function welcomeChecklistRows(markdown: string): Array<string> {
+  return homeSectionLike(markdown, "The welcome checklist")
+    .split("\n")
+    .filter((line: string): boolean => {
+      return line.startsWith("| **");
+    });
+}
+
+// A table row's cells, trimmed.
+function rowCells(row: string): Array<string> {
+  return row
+    .slice(1, -1)
+    .split("|")
+    .map((cell: string): string => {
+      return cell.trim();
+    });
+}
+
+function drawnLabels(language: string, labels: Array<string>): Array<string> {
+  return labels.map((label: string): string => {
+    return drawnActionLabel(language, label);
+  });
+}
+
+// The headline section's line that names a bold label.
+function headlineLineWith(markdown: string, label: string): string {
+  const lines: Array<string> = homeSectionLike(markdown, "The headline")
+    .split("\n")
+    .filter((line: string): boolean => {
+      return line.includes(`**${label}**`);
+    });
+
+  expect({ label: label, lines: lines.length }).toEqual({
+    label: label,
+    lines: 1,
+  });
+
+  return lines[0] as string;
 }
 
 describe("the lists this test keeps", () => {
@@ -506,13 +558,17 @@ describe("the English pages", () => {
     },
   );
 
+  /*
+   * Since #6822 the page chooses a path first, and folds the full index:
+   * each sidebar section is a `:::details` named as the sidebar names it,
+   * its cards inside (GettingStartedPage.ts).
+   */
   it("Getting Started explores the docs section by section, in sidebar order, after Get Started", () => {
-    const scanned: ScannedPage = scanMarkdown(englishPage(GETTING_STARTED));
-    const explore: Array<string> = subheadingsOf(
-      scanned,
+    const explore: Array<string> = exploreSections(
+      englishPage(GETTING_STARTED),
       englishSectionIndex(GETTING_STARTED, "Explore the docs"),
-    ).map((heading: DocsHeading): string => {
-      return heading.text;
+    ).map((section: { title: string }): string => {
+      return section.title;
     });
 
     expect(explore).toEqual(
@@ -524,41 +580,38 @@ describe("the English pages", () => {
 
   it("Getting Started's cards under each section open only that section's pages", () => {
     const markdown: string = englishPage(GETTING_STARTED);
-    const lines: Array<string> = markdown.split("\n");
-    let section: string | null = null;
     let checked: number = 0;
 
-    for (const line of lines) {
-      if (line.startsWith("## ")) {
-        section = null;
+    for (const section of DocsNavSections.filter((title: string) => {
+      return title !== "Get Started";
+    })) {
+      for (const line of exploreCardLines(
+        markdown,
+        englishSectionIndex(GETTING_STARTED, "Explore the docs"),
+        section,
+      )) {
+        if (!CARD_LINE.test(line)) {
+          continue;
+        }
+
+        const page: string = (cardTargets([line])[0] as string).replace(
+          /^\/docs\//,
+          "",
+        );
+        const group: NavGroup | undefined = DocsNav.find(
+          (candidate: NavGroup): boolean => {
+            return candidate.links.some((link: NavLink): boolean => {
+              return link.url === `/docs/${page}`;
+            });
+          },
+        );
+
+        expect({ line: line, section: group?.section }).toEqual({
+          line: line,
+          section: section,
+        });
+        checked++;
       }
-
-      if (line.startsWith("### ") && DocsNavSections.includes(line.slice(4))) {
-        section = line.slice(4);
-        continue;
-      }
-
-      if (!section || !CARD_LINE.test(line)) {
-        continue;
-      }
-
-      const page: string = (cardTargets([line])[0] as string).replace(
-        /^\/docs\//,
-        "",
-      );
-      const group: NavGroup | undefined = DocsNav.find(
-        (candidate: NavGroup): boolean => {
-          return candidate.links.some((link: NavLink): boolean => {
-            return link.url === `/docs/${page}`;
-          });
-        },
-      );
-
-      expect({ line: line, section: group?.section }).toEqual({
-        line: line,
-        section: section,
-      });
-      checked++;
     }
 
     expect(checked).toBeGreaterThan(20);
@@ -656,11 +709,12 @@ describe.each(LANGUAGES)("%s", (language: string) => {
       const translated: string = readPage(language, entry.page);
       const missing: Array<string> = menuPaths(english)
         .map((segments: Array<string>): string => {
-          return segments
-            .map((segment: string): string => {
+          return pathWithArrows(
+            segments.map((segment: string): string => {
               return drawnActionLabel(language, segment);
-            })
-            .join(PATH_SEPARATOR);
+            }),
+            language,
+          );
         })
         .filter((localized: string): boolean => {
           return !translated.includes(`**${localized}**`);
@@ -672,14 +726,11 @@ describe.each(LANGUAGES)("%s", (language: string) => {
 
   describe("Getting Started", () => {
     it("explores the docs under this language's sidebar section titles, in order", () => {
-      const scanned: ScannedPage = scanMarkdown(
+      const explore: Array<string> = exploreSections(
         readPage(language, GETTING_STARTED),
-      );
-      const explore: Array<string> = subheadingsOf(
-        scanned,
         englishSectionIndex(GETTING_STARTED, "Explore the docs"),
-      ).map((heading: DocsHeading): string => {
-        return heading.text;
+      ).map((section: { title: string }): string => {
+        return section.title;
       });
 
       expect(explore).toEqual(
@@ -875,6 +926,100 @@ describe.each(LANGUAGES)("%s", (language: string) => {
       );
     });
 
+    /*
+     * Help's row and the dialog it opens are titled keyboardShortcuts.title.
+     * Until #7235, eleven languages drew it in English and their pages
+     * quoted the English; a page that quotes it once in its own words and
+     * once in English would still pass the check of every label above.
+     */
+    it("quotes Help's Keyboard shortcuts row wherever the English page does, as this language's Help and dialog title it", () => {
+      const quoted: number =
+        englishPage(HOME).split("**Keyboard shortcuts**").length - 1;
+      const title: string = drawnNavbarText(
+        language,
+        ["keyboardShortcuts", "title"],
+        "Keyboard shortcuts",
+      );
+
+      // The Help paragraph, and the shortcuts section's own line.
+      expect(quoted).toBe(2);
+      expect({
+        language: language,
+        quoted: translated.split(`**${title}**`).length - 1,
+      }).toEqual({ language: language, quoted: quoted });
+    });
+
+    /*
+     * The section that row leads to is named as the row and the dialog are:
+     * a reader who chose "鍵盤快速鍵" in Help finds a section of that name, not
+     * "鍵盤快捷鍵" (Traditional Chinese, until the UI review of #7235).
+     */
+    it("names its Keyboard shortcuts section as this language's dialog is titled", () => {
+      const headingLine: string = sectionAt(
+        translated,
+        englishSectionIndex(HOME, "Keyboard shortcuts"),
+      ).split("\n")[0] as string;
+
+      expect(headingLine.startsWith("## ")).toBe(true);
+
+      const heading: string = headingLine.slice("## ".length).trim();
+
+      expect({ language: language, heading: heading }).toEqual({
+        language: language,
+        heading: drawnNavbarText(
+          language,
+          ["keyboardShortcuts", "title"],
+          "Keyboard shortcuts",
+        ),
+      });
+    });
+
+    it("names the page each welcome checklist step opens, in the English order, as this language's Dashboard draws it", () => {
+      const englishRows: Array<string> = welcomeChecklistRows(
+        englishPage(HOME),
+      );
+      const translatedRows: Array<string> = welcomeChecklistRows(translated);
+
+      // Seven steps, four of them opening a guided setup (IntroductionDocsFacts).
+      expect(englishRows).toHaveLength(7);
+      expect(translatedRows).toHaveLength(englishRows.length);
+
+      englishRows.forEach((englishRow: string, index: number): void => {
+        const [englishStep, , englishOpens] = rowCells(englishRow);
+        const [translatedStep, , translatedOpens] = rowCells(
+          translatedRows[index] as string,
+        );
+
+        expect({
+          row: index,
+          step: boldSpans(translatedStep as string),
+          opens: boldSpans(translatedOpens as string),
+        }).toEqual({
+          row: index,
+          step: drawnLabels(language, boldSpans(englishStep as string)),
+          opens: drawnLabels(language, boldSpans(englishOpens as string)),
+        });
+      });
+    });
+
+    it("names the guided setup the headline's Create your first monitor opens, as this language's Dashboard draws it", () => {
+      const button: string = "Create your first monitor";
+      const englishLine: string = headlineLineWith(englishPage(HOME), button);
+      const translatedLine: string = headlineLineWith(
+        translated,
+        drawnActionLabel(language, button),
+      );
+
+      // The button, then the setup's title (IntroductionDocsFacts).
+      expect(boldSpans(englishLine)).toEqual([
+        button,
+        "Know when my website or API is down",
+      ]);
+      expect(boldSpans(translatedLine)).toEqual(
+        drawnLabels(language, boldSpans(englishLine)),
+      );
+    });
+
     it("names its Search examples as this language's dashboard draws them, and keeps the English words Search knows", () => {
       const search: string = sectionAt(
         translated,
@@ -926,30 +1071,38 @@ describe("the helpers, on these pages' shapes", () => {
     expect(boldLabels(markdown)).toEqual(["Enable AI"]);
   });
 
-  it("read the sub-sections of one section only", () => {
-    const scanned: ScannedPage = scanMarkdown(
-      [
-        "# Page",
-        "## First",
-        "### A",
-        "### B",
-        "## Second",
-        "### C",
-        "## Third",
-      ].join("\n"),
-    );
+  it("read the folded sections of one section only, each with its cards", () => {
+    const markdown: string = [
+      "# Page",
+      "## First",
+      ":::details A",
+      ":::cards",
+      "- [One](/docs/monitor/create-monitor): One.",
+      ":::",
+      ":::",
+      ":::details B",
+      ":::cards",
+      "- [Two](/docs/incidents/index): Two.",
+      "- [Three](/docs/alerts/index): Three.",
+      ":::",
+      ":::",
+      "## Second",
+      ":::details C",
+      "Only words.",
+      ":::",
+      "## Third",
+    ].join("\n");
 
-    expect(
-      subheadingsOf(scanned, 0).map((heading: DocsHeading): string => {
-        return heading.text;
-      }),
-    ).toEqual(["A", "B"]);
-    expect(
-      subheadingsOf(scanned, 1).map((heading: DocsHeading): string => {
-        return heading.text;
-      }),
-    ).toEqual(["C"]);
-    expect(subheadingsOf(scanned, 2)).toEqual([]);
+    expect(exploreSections(markdown, 0)).toEqual([
+      { title: "A", targets: ["/docs/monitor/create-monitor"] },
+      { title: "B", targets: ["/docs/incidents/index", "/docs/alerts/index"] },
+    ]);
+    expect(exploreSections(markdown, 1)).toEqual([{ title: "C", targets: [] }]);
+    expect(exploreSections(markdown, 2)).toEqual([]);
+    expect(exploreCardLines(markdown, 0, "B")).toEqual([
+      "- [Two](/docs/incidents/index): Two.",
+      "- [Three](/docs/alerts/index): Three.",
+    ]);
   });
 
   it("find the nav groups a page reaches, from its links", () => {

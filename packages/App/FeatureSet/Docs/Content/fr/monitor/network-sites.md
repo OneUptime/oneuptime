@@ -38,7 +38,7 @@ Le statut de chaque site vient de chaque équipement de son sous-arbre, jugé se
 
 ## La hiérarchie
 
-Les sites forment une arborescence. Chaque site a un **Site Type** et un site parent facultatif. Les types de site sont la liste propre au projet, sous **Réseau → Paramètres → Types de site**, et un nouveau projet commence avec Account Type, Region, Franchisee, Market et Unit, dans cet ordre en partant du haut, plus Data Center et Other. Les types forment leur propre hiérarchie (**Parent Site Type**), qui décide quels sites peuvent être le parent d'un site. Un type marqué **Niveau unité** est le dernier niveau de votre parc, le magasin ou l'agence : ses sites contiennent des équipements, pas d'autres sites.
+Les sites forment une arborescence. Chaque site a un **Type de site** et un site parent facultatif. Les types de site sont la liste propre au projet, sous **Réseau → Paramètres → Types de site**, et un nouveau projet commence avec Account Type, Region, Franchisee, Market et Unit, dans cet ordre en partant du haut, plus Data Center et Other. Les types forment leur propre hiérarchie (**Parent Site Type**), qui décide quels sites peuvent être le parent d'un site. Un type marqué **Niveau unité** est le dernier niveau de votre parc, le magasin ou l'agence : ses sites contiennent des équipements, pas d'autres sites.
 
 Le type, le nom, la description, le parent et l'emplacement d'un site se modifient à un seul endroit : la carte **Site Settings** de la page **Paramètres** du site. L'aperçu du site les affiche avec un lien **Modifier dans les paramètres**, et la liste **Sites** ajoute des sites mais ne les modifie pas.
 
@@ -54,7 +54,7 @@ Chaque équipement est rattaché à un site. Le sous-arbre d'un site, c'est le s
 Allez dans **Réseau → Sites** et cliquez sur **Ajouter : Site**.
 
 ### Dire ce qu'est le site
-À l'étape **Site Details**, choisissez le **Site Type** (le genre de lieu : une région, un magasin, un centre de données) et saisissez un **Nom**. Le **Code du site**, la description, l'adresse postale, et la latitude et la longitude qui placent le site sur la carte sont repliés sous **Plus de champs** : remplissez-les maintenant ou plus tard. Un code de site est un code court, comme un numéro de magasin ou d'établissement (`1216`) ; les [règles de nommage](/docs/monitor/network-device-monitor#nommer-les-équipements-selon-votre-convention-de-nommage) l'insèrent dans le nom des équipements avec `{site.code}`.
+À l'étape **Site Details**, choisissez le **Type de site** (le genre de lieu : une région, un magasin, un centre de données) et saisissez un **Nom**. Le **Code du site**, la description, l'adresse postale, et la latitude et la longitude qui placent le site sur la carte sont repliés sous **Plus de champs** : remplissez-les maintenant ou plus tard. Un code de site est un code court, comme un numéro de magasin ou d'établissement (`1216`) ; les [règles de nommage](/docs/monitor/network-device-monitor#nommer-les-équipements-selon-votre-convention-de-nommage) l'insèrent dans le nom des équipements avec `{site.code}`.
 
 ### Le placer dans l'arborescence
 À l'étape **Hiérarchie**, choisissez le **Parent Site** si le site se trouve sous un autre. Laissez-le vide pour garder le site au premier niveau.
@@ -141,6 +141,7 @@ Les deux politiques s'accordent sur ce point, et il compte plus qu'il n'y paraî
 - Les équipements qui n'ont encore jamais rien rapporté ne votent jamais. Un équipement qui attend sa première interrogation n'est pas la preuve d'une panne : il sort donc des deux côtés de la proportion, et une région à moitié intégrée est notée sur la moitié qui a répondu.
 - Un équipement interrogé par sonde, le cas normal, vote avec le résultat de sa dernière interrogation : joignable par ping ou par SNMP, et non selon l'ancienneté de son dernier succès. Un équipement qui répond au ping alors que son parcours SNMP échoue est joignable et vote comme tel ; le site se dit joignable, et la ligne de l'équipement indique **SNMP failing** pour que quelqu'un répare les identifiants.
 - Un équipement adossé à un moniteur, passé en remplacement par un moniteur lié sur sa page Paramètres, vote avec le statut du moniteur qui lui est lié, car rien ne l'interroge. Sans moniteur lié, il n'a jamais rien rapporté et ne vote pas du tout.
+- Un équipement adossé à un moniteur dont le moniteur n'est pas vérifié, parce que sa surveillance est désactivée ou qu'il est archivé, ne vote pas non plus : le statut de ce moniteur n'est que ce que sa dernière vérification a vu. L'équipement est **En attente**, avec **Surveillance désactivée** ou **Moniteur archivé** à côté, jusqu'à ce que la surveillance du moniteur soit réactivée ou qu'il soit désarchivé.
 
 Un moniteur Équipement réseau sur un équipement interrogé par sonde ne change pas sa façon de voter. Un moniteur avec un critère « interface hors service, donc Offline » mettrait Offline sur un commutateur qui répond à chaque ping, et un seul port éteint ferait virer tout un site au rouge alors que chaque ligne d'équipement en dessous indique Up : le site contredirait la liste qu'il résume. Pour un équipement interrogé, c'est l'interrogation qui fait foi pour sa santé ; le moniteur est là pour déclencher des incidents.
 
@@ -185,7 +186,7 @@ Une moyenne sur les enfants pèse un magasin de deux équipements autant qu'un c
 
 ## Maintenance planifiée pour les sites réseau
 
-Rattachez des sites à un événement de maintenance planifiée sous **Autres ressources affectées**, à l'étape **Ressources affectées** de l'événement, comme vous le feriez pour un hôte. La page **Maintenance planifiée** d'un site liste les événements qui lui sont rattachés, et son bouton **Créer un événement de maintenance planifiée** ouvre le formulaire avec le site déjà choisi.
+Rattachez des sites à un événement de maintenance planifiée sous **Autres ressources affectées**, à l'étape **Ressources affectées** de l'événement, comme vous le feriez pour un hôte. La page **Maintenance planifiée** d'un site liste les événements qui lui sont rattachés, et son bouton **Créer un événement de maintenance** ouvre le formulaire avec le site déjà choisi.
 
 Une fenêtre sur un parent couvre tout ce qui est en dessous : une fenêtre sur une région couvre chaque marché et chaque unité qu'elle contient, y compris les sites créés après la planification de la fenêtre, si bien qu'une bascule d'opérateur régionale n'a pas à énumérer quatre cents magasins.
 
@@ -214,6 +215,8 @@ La carte **Alertes** de la page **Paramètres** d'un site a **Alerter en cas de 
 
 Elle n'alerte que sur le changement : l'activer pour un site déjà en mauvaise santé arme le prochain changement au lieu d'alerter sur le passé. Degraded n'est pas opérationnel : un site sous la politique de proportion alerte donc dès qu'un des équipements qui rendent compte est hors service, comme un site sous la politique du pire statut ; l'alerte reste ouverte, sans seconde alerte, pendant que le site passe de Degraded à Offline et inversement, et son titre nomme le statut que le site a atteint en premier.
 
+Quand plus rien sur un site ne rapporte de statut, parce que les moniteurs derrière ses équipements ont leur surveillance désactivée, sont archivés ou ont été supprimés, le site revient à aucun statut au lieu de garder le dernier, et son alerte ouverte se résout avec cette raison comme cause. Un équipement qui rapporte de nouveau un problème ouvre une nouvelle alerte.
+
 ## Dépannage
 
 :::details Une région est toujours rouge
@@ -225,7 +228,11 @@ Aucune agrégation n'a jamais eu lieu pour le site, il n'a donc aucune ligne de 
 :::
 
 :::details Un équipement ne compte pas pour son site
-Les équipements archivés, et les équipements qui n'ont encore rien rapporté, ne votent jamais. Un équipement adossé à un moniteur sans moniteur lié n'a jamais rien rapporté non plus. Vérifiez le statut de l'équipement : un équipement **En attente** vote après sa première interrogation.
+Les équipements archivés, et les équipements qui n'ont encore rien rapporté, ne votent jamais. Un équipement adossé à un moniteur sans moniteur lié n'a jamais rien rapporté non plus. Vérifiez le statut de l'équipement : un équipement **En attente** vote après sa première interrogation. Un équipement avec **Surveillance désactivée** ou **Moniteur archivé** à côté vote de nouveau dès que la surveillance de son moniteur est réactivée ou qu'il est désarchivé.
+:::
+
+:::details Un site n'a plus de statut
+Plus rien sur le site ne rapporte de statut : les moniteurs derrière ses équipements ont leur surveillance désactivée, sont archivés ou ont été supprimés, donc le dernier statut du site a été effacé et son alerte résolue. Réactivez la surveillance de ces moniteurs, ou désarchivez-les, et le statut du site se calcule de nouveau à partir de ses équipements.
 :::
 
 :::details L'alerte d'un site ne s'est pas déclenchée

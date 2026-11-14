@@ -7,7 +7,16 @@ import {
   LicenseStatusSummary,
   LicenseWriteOutcome,
   toLicenseSnapshot,
+  writeLicenseDate,
 } from "../../../AdminDashboard/License/LicenseStatus";
+import { LicenseStatusCopy } from "../../../AdminDashboard/License/LicenseSettingsCopy";
+import { withoutIsolateMarks } from "Common/Tests/Helpers/IsolateMarks";
+import { inEnglishDates } from "Common/Types/DateLanguage";
+import {
+  FIRST_STRONG_ISOLATE,
+  POP_DIRECTIONAL_ISOLATE,
+} from "Common/Types/ReadingDirection";
+import { createTranslator, Translator } from "Common/Types/Translator";
 import {
   GRACE_ENFORCEMENT_SUMMARY,
   LICENSE_LAPSED_STATE,
@@ -36,8 +45,11 @@ const inDays: (days: number) => string = (days: number): string => {
   return new Date(NOW.getTime() + days * DAY_IN_MS).toISOString();
 };
 
+// A date as an English sentence of the page writes it: "25 Jun 2026".
 const dateOf: (iso: string) => string = (iso: string): string => {
-  return new Date(iso).toLocaleDateString();
+  return inEnglishDates((): string => {
+    return writeLicenseDate(new Date(iso));
+  });
 };
 
 type PayloadFunction = (overrides?: Record<string, unknown>) => JSONObject;
@@ -129,21 +141,22 @@ describe("the trial", () => {
     expect(status.tone).toBe("warning");
     expect(status.title).toBe("Enterprise Edition trial: 10 days left");
     expect(status.description).toBe(
-      `No Enterprise license is installed. Enterprise features stay fully available until ${dateOf(inDays(10))}.`,
+      `No Enterprise license is installed. Enterprise features stay fully available until ${dateOf(inDays(10))}, counted from the first time this installation ran the Enterprise Edition.`,
     );
     expect(status.note).toBe(TRIAL_ENFORCEMENT_SUMMARY);
+    expect(status.serverMessage).toBeUndefined();
   });
 
   it("says one day, not one days", () => {
-    expect(
-      describeOf(trialOf({ graceEndsAt: inDays(0.5) })).title,
-    ).toBe("Enterprise Edition trial: 1 day left");
+    expect(describeOf(trialOf({ graceEndsAt: inDays(0.5) })).title).toBe(
+      "Enterprise Edition trial: 1 day left",
+    );
   });
 
   it("rounds a part of a day up: a day that has started is still left", () => {
-    expect(
-      describeOf(trialOf({ graceEndsAt: inDays(2.1) })).title,
-    ).toBe("Enterprise Edition trial: 3 days left");
+    expect(describeOf(trialOf({ graceEndsAt: inDays(2.1) })).title).toBe(
+      "Enterprise Edition trial: 3 days left",
+    );
   });
 
   it("never counts below zero", () => {
@@ -159,14 +172,14 @@ describe("the trial", () => {
 
     expect(status.title).toBe("Enterprise Edition trial");
     expect(status.description).toContain(
-      "Enterprise features stay fully available during the trial.",
+      "Enterprise features stay fully available, counted from the first time this installation ran the Enterprise Edition.",
     );
   });
 
   it("makes no claim about a date it cannot read", () => {
-    expect(
-      describeOf(trialOf({ graceEndsAt: "not a date" })).title,
-    ).toBe("Enterprise Edition trial");
+    expect(describeOf(trialOf({ graceEndsAt: "not a date" })).title).toBe(
+      "Enterprise Edition trial",
+    );
   });
 
   /*
@@ -184,17 +197,18 @@ describe("the trial", () => {
 
     expect(status.description).toContain("A license is installed");
     expect(status.description).not.toContain("No Enterprise license");
-    expect(status.description).toContain(
-      "This license has no recorded expiry.",
-    );
+    // The client's diagnosis, as it said it, on a line of its own.
+    expect(status.serverMessage).toBe("This license has no recorded expiry.");
+    expect(status.description).not.toContain("no recorded expiry");
   });
 
   it("leaves out a message for an install with no license at all", () => {
-    expect(
-      describeOf(
-        trialOf({ message: "No OneUptime Enterprise license is installed." }),
-      ).description,
-    ).not.toContain("No OneUptime Enterprise license");
+    const status: LicenseStatusSummary = describeOf(
+      trialOf({ message: "No OneUptime Enterprise license is installed." }),
+    );
+
+    expect(status.description).not.toContain("No OneUptime Enterprise license");
+    expect(status.serverMessage).toBeUndefined();
   });
 });
 
@@ -277,19 +291,29 @@ describe("no usable license", () => {
 
     expect(status.tone).toBe("critical");
     expect(status.title).toBe("License not valid");
+    /*
+     * The page's own sentence says what it means and what to do, and the
+     * client's reason follows as it was sent: a reader of another language
+     * is never left with the English reason alone.
+     */
     expect(status.description).toBe(
+      "The stored license could not be verified. Validate the license again.",
+    );
+    expect(status.serverMessage).toBe(
       "The stored license does not match this instance.",
     );
     expect(status.note).toBe(LICENSE_LAPSED_STATE);
   });
 
   it("falls back to its own words for an invalid license with no message", () => {
-    expect(
-      describeOf(payloadOf({ status: "invalid", licenseValid: false }))
-        .description,
-    ).toBe(
+    const status: LicenseStatusSummary = describeOf(
+      payloadOf({ status: "invalid", licenseValid: false }),
+    );
+
+    expect(status.description).toBe(
       "The stored license could not be verified. Validate the license again.",
     );
+    expect(status.serverMessage).toBeUndefined();
   });
 
   it("says there is none", () => {
@@ -320,7 +344,7 @@ describe("no usable license", () => {
     );
 
     expect(status.description).toContain("A license is installed");
-    expect(status.description).toContain("No expiry is recorded for it.");
+    expect(status.serverMessage).toBe("No expiry is recorded for it.");
   });
 
   /*
@@ -333,17 +357,18 @@ describe("no usable license", () => {
   ])(
     "does not repeat the license client's plain reading of %s",
     (status: string, message: string) => {
-      expect(
-        describeOf(
-          payloadOf({
-            status,
-            licenseValid: false,
-            message,
-            token: null,
-            verification: "none",
-          }),
-        ).description,
-      ).not.toContain(message);
+      const summary: LicenseStatusSummary = describeOf(
+        payloadOf({
+          status,
+          licenseValid: false,
+          message,
+          token: null,
+          verification: "none",
+        }),
+      );
+
+      expect(summary.description).not.toContain(message);
+      expect(summary.serverMessage).toBeUndefined();
     },
   );
 
@@ -352,10 +377,9 @@ describe("no usable license", () => {
       "The OneUptime Enterprise license has expired. It could not be verified offline.";
 
     expect(
-      describeOf(
-        payloadOf({ status: "expired", licenseValid: false, message }),
-      ).description,
-    ).toContain(message);
+      describeOf(payloadOf({ status: "expired", licenseValid: false, message }))
+        .serverMessage,
+    ).toBe(message);
   });
 
   /*
@@ -382,9 +406,9 @@ describe("no usable license", () => {
 
   it("says the same as the dialog about what has stopped", () => {
     for (const status of ["expired", "missing", "invalid"]) {
-      expect(
-        describeOf(payloadOf({ status, licenseValid: false })).note,
-      ).toBe(LICENSE_LAPSED_STATE);
+      expect(describeOf(payloadOf({ status, licenseValid: false })).note).toBe(
+        LICENSE_LAPSED_STATE,
+      );
     }
   });
 });
@@ -393,7 +417,11 @@ describe("a marketplace license", () => {
   const marketplace: PayloadFunction = (
     overrides?: Record<string, unknown>,
   ): JSONObject => {
-    return payloadOf({ marketplace: "AWS", licenseKey: null, ...(overrides || {}) });
+    return payloadOf({
+      marketplace: "AWS",
+      licenseKey: null,
+      ...(overrides || {}),
+    });
   };
 
   it("says where it comes from", () => {
@@ -426,8 +454,11 @@ describe("a marketplace license", () => {
     );
 
     expect(status.tone).toBe("critical");
-    expect(status.title).toBe("AWS Marketplace no longer licenses this installation");
-    expect(status.description).toContain("not subscribed");
+    expect(status.title).toBe(
+      "AWS Marketplace no longer licenses this installation",
+    );
+    expect(status.serverMessage).toContain("not subscribed");
+    expect(status.description).not.toContain("not subscribed");
     expect(status.description).toContain(LICENSE_LAPSED_STATE);
   });
 
@@ -617,5 +648,255 @@ describe("what a write the server accepted means", () => {
     expect(
       outcomeOf({ status: "missing", message: { nested: true } }).message,
     ).toBe(LICENSE_STORED_BUT_NOT_LICENSING);
+  });
+
+  it("warns with a sentence of the page's copy, which the alert translates", () => {
+    expect(LICENSE_STORED_BUT_NOT_LICENSING).toBe(
+      LicenseStatusCopy.storedButNotLicensing,
+    );
+  });
+});
+
+/*
+ * IN THE READER'S LANGUAGE (#7132). The status is written with the
+ * translator the page hands it, from the Admin Dashboard's own locale: its
+ * sentences in the reader's language, the dates in them written as the
+ * sentence is, the counts in the reader's digits - and what the license
+ * client said kept apart, as it said it.
+ */
+describe("the status in the reader's language", () => {
+  const ADMIN_LOCALES: string = path.resolve(
+    __dirname,
+    "..",
+    "..",
+    "..",
+    "..",
+    "packages/App/FeatureSet/AdminDashboard/src/Locales",
+  );
+
+  const translatorFor: (language: string) => Translator = (
+    language: string,
+  ): Translator => {
+    const words: Record<string, unknown> = JSON.parse(
+      fs.readFileSync(path.join(ADMIN_LOCALES, `${language}.json`), "utf8"),
+    ) as Record<string, unknown>;
+
+    return createTranslator((key: string): string | undefined => {
+      const value: unknown = words[key];
+
+      return typeof value === "string" ? value : undefined;
+    }, language);
+  };
+
+  // Ten whole days before the second of March 2027.
+  const TODAY: Date = new Date("2027-02-20T12:00:00.000Z");
+  const MARCH: string = "2027-03-02T12:00:00.000Z";
+
+  const inLanguage: (
+    payload: JSONObject,
+    language: string,
+  ) => LicenseStatusSummary = (
+    payload: JSONObject,
+    language: string,
+  ): LicenseStatusSummary => {
+    const summary: LicenseStatusSummary = describeLicenseStatus(
+      payload,
+      TODAY,
+      translatorFor(language),
+    );
+
+    return {
+      ...summary,
+      title: withoutIsolateMarks(summary.title),
+      description: withoutIsolateMarks(summary.description),
+      note: summary.note ? withoutIsolateMarks(summary.note) : summary.note,
+    };
+  };
+
+  it("German: a license in place", () => {
+    expect(inLanguage(payloadOf(), "de")).toEqual({
+      tone: "healthy",
+      title: "Lizenz aktiv",
+      description:
+        "Enterprise-Funktionen sind für diese Installation aktiviert.",
+    });
+  });
+
+  it("German: the trial's days and its end, a German date in a German sentence", () => {
+    const status: LicenseStatusSummary = inLanguage(
+      trialOf({ graceEndsAt: MARCH }),
+      "de",
+    );
+
+    expect(status.title).toBe("Testphase der Enterprise Edition: noch 10 Tage");
+    expect(status.description).toContain("2. März 2027");
+    expect(status.description).not.toContain("Mar 2027");
+    expect(status.description).not.toContain("3/2/2027");
+    expect(status.note).toContain("14");
+    expect(status.note).not.toContain("Without a valid license");
+  });
+
+  it("English: the same trial, an English date", () => {
+    const status: LicenseStatusSummary = describeLicenseStatus(
+      trialOf({ graceEndsAt: MARCH }),
+      TODAY,
+    );
+
+    expect(status.title).toBe("Enterprise Edition trial: 10 days left");
+    expect(status.description).toContain("02 Mar 2027");
+  });
+
+  /*
+   * Persian keeps "Enterprise Edition" in Latin letters in the trial's
+   * title. Without an isolate around the days left, the browser drew their
+   * Persian digits inside that Latin run, on the far side of the colon:
+   * "دورهٔ آزمایشی ۱۰ :Enterprise Edition روز مانده".
+   */
+  it("Persian: the trial's days left are set apart from the Latin edition name", () => {
+    const title: string = describeLicenseStatus(
+      trialOf({ graceEndsAt: MARCH }),
+      TODAY,
+      translatorFor("fa"),
+    ).title;
+
+    expect(title).toBe(
+      `دورهٔ آزمایشی Enterprise Edition: ${FIRST_STRONG_ISOLATE}۱۰ روز مانده${POP_DIRECTIONAL_ISOLATE}`,
+    );
+  });
+
+  it("Persian: a marketplace's English name and reporting problem sit in runs of their own", () => {
+    const status: LicenseStatusSummary = describeLicenseStatus(
+      payloadOf({
+        marketplace: "AWS",
+        licenseKey: null,
+        marketplaceBilling: { lastProblem: "AccessDeniedException" },
+      }),
+      TODAY,
+      translatorFor("fa"),
+    );
+
+    expect(status.title).toContain(
+      `${FIRST_STRONG_ISOLATE}AWS Marketplace${POP_DIRECTIONAL_ISOLATE}`,
+    );
+    expect(status.note).toContain(
+      `${FIRST_STRONG_ISOLATE}AccessDeniedException${POP_DIRECTIONAL_ISOLATE}`,
+    );
+  });
+
+  it("English and German: nothing to set apart, so no isolate marks", () => {
+    for (const translator of [undefined, translatorFor("de")]) {
+      const status: LicenseStatusSummary = describeLicenseStatus(
+        trialOf({ graceEndsAt: MARCH }),
+        TODAY,
+        translator,
+      );
+
+      for (const text of [status.title, status.description, status.note]) {
+        expect(withoutIsolateMarks(text || "")).toBe(text || "");
+      }
+    }
+  });
+
+  it("Persian: the days in Persian digits, the date a Persian date", () => {
+    const status: LicenseStatusSummary = inLanguage(
+      trialOf({ graceEndsAt: MARCH }),
+      "fa",
+    );
+
+    expect(status.title).toContain("۱۰");
+    expect(status.title).not.toMatch(/[0-9]/);
+    expect(status.description).toContain("۲۰۲۷");
+    expect(status.description).not.toContain("2027");
+  });
+
+  it("Russian: an expired license's grace period, and what to do here", () => {
+    const status: LicenseStatusSummary = inLanguage(
+      payloadOf({
+        status: "grace",
+        graceReason: "expired",
+        expiresAt: "2027-02-10T12:00:00.000Z",
+        graceEndsAt: MARCH,
+      }),
+      "ru",
+    );
+
+    expect(status.title).toMatch(/^Лицензия истекла, льготный период до /);
+    expect(status.title).toContain("2027");
+    expect(status.title).not.toContain("Mar");
+    expect(status.description).toContain(
+      "Продлите лицензию в OneUptime, затем обновите её здесь.",
+    );
+    expect(status.description).toContain("осталось 10 дн.");
+  });
+
+  it.each(["de", "fa", "ar", "ru"])(
+    "%s: what the license client said is kept apart, as it said it",
+    (language: string) => {
+      const message: string =
+        "The stored license does not match this instance.";
+      const invalid: LicenseStatusSummary = inLanguage(
+        payloadOf({ status: "invalid", licenseValid: false, message }),
+        language,
+      );
+
+      expect(invalid.serverMessage).toBe(message);
+      // The page's own sentence first, in the reader's language.
+      expect(invalid.description).toBe(
+        translatorFor(language).translateText(
+          LicenseStatusCopy.couldNotBeVerified,
+        ),
+      );
+      expect(invalid.description).not.toBe(
+        LicenseStatusCopy.couldNotBeVerified,
+      );
+      expect(invalid.description).not.toContain(message);
+      expect(invalid.title).toBe(
+        translatorFor(language).translateText(
+          LicenseStatusCopy.licenseNotValid,
+        ),
+      );
+      expect(invalid.title).not.toBe("License not valid");
+
+      const held: LicenseStatusSummary = inLanguage(
+        payloadOf({
+          status: "missing",
+          verification: "unverified",
+          licenseValid: false,
+          message: "No expiry is recorded for it.",
+        }),
+        language,
+      );
+
+      expect(held.serverMessage).toBe("No expiry is recorded for it.");
+      expect(held.description).not.toContain("No expiry is recorded");
+    },
+  );
+
+  it("Arabic: the marketplace's name as the listing writes it, in an Arabic sentence", () => {
+    const status: LicenseStatusSummary = inLanguage(
+      payloadOf({ marketplace: "AWS", licenseKey: null }),
+      "ar",
+    );
+
+    expect(status.title).toContain("AWS Marketplace");
+    expect(status.title).not.toBe("Licensed through AWS Marketplace");
+  });
+
+  /*
+   * A sentence a language has no wording for is drawn in English, and its
+   * date with it: an English sentence never holds a German date.
+   */
+  it("an English sentence keeps an English date on a German page", () => {
+    const unworded: Translator = createTranslator((): string | undefined => {
+      return undefined;
+    }, "de");
+    const status: LicenseStatusSummary = describeLicenseStatus(
+      trialOf({ graceEndsAt: MARCH }),
+      TODAY,
+      unworded,
+    );
+
+    expect(withoutIsolateMarks(status.description)).toContain("02 Mar 2027");
+    expect(status.description).not.toContain("März");
   });
 });

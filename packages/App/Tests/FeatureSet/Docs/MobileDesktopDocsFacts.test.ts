@@ -588,7 +588,7 @@ describe("the phone in the dashboard", () => {
       'title: "Notification Methods"',
     );
     expect(dashboard("src/Pages/UserSettings/SideMenu.tsx")).toContain(
-      'title: "On-Call Rules"',
+      'title: "How to Reach Me"',
     );
     expect(push).toContain('title: "Push Notification Devices"');
     expect(push).toContain('title: "Test Notification"');
@@ -609,14 +609,14 @@ describe("the phone in the dashboard", () => {
     }
   });
 
-  it("gets the default on-call rules when it registers", () => {
+  it("gets the default steps of How to Reach Me when it registers", () => {
     expect(flat(common("Server/API/UserPushAPI.ts"))).toMatch(
       /addDefaultNotificationRulesForVerifiedMethod\( \{ projectId: [^}]*?notificationMethod: \{ userPushId:/,
     );
 
     for (const page of MOBILE_PAGES) {
       expect(englishSection(page, "### Allow notifications")).toContain(
-        "lists it among your push devices with the default on-call rules",
+        "lists it among your push devices and adds it to your How to Reach Me",
       );
     }
   });
@@ -647,7 +647,7 @@ describe("the phone in the dashboard", () => {
         "**Settings → Log Out** signs you out and removes the",
       );
       expect(englishPage(page)).toContain(
-        "from your push devices in every project, together with its on-call rules. Signing in again adds it back with the default rules.",
+        "from your push devices in every project, together with its steps in How to Reach Me. Signing in again adds it back with the default steps.",
       );
     }
   });
@@ -733,7 +733,7 @@ describe("ringing through silent mode", () => {
 
     for (const page of MOBILE_PAGES) {
       expect(englishSection(page, "## Ring through silent mode")).toContain(
-        "Only on-call pages ring through, and only from on-call rules set to **Critical alert**, the default. A rule set to **Standard** follows the",
+        "Only on-call pages ring through, and only from steps of How to Reach Me set to **Critical alert**, the default. A step set to **Standard** follows the",
       );
     }
 

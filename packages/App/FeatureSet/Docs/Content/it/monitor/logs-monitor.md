@@ -72,7 +72,7 @@ Fate clic su **Crea monitor**. Il monitor si apre sulla sua pagina **Panoramica*
 | **Finestra temporale** (in **Quando avvisare**) | Log degli ultimi 5 secondi fino alle ultime 24 ore. | **Ultimi 5 minuti** |
 | **Raggruppa per attributi** | Non è un filtro: conta separatamente ogni combinazione di valori di questi attributi. | Vuoto: un solo conteggio |
 | **Risolto per attributi** | Non è un filtro: il log che risolve un gruppo. Compare appena **Raggruppa per attributi** ha un attributo; vedi [Risolto da un log](#risolto-da-un-log). | Vuoto: un gruppo si risolve quando i suoi log si fermano |
-| **Filtra per servizio di telemetria** (in **Altri campi**) | Log di uno qualsiasi dei servizi scelti. | Vuoto: tutti i servizi |
+| **Filtra per servizio** (in **Altri campi**) | Log di uno qualsiasi dei servizi scelti. | Vuoto: tutti i servizi |
 | **Filtra per entità dell'infrastruttura** (in **Altri campi**) | Log di uno qualsiasi degli host, pod, container e altre entità scelti. | Vuoto: tutte le entità |
 | **Filtra per attributi** (in **Altri campi**) | Log i cui attributi soddisfano ogni condizione. Ogni condizione ha il proprio operatore, come «uguale a» o «contiene». | Vuoto: nessuna condizione |
 
@@ -140,7 +140,7 @@ Volete un incidente quando il servizio di checkout registra più di 50 errori in
 
 - **Gravità del log**: **Errore**
 - **Finestra temporale**: **Ultimi 5 minuti**
-- **Filtra per servizio di telemetria**: `checkout`
+- **Filtra per servizio**: `checkout`
 - **Quando avvisare**: **Più di** `50`
 - **Cosa succede**: **Dichiara un incidente**
 
@@ -240,7 +240,7 @@ Il valore di ogni attributo di Group By è una [variabile di modello](/docs/moni
 ## Risoluzione dei problemi
 
 :::details Il monitor è offline, ma il mio servizio scrive log
-Il conteggio era 0, quindi i filtri non corrispondono a nessuno dei log che il servizio invia. Aprite la pagina **Criteri** del monitor (sotto **Configurazione**) e fate clic su **Modifica criteri di monitoraggio**: **Log corrispondenti** mostra a cosa corrispondono i filtri in questo momento, e il grafico in **Quando avvisare** li conta in ogni finestra. Le cause più comuni sono una gravità scelta in base al testo stampato dal logger invece che al suo numero di gravità (vedete [Gravità dei log](#gravità-dei-log)), un filtro di servizio o di attributo che non corrisponde, e una finestra di tempo più breve dell'intervallo tra i log del servizio.
+Il conteggio era 0, quindi i filtri non corrispondono a nessuno dei log che il servizio invia. Aprite la pagina **Criteri** del monitor (sotto **Configurazione**) e fate clic su **Modifica criteri**: **Log corrispondenti** mostra a cosa corrispondono i filtri in questo momento, e il grafico in **Quando avvisare** li conta in ogni finestra. Le cause più comuni sono una gravità scelta in base al testo stampato dal logger invece che al suo numero di gravità (vedete [Gravità dei log](#gravità-dei-log)), un filtro di servizio o di attributo che non corrisponde, e una finestra di tempo più breve dell'intervallo tra i log del servizio.
 :::
 
 :::details C'è stato un picco, ma nessun avviso

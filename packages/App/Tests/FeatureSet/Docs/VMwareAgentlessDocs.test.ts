@@ -9,6 +9,7 @@ import {
   getLocalizedNav,
 } from "../../../FeatureSet/Docs/Utils/I18n";
 import { drawnDashboardLabel } from "./DocsDashboardLabels";
+import { pathWithArrows } from "./DocsPageShape";
 import VMwareCollectionErrorCode, {
   VMwareCollectionErrorUtil,
 } from "Common/Types/VMware/VMwareCollectionError";
@@ -270,8 +271,13 @@ describe("the docs page on VMware without an agent", () => {
         }).toEqual({ label, named: true });
       }
 
-      // Where to start, and the button that both opens and saves the form.
-      expect(page).toContain(`**VMware → ${drawn(lang, "All vCenters")}**`);
+      /*
+       * Where to start ("←" before a Persian step, #7611), and the button
+       * that both opens and saves the form.
+       */
+      expect(page).toContain(
+        `**${pathWithArrows(["VMware", drawn(lang, "All vCenters")], lang)}**`,
+      );
       expect(page.split(`**${connectButton(lang)}**`).length - 1).toBe(2);
 
       // The message collection stops with when vCenter's certificate changes.

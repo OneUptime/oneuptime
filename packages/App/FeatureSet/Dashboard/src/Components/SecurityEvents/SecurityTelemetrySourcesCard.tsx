@@ -42,6 +42,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * "Your OneUptime data": the telemetry beyond logs that OneUptime already
@@ -417,10 +418,10 @@ const SecurityTelemetrySourcesCard: FunctionComponent = (): ReactElement => {
                         className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800"
                         data-testid={`security-telemetry-source-last-error-${row.kind}`}
                       >
-                        {translator.translateTemplate(
-                          "The last check failed: {{error}}",
-                          { error: status.error },
-                        )}
+                        <ErrorSentence
+                          template="The last check failed: {{error}}"
+                          error={status.error}
+                        />
                       </p>
                     ) : (
                       <></>

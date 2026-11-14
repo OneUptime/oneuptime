@@ -57,7 +57,7 @@ Haz clic en **Probar monitor**, elige una sonda en **Seleccionar sonda** y haz c
 
 ### Revisar los criterios
 
-**Criterios del monitor** empieza con los [criterios predeterminados](#criterios-predeterminados): sin conexión cuando el servidor no da una hora fiable, en línea cuando la da. Cámbialos si lo necesitas y haz clic en **Siguiente**.
+**Criterios** empieza con los [criterios predeterminados](#criterios-predeterminados): sin conexión cuando el servidor no da una hora fiable, en línea cuando la da. Cámbialos si lo necesitas y haz clic en **Siguiente**.
 
 ### Elegir sondas y crear
 

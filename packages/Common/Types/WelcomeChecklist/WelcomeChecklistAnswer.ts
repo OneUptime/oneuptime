@@ -56,6 +56,12 @@ export interface WelcomeChecklistAnswer {
    * them. An invited member's first hour ends there (#6807).
    */
   hasAcknowledgedTestPage: boolean;
+  /*
+   * This person may explore a sample project from the card (#6808): they
+   * set the project up, and this server lets them make projects. False
+   * whenever the card offers none.
+   */
+  canExploreSampleProject: boolean;
   // The steps, in order; empty when the card shows none (finished, an invited member).
   steps: Array<WelcomeChecklistStepState>;
   doneCount: number;
@@ -74,6 +80,7 @@ export const getEmptyWelcomeChecklistAnswer: () => WelcomeChecklistAnswer =
       isFinished: false,
       canSendEmail: true,
       hasAcknowledgedTestPage: false,
+      canExploreSampleProject: false,
       steps: [],
       doneCount: 0,
       totalCount: 0,
@@ -92,6 +99,7 @@ export const toWelcomeChecklistAnswerJSON: (
     isFinished: answer.isFinished,
     canSendEmail: answer.canSendEmail,
     hasAcknowledgedTestPage: answer.hasAcknowledgedTestPage,
+    canExploreSampleProject: answer.canExploreSampleProject,
     steps: answer.steps.map((state: WelcomeChecklistStepState): JSONObject => {
       return {
         step: state.step,
@@ -186,6 +194,7 @@ export const parseWelcomeChecklistAnswer: (
     isFinished: raw["isFinished"] === true,
     canSendEmail: raw["canSendEmail"] !== false,
     hasAcknowledgedTestPage: raw["hasAcknowledgedTestPage"] === true,
+    canExploreSampleProject: raw["canExploreSampleProject"] === true,
     steps: steps,
     doneCount: toCount(raw["doneCount"]),
     totalCount: toCount(raw["totalCount"]),

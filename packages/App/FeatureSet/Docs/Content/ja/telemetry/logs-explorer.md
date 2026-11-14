@@ -37,7 +37,7 @@ flowchart TB
 ## 始める前に
 
 - **届いているログ。** [OpenTelemetry](/docs/telemetry/open-telemetry)、[Fluent Bit](/docs/telemetry/fluentbit)、[Fluentd](/docs/telemetry/fluentd)、[Syslog](/docs/telemetry/syslog) のいずれかで送ります。**セットアップガイド** タブに、使っている言語やコレクター向けの設定が表示されます。
-- **テレメトリを読み取れるロール。** Project Owner、Project Admin、Project Member、Viewer、Telemetry Admin、Telemetry Member、Telemetry Viewer のいずれか、または Read Telemetry Service Log 権限を持つカスタムロール。ロールのスコープによって、誰のログが見えるかが決まります。[テレメトリー](/docs/permissions/index#テレメトリー) を参照してください。
+- **テレメトリを読み取れるロール。** Project Owner、Project Admin、Project Member、Viewer、Telemetry Admin、Telemetry Member、Telemetry Viewer のいずれか、または Read Logs 権限を持つカスタムロール。ロールのスコープによって、誰のログが見えるかが決まります。[テレメトリー](/docs/permissions/index#テレメトリー) を参照してください。
 
 ## ログの行を探す
 
@@ -141,7 +141,7 @@ OneUptime が記録する検出結果は 3 種類です。
 
 | 検出結果 | OneUptime が記録する条件 | プルリクエスト |
 | --- | --- | --- |
-| **エラーログ** | サービスが同じメッセージを Error または Fatal でその一時間に 20 回以上記録した場合で、そのメッセージに固有の語句があり、例外がないもの。例外付きで、またはスタックトレースを含んで記録されたメッセージは、代わりに [例外トラッキング](/docs/telemetry/exceptions) で追跡されます。 | エラーが記録される原因を修正するか、ふさわしいレベルで記録するようにします。 |
+| **エラーログ** | サービスが同じメッセージを Error または Fatal でその一時間に 20 回以上記録した場合で、そのメッセージに固有の語句があり、例外がないもの。例外付きで、またはスタックトレースを含んで記録されたメッセージは、代わりに [例外](/docs/telemetry/exceptions) で追跡されます。 | エラーが記録される原因を修正するか、ふさわしいレベルで記録するようにします。 |
 | **ログ出力の不足** | ある操作のスパンがその一時間に 20 件以上失敗し、その割合が 5% 以上で、サービスのログのうち少なくとも 100 件がトレース ID を持っているのに、その操作の直近の失敗したリクエスト 20 件のどれもログ行を書いていない場合。または、サービスがその一時間に 500 件以上のログと 100 件以上のスパンを送り、トレース ID を持つログが 1% 未満の場合。 | 失敗が起きる場所でそれをログに記録するか、サービスのログがトレース ID を持つようにします。 |
 | **ノイズの多いログ** | Error 未満で記録されるあるメッセージが、その一時間のサービスの行の 25% 以上、約 10,000 行以上を占める場合。 | その行のログ出力を減らします。Debug にする、バッチごとに一回にする、またはまったく記録しないようにします。 |
 

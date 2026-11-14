@@ -140,7 +140,7 @@ En **Qué declara**, responde a **Cuando se dispara**: **Crear una alerta**, la 
 
 ### Describir la alerta y el incidente
 
-Los pasos **Alerta** e **Incidente** solo aparecen para lo que declara la regla. Cada uno tiene un título y una gravedad, y secciones plegadas: **Descripción**, **Propiedad y etiquetas**, **De guardia** y **Más campos**, que contiene la resolución automática, la privacidad y las notas de corrección. Las reglas nuevas empiezan con el título y la descripción integrados, listos para editar. Haz clic en **Crear Regla de tasa de consumo del SLO** en el último paso.
+Los pasos **Alerta** e **Incidente** solo aparecen para lo que declara la regla. Cada uno tiene un título y una gravedad, y secciones plegadas: **Descripción**, **Propiedad y etiquetas**, **Guardia** y **Más campos**, que contiene la resolución automática, la privacidad y las notas de corrección. Las reglas nuevas empiezan con el título y la descripción integrados, listos para editar. Haz clic en **Crear Regla de tasa de consumo del SLO** en el último paso.
 :::
 
 OneUptime comprueba los números de una regla al guardarla:

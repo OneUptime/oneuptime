@@ -809,7 +809,7 @@ test.describe("a cloud resource's Scheduled Maintenance", () => {
     await expect(rows.nth(1)).toContainText("orders-db storage resize");
     await expect(rows.nth(1)).toContainText("Scheduled");
     await expect(
-      page.getByRole("button", { name: "Create Scheduled Maintenance Event" }),
+      page.getByRole("button", { name: "Create Maintenance Event" }),
     ).toBeVisible();
     await screenshot(page, "cloud-resource-scheduled-maintenance-1280");
 

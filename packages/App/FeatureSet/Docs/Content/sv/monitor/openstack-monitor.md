@@ -57,7 +57,7 @@ En ny monitor startar med **Cloud Stopped Reporting**, under **Vad som ska larma
 
 ### Kontrollera kriterierna
 
-Öppna varje kriterium under **Monitorkriterier** och kontrollera dess **Mätvärde**, **Aggregering**, **Villkor** och **Tröskel**. En mall fyller i dessa. Med **Custom Metric** eller **Avancerad** startar monitorn med standardkriterierna, som bara märker att mätvärdet inte skickar någon data, så ange din egen tröskel.
+Öppna varje kriterium under **Kriterier** och kontrollera dess **Mätvärde**, **Aggregering**, **Villkor** och **Tröskel**. En mall fyller i dessa. Med **Custom Metric** eller **Avancerad** startar monitorn med standardkriterierna, som bara märker att mätvärdet inte skickar någon data, så ange din egen tröskel.
 
 ### Skapa monitorn
 

@@ -47,10 +47,10 @@ Under **Standardvärden för övervakning** väljer du **Monitortyp** med samma 
 
 ### Ange kriterierna och intervallet
 
-Under **Kriterier** fyller du i vad som ska kontrolleras och kriterierna, som i [Skapa monitor](/docs/monitor/create-monitor#kriterier). Med kortet **Template sync settings** överst skyddar du fält mot synkroniseringar (se [Behåll värden för varje monitor](#behåll-värden-för-varje-monitor)). För en monitortyp som sonder kontrollerar frågar det sista steget, **Intervall**, efter **Övervakningsintervall**. Klicka på **Skapa Monitormall** på det sista steget.
+Under **Kriterier** fyller du i vad som ska kontrolleras och kriterierna, som i [Skapa monitor](/docs/monitor/create-monitor#kriterier). Med kortet **Inställningar för mallsynkronisering** överst skyddar du fält mot synkroniseringar (se [Behåll värden för varje monitor](#behåll-värden-för-varje-monitor)). För en monitortyp som sonder kontrollerar frågar det sista steget, **Intervall**, efter **Övervakningsintervall**. Klicka på **Skapa Monitormall** på det sista steget.
 :::
 
-Mallen läggs till i listan. Öppna den för att se dess sida, med ett kort för varje del: **Mallinformation**, **Standardvärden för övervakning**, **Övervakningskriterier**, **Övervakningsintervall** (med **Minsta sondöverensstämmelse**), **Etiketter**, **Standardvärden för anpassade fält** (när projektet har anpassade monitorfält) och **Länkade övervakare**. Du ändrar varje del på sitt eget kort, till exempel med **Redigera kriterier** eller **Redigera intervall**.
+Mallen läggs till i listan. Öppna den för att se dess sida, med ett kort för varje del: **Mallinformation**, **Standardvärden för övervakning**, **Kriterier**, **Övervakningsintervall** (med **Minsta sondöverensstämmelse**), **Etiketter**, **Standardvärden för anpassade fält** (när projektet har anpassade monitorfält) och **Länkade övervakare**. Du ändrar varje del på sitt eget kort, till exempel med **Redigera kriterier** eller **Redigera intervall**.
 
 ## Skapa monitorer från en mall
 
@@ -85,22 +85,22 @@ Gå till **Monitorer → Inställningar → Mallar** och öppna mallen.
 
 ### Redigera dess kriterier
 
-Klicka på **Redigera kriterier** på kortet **Övervakningskriterier**.
+Klicka på **Redigera kriterier** på kortet **Kriterier**.
 
 ### Skydda fälten
 
-Under **Template sync settings** markerar du **Do not sync this field** bredvid varje fält du vill behålla på de länkade monitorerna.
+Under **Inställningar för mallsynkronisering** markerar du **Synkronisera inte det här fältet** bredvid varje fält du vill behålla på de länkade monitorerna.
 
 ### Spara
 
-Spara dina ändringar. Kortet **Övervakningskriterier** och bekräftelsen av båda synkroniseringarna nedan listar de skyddade fälten.
+Spara dina ändringar. Kortet **Kriterier** och bekräftelsen av båda synkroniseringarna nedan listar de skyddade fälten.
 
 ### Synkronisera
 
 Använd **Synkronisera kriterier till länkade övervakare**, eller **Synkronisera från mall** på en enskild länkad monitor.
 :::
 
-Skydda till exempel **Monitor destination** och **Request headers** på en API-mall. Produktions- och staging-monitorer behåller sina egna URL:er och huvuden, medan båda får mallens uppdaterade kriterier och övriga oskyddade inställningar.
+Skydda till exempel **Monitor-mål** och **Begärandehuvuden** på en API-mall. Produktions- och staging-monitorer behåller sina egna URL:er och huvuden, medan båda får mallens uppdaterade kriterier och övriga oskyddade inställningar.
 
 Vilka alternativ som finns beror på monitortypen. De omfattar mål och portar, alternativ för HTTP-begäranden, databasanslutningar, DNS-inställningar, infrastrukturväljare och telemetrifrågor. Relaterade inloggningsuppgifter, som ett klientcertifikat och dess privata nyckel, hålls ihop.
 
@@ -159,7 +159,7 @@ Utelämna arrayen eller sätt den till `[]` för att synkronisera alla steginst�
 | Loggar, Security Events, Spår, AI / LLM, Mätvärden, Undantag, Profiler | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor`, `profileMonitor` (monitorns hela konfiguration) |
 | Sondstatus | `probeStatusMonitor.probeIds` |
 
-Infrastrukturmonitorer (Kubernetes, Docker Container, Värd, Podman Container, Proxmox, Docker Swarm, Ceph, Lagringsarray, IoT Device) erbjuder sin resursväljare, filter (alla utom Värd), mätvärdesfrågor och frågans tidsfönster. Deras namn listas under **Template sync settings** på en mall av den typen.
+Infrastrukturmonitorer (Kubernetes, Docker Container, Värd, Podman Container, Proxmox, Docker Swarm, Ceph, Lagringsarray, IoT Device) erbjuder sin resursväljare, filter (alla utom Värd), mätvärdesfrågor och frågans tidsfönster. Deras namn listas under **Inställningar för mallsynkronisering** på en mall av den typen.
 :::
 
 ## Felsökning

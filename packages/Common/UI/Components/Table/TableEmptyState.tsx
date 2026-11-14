@@ -1,11 +1,8 @@
 import Button, { ButtonStyleType } from "../Button/Button";
+import ErrorMessageText from "../ErrorMessage/ErrorMessageText";
 import Icon from "../Icon/Icon";
-import IsolatedText from "../IsolatedText/IsolatedText";
 import IconProp from "../../../Types/Icon/IconProp";
-import { getTranslatedLineDirection } from "../../Utils/LineDirection";
-import { Translator } from "../../Utils/TranslateTemplate";
-import useTranslateValue, { TranslatableValue } from "../../Utils/Translation";
-import useTranslator from "../../Utils/UseTranslator";
+import useTranslateValue from "../../Utils/Translation";
 import { toHeadline } from "./EmptyTableMessage";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -133,29 +130,6 @@ const TableEmptyState: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateValue, translateString } = useTranslateValue();
-  // The page's language: the way its lines read.
-  const translator: Translator = useTranslator();
-
-  /*
-   * The sentence under the title, in the reader's language - or, for a
-   * failed load, the server's answer as the server wrote it ("Something
-   * went wrong on the server. Please try again."). On a page that reads the
-   * other way from it (an English answer on a Persian page) it is set apart
-   * in an isolate of its own, as ErrorMessage sets it, so it keeps its full
-   * stop at its end: drawn as it was, it read ".Something went wrong on the
-   * server. Please try again". Words in the page's own way are drawn as
-   * they always were.
-   */
-  const translatedDescription: TranslatableValue = props.description
-    ? translateValue(props.description)
-    : undefined;
-  const description: TranslatableValue =
-    typeof translatedDescription === "string" &&
-    getTranslatedLineDirection(translatedDescription, translator.language) ? (
-      <IsolatedText text={translatedDescription} />
-    ) : (
-      translatedDescription
-    );
 
   /*
    * A title given as a sentence ("No services match the current filters.")
@@ -213,13 +187,22 @@ const TableEmptyState: FunctionComponent<ComponentProps> = (
        * text-balance: the centred sentence breaks into lines of about the
        * same length, rather than leaving a word or two ("case.") alone
        * under the rest.
+       *
+       * The sentence is drawn as every error's words are (ErrorMessageText):
+       * in the reader's language, and words that read the other way from
+       * the page - a failed load's English answer on a Persian page - set
+       * apart in an isolate of their own, so they keep their full stop at
+       * their end. A failed load nobody explained says why and what to do
+       * next, with the reference to give when the server failed (#6836);
+       * the title above already says what failed, and Try again is the
+       * action below.
        */}
       {props.description ? (
         <div
           className="mt-1.5 max-w-lg text-balance text-sm leading-6 text-gray-500"
           data-testid={`${testId}-description`}
         >
-          {description}
+          <ErrorMessageText message={props.description} hideWhatFailed={true} />
         </div>
       ) : (
         <></>

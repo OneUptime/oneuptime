@@ -141,6 +141,7 @@ Both policies agree here, and it matters more than it sounds:
 - Devices that have never reported anything never vote. A device waiting for its first poll is no evidence of an outage, so it is left out of both sides of the share, and a region half-way through onboarding is scored on the half that has answered.
 - A probe-polled device, the normal kind, votes with the outcome of its last poll: reachable by ping or SNMP, not how long ago it last succeeded. A device that answers ping while its SNMP walk fails is reachable and votes that way; the site says it is up, and the device's row says **SNMP failing** so somebody fixes the credentials.
 - A monitor-backed device, one switched to the bound-monitor override on its Settings page, votes with the status of the monitor bound to it, because nothing polls it. With nothing bound it has never reported, so it does not vote at all.
+- A monitor-backed device whose monitor is not checked, because its monitoring is turned off or it is archived, does not vote either: the status that monitor holds is only what its last check saw. The device reads **Pending**, with **Monitoring off** or **Monitor archived** beside it, until the monitor is turned back on or unarchived.
 
 A Network Device monitor on a probe-polled device does not change how the device votes. A monitor with an "interface down, so Offline" criteria would stamp Offline on a switch that answers every ping, and one dark port would turn a whole site red while every device row beneath it reads Up: the site would disagree with the list it sums up. For a polled device, the poll is the source of its health; the monitor is there to raise incidents.
 
@@ -185,7 +186,7 @@ An average over children weighs a store with two devices the same as a distribut
 
 ## Scheduled Maintenance for Network Sites
 
-Attach sites to a scheduled maintenance event under **Other Affected Resources**, on the event's **Resources Affected** step, as you would a host. A site's own **Scheduled Maintenance** page lists the events attached to it, and its **Create Scheduled Maintenance Event** opens the form with the site already picked.
+Attach sites to a scheduled maintenance event under **Other Affected Resources**, on the event's **Resources Affected** step, as you would a host. A site's own **Scheduled Maintenance** page lists the events attached to it, and its **Create Maintenance Event** opens the form with the site already picked.
 
 A window on a parent covers everything beneath it: a window on a Region covers every Market and Unit in it, including sites created after the window was scheduled, so a regional carrier cutover does not have to list four hundred stores.
 
@@ -214,6 +215,8 @@ The **Alerting** card on a site's **Settings** page has **Alert When Unhealthy**
 
 It alerts on the change only: turning it on for a site that is already unhealthy arms the next change rather than alerting about the past. Degraded is not operational, so a site on the percentage policy alerts as soon as one of its reporting devices is down, as a site on the worst-status policy does; the alert stays open, with no second one, while the site moves between Degraded and Offline, and its title names the status the site reached first.
 
+When nothing at a site reports a status any more, because the monitors behind its devices have their monitoring turned off, are archived or were deleted, the site goes back to no status rather than keeping its last one, and its open alert resolves with that as its root cause. A device that reports a problem again opens a new alert.
+
 ## Troubleshooting
 
 :::details A region is always red
@@ -225,7 +228,11 @@ No rollup has ever run for the site, so it has no timeline rows: it is unmonitor
 :::
 
 :::details A device does not count towards its site
-Archived devices, and devices that have not reported yet, never vote. A monitor-backed device with no monitor bound has never reported either. Check the device's status: a **Pending** device starts voting after its first poll.
+Archived devices, and devices that have not reported yet, never vote. A monitor-backed device with no monitor bound has never reported either. Check the device's status: a **Pending** device starts voting after its first poll. One with **Monitoring off** or **Monitor archived** beside it votes again once its monitor is turned back on or unarchived.
+:::
+
+:::details A site has no status any more
+Nothing at the site reports a status: the monitors behind its devices have their monitoring turned off, are archived or were deleted, so the site's last status was cleared and its alert resolved. Turn monitoring back on for those monitors, or unarchive them, and the site's status is worked out from its devices again.
 :::
 
 :::details A site's alert did not fire

@@ -191,6 +191,8 @@ import RestrictionTimes, {
   RestrictionType,
 } from "../../../Types/OnCallDutyPolicy/RestrictionTimes";
 import Timezone from "../../../Types/Timezone";
+import { DEFINED_TERM_DEFINITION_TEST_ID } from "../../../UI/Components/Glossary/DefinedTerm";
+import { clearGlossaryReads } from "../../../UI/Utils/Glossary";
 
 jest.setTimeout(30000);
 
@@ -536,5 +538,80 @@ describe("Skip until... on the Layers page", () => {
     });
     expect(createOrUpdateMock).not.toHaveBeenCalled();
     expect(screen.queryByTestId("layer-user-away-now")).toBeNull();
+  });
+});
+
+/*
+ * THE PAGE'S HEADING, WITH ITS WORD'S DEFINITION OPEN (#7594).
+ *
+ * This file draws the real Layers page with its layers, so the heading over
+ * them is held here too. "Rotation layers" is a defined term, and its
+ * definition - a dialog named by its word - was drawn inside the heading:
+ * while it showed, the heading was named "Rotation layers Rotation layers".
+ * It is drawn right after the heading now (Glossary/DefinitionsDrawnAfter).
+ */
+describe("the Rotation layers heading, with its word's definition open", () => {
+  const originalFetch: unknown = (globalThis as Record<string, unknown>)[
+    "fetch"
+  ];
+
+  afterEach(() => {
+    (globalThis as Record<string, unknown>)["fetch"] = originalFetch;
+    clearGlossaryReads();
+  });
+
+  test("holds its words alone: the definition is drawn right after it", async () => {
+    // The glossary answers its read; the rest of the network is stubbed above.
+    (globalThis as Record<string, unknown>)["fetch"] = (
+      url: unknown,
+    ): Promise<unknown> => {
+      if (!String(url).includes("/glossary/")) {
+        return Promise.reject(new Error(`Not read here: ${String(url)}`));
+      }
+
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: (): Promise<unknown> => {
+          return Promise.resolve({
+            lang: "en",
+            entries: [
+              {
+                id: "layer",
+                term: "Layer",
+                definition: "One rotation of people in an on-call schedule.",
+              },
+            ],
+          });
+        },
+      });
+    };
+
+    await renderLayers();
+
+    const word: HTMLElement = screen.getByRole("button", {
+      name: "Rotation layers",
+    });
+    const heading: HTMLElement = word.closest("h2") as HTMLElement;
+
+    fireEvent.click(word);
+
+    const open: HTMLElement = await waitFor((): HTMLElement => {
+      const dialog: HTMLElement = screen.getByRole("dialog", {
+        name: "Rotation layers",
+      });
+
+      expect(
+        within(dialog).getByTestId(DEFINED_TERM_DEFINITION_TEST_ID),
+      ).toBeInTheDocument();
+
+      return dialog;
+    });
+
+    expect((heading.textContent || "").replace(/\s+/g, " ").trim()).toBe(
+      "Rotation layers",
+    );
+    expect(heading).not.toContainElement(open);
+    expect(heading.nextElementSibling).toContainElement(open);
   });
 });

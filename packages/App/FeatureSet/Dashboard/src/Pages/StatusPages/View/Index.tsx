@@ -10,6 +10,8 @@ import Navigation from "Common/UI/Utils/Navigation";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageCustomField from "Common/Models/DatabaseModels/StatusPageCustomField";
 import OverviewCustomFields from "../../../Components/CustomFields/OverviewCustomFields";
+import UsedByCard from "../../../Components/UsedBy/UsedByCard";
+import { UsedByRecordKind } from "Common/Types/UsedBy/UsedBy";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const StatusPageView: FunctionComponent<
@@ -79,6 +81,13 @@ const StatusPageView: FunctionComponent<
           modelId: modelId,
         }}
       />
+
+      {/*
+       * "Showing now" (#6813): the open incidents and the maintenance
+       * coming up or in progress that visitors see on this page, each a
+       * link to its own.
+       */}
+      <UsedByCard recordKind={UsedByRecordKind.StatusPage} recordId={modelId} />
 
       <OverviewCustomFields
         modelId={modelId}

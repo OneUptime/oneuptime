@@ -38,6 +38,7 @@ import UserNotificationExecutionStatus from "../../../../Types/UserNotification/
 import UserNotificationStatus from "../../../../Types/UserNotification/UserNotificationStatus";
 import FeedMarkdown from "../../../../Utils/Markdown/FeedMarkdown";
 import { FakeRow, matchesQuery } from "./OnCallResolverTestHarness";
+import { meetsCondition } from "../../TestingUtils/QueryConditions";
 import PassOnWorld, {
   INCIDENT_ID,
   NAMES,
@@ -531,9 +532,10 @@ export default class AcknowledgementTimeoutWorld extends PassOnWorld {
       UserOnCallLogTimelineService,
       "findBy",
       async (data: { query: Record<string, unknown> }) => {
+        // By id, or by the ids an update wrote (QueryHelper.any).
         const log: UserOnCallLog | undefined = this.logs.find(
           (row: UserOnCallLog) => {
-            return sameKey(`delivery-of-${row._id}`, data.query["_id"]);
+            return meetsCondition(data.query["_id"], `delivery-of-${row._id}`);
           },
         );
 
@@ -764,14 +766,24 @@ export default class AcknowledgementTimeoutWorld extends PassOnWorld {
     }
 
     const acknowledgedAt: Date = new Date(this.clock);
+    const notificationId: string = `delivery-of-${log._id}`;
 
+    /*
+     * As OnCallNotificationStatus.recordAcknowledgement writes it: at the
+     * status and the version read, handing the hook the notification it
+     * wrote.
+     */
     await (
       UserOnCallLogTimelineService as unknown as Record<string, AnyFunction>
     )["onUpdateSuccess"]!.call(
       UserOnCallLogTimelineService,
       {
         updateBy: {
-          query: { _id: `delivery-of-${log._id}` },
+          query: {
+            _id: notificationId,
+            status: UserNotificationStatus.Sent,
+            version: 1,
+          },
           data: {
             acknowledgedAt: acknowledgedAt,
             isAcknowledged: true,
@@ -782,7 +794,7 @@ export default class AcknowledgementTimeoutWorld extends PassOnWorld {
         },
         carryForward: null,
       },
-      [],
+      [new ObjectID(notificationId)],
     );
   }
 

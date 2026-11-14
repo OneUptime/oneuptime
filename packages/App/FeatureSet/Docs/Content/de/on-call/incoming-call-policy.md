@@ -38,7 +38,7 @@ flowchart TB
 :::steps
 ### Ihr Twilio-Konto hinzufügen
 
-Öffnen Sie **Projekteinstellungen** > **Benachrichtigungen** > **Benachrichtigungseinstellungen** und dort **Weitere Einstellungen**. Klicken Sie in der Karte **Twilio-Konfiguration** auf **Twilio-Konfiguration erstellen** und füllen Sie das Formular aus:
+Öffnen Sie **Projekteinstellungen** > **Benachrichtigungen** > **Benachrichtigungskanäle** und dort **Weitere Einstellungen**. Klicken Sie in der Karte **Twilio-Konfiguration** auf **Twilio-Konfiguration erstellen** und füllen Sie das Formular aus:
 
 - **Name** und **Beschreibung**: wofür das Konto da ist, etwa „Support-Hotline“.
 - **Twilio Account SID**: aus der Twilio-Konsole. Sie beginnt mit `AC`.
@@ -48,7 +48,7 @@ flowchart TB
 
 ### Die Richtlinie anlegen
 
-Öffnen Sie **Bereitschaftsdienst** > **Richtlinien für eingehende Anrufe** und klicken Sie auf **Richtlinie für eingehende Anrufe erstellen**. Geben Sie ihr einen **Name**, etwa „Support-Hotline“; **Beschreibung** und **Beschriftungen** sind optional, unter **Weitere Felder**. Die neue Richtlinie öffnet sich in ihrer **Übersicht**.
+Öffnen Sie **Bereitschaft** > **Richtlinien für eingehende Anrufe** und klicken Sie auf **Richtlinie für eingehende Anrufe erstellen**. Geben Sie ihr einen **Name**, etwa „Support-Hotline“; **Beschreibung** und **Beschriftungen** sind optional, unter **Weitere Felder**. Die neue Richtlinie öffnet sich in ihrer **Übersicht**.
 
 ### Das Twilio-Konto wählen
 
@@ -143,7 +143,7 @@ Eine Nummer, deren Anrufe schon woandershin gehen, sagt „Currently has a webho
 
 OneUptime setzt den Sprach-Webhook der Nummer auf `https://<your host>/notification/incoming-call/voice`, bei einer selbst gehosteten Installation gebildet aus `HOST` und `HTTP_PROTOCOL`. Um eine Richtlinie auf ein anderes Twilio-Konto umzustellen, geben Sie zuerst ihre Nummern frei: Das Konto lässt sich nur ändern, solange die Richtlinie keine hat.
 
-Um eine Nummer freizugeben, klicken Sie daneben auf **Freigeben** und bestätigen mit **Nummer freigeben**.
+Um eine Nummer freizugeben, klicken Sie daneben auf **Nummer freigeben** und bestätigen mit **Nummer freigeben**.
 
 > [!CAUTION]
 > Eine freigegebene Nummer geht an Twilio zurück, auch eine, die Sie mit **Vorhandene Telefonnummer verwenden** eingebracht haben, und Sie bekommen sie womöglich nicht wieder. Wird eine Richtlinie oder die Twilio-Konfiguration gelöscht, die sie nutzt, werden ihre Nummern ebenfalls freigegeben.
@@ -160,7 +160,7 @@ Eine Regel lässt bei einer Person auf der Nummer klingeln, die sie in diesem Pr
 
 Jede Person kann pro Projekt eine verifizierte Nummer haben. Um sie zu ändern, löschen Sie zuerst die alte Nummer. Diese Nummern sind getrennt von den Telefonnummern unter **Benachrichtigungsmethoden**, die die Bereitschaftsalarmierung nutzt. Siehe [Benachrichtigungsmethoden](/docs/notifications/notification-methods).
 
-Nummern für eingehende Anrufe werden per SMS verifiziert, deshalb muss **SMS** im Projekt zuerst eingeschaltet sein. Ein Projekteigentümer oder jemand mit der Rolle **Abrechnungs-Administrator** oder der Berechtigung **Manage Billing** schaltet es in der Karte **Benachrichtigungskanäle** unter **Projekteinstellungen > Benachrichtigungen > Benachrichtigungseinstellungen** ein.
+Nummern für eingehende Anrufe werden per SMS verifiziert, deshalb muss **SMS** im Projekt zuerst eingeschaltet sein. Ein Projekteigentümer oder jemand mit der Rolle **Abrechnungs-Administrator** oder der Berechtigung **Manage Billing** schaltet es in der Karte **Benachrichtigungskanäle** unter **Projekteinstellungen > Benachrichtigungen > Benachrichtigungskanäle** ein.
 
 ## Sprachnachrichten und Richtlinieneinstellungen
 
@@ -228,7 +228,7 @@ Die Telefonnummern einer Richtlinie folgen denselben Rollen wie die Richtlinie s
 - **Nummern nachschlagen** - bei Twilio nach einer Nummer zum Reservieren suchen oder die Nummern auflisten, die Ihr Twilio-Konto schon hat - braucht die Berechtigung, Richtlinien für eingehende Anrufe zu lesen und Anruf- und SMS-Konfigurationen zu lesen, weil dabei Ihr Twilio-Konto über eine solche gelesen wird. **Projektinhaber**, **Projektadministrator**, **Projektmitglied**, **Betrachter**, **Einstellungs-Administrator**, **Einstellungs-Mitglied** und **Einstellungs-Betrachter** haben beide. In einer benutzerdefinierten Rolle sind das **Read Incoming Call Policy** und **Read Call and SMS**.
 - **Eine Nummer reservieren, eine vorhandene verwenden und eine freigeben** brauchen die Berechtigung, Richtlinien für eingehende Anrufe zu bearbeiten: **Projektinhaber**, **Projektadministrator**, **Projektmitglied**, **Einstellungs-Administrator** und **Einstellungs-Mitglied** oder **Edit Incoming Call Policy** in einer benutzerdefinierten Rolle. Sie ändern die Nummern einer Richtlinie, die Sie bearbeiten dürfen: bei einer auf bestimmte Beschriftungen beschränkten Rolle die Richtlinien mit diesen Beschriftungen.
 
-Ein Teamblock ohne Beschriftungen auf einer dieser Berechtigungen nimmt sie weg. Für alle anderen bleiben **Telefonnummer hinzufügen** und **Freigeben** gesperrt auf der Seite, und ihr Tooltip sagt, was nötig ist. Die API lehnt ihre Anfrage mit einem Satz ab, der sagt, was nötig ist: "Looking up phone numbers needs permission to read incoming call policies and call and SMS settings." oder "Adding or releasing a phone number needs permission to edit incoming call policies." Eine Nummer zu reservieren, belastet Ihr eigenes Twilio-Konto, nicht Ihr OneUptime-Guthaben, und braucht deshalb keine Abrechnungsberechtigung.
+Ein Teamblock ohne Beschriftungen auf einer dieser Berechtigungen nimmt sie weg. Für alle anderen bleiben **Telefonnummer hinzufügen** und **Nummer freigeben** gesperrt auf der Seite, und ihr Tooltip sagt, was nötig ist. Die API lehnt ihre Anfrage mit einem Satz ab, der sagt, was nötig ist: "Looking up phone numbers needs permission to read incoming call policies and call and SMS settings." oder "Adding or releasing a phone number needs permission to edit incoming call policies." Eine Nummer zu reservieren, belastet Ihr eigenes Twilio-Konto, nicht Ihr OneUptime-Guthaben, und braucht deshalb keine Abrechnungsberechtigung.
 
 ## Richtlinien mit der API oder Terraform anlegen
 

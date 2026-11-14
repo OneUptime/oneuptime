@@ -6,6 +6,12 @@ import {
   openHowOneUptimeWorks,
 } from "./HowOneUptimeWorksDialog";
 import { useDashboardNavigationItems } from "../../Utils/NavigationItems";
+import {
+  getListedItems,
+  withProductMarks,
+} from "../../Utils/ProjectProducts/ProductsMenu";
+import { ProjectProductsState } from "../../Utils/ProjectProducts/ProjectProductsStore";
+import useProjectProducts from "../../Utils/ProjectProducts/UseProjectProducts";
 import IconProp from "Common/Types/Icon/IconProp";
 import Card from "Common/UI/Components/Card/Card";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -42,6 +48,10 @@ import { useTranslation } from "react-i18next";
  * One category is shown at a time, starting with Essentials, so the card
  * never puts forty products in front of anyone at once. Project settings
  * (Users, Teams, Settings) are left out: they are not products to explore.
+ *
+ * So are the products the project hides (Project Settings > Products,
+ * #6814): a category whose products are all hidden has no tab. A product
+ * the project's plan cannot use says which plan can, before it is opened.
  */
 
 export interface ComponentProps {
@@ -84,9 +94,15 @@ const ExploreProducts: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const { t } = useTranslation();
   const { moreMenuItems } = useDashboardNavigationItems();
+  const products: ProjectProductsState = useProjectProducts(props.projectId);
 
   const categories: Array<MenuCategory> = getExploreCategories({
-    items: moreMenuItems,
+    items: getListedItems({
+      items: moreMenuItems,
+      answer: products.answer,
+    }).map((item: MoreMenuItem): MoreMenuItem => {
+      return withProductMarks(item, products.answer);
+    }),
     settingsCategory: t("navbar.categories.settings"),
   });
 
@@ -159,10 +175,16 @@ const ExploreProducts: FunctionComponent<ComponentProps> = (
           </button>
         }
       >
+        {/*
+         * The strip scrolls sideways on a phone, and a scroller clips what
+         * reaches past its edges: it reaches 4px past the card's padding on
+         * every side and pads that back, so a tab's focus ring shows whole
+         * and the tabs still start under the title's first letter.
+         */}
         <div
           role="tablist"
           aria-label={translator.translateText("Product categories")}
-          className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1"
+          className="-m-1 flex gap-1 overflow-x-auto p-1"
         >
           {categories.map(
             (category: MenuCategory, index: number): ReactElement => {
@@ -218,7 +240,7 @@ const ExploreProducts: FunctionComponent<ComponentProps> = (
           aria-labelledby={`home-explore-tab-${slugify(activeCategory.title)}`}
           data-testid="home-explore-panel"
           data-category={activeCategory.title}
-          className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3"
+          className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3"
         >
           {activeCategory.items.map((item: MoreMenuItem): ReactElement => {
             const colors: IconColorClasses =
@@ -250,8 +272,20 @@ const ExploreProducts: FunctionComponent<ComponentProps> = (
                     />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="flex items-center gap-1 text-sm font-medium text-gray-900">
+                    <span className="flex items-center gap-1.5 text-sm font-medium text-gray-900">
                       <span className="truncate">{item.title}</span>
+                      {item.neededPlan ? (
+                        <span
+                          data-testid="home-explore-plan"
+                          className="flex-shrink-0 rounded-full bg-yellow-50 px-1.5 text-[10px] font-medium leading-4 text-yellow-800 ring-1 ring-inset ring-yellow-200"
+                        >
+                          {translator.translateTemplate("{{planName}} Plan", {
+                            planName: item.neededPlan,
+                          })}
+                        </span>
+                      ) : (
+                        <></>
+                      )}
                     </span>
                     {item.description ? (
                       <span className="mt-0.5 line-clamp-2 block text-xs leading-5 text-gray-500">

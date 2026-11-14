@@ -38,7 +38,7 @@ La riga in alto nomina la cosa più urgente tra quelle aperte, in un colore corr
 
 Accanto, la home dice quando ha caricato il progetto l'ultima volta, e **Aggiorna** lo ricarica. Quando torni a una scheda della home dopo un minuto o più, si aggiorna da sola.
 
-Finché non c'è ancora nulla sotto monitoraggio, la riga termina con il pulsante **Crea il tuo primo monitor**, che apre il modulo per crearne uno. Lo vede solo chi può creare monitor.
+Finché non c'è ancora nulla sotto monitoraggio, la riga termina con il pulsante **Crea il tuo primo monitor**, che apre la configurazione guidata **Sapere quando il mio sito web o la mia API non funziona**. Lo vede solo chi può creare monitor.
 
 ### I cinque numeri
 
@@ -49,7 +49,7 @@ Ogni numero conta qualcosa, dice se richiede la tua attenzione e apre l'elenco c
 | **Incidenti attivi** | Gli incidenti non risolti | **Tutto a posto** | **Incidenti → Incidenti attivi** |
 | **Avvisi attivi** | Gli avvisi non risolti | **Tutto a posto** | **Avvisi → Avvisi attivi** |
 | **Monitor non operativi** | I monitor il cui stato non è operativo. I monitor archiviati, e quelli con il monitoraggio disattivato, non contano. | **Tutti operativi** | **Monitor → Non operativo** |
-| **Manutenzione in corso** | Gli eventi di manutenzione programmata in corso | **Nessuna in corso** | **Manutenzione programmata → Eventi in corso** |
+| **Manutenzione in corso** | Gli eventi di manutenzione programmata in corso | **Nessuna in corso** | **Manutenzione programmata → Eventi di manutenzione in corso** |
 | **SLO a rischio** | Gli SLO attivi che sono a rischio o hanno esaurito il loro error budget | **Budget in salute** | **SLOs** |
 
 Un numero sopra lo zero mostra **Richiede attenzione**, oppure **In corso** e **Budget in esaurimento** per manutenzione e SLO. Finché un SLO è a rischio, **SLO a rischio** apre l'elenco **SLOs** filtrato su quegli SLO. Un progetto senza monitor vede **Nessun monitor ancora**, e uno senza SLO vede **Nessun SLO ancora**: un progetto vuoto non è un progetto sano. Questi due aprono allora gli elenchi **Monitor** e **SLOs**, dove ne crei uno.
@@ -63,16 +63,16 @@ Ogni passaggio si spunta da solo quando la cosa funziona, non quando esiste un r
 | Passaggio | Completato quando | Apre |
 | --- | --- | --- |
 | **Importa dal tuo strumento attuale** | Un'importazione da un altro strumento termina. | **Importa da un altro strumento** |
-| **Crea il tuo primo monitor** | Arriva il suo primo controllo. | Il modulo **Crea monitor**, o l'elenco **Monitor** per chi non può creare monitor. |
+| **Crea il tuo primo monitor** | Arriva il suo primo controllo. | La configurazione guidata **Sapere quando il mio sito web o la mia API non funziona**, o l'elenco **Monitor** per chi non può creare monitor. |
 | **Collega un server o un cluster** | Arrivano le sue prime metriche. | **Host** |
-| **Invia i tuoi primi log, metriche o trace** | Arrivano i primi log, metriche, trace, eccezioni o profili del progetto. | **Registri** |
-| **Configura una policy di reperibilità** | Un avviso di prova viene confermato, un avviso raggiunge qualcuno, o una regola di reperibilità esegue una policy che può raggiungere qualcuno. | **Reperibilità** |
-| **Pubblica una pagina di stato** | Una pagina di stato mostra un monitor. | **Pagine di stato** |
+| **Invia i tuoi primi log, metriche o trace** | Arrivano i primi log, metriche, trace, eccezioni o profili del progetto. | La configurazione guidata **Invia registri, metriche e tracce, poi ricevi avvisi** |
+| **Configura una policy di reperibilità** | Un avviso di prova viene confermato, un avviso raggiunge qualcuno, o una regola di reperibilità esegue una policy che può raggiungere qualcuno. | La configurazione guidata **Avvisare la persona giusta quando qualcosa si guasta** |
+| **Pubblica una pagina di stato** | Una pagina di stato mostra un monitor. | La configurazione guidata **Pubblica una pagina di stato**, o l'elenco **Pagine di stato** per chi non può creare pagine di stato. |
 | **Invita il tuo team** | Qualcuno accetta il tuo invito. | **Utenti** |
 
 Il passaggio da fare per primo è segnato con **Prossimo passaggio**. Con il piano Free di OneUptime Cloud, che include una persona, **Invita il tuo team** dice che serve il piano Growth e apre **Fatturazione**. Su un server self-hosted che non può ancora inviare email, gli amministratori del server vedono prima **Questo server non può ancora inviare email**, che apre la dashboard di amministrazione.
 
-Quando crei un monitor, una pagina di stato o una policy di reperibilità da un passaggio, la pagina su cui arrivi dice cosa viene dopo, con **Torna alla configurazione**.
+Una configurazione guidata fa tutto il lavoro in una sola pagina, un passaggio alla volta, e termina con ciò che ha configurato e cosa fare dopo. Per riaprirne una più tardi, cerca il suo nome.
 
 Sotto i passaggi, **Come funziona OneUptime** mostra i quattro prodotti principali nell'ordine in cui un problema li attraversa: **Monitor**, **Incidenti e avvisi**, **Reperibilità** e **Pagine di stato**. Fai clic su uno per aprirlo. Sotto dice cosa alimenta questo ciclo, la telemetria e l'infrastruttura, e rimanda a [Concetti fondamentali](/docs/introduction/core-concepts) e [Glossario](/docs/introduction/glossary).
 
@@ -93,6 +93,10 @@ La checklist sparisce per tutti quando ogni passaggio è fatto. Per nasconderla 
 
 **Richiede attenzione** elenca per nome ciò che i numeri contano: gli incidenti aperti, gli avvisi aperti, i monitor non operativi, gli SLO a rischio e le manutenzioni in corso, prima i più urgenti. Ogni riga mostra la gravità o lo stato, dice quando è iniziato un incidente o un avviso e quando termina una manutenzione, e apre l'elemento. Per ogni tipo ne mostra fino a cinque, con **Mostra tutti** per gli altri, che apre lo stesso elenco del suo numero. Quando non c'è nulla di aperto, dice **Nulla richiede la tua attenzione**.
 
+### Stato della configurazione
+
+Quando qualcosa nella configurazione del progetto impedirebbe di avvisare le persone, **Richiede attenzione** termina con **Configurazione**: quante cose meritano un'occhiata. Apre **Stato della configurazione**, che elenca ciò che è configurato male, il più grave per primo, sotto **Gli avvisi non arriveranno**, **Da correggere** e **Suggerimenti**: un monitor che non avvisa nessuno, una policy di reperibilità che nulla esegue, una persona che non può essere avvisata, gli SMS disattivati, una pianificazione di reperibilità senza nessuno reperibile, una pagina di stato che non mostra alcun monitor. Ogni rilevamento dice in una frase cosa non va, con il pulsante che apre la sua correzione, e i rilevamenti di un monitor sono le interruzioni che nomina la sua scheda **Quando va giù**. Un rilevamento che il tuo team lascia così di proposito può essere nascosto con un motivo, per tutti, e ripristinato da **Ignorato**. La ricerca trova la pagina come **Stato della configurazione**, e Chiedi all'IA risponde a "la mia configurazione va bene?" partendo da essa.
+
 ### Il tuo progetto
 
 **Il tuo progetto** conta i **Monitor**, le **Pagine di stato**, le **Policy di reperibilità**, gli **SLOs**, i **Servizi**, le **Dashboard** e i **Flussi di lavoro** del progetto, esclusi quelli archiviati. Ogni riga apre il suo elenco. Un tipo di cui il progetto non ha nessun elemento mostra **Configura** al posto di un numero.
@@ -101,7 +105,7 @@ La checklist sparisce per tutti quando ogni passaggio è fatto. Per nasconderla 
 
 ### Esplora OneUptime
 
-**Esplora OneUptime** mostra i prodotti del menu **Prodotti** una categoria alla volta, a partire dagli essenziali. Ogni prodotto dice a cosa serve e si apre quando ci fai clic.
+**Esplora OneUptime** mostra i prodotti del menu **Prodotti** una categoria alla volta, a partire dagli essenziali. Ogni prodotto dice a cosa serve e si apre quando ci fai clic. I prodotti che il tuo progetto nasconde non compaiono.
 
 ## Orientarsi
 
@@ -111,6 +115,9 @@ Tutto in OneUptime si trova sotto **Prodotti** nella barra in alto. Il menu pres
 - **Parti da dove sei.** Il gruppo della pagina in cui ti trovi si espande da solo, e i prodotti che hai aperto di recente sono elencati in alto.
 - **Le tue scelte restano.** Il menu ricorda, nel tuo browser, quali degli altri gruppi hai espanso o compresso. Gli essenziali sono di nuovo espansi ogni volta che apri il menu, anche se li avevi compressi.
 - **Su un telefono**, il pulsante del menu elenca i prodotti allo stesso modo: gli essenziali espansi in alto, e ogni altro gruppo come una riga che si apre con un tocco.
+- **Prodotti che il progetto non usa.** Un proprietario o un amministratore del progetto può nasconderli in **Impostazioni del progetto → Base → Prodotti**. Un prodotto nascosto passa in **Altri prodotti**, l'ultima riga del menu: la ricerca lo trova ancora, le sue pagine funzionano e i suoi dati continuano ad arrivare. Quando uno inizia a ricevere dati, la Home lo dice a chi può mostrarlo di nuovo.
+- **Fissare.** Tieni un prodotto nella barra in alto, accanto a **Home** e **Prodotti**: premi la puntina sulla sua scheda nel menu, oppure **Fissa** accanto al titolo della sua pagina. Puoi fissarne cinque, e ti seguono in ogni browser. Su un telefono, i prodotti fissati vengono per primi nel menu.
+- **Cosa è in uso.** In ogni gruppo tranne gli essenziali e le impostazioni, i prodotti che il tuo progetto usa vengono per primi, e uno che non hai ancora configurato dice **Non configurato**. Su OneUptime Cloud, un prodotto che il tuo piano non include nomina il piano che lo include.
 
 ### Le barre in alto
 
@@ -122,7 +129,7 @@ Due barre attraversano la parte alta di ogni pagina.
 | In alto a destra | **Cerca** e **Chiedi all'IA**, la campanella delle notifiche con ciò che ti aspetta ora (incidenti e avvisi attivi, le policy di reperibilità in cui sei di turno, gli inviti in sospeso), **Aiuto**, e la tua foto, che apre il menu del tuo [account](/docs/introduction/your-account). |
 | Sotto | **Home** e **Prodotti** a sinistra, **Impostazioni utente** a destra: come OneUptime ti raggiunge in questo progetto. |
 
-**Aiuto** inizia da ciò che aiuta a imparare: **Guida rapida**, **Come funziona OneUptime**, **Glossario** e questa documentazione (**Documentazione**). Sotto ci sono l'elenco **Keyboard shortcuts** e il supporto via e-mail e su Slack. Su uno schermo stretto, come quello di un telefono, **Cerca**, **Chiedi all'IA** e **Aiuto** vengono tolti per fare spazio; la campanella e la tua foto restano.
+**Aiuto** inizia da ciò che aiuta a imparare: **Guida rapida**, **Come funziona OneUptime**, **Glossario** e questa documentazione (**Documentazione**). Sotto ci sono l'elenco **Scorciatoie da tastiera** e il supporto via e-mail e su Slack. Su un tablet o in una finestra stretta, **Chiedi all'IA** viene tolto per fare spazio: si trova tra le azioni di **Cerca**. Su un telefono, **Cerca** e **Aiuto** passano nell'elenco del pulsante del menu, in cima e in fondo; la campanella e la tua foto restano.
 
 Una parola con una linea tratteggiata sotto, come **Sonde** nel modulo di un nuovo monitor, dice cosa significa quando la indichi, la raggiungi con Tab o la tocchi. Il suo **Leggi di più** apre la parola nel [Glossario](/docs/introduction/glossary).
 
@@ -142,9 +149,10 @@ Sopra il titolo di ogni pagina, un percorso come *Progetto › Docker › Impost
 Premi **Cmd+K** (Mac) o **Ctrl+K** (Windows e Linux), oppure fai clic sull'icona di ricerca nella barra in alto, e inizia a digitare. La ricerca trova:
 
 - **Ogni pagina dei menu**, con il nome che il menu le dà: Chiavi API, Zona pericolosa, Pianificazioni di reperibilità, Gravità incidente, i tuoi Metodi di notifica. Ogni risultato dice dove si trova, per esempio *Impostazioni del progetto › Avanzato*, così le pagine con lo stesso nome (Campi personalizzati in Incidenti, Avvisi e Monitor) si distinguono facilmente.
-- **Le impostazioni di una pagina**, con il nome che mostra la loro scheda o il loro interruttore: *Richiedi l'SSO per l'accesso* trova SSO, e *Canali di notifica* trova Impostazioni notifiche. Digita il nome in inglese o nella tua lingua.
+- **Le impostazioni di una pagina**, con il nome che mostra la loro scheda o il loro interruttore: *Richiedi l'SSO per l'accesso* trova SSO, e *Configurazioni SMTP personalizzate* trova Canali di notifica. Digita il nome in inglese o nella tua lingua.
 - **Azioni**, in base a ciò che vuoi fare: Dichiara incidente, Crea monitor, o Delete Project, che apre la Zona pericolosa. Un'azione che modifica qualcosa viene offerta solo a chi ha il permesso di farla.
 - **I tuoi monitor, incidenti, avvisi, pagine di stato e policy di reperibilità**, per nome, e incidenti e avvisi anche per numero, come `INC-42`. Ogni risultato di un incidente o di un avviso comincia con il suo numero, così due con lo stesso titolo si distinguono.
+- **La documentazione**, in un gruppo *Documentazione* sotto tutto il resto: le pagine e le sezioni le cui parole corrispondono a ciò che digiti, nella tua lingua, anche con un errore di battitura. Ognuna si apre in una nuova scheda, così non perdi il punto in cui eri.
 
 La ricerca legge ciò che digiti come lo intendi:
 
@@ -157,7 +165,7 @@ Con la casella di ricerca vuota, la ricerca elenca le pagine aperte di recente, 
 
 ## Scorciatoie da tastiera
 
-Premi `?` in qualsiasi punto della dashboard per vedere tutte le scorciatoie, oppure apri **Aiuto** e scegli **Keyboard shortcuts**. Su un Mac, `Mod` è il tasto Comando; su Windows e Linux è Ctrl.
+Premi `?` in qualsiasi punto della dashboard per vedere tutte le scorciatoie, oppure apri **Aiuto** e scegli **Scorciatoie da tastiera**. Su un Mac, `Mod` è il tasto Comando; su Windows e Linux è Ctrl.
 
 | Tasti | Cosa fanno |
 | --- | --- |

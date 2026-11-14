@@ -69,7 +69,7 @@ Een nieuwe monitor begint met **Cluster Stopped Reporting**, onder **Waarover te
 
 ### De criteria controleren
 
-Open elk criterium onder **Monitorcriteria** en controleer **Metriek**, **Aggregatie**, **Voorwaarde** en **Drempel**. Een sjabloon vult ze in. Met **Custom Metric** of **Geavanceerd** begint de monitor met de [standaardcriteria](#standaardcriteria), die alleen merken dat de metric geen gegevens stuurt, dus stel je eigen drempel in.
+Open elk criterium onder **Criteria** en controleer **Metriek**, **Aggregatie**, **Voorwaarde** en **Drempel**. Een sjabloon vult ze in. Met **Custom Metric** of **Geavanceerd** begint de monitor met de [standaardcriteria](#standaardcriteria), die alleen merken dat de metric geen gegevens stuurt, dus stel je eigen drempel in.
 
 ### De monitor aanmaken
 

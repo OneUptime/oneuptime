@@ -2,6 +2,9 @@
 
 La reperibilità è il modo in cui OneUptime porta una persona su un problema, a qualsiasi ora. Quando un incidente, un avviso o un episodio ha bisogno di qualcuno, le sue policy di reperibilità avvisano le persone livello per livello finché qualcuno non riconosce, e ogni persona viene raggiunta come ha scelto: una notifica push, un SMS, una chiamata, un'e-mail o un messaggio in chat. Questa pagina mostra come si incastrano i pezzi e dove si trova ciascuno. Il [Glossario](/docs/introduction/glossary#policy-di-reperibilità) spiega in una o due frasi ogni parola usata dalla reperibilità.
 
+> [!TIP]
+> Prima volta qui? Inizia dalla guida: [Essere avvisati per chiamata, SMS o push](/docs/guides/paging).
+
 :::cards
 - [Come un avviso raggiunge qualcuno](#come-un-avviso-raggiunge-qualcuno): Da un nuovo incidente alla persona che risponde.
 - [Gli elementi di base](#gli-elementi-di-base): Policy, regole di escalation, pianificazioni, sostituzioni e regole personali.
@@ -45,7 +48,7 @@ Le parole usate in tutto OneUptime sono nel [Glossario](/docs/introduction/gloss
 | Regola di escalation | Un livello di una policy: chi avvisa e quanto attende un riconoscimento | [Regole di escalation](/docs/on-call/escalation-rules) |
 | Pianificazione di reperibilità | Chi è reperibile in ogni momento, a turno | [Pianificazioni di reperibilità](/docs/on-call/schedules) |
 | Sostituzione utente | Chi sostituisce qualcuno mentre è assente | [Sostituzioni utente](/docs/on-call/user-overrides) |
-| Regole di reperibilità personali | Come viene raggiunta una persona: con quale metodo e dopo quanto tempo | [Regole di reperibilità personali](/docs/notifications/on-call-rules) |
+| Come contattarmi | Come viene raggiunta una persona: con quale metodo e dopo quanto tempo | [Come contattarmi](/docs/notifications/on-call-rules) |
 | Politica chiamate in arrivo | Un numero di telefono che fa squillare chi è reperibile | [Politica chiamate in arrivo](/docs/on-call/incoming-call-policy) |
 
 Le policy, le regole di escalation, le pianificazioni e le sostituzioni appartengono al progetto, in **Reperibilità**. I metodi di notifica e le regole di reperibilità personali appartengono a ciascuna persona, in **Impostazioni utente**: un amministratore può vedere la configurazione di qualcuno, ma solo quella persona può verificare il proprio telefono o la propria e-mail. Vedi [Come OneUptime vi raggiunge](/docs/notifications/index).

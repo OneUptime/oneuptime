@@ -29,7 +29,7 @@ export const NEW_ON_CALL_PAGES: ReadonlyArray<OnCallDocsPageEntry> = [
   { page: READINESS_AND_REPORTS, navTitle: "Readiness & Reports" },
 ];
 
-export const ON_CALL_NAV_GROUP: string = "On Call";
+export const ON_CALL_NAV_GROUP: string = "On-Call";
 export const ON_CALL_NAV_SECTION: string = "Incident Response";
 
 /*
@@ -54,7 +54,7 @@ export const ON_CALL_GROUP_PAGES: ReadonlyArray<OnCallDocsPageEntry> = [
 ];
 
 /*
- * Nav titles that are a label of the Dashboard's On-Call Duty side menu: in
+ * Nav titles that are a label of the Dashboard's On-Call side menu: in
  * every language the page is titled as that language's Dashboard names the
  * menu entry it documents.
  */
@@ -102,17 +102,17 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
       "Executing",
       "Execution Completed",
       "Execution Completed - No One Notified",
-      "Create On-Call Duty Policy",
-      "Edit On-Call Duty Policy",
-      "Delete On-Call Duty Policy",
-      "Read On-Call Duty Policy",
+      "Create On-Call Policy",
+      "Edit On-Call Policy",
+      "Delete On-Call Policy",
+      "Read On-Call Policy",
     ],
     [USER_OVERRIDES]: [
-      "Create On-Call Duty Policy User Override",
-      "Delete On-Call Duty Policy User Override",
-      "Read On-Call Duty Policy User Override",
+      "Create On-Call Policy User Override",
+      "Delete On-Call Policy User Override",
+      "Read On-Call Policy User Override",
     ],
-    [READINESS_AND_REPORTS]: ["Edit On-Call Duty Policy"],
+    [READINESS_AND_REPORTS]: ["Edit On-Call Policy"],
   };
 
 /*

@@ -54,6 +54,7 @@ import TwilioConfigUses, {
 import { getPhoneNumberListError } from "Common/UI/Utils/PhoneNumberListError";
 import { PHONE_NUMBER_LIST_EXAMPLE } from "Common/Types/CallAndSMS/TwilioPhoneNumbers";
 import TwilioConfigPhoneNumbers from "./TwilioConfigPhoneNumbers";
+import { phoneNumberInLine } from "Common/Types/PhoneNumberDirection";
 import TwilioTestSendCopy, {
   getTestSendFromPhoneNumber,
   getTestSentMessage,
@@ -325,7 +326,11 @@ const CustomCallSMSTable: FunctionComponent<ComponentProps> = (
 
   const translator: Translator = useTranslator();
 
-  // What the dialog after a test says went out, and from which number.
+  /*
+   * What the dialog after a test says went out, and from which number - a
+   * number that reads +447700900123 in a Persian or Arabic sentence too
+   * (phoneNumberInLine).
+   */
   const getTestSentDescription: (kind: TwilioTestSendKind) => string = (
     kind: TwilioTestSendKind,
   ): string => {
@@ -335,7 +340,7 @@ const CustomCallSMSTable: FunctionComponent<ComponentProps> = (
     });
 
     return translator.translateTemplate(message.template, {
-      phoneNumber: message.phoneNumber,
+      phoneNumber: phoneNumberInLine(message.phoneNumber, translator.language),
     });
   };
 
@@ -653,6 +658,12 @@ const CustomCallSMSTable: FunctionComponent<ComponentProps> = (
             description: TwilioConfigUseCopy.smsOnlyPhoneNumbersDescription,
             // The list the error under the field gives: no one country's.
             placeholder: PHONE_NUMBER_LIST_EXAMPLE,
+            /*
+             * A list of numbers reads left to right in every language, its
+             * example with it: on a Persian or Arabic page the example's
+             * "+" went after its digits (#7180).
+             */
+            readsLeftToRight: true,
             customValidation: (
               values: FormValues<ProjectCallSMSConfig>,
             ): string | null => {
@@ -738,6 +749,12 @@ const CustomCallSMSTable: FunctionComponent<ComponentProps> = (
             description: TwilioConfigNumbersCopy.smsPhoneNumbersDescription,
             // The list the error under the field gives: no one country's.
             placeholder: PHONE_NUMBER_LIST_EXAMPLE,
+            /*
+             * A list of numbers reads left to right in every language, its
+             * example with it: on a Persian or Arabic page the example's
+             * "+" went after its digits (#7180).
+             */
+            readsLeftToRight: true,
             customValidation: (
               values: FormValues<ProjectCallSMSConfig>,
             ): string | null => {
@@ -758,6 +775,8 @@ const CustomCallSMSTable: FunctionComponent<ComponentProps> = (
             description:
               TwilioConfigNumbersCopy.secondaryPhoneNumbersDescription,
             placeholder: "+441234567890, +461234567890",
+            // A list of numbers reads left to right, as the ones above.
+            readsLeftToRight: true,
             customValidation: (
               values: FormValues<ProjectCallSMSConfig>,
             ): string | null => {

@@ -7,10 +7,7 @@ import {
   AIChatWidgetStat,
   AIChatWidgetType,
 } from "../../../Types/AI/AIChatTypes";
-import {
-  getFactsNotInHeading,
-  ResourceCardFact,
-} from "../../../Types/AI/ResourceCardFacts";
+import { ResourceCardFact } from "../../../Types/AI/ResourceCardFacts";
 import { JSONObject } from "../../../Types/JSON";
 import { markdownTableCell } from "../../../Utils/Markdown/MarkdownTableCell";
 import { mdText } from "../../../Utils/Markdown/FeedMarkdown";
@@ -28,6 +25,7 @@ import {
   formatStatValue,
   formatTableCell,
   formatToolArguments,
+  getExportedResourceCardFacts,
   isChartWidget,
   isEntityListWidget,
   toEntityListEntry,
@@ -241,7 +239,8 @@ function statCardsToMarkdown(widget: AIChatWidget): Array<string> {
 
 /*
  * A card's facts, each once: what its heading or subheading already says is
- * left out, as the card itself draws it (Types/AI/ResourceCardFacts).
+ * left out, as the card itself draws it (Types/AI/ResourceCardFacts) - and
+ * a moment written as the export writes its dates, not as ISO text.
  */
 function resourceCardToMarkdown(widget: AIChatWidget): Array<string> {
   const lines: Array<string> = [];
@@ -256,11 +255,7 @@ function resourceCardToMarkdown(widget: AIChatWidget): Array<string> {
     lines.push(widget.data.subheading);
   }
 
-  const fields: Array<ResourceCardFact> = getFactsNotInHeading({
-    heading: widget.data.heading,
-    subheading: widget.data.subheading,
-    fields: widget.data.fields,
-  });
+  const fields: Array<ResourceCardFact> = getExportedResourceCardFacts(widget);
 
   if (fields.length > 0) {
     lines.push("");

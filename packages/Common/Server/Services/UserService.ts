@@ -552,7 +552,9 @@ export class Service extends DatabaseService<Model> {
       updateBy.data.enableTwoFactorAuth !== undefined &&
       typeof updateBy.data.enableTwoFactorAuth !== "boolean"
     ) {
-      throw new BadDataException("enableTwoFactorAuth must be a boolean.");
+      throw new BadDataException(
+        "Two-factor authentication is turned on or off with true or false (enableTwoFactorAuth).",
+      );
     }
 
     this.normalizeLanguage(updateBy.data as unknown as JSONObject);
@@ -1921,7 +1923,7 @@ export class Service extends DatabaseService<Model> {
        */
       if (mailResponse instanceof HTTPErrorResponse) {
         throw new BadDataException(
-          `Could not send the password reset email: ${mailResponse.message}`,
+          `The password reset email was not sent. ${mailResponse.message}`,
         );
       }
     } catch (err) {

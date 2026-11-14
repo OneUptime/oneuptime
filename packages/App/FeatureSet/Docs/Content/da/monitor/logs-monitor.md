@@ -72,7 +72,7 @@ Klik på **Opret monitor**. Monitoren åbner på sin side **Oversigt**, og dens 
 | **Tidsvindue** (i **Hvornår der advares**) | Logs fra de seneste 5 sekunder op til de seneste 24 timer. | **Seneste 5 minutter** |
 | **Gruppér efter attributter** | Intet filter: tæller hver kombination af disse attributters værdier for sig. | Tom: én optælling |
 | **Løst af attributter** | Intet filter: den log, der løser en gruppe. Vises, så snart **Gruppér efter attributter** har en attribut; se [Løst af en log](#løst-af-en-log). | Tom: en gruppe løses, når dens logs stopper |
-| **Filtrér efter telemetritjeneste** (under **Flere felter**) | Logs fra en af de valgte tjenester. | Tom: alle tjenester |
+| **Filtrer efter tjeneste** (under **Flere felter**) | Logs fra en af de valgte tjenester. | Tom: alle tjenester |
 | **Filtrér efter infrastrukturenhed** (under **Flere felter**) | Logs fra en af de valgte værter, pods, containere og andre entiteter. | Tom: alle entiteter |
 | **Filtrér efter attributter** (under **Flere felter**) | Logs, hvis attributter opfylder alle betingelser. Hver betingelse har sin egen operator, såsom "er lig med" eller "indeholder". | Tom: ingen betingelse |
 
@@ -140,7 +140,7 @@ Du vil have en hændelse, når checkout-tjenesten logger mere end 50 fejl på fe
 
 - **Logalvorlighed**: **Fejl**
 - **Tidsvindue**: **Seneste 5 minutter**
-- **Filtrér efter telemetritjeneste**: `checkout`
+- **Filtrer efter tjeneste**: `checkout`
 - **Hvornår der advares**: **Mere end** `50`
 - **Hvad der sker**: **Erklær en hændelse**
 
@@ -240,7 +240,7 @@ Værdien af hver Group By-attribut er en [skabelonvariabel](/docs/monitor/incide
 ## Fejlfinding
 
 :::details Monitoren er offline, men min tjeneste logger
-Antallet var 0, så filtrene matcher ingen af de logs, tjenesten sender. Åbn monitorens side **Kriterier** (under **Konfiguration**), og klik på **Rediger overvågningskriterier**: **Matchende logs** viser, hvad filtrene udvælger lige nu, og diagrammet i **Hvornår der advares** tæller dem i hvert vindue. De almindeligste årsager er en alvorlighed valgt efter den tekst, loggeren skriver, i stedet for dens alvorlighedsnummer (se [Logalvorlighed](#logalvorlighed)), et tjeneste- eller attributfilter, der ikke matcher, og et tidsvindue, der er kortere end pausen mellem tjenestens logs.
+Antallet var 0, så filtrene matcher ingen af de logs, tjenesten sender. Åbn monitorens side **Kriterier** (under **Konfiguration**), og klik på **Rediger kriterier**: **Matchende logs** viser, hvad filtrene udvælger lige nu, og diagrammet i **Hvornår der advares** tæller dem i hvert vindue. De almindeligste årsager er en alvorlighed valgt efter den tekst, loggeren skriver, i stedet for dens alvorlighedsnummer (se [Logalvorlighed](#logalvorlighed)), et tjeneste- eller attributfilter, der ikke matcher, og et tidsvindue, der er kortere end pausen mellem tjenestens logs.
 :::
 
 :::details Der var en stigning, men ingen advarsel

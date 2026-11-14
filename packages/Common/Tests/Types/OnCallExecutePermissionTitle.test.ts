@@ -13,11 +13,12 @@ import { createTranslator } from "../../UI/Utils/TranslateTemplate";
  * page an on-call policy - ends, as every lock does since #5363, with what
  * would allow it: "You need this permission: Create On-Call Duty Policy
  * Execution Log." That was the permission's internal title, the row a run
- * writes (#5412's UI review). It is "Execute On-Call Duty Policy" now:
- * what it allows, beside its siblings Create, Edit and Read On-Call Duty
- * Policy in the custom role picker, as the docs name it - and never the
- * words of a record's Execute On-Call Policy button, which a translated
- * page draws in its own language.
+ * writes (#5412's UI review). It is "Execute On-Call Policies" now: what
+ * it allows, beside its siblings Create, Edit and Read On-Call Policy in the
+ * custom role picker, as the docs name it - and never the words of a
+ * record's Execute On-Call Policy button, which a translated page draws in
+ * its own language. It was "Execute On-Call Duty Policy" until the product
+ * was named On-Call (#6817).
  */
 
 const ENGLISH: ReturnType<typeof createTranslator> = createTranslator(
@@ -31,7 +32,7 @@ describe("the permission to page an on-call policy", () => {
       PermissionHelper.getTitle(
         Permission.CreateProjectOnCallDutyPolicyExecutionLog,
       ),
-    ).toBe("Execute On-Call Duty Policy");
+    ).toBe("Execute On-Call Policies");
     expect(
       PermissionHelper.getDescription(
         Permission.CreateProjectOnCallDutyPolicyExecutionLog,
@@ -45,7 +46,7 @@ describe("the permission to page an on-call policy", () => {
     const titled: Array<PermissionProps> =
       PermissionHelper.getAllPermissionProps().filter(
         (props: PermissionProps): boolean => {
-          return props.title === "Execute On-Call Duty Policy";
+          return props.title === "Execute On-Call Policies";
         },
       );
 
@@ -69,7 +70,7 @@ describe("the permission to page an on-call policy", () => {
         ],
         ENGLISH,
       ),
-    ).toBe("You need this permission: Execute On-Call Duty Policy.");
+    ).toBe("You need this permission: Execute On-Call Policies.");
   });
 
   test("is never the words of a record's Execute On-Call Policy button", () => {
@@ -90,7 +91,9 @@ describe("the permission to page an on-call policy", () => {
     for (const props of PermissionHelper.getAllPermissionProps()) {
       expect({
         permission: props.permission,
-        title: props.title === "Create On-Call Duty Policy Execution Log",
+        title:
+          props.title === "Create On-Call Duty Policy Execution Log" ||
+          props.title === "Create On-Call Policy Execution Log",
       }).toEqual({ permission: props.permission, title: false });
     }
   });

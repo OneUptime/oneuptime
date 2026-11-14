@@ -3,7 +3,6 @@ import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
-import { EntityManager } from "./DatabaseService";
 import ProjectReferencesService, {
   ProjectReferenceWrite,
 } from "./ProjectReferencesService";
@@ -24,6 +23,14 @@ import CronTab from "../Utils/CronTab";
 import logger, { EXTERNAL_FAULT, LogAttributes } from "../Utils/Logger";
 import { SubscriptionStatusUtil } from "../../Types/Billing/SubscriptionStatus";
 import MonitoringIntervalValidator from "../Utils/Monitor/MonitoringIntervalValidator";
+
+/*
+ * How many due rows claimMonitorProbesForProbing reads for each one it may
+ * claim: the rows it reads are not locked, so another ingest instance
+ * claiming for the same probe at the same moment may take some of them
+ * first, and the rest still fill the batch.
+ */
+export const CLAIM_CANDIDATES_PER_MONITOR_PROBE: number = 2;
 
 export class Service extends ProjectReferencesService<MonitorProbe> {
   public constructor() {
@@ -200,55 +207,61 @@ export class Service extends ProjectReferencesService<MonitorProbe> {
     }
   }
 
-  /**
-   * Atomically claims monitor probes for a specific probe instance.
-   * Uses PostgreSQL's FOR UPDATE SKIP LOCKED to prevent multiple probe instances
-   * from picking up the same monitors simultaneously.
+  /*
+   * Atomically claims the monitor probes this probe should check now, and
+   * moves each one's nextPingAt to its monitor's next scheduled run.
+   * SKIP LOCKED keeps horizontally-scaled probe ingest instances (and a
+   * probe running as several replicas) from handing one monitor out twice.
    *
-   * @param data - Object containing probeId, limit, and nextPingAt
-   * @returns Array of claimed MonitorProbe IDs
+   * Two auto-committed statements, never a transaction (OneUptime issue
+   * #7194, where the network device twin of this claim did the damage). The
+   * claim used to SELECT ... FOR UPDATE up to `limit` rows, work out each
+   * one's next run in Node - a cron read per row - then UPDATE and COMMIT,
+   * so every claimed row stayed locked across those round trips and for as
+   * long as a loaded app took to get back to the connection. A probe
+   * result being stored for one of those monitors (MonitorResource's
+   * lastMonitoringLog write) queued behind the lock, and past lock_timeout
+   * failed its whole job.
+   *
+   * Now: (1) the due rows are read without a lock - more of them than
+   * asked for, CLAIM_CANDIDATES_PER_MONITOR_PROBE times `limit`, so a probe
+   * replica racing another one for the same rows still finds rows to
+   * claim; (2) each one's next run is worked out in Node, once per distinct
+   * interval; (3) one statement claims up to `limit` of them - only rows
+   * nobody else holds (FOR NO KEY UPDATE SKIP LOCKED, the lock its UPDATE
+   * takes anyway) and that are still due when it locks them: a row another
+   * instance claimed in between has a nextPingAt in the future by then and
+   * is passed over. Postgres releases the locks when that statement ends,
+   * whatever the app is doing.
+   *
+   * The subscription predicate admits a project with no subscription (NULL)
+   * or one whose status is in
+   * SubscriptionStatusUtil.getActiveSubscriptionStatuses(), bound as $4
+   * rather than spelled out here. This SQL used to carry its own
+   * hand-written active / trialing list, which left out past_due: a project
+   * stopped being probed the moment ONE autopay attempt failed - including
+   * while an India e-mandate card debit was merely still processing - even
+   * though Stripe keeps retrying a past_due invoice and the dashboard still
+   * called the project active. Paying customers' monitoring was silently
+   * switched off. Monitoring now stops only when the subscription is truly
+   * inactive (unpaid, canceled, incomplete, incomplete_expired, expired,
+   * paused).
+   *
+   * A project a master admin blocked (Project.isBlocked) is not probed at
+   * all until it is unblocked, as ProjectService's
+   * getActiveProjectStatusQuery says for every other monitoring path.
+   *
+   * Returns the ids of the MonitorProbe rows it claimed.
    */
   public async claimMonitorProbesForProbing(data: {
     probeId: ObjectID;
     limit: number;
   }): Promise<Array<ObjectID>> {
     const currentDate: Date = OneUptimeDate.getCurrentDate();
+    const activeSubscriptionStatuses: Array<string> =
+      SubscriptionStatusUtil.getActiveSubscriptionStatuses();
 
-    /*
-     * Use a transaction with FOR UPDATE SKIP LOCKED to atomically claim monitors
-     * This prevents multiple probe instances from picking up the same monitors
-     */
-    const claimedIds: Array<ObjectID> = await this.executeTransaction(
-      async (transactionalEntityManager: EntityManager) => {
-        /*
-         * Select and lock the monitor probes that need to be processed,
-         * including the monitoringInterval so we can compute the real nextPingAt
-         * in a single UPDATE (avoiding a second round-trip).
-         * FOR UPDATE SKIP LOCKED ensures that:
-         * 1. Rows are locked for this transaction
-         * 2. Rows already locked by other transactions are skipped
-         *
-         * The subscription predicate admits a project with no subscription
-         * (NULL) or one whose status is in
-         * SubscriptionStatusUtil.getActiveSubscriptionStatuses(), bound as $4
-         * rather than spelled out here. This SQL used to carry its own
-         * hand-written active / trialing list, which left out past_due: a
-         * project stopped being probed the moment ONE autopay attempt failed
-         * - including while an India e-mandate card debit was merely still
-         * processing - even though Stripe keeps retrying a past_due invoice
-         * and the dashboard still called the project active. Paying
-         * customers' monitoring was silently switched off. Monitoring now
-         * stops only when the subscription is truly inactive (unpaid,
-         * canceled, incomplete, incomplete_expired, expired, paused).
-         *
-         * A project a master admin blocked (Project.isBlocked) is not probed
-         * at all until it is unblocked, as ProjectService's
-         * getActiveProjectStatusQuery says for every other monitoring path.
-         */
-        const activeSubscriptionStatuses: Array<string> =
-          SubscriptionStatusUtil.getActiveSubscriptionStatuses();
-
-        const selectQuery: string = `
+    const candidateQuery: string = `
         SELECT mp."_id", m."monitoringInterval"
         FROM "MonitorProbe" mp
         INNER JOIN "Monitor" m ON mp."monitorId" = m."_id"
@@ -264,115 +277,162 @@ export class Service extends ProjectReferencesService<MonitorProbe> {
           AND m."deletedAt" IS NULL
           AND p."deletedAt" IS NULL
           AND p."isBlocked" = false
+          AND p."isSampleProject" = false
           AND (p."paymentProviderSubscriptionStatus" IS NULL
                OR p."paymentProviderSubscriptionStatus" = ANY($4::text[]))
           AND (p."paymentProviderMeteredSubscriptionStatus" IS NULL
                OR p."paymentProviderMeteredSubscriptionStatus" = ANY($4::text[]))
         ORDER BY mp."nextPingAt" ASC NULLS FIRST
         LIMIT $3
-        FOR UPDATE OF mp SKIP LOCKED
       `;
 
-        const selectedRows: Array<{
-          _id: string;
-          monitoringInterval: string | null;
-        }> = await transactionalEntityManager.query(selectQuery, [
-          data.probeId.toString(),
-          currentDate,
-          data.limit,
-          activeSubscriptionStatuses,
-        ]);
-
-        if (selectedRows.length === 0) {
-          return [];
-        }
-
-        // Compute the real nextPingAt per monitor and batch-update in one query
-        const defaultNextPing: Date = OneUptimeDate.addRemoveMinutes(
-          currentDate,
-          1,
-        );
-
-        const ids: Array<string> = [];
-        const nextPingDates: Array<Date> = [];
-        const caseFragments: Array<string> = [];
-
-        /*
-         * Rows whose interval neither cron-parser nor the normalizer could
-         * read. Collected and logged ONCE per batch below rather than per
-         * row: this loop runs for every claimed monitor, every minute, on
-         * every probe-ingest instance, so a per-row log line would flood.
-         */
-        const unreadableIntervals: Array<{
-          monitorProbeId: string;
-          monitoringInterval: string;
-        }> = [];
-
-        for (let i: number = 0; i < selectedRows.length; i++) {
-          const row: { _id: string; monitoringInterval: string | null } =
-            selectedRows[i]!;
-          ids.push(row._id);
-
-          let nextPing: Date = defaultNextPing;
-          if (row.monitoringInterval) {
-            nextPing = Service.resolveNextPingAt({
-              monitoringInterval: row.monitoringInterval,
-              fallback: defaultNextPing,
-              onUnreadable: () => {
-                unreadableIntervals.push({
-                  monitorProbeId: row._id,
-                  monitoringInterval: row.monitoringInterval as string,
-                });
-              },
-            });
-          }
-
-          nextPingDates.push(nextPing);
-          caseFragments.push(
-            `WHEN '${row._id}'::uuid THEN $${i + 3}::timestamptz`,
-          );
-        }
-
-        /*
-         * One aggregated line per batch, at error level with EXTERNAL_FAULT.
-         *
-         * Not debug: LOG_LEVEL=ERROR is what ships, so a debug or warn line
-         * here is deleted from stdout on exactly the installs where an
-         * operator would go looking. This condition used to be swallowed by
-         * a bare `catch {}`, which is why a monitor storing "5m" was probed
-         * every minute instead of every five for as long as the row existed,
-         * with nothing anywhere to grep for. EXTERNAL_FAULT marks it as
-         * tenant data rather than our own failure, so it does not page us.
-         */
-        if (unreadableIntervals.length > 0) {
-          logger.error(
-            `claimMonitorProbesForProbing: ${unreadableIntervals.length} monitor(s) have a monitoringInterval that cannot be read as a schedule and are falling back to a 1-minute cadence. Fix the stored value - "*/5 * * * *" means every 5 minutes. Offenders: ${JSON.stringify(
-              unreadableIntervals.slice(0, 20),
-            )}`,
-            EXTERNAL_FAULT,
-          );
-        }
-
-        const updateQuery: string = `
-        UPDATE "MonitorProbe"
-        SET "lastPingAt" = $1,
-            "nextPingAt" = CASE "_id" ${caseFragments.join(" ")} END
-        WHERE "_id" = ANY($2::uuid[])
-      `;
-
-        await transactionalEntityManager.query(updateQuery, [
-          currentDate,
-          ids,
-          ...nextPingDates,
-        ]);
-
-        return ids.map((id: string) => {
-          return new ObjectID(id);
-        });
-      },
+    const candidateRows: unknown = await this.getRepository().manager.query(
+      candidateQuery,
+      [
+        data.probeId.toString(),
+        currentDate,
+        data.limit * CLAIM_CANDIDATES_PER_MONITOR_PROBE,
+        activeSubscriptionStatuses,
+      ],
     );
 
-    return claimedIds;
+    const candidates: Array<{
+      _id: string;
+      monitoringInterval: string | null;
+    }> = Array.isArray(candidateRows) ? candidateRows : [];
+
+    if (candidates.length === 0) {
+      return [];
+    }
+
+    const defaultNextPing: Date = OneUptimeDate.addRemoveMinutes(
+      currentDate,
+      1,
+    );
+
+    /*
+     * One cron read per distinct interval, however many monitors share it;
+     * an interval that cannot be read is remembered as such.
+     */
+    const nextPingByInterval: Map<string, Date | null> = new Map<
+      string,
+      Date | null
+    >();
+
+    /*
+     * Rows whose interval neither cron-parser nor the normalizer could
+     * read. Collected and logged ONCE per batch below rather than per row:
+     * this runs for every claimed monitor, every minute, on every
+     * probe-ingest instance, so a per-row log line would flood.
+     */
+    const unreadableIntervals: Array<{
+      monitorProbeId: string;
+      monitoringInterval: string;
+    }> = [];
+
+    const ids: Array<string> = [];
+    const nextPingAts: Array<string> = [];
+
+    for (const row of candidates) {
+      let nextPing: Date = defaultNextPing;
+
+      if (row.monitoringInterval) {
+        const interval: string = row.monitoringInterval;
+
+        if (!nextPingByInterval.has(interval)) {
+          let isUnreadable: boolean = false;
+
+          const resolved: Date = Service.resolveNextPingAt({
+            monitoringInterval: interval,
+            fallback: defaultNextPing,
+            onUnreadable: () => {
+              isUnreadable = true;
+            },
+          });
+
+          nextPingByInterval.set(interval, isUnreadable ? null : resolved);
+        }
+
+        const known: Date | null | undefined = nextPingByInterval.get(interval);
+
+        if (known) {
+          nextPing = known;
+        } else {
+          unreadableIntervals.push({
+            monitorProbeId: row._id,
+            monitoringInterval: interval,
+          });
+        }
+      }
+
+      ids.push(row._id);
+      // ISO strings: an array of them reads as timestamptz[] unambiguously.
+      nextPingAts.push(nextPing.toISOString());
+    }
+
+    /*
+     * One aggregated line per batch, at error level with EXTERNAL_FAULT.
+     *
+     * Not debug: LOG_LEVEL=ERROR is what ships, so a debug or warn line
+     * here is deleted from stdout on exactly the installs where an operator
+     * would go looking. This condition used to be swallowed by a bare
+     * `catch {}`, which is why a monitor storing "5m" was probed every
+     * minute instead of every five for as long as the row existed, with
+     * nothing anywhere to grep for. EXTERNAL_FAULT marks it as tenant data
+     * rather than our own failure, so it does not page us.
+     */
+    if (unreadableIntervals.length > 0) {
+      logger.error(
+        `claimMonitorProbesForProbing: ${unreadableIntervals.length} monitor(s) have a monitoringInterval that cannot be read as a schedule and are falling back to a 1-minute cadence. Fix the stored value - "*/5 * * * *" means every 5 minutes. Offenders: ${JSON.stringify(
+          unreadableIntervals.slice(0, 20),
+        )}`,
+        EXTERNAL_FAULT,
+      );
+    }
+
+    const claimQuery: string = `
+        WITH "claimable" AS (
+          SELECT mp."_id"
+          FROM "MonitorProbe" mp
+          WHERE mp."_id" = ANY($2::uuid[])
+            AND mp."probeId" = $4
+            AND mp."isEnabled" = true
+            AND mp."deletedAt" IS NULL
+            AND (mp."nextPingAt" IS NULL OR mp."nextPingAt" <= $1::timestamptz)
+          ORDER BY mp."nextPingAt" ASC NULLS FIRST
+          LIMIT $5
+          FOR NO KEY UPDATE OF mp SKIP LOCKED
+        ),
+        "claimed" AS (
+          UPDATE "MonitorProbe" AS mp
+          SET "lastPingAt" = $1::timestamptz,
+              "nextPingAt" = schedule."nextPingAt"
+          FROM unnest($2::uuid[], $3::timestamptz[])
+            AS schedule("id", "nextPingAt")
+          WHERE mp."_id" = schedule."id"
+            AND mp."_id" IN (SELECT "_id" FROM "claimable")
+          RETURNING mp."_id"
+        )
+        SELECT "_id" FROM "claimed"
+      `;
+
+    /*
+     * A SELECT of the rows the UPDATE wrote, so the answer is those rows:
+     * TypeORM hands a top-level UPDATE ... RETURNING back as
+     * [rows, rowCount] instead.
+     */
+    const claimedRows: unknown = await this.getRepository().manager.query(
+      claimQuery,
+      [currentDate, ids, nextPingAts, data.probeId.toString(), data.limit],
+    );
+
+    if (!Array.isArray(claimedRows)) {
+      return [];
+    }
+
+    return claimedRows.map((row: { _id: string }) => {
+      return new ObjectID(row._id);
+    });
   }
 
   /*

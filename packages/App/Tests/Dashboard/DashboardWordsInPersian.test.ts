@@ -1,0 +1,937 @@
+// UX rule: Docs/ux/README.md#in-every-language
+import {
+  getEnglishEntries,
+  getNestedEnglishEntries,
+  NestedEnglishEntry,
+  scanSourceRoots,
+  SOURCE_ROOTS,
+  SourceScanResult,
+} from "../../FeatureSet/Dashboard/scripts/i18n/ExtractStrings";
+import { describe, expect, test } from "@jest/globals";
+import fs from "fs";
+import path from "path";
+import { setCodeApartInSentence } from "Common/Types/CodeInSentence";
+import {
+  dashboardTranslator,
+  isWordedInDashboardLocale,
+} from "Common/Tests/Helpers/DashboardLocales";
+import { Translator } from "Common/Types/Translator";
+
+/*
+ * THE DASHBOARD, IN PERSIAN (#7089).
+ *
+ * When #7089 was filed, 9,496 of the Persian Dashboard's strings were still
+ * their English: whole pages - archives, label and owner rules, setup
+ * guides, billing, a user's on-call methods, monitor step summaries, AI
+ * insights, the telemetry tables' columns - read in English under a menu and
+ * headings in Persian. Every string the Dashboard draws - its own pages and
+ * components, Common's components, the models' field names and the catalogs
+ * npm run i18n:extract reads - now reads in Persian, or stays as written on
+ * purpose: a name, a code or an example, on a same-as-English list. The sentences with code that
+ * #6733 translates, and the authenticator apps help it names, are left to
+ * it.
+ *
+ * The whole Persian file is held to what a translation must keep from its
+ * English - every placeholder, tag and `code`, every number, the spaces at
+ * either end a page joins pieces with, its last stop - and to Persian
+ * writing: Persian letters, digits and punctuation, a zero-width non-joiner
+ * only between two letters. Two Persian texts that had traded places (a
+ * router list said "every read answers 401") are back where they belong.
+ */
+
+const DASHBOARD: string = path.resolve(__dirname, "../../FeatureSet/Dashboard");
+const APPS: string = path.resolve(__dirname, "../../FeatureSet");
+
+type LocaleTree = { [key: string]: string | LocaleTree };
+
+const ch: (code: number) => string = (code: number): string => {
+  return String.fromCharCode(code);
+};
+
+// A character no key has, to join a nested key's path.
+const PATH_JOINER: string = ch(0);
+const ZERO_WIDTH_NON_JOINER: string = ch(0x200c);
+const PERSIAN_QUESTION_MARK: string = ch(0x61f);
+const PERSIAN_COMMA: string = ch(0x60c);
+const PERSIAN_THOUSANDS_SEPARATOR: string = ch(0x66c);
+const PERSIAN_DECIMAL_SEPARATOR: string = ch(0x66b);
+const PERSIAN_DIGITS: string = "۰۱۲۳۴۵۶۷۸۹";
+// The Arabic block, where every Persian letter is.
+const PERSIAN_LETTERS: string = `${ch(0x600)}-${ch(0x6ff)}`;
+// Arabic's yeh and kaf: Persian writes its own (ی, ک).
+const ARABIC_YEH_OR_KAF: RegExp = new RegExp(`[${ch(0x64a)}${ch(0x643)}]`);
+// ٠-٩: Persian counts in ۰-۹, and writes codes in Latin digits.
+const ARABIC_INDIC_DIGIT: RegExp = new RegExp(`[${ch(0x660)}-${ch(0x669)}]`);
+// A Persian word followed by a Latin comma, semicolon or question mark.
+const LATIN_PUNCTUATION_AFTER_PERSIAN: RegExp = new RegExp(
+  `[${PERSIAN_LETTERS}][,;?](?=\\s|$)`,
+);
+// A non-joiner at a word's edge, or two together: it only joins two letters.
+const LOOSE_NON_JOINER: RegExp = new RegExp(
+  `(^|\\s)${ZERO_WIDTH_NON_JOINER}|${ZERO_WIDTH_NON_JOINER}(\\s|$)|${ZERO_WIDTH_NON_JOINER}${ZERO_WIDTH_NON_JOINER}`,
+);
+const PLACEHOLDER: RegExp = /\{\{[^{}]*\}\}/g;
+const PLACEHOLDER_OR_TAG: RegExp = /\{\{[^}]*\}\}|<\/?[A-Za-z][^<>]*>/g;
+const CODE_SPAN: RegExp = /`[^`]*`/g;
+const NUMBER: RegExp = /[0-9]+/g;
+// A thousands comma between Latin digits: 10,000.
+const LATIN_THOUSANDS_COMMA: RegExp = /(?<=[0-9]),(?=[0-9]{3})/g;
+const UNUSED_PLURAL_FORM: RegExp = /_(zero|two|few|many)$/;
+const LETTER: RegExp = /\p{L}/u;
+
+function readJson<T>(file: string): T {
+  return JSON.parse(fs.readFileSync(file, "utf8")) as T;
+}
+
+function readTree(app: string, language: string): LocaleTree {
+  return readJson<LocaleTree>(
+    path.join(APPS, app, "src/Locales", `${language}.json`),
+  );
+}
+
+// Every text of a locale file, keyed by its path of keys.
+function leaves(tree: LocaleTree, prefix: string = ""): Map<string, string> {
+  const found: Map<string, string> = new Map<string, string>();
+
+  for (const [key, value] of Object.entries(tree)) {
+    const at: string = prefix ? `${prefix}${PATH_JOINER}${key}` : key;
+
+    if (typeof value === "string") {
+      found.set(at, value);
+    } else {
+      for (const [inner, text] of leaves(value, at)) {
+        found.set(inner, text);
+      }
+    }
+  }
+
+  return found;
+}
+
+function uniqueSorted(values: ReadonlyArray<string>): Array<string> {
+  return Array.from(new Set(values)).sort();
+}
+
+const ENGLISH: Map<string, string> = leaves(readTree("Dashboard", "en"));
+const PERSIAN: Map<string, string> = leaves(readTree("Dashboard", "fa"));
+const ARABIC: Map<string, string> = leaves(readTree("Dashboard", "ar"));
+
+const PERSIAN_KEPT: ReadonlyArray<string> =
+  readJson<{
+    sameAsEnglish?: Array<string>;
+  }>(path.join(DASHBOARD, "i18n/Progress/fa.json")).sameAsEnglish || [];
+const KEPT_EVERYWHERE: ReadonlyArray<string> = readJson<Array<string>>(
+  path.join(DASHBOARD, "i18n/SameAsEnglish.json"),
+);
+
+// Whether Persian keeps `english` as written on purpose: a name, a code, an example.
+function isKeptAsWritten(english: string): boolean {
+  return (
+    !LETTER.test(english.replace(PLACEHOLDER, "")) ||
+    KEPT_EVERYWHERE.includes(english) ||
+    PERSIAN_KEPT.includes(english)
+  );
+}
+
+// The texts Persian words its own way: the ones every check below reads.
+const WORDED: Array<[string, string, string]> = Array.from(ENGLISH)
+  .filter(([key, english]: [string, string]): boolean => {
+    return PERSIAN.get(key) !== english;
+  })
+  .map(([key, english]: [string, string]): [string, string, string] => {
+    return [key, english, PERSIAN.get(key) as string];
+  });
+
+// What a check found wrong, by key, with the Persian it found it in.
+function findWrong(
+  isWrong: (english: string, persian: string, key: string) => boolean,
+): Array<string> {
+  return WORDED.filter(
+    ([key, english, persian]: [string, string, string]): boolean => {
+      return isWrong(english, persian, key);
+    },
+  ).map(([key, , persian]: [string, string, string]): string => {
+    return `${key} => ${persian}`;
+  });
+}
+
+function tokensOf(text: string, pattern: RegExp): Array<string> {
+  return uniqueSorted(text.match(pattern) || []);
+}
+
+// The numbers a text says, in Latin digits, its thousands separators gone.
+function numbersOf(text: string): Array<string> {
+  let digits: string = text.replace(PLACEHOLDER, " ");
+
+  for (let digit: number = 0; digit < 10; digit++) {
+    digits = digits.split(PERSIAN_DIGITS[digit] as string).join(String(digit));
+  }
+
+  digits = digits
+    .split(PERSIAN_THOUSANDS_SEPARATOR)
+    .join("")
+    .split(PERSIAN_DECIMAL_SEPARATOR)
+    .join(".")
+    .replace(LATIN_THOUSANDS_COMMA, "");
+
+  return uniqueSorted(digits.match(NUMBER) || []);
+}
+
+// Whether `persian` says a number its English does not: a sign two texts traded places.
+function saysANumberEnglishDoesNot(english: string, persian: string): boolean {
+  const englishNumbers: Array<string> = numbersOf(english);
+
+  return numbersOf(persian).some((number: string): boolean => {
+    return !englishNumbers.includes(number);
+  });
+}
+
+function leadingSpace(text: string): string {
+  return text.slice(0, text.length - text.trimStart().length);
+}
+
+function trailingSpace(text: string): string {
+  return text.slice(text.trimEnd().length);
+}
+
+// An abbreviation's dots at the end of a name: "U.S.".
+const ABBREVIATION_AT_END: RegExp = new RegExp("(?:\\b[A-Z]\\.){2,}$");
+
+// Whether `persian` ends as `english` does: its stop, its question, its three dots.
+function endsAsEnglishDoes(english: string, persian: string): boolean {
+  const englishEnd: string = english.trimEnd();
+  const persianEnd: string = persian.trimEnd();
+
+  if (englishEnd.endsWith("...") || englishEnd.endsWith(ch(0x2026))) {
+    return persianEnd.endsWith("...") || persianEnd.endsWith(ch(0x2026));
+  }
+
+  if (englishEnd.endsWith("?")) {
+    return persianEnd.endsWith(PERSIAN_QUESTION_MARK);
+  }
+
+  /*
+   * A name that ends in an abbreviation ("Virgin Islands, U.S.") has no full
+   * stop of its own: Persian writes the name out ("... ایالات متحده").
+   */
+  if (ABBREVIATION_AT_END.test(englishEnd)) {
+    return !persianEnd.endsWith(".");
+  }
+
+  for (const stop of [".", ":", "!"]) {
+    if (englishEnd.endsWith(stop)) {
+      return persianEnd.endsWith(stop);
+    }
+  }
+
+  // A label or a fragment: no full stop of its own (a bracketed example may close one).
+  return !persianEnd.endsWith(".") || englishEnd.endsWith(")");
+}
+
+/*
+ * A typed example of names the field splits at Latin commas: the Teams
+ * channels a notification rule posts to. Its Persian keeps the comma the
+ * field reads.
+ */
+const SPLIT_AT_LATIN_COMMAS: ReadonlyArray<string> = ["Incidents, General"];
+
+/*
+ * #6733 TRANSLATES THESE: every sentence with code the page sets apart (its
+ * Arabic changes when the code is set apart), and the authenticator apps
+ * help, by the issue's own list.
+ */
+const AUTHENTICATOR_HELP: string =
+  "Get a one-time code from an app such as 1Password, Google Authenticator, or Microsoft Authenticator.";
+
+function isLeftToIssue6733(key: string): boolean {
+  if (key === AUTHENTICATOR_HELP) {
+    return true;
+  }
+
+  const arabic: string | undefined = ARABIC.get(key);
+
+  return (
+    arabic !== undefined && setCodeApartInSentence(arabic, "ar") !== arabic
+  );
+}
+
+/*
+ * What the Dashboard draws, read from every source npm run i18n:extract
+ * reads: its own pages and components, Common's components, the database
+ * and analytics models' field names, and the catalogs and helpers whose
+ * words it shows.
+ */
+const SCAN: SourceScanResult = scanSourceRoots(SOURCE_ROOTS);
+const PAGE_KEYS: Array<string> = Object.keys(
+  getEnglishEntries(SCAN.strings),
+).filter((key: string): boolean => {
+  return ENGLISH.has(key);
+});
+const NESTED_KEYS: Array<NestedEnglishEntry> = getNestedEnglishEntries(
+  SCAN.strings,
+);
+
+describe("what the Dashboard draws, in Persian", () => {
+  test("the scan reads every source the extractor reads: tens of thousands of strings", () => {
+    expect(SOURCE_ROOTS.length).toBeGreaterThan(20);
+    expect(PAGE_KEYS.length).toBeGreaterThan(30000);
+    expect(NESTED_KEYS.length).toBeGreaterThan(50);
+
+    // Pages, components and model fields #7089 met in English, each found by the scan.
+    for (const key of [
+      "Team Audit Logs",
+      "Add notification method",
+      "Storage Array Label Rules",
+      "Re-sync Autopay",
+      "Exception spike",
+      "Health Rollup",
+      "{{count}} requests per minute",
+      "{{count}} requests per minute_one",
+      // Common's components: the time picker and the table views.
+      "Save as New View",
+      // The models' field names and descriptions.
+      "Capacity Before (%)",
+      "Accepted Invitation At",
+    ]) {
+      expect({ key, drawn: PAGE_KEYS.includes(key) }).toEqual({
+        key,
+        drawn: true,
+      });
+    }
+  });
+
+  test("every string they draw reads in Persian, or stays as written on purpose", () => {
+    const english: Array<string> = PAGE_KEYS.filter((key: string): boolean => {
+      return !isWordedInDashboardLocale(key, "fa") && !isLeftToIssue6733(key);
+    });
+
+    expect(english).toEqual([]);
+  });
+
+  test("every nested key they read reads in Persian", () => {
+    const english: Array<string> = NESTED_KEYS.filter(
+      (entry: NestedEnglishEntry): boolean => {
+        const key: string = entry.path.join(PATH_JOINER);
+        const value: string | undefined = ENGLISH.get(key);
+
+        return (
+          value !== undefined &&
+          PERSIAN.get(key) === value &&
+          !isKeptAsWritten(value)
+        );
+      },
+    ).map((entry: NestedEnglishEntry): string => {
+      return entry.path.join(".");
+    });
+
+    expect(english).toEqual([]);
+  });
+
+  test("what is left in English is only #6733's: sentences with code, and the authenticator help", () => {
+    const left: Array<string> = PAGE_KEYS.filter((key: string): boolean => {
+      return !isWordedInDashboardLocale(key, "fa");
+    });
+
+    for (const key of left) {
+      expect({ key, issue6733: isLeftToIssue6733(key) }).toEqual({
+        key,
+        issue6733: true,
+      });
+    }
+
+    // #6733 counts 74 sentences with code, and the authenticator help.
+    expect(left.length).toBeLessThanOrEqual(75);
+  });
+
+  test("the #6733 check finds code the page sets apart, and nothing in a plain sentence (control)", () => {
+    expect(isLeftToIssue6733(AUTHENTICATOR_HELP)).toBe(true);
+    expect(isLeftToIssue6733("Team Audit Logs")).toBe(false);
+    expect(isLeftToIssue6733("Add notification method")).toBe(false);
+
+    const withCode: Array<string> = Array.from(ARABIC.keys()).filter(
+      (key: string): boolean => {
+        return isLeftToIssue6733(key) && key !== AUTHENTICATOR_HELP;
+      },
+    );
+
+    // Arabic sets code apart in hundreds of sentences (#6733 counts 378).
+    expect(withCode.length).toBeGreaterThan(300);
+  });
+});
+
+describe("Persian's Dashboard locale file", () => {
+  test("has exactly English's keys, in English's order", () => {
+    expect(Array.from(PERSIAN.keys())).toEqual(Array.from(ENGLISH.keys()));
+    expect(ENGLISH.size).toBeGreaterThan(40000);
+  });
+
+  test("has none of the plural keys English does not have", () => {
+    expect(
+      Array.from(PERSIAN.keys()).filter((key: string): boolean => {
+        return UNUSED_PLURAL_FORM.test(key);
+      }),
+    ).toEqual([]);
+  });
+
+  test("words tens of thousands of texts its own way", () => {
+    expect(WORDED.length).toBeGreaterThan(40000);
+  });
+
+  test("a Persian text keeps every placeholder and tag of its English, and adds none", () => {
+    expect(
+      findWrong((english: string, persian: string): boolean => {
+        return (
+          tokensOf(persian, PLACEHOLDER_OR_TAG).join("|") !==
+          tokensOf(english, PLACEHOLDER_OR_TAG).join("|")
+        );
+      }),
+    ).toEqual([]);
+  });
+
+  test("a Persian text keeps every `code` of its English, exactly as written", () => {
+    expect(
+      findWrong((english: string, persian: string): boolean => {
+        return (
+          tokensOf(persian, CODE_SPAN).join("|") !==
+          tokensOf(english, CODE_SPAN).join("|")
+        );
+      }),
+    ).toEqual([]);
+  });
+
+  test("a Persian text says no number its English does not", () => {
+    expect(findWrong(saysANumberEnglishDoesNot)).toEqual([]);
+  });
+
+  test("the number check catches two texts that trade places (control)", () => {
+    const routers: string =
+      "Every router in this cloud, and the L3 agents that hold each one. On OVN no agent holds a router, so that reads Not applicable.";
+    const reads: string =
+      "Every read answers 401 with an access-rule credential";
+    const routersInPersian: string = PERSIAN.get(routers) as string;
+    const readsInPersian: string = PERSIAN.get(reads) as string;
+
+    expect(saysANumberEnglishDoesNot(routers, readsInPersian)).toBe(true);
+    expect(saysANumberEnglishDoesNot(reads, routersInPersian)).toBe(true);
+    expect(saysANumberEnglishDoesNot(routers, routersInPersian)).toBe(false);
+    expect(saysANumberEnglishDoesNot(reads, readsInPersian)).toBe(false);
+    // Persian digits and separators read as the number they write.
+    expect(numbersOf("۱۰٬۰۰۰ مورد، ۳٫۵ ثانیه")).toEqual(
+      numbersOf("10,000 items, 3.5 seconds"),
+    );
+  });
+
+  test("the two texts that had traded places say their own English", () => {
+    expect(
+      PERSIAN.get(
+        "Every router in this cloud, and the L3 agents that hold each one. On OVN no agent holds a router, so that reads Not applicable.",
+      ),
+    ).toBe(
+      "هر روتر در این ابر و عامل‌های L3 که هر کدام را نگه می‌دارند. در OVN هیچ عاملی روتر را نگه نمی‌دارد، پس «کاربرد ندارد» نشان داده می‌شود.",
+    );
+    expect(
+      PERSIAN.get("Every read answers 401 with an access-rule credential"),
+    ).toBe("هر خواندن با اعتبارنامه access-rule پاسخ 401 می‌دهد");
+  });
+
+  test("the router help quotes Not applicable as the router's agents cell draws it", () => {
+    const drawn: string = PERSIAN.get("Not applicable") as string;
+    const sentences: Array<string> = Array.from(ENGLISH.keys()).filter(
+      (key: string): boolean => {
+        return key.endsWith("reads Not applicable.");
+      },
+    );
+
+    expect(drawn).toBe("کاربرد ندارد");
+    expect(sentences.length).toBe(3);
+
+    for (const sentence of sentences) {
+      expect({
+        sentence,
+        quotes: (PERSIAN.get(sentence) as string).includes(`«${drawn}»`),
+      }).toEqual({ sentence, quotes: true });
+    }
+  });
+
+  test("writes Persian letters, and no Arabic-Indic digit", () => {
+    expect(
+      findWrong((_english: string, persian: string): boolean => {
+        return (
+          ARABIC_YEH_OR_KAF.test(persian) || ARABIC_INDIC_DIGIT.test(persian)
+        );
+      }),
+    ).toEqual([]);
+  });
+
+  test("puts Persian punctuation after a Persian word, but in a typed list of names", () => {
+    expect(
+      findWrong((english: string, persian: string): boolean => {
+        return (
+          LATIN_PUNCTUATION_AFTER_PERSIAN.test(persian) &&
+          !SPLIT_AT_LATIN_COMMAS.includes(english)
+        );
+      }),
+    ).toEqual([]);
+    expect(PERSIAN.get("Incidents, General")).toContain(",");
+    expect(PERSIAN.get("Incidents, General")).not.toContain(PERSIAN_COMMA);
+  });
+
+  test("a zero-width non-joiner only ever joins two letters", () => {
+    expect(
+      findWrong((_english: string, persian: string): boolean => {
+        return LOOSE_NON_JOINER.test(persian);
+      }),
+    ).toEqual([]);
+  });
+
+  test("keeps the spaces English has at either end, where a page joins it to the next piece", () => {
+    expect(
+      findWrong((english: string, persian: string): boolean => {
+        return (
+          leadingSpace(persian) !== leadingSpace(english) ||
+          trailingSpace(persian) !== trailingSpace(english)
+        );
+      }),
+    ).toEqual([]);
+
+    // Pieces a page joins to a name or a time, which had lost their space.
+    expect(PERSIAN.get("Host ")).toBe("میزبان ");
+    expect(PERSIAN.get("Checked ")).toBe("بررسی‌شده ");
+    expect(PERSIAN.get(" compared by ")).toBe(" مقایسه‌شده بر اساس ");
+  });
+
+  test("ends as its English does: a full stop, a Persian question mark, three dots", () => {
+    expect(
+      findWrong((english: string, persian: string): boolean => {
+        return !endsAsEnglishDoes(english, persian);
+      }),
+    ).toEqual([]);
+  });
+
+  test("writes no backslash its English does not", () => {
+    expect(
+      findWrong((english: string, persian: string): boolean => {
+        return persian.includes("\\") && !english.includes("\\");
+      }),
+    ).toEqual([]);
+  });
+
+  test("a one form keeps the count wherever English's does", () => {
+    expect(
+      findWrong((english: string, persian: string, key: string): boolean => {
+        return (
+          key.endsWith("_one") &&
+          english.includes("{{count}}") &&
+          !persian.includes("{{count}}")
+        );
+      }),
+    ).toEqual([]);
+  });
+});
+
+/*
+ * The titles the Dashboard repeats for every kind of resource read the same
+ * way in Persian on every one of them: #7089 worded dozens of them, beside
+ * the ones that were Persian already.
+ */
+describe("the titles every resource repeats, worded alike", () => {
+  const titled: (englishTitle: RegExp) => Array<[string, string, string]> = (
+    englishTitle: RegExp,
+  ): Array<[string, string, string]> => {
+    return WORDED.filter(([, english]: [string, string, string]): boolean => {
+      return englishTitle.test(english);
+    });
+  };
+
+  const notWorded: (
+    rows: Array<[string, string, string]>,
+    persianTitle: RegExp,
+  ) => Array<string> = (
+    rows: Array<[string, string, string]>,
+    persianTitle: RegExp,
+  ): Array<string> => {
+    return rows
+      .filter(([, , persian]: [string, string, string]): boolean => {
+        return !persianTitle.test(persian);
+      })
+      .map(([, english, persian]: [string, string, string]): string => {
+        return `${english} => ${persian}`;
+      });
+  };
+
+  test("a resource's audit logs are گزارش‌های ممیزی", () => {
+    const rows: Array<[string, string, string]> = titled(
+      /^(?!Enable |Export )[A-Z][\w ]* Audit Logs$/,
+    );
+
+    expect(rows.length).toBeGreaterThan(40);
+    expect(notWorded(rows, /^گزارش‌های ممیزی /)).toEqual([]);
+  });
+
+  test("its label rules are قواعد برچسب, and its owner rules قواعد مالکیت", () => {
+    const labelRules: Array<[string, string, string]> = titled(
+      /^[A-Z][\w ]* Label Rules$/,
+    );
+    const ownerRules: Array<[string, string, string]> = titled(
+      /^(?!Open )[A-Z][\w ]* Owner Rules$/,
+    );
+
+    expect(labelRules.length).toBeGreaterThan(25);
+    expect(ownerRules.length).toBeGreaterThan(25);
+    expect(notWorded(labelRules, /^قواعد برچسب /)).toEqual([]);
+    expect(notWorded(ownerRules, /^قواعد مالکیت /)).toEqual([]);
+  });
+
+  test("how its rules work is asked the same way", () => {
+    const labelRules: Array<[string, string, string]> = titled(
+      /^How [\w ]+ Label Rules Work$/,
+    );
+    const ownerRules: Array<[string, string, string]> = titled(
+      /^How [\w ]+ Owner Rules Work$/,
+    );
+
+    expect(labelRules.length).toBeGreaterThan(25);
+    expect(ownerRules.length).toBeGreaterThan(25);
+    expect(notWorded(labelRules, /^قواعد برچسب .+ چگونه کار می‌کنند$/)).toEqual(
+      [],
+    );
+    expect(
+      notWorded(ownerRules, /^قواعد مالکیت .+ چگونه کار می‌کنند$/),
+    ).toEqual([]);
+  });
+
+  test("its feed is فید, and its archive بایگانی‌شده", () => {
+    const feeds: Array<[string, string, string]> = titled(/^[A-Z][\w ]* Feed$/);
+    const archives: Array<[string, string, string]> = titled(
+      /^Archived (?!At$)[A-Z]/,
+    );
+
+    expect(feeds.length).toBeGreaterThan(20);
+    expect(archives.length).toBeGreaterThan(30);
+    expect(notWorded(feeds, /^فید /)).toEqual([]);
+    expect(notWorded(archives, /بایگانی‌شده/)).toEqual([]);
+  });
+
+  /*
+   * A column that says when something happened reads "زمان ..." or "تاریخ
+   * ..." (the time, the date of ...), as most of the file's timestamp titles
+   * do: "زمان ارسال" for Sent At, never "ارسال در", a bare "at" a reader
+   * waits to see finished. A threshold says where to act, not when, and the
+   * older titles worded with a bare "در" before #7089 are #7289's to reword:
+   * those lists only shrink.
+   */
+  const THRESHOLD_TITLES: ReadonlyArray<string> = [
+    "Alert At",
+    "Open a Case At",
+  ];
+  const OLDER_TIMESTAMP_TITLES_ENDING_IN_AT: ReadonlyArray<string> = [
+    "End Announcement At",
+    "End Showing Announcement At",
+    "Ends At",
+    "Event Starts At",
+    "First Event Ends At",
+    "First Event Scheduled At",
+    "First Event Starts At",
+    "First Refused At",
+    "First Seen At",
+    "Last Alert Added At",
+    "Last Email Received At",
+    "Last Incident Added At",
+    "Last Monitored At",
+    "Last Ping At",
+    "Last Refused At",
+    "Last Request Received At",
+    "Last Seen At",
+    "Last Synced At",
+    "Logs Last Received At",
+    "Metrics Last Received At",
+    "Monitor Status Check At",
+    "Monitored At",
+    "Next Check At",
+    "Notification Sent At",
+    "Postmortem Published At",
+    "Scheduled At",
+    "Seen At",
+    "Send First Report At",
+    "Starts At",
+    "Traces Last Received At",
+  ];
+  const ENDS_IN_A_BARE_AT: RegExp = / در$/;
+
+  test("a timestamp column says when it happened: زمان or تاریخ, never a bare در at its end", () => {
+    const rows: Array<[string, string, string]> = titled(
+      /^[A-Z][A-Za-z0-9 ()/-]* At$/,
+    );
+
+    expect(rows.length).toBeGreaterThan(250);
+    expect(
+      rows
+        .filter(([, english, persian]: [string, string, string]): boolean => {
+          return (
+            ENDS_IN_A_BARE_AT.test(persian) &&
+            !THRESHOLD_TITLES.includes(english) &&
+            !OLDER_TIMESTAMP_TITLES_ENDING_IN_AT.includes(english)
+          );
+        })
+        .map(([, english, persian]: [string, string, string]): string => {
+          return `${english} => ${persian}`;
+        }),
+    ).toEqual([]);
+
+    // Each title on those lists is still there, and still ends that way.
+    for (const english of [
+      ...THRESHOLD_TITLES,
+      ...OLDER_TIMESTAMP_TITLES_ENDING_IN_AT,
+    ]) {
+      expect({
+        english,
+        bareAt: ENDS_IN_A_BARE_AT.test(PERSIAN.get(english) || ""),
+      }).toEqual({ english, bareAt: true });
+    }
+  });
+
+  test.each([
+    ["Sent At", "زمان ارسال"],
+    ["Deleted At", "زمان حذف"],
+    ["Executed At", "زمان اجرا"],
+    ["Last Active At", "زمان آخرین فعالیت"],
+    ["Enterprise License Expires At", "تاریخ انقضای مجوز سازمانی"],
+    ["Schedule First Event At", "زمان اولین رویداد زمان‌بندی‌شده"],
+    // The titles that were Persian before #7089 read the same way.
+    ["Created At", "تاریخ ساخت"],
+    ["Archived At", "زمان بایگانی"],
+  ])("%s reads %s", (english: string, persian: string) => {
+    expect(PERSIAN.get(english)).toBe(persian);
+  });
+});
+
+/*
+ * A TIMEOUT IS مهلت (#7607): a time limit, and the moment one runs out is
+ * پایان مهلت. Persian named the same setting two ways - Request Timeout on
+ * an HTTP monitor's form read "وقفه درخواست", the same field's row on the
+ * Template sync settings card "مهلت درخواست" - and وقفه is a pause, not a
+ * time limit. Every text whose English says timeout now says مهلت, and وقفه
+ * is left only where its English means a pause, for the reason listed.
+ */
+describe("a timeout is مهلت, never وقفه", () => {
+  const DEADLINE: string = "مهلت";
+  const PAUSE: string = "وقفه";
+  // Timeout, timeouts, time out, timed out, timing out.
+  const SAYS_TIMEOUT: RegExp = /\btim(?:e|ed|ing)[\s-]?outs?\b/i;
+  // The noun: a setting, a label, the timeouts a probe counts.
+  const SAYS_A_TIMEOUT: RegExp = /\btime-?outs?\b/i;
+
+  // Where Persian keeps وقفه, because the English means a pause.
+  const PAUSES: ReadonlyArray<{ english: RegExp; why: string }> = [
+    {
+      english: /\bcool-?down\b/i,
+      why: "the AI re-investigation cooldown is a wait before an alert or incident on the same monitor is investigated again: a pause",
+    },
+  ];
+
+  // The texts Persian words whose English, outside its placeholders, says `pattern`.
+  const saying: (pattern: RegExp) => Array<[string, string, string]> = (
+    pattern: RegExp,
+  ): Array<[string, string, string]> => {
+    return WORDED.filter(([, english]: [string, string, string]): boolean => {
+      return pattern.test(english.replace(PLACEHOLDER, " "));
+    });
+  };
+
+  const listed: (rows: Array<[string, string, string]>) => Array<string> = (
+    rows: Array<[string, string, string]>,
+  ): Array<string> => {
+    return rows.map(([, english, persian]: [string, string, string]) => {
+      return `${english} => ${persian}`;
+    });
+  };
+
+  // The timeouts among `rows` worded as a pause.
+  const wordedAsAPause: (
+    rows: Array<[string, string, string]>,
+  ) => Array<string> = (rows: Array<[string, string, string]>) => {
+    return listed(
+      rows.filter(([, , persian]: [string, string, string]): boolean => {
+        return persian.includes(PAUSE);
+      }),
+    );
+  };
+
+  test("no text whose English says timeout calls it وقفه", () => {
+    const timeouts: Array<[string, string, string]> = saying(SAYS_TIMEOUT);
+
+    // Many: a scan that finds none would pass.
+    expect(timeouts.length).toBeGreaterThan(60);
+    expect(wordedAsAPause(timeouts)).toEqual([]);
+  });
+
+  test("every timeout Persian words says مهلت", () => {
+    const timeouts: Array<[string, string, string]> = saying(SAYS_A_TIMEOUT);
+
+    expect(timeouts.length).toBeGreaterThan(60);
+    expect(
+      listed(
+        timeouts.filter(([, , persian]: [string, string, string]): boolean => {
+          return !persian.includes(DEADLINE);
+        }),
+      ),
+    ).toEqual([]);
+  });
+
+  test("وقفه is left only where the English means a pause", () => {
+    const pauses: Array<[string, string, string]> = WORDED.filter(
+      ([, , persian]: [string, string, string]): boolean => {
+        return persian.includes(PAUSE);
+      },
+    );
+    const unexplained: Array<[string, string, string]> = pauses.filter(
+      ([, english]: [string, string, string]): boolean => {
+        return !PAUSES.some((pause: { english: RegExp }): boolean => {
+          return pause.english.test(english);
+        });
+      },
+    );
+
+    expect(pauses.length).toBeGreaterThan(10);
+    expect(listed(unexplained)).toEqual([]);
+
+    // Each pause listed is still one the file says.
+    for (const pause of PAUSES) {
+      expect({
+        why: pause.why,
+        said: pauses.some(([, english]: [string, string, string]): boolean => {
+          return pause.english.test(english);
+        }),
+      }).toEqual({ why: pause.why, said: true });
+    }
+  });
+
+  test("the check finds a timeout worded as a pause (control)", () => {
+    expect(
+      wordedAsAPause([
+        ["Request Timeout", "Request Timeout", "وقفه درخواست"],
+        ["Request timeout", "Request timeout", "مهلت درخواست"],
+      ]),
+    ).toEqual(["Request Timeout => وقفه درخواست"]);
+  });
+
+  test.each([
+    ["Request Timeout", "Request timeout"],
+    ["Connection Timeout", "Connection timeout"],
+    ["Statement Timeout", "Statement timeout"],
+    ["Lookup Timeout", "Lookup timeout"],
+  ])(
+    "a monitor form's %s and the Template sync settings card's %s name one field alike",
+    (formLabel: string, syncCardLabel: string) => {
+      expect(PERSIAN.get(formLabel)).toBe(PERSIAN.get(syncCardLabel));
+      expect(PERSIAN.get(formLabel)?.startsWith(`${DEADLINE} `)).toBe(true);
+    },
+  );
+});
+
+describe("pages #7089 met in English, in Persian", () => {
+  const PAGES: ReadonlyArray<[string, string]> = [
+    ["Team Audit Logs", "گزارش‌های ممیزی تیم"],
+    ["Remove from Team", "حذف از تیم"],
+    ["Add notification method", "افزودن روش اعلان"],
+    ["Storage Array Label Rules", "قواعد برچسب آرایه ذخیره‌سازی"],
+    ["Health Rollup", "تجمیع سلامت"],
+    ["Re-sync Autopay", "همگام‌سازی دوباره پرداخت خودکار"],
+    ["Data Residency", "محل نگهداری داده‌ها"],
+    ["Never expires", "هرگز منقضی نمی‌شود"],
+    // A timeout is مهلت, a time limit (#7607): وقفه is a pause.
+    ["Connection Timeout", "مهلت اتصال"],
+    ["Exception spike", "جهش استثنا"],
+    ["Metric drift: {{metricName}}", "رانش متریک: {{metricName}}"],
+    ["Investigate in Logs", "بررسی در لاگ‌ها"],
+    ["Out of memory", "کمبود حافظه"],
+    ["Kubernetes Cost Allocation", "تخصیص هزینه Kubernetes"],
+    ["AI Conversation", "گفتگوی هوش مصنوعی"],
+    ["OpenStack Cloud Audit Logs", "گزارش‌های ممیزی ابر OpenStack"],
+    ["Table Owner Rules", "قواعد مالکیت جدول"],
+  ];
+
+  test.each(PAGES)("%s reads %s", (english: string, persian: string) => {
+    expect(PERSIAN.get(english)).toBe(persian);
+  });
+});
+
+describe("counts on those pages, in Persian digits and Persian words", () => {
+  const persian: Translator = dashboardTranslator("fa");
+
+  function plural(other: string): { one: string; other: string } {
+    return { one: ENGLISH.get(`${other}_one`) as string, other };
+  }
+
+  test("a key's rate limit", () => {
+    const line: { one: string; other: string } = plural(
+      "{{count}} requests per minute",
+    );
+
+    expect(persian.translatePlural(line, 120)).toBe("۱۲۰ درخواست در دقیقه");
+    expect(persian.translatePlural(line, 1)).toBe("۱ درخواست در دقیقه");
+  });
+
+  test("the invitations a team is waiting on", () => {
+    const line: { one: string; other: string } = plural(
+      "{{count}} Invitations Pending",
+    );
+
+    expect(persian.translatePlural(line, 3)).toBe("۳ دعوت در انتظار");
+    expect(persian.translatePlural(line, 1)).toBe("۱ دعوت در انتظار");
+  });
+
+  test("the rules removing a notification method takes with it", () => {
+    const line: { one: string; other: string } = plural(
+      "{{count}} notification rules will be deleted.",
+    );
+
+    expect(persian.translatePlural(line, 4)).toBe(
+      "۴ قاعده اعلان حذف خواهد شد.",
+    );
+    expect(persian.translatePlural(line, 1)).toBe(
+      "۱ قاعده اعلان حذف خواهد شد.",
+    );
+  });
+});
+
+/*
+ * The Admin Dashboard, the sign-in pages, status pages and public
+ * dashboards draw some of the Dashboard's own strings from locale files of
+ * their own. Where the Dashboard words one in Persian, so do they.
+ */
+describe("the strings other apps share with the Dashboard", () => {
+  test.each(["AdminDashboard", "Accounts", "StatusPage", "PublicDashboard"])(
+    "%s reads in Persian wherever the Dashboard does",
+    (app: string) => {
+      const english: Map<string, string> = leaves(readTree(app, "en"));
+      const persian: Map<string, string> = leaves(readTree(app, "fa"));
+      const englishOnly: Array<string> = Array.from(english)
+        .filter(([key, text]: [string, string]): boolean => {
+          return (
+            persian.get(key) === text &&
+            ENGLISH.get(key) === text &&
+            PERSIAN.get(key) !== text
+          );
+        })
+        .map(([key]: [string, string]): string => {
+          return key;
+        });
+
+      expect(english.size).toBeGreaterThan(10);
+      expect(englishOnly).toEqual([]);
+    },
+  );
+
+  test("the Admin Dashboard names Twilio's account SID and auth token in Persian", () => {
+    const admin: Map<string, string> = leaves(readTree("AdminDashboard", "fa"));
+
+    expect(admin.get("Twilio Account SID")).toBe(
+      PERSIAN.get("Twilio Account SID"),
+    );
+    expect(admin.get("Twilio Auth Token")).toBe(
+      PERSIAN.get("Twilio Auth Token"),
+    );
+    expect(admin.get("Twilio Account SID")).not.toBe("Twilio Account SID");
+  });
+});

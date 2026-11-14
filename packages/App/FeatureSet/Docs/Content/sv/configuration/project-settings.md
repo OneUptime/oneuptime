@@ -5,6 +5,7 @@ Projektinställningar innehåller det som gäller för hela projektet: namnet, v
 :::cards
 - [Hitta en inställning](#hitta-en-inställning): Vad varje avsnitt i sidomenyn innehåller.
 - [Projektets detaljer](#projektets-detaljer): Namnet, ID:t och supportåtkomst.
+- [Produkter](#produkter): Produkterna som det här projektet visar, och de som det döljer.
 - [Etiketter](#etiketter): Taggar för resurser, behörigheter och regler.
 - [Ta bort projektet](#ta-bort-projektet): Vad det kräver och vad som försvinner med det.
 :::
@@ -30,10 +31,10 @@ flowchart LR
 
 | Avsnitt | Sidor | Läs mer |
 | --- | --- | --- |
-| **Grundläggande** | **Projekt**, **Etiketter** | [Projektets detaljer](#projektets-detaljer), [Etiketter](#etiketter) |
+| **Grundläggande** | **Projekt**, **Produkter**, **Etiketter** | [Projektets detaljer](#projektets-detaljer), [Produkter](#produkter), [Etiketter](#etiketter) |
 | **Arbetsyta** | **Slack**, **Microsoft Teams**, **Mattermost**, **Videosamtal** | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Mattermost](/docs/workspace-connections/mattermost), [Videosamtal](/docs/workspace-connections/video-calls) |
 | **Telemetri och APM** | **Intagningsnycklar**, **Datalagring**, **Användning** | [Intagningsnycklar](/docs/telemetry/ingestion-keys), [Datalagring](/docs/telemetry/data-retention), [Telemetrianvändning](/docs/telemetry/usage) |
-| **Aviseringar** | **Aviseringsinställningar**, **Aviseringsloggar**, **Mobilappar** | [Aviseringar](#aviseringar) |
+| **Aviseringar** | **Aviseringskanaler**, **Aviseringsloggar**, **Mobilappar** | [Aviseringar](#aviseringar) |
 | **AI** | **AI-funktioner**, **LLM-leverantörer**, **Externa MCP-servrar**, **AI-krediter**, **AI-loggar**, **MCP-server** | [LLM-leverantörer](/docs/ai/llm-provider), [Externa MCP-servrar](/docs/ai/external-mcp-servers), [MCP-server](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#kostnadskontroll) |
 | **Avancerad** | **Domäner**, **API-nycklar**, **Funktionsflaggor**, **Importera från ett annat verktyg** | [Egna domäner](/docs/status-pages/branding-and-domains#anpassade-domäner), [API-nycklar](/docs/permissions/index#api-nycklar), [Funktionsflaggor](#funktionsflaggor), [Byt från Opsgenie](/docs/moving-to-oneuptime/opsgenie) och de andra flyttguiderna |
 | **Säkerhet** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
@@ -54,6 +55,20 @@ flowchart LR
 - **Data Residency**: i OneUptime Cloud, var ditt projekts data ska ligga, när OneUptime har registrerat det. Bara OneUptime anger det.
 
 **Åtkomst för kundsupport** avgör i OneUptime Cloud om OneUptimes supportteam får öppna projektet. Slå på **Ge OneUptimes support åtkomst till det här projektet** när du vill ha hjälp: OneUptime frågar först, eftersom supporten då kan se och ändra allt i projektet, och du klickar på **Släpp in support**. Stäng av det när de är klara: det sparas direkt. Project Owners och Project Admins ändrar det.
+
+## Produkter
+
+**Projektinställningar → Grundläggande → Produkter** väljer de produkter som det här projektet visar i menyn **Produkter**, på Hem och i Söks lista. Varje produkt har en brytare som sparar när du slår om den: på visar produkten. Användare, Team och Projektinställningar visas alltid, och **Visa alla produkter** visar alla igen.
+
+En dold produkt är inte avstängd. Den flyttas till **Fler produkter**, den sista raden i menyn **Produkter**: Sök hittar den fortfarande, dess sidor och API fungerar, och dess data fortsätter att komma in. Den som har fäst den behåller sin fästning.
+
+På en självhostad server kan en huvudadministratör också stänga av en produkt för alla projekt, under **Inställningar → Produkter** i Admin Dashboard (se [Kör bara det du behöver](/docs/installation/docker-compose#kör-bara-det-du-behöver)). En sådan produkt har ingen brytare här: den visar **Avstängd på den här servern** och vem som kan slå på den.
+
+Ett nytt projekt börjar med det som ägaren sade på Hem att det ska användas till: det grundläggande, inställningarna och det som de målen behöver visas, och resten döljs. Ett projekt som hoppade över frågan, eller som skapades före den, visar alla produkter. Så snart någon ändrar listan här ändrar målen den inte längre.
+
+Varje produkt säger vad den är för det här projektet: **Används**, **Inte konfigurerad** eller, i OneUptime Cloud, den plan den behöver. När en dold produkt börjar ta emot data säger Hem det till projektets ägare och administratörer och erbjuder **Visa den** eller **Behåll dold**.
+
+Projektägare, projektadministratörer och alla som får redigera projektet ändrar den; alla andra i projektet kan se den.
 
 ## Etiketter
 
@@ -81,7 +96,7 @@ För att fasa ut en etikett arkiverar du den från radens meny **⋯** i ställe
 
 **Projektinställningar → Aviseringar** innehåller hur projektet skickar aviseringar:
 
-- **Aviseringsinställningar**: kortet **Aviseringskanaler** slår på eller av SMS, telefonsamtal, WhatsApp och Telegram för projektet. Alla fyra är avstängda från början. En Project Owner, en **Faktureringsadministratör** eller någon med **Manage Billing** slår på dem. Sidan innehåller också, hopfällda under **Fler inställningar**, projektets egna e-postservrar i **Anpassade SMTP-konfigurationer** (se [SMTP](/docs/emails/smtp)) och dess eget Twilio-konto (se [Twilio-integration](/docs/self-hosted/twilio-integration)). I OneUptime Cloud innehåller den saldot som de här meddelandena betalas från: se [Förbetalda saldon](/docs/configuration/billing#förbetalda-saldon).
+- **Aviseringskanaler**: kortet **Aviseringskanaler** slår på eller av SMS, telefonsamtal, WhatsApp och Telegram för projektet. Alla fyra är avstängda från början. En Project Owner, en **Faktureringsadministratör** eller någon med **Manage Billing** slår på dem. Sidan innehåller också, hopfällda under **Fler inställningar**, projektets egna e-postservrar i **Anpassade SMTP-konfigurationer** (se [SMTP](/docs/emails/smtp)) och dess eget Twilio-konto (se [Twilio-integration](/docs/self-hosted/twilio-integration)). I OneUptime Cloud innehåller den saldot som de här meddelandena betalas från: se [Förbetalda saldon](/docs/configuration/billing#förbetalda-saldon).
 - **Aviseringsloggar**: varje avisering som projektet har skickat, med en flik per kanal: **E-post**, **SMS**, **WhatsApp**, **Telegram**, **Webhook**, **Anrop**, **Push** och **Arbetsyta**.
 - **Mobilappar**: var du hämtar apparna för iOS och Android. Se [Appar – Översikt](/docs/mobile-desktop-apps/index).
 

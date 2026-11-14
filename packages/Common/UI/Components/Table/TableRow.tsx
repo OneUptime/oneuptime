@@ -39,7 +39,10 @@ import {
   getTableCellPaddingClassName,
 } from "./TableLayout";
 import { TABLE_STICKY_END_ATTRIBUTE } from "./TableStickyEndFocus";
-import TableEmptyValue, { isDashPlaceholder } from "./TableEmptyValue";
+import TableEmptyValue, {
+  getTableNoValue,
+  isDashPlaceholder,
+} from "./TableEmptyValue";
 import { showFullValueWhenCutShort } from "./FullValueTitle";
 import Columns from "./Types/Columns";
 import Color from "../../../Types/Color";
@@ -62,7 +65,15 @@ import {
   LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME,
   LINE_OR_CLAMPED_LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME,
 } from "../../Utils/LineDirection";
-import { ReadingDirection } from "../../../Types/ReadingDirection";
+import {
+  getReadingDirection,
+  ReadingDirection,
+} from "../../../Types/ReadingDirection";
+import {
+  getPhoneNumberDirection,
+  getPhoneNumbersOfValue,
+  getPhoneNumberValueText,
+} from "../../../Types/PhoneNumberDirection";
 import React, { ReactElement, useState } from "react";
 import useIsBelowWidth, {
   PHONE_BELOW_WIDTH_IN_PX,
@@ -74,6 +85,8 @@ import type {
 import { DragAndDropLibrary } from "../DragAndDrop/DragAndDropLoader";
 import LongTextViewer from "../LongText/LongTextViewer";
 import IsolatedText from "../IsolatedText/IsolatedText";
+import PhoneNumberText from "../PhoneNumber/PhoneNumberText";
+import PhoneNumberTextList from "../PhoneNumber/PhoneNumberTextList";
 import InfoTooltip from "../Tooltip/InfoTooltip";
 import DragHandle from "./DragHandle";
 
@@ -324,18 +337,12 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
 
     /*
      * A missing value: the column's own words in the grey an absent value
-     * is drawn in, or a dash.
+     * is drawn in, or the quiet dash - also for a column whose words are
+     * only a dash ("-"), which drew a darker hyphen of its own beside the
+     * dash of every other empty cell (getTableNoValue, #7264).
      */
     const getNoValue: () => ReactElement = (): ReactElement => {
-      if (column.noValueMessage) {
-        return (
-          <span className="text-gray-500">
-            {translateString(column.noValueMessage) ?? column.noValueMessage}
-          </span>
-        );
-      }
-
-      return <TableEmptyValue />;
+      return getTableNoValue(column.noValueMessage);
     };
 
     switch (column.type) {
@@ -353,12 +360,22 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
         ) : (
           getNoValue()
         );
+      /*
+       * No amount, no share: "0 USD", "0%" - or the column's own words for
+       * that, drawn as every other empty value is.
+       */
       case FieldType.USDCents:
         return value
           ? ((value as number) || 0) / 100 + " USD"
-          : column.noValueMessage || "0 USD";
+          : column.noValueMessage
+            ? getNoValue()
+            : "0 USD";
       case FieldType.Percent:
-        return value ? value + "%" : column.noValueMessage || "0%";
+        return value
+          ? value + "%"
+          : column.noValueMessage
+            ? getNoValue()
+            : "0%";
       case FieldType.Color:
         return value ? <ColorInput value={value as Color} /> : getNoValue();
       case FieldType.LongText:
@@ -384,6 +401,26 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
         ) : (
           <TableEmptyValue screenReaderText="No" />
         );
+      case FieldType.Phone: {
+        /*
+         * A phone number reads +447700900123 in every language: printed as
+         * it is, an Arabic table put its "+" at the end (PhoneNumberText).
+         * A list of them typed as one value is each of its numbers so.
+         */
+        const phoneNumbers: Array<string> = getPhoneNumbersOfValue(
+          getNestedValue(props.item, String(column.key)),
+        );
+
+        if (phoneNumbers.length > 1) {
+          return <PhoneNumberTextList phoneNumbers={phoneNumbers} />;
+        }
+
+        return phoneNumbers[0] ? (
+          <PhoneNumberText phoneNumber={phoneNumbers[0]} />
+        ) : (
+          getNoValue()
+        );
+      }
       default: {
         const text: string | undefined = getPlainCellText(column);
 
@@ -442,6 +479,25 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
   ) => ReadingDirection | undefined = (
     column: Column<T>,
   ): ReadingDirection | undefined => {
+    /*
+     * A phone number's line reads left to right on a page read from the
+     * right, though it has no letter to say so (getPhoneNumberDirection):
+     * cut short, it keeps its "+44" and loses its last digits, and it still
+     * starts where the column's other values do. A cell that draws more
+     * than the number (an icon beside it) leaves its line the page's.
+     */
+    if (column.type === FieldType.Phone && column.key && !column.getElement) {
+      const phoneNumber: string = getPhoneNumberValueText(
+        getNestedValue(props.item, String(column.key)),
+      );
+      const direction: ReadingDirection = getPhoneNumberDirection(phoneNumber);
+
+      return phoneNumber &&
+        direction !== getReadingDirection(translator.language)
+        ? direction
+        : undefined;
+    }
+
     const text: string | undefined = column.getElement
       ? getElementLineText<T>(column, props.item)
       : getPlainCellText(column);

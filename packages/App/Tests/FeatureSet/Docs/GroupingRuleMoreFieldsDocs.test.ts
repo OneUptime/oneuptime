@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { drawnDashboardLabel } from "./DocsDashboardLabels";
 
 /*
  * The grouping rule form's "Show advanced settings" switch added three
@@ -58,6 +59,11 @@ function read(language: string, page: string): string {
   );
 }
 
+// A Dashboard label in bold, as this language's Dashboard draws it.
+function bold(language: string, english: string): string {
+  return `**${drawnDashboardLabel(language, english)}**`;
+}
+
 // The languages whose settings page describes the grouping rule form.
 const LANGUAGES_WITH_GROUPING_RULES: Array<string> = ["en", "fa"];
 
@@ -69,7 +75,7 @@ describe("the docs on the grouping rule form", () => {
 
     for (const language of LANGUAGES_WITH_GROUPING_RULES) {
       expect(read(language, "incidents/settings")).toContain(
-        "**Grouping Rules**",
+        bold(language, "Grouping Rules"),
       );
     }
   });
@@ -100,16 +106,16 @@ describe("the docs on the grouping rule form", () => {
     (language: string) => {
       const settings: string = read(language, "incidents/settings");
 
-      expect(settings).toContain("**More fields**");
-      expect(settings).toContain("**Grouping**");
+      expect(settings).toContain(bold(language, "More fields"));
+      expect(settings).toContain(bold(language, "Grouping"));
 
       // The groups, in the order the fold draws them.
       const groups: Array<number> = [
-        "**On-Call & Ownership** (",
-        "**Episode Lifecycle** (",
-        "**Details** (",
+        "On-Call & Ownership",
+        "Episode Lifecycle",
+        "Details",
       ].map((group: string): number => {
-        return settings.indexOf(group);
+        return settings.indexOf(`${bold(language, group)} (`);
       });
 
       for (const position of groups) {
@@ -123,13 +129,13 @@ describe("the docs on the grouping rule form", () => {
       ).toEqual(groups);
 
       // The settings that are set, as the folded line writes them.
-      expect(settings).toContain("On-Call Duty Policies: 2");
+      expect(settings).toContain("On-Call Policies: 2");
       expect(settings).toContain(
         "Reopen recently resolved episodes: 30 minutes",
       );
 
       // The old default assignee is one of them.
-      expect(settings).toContain("**Default assignee**");
+      expect(settings).toContain(bold(language, "Default assignee"));
     },
   );
 

@@ -1,4 +1,4 @@
-# Kontinuerlig profilering
+# Profiler
 
 Kontinuerlig profilering viser hva applikasjonen din bruker CPU-tid og minne på, funksjon for funksjon. OneUptime tilbyr et **Pyroscope-kompatibelt inntaks-API**, så alt som kan sende til en Pyroscope-server (eBPF-profileren i Grafana Alloy eller et Pyroscope-SDK for språket ditt) kan sende til OneUptime, og du leser resultatet som flammegrafer ved siden av loggene, målingene og sporene dine.
 
@@ -11,7 +11,7 @@ Kontinuerlig profilering viser hva applikasjonen din bruker CPU-tid og minne på
 
 ## Slik fungerer det
 
-En profiler tar stikkprøver av prosessene dine og laster opp en profil med noen sekunders mellomrom til OneUptimes endepunkt `/pyroscope`, med inntaksnøkkelen din. OneUptime lagrer hver profil under tjenesten den nevner, og tegner den som en flammegraf under **Ytelsesprofiler**.
+En profiler tar stikkprøver av prosessene dine og laster opp en profil med noen sekunders mellomrom til OneUptimes endepunkt `/pyroscope`, med inntaksnøkkelen din. OneUptime lagrer hver profil under tjenesten den nevner, og tegner den som en flammegraf under **Profiler**.
 
 ```mermaid title="Slik kommer profiler til OneUptime"
 flowchart TB
@@ -270,7 +270,7 @@ Et gyldig token gir `200` med `{"valid": true, ...}`, og `keyType` må være `Se
 
 ### Åpne profilsiden
 
-Gå til **Produkter → Ytelsesprofiler** i OneUptime-dashbordet. Med Alloys innsamlingsintervall på 15 sekunder (eller SDK-enes opplastingsintervall på 10 til 15 sekunder) vises de første profilene og flammegrafene deres innen et minutt eller to etter at agenten har startet.
+Gå til **Produkter → Profiler** i OneUptime-dashbordet. Med Alloys innsamlingsintervall på 15 sekunder (eller SDK-enes opplastingsintervall på 10 til 15 sekunder) vises de første profilene og flammegrafene deres innen et minutt eller to etter at agenten har startet.
 
 ### Sjekk tjenesten
 
@@ -283,7 +283,7 @@ For .NET-profileren setter du `DD_TRACE_DEBUG=1` på applikasjonen i ett minutt:
 
 ## Utforsk profiler i OneUptime
 
-**Produkter → Ytelsesprofiler** åpner profilereren på **Oversikt**. Den svarer med ord før noe diagram: hvor tiden går ("I checkout gikk 42% av CPU-tid til JSON.parse.") og, når den travleste funksjonen hører til et bibliotek eller kjøretiden, funksjonen i din egen kode som tar mest, med biblioteks- og kjøretidskoden den kaller. Øverst velger du en tjeneste, en profiltype den har data for (**CPU-tid**, **Veggklokketid**, **Minne**, **Allokeringer**, **Låser** eller **Goroutines**, eller én type under **Flere profiltyper**), og et tidsvindu.
+**Produkter → Profiler** åpner profilereren på **Oversikt**. Den svarer med ord før noe diagram: hvor tiden går ("I checkout gikk 42% av CPU-tid til JSON.parse.") og, når den travleste funksjonen hører til et bibliotek eller kjøretiden, funksjonen i din egen kode som tar mest, med biblioteks- og kjøretidskoden den kaller. Øverst velger du en tjeneste, en profiltype den har data for (**CPU-tid**, **Veggklokketid**, **Minne**, **Allokeringer**, **Låser** eller **Goroutines**, eller én type under **Flere profiltyper**), og et tidsvindu.
 
 | Kort | Hva det viser |
 | --- | --- |
@@ -319,7 +319,7 @@ Når en profil har trace- og span-ID-er (for eksempel som sample-etiketter `trac
 
 Fanen **Profilprøver** for et span inneholder også samplene som er knyttet til spans som ligger under det, fordi profilere ofte tilskriver en forespørsels CPU-tid et underordnet span i stedet for selve forespørselsspanet.
 
-Siden for et spor lenker også til profilereren for sporets tjeneste i de 15 minuttene før og etter, når tjenesten ble profilert da, og siden **Ytelsesprofiler** for en tjeneste eller en vert åpner profilereren for den tjenesten eller verten.
+Siden for et spor lenker også til profilereren for sporets tjeneste i de 15 minuttene før og etter, når tjenesten ble profilert da, og siden **Profiler** for en tjeneste eller en vert åpner profilereren for den tjenesten eller verten.
 
 ## Finn og rett treg kode med KI
 
@@ -332,7 +332,7 @@ En funksjon i din egen kode registreres når tjenesten har sendt minst 500 sampl
 
 ### Slå det på
 
-**Produkter → Ytelsesprofiler → KI → Innstillinger** har bryteren **Finn og rett treg kode**, som er på for nye prosjekter. Når **Aktiver AI** er av, blir treg kode fortsatt funnet, men OneUptime AI gjør ingenting med den. For å åpne pull-forespørsler trenger OneUptime AI et kodelager koblet til i [Kode](/docs/ai/ai-agent): siden sier først hva som mangler. Koden i hvert kodelager endres på Runneren kodelageret velger i Kode.
+**Produkter → Profiler → KI → Innstillinger** har bryteren **Finn og rett treg kode**, som er på for nye prosjekter. Når **Aktiver AI** er av, blir treg kode fortsatt funnet, men OneUptime AI gjør ingenting med den. For å åpne pull-forespørsler trenger OneUptime AI et kodelager koblet til i [Kode](/docs/ai/ai-agent): siden sier først hva som mangler. Koden i hvert kodelager endres på Runneren kodelageret velger i Kode.
 
 OneUptime AI åpner selv høyst 5 pull-forespørsler per dag (UTC), én for hvert funn, og aldri flere enn et kodelagers grense for åpne KI-pull-forespørsler.
 
@@ -350,8 +350,8 @@ Under **Flere felt** velger en regel kodelagrene, MCP-serverne og LLM-leverandø
 
 ### Se hva den gjorde
 
-- **Produkter → Ytelsesprofiler → KI → Innsikt** viser den trege koden som er funnet, hvert funn med bevisene og **Åpne i Profilering**.
-- **Produkter → Ytelsesprofiler → KI → Logger** viser hver undersøkelse og hver pull-forespørsel, nyeste først, med status for hver og hva hver undersøkelse fant.
+- **Produkter → Profiler → KI → Innsikt** viser den trege koden som er funnet, hvert funn med bevisene og **Åpne i Profiler**.
+- **Produkter → Profiler → KI → Logger** viser hver undersøkelse og hver pull-forespørsel, nyeste først, med status for hver og hva hver undersøkelse fant.
 - I Kode sier oppgaven at OneUptime startet den, med en lenke til funnet, og pull-forespørselen sier hvorfor den ble åpnet.
 
 ## Dataoppbevaring

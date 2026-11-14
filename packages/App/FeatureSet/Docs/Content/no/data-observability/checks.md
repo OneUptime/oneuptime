@@ -8,14 +8,14 @@ Legg til en sjekk i fanen **Sjekker** for en tabell:
 
 | Sjekk | Hva den leser |
 | --- | --- |
-| **Null Percent** | Prosentandelen rader der kolonnen er tom |
-| **Duplicate Percent** | Prosentandelen verdier som gjentar verdien i en annen rad |
-| **Distinct Count** | Hvor mange forskjellige verdier kolonnen inneholder |
+| **Andel NULL** | Prosentandelen rader der kolonnen er tom |
+| **Andel duplikater** | Prosentandelen verdier som gjentar verdien i en annen rad |
+| **Antall unike verdier** | Hvor mange forskjellige verdier kolonnen inneholder |
 | **Minimum**, **Maksimum**, **Gjennomsnitt**, **Sum** | Av en numerisk kolonne (en Sum av null rader er 0) |
-| **Invalid Percent** | Prosentandelen verdier utenfor en liste du oppgir |
-| **Format Mismatch Percent** | Prosentandelen verdier som ikke har et format du velger, for eksempel Email, UUID eller Country Code, eller som ikke samsvarer med et regulært uttrykk fra deg (alle databasemotorer unntatt SQL Server og Dataverse) |
-| **Orphan Count** | Rader der verdien ikke har noe samsvar i en kolonne i en annen tabell |
-| **Row Count** | Rader i tabellen, mest nyttig med **Segmenter etter** |
+| **Andel ugyldige verdier** | Prosentandelen verdier utenfor en liste du oppgir |
+| **Andel formatfeil** | Prosentandelen verdier som ikke har et format du velger, for eksempel Email, UUID eller Country Code, eller som ikke samsvarer med et regulært uttrykk fra deg (alle databasemotorer unntatt SQL Server og Dataverse) |
+| **Antall foreldreløse rader** | Rader der verdien ikke har noe samsvar i en kolonne i en annen tabell |
+| **Antall rader** | Rader i tabellen, mest nyttig med **Segmenter etter** |
 | **Egendefinert SQL** | Tallet som én skrivebeskyttet SELECT fra deg returnerer, kalt `value` (i MongoDB en aggregeringspipelines) |
 | **Rader som feiler** | Hvor mange rader én skrivebeskyttet SELECT fra deg returnerer: radene som ikke skal finnes. 0 er friskt (i MongoDB dokumentene en pipeline ender i) |
 
@@ -31,13 +31,13 @@ Hver sjekk kjører hvert 15. minutt, hver time, hver 6. time eller hver dag, som
 
 ## Segmenter
 
-**Segmenter etter** kjører en sjekk én gang per verdi i en kolonne, for eksempel en leietaker eller en region: én serie og ett varsel for hver, for de 100 største segmentene. En segmentert Row Count-sjekk varsler når én leietaker slutter å sende data mens de andre fortsetter.
+**Segmenter etter** kjører en sjekk én gang per verdi i en kolonne, for eksempel en leietaker eller en region: én serie og ett varsel for hver, for de 100 største segmentene. En segmentert sjekk av antall rader varsler når én leietaker slutter å sende data mens de andre fortsetter.
 
 ## Varsler på en sjekk
 
 Sett **Varsle når** for å varsle på en sjekk:
 
-- **Unusually High** eller **Unusually Low** sammenligner hver verdi med sin egen innlærte grunnlinje for den timen i uken.
+- **Uvanlig høy** eller **Uvanlig lav** sammenligner hver verdi med sin egen innlærte grunnlinje for den timen i uken.
 - **Over** eller **Under** sammenligner den med en terskel.
 
 Når du lagrer sjekken, opprettes en metrikkmonitor for den, som deg og med dine tillatelser. Fjerner du betingelsen, fjernes monitoren.
@@ -48,13 +48,13 @@ Når du lagrer sjekken, opprettes en metrikkmonitor for den, som deg og med dine
 
 En sjekk konkurrerer med applikasjonen din om databasen, og på et datavarehus som fakturerer etter det en spørring leser, koster den penger. Tre ting holder det under kontroll:
 
-- **Utvalgsprosent** leser en andel av radene i stedet for alle, for en sjekk som leser en rate: Null Percent, Average, Invalid Percent og Format Mismatch Percent. De fleste databasemotorer hopper over hele sider av tabellen; MySQL, Redshift, ClickHouse og MongoDB leser fortsatt hver rad, og sparer arbeidet på resten. Dataverse tar ikke noe utvalg: en sjekk der leser hver rad. En visning kan nekte det, og sjekken sier fra om det.
+- **Utvalgsprosent** leser en andel av radene i stedet for alle, for en sjekk som leser en rate: Andel NULL, Gjennomsnitt, Andel ugyldige verdier og Andel formatfeil. De fleste databasemotorer hopper over hele sider av tabellen; MySQL, Redshift, ClickHouse og MongoDB leser fortsatt hver rad, og sparer arbeidet på resten. Dataverse tar ikke noe utvalg: en sjekk der leser hver rad. En visning kan nekte det, og sjekken sier fra om det.
 - **Mest en kontroll kan lese (GB)**, under **Innstillinger**, stopper en sjekk på BigQuery eller Athena før den leser mer enn så mange gigabyte. Den er 10 til du endrer den.
 - **Vent når en database er opptatt**, under **Innstillinger**, lar sjekker som er på tur vente til neste innsamling når en PostgreSQL-, MySQL- eller SQL Server-database ser opptatt ut. Den er på til du slår den av, og databasen sier fra når sjekker ventet.
 
 ## Rader som feiler
 
-Et tall sier at noe er galt; noen få rader sier hva. **Behold feilaktige rader** under **Innstillinger** beholder opptil 20 av radene en Failing Rows-, Invalid Percent-, Format Mismatch Percent- eller Orphan Count-sjekk fant, og **Rader som feiler** på sjekken viser dem. Innstillingen er av til du slår den på. Sensitive kolonner maskeres der raden leses, ut fra det Datasikkerhet fant i dem eller ut fra navnene deres, så det som forlater databasen, eller en sonde, allerede er maskert. En sensitiv kolonne som ingen skanning har funnet, og som navnet ikke avslører, beholdes som den er.
+Et tall sier at noe er galt; noen få rader sier hva. **Behold feilaktige rader** under **Innstillinger** beholder opptil 20 av radene en sjekk av typen Rader som feiler, Andel ugyldige verdier, Andel formatfeil eller Antall foreldreløse rader fant, og **Rader som feiler** på sjekken viser dem. Innstillingen er av til du slår den på. Sensitive kolonner maskeres der raden leses, ut fra det Datasikkerhet fant i dem eller ut fra navnene deres, så det som forlater databasen, eller en sonde, allerede er maskert. En sensitiv kolonne som ingen skanning har funnet, og som navnet ikke avslører, beholdes som den er.
 
 Radene lagres i OneUptime: på OneUptimes servere med OneUptime Cloud og på dine egne med en selvdriftet installasjon. Alle som kan lese prosjektets sjekker, kan se dem. En sjekk beholder bare radene fra den siste kjøringen, og når du slår av **Behold feilaktige rader**, slettes det hver sjekk har beholdt.
 
@@ -104,9 +104,9 @@ Nøklene er `name`, `table`, `database`, `type`, `column`, `segment`, `accepted_
 
 Kopier glir fra hverandre: datavarehuset har færre ordrer enn applikasjonens database, eller en migrering mistet rader. En avstemming sammenligner én måling av to tabeller, i én database eller to, under **Avstemminger**:
 
-- **Row Count**
+- **Antall rader**
 - **Sum** av en kolonne
-- **Distinct Count** av en kolonne
+- **Antall unike verdier** av en kolonne
 - **Egendefinert SQL**: en skrivebeskyttet spørring som returnerer ett tall, kalt `value`
 
 Den har en toleranse: et **Absolutt** beløp, eller en andel i **Prosent** av kildens verdi. Hver side leses av en egen sjekk, som avstemmingen oppretter og vedlikeholder, sammen med innsamlingen for databasen sin, så en avstemming kan sammenligne en PostgreSQL-tabell i nettverket ditt med kopien av den i Snowflake. De to verdiene sammenlignes når begge er lest innen 15 minutter fra hverandre. En avstemming skriver:

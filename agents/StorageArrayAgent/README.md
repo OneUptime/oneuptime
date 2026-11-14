@@ -18,7 +18,7 @@ One agent monitors one array. Run one agent per array (see [Monitoring several a
 
 - Docker Engine 20.10+ with the Docker Compose v2 plugin, on any machine that can reach the array's management interface over HTTPS (TCP 443)
 - A user on the array holding the **readonly** role, and an API token for it (see below)
-- A **OneUptime Telemetry Ingestion Key** — create one from _Project Settings → Telemetry Ingestion Keys_
+- A **OneUptime ingestion key** — create one from _Project Settings → Telemetry & APM → Ingestion Keys_
 
 ### Creating the read-only user and its API token
 
@@ -96,7 +96,7 @@ After the first scrape (about a minute) the array appears automatically in the *
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `ONEUPTIME_URL` | Yes | Your OneUptime instance URL |
-| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Yes | Telemetry ingestion key (_Project Settings → Telemetry Ingestion Keys_) |
+| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Yes | Ingestion key (_Project Settings → Telemetry & APM → Ingestion Keys_) |
 | `STORAGE_ARRAY_NAME` | Yes | The name this array registers under in OneUptime. Stamped on every metric as the `storage.array.name` resource attribute. Keep it stable — changing it registers a new array. The collector refuses to start without it |
 | `STORAGE_SYSTEM` | No | The platform, stamped as the `storage.system` resource attribute: `purestorage.flasharray` or `purestorage.flashblade` (default: `purestorage.flasharray`) |
 | `STORAGE_ARRAY_COLLECTOR_CONFIG` | No | Which shipped config runs: `otel-collector-config.yaml` (FlashArray, native — the default), `otel-collector-config.flasharray-exporter.yaml` (older FlashArray) or `otel-collector-config.flashblade.yaml` (FlashBlade) |

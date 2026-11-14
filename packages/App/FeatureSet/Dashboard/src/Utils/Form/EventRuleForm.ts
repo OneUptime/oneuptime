@@ -18,6 +18,10 @@ import WorkingHours, {
   WORKING_HOURS_WEEKLY_WINDOW_EMPTY_MESSAGE,
 } from "Common/Types/OnCallDutyPolicy/WorkingHours";
 import ReminderStopState from "Common/Types/Reminder/ReminderStopState";
+import {
+  MAX_REMINDER_INTERVAL_IN_MINUTES,
+  MIN_REMINDER_INTERVAL_IN_MINUTES,
+} from "Common/Types/Reminder/ReminderInterval";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import type Field from "Common/UI/Components/Forms/Types/Field";
 import type {
@@ -766,7 +770,7 @@ export const getOnCallRuleActionFields: <TEntity>(
       field: {
         onCallDutyPolicies: true,
       } as unknown as SelectFormFields<TEntity>,
-      title: "On-Call Duty Policies",
+      title: "On-Call Policies",
       description: ON_CALL_RULE_POLICIES_DESCRIPTION,
       stepId: "on-call",
       fieldType: FormFieldSchemaType.MultiSelectDropdown,
@@ -1252,6 +1256,20 @@ export type ReminderRuleRecord = "incident" | "alert";
 export const DEFAULT_REMINDER_INTERVAL_IN_MINUTES: number = 30;
 
 /*
+ * What every reminder rule's interval box takes: a minute to a year, as
+ * the API does (Types/Reminder/ReminderInterval). It took 0, which the
+ * API refused as "reminderIntervalInMinutes is required", and -5, which
+ * reminded the owners every minute.
+ */
+export const REMINDER_INTERVAL_VALIDATION: {
+  minValue: number;
+  maxValue: number;
+} = {
+  minValue: MIN_REMINDER_INTERVAL_IN_MINUTES,
+  maxValue: MAX_REMINDER_INTERVAL_IN_MINUTES,
+};
+
+/*
  * "Remind every 30 minutes until resolved": a reminder rule is named after
  * how often it reminds and when it stops.
  */
@@ -1375,6 +1393,7 @@ export const getReminderRuleActionFields: <TEntity>(
       required: true,
       placeholder: "30",
       defaultValue: DEFAULT_REMINDER_INTERVAL_IN_MINUTES,
+      validation: REMINDER_INTERVAL_VALIDATION,
       onChange: followValueWithRuleName<TEntity>({
         column: "reminderIntervalInMinutes",
         makeName: getReminderRuleName,

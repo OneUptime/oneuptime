@@ -30,6 +30,7 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 
 const api: Record<string, MockFunction> = {
   loadMonitorSeeds: getJestMockFunction(),
+  findOwnMonitor: getJestMockFunction(),
   createMonitor: getJestMockFunction(),
   loadMonitor: getJestMockFunction(),
   loadFirstCheck: getJestMockFunction(),
@@ -48,6 +49,7 @@ jest.mock(
 
     for (const name of [
       "loadMonitorSeeds",
+      "findOwnMonitor",
       "createMonitor",
       "loadMonitor",
       "loadFirstCheck",
@@ -225,11 +227,16 @@ jest.mock("../../../UI/Utils/ProductEvents", () => {
 
 import WebsiteDownGuidedSetup from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/WebsiteDown/WebsiteDownGuidedSetup";
 import { getGuidedSetupRunKey } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/GuidedSetupProgress";
+import { GUIDED_SETUP_GUIDE_LINK_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/GuidedSetupFrame";
 import {
   WEBSITE_DOWN_COPY,
+  WEBSITE_DOWN_SETUP_GUIDE_DOCS_PATH,
   buildWebsiteMonitor,
+  isMonitorCheckingAddress,
   WebsiteAddress,
+  WebsiteMonitorSeeds,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/WebsiteDown/WebsiteDownSetup";
+import { WebsiteDownMonitorRecord } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/WebsiteDown/WebsiteDownApi";
 import { ProductEventName } from "../../../Types/Analytics/ProductEvent";
 import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
 import ObjectID from "../../../Types/ObjectID";
@@ -239,6 +246,7 @@ import {
   OnCallTestPageStatus,
 } from "../../../Types/OnCallDutyPolicy/OnCallTestPage";
 import { OnCallPageChannel } from "../../../Types/OnCallDutyPolicy/OnCallPageChannel";
+import { getLearnMoreUrl } from "../../../UI/Components/Link/LearnMoreLink";
 import ProjectUtil from "../../../UI/Utils/Project";
 import UserUtil from "../../../UI/Utils/User";
 
@@ -253,6 +261,13 @@ const RUN_KEY: string = getGuidedSetupRunKey({
   userId: USER_ID,
 });
 
+const SEEDS: WebsiteMonitorSeeds = {
+  operationalStatusId: new ObjectID("00000000-0000-4000-8000-000000000001"),
+  offlineStatusId: new ObjectID("00000000-0000-4000-8000-000000000002"),
+  incidentSeverityId: new ObjectID("00000000-0000-4000-8000-000000000003"),
+  alertSeverityId: new ObjectID("00000000-0000-4000-8000-000000000004"),
+};
+
 const monitorSteps: MonitorSteps = buildWebsiteMonitor({
   address: {
     url: "https://acme.example",
@@ -260,12 +275,7 @@ const monitorSteps: MonitorSteps = buildWebsiteMonitor({
     monitorName: "acme.example",
   },
   isApi: false,
-  seeds: {
-    operationalStatusId: new ObjectID("00000000-0000-4000-8000-000000000001"),
-    offlineStatusId: new ObjectID("00000000-0000-4000-8000-000000000002"),
-    incidentSeverityId: new ObjectID("00000000-0000-4000-8000-000000000003"),
-    alertSeverityId: new ObjectID("00000000-0000-4000-8000-000000000004"),
-  },
+  seeds: SEEDS,
 }).monitorSteps!;
 
 const MONITOR: {
@@ -389,6 +399,8 @@ beforeEach(() => {
   jest.spyOn(UserUtil, "getUserId").mockReturnValue(new ObjectID(USER_ID));
   jest.spyOn(UserUtil, "isMasterAdmin").mockReturnValue(false);
 
+  // This person has no monitor for the address yet.
+  api["findOwnMonitor"]!.mockResolvedValue(null);
   api["createMonitor"]!.mockResolvedValue(MONITOR_ID);
   api["loadMonitor"]!.mockResolvedValue(MONITOR);
   api["loadFirstCheck"]!.mockResolvedValue({
@@ -444,6 +456,19 @@ describe("a brand-new project", () => {
     // Nothing is made just by opening it.
     expect(api["createMonitor"]).not.toHaveBeenCalled();
     expect(api["createPolicy"]).not.toHaveBeenCalled();
+  });
+
+  // The docs walk the same job end to end (#6821), linked beside the progress.
+  test("links the docs' step-by-step guide to the same job", async () => {
+    await renderSetup();
+
+    expect(WEBSITE_DOWN_SETUP_GUIDE_DOCS_PATH).toBe(
+      "/docs/guides/website-down",
+    );
+    expect(screen.getByTestId(GUIDED_SETUP_GUIDE_LINK_TEST_ID)).toHaveAttribute(
+      "href",
+      getLearnMoreUrl(WEBSITE_DOWN_SETUP_GUIDE_DOCS_PATH, "en"),
+    );
   });
 
   test("a later step cannot be opened before the ones it builds on", async () => {
@@ -509,6 +534,18 @@ describe("1. What should we check?", () => {
     });
     expect(call.isApi).toBe(false);
     expect(storedRun()).toEqual({ monitorId: MONITOR_ID });
+    // Only after looking for this person's own monitor for the address.
+    expect(api["findOwnMonitor"]).toHaveBeenCalledTimes(1);
+    expect(api["findOwnMonitor"]).toHaveBeenCalledWith({
+      address: call.address,
+      userId: USER_ID,
+    });
+    expect(api["findOwnMonitor"]!.mock.invocationCallOrder[0]!).toBeLessThan(
+      api["createMonitor"]!.mock.invocationCallOrder[0]!,
+    );
+    expect(
+      screen.queryByTestId("guided-setup-existing-monitor"),
+    ).not.toBeInTheDocument();
   });
 
   test("an API monitor when the box is ticked", async () => {
@@ -711,7 +748,7 @@ describe("2. Who should be told?", () => {
     await toWhoIsTold();
 
     expect(screen.getByTestId("guided-setup-who-help")).toHaveTextContent(
-      "You own this monitor, so you are emailed when it goes down. Paging a team needs a project admin: ask one to set up an on-call policy.",
+      "You own this monitor, so you are emailed when it goes down. Paging a team needs an on-call policy: ask a project owner or admin to set one up.",
     );
     expect(screen.queryByTestId("guided-setup-people")).toBeNull();
 
@@ -908,7 +945,7 @@ describe("the summary", () => {
 
     expect(
       screen.getByText(WEBSITE_DOWN_COPY.nextStatusPage).closest("a"),
-    ).toHaveAttribute("href", `/dashboard/${PROJECT_ID}/status-pages`);
+    ).toHaveAttribute("href", `/dashboard/${PROJECT_ID}/status-pages/setup`);
     expect(
       screen.getByText(WEBSITE_DOWN_COPY.nextMonitor).closest("a"),
     ).toHaveAttribute(
@@ -1090,5 +1127,567 @@ describe("permissions", () => {
     await toWhoIsTold();
 
     expect(screen.queryByTestId("guided-setup-not-allowed")).toBeNull();
+  });
+});
+
+/*
+ * A RUN THE BROWSER LOST (#7059): a private window that keeps nothing,
+ * another device, storage cleared. What exists on the server decides: a fake
+ * server here keeps the monitors this person made, read through the same
+ * rule the real look-up uses, and the setup looks there before it makes one.
+ */
+const PROJECT_PAGES_PEOPLE: Record<string, unknown> = {
+  policyCount: 1,
+  incidentRuleCount: 1,
+  alertRuleCount: 1,
+  mayCreatePolicy: true,
+  mayAddEscalationRules: true,
+  mayAddRules: true,
+};
+
+const EXISTING_NOTE: string =
+  'Your monitor "acme.example" already checks this address, so no new monitor was made.';
+
+interface StorageReplacements {
+  browser: string;
+  getItem: () => string | null;
+  setItem: () => void;
+  removeItem: () => void;
+}
+
+/*
+ * Storage's prototype seen without its string index signature, which makes
+ * @jest/globals type spyOn(Storage.prototype, ...) as never.
+ */
+const storagePrototype: Pick<Storage, "getItem" | "setItem" | "removeItem"> =
+  Storage.prototype;
+
+const storageOff: () => never = (): never => {
+  throw new Error("storage is off");
+};
+
+describe("a run the browser lost (#7059)", () => {
+  // This person's monitors as the server keeps them, the oldest first.
+  let serverMonitors: Array<WebsiteDownMonitorRecord> = [];
+
+  const madeOnServer: (address: WebsiteAddress) => WebsiteDownMonitorRecord = (
+    address: WebsiteAddress,
+  ): WebsiteDownMonitorRecord => {
+    const record: WebsiteDownMonitorRecord = {
+      id: `50000000-0000-4000-8000-${String(serverMonitors.length + 1).padStart(12, "0")}`,
+      name: address.monitorName,
+      monitorSteps: buildWebsiteMonitor({
+        address: address,
+        isApi: false,
+        seeds: SEEDS,
+      }).monitorSteps,
+      monitoringInterval: "*/5 * * * *",
+    };
+    serverMonitors.push(record);
+    return record;
+  };
+
+  beforeEach(() => {
+    serverMonitors = [];
+
+    api["createMonitor"]!.mockImplementation(
+      async (data: { address: WebsiteAddress }): Promise<string> => {
+        return madeOnServer(data.address).id;
+      },
+    );
+    api["loadMonitor"]!.mockImplementation(
+      async (id: string): Promise<WebsiteDownMonitorRecord | null> => {
+        return (
+          serverMonitors.find((record: WebsiteDownMonitorRecord): boolean => {
+            return record.id === id;
+          }) || null
+        );
+      },
+    );
+    api["findOwnMonitor"]!.mockImplementation(
+      async (data: {
+        address: WebsiteAddress;
+        userId: string;
+      }): Promise<WebsiteDownMonitorRecord | null> => {
+        if (data.userId !== USER_ID) {
+          return null;
+        }
+
+        return (
+          [...serverMonitors]
+            .reverse()
+            .find((record: WebsiteDownMonitorRecord): boolean => {
+              return isMonitorCheckingAddress({
+                monitor: record,
+                address: data.address,
+              });
+            }) || null
+        );
+      },
+    );
+  });
+
+  const checkAddress: (text: string) => Promise<void> = async (
+    text: string,
+  ): Promise<void> => {
+    typeAddress(text);
+    await startChecking();
+    await waitFor(() => {
+      expect(screen.getByTestId("guided-setup-first-check")).toHaveTextContent(
+        "acme.example answered 200 in 312 ms from 2 locations.",
+      );
+    });
+  };
+
+  test("an address this person's monitor already checks: the setup goes on with it, says so, and makes none", async () => {
+    // Made from Create Monitor, or by a run this browser lost.
+    const theirs: WebsiteDownMonitorRecord = madeOnServer({
+      url: "https://acme.example",
+      host: "acme.example",
+      monitorName: "acme.example",
+    });
+
+    await renderSetup();
+    // Typed another way, the same address.
+    await checkAddress("ACME.example/");
+
+    expect(api["createMonitor"]).not.toHaveBeenCalled();
+    expect(serverMonitors).toHaveLength(1);
+    expect(
+      screen.getByTestId("guided-setup-existing-monitor"),
+    ).toHaveTextContent(EXISTING_NOTE);
+    expect(storedRun()).toEqual({ monitorId: theirs.id });
+    expect(api["loadFirstCheck"]).toHaveBeenCalledWith(theirs.id);
+
+    await press("guided-setup-check-continue");
+
+    expect(stepState("check")).toBe("done");
+    expect(stepState("who_is_told")).toBe("open");
+  });
+
+  test("the note comes first, then what the check found, and both wrap a long name inside the step", async () => {
+    // One long word, as a monitor named after a long path is.
+    const longAddress: WebsiteAddress = {
+      url: "https://acme.example/api/v1/health/checks/storefront-checkout-and-payments-readiness-probe",
+      host: "acme.example",
+      monitorName:
+        "acme.example/api/v1/health/checks/storefront-checkout-and-payments-readiness-probe",
+    };
+    madeOnServer(longAddress);
+
+    await renderSetup();
+    await checkAddress(`${longAddress.url}/`);
+
+    const note: HTMLElement = screen.getByTestId(
+      "guided-setup-existing-monitor",
+    );
+    const check: HTMLElement = screen.getByTestId("guided-setup-first-check");
+
+    expect(note).toHaveTextContent(
+      `Your monitor "${longAddress.monitorName}" already checks this address, so no new monitor was made.`,
+    );
+    // Why nothing new appeared, then what the monitor found.
+    expect(
+      note.compareDocumentPosition(check) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(note.parentElement).toBe(check.parentElement);
+    // A word longer than the step is broken, not drawn past its edge.
+    expect(note).toHaveClass("break-words");
+    expect(check).toHaveClass("break-words");
+    expect(api["createMonitor"]).not.toHaveBeenCalled();
+  });
+
+  test("storage cleared, then the page opened again: the same address makes no second monitor", async () => {
+    const first: { unmount: () => void } = await renderSetup();
+    await checkAddress("acme.example");
+
+    expect(api["createMonitor"]).toHaveBeenCalledTimes(1);
+    const made: string = serverMonitors[0]!.id;
+    expect(storedRun()).toEqual({ monitorId: made });
+
+    // The browser forgets the run; the monitor stays on the server.
+    window.localStorage.clear();
+    act(() => {
+      first.unmount();
+    });
+    await renderSetup();
+
+    expect(stepState("check")).toBe("open");
+
+    await checkAddress("https://acme.example");
+
+    expect(api["createMonitor"]).toHaveBeenCalledTimes(1);
+    expect(serverMonitors).toHaveLength(1);
+    expect(storedRun()).toEqual({ monitorId: made });
+    expect(
+      screen.getByTestId("guided-setup-existing-monitor"),
+    ).toHaveTextContent(EXISTING_NOTE);
+  });
+
+  /*
+   * Storage switched off throws on every call; a browser that takes a value
+   * and reads nothing back answers null. Either way the page keeps the run:
+   * before, sending the test page dropped the who-is-told step's
+   * confirmation, so that step was drawn not done again and the setup never
+   * finished.
+   */
+  const browsers: Array<StorageReplacements> = [
+    {
+      browser: "storage switched off",
+      getItem: storageOff,
+      setItem: storageOff,
+      removeItem: storageOff,
+    },
+    {
+      browser: "a browser that reads nothing back",
+      getItem: (): null => {
+        return null;
+      },
+      setItem: (): void => {
+        // Accepted, and gone.
+      },
+      removeItem: (): void => {
+        // Nothing to remove.
+      },
+    },
+  ];
+
+  test.each(browsers)(
+    "$browser: every step is walked to the finish, and a reload there makes no second monitor",
+    async (browser: StorageReplacements) => {
+      api["loadWhoIsToldFacts"]!.mockResolvedValue(PROJECT_PAGES_PEOPLE);
+      jest
+        .spyOn(storagePrototype, "getItem")
+        .mockImplementation(browser.getItem);
+      jest
+        .spyOn(storagePrototype, "setItem")
+        .mockImplementation(browser.setItem);
+      jest
+        .spyOn(storagePrototype, "removeItem")
+        .mockImplementation(browser.removeItem);
+
+      const first: { unmount: () => void } = await renderSetup();
+      await checkAddress("acme.example");
+      await press("guided-setup-check-continue");
+      await press("guided-setup-who-continue");
+
+      expect(stepState("test")).toBe("open");
+
+      await press("send-test-page");
+
+      // Every step's save is kept, the ones before included.
+      expect(stepState("check")).toBe("done");
+      expect(stepState("who_is_told")).toBe("done");
+      expect(screen.getByTestId("guided-setup-progress")).toHaveTextContent(
+        "2 of 3 steps done",
+      );
+
+      await act(async () => {
+        reportTestResult(result(OnCallTestPageStatus.Acknowledged));
+      });
+      await press("guided-setup-test-continue");
+
+      expect(screen.getByTestId("guided-setup-summary")).toBeInTheDocument();
+      expect(sent(ProductEventName.GuidedSetupFinished)).toHaveLength(1);
+
+      // The page opened again: this browser kept nothing of the run.
+      act(() => {
+        first.unmount();
+      });
+      await renderSetup();
+
+      expect(stepState("check")).toBe("open");
+
+      await checkAddress("acme.example");
+
+      expect(api["createMonitor"]).toHaveBeenCalledTimes(1);
+      expect(serverMonitors).toHaveLength(1);
+      expect(
+        screen.getByTestId("guided-setup-existing-monitor"),
+      ).toHaveTextContent(EXISTING_NOTE);
+    },
+  );
+
+  test("the look-up fails: nothing is made on a guess, it says why, and the step stays open", async () => {
+    api["findOwnMonitor"]!.mockRejectedValue(
+      new Error("The server could not be reached."),
+    );
+
+    await renderSetup();
+    typeAddress("acme.example");
+    await startChecking();
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "The server could not be reached.",
+    );
+    expect(api["createMonitor"]).not.toHaveBeenCalled();
+    expect(stepState("check")).toBe("open");
+    expect(storedRun()).toEqual({});
+    expect(screen.queryByTestId("guided-setup-existing-monitor")).toBeNull();
+  });
+
+  test("an address none of this person's monitors checks makes a new one, and says nothing of one", async () => {
+    madeOnServer({
+      url: "https://status.acme.example",
+      host: "status.acme.example",
+      monitorName: "status.acme.example",
+    });
+
+    await renderSetup();
+    await checkAddress("acme.example");
+
+    expect(api["createMonitor"]).toHaveBeenCalledTimes(1);
+    expect(serverMonitors).toHaveLength(2);
+    expect(storedRun()).toEqual({ monitorId: serverMonitors[1]!.id });
+    expect(screen.queryByTestId("guided-setup-existing-monitor")).toBeNull();
+  });
+
+  test("Check another address with the same address goes on with the monitor already made", async () => {
+    api["loadWhoIsToldFacts"]!.mockResolvedValue(PROJECT_PAGES_PEOPLE);
+
+    await renderSetup();
+    await checkAddress("acme.example");
+    expect(screen.queryByTestId("guided-setup-existing-monitor")).toBeNull();
+    await press("guided-setup-check-continue");
+    await press("guided-setup-who-continue");
+    await press("guided-setup-skip-test");
+    await press("guided-setup-start-over");
+
+    expect(stepState("check")).toBe("open");
+
+    await checkAddress("acme.example");
+
+    expect(api["createMonitor"]).toHaveBeenCalledTimes(1);
+    expect(storedRun()).toEqual({ monitorId: serverMonitors[0]!.id });
+    expect(
+      screen.getByTestId("guided-setup-existing-monitor"),
+    ).toHaveTextContent(EXISTING_NOTE);
+  });
+
+  test("the note belongs to that address: after starting over, a new address's monitor says nothing of it", async () => {
+    api["loadWhoIsToldFacts"]!.mockResolvedValue(PROJECT_PAGES_PEOPLE);
+    madeOnServer({
+      url: "https://acme.example",
+      host: "acme.example",
+      monitorName: "acme.example",
+    });
+
+    await renderSetup();
+    await checkAddress("acme.example");
+    expect(
+      screen.getByTestId("guided-setup-existing-monitor"),
+    ).toBeInTheDocument();
+    await press("guided-setup-check-continue");
+    await press("guided-setup-who-continue");
+    await press("guided-setup-skip-test");
+    await press("guided-setup-start-over");
+
+    typeAddress("status.acme.example");
+    await startChecking();
+
+    expect(api["createMonitor"]).toHaveBeenCalledTimes(1);
+    expect(serverMonitors).toHaveLength(2);
+    expect(screen.queryByTestId("guided-setup-existing-monitor")).toBeNull();
+  });
+});
+
+describe("a policy made meanwhile, in another tab or on another device (#7059)", () => {
+  test("the project's facts are asked again just before the policy is made", async () => {
+    await toWhoIsTold();
+    await press("guided-setup-who-continue");
+
+    expect(api["loadWhoIsToldFacts"]).toHaveBeenCalledTimes(2);
+    expect(api["createPolicy"]).toHaveBeenCalledTimes(1);
+    expect(
+      api["loadWhoIsToldFacts"]!.mock.invocationCallOrder[1]!,
+    ).toBeLessThan(api["createPolicy"]!.mock.invocationCallOrder[0]!);
+  });
+
+  test("a policy made since the page opened: none is made, the project's policies decide, and Continue goes on", async () => {
+    await toWhoIsTold();
+    expect(screen.getByTestId("guided-setup-people")).toBeInTheDocument();
+
+    // Another tab of this person finished the step meanwhile.
+    api["loadWhoIsToldFacts"]!.mockResolvedValue(PROJECT_PAGES_PEOPLE);
+    await press("guided-setup-who-continue");
+
+    expect(api["createPolicy"]).not.toHaveBeenCalled();
+    expect(stepState("who_is_told")).toBe("open");
+    expect(screen.queryByTestId("guided-setup-people")).toBeNull();
+    expect(screen.getByTestId("guided-setup-who-help")).toHaveTextContent(
+      WEBSITE_DOWN_COPY.whoExistingHelp,
+    );
+    // Why the people picked are gone, said first.
+    const note: HTMLElement = screen.getByTestId(
+      "guided-setup-policy-made-elsewhere",
+    );
+    expect(note).toHaveTextContent(
+      "An on-call policy was added to this project while this page was open, so no new policy was made.",
+    );
+    expect(
+      note.compareDocumentPosition(
+        screen.getByTestId("guided-setup-who-help"),
+      ) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(storedRun()).toEqual({ monitorId: MONITOR_ID });
+
+    await press("guided-setup-who-continue");
+
+    expect(api["createPolicy"]).not.toHaveBeenCalled();
+    expect(storedRun()).toEqual({
+      monitorId: MONITOR_ID,
+      whoIsToldConfirmed: true,
+    });
+    expect(stepState("who_is_told")).toBe("done");
+    expect(stepState("test")).toBe("open");
+    expect(
+      screen.getByTestId("guided-setup-step-who_is_told-done-line"),
+    ).toHaveTextContent(
+      "This project's on-call policies and rules decide who is paged.",
+    );
+  });
+
+  test("facts that cannot be read just before: nothing is made, it says why, and the step stays open", async () => {
+    await toWhoIsTold();
+    api["loadWhoIsToldFacts"]!.mockRejectedValueOnce(
+      new Error("The server could not be reached."),
+    );
+    await press("guided-setup-who-continue");
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "The server could not be reached.",
+    );
+    expect(api["createPolicy"]).not.toHaveBeenCalled();
+    expect(stepState("who_is_told")).toBe("open");
+    expect(storedRun()).toEqual({ monitorId: MONITOR_ID });
+  });
+
+  /*
+   * What WebsiteDownApi.loadWhoIsToldFacts answers when a count fails: it
+   * never throws, it gives counts it could not read as null.
+   */
+  const COUNTS_NOT_READ: Record<string, unknown> = {
+    policyCount: null,
+    incidentRuleCount: null,
+    alertRuleCount: null,
+    mayCreatePolicy: true,
+    mayAddEscalationRules: true,
+    mayAddRules: true,
+  };
+
+  test("counts the server could not give just before: no policy is made on a guess, the step says to try again, and trying again makes one", async () => {
+    await toWhoIsTold();
+    api["loadWhoIsToldFacts"]!.mockResolvedValueOnce(COUNTS_NOT_READ);
+    await press("guided-setup-who-continue");
+
+    expect(api["createPolicy"]).not.toHaveBeenCalled();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "That did not save. Check your connection and try again.",
+    );
+    expect(stepState("who_is_told")).toBe("open");
+    // The people picked stay, to save again; nothing claims a policy appeared.
+    expect(screen.getByTestId("guided-setup-people")).toBeInTheDocument();
+    expect(
+      screen.queryByTestId("guided-setup-policy-made-elsewhere"),
+    ).toBeNull();
+    expect(screen.getByTestId("guided-setup-who-continue")).toHaveTextContent(
+      WEBSITE_DOWN_COPY.whoSave,
+    );
+    expect(storedRun()).toEqual({ monitorId: MONITOR_ID });
+
+    // The counts read again: the policy is made, once.
+    await press("guided-setup-who-continue");
+
+    expect(api["createPolicy"]).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(storedRun()).toEqual({ monitorId: MONITOR_ID, policyId: POLICY_ID });
+    expect(stepState("who_is_told")).toBe("done");
+  });
+
+  test("permission to page taken away meanwhile: nothing is made, and the step says the person is emailed as the owner", async () => {
+    await toWhoIsTold();
+    api["loadWhoIsToldFacts"]!.mockResolvedValue({
+      policyCount: 0,
+      incidentRuleCount: 0,
+      alertRuleCount: 0,
+      mayCreatePolicy: false,
+      mayAddEscalationRules: false,
+      mayAddRules: false,
+    });
+    await press("guided-setup-who-continue");
+
+    expect(api["createPolicy"]).not.toHaveBeenCalled();
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.getByTestId("guided-setup-who-help")).toHaveTextContent(
+      WEBSITE_DOWN_COPY.whoOwnerOnlyHelp,
+    );
+    // No policy appeared, so none is said to have.
+    expect(
+      screen.queryByTestId("guided-setup-policy-made-elsewhere"),
+    ).toBeNull();
+    expect(stepState("who_is_told")).toBe("open");
+  });
+
+  test("a project that paged people when the page opened says nothing of a policy made meanwhile", async () => {
+    api["loadWhoIsToldFacts"]!.mockResolvedValue(PROJECT_PAGES_PEOPLE);
+    await toWhoIsTold();
+
+    expect(screen.getByTestId("guided-setup-who-help")).toHaveTextContent(
+      WEBSITE_DOWN_COPY.whoExistingHelp,
+    );
+    expect(
+      screen.queryByTestId("guided-setup-policy-made-elsewhere"),
+    ).toBeNull();
+
+    await press("guided-setup-who-continue");
+
+    expect(stepState("test")).toBe("open");
+    expect(
+      screen.queryByTestId("guided-setup-policy-made-elsewhere"),
+    ).toBeNull();
+  });
+
+  test("the note stays with the step for this page, and Check another address starts without it", async () => {
+    await toWhoIsTold();
+    api["loadWhoIsToldFacts"]!.mockResolvedValue(PROJECT_PAGES_PEOPLE);
+    await press("guided-setup-who-continue");
+    expect(
+      screen.getByTestId("guided-setup-policy-made-elsewhere"),
+    ).toBeInTheDocument();
+
+    // Done, then opened again to look: still why nothing was made.
+    await press("guided-setup-who-continue");
+    expect(stepState("who_is_told")).toBe("done");
+    await act(async () => {
+      fireEvent.click(screen.getByText(WEBSITE_DOWN_COPY.whoTitle));
+    });
+    expect(stepState("who_is_told")).toBe("open");
+    expect(
+      screen.getByTestId("guided-setup-policy-made-elsewhere"),
+    ).toBeInTheDocument();
+
+    // To the summary, then a new run for another address.
+    await press("guided-setup-who-continue");
+    await press("guided-setup-skip-test");
+    await press("guided-setup-start-over");
+
+    typeAddress("status.acme.example");
+    await startChecking();
+    await waitFor(() => {
+      expect(stepState("check")).toBe("open");
+      expect(
+        screen.getByTestId("guided-setup-first-check"),
+      ).toBeInTheDocument();
+    });
+    await press("guided-setup-check-continue");
+
+    expect(stepState("who_is_told")).toBe("open");
+    expect(screen.getByTestId("guided-setup-who-help")).toHaveTextContent(
+      WEBSITE_DOWN_COPY.whoExistingHelp,
+    );
+    expect(
+      screen.queryByTestId("guided-setup-policy-made-elsewhere"),
+    ).toBeNull();
   });
 });

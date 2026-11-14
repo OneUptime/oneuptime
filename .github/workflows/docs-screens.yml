@@ -1,0 +1,115 @@
+name: Docs Screenshots
+# Whether the docs' screenshots still show the pages they picture (#6823).
+# Every shot of packages/App/FeatureSet/Docs/Screens/DocsScreenList.ts is
+# drawn again from the offline fixtures, in every docs language, and its
+# words, outline and size are compared with the fingerprint kept when its
+# picture was drawn (packages/E2E/DocsScreens/README.md). One issue,
+# "Docs screenshots are out of date", lists the shots whose page changed;
+# it is rewritten on every run that finds one, and closed once every shot is
+# current again. `cd packages/E2E && npm run docs-screens` draws them again.
+#
+# Never on a pull request, and it never fails for a stale shot: the issue is
+# the report. Every night, when the shots or their list change on main, and
+# by hand.
+
+on:
+  schedule:
+    - cron: "23 4 * * *"
+  push:
+    branches: [main]
+    paths:
+      - "packages/App/FeatureSet/Docs/Screens/**"
+      - "packages/App/FeatureSet/Docs/Static/images/screens/**"
+      - "packages/E2E/DocsScreens/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One check at a time: a newer run of main replaces an older one.
+concurrency:
+  group: docs-screens
+  cancel-in-progress: true
+
+jobs:
+  # In the Playwright image, as the other browser jobs are
+  # (Tests/Ops/PlaywrightImage): the fixtures are drawn in the image's Chromium.
+  check:
+    name: Draw every docs screenshot again
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+      options: --user 1001 --ipc=host
+    defaults:
+      run:
+        shell: bash -e {0}
+    steps:
+      - uses: actions/checkout@v4
+      # The fixtures draw the Community Edition, as the offline suites do.
+      - name: Remove the Enterprise Edition (core runs without ee/)
+        run: rm -rf ee
+      - uses: ./.github/actions/runner-fonts
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: npm
+          cache-dependency-path: '**/package-lock.json'
+      # The fixtures bundle Dashboard sources with esbuild: no database or Docker stack.
+      - name: Install shared dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/Common
+      - name: Install Dashboard dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/App/FeatureSet/Dashboard
+      - name: Install browser test dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/E2E
+          # Skip the preinstall hook that downloads every browser: the
+          # image has them.
+          args: --ignore-scripts
+      # Nineteen shots in seventeen languages: about twenty minutes.
+      - name: Draw and compare every shot
+        working-directory: packages/E2E
+        timeout-minutes: 45
+        env:
+          DOCS_SCREENS_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: npm run docs-screens:check
+      - name: Keep what the check found
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: docs-screens-check
+          path: |
+            output/playwright/docs-screens/check.json
+            output/playwright/docs-screens/stale-issue.md
+            output/playwright/docs-screens/results
+            output/playwright/docs-screens/test-results
+          retention-days: 14
+
+  # On the runner, which has gh: the only job that may write, and only issues.
+  report:
+    name: Open, update or close the staleness issue
+    needs: check
+    if: ${{ github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: packages/E2E/DocsScreens
+      - uses: actions/download-artifact@v4
+        with:
+          name: docs-screens-check
+          path: output/playwright/docs-screens
+      - name: Keep the one issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: node packages/E2E/DocsScreens/ReportStale.js

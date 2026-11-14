@@ -92,6 +92,10 @@ import { setTestBillingEnabled } from "Common/Tests/Server/Enterprise/TestBillin
 import EnterpriseFeature, {
   ALL_ENTERPRISE_FEATURES,
 } from "Common/Server/Enterprise/EnterpriseFeature";
+import OnCallTimelineRows, {
+  StoredOnCallNotification,
+} from "Common/Tests/Server/TestingUtils/OnCallTimelineRows";
+import { STUCK_NOTIFICATION_STATUS_MESSAGE } from "Common/Server/Utils/OnCall/OnCallNotificationStatus";
 import crypto from "crypto";
 
 const CHANNEL_ID: ObjectID = new ObjectID(
@@ -136,9 +140,12 @@ let find: jest.SpiedFunction<
 >;
 let post: jest.SpiedFunction<typeof API.post>;
 let ssrf: jest.SpiedFunction<typeof SSRFProtection.validateWebhookTargetIsSafe>;
-let updateTimeline: jest.SpiedFunction<
-  typeof UserOnCallLogTimelineService.updateOneById
->;
+/*
+ * The notification's on-call log row: read with its version, and written
+ * only while it holds the status and the version read
+ * (OnCallNotificationStatus.recordSendResult).
+ */
+let timeline: OnCallTimelineRows;
 let sleep: jest.SpiedFunction<typeof SignedWebhookPost.sleep>;
 
 async function send(
@@ -167,13 +174,27 @@ function headersOf(index: number = 0): Record<string, string> {
   return request(index)["headers"] as Record<string, string>;
 }
 
-// What the sender wrote on the notification's on-call log row.
+// What the sender wrote on the notification's on-call log row, and how.
 function timelineWrites(): Array<Record<string, unknown>> {
-  return updateTimeline.mock.calls.map(
-    (call: Array<unknown>): Record<string, unknown> => {
-      return call[0] as Record<string, unknown>;
-    },
-  );
+  return jest
+    .mocked(UserOnCallLogTimelineService.updateOneBy)
+    .mock.calls.map((call: Array<unknown>): Record<string, unknown> => {
+      const write: Record<string, unknown> = call[0] as Record<string, unknown>;
+      const query: Record<string, unknown> = write["query"] as Record<
+        string,
+        unknown
+      >;
+
+      return {
+        id: new ObjectID(String(query["_id"])),
+        data: write["data"],
+        props: write["props"],
+      };
+    });
+}
+
+function row(): StoredOnCallNotification {
+  return timeline.get(TIMELINE_ID)!;
 }
 
 beforeEach(() => {
@@ -187,9 +208,11 @@ beforeEach(() => {
   ssrf = jest
     .spyOn(SSRFProtection, "validateWebhookTargetIsSafe")
     .mockResolvedValue(undefined as never);
-  updateTimeline = jest
-    .spyOn(UserOnCallLogTimelineService, "updateOneById")
-    .mockResolvedValue(undefined as never);
+  timeline = new OnCallTimelineRows();
+  timeline.add(TIMELINE_ID, UserNotificationStatus.Sending, {
+    statusMessage: "Sending to CorpoApp.",
+  });
+  timeline.standIn(UserOnCallLogTimelineService);
   sleep = jest.spyOn(SignedWebhookPost, "sleep").mockResolvedValue(undefined);
 });
 
@@ -312,7 +335,7 @@ describe("delivered", () => {
     });
 
     expect(result.ok).toBe(true);
-    expect(updateTimeline).not.toHaveBeenCalled();
+    expect(timeline.writes).toEqual([]);
   });
 
   test("a channel with no name is called the custom channel", async () => {
@@ -590,6 +613,124 @@ describe("nothing people read names the URL", () => {
   });
 });
 
+/*
+ * Issue #7082: the result is written over Sending only, at the version
+ * read. The company's app may show the page - and the person acknowledge or
+ * escalate it from there, or from another of its messages - before the
+ * channel's service has answered the request; that answer stays theirs.
+ */
+describe("written over Sending only", () => {
+  test("written at the status and the version read, as root", async () => {
+    await send();
+
+    expect(
+      jest.mocked(UserOnCallLogTimelineService.updateOneBy).mock.calls[0]![0],
+    ).toEqual({
+      query: {
+        _id: TIMELINE_ID.toString(),
+        status: UserNotificationStatus.Sending,
+        version: 1,
+      },
+      data: {
+        status: UserNotificationStatus.Sent,
+        statusMessage: "Sent to CorpoApp (HTTP 200).",
+      },
+      props: { isRoot: true },
+    });
+    expect(row()).toMatchObject({
+      status: UserNotificationStatus.Sent,
+      statusMessage: "Sent to CorpoApp (HTTP 200).",
+      version: 2,
+    });
+  });
+
+  test.each([
+    [UserNotificationStatus.Acknowledged, "Notification Acknowledged"],
+    [UserNotificationStatus.PassedOn, "Escalated from this notification."],
+    [UserNotificationStatus.Skipped, "Skipped."],
+  ])(
+    "a page already %s - from the app, or another of its messages - stays: the result is not written over it",
+    async (status: UserNotificationStatus, statusMessage: string) => {
+      row().status = status;
+      row().statusMessage = statusMessage;
+
+      const result: CustomChannelDeliveryResult = await send();
+
+      // The answer to whoever sent it is the same.
+      expect(result).toEqual({
+        ok: true,
+        statusCode: 200,
+        message: "Sent to CorpoApp (HTTP 200).",
+      });
+      expect(row()).toMatchObject({
+        status: status,
+        statusMessage: statusMessage,
+        version: 1,
+      });
+      expect(timeline.writes).toEqual([]);
+    },
+  );
+
+  test("an undelivered page acknowledged meanwhile stays acknowledged: Error is not written over the answer", async () => {
+    row().status = UserNotificationStatus.Acknowledged;
+    row().statusMessage = "Notification Acknowledged";
+    post.mockResolvedValue(refused(400) as never);
+
+    const result: CustomChannelDeliveryResult = await send();
+
+    expect(result.ok).toBe(false);
+    expect(row()).toMatchObject({
+      status: UserNotificationStatus.Acknowledged,
+      statusMessage: "Notification Acknowledged",
+    });
+  });
+
+  test("an acknowledgement landing between the read and the write stays: read again, and left", async () => {
+    timeline.whenRead((stored: StoredOnCallNotification) => {
+      stored.status = UserNotificationStatus.Acknowledged;
+      stored.statusMessage = "Notification Acknowledged";
+    });
+
+    await send();
+
+    expect(row()).toMatchObject({
+      status: UserNotificationStatus.Acknowledged,
+      statusMessage: "Notification Acknowledged",
+    });
+    expect(timeline.writes).toEqual([]);
+    expect(UserOnCallLogTimelineService.findOneById).toHaveBeenCalledTimes(2);
+  });
+
+  test("the stuck check's verdict is replaced: the result came late, and says how it went", async () => {
+    row().status = UserNotificationStatus.Error;
+    row().statusMessage = STUCK_NOTIFICATION_STATUS_MESSAGE;
+
+    await send();
+
+    expect(row()).toMatchObject({
+      status: UserNotificationStatus.Sent,
+      statusMessage: "Sent to CorpoApp (HTTP 200).",
+    });
+  });
+
+  test("an Error written already - not the stuck check's - stays", async () => {
+    row().status = UserNotificationStatus.Error;
+    row().statusMessage = "Not sent: this project is blocked.";
+
+    await send();
+
+    expect(row().statusMessage).toBe("Not sent: this project is blocked.");
+    expect(timeline.writes).toEqual([]);
+  });
+
+  test("a row that is gone: nothing is written, and the answer is the same", async () => {
+    timeline.rows.clear();
+
+    await expect(send()).resolves.toMatchObject({ ok: true });
+    expect(UserOnCallLogTimelineService.updateOneBy).not.toHaveBeenCalled();
+  });
+});
+
 describe("asked again whether custom channels are active", () => {
   test("on the Community Edition nothing is read, checked or sent, and the log row says why", async () => {
     uninstallEnterpriseModule();
@@ -650,7 +791,7 @@ describe("asked again whether custom channels are active", () => {
 
     expect(result.message).toBe(CUSTOM_CHANNEL_NOT_ACTIVE_MESSAGE);
     expect(post).not.toHaveBeenCalled();
-    expect(updateTimeline).not.toHaveBeenCalled();
+    expect(timeline.writes).toEqual([]);
   });
 
   test("a license that names custom channels alone is enough", async () => {

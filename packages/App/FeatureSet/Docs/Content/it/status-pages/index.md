@@ -2,6 +2,9 @@
 
 Una pagina di stato è il volto pubblico di tutto ciò che monitorate: un unico URL che i vostri clienti possono aprire invece di scrivervi per chiedere se il problema è solo loro. Mostra lo stato attuale dei servizi che scegliete di esporre, gli incidenti su cui state lavorando, la manutenzione che avete pianificato e qualsiasi annuncio vogliate fissare in cima. Per scegliere tra una pagina di stato e una dashboard, consultate [Quale usare?](/docs/introduction/which-one#dashboard-dashboard-pubblica-o-pagina-di-stato).
 
+> [!TIP]
+> Prima volta qui? Inizia dalla guida: [Pubblicare una pagina di stato](/docs/guides/status-page).
+
 Quando qualcosa si rompe alle 2 di notte, la pagina di stato è la prima cosa a cui rimanda la vostra coda di supporto. È anche da lì che vengono notificati i vostri iscritti, quindi conviene configurarla prima di averne bisogno, non nel mezzo del disservizio.
 
 :::cards
@@ -122,7 +125,7 @@ La pagina pubblica è un'applicazione a sé, con un piccolo insieme di percorsi:
 - `/rss`: il feed.
 - `/login`, `/sso`, `/magic-link`, `/magic-link-login/:token` e `/master-password`: rilevanti solo su una pagina privata.
 
-La barra di navigazione in alto mostra sempre **Panoramica**; il resto compare solo quando è attivo. **Incidenti**, **Annunci** ed **Eventi pianificati** hanno bisogno ciascuno del proprio interruttore; **Iscriviti** ha bisogno sia di **Mostra pagina iscritti** sia di almeno un canale di iscrizione attivo. Una pagina privata ha anche una voce **Esci**.
+La barra di navigazione in alto mostra sempre **Panoramica**; il resto compare solo quando è attivo. **Incidenti**, **Annunci** ed **Manutenzione programmata** hanno bisogno ciascuno del proprio interruttore; **Iscriviti** ha bisogno sia di **Mostra pagina iscritti** sia di almeno un canale di iscrizione attivo. Una pagina privata ha anche una voce **Esci**.
 
 Un singolo incidente, episodio, annuncio o evento pianificato si apre solo se la pagina lo elencherebbe, qualunque sia la sua finestra di cronologia: un incidente o un episodio privato, uno nascosto dalle pagine di stato, un evento pianificato nascosto dalle pagine di stato o un annuncio programmato per più avanti non si trova nemmeno tramite il suo link.
 
@@ -135,7 +138,7 @@ La panoramica è la pagina che vede la maggior parte dei visitatori. Dall'alto i
 3. **Una percentuale di uptime complessiva**, se l'avete attivata: alla fine del banner dello stato generale, finché tutte le risorse sono operative. Disattivata per impostazione predefinita.
 4. **I gruppi di risorse**, ciascuno con le sue risorse, il loro stato attuale e le barre della cronologia di uptime.
 5. **Incidenti attivi**, con gli episodi attivi.
-6. **Eventi di manutenzione pianificata**.
+6. **Manutenzione programmata**.
 
 Una pagina appena creata senza contenuti mostra uno stato vuoto che vi invita ad aggiungere risorse dalla dashboard, il segnale per andare alla schermata **Risorse**.
 
@@ -151,7 +154,7 @@ Ciò che vedono i visitatori si imposta in un'unica scheda: **Cosa mostra la tua
 - **Mostra solo gli incidenti limitati a questa pagina** (`onlyShowScopedIncidents`): anch'esso nella riga degli incidenti, disattivato per impostazione predefinita. Attivatelo e la pagina mostra, e notifica ai suoi iscritti, solo gli incidenti limitati a essa con **Limita a queste pagine di stato**. Gli incidenti non limitati ad alcuna pagina, compresi quelli che aprono da soli un monitor, Slack, Microsoft Teams, l'API o l'IA, non vi arrivano mai finché qualcuno non aggiunge loro la pagina. Decide anche quali incidenti portano i loro episodi sulla pagina, per questo resta disponibile quando **Mostra incidenti** è disattivato. Per pagine che condividono monitor ma servono pubblici diversi, vedete [Una pagina di stato per pubblico](/docs/status-pages/one-status-page-per-audience).
 - **Mostra episodi** (`showEpisodesOnStatusPage`): attivo per impostazione predefinita, con **Mostra … giorni di cronologia** (`showEpisodeHistoryInDays`, 14 per impostazione predefinita) e **Mostra etichette degli episodi** (`showEpisodeLabelsOnStatusPage`, disattivato per impostazione predefinita). Gli episodi sono un modello a sé con i propri endpoint, non una vista degli incidenti.
 - **Mostra annunci** (`showAnnouncementsOnStatusPage`): attivo per impostazione predefinita, con **Mostra … giorni di cronologia** (`showAnnouncementHistoryInDays`, 14 per impostazione predefinita).
-- **Mostra eventi di manutenzione programmata** (`showScheduledMaintenanceEventsOnStatusPage`): attivo per impostazione predefinita, con **Mostra … giorni di cronologia** (`showScheduledEventHistoryInDays`, 14 per impostazione predefinita) e **Mostra etichette degli eventi** (`showScheduledEventLabelsOnStatusPage`, disattivato per impostazione predefinita).
+- **Mostra eventi di manutenzione** (`showScheduledMaintenanceEventsOnStatusPage`): attivo per impostazione predefinita, con **Mostra … giorni di cronologia** (`showScheduledEventHistoryInDays`, 14 per impostazione predefinita) e **Mostra le etichette degli eventi di manutenzione** (`showScheduledEventLabelsOnStatusPage`, disattivato per impostazione predefinita).
 - **Cronologia uptime**: tutto ciò che riguarda l'uptime della pagina, in una riga:
   - **Mostra … giorni di cronologia** (`showUptimeHistoryInDays`) è la lunghezza della barra di uptime accanto a ogni risorsa. È 90 per impostazione predefinita e deve essere tra 1 e 90. Tutte le opzioni **Mostra % di uptime** e **Mostra grafico cronologia stato** di una risorsa o di un gruppo leggono questo numero, come la percentuale di uptime complessiva.
   - **Mostra percentuale di uptime complessiva** (`showOverallUptimePercentOnStatusPage`): disattivato per impostazione predefinita. Attivatelo e il banner dello stato generale termina con una percentuale di uptime per l'intera pagina, la media delle sue risorse e dei suoi gruppi, finché tutto è operativo. Mentre è attivo, **Precisione** (`overallUptimePercentPrecision`) sceglie quanti decimali mostra: `99%`, `99.9%`, `99.99%` (il predefinito) o `99.999%`. Ogni risorsa e ogni gruppo ha la propria precisione.
@@ -165,7 +168,7 @@ Ciò che vedono i visitatori si imposta in un'unica scheda: **Cosa mostra la tua
 
 Se la pagina mostra una voce **Iscriviti** (**Mostra pagina iscritti**, `showSubscriberPageOnStatusPage`, attivo per impostazione predefinita) e su quali canali i visitatori possono iscriversi non si imposta in questa schermata: entrambe le cose sono nella scheda **Canali** di **Iscritti → Impostazioni iscritti** (vedete [Canali di iscrizione](/docs/status-pages/subscribers#canali-di-iscrizione)).
 
-Sotto la scheda ci sono **Esporta come JSON: Pagina di stato**, che scarica le impostazioni proprie della pagina di stato in un file che potete importare di nuovo, e **Archive status page** (vedete [Archiviare una pagina di stato](#archiviare-una-pagina-di-stato)). La percentuale di uptime complessiva e gli stati di inattività erano prima due schede a sé qui, ciascuna dietro un pulsante **Modifica**; ora sono righe della scheda.
+Sotto la scheda ci sono **Esporta come JSON: Pagina di stato**, che scarica le impostazioni proprie della pagina di stato in un file che potete importare di nuovo, e **Archivia: pagina di stato** (vedete [Archiviare una pagina di stato](#archiviare-una-pagina-di-stato)). La percentuale di uptime complessiva e gli stati di inattività erano prima due schede a sé qui, ciascuna dietro un pulsante **Modifica**; ora sono righe della scheda.
 
 **Dove sono i colori.** I colori delle barre di uptime non sono qui: il **Colore predefinito della barra** e le regole di colore delle barre si trovano in **Altre impostazioni** in **Pagine di stato → la vostra pagina → Branding → Branding**. Il **Tema** della pagina (chiaro, scuro o come è impostato il dispositivo di ogni visitatore) è una scheda in alto nella stessa pagina. Non esiste alcuna impostazione di colore del marchio; tutto ciò che va oltre quei controlli si fa con il **CSS personalizzato**.
 
@@ -225,7 +228,7 @@ Tre modi per mostrare lo stato altrove rispetto alla pagina stessa.
 
 **Feed RSS.** Ogni pagina di stato serve `/rss`: un feed intitolato "{titolo della pagina} Updates", con il **Titolo della pagina** impostato in **Branding**, o il suo nome se non ne ha uno, e le cui voci iniziano con `Incident: `, `Announcement: ` e `Scheduled Maintenance: `. Ogni voce è datata come la data la pagina: un incidente da quando è stato dichiarato, un annuncio da quando è stato pubblicato, e un evento di manutenzione pianificata da quando inizia, con la descrizione che si apre sulla sua finestra. Utile per chi preferisce portare i vostri aggiornamenti in un lettore o in un chatbot invece di iscriversi via email.
 
-**Calendario della manutenzione.** Ogni pagina di stato serve anche `/maintenance.ics`: la manutenzione programmata che mostra, come un calendario a cui Google Calendar, Calendario Apple o Outlook possono iscriversi. I visitatori lo aggiungono con **Iscriviti al calendario** nella pagina **Eventi pianificati**, e un singolo evento con **Aggiungi al calendario** nella pagina dell'evento stesso. Il calendario di una pagina privata è vuoto, perché un'app di calendario non può accedere. Vedete [Calendario della manutenzione](/docs/scheduled-maintenance/calendar#il-calendario-di-una-pagina-di-stato).
+**Calendario della manutenzione.** Ogni pagina di stato serve anche `/maintenance.ics`: la manutenzione programmata che mostra, come un calendario a cui Google Calendar, Calendario Apple o Outlook possono iscriversi. I visitatori lo aggiungono con **Iscriviti al calendario** nella pagina **Manutenzione programmata**, e un singolo evento con **Aggiungi al calendario** nella pagina dell'evento stesso. Il calendario di una pagina privata è vuoto, perché un'app di calendario non può accedere. Vedete [Calendario della manutenzione](/docs/scheduled-maintenance/calendar#il-calendario-di-una-pagina-di-stato).
 
 Se preferite recuperare i dati voi stessi, la pagina di stato si basa su endpoint pubblici di lettura per la panoramica, gli incidenti, gli eventi di manutenzione programmata, gli annunci e gli episodi: vedete [API pubblica](/docs/status-pages/public-api).
 
@@ -238,7 +241,7 @@ Archiviate una pagina di stato per metterla offline senza eliminarla. Una pagina
 - **Esce dall'elenco delle pagine di stato.** La trovate in **Pagine di stato → Avanzato → Archiviato**.
 - **Conserva tutto.** Le sue risorse, i gruppi, il branding, i domini, gli utenti privati e gli iscritti vengono conservati, quindi annullare l'archiviazione rimette la pagina online esattamente com'era.
 
-Per archiviare una pagina di stato, apritela e andate in **Avanzato → Impostazioni avanzate → Archive status page**. Per archiviarne diverse, selezionatele nell'elenco **Pagine di stato** e scegliete **Archivia**. Per recuperarne una, aprite **Pagine di stato → Avanzato → Archiviato**, selezionatela e scegliete **Annulla archiviazione**, oppure apritela e fate clic su **Annulla archiviazione** nel banner in cima alle sue pagine.
+Per archiviare una pagina di stato, apritela e andate in **Avanzato → Impostazioni avanzate → Archivia: pagina di stato**. Per archiviarne diverse, selezionatele nell'elenco **Pagine di stato** e scegliete **Archivia**. Per recuperarne una, aprite **Pagine di stato → Avanzato → Archiviato**, selezionatela e scegliete **Annulla archiviazione**, oppure apritela e fate clic su **Annulla archiviazione** nel banner in cima alle sue pagine.
 
 ## Prossimi passi
 

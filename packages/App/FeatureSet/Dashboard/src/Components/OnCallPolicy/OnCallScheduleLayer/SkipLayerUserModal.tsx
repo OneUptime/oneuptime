@@ -244,7 +244,7 @@ const SkipLayerUserModal: FunctionComponent<ComponentProps> = (
    * policies ticked below.
    */
   let description: string = translationKey(
-    "This applies to every on-call policy. To end it early, delete it under On-Call Duty > Advanced > User Overrides.",
+    "This applies to every on-call policy. To end it early, delete it under On-Call > Advanced > User Overrides.",
   );
 
   if (policies.length === 1) {

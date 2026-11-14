@@ -279,6 +279,76 @@ describe("Profiling", () => {
 
       expect(initConfig().authToken).toBeUndefined();
     });
+
+    /*
+     * The headers used to be split at every '=', so a token ending in '='
+     * reached the profiler cut short at its first '=' and every profile was
+     * refused. It is read as the exporters read it now: up to the first '='
+     * is the name, the rest is the value.
+     */
+    test("keeps a token that ends in '=' whole", () => {
+      process.env[OTLP_ENDPOINT] = "https://collector.example.com/otlp";
+      process.env[OTLP_HEADERS] = "x-oneuptime-token=c2VjcmV0LXRva2Vu==";
+
+      Profiling.init({ serviceName: "app" });
+
+      expect(initConfig().authToken).toBe("c2VjcmV0LXRva2Vu==");
+    });
+
+    test("finds the token after a header whose value holds '='", () => {
+      process.env[OTLP_ENDPOINT] = "https://collector.example.com/otlp";
+      process.env[OTLP_HEADERS] =
+        "Authorization=Basic dXNlcjpwYXNzd29yZA==;x-oneuptime-token=secret-token";
+
+      Profiling.init({ serviceName: "app" });
+
+      expect(initConfig().authToken).toBe("secret-token");
+    });
+
+    test("trims spaces around the token's name and value, as the exporters do", () => {
+      process.env[OTLP_ENDPOINT] = "https://collector.example.com/otlp";
+      process.env[OTLP_HEADERS] =
+        " x-other=1 ;  x-oneuptime-token = secret-token ";
+
+      Profiling.init({ serviceName: "app" });
+
+      expect(initConfig().authToken).toBe("secret-token");
+    });
+
+    test("reads the token's name in any case, as a header name is", () => {
+      process.env[OTLP_ENDPOINT] = "https://collector.example.com/otlp";
+      process.env[OTLP_HEADERS] = "X-OneUptime-Token=secret-token";
+
+      Profiling.init({ serviceName: "app" });
+
+      expect(initConfig().authToken).toBe("secret-token");
+    });
+
+    test("does not take a token from a header that merely ends in the token's name", () => {
+      process.env[OTLP_ENDPOINT] = "https://collector.example.com/otlp";
+      process.env[OTLP_HEADERS] = "not-x-oneuptime-token=secret-token";
+
+      Profiling.init({ serviceName: "app" });
+
+      expect(initConfig().authToken).toBeUndefined();
+    });
+
+    test("ignores a part it cannot read, and does not warn about it itself", () => {
+      process.env[OTLP_ENDPOINT] = "https://collector.example.com/otlp";
+      process.env[OTLP_HEADERS] = "broken;x-oneuptime-token=secret-token";
+
+      Profiling.init({ serviceName: "app" });
+
+      expect(initConfig().authToken).toBe("secret-token");
+
+      // Telemetry.init reports the setting; the profiler stays quiet about it.
+      for (const call of [
+        ...loggerWarnMock.mock.calls,
+        ...loggerErrorMock.mock.calls,
+      ]) {
+        expect(String(call[0])).not.toContain(OTLP_HEADERS);
+      }
+    });
   });
 
   describe("a successful start", () => {

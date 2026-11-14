@@ -2,6 +2,9 @@
 
 Une page de statut est la vitrine publique de tout ce que vous surveillez : une URL unique que vos clients peuvent ouvrir au lieu de vous écrire pour demander si le problème vient d'eux. Elle montre l'état actuel des services que vous choisissez d'exposer, les incidents sur lesquels vous travaillez, la maintenance que vous avez prévue et toute annonce que vous souhaitez épingler en haut. Pour choisir entre une page de statut et un tableau de bord, consultez [Lequel choisir ?](/docs/introduction/which-one#tableau-de-bord-tableau-de-bord-public-ou-page-de-statut).
 
+> [!TIP]
+> Vous débutez ? Suivez d'abord le guide : [Publier une page de statut](/docs/guides/status-page).
+
 Quand quelque chose casse à 2 h du matin, la page de statut est la première chose vers laquelle votre file de support renvoie. C'est aussi d'elle que partent les notifications à vos abonnés — elle vaut donc d'être mise en place avant d'en avoir besoin, pas pendant la panne.
 
 :::cards
@@ -122,7 +125,7 @@ La page publique est une application à part, avec un petit ensemble de routes :
 - `/rss` — le flux.
 - `/login`, `/sso`, `/magic-link`, `/magic-link-login/:token` et `/master-password` — utiles uniquement sur une page privée.
 
-La barre de navigation du haut affiche toujours **Aperçu** ; le reste n'apparaît que s'il est activé. **Incidents**, **Annonces** et **Événements planifiés** ont chacun besoin de leur interrupteur ; **S'abonner** a besoin à la fois de **Afficher la page des abonnés** et d'au moins un canal d'abonnement activé. Une page privée reçoit aussi un élément **Se déconnecter**.
+La barre de navigation du haut affiche toujours **Aperçu** ; le reste n'apparaît que s'il est activé. **Incidents**, **Annonces** et **Maintenance planifiée** ont chacun besoin de leur interrupteur ; **S'abonner** a besoin à la fois de **Afficher la page des abonnés** et d'au moins un canal d'abonnement activé. Une page privée reçoit aussi un élément **Se déconnecter**.
 
 Un incident, un épisode, une annonce ou un événement planifié ne s'ouvre seul que si la page le listerait, quelle que soit sa fenêtre d'historique : un incident ou un épisode privé, un élément masqué des pages de statut, un événement planifié masqué des pages de statut ou une annonce programmée pour plus tard n'est pas trouvé non plus par son lien.
 
@@ -135,7 +138,7 @@ La vue d'ensemble est la page que la plupart des visiteurs voient. De haut en ba
 3. **Un pourcentage de disponibilité global**, si vous l'avez activé : à la fin du bandeau d'état global, tant que toutes les ressources sont opérationnelles. Désactivé par défaut.
 4. **Les groupes de ressources**, chacun avec ses ressources, leur état actuel et leurs barres d'historique de disponibilité.
 5. **Incidents actifs**, avec les épisodes actifs.
-6. **Événements de maintenance planifiée**.
+6. **Maintenance planifiée**.
 
 Une page toute neuve sans contenu affiche un état vide qui vous invite à ajouter des ressources depuis le tableau de bord — le signal pour vous rendre sur l'écran **Ressources**.
 
@@ -151,7 +154,7 @@ Ce que voient les visiteurs se règle dans une seule carte : **Ce que montre vot
 - **Afficher uniquement les incidents limités à cette page** (`onlyShowScopedIncidents`) — également dans la ligne des incidents, désactivé par défaut. Activez-le et la page n'affiche, et ne notifie à ses abonnés, que les incidents qui lui sont limités avec **Limiter à ces pages de statut**. Les incidents qui ne sont limités à aucune page, y compris ceux qu'un moniteur, Slack, Microsoft Teams, l'API ou l'IA ouvre de lui-même, ne l'atteignent jamais tant que quelqu'un n'y ajoute pas la page. Il décide aussi quels incidents amènent leurs épisodes sur la page, c'est pourquoi il reste quand **Afficher les incidents** est désactivé. Pour des pages qui partagent des moniteurs mais servent des publics différents, voir [Une page de statut par public](/docs/status-pages/one-status-page-per-audience).
 - **Afficher les épisodes** (`showEpisodesOnStatusPage`) — activé par défaut, avec **Afficher … jours d'historique** (`showEpisodeHistoryInDays`, 14 par défaut) et **Afficher les étiquettes d'épisode** (`showEpisodeLabelsOnStatusPage`, désactivé par défaut). Les épisodes sont un modèle à part avec leurs propres points de terminaison, pas une vue des incidents.
 - **Afficher les annonces** (`showAnnouncementsOnStatusPage`) — activé par défaut, avec **Afficher … jours d'historique** (`showAnnouncementHistoryInDays`, 14 par défaut).
-- **Afficher les événements de maintenance planifiée** (`showScheduledMaintenanceEventsOnStatusPage`) — activé par défaut, avec **Afficher … jours d'historique** (`showScheduledEventHistoryInDays`, 14 par défaut) et **Afficher les étiquettes d'événement** (`showScheduledEventLabelsOnStatusPage`, désactivé par défaut).
+- **Afficher les événements de maintenance** (`showScheduledMaintenanceEventsOnStatusPage`) — activé par défaut, avec **Afficher … jours d'historique** (`showScheduledEventHistoryInDays`, 14 par défaut) et **Afficher les étiquettes des événements de maintenance** (`showScheduledEventLabelsOnStatusPage`, désactivé par défaut).
 - **Historique de disponibilité** — tout ce qui concerne la disponibilité de la page, en une ligne :
   - **Afficher … jours d'historique** (`showUptimeHistoryInDays`) est la longueur de la barre de disponibilité à côté de chaque ressource. 90 par défaut, et la valeur doit être comprise entre 1 et 90. Chaque option **Afficher le % de disponibilité** et **Afficher le graphique de l'historique des états** d'une ressource ou d'un groupe lit ce nombre, tout comme le pourcentage de disponibilité global.
   - **Afficher le pourcentage de disponibilité global** (`showOverallUptimePercentOnStatusPage`) — désactivé par défaut. Activez-le et le bandeau d'état global se termine par un pourcentage de disponibilité pour toute la page, la moyenne de ses ressources et groupes, tant que tout est opérationnel. Tant qu'il est activé, **Précision** (`overallUptimePercentPrecision`) choisit combien de décimales il affiche : `99%`, `99.9%`, `99.99%` (la valeur par défaut) ou `99.999%`. Chaque ressource et chaque groupe a sa propre précision.
@@ -165,7 +168,7 @@ Ce que voient les visiteurs se règle dans une seule carte : **Ce que montre vot
 
 Le fait que la page affiche un élément **S'abonner** (**Afficher la page des abonnés**, `showSubscriberPageOnStatusPage`, activé par défaut), et les canaux par lesquels les visiteurs peuvent s'abonner, ne se règlent pas sur cet écran : les deux se trouvent dans la carte **Canaux** de **Abonnés → Paramètres des abonnés** (voir [Canaux d'abonnement](/docs/status-pages/subscribers#canaux-dabonnement)).
 
-Sous la carte se trouvent **Exporter au format JSON : Page de statut**, qui télécharge les paramètres propres de la page de statut dans un fichier que vous pouvez réimporter, et **Archive status page** (voir [Archiver une page de statut](#archiver-une-page-de-statut)). Le pourcentage de disponibilité global et les statuts d'indisponibilité étaient autrefois deux cartes à part ici, chacune derrière un bouton **Modifier** ; ce sont désormais des lignes de la carte.
+Sous la carte se trouvent **Exporter au format JSON : Page de statut**, qui télécharge les paramètres propres de la page de statut dans un fichier que vous pouvez réimporter, et **Archiver : page de statut** (voir [Archiver une page de statut](#archiver-une-page-de-statut)). Le pourcentage de disponibilité global et les statuts d'indisponibilité étaient autrefois deux cartes à part ici, chacune derrière un bouton **Modifier** ; ce sont désormais des lignes de la carte.
 
 **Où sont les couleurs.** Les couleurs des barres de disponibilité ne sont pas ici — la **Couleur de barre par défaut** et les règles de couleur des barres se trouvent sous **Plus de paramètres** sur **Pages de statut → votre page → Image de marque → Image de marque**. Le **Thème** de la page (clair, sombre, ou selon le réglage de l'appareil de chaque visiteur) est une carte en haut de cette même page. Il n'y a de réglage de couleur de marque nulle part ; tout ce qui va au-delà de ces contrôles se fait avec **CSS personnalisé**.
 
@@ -225,7 +228,7 @@ Trois façons d'afficher le statut ailleurs que sur la page elle-même.
 
 **Flux RSS.** Chaque page de statut sert `/rss` — un flux intitulé « {titre de la page} Updates », avec le **Titre de la page** défini dans **Image de marque**, ou son nom si elle n'en a pas, et dont les éléments commencent par `Incident: `, `Announcement: ` et `Scheduled Maintenance: `. Chaque élément est daté comme la page le date : un incident selon le moment où il a été déclaré, une annonce selon le moment où elle a été publiée, et un événement de maintenance planifiée selon le moment où il commence, sa description s'ouvrant sur sa fenêtre. Pratique pour ceux qui préfèrent faire passer vos mises à jour par un lecteur ou un chatbot plutôt que s'abonner par e-mail.
 
-**Calendrier de maintenance.** Chaque page de statut sert aussi `/maintenance.ics` : la maintenance planifiée qu'elle affiche, sous forme d'un calendrier auquel Google Agenda, Apple Calendrier ou Outlook peuvent s'abonner. Les visiteurs l'ajoutent avec **S'abonner au calendrier** sur la page **Événements planifiés**, et un seul événement avec **Ajouter au calendrier** sur la page de cet événement. Le calendrier d'une page privée est vide, car une application de calendrier ne peut pas se connecter. Voir [Calendrier de maintenance](/docs/scheduled-maintenance/calendar#le-calendrier-dune-page-de-statut).
+**Calendrier de maintenance.** Chaque page de statut sert aussi `/maintenance.ics` : la maintenance planifiée qu'elle affiche, sous forme d'un calendrier auquel Google Agenda, Apple Calendrier ou Outlook peuvent s'abonner. Les visiteurs l'ajoutent avec **S'abonner au calendrier** sur la page **Maintenance planifiée**, et un seul événement avec **Ajouter au calendrier** sur la page de cet événement. Le calendrier d'une page privée est vide, car une application de calendrier ne peut pas se connecter. Voir [Calendrier de maintenance](/docs/scheduled-maintenance/calendar#le-calendrier-dune-page-de-statut).
 
 Si vous préférez récupérer les données vous-même, la page de statut s'appuie sur des points de terminaison publics en lecture pour la vue d'ensemble, les incidents, les événements de maintenance planifiée, les annonces et les épisodes — voir [API publique](/docs/status-pages/public-api).
 
@@ -238,7 +241,7 @@ Archivez une page de statut pour la mettre hors ligne sans la supprimer. Une pag
 - **Quitte la liste des pages de statut.** Vous la retrouvez sous **Pages de statut → Avancé → Archivé**.
 - **Garde tout.** Ses ressources, groupes, image de marque, domaines, utilisateurs privés et abonnés sont conservés, si bien que la désarchiver remet la page en ligne exactement comme elle était.
 
-Pour archiver une page de statut, ouvrez-la et allez dans **Avancé → Paramètres avancés → Archive status page**. Pour en archiver plusieurs, sélectionnez-les dans la liste **Pages de statut** et choisissez **Archiver**. Pour en récupérer une, ouvrez **Pages de statut → Avancé → Archivé**, sélectionnez-la et choisissez **Désarchiver**, ou ouvrez-la et cliquez sur **Désarchiver** dans le bandeau en haut de ses pages.
+Pour archiver une page de statut, ouvrez-la et allez dans **Avancé → Paramètres avancés → Archiver : page de statut**. Pour en archiver plusieurs, sélectionnez-les dans la liste **Pages de statut** et choisissez **Archiver**. Pour en récupérer une, ouvrez **Pages de statut → Avancé → Archivé**, sélectionnez-la et choisissez **Désarchiver**, ou ouvrez-la et cliquez sur **Désarchiver** dans le bandeau en haut de ses pages.
 
 ## Étapes suivantes
 

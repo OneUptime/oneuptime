@@ -19,6 +19,12 @@ import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import PositiveNumber from "../../../../Types/PositiveNumber";
 import { afterEach, describe, expect, test } from "@jest/globals";
+import {
+  AIActionCardWords,
+  describeAIActionCardWords,
+} from "../../../../Types/AI/AIActionWords";
+import { dashboardTranslator } from "../../../Helpers/DashboardLocales";
+import { expectReadCardWorded } from "../../../Helpers/ReadCardWords";
 
 /*
  * query_status_pages / query_status_page_announcements close the gap where
@@ -387,5 +393,82 @@ describe("status page tools — permissions", () => {
     expect(
       QueryStatusPageAnnouncementsTool.requiredPermissions.length,
     ).toBeGreaterThan(0);
+  });
+});
+
+/*
+ * Issue #7175: a status page's card said "Visibility", "Public" and
+ * "Resources shown" in English on a German page. Its words are OneUptime's
+ * own now; the names the page shows its resources by, the monitors behind
+ * them and its URL are data.
+ */
+describe("query_status_pages — the card, in the reader's language", () => {
+  async function pageCardWords(
+    statusPage: StatusPage,
+  ): Promise<AIActionCardWords> {
+    jest
+      .spyOn(StatusPageService, "findOneById")
+      .mockResolvedValue(statusPage as never);
+    jest
+      .spyOn(StatusPageResourceService, "findBy")
+      .mockResolvedValue([
+        buildResource("Checkout", "checkout-api"),
+        buildResource("CDN"),
+      ] as never);
+    jest
+      .spyOn(StatusPageSubscriberService, "countBy")
+      .mockResolvedValue(new PositiveNumber(1234) as never);
+    jest
+      .spyOn(StatusPageService, "getStatusPageURL")
+      .mockResolvedValue("https://status.acme.dev" as never);
+
+    const result: ToolExecutionResult = await QueryStatusPagesTool.execute(
+      { statusPageId: PAGE_ID.toString() },
+      ctx,
+    );
+
+    expect(result.widget!.data["heading"]).toBe(statusPage.name);
+
+    return expectReadCardWorded(result.widget);
+  }
+
+  test("its English: visibility, URL, the resources it shows by name, its subscribers", async () => {
+    const words: AIActionCardWords = await pageCardWords(buildStatusPage());
+
+    expect(describeAIActionCardWords(words)).toEqual({
+      kind: "Status page",
+      line: "Customer-facing status page.",
+      facts: [
+        { label: "Visibility", value: "Public" },
+        { label: "Public URL", value: "https://status.acme.dev" },
+        {
+          label: "Resources shown",
+          value: "2: Checkout (monitor: checkout-api), CDN",
+        },
+        { label: "Active subscribers", value: "1234" },
+      ],
+    });
+  });
+
+  test("in German: German words and figures; the names, the monitors and the URL as written", async () => {
+    const words: AIActionCardWords = await pageCardWords(
+      buildStatusPage({ isPublic: false }),
+    );
+
+    expect(describeAIActionCardWords(words, dashboardTranslator("de"))).toEqual(
+      {
+        kind: "Statusseite",
+        line: "Customer-facing status page.",
+        facts: [
+          { label: "Sichtbarkeit", value: "Privat" },
+          { label: "Öffentliche URL", value: "https://status.acme.dev" },
+          {
+            label: "Angezeigte Ressourcen",
+            value: "2: Checkout (Monitor: checkout-api), CDN",
+          },
+          { label: "Aktive Abonnenten", value: "1.234" },
+        ],
+      },
+    );
   });
 });

@@ -82,7 +82,7 @@ Adding, editing or deleting a tier applies right away: OneUptime evaluates the S
 | **Reliability first** | 25% left or less | Reliability comes first. Only reliability improvements and critical fixes ship until the budget recovers. | Allowed |
 | **Budget exhausted** | 0% left or less | The error budget is spent. Freeze non-critical releases: only fixes for this SLO's reliability and security fixes ship until the budget is back. | Frozen |
 
-None of them raises an alert or declares an incident until you switch that on. **Budget exhausted** freezes deployments, as its agreement says, and the confirmation marks it so: see [Deployment gate](#deployment-gate). Tiers added before the gate existed freeze nothing until you switch it on. It adds only the tiers the SLO does not have: a tier with the same name, or with the same threshold, counts as there, whether it is on or off. So asking for it twice, from a second tab or through the API, adds nothing twice. Each tier it adds is recorded in the SLO's audit logs as added by you.
+None of them raises an alert or declares an incident until you switch that on. **Budget exhausted** freezes deployments, as its agreement says, and the confirmation marks it so: see [Deployment gate](#deployment-gate). Tiers added before the gate existed freeze nothing until you switch it on. It adds only the tiers the SLO does not have: a tier with the same name, or with the same threshold, counts as there, whether it is on or off. So asking for it twice, from a second tab or through the API, adds nothing twice. If one of the tiers cannot be added, none is: the SLO is left as it was, and you can try again. Each tier it adds is recorded in the SLO's audit logs as added by you.
 
 ## Where the tier shows
 

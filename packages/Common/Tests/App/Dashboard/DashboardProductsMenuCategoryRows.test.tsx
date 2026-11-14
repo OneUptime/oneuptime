@@ -122,11 +122,17 @@ describe("the Dashboard's catalog", () => {
   });
 
   test("chooses no icon for a category", () => {
+    // The sections that keep their own order whatever is in use (#6814).
     expect(Object.keys(catalog())).toEqual([
       "navItems",
       "moreMenuItems",
       "moreMenuCategoriesOpenByDefault",
+      "moreMenuCategoriesInFixedOrder",
       "rightElement",
+    ]);
+    expect(catalog().moreMenuCategoriesInFixedOrder).toEqual([
+      "Essentials",
+      "Settings",
     ]);
   });
 });

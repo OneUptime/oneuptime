@@ -53,6 +53,7 @@ import FakeEnterpriseModule, {
   uninstallEnterpriseModule,
 } from "Common/Tests/Server/Enterprise/FakeEnterpriseModule";
 import { setTestBillingEnabled } from "Common/Tests/Server/Enterprise/TestBillingFlag";
+import OnCallTimelineRows from "Common/Tests/Server/TestingUtils/OnCallTimelineRows";
 import fs from "fs";
 import path from "path";
 import {
@@ -586,9 +587,11 @@ describe("the custom channels page without a license", () => {
     expect(CUSTOM_CHANNEL_NOT_ACTIVE_MESSAGE).toMatch(/^Not sent: /);
 
     const post: jest.SpyInstance = jest.spyOn(API, "post");
-    const writeLogRow: jest.SpyInstance = jest
-      .spyOn(UserOnCallLogTimelineService, "updateOneById")
-      .mockResolvedValue(undefined as never);
+
+    // The person's notification, written Sending as its page went out.
+    const timeline: OnCallTimelineRows = new OnCallTimelineRows();
+    timeline.add(timelineId, UserNotificationStatus.Sending);
+    timeline.standIn(UserOnCallLogTimelineService);
 
     const result: CustomChannelDeliveryResult =
       await CustomNotificationChannelDeliveryService.send({
@@ -603,14 +606,16 @@ describe("the custom channels page without a license", () => {
       message: CUSTOM_CHANNEL_NOT_ACTIVE_MESSAGE,
     });
     expect(post).not.toHaveBeenCalled();
-    expect(writeLogRow).toHaveBeenCalledWith({
-      id: timelineId,
-      data: {
-        status: UserNotificationStatus.Error,
-        statusMessage: CUSTOM_CHANNEL_NOT_ACTIVE_MESSAGE,
+    // Written over Sending, as any send's result is (OnCallNotificationStatus).
+    expect(timeline.writes).toEqual([
+      {
+        id: timelineId.toString(),
+        data: {
+          status: UserNotificationStatus.Error,
+          statusMessage: CUSTOM_CHANNEL_NOT_ACTIVE_MESSAGE,
+        },
       },
-      props: { isRoot: true },
-    });
+    ]);
   });
 
   it("and so is a test: both test routes ask the edition, and the sender refuses a test the same way", async () => {

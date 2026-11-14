@@ -61,6 +61,7 @@ import {
   useDeferredChartClick,
 } from "../Utils/DoubleClick";
 import useChartBucketsChange from "../Utils/UseChartBucketsChange";
+import { LegendItemRank, useLegendItemRank } from "../Utils/LegendOrder";
 import { getYAxisDomain } from "../Utils/GetYAxisDomain";
 import { hasOnlyOneValueForKey } from "../Utils/HasOnlyOneValueForKey";
 import {
@@ -413,6 +414,26 @@ const Legend: React.ForwardRefExoticComponent<
 
 Legend.displayName = "Legend";
 
+/*
+ * How much taller a legend is than its first row: 0 while its items fit on
+ * one line, a row's height for each line they wrap onto.
+ */
+export function getLegendExtraRowsHeight(
+  legend: HTMLElement | null | undefined,
+): number {
+  if (!legend) {
+    return 0;
+  }
+
+  const firstItem: HTMLElement | null = legend.querySelector("li");
+
+  if (!firstItem) {
+    return 0;
+  }
+
+  return Math.max(0, legend.clientHeight - firstItem.offsetHeight);
+}
+
 const ChartLegend: (
   { payload }: any,
   categoryColors: Map<string, ChartColorValue>,
@@ -422,6 +443,7 @@ const ChartLegend: (
   enableLegendSlider?: boolean,
   legendPosition?: "left" | "center" | "right",
   yAxisWidth?: number,
+  onExtraRowsHeightChange?: (extraRowsHeightInPx: number) => void,
 ) => React.JSX.Element = (
   { payload }: any,
   categoryColors: Map<string, ChartColorValue>,
@@ -431,6 +453,7 @@ const ChartLegend: (
   enableLegendSlider?: boolean,
   legendPosition?: "left" | "center" | "right",
   yAxisWidth?: number,
+  onExtraRowsHeightChange?: (extraRowsHeightInPx: number) => void,
 ): React.JSX.Element => {
   const legendRef: React.RefObject<HTMLDivElement> =
     React.useRef<HTMLDivElement>(null);
@@ -442,6 +465,7 @@ const ChartLegend: (
       return height ? Number(height) + 15 : 60;
     };
     setLegendHeight(calculateHeight(legendRef.current?.clientHeight));
+    onExtraRowsHeightChange?.(getLegendExtraRowsHeight(legendRef.current));
   });
 
   const legendPayload: Array<PayloadItem> = payload.filter(
@@ -701,6 +725,15 @@ interface LineChartProps extends React.HTMLAttributes<HTMLDivElement> {
    * legend sits about as close to them as they sit to the plot.
    */
   isFollowedByLegend?: boolean | undefined;
+  /*
+   * Told how much taller than one row the legend is (0 while its items fit
+   * on one line), each time the legend is measured: a host that keeps its
+   * plot's height when the legend wraps grows by that much
+   * (Line's growsWhenLegendWraps).
+   */
+  onLegendExtraRowsHeightChange?:
+    | ((extraRowsHeightInPx: number) => void)
+    | undefined;
 }
 
 const LineChart: React.ForwardRefExoticComponent<
@@ -747,6 +780,7 @@ const LineChart: React.ForwardRefExoticComponent<
       onBucketClick,
       ghostCategories,
       isFollowedByLegend = false,
+      onLegendExtraRowsHeightChange,
       ...other
     } = props;
     const CustomTooltip: React.ComponentType<TooltipProps> | undefined =
@@ -784,6 +818,8 @@ const LineChart: React.ForwardRefExoticComponent<
     });
     const categoryColors: Map<string, ChartColorValue> =
       constructCategoryColors(categories, colors);
+    // The legend names the series in the order the page gives them.
+    const legendItemRank: LegendItemRank = useLegendItemRank(categories);
 
     /*
      * Annotations are drawn onto the categorical axis, so the layer needs
@@ -1166,6 +1202,11 @@ const LineChart: React.ForwardRefExoticComponent<
                    * hovered and clicked. The items above it take it back.
                    */
                   wrapperStyle={{ pointerEvents: "none" }}
+                  /*
+                   * In the order of `categories`, never recharts' default
+                   * alphabetical one; see LegendOrder.
+                   */
+                  itemSorter={legendItemRank}
                   content={({ payload }: any) => {
                     return ChartLegend(
                       { payload },
@@ -1180,6 +1221,7 @@ const LineChart: React.ForwardRefExoticComponent<
                       enableLegendSlider,
                       legendPosition,
                       yAxisWidth,
+                      onLegendExtraRowsHeightChange,
                     );
                   }}
                 />
@@ -1388,7 +1430,11 @@ const LineChart: React.ForwardRefExoticComponent<
                * lives in the chip's hover card.
                */}
               {annotations.layer}
-              {/* Exemplar dots - clickable markers linking to traces */}
+              {/*
+               * Exemplar dots - clickable markers linking to traces, unless
+               * the host offers no click (a dashboard widget's live
+               * preview): then no pointer says otherwise.
+               */}
               {formattedExemplarPoints?.map(
                 (exemplar: FormattedExemplarPoint, exemplarIndex: number) => {
                   return (
@@ -1400,7 +1446,9 @@ const LineChart: React.ForwardRefExoticComponent<
                       fill="#7c3aed"
                       stroke="var(--ou-chart-marker-ring, #ffffff)"
                       strokeWidth={2}
-                      style={{ cursor: "pointer" }}
+                      style={{
+                        cursor: onExemplarClick ? "pointer" : "default",
+                      }}
                       onClick={(...args: Array<unknown>) => {
                         // Never let an exemplar click also pin a bucket.
                         stopChartEventPropagation(...args);

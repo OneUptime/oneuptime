@@ -125,7 +125,7 @@ SMS, samtal, WhatsApp- och Telegram-meddelanden betalas från projektets saldo, 
 
 | Saldo | Var |
 | --- | --- |
-| SMS, samtal, WhatsApp och Telegram | **Projektinställningar → Aviseringar → Aviseringsinställningar** |
+| SMS, samtal, WhatsApp och Telegram | **Projektinställningar → Aviseringar → Aviseringskanaler** |
 | OneUptime AI | **Projektinställningar → AI → AI-krediter** |
 
 :::steps

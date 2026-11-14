@@ -38,9 +38,9 @@ import path from "path";
  * not compiled, so nothing else notices when one of them changes. Each test
  * reads the source of truth and checks every page, in English and Persian,
  * still says the same. A page names a Dashboard label as its language's
- * Dashboard draws it: the status pages with drawnActionLabel, Persian
- * included (StatusPageDocsTranslations), the incident pages with
- * dashboardLabel, which keeps Persian in English (IncidentDocsTranslations).
+ * Dashboard draws it, Persian included: the status pages with
+ * drawnActionLabel (StatusPageDocsTranslations), the incident pages with
+ * dashboardLabel (IncidentDocsTranslations, #7100).
  *
  * Two claims are about behaviour rather than wording, and are pinned the same
  * way: which subscriber jobs count their messages (the incident and episode
@@ -844,7 +844,7 @@ describe("Subscriber notification delivery docs", () => {
             language: language,
             label: summary?.label,
             quoted: boldText(readPage(NOTES_PAGE, language)).has(
-              summary?.label || "",
+              named(NOTES_PAGE, language, summary?.label || ""),
             ),
           }).toEqual({
             language: language,
@@ -858,7 +858,11 @@ describe("Subscriber notification delivery docs", () => {
       for (const language of LANGUAGES) {
         expect(
           boldText(readPage(NOTES_PAGE, language)).has(
-            SubscriberNotificationResendCopy.retryNoteNotificationButton,
+            named(
+              NOTES_PAGE,
+              language,
+              SubscriberNotificationResendCopy.retryNoteNotificationButton,
+            ),
           ),
         ).toBe(true);
       }
@@ -955,7 +959,9 @@ describe("Subscriber notification delivery docs", () => {
 
       for (const language of LANGUAGES) {
         expect(
-          boldText(readPage(NOTES_PAGE, language)).has("Search notes…"),
+          boldText(readPage(NOTES_PAGE, language)).has(
+            named(NOTES_PAGE, language, "Search notes…"),
+          ),
         ).toBe(true);
       }
     });

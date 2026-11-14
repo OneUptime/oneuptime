@@ -1,4 +1,4 @@
-# Uitzonderingen volgen
+# Uitzonderingen
 
 Uitzonderingen volgen verzamelt de fouten die uw code gooit en groepeert elk voorval van dezelfde fout tot één uitzondering, met de stacktrace, het verloop en de verzoeken waarin ze optrad. Werk ze af als een takenlijst: verhelpen, oplossen of de ruis archiveren, en laat AI een pull request openen voor de uitzonderingen die het kan verhelpen.
 
@@ -39,7 +39,7 @@ flowchart TB
 ## Voordat u begint
 
 - **Binnenkomende spans of logboeken.** Instrumenteer uw services met [OpenTelemetry](/docs/telemetry/open-telemetry). Het tabblad **Installatiegids** toont de code voor uw taal.
-- **Een rol die telemetrie mag lezen.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member of Telemetry Viewer, of een aangepaste rol met de machtiging Read Telemetry Service Exception. Oplossen en archiveren vraagt Project Owner of Project Admin, of de machtiging Edit Telemetry Service Exception.
+- **Een rol die telemetrie mag lezen.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member of Telemetry Viewer, of een aangepaste rol met de machtiging Read Exceptions. Oplossen en archiveren vraagt Project Owner of Project Admin, of de machtiging Edit Exceptions.
 
 ## De lijst beoordelen
 

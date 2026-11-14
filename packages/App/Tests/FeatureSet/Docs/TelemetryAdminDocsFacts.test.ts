@@ -903,9 +903,7 @@ describe("Ingestion Keys (telemetry/ingestion-keys)", () => {
     expect(keyPage).toContain('title={"Reset Secret Key"}');
     expect(keyPage).toContain("<ModelDelete");
     // The card's edit button and the delete card are drawn with the model's name.
-    expect(new TelemetryIngestionKey().singularName).toBe(
-      "Telemetry Ingestion Key",
-    );
+    expect(new TelemetryIngestionKey().singularName).toBe("Ingestion Key");
     expect(
       readCommonSource("UI/Components/ModelDetail/CardModelDetail.tsx"),
     ).toContain('template: "Edit {{itemName}}",');
@@ -928,7 +926,7 @@ describe("Ingestion Keys (telemetry/ingestion-keys)", () => {
       "`401`",
     ]);
     expect(rows[0]?.[1]).toContain(
-      "Click **Edit Telemetry Ingestion Key**, open **Access & Limits** and turn **Enabled** off.",
+      "Click **Edit Ingestion Key**, open **Access & Limits** and turn **Enabled** off.",
     );
   });
 

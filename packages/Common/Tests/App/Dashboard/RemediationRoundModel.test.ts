@@ -582,7 +582,7 @@ describe("getRemediationFixSteps: the plan step of a fix with a round", () => {
         tone: "failed",
         title: REMEDIATION_ROUND_COPY.unfinishedFix,
         summary:
-          "The AI provider could not be reached, or was too busy to answer.",
+          "The LLM provider could not be reached, or was too busy to answer.",
         isSummaryWritten: false,
         // Its notice starts with the same words: the open step says them once.
         isSummaryInDetails: true,
@@ -615,7 +615,7 @@ describe("getRemediationFixSteps: the plan step of a fix with a round", () => {
         }),
       )[0]!.summary,
     ).toBe(
-      "The AI provider refused the request: its API key or model may be wrong, or its account may lack access or credit.",
+      "The LLM provider refused the request: its API key or model may be wrong, or its account may lack access or credit.",
     );
   });
 
@@ -713,7 +713,7 @@ describe("getRemediationFixSteps: the plan step of a fix with a round", () => {
 
     expect(waiting.tone).toBe("live");
     expect(waiting.summary).toBe(
-      `Did not finish: The AI provider did not answer within 90 seconds. Trying again at ${formatAiRunTime(nextAttemptAt)}.`,
+      `Did not finish: The LLM provider did not answer within 90 seconds. Trying again at ${formatAiRunTime(nextAttemptAt)}.`,
     );
     // Nothing checked yet: nothing to open.
     expect(waiting.hasDetails).toBe(false);

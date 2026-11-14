@@ -41,7 +41,7 @@
 :::steps
 ### مانیتور را بسازید
 
-یک مانیتور Incoming Request را همان‌طور که [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#دریافت-هشدارها-با-یک-مانیتور) می‌گوید بسازید، و **Heartbeat URL** آن را کپی کنید. آن آدرس `<secret key>` در گیرنده هر ابزار در ادامه است.
+یک مانیتور Incoming Request را همان‌طور که [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#دریافت-هشدارها-با-یک-مانیتور) می‌گوید بسازید، و **نشانی ضربان** آن را کپی کنید. آن آدرس `<secret key>` در گیرنده هر ابزار در ادامه است.
 
 ### آن را روی ابر قرار دهید
 

@@ -24,9 +24,12 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import UserUtil from "Common/UI/Utils/User";
 import NotificationMethodUtil, {
   ColumnValueReader,
+  NOTIFICATION_METHOD_LINE,
   NotificationMethodDisplayItem,
 } from "Common/UI/Utils/NotificationMethodUtil";
 import {
+  composedValue,
+  TemplateValue,
   translatableTerm,
   translateNamedAction,
   translatePlural,
@@ -52,6 +55,10 @@ import React, {
 } from "react";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import { joinList } from "Common/UI/Utils/ListSeparator";
+import PhoneNumberText from "Common/UI/Components/PhoneNumber/PhoneNumberText";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
 
 export interface ComponentProps {
   item: BaseModel;
@@ -66,12 +73,48 @@ const NotificationMethodView: FunctionComponent<ComponentProps> = (
   const displayItems: Array<NotificationMethodDisplayItem> =
     NotificationMethodUtil.getDisplayItems(item);
 
+  const translator: Translator = useTranslator();
+
   return (
     <div>
       {displayItems.map((displayItem: NotificationMethodDisplayItem) => {
+        /*
+         * "SMS: +447700900123" is a sentence of the reader's language
+         * (#7178): the method's name is theirs - "Phone call", never the
+         * shared "Call", which is a function call in Chinese - and so is
+         * its colon. So the line reads the page's way: from the right on
+         * a Persian or Arabic page, name first, as every line of the
+         * column does. The identifier keeps its own direction inside it:
+         * the number an SMS, a call or a WhatsApp message goes to reads
+         * +447700900123 in every language (PhoneNumberText), and an
+         * address or a name is an isolate of its own (IsolatedText).
+         */
         return (
-          <p key={displayItem.title}>
-            {displayItem.title}: {displayItem.value}
+          <p key={displayItem.method}>
+            <TranslatedSentence
+              template={NOTIFICATION_METHOD_LINE}
+              values={{
+                label: NotificationMethodUtil.getMethodName(
+                  translator,
+                  displayItem.method,
+                ),
+              }}
+              slots={{
+                identifier: NotificationMethodUtil.isPhoneNumberChannel(
+                  displayItem.method,
+                ) ? (
+                  <PhoneNumberText phoneNumber={displayItem.value} />
+                ) : (
+                  <IsolatedText
+                    text={NotificationMethodUtil.getIdentifierText(
+                      translator,
+                      displayItem.method,
+                      displayItem.value,
+                    )}
+                  />
+                ),
+              }}
+            />
           </p>
         );
       })}
@@ -636,11 +679,12 @@ const describeOrphanedCells: (impact: DeletionImpact) => string = (
  * ignored.
  */
 export const describeMethodDeletion: (params: {
-  methodLabel: string;
+  // The method as the sentence names it, in the sentence's language.
+  methodLabel: TemplateValue;
   impact: DeletionImpact;
   exposure: OnCallExposure;
 }) => string = (params: {
-  methodLabel: string;
+  methodLabel: TemplateValue;
   impact: DeletionImpact;
   exposure: OnCallExposure;
 }): string => {
@@ -654,7 +698,7 @@ export const describeMethodDeletion: (params: {
   if (params.impact.ruleCount === 0) {
     sentences.push(
       translateTemplate(
-        "No notification rules use {{methodLabel}}, so deleting it does not change how you are paged.",
+        "No rule in How to Reach Me uses {{methodLabel}}, so deleting it does not change how you are paged.",
         { methodLabel: params.methodLabel },
       ),
     );
@@ -668,9 +712,9 @@ export const describeMethodDeletion: (params: {
     sentences.push(
       translatePlural(
         {
-          one: "Deleting {{methodLabel}} removes {{count}} notification rule and leaves {{cells}} with no rule.",
+          one: "Deleting {{methodLabel}} removes {{count}} rule from How to Reach Me and leaves {{cells}} with no rule.",
           other:
-            "Deleting {{methodLabel}} removes {{count}} notification rules and leaves {{cells}} with no rule.",
+            "Deleting {{methodLabel}} removes {{count}} rules from How to Reach Me and leaves {{cells}} with no rule.",
         },
         params.impact.ruleCount,
         { methodLabel: params.methodLabel, cells: orphaned },
@@ -680,9 +724,9 @@ export const describeMethodDeletion: (params: {
     sentences.push(
       translatePlural(
         {
-          one: "Deleting {{methodLabel}} removes {{count}} notification rule.",
+          one: "Deleting {{methodLabel}} removes {{count}} rule from How to Reach Me.",
           other:
-            "Deleting {{methodLabel}} removes {{count}} notification rules.",
+            "Deleting {{methodLabel}} removes {{count}} rules from How to Reach Me.",
         },
         params.impact.ruleCount,
         { methodLabel: params.methodLabel },
@@ -766,7 +810,7 @@ export const describeRuleDeletion: (params: {
   if (params.impact.ruleCount === 0) {
     sentences.push(
       translateTemplate(
-        "We could not match this rule to your notification rules, so we cannot tell what deleting it leaves uncovered.",
+        "We could not match this rule to How to Reach Me, so we cannot tell what deleting it leaves uncovered.",
       ),
     );
 
@@ -941,7 +985,7 @@ export const useNotificationRuleImpactData: (params: {
  * rather than one function with a boolean.
  */
 export type DeletionTarget =
-  | { type: "method"; methodId: string; methodLabel: string }
+  | { type: "method"; methodId: string; methodLabel: TemplateValue }
   | { type: "rule"; ruleId: string };
 
 export interface DeletionImpactModalProps {
@@ -1002,7 +1046,7 @@ export const DeletionImpactModal: FunctionComponent<
        */
       return translator.translateTemplate(
         "We could not check what this deletes: {{error}} Deleting a notification method also deletes every notification rule that uses it.",
-        { error: state.error },
+        { error: errorInSentence(state.error) },
       );
     }
 
@@ -1126,12 +1170,19 @@ export const readNotificationMethodId: (item: unknown) => string = (
 export const getNotificationMethodLabel: (params: {
   relationName: string;
   item: unknown;
-  fallbackLabel: string;
-}) => string = (params: {
+  fallbackLabel: TemplateValue;
+  /*
+   * Names the method in the language of the sentence it is put in
+   * (#7178): the reader's where the sentence is translated, English where
+   * it is not yet (getMethodLabelInSentence). English without one.
+   */
+  translator?: Translator | undefined;
+}) => TemplateValue = (params: {
   relationName: string;
   item: unknown;
-  fallbackLabel: string;
-}): string => {
+  fallbackLabel: TemplateValue;
+  translator?: Translator | undefined;
+}): TemplateValue => {
   const displayItems: Array<NotificationMethodDisplayItem> =
     NotificationMethodUtil.getDisplayItems({
       getColumnValue: (columnName: string): unknown => {
@@ -1149,6 +1200,13 @@ export const getNotificationMethodLabel: (params: {
      * reads as English instead of "Deleting  removes 2 notification rules".
      */
     return params.fallbackLabel;
+  }
+
+  if (params.translator) {
+    return NotificationMethodUtil.getMethodLabelInSentence(
+      displayItem.method,
+      displayItem.value,
+    );
   }
 
   return `${displayItem.title}: ${displayItem.value}`;
@@ -1277,11 +1335,17 @@ export function useNotificationMethodDeleteGuard<TBaseModel extends BaseModel>(
         methodLabel: getNotificationMethodLabel({
           relationName: params.relationName,
           item: itemToDelete,
-          fallbackLabel: translator.translateTemplate("this {{itemName}}", {
-            itemName: translatableTerm(params.singularName, {
-              inSentence: true,
-            }),
-          }),
+          translator: translator,
+          // In the sentence's language too, as the method's line is.
+          fallbackLabel: composedValue(
+            (sentenceTranslator: Translator): string => {
+              return sentenceTranslator.translateTemplate("this {{itemName}}", {
+                itemName: translatableTerm(params.singularName, {
+                  inSentence: true,
+                }),
+              });
+            },
+          ),
         }),
       }}
       userId={UserUtil.getUserId()}

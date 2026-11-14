@@ -42,13 +42,13 @@ Voir [Créer un moniteur](/docs/monitor/create-monitor).
 
 Les règles d'un moniteur : ce que signifie chaque résultat de vérification. Ils sont examinés dans l'ordre, et le premier qui correspond peut changer le statut du moniteur, déclarer un incident, créer une alerte, ou les trois.
 
-Autres noms : **Critères de surveillance**, **Critères du moniteur**, **Étapes du moniteur**. Voir [Critères et statuts des moniteurs](/docs/monitor/criteria-and-statuses).
+Autres noms : **Critères de surveillance**, **Critères du moniteur**, **Étapes du moniteur**. Voir [Critères et statuts](/docs/monitor/criteria-and-statuses).
 
 ### Statut du moniteur
 
 Où en est un moniteur en ce moment. Chaque nouveau projet a trois statuts de moniteur, **Opérationnel**, **Dégradé** et **Hors ligne**, et vous pouvez ajouter les vôtres.
 
-Voir [Critères et statuts des moniteurs](/docs/monitor/criteria-and-statuses).
+Voir [Critères et statuts](/docs/monitor/criteria-and-statuses).
 
 ### Sonde
 
@@ -90,7 +90,7 @@ Voir [Règles d'escalade](/docs/on-call/escalation-rules).
 
 Qui est d'astreinte à chaque instant : les personnes se relaient, et chacune passe le relais à la suivante. Une règle d'escalade qui alerte un planning alerte la personne qui y est d'astreinte.
 
-Autres noms : **Rotation**. Voir [Plannings d'astreinte](/docs/on-call/schedules).
+Autres noms : **Rotation**, **Planning de la politique d'astreinte**. Voir [Plannings d'astreinte](/docs/on-call/schedules).
 
 ### Couche
 
@@ -103,6 +103,12 @@ Voir [Plannings d'astreinte](/docs/on-call/schedules#couches).
 Une adresse à laquelle OneUptime peut vous joindre dans un projet : une adresse e-mail, un numéro de téléphone pour les SMS ou les appels, votre compte Slack ou Microsoft Teams, ou l'application OneUptime sur votre téléphone. Chaque personne ajoute les siennes sous **Paramètres utilisateur**.
 
 Voir [Méthodes de notification](/docs/notifications/notification-methods).
+
+### Comment me joindre
+
+Vos propres règles pour être appelé : quelles méthodes de notification une alerte essaie, et au bout de combien de temps. Une seule échelle couvre chaque incident, alerte et épisode, et une gravité peut avoir ses propres règles. Chaque personne règle les siennes sous **Paramètres utilisateur**.
+
+Autres noms : **Règles d'astreinte personnelles**. Voir [Comment me joindre](/docs/notifications/on-call-rules).
 
 ### Page de statut
 
@@ -118,7 +124,7 @@ Voir [Abonnés et annonces](/docs/status-pages/subscribers).
 
 ### Maintenance planifiée
 
-Des travaux prévus, annoncés à l'avance. Un événement passe par **Planifié**, **En cours**, **Terminé** et **Achevé**, et les pages de statut sur lesquelles il est affiché en informent les visiteurs et les abonnés.
+Des travaux prévus, annoncés à l'avance. Chaque événement de maintenance passe par les états de la maintenance **Planifié**, **En cours**, **Terminé** et **Achevé**, et les pages de statut sur lesquelles il est affiché en informent les visiteurs et les abonnés.
 
 Autres noms : **Événement de maintenance planifiée**, **Événement planifié**, **Événement**. Voir [Vue d'ensemble de la maintenance planifiée](/docs/scheduled-maintenance/index).
 
@@ -140,7 +146,7 @@ Voir [Groupes de moniteurs](/docs/monitor/monitor-groups).
 
 Une application ou un microservice que vous exploitez. OneUptime en ajoute un dès que sa télémétrie arrive pour la première fois, nommé d'après son `service.name`, et réunit ses journaux, traces, métriques, exceptions, incidents et propriétaires sur une seule page.
 
-Autres noms : **Catalogue de services**, **Service de télémétrie**. Voir [Catalogue de services](/docs/telemetry/services).
+Autres noms : **Catalogue de services**, **Service de télémétrie**. Voir [Services](/docs/telemetry/services).
 
 ### Hôte
 
@@ -256,7 +262,7 @@ Voir [Règles d'étiquettes et de propriétaires](/docs/configuration/label-and-
 
 Une erreur que lève votre code. OneUptime regroupe chaque occurrence d'une même erreur en une seule exception, avec sa trace de pile, son évolution et les requêtes dans lesquelles elle s'est produite.
 
-Autres noms : **Suivi des exceptions**, `/telemetry-exception`. Voir [Suivi des exceptions](/docs/telemetry/exceptions).
+Autres noms : **Suivi des exceptions**, `/telemetry-exception`. Voir [Exceptions](/docs/telemetry/exceptions).
 
 ### Analyses IA
 
@@ -300,7 +306,7 @@ Voir [Explorateur de traces](/docs/telemetry/traces-explorer).
 
 La façon dont votre application dépense son temps CPU et sa mémoire, fonction par fonction, envoyée par un profileur qui pousse ses données vers l'API compatible Pyroscope de OneUptime.
 
-Autres noms : **Profils de performance**, **Profilage continu**. Voir [Profilage continu](/docs/telemetry/profiles).
+Autres noms : **Profils de performance**, **Profilage continu**. Voir [Profils](/docs/telemetry/profiles).
 
 ### IA / LLM
 
@@ -472,13 +478,13 @@ Voir [Lequel choisir ?](/docs/introduction/which-one#sonde-agent-collecteur-ou-a
 
 ### Règles d'astreinte
 
-Deux choses différentes. Sous **Incidents** et **Alertes**, les règles d'astreinte choisissent les politiques d'astreinte qu'exécute un nouvel incident ou une nouvelle alerte. Sous **Paramètres utilisateur**, vos propres règles d'astreinte décident quelles méthodes de notification une alerte essaie, et au bout de combien de temps.
+Sous **Incidents** et **Alertes**, les règles d'astreinte choisissent les politiques d'astreinte qu'exécute un nouvel incident ou une nouvelle alerte. Les propres règles d'une personne, qui décident comment une alerte lui parvient, s'appelaient aussi règles d'astreinte : elles s'appellent désormais **Comment me joindre**, sous **Paramètres utilisateur**.
 
-Voir [Paramètres et automatisation des incidents](/docs/incidents/settings#règles-dastreinte-des-incidents) et [Règles d'astreinte personnelles](/docs/notifications/on-call-rules).
+Voir [Paramètres et automatisation des incidents](/docs/incidents/settings#règles-dastreinte-des-incidents) et [Comment me joindre](/docs/notifications/on-call-rules).
 
 ### Paramètres de notification
 
-Deux pages différentes. Sous **Paramètres utilisateur**, les mises à jour qui vous parviennent sur ce qui vous appartient, et par quels canaux. Sous **Paramètres du projet**, les interrupteurs du projet pour les SMS et les appels, son solde de messagerie, et son propre SMTP et Twilio.
+Sous **Paramètres utilisateur**, les mises à jour qui vous parviennent sur ce qui vous appartient, et par quels canaux. Les interrupteurs du projet pour les SMS et les appels, son solde de messagerie et son propre SMTP et Twilio s'appelaient aussi paramètres de notification : ils s'appellent désormais **Canaux de notification**, sous **Paramètres du projet**.
 
 Voir [Paramètres de notification](/docs/notifications/notification-settings).
 

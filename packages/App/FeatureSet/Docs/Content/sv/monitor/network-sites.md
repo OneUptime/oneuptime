@@ -38,7 +38,7 @@ Varje plats status kommer från varje enhet i dess underträd, bedömda enligt p
 
 ## Hierarkin
 
-Platser bildar ett träd. Varje plats har en **Site Type** och eventuellt en överordnad plats. Platstyperna är projektets egen lista, under **Nätverk → Inställningar → Platstyper**, och ett nytt projekt börjar med Account Type, Region, Franchisee, Market och Unit, i den ordningen uppifrån, plus Data Center och Other. Typerna bildar en egen hierarki (**Parent Site Type**), som avgör vilka platser som kan vara förälder till en plats. En typ som är markerad som **Is Unit Level** är den lägsta nivån i din miljö, den enskilda butiken eller filialen: dess platser innehåller enheter, inte andra platser.
+Platser bildar ett träd. Varje plats har en **Platstyp** och eventuellt en överordnad plats. Platstyperna är projektets egen lista, under **Nätverk → Inställningar → Platstyper**, och ett nytt projekt börjar med Account Type, Region, Franchisee, Market och Unit, i den ordningen uppifrån, plus Data Center och Other. Typerna bildar en egen hierarki (**Parent Site Type**), som avgör vilka platser som kan vara förälder till en plats. En typ som är markerad som **Is Unit Level** är den lägsta nivån i din miljö, den enskilda butiken eller filialen: dess platser innehåller enheter, inte andra platser.
 
 En plats typ, namn, beskrivning, förälder och läge redigeras på ett ställe: kortet **Site Settings** på platsens sida **Inställningar**. Platsens översikt visar dem med en länk **Redigera i Inställningar**, och listan **Platser** lägger till platser men redigerar dem inte.
 
@@ -54,7 +54,7 @@ Varje enhet kopplas till en plats. En plats underträd är platsen själv plus v
 Gå till **Nätverk → Platser** och klicka på **Lägg till Plats**.
 
 ### Ange vad platsen är
-I steget **Site Details** väljer du **Site Type** (vilken sorts plats det är: en region, en butik, ett datacenter) och skriver ett **Namn**. Fältet **Platskod**, beskrivningen, adressen och den latitud och longitud som fäster platsen på kartan är hopfällda under **Fler fält**: fyll i dem nu eller senare. En platskod är en kort kod, till exempel ett butiks- eller filialnummer (`1216`); [namngivningsregler](/docs/monitor/network-device-monitor#namnge-enheter-enligt-din-namngivningskonvention) sätter in den i enhetsnamn med `{site.code}`.
+I steget **Site Details** väljer du **Platstyp** (vilken sorts plats det är: en region, en butik, ett datacenter) och skriver ett **Namn**. Fältet **Platskod**, beskrivningen, adressen och den latitud och longitud som fäster platsen på kartan är hopfällda under **Fler fält**: fyll i dem nu eller senare. En platskod är en kort kod, till exempel ett butiks- eller filialnummer (`1216`); [namngivningsregler](/docs/monitor/network-device-monitor#namnge-enheter-enligt-din-namngivningskonvention) sätter in den i enhetsnamn med `{site.code}`.
 
 ### Placera den i trädet
 I steget **Hierarchy** väljer du **Parent Site** om platsen ligger under en annan. Lämna det tomt för att hålla platsen på översta nivån.
@@ -67,7 +67,7 @@ På en plats egen sida **Underordnade platser** frågar **Lägg till Underordnad
 
 ### Importera platser från en CSV-fil
 
-För att ta in en hel miljö på en gång öppnar du menyn överst i listan **Platser** och klickar på **Import from CSV**. Filen behöver en rubrikrad; kolumnerna kan komma i valfri ordning och deras namn är inte skiftlägeskänsliga:
+För att ta in en hel miljö på en gång öppnar du menyn överst i listan **Platser** och klickar på **Importera från CSV**. Filen behöver en rubrikrad; kolumnerna kan komma i valfri ordning och deras namn är inte skiftlägeskänsliga:
 
 ```csv title="sites.csv"
 name,siteType,parentName,address,latitude,longitude
@@ -141,6 +141,7 @@ Båda policyerna är överens här, och det spelar större roll än det låter:
 - Enheter som aldrig har rapporterat något röstar aldrig. En enhet som väntar på sin första avsökning är inget bevis på ett avbrott, så den hålls utanför båda sidorna av andelen, och en region som är halvvägs genom introduktionen bedöms efter den halva som har svarat.
 - En sondavsökt enhet, den normala sorten, röstar med utfallet av sin senaste avsökning: nåbar via ping eller SNMP, inte hur länge sedan den senast lyckades. En enhet som svarar på ping medan dess SNMP-walk misslyckas är nåbar och röstar så; platsen säger att den är uppe, och enhetens rad säger **SNMP failing** så att någon rättar autentiseringsuppgifterna.
 - En enhet med bunden monitor, en som har bytts till åsidosättningen med bunden monitor på sin sida Inställningar, röstar med statusen för den monitor som är bunden till den, eftersom inget avsöker den. Utan något bundet har den aldrig rapporterat, så den röstar inte alls.
+- En enhet med bunden monitor vars monitor inte kontrolleras, eftersom dess övervakning är avstängd eller den är arkiverad, röstar inte heller: den status monitorn har är bara det dess senaste kontroll såg. Enheten står som **Väntar**, med **Övervakning avstängd** eller **Övervakning arkiverad** bredvid, tills monitorns övervakning slås på igen eller den avarkiveras.
 
 En nätverksenhetsmonitor på en sondavsökt enhet ändrar inte hur enheten röstar. En monitor med ett kriterium "gränssnitt nere, alltså Offline" skulle stämpla Offline på en switch som svarar på varje ping, och en enda mörk port skulle göra en hel plats röd medan varje enhetsrad under den visar Up: platsen skulle säga emot den lista som den sammanfattar. För en avsökt enhet är avsökningen källan till dess hälsa; monitorn finns där för att skapa incidenter.
 
@@ -185,7 +186,7 @@ Ett medelvärde över barn väger en butik med två enheter lika tungt som ett d
 
 ## Schemalagt underhåll för nätverksplatser
 
-Koppla platser till ett schemalagt underhåll under **Andra påverkade resurser**, i händelsens steg **Berörda resurser**, som du skulle göra med en värd. En plats egen sida **Schemalagt underhåll** listar de händelser som är kopplade till den, och dess **Skapa schemalagt underhållsevenemang** öppnar formuläret med platsen redan vald.
+Koppla platser till ett schemalagt underhåll under **Andra påverkade resurser**, i händelsens steg **Berörda resurser**, som du skulle göra med en värd. En plats egen sida **Schemalagt underhåll** listar de händelser som är kopplade till den, och dess **Skapa underhållshändelse** öppnar formuläret med platsen redan vald.
 
 Ett fönster på en förälder täcker allt under den: ett fönster på en region täcker varje marknad och enhet i den, inklusive platser som skapats efter att fönstret schemalades, så ett regionalt operatörsbyte behöver inte räkna upp fyrahundra butiker.
 
@@ -214,6 +215,8 @@ Kortet **Alerting** på en plats sida **Inställningar** har **Alert When Unheal
 
 Den varnar bara för ändringen: att slå på den för en plats som redan är ohälsosam förbereder nästa ändring i stället för att varna om det förflutna. Degraded är inte i drift, så en plats med procentpolicyn varnar så snart en av dess rapporterande enheter är nere, precis som en plats med policyn för sämsta status; larmet förblir öppen, utan en andra, medan platsen växlar mellan Degraded och Offline, och dess titel namnger den status som platsen nådde först.
 
+När inget på en plats rapporterar en status längre, eftersom monitorerna bakom dess enheter har övervakningen avstängd, är arkiverade eller har tagits bort, går platsen tillbaka till ingen status i stället för att behålla den senaste, och dess öppna larm löses med det som orsak. En enhet som rapporterar ett problem igen öppnar ett nytt larm.
+
 ## Felsökning
 
 :::details En region är alltid röd
@@ -225,7 +228,11 @@ Ingen sammanfattning har någonsin körts för platsen, så den har inga tidslin
 :::
 
 :::details En enhet räknas inte för sin plats
-Arkiverade enheter, och enheter som inte har rapporterat än, röstar aldrig. En enhet med bunden monitor utan någon monitor bunden har inte heller rapporterat. Kontrollera enhetens status: en enhet som står som **Väntar** börjar rösta efter sin första avsökning.
+Arkiverade enheter, och enheter som inte har rapporterat än, röstar aldrig. En enhet med bunden monitor utan någon monitor bunden har inte heller rapporterat. Kontrollera enhetens status: en enhet som står som **Väntar** börjar rösta efter sin första avsökning. En enhet med **Övervakning avstängd** eller **Övervakning arkiverad** bredvid röstar igen så snart dess monitors övervakning slås på igen eller monitorn avarkiveras.
+:::
+
+:::details En plats har ingen status längre
+Inget på platsen rapporterar en status: monitorerna bakom dess enheter har övervakningen avstängd, är arkiverade eller har tagits bort, så platsens senaste status togs bort och dess larm löstes. Slå på övervakningen igen för de monitorerna, eller avarkivera dem, så beräknas platsens status igen utifrån dess enheter.
 :::
 
 :::details En plats larm utlöstes inte

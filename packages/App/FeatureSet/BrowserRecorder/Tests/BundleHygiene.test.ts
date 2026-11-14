@@ -241,9 +241,11 @@ describe("bundle hygiene", (): void => {
      * frustration signals an application defines itself (2026-11-09, issue
      * #6443: 339513 bytes after, 331424 before), 342 KB since product
      * analytics events (2026-11-10, issue #6444: 348775 bytes after, 339513
-     * before); esbuild.config.js carries the measurements and the reasons.
+     * before), 344 KB since a page that records only some of its parts
+     * (2026-11-12, issue #6834: 351173 bytes after, 348775 before);
+     * esbuild.config.js carries the measurements and the reasons.
      */
-    expect(recorderBundle.length).toBeLessThan(342 * 1024);
+    expect(recorderBundle.length).toBeLessThan(344 * 1024);
   });
 
   /*

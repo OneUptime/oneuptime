@@ -1,9 +1,18 @@
 import Alert, { AlertType } from "../Alerts/Alert";
+import ErrorExplanation, {
+  isUnexplainedErrorMessage,
+} from "../ErrorMessage/ErrorExplanation";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
   children: Array<ReactElement> | ReactElement;
   error?: string | undefined;
+  /*
+   * What the dialog was doing, in the reader's language - "Couldn't delete
+   * the note." - said first when the error is one nobody explained
+   * (ErrorExplanation). Without it, that line says "This did not finish."
+   */
+  whatFailed?: string | undefined;
 }
 
 /*
@@ -21,7 +30,16 @@ const ModalBody: FunctionComponent<ComponentProps> = (
     <div className="modal-body">
       {props.error && (
         <Alert
-          title={props.error}
+          title={
+            isUnexplainedErrorMessage(props.error) ? (
+              <ErrorExplanation
+                message={props.error}
+                whatFailed={props.whatFailed}
+              />
+            ) : (
+              props.error
+            )
+          }
           type={AlertType.DANGER}
           className="mb-4"
           dataTestId="modal-error"

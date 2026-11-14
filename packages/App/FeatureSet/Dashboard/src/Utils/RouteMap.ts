@@ -77,6 +77,7 @@ export const ServiceRoutePath: Dictionary<string> = {
   [PageMap.SERVICE_SETTINGS_LABEL_RULES]: `settings/label-rules`,
   [PageMap.SERVICE_SETTINGS_LABEL_RULE_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
   [PageMap.SERVICE_ARCHIVED]: `archived`,
+  [PageMap.SERVICES_GUIDED_SETUP]: `setup`,
 };
 
 /*
@@ -1281,6 +1282,7 @@ export const DashboardsRoutePath: Dictionary<string> = {
 
 export const StatusPagesRoutePath: Dictionary<string> = {
   [PageMap.STATUS_PAGES_ARCHIVED]: "archived",
+  [PageMap.STATUS_PAGES_GUIDED_SETUP]: "setup",
   [PageMap.STATUS_PAGE_ANNOUNCEMENTS]: "announcements",
   [PageMap.ANNOUNCEMENT_CREATE]: "announcements/create",
   [PageMap.ANNOUNCEMENT_VIEW]: `announcements/${RouteParams.ModelID}`,
@@ -1596,6 +1598,7 @@ export const SettingsRoutePath: Dictionary<string> = {
   [PageMap.SETTINGS_BILLING_INVOICES]: "invoices",
   [PageMap.SETTINGS_USAGE_HISTORY]: "usage-history",
   [PageMap.SETTINGS_LABELS]: "labels",
+  [PageMap.SETTINGS_PRODUCTS]: "products",
   [PageMap.SETTINGS_IMPORT_FROM_TOOL]: "import",
 };
 
@@ -1650,6 +1653,7 @@ export const OnCallDutyRoutePath: Dictionary<string> = {
   [PageMap.ON_CALL_DUTY_POLICIES]: "policies",
   [PageMap.ON_CALL_DUTY_POLICIES_ARCHIVED]: "policies/archived",
   [PageMap.ON_CALL_DUTY_READINESS]: "readiness",
+  [PageMap.ON_CALL_DUTY_GUIDED_SETUP]: "setup",
   [PageMap.ON_CALL_DUTY_CALENDAR_FEEDS]: "calendar-feeds",
   [PageMap.ON_CALL_DUTY_SCHEDULE_TIMELINE]: "schedule-timeline",
   [PageMap.ON_CALL_DUTY_POLICY_VIEW]: `policies/${RouteParams.ModelID}`,
@@ -1718,6 +1722,15 @@ export const UserSettingsRoutePath: Dictionary<string> = {
   [PageMap.USER_SETTINGS_SETUP]: "setup",
 };
 
+/*
+ * The pages under Home (…/home/): Home itself is one page, and Setup health
+ * is about the whole project, so it lives beside it rather than in a
+ * product (#6812).
+ */
+export const HomeRoutePath: Dictionary<string> = {
+  [PageMap.HOME_SETUP_HEALTH]: "setup-health",
+};
+
 const RouteMap: Dictionary<Route> = {
   [PageMap.INIT]: new Route(`/dashboard`),
 
@@ -1728,6 +1741,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.INIT_PROJECT]: new Route(`/dashboard/${RouteParams.ProjectID}`),
 
   [PageMap.HOME]: new Route(`/dashboard/${RouteParams.ProjectID}/home/`),
+
+  [PageMap.HOME_SETUP_HEALTH]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/home/${
+      HomeRoutePath[PageMap.HOME_SETUP_HEALTH]
+    }`,
+  ),
 
   /*
    * Everything under …/home/ but Home itself: the addresses of the lists
@@ -3205,6 +3224,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SERVICE_ARCHIVED]: new Route(
     `/dashboard/${RouteParams.ProjectID}/service/${
       ServiceRoutePath[PageMap.SERVICE_ARCHIVED]
+    }`,
+  ),
+
+  [PageMap.SERVICES_GUIDED_SETUP]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service/${
+      ServiceRoutePath[PageMap.SERVICES_GUIDED_SETUP]
     }`,
   ),
 
@@ -7481,6 +7506,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.STATUS_PAGES_GUIDED_SETUP]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/status-pages/${
+      StatusPagesRoutePath[PageMap.STATUS_PAGES_GUIDED_SETUP]
+    }`,
+  ),
+
   [PageMap.STATUS_PAGE_ANNOUNCEMENTS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/status-pages/${
       StatusPagesRoutePath[PageMap.STATUS_PAGE_ANNOUNCEMENTS]
@@ -7826,6 +7857,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.ON_CALL_DUTY_READINESS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
       OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_READINESS]
+    }`,
+  ),
+
+  [PageMap.ON_CALL_DUTY_GUIDED_SETUP]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
+      OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_GUIDED_SETUP]
     }`,
   ),
 
@@ -9629,6 +9666,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SETTINGS_LABELS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
       SettingsRoutePath[PageMap.SETTINGS_LABELS]
+    }`,
+  ),
+
+  [PageMap.SETTINGS_PRODUCTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_PRODUCTS]
     }`,
   ),
 

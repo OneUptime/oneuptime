@@ -82,7 +82,6 @@ const TelegramLogsTable: FunctionComponent<TelegramLogsTableProps> = (
       field: { toChatId: true },
       title: "To Chat ID",
       type: FieldType.Text,
-      noValueMessage: "-",
     },
     {
       field: {
@@ -95,7 +94,6 @@ const TelegramLogsTable: FunctionComponent<TelegramLogsTableProps> = (
       title: "User",
       type: FieldType.Text,
       hideOnMobile: true,
-      noValueMessage: "-",
       getElement: (item: TelegramLog): ReactElement => {
         if (!item["user"]) {
           return <p>-</p>;

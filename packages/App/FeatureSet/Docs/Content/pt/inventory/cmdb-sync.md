@@ -59,7 +59,7 @@ Abra **Configurações do projeto → Avançado → Chaves de API** e clique em 
 
 ### Dar a ela só o que precisa
 
-Uma exportação somente leitura precisa de uma única permissão, **Read Telemetry Service**: o inventário compartilha as permissões de telemetria em vez de ter as suas. Na página da chave, clique em **Adicionar permissão** e escolha-a. Para gravar valores de volta, adicione também **Edit Telemetry Service**.
+Uma exportação somente leitura precisa de uma única permissão, **Read Inventory Item**: o inventário compartilha as permissões de telemetria em vez de ter as suas. Na página da chave, clique em **Adicionar permissão** e escolha-a. Para gravar valores de volta, adicione também **Edit Inventory Item**.
 
 ### Copiar a chave
 
@@ -232,9 +232,9 @@ Um item que desaparece entre execuções expirou (um item descoberto que ficou e
 
 ## Gravar de volta
 
-Os mesmos endpoints aceitam gravações, então uma sincronização pode enviar valores para `customFields`: por exemplo, a etiqueta de ativo que o seu CMDB já mantém, carimbada no item correspondente do OneUptime. A chave precisa de **Edit Telemetry Service** para isso.
+Os mesmos endpoints aceitam gravações, então uma sincronização pode enviar valores para `customFields`: por exemplo, a etiqueta de ativo que o seu CMDB já mantém, carimbada no item correspondente do OneUptime. A chave precisa de **Edit Inventory Item** para isso.
 
-Você também pode adicionar itens para coisas que o OneUptime não vê, com `POST /api/inventory-item`, um `entityType` de `external.service`, `external.database` ou `appliance` e um `displayName`. O OneUptime calcula a chave de identidade para você, e esses itens nunca expiram. A chave precisa de **Create Telemetry Service** para isso.
+Você também pode adicionar itens para coisas que o OneUptime não vê, com `POST /api/inventory-item`, um `entityType` de `external.service`, `external.database` ou `appliance` e um `displayName`. O OneUptime calcula a chave de identidade para você, e esses itens nunca expiram. A chave precisa de **Create Inventory Item** para isso.
 
 ## Solução de problemas
 
@@ -243,7 +243,7 @@ No OneUptime Cloud, as chaves de API só funcionam enquanto o projeto está no p
 :::
 
 :::details Toda requisição responde 422 You do not have permissions
-A chave não tem nenhuma permissão que leia o inventário. Uma chave criada com **Escolher as permissões depois** não pode fazer nada até receber uma: adicione **Read Telemetry Service** na página dela, como em [Antes de começar](#antes-de-começar).
+A chave não tem nenhuma permissão que leia o inventário. Uma chave criada com **Escolher as permissões depois** não pode fazer nada até receber uma: adicione **Read Inventory Item** na página dela, como em [Antes de começar](#antes-de-começar).
 :::
 
 :::details A lista volta sem as colunas de que preciso

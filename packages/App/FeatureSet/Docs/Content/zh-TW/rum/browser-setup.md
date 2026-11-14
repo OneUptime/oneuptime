@@ -26,7 +26,7 @@ flowchart TB
 
 - 一個可以修改程式碼並重新部署、透過 npm 安裝相依套件的 Web 應用程式。
 - 提供頁面的來源，例如 `https://app.example.com` 。Browser 金鑰只接受來自其所列來源的請求。
-- 可以建立擷取金鑰的角色：專案擁有者和管理員可以建立，具有 **Create Telemetry Ingestion Key** 權限的任何人也可以。
+- 可以建立擷取金鑰的角色：專案擁有者和管理員可以建立，具有 Create Ingestion Key 權限的任何人也可以。
 
 ## 設定步驟
 

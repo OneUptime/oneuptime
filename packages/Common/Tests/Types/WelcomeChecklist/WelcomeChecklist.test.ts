@@ -26,7 +26,16 @@ import {
   isWelcomeStepDone,
   needsOnCallRuleCheck,
   shouldAskForGoals,
+  GOAL_PRODUCTS,
+  WELCOME_STEP_PRODUCTS,
+  isGoalOffOnServer,
+  isWelcomeStepOffOnServer,
 } from "../../../Types/WelcomeChecklist/WelcomeChecklist";
+import ProductKey from "../../../Types/Product/ProductKey";
+import {
+  ServerProductsPreset,
+  getOffByPreset,
+} from "../../../Types/Product/ServerProducts";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -699,5 +708,137 @@ describe("the checklist before this one", () => {
     ["policies", { ...COMPLETE, onCallPolicies: 0 }],
   ])("was not without %s", (_name: string, counts: typeof COMPLETE) => {
     expect(isLegacyChecklistComplete(counts)).toBe(false);
+  });
+});
+
+/*
+ * Home never asks for what this server does not run (#6815): a step whose
+ * product is switched off on the server is not on the checklist, and a goal
+ * whose product is off is not offered.
+ */
+describe("products switched off on the server", () => {
+  test("every step and goal says the products it is done in", () => {
+    expect(Object.keys(WELCOME_STEP_PRODUCTS).sort()).toEqual(
+      [...WELCOME_STEP_ORDER].sort(),
+    );
+    expect(Object.keys(GOAL_PRODUCTS).sort()).toEqual(
+      [...PROJECT_GOALS].sort(),
+    );
+    expect(WELCOME_STEP_PRODUCTS[WelcomeStep.StatusPage]).toEqual([
+      ProductKey.StatusPages,
+    ]);
+    expect(WELCOME_STEP_PRODUCTS[WelcomeStep.Team]).toEqual([]);
+  });
+
+  test("a step of a product that is off is left out; the others keep their order", () => {
+    const checklist: WelcomeChecklist = buildWelcomeChecklist({
+      goals: [],
+      facts: NOTHING,
+      plan: { isFreePlan: false },
+      readerIsServerAdmin: false,
+      offProducts: [ProductKey.StatusPages],
+    });
+
+    expect(stepsOf(checklist)).toEqual([
+      WelcomeStep.Monitor,
+      WelcomeStep.OnCall,
+      WelcomeStep.Team,
+    ]);
+    expect(checklist.totalCount).toBe(3);
+  });
+
+  test("the telemetry step goes while ingestion is stopped", () => {
+    const checklist: WelcomeChecklist = buildWelcomeChecklist({
+      goals: [ProjectGoal.Telemetry, ProjectGoal.Uptime],
+      facts: NOTHING,
+      plan: { isFreePlan: false },
+      readerIsServerAdmin: false,
+      offProducts: [
+        ProductKey.Logs,
+        ProductKey.Metrics,
+        ProductKey.Traces,
+        ProductKey.Profiles,
+        ProductKey.Exceptions,
+      ],
+    });
+
+    expect(stepsOf(checklist)).not.toContain(WelcomeStep.Telemetry);
+    expect(stepsOf(checklist)).toContain(WelcomeStep.Monitor);
+  });
+
+  test("the Monitoring and status pages preset keeps the four steps the checklist always had", () => {
+    expect(
+      stepsOf(
+        buildWelcomeChecklist({
+          goals: [],
+          facts: NOTHING,
+          plan: { isFreePlan: false },
+          readerIsServerAdmin: false,
+          offProducts: getOffByPreset(
+            ServerProductsPreset.MonitoringAndStatusPages,
+          ),
+        }),
+      ),
+    ).toEqual([...DEFAULT_WELCOME_STEPS]);
+  });
+
+  test("nothing off changes nothing", () => {
+    const without: WelcomeChecklist = buildWelcomeChecklist({
+      goals: [ProjectGoal.Infrastructure],
+      facts: NOTHING,
+      plan: { isFreePlan: false },
+      readerIsServerAdmin: false,
+    });
+    const withNothingOff: WelcomeChecklist = buildWelcomeChecklist({
+      goals: [ProjectGoal.Infrastructure],
+      facts: NOTHING,
+      plan: { isFreePlan: false },
+      readerIsServerAdmin: false,
+      offProducts: [],
+    });
+
+    expect(withNothingOff).toEqual(without);
+  });
+
+  test("the server's email step stays: it is no product's", () => {
+    expect(
+      stepsOf(
+        buildWelcomeChecklist({
+          goals: [ProjectGoal.StatusPage],
+          facts: facts({ serverCanSendEmail: false }),
+          plan: { isFreePlan: false },
+          readerIsServerAdmin: true,
+          offProducts: [ProductKey.StatusPages],
+        }),
+      ),
+    ).toEqual([WelcomeStep.ServerEmail, WelcomeStep.Monitor]);
+  });
+
+  test("a goal whose product is off is not offered; Import and Explore always are", () => {
+    expect(
+      isGoalOffOnServer(ProjectGoal.StatusPage, [ProductKey.StatusPages]),
+    ).toBe(true);
+    expect(isGoalOffOnServer(ProjectGoal.Telemetry, [ProductKey.Traces])).toBe(
+      true,
+    );
+    expect(
+      isGoalOffOnServer(ProjectGoal.Uptime, [ProductKey.StatusPages]),
+    ).toBe(false);
+
+    const everythingOff: Array<ProductKey> = getOffByPreset(
+      ServerProductsPreset.MonitoringAndStatusPages,
+    ).concat([ProductKey.Monitors, ProductKey.OnCall, ProductKey.StatusPages]);
+
+    expect(isGoalOffOnServer(ProjectGoal.Import, everythingOff)).toBe(false);
+    expect(isGoalOffOnServer(ProjectGoal.Explore, everythingOff)).toBe(false);
+  });
+
+  test("isWelcomeStepOffOnServer asks each product of the step", () => {
+    expect(
+      isWelcomeStepOffOnServer(WelcomeStep.Telemetry, [ProductKey.Services]),
+    ).toBe(true);
+    expect(
+      isWelcomeStepOffOnServer(WelcomeStep.Team, [ProductKey.Monitors]),
+    ).toBe(false);
   });
 });

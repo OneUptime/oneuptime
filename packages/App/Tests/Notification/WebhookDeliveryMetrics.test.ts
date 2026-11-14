@@ -6,6 +6,11 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import UserNotificationStatus from "Common/Types/UserNotification/UserNotificationStatus";
+import OnCallTimelineRows, {
+  StoredOnCallNotification,
+} from "Common/Tests/Server/TestingUtils/OnCallTimelineRows";
+import { STUCK_NOTIFICATION_STATUS_MESSAGE } from "Common/Server/Utils/OnCall/OnCallNotificationStatus";
 import API from "Common/Utils/API";
 import {
   afterEach,
@@ -79,6 +84,9 @@ const TIMELINE_ID: ObjectID = new ObjectID(
 
 let post: SpyInstance<typeof API.post>;
 
+// The page's on-call log row (OnCallTimelineRows).
+let timeline: OnCallTimelineRows;
+
 function send(
   url: string = "https://hooks.example.com/oneuptime",
 ): Promise<void> {
@@ -112,9 +120,10 @@ beforeEach(() => {
       new HTTPResponse<JSONObject>(200, { ok: true }, {}) as never,
     ) as unknown as SpyInstance<typeof API.post>;
   jest.spyOn(WebhookLogService, "create").mockResolvedValue({} as never);
-  jest
-    .spyOn(UserOnCallLogTimelineService, "updateOneById")
-    .mockResolvedValue(undefined as never);
+  // The page's on-call log row, written over Sending only.
+  timeline = new OnCallTimelineRows();
+  timeline.add(TIMELINE_ID, UserNotificationStatus.Sending);
+  timeline.standIn(UserOnCallLogTimelineService);
 });
 
 afterEach(() => {
@@ -170,4 +179,156 @@ describe("a webhook", () => {
     expect(post).not.toHaveBeenCalled();
     expect(onlySend()["outcome"]).toBe("failure");
   });
+});
+
+/*
+ * THE PAGE'S ON-CALL TIMELINE ENTRY (issue #7082). The send's result is
+ * written over Sending only - or over the stuck check's verdict, the
+ * result come late - at the version it read (recordSendResult): the person
+ * may have acknowledged or escalated the page meanwhile, from another of
+ * its messages, and their answer stays.
+ */
+describe("a webhook's on-call timeline entry", () => {
+  // What the person answered the page with, from another of its messages.
+  const ANSWERS: Array<{ status: UserNotificationStatus; message: string }> = [
+    {
+      status: UserNotificationStatus.Acknowledged,
+      message: "Notification Acknowledged",
+    },
+    {
+      status: UserNotificationStatus.PassedOn,
+      message: "Escalated from this notification.",
+    },
+  ];
+
+  interface WebhookOutcome {
+    name: string;
+    // The endpoint answers so, and the webhook is sent.
+    send: () => Promise<void>;
+    status: UserNotificationStatus;
+    statusMessage: string;
+  }
+
+  const OUTCOMES: Array<WebhookOutcome> = [
+    {
+      name: "delivered",
+      send: async (): Promise<void> => {
+        await send();
+      },
+      status: UserNotificationStatus.Sent,
+      statusMessage: "Webhook delivered successfully (HTTP 200).",
+    },
+    {
+      name: "answered with an error",
+      send: async (): Promise<void> => {
+        post.mockResolvedValue(
+          new HTTPErrorResponse(500, { message: "boom" }, {}) as never,
+        );
+        await send();
+      },
+      status: UserNotificationStatus.Error,
+      statusMessage: "Webhook endpoint returned status 500.",
+    },
+    {
+      name: "not reached",
+      send: async (): Promise<void> => {
+        post.mockRejectedValue(new Error("connect ECONNREFUSED") as never);
+        await expect(send()).rejects.toThrow("ECONNREFUSED");
+      },
+      status: UserNotificationStatus.Error,
+      statusMessage: "connect ECONNREFUSED",
+    },
+  ];
+
+  test.each(OUTCOMES)(
+    "a webhook $name, while its entry still says Sending: the entry says so",
+    async (outcome: WebhookOutcome) => {
+      await outcome.send();
+
+      expect(timeline.get(TIMELINE_ID)).toMatchObject({
+        status: outcome.status,
+        statusMessage: outcome.statusMessage,
+        version: 2,
+      });
+      expect(timeline.writes).toEqual([
+        {
+          id: TIMELINE_ID.toString(),
+          data: {
+            status: outcome.status,
+            statusMessage: outcome.statusMessage,
+          },
+        },
+      ]);
+    },
+  );
+
+  test.each(
+    ANSWERS.flatMap(
+      (answer: { status: UserNotificationStatus; message: string }) => {
+        return OUTCOMES.map((outcome: WebhookOutcome) => {
+          return {
+            answer: answer.status,
+            answerMessage: answer.message,
+            outcomeName: outcome.name,
+            outcome: outcome,
+          };
+        });
+      },
+    ),
+  )(
+    "a page already $answer, then a webhook $outcomeName: the answer stays",
+    async (row: {
+      answer: UserNotificationStatus;
+      answerMessage: string;
+      outcome: WebhookOutcome;
+    }) => {
+      timeline.add(TIMELINE_ID, row.answer, {
+        statusMessage: row.answerMessage,
+      });
+
+      await row.outcome.send();
+
+      expect(timeline.get(TIMELINE_ID)).toMatchObject({
+        status: row.answer,
+        statusMessage: row.answerMessage,
+        version: 1,
+      });
+      expect(timeline.writes).toEqual([]);
+    },
+  );
+
+  test.each(OUTCOMES)(
+    "a webhook $name after the stuck check settled its entry: its own result, come late, replaces the verdict",
+    async (outcome: WebhookOutcome) => {
+      timeline.add(TIMELINE_ID, UserNotificationStatus.Error, {
+        statusMessage: STUCK_NOTIFICATION_STATUS_MESSAGE,
+      });
+
+      await outcome.send();
+
+      expect(timeline.get(TIMELINE_ID)).toMatchObject({
+        status: outcome.status,
+        statusMessage: outcome.statusMessage,
+        version: 2,
+      });
+    },
+  );
+
+  test.each(OUTCOMES)(
+    "a webhook $name, acknowledged between the send's read of its entry and its write: the acknowledgement stays",
+    async (outcome: WebhookOutcome) => {
+      timeline.whenRead((row: StoredOnCallNotification) => {
+        row.status = UserNotificationStatus.Acknowledged;
+        row.statusMessage = "Notification Acknowledged";
+      });
+
+      await outcome.send();
+
+      expect(timeline.get(TIMELINE_ID)).toMatchObject({
+        status: UserNotificationStatus.Acknowledged,
+        statusMessage: "Notification Acknowledged",
+      });
+      expect(timeline.writes).toEqual([]);
+    },
+  );
 });

@@ -1546,6 +1546,29 @@ describe("turning them on", () => {
     expect(Telemetry.getHeaders()).toEqual({});
   });
 
+  it("writes each header as name=value, several separated by ';', a value holding '=' as the exporter reads them", () => {
+    const turnOn: string = section("## Turn them on");
+
+    expect(turnOn).toContain(
+      "Write each header as `name=value`, and separate several with `;`. A value may hold `=`.",
+    );
+
+    /*
+     * A Basic Authorization value ends in base64 padding: the header is read
+     * up to its first '=' as the name, and the rest, padding and all, as the
+     * value - as the page promises.
+     */
+    process.env["OPENTELEMETRY_EXPORTER_OTLP_HEADERS"] =
+      "Authorization=Basic dXNlcjpwYXNzd29yZA==;x-oneuptime-token=key";
+
+    expect(Telemetry.getHeaders()).toEqual({
+      Authorization: "Basic dXNlcjpwYXNzd29yZA==",
+      "x-oneuptime-token": "key",
+    });
+
+    delete process.env["OPENTELEMETRY_EXPORTER_OTLP_HEADERS"];
+  });
+
   it("lets the environment pick the temporality: the exporter is given none, and reads delta", () => {
     const exporterCall: string = balancedFrom(
       telemetry,
@@ -1634,10 +1657,10 @@ describe("turning them on", () => {
     expect(exporter).toMatch(/^ {2}endpoint:/m);
     expect(exporter).toMatch(/^ {2}headers:/m);
     expect(common).toContain(
-      "- name: OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT\n  value: {{ $.Values.openTelemetryExporter.endpoint }}",
+      '- name: OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT\n  value: {{ include "oneuptime.envValue" $.Values.openTelemetryExporter.endpoint }}',
     );
     expect(common).toContain(
-      "- name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS\n  value: {{ $.Values.openTelemetryExporter.headers }}",
+      '- name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS\n  value: {{ include "oneuptime.envValue" $.Values.openTelemetryExporter.headers }}',
     );
 
     for (const service of ["app", "worker"]) {
@@ -2047,5 +2070,40 @@ describe("the page's words", () => {
     expect(blocks[0]?.body).toContain("`OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT`");
     expect(blocks[0]?.body).toContain("`OPENTELEMETRY_EXPORTER_OTLP_HEADERS`");
     expect(blocks[0]?.body).toContain("`DISABLE_TELEMETRY_FOR_APP`");
+  });
+
+  it("says OneUptime warns as it starts about a header it cannot read, and when it sends nothing, as Telemetry does", () => {
+    const body: string = detailsBlocks(PAGE)[0]?.body || "";
+    const telemetry: string = readCommonSource("Server/Utils/Telemetry.ts");
+    const init: string = telemetry.slice(
+      telemetry.indexOf("public static init("),
+      telemetry.indexOf("public static getLogger("),
+    );
+
+    expect(body).toContain(
+      "As it starts, OneUptime logs a warning when it cannot read a header, or when it sends nothing.",
+    );
+
+    /*
+     * init reads the headers as getHeaders() does, and warns about one it
+     * cannot read...
+     */
+    expect(init).toContain(
+      "const headersRead: OtlpExporterHeaders = this.readHeaders();",
+    );
+    expect(telemetry).toContain(
+      "const read: OtlpExporterHeaders = this.readHeaders();",
+    );
+    expect(init).toContain("this.warnAboutUnreadableHeaders(headersRead);");
+    expect(telemetry).toContain(
+      "const unreadable: string | null = describeUnreadableOtlpHeaders(read);",
+    );
+    expect(telemetry).toContain("logger.error(unreadable, EXTERNAL_FAULT);");
+
+    // ...and says so when an endpoint is set but nothing is sent.
+    expect(init).toContain("if (this.getOtlpEndpoint() && !hasHeaders) {");
+    expect(init).toContain(
+      "logger.error(NOTHING_EXPORTED_WITHOUT_A_HEADER, EXTERNAL_FAULT);",
+    );
   });
 });

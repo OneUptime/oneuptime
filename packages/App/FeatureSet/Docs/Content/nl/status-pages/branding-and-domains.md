@@ -2,6 +2,9 @@
 
 Uw statuspagina is het enige scherm van OneUptime waar uw klanten naar kijken, dus het moet eruitzien als het uwe en op uw eigen domein staan, zoals `status.yourcompany.com`. Deze pagina loopt de pagina **Huisstijl** kaart voor kaart door en zet daarna de statuspagina op uw domein: voeg het domein toe, voeg zijn DNS-records toe, en het gratis SSL-certificaat volgt vanzelf.
 
+> [!TIP]
+> Nieuw hier? Volg eerst de handleiding: [Een statuspagina publiceren](/docs/guides/status-page).
+
 :::cards
 - [De pagina Huisstijl](#de-pagina-huisstijl): Logo, thema, titel, favicon, links, footer, kleuren en talen.
 - [Aangepaste HTML, CSS en JavaScript](#aangepaste-html-css-en-javascript): Alles wat de ingebouwde instellingen niet dekken.

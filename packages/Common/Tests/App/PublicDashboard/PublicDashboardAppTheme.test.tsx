@@ -357,9 +357,18 @@ describe("a failure that is not an answer", () => {
 
     renderApp();
 
+    /*
+     * A bare "Server Error" says only that the read failed: since #6836 it is
+     * said as a problem the server could not explain.
+     */
     expect(
-      await screen.findByText("Server Error", undefined, { timeout: 15000 }),
+      await screen.findByText(
+        "The server ran into a problem it could not explain. Try again in a moment.",
+        undefined,
+        { timeout: 15000 },
+      ),
     ).toBeTruthy();
+    expect(screen.queryByText("Server Error")).toBeNull();
     expect(DashboardThemeUtil.getDashboardTheme()).toBe(DashboardTheme.Dark);
   });
 });

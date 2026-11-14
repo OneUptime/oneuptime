@@ -54,7 +54,7 @@ import WorkspaceType, {
   getWorkspaceTypeDisplayName,
 } from "../../Types/Workspace/WorkspaceType";
 import ColumnLength from "../../Types/Database/ColumnLength";
-import ProductBrandingText from "../Utils/ProductBrandingText";
+import WorkspaceChannelNotFound from "../Utils/Workspace/WorkspaceChannelNotFound";
 import { WorkspaceSummaryTestChannel } from "../../Types/Workspace/NotificationSummary/WorkspaceSummaryTestChannel";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -74,6 +74,11 @@ import WorkspaceSummaryScheduleUtil, {
   WorkspaceSummaryScheduleColumns,
   WorkspaceSummaryScheduleWrite,
 } from "../../Utils/Workspace/WorkspaceSummarySchedule";
+import WorkspaceSummarySetup, {
+  DEFAULT_LOOKBACK_DAYS,
+  LOOKBACK_DAYS_COLUMN,
+  WorkspaceSummaryNotSendableException,
+} from "../../Utils/Workspace/WorkspaceSummarySetup";
 import Timezone from "../../Types/Timezone";
 import User from "../../Models/DatabaseModels/User";
 import UserService from "./UserService";
@@ -267,6 +272,32 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       string,
       unknown
     >;
+
+    /*
+     * A summary with no channel to post in, or nothing to include, could
+     * never be sent: refused, as the report worker would only skip it
+     * (WorkspaceSummarySetup). Channel names typed as one text are saved
+     * as the list they name. A Lookback Period that is not 1 to 365 whole
+     * days is refused in the field's words; text spelling one is saved as
+     * the number.
+     */
+    const setupProblem: string | null =
+      WorkspaceSummarySetup.normalizeWrite(data);
+
+    if (setupProblem) {
+      throw new BadDataException(setupProblem);
+    }
+
+    /*
+     * A summary created without a Lookback Period - through the API; the
+     * dashboard's form starts on 7 - covers the last 7 days, as the column
+     * defaults to and as a weekly summary does. It was refused as
+     * "numberOfDaysOfData is required".
+     */
+    if (data[LOOKBACK_DAYS_COLUMN] === undefined) {
+      data[LOOKBACK_DAYS_COLUMN] = DEFAULT_LOOKBACK_DAYS;
+    }
+
     const write: WorkspaceSummaryScheduleColumns = getScheduleColumns(data);
 
     const problem: string | null =
@@ -340,6 +371,18 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       string,
       unknown
     >;
+
+    /*
+     * As on create: channels and items it writes are never left empty, and
+     * a Lookback Period it writes is 1 to 365 whole days.
+     */
+    const setupProblem: string | null =
+      WorkspaceSummarySetup.normalizeWrite(data);
+
+    if (setupProblem) {
+      throw new BadDataException(setupProblem);
+    }
+
     const write: WorkspaceSummaryScheduleColumns = getScheduleColumns(data);
 
     if (!WorkspaceSummaryScheduleUtil.isRescheduleWrite(write)) {
@@ -668,21 +711,43 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       throw new BadDataException("Summary not found");
     }
 
-    if (!summary.projectId) {
-      throw new BadDataException("Summary project ID not found");
-    }
-
+    /*
+     * Its channels as a list, however they were stored: the text the
+     * dashboard's edit form once saved them as was posted in letter by
+     * letter.
+     */
     const channelNames: Array<string> = Service.getChannelNamesToPostIn({
       workspaceType: summary.workspaceType,
-      channelNames: summary.channelNames || [],
+      channelNames: WorkspaceSummarySetup.readChannelNames(
+        summary.channelNames,
+      ),
     });
 
-    if (channelNames.length === 0) {
-      throw new BadDataException("No channel names configured for summary");
-    }
+    /*
+     * A summary that cannot be sent as it is set up - no project, no
+     * channel, nothing to include - is not sent, and is said to be so: a
+     * scheduled send leaves an Error row in its Notification Logs, and
+     * the report worker, seeing this exception, leaves its next send moved
+     * on rather than trying it again every minute (#7116).
+     */
+    const setupProblem: string | null = WorkspaceSummarySetup.getSendProblem({
+      hasProject: Boolean(summary.projectId),
+      channelNames: channelNames,
+      summaryItems: WorkspaceSummarySetup.readSummaryItems(
+        summary.summaryItems,
+      ),
+    });
 
-    if (!summary.summaryItems || summary.summaryItems.length === 0) {
-      throw new BadDataException("No summary items selected");
+    if (setupProblem) {
+      if (!data.isTest) {
+        await this.logSummaryNotSendable({
+          summaryId: data.summaryId,
+          summary: summary,
+          reason: setupProblem,
+        });
+      }
+
+      throw new WorkspaceSummaryNotSendableException(setupProblem);
     }
 
     const messageBlocks: Array<WorkspaceMessageBlock> =
@@ -891,7 +956,13 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
     const teamName: string = (summary.teamName || "").trim();
     const projectId: ObjectID = summary.projectId!;
 
-    if (await BlockedProjectNotifications.isBlocked(projectId)) {
+    // Nor for a sample project (issue #6808), which posts nothing.
+    if (
+      await BlockedProjectNotifications.getSilencedReason({
+        channel: "Workspace message",
+        projectId: projectId,
+      })
+    ) {
       return { teamId: teamName || undefined };
     }
 
@@ -1080,6 +1151,47 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
   }
 
   /*
+   * The Notification Log of a scheduled send of a summary that cannot be
+   * sent as it is set up: one Error row, in no channel, saying why. The
+   * project sees why its summary never arrives; the send itself still
+   * fails (sendSummary). A summary with no project has nowhere to log.
+   *
+   * Its message is the one a channel's failure has, without the channel
+   * (logSummaryInChannel): "Failed to send Incident summary "Weekly"", and
+   * why is its status message, as a channel's reason is.
+   */
+  private async logSummaryNotSendable(data: {
+    summaryId: ObjectID;
+    summary: WorkspaceNotificationSummary;
+    reason: string;
+  }): Promise<void> {
+    if (!data.summary.projectId) {
+      return;
+    }
+
+    const summaryLabel: string = `${data.summary.summaryType || ""} summary "${data.summary.name || "Untitled"}"`;
+
+    try {
+      await WorkspaceNotificationLogService.createWorkspaceLog(
+        {
+          projectId: data.summary.projectId,
+          workspaceType: data.summary.workspaceType!,
+          actionType: WorkspaceNotificationActionType.SendMessage,
+          status: WorkspaceNotificationStatus.Error,
+          statusMessage: data.reason.substring(0, ColumnLength.LongText),
+          message: `Failed to send ${summaryLabel}`,
+        },
+        { isRoot: true },
+      );
+    } catch (err) {
+      logger.error(
+        `Could not write the Notification Log of the workspace summary ${data.summaryId.toString()}, which cannot be sent as it is set up.`,
+      );
+      logger.error(err);
+    }
+  }
+
+  /*
    * The channels a summary is posted in: each it names, once, in its
    * order, and none left empty. Two names the workspace reads as one
    * channel - "#ops" and "ops" in Slack, "~ops" and "ops" in Mattermost,
@@ -1196,16 +1308,21 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
 
   /*
    * Why the summary was not posted in a channel its workspace said nothing
-   * of. Slack leaves out a channel it cannot find - renamed, deleted, or
-   * private without the bot in it - where Microsoft Teams and Mattermost
-   * say so (SlackUtil.sendMessage).
+   * of. Each workspace now says when it cannot find a channel - Slack too,
+   * in the words this gives back (WorkspaceChannelNotFound, #7115), which
+   * the summary then reports once, as the channel's own reason - so a Slack
+   * channel that drew no answer at all is still taken for one Slack could
+   * not find.
    */
   public static getChannelNotPostedReason(data: {
     workspaceType: WorkspaceType;
     channelName: string;
   }): string {
     if (data.workspaceType === WorkspaceType.Slack) {
-      return `The Slack channel ${data.channelName} was not found. If it is a private channel, invite ${ProductBrandingText.getProductName()}'s bot to it in Slack.`;
+      return WorkspaceChannelNotFound.getReason({
+        workspaceType: WorkspaceType.Slack,
+        channelName: data.channelName,
+      });
     }
 
     const workspace: string = getWorkspaceTypeDisplayName(data.workspaceType);
@@ -1730,7 +1847,13 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
     const blocks: Array<WorkspaceMessageBlock> = [];
     const items: Array<WorkspaceNotificationSummaryItem> =
       summary.summaryItems!;
-    const days: number = summary.numberOfDaysOfData || 7;
+    /*
+     * The days it covers: a summary stored with less than a day - before
+     * writes were checked - covers 7, never a window in the future.
+     */
+    const days: number = WorkspaceSummarySetup.getLookbackDays(
+      summary.numberOfDaysOfData,
+    );
     const type: WorkspaceNotificationSummaryType = summary.summaryType!;
 
     const fromDate: Date = OneUptimeDate.addRemoveDays(

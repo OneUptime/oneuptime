@@ -4,10 +4,8 @@ import {
   DISCORD,
   GITHUB,
   GITLAB,
-  INTEGRATIONS_PAGES,
   IRC,
   ISSUE_PAGES,
-  IntegrationsDocsPageEntry,
   OPSGENIE,
   OVERVIEW,
   PAGERDUTY,
@@ -20,7 +18,7 @@ import {
   readPage,
   scanMarkdown,
 } from "./DocsContentSupport";
-import { dashboardLabel, drawnActionLabel } from "./DocsDashboardLabels";
+import { drawnActionLabel } from "./DocsDashboardLabels";
 import {
   bold,
   boldIn,
@@ -1129,7 +1127,7 @@ describe("Run Workflow: the trigger's record, picked rather than typed", () => {
  * Every integrations page, in every language: a line that names the Run
  * Workflow button picks the record under the field the Run panel draws for
  * the page's trigger, each named as the page names the Dashboard's labels
- * in that language (labelOnPage), and never asks for an Incident ID or an
+ * in that language (drawnActionLabel), and never asks for an Incident ID or an
  * Alert ID.
  */
 
@@ -1164,26 +1162,6 @@ const TRIGGER_TITLES: ReadonlyArray<string> = catalog.components
   .map((metadata: ComponentMetadata): string => {
     return metadata.title;
   });
-
-/*
- * A Dashboard label as a page in a language names it. The pages tasks 28a
- * to 28c rewrote (INTEGRATIONS_PAGES) name every label as that language's
- * Dashboard draws it, Persian included, which IntegrationsDocsTranslations
- * holds. The integrations page with a suite of its own, IRC, keeps the
- * Persian page's labels in English, which IrcIntegrationDocs holds
- * (dashboardLabel).
- */
-function labelOnPage(page: string, language: string, english: string): string {
-  const drawnOnThisPage: boolean = INTEGRATIONS_PAGES.some(
-    (entry: IntegrationsDocsPageEntry): boolean => {
-      return entry.page === page;
-    },
-  );
-
-  return drawnOnThisPage
-    ? drawnActionLabel(language, english)
-    : dashboardLabel(language, english);
-}
 
 // What a language's integrations pages say wrong about Run Workflow, by line.
 function runWorkflowProblems(language: string): {
@@ -1237,11 +1215,9 @@ function runWorkflowProblems(language: string): {
         }
 
         const field: string = bold(
-          labelOnPage(page, language, runRecordField(entry.trigger)),
+          drawnActionLabel(language, runRecordField(entry.trigger)),
         );
-        const button: string = bold(
-          labelOnPage(page, language, "Run Workflow"),
-        );
+        const button: string = bold(drawnActionLabel(language, "Run Workflow"));
 
         if (!line.includes(button)) {
           problems.push(`${where} does not name the button as ${button}`);
@@ -1273,15 +1249,14 @@ describe("Run Workflow on every integrations page, in every language", () => {
     // The two triggers these pages run, and the fields they draw.
     expect(runRecordField("incident-on-create")).toBe("Incident");
     expect(runRecordField("alert-on-create")).toBe("Alert");
-    expect(labelOnPage(OPSGENIE, "de", "Incident")).toBe("Vorfall");
-    expect(labelOnPage(TELEGRAM, "ja", "Alert")).toBe("アラート");
-    // Persian: drawn on the rewritten pages, in English on IRC's.
-    expect(labelOnPage(OVERVIEW, "fa", "Incident")).toBe(
-      drawnActionLabel("fa", "Incident"),
-    );
-    expect(labelOnPage(OVERVIEW, "fa", "Incident")).not.toBe("Incident");
-    expect(labelOnPage(IRC, "fa", "Incident")).toBe("Incident");
-    expect(labelOnPage(IRC, "de", "Incident")).toBe("Vorfall");
+    expect(drawnActionLabel("de", "Incident")).toBe("Vorfall");
+    expect(drawnActionLabel("ja", "Alert")).toBe("アラート");
+    /*
+     * Persian too, on every integrations page, IRC's included: the Persian
+     * Dashboard draws the field in Persian.
+     */
+    expect(drawnActionLabel("fa", "Incident")).not.toBe("Incident");
+    expect(drawnActionLabel("fa", "Run Workflow")).not.toBe("Run Workflow");
   });
 
   it("the pages left out run a trigger that asks for no record", () => {

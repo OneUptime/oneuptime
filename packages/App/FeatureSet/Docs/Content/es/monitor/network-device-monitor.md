@@ -190,7 +190,7 @@ Cada lugar que muestra un dispositivo — la lista de dispositivos, la página D
 | --- | --- |
 | **Activo** | El último sondeo (ping o SNMP), o el monitor vinculado, alcanzó el dispositivo. |
 | **Caído** | El último sondeo (ping o SNMP), o el monitor vinculado, no pudo alcanzar el dispositivo. |
-| **Pendiente** | Aún no hay veredicto: nunca sondeado, sin sonda asignada o sin monitor vinculado. |
+| **Pendiente** | Aún no hay veredicto: nunca sondeado, sin sonda asignada, sin monitor vinculado, o el monitor vinculado está desactivado o archivado. |
 
 | Calificativo | Aparece cuando | Qué hacer |
 | --- | --- | --- |
@@ -198,6 +198,8 @@ Cada lugar que muestra un dispositivo — la lista de dispositivos, la página D
 | **Sin sonda** | El dispositivo se sondea por sonda pero no tiene ninguna, o su sondeo está desactivado. | Asigna una sonda que pueda alcanzarlo; nada lo sondea hasta entonces. |
 | **Sin monitor** | El dispositivo usa la [anulación con monitor vinculado](#la-anulación-con-monitor-vinculado) y no hay nada vinculado. | Vincula un monitor, o vuelve a ponerlo en sondeo por sonda. |
 | **SNMP fallando** | Activo por ping, pero el último recorrido SNMP falló. | Comprueba las credenciales, el agente SNMP o una ACL. |
+| **Monitoreo desactivado** | El monitoreo del monitor vinculado está desactivado, así que el dispositivo muestra **Pendiente** en lugar del estado en que quedó el monitor. | Vuelve a activar el monitoreo del monitor, o vincula otro monitor. |
+| **Monitor archivado** | El monitor vinculado está archivado, así que el dispositivo muestra **Pendiente** en lugar del estado en que quedó el monitor. | Desarchiva el monitor, o vincula otro monitor. |
 
 La lista **Dispositivos** tiene un filtro **SNMP** con tres valores: **OK** (el último recorrido fue correcto), **Fallando** (el último recorrido falló) y **No configurado** (solo ping, sin credenciales o nunca sondeado). «Qué dispositivos tienen credenciales que dejaron de funcionar» está a un clic. La columna **Interfaces (activas / caídas)** de la lista muestra **Sin SNMP** en lugar de `0 / 0` para un dispositivo que recibe ping y nunca se recorre: cero puertos funcionando sería otra afirmación, y una falsa.
 

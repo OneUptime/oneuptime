@@ -6,6 +6,7 @@ import ProjectMembership from "./TeamMember/ProjectMembership";
 import VerificationCode from "./VerificationCode";
 import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
 import BadDataException from "../../Types/Exception/BadDataException";
+import { isEmptyErrorPhrase } from "../../Types/Exception/ErrorMessageRule";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import { JSONObject } from "../../Types/JSON";
 import VerificationCodeStatusJSON, {
@@ -119,6 +120,40 @@ export const RESEND_COOLDOWN_SECONDS: number = parsePositiveIntFromEnv(
   "NOTIFICATION_VERIFICATION_RESEND_COOLDOWN_SECONDS",
   60,
 );
+
+/*
+ * Why a code did not go out, when the service that should have sent it did
+ * not say why: it follows "The verification code was not sent to <number>."
+ */
+export const SEND_FAILURE_NOT_EXPLAINED: string =
+  "The message service did not say why. Try again in a moment.";
+
+/*
+ * What the verify dialog and its routes answer when a code cannot be
+ * checked or sent (#6836): what happened and what to do next, never "Item
+ * not found" or "Invalid code". A row that is not the caller's is answered
+ * exactly like one that does not exist, so the answer never says whether
+ * somebody else has the address or number.
+ */
+export const ChannelVerificationMessages: {
+  noItem: string;
+  noCode: string;
+  notSignedIn: string;
+  notFound: string;
+  alreadyVerified: string;
+  incorrectCode: string;
+} = {
+  noItem:
+    "The request did not say which notification method to verify. Reload the page and try again.",
+  noCode: "Enter the code from the message we sent.",
+  notSignedIn: "Sign in again, then verify this notification method.",
+  notFound:
+    "This notification method is not in your list any more. Add it again, then verify it.",
+  alreadyVerified:
+    "This notification method is already verified. You can close this dialog.",
+  incorrectCode:
+    "That code is not right. Enter the code from the latest message we sent, or send a new code.",
+};
 
 /*
  * The verification-related columns every channel model carries. Structural
@@ -571,9 +606,12 @@ export default class ChannelVerification {
 
     reason = (reason || "").trim();
 
-    // What the server says about a failure it does not explain.
-    if (!reason || reason === "Server Error") {
-      return "Something went wrong while sending it. Please try again in a moment.";
+    /*
+     * What a server says about a failure it does not explain: "Server
+     * Error", "Internal Server Error", nothing (ErrorMessageRule).
+     */
+    if (isEmptyErrorPhrase(reason)) {
+      return SEND_FAILURE_NOT_EXPLAINED;
     }
 
     const endsAsSentence: RegExp = /[.!?]$/;
@@ -778,11 +816,12 @@ export default class ChannelVerification {
     switch (outcome) {
       case ChannelVerificationOutcome.NotFound:
       case ChannelVerificationOutcome.NotProjectMember:
-        return new BadDataException("Item not found");
       case ChannelVerificationOutcome.NotOwner:
-        return new BadDataException("Invalid user ID");
+        return new BadDataException(ChannelVerificationMessages.notFound);
       case ChannelVerificationOutcome.AlreadyVerified:
-        return new BadDataException("This is already verified");
+        return new BadDataException(
+          ChannelVerificationMessages.alreadyVerified,
+        );
       case ChannelVerificationOutcome.Expired:
         return new BadDataException(
           "This verification code has expired. Please request a new code.",
@@ -792,7 +831,7 @@ export default class ChannelVerification {
           "Too many incorrect attempts. This verification code is no longer valid. Please request a new code.",
         );
       default:
-        return new BadDataException("Invalid code");
+        return new BadDataException(ChannelVerificationMessages.incorrectCode);
     }
   }
 

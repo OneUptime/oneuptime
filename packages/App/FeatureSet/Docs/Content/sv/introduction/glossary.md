@@ -42,13 +42,13 @@ Se [Skapa en monitor](/docs/monitor/create-monitor).
 
 En monitors regler: vad varje kontrollresultat betyder. De kontrolleras i ordning, och det första som matchar kan ändra monitorns status, deklarera en incident, skapa ett larm eller alla tre.
 
-Kallas även: **Övervakningskriterier**, **Monitorkriterier**, **Monitor Steps**. Se [Monitorkriterier och statusar](/docs/monitor/criteria-and-statuses).
+Kallas även: **Övervakningskriterier**, **Monitorkriterier**, **Monitor Steps**. Se [Kriterier och statusar](/docs/monitor/criteria-and-statuses).
 
 ### Monitorstatus
 
 Vad en monitor är just nu. Varje nytt projekt har tre monitorstatusar, **Fungerar**, **Försämrad** och **Offline**, och du kan lägga till egna.
 
-Se [Monitorkriterier och statusar](/docs/monitor/criteria-and-statuses).
+Se [Kriterier och statusar](/docs/monitor/criteria-and-statuses).
 
 ### Sond
 
@@ -90,7 +90,7 @@ Se [Eskaleringsregler](/docs/on-call/escalation-rules).
 
 Vem som har jour vid varje tidpunkt: personer turas om, och var och en lämnar över till nästa. En eskaleringsregel som larmar ett schema larmar den som har jour i det.
 
-Kallas även: **Rotation**. Se [Jourscheman](/docs/on-call/schedules).
+Kallas även: **Rotation**, **Jourschema för jourpolicy**. Se [Jourscheman](/docs/on-call/schedules).
 
 ### Lager
 
@@ -103,6 +103,12 @@ Se [Jourscheman](/docs/on-call/schedules#lager).
 En adress där OneUptime får nå dig i ett projekt: en e-postadress, ett telefonnummer för SMS eller samtal, ditt Slack- eller Microsoft Teams-konto, eller OneUptime-appen i din telefon. Var och en lägger till sina egna under **Användarinställningar**.
 
 Se [Aviseringsmetoder](/docs/notifications/notification-methods).
+
+### Så når man mig
+
+Dina egna regler för att bli larmad: vilka av dina aviseringsmetoder ett larm prövar, och efter hur lång tid. En stege täcker varje incident, larm och episod, och en allvarlighetsgrad kan ha egna regler. Var och en ställer in sina egna under **Användarinställningar**.
+
+Kallas även: **Personliga jourregler**. Se [Så når man mig](/docs/notifications/on-call-rules).
 
 ### Statussida
 
@@ -118,7 +124,7 @@ Se [Prenumeranter och meddelanden](/docs/status-pages/subscribers).
 
 ### Schemalagt underhåll
 
-Planerat arbete som meddelas i förväg. En händelse går igenom **Schemalagd**, **Pågående**, **Avslutad** och **Slutförd**, och statussidorna som den visas på berättar om den för besökare och prenumeranter.
+Planerat arbete som meddelas i förväg. Varje underhållshändelse går igenom underhållsstatusarna **Schemalagd**, **Pågående**, **Avslutad** och **Slutförd**, och statussidorna som den visas på berättar om den för besökare och prenumeranter.
 
 Kallas även: **Schemalagd underhållshändelse**, **Planerad händelse**, **Händelse**. Se [Schemalagt underhåll – Översikt](/docs/scheduled-maintenance/index).
 
@@ -140,7 +146,7 @@ Se [Monitorgrupper](/docs/monitor/monitor-groups).
 
 En applikation eller mikrotjänst som du kör. OneUptime lägger till den första gången dess telemetri kommer in, med namnet från dess `service.name`, och samlar dess loggar, spår, mätvärden, undantag, incidenter och ägare på en sida.
 
-Kallas även: **Tjänstekatalog**, **Telemetritjänst**. Se [Tjänstekatalog](/docs/telemetry/services).
+Kallas även: **Tjänstekatalog**, **Telemetritjänst**. Se [Tjänster](/docs/telemetry/services).
 
 ### Värd
 
@@ -256,7 +262,7 @@ Se [Etikett- och ägarregler](/docs/configuration/label-and-owner-rules).
 
 Ett fel som din kod kastar. OneUptime grupperar varje förekomst av samma fel i ett undantag, med dess stackspårning, dess trend och förfrågningarna som det inträffade i.
 
-Kallas även: **Undantagsspårning**, `/telemetry-exception`. Se [Undantagsspårning](/docs/telemetry/exceptions).
+Kallas även: **Undantagsspårning**, `/telemetry-exception`. Se [Undantag](/docs/telemetry/exceptions).
 
 ### AI-insikter
 
@@ -300,7 +306,7 @@ Se [Spårutforskare](/docs/telemetry/traces-explorer).
 
 Hur din applikation använder CPU-tid och minne, funktion för funktion, skickat av en profilerare som skickar till OneUptimes Pyroscope-kompatibla API.
 
-Kallas även: **Prestandaprofiler**, **Kontinuerlig profilering**. Se [Kontinuerlig profilering](/docs/telemetry/profiles).
+Kallas även: **Prestandaprofiler**, **Kontinuerlig profilering**. Se [Profiler](/docs/telemetry/profiles).
 
 ### AI / LLM
 
@@ -472,13 +478,13 @@ Se [Vilken ska jag använda?](/docs/introduction/which-one#sond-agent-collector-
 
 ### Jourregler
 
-Två olika saker. Under **Incidenter** och **Larm** väljer jourregler vilka jourpolicyer en ny incident eller ett nytt larm kör. Under **Användarinställningar** avgör dina egna jourregler vilka av dina aviseringsmetoder ett larm prövar, och efter hur lång tid.
+Under **Incidenter** och **Larm** väljer jourregler vilka jourpolicyer en ny incident eller ett nytt larm kör. En persons egna regler för hur ett larm når fram hette också jourregler: De heter nu **Så når man mig**, under **Användarinställningar**.
 
-Se [Incidentinställningar och automatisering](/docs/incidents/settings#jourregler-för-incidenter) och [Personliga jourregler](/docs/notifications/on-call-rules).
+Se [Incidentinställningar och automatisering](/docs/incidents/settings#jourregler-för-incidenter) och [Så når man mig](/docs/notifications/on-call-rules).
 
 ### Aviseringsinställningar
 
-Två olika sidor. Under **Användarinställningar**: vilka uppdateringar som når dig om det du äger, och i vilka kanaler. Under **Projektinställningar**: projektets reglage för SMS och samtal, dess meddelandesaldo och dess egen SMTP och Twilio.
+Under **Användarinställningar**: vilka uppdateringar som når dig om det du äger, och i vilka kanaler. Projektets reglage för SMS och samtal, dess meddelandesaldo och dess egen SMTP och Twilio hette också aviseringsinställningar: De heter nu **Aviseringskanaler**, under **Projektinställningar**.
 
 Se [Aviseringsinställningar](/docs/notifications/notification-settings).
 

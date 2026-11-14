@@ -50,6 +50,17 @@ const SCREENSHOTS: string = path.resolve(
   "../../../output/playwright/security-operations-ui",
 );
 
+/*
+ * A failed read whose answer says nothing ("Server Error", as the fixture's
+ * ?casesetup=fail answers) is one the server did not explain (#6836): a page
+ * says why and what to do next under its own words for what failed, and a
+ * line that shows the message as it is says both in one sentence.
+ */
+const UNEXPLAINED_WHY_AND_NEXT: string =
+  "The server ran into a problem it could not explain. Try again in a moment.";
+const UNEXPLAINED_MESSAGE: string =
+  "The server ran into a problem it could not explain, so this did not finish. Try again in a moment.";
+
 interface FixtureState {
   creates: Array<{ modelName: string; data: Record<string, unknown> }>;
   updates: Array<{
@@ -67,7 +78,16 @@ interface OpenOptions {
   theme?: "dark" | undefined;
   lang?: "de" | "fa" | undefined;
   // CaseSetupFixture.js's ?casesetup= scenarios.
-  caseSetup?: "none" | "fail" | undefined;
+  caseSetup?:
+    | "none"
+    | "fail"
+    | "fail-with-reference"
+    | "fail-twice"
+    | "notes-fail-with-reference"
+    | "notes-fail-twice"
+    | "notes-more-fail"
+    | "note-post-fail"
+    | undefined;
 }
 
 interface Box {
@@ -75,6 +95,13 @@ interface Box {
   y: number;
   width: number;
   height: number;
+}
+
+// A piece of a line of text, and where the browser drew it.
+interface DrawnPiece {
+  text: string;
+  left: number;
+  right: number;
 }
 
 test.use({ deviceScaleFactor: 2, actionTimeout: 15000 });
@@ -674,6 +701,36 @@ test.describe("note templates", () => {
       .click();
     await expect(page).toHaveURL(new RegExp(`${NOTE_TEMPLATES_PATH}$`));
   });
+
+  /*
+   * The menu reads its templates once it has opened. Until they arrive it
+   * draws its loading rows, with nothing to focus but itself: it drew an
+   * empty list with Manage templates, which the focus took and then lost to
+   * the page when the templates arrived.
+   */
+  test("opened from the keyboard, the composer's Templates menu puts the focus on the first template", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, CASE_NOTES_PATH);
+    await page
+      .getByTestId("note-composer-prompt")
+      .getByRole("button")
+      .first()
+      .click({ timeout: 30000 });
+    await page
+      .getByTestId("note-composer")
+      .getByTestId("note-template-menu-button")
+      .focus();
+    await page.keyboard.press("Enter");
+
+    await expect(
+      page
+        .getByTestId("note-template-menu")
+        .getByRole("button", { name: /^Containment checklist/ }),
+    ).toBeFocused();
+  });
 });
 
 /*
@@ -806,6 +863,98 @@ async function caseFieldsCardGeometry(page: Page): Promise<{
   });
 }
 
+/*
+ * The Templates menu is only as tall as the room beside its button, and cuts
+ * off what runs past its end. On a phone held sideways (844 x 390), with the
+ * button in the middle of the window, that is less room than its failure or
+ * its empty state needs: each scrolls inside the menu, as the list does, and
+ * the wheel over it brings its end into sight without moving the page under
+ * the menu.
+ */
+const SHORT_WINDOW: { width: number; height: number } = {
+  width: 844,
+  height: 390,
+};
+
+// The composer's Templates menu, opened with its button mid-window.
+async function openTemplateMenuMidWindow(
+  page: Page,
+  caseSetup: "none" | "fail-with-reference",
+): Promise<Locator> {
+  await open(page, CASE_NOTES_PATH, { ...SHORT_WINDOW, caseSetup });
+  await page
+    .getByTestId("note-composer-prompt")
+    .getByRole("button")
+    .first()
+    .click({ timeout: 30000 });
+  const trigger: Locator = page
+    .getByTestId("note-composer")
+    .getByTestId("note-template-menu-button");
+  // The button in the middle of the window: the least room on either side.
+  await trigger.evaluate((element: Element) => {
+    element.scrollIntoView({ block: "center" });
+  });
+  await trigger.click();
+
+  return page.getByTestId("note-template-menu");
+}
+
+// Whether the whole of `control` is inside the menu's box.
+async function isInsideMenu(menu: Locator, control: Locator): Promise<boolean> {
+  const own: Box | null = await menu.boundingBox();
+  const box: Box | null = await control.boundingBox();
+
+  return Boolean(
+    own &&
+      box &&
+      box.y >= own.y - 0.5 &&
+      box.y + box.height <= own.y + own.height + 0.5,
+  );
+}
+
+/*
+ * `control` starts past the menu's end; the wheel over the menu brings it
+ * into sight, whole, and the page and the menu stay where they were.
+ */
+async function expectTheWheelScrollsTheMenuTo(
+  page: Page,
+  menu: Locator,
+  control: Locator,
+): Promise<void> {
+  expect(
+    await isInsideMenu(menu, control),
+    "the window leaves the menu less room than it needs",
+  ).toBe(false);
+
+  const opened: Box = (await menu.boundingBox())!;
+  expect(opened.y).toBeGreaterThanOrEqual(0);
+  expect(opened.y + opened.height).toBeLessThanOrEqual(SHORT_WINDOW.height);
+  const pageScrolled: number = await page.evaluate((): number => {
+    return window.scrollY;
+  });
+
+  await page.mouse.move(
+    opened.x + opened.width / 2,
+    opened.y + opened.height / 2,
+  );
+  await page.mouse.wheel(0, 400);
+
+  await expect
+    .poll((): Promise<boolean> => {
+      return isInsideMenu(menu, control);
+    })
+    .toBe(true);
+  // Not cut off by the menu, nor by what scrolls inside it.
+  await expect(control).toBeInViewport({ ratio: 1 });
+  // What the menu draws scrolled, not the page: the menu is where it opened.
+  expect(
+    await page.evaluate((): number => {
+      return window.scrollY;
+    }),
+  ).toBe(pageScrolled);
+  expect((await menu.boundingBox())!.y).toBe(opened.y);
+}
+
 test.describe("a project with no case fields or note templates yet", () => {
   test("a case's Custom Fields page says so and leads to where fields are added; its Overview draws no card", async ({
     page,
@@ -866,6 +1015,28 @@ test.describe("a project with no case fields or note templates yet", () => {
       timeout: 30000,
     });
   });
+
+  test("on a short window, the menu's empty state scrolls inside the menu to Create a template (844 x 390)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const menu: Locator = await openTemplateMenuMidWindow(page, "none");
+    const empty: Locator = menu.getByTestId("note-templates-empty");
+    const create: Locator = empty.getByRole("link", {
+      name: "Create a template",
+    });
+    await expect(empty).toContainText("No note templates yet");
+
+    await expectTheWheelScrollsTheMenuTo(page, menu, create);
+    await screenshot(page, "case-note-templates-menu-empty-844x390", {
+      fullPage: false,
+    });
+
+    // Where it scrolled to, it is a link like any other.
+    await create.click();
+    await expect(page).toHaveURL(new RegExp(`${NOTE_TEMPLATES_PATH}$`));
+  });
 });
 
 test.describe("reads that fail", () => {
@@ -875,14 +1046,23 @@ test.describe("reads that fail", () => {
     page: Page;
   }) => {
     await open(page, CASE_FIELDS_PATH, { caseSetup: "fail" });
-    await expect(page.getByText("Server Error")).toBeVisible({
-      timeout: 30000,
-    });
+    /*
+     * The read's answer says nothing ("Server Error"): the card says the
+     * server could not explain it, and what to do next (#6836).
+     */
+    await expect(page.getByTestId("error-what-failed")).toHaveText(
+      "This did not finish.",
+      { timeout: 30000 },
+    );
+    await expect(page.getByTestId("error-why-and-next")).toHaveText(
+      UNEXPLAINED_WHY_AND_NEXT,
+    );
+    await expect(page.getByText("Server Error")).toHaveCount(0);
     await screenshot(page, "case-custom-fields-fail-1280-light");
 
     await page.getByRole("button", { name: "Try again" }).click();
     await expect(page.getByText("INC-48213")).toBeVisible();
-    await expect(page.getByText("Server Error")).toHaveCount(0);
+    await expect(page.getByTestId("error-explanation")).toHaveCount(0);
   });
 
   test("the settings lists say why and read again; so does the Templates menu", async ({
@@ -895,9 +1075,12 @@ test.describe("reads that fail", () => {
       [NOTE_TEMPLATES_PATH, "Containment checklist"],
     ] as Array<[string, string]>) {
       await open(page, address, { caseSetup: "fail" });
-      await expect(page.getByText("Server Error")).toBeVisible({
-        timeout: 30000,
-      });
+      // Under the list's own "Couldn't load ...", why and what to do next.
+      await expect(page.getByTestId("error-why-and-next")).toHaveText(
+        UNEXPLAINED_WHY_AND_NEXT,
+        { timeout: 30000 },
+      );
+      await expect(page.getByText("Server Error")).toHaveCount(0);
       await page.getByRole("button", { name: "Try again" }).click();
       await expect(
         page.locator("tbody tr").filter({ hasText: row }),
@@ -915,11 +1098,683 @@ test.describe("reads that fail", () => {
       .getByTestId("note-template-menu-button")
       .click();
     const menu: Locator = page.getByTestId("note-template-menu");
-    await expect(menu).toContainText("Server Error");
+    /*
+     * The menu's failure reads as the lists' do (#7544): what failed, in
+     * the menu's words, then why and what to do next - never the message
+     * as it came, in one sentence.
+     */
+    await expect(menu.getByTestId("error-what-failed")).toHaveText(
+      "Couldn't load note templates.",
+    );
+    await expect(menu.getByTestId("error-why-and-next")).toHaveText(
+      UNEXPLAINED_WHY_AND_NEXT,
+    );
+    await expect(menu).not.toContainText(UNEXPLAINED_MESSAGE);
+    await expect(menu).not.toContainText("Server Error");
     await menu.getByRole("button", { name: "Try again" }).click();
     await expect(
       menu.getByRole("button", { name: /^Containment checklist/ }),
     ).toBeVisible();
+    await expect(menu.getByTestId("error-explanation")).toHaveCount(0);
+  });
+});
+
+/*
+ * The Templates menu is fixed to the page and cuts off whatever runs past
+ * its edges, so a failure that did not fit in it would lose its end rather
+ * than scroll the page. A failure the server could not explain is the most
+ * the menu draws when its templates do not load (#7544): what failed, why
+ * and what to do next, and the reference's row with its copy button.
+ */
+
+// The reference CaseSetupFixture.js's ?casesetup=fail-with-reference names.
+const FAILED_READ_REFERENCE: string = "3f9a2c1b";
+
+// The Templates menu's box, and each box it draws that reaches past it.
+async function templateMenuFit(menu: Locator): Promise<{
+  menu: Box;
+  windowWidth: number;
+  outside: Array<string>;
+}> {
+  return menu.evaluate((element: Element) => {
+    const own: DOMRect = element.getBoundingClientRect();
+    const outside: Array<string> = [];
+
+    for (const drawn of Array.from(element.querySelectorAll("*"))) {
+      const box: DOMRect = drawn.getBoundingClientRect();
+
+      if (box.width === 0 && box.height === 0) {
+        continue;
+      }
+
+      if (
+        box.left < own.left - 0.5 ||
+        box.right > own.right + 0.5 ||
+        box.top < own.top - 0.5 ||
+        box.bottom > own.bottom + 0.5
+      ) {
+        outside.push(
+          `${drawn.tagName.toLowerCase()} "${(drawn.textContent || "").trim().slice(0, 40)}"`,
+        );
+      }
+    }
+
+    return {
+      menu: { x: own.x, y: own.y, width: own.width, height: own.height },
+      windowWidth: document.documentElement.clientWidth,
+      outside,
+    };
+  });
+}
+
+test.describe("the Templates menu's failure", () => {
+  for (const lang of ["en", "fa"] as const) {
+    test(`says what failed, why, what to do and its reference, inside the menu at 1280 and 390 (${lang === "en" ? "English" : "Persian"})`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      // The Dashboard's Persian words, as the fixture draws them with ?lang=fa.
+      const persian: Record<string, string> = JSON.parse(
+        await fs.readFile(
+          path.resolve(
+            __dirname,
+            "../../App/FeatureSet/Dashboard/src/Locales/fa.json",
+          ),
+          "utf8",
+        ),
+      ) as Record<string, string>;
+      const wordsOf: (english: string) => string = (
+        english: string,
+      ): string => {
+        return lang === "fa" ? persian[english]! : english;
+      };
+
+      for (const width of [1280, 390]) {
+        await open(page, CASE_NOTES_PATH, {
+          width,
+          caseSetup: "fail-with-reference",
+          ...(lang === "fa" ? { lang } : {}),
+        });
+        await page
+          .getByTestId("note-composer-prompt")
+          .getByRole("button")
+          .first()
+          .click({ timeout: 30000 });
+        await page
+          .getByTestId("note-composer")
+          .getByTestId("note-template-menu-button")
+          .click();
+        const menu: Locator = page.getByTestId("note-template-menu");
+        const failure: Locator = menu.getByTestId("note-templates-error");
+
+        await expect(failure.getByTestId("error-what-failed")).toHaveText(
+          wordsOf("Couldn't load note templates."),
+        );
+        await expect(failure.getByTestId("error-why-and-next")).toContainText(
+          wordsOf("The server ran into a problem it could not explain."),
+        );
+        // The reference as written, with its copy button, then Try again.
+        await expect(
+          failure.getByTestId("error-reference").locator("code"),
+        ).toHaveText(FAILED_READ_REFERENCE);
+        await expect(
+          failure.getByTestId("error-reference").getByRole("button"),
+        ).toBeVisible();
+        await expect(
+          failure.getByRole("button", { name: wordsOf("Try again") }),
+        ).toBeVisible();
+        if (lang === "fa") {
+          for (const english of [
+            "Couldn't load note templates.",
+            "The server ran into a problem",
+            "Try again",
+          ]) {
+            await expect(failure).not.toContainText(english);
+          }
+        }
+
+        const fit: Awaited<ReturnType<typeof templateMenuFit>> =
+          await templateMenuFit(menu);
+        expect(fit.outside, `what runs past the menu at ${width}`).toEqual([]);
+        expect(fit.menu.x).toBeGreaterThanOrEqual(0);
+        expect(fit.menu.x + fit.menu.width).toBeLessThanOrEqual(
+          fit.windowWidth,
+        );
+        await expectNoSidewaysScroll(page, {
+          message: `the menu's failure at ${width}`,
+        });
+        await screenshot(
+          page,
+          `case-note-templates-menu-fail-${lang}-${width}`,
+          {
+            fullPage: false,
+          },
+        );
+      }
+    });
+  }
+
+  // On a short window (SHORT_WINDOW), the failure scrolls as the list does.
+  test("on a short window, it scrolls inside the menu to its Try again (844 x 390)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const menu: Locator = await openTemplateMenuMidWindow(
+      page,
+      "fail-with-reference",
+    );
+    const failure: Locator = menu.getByTestId("note-templates-error");
+    await expect(failure.getByTestId("error-reference")).toBeVisible();
+
+    await expectTheWheelScrollsTheMenuTo(
+      page,
+      menu,
+      failure.getByRole("button", { name: "Try again" }),
+    );
+    await screenshot(page, "case-note-templates-menu-fail-844x390", {
+      fullPage: false,
+    });
+  });
+
+  /*
+   * Try again gives way to the loading rows, which hold nothing to focus.
+   * Pressed from the keyboard, it leaves the focus in the menu while the
+   * templates load again - it fell to the page behind the menu, and stayed
+   * there - and the menu hands it on when the read ends, as it does when it
+   * opens: to Try again if the templates fail once more, to the first of
+   * them when they arrive.
+   */
+  test("pressed from the keyboard, Try again keeps the focus in the menu: on Try again after another failure, then on the first template", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, CASE_NOTES_PATH, { caseSetup: "fail-twice" });
+    await page
+      .getByTestId("note-composer-prompt")
+      .getByRole("button")
+      .first()
+      .click({ timeout: 30000 });
+    const trigger: Locator = page
+      .getByTestId("note-composer")
+      .getByTestId("note-template-menu-button");
+    await trigger.focus();
+    await page.keyboard.press("Enter");
+    const menu: Locator = page.getByTestId("note-template-menu");
+    const tryAgain: Locator = menu
+      .getByTestId("note-templates-error")
+      .getByRole("button", { name: "Try again" });
+    await expect(tryAgain).toBeFocused();
+
+    // The second read fails too.
+    await page.keyboard.press("Enter");
+    await expect(tryAgain).toBeFocused();
+
+    // The third answers.
+    await page.keyboard.press("Enter");
+    await expect(
+      menu.getByRole("button", { name: /^Containment checklist/ }),
+    ).toBeFocused();
+    await expect(menu.getByTestId("note-templates-error")).toHaveCount(0);
+  });
+});
+
+/*
+ * A case's notes that do not load (#7570). The feed said "Notes could not
+ * be loaded" and, under it, API.getFriendlyMessage's English sentence as it
+ * came: on a Persian page with its full stop at its start, and without the
+ * reference to give. It reads as the lists and the Templates menu do now:
+ * under the feed's heading - which alone says what failed - why and what
+ * to do next, and the reference with its copy button, in the reader's
+ * language; then Try again.
+ */
+test.describe("a case's notes feed, when the notes do not load", () => {
+  for (const lang of ["en", "fa"] as const) {
+    test(`says why, what to do and its reference under its own heading, at 1280 and 390, and Try again reads the notes (${lang === "en" ? "English" : "Persian"})`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      // The Dashboard's Persian words, as the fixture draws them with ?lang=fa.
+      const persian: Record<string, string> = JSON.parse(
+        await fs.readFile(
+          path.resolve(
+            __dirname,
+            "../../App/FeatureSet/Dashboard/src/Locales/fa.json",
+          ),
+          "utf8",
+        ),
+      ) as Record<string, string>;
+      const wordsOf: (english: string) => string = (
+        english: string,
+      ): string => {
+        return lang === "fa" ? persian[english]! : english;
+      };
+
+      for (const width of [1280, 390]) {
+        await open(page, CASE_NOTES_PATH, {
+          width,
+          caseSetup: "notes-fail-with-reference",
+          ...(lang === "fa" ? { lang } : {}),
+        });
+        const failure: Locator = page.getByTestId("notes-error");
+        await expect(failure).toBeVisible({ timeout: 30000 });
+
+        // What failed, once: the heading's words, and no line of its own.
+        await expect(failure.locator("p").first()).toHaveText(
+          wordsOf("Notes could not be loaded"),
+        );
+        await expect(failure.getByTestId("error-what-failed")).toHaveCount(0);
+        await expect(failure).not.toContainText(
+          wordsOf("This did not finish."),
+        );
+        const whyAndNext: Locator = failure.getByTestId("error-why-and-next");
+        await expect(whyAndNext).toContainText(
+          wordsOf("The server ran into a problem it could not explain."),
+        );
+        await expect(whyAndNext).toContainText(
+          wordsOf(
+            "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:",
+          ),
+        );
+        // The reference as written, left to right, with its copy button.
+        const reference: Locator = failure.getByTestId("error-reference");
+        await expect(reference.locator("code")).toHaveText(
+          FAILED_READ_REFERENCE,
+        );
+        await expect(reference.locator("code")).toHaveAttribute("dir", "ltr");
+        await expect(reference.getByRole("button")).toBeVisible();
+        await expect(
+          failure.getByRole("button", { name: wordsOf("Try again") }),
+        ).toBeVisible();
+        // The reference and its copy button are centred, as the lines are.
+        const offCentre: number = await failure.evaluate(
+          (element: Element): number => {
+            const row: Element = element.querySelector(
+              "[data-testid='error-reference']",
+            )!;
+            const first: DOMRect =
+              row.firstElementChild!.getBoundingClientRect();
+            const last: DOMRect = row.lastElementChild!.getBoundingClientRect();
+            const view: DOMRect = element.getBoundingClientRect();
+            const drawn: number =
+              (Math.min(first.left, last.left) +
+                Math.max(first.right, last.right)) /
+              2;
+            return Math.abs(drawn - (view.left + view.width / 2));
+          },
+        );
+        expect(
+          offCentre,
+          `the reference's row at ${width}`,
+        ).toBeLessThanOrEqual(2);
+        // Never the sentence as API.getFriendlyMessage wrote it.
+        await expect(failure).not.toContainText("so this did not finish");
+        if (lang === "fa") {
+          for (const english of [
+            "Notes could not be loaded",
+            "The server ran into a problem",
+            "Try again",
+          ]) {
+            await expect(failure).not.toContainText(english);
+          }
+        }
+
+        await expectNoSidewaysScroll(page, {
+          message: `the notes feed's failure at ${width}`,
+        });
+        await failure.scrollIntoViewIfNeeded();
+        await screenshot(page, `case-notes-fail-${lang}-${width}`, {
+          fullPage: false,
+        });
+      }
+
+      await page
+        .getByTestId("notes-error")
+        .getByRole("button", { name: wordsOf("Try again") })
+        .click();
+      await expect(page.getByTestId("note-card")).toHaveCount(2);
+      await expect(page.getByTestId("notes-error")).toHaveCount(0);
+    });
+  }
+
+  /*
+   * Try again gives way to the loading skeleton, which holds nothing to
+   * focus: the focus fell to the page, and the next Tab started over at
+   * its top. Pressed from the keyboard, it leaves the focus with the feed
+   * while the notes load again - on Try again once more if they fail again,
+   * though the reference's copy button comes before it, and in the feed,
+   * just before the notes, when they arrive.
+   */
+  test("pressed from the keyboard, Try again keeps the focus: on Try again after another failure, then just before the notes", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, CASE_NOTES_PATH, { caseSetup: "notes-fail-twice" });
+    const failure: Locator = page.getByTestId("notes-error");
+    const copy: Locator = failure
+      .getByTestId("error-reference")
+      .getByRole("button");
+    const tryAgain: Locator = failure.getByRole("button", {
+      name: "Try again",
+    });
+    await copy.focus({ timeout: 30000 });
+
+    // From the copy button, one Tab reaches Try again.
+    await page.keyboard.press("Tab");
+    await expect(tryAgain).toBeFocused();
+
+    // The second read fails too.
+    await page.keyboard.press("Enter");
+    await expect(tryAgain).toBeFocused();
+    await expect(copy).not.toBeFocused();
+
+    // The third answers.
+    await page.keyboard.press("Enter");
+    await expect(page.getByTestId("note-card")).toHaveCount(2);
+    await expect(page.getByTestId("notes-feed-body")).toBeFocused();
+
+    // The next Tab reaches the first note.
+    await page.keyboard.press("Tab");
+    expect(
+      await page.evaluate((): boolean => {
+        const firstNote: Element | null = document.querySelector(
+          "[data-testid='note-card']",
+        );
+        return Boolean(
+          firstNote &&
+            document.activeElement &&
+            firstNote.contains(document.activeElement),
+        );
+      }),
+      "the focus is in the first note",
+    ).toBe(true);
+  });
+});
+
+/*
+ * A case's Load more that fails (#7620). The banner over the feed said
+ * what API.getFriendlyMessage said, and nothing else: English on every
+ * page - on a Persian one with its full stop at its start - without the
+ * reference to give, and silent on what had failed; and its Dismiss dropped
+ * the keyboard's focus to the page. It says what failed now, then why and
+ * what to do next with the reference and its copy button, in the reader's
+ * language; Dismiss leaves the focus on Load more, one key from trying again.
+ */
+test.describe("a case's notes feed, when Load more fails", () => {
+  // CASE-142's notes under ?casesetup=notes-more-fail: a page, then 3 more.
+  const FIRST_PAGE: number = 25;
+  const ALL_NOTES: number = 28;
+
+  for (const lang of ["en", "fa"] as const) {
+    test(`says what failed, why, what to do and its reference over the notes, at 1280 and 390 (${lang === "en" ? "English" : "Persian"})`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      // The Dashboard's Persian words, as the fixture draws them with ?lang=fa.
+      const persian: Record<string, string> = JSON.parse(
+        await fs.readFile(
+          path.resolve(
+            __dirname,
+            "../../App/FeatureSet/Dashboard/src/Locales/fa.json",
+          ),
+          "utf8",
+        ),
+      ) as Record<string, string>;
+      const wordsOf: (english: string) => string = (
+        english: string,
+      ): string => {
+        return lang === "fa" ? persian[english]! : english;
+      };
+
+      for (const width of [1280, 390]) {
+        await open(page, CASE_NOTES_PATH, {
+          width,
+          caseSetup: "notes-more-fail",
+          ...(lang === "fa" ? { lang } : {}),
+        });
+        await expect(page.getByTestId("note-card")).toHaveCount(FIRST_PAGE, {
+          timeout: 30000,
+        });
+        await page.getByTestId("notes-load-more").click();
+
+        const banner: Locator = page.getByTestId("notes-action-error");
+        await expect(banner).toBeVisible();
+        await expect(banner).toHaveAttribute("role", "alert");
+
+        // What failed, once, then why and what to do next.
+        await expect(
+          banner.getByTestId("notes-action-error-what-failed"),
+        ).toHaveText(wordsOf("Couldn't load more notes."));
+        await expect(banner.getByTestId("error-what-failed")).toHaveCount(0);
+        const whyAndNext: Locator = banner.getByTestId("error-why-and-next");
+        await expect(whyAndNext).toContainText(
+          wordsOf("The server ran into a problem it could not explain."),
+        );
+        await expect(whyAndNext).toContainText(
+          wordsOf(
+            "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:",
+          ),
+        );
+        // The reference as written, left to right, with its copy button.
+        const reference: Locator = banner.getByTestId("error-reference");
+        await expect(reference.locator("code")).toHaveText(
+          FAILED_READ_REFERENCE,
+        );
+        await expect(reference.locator("code")).toHaveAttribute("dir", "ltr");
+        await expect(reference.getByRole("button")).toBeVisible();
+        const dismiss: Locator = banner.getByRole("button", {
+          name: wordsOf("Dismiss"),
+        });
+        await expect(dismiss).toBeVisible();
+        // Dismiss on one line, though Persian says it in two words.
+        const dismissLines: number = await dismiss.evaluate(
+          (element: Element): number => {
+            const range: Range = document.createRange();
+            range.selectNodeContents(element);
+            return new Set(
+              Array.from(range.getClientRects()).map(
+                (rect: DOMRect): number => {
+                  return Math.round(rect.top);
+                },
+              ),
+            ).size;
+          },
+        );
+        expect(dismissLines, `Dismiss's lines at ${width}`).toBe(1);
+        // Never the sentence as API.getFriendlyMessage wrote it.
+        await expect(banner).not.toContainText("so this did not finish");
+        if (lang === "fa") {
+          for (const english of [
+            "Couldn't load more notes.",
+            "The server ran into a problem",
+            "Dismiss",
+          ]) {
+            await expect(banner).not.toContainText(english);
+          }
+        }
+        // The notes on screen stay.
+        await expect(page.getByTestId("note-card")).toHaveCount(FIRST_PAGE);
+
+        await expectNoSidewaysScroll(page, {
+          message: `the notes feed's banner at ${width}`,
+        });
+        await banner.scrollIntoViewIfNeeded();
+        await screenshot(page, `case-notes-more-fail-${lang}-${width}`, {
+          fullPage: false,
+        });
+      }
+    });
+  }
+
+  /*
+   * Dismiss takes the banner away, and the focus on it fell to the page:
+   * the next Tab started over at its top. It leaves the focus on Load more
+   * now, and the next Enter reads the notes again.
+   */
+  test("dismissed from the keyboard, the banner leaves the focus on Load more, whose next press reads the notes", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, CASE_NOTES_PATH, { caseSetup: "notes-more-fail" });
+    await expect(page.getByTestId("note-card")).toHaveCount(FIRST_PAGE, {
+      timeout: 30000,
+    });
+    const loadMore: Locator = page.getByTestId("notes-load-more");
+    await loadMore.focus();
+    await page.keyboard.press("Enter");
+
+    const banner: Locator = page.getByTestId("notes-action-error");
+    const dismiss: Locator = banner.getByRole("button", { name: "Dismiss" });
+    await expect(banner).toBeVisible();
+
+    // From the reference's copy button, one Tab reaches Dismiss.
+    await banner.getByTestId("error-reference").getByRole("button").focus();
+    await page.keyboard.press("Tab");
+    await expect(dismiss).toBeFocused();
+
+    await page.keyboard.press("Enter");
+    await expect(banner).toHaveCount(0);
+    await expect(loadMore).toBeFocused();
+
+    // Load more's next read answers.
+    await page.keyboard.press("Enter");
+    await expect(page.getByTestId("note-card")).toHaveCount(ALL_NOTES);
+    await expect(page.getByTestId("notes-action-error")).toHaveCount(0);
+  });
+});
+
+/*
+ * A note whose post fails (#7647). The composer's error line drew what
+ * API.getFriendlyMessage said: English on every page - on a Persian one
+ * with its full stop at its start - and, for a failure the server could not
+ * explain, nothing of why, what to do next or the reference to give. It
+ * says what failed now, then why and what to do next with the reference
+ * and its copy button, in the reader's language, read from the right; the
+ * draft is kept, and the next post saves it.
+ */
+test.describe("a case's note composer, when a post fails", () => {
+  test("says in Persian that the note was not posted, why, what to do and its reference, read from the right; posted again, the draft is saved", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    // The Dashboard's Persian words, as the fixture draws them with ?lang=fa.
+    const persian: Record<string, string> = JSON.parse(
+      await fs.readFile(
+        path.resolve(
+          __dirname,
+          "../../App/FeatureSet/Dashboard/src/Locales/fa.json",
+        ),
+        "utf8",
+      ),
+    ) as Record<string, string>;
+    const NOTE: string = "Paged the identity on-call.";
+
+    await open(page, CASE_NOTES_PATH, {
+      caseSetup: "note-post-fail",
+      lang: "fa",
+    });
+    await page
+      .getByTestId("note-composer-prompt")
+      .getByRole("button")
+      .first()
+      .click({ timeout: 30000 });
+    const composer: Locator = page.getByTestId("note-composer");
+    await expect(composer).toBeVisible();
+    await page.keyboard.type(NOTE);
+    await composer.getByTestId("note-submit").click();
+
+    const line: Locator = composer.getByTestId("note-composer-error");
+    await expect(line).toBeVisible();
+    await expect(line).toHaveAttribute("role", "alert");
+
+    // What failed, then why and what to do next.
+    const whatFailed: Locator = line.getByTestId("error-what-failed");
+    await expect(whatFailed).toHaveText(persian["Couldn't post the note."]!);
+    const whyAndNext: Locator = line.getByTestId("error-why-and-next");
+    await expect(whyAndNext).toContainText(
+      persian["The server ran into a problem it could not explain."]!,
+    );
+    await expect(whyAndNext).toContainText(
+      persian[
+        "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:"
+      ]!,
+    );
+    // The reference as written, left to right, with its copy button.
+    const reference: Locator = line.getByTestId("error-reference");
+    await expect(reference.locator("code")).toHaveText(FAILED_READ_REFERENCE);
+    await expect(reference.locator("code")).toHaveAttribute("dir", "ltr");
+    await expect(reference.getByRole("button")).toBeVisible();
+    // Never the sentence as API.getFriendlyMessage wrote it, nor English.
+    for (const english of [
+      "Couldn't post the note.",
+      "The server ran into a problem",
+      "so this did not finish",
+      "This did not finish.",
+    ]) {
+      await expect(line).not.toContainText(english);
+    }
+
+    /*
+     * Read from the right: "یادداشت افزوده نشد." ends with its full stop,
+     * drawn to the left of its last word - not at the line's start.
+     */
+    const drawn: { stop: DrawnPiece; lastWord: DrawnPiece } =
+      await whatFailed.evaluate(
+        (element: Element): { stop: DrawnPiece; lastWord: DrawnPiece } => {
+          const text: Node = element.firstChild!;
+          const content: string = text.textContent || "";
+          const boxOf: (from: number, to: number) => DrawnPiece = (
+            from: number,
+            to: number,
+          ): DrawnPiece => {
+            const range: Range = document.createRange();
+            range.setStart(text, from);
+            range.setEnd(text, to);
+            const box: DOMRect = range.getBoundingClientRect();
+            return {
+              text: content.slice(from, to),
+              left: box.left,
+              right: box.right,
+            };
+          };
+          const stopAt: number = content.length - 1;
+          const lastWordAt: number = content.lastIndexOf(" ") + 1;
+          return {
+            stop: boxOf(stopAt, stopAt + 1),
+            lastWord: boxOf(lastWordAt, stopAt),
+          };
+        },
+      );
+    expect(drawn.stop.text, "the sentence's last character").toBe(".");
+    expect(drawn.lastWord.text).toBe("نشد");
+    expect(drawn.stop.right).toBeLessThanOrEqual(drawn.lastWord.left + 0.5);
+
+    // The draft is kept.
+    await expect(composer.locator('[contenteditable="true"]')).toHaveText(NOTE);
+
+    await expectNoSidewaysScroll(page, {
+      message: "the composer's error line",
+    });
+    await line.scrollIntoViewIfNeeded();
+    await screenshot(page, "case-note-post-fail-fa-1280", { fullPage: false });
+
+    // Posted again, the note is saved, and the line goes.
+    await composer.getByTestId("note-submit").click();
+    await expect(page.getByTestId("note-composer-error")).toHaveCount(0);
+    const posted: FixtureState["creates"] = (
+      await fixture(page)
+    ).creates.filter((entry: FixtureState["creates"][number]): boolean => {
+      return entry.modelName === "SecurityCaseNote";
+    });
+    expect(posted).toHaveLength(1);
+    expect(posted[0]?.data["note"]).toBe(NOTE);
   });
 });
 
@@ -1005,13 +1860,19 @@ test.describe("in the reader's language", () => {
     await expect(menu).not.toContainText("Insert a template");
     /*
      * A template's English name and first line read the way they are
-     * written, each in an isolate of its own: "Contained:", never
-     * ":Contained", in the Persian menu.
+     * written: "Contained:", never ":Contained", in the Persian menu. Each
+     * is a line of its own that reads left to right (IsolatedLine, #6979),
+     * so one too long for the menu is cut short at its own end.
      */
-    for (const written of ["Containment checklist", "Contained:"]) {
-      await expect(
-        menu.locator("bdi[dir='ltr']").filter({ hasText: written }),
-      ).toHaveCount(1);
+    for (const [line, written] of [
+      ["note-template-name", "Containment checklist"],
+      ["note-template-preview", "Contained:"],
+    ] as Array<[string, string]>) {
+      const drawn: Locator = menu
+        .getByTestId(line)
+        .filter({ hasText: written });
+      await expect(drawn).toHaveCount(1);
+      await expect(drawn).toHaveAttribute("dir", "ltr");
     }
     await screenshot(page, "case-note-templates-menu-fa-1280", {
       fullPage: false,
@@ -1032,6 +1893,91 @@ test.describe("in the reader's language", () => {
     await screenshot(page, "case-custom-fields-fa-1280-isolated", {
       fullPage: false,
     });
+  });
+
+  /*
+   * A recent note's time beside its author (#7648) read "20 minutes ago" on
+   * every language's page, and a Persian page laid that English out from
+   * the right: "minutes ago 20". It is in the reader's language now, its
+   * count in the language's digits, and read from the right in the order it
+   * is written.
+   */
+  test("a recent note's time reads in Persian, from the right in the order it is written", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    // CASE-142's notes: Diego's, 20 minutes old, and Maya's, 35.
+    await open(page, CASE_NOTES_PATH);
+    const times: Locator = page.getByTestId("note-time");
+    for (const written of ["20 minutes ago", "35 minutes ago"]) {
+      await expect(times.filter({ hasText: written })).toHaveCount(1, {
+        timeout: 30000,
+      });
+    }
+
+    await open(page, CASE_NOTES_PATH, { lang: "fa" });
+    for (const written of ["۲۰ دقیقه پیش", "۳۵ دقیقه پیش"]) {
+      await expect(times.filter({ hasText: written })).toHaveCount(1, {
+        timeout: 30000,
+      });
+    }
+    await expect(times).toHaveCount(2);
+    await expect(times.filter({ hasText: /ago|[0-9]/ })).toHaveCount(0);
+
+    // Where each word and each digit of "۲۰ دقیقه پیش" is drawn.
+    const drawn: Array<{ text: string; left: number; right: number }> =
+      await times
+        .filter({ hasText: "۲۰ دقیقه پیش" })
+        .evaluate(
+          (
+            element: Element,
+          ): Array<{ text: string; left: number; right: number }> => {
+            const label: Node = element.firstChild!;
+            const content: string = label.textContent || "";
+            const boxOf: (
+              from: number,
+              to: number,
+            ) => { text: string; left: number; right: number } = (
+              from: number,
+              to: number,
+            ): { text: string; left: number; right: number } => {
+              const range: Range = document.createRange();
+              range.setStart(label, from);
+              range.setEnd(label, to);
+              const box: DOMRect = range.getBoundingClientRect();
+              return {
+                text: content.slice(from, to),
+                left: box.left,
+                right: box.right,
+              };
+            };
+            const pieces: Array<{ text: string; left: number; right: number }> =
+              [];
+            let start: number = 0;
+            for (const word of content.split(" ")) {
+              pieces.push(boxOf(start, start + word.length));
+              start += word.length + 1;
+            }
+            // The count's two digits, each on its own.
+            pieces.push(boxOf(0, 1), boxOf(1, 2));
+            return pieces;
+          },
+        );
+    const [count, minutes, ago, firstDigit, secondDigit] = drawn;
+
+    expect(
+      [count!.text, minutes!.text, ago!.text, firstDigit!.text],
+      "the words as written",
+    ).toEqual(["۲۰", "دقیقه", "پیش", "۲"]);
+    // From the right: the count, then the unit to its left, then "ago".
+    expect(minutes!.right).toBeLessThanOrEqual(count!.left + 0.5);
+    expect(ago!.right).toBeLessThanOrEqual(minutes!.left + 0.5);
+    // The count is drawn as written: "۲۰", never "۰۲".
+    expect(firstDigit!.right).toBeLessThanOrEqual(secondDigit!.left + 0.5);
+
+    await times.filter({ hasText: "۲۰ دقیقه پیش" }).scrollIntoViewIfNeeded();
+    await screenshot(page, "case-notes-time-fa-1280", { fullPage: false });
   });
 });
 

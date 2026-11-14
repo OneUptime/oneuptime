@@ -2,6 +2,7 @@ import DocsNav, { NavGroup, NavLink } from "../../../FeatureSet/Docs/Utils/Nav";
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
 import { anchorsOf, hasPage, readPage } from "./DocsContentSupport";
 import { drawnActionLabel, isActionLabel } from "./DocsDashboardLabels";
+import { pathWithArrows } from "./DocsPageShape";
 import {
   menuSections,
   readDashboardSource,
@@ -19,6 +20,7 @@ import {
   strayMarkers,
   tableShape,
 } from "./DocsTranslationChecks";
+import { GETTING_STARTED_PLACES, cardTargetsAt } from "./GettingStartedPage";
 import {
   GLOSSARY,
   cardLinkTargets,
@@ -180,14 +182,11 @@ describe("Which One Do I Use?, in English", () => {
       urls.indexOf(`/docs/${GLOSSARY}`) + 1,
     );
     expect(ENGLISH.split("\n")[0]).toBe("# Which One Do I Use?");
-    // Getting Started's first screen opens it.
+    // Getting Started's first screen opens it: New to OneUptime?, under the eight jobs (#6822).
     expect(
-      cardTargets(
-        cardLines(
-          readPage("en", "introduction/getting-started").split(
-            "## ",
-          )[0] as string,
-        ),
+      cardTargetsAt(
+        readPage("en", "introduction/getting-started"),
+        GETTING_STARTED_PLACES.newcomers,
       ),
     ).toContain(`/docs/${WHICH_ONE}`);
   });
@@ -406,14 +405,16 @@ describe.each(LANGUAGES)("Which One Do I Use? in %s", (language: string) => {
         if (span.includes(PATH_SEPARATOR)) {
           const segments: Array<string> = span.split(PATH_SEPARATOR);
 
+          // With the arrows this language's pages draw ("←" beside a Persian step, #7611).
           return segments.every((segment: string): boolean => {
             return isActionLabel(segment.trim());
           })
-            ? segments
-                .map((segment: string): string => {
+            ? pathWithArrows(
+                segments.map((segment: string): string => {
                   return drawnActionLabel(language, segment.trim());
-                })
-                .join(PATH_SEPARATOR)
+                }),
+                language,
+              )
             : null;
         }
 

@@ -428,7 +428,7 @@ describe.each(CHECK_PAGES)("$page", (checkPage: CheckPage) => {
 
   it("lists exactly the filters the criteria form offers", () => {
     const documented: Array<string> = tableRows(
-      section(page, "## Monitoring Criteria"),
+      section(page, "## Criteria"),
     ).map((row: Array<string>): string => {
       return boldItems(row[0] as string)[0] as string;
     });
@@ -445,7 +445,7 @@ describe.each(CHECK_PAGES)("$page", (checkPage: CheckPage) => {
   });
 
   it("lists, for every filter, exactly the conditions the form offers", () => {
-    for (const row of tableRows(section(page, "## Monitoring Criteria"))) {
+    for (const row of tableRows(section(page, "## Criteria"))) {
       const label: string = boldItems(row[0] as string)[0] as string;
       const filter: DropdownOption | undefined = offeredFilter(
         checkPage.monitorType,
@@ -1073,7 +1073,7 @@ describe("DNSSEC monitor", () => {
     );
     expect(
       rowFor(
-        tableRows(section(page, "## Monitoring Criteria")),
+        tableRows(section(page, "## Criteria")),
         CheckOn.DnssecNameserverConsistent,
       )![2],
     ).toContain(
@@ -1212,7 +1212,7 @@ describe("SSL Certificate monitor", () => {
     expect(valid).toContain("if (!sslResponse || !dataToProcess.isOnline) {");
     expect(
       rowFor(
-        tableRows(section(page, "## Monitoring Criteria")),
+        tableRows(section(page, "## Criteria")),
         CheckOn.IsValidCertificate,
       )![2],
     ).toContain("**False** when the endpoint did not answer.");
@@ -1230,7 +1230,7 @@ describe("SSL Certificate monitor", () => {
     );
     expect(
       rowFor(
-        tableRows(section(page, "## Monitoring Criteria")),
+        tableRows(section(page, "## Criteria")),
         CheckOn.IsRevokedCertificate,
       )![2],
     ).toContain(
@@ -1444,7 +1444,7 @@ describe("Domain monitor", () => {
     );
     expect(
       rowFor(
-        tableRows(section(page, "## Monitoring Criteria")),
+        tableRows(section(page, "## Criteria")),
         CheckOn.DomainExpiresDaysIn,
       )![2],
     ).toContain("rounded up to a whole day");

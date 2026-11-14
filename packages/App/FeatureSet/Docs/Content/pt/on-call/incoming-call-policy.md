@@ -38,7 +38,7 @@ flowchart TB
 :::steps
 ### Adicione sua conta do Twilio
 
-Vá em **Configurações do projeto** > **Notificações** > **Configurações de notificação** e abra **Mais configurações**. No cartão **Configuração do Twilio**, clique em **Criar configuração do Twilio** e preencha o formulário:
+Vá em **Configurações do projeto** > **Notificações** > **Canais de notificação** e abra **Mais configurações**. No cartão **Configuração do Twilio**, clique em **Criar configuração do Twilio** e preencha o formulário:
 
 - **Nome** e **Descrição**: para que serve a conta, por exemplo "Linha de suporte".
 - **SID da Conta Twilio**: do console do Twilio. Começa com `AC`.
@@ -143,7 +143,7 @@ Um número cujas chamadas já vão para outro lugar avisa isso com "Currently ha
 
 O OneUptime define o webhook de voz do número como `https://<your host>/notification/incoming-call/voice`, montado a partir de `HOST` e `HTTP_PROTOCOL` em uma instalação auto-hospedada. Para passar uma política para outra conta do Twilio, libere antes os números dela: a conta só pode mudar enquanto a política não tem nenhum.
 
-Para liberar um número, clique em **Liberar** ao lado dele e confirme com **Liberar número**.
+Para liberar um número, clique em **Liberar número** ao lado dele e confirme com **Liberar número**.
 
 > [!CAUTION]
 > Liberar um número o devolve ao Twilio, mesmo um número trazido com **Usar número de telefone existente**, e talvez você não o recupere. Excluir uma política, ou a configuração do Twilio que ela usa, também libera os números dela.
@@ -160,7 +160,7 @@ Uma regra faz tocar uma pessoa no número que ela verificou para chamadas recebi
 
 Cada pessoa pode ter um número verificado por projeto. Para trocá-lo, exclua antes o número antigo. Esses números são separados dos números de telefone em **Métodos de notificação**, que os acionamentos de plantão usam. Veja [Métodos de notificação](/docs/notifications/notification-methods).
 
-Os números para chamadas recebidas são verificados por SMS, então o **SMS** precisa estar ligado no projeto antes. Um proprietário do projeto ou alguém com o papel **Administrador de cobrança** ou a permissão **Manage Billing** o liga no cartão **Canais de notificação** de **Configurações do projeto > Notificações > Configurações de notificação**.
+Os números para chamadas recebidas são verificados por SMS, então o **SMS** precisa estar ligado no projeto antes. Um proprietário do projeto ou alguém com o papel **Administrador de cobrança** ou a permissão **Manage Billing** o liga no cartão **Canais de notificação** de **Configurações do projeto > Notificações > Canais de notificação**.
 
 ## Mensagens de voz e configurações da política
 
@@ -228,7 +228,7 @@ Os números de telefone de uma política seguem os mesmos papéis da própria po
 - **Pesquisar números** - procurar no Twilio um número para reservar, ou listar os números que sua conta do Twilio já tem - exige permissão para ler políticas de chamadas recebidas e para ler configurações de chamadas e SMS, porque lê sua conta do Twilio por meio de uma delas. **Proprietário do projeto**, **Administrador do projeto**, **Membro do projeto**, **Visualizador**, **Administrador de configurações**, **Membro de configurações** e **Visualizador de configurações** têm as duas. Em um papel personalizado, são **Read Incoming Call Policy** e **Read Call and SMS**.
 - **Reservar um número, usar um existente e liberar um** exigem permissão para editar políticas de chamadas recebidas: **Proprietário do projeto**, **Administrador do projeto**, **Membro do projeto**, **Administrador de configurações** e **Membro de configurações**, ou **Edit Incoming Call Policy** em um papel personalizado. Eles mudam os números de uma política que você pode editar: com um papel limitado a alguns rótulos, as políticas que têm esses rótulos.
 
-Um bloqueio de equipe sem rótulos em uma dessas permissões a retira. Para qualquer outra pessoa, **Adicionar número de telefone** e **Liberar** continuam na página, bloqueados, e a dica deles diz o que é preciso. A API recusa a requisição com uma frase que diz o que é preciso: "Looking up phone numbers needs permission to read incoming call policies and call and SMS settings." ou "Adding or releasing a phone number needs permission to edit incoming call policies." Reservar um número é cobrado na sua própria conta do Twilio, não no seu saldo do OneUptime, então não exige permissão de faturamento.
+Um bloqueio de equipe sem rótulos em uma dessas permissões a retira. Para qualquer outra pessoa, **Adicionar número de telefone** e **Liberar número** continuam na página, bloqueados, e a dica deles diz o que é preciso. A API recusa a requisição com uma frase que diz o que é preciso: "Looking up phone numbers needs permission to read incoming call policies and call and SMS settings." ou "Adding or releasing a phone number needs permission to edit incoming call policies." Reservar um número é cobrado na sua própria conta do Twilio, não no seu saldo do OneUptime, então não exige permissão de faturamento.
 
 ## Criar políticas com a API ou o Terraform
 

@@ -29,12 +29,12 @@ export enum MonitorStepsReferenceModel {
   MonitorStatus = "Monitor Status",
   IncidentSeverity = "Incident Severity",
   AlertSeverity = "Alert Severity",
-  OnCallDutyPolicy = "On-Call Duty Policy",
+  OnCallDutyPolicy = "On-Call Policy",
   Label = "Label",
   Team = "Team",
   User = "User",
   IncidentRole = "Incident Role",
-  TelemetryService = "Telemetry Service",
+  TelemetryService = "Service",
   NetworkDevice = "Network Device",
 }
 

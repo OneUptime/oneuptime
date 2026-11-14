@@ -137,7 +137,7 @@ describe("FilePicker", () => {
 
   it("should display max file size message", () => {
     render(<FilePicker {...defaultProps} />);
-    expect(screen.getByText(/Max 10MB each/)).toBeInTheDocument();
+    expect(screen.getByText(/Max 10 MB each/)).toBeInTheDocument();
   });
 
   /*
@@ -155,7 +155,7 @@ describe("FilePicker", () => {
       expect(
         screen.getByText("Types: PNG. Max 1 MB each."),
       ).toBeInTheDocument();
-      expect(screen.queryByText(/Max 10MB each/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Max 10 ?MB each/)).not.toBeInTheDocument();
     });
 
     it("says a limit under a megabyte in kilobytes", () => {
@@ -267,10 +267,14 @@ describe("FilePicker", () => {
       expect(getMaxFileSizeInBytes(128 * 1024)).toBe(128 * 1024);
     });
 
-    it("keeps the everyday wording at the everyday limit", () => {
+    it("says the everyday limit as it says any other: its size a value of the sentence", () => {
       render(<FilePicker {...defaultProps} maxFileSizeInBytes={10 * ONE_MB} />);
 
-      expect(screen.getByText(/Max 10MB each/)).toBeInTheDocument();
+      expect(
+        screen.getByText("Types: PNG. Max 10 MB each."),
+      ).toBeInTheDocument();
+      // The old words, with the limit written into them, are gone.
+      expect(screen.queryByText(/Max 10MB each/)).not.toBeInTheDocument();
     });
 
     it("words a limit as people read it", () => {

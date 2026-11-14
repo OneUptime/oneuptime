@@ -9,6 +9,7 @@ import { Route as PageRoute, Routes } from "react-router-dom";
 
 // Pages
 import Services from "../Pages/Service/Services";
+import ServicesGuidedSetup from "../Pages/Service/GuidedSetup";
 import ServiceView from "../Pages/Service/View/Index";
 
 import ServiceViewRecommendations from "../Pages/Service/View/Recommendations";
@@ -133,6 +134,20 @@ const ServiceRoutes: FunctionComponent<ComponentProps> = (
           mountPageKey: PageMap.SERVICE_ROOT,
         })}
       </PageRoute>
+
+      {/*
+       * Guided setup: send logs, metrics and traces, then get alerted
+       * (#6806), with no side menu.
+       */}
+      <PageRoute
+        path={ServiceRoutePath[PageMap.SERVICES_GUIDED_SETUP] || ""}
+        element={
+          <ServicesGuidedSetup
+            {...props}
+            pageRoute={RouteMap[PageMap.SERVICES_GUIDED_SETUP] as Route}
+          />
+        }
+      />
 
       <PageRoute
         path={ServiceRoutePath[PageMap.SERVICE_VIEW] || ""}

@@ -344,6 +344,7 @@
       "logsDesc": "可从应用进程内部获取的诊断日志:本实例自身最近的日志行,以及 Postgres、ClickHouse 和 Valkey 所公开的日志。不包括容器的标准输出 — 请使用 <code>kubectl logs</code> 或 <code>docker logs</code> 来获取。",
       "migrationsDesc": "Postgres 架构和数据迁移状态:实例是否已完全迁移、哪些迁移仍在等待中,以及最近的失败情况。您可以通过它确认升级是否已完成。",
       "supportBundleDesc": "一份 JSON 文档,包含关于该实例的所有诊断信息 — 版本、运行时、已脱敏的配置、组件健康状况、迁移、数据存储诊断、架构、失败的任务和日志。这是提交支持请求时最有用的附件。",
+      "doctorDesc": "实例上需要关注的问题,按严重程度排序,每一项都附有修复方法:Postgres、ClickHouse 或 Valkey 无响应、待执行或失败的迁移、ClickHouse 磁盘空间不足、队列积压、有更新的版本可用,以及尚未完成的服务器设置步骤。这就是 OneUptime Health 页面顶部显示的列表。",
       "queueNamesBody": "<code>{queueName}</code> 路径参数必须是 <code>Workflow</code>、<code>Worker</code>、<code>Telemetry</code> 或 <code>Runbook</code> 之一。任何其他值都会以 <code>400</code> 被拒绝。",
       "editions": "版本",
       "editionsBody": "大多数主管理员 API 属于 OneUptime Enterprise Edition 的一部分,并与其所支撑的 OneUptime Health 仪表板相对应。在 Community 实例上,它们返回 <code>402 Payment Required</code> 而不是数据。",

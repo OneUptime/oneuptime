@@ -276,6 +276,29 @@ export default class Journey {
     });
   }
 
+  /*
+   * Closes the list open now (a people picker stays open for the next
+   * pick), as a person does: Escape.
+   */
+  public async closeList(): Promise<void> {
+    await this.step("close the open list", async () => {
+      await this.settle();
+      await this.page.keyboard.press("Escape");
+      await expect(this.page.getByRole("listbox")).toHaveCount(0);
+      await this.settle();
+    });
+  }
+
+  // A checkbox, by its name: one of Home's goals, say.
+  public async tick(name: string | RegExp): Promise<void> {
+    await this.step(`tick "${name}"`, async () => {
+      await this.settle();
+      const area: Locator = await this.workArea();
+      await area.getByRole("checkbox", { name }).first().click();
+      await this.settle();
+    });
+  }
+
   // Types into a field, found by its label, as a person types.
   public async type(label: string | RegExp, value: string): Promise<void> {
     await this.step(`type into "${label}"`, async () => {

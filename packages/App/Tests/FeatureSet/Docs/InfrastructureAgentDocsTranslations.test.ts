@@ -195,6 +195,7 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
    */
   [PROXMOX]: [
     "HA Resource in Error State",
+    "Cluster Stopped Reporting",
     "Guest Down",
     "Guest Not Backed Up",
     "Backup Running Too Long",

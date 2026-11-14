@@ -236,6 +236,10 @@ The host stays in OneUptime with its history: archive or delete it on the **Host
 HTTP `401`: the key is wrong, has expired or was deleted. HTTP `422`: it is disabled, a browser key, or pinned to one service. Pick an enabled server key in **Add Host** and run the command again: it replaces the key on the host.
 :::
 
+:::details The command says OneUptime was not found
+HTTP `404`: the address the collector asks for its config, your OneUptime URL followed by `/telemetry/opamp/v1`, does not reach OneUptime. Check that `--url` (`-Url` on Windows) is the address you open OneUptime at, with nothing after it. If a proxy or load balancer of yours sits in front of OneUptime, have it send `/telemetry/opamp/v1` to OneUptime, as it sends `/otlp`. The collector keeps asking every 30 seconds, so the host connects as soon as the address works.
+:::
+
 :::details The host does not appear
 Check that the host can reach your OneUptime URL over HTTPS, then read the collector's log with the command for its system in [Check on a host's collector](#check-on-a-hosts-collector).
 :::

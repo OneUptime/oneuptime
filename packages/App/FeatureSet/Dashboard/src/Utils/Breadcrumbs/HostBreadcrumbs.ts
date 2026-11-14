@@ -168,7 +168,7 @@ export function getHostBreadcrumbs(path: string): Array<Link> | undefined {
       "Project",
       "Hosts",
       "View Host",
-      "Performance Profiles",
+      "Profiles",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.HOST_VIEW_FEED, [
       "Project",

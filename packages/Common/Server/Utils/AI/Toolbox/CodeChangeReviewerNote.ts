@@ -7,7 +7,14 @@ import FeedMarkdown, {
   MarkdownText,
   mdText,
 } from "../../../../Utils/Markdown/FeedMarkdown";
-import { describeLineRanges } from "./CodeFilesSeen";
+import {
+  describeLineCount,
+  describeLineRanges,
+  describeLinesPronoun,
+  getLinesNoLongerInHand,
+  isTextNoLongerInHand,
+} from "./CodeFilesSeen";
+import { AIChatLineRange } from "../../../../Types/AI/AIChatRecordSeen";
 
 type ReviewerNoteFunction = (data: {
   // The branch the pull request starts from.
@@ -23,15 +30,19 @@ type ReviewerNoteFunction = (data: {
  * read - a file changed on the base branch after Ask AI read it, read on
  * another branch only, never read, read only in an earlier answer (issue
  * #6365), read earlier in the same answer and no longer in hand (issue
- * #6570), read only in part (issue #6330), or not checked - and the person
+ * #6570), read all of and part of it no longer in hand (issue #6984),
+ * read only in part (issue #6330), or not checked - and the person
  * approved it anyway. Whoever reviews it on GitHub, GitLab, Forgejo or
  * Gitea may never have seen the card, so the pull request's description
  * says it too, as Markdown: each file in a code span, so its name reads
  * as written (src/__init__.py, pages/[slug].tsx), and for a file read in
- * part, the lines AI never saw, where its diff may drop code - and for a
- * file whose version writes placeholders in place of values hidden from
- * AI (issue #6364), each placeholder and its lines, where the real values
- * belong. Null when the card said nothing.
+ * part, the lines AI never saw, where its diff may drop code, apart from
+ * the lines it read earlier and no longer had, which it wrote from memory;
+ * and for a file whose version writes placeholders in place of values
+ * hidden from AI (issue #6364), each placeholder and its lines, where the
+ * real values belong. The heading says "or no longer had" when a file was
+ * read and no longer had: never "did not read" alone of what AI read.
+ * Null when the card said nothing.
  */
 export const describeCodeFilesUnseenForReviewer: ReviewerNoteFunction = (data: {
   baseBranchName: string;
@@ -46,6 +57,8 @@ export const describeCodeFilesUnseenForReviewer: ReviewerNoteFunction = (data: {
   const items: Array<MarkdownText> = data.findings.map(
     (finding: CodeFileUnseenFinding): MarkdownText => {
       const file: MarkdownText = FeedMarkdown.code(finding.filePath);
+      const noLongerInHand: Array<AIChatLineRange> =
+        getLinesNoLongerInHand(finding);
 
       switch (finding.unseen) {
         case CodeFileUnseen.ChangedSinceRead:
@@ -60,9 +73,15 @@ export const describeCodeFilesUnseenForReviewer: ReviewerNoteFunction = (data: {
           return mdText`${file}: AI read it in an earlier answer and no longer had its text when it wrote the whole file.`;
         case CodeFileUnseen.ReadEarlierInThisAnswer:
           return mdText`${file}: AI read it earlier in the same answer and no longer had its text when it wrote the whole file.`;
+        case CodeFileUnseen.PartNoLongerInHand:
+          return finding.lineCount !== undefined && noLongerInHand.length > 0
+            ? mdText`${file}: AI read ${describeLineRanges(noLongerInHand)} of its ${describeLineCount(finding.lineCount)} earlier and no longer had ${describeLinesPronoun(noLongerInHand)} when it wrote the whole file.`
+            : mdText`${file}: AI read it earlier and no longer had part of its text when it wrote the whole file.`;
         case CodeFileUnseen.ReadInPart:
           return finding.lineCount !== undefined && finding.linesNotRead
-            ? mdText`${file}: AI did not read ${describeLineRanges(finding.linesNotRead)} of its ${String(finding.lineCount)} ${finding.lineCount === 1 ? "line" : "lines"} before writing the whole file.`
+            ? noLongerInHand.length > 0
+              ? mdText`${file}: AI did not read ${describeLineRanges(finding.linesNotRead)} of its ${describeLineCount(finding.lineCount)} before writing the whole file, and it read ${describeLineRanges(noLongerInHand)} earlier and no longer had ${describeLinesPronoun(noLongerInHand)}.`
+              : mdText`${file}: AI did not read ${describeLineRanges(finding.linesNotRead)} of its ${describeLineCount(finding.lineCount)} before writing the whole file.`
             : mdText`${file}: AI read only part of it before writing the whole file.`;
         case CodeFileUnseen.ValuesHidden:
           return finding.placeholdersWritten &&
@@ -83,6 +102,12 @@ export const describeCodeFilesUnseenForReviewer: ReviewerNoteFunction = (data: {
     },
   );
 
-  return mdText`**Check these files' diffs.** Before this was approved, OneUptime said AI's versions of them may undo or replace what it did not read:
-${FeedMarkdown.bulletList(items)}`.toString();
+  // A file read and no longer had is not one AI did not read (issue #6984).
+  return (
+    data.findings.some(isTextNoLongerInHand)
+      ? mdText`**Check these files' diffs.** Before this was approved, OneUptime said AI's versions of them may undo or replace what it did not read, or no longer had:
+${FeedMarkdown.bulletList(items)}`
+      : mdText`**Check these files' diffs.** Before this was approved, OneUptime said AI's versions of them may undo or replace what it did not read:
+${FeedMarkdown.bulletList(items)}`
+  ).toString();
 };

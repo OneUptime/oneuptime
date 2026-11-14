@@ -3054,6 +3054,46 @@ export default class NetworkDevice extends BaseModel {
   })
   public lastPolledAt?: Date = undefined;
 
+  /*
+   * The receipt time of the poll whose verdict the row holds, which is what
+   * keeps an older poll from overwriting a newer one (OneUptime issue #7389).
+   * Written with the verdict, in one statement that only writes a poll
+   * received after this time (NetworkDeviceService.writePollVerdict).
+   *
+   * lastPolledAt cannot do this job. It is stamped when OneUptime processed
+   * the poll, because the stale-poll check, the topology and the stale pill
+   * all read it to tell whether polls are still coming through, and a queue
+   * backlog does not stop them.
+   *
+   * Read-only for everyone: only the poll pipeline writes it.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkDevice,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "Last Poll Received At",
+    description:
+      "When OneUptime received the poll whose result this device shows (isReachable, isSnmpReachable and the interface counts). A poll received earlier never overwrites that result: a retried poll, or one that waited longer in the queue than the poll after it. Managed by OneUptime.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public lastPollReceivedAt?: Date = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: [

@@ -1,5 +1,6 @@
 import SelectFormFields from "../../Types/SelectEntityField";
 import API from "../../Utils/API/API";
+import FormRefusals, { FormRefusalKind } from "../../Utils/FormRefusals";
 import ModelAPI, {
   ListResult,
   ModelAPIHttpResponse,
@@ -62,6 +63,7 @@ import TableColumnType from "../../../Types/Database/TableColumnType";
 import { RuleCriteriaSubject } from "../../../Types/Rules/RuleCriteriaSubject";
 import Dictionary from "../../../Types/Dictionary";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import { UnexplainedErrorWords } from "../../../Types/Exception/UnexplainedError";
 import { PromiseVoidFunction } from "../../../Types/FunctionTypes";
 import GenericObject from "../../../Types/GenericObject";
 import { JSONObject } from "../../../Types/JSON";
@@ -1633,6 +1635,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
       const message: string = API.getFriendlyMessage(err);
       setError(message);
       props.onSubmitError?.(message);
+      FormRefusals.report(FormRefusalKind.Refused);
     }
 
     setLoading(false);
@@ -1751,6 +1754,20 @@ const ModelForm: <TBaseModel extends BaseModel>(
         onCancel={props.onCancel}
         maxPrimaryButtonWidth={props.maxPrimaryButtonWidth}
         error={error}
+        whatFailed={
+          model.singularName
+            ? translator.translateTemplate(
+                props.formType === FormType.Create
+                  ? UnexplainedErrorWords.createFailed
+                  : UnexplainedErrorWords.saveFailed,
+                {
+                  itemName: translatableTerm(model.singularName, {
+                    inSentence: true,
+                  }),
+                },
+              )
+            : undefined
+        }
         hideSubmitButton={props.hideSubmitButton}
         formRef={props.formRef}
         initialValues={

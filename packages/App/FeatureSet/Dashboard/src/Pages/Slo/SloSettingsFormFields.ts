@@ -4,15 +4,20 @@ import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import SloMultiMonitorMode from "Common/Types/ServiceLevelObjective/SloMultiMonitorMode";
 import SloWindowType from "Common/Types/ServiceLevelObjective/SloWindowType";
-import { formatDurationCompact } from "Common/Utils/Slo/SloDuration";
+import { formatDurationCompactInLanguage } from "Common/Utils/Slo/SloDuration";
 import { DEFAULT_ROLLING_WINDOW_DAYS } from "Common/Utils/Slo/SloHealth";
+import {
+  formatSloNumber,
+  formatSloPercent,
+} from "Common/Utils/Slo/SloWidgetFormat";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import type { RadioButton } from "Common/UI/Components/RadioButtons/GroupRadioButtons";
 import {
-  translatePlural,
-  translateTemplate,
+  getGlobalTranslator,
+  PluralTemplate,
   translationKey,
+  Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -31,6 +36,19 @@ import {
  */
 
 const SECONDS_PER_DAY: number = 24 * 60 * 60;
+
+/*
+ * A calendar month's budget is worked out over a month of this many days,
+ * and the line says so: "0.1% of each month: 43m 12s of downtime in a
+ * 30-day month".
+ */
+export const SLO_EXAMPLE_MONTH_DAYS: number = 30;
+
+/*
+ * The share of the window the objective leaves to downtime, to as many
+ * places as a target can be typed with: 0.1 for 99.9, 0.0875 for 99.9125.
+ */
+const ALLOWED_PERCENTAGE_DECIMALS: number = 6;
 
 /*
  * Objective and period are not declared again here: they are taken from
@@ -203,14 +221,28 @@ export interface SloWindowSummaryData {
   timezone?: string | undefined | null;
 }
 
-export type DescribeSloWindowFunction = (data: SloWindowSummaryData) => string;
+export type DescribeSloWindowFunction = (
+  data: SloWindowSummaryData,
+  translator?: Translator | undefined,
+) => string;
 
-/** "Rolling 30-day window" or "Calendar month (Europe/Berlin)". */
+const ROLLING_WINDOW: PluralTemplate = {
+  one: translationKey("Rolling {{count}}-day window"),
+  other: translationKey("Rolling {{count}}-day window"),
+};
+
+/*
+ * "Rolling 30-day window" or "Calendar month (Europe/Berlin)", in the
+ * reader's language: the page's Translator, or the language of the moment.
+ */
 export const describeSloWindow: DescribeSloWindowFunction = (
   data: SloWindowSummaryData,
+  translator?: Translator | undefined,
 ): string => {
+  const reader: Translator = translator || getGlobalTranslator();
+
   if (data.windowType === SloWindowType.CalendarMonth) {
-    return translateTemplate("Calendar month ({{timezone}})", {
+    return reader.translateTemplate("Calendar month ({{timezone}})", {
       timezone: data.timezone || "UTC",
     });
   }
@@ -218,13 +250,7 @@ export const describeSloWindow: DescribeSloWindowFunction = (
   const windowDays: number =
     toFinitePositiveNumber(data.windowDays) ?? DEFAULT_ROLLING_WINDOW_DAYS;
 
-  return translatePlural(
-    {
-      one: "Rolling {{count}}-day window",
-      other: "Rolling {{count}}-day window",
-    },
-    windowDays,
-  );
+  return reader.translatePlural(ROLLING_WINDOW, windowDays);
 };
 
 export interface SloErrorBudgetSummaryData extends SloWindowSummaryData {
@@ -233,7 +259,17 @@ export interface SloErrorBudgetSummaryData extends SloWindowSummaryData {
 
 export type DescribeSloErrorBudgetFunction = (
   data: SloErrorBudgetSummaryData,
+  translator?: Translator | undefined,
 ) => string | null;
+
+const ROLLING_ERROR_BUDGET: PluralTemplate = {
+  one: translationKey("{{budget}} of downtime per {{count}}-day window"),
+  other: translationKey("{{budget}} of downtime per {{count}}-day window"),
+};
+
+export const SLO_CALENDAR_MONTH_ERROR_BUDGET_TEMPLATE: string = translationKey(
+  "{{percentage}} of each month: {{budget}} of downtime in a {{days}}-day month",
+);
 
 /*
  * The full-window budget the objective allows, in words: "43m 12s of
@@ -250,10 +286,19 @@ export type DescribeSloErrorBudgetFunction = (
  *
  * Null when the target cannot produce a budget, rather than a misleading
  * "0s".
+ *
+ * Every figure is the reader's: "0,1 %" and "43 Min., 12 Sek." in German,
+ * Persian digits and units in Persian (formatSloPercent,
+ * formatDurationCompactInLanguage), as the Overview writes the same budget.
+ * Filled with String() and the English durations, the line read "0.1 %
+ * jedes Monats: 43m 12s" in German (#6925). An English reader reads it
+ * word for word as before.
  */
 export const describeSloErrorBudget: DescribeSloErrorBudgetFunction = (
   data: SloErrorBudgetSummaryData,
+  translator?: Translator | undefined,
 ): string | null => {
+  const reader: Translator = translator || getGlobalTranslator();
   const target: number | null = toFinitePositiveNumber(data.targetPercentage);
 
   if (target === null || target >= 100) {
@@ -264,34 +309,41 @@ export const describeSloErrorBudget: DescribeSloErrorBudgetFunction = (
    * 100 - 99.9 is 0.09999999999999432 in floating point; round it back to
    * the number the user typed before showing it.
    */
-  const allowedPercentage: number = Number((100 - target).toFixed(6));
+  const allowedPercentage: number = Number(
+    (100 - target).toFixed(ALLOWED_PERCENTAGE_DECIMALS),
+  );
   const allowedFraction: number = allowedPercentage / 100;
 
   if (data.windowType === SloWindowType.CalendarMonth) {
-    const thirtyDayBudget: string = formatDurationCompact(
-      Math.round(allowedFraction * 30 * SECONDS_PER_DAY),
+    const monthBudget: string = formatDurationCompactInLanguage(
+      Math.round(allowedFraction * SLO_EXAMPLE_MONTH_DAYS * SECONDS_PER_DAY),
+      reader.language,
     );
 
-    return translateTemplate(
-      "{{percentage}}% of each month: {{budget}} of downtime in a 30-day month",
-      { percentage: String(allowedPercentage), budget: thirtyDayBudget },
-    );
+    return reader.translateTemplate(SLO_CALENDAR_MONTH_ERROR_BUDGET_TEMPLATE, {
+      percentage:
+        formatSloPercent(
+          allowedPercentage,
+          ALLOWED_PERCENTAGE_DECIMALS,
+          reader,
+        ) ?? `${allowedPercentage}%`,
+      budget: monthBudget,
+      days:
+        formatSloNumber(SLO_EXAMPLE_MONTH_DAYS, 0, reader) ??
+        String(SLO_EXAMPLE_MONTH_DAYS),
+    });
   }
 
   const windowDays: number =
     toFinitePositiveNumber(data.windowDays) ?? DEFAULT_ROLLING_WINDOW_DAYS;
-  const budget: string = formatDurationCompact(
+  const budget: string = formatDurationCompactInLanguage(
     Math.round(allowedFraction * windowDays * SECONDS_PER_DAY),
+    reader.language,
   );
 
-  return translatePlural(
-    {
-      one: "{{budget}} of downtime per {{count}}-day window",
-      other: "{{budget}} of downtime per {{count}}-day window",
-    },
-    windowDays,
-    { budget: budget },
-  );
+  return reader.translatePlural(ROLLING_ERROR_BUDGET, windowDays, {
+    budget: budget,
+  });
 };
 
 export type OrderDowntimeMonitorStatusesFunction = (

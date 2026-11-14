@@ -286,9 +286,11 @@ const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
 
       {/*
        * Right group: Display controls. Start-aligned below md, where it sits
-       * on its own row under the left group.
+       * on its own row under the left group. No wider than the toolbar
+       * (min-w-0 max-w-full), so the time range picker in it cuts a long
+       * custom range short instead of running past the card.
        */}
-      <div className="flex flex-wrap items-center justify-start gap-2 md:justify-end">
+      <div className="flex min-w-0 max-w-full flex-wrap items-center justify-start gap-2 md:justify-end">
         {props.availableColumns &&
           props.selectedColumns &&
           props.onSelectedColumnsChange && (

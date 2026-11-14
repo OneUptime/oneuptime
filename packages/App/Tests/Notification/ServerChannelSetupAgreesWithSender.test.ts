@@ -41,6 +41,7 @@ import {
 import ServerChannelSetup from "Common/Server/Utils/ServerSending/ServerChannelSetup";
 import { EmailServerType } from "Common/Models/DatabaseModels/GlobalConfig";
 import Email from "Common/Types/Email";
+import AmazonSesAuthenticationType from "Common/Types/Email/AmazonSesAuthenticationType";
 import Hostname from "Common/Types/API/Hostname";
 import MailTransportType from "Common/Types/Email/MailTransportType";
 import SMTPAuthenticationType from "Common/Types/Email/SMTPAuthenticationType";
@@ -138,6 +139,23 @@ const NAMED_ROWS: Array<[string, Record<string, unknown>]> = [
     },
   ],
   [
+    "Amazon SES with this server's IAM role, no key at all",
+    {
+      emailServerType: EmailServerType.AmazonSES,
+      amazonSesAuthenticationType: AmazonSesAuthenticationType.ServerIamRole,
+      amazonSesRegion: "eu-west-1",
+      amazonSesFromEmail: new Email("alerts@example.com"),
+    },
+  ],
+  [
+    "Amazon SES with this server's IAM role, no Region",
+    {
+      emailServerType: EmailServerType.AmazonSES,
+      amazonSesAuthenticationType: AmazonSesAuthenticationType.ServerIamRole,
+      amazonSesFromEmail: new Email("alerts@example.com"),
+    },
+  ],
+  [
     "Resend, complete",
     {
       emailServerType: EmailServerType.Resend,
@@ -158,6 +176,27 @@ describe("the rows a person meets most", () => {
   test("a fresh server cannot send, and both say so", async () => {
     expect(pagesSaySetUp({})).toBe(false);
     expect(await senderWouldSend({})).toBe(false);
+  });
+
+  test("Amazon SES signing in with this server's IAM role needs no key, and both say so (#7000)", async () => {
+    const row: Record<string, unknown> = {
+      emailServerType: EmailServerType.AmazonSES,
+      amazonSesAuthenticationType: AmazonSesAuthenticationType.ServerIamRole,
+      amazonSesRegion: "eu-west-1",
+      amazonSesFromEmail: new Email("alerts@example.com"),
+    };
+
+    expect(pagesSaySetUp(row)).toBe(true);
+    expect(await senderWouldSend(row)).toBe(true);
+
+    // With an access key picked, the same row has no key: neither sends.
+    const withKey: Record<string, unknown> = {
+      ...row,
+      amazonSesAuthenticationType: AmazonSesAuthenticationType.AccessKey,
+    };
+
+    expect(pagesSaySetUp(withKey)).toBe(false);
+    expect(await senderWouldSend(withKey)).toBe(false);
   });
 });
 
@@ -224,6 +263,15 @@ function generatedRow(random: SeededRandom): Record<string, unknown> {
     postmarkFromEmail: maybe(random, new Email("alerts@example.com")),
     resendApiKey: maybe(random, "re_key"),
     resendFromEmail: maybe(random, new Email("alerts@example.com")),
+    // Last, so every field before it comes out of the seed as it did.
+    amazonSesAuthenticationType: pick(random, [
+      undefined,
+      null,
+      "",
+      AmazonSesAuthenticationType.AccessKey,
+      AmazonSesAuthenticationType.ServerIamRole,
+      "Instance Profile",
+    ]),
   };
 }
 

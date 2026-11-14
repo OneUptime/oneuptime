@@ -43,7 +43,7 @@ Tre ting får det til at virke:
 :::steps
 ### Giv administratorsamtykke
 
-Gå til **Projektindstillinger** > **Arbejdsområde** > **Microsoft Teams**, og klik på **Giv administratorsamtykke**. En Microsoft 365-administrator logger ind og tillader OneUptime-appen for organisationen. Kortet siger derefter **Admin Consent Completed**. Indtil et workspace er forbundet, indeholder sektionen **Arbejdsområde** i menuerne Hændelser, Advarsler, Planlagt vedligeholdelse, Monitorer og Vagtordning **Forbind et arbejdsområde**, som også fører hertil.
+Gå til **Projektindstillinger** > **Arbejdsområde** > **Microsoft Teams**, og klik på **Giv administratorsamtykke**. En Microsoft 365-administrator logger ind og tillader OneUptime-appen for organisationen. Kortet siger derefter **Admin Consent Completed**. Indtil et workspace er forbundet, indeholder sektionen **Arbejdsområde** i menuerne Hændelser, Advarsler, Planlagt vedligeholdelse, Monitorer og Vagt **Forbind et arbejdsområde**, som også fører hertil.
 
 ### Forbind din konto
 
@@ -64,7 +64,7 @@ Hver person knytter sin egen Microsoft Teams-konto under **Brugerindstillinger**
 
 ### Tilføj en notifikationsregel
 
-Gå til **Hændelser** > **Arbejdsområde** > **Microsoft Teams**. Sektionen **Arbejdsområde** viser kun de chat-workspaces, dit projekt har forbundet, så **Microsoft Teams** vises der, så snart det er forbundet. Opret en regel, for eksempel en, der slår op i en Teams-kanal, når en hændelse oprettes, og klik derefter på **Testregel** i dens række.
+Gå til **Hændelser** > **Arbejdsområde** > **Microsoft Teams**. Sektionen **Arbejdsområde** viser kun de chat-workspaces, dit projekt har forbundet, så **Microsoft Teams** vises der, så snart det er forbundet. Opret en regel, for eksempel en, der slår op i en Teams-kanal, når en hændelse oprettes, og klik derefter på **Test regel** i dens række.
 :::
 
 > [!NOTE]
@@ -88,7 +88,7 @@ En notifikationsregel siger, hvilke begivenheder der slås op i Microsoft Teams,
 | **Advarsler** | **Advarsler**, **Advarselsepisoder**, **Oversigt** |
 | **Planlagt vedligeholdelse** | Én liste med regler |
 | **Monitorer** | Én liste med regler |
-| **Vagtordning** | Én liste med regler |
+| **Vagt** | Én liste med regler |
 | **SLOs** | Én liste med regler |
 
 At oprette en regel går gennem fire trin:
@@ -122,9 +122,9 @@ En notifikationsregel kan tilhøre teams. **Ansvarlige teams** under **Flere fel
 
 ## Test en regel
 
-**Testregel** i en regels række slår en testbesked for den regel op i de kanaler, den nævner, så du kan se den ankomme. Hvis reglen opretter en kanal for hver begivenhed, opretter testen også en og inviterer reglens folk ind i den.
+**Test regel** i en regels række slår en testbesked for den regel op i de kanaler, den nævner, så du kan se den ankomme. Hvis reglen opretter en kanal for hver begivenhed, opretter testen også en og inviterer reglens folk ind i den.
 
-Ligesom **Send test** ved siden af en kanal i **Projektindstillinger** > **Arbejdsområde** > **Microsoft Teams** kræver den rettighed til at oprette notifikationsregler: **Projektejer**, **Projektadministrator**, **Projektmedlem**, **Indstillingsadministrator**, **Indstillingsmedlem** eller **Create Workspace Notification Rule** og **Read Workspace Notification Rule** i en brugerdefineret rolle. For en, der kun må se reglerne, som en **Seer**, er **Testregel** låst, og dens værktøjstip siger, hvad der kræves; API'en afviser vedkommendes test med "You do not have permission to send test notifications in this project." På OneUptime Cloud kræver det **Growth**-planen at teste en regel, ligesom at tilføje en.
+Ligesom **Send test** ved siden af en kanal i **Projektindstillinger** > **Arbejdsområde** > **Microsoft Teams** kræver den rettighed til at oprette notifikationsregler: **Projektejer**, **Projektadministrator**, **Projektmedlem**, **Indstillingsadministrator**, **Indstillingsmedlem** eller **Create Workspace Notification Rule** og **Read Workspace Notification Rule** i en brugerdefineret rolle. For en, der kun må se reglerne, som en **Seer**, er **Test regel** låst, og dens værktøjstip siger, hvad der kræves; API'en afviser vedkommendes test med "You do not have permission to send test notifications in this project." På OneUptime Cloud kræver det **Growth**-planen at teste en regel, ligesom at tilføje en.
 
 På OneUptime Cloud kræver **Send test** ved siden af en kanal eller en chat også **Growth**-planen, da det at slå op i en kanal er det, regler og opsummeringer gør. **Send test nu** på en opsummering kræver rettighed til at oprette opsummeringer (**Create Workspace Notification Summary** og **Read Workspace Notification Summary** i en brugerdefineret rolle) og, på OneUptime Cloud, **Growth**-planen; for alle andre er den låst, og dens værktøjstip siger, hvad der kræves. En MCP-klient, der er forbundet med skrivebeskyttet adgang, kan ikke sende nogen test.
 
@@ -138,7 +138,7 @@ Formularen til en opsummering har fire trin: **Grundlæggende oplysninger** (nav
 
 ## Notifikationsregler under Growth-planen
 
-På OneUptime Cloud hører notifikationsregler og opsummeringer til **Growth**-planen og derover. Et projekt under den beholder de regler og opsummeringer, det allerede har, og de bliver ved med at slå op i Microsoft Teams. Derfor viser hvert produkts **Microsoft Teams**-side (Hændelser, Advarsler, Planlagt vedligeholdelse, Vagtordning, Monitorer) planbemærkningen med dem nedenunder (**Meddelelsesregler, der stadig er sat op**, **Opsummeringer, der stadig er sat op**): slet en regel, eller slå en opsummering fra eller slet den. At tilføje eller ændre regler og opsummeringer kræver **Growth**.
+På OneUptime Cloud hører notifikationsregler og opsummeringer til **Growth**-planen og derover. Et projekt under den beholder de regler og opsummeringer, det allerede har, og de bliver ved med at slå op i Microsoft Teams. Derfor viser hvert produkts **Microsoft Teams**-side (Hændelser, Advarsler, Planlagt vedligeholdelse, Vagt, Monitorer) planbemærkningen med dem nedenunder (**Meddelelsesregler, der stadig er sat op**, **Opsummeringer, der stadig er sat op**): slet en regel, eller slå en opsummering fra eller slet den. At tilføje eller ændre regler og opsummeringer kræver **Growth**.
 
 ## Bliv tilkaldt i Microsoft Teams
 
@@ -150,7 +150,7 @@ For at blive tilkaldt via direkte besked, når du har vagt, tilføjer du Microso
 3. Klik på **Send Test Message** i dens række. Beskeden ankommer i dine chats i Microsoft Teams.
 :::
 
-At tilføje den sætter den straks ind i dine vagtregler, så tilkald når dig i Microsoft Teams fra da af. Ændr, hvilke tilkald den får, under **Brugerindstillinger** > **Vagtregler**.
+At tilføje den sætter den straks ind i dine vagtregler, så tilkald når dig i Microsoft Teams fra da af. Ændr, hvilke tilkald den får, under **Brugerindstillinger** > **Sådan når man mig**.
 
 ## Gem beskeder som noter
 
@@ -208,7 +208,7 @@ At skrive `incident` eller `maintenance` til OneUptime-botten åbner en formular
 - **I en advarsels egen kanal.** Skrevet i den kanal, OneUptime oprettede til en advarsel, mens advarslen er åben, åbner `incident` et kort, der siger, at hændelsen oprettes fra den advarsel, og starter med advarslens titel og de ressourcer, den er knyttet til, som den person, der bad om kortet, må se. Hændelsen knyttes til advarslen, ligesom en hændelse, der oprettes fra advarslens side, og en privat advarsels hændelse er også privat. Når den person, der indsender kortet, ikke må knytte advarsler til hændelser, oprettes hændelsen uden tilknytningen, og botten fortæller personen hvorfor.
 - **Hvad en formular må nævne.** I en kanal eller en gruppechat må alle, der er til stede, indsende formularen, og den indsendes som den, der gør det, med vedkommendes egne rettigheder. Hændelsen eller begivenheden oprettes med de rettigheder og krediteres den person. En monitor, vagtpolitik, etiket, alvorlighed eller status, personen ikke må læse, eller en fra et andet projekt, afvises som en, projektet ikke har, og intet oprettes: botten svarer "One of the values you picked ... is not available in this project any more. Please pick it again."
 
-**Execute On-Call Policy** på en hændelse, advarsel eller episode virker på samme måde: den kræver rettighed til at køre en vagtpolitik (**Projektejer**, **Projektadministrator**, **Projektmedlem**, **Vagtadministrator** og **Vagtmedlem**, eller **Execute On-Call Duty Policy** i en brugerdefineret rolle) og til at læse den hændelse, advarsel eller episode, og den tilbyder de aktive vagtpolitikker, personen må læse. At se en monitor eller en vagtpolitik fra et kort læser den også som den person, der trykkede på knappen.
+**Execute On-Call Policy** på en hændelse, advarsel eller episode virker på samme måde: den kræver rettighed til at køre en vagtpolitik (**Projektejer**, **Projektadministrator**, **Projektmedlem**, **Vagtadministrator** og **Vagtmedlem**, eller **Execute On-Call Policies** i en brugerdefineret rolle) og til at læse den hændelse, advarsel eller episode, og den tilbyder de aktive vagtpolitikker, personen må læse. At se en monitor eller en vagtpolitik fra et kort læser den også som den person, der trykkede på knappen.
 
 ## Tilkald nogen fra Microsoft Teams
 
@@ -219,7 +219,7 @@ I en kanal eller en gruppechat tilkalder `@OneUptime page @Nawaz Dhandala The ch
 - **Hvem der tilkaldes med det samme.** De personer, du nævner med @, og dem, der har vagt i de vagtplaner, som et mærke, du nævner med @, følger (se [Vagt-mærker](#vagt-mærker)), når en besked følger efter dem, eller uden besked i en hændelses eller en advarsels egen kanal. OneUptime kender en person på den OneUptime-konto, personens Microsoft Teams-konto er forbundet med, eller ellers på personens e-mailadresse i Microsoft Teams. Ingen uden for projektet tilkaldes.
 - **Alt andet giver et kort.** Hvis ingen er nævnt med @, som i en personlig chat med botten, der ikke er nogen besked, hvor tilkaldet kræver en, du nævner et mærke, der ikke følger nogen vagtplan, du kan se, eller OneUptime ikke kan se, hvem en person er, svarer botten med kortet **Page someone**, med det, du skrev, udfyldt, og det siger, hvem det ikke kunne vælge. I en hændelses eller en advarsels egen kanal åbner kortet med den hændelse eller advarsel. Vælg personer, et team, en vagtplan, som tilkalder den, der har vagt i den nu, eller en vagtpolitik, som tilkalder via sine eskaleringsregler, og indsend det. Alle i samtalen må indsende kortet, som sig selv. Når det har tilkaldt, fjernes kortet, så ingen tilkalder med det to gange.
 - **Hvor det vises.** Samtalen viser tilkaldet som ét kort, der holdes opdateret: hvem der blev tilkaldt og hvordan, hvert team med sit navn og sine personer efter, din besked, og hvem der kvitterede. Hvor botten ikke kan skrive det, fortæller dens svar, hvem der blev tilkaldt, med et link til hændelsen eller advarslen.
-- **Hvem der må tilkalde.** I en hændelses eller en advarsels egen kanal alle, der må køre en vagtpolitik (**Projektejer**, **Projektadministrator**, **Projektmedlem**, **Vagtadministrator** og **Vagtmedlem**, eller **Execute On-Call Duty Policy** i en brugerdefineret rolle) og læse den hændelse eller advarsel. Alle andre steder opretter tilkaldet en advarsel, så det kræver også rettighed til at oprette en: **Projektejer**, **Projektadministrator** og **Projektmedlem**, eller **Vagtmedlem** sammen med **Advarselsmedlem** (**Execute On-Call Duty Policy** og **Create Alert** i en brugerdefineret rolle). At tilkalde personer, et team eller en vagtplan direkte, uden en vagtpolitik bag tilkaldet, kræver også adgang til alle projektets vagtpolitikker. Alle andre får det at vide i et svar, og ingen tilkaldes. På OneUptime Cloud kræver tilkald Growth-planen: under den siger OneUptime, hvilken plan der kræves, og ingen tilkaldes.
+- **Hvem der må tilkalde.** I en hændelses eller en advarsels egen kanal alle, der må køre en vagtpolitik (**Projektejer**, **Projektadministrator**, **Projektmedlem**, **Vagtadministrator** og **Vagtmedlem**, eller **Execute On-Call Policies** i en brugerdefineret rolle) og læse den hændelse eller advarsel. Alle andre steder opretter tilkaldet en advarsel, så det kræver også rettighed til at oprette en: **Projektejer**, **Projektadministrator** og **Projektmedlem**, eller **Vagtmedlem** sammen med **Advarselsmedlem** (**Execute On-Call Policies** og **Create Alert** i en brugerdefineret rolle). At tilkalde personer, et team eller en vagtplan direkte, uden en vagtpolitik bag tilkaldet, kræver også adgang til alle projektets vagtpolitikker. Alle andre får det at vide i et svar, og ingen tilkaldes. På OneUptime Cloud kræver tilkald Growth-planen: under den siger OneUptime, hvilken plan der kræves, og ingen tilkaldes.
 
 For at holde personer orienteret, mens andre håndterer det, kan du tilkalde dem som observatører. I en hændelses eller en advarsels egen kanal skriver du `as observers` efter, hvem der skal tilkaldes, som i `@OneUptime page @Oversight as observers Team Y is on it`, eller vælger **Observers: keep them informed** under **Page them as** på kortet. Deres tilkald siger, at de er observatører, og kvitterer de for det, siger det kun, at de har set det: Der bliver ikke kvitteret for hændelsen eller advarslen, ingen andres tilkald stopper, og hvor tilkaldet vises, står der, at de tilkaldes som observatører. Et tilkald om noget nyt kræver, at nogen håndterer det, så alle andre steder afvises `as observers`, og ingen tilkaldes.
 
@@ -230,7 +230,7 @@ Hold et mærke i Microsoft Teams, f.eks. `@Payments on-call`, lig med dem, der h
 :::steps
 ### Forbind et mærke med en vagtplan
 
-Åbn vagtplanen under **Vagtordning** > **Vagtplaner**. Klik på **Forbind mærke** i dens kort **Mærker i Microsoft Teams**, vælg teamet, og giv mærket et navn: teamets mærke med det navn eller et nyt, som OneUptime opretter. Medlemmerne bliver straks erstattet af dem, der har vagt.
+Åbn vagtplanen under **Vagt** > **Vagtplaner**. Klik på **Forbind mærke** i dens kort **Mærker i Microsoft Teams**, vælg teamet, og giv mærket et navn: teamets mærke med det navn eller et nyt, som OneUptime opretter. Medlemmerne bliver straks erstattet af dem, der har vagt.
 
 ### Forbind det også med den sekundære vagtplan
 
@@ -241,7 +241,7 @@ Til et mærke med både den primære og den sekundære vagt forbinder du det sam
 - **Ingen har vagt.** OneUptime tager alle ud af mærket, indtil nogen har vagt. Et nyt mærke kræver, at nogen fra teamet har vagt, for Microsoft Teams opretter ikke mærker uden medlemmer.
 - **Tilkald mærket.** `@OneUptime page @Payments on-call The checkout API is down` tilkalder dem, der har vagt i de vagtplaner, mærket følger. Se [Tilkald nogen fra Microsoft Teams](#tilkald-nogen-fra-microsoft-teams).
 - **Hvad Microsoft 365 kræver.** At ændre mærker kræver appens tilladelse `TeamworkTag.ReadWrite.All`, som en Microsoft 365-administrator giver med **Giv administratorsamtykke** under **Projektindstillinger** > **Arbejdsområde** > **Microsoft Teams**. Hvis din organisation gav samtykke, før OneUptime kunne holde mærker opdateret, så giv det igen én gang.
-- **Hvem der må forbinde et.** De roller, der må redigere vagtplaner: **Projektejer**, **Projektadministrator**, **Projektmedlem**, **Vagtadministrator** og **Vagtmedlem**, eller **Edit On-Call Duty Policy Schedule** i en brugerdefineret rolle. På OneUptime Cloud kræver det abonnementet **Growth** at forbinde et.
+- **Hvem der må forbinde et.** De roller, der må redigere vagtplaner: **Projektejer**, **Projektadministrator**, **Projektmedlem**, **Vagtadministrator** og **Vagtmedlem**, eller **Edit On-Call Schedule** i en brugerdefineret rolle. På OneUptime Cloud kræver det abonnementet **Growth** at forbinde et.
 - **Afbryd forbindelsen.** OneUptime holder op med at ændre mærket. Mærket og dets medlemmer bliver i Microsoft Teams, som de er.
 
 ## Håndter en hændelse fra Microsoft Teams

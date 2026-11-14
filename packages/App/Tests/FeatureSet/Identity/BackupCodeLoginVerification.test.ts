@@ -847,7 +847,9 @@ describe("POST /verify-backup-code -- what it refuses", () => {
     const result: InvokeResult = await postBackupCode();
 
     expect(loginSucceeded()).toBe(false);
-    expect(refusalMessage(result)).toBe("Invalid backup code.");
+    expect(refusalMessage(result)).toBe(
+      "That backup code is not right, or it was already used. Each backup code works once.",
+    );
     expect(sessionViolations()).toEqual([]);
   });
 
@@ -869,7 +871,9 @@ describe("POST /verify-backup-code -- what it refuses", () => {
 
     const result: InvokeResult = await postBackupCode();
 
-    expect(refusalMessage(result)).toBe("Invalid backup code.");
+    expect(refusalMessage(result)).toBe(
+      "That backup code is not right, or it was already used. Each backup code works once.",
+    );
   });
 
   /*
@@ -941,7 +945,7 @@ describe("POST /verify-backup-code -- what it refuses", () => {
   /*
    * An absent code must be named as absent. It would normalize to the empty
    * string and `consumeCode` refuses that on its own, so the login is refused
-   * either way -- but "Invalid backup code." tells a user whose form did not
+   * either way -- but "That backup code is not right, or it was already used. Each backup code works once." tells a user whose form did not
    * submit the field that their printed codes have stopped working, which is
    * the moment they give up and open a support ticket.
    */

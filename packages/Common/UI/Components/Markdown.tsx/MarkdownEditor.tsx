@@ -2537,6 +2537,7 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
         /* Nested bullets step through circle and square, as MarkdownViewer draws them. */
         .oneuptime-wysiwyg ul ul, .oneuptime-wysiwyg ol ul { list-style-type: circle; }
         .oneuptime-wysiwyg ul ul ul, .oneuptime-wysiwyg ul ol ul, .oneuptime-wysiwyg ol ul ul, .oneuptime-wysiwyg ol ol ul { list-style-type: square; }
+        /* Persian counts in its own digits: Theme.css's html:lang(fa) rule (issue #7258). */
         .oneuptime-wysiwyg ol { list-style-type: decimal; }
         .oneuptime-wysiwyg ul.task-list, .oneuptime-wysiwyg ul.task-list li { list-style: none; margin-inline-start: 0; }
         .oneuptime-wysiwyg ul.task-list li { padding-inline-start: 0; }

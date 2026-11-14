@@ -2,6 +2,8 @@
 
 Diese Anleitung bringt Sie in etwa fünfzehn Minuten von einem neuen Konto zu einer funktionierenden Einrichtung: einem Monitor, der Ihre Website alle fünf Minuten prüft, einer Bereitschaftsrichtlinie, die Sie alarmiert, wenn die Website ausfällt, und einer Statusseite, die Ihre Kunden informiert. Sie folgt der Checkliste **Willkommen bei OneUptime 👋** auf der Startseite Ihres Projekts.
 
+Sie kommen von einem anderen Werkzeug? [Importieren Sie zuerst Ihre Einrichtung](/docs/introduction/getting-started#von-einem-anderen-werkzeug-kommend): Ihre Monitore, Bereitschaftspläne und Statusseiten kommen mit.
+
 ```mermaid title="Was Sie in dieser Anleitung einrichten"
 flowchart TB
     monitor["Website-Monitor"] -->|"Website ausgefallen"| incident["Vorfall"]
@@ -32,6 +34,8 @@ Geben Sie einen **Projektname** ein, etwa den Namen Ihres Unternehmens. Bei OneU
 
 ### Das Projekt anlegen
 
+![Die Startseite fragt „Was möchten Sie zuerst tun?“, die drei Ziele dieser Anleitung sind angehakt](screen:home-goals-three)
+
 Klicken Sie auf **Projekt erstellen**. Die Startseite Ihres Projekts öffnet sich, oben mit der Checkliste **Willkommen bei OneUptime 👋**. Zuerst fragt sie **Was möchten Sie zuerst tun?**: Haken Sie **Wissen, wenn meine Website oder API ausfällt**, **Die richtige Person alarmieren, wenn etwas ausfällt** und **Meine Kunden über eine Statusseite informieren** an, und klicken Sie auf **Weiter**.
 :::
 
@@ -57,6 +61,8 @@ Behalten Sie die ausgewählten **Sonden** und das **Überwachungsintervall** **A
 
 Um die Prüfung vor dem Speichern auszuprobieren, klicken Sie im zweiten Schritt auf **Monitor testen**. Alle anderen Monitortypen beschreibt [Einen Monitor erstellen](/docs/monitor/create-monitor).
 
+Um auch eine API zu prüfen, festzulegen, wer informiert wird, und eine Test-Alarmierung zu senden, die beweist, dass die Nachricht Sie erreicht, folgen Sie der Anleitung [Erfahren, wenn Ihre Website oder API ausfällt](/docs/guides/website-down).
+
 ## Bei einem Ausfall alarmiert werden
 
 So wie es ist, wird ein Vorfall ohne Eigentümer per E-Mail an die Eigentümer des Projekts gemeldet, und dazu gehören Sie. Damit Sie alarmiert werden, bis jemand reagiert, legen Sie eine Bereitschaftsrichtlinie an: Die erste eines Projekts wird bei jedem neuen Vorfall und jeder neuen Warnung ausgelöst.
@@ -64,7 +70,7 @@ So wie es ist, wird ein Vorfall ohne Eigentümer per E-Mail an die Eigentümer d
 :::steps
 ### Eine Bereitschaftsrichtlinie anlegen
 
-Klicken Sie in der Checkliste auf **Bereitschaftsrichtlinie einrichten**, oder öffnen Sie **Bereitschaftsdienst** im Menü **Produkte**. Klicken Sie auf **Bereitschaftsrichtlinie erstellen** und geben Sie einen **Name** ein. Klicken Sie unter **Wer wird zuerst alarmiert?** auf **Empfänger hinzufügen** und wählen Sie sich selbst. Lassen Sie **Bei jedem neuen Vorfall und jeder neuen Warnung auslösen** eingeschaltet, und klicken Sie auf **Bereitschaftsrichtlinie erstellen**.
+Klicken Sie in der Checkliste auf **Bereitschaftsrichtlinie einrichten**, oder öffnen Sie **Bereitschaft** im Menü **Produkte**. Klicken Sie auf **Bereitschaftsrichtlinie erstellen** und geben Sie einen **Name** ein. Klicken Sie unter **Wer wird zuerst alarmiert?** auf **Empfänger hinzufügen** und wählen Sie sich selbst. Lassen Sie **Bei jedem neuen Vorfall und jeder neuen Warnung auslösen** eingeschaltet, und klicken Sie auf **Bereitschaftsrichtlinie erstellen**.
 
 ### Die Regel ansehen, die sie auslöst
 
@@ -76,9 +82,11 @@ Ihre Anmelde-E-Mail ist bereits ein Weg, Sie zu erreichen. Damit Sie auch per SM
 :::
 
 > [!NOTE]
-> SMS und Telefonanrufe sind in einem neuen Projekt ausgeschaltet. Ein Projekteigentümer, ein Billing Admin oder jemand mit Manage Billing schaltet sie in der Karte **Benachrichtigungskanäle** unter **Projekteinstellungen → Benachrichtigungen → Benachrichtigungseinstellungen** ein.
+> SMS und Telefonanrufe sind in einem neuen Projekt ausgeschaltet. Ein Projekteigentümer, ein Billing Admin oder jemand mit Manage Billing schaltet sie in der Karte **Benachrichtigungskanäle** unter **Projekteinstellungen → Benachrichtigungen → Benachrichtigungskanäle** ein.
 
 Für weitere Stufen, Rotationen und wie lange jede Stufe wartet, siehe [Eskalationsregeln](/docs/on-call/escalation-rules) und [Bereitschaftspläne](/docs/on-call/schedules).
+
+Damit Sie per SMS, Anruf und Push alarmiert werden, die nächste Person alarmiert wird, wenn niemand antwortet, und eine Test-Alarmierung beweist, dass es funktioniert, folgen Sie der Anleitung [Per Anruf, SMS oder Push alarmiert werden](/docs/guides/paging).
 
 ## Eine Statusseite veröffentlichen
 
@@ -98,6 +106,8 @@ Wählen Sie **Übersicht** im Seitenmenü. Die Karte **Link zur Statusseite** ve
 
 Eine neue Statusseite ist öffentlich: Jeder mit ihrer Adresse kann sie öffnen. Wie Sie ihr Ihre eigene Domain, Ihr Logo und Ihre Farben geben, steht unter [Statusseiten – Branding & Domains](/docs/status-pages/branding-and-domains).
 
+Um die Statusseite über HTTPS auf Ihre eigene Domain zu bringen, folgen Sie der Anleitung [Eine Statusseite veröffentlichen](/docs/guides/status-page).
+
 ## Ihr Team einladen
 
 Klicken Sie in der Checkliste auf **Team einladen**, oder öffnen Sie **Benutzer** im Menü **Produkte**, unter **Einstellungen**. Klicken Sie auf **Benutzer einladen**, geben Sie die **E-Mail** der Person ein und wählen Sie ein **Team**: Zu Beginn ist das Mitglieder-Team gewählt. Klicken Sie auf **Einladen**. OneUptime schickt der Person die Einladung per E-Mail, und das Team bestimmt, was sie tun darf. Siehe [Benutzer, Teams & Berechtigungen](/docs/permissions/index).
@@ -113,9 +123,13 @@ Melden Sie einen Testvorfall, um die ganze Kette arbeiten zu sehen.
 
 ### Zusehen, was passiert
 
+![Der „Vorfalls-Feed“ eines behobenen Vorfalls: wer alarmiert wurde, dann jede Statusänderung, die neueste zuerst](screen:incident-feed)
+
 Innerhalb von ein, zwei Minuten alarmiert Sie Ihre Bereitschaftsrichtlinie, und der Vorfall erscheint auf Ihrer Statusseite.
 
 ### Den Vorfall beheben
+
+![Ein Vorfall im Status „Bestätigt“, „Beheben“ ist markiert](screen:incident-resolve)
 
 Klicken Sie auf der Seite des Vorfalls auf **Beheben**. Die Alarmierung endet, und der Vorfall verschwindet von Ihrer Statusseite.
 :::

@@ -21,6 +21,9 @@ export const DOCS_EXTERNAL_LINK_ICON: string =
 const DocsNavIcons: Record<string, string> = {
   Introduction:
     '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>',
+  // A flag: a job followed to its finish, as the product's guide links show it.
+  Guides:
+    '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"/>',
   // Two arrows passing each other: switching from one tool to another.
   "Moving to OneUptime":
     '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>',
@@ -47,7 +50,7 @@ const DocsNavIcons: Record<string, string> = {
   SLOs: '<circle cx="12" cy="12" r="9" stroke-width="2"/><circle cx="12" cy="12" r="5" stroke-width="2"/><circle cx="12" cy="12" r="1" stroke-width="2"/>',
   Incidents:
     '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v4m0 4h.01M10.27 4a2 2 0 013.46 0l8 14A2 2 0 0120 21H4a2 2 0 01-1.73-3l8-14z"/>',
-  "On Call":
+  "On-Call":
     '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>',
   Runbooks:
     '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v16m0-16C9 3 5 3 2 4v16c3-1 7-1 10 1m0-16c3-2 7-2 10-1v16c-3-1-7-1-10 1"/>',

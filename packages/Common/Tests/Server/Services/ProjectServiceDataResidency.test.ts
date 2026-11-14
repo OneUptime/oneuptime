@@ -360,7 +360,7 @@ describe("ProjectService data residency with billing enabled", () => {
 
       await expect(
         (ProjectService as any).onBeforeCreate(makeCreateBy(project)),
-      ).rejects.toThrow("Project name is required");
+      ).rejects.toThrow("Give the project a name.");
     });
 
     it("creates a project without a residency exactly as before", async () => {

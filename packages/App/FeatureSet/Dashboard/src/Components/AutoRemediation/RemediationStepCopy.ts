@@ -598,13 +598,30 @@ export const REMEDIATION_ROUND_TRY_AGAIN_REFUSAL_KEYS: Record<
     "OneUptime AI is switched off for this project. A project owner or someone with Manage Billing can turn it on in Project Settings > AI > AI Features.",
   ),
   [RemediationRoundTryAgainRefusal.NoProvider]: translationKey(
-    "This project has no AI provider to work out a fix with. Add one in Project Settings > AI > LLM Providers, then try again.",
+    "This project has no LLM provider to work out a fix with. Add one in Project Settings > AI > LLM Providers, then try again.",
   ),
   [RemediationRoundTryAgainRefusal.CreditsUsedUp]: translationKey(
     "This project's AI credits are used up. A project owner or someone with Manage Billing can add AI credits in Project Settings > AI > AI Credits.",
   ),
   [RemediationRoundTryAgainRefusal.LimitReached]: translationKey(
     "The project reached its daily AI limit. OneUptime AI starts again at midnight UTC.",
+  ),
+  /*
+   * The incident's (alert's) own daily AI token limit (#7157): a limit of
+   * 0 pauses the work until someone raises it, so only a used-up limit
+   * says midnight. The words of Types/AI/RecordAiTokenLimit.
+   */
+  [RemediationRoundTryAgainRefusal.IncidentTokenLimitPaused]: translationKey(
+    "The Daily Incident AI Token Limit is set to 0, which pauses automatic AI work for incidents. Raise it above 0 under Incidents → AI → Settings → More settings, or clear it, then try again.",
+  ),
+  [RemediationRoundTryAgainRefusal.IncidentTokenLimitUsedUp]: translationKey(
+    "Automatic AI work for incidents used up today's Daily Incident AI Token Limit. Raise or clear it under Incidents → AI → Settings → More settings, or wait until midnight UTC, when it resets. Then try again.",
+  ),
+  [RemediationRoundTryAgainRefusal.AlertTokenLimitPaused]: translationKey(
+    "The Daily Alert AI Token Limit is set to 0, which pauses automatic AI work for alerts. Raise it above 0 under Alerts → AI → Settings → More settings, or clear it, then try again.",
+  ),
+  [RemediationRoundTryAgainRefusal.AlertTokenLimitUsedUp]: translationKey(
+    "Automatic AI work for alerts used up today's Daily Alert AI Token Limit. Raise or clear it under Alerts → AI → Settings → More settings, or wait until midnight UTC, when it resets. Then try again.",
   ),
   [RemediationRoundTryAgainRefusal.NotStarted]: translationKey(
     "The fix could not start again. Try again in a few minutes.",

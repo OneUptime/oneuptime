@@ -67,6 +67,10 @@
                         markdownUrl: typeof markdownUrl !== 'undefined' ? markdownUrl : null
                     }) %>
 
+                    <% if (typeof feedback !== 'undefined' && feedback) { %>
+                    <%- include('./Partials/PageFeedback.ejs', { feedback: feedback, t: t, lang: lang }) %>
+                    <% } %>
+
                     <%- include('./Partials/Pagination.ejs', {
                         prevLink: typeof prevLink !== 'undefined' ? prevLink : null,
                         nextLink: typeof nextLink !== 'undefined' ? nextLink : null,

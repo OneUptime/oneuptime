@@ -79,7 +79,7 @@ flowchart TB
 
 開啟服務或資源的 **設定** 頁面，再展開 **更多設定**。它的 **遙測資料保留** 卡片包含 **遙測資料保留時間（天）**，這是它傳送的所有內容的一個天數；它的 **依遙測類型的保留時間** 卡片擁有與專案相同的欄位。將欄位留空即可使用專案的設定。
 
-服務、主機、Kubernetes 叢集、Docker 和 Podman 主機、Docker Swarm、Proxmox 和 Ceph 叢集、儲存陣列、vCenter、資料庫、無伺服器函式、雲端環境、RUM 應用程式和 IoT 裝置群都有這些卡片。服務的 **設定** 頁面請參閱 [服務目錄](/docs/telemetry/services#變更服務)。
+服務、主機、Kubernetes 叢集、Docker 和 Podman 主機、Docker Swarm、Proxmox 和 Ceph 叢集、儲存陣列、vCenter、資料庫、無伺服器函式、雲端環境、RUM 應用程式和 IoT 裝置群都有這些卡片。服務的 **設定** 頁面請參閱 [服務](/docs/telemetry/services#變更服務)。
 
 ### 當方案或授權不再包含覆寫時
 
@@ -121,6 +121,6 @@ flowchart TB
 :::cards
 - [擷取金鑰](/docs/telemetry/ingestion-keys): 把遙測傳送到你的專案。
 - [捨棄過濾器與清理規則](/docs/telemetry/drop-filters-and-scrub-rules): 只保留你需要的遙測。
-- [服務目錄](/docs/telemetry/services): 設定服務自己的保留期。
+- [服務](/docs/telemetry/services): 設定服務自己的保留期。
 - [企業版](/docs/self-hosted/enterprise): 保留期覆寫包含在哪些版本中。
 :::

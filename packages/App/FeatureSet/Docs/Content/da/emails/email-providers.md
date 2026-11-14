@@ -3,7 +3,7 @@
 Send OneUptimes e-mail gennem en e-mailudbyders HTTPS-API i stedet for en SMTP-server: Amazon SES, SendGrid, Mailgun, Postmark eller Resend. Et projekt vælger en af dem til en SMTP-konfiguration, og en selvhostet installation kan sende al sin egen e-mail gennem en af dem. API'et nås over HTTPS på port 443, så e-mail stadig kommer ud fra netværk, der blokerer SMTP-portene, og hver udbyders nøgle gemmes krypteret.
 
 :::cards
-- [Amazon SES](#amazon-ses): En IAM-adgangsnøgle og den region, din afsender er verificeret i.
+- [Amazon SES](#amazon-ses): En IAM-adgangsnøgle eller serverens egen IAM-rolle og den region, din afsender er verificeret i.
 - [SendGrid](#sendgrid): En API-nøgle med adgang til Mail Send.
 - [Mailgun](#mailgun): En API-nøgle, afsenderdomænet og dets region.
 - [Postmark](#postmark): Serverens API-token.
@@ -15,7 +15,7 @@ Send OneUptimes e-mail gennem en e-mailudbyders HTTPS-API i stedet for en SMTP-s
 
 :::tabs
 @tab Projekt
-Åbn **Yderligere indstillinger** under **Projektindstillinger > Notifikationer > Notifikationsindstillinger**, og klik på **Opret SMTP-konfiguration** i kortet **Brugerdefinerede SMTP-konfigurationer**. I trinnet **Udbyder** angiver du et **Navn** og vælger udbyderen. Det næste trin beder om udbyderens indstillinger, og trinnet **Afsender** om **E-mail fra** og **Fra-navn**. Når konfigurationen er gemt, tjekker **Send test-e-mail** i dens række, at den virker.
+Åbn **Yderligere indstillinger** under **Projektindstillinger > Notifikationer > Notifikationskanaler**, og klik på **Opret SMTP-konfiguration** i kortet **Brugerdefinerede SMTP-konfigurationer**. I trinnet **Udbyder** angiver du et **Navn** og vælger udbyderen. Det næste trin beder om udbyderens indstillinger, og trinnet **Afsender** om **E-mail fra** og **Fra-navn**. Når konfigurationen er gemt, tjekker **Send test-e-mail** i dens række, at den virker.
 @tab Selvhostet instans
 Åbn **Indstillinger** i Admin Dashboard og derefter **Notifikationer > E-mails**. Klik i kortet **E-mail-serverindstillinger** på **Rediger server**, og vælg udbyderen som **E-mailservertype**. Udbyderens kort vises nedenunder, for eksempel **Amazon SES-indstillinger**: klik på dets redigeringsknap, for eksempel **Rediger Amazon SES**, og udfyld udbyderens indstillinger og trinnet **Afsender**. Indtil kortet har alt, hvad det skal bruge, siger det, hvad der mangler, og hver e-mail afvises med den indstilling, der skal udfyldes.
 :::
@@ -54,10 +54,44 @@ Opret en IAM-bruger til OneUptime med en politik, der tillader `ses:SendEmail` p
 }
 ```
 
+En selvhostet installation på AWS kan springe nøglen over og i stedet [logge ind med serverens IAM-rolle](#log-ind-med-serverens-iam-rolle) med den samme politik.
+
 ### Udfyld trinnet Amazon SES
 
 Angiv **Adgangsnøgle-id** og **Hemmelig adgangsnøgle**, og sæt **Region** til den region, din identitet er verificeret i, for eksempel `us-east-1`.
 :::
+
+### Log ind med serverens IAM-rolle
+
+En selvhostet installation på AWS kan sende sine egne e-mails som den IAM-rolle, AWS giver serveren, uden at der gemmes en adgangsnøgle i OneUptime: de legitimationsoplysninger, AWS udleverer, udløber inden for timer, og OneUptime henter nye, før de gør. Det gælder kun serverens egne e-mails. Et projekts Amazon SES-konfiguration logger altid ind med en adgangsnøgle, fordi serverens rolle er serverens egen AWS-identitet, ikke et projekts.
+
+Giv rollen politikken ovenfor, og kør derefter OneUptime som den:
+
+:::tabs
+@tab Amazon EKS
+Med IAM-roller til servicekonti opretter du rollen med en tillidspolitik for din klynges OIDC-udbyder og lader Helm-chartet oprette en servicekonto med rollens ARN. OneUptimes app- og worker-pods kører som den:
+
+```yaml title="values.yaml"
+serviceAccount:
+  create: true
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::123456789012:role/oneuptime-ses
+```
+
+Med EKS Pod Identity opretter du i stedet en Pod Identity-tilknytning mellem rollen og den servicekonto og udelader annotationen.
+@tab Amazon ECS
+Angiv rollen som **Task role** i OneUptimes opgavedefinition.
+@tab Amazon EC2
+Tilknyt rollen til instansen som dens instansprofil. Kører OneUptime i Docker på instansen, så hæv instansmetadataenes hop-grænse til 2, så containerne kan nå dem:
+
+```bash
+aws ec2 modify-instance-metadata-options --instance-id <instance-id> --http-put-response-hop-limit 2 --http-endpoint enabled
+```
+:::
+
+Klik derefter i Admin Dashboard på **Rediger Amazon SES**, vælg **Denne servers IAM-rolle** som **Godkendelsestype**, og angiv **Region**. Når du gemmer, fjernes en adgangsnøgle, der var gemt før.
+
+OneUptime leder efter serverens legitimationsoplysninger samme steder som AWS' SDK'er, i denne rækkefølge: `AWS_ACCESS_KEY_ID` og `AWS_SECRET_ACCESS_KEY` i dens miljø, et web identity-token (`AWS_ROLE_ARN` og `AWS_WEB_IDENTITY_TOKEN_FILE`), container-legitimationsendpointet for Amazon ECS og EKS Pod Identity og til sidst EC2's instansmetadatatjeneste (IMDSv2).
 
 ## SendGrid
 
@@ -89,6 +123,14 @@ Kontrollér **Adgangsnøgle-id**, at nøglen er aktiv i IAM, og at **Hemmelig ad
 
 :::details "The access key may not send with Amazon SES"
 IAM-brugerens politik tillader ikke `ses:SendEmail` på din identitet. Tilføj politikken ovenfor.
+:::
+
+:::details "This server has no AWS credentials"
+Serveren logger ind med sin IAM-rolle, men AWS giver den ingen legitimationsoplysninger. Kør den som rollen, som [Log ind med serverens IAM-rolle](#log-ind-med-serverens-iam-rolle) viser, og genstart derefter OneUptimes pods eller opgaver: en pod får sin rolles indstillinger, når den starter. I Docker på Amazon EC2 siger meddelelsen også, når instansmetadataenes hop-grænse er for lav.
+:::
+
+:::details "This server's IAM role may not send with Amazon SES" eller "did not let this server assume the role"
+Rollens politik tillader ikke `ses:SendEmail` på din identitet: tilføj politikken ovenfor. Eller, på Amazon EKS, tillader rollens tillidspolitik ikke `sts:AssumeRoleWithWebIdentity` for din klynges OIDC-udbyder og OneUptimes servicekonto.
 :::
 
 :::details "Mailgun has no domain … in its US region"

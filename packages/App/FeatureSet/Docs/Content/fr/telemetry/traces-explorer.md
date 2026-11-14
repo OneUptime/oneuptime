@@ -37,7 +37,7 @@ L'explorateur a cinq onglets :
 ## Avant de commencer
 
 - **Des traces qui arrivent.** Instrumentez vos services avec [OpenTelemetry](/docs/telemetry/open-telemetry). L'onglet **Guide de configuration** montre le code pour votre langage.
-- **Un rôle qui peut lire la télémétrie.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member ou Telemetry Viewer, ou un rôle personnalisé avec la permission Read Telemetry Service Traces. Sa portée décide de quels spans vous voyez : voir [Télémétrie](/docs/permissions/index#télémétrie).
+- **Un rôle qui peut lire la télémétrie.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member ou Telemetry Viewer, ou un rôle personnalisé avec la permission Read Traces. Sa portée décide de quels spans vous voyez : voir [Télémétrie](/docs/permissions/index#télémétrie).
 
 ## Trouver une requête
 
@@ -183,6 +183,6 @@ Chaque ligne est un span, pas une requête : avec **Entry spans**, la valeur par
 :::cards
 - [Syntaxe de recherche](/docs/telemetry/search-syntax): Chaque filtre que comprend la zone de recherche.
 - [Surveillance des traces](/docs/monitor/traces-monitor): Être alerté des requêtes en échec ou lentes.
-- [Suivi des exceptions](/docs/telemetry/exceptions): Trier les erreurs que vos spans enregistrent.
+- [Exceptions](/docs/telemetry/exceptions): Trier les erreurs que vos spans enregistrent.
 - [Explorateur de journaux](/docs/telemetry/logs-explorer): Lire les lignes de journal qu'une requête a écrites.
 :::

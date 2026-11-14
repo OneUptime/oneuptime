@@ -54,7 +54,6 @@ const PushLogsTable: FunctionComponent<PushLogsTableProps> = (
       title: "User",
       type: FieldType.Text,
       hideOnMobile: true,
-      noValueMessage: "-",
       getElement: (item: PushNotificationLog): ReactElement => {
         if (!item["user"]) {
           return <p>-</p>;

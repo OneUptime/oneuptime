@@ -191,9 +191,7 @@ describe("what the maintainer searched for comes first", () => {
       "on call schedule",
       "oncall schedules",
     ]) {
-      expect(rows(query)[0]).toBe(
-        "On-Call Schedules — On-Call Duty › Schedules",
-      );
+      expect(rows(query)[0]).toBe("On-Call Schedules — On-Call › Schedules");
     }
 
     for (const query of [
@@ -201,28 +199,26 @@ describe("what the maintainer searched for comes first", () => {
       "On Call Policies",
       "oncall policy",
     ]) {
-      expect(rows(query)[0]).toBe("On-Call Policies — On-Call Duty › Policies");
+      expect(rows(query)[0]).toBe("On-Call Policies — On-Call › Policies");
     }
   });
 
   test("'pager', 'escalation' and 'rota' find on-call, and only on-call", () => {
     expect(rows("pager")).toEqual(
       expect.arrayContaining([
-        "On-Call Duty",
-        "On-Call Policies — On-Call Duty › Policies",
+        "On-Call",
+        "On-Call Policies — On-Call › Policies",
       ]),
     );
     // "pager" is a real word here: Status Pages is not offered for it.
     expect(rows("pager")).not.toContain("Status Pages");
 
     expect(rows("escalation").slice(0, 2)).toEqual([
-      "On-Call Duty",
-      "On-Call Policies — On-Call Duty › Policies",
+      "On-Call",
+      "On-Call Policies — On-Call › Policies",
     ]);
 
-    expect(rows("rota")[0]).toBe(
-      "On-Call Schedules — On-Call Duty › Schedules",
-    );
+    expect(rows("rota")[0]).toBe("On-Call Schedules — On-Call › Schedules");
   });
 });
 
@@ -265,7 +261,7 @@ describe("a name many pages share gives way to a distinctive one", () => {
       expect.arrayContaining([
         "Slack — Incidents › Workspace",
         "Slack — Alerts › Workspace",
-        "Slack — On-Call Duty › Workspace",
+        "Slack — On-Call › Workspace",
         "Slack — User Settings › Workspace",
       ]),
     );
@@ -279,7 +275,7 @@ describe("the breadcrumb tells pages apart and narrows a search", () => {
         "Custom Fields — Incidents › Settings",
         "Custom Fields — Alerts › Settings",
         "Custom Fields — Monitors › Settings",
-        "Custom Fields — On-Call Duty › Settings",
+        "Custom Fields — On-Call › Settings",
         "Custom Fields — Status Pages › Settings",
         "Custom Fields — Teams › Settings",
         "Custom Fields — Users › Settings",
@@ -360,7 +356,7 @@ describe("search forgives the way people type", () => {
   test("words can come in any order, and a plural need not match", () => {
     expect(rows("keys api")[0]).toBe("API Keys — Project Settings › Advanced");
     expect(rows("policies on-call")[0]).toBe(
-      "On-Call Policies — On-Call Duty › Policies",
+      "On-Call Policies — On-Call › Policies",
     );
   });
 
@@ -380,13 +376,13 @@ describe("search forgives the way people type", () => {
   test("a typo is forgiven when nothing matches as typed", () => {
     expect(rows("incidnets")[0]).toBe("Incidents");
     expect(rows("shedules")).toContain(
-      "On-Call Schedules — On-Call Duty › Schedules",
+      "On-Call Schedules — On-Call › Schedules",
     );
   });
 
   test("initials find a page when nothing matches better", () => {
     expect(rows("ak")[0]).toBe("API Keys — Project Settings › Advanced");
-    expect(rows("ocp")[0]).toBe("On-Call Policies — On-Call Duty › Policies");
+    expect(rows("ocp")[0]).toBe("On-Call Policies — On-Call › Policies");
 
     // "ai" names the AI pages, so Active Incidents is not offered for its initials.
     const ai: Array<string> = rows("ai");
@@ -433,9 +429,10 @@ describe("a setting is found by the name its card shows", () => {
       "business details",
       "Business Details / Billing Address — Project Settings › Billing and Invoices › Billing",
     ],
+    // A folded card: its page took the name the switches' card had (#6817).
     [
-      "notification channels",
-      "Notification Channels — Project Settings › Notifications › Notification Settings",
+      "custom smtp configs",
+      "Custom SMTP Configs — Project Settings › Notifications › Notification Channels",
     ],
     ["ai context", "AI context — Project Settings › AI › AI Features"],
     [

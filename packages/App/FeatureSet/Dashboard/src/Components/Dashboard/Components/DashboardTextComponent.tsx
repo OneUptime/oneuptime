@@ -5,6 +5,7 @@ import LazyMarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownVi
 import JSONFunctions from "Common/Types/JSONFunctions";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { useIsDashboardWidgetPreview } from "./DashboardWidgetPreview";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardTextComponent;
@@ -14,10 +15,20 @@ const DashboardTextComponentElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  /*
+   * In the widget's live preview its links are their words (issue #6859):
+   * it sits over a board being edited, and a link to another page would
+   * take the unsaved widgets with it.
+   */
+  const isPreview: boolean = useIsDashboardWidgetPreview();
+
   if (props.component.arguments.isMarkdown) {
     return (
       <div className="h-full overflow-auto p-2">
-        <LazyMarkdownViewer text={props.component.arguments.text || ""} />
+        <LazyMarkdownViewer
+          text={props.component.arguments.text || ""}
+          showLinksAsText={isPreview}
+        />
       </div>
     );
   }

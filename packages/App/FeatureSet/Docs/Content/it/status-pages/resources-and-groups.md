@@ -2,6 +2,9 @@
 
 Una risorsa è una riga della vostra pagina di stato: un monitor o un gruppo di monitor, con un nome che i vostri clienti capiscono, il suo stato attuale e, se volete, il suo tempo di attività e la sua cronologia. I gruppi sono sezioni che contengono risorse, così una pagina con quaranta monitor si legge come «API», «App web» e «Pipeline di dati» invece che come un elenco infinito. Create entrambi in un'unica schermata: aprite una pagina di stato e scegliete **Risorse** nel suo menu laterale.
 
+> [!TIP]
+> Prima volta qui? Inizia dalla guida: [Pubblicare una pagina di stato](/docs/guides/status-page).
+
 :::cards
 - [Aggiungere un monitor](#aggiungere-un-monitor): Mettere un monitor sulla pagina, con il nome che leggono i visitatori.
 - [Gruppi](#gruppi): Dividere la pagina in sezioni e annidarle.

@@ -483,7 +483,7 @@ MCP サーバーはステートレスで、セッション ID の発行も追跡
 | インシデント | Incident, Incident State, Incident Severity, Incident State Timeline, Incident Public Note, Incident Internal Note, Incident Alert, Postmortem Status |
 | アラート | Alert, Alert State, Alert Severity, Alert State Timeline, Alert Internal Note |
 | ステータスページ | Status Page, Status Page Announcement |
-| 定期メンテナンス | Scheduled Maintenance Event, Scheduled Maintenance State, Scheduled Maintenance State Timeline |
+| 定期メンテナンス | Maintenance Event, Scheduled Maintenance State, Scheduled Maintenance State Timeline |
 | チームとオンコール | Team, On-Call Policy |
 | ラベル | Label |
 | セキュリティ | Security Case, Security Case Evidence, Security Case Note, Security Case Priority, Security Case Status, Security Case Task, Security Detection, Security Playbook |

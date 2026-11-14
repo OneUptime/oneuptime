@@ -53,6 +53,7 @@ import {
   createTranslator,
   translationKey,
 } from "Common/Types/Translator";
+import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
 
 // The words as written, for a caller that has no reader to translate them for.
 const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
@@ -189,7 +190,7 @@ export function getTokenRefreshDescription(
   if (outcome.error) {
     return `${saved}${translator.translateTemplate(
       'OneUptime could not fetch an access token for "{{name}}": {{error}}',
-      { name: outcome.variableName, error: outcome.error },
+      { name: outcome.variableName, error: errorInSentence(outcome.error) },
       { setsValuesApart: true },
     )}`;
   }

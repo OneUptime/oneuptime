@@ -84,7 +84,7 @@ const ENTERPRISE_SCREENS: ReadonlyArray<DashboardScreen> = [
   {
     label: "Settings > Audit Logs",
     route: "settings/audit-logs/settings",
-    copy: "When enabled, every create, update and delete action on your project's resources will be recorded in the audit log",
+    copy: "When enabled, every create, update and delete action on your project's resources, and every sign-in and sign-out of its members, will be recorded in the audit log",
   },
 ];
 

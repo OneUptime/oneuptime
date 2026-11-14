@@ -2,6 +2,9 @@
 
 Een websitemonitor controleert of een webpagina antwoordt. Bij elke controle vraagt een sonde de URL van de pagina op, en de monitor gaat offline en meldt een incident wanneer de pagina niet antwoordt of met een fout antwoordt. Om een endpoint aan te roepen met een methode, headers of een body, gebruikt u in plaats daarvan een [API-monitor](/docs/monitor/api-monitor).
 
+> [!TIP]
+> Nieuw hier? Volg eerst de handleiding: [Weten wanneer uw website of API uitvalt](/docs/guides/website-down).
+
 :::cards
 - [De monitor maken](#een-websitemonitor-maken): Zes stappen in het dashboard.
 - [Configuratieopties](#configuratieopties): URL-plaatshouders, omleidingen, certificaten, time-outs en nieuwe pogingen.
@@ -57,7 +60,7 @@ Klik op **Monitor testen**, kies een sonde onder **Selecteer sonde** en klik op 
 
 ### De criteria nakijken
 
-**Monitorcriteria** begint met de [standaardcriteria](#standaardcriteria): offline wanneer de site niet of met een fout antwoordt, online bij elke status `2xx` of `3xx`. Wijzig ze indien nodig en klik dan op **Volgende**.
+**Criteria** begint met de [standaardcriteria](#standaardcriteria): offline wanneer de site niet of met een fout antwoordt, online bij elke status `2xx` of `3xx`. Wijzig ze indien nodig en klik dan op **Volgende**.
 
 ### Sondes kiezen en maken
 

@@ -74,7 +74,7 @@ Alt annet en regel kan gjøre, er foldet sammen under **Flere felt** sist på tr
 
 | Gruppe                    | Innstillinger                                                                                              |
 | ------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| **Vakt og eierskap**      | **Vaktpolicyer** som skal kjøre når regelen åpner en episode, og **Episodeeiere**.                         |
+| **Vakt og eierskap**      | **Vaktretningslinjer** som skal kjøre når regelen åpner en episode, og **Episodeeiere**.                         |
 | **Episodens livssyklus**  | **Vent på flere varsler**, en bryter med et antall, deretter **Gjenåpne nylig løste episoder**, **Vent før en episode løses** og **Løs stille episoder**, hver en bryter med sine minutter. |
 | **Detaljer**              | Regelens **Beskrivelse**, **Mal for episodetittel**, **Mal for episodebeskrivelse** og **Episodeetiketter**. |
 
@@ -129,7 +129,7 @@ flowchart TB
     grouped -->|"Blir med i en episode"| none["Ingenting mer kjører"]
 ```
 
-- **En ny episode** kjører regelens **Vaktpolicyer** pluss dem fra enhver samsvarende regel på fanen **Episoderegler** under **Varsler → Regler → Vaktregler**.
+- **En ny episode** kjører regelens **Vaktretningslinjer** pluss dem fra enhver samsvarende regel på fanen **Episoderegler** under **Varsler → Regler → Vaktregler**.
 - **Et varsel som blir med i en åpen episode**, kjører bare sine egne policyer. Episodens kjører ikke på nytt.
 - **Et varsel som venter på flere varsler**, kjører også bare sine egne policyer. Når **Vent på flere varsler** er slått på og regelens policyer er de eneste som tilkaller, tilkaller et enkelt varsel ingen før nok av dem pågår.
 - **Svarer noen på en episodes tilkalling**, bekreftes episoden og dermed hvert varsel i den.

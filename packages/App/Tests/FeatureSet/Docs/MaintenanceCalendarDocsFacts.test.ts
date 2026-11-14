@@ -212,9 +212,9 @@ function sortedPermissions(permissions: Array<Permission>): Array<Permission> {
 }
 
 describe("the calendar page", () => {
-  it("is a page of its own, in the side menu's Calendar section, beside the list on All Events", () => {
+  it("is a page of its own, in the side menu's Calendar section, beside the list on All Maintenance Events", () => {
     expect(PAGE).toContain(
-      "Open **Scheduled Maintenance → Maintenance Calendar**, in the **Calendar** section of the side menu. **All Events** shows the same events as a list.",
+      "Open **Scheduled Maintenance → Maintenance Calendar**, in the **Calendar** section of the side menu. **All Maintenance Events** shows the same events as a list.",
     );
 
     const calendarSection: string = menuSection("Calendar");
@@ -229,15 +229,15 @@ describe("the calendar page", () => {
     expect(CALENDAR_PAGE).toContain('"Maintenance Calendar"');
     expect(CALENDAR_PAGE).toContain("view={ScheduledMaintenanceView.Calendar}");
 
-    // All Events is the list alone: no switch left on it.
+    // All Maintenance Events is the list alone: no switch left on it.
     expect(ALL_EVENTS_PAGE).not.toContain("ScheduledMaintenanceView.Calendar");
     expect(EVENTS_TABLE).not.toContain("ViewSwitch");
     expect(EVENTS_TABLE).not.toContain("filterBarEnd");
   });
 
-  it("takes a reader who had left All Events on its old Calendar switch to the calendar, once", () => {
+  it("takes a reader who had left All Maintenance Events on its old Calendar switch to the calendar, once", () => {
     expect(PAGE).toContain(
-      "**All Events** used to switch between a list and a calendar. If your browser last left it on the calendar, **All Events** opens **Maintenance Calendar** once, and is the list from then on.",
+      "**All Maintenance Events** used to switch between a list and a calendar. If your browser last left it on the calendar, **All Maintenance Events** opens **Maintenance Calendar** once, and is the list from then on.",
     );
 
     // The key and the value the old switch (RememberedView) kept the choice under.
@@ -311,7 +311,7 @@ describe("the calendar page", () => {
 
   it("opens the create form from a day to come, with Starts At on that day at the hour the form picks today", () => {
     expect(PAGE).toContain(
-      "It opens **Create Scheduled Maintenance Event** with **Starts At** on that day, at the hour the form would pick today.",
+      "It opens **Create Maintenance Event** with **Starts At** on that day, at the hour the form would pick today.",
     );
 
     const now: Date = new Date(Date.UTC(2026, 9, 17, 10, 20, 0));
@@ -581,7 +581,7 @@ describe("the team's calendar link", () => {
       "**Subscribe to calendar**, under the calendar, opens the project's calendar link",
     );
     expect(CALENDAR_CARD).toContain('title="Subscribe to calendar"');
-    // Only the calendar offers it: All Events is the list alone.
+    // Only the calendar offers it: All Maintenance Events is the list alone.
     expect(EVENTS_TABLE).not.toContain('title: "Subscribe to calendar"');
     expect(EVENTS_TABLE).toContain("buttons: cardbuttons,");
   });

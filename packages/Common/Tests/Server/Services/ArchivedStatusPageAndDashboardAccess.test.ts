@@ -284,7 +284,9 @@ describe("an archived status page sends nothing", () => {
 
     await expect(
       StatusPageService.sendEmailReport({ statusPageId: ObjectID.generate() }),
-    ).rejects.toThrow("Status page not found");
+    ).rejects.toThrow(
+      "This status page no longer exists. It may have been deleted.",
+    );
   });
 });
 

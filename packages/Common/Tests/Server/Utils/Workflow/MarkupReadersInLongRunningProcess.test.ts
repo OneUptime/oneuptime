@@ -17,9 +17,10 @@ import path from "path";
  * ChatMessageMarkdown).
  * V8 matches a regular expression with a backtracking stack that can grow
  * with every character a quantifier takes, and a process that has run a
- * while compiles them without optimization - so, as AGENTS.md
- * ("Megabyte-long values") asks, none runs a pattern with a quantifier over
- * the whole text: each reads it with loops and indexOf.
+ * while compiles them without optimization - so, as
+ * Docs/notifications/README.md ("Megabyte-long values") asks, none runs a
+ * pattern with a quantifier over the whole text: each reads it with loops and
+ * indexOf.
  *
  * All three run here in a node process started with
  * --no-regexp-optimization, the state such a process reaches, on a megabyte

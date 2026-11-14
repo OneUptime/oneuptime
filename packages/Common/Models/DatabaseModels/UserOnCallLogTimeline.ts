@@ -320,8 +320,7 @@ export default class UserOnCallLogTimeline extends BaseModel {
     type: TableColumnType.Entity,
     modelType: OnCallDutyPolicy,
     title: "OnCallDutyPolicy",
-    description:
-      "Relation to on-call duty policy Resource in which this object belongs",
+    description: "Relation to the on-call policy this object belongs to",
   })
   @ManyToOne(
     () => {
@@ -353,9 +352,9 @@ export default class UserOnCallLogTimeline extends BaseModel {
   @TableColumn({
     type: TableColumnType.ObjectID,
     canReadOnRelationQuery: true,
-    title: "OnCallDutyPolicy ID",
+    title: "On-Call Policy ID",
     description:
-      "ID of your OneUptime on-call duty policy in which this object belongs. Empty when the person was paged directly, without an on-call policy.",
+      "ID of your OneUptime on-call policy in which this object belongs. Empty when the person was paged directly, without an on-call policy.",
   })
   @Column({
     type: ColumnType.ObjectID,

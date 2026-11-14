@@ -10,6 +10,9 @@ import HttpTimingsView from "./HttpTimingsView";
 import ProbeAttemptsView from "./ProbeAttemptsView";
 import SummaryErrorFacts from "./SummaryErrorFacts";
 import { SummaryFact, SummaryFacts, SummaryView } from "./SummaryFacts";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { formatMilliseconds } from "../../../Utils/Milliseconds";
 
 export interface ComponentProps {
   probeMonitorResponse: ProbeMonitorResponse;
@@ -19,6 +22,7 @@ export interface ComponentProps {
 const WebsiteMonitorSummaryView: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [showMoreDetails, setShowMoreDetails] = React.useState<boolean>(false);
 
   let responseTimeInMs: number =
@@ -71,7 +75,11 @@ const WebsiteMonitorSummaryView: FunctionComponent<ComponentProps> = (
         />
         <SummaryFact
           title="Response Time (in ms)"
-          value={responseTimeInMs ? responseTimeInMs + " ms" : "-"}
+          value={
+            responseTimeInMs
+              ? formatMilliseconds(translator, responseTimeInMs)
+              : "-"
+          }
         />
         <SummaryFact
           title="Monitored At"

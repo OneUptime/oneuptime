@@ -2,6 +2,9 @@
 
 Een meldingsmethode is een adres waarop OneUptime je in één project mag bereiken: een e-mailadres, een telefoonnummer voor sms of oproepen, een WhatsApp-nummer, een Telegram-account, je Slack-, Microsoft Teams- of Mattermost-account, een telefoon of browser voor pushmeldingen, of een webhook. Je voegt ze toe onder **Gebruikersinstellingen → Meldingsmethoden**, verifieert ze, en OneUptime gebruikt ze meteen voor je oproepen.
 
+> [!TIP]
+> Nieuw hier? Volg eerst de handleiding: [Opgeroepen worden via telefoon, sms of push](/docs/guides/paging).
+
 :::cards
 - [Een methode kiezen](#een-methode-kiezen): Wat elke methode nodig heeft, en hoe ze wordt geverifieerd.
 - [Een methode toevoegen en verifiëren](#een-methode-toevoegen-en-verifiëren): E-mail, sms, oproepen en WhatsApp, met een code van 6 cijfers.
@@ -170,7 +173,7 @@ Een webhook heeft geen verificatie nodig, dus toevoegen voegt meteen de regels e
 
 **SMS**, **Telefoonoproepen**, **WhatsApp** en **Telegram** staan in elk nieuw project uit, omdat elk bericht geld kost: in OneUptime Cloud wordt het betaald uit het tegoed van het project, en sms en oproepen lopen in plaats daarvan via het eigen Twilio-account van het project als het standaardaccount ze verstuurt. E-mail, push, Slack, Microsoft Teams, Mattermost en webhooks staan altijd aan.
 
-Zolang een kanaal uitstaat, kan niemand in het project er een methode op toevoegen: de kaart ervan heeft geen knop om toe te voegen, en zegt wie het kan aanzetten. Een projecteigenaar, een **Factureringsbeheerder** of iemand met **Manage Billing** zet het aan, in de kaart **Meldingskanalen** onder **Projectinstellingen → Meldingen → Meldingsinstellingen**. Een projectbeheerder kan dat niet. In een zelfgehoste OneUptime hebben sms en oproepen ook een Twilio-account of een gateway die u zelf beheert nodig, en Telegram een bot die de beheerder van de server koppelt; zie [Twilio-integratie](/docs/self-hosted/twilio-integration) en [Sms- en belgateway](/docs/self-hosted/sms-and-call-gateway).
+Zolang een kanaal uitstaat, kan niemand in het project er een methode op toevoegen: de kaart ervan heeft geen knop om toe te voegen, en zegt wie het kan aanzetten. Een projecteigenaar, een **Factureringsbeheerder** of iemand met **Manage Billing** zet het aan, in de kaart **Meldingskanalen** onder **Projectinstellingen → Meldingen → Meldingskanalen**. Een projectbeheerder kan dat niet. In een zelfgehoste OneUptime hebben sms en oproepen ook een Twilio-account of een gateway die u zelf beheert nodig, en Telegram een bot die de beheerder van de server koppelt; zie [Twilio-integratie](/docs/self-hosted/twilio-integration) en [Sms- en belgateway](/docs/self-hosted/sms-and-call-gateway).
 
 ## Een methode verwijderen
 
@@ -197,7 +200,7 @@ Controleer of de telefoon onder **Apparaten voor pushmeldingen** staat, en stuur
 ## Volgende stappen
 
 :::cards
-- [Persoonlijke bereikbaarheidsregels](/docs/notifications/on-call-rules): Bepaal welke methode elke oproep probeert, en wanneer.
+- [Hoe ik bereikbaar ben](/docs/notifications/on-call-rules): Bepaal welke methode elke oproep probeert, en wanneer.
 - [Meldingsinstellingen](/docs/notifications/notification-settings): Kies het nieuws waarover je hoort, en via welke kanalen.
 - [Apps – Overzicht](/docs/mobile-desktop-apps/index): Ontvang oproepen op je telefoon of desktop.
 - [Hoe OneUptime je bereikt](/docs/notifications/index): Hoe methoden, regels en instellingen samenhangen.

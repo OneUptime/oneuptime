@@ -159,7 +159,7 @@ flowchart TB
 Om de stille modus te doorbreken, moeten vier dingen allemaal waar zijn. Ontbreekt er één, dan wordt de melding toch afgeleverd – alleen stil.
 
 1. **De persoon heeft het voor dat apparaat aangezet.** Per apparaat opgeslagen, standaard uit, in `UserPush.isCriticalAlertEnabled`. De telefoon en de tablet van iemand zijn afzonderlijke keuzes. Versies van de app nieuwer dan 1.6.0 melden het opnieuw telkens wanneer ze worden geopend, als uit zolang de instellingen van de telefoon zelf geen kritieke meldingen toestaan, zodat de apparatenlijst toont wat de telefoon echt zal doen.
-2. **De bereikbaarheidsregel die de melding stuurde, vraagt erom.** Onder **Gebruikersinstellingen > Bereikbaarheidsregels** staat elke regel die een telefoon waarschuwt op ‘Kritieke waarschuwing’, de standaard, of op ‘Normaal’, dat de geluidsinstellingen van de telefoon volgt – zo kan iemand gewekt worden voor een kritiek incident en stil gewaarschuwd voor een klein incident. Per regel opgeslagen in `UserNotificationRule.pushNotificationLevel`.
+2. **De bereikbaarheidsregel die de melding stuurde, vraagt erom.** Onder **Gebruikersinstellingen > Hoe ik bereikbaar ben** staat elke regel die een telefoon waarschuwt op ‘Kritieke waarschuwing’, de standaard, of op ‘Normaal’, dat de geluidsinstellingen van de telefoon volgt – zo kan iemand gewekt worden voor een kritiek incident en stil gewaarschuwd voor een klein incident. Per regel opgeslagen in `UserNotificationRule.pushNotificationLevel`.
 3. **De server markeert de melding als kritiek.** Hij stuurt de kritieke geluidspayload van APNs plus `interruptionLevel: critical` voor iOS, en richt zich voor Android op een kritiek meldingskanaal: `oncall_critical`, of het eigen kanaal van het gekozen alarm (zie [Het alarmgeluid kiezen](#het-alarmgeluid-kiezen)).
 4. **Het besturingssysteem staat het toe**, en daar verschillen de twee platforms.
 
@@ -204,7 +204,7 @@ Een apparaat houdt het systeemgeluid tot er een versie van de app op draait die 
 
 ### Een melding herhalen tot bevestiging
 
-Een pushregel kan zijn melding opnieuw sturen tot iemand die bevestigt. Stel **Herhalen tot bevestiging** in onder **Gebruikersinstellingen > Bereikbaarheidsregels** wanneer u een pushregel toevoegt, of wijzig het later in de rij van de regel: elke minuut, of elke 2, 3, 5, 10, 15 of 30 minuten. De melding wordt met die tussenpoos opnieuw verstuurd, maximaal 10 keer extra, en stopt zodra het incident, de waarschuwing of de episode is bevestigd. Per regel opgeslagen in `UserNotificationRule.repeatEveryMinutes`, waarbij 0, de standaard, de melding één keer stuurt.
+Een pushregel kan zijn melding opnieuw sturen tot iemand die bevestigt. Stel **Herhalen tot bevestiging** in onder **Gebruikersinstellingen > Hoe ik bereikbaar ben** wanneer u een pushregel toevoegt, of wijzig het later in de rij van de regel: elke minuut, of elke 2, 3, 5, 10, 15 of 30 minuten. De melding wordt met die tussenpoos opnieuw verstuurd, maximaal 10 keer extra, en stopt zodra het incident, de waarschuwing of de episode is bevestigd. Per regel opgeslagen in `UserNotificationRule.repeatEveryMinutes`, waarbij 0, de standaard, de melding één keer stuurt.
 
 ## Problemen oplossen
 
@@ -225,7 +225,7 @@ Een pushregel kan zijn melding opnieuw sturen tot iemand die bevestigt. Stel **H
 ### Kritieke meldingen doorbreken de stille modus niet
 
 - Controleer of de schakelaar aan staat voor **dat** apparaat – de instelling geldt per apparaat, en een herinstallatie of een nieuwe telefoon die vanaf nul is ingericht, maakt een nieuwe apparaatregistratie aan (een telefoon die uit een back-up van de oude is ingericht, neemt de registratie van de oude telefoon over zodra die geen meldingen meer ontvangt, met de instelling die de app had)
-- Controleer de bereikbaarheidsregel voor die ernst onder **Gebruikersinstellingen > Bereikbaarheidsregels**: een pushregel op ‘Normaal’ volgt de geluidsinstellingen van de telefoon, wat de schakelaar van het apparaat ook zegt
+- Controleer de bereikbaarheidsregel voor die ernst onder **Gebruikersinstellingen > Hoe ik bereikbaar ben**: een pushregel op ‘Normaal’ volgt de geluidsinstellingen van de telefoon, wat de schakelaar van het apparaat ook zegt
 - **iOS**: controleer of de build de entitlement voor kritieke meldingen van Apple draagt (zie hierboven), en of Critical Alerts is toegestaan onder iOS Settings > Notifications > OneUptime On-Call
 - **Android**: controleer of de app toegang tot Niet storen heeft onder Settings > Notifications > Do Not Disturb access
 - **Android**: als u een alarmgeluid hebt gekozen, moet ook het eigen meldingskanaal van dat geluid Niet storen mogen doorbreken; het scherm Alarm sound van de app zegt wanneer dat niet zo is

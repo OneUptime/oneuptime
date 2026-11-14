@@ -19,6 +19,10 @@ import ObjectID from "../../../../Types/ObjectID";
 import OneUptimeDate from "../../../../Types/Date";
 import SnmpInterface from "../../../../Types/Monitor/SnmpMonitor/SnmpInterface";
 import SnmpMonitorResponse from "../../../../Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
+import {
+  PollVerdictWrite,
+  pollVerdictColumns,
+} from "../../TestingUtils/NetworkDevicePollVerdict";
 
 /*
  * Issue #3220, end to end.
@@ -63,6 +67,7 @@ const OFFLINE: RollupStatusOption = {
 };
 
 let deviceUpdateSpy: jest.SpyInstance;
+let pollVerdictSpy: jest.SpyInstance;
 
 function mockServices(): void {
   const ownedDevice: NetworkDevice = new NetworkDevice();
@@ -74,6 +79,10 @@ function mockServices(): void {
   deviceUpdateSpy = jest
     .spyOn(NetworkDeviceService, "updateOneById")
     .mockResolvedValue(1 as never);
+  // The verdict's own guarded write (issue #7389): a device with none newer.
+  pollVerdictSpy = jest
+    .spyOn(NetworkDeviceService, "writePollVerdict")
+    .mockResolvedValue(true as never);
   jest.spyOn(NetworkInterfaceService, "findBy").mockResolvedValue([] as never);
   jest
     .spyOn(NetworkInterfaceService, "updateOneById")
@@ -104,7 +113,8 @@ function reportedInterfaces(): Array<SnmpInterface> {
 
 /*
  * Runs the real writer and returns the device row as it would then be read
- * back — the columns the update wrote, nothing invented.
+ * back — the columns the two writes set, nothing invented: the poll's
+ * verdict (writePollVerdict) and what the walk read about the device.
  */
 async function walkAndReadBackDevice(data: {
   isOnline: boolean;
@@ -126,12 +136,17 @@ async function walkAndReadBackDevice(data: {
     isOnline: data.isOnline,
   });
 
-  expect(deviceUpdateSpy).toHaveBeenCalled();
+  expect(pollVerdictSpy).toHaveBeenCalledTimes(1);
+  // A failed walk read nothing about the device, and makes no enrichment write.
+  expect(deviceUpdateSpy.mock.calls.length).toBeLessThanOrEqual(1);
 
   return {
     // The device's configured schedule, unchanged by the walk.
     pollingIntervalInMinutes: 5,
-    ...(deviceUpdateSpy.mock.calls[0]![0].data as Record<string, unknown>),
+    ...pollVerdictColumns(pollVerdictSpy.mock.calls[0]![0] as PollVerdictWrite),
+    ...((deviceUpdateSpy.mock.calls[0]?.[0]?.data as
+      | Record<string, unknown>
+      | undefined) || {}),
   };
 }
 

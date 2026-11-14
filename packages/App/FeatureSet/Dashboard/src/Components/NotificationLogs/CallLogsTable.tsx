@@ -38,14 +38,12 @@ const CallLogsTable: FunctionComponent<CallLogsTableProps> = (
       field: { toNumber: true },
       title: "To",
       type: FieldType.Phone,
-      noValueMessage: "-",
     },
     {
       field: { fromNumber: true },
       title: "From",
       type: FieldType.Phone,
       hideOnMobile: true,
-      noValueMessage: "-",
     },
     {
       field: {
@@ -58,7 +56,6 @@ const CallLogsTable: FunctionComponent<CallLogsTableProps> = (
       title: "User",
       type: FieldType.Text,
       hideOnMobile: true,
-      noValueMessage: "-",
       getElement: (item: CallLog): ReactElement => {
         if (!item["user"]) {
           return <p>-</p>;

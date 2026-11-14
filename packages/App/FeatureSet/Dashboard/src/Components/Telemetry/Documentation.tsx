@@ -33,6 +33,8 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import AppLink from "../AppLink/AppLink";
 import IngestionKeySelector from "./IngestionKeySelector";
+import ResourceConnectionWatch from "../ResourceOnboarding/ResourceConnectionWatch";
+import Service from "Common/Models/DatabaseModels/Service";
 import FrameworkGuideLinks from "./FrameworkGuideLinks";
 import { TelemetryGuideLanguageKey } from "Common/Types/Telemetry/OpenTelemetryGuides";
 import { SetupGuideStepVariants } from "../SetupGuide/SetupGuideSteps";
@@ -53,6 +55,35 @@ export type TelemetryType =
   | "traces"
   | "exceptions"
   | "profiles";
+
+/*
+ * THE SETUP GUIDE TAB'S LAST STEP (issue #6806): the wait the first-run
+ * dialog has (TelemetryFirstRunShowcase), so a Setup Guide tab notices the
+ * first data too, and links to it on the service that sent it. Profiles
+ * listen for their first profile in the guide itself, so they have none.
+ */
+export const SETUP_GUIDE_FIRST_DATA_TITLE: string = translationKey(
+  "Wait for the first data",
+);
+
+export const SETUP_GUIDE_FIRST_DATA_VIEWS: Record<
+  Exclude<TelemetryType, "profiles">,
+  { page: PageMap; text: string }
+> = {
+  logs: { page: PageMap.SERVICE_VIEW_LOGS, text: translationKey("View logs") },
+  metrics: {
+    page: PageMap.SERVICE_VIEW_METRICS,
+    text: translationKey("View metrics"),
+  },
+  traces: {
+    page: PageMap.SERVICE_VIEW_TRACES,
+    text: translationKey("View traces"),
+  },
+  exceptions: {
+    page: PageMap.SERVICE_VIEW_EXCEPTIONS,
+    text: translationKey("View exceptions"),
+  },
+};
 
 export interface ComponentProps {
   telemetryType?: TelemetryType | undefined;
@@ -1471,7 +1502,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
     logs: translationKey("Log Ingestion Setup"),
     metrics: translationKey("Metrics Ingestion Setup"),
     traces: translationKey("Trace Ingestion Setup"),
-    exceptions: translationKey("Exception Tracking Setup"),
+    exceptions: translationKey("Exception Ingestion Setup"),
     profiles: translationKey("Profiles Ingestion Setup"),
   };
 
@@ -1800,7 +1831,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
                   RouteMap[PageMap.PROFILES] as Route,
                 )}
               >
-                {translate("Open the Profiler")}
+                {translate("Open Profiles")}
               </AppLink>
             </div>
           </div>
@@ -1891,9 +1922,8 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
 
           {renderStep(
             3,
-            isProfiles
-              ? translationKey("Configure the Profiler")
-              : translationKey("Configure the SDK"),
+            // The Pyroscope SDK for profiles, OpenTelemetry's for the rest.
+            translationKey("Configure the SDK"),
             isProfiles
               ? translationKey(
                   "Initialize the Pyroscope profiling SDK and point it to your OneUptime instance. Profiles will be continuously captured and sent.",
@@ -2270,7 +2300,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
           <div className="mt-2">
             {renderStep(
               1,
-              translationKey("Turn On the Agent's Profiler"),
+              translationKey("Turn On Profiling in the Agent"),
               translationKey(
                 "It profiles every container on every Linux node, in any language, with no code changes. It needs privileged pods, so it is not available on GKE Autopilot or EKS Fargate.",
               ),
@@ -2392,6 +2422,23 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
         <div className="px-6 py-6">
           {renderMethodSelector()}
           {renderActiveContent()}
+          {telemetryType === "profiles" ? (
+            <></>
+          ) : (
+            <div
+              className="mt-6"
+              data-testid="telemetry-documentation-first-data"
+            >
+              <h3 className="mb-2 text-sm font-semibold text-gray-900">
+                {translate(SETUP_GUIDE_FIRST_DATA_TITLE)}
+              </h3>
+              <ResourceConnectionWatch
+                modelType={Service}
+                viewPage={SETUP_GUIDE_FIRST_DATA_VIEWS[telemetryType].page}
+                viewText={SETUP_GUIDE_FIRST_DATA_VIEWS[telemetryType].text}
+              />
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -12,6 +12,8 @@
  * before the event, never after it.
  */
 
+import { writeDigitsInLocale } from "Common/Types/DateLanguage";
+
 const MS_PER_SECOND: number = 1000;
 const SECONDS_PER_MINUTE: number = 60;
 const SECONDS_PER_HOUR: number = 3600;
@@ -46,6 +48,22 @@ export function formatReplayOffset(offsetMs: number): string {
   }
 
   return `${minutes}:${pad2(seconds)}`;
+}
+
+/*
+ * The same offset in the digits `language` writes: "۲:۱۴" in Persian, "2:14"
+ * in every language that writes Latin digits (Arabic among them,
+ * DateLanguage's LATIN_DIGIT_LANGUAGES), and as formatReplayOffset writes it
+ * with no language. Only the digits change: the m:ss shape, and the floor,
+ * are formatReplayOffset's.
+ */
+export function formatReplayOffsetInLanguage(
+  offsetMs: number,
+  language: string | undefined,
+): string {
+  const offset: string = formatReplayOffset(offsetMs);
+
+  return language ? writeDigitsInLocale(offset, language) : offset;
 }
 
 /*

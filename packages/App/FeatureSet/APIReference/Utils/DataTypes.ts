@@ -78,7 +78,7 @@ export default class DataTypeUtil {
         name: "RestrictionTimes",
         path: "restriction-times",
         description:
-          "Object describing on-call duty time restrictions (daily or weekly windows).",
+          "Object describing on-call time restrictions (daily or weekly windows).",
       },
       {
         name: "MonitorCriteria",

@@ -31,6 +31,15 @@ import {
   OnCallPassOnRefusal,
 } from "../../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
 import UserNotificationStatus from "../../../../Types/UserNotification/UserNotificationStatus";
+import {
+  MAX_NOTIFICATION_WRITE_ATTEMPTS,
+  ON_CALL_NOTIFICATION_ACKNOWLEDGED_MESSAGE,
+  ON_CALL_NOTIFICATION_NOT_ACKNOWLEDGED_MESSAGE,
+} from "../../../../Server/Utils/OnCall/OnCallNotificationStatus";
+import {
+  UpdateOneByInput,
+  updateNotificationWhileStill,
+} from "../../TestingUtils/OnCallTimelineRows";
 import { afterEach, describe, expect, test } from "@jest/globals";
 
 jest.mock("../../../../Server/Utils/Logger");
@@ -48,6 +57,7 @@ const EXECUTION_LOG_ID: ObjectID = ObjectID.generate();
 
 interface NotificationOptions {
   isAcknowledged?: boolean;
+  status?: UserNotificationStatus;
   withChannel?: boolean;
   withExecutionLog?: boolean;
   record?: "incident" | "alert" | "incidentEpisode" | "alertEpisode" | "none";
@@ -63,6 +73,13 @@ function notification(
   row.projectId = PROJECT_ID;
   row.userId = USER_ID;
   row.isAcknowledged = Boolean(options.isAcknowledged);
+  row.status =
+    options.status ||
+    (options.isAcknowledged
+      ? UserNotificationStatus.Acknowledged
+      : UserNotificationStatus.Sent);
+  row.statusMessage = "Delivered to the channel's service.";
+  row.version = 1;
 
   if (options.withChannel !== false) {
     row.customNotificationChannelId = CHANNEL_ID;
@@ -93,28 +110,52 @@ function notification(
   return row;
 }
 
+/*
+ * The notification as the database holds it: every read returns it as it
+ * is now, and an update lands only while it still holds the status and the
+ * version the update names - OnCallNotificationStatus's compare-and-set -
+ * moving the version on. `meanwhile` lands just before the next update: a
+ * write between the acknowledgement's read and its write.
+ */
 function setUp(options: NotificationOptions = {}): {
   id: ObjectID;
   token: string;
   row: UserOnCallLogTimeline;
   update: jest.SpyInstance;
+  meanwhile: (change: (row: UserOnCallLogTimeline) => void) => void;
 } {
   const id: ObjectID = ObjectID.generate();
   const row: UserOnCallLogTimeline = notification(id, options);
+  const changes: Array<(row: UserOnCallLogTimeline) => void> = [];
 
   jest
     .spyOn(UserOnCallLogTimelineService, "findOneById")
     .mockResolvedValue(row);
 
   const update: jest.SpyInstance = jest
-    .spyOn(UserOnCallLogTimelineService, "updateOneById")
-    .mockResolvedValue(undefined as never);
+    .spyOn(UserOnCallLogTimelineService, "updateOneBy")
+    .mockImplementation((async (
+      updateBy: UpdateOneByInput,
+    ): Promise<number> => {
+      const change: ((row: UserOnCallLogTimeline) => void) | undefined =
+        changes.shift();
+
+      if (change) {
+        change(row);
+        row.version = (row.version || 0) + 1;
+      }
+
+      return updateNotificationWhileStill(row, updateBy);
+    }) as never);
 
   return {
     id: id,
     token: CustomChannelActionToken.sign({ userOnCallLogTimelineId: id }),
     row: row,
     update: update,
+    meanwhile: (change: (row: UserOnCallLogTimeline) => void): void => {
+      changes.push(change);
+    },
   };
 }
 
@@ -274,11 +315,171 @@ describe("CustomChannelActions: acknowledge", () => {
       unknown
     >;
 
-    expect((call["id"] as ObjectID).toString()).toBe(id.toString());
+    // At the status and the version read, so nothing written meanwhile is undone.
+    expect(call["query"]).toEqual({
+      _id: id.toString(),
+      status: UserNotificationStatus.Sent,
+      version: 1,
+    });
     expect(data["isAcknowledged"]).toBe(true);
     expect(data["acknowledgedAt"]).toBeInstanceOf(Date);
     expect(data["status"]).toBe(UserNotificationStatus.Acknowledged);
+    expect(data["statusMessage"]).toBe(
+      ON_CALL_NOTIFICATION_ACKNOWLEDGED_MESSAGE,
+    );
     expect(call["props"]).toEqual({ isRoot: true });
+  });
+
+  test.each([
+    UserNotificationStatus.Sending,
+    UserNotificationStatus.Error,
+    UserNotificationStatus.PassedOn,
+  ])(
+    "a notification at %s is acknowledged too",
+    async (status: UserNotificationStatus) => {
+      const { id, token, row } = setUp({ status: status });
+
+      const answer: CustomChannelActionAnswer = await CustomChannelActions.act({
+        notificationId: id.toString(),
+        action: CustomChannelAction.Acknowledge,
+        token: token,
+      });
+
+      expect(answer.result).toBe(CustomChannelActionResult.Acknowledged);
+      expect(row.status).toBe(UserNotificationStatus.Acknowledged);
+      expect(row.isAcknowledged).toBe(true);
+    },
+  );
+
+  test("a second press landing between this one's read and its write: answered as already acknowledged, and acknowledged once", async () => {
+    const { id, token, row, update, meanwhile } = setUp();
+
+    meanwhile((notification: UserOnCallLogTimeline) => {
+      notification.status = UserNotificationStatus.Acknowledged;
+      notification.statusMessage = ON_CALL_NOTIFICATION_ACKNOWLEDGED_MESSAGE;
+      notification.isAcknowledged = true;
+    });
+
+    const answer: CustomChannelActionAnswer = await CustomChannelActions.act({
+      notificationId: id.toString(),
+      action: CustomChannelAction.Acknowledge,
+      token: token,
+    });
+
+    expect(answer).toEqual({
+      action: CustomChannelAction.Acknowledge,
+      result: CustomChannelActionResult.AlreadyAcknowledged,
+      message: "This page was already acknowledged.",
+    });
+    // Refused at the version read; read again, acknowledged: not written again.
+    expect(update).toHaveBeenCalledTimes(1);
+    expect(row.version).toBe(2);
+  });
+
+  test("the send's result landing between the read and the write: read again, and acknowledged over it", async () => {
+    const { id, token, row, update, meanwhile } = setUp({
+      status: UserNotificationStatus.Sending,
+    });
+
+    meanwhile((notification: UserOnCallLogTimeline) => {
+      notification.status = UserNotificationStatus.Sent;
+    });
+
+    const answer: CustomChannelActionAnswer = await CustomChannelActions.act({
+      notificationId: id.toString(),
+      action: CustomChannelAction.Acknowledge,
+      token: token,
+    });
+
+    expect(answer.result).toBe(CustomChannelActionResult.Acknowledged);
+    expect(update).toHaveBeenCalledTimes(2);
+    expect(row.status).toBe(UserNotificationStatus.Acknowledged);
+  });
+
+  test("a notification that keeps changing under every try: refused with try again, never answered as acknowledged", async () => {
+    const { id, token, row, update, meanwhile } = setUp();
+
+    // A write lands before each of the tries: the provider's reports, say.
+    for (
+      let write: number = 0;
+      write < MAX_NOTIFICATION_WRITE_ATTEMPTS;
+      write++
+    ) {
+      meanwhile((notification: UserOnCallLogTimeline) => {
+        notification.statusMessage = `Provider report ${write + 1}.`;
+      });
+    }
+
+    const refusal: unknown = await CustomChannelActions.act({
+      notificationId: id.toString(),
+      action: CustomChannelAction.Acknowledge,
+      token: token,
+    }).catch((error: unknown) => {
+      return error;
+    });
+
+    // The service answers 4xx with this message: the person tries again.
+    expect(refusal).toBeInstanceOf(BadDataException);
+    expect((refusal as BadDataException).message).toBe(
+      ON_CALL_NOTIFICATION_NOT_ACKNOWLEDGED_MESSAGE,
+    );
+    expect(update).toHaveBeenCalledTimes(MAX_NOTIFICATION_WRITE_ATTEMPTS);
+    expect(row.isAcknowledged).toBe(false);
+    expect(row.status).toBe(UserNotificationStatus.Sent);
+  });
+
+  test("acknowledged meanwhile by the last write that beat every try: answered as already acknowledged", async () => {
+    const { id, token, row, update, meanwhile } = setUp();
+
+    for (
+      let write: number = 1;
+      write < MAX_NOTIFICATION_WRITE_ATTEMPTS;
+      write++
+    ) {
+      meanwhile((notification: UserOnCallLogTimeline) => {
+        notification.statusMessage = `Provider report ${write}.`;
+      });
+    }
+
+    // The last write before the last try: the page's own link, pressed.
+    meanwhile((notification: UserOnCallLogTimeline) => {
+      notification.status = UserNotificationStatus.Acknowledged;
+      notification.statusMessage = ON_CALL_NOTIFICATION_ACKNOWLEDGED_MESSAGE;
+      notification.isAcknowledged = true;
+    });
+
+    const answer: CustomChannelActionAnswer = await CustomChannelActions.act({
+      notificationId: id.toString(),
+      action: CustomChannelAction.Acknowledge,
+      token: token,
+    });
+
+    expect(answer).toEqual({
+      action: CustomChannelAction.Acknowledge,
+      result: CustomChannelActionResult.AlreadyAcknowledged,
+      message: "This page was already acknowledged.",
+    });
+    expect(update).toHaveBeenCalledTimes(MAX_NOTIFICATION_WRITE_ATTEMPTS);
+    expect(row.isAcknowledged).toBe(true);
+  });
+
+  test("a notification gone between the reads: refused with try again, not answered as acknowledged", async () => {
+    const { id, token, row, update } = setUp();
+
+    // Read once by act; gone for the write's read and the read after it.
+    jest
+      .spyOn(UserOnCallLogTimelineService, "findOneById")
+      .mockResolvedValueOnce(row)
+      .mockResolvedValue(null);
+
+    await expect(
+      CustomChannelActions.act({
+        notificationId: id.toString(),
+        action: CustomChannelAction.Acknowledge,
+        token: token,
+      }),
+    ).rejects.toThrow(ON_CALL_NOTIFICATION_NOT_ACKNOWLEDGED_MESSAGE);
+    expect(update).not.toHaveBeenCalled();
   });
 
   test("a page already acknowledged is not acknowledged again", async () => {

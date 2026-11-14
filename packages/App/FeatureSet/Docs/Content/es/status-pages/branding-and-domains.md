@@ -2,6 +2,9 @@
 
 Tu página de estado es la pantalla de OneUptime que miran tus clientes, así que debería parecerse a ti y vivir en tu propio dominio, como `status.yourcompany.com`. Esta página recorre la página **Marca** tarjeta por tarjeta y después pone la página de estado en tu dominio: añade el dominio, añade sus registros DNS y el certificado SSL gratuito llega solo.
 
+> [!TIP]
+> ¿Eres nuevo? Sigue primero la guía: [Publicar una página de estado](/docs/guides/status-page).
+
 :::cards
 - [La página Marca](#la-página-marca): Logotipo, tema, título, favicon, enlaces, pie de página, colores e idiomas.
 - [HTML, CSS y JavaScript personalizados](#html-css-y-javascript-personalizados): Todo lo que los ajustes integrados no cubren.

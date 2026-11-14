@@ -9,6 +9,7 @@ import OnCallAcknowledgementTimeout, {
 } from "../../../../Server/Utils/OnCall/OnCallAcknowledgementTimeout";
 import { OnCallEscalationAdvanceKind } from "../../../../Server/Utils/OnCall/OnCallEscalationAdvance";
 import OnCallPagePassOn from "../../../../Server/Utils/OnCall/OnCallPagePassOn";
+import { recordSendResult } from "../../../../Server/Utils/OnCall/OnCallNotificationStatus";
 import ObjectID from "../../../../Types/ObjectID";
 import OnCallDutyExecutionLogTimelineStatus from "../../../../Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus";
 import {
@@ -177,13 +178,13 @@ describe("one person on the rule passes the page on", () => {
     delivery.status = UserNotificationStatus.Sent;
     world.deliveries.push(delivery);
 
-    jest.mocked(UserOnCallLogTimelineService.updateOneById).mockClear();
+    jest.mocked(UserOnCallLogTimelineService.updateOneBy).mockClear();
     jest.mocked(UserOnCallLogService.updateOneById).mockClear();
 
     await world.passOn(ANA, delivery.id!);
 
     const deliveryWrites: Array<number> = jest.mocked(
-      UserOnCallLogTimelineService.updateOneById,
+      UserOnCallLogTimelineService.updateOneBy,
     ).mock.invocationCallOrder;
     const pageWrites: Array<number> = jest.mocked(
       UserOnCallLogService.updateOneById,
@@ -198,6 +199,94 @@ describe("one person on the rule passes the page on", () => {
 
     expect(world.stepsOf(ANA)[0]!.status).toBe(
       OnCallDutyExecutionLogTimelineStatus.PassedOn,
+    );
+  });
+
+  /*
+   * Issue #7082: the escalation is written on the notification only over
+   * what its send or its provider wrote (OnCallNotificationStatus.
+   * recordPassOn), at the status and the version read.
+   */
+  test("the notification is written at the status and the version read", async () => {
+    const delivery: UserOnCallLogTimeline = new UserOnCallLogTimeline();
+    delivery.id = nextId();
+    delivery.status = UserNotificationStatus.Sent;
+    delivery.version = 3;
+    world.deliveries.push(delivery);
+
+    jest.mocked(UserOnCallLogTimelineService.updateOneBy).mockClear();
+
+    await world.passOn(ANA, delivery.id!);
+
+    expect(
+      jest.mocked(UserOnCallLogTimelineService.updateOneBy).mock.calls[0]![0],
+    ).toEqual({
+      query: {
+        _id: delivery.id!.toString(),
+        status: UserNotificationStatus.Sent,
+        version: 3,
+      },
+      data: {
+        status: UserNotificationStatus.PassedOn,
+        statusMessage: ON_CALL_PAGE_PASSED_ON_DELIVERY_MESSAGE,
+      },
+      props: { isRoot: true },
+    });
+    expect(delivery.version).toBe(4);
+  });
+
+  test.each([
+    UserNotificationStatus.Sending,
+    UserNotificationStatus.Error,
+    UserNotificationStatus.NotAnswered,
+  ])(
+    "a notification at %s is marked escalated too",
+    async (status: UserNotificationStatus) => {
+      const delivery: UserOnCallLogTimeline = new UserOnCallLogTimeline();
+      delivery.id = nextId();
+      delivery.status = status;
+      world.deliveries.push(delivery);
+
+      await world.passOn(ANA, delivery.id!);
+
+      expect(delivery.status).toBe(UserNotificationStatus.PassedOn);
+    },
+  );
+
+  test("a notification acknowledged meanwhile - the acknowledgement landing after the page was read - stays acknowledged", async () => {
+    const delivery: UserOnCallLogTimeline = new UserOnCallLogTimeline();
+    delivery.id = nextId();
+    delivery.status = UserNotificationStatus.Acknowledged;
+    delivery.statusMessage = "Notification Acknowledged";
+    delivery.isAcknowledged = true;
+    world.deliveries.push(delivery);
+
+    await world.passOn(ANA, delivery.id!);
+
+    expect(delivery.status).toBe(UserNotificationStatus.Acknowledged);
+    expect(delivery.statusMessage).toBe("Notification Acknowledged");
+    expect(delivery.isAcknowledged).toBe(true);
+  });
+
+  test("a send that finishes after the escalation does not write over it", async () => {
+    const delivery: UserOnCallLogTimeline = new UserOnCallLogTimeline();
+    delivery.id = nextId();
+    delivery.status = UserNotificationStatus.Sending;
+    world.deliveries.push(delivery);
+
+    await world.passOn(ANA, delivery.id!);
+
+    await expect(
+      recordSendResult({
+        userOnCallLogTimelineId: delivery.id!,
+        isSent: true,
+        statusMessage: "Message sent.",
+      }),
+    ).resolves.toBe(false);
+
+    expect(delivery.status).toBe(UserNotificationStatus.PassedOn);
+    expect(delivery.statusMessage).toBe(
+      ON_CALL_PAGE_PASSED_ON_DELIVERY_MESSAGE,
     );
   });
 

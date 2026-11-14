@@ -444,9 +444,8 @@ describe("the SLO widget reads its SLO in every encoding (issue #6328)", () => {
         />,
       );
 
-      expect(
-        await screen.findByText("Click to select an SLO"),
-      ).toBeInTheDocument();
+      // Out of edit mode: what is missing, never a click (issue #7160).
+      expect(await screen.findByText("No SLO picked yet.")).toBeInTheDocument();
       expect(getItemMock).not.toHaveBeenCalled();
       expect(getListMock).not.toHaveBeenCalled();
 

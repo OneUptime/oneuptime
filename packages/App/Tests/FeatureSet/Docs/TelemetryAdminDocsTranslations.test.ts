@@ -87,7 +87,7 @@ import { describe, expect, it } from "@jest/globals";
  * (KEPT_AS_WRITTEN). A new bold word on these English pages fails "know
  * every bold word" until it is a label or listed.
  *
- * The Service Catalog (docs task 37) links its Pinned Service Name to the
+ * The Services page (docs task 37) links its Pinned Service Name to the
  * Ingestion Keys page in every language: that link is held here too.
  */
 
@@ -120,7 +120,7 @@ const WIDEST_DIAGRAM_LINE: Record<string, ReadonlyArray<number>> = {
 };
 
 /*
- * The link the Service Catalog's "An ingestion key can name the service."
+ * The link the Services page's "An ingestion key can name the service."
  * bullet ends on, in every language: the Ingestion Keys section that
  * explains the Pinned Service Name.
  */
@@ -435,7 +435,7 @@ function navGroup(title: string): NavGroup {
   }) as NavGroup;
 }
 
-// The line of the Service Catalog that says a key can name the service.
+// The line of the Services page that says a key can name the service.
 function pinnedNameLine(language: string): string {
   const english: Array<string> = englishPage(SERVICES).split("\n");
   const index: number = english.findIndex((line: string): boolean => {
@@ -699,7 +699,7 @@ describe("the English pages", () => {
     },
   );
 
-  it("the Service Catalog links its Pinned Service Name to the Ingestion Keys section that explains it", () => {
+  it("the Services page links its Pinned Service Name to the Ingestion Keys section that explains it", () => {
     const line: string = pinnedNameLine("en");
 
     expect(line).toContain("**Pinned Service Name**");
@@ -989,7 +989,7 @@ describe.each(LANGUAGES)("%s", (language: string) => {
     },
   );
 
-  it("the Service Catalog links its Pinned Service Name to the same Ingestion Keys section, in this language", () => {
+  it("the Services page links its Pinned Service Name to the same Ingestion Keys section, in this language", () => {
     const line: string = pinnedNameLine(language);
     const expected: string | null = expectedLink(
       language,
@@ -1040,9 +1040,7 @@ describe("the helpers, on these pages' shapes", () => {
       "Create Log Drop Filter",
     );
     // A card's edit button is drawn from "Edit {{itemName}}".
-    expect(dashboardLabels(INGESTION_KEYS)).toContain(
-      "Edit Telemetry Ingestion Key",
-    );
+    expect(dashboardLabels(INGESTION_KEYS)).toContain("Edit Ingestion Key");
     // An Admin Dashboard label is read from the Admin Dashboard's locale.
     expect(dashboardLabels(DATA_RETENTION)).not.toContain(
       "Monitor Log Retention (Days)",

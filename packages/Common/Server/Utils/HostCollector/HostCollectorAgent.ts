@@ -55,8 +55,10 @@ import {
 
 /*
  * The server side of a managed host's collector: every message its OpAMP
- * supervisor posts to <OneUptime URL>/opamp/v1 (authorized by the project's
- * telemetry ingestion key before it gets here) comes through handleMessage.
+ * supervisor posts (to <OneUptime URL>/telemetry/opamp/v1, or /opamp/v1 from
+ * a host installed before the installers moved to /telemetry), authorized by
+ * the project's telemetry ingestion key before it gets here, comes through
+ * handleMessage.
  *
  *   1. Which host: the one the supervisor names (host.name, as the
  *      collector's own telemetry names it - so both land on one host), or

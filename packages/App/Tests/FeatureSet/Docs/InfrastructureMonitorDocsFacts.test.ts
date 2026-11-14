@@ -3560,7 +3560,7 @@ describe(`${SERVER}`, () => {
 
   it("lists exactly the filter types and conditions the criteria form offers a Server / VM monitor", () => {
     const rows: Array<Array<string>> = tableBody(
-      sectionOf(SERVER, "## Monitoring criteria"),
+      sectionOf(SERVER, "## Criteria"),
     );
     const offered: Array<string> =
       CriteriaFilterUtil.getCheckOnOptionsByMonitorType(MonitorType.Server).map(

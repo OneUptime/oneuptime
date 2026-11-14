@@ -155,7 +155,7 @@ flowchart TB
 ## 다음 단계
 
 :::cards
-- [모니터 기준 및 상태](/docs/monitor/criteria-and-statuses): 각 모니터의 상태를 정하는 것.
+- [기준 및 상태](/docs/monitor/criteria-and-statuses): 각 모니터의 상태를 정하는 것.
 - [상태 페이지 리소스 및 그룹](/docs/status-pages/resources-and-groups): 상태 페이지의 행을 배치합니다.
 - [구독자 및 공지](/docs/status-pages/subscribers): 그룹의 인시던트를 고객에게 알립니다.
 :::

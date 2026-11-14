@@ -28,7 +28,9 @@ import ProjectCallSMSConfigService from "./ProjectCallSMSConfigService";
 import ProjectService from "./ProjectService";
 import SmsLogService from "./SmsLogService";
 import TeamMemberService from "./TeamMemberService";
-import UserNotificationRuleService from "./UserNotificationRuleService";
+import UserNotificationRuleService, {
+  FallbackRule,
+} from "./UserNotificationRuleService";
 import UserOnCallLogService from "./UserOnCallLogService";
 import UserOnCallLogTimelineService from "./UserOnCallLogTimelineService";
 import UserService from "./UserService";
@@ -71,14 +73,22 @@ import {
   OnCallTestPageCost,
   OnCallTestPageDelivery,
   OnCallTestPageKind,
+  OnCallTestPageNotPaged,
+  OnCallTestPageNotPagedCode,
   OnCallTestPagePreview,
+  OnCallTestPagePreviewLevel,
   OnCallTestPagePreviewMethod,
   OnCallTestPagePreviewPerson,
+  OnCallTestPageLine,
+  OnCallTestPageReachedThrough,
+  OnCallTestPageReachedThroughCode,
   OnCallTestPageRecordKind,
   OnCallTestPageResult,
   OnCallTestPageStatus,
   OnCallTestPageStep,
   OnCallTestPageStepStatus,
+  OnCallTestPageWarning,
+  OnCallTestPageWarningCode,
   canAcknowledgeOnCallTestPageBy,
   getOnCallTestPageCost,
   getOnCallTestPageDeliveryStatus,
@@ -87,10 +97,17 @@ import {
   getOnCallTestPagePersonTooSoonMessage,
   getOnCallTestPagePolicyTooSoonMessage,
   getOnCallTestPageRuleType,
+  getOnCallTestPageWalkStart,
   isOnCallTestPage,
   isOnCallTestPageRecordKind,
+  isOnCallTestPageWalkLevelReached,
   sortRulesAsAPageReachesThem,
 } from "../../Types/OnCallDutyPolicy/OnCallTestPage";
+import {
+  readOnCallTestPageDeliveryLine,
+  readOnCallTestPageRunLine,
+  readOnCallTestPageStepLine,
+} from "../../Types/OnCallDutyPolicy/OnCallTestPageLine";
 import Permission from "../../Types/Permission";
 import SmsStatus from "../../Types/SmsStatus";
 import UserNotificationStatus from "../../Types/UserNotification/UserNotificationStatus";
@@ -99,6 +116,7 @@ import {
   getProjectNotificationChannelOffMessage,
 } from "../../Utils/Project/NotificationChannels";
 import { TwilioMessageKind } from "../../Utils/Project/TwilioAccount";
+import { SAMPLE_PROJECT_REFUSALS } from "../../Types/SampleProject/SampleProject";
 import crypto from "crypto";
 
 /*
@@ -184,10 +202,87 @@ const readPrice: (setting: string) => number = (setting: string): number => {
   return Number.isFinite(value) && value > 0 ? value : 0;
 };
 
-// One target a test of a policy's first level pages, or could not.
+// One target a test of a policy's level pages: who, and why them.
 interface PolicyLevelTarget {
   userId: ObjectID;
+  // In English: "Team Platform".
   reachedThrough?: string | undefined;
+  // As a code, with its name (#7015).
+  reachedThroughCode?: OnCallTestPageReachedThrough | undefined;
+}
+
+// One level of a policy, as a test reads it: who it pages, and who it can't reach.
+export interface PolicyLevel {
+  targets: Array<PolicyLevelTarget>;
+  notPaged: Array<string>;
+  notPagedCodes: Array<OnCallTestPageNotPaged>;
+}
+
+// Why a target reaches nobody, before its English sentence is added.
+type NotPagedValues = Omit<OnCallTestPageNotPaged, "message">;
+
+// The escalation rule of a level, by its order: 1 for the first.
+function getRuleOfOrder(
+  rules: Array<OnCallDutyPolicyEscalationRule>,
+  order: number,
+): OnCallDutyPolicyEscalationRule | undefined {
+  return rules.find((rule: OnCallDutyPolicyEscalationRule): boolean => {
+    return rule.order === order;
+  });
+}
+
+// Why them, when there is a name to say it with.
+function reachedThroughOf(
+  code: OnCallTestPageReachedThroughCode,
+  name: string,
+): OnCallTestPageReachedThrough | undefined {
+  return name ? { code: code, name: name } : undefined;
+}
+
+// A person's preview, with why the level pages them - or with no reason.
+function withReachedThrough(
+  person: OnCallTestPagePreviewPerson,
+  target: {
+    reachedThrough?: string | undefined;
+    reachedThroughCode?: OnCallTestPageReachedThrough | undefined;
+  },
+): OnCallTestPagePreviewPerson {
+  const next: OnCallTestPagePreviewPerson = { ...person };
+  const text: string | undefined = target.reachedThroughCode
+    ? getReachedThroughText(target.reachedThroughCode)
+    : target.reachedThrough;
+
+  delete next.reachedThrough;
+  delete next.reachedThroughCode;
+
+  if (text) {
+    next.reachedThrough = text;
+  }
+
+  if (target.reachedThroughCode) {
+    next.reachedThroughCode = target.reachedThroughCode;
+  }
+
+  return next;
+}
+
+// The reasons, with their English sentences, as a preview carries them.
+function toNotPagedLists(values: Array<NotPagedValues>): {
+  notPaged: Array<string>;
+  notPagedCodes: Array<OnCallTestPageNotPaged>;
+} {
+  const notPagedCodes: Array<OnCallTestPageNotPaged> = values.map(
+    (value: NotPagedValues): OnCallTestPageNotPaged => {
+      return { ...value, message: getNotPagedMessage(value) };
+    },
+  );
+
+  return {
+    notPaged: notPagedCodes.map((notPaged: OnCallTestPageNotPaged): string => {
+      return notPaged.message;
+    }),
+    notPagedCodes: notPagedCodes,
+  };
 }
 
 export class OnCallTestPageService extends BaseService {
@@ -313,6 +408,17 @@ export class OnCallTestPageService extends BaseService {
    * caller may send one to (the API checks which). Limited to one a person
    * every two minutes and twenty a project an hour. Returns the run.
    */
+  /*
+   * A sample project (issue #6808) sends nothing, a test page included:
+   * refused before anything is claimed or written, with where to send one
+   * from instead. What a test would send can still be read (getPreview).
+   */
+  public async assertNotSampleProject(projectId: ObjectID): Promise<void> {
+    if (await ProjectService.isSampleProject(projectId)) {
+      throw new BadDataException(SAMPLE_PROJECT_REFUSALS.testPage);
+    }
+  }
+
   @CaptureSpan()
   public async sendToPerson(data: {
     projectId: ObjectID;
@@ -321,6 +427,8 @@ export class OnCallTestPageService extends BaseService {
     recordKind: OnCallTestPageRecordKind;
     severityId: ObjectID;
   }): Promise<OnCallDirectPageRun> {
+    await this.assertNotSampleProject(data.projectId);
+
     await this.assertIsProjectMember({
       projectId: data.projectId,
       userId: data.targetUserId,
@@ -382,6 +490,8 @@ export class OnCallTestPageService extends BaseService {
     severityId: ObjectID;
     walksEscalation: boolean;
   }): Promise<ObjectID> {
+    await this.assertNotSampleProject(data.projectId);
+
     await this.readPolicy({
       projectId: data.projectId,
       policyId: data.policyId,
@@ -516,10 +626,12 @@ export class OnCallTestPageService extends BaseService {
 
   /*
    * WHAT A TEST WILL SEND, before it is sent: for one person, their methods
-   * for the test's severity in the order a real page reaches them (and
-   * where to, for the person themselves); for a policy, the people its
-   * first level pages right now, each with theirs. With what it costs on
-   * OneUptime Cloud.
+   * for the test's severity in the order a real page reaches them - or,
+   * with no rule for it, the ones the project's fallback picks (#7262) -
+   * and where to, for the person themselves; for a policy, the people its
+   * first level pages right now, each with theirs - and the levels after it
+   * that a test walking every level pages before it ends (#7016). With what
+   * it costs on OneUptime Cloud: the first level's, and a walk's at most.
    */
   @CaptureSpan()
   public async getPreview(data: {
@@ -550,63 +662,184 @@ export class OnCallTestPageService extends BaseService {
       },
     });
 
-    let kind: OnCallTestPageKind = OnCallTestPageKind.Self;
-    let targets: Array<PolicyLevelTarget> = [];
-    let notPaged: Array<string> = [];
-    let levelCount: number | undefined = undefined;
+    // Each person's methods are read once, however many levels page them.
+    const previews: Map<string, Promise<OnCallTestPagePreviewPerson>> = new Map<
+      string,
+      Promise<OnCallTestPagePreviewPerson>
+    >();
 
-    if (data.policyId) {
-      kind = OnCallTestPageKind.Policy;
+    const previewPeople: (
+      targets: Array<PolicyLevelTarget>,
+    ) => Promise<Array<OnCallTestPagePreviewPerson>> = async (
+      targets: Array<PolicyLevelTarget>,
+    ): Promise<Array<OnCallTestPagePreviewPerson>> => {
+      const people: Array<OnCallTestPagePreviewPerson> = [];
 
-      const level: {
-        targets: Array<PolicyLevelTarget>;
-        notPaged: Array<string>;
-        levelCount: number;
-      } = await this.readFirstLevel({
+      for (const target of targets) {
+        const key: string = target.userId.toString().toLowerCase();
+        let preview: Promise<OnCallTestPagePreviewPerson> | undefined =
+          previews.get(key);
+
+        if (!preview) {
+          preview = this.getPersonPreview({
+            projectId: data.projectId,
+            userId: target.userId,
+            recordKind: data.recordKind,
+            severityId: data.severityId,
+            showAddresses:
+              target.userId.toString() === data.callerUserId.toString(),
+            project: project,
+            // With no rule, what the fallback sends them is listed, and priced (#7262).
+            readsFallbackMethods: true,
+          });
+
+          previews.set(key, preview);
+        }
+
+        people.push(withReachedThrough(await preview, target));
+      }
+
+      return people;
+    };
+
+    if (!data.policyId) {
+      const targetUserId: ObjectID = data.targetUserId || data.callerUserId;
+
+      const people: Array<OnCallTestPagePreviewPerson> = await previewPeople([
+        { userId: targetUserId },
+      ]);
+
+      const [cost]: Array<OnCallTestPageCost> = await this.getCosts({
+        projectId: data.projectId,
+        peopleOfEach: [people],
+      });
+
+      return {
+        kind:
+          targetUserId.toString() === data.callerUserId.toString()
+            ? OnCallTestPageKind.Self
+            : OnCallTestPageKind.Member,
+        people: people,
+        notPaged: [],
+        notPagedCodes: [],
+        cost: cost!,
+      };
+    }
+
+    const rules: Array<OnCallDutyPolicyEscalationRule> =
+      await this.readEscalationRules({
         projectId: data.projectId,
         policyId: data.policyId,
       });
 
-      targets = level.targets;
-      notPaged = level.notPaged;
-      levelCount = level.levelCount;
-    } else {
-      const targetUserId: ObjectID = data.targetUserId || data.callerUserId;
+    const first: PolicyLevel & { levelCount: number } =
+      await this.readFirstLevelOf({
+        projectId: data.projectId,
+        policyId: data.policyId,
+        rules: rules,
+      });
 
-      kind =
-        targetUserId.toString() === data.callerUserId.toString()
-          ? OnCallTestPageKind.Self
-          : OnCallTestPageKind.Member;
+    const people: Array<OnCallTestPagePreviewPerson> = await previewPeople(
+      first.targets,
+    );
 
-      targets = [{ userId: targetUserId }];
-    }
+    /*
+     * The walk: each level after the first, in order, while it starts
+     * before the test ends - its people read only then.
+     */
+    const walkLevels: Array<OnCallTestPagePreviewLevel> = [];
+    let walkUnreachedLevelCount: number = 0;
+    let previous: {
+      rule: OnCallDutyPolicyEscalationRule | undefined;
+      startsAfterMinutes: number;
+      pagesAnybody: boolean;
+    } = {
+      rule: getRuleOfOrder(rules, 1),
+      startsAfterMinutes: 0,
+      pagesAnybody: people.length > 0,
+    };
 
-    const people: Array<OnCallTestPagePreviewPerson> = [];
+    if (previous.rule) {
+      for (let order: number = 2; ; order++) {
+        const rule: OnCallDutyPolicyEscalationRule | undefined = getRuleOfOrder(
+          rules,
+          order,
+        );
 
-    for (const target of targets) {
-      people.push(
-        await this.getPersonPreview({
+        if (!rule || !rule.id) {
+          break;
+        }
+
+        const startsAfterMinutes: number = getOnCallTestPageWalkStart({
+          previousStartsAfterMinutes: previous.startsAfterMinutes,
+          previousWaitInMinutes: previous.rule?.escalateAfterInMinutes,
+          previousPagesAnybody: previous.pagesAnybody,
+        });
+
+        if (!isOnCallTestPageWalkLevelReached(startsAfterMinutes)) {
+          break;
+        }
+
+        const level: PolicyLevel = await this.readLevel({
           projectId: data.projectId,
-          userId: target.userId,
-          recordKind: data.recordKind,
-          severityId: data.severityId,
-          showAddresses:
-            target.userId.toString() === data.callerUserId.toString(),
-          reachedThrough: target.reachedThrough,
-          project: project,
-        }),
+          policyId: data.policyId,
+          ruleId: rule.id,
+          order: order,
+        });
+
+        const levelPeople: Array<OnCallTestPagePreviewPerson> =
+          await previewPeople(level.targets);
+
+        walkLevels.push({
+          order: order,
+          startsAfterMinutes: startsAfterMinutes,
+          people: levelPeople,
+          notPaged: level.notPaged,
+          notPagedCodes: level.notPagedCodes,
+        });
+
+        previous = {
+          rule: rule,
+          startsAfterMinutes: startsAfterMinutes,
+          pagesAnybody: levelPeople.length > 0,
+        };
+      }
+
+      walkUnreachedLevelCount = Math.max(
+        0,
+        rules.filter((rule: OnCallDutyPolicyEscalationRule): boolean => {
+          return typeof rule.order === "number" && rule.order > 1;
+        }).length - walkLevels.length,
       );
     }
 
+    const [cost, walkCost]: Array<OnCallTestPageCost> = await this.getCosts({
+      projectId: data.projectId,
+      peopleOfEach: [
+        people,
+        [
+          ...people,
+          ...walkLevels.flatMap(
+            (
+              level: OnCallTestPagePreviewLevel,
+            ): Array<OnCallTestPagePreviewPerson> => {
+              return level.people;
+            },
+          ),
+        ],
+      ],
+    });
+
     return {
-      kind: kind,
+      kind: OnCallTestPageKind.Policy,
       people: people,
-      notPaged: notPaged,
-      ...(levelCount !== undefined ? { levelCount: levelCount } : {}),
-      cost: await this.getCost({
-        projectId: data.projectId,
-        people: people,
-      }),
+      notPaged: first.notPaged,
+      notPagedCodes: first.notPagedCodes,
+      levelCount: first.levelCount,
+      cost: cost!,
+      walkLevels: walkLevels,
+      walkUnreachedLevelCount: walkUnreachedLevelCount,
+      walkCost: walkCost!,
     };
   }
 
@@ -615,6 +848,22 @@ export class OnCallTestPageService extends BaseService {
     projectId: ObjectID;
     people: Array<OnCallTestPagePreviewPerson>;
   }): Promise<OnCallTestPageCost> {
+    const [cost]: Array<OnCallTestPageCost> = await this.getCosts({
+      projectId: data.projectId,
+      peopleOfEach: [data.people],
+    });
+
+    return cost!;
+  }
+
+  /*
+   * What each of several tests costs - a policy's first level, and its walk
+   * - with the project's own Twilio accounts read once.
+   */
+  public async getCosts(data: {
+    projectId: ObjectID;
+    peopleOfEach: Array<Array<OnCallTestPagePreviewPerson>>;
+  }): Promise<Array<OnCallTestPageCost>> {
     const smsConfig: TwilioConfig | undefined =
       await ProjectCallSMSConfigService.getProjectDefaultTwilioConfig(
         data.projectId,
@@ -627,25 +876,34 @@ export class OnCallTestPageService extends BaseService {
         TwilioMessageKind.Call,
       );
 
-    return getOnCallTestPageCost({
-      people: data.people,
-      isBillingEnabled: IsBillingEnabled,
-      hasOwnTwilioForSms: Boolean(smsConfig),
-      hasOwnTwilioForCalls: Boolean(callConfig),
-      prices: {
-        smsInCents: readPrice(MESSAGING_PRICE_SETTINGS.sms),
-        callPerMinuteInCents: readPrice(MESSAGING_PRICE_SETTINGS.callPerMinute),
-        whatsAppInCents: readPrice(MESSAGING_PRICE_SETTINGS.whatsApp),
-        telegramInCents: readPrice(MESSAGING_PRICE_SETTINGS.telegram),
+    return data.peopleOfEach.map(
+      (people: Array<OnCallTestPagePreviewPerson>): OnCallTestPageCost => {
+        return getOnCallTestPageCost({
+          people: people,
+          isBillingEnabled: IsBillingEnabled,
+          hasOwnTwilioForSms: Boolean(smsConfig),
+          hasOwnTwilioForCalls: Boolean(callConfig),
+          prices: {
+            smsInCents: readPrice(MESSAGING_PRICE_SETTINGS.sms),
+            callPerMinuteInCents: readPrice(
+              MESSAGING_PRICE_SETTINGS.callPerMinute,
+            ),
+            whatsAppInCents: readPrice(MESSAGING_PRICE_SETTINGS.whatsApp),
+            telegramInCents: readPrice(MESSAGING_PRICE_SETTINGS.telegram),
+          },
+        });
       },
-    });
+    );
   }
 
   /*
    * One person's methods for the test's severity: the rules a real page of
    * it runs (UserOnCallLogService.getPagingRulesQuery), in the order a page
    * reaches them. With none, whether they opted out, and whether the
-   * project falls back to their verified methods.
+   * project falls back to their verified methods - and, read for a test's
+   * preview (readsFallbackMethods), the methods the fallback picks
+   * (UserNotificationRuleService.getFallbackRules), each marked isFallback,
+   * so the preview lists what the test sends them and prices it (#7262).
    */
   public async getPersonPreview(data: {
     projectId: ObjectID;
@@ -653,8 +911,16 @@ export class OnCallTestPageService extends BaseService {
     recordKind: OnCallTestPageRecordKind;
     severityId: ObjectID;
     showAddresses: boolean;
+    // Why a policy's level pages them: its English, or as a code.
     reachedThrough?: string | undefined;
+    reachedThroughCode?: OnCallTestPageReachedThrough | undefined;
     project: Project | null;
+    /*
+     * Whether a person with no rule is previewed with what the fallback
+     * picks. A test's preview reads it; the view of who would be told
+     * (WhoIsToldService) reads every verified method of a person itself.
+     */
+    readsFallbackMethods?: boolean | undefined;
   }): Promise<OnCallTestPagePreviewPerson> {
     const ruleType: NotificationRuleType = getOnCallTestPageRuleType(
       data.recordKind,
@@ -753,84 +1019,162 @@ export class OnCallTestPageService extends BaseService {
       isOptedOut = Boolean(optOut);
     }
 
-    return {
-      userId: data.userId.toString(),
-      userName: user?.name?.toString() || user?.email?.toString() || "",
-      ...(data.reachedThrough ? { reachedThrough: data.reachedThrough } : {}),
+    /*
+     * No rule, not opted out, and a project that falls back: a real page -
+     * so the test - goes to what the fallback picks of their methods, read
+     * by the fallback's own reader (#7262).
+     */
+    const readsFallbackMethods: boolean = Boolean(
+      data.readsFallbackMethods &&
+        rules.length === 0 &&
+        !isOptedOut &&
+        !data.project?.disableOnCallNotificationFallback,
+    );
+
+    if (readsFallbackMethods) {
+      const fallbackRules: Array<FallbackRule> =
+        await UserNotificationRuleService.getFallbackRules({
+          projectId: data.projectId,
+          userId: data.userId,
+          ruleType: ruleType,
+        });
+
+      for (const fallback of fallbackRules) {
+        methods.push(
+          ...getPreviewMethodsOfRule({
+            rule: fallback.rule,
+            showAddresses: data.showAddresses,
+          }).map(
+            (
+              method: OnCallTestPagePreviewMethod,
+            ): OnCallTestPagePreviewMethod => {
+              return { ...method, isFallback: true };
+            },
+          ),
+        );
+      }
+    }
+
+    const warningCodes: Array<OnCallTestPageWarning> = getPreviewWarningCodes({
       methods: methods,
+      project: data.project,
       hasNoRule: rules.length === 0,
       isOptedOut: isOptedOut,
-      warnings: getPreviewWarnings({
+      readsFallbackMethods: readsFallbackMethods,
+    });
+
+    return withReachedThrough(
+      {
+        userId: data.userId.toString(),
+        userName: user?.name?.toString() || user?.email?.toString() || "",
         methods: methods,
-        project: data.project,
         hasNoRule: rules.length === 0,
         isOptedOut: isOptedOut,
-      }),
-    };
+        warnings: warningCodes.map((warning: OnCallTestPageWarning): string => {
+          return warning.message;
+        }),
+        warningCodes: warningCodes,
+      },
+      data,
+    );
   }
 
   /*
-   * Who a policy's first level pages right now: its people, each team's
-   * accepted members and whoever is on call in its schedules - a user
-   * override sending a person's page to who covers them, or skipping them
-   * while they are away - and nobody twice; with the targets that will
-   * reach nobody, and why. Read as a real run's first level reads them
-   * (OnCallDutyPolicyEscalationRuleService.pageTargets), without paging.
+   * Who a policy's first level pages right now, as readLevel reads it, and
+   * how many levels the policy has. What the view of who would be told
+   * (WhoIsToldService) reads of each policy.
    */
   public async readFirstLevel(data: {
     projectId: ObjectID;
     policyId: ObjectID;
-  }): Promise<{
-    targets: Array<PolicyLevelTarget>;
-    notPaged: Array<string>;
-    levelCount: number;
-  }> {
-    const rules: Array<OnCallDutyPolicyEscalationRule> =
-      await OnCallDutyPolicyEscalationRuleService.findBy({
-        query: {
-          projectId: data.projectId,
-          onCallDutyPolicyId: data.policyId,
-        },
-        select: {
-          _id: true,
-          order: true,
-        },
-        sort: {
-          order: SortOrder.Ascending,
-        },
-        skip: 0,
-        limit: LIMIT_PER_PROJECT,
-        props: {
-          isRoot: true,
-        },
-      });
+  }): Promise<PolicyLevel & { levelCount: number }> {
+    return await this.readFirstLevelOf({
+      projectId: data.projectId,
+      policyId: data.policyId,
+      rules: await this.readEscalationRules(data),
+    });
+  }
 
-    const firstRule: OnCallDutyPolicyEscalationRule | undefined = rules.find(
-      (rule: OnCallDutyPolicyEscalationRule): boolean => {
-        return rule.order === 1;
+  // A policy's escalation levels, in order, with each one's wait.
+  public async readEscalationRules(data: {
+    projectId: ObjectID;
+    policyId: ObjectID;
+  }): Promise<Array<OnCallDutyPolicyEscalationRule>> {
+    return await OnCallDutyPolicyEscalationRuleService.findBy({
+      query: {
+        projectId: data.projectId,
+        onCallDutyPolicyId: data.policyId,
       },
-    );
+      select: {
+        _id: true,
+        order: true,
+        escalateAfterInMinutes: true,
+      },
+      sort: {
+        order: SortOrder.Ascending,
+      },
+      skip: 0,
+      limit: LIMIT_PER_PROJECT,
+      props: {
+        isRoot: true,
+      },
+    });
+  }
+
+  // The first level of these escalation rules: the one a run starts with.
+  private async readFirstLevelOf(data: {
+    projectId: ObjectID;
+    policyId: ObjectID;
+    rules: Array<OnCallDutyPolicyEscalationRule>;
+  }): Promise<PolicyLevel & { levelCount: number }> {
+    const firstRule: OnCallDutyPolicyEscalationRule | undefined =
+      getRuleOfOrder(data.rules, 1);
 
     if (!firstRule || !firstRule.id) {
       return {
         targets: [],
-        notPaged: [
-          "This policy has no escalation rules yet, so a test pages nobody.",
-        ],
-        levelCount: rules.length,
+        ...toNotPagedLists([
+          { code: OnCallTestPageNotPagedCode.PolicyHasNoLevels },
+        ]),
+        levelCount: data.rules.length,
       };
     }
 
-    const notPaged: Array<string> = [];
+    return {
+      ...(await this.readLevel({
+        projectId: data.projectId,
+        policyId: data.policyId,
+        ruleId: firstRule.id,
+        order: 1,
+      })),
+      levelCount: data.rules.length,
+    };
+  }
+
+  /*
+   * Who one level of a policy pages right now: its people, each team's
+   * accepted members and whoever is on call in its schedules - a user
+   * override sending a person's page to who covers them, or skipping them
+   * while they are away - and nobody twice; with the targets that will
+   * reach nobody, and why. Read as a real run reads a level when it starts
+   * it (OnCallDutyPolicyEscalationRuleService.pageTargets), without paging.
+   */
+  public async readLevel(data: {
+    projectId: ObjectID;
+    policyId: ObjectID;
+    ruleId: ObjectID;
+    order: number;
+  }): Promise<PolicyLevel> {
+    const notPaged: Array<NotPagedValues> = [];
     const candidates: Array<{
       userId: ObjectID;
-      reachedThrough?: string | undefined;
+      reachedThroughCode?: OnCallTestPageReachedThrough | undefined;
       appliesOverride: boolean;
     }> = [];
 
     const teams: Array<OnCallDutyPolicyEscalationRuleTeam> =
       await OnCallDutyPolicyEscalationRuleTeamService.findBy({
-        query: { onCallDutyPolicyEscalationRuleId: firstRule.id },
+        query: { onCallDutyPolicyEscalationRuleId: data.ruleId },
         select: { teamId: true, team: { name: true } },
         skip: 0,
         limit: LIMIT_PER_PROJECT,
@@ -850,14 +1194,20 @@ export class OnCallTestPageService extends BaseService {
       const teamName: string = teamRow.team?.name?.toString() || "";
 
       if (members.length === 0) {
-        notPaged.push(`Team ${teamName} has no members.`);
+        notPaged.push({
+          code: OnCallTestPageNotPagedCode.TeamHasNoMembers,
+          teamName: teamName,
+        });
       }
 
       for (const member of members) {
         if (member.id) {
           candidates.push({
             userId: member.id,
-            reachedThrough: teamName ? `Team ${teamName}` : undefined,
+            reachedThroughCode: reachedThroughOf(
+              OnCallTestPageReachedThroughCode.Team,
+              teamName,
+            ),
             appliesOverride: true,
           });
         }
@@ -866,7 +1216,7 @@ export class OnCallTestPageService extends BaseService {
 
     const users: Array<OnCallDutyPolicyEscalationRuleUser> =
       await OnCallDutyPolicyEscalationRuleUserService.findBy({
-        query: { onCallDutyPolicyEscalationRuleId: firstRule.id },
+        query: { onCallDutyPolicyEscalationRuleId: data.ruleId },
         select: { userId: true },
         skip: 0,
         limit: LIMIT_PER_PROJECT,
@@ -881,7 +1231,7 @@ export class OnCallTestPageService extends BaseService {
 
     const schedules: Array<OnCallDutyPolicyEscalationRuleSchedule> =
       await OnCallDutyPolicyEscalationRuleScheduleService.findBy({
-        query: { onCallDutyPolicyEscalationRuleId: firstRule.id },
+        query: { onCallDutyPolicyEscalationRuleId: data.ruleId },
         select: {
           onCallDutyPolicyScheduleId: true,
           onCallDutyPolicySchedule: { name: true },
@@ -908,15 +1258,19 @@ export class OnCallTestPageService extends BaseService {
           );
 
         if (!next || !next.nextUserId) {
-          notPaged.push(
-            `Nobody is next in the rotation of schedule ${scheduleName}.`,
-          );
+          notPaged.push({
+            code: OnCallTestPageNotPagedCode.NobodyNextInRotation,
+            scheduleName: scheduleName,
+          });
           continue;
         }
 
         candidates.push({
           userId: next.nextUserId,
-          reachedThrough: `Schedule ${scheduleName} (next in rotation)`,
+          reachedThroughCode: reachedThroughOf(
+            OnCallTestPageReachedThroughCode.ScheduleNextInRotation,
+            scheduleName,
+          ),
           appliesOverride: false,
         });
 
@@ -930,14 +1284,20 @@ export class OnCallTestPageService extends BaseService {
         );
 
       if (!onCall) {
-        notPaged.push(`Nobody is on call in schedule ${scheduleName} now.`);
+        notPaged.push({
+          code: OnCallTestPageNotPagedCode.NobodyOnCall,
+          scheduleName: scheduleName,
+        });
         continue;
       }
 
       // The schedule applied its overrides already.
       candidates.push({
         userId: onCall.userId,
-        reachedThrough: scheduleName ? `Schedule ${scheduleName}` : undefined,
+        reachedThroughCode: reachedThroughOf(
+          OnCallTestPageReachedThroughCode.Schedule,
+          scheduleName,
+        ),
         appliesOverride: false,
       });
     }
@@ -956,7 +1316,8 @@ export class OnCallTestPageService extends BaseService {
 
     for (const candidate of candidates) {
       let userId: ObjectID = candidate.userId;
-      let reachedThrough: string | undefined = candidate.reachedThrough;
+      let reachedThroughCode: OnCallTestPageReachedThrough | undefined =
+        candidate.reachedThroughCode;
 
       if (candidate.appliesOverride) {
         const away: AwayOverride | null =
@@ -967,14 +1328,19 @@ export class OnCallTestPageService extends BaseService {
           });
 
         if (away && !away.coverUserId) {
-          notPaged.push(
-            `${await this.readName(candidate.userId)} is away until ${OneUptimeDate.getDateAsUserFriendlyFormattedString(away.endsAt)}, with nobody covering.`,
-          );
+          notPaged.push({
+            code: OnCallTestPageNotPagedCode.AwayWithNobodyCovering,
+            userName: await this.readName(candidate.userId),
+            awayUntil: OneUptimeDate.fromString(away.endsAt).toISOString(),
+          });
           continue;
         }
 
         if (away?.coverUserId) {
-          reachedThrough = `Covering for ${await this.readName(candidate.userId)}`;
+          reachedThroughCode = reachedThroughOf(
+            OnCallTestPageReachedThroughCode.CoveringFor,
+            await this.readName(candidate.userId),
+          );
           userId = away.coverUserId;
         }
       }
@@ -994,25 +1360,34 @@ export class OnCallTestPageService extends BaseService {
           userId: userId,
         }))
       ) {
-        notPaged.push(
-          `${await this.readName(userId)} is not a member of this project.`,
-        );
+        notPaged.push({
+          code: OnCallTestPageNotPagedCode.NotProjectMember,
+          userName: await this.readName(userId),
+        });
         continue;
       }
 
-      targets.push({ userId: userId, reachedThrough: reachedThrough });
+      targets.push({
+        userId: userId,
+        ...(reachedThroughCode
+          ? {
+              reachedThrough: getReachedThroughText(reachedThroughCode),
+              reachedThroughCode: reachedThroughCode,
+            }
+          : {}),
+      });
     }
 
     if (teams.length === 0 && users.length === 0 && schedules.length === 0) {
-      notPaged.push(
-        "The first escalation rule pages nobody yet. Add people, a team or a schedule to it.",
-      );
+      notPaged.push({
+        code: OnCallTestPageNotPagedCode.LevelNamesNobody,
+        levelOrder: data.order,
+      });
     }
 
     return {
       targets: targets,
-      notPaged: notPaged,
-      levelCount: rules.length,
+      ...toNotPagedLists(notPaged),
     };
   }
 
@@ -1210,6 +1585,15 @@ export class OnCallTestPageService extends BaseService {
       endsAt: getOnCallTestPageEndsAt(startedAt).toISOString(),
       steps: steps,
     };
+
+    // What the run's line says, as a code the Dashboard words (#7260).
+    const runLine: OnCallTestPageLine | null = readOnCallTestPageRunLine(
+      run.statusMessage,
+    );
+
+    if (runLine) {
+      result.statusMessageCode = runLine;
+    }
 
     if (run.acknowledgedAt) {
       result.acknowledgedByName =
@@ -1454,6 +1838,18 @@ export class OnCallTestPageService extends BaseService {
         undefined;
     }
 
+    // What the line says, as a code with the name it is about (#7260).
+    const stepLine: OnCallTestPageLine | null = readOnCallTestPageStepLine({
+      statusMessage: step.statusMessage,
+      userName: step.userName,
+      teamName: step.teamName,
+      scheduleName: step.scheduleName,
+    });
+
+    if (stepLine) {
+      step.statusMessageCode = stepLine;
+    }
+
     return step;
   }
 }
@@ -1530,6 +1926,16 @@ export function toDelivery(data: {
 
   if (address) {
     result.address = address;
+  }
+
+  // What its log says, as a code the Dashboard words (#7260).
+  const line: OnCallTestPageLine | null = readOnCallTestPageDeliveryLine({
+    statusMessage: delivery.statusMessage,
+    channel: channel,
+  });
+
+  if (line) {
+    result.statusMessageCode = line;
   }
 
   if (
@@ -1683,32 +2089,56 @@ export function getPreviewMethodsOfRule(data: {
     );
 }
 
-// What a preview warns about before anything is sent.
+// The project's preview of a person: the switches its warnings read.
+type PreviewProject = Pick<
+  Project,
+  | "enableSmsNotifications"
+  | "enableCallNotifications"
+  | "enableWhatsAppNotifications"
+  | "enableTelegramNotifications"
+  | "disableOnCallNotificationFallback"
+> | null;
+
+// What a preview warns about before anything is sent, in English.
 export function getPreviewWarnings(data: {
   methods: Array<OnCallTestPagePreviewMethod>;
-  project: Pick<
-    Project,
-    | "enableSmsNotifications"
-    | "enableCallNotifications"
-    | "enableWhatsAppNotifications"
-    | "enableTelegramNotifications"
-    | "disableOnCallNotificationFallback"
-  > | null;
+  project: PreviewProject;
   hasNoRule: boolean;
   isOptedOut: boolean;
+  readsFallbackMethods?: boolean | undefined;
 }): Array<string> {
-  const warnings: Array<string> = [];
+  return getPreviewWarningCodes(data).map(
+    (warning: OnCallTestPageWarning): string => {
+      return warning.message;
+    },
+  );
+}
+
+/*
+ * What a preview warns about before anything is sent, as codes with their
+ * English sentences (#7015): the Dashboard words each code itself. A person
+ * with no rule, read with what the fallback picks (readsFallbackMethods,
+ * #7262), is said to fall back to the methods listed - or, when it picks
+ * none, to be sent nothing.
+ */
+export function getPreviewWarningCodes(data: {
+  methods: Array<OnCallTestPagePreviewMethod>;
+  project: PreviewProject;
+  hasNoRule: boolean;
+  isOptedOut: boolean;
+  // Whether `methods` are what the fallback picks for a person with no rule.
+  readsFallbackMethods?: boolean | undefined;
+}): Array<OnCallTestPageWarning> {
+  const warnings: Array<OnCallTestPageWarning> = [];
 
   if (data.isOptedOut) {
-    warnings.push(
-      "Opted out of pages of this severity, so the test sends nothing.",
-    );
+    warnings.push({
+      code: OnCallTestPageWarningCode.OptedOut,
+      message:
+        "Opted out of pages of this severity, so the test sends nothing.",
+    });
   } else if (data.hasNoRule) {
-    warnings.push(
-      data.project?.disableOnCallNotificationFallback
-        ? "No on-call rule covers this severity, and this project does not fall back to verified methods: the test sends nothing."
-        : "No on-call rule covers this severity: like a real page, the test goes to every verified method instead.",
-    );
+    warnings.push(getNoRuleWarning(data));
   }
 
   const offChannels: Array<{
@@ -1746,21 +2176,123 @@ export function getPreviewWarnings(data: {
         return method.channel === off.channel;
       })
     ) {
-      warnings.push(
-        getProjectNotificationChannelOffMessage(off.projectChannel),
-      );
+      warnings.push({
+        code: OnCallTestPageWarningCode.ChannelOff,
+        channel: off.channel,
+        message: getProjectNotificationChannelOffMessage(off.projectChannel),
+      });
     }
   }
 
   for (const method of data.methods) {
     if (!method.isVerified) {
-      warnings.push(
-        `This ${method.channel === OnCallPageChannel.CustomChannel ? "custom channel is turned off" : `${method.channel} method is not verified`}, so the test can't use it.`,
-      );
+      warnings.push({
+        code: OnCallTestPageWarningCode.MethodNotVerified,
+        channel: method.channel,
+        message: `This ${method.channel === OnCallPageChannel.CustomChannel ? "custom channel is turned off" : `${method.channel} method is not verified`}, so the test can't use it.`,
+      });
     }
   }
 
   return warnings;
+}
+
+/*
+ * What a preview says of a person with no rule for the severity: that the
+ * project does not fall back; or, read with what the fallback picks
+ * (#7262), that the test falls back to the method - or methods - listed,
+ * or that it has none it may use; or, read without, that it goes to every
+ * verified method.
+ */
+function getNoRuleWarning(data: {
+  methods: Array<OnCallTestPagePreviewMethod>;
+  project: PreviewProject;
+  readsFallbackMethods?: boolean | undefined;
+}): OnCallTestPageWarning {
+  if (data.project?.disableOnCallNotificationFallback) {
+    return {
+      code: OnCallTestPageWarningCode.NoRuleNoFallback,
+      message:
+        "No on-call rule covers this severity, and this project does not fall back to verified methods: the test sends nothing.",
+    };
+  }
+
+  if (!data.readsFallbackMethods) {
+    return {
+      code: OnCallTestPageWarningCode.NoRuleFallsBack,
+      message:
+        "No on-call rule covers this severity: like a real page, the test goes to every verified method instead.",
+    };
+  }
+
+  const fallbackMethodCount: number = data.methods.filter(
+    (method: OnCallTestPagePreviewMethod): boolean => {
+      return Boolean(method.isFallback);
+    },
+  ).length;
+
+  /*
+   * Most often the fallback picks one method - the email address every
+   * member verifies when they join - so the sentence names "the method
+   * above" then, as the Dashboard's own wording of the code does.
+   */
+  return fallbackMethodCount > 0
+    ? {
+        code: OnCallTestPageWarningCode.NoRuleFallsBackToListed,
+        message:
+          fallbackMethodCount === 1
+            ? "No on-call rule covers this severity: like a real page, the test falls back to the method above."
+            : "No on-call rule covers this severity: like a real page, the test falls back to the methods above.",
+      }
+    : {
+        code: OnCallTestPageWarningCode.NoRuleNothingToFallBackTo,
+        message:
+          "No on-call rule covers this severity, and no verified method can be used instead: the test sends nothing.",
+      };
+}
+
+// Why a policy's test pages a person, in English: "Team Platform".
+export function getReachedThroughText(
+  reachedThrough: OnCallTestPageReachedThrough,
+): string {
+  switch (reachedThrough.code) {
+    case OnCallTestPageReachedThroughCode.Team:
+      return `Team ${reachedThrough.name}`;
+    case OnCallTestPageReachedThroughCode.Schedule:
+      return `Schedule ${reachedThrough.name}`;
+    case OnCallTestPageReachedThroughCode.ScheduleNextInRotation:
+      return `Schedule ${reachedThrough.name} (next in rotation)`;
+    case OnCallTestPageReachedThroughCode.CoveringFor:
+      return `Covering for ${reachedThrough.name}`;
+  }
+}
+
+// Why a target of a policy's level reaches nobody, in English.
+export function getNotPagedMessage(notPaged: NotPagedValues): string {
+  switch (notPaged.code) {
+    case OnCallTestPageNotPagedCode.PolicyHasNoLevels:
+      return "This policy has no escalation rules yet, so a test pages nobody.";
+    case OnCallTestPageNotPagedCode.LevelNamesNobody:
+      return notPaged.levelOrder && notPaged.levelOrder > 1
+        ? `Escalation rule ${notPaged.levelOrder} pages nobody yet. Add people, a team or a schedule to it.`
+        : "The first escalation rule pages nobody yet. Add people, a team or a schedule to it.";
+    case OnCallTestPageNotPagedCode.TeamHasNoMembers:
+      return `Team ${notPaged.teamName || ""} has no members.`;
+    case OnCallTestPageNotPagedCode.NobodyNextInRotation:
+      return `Nobody is next in the rotation of schedule ${notPaged.scheduleName || ""}.`;
+    case OnCallTestPageNotPagedCode.NobodyOnCall:
+      return `Nobody is on call in schedule ${notPaged.scheduleName || ""} now.`;
+    case OnCallTestPageNotPagedCode.AwayWithNobodyCovering:
+      return `${notPaged.userName || "Someone"} is away until ${
+        notPaged.awayUntil
+          ? OneUptimeDate.getDateAsUserFriendlyFormattedString(
+              OneUptimeDate.fromString(notPaged.awayUntil),
+            )
+          : ""
+      }, with nobody covering.`;
+    case OnCallTestPageNotPagedCode.NotProjectMember:
+      return `${notPaged.userName || "Someone"} is not a member of this project.`;
+  }
 }
 
 export default new OnCallTestPageService();

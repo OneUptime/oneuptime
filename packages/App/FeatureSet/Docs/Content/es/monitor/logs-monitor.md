@@ -72,7 +72,7 @@ Haz clic en **Crear monitor**. El monitor se abre en su página **Vista general*
 | **Ventana de tiempo** (en **Cuándo alertar**) | Registros de los últimos 5 segundos hasta las últimas 24 horas. | **Últimos 5 minutos** |
 | **Agrupar por atributos** | No es un filtro: cuenta por separado cada combinación de valores de estos atributos. | Vacío: un solo recuento |
 | **Resuelto por atributos** | No es un filtro: el registro que resuelve un grupo. Aparece en cuanto **Agrupar por atributos** tiene un atributo; consulta [Resuelto por un registro](#resuelto-por-un-registro). | Vacío: un grupo se resuelve cuando sus registros cesan |
-| **Filtrar por servicio de telemetría** (en **Más campos**) | Registros de cualquiera de los servicios elegidos. | Vacío: todos los servicios |
+| **Filtrar por servicio** (en **Más campos**) | Registros de cualquiera de los servicios elegidos. | Vacío: todos los servicios |
 | **Filtrar por entidad de infraestructura** (en **Más campos**) | Registros de cualquiera de los hosts, pods, contenedores y otras entidades elegidos. | Vacío: todas las entidades |
 | **Filtrar por atributos** (en **Más campos**) | Registros cuyos atributos cumplen todas las condiciones. Cada condición tiene su propio operador, como «es igual a» o «contiene». | Vacío: ninguna condición |
 
@@ -140,7 +140,7 @@ Quieres un incidente cuando el servicio de checkout registra más de 50 errores 
 
 - **Gravedad del registro**: **Error**
 - **Ventana de tiempo**: **Últimos 5 minutos**
-- **Filtrar por servicio de telemetría**: `checkout`
+- **Filtrar por servicio**: `checkout`
 - **Cuándo alertar**: **Más de** `50`
 - **Qué pasa**: **Declarar un incidente**
 
@@ -240,7 +240,7 @@ El valor de cada atributo de Group By es una [variable de plantilla](/docs/monit
 ## Solución de problemas
 
 :::details El monitor está fuera de línea, pero mi servicio escribe registros
-El recuento fue 0, así que los filtros no coinciden con ninguno de los registros que envía el servicio. Abre la página **Criterios** del monitor (en **Configuración**) y haz clic en **Editar criterios de monitoreo**: **Registros coincidentes** muestra con qué coinciden los filtros ahora mismo, y el gráfico de **Cuándo alertar** los cuenta en cada ventana. Las causas habituales son una gravedad elegida por el texto que imprime el logger en lugar de por su número de gravedad (consulta [Gravedad de los registros](#gravedad-de-los-registros)), un filtro de servicio o de atributo que no coincide, y una ventana de tiempo más corta que el intervalo entre los registros del servicio.
+El recuento fue 0, así que los filtros no coinciden con ninguno de los registros que envía el servicio. Abre la página **Criterios** del monitor (en **Configuración**) y haz clic en **Editar criterios**: **Registros coincidentes** muestra con qué coinciden los filtros ahora mismo, y el gráfico de **Cuándo alertar** los cuenta en cada ventana. Las causas habituales son una gravedad elegida por el texto que imprime el logger en lugar de por su número de gravedad (consulta [Gravedad de los registros](#gravedad-de-los-registros)), un filtro de servicio o de atributo que no coincide, y una ventana de tiempo más corta que el intervalo entre los registros del servicio.
 :::
 
 :::details Hubo un pico, pero nada alertó

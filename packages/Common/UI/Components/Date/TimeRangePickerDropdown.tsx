@@ -154,10 +154,18 @@ export const TIME_RANGE_PRESET_OPTIONS: Array<TimeRangePickerPresetOption> = [
  * the digits off the Date itself - which is what this used to do - pinned the
  * label to a 24-hour clock in whatever zone the browser process happened to be
  * in, so a machine set to AM/PM still got "Mar 1, 14:30" back.
+ *
+ * Both ends carry their year, or neither does: see getTimeRangeButtonLabel.
  */
-function formatDateShort(date: Date): string {
-  return OneUptimeDate.getDateAsLocalShortDateTimeString(date);
+function formatDateShort(date: Date, showYear: boolean): string {
+  return OneUptimeDate.getDateAsLocalShortDateTimeString(date, { showYear });
 }
+
+/*
+ * What stands between a custom range's two ends ("Mar 1, 10:00 – Mar 2,
+ * 13:30").
+ */
+export const TIME_RANGE_LABEL_SEPARATOR: string = " – ";
 
 /*
  * A range's English label: its preset's ("Past 5 Minutes"), or the range
@@ -171,16 +179,65 @@ export function getTimeRangeLabel(range: TimeRange): string {
   return preset ? preset.label : range;
 }
 
+/*
+ * A range's label on the button: its preset's ("Past 5 Minutes"), or a
+ * custom range's two ends ("Mar 1, 10:00 – Mar 2, 13:30").
+ *
+ * The ends carry their years when the range is not all in this year, on the
+ * reader's calendar (issue #7124): a range of exactly a year read "Nov 12,
+ * 9:49 AM – Nov 12, 9:49 AM", as if it had no length, and one across New
+ * Year or in an earlier year did not say which year it was. A range within
+ * this year keeps the short label. "This year" is the one `now` is in: now,
+ * unless a caller says.
+ */
 export function getTimeRangeButtonLabel(
   value: RangeStartAndEndDateTime,
+  now?: Date | undefined,
 ): string {
   if (value.range === TimeRange.CUSTOM && value.startAndEndDate) {
-    const start: string = formatDateShort(value.startAndEndDate.startValue);
-    const end: string = formatDateShort(value.startAndEndDate.endValue);
-    return `${start} – ${end}`;
+    const showYear: boolean = !OneUptimeDate.isWindowInTheCurrentYear({
+      start: value.startAndEndDate.startValue,
+      end: value.startAndEndDate.endValue,
+      now: now,
+    });
+    const start: string = formatDateShort(
+      value.startAndEndDate.startValue,
+      showYear,
+    );
+    const end: string = formatDateShort(
+      value.startAndEndDate.endValue,
+      showYear,
+    );
+    return `${start}${TIME_RANGE_LABEL_SEPARATOR}${end}`;
   }
 
   return getTimeRangeLabel(value.range);
+}
+
+/*
+ * A moment's window under its name. When it does not fit on one line, it
+ * breaks between its two ends and nowhere else: "5 нояб. 2025 г., 04:44 –"
+ * over "5 нояб. 2025 г., 05:44". As one run of text it broke wherever the
+ * line ran out, and the dropdown left a time ("05:44"), an "AM" ("ص") or
+ * part of one ("午05:44") alone on the next line in Russian, Arabic or
+ * Chinese, whose dates are longer than English ones. A window that is not
+ * two ends is written as it comes; the text is the same either way.
+ */
+export function renderTimeRangeDetail(detail: string): ReactElement {
+  const ends: Array<string> = detail.split(TIME_RANGE_LABEL_SEPARATOR);
+
+  if (ends.length !== 2) {
+    return <>{detail}</>;
+  }
+
+  return (
+    <>
+      <span className="whitespace-nowrap">
+        {`${ends[0]}${TIME_RANGE_LABEL_SEPARATOR.trimEnd()}`}
+      </span>{" "}
+      <span className="whitespace-nowrap">{ends[1]}</span>
+    </>
+  );
 }
 
 const TimeRangePickerDropdown: FunctionComponent<ComponentProps> = (
@@ -372,7 +429,7 @@ const TimeRangePickerDropdown: FunctionComponent<ComponentProps> = (
                             isActive ? "text-indigo-600" : "text-gray-500"
                           }`}
                         >
-                          {option.detail}
+                          {renderTimeRangeDetail(option.detail)}
                         </span>
                       ) : null}
                     </button>

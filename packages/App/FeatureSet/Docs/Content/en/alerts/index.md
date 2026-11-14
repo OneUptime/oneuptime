@@ -158,7 +158,7 @@ An episode that a private alert opens is not private, so it never shows the aler
 
 ## Who hears about an alert
 
-- **On call.** The alert's on-call policies page their people, each the way they set it up under **User Settings → On-Call Rules**, on the **Alerts** tab. Answering the page acknowledges the alert, and paging stops.
+- **On call.** The alert's on-call policies page their people, each the way they set it up under **User Settings → How to Reach Me**, on the **Alerts** tab. Answering the page acknowledges the alert, and paging stops.
 - **Its owners.** By email, unless they chose other channels under **User Settings → Notification Settings**, on the **Alerts** tab: **Alert created**, **Alert state changed** and **Alert reminder** are on by default, and **Alert note posted** and **Added as alert owner** are off until someone turns them on. An alert with no owners notifies the project's owners instead.
 - **Your chat tools.** **Alerts → Workspace** holds the Slack and Microsoft Teams rules that post alerts and episodes to channels. See [Slack](/docs/workspace-connections/slack) and [Microsoft Teams](/docs/workspace-connections/microsoft-teams).
 

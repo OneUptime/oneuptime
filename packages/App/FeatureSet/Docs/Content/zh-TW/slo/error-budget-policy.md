@@ -82,7 +82,7 @@ stateDiagram-v2
 | **Reliability first** | 剩餘 25% 或更少 | Reliability comes first. Only reliability improvements and critical fixes ship until the budget recovers. | 允許 |
 | **Budget exhausted** | 剩餘 0% 或更少 | The error budget is spent. Freeze non-critical releases: only fixes for this SLO's reliability and security fixes ship until the budget is back. | 已凍結 |
 
-在你開啟之前，它們都不會觸發警示或宣告事件。**Budget exhausted** 會凍結部署，正如它的約定所說，確認視窗中也會如此標示它：請參閱 [部署閘門](#部署閘門)。在部署閘門推出之前新增的級別不會凍結任何部署，除非你為它們開啟該開關。只會新增 SLO 還沒有的級別：名稱相同或臨界值相同的級別，無論開啟與否，都算已存在。因此，從第二個分頁或透過 API 要求兩次，也不會重複新增任何內容。以這種方式新增的每個級別，都會在 SLO 的稽核日誌中記錄為由你新增。
+在你開啟之前，它們都不會觸發警示或宣告事件。**Budget exhausted** 會凍結部署，正如它的約定所說，確認視窗中也會如此標示它：請參閱 [部署閘門](#部署閘門)。在部署閘門推出之前新增的級別不會凍結任何部署，除非你為它們開啟該開關。只會新增 SLO 還沒有的級別：名稱相同或臨界值相同的級別，無論開啟與否，都算已存在。因此，從第二個分頁或透過 API 要求兩次，也不會重複新增任何內容。如果其中某個級別無法新增，就一個也不會新增：SLO 保持原樣，你可以再試一次。以這種方式新增的每個級別，都會在 SLO 的稽核日誌中記錄為由你新增。
 
 ## 級別顯示在哪裡
 

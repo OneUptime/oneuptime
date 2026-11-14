@@ -1085,6 +1085,120 @@ describe("reading a task", () => {
 
     expect(result?.["canReadLogContent"]).toBe(true);
   });
+
+  /*
+   * A task kept open for weeks (issue #6529): its page is sent its first
+   * turn and its newest, and how many turns between them it does not show.
+   */
+  test("a long task's answer says how many turns between its first and its newest are not shown, and how long AI worked on them", async () => {
+    (
+      CodeTaskPresenter.getConversation as unknown as jest.Mock
+    ).mockImplementation(async () => {
+      return {
+        task: { id: TASK_ID.toString(), state: CodeTaskState.Done } as never,
+        turns: [],
+        turnsNotShown: { count: 5, workMilliseconds: 300000 },
+      };
+    });
+
+    const { result } = await call(route, {
+      params: { taskId: TASK_ID.toString() },
+    });
+
+    expect(result?.["turnsNotShown"]).toEqual({
+      count: 5,
+      workMilliseconds: 300000,
+    });
+  });
+
+  test("a task shown whole carries no turnsNotShown at all", async () => {
+    const { result } = await call(route, {
+      params: { taskId: TASK_ID.toString() },
+    });
+
+    expect(result).not.toHaveProperty("turnsNotShown");
+    expect(result?.["turns"]).toEqual([]);
+  });
+
+  /*
+   * A link to a turn (the Log page's ?turn=) names it in the read: a turn a
+   * long task's conversation does not show comes back on its own, with its
+   * place in the task (issue #7130).
+   */
+  test("a turn a link names is asked for by its id, and one not shown comes back with its place", async () => {
+    const LINKED_RUN_ID: string = "6f2a5c4b-8d9e-4f0a-9b1c-3d4e5f6a7b8d";
+    const linkedTurn: JSONObject = {
+      number: 4,
+      turn: { runId: LINKED_RUN_ID, state: CodeTaskState.Done },
+    };
+
+    (
+      CodeTaskPresenter.getConversation as unknown as jest.Mock
+    ).mockImplementation(async () => {
+      return {
+        task: { id: TASK_ID.toString(), state: CodeTaskState.Done } as never,
+        turns: [],
+        turnsNotShown: { count: 5, workMilliseconds: 300000 },
+        linkedTurn: linkedTurn as never,
+      };
+    });
+
+    const { next, result } = await call(route, {
+      params: { taskId: TASK_ID.toString() },
+      body: { turn: LINKED_RUN_ID },
+    });
+
+    expect(next).not.toHaveBeenCalled();
+    expect(result?.["linkedTurn"]).toEqual(linkedTurn);
+
+    const asked: { linkedTurnId?: ObjectID; task: AIRun } = (
+      CodeTaskPresenter.getConversation as unknown as jest.Mock
+    ).mock.calls[0]![0] as never;
+
+    expect(asked.linkedTurnId?.toString()).toBe(LINKED_RUN_ID);
+    expect(asked.task.id?.toString()).toBe(TASK_ID.toString());
+  });
+
+  test.each([
+    ["no turn", {}],
+    ["a null turn", { turn: null }],
+    ["an empty turn", { turn: "" }],
+  ])(
+    "%s asks for none, and the answer carries no linkedTurn",
+    async (_name: string, body: JSONObject) => {
+      const { next, result } = await call(route, {
+        params: { taskId: TASK_ID.toString() },
+        body,
+      });
+
+      expect(next).not.toHaveBeenCalled();
+      expect(result).not.toHaveProperty("linkedTurn");
+      expect(
+        (
+          (CodeTaskPresenter.getConversation as unknown as jest.Mock).mock
+            .calls[0]![0] as { linkedTurnId?: ObjectID }
+        ).linkedTurnId,
+      ).toBeUndefined();
+    },
+  );
+
+  test.each([
+    ["not an id", "turn-4"],
+    ["a number", 4],
+    ["a list", ["6f2a5c4b-8d9e-4f0a-9b1c-3d4e5f6a7b8d"]],
+  ])(
+    "a turn that is %s is refused, and the conversation is not read",
+    async (_name: string, turn: unknown) => {
+      const { next } = await call(route, {
+        params: { taskId: TASK_ID.toString() },
+        body: { turn } as JSONObject,
+      });
+
+      expect(refusal(next)).toBeInstanceOf(BadDataException);
+      expect(refusal(next).message).toBe("A valid turn ID is required.");
+      expect(CodeTaskPresenter.getConversation).not.toHaveBeenCalled();
+    },
+  );
 });
 
 /*

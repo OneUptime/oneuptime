@@ -106,6 +106,7 @@ const KubernetesClusterStatefulSets: FunctionComponent<
           title: "Ready",
           key: "ready",
           description: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.statefulSetReady,
+          isCount: true,
         },
       ]}
       getViewRoute={(resource: KubernetesResource): Route => {

@@ -72,7 +72,7 @@ Klik på **Opret monitor**. Monitoren åbner på sin side **Oversigt**, og dens 
 | **Undtagelsestyper** | Undtagelser af en af disse typer, adskilt af kommaer, såsom `TypeError, NullReferenceException`. Typenavnet skal matche præcist. | Tom: alle typer |
 | **Miljøer** | Undtagelser fra et af disse miljøer, adskilt af kommaer (se [Miljøer](#miljøer)). | Tom: alle miljøer |
 | **Tidsvindue** (i **Hvornår der advares**) | Undtagelser fra de seneste 5 sekunder op til de seneste 24 timer. | **Seneste 5 minutter** |
-| **Filtrér efter telemetritjeneste** (under **Flere felter**) | Undtagelser fra en af de valgte tjenester. | Tom: alle tjenester |
+| **Filtrer efter tjeneste** (under **Flere felter**) | Undtagelser fra en af de valgte tjenester. | Tom: alle tjenester |
 | **Filtrér efter infrastrukturenhed** (under **Flere felter**) | Undtagelser fra en af de valgte værter, pods, containere og andre entiteter. | Tom: alle entiteter |
 | **Inkluder løste undtagelser** (under **Flere felter**) | Tæl også undtagelser, der er markeret som løst. | Fra |
 | **Inkluder arkiverede undtagelser** (under **Flere felter**) | Tæl også arkiverede undtagelser. | Fra |
@@ -193,7 +193,7 @@ Du vil have en hændelse, hver gang API'et kaster en undtagelse i produktion, og
 ## Fejlfinding
 
 :::details Undtagelser vises i explorer, men monitoren tæller 0
-Sammenlign værdien i **Miljøer** med explorerens filter `env:`: sammenligningen er præcis og skelner mellem store og små bogstaver, og undtagelser uden miljø udelades, når filteret er angivet. Tjek derefter, om de undtagelser er løst eller arkiveret. Åbn monitorens side **Kriterier** (under **Konfiguration**), og klik på **Rediger overvågningskriterier**: **Matchende undtagelser** viser, hvad filtrene matcher.
+Sammenlign værdien i **Miljøer** med explorerens filter `env:`: sammenligningen er præcis og skelner mellem store og små bogstaver, og undtagelser uden miljø udelades, når filteret er angivet. Tjek derefter, om de undtagelser er løst eller arkiveret. Åbn monitorens side **Kriterier** (under **Konfiguration**), og klik på **Rediger kriterier**: **Matchende undtagelser** viser, hvad filtrene matcher.
 :::
 
 :::details Hændelsen blev løst, da jeg løste undtagelsen

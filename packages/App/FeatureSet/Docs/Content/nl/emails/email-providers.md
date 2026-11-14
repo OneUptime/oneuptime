@@ -3,7 +3,7 @@
 Verstuur de e-mail van OneUptime via de HTTPS-API van een e-mailprovider in plaats van via een SMTP-server: Amazon SES, SendGrid, Mailgun, Postmark of Resend. Een project kiest er één voor een SMTP-configuratie, en een zelf gehoste installatie kan al haar eigen e-mail via één ervan versturen. De API wordt via HTTPS op poort 443 bereikt, zodat e-mail ook vertrekt vanuit netwerken die de SMTP-poorten blokkeren, en de sleutel van elke provider wordt versleuteld opgeslagen.
 
 :::cards
-- [Amazon SES](#amazon-ses): Een IAM-toegangssleutel en de regio waarin uw afzender is geverifieerd.
+- [Amazon SES](#amazon-ses): Een IAM-toegangssleutel, of de eigen IAM-rol van de server, en de regio waarin uw afzender is geverifieerd.
 - [SendGrid](#sendgrid): Een API-sleutel met toegang tot Mail Send.
 - [Mailgun](#mailgun): Een API-sleutel, het verzenddomein en de regio ervan.
 - [Postmark](#postmark): Het API-token van de server.
@@ -15,7 +15,7 @@ Verstuur de e-mail van OneUptime via de HTTPS-API van een e-mailprovider in plaa
 
 :::tabs
 @tab Project
-Open via **Projectinstellingen > Meldingen > Meldingsinstellingen** het onderdeel **Meer instellingen** en klik op **SMTP-configuratie aanmaken** in de kaart **Aangepaste SMTP-configuraties**. Vul in de stap **Provider** een **Naam** in en kies de provider. De volgende stap vraagt om de instellingen van die provider, en de stap **Afzender** om de **E-mail van** en de **Van naam**. Zodra de configuratie is opgeslagen, controleert **Test-e-mail verzenden** in haar rij of ze werkt.
+Open via **Projectinstellingen > Meldingen > Meldingskanalen** het onderdeel **Meer instellingen** en klik op **SMTP-configuratie aanmaken** in de kaart **Aangepaste SMTP-configuraties**. Vul in de stap **Provider** een **Naam** in en kies de provider. De volgende stap vraagt om de instellingen van die provider, en de stap **Afzender** om de **E-mail van** en de **Van naam**. Zodra de configuratie is opgeslagen, controleert **Test-e-mail verzenden** in haar rij of ze werkt.
 @tab Zelf gehoste instantie
 Open in het Admin Dashboard **Instellingen** en daarna **Meldingen > E-mails**. Klik in de kaart **E-mailserverinstellingen** op **Server bewerken** en kies de provider als **Type e-mailserver**. Daaronder verschijnt de kaart van de provider, zoals **Amazon SES-instellingen**: klik op de bewerkknop ervan, zoals **Amazon SES bewerken**, en vul de instellingen van de provider en de stap **Afzender** in. Zolang er iets ontbreekt, zegt de kaart wat er ontbreekt, en wordt elke e-mail geweigerd met de instelling die nog moet worden ingevuld.
 :::
@@ -54,10 +54,44 @@ Maak een IAM-gebruiker voor OneUptime aan met een beleid dat `ses:SendEmail` op 
 }
 ```
 
+Een zelf gehoste installatie op AWS kan de sleutel overslaan en zich in plaats daarvan [aanmelden met de IAM-rol van de server](#aanmelden-met-de-iam-rol-van-de-server), met hetzelfde beleid.
+
 ### De stap Amazon SES invullen
 
 Vul de **Toegangssleutel-ID** en de **Geheime toegangssleutel** in, en zet de **Regio** op de regio waarin uw identiteit is geverifieerd, zoals `us-east-1`.
 :::
+
+### Aanmelden met de IAM-rol van de server
+
+Een zelf gehoste installatie op AWS kan haar eigen e-mail verzenden als de IAM-rol die AWS de server geeft, zonder dat er een toegangssleutel in OneUptime wordt opgeslagen: de inloggegevens die AWS uitgeeft verlopen binnen enkele uren, en OneUptime haalt nieuwe op voordat dat gebeurt. Dit geldt alleen voor de eigen e-mail van de server. De Amazon SES-configuratie van een project meldt zich altijd aan met een toegangssleutel, omdat de rol van de server de eigen AWS-identiteit van de server is, niet die van een project.
+
+Geef de rol het beleid hierboven en voer OneUptime daarna uit als die rol:
+
+:::tabs
+@tab Amazon EKS
+Met IAM-rollen voor serviceaccounts maakt u de rol aan met een vertrouwensbeleid voor de OIDC-provider van uw cluster, en laat u de Helm-chart een serviceaccount maken met de ARN van de rol. De app- en worker-pods van OneUptime draaien als dat account:
+
+```yaml title="values.yaml"
+serviceAccount:
+  create: true
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::123456789012:role/oneuptime-ses
+```
+
+Met EKS Pod Identity maakt u in plaats daarvan een Pod Identity-koppeling tussen de rol en dat serviceaccount, en laat u de annotatie weg.
+@tab Amazon ECS
+Stel de rol in als de **Task role** van de taakdefinitie van OneUptime.
+@tab Amazon EC2
+Koppel de rol aan de instance als haar instanceprofiel. Draait OneUptime in Docker op de instance, verhoog dan de hoplimiet van de instancemetadata naar 2, zodat de containers ze kunnen bereiken:
+
+```bash
+aws ec2 modify-instance-metadata-options --instance-id <instance-id> --http-put-response-hop-limit 2 --http-endpoint enabled
+```
+:::
+
+Klik daarna in het Admin Dashboard op **Amazon SES bewerken**, kies **IAM-rol van deze server** als **Authenticatietype** en vul de **Regio** in. Bij het opslaan wordt een eerder opgeslagen toegangssleutel verwijderd.
+
+OneUptime zoekt de inloggegevens van de server waar de AWS SDK's ze zoeken, in deze volgorde: `AWS_ACCESS_KEY_ID` en `AWS_SECRET_ACCESS_KEY` in zijn omgeving, een webidentiteitstoken (`AWS_ROLE_ARN` en `AWS_WEB_IDENTITY_TOKEN_FILE`), het endpoint voor containerinloggegevens van Amazon ECS en EKS Pod Identity, en daarna de instancemetadataservice van EC2 (IMDSv2).
 
 ## SendGrid
 
@@ -89,6 +123,14 @@ Controleer de **Toegangssleutel-ID**, of de sleutel in IAM actief is en of de **
 
 :::details "The access key may not send with Amazon SES"
 Het beleid van de IAM-gebruiker staat `ses:SendEmail` op uw identiteit niet toe. Voeg het beleid hierboven toe.
+:::
+
+:::details "This server has no AWS credentials"
+De server meldt zich aan met zijn IAM-rol, maar AWS geeft hem geen inloggegevens. Voer hem uit als de rol, zoals [Aanmelden met de IAM-rol van de server](#aanmelden-met-de-iam-rol-van-de-server) laat zien, en start daarna de pods of taken van OneUptime opnieuw: een pod krijgt de instellingen van zijn rol wanneer hij start. In Docker op Amazon EC2 zegt de melding ook wanneer de hoplimiet van de instancemetadata te laag is.
+:::
+
+:::details "This server's IAM role may not send with Amazon SES" of "did not let this server assume the role"
+Het beleid van de rol staat `ses:SendEmail` op uw identiteit niet toe: voeg het beleid hierboven toe. Of, op Amazon EKS, het vertrouwensbeleid van de rol staat `sts:AssumeRoleWithWebIdentity` niet toe voor de OIDC-provider van uw cluster en het serviceaccount van OneUptime.
 :::
 
 :::details "Mailgun has no domain … in its US region"

@@ -37,6 +37,7 @@ import Route from "Common/Types/API/Route";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import { isTopologyInfrastructureType } from "Common/Types/Topology/TopologyTypeRules";
 import useTranslateValue from "Common/UI/Utils/Translation";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import Navigation from "Common/UI/Utils/Navigation";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
@@ -1787,7 +1788,7 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
                 }
               : undefined
           }
-          focusButtonLabel="Show its connections"
+          focusButtonLabel={translationKey("Show its connections")}
           onOpenInfrastructure={openInfrastructureFromDrawer}
         />
       )}

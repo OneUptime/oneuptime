@@ -1,5 +1,6 @@
 import { AlertFeedEventType } from "Common/Models/DatabaseModels/AlertFeed";
 import { IncidentFeedEventType } from "Common/Models/DatabaseModels/IncidentFeed";
+import { readUnexplainedError } from "Common/Types/Exception/UnexplainedError";
 import { INCIDENT_ALERT_ALREADY_LINKED_MESSAGE } from "Common/Types/Incident/IncidentAlertLink";
 import { getFeedEventTypeLabel } from "Common/UI/Components/Feed/FeedOptions";
 import { describe, expect, test } from "@jest/globals";
@@ -492,9 +493,17 @@ describe("Linking alerts to incidents: Dashboard translations", () => {
     );
     expect(dialog).toContain("error: error || undefined");
 
-    // BasicForm shows its error in the Alert banner, which translates it.
+    /*
+     * BasicForm shows its error in the Alert banner, which translates it.
+     * Since #7266 a failure nobody explained is drawn as an ErrorExplanation
+     * instead; the already-linked message is a sentence of the product's
+     * own, not one of those, so it still reaches the Alert as it is.
+     */
+    expect(
+      readUnexplainedError(INCIDENT_ALERT_ALREADY_LINKED_MESSAGE),
+    ).toBeNull();
     expect(readCommon("UI", "Components", "Forms", "BasicForm.tsx")).toContain(
-      "<Alert title={props.error} type={AlertType.DANGER} />",
+      "<Alert title={ isUnexplainedErrorMessage(props.error) ? ( <ErrorExplanation message={props.error} whatFailed={props.whatFailed} /> ) : ( props.error ) } type={AlertType.DANGER} />",
     );
   });
 
@@ -727,8 +736,13 @@ describe("Linking alerts to incidents: Dashboard translations", () => {
         ["UI", "Components", "Modal", "ConfirmModal.tsx"],
         "translateValue(props.description)",
       ],
+      // ErrorMessage draws its message's words with ErrorMessageText.
       [
         ["UI", "Components", "ErrorMessage", "ErrorMessage.tsx"],
+        "<ErrorMessageText message={props.message}",
+      ],
+      [
+        ["UI", "Components", "ErrorMessage", "ErrorMessageText.tsx"],
         "translateValue(props.message)",
       ],
       [

@@ -323,10 +323,10 @@ describe("the player", () => {
       "const enableChartZoom: boolean = !props.isEditMode && !isPlayback;",
     );
     expect(chart).toContain(
-      "!isPublicDashboard() && !props.isEditMode && !isPlayback && queryConfigs.length > 0;",
+      "!isPublicDashboard() && !props.isEditMode && !isPreview && !isPlayback && queryConfigs.length > 0;",
     );
     expect(chart).toContain(
-      "!isPublicDashboard() && !props.isEditMode && !isPlayback;",
+      "!isPublicDashboard() && !props.isEditMode && !isPreview && !isPlayback;",
     );
     expect(chart).toContain(
       "Boolean(prev.isPlayback) !== Boolean(next.isPlayback) ||",

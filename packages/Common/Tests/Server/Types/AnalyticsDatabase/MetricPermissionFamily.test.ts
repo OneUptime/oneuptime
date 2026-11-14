@@ -23,8 +23,8 @@ import {
  * A metric data point is read, written and deleted with the Telemetry
  * Service Metrics permissions - the family the permission picker offers for
  * metrics, and the one the metric catalogue (MetricType) already used.
- * Before, its table was read with Read Telemetry Service Traces and every
- * column with Read Telemetry Service Log, so the metric permission read
+ * Before, its table was read with Read Traces and every
+ * column with Read Logs, so the metric permission read
  * nothing, and only a role or the two other families together read a chart.
  *
  * Asked of the analytics gate itself - the record's check, then the
@@ -202,7 +202,7 @@ describe("metric data points are read with the metric permissions", () => {
     }
   });
 
-  test("Read Telemetry Service Metrics on its own reads a chart", () => {
+  test("Read Metrics on its own reads a chart", () => {
     expect(
       mayRead([Permission.ReadTelemetryServiceMetrics], CHART_SELECT),
     ).toBe(true);
@@ -236,7 +236,7 @@ describe("metric data points are written with the metric permissions", () => {
   /*
    * A data point belongs to a resource and is created only for one its
    * creator may read (ModelPermission.checkCreateScope), so each permission
-   * is asked beside Read Telemetry Service Metrics, which creates nothing.
+   * is asked beside Read Metrics, which creates nothing.
    */
   test("a data point is created by exactly the metric creators, each beside a permission to read metrics", () => {
     // And Create All Operational Resources, as for every operational resource.
@@ -292,7 +292,7 @@ describe("metric data points are written with the metric permissions", () => {
 
 /*
  * A grant's scope follows the permission that reads the table: an
- * Owned-scoped Read Telemetry Service Metrics narrows metric reads to the
+ * Owned-scoped Read Metrics narrows metric reads to the
  * services the user owns, as an Owned-scoped log read narrows logs.
  */
 describe("a scoped metric grant narrows metric reads", () => {
@@ -309,7 +309,7 @@ describe("a scoped metric grant narrows metric reads", () => {
     jest.restoreAllMocks();
   });
 
-  test("an Owned-scoped Read Telemetry Service Metrics reads only owned services", async () => {
+  test("an Owned-scoped Read Metrics reads only owned services", async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const query: any = await (ModelPermission as any).addReadScopeToQuery(
       Metric,
@@ -324,7 +324,7 @@ describe("a scoped metric grant narrows metric reads", () => {
     );
   });
 
-  test("an unscoped Read Telemetry Service Metrics reads every service", async () => {
+  test("an unscoped Read Metrics reads every service", async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const query: any = await (ModelPermission as any).addReadScopeToQuery(
       Metric,

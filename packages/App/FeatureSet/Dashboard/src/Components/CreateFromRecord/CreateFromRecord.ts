@@ -590,7 +590,7 @@ export const CREATE_PAGES: Readonly<
   [CreatedRecordKind.ScheduledMaintenance]: {
     created: CreatedRecordKind.ScheduledMaintenance,
     page: PageMap.SCHEDULED_MAINTENANCE_EVENT_CREATE,
-    title: "New Scheduled Maintenance Event",
+    title: "New Maintenance Event",
   },
   [CreatedRecordKind.Announcement]: {
     created: CreatedRecordKind.Announcement,

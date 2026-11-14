@@ -236,7 +236,7 @@ const FilterQueryBuilder: FunctionComponent<ComponentProps> = (
   if (isLoading) {
     return (
       <Card title={cardTitle} description={cardDescription}>
-        <div className="p-10 flex items-center justify-center">
+        <div className="py-10 flex items-center justify-center">
           <div className="flex items-center gap-3 text-gray-400">
             <svg
               className="animate-spin h-4 w-4"
@@ -281,7 +281,7 @@ const FilterQueryBuilder: FunctionComponent<ComponentProps> = (
           },
         ]}
       >
-        <div className="px-5 pt-4 pb-5">
+        <div>
           {hasConditions ? (
             <div>
               {/* Read-only conditions with vertical timeline */}

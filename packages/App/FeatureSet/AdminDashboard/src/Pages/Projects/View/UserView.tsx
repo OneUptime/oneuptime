@@ -155,13 +155,11 @@ const ProjectUserView: FunctionComponent = (): ReactElement => {
                     key: "name",
                     title: "Name",
                     fieldType: FieldType.Name,
-                    placeholder: "-",
                   },
                   {
                     key: "email",
                     title: "Email",
                     fieldType: FieldType.Email,
-                    placeholder: "-",
                   },
                   {
                     key: "_id",

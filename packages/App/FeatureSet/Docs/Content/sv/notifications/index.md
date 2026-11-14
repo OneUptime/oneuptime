@@ -29,7 +29,7 @@ flowchart TB
 | Sida | Vad den innehåller | Frågan den besvarar |
 | --- | --- | --- |
 | **Aviseringsmetoder** | Dina e-postadresser, telefonnummer, WhatsApp-nummer, Telegram-, Slack-, Microsoft Teams- och Mattermost-konton, push-enheter och webhooks | Var kan OneUptime nå mig? |
-| **Jourregler** | För varje typ av larm och varje allvarlighetsgrad: vilken metod som provas och efter hur lång tid | Hur larmas jag när jag har jour? |
+| **Så når man mig** | För varje typ av larm och varje allvarlighetsgrad: vilken metod som provas och efter hur lång tid | Hur larmas jag när jag har jour? |
 | **Aviseringsinställningar** | För varje händelse om något du äger eller om dina jourpass: vilka kanaler som används | Vad mer får jag veta om, och var? |
 
 De är åtskilda med flit. Att slå på alla kanaler i **Aviseringsinställningar** larmar dig aldrig, och en metod som du inte har verifierat används aldrig, vad dina regler än säger.
@@ -44,7 +44,7 @@ De är åtskilda med flit. Att slå på alla kanaler i **Aviseringsinställninga
 | Avsnitt | Sidor |
 | --- | --- |
 | **Kom igång** | **Checklista för konfiguration**: det som återstår att ställa in, i den ordning som spelar roll |
-| **Larm och aviseringar** | **Aviseringsmetoder**, **Jourregler**, **Aviseringsinställningar** och **E-postinställningar**, där du bestämmer hur många e-postmeddelanden dina uppdateringar blir |
+| **Larm och aviseringar** | **Aviseringsmetoder**, **Så når man mig**, **Aviseringsinställningar** och **E-postinställningar**, där du bestämmer hur många e-postmeddelanden dina uppdateringar blir |
 | **Jourloggar** | **Jourloggar**: varje gång du larmades i det här projektet, och vad som skickades |
 | **Inkommande samtalspolicy** | **Inkommande telefonnummer**: numret som en policy för inkommande samtal ringer dig på |
 | **Kalender** | **Kalenderflöde**: dina jourpass i din kalenderapp, och påminnelser innan de börjar |
@@ -53,17 +53,17 @@ De är åtskilda med flit. Att slå på alla kanaler i **Aviseringsinställninga
 
 **Kom igång** och **Larm och aviseringar** är öppna; de andra avsnitten börjar ihopfällda, och ett avsnitt öppnas av sig självt när du är på en av dess sidor. **Arbetsyta** visas bara när projektet har anslutit Slack, Microsoft Teams eller Mattermost.
 
-Projektägare och administratörer kan också se din konfiguration: under **Användare** öppnar de din rad och dess avsnitt **Jour**, med **Beredskap**, **Aviseringsmetoder** och **Jourregler**. De kan lägga till en metod åt dig där, men koden går till själva metoden, så bara du kan verifiera den.
+Projektägare och administratörer kan också se din konfiguration: under **Användare** öppnar de din rad och dess avsnitt **Jour**, med **Beredskap**, **Aviseringsmetoder** och **Så når man mig**. De kan lägga till en metod åt dig där, men koden går till själva metoden, så bara du kan verifiera den.
 
 ## Det här börjar du med
 
 När du går med i ett projekt med en verifierad inloggnings-e-post ställer OneUptime in dig så att ett larm alltid kan nå dig:
 
 1. Din inloggnings-e-post läggs till som en verifierad e-postmetod.
-2. För varje allvarlighetsgrad, på var och en av de fyra flikarna i **Jourregler**, skickar en regel ett e-postmeddelande till dig så snart du larmas.
+2. För varje allvarlighetsgrad, på var och en av de fyra flikarna i **Så når man mig**, skickar en regel ett e-postmeddelande till dig så snart du larmas.
 3. En rad uppdateringar om det du äger, och om dina jourpass, är påslagna via e-post. Se [Aviseringsinställningar](/docs/notifications/notification-settings#vad-som-är-påslaget-för-en-ny-medlem).
 
-Varje metod som du verifierar senare får samma regler: en regel för varje allvarlighetsgrad, skickad så snart du larmas. Att verifiera ett telefonnummer för SMS betyder alltså att varje larm också skickar ett SMS till dig. Vill du bara ha SMS för kritiska larm tar du bort SMS-reglerna för de andra allvarlighetsgraderna. Se [Personliga jourregler](/docs/notifications/on-call-rules#reglerna-du-börjar-med).
+Varje metod som du verifierar senare får samma regler: en regel för varje allvarlighetsgrad, skickad så snart du larmas. Att verifiera ett telefonnummer för SMS betyder alltså att varje larm också skickar ett SMS till dig. Vill du bara ha SMS för kritiska larm tar du bort SMS-reglerna för de andra allvarlighetsgraderna. Se [Så når man mig](/docs/notifications/on-call-rules#reglerna-du-börjar-med).
 
 ## Checklistan för konfiguration
 
@@ -72,7 +72,7 @@ Varje metod som du verifierar senare får samma regler: en regel för varje allv
 | Avsnitt | Vad det kontrollerar |
 | --- | --- |
 | **So we can reach you** | Du har en metod, varje metod du har lagt till är verifierad, och minst en av dem ligger på en kanal som projektet har slagit på |
-| **How you want to be paged** | Varje allvarlighetsgrad har en regel, på var och en av de fyra flikarna i **Jourregler** |
+| **How you want to be paged** | Varje allvarlighetsgrad har en regel, på var och en av de fyra flikarna i **Så når man mig** |
 | **Staying informed** | Du får veta när ett jourpass börjar, och bakom varje kanal som du har slagit på i **Aviseringsinställningar** finns en verifierad metod |
 | **Nice to have** | Ett nummer för inkommande samtal, dina Slack- och Microsoft Teams-konton, en kalenderlänk och dina profilfält |
 
@@ -95,7 +95,7 @@ Ett larm kan nå dig för en typ och en allvarlighetsgrad som du inte har någon
 2. Har du ingen av dem, en betald metod, i den här ordningen: SMS, ett telefonsamtal, WhatsApp, Telegram. Det är den första som du har verifierat, på en kanal som projektet har slagit på.
 3. Har du ingen av dem heller, en webhook.
 
-Du får ett e-postmeddelande om det, och det får även jourpolicyns ägare, eller projektets ägare om policyn inte har några. Är ingenting verifierat kan larmet inte levereras, och e-postmeddelandet säger det i stället. De här e-postmeddelandena hålls tillbaka medan larmen fortsätter komma, så att en storm av larm inte blir en storm av e-post. Hur du lägger till den saknade regeln står under [Personliga jourregler](/docs/notifications/on-call-rules#när-en-allvarlighetsgrad-saknar-regel).
+Du får ett e-postmeddelande om det, och det får även jourpolicyns ägare, eller projektets ägare om policyn inte har några. Är ingenting verifierat kan larmet inte levereras, och e-postmeddelandet säger det i stället. De här e-postmeddelandena hålls tillbaka medan larmen fortsätter komma, så att en storm av larm inte blir en storm av e-post. Hur du lägger till den saknade regeln står under [Så når man mig](/docs/notifications/on-call-rules#när-en-allvarlighetsgrad-saknar-regel).
 
 ## Språket i dina larm
 
@@ -131,7 +131,7 @@ Ett nummer kommer in i dina regler när det är verifierat. Klicka på **Verifie
 
 :::cards
 - [Aviseringsmetoder](/docs/notifications/notification-methods): Lägg till och verifiera adresserna som OneUptime får nå dig på.
-- [Personliga jourregler](/docs/notifications/on-call-rules): Bestäm vilken metod varje larm försöker med, och när.
+- [Så når man mig](/docs/notifications/on-call-rules): Bestäm vilken metod varje larm försöker med, och när.
 - [Aviseringsinställningar](/docs/notifications/notification-settings): Välj uppdateringarna du får veta om, och via vilka kanaler.
 - [Eskaleringsregler](/docs/on-call/escalation-rules): Hur en jourpolicy avgör vem som larmas, nivå för nivå.
 :::

@@ -155,7 +155,7 @@ Es la regla: el grupo muestra su peor monitor. Abra **Monitores** en el grupo pa
 ## Próximos pasos
 
 :::cards
-- [Criterios y estados de monitores](/docs/monitor/criteria-and-statuses): Qué fija el estado de cada monitor.
+- [Criterios y estados](/docs/monitor/criteria-and-statuses): Qué fija el estado de cada monitor.
 - [Recursos y grupos de la página de estado](/docs/status-pages/resources-and-groups): Organizar las filas de una página de estado.
 - [Suscriptores y anuncios](/docs/status-pages/subscribers): Informar a los clientes de los incidentes de un grupo.
 :::

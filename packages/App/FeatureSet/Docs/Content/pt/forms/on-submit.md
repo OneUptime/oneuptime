@@ -1,6 +1,6 @@
 # O que um envio cria
 
-Cada envio por um formulário cria um registro no seu projeto: um **incidente** ou um **evento de manutenção programada**. A página **Ao enviar** de um formulário mostra qual, e como cada campo do novo registro é preenchido — por uma resposta, por um valor padrão, por uma configuração que sempre se aplica, ou pelo modelo de incidente. **Editar definições** altera os valores padrão e o que sempre se aplica.
+Cada envio por um formulário cria um registro no seu projeto: um **incidente** ou um **evento de manutenção**. A página **Ao enviar** de um formulário mostra qual, e como cada campo do novo registro é preenchido — por uma resposta, por um valor padrão, por uma configuração que sempre se aplica, ou pelo modelo de incidente. **Editar definições** altera os valores padrão e o que sempre se aplica.
 
 :::cards
 - [Como um envio se torna um incidente](#como-um-envio-se-torna-um-incidente): Cada campo do novo incidente, e de onde vem o valor dele.

@@ -65,6 +65,7 @@ import {
 } from "./ReplayRecorderKind";
 import { copyTextToClipboard } from "./ReplayHeader";
 import { DEVICE_TYPE_OPTIONS } from "./SessionReplayFilterFields";
+import { getSessionReplayIdentityPermissionTitle } from "./SessionReplayPermissionTitle";
 import { getReplayAssetFailureDocsHref } from "./ReplayRecordedAssets";
 
 /*
@@ -878,11 +879,15 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
    * Identity copy. null and "" mean different things (see the interface),
    * and the old form conflated them into "Shown on the session list", which
    * sent a viewer WITH the permission to another page for an answer this
-   * one now has.
+   * one now has. Hidden names the grant that shows it, by the title the
+   * roles screen lists (#7096).
    */
   const endUserValue: string =
     d.identifiedUserLabel === null
-      ? tx("Not shown - viewing identity needs the identity permission")
+      ? translator.translateTemplate(
+          'Hidden - your role needs the "{{permission}}" permission',
+          { permission: getSessionReplayIdentityPermissionTitle() },
+        )
       : d.identifiedUserLabel ||
         tx("Anonymous - the page did not call OneUptimeReplay.identify()");
 

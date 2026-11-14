@@ -26,6 +26,7 @@ import {
   tableShape,
   toLatinDigits,
 } from "./DocsTranslationChecks";
+import { pathWithArrows } from "./DocsPageShape";
 import { getAllIoTAlertTemplates } from "Common/Types/Monitor/IotAlertTemplates";
 import { getAllStorageArrayAlertTemplates } from "Common/Types/Monitor/StorageArrayAlertTemplates";
 import { getAllVMwareAlertTemplates } from "Common/Types/Monitor/VMwareAlertTemplates";
@@ -454,12 +455,14 @@ function drawnPathSegment(
   return drawnActionLabel(language, segment);
 }
 
+// A menu path as a page in a language writes it, its arrows pointing on.
 function drawnPath(language: string, segments: Array<string>): string {
-  return segments
-    .map((_segment: string, index: number): string => {
+  return pathWithArrows(
+    segments.map((_segment: string, index: number): string => {
       return drawnPathSegment(language, segments, index);
-    })
-    .join(PATH_SEPARATOR);
+    }),
+    language,
+  );
 }
 
 // A sensitivity option's name as that language's Dashboard starts it.

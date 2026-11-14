@@ -365,6 +365,10 @@ export const friendlyToolNames: { [key: string]: string } = {
   check_workflow_draft: translationKey("Checking the workflow"),
   query_probes: translationKey("Checking probes"),
   query_teams: translationKey("Checking teams"),
+  // Who a monitor's going down reaches, and where that breaks (#6810, #6829).
+  who_is_told: translationKey("Checking who is told"),
+  // Whether the project's setup tells the right people (#6812).
+  get_setup_health: translationKey("Checking the setup health"),
   // OneUptime AI's own earlier work.
   get_ai_investigation: translationKey("Reading the AI investigation"),
   query_ai_insights: translationKey("Checking AI insights"),
@@ -434,6 +438,13 @@ export const friendlyToolNames: { [key: string]: string } = {
   start_investigation: translationKey("Starting an AI investigation"),
   open_code_pull_request: translationKey("Opening a pull request"),
   commit_code_to_branch: translationKey("Committing code to a branch"),
+  // Setting things up by conversation (#6829), once approved.
+  set_up_website_monitoring: translationKey("Setting up monitoring"),
+  set_up_paging: translationKey("Setting up paging"),
+  publish_status_page: translationKey("Publishing a status page"),
+  add_monitors_to_status_page: translationKey(
+    "Adding monitors to a status page",
+  ),
   // The rest of a long output a command printed.
   read_tool_output: translationKey("Reading the rest of an output"),
   run_kubectl: translationKey("Running kubectl on the cluster"),
@@ -487,6 +498,9 @@ export const REFUSED_TOOL_CALL_DETAILS: { [key in AIToolRefusal]: string } = {
   ),
   [AIToolRefusal.NotAllowed]: translationKey(
     "not done — you are not allowed to do this",
+  ),
+  [AIToolRefusal.ProductOff]: translationKey(
+    "not done — this product is switched off on this server",
   ),
 };
 

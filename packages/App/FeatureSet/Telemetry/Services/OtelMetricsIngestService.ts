@@ -4295,9 +4295,26 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       let liveIdStr: string = clusterIdStr;
       const byKey: Map<string, ProxmoxResourceBufferEntry> | undefined =
         data.resourceBuffer.get(clusterIdStr);
-      const entries: Array<ProxmoxResourceBufferEntry> = byKey
+      /*
+       * What the batch read about each resource, and what only a node's own
+       * scrape said - a guest's start-on-boot flag - for guests it read
+       * nothing else about. The second keeps coming from the nodes still up
+       * while the cluster cannot be read, so it is written as configuration
+       * only: never a row's lastSeenAt, its latest-metric mirror or a count
+       * (issue #7439; ProxmoxResourceBufferEntry.reportsStatus).
+       */
+      const allEntries: Array<ProxmoxResourceBufferEntry> = byKey
         ? Array.from(byKey.values())
         : [];
+      const entries: Array<ProxmoxResourceBufferEntry> = allEntries.filter(
+        (e: ProxmoxResourceBufferEntry): boolean => {
+          return e.reportsStatus;
+        },
+      );
+      const configOnlyEntries: Array<ProxmoxResourceBufferEntry> =
+        allEntries.filter((e: ProxmoxResourceBufferEntry): boolean => {
+          return !e.reportsStatus;
+        });
       const snap: ProxmoxClusterSnapshotBufferEntry | undefined =
         data.clusterBuffer.get(clusterIdStr);
 
@@ -4388,6 +4405,29 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         }
       }
 
+      if (configOnlyEntries.length > 0) {
+        try {
+          await ProxmoxResourceService.bulkUpdateStartOnBoot({
+            projectId: data.projectId,
+            proxmoxClusterId: new ObjectID(liveIdStr),
+            resources: configOnlyEntries.map(
+              (e: ProxmoxResourceBufferEntry) => {
+                return {
+                  kind: e.kind,
+                  externalId: e.externalId,
+                  onboot: e.onboot,
+                  parentNodeName: e.parentNodeName,
+                };
+              },
+            ),
+          });
+        } catch (err) {
+          logger.warn(
+            `Proxmox snapshot writeback (start-on-boot) failed for cluster ${clusterIdStr}: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
+      }
+
       /*
        * Nodes the live siblings reported as not reporting turn Offline —
        * before the recount below, so onlineNodeCount drops in this flush.
@@ -4427,6 +4467,15 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
           );
         }
 
+        /*
+         * THE CLUSTER WAS READ - the one place a Proxmox cluster turns
+         * Connected (issue #7439). Extras come only from what the Proxmox
+         * VE API says about the cluster: its nodes, guests, storage,
+         * version, backup coverage or quorum, or a native push's recount.
+         * A batch the agent sends while it cannot read the API - its own
+         * scrape metrics, the per-node collectors of the nodes still up -
+         * has none, and leaves lastSeenAt to age.
+         */
         if (Object.keys(extras).length > 0) {
           await ProxmoxClusterService.updateLastSeen(
             new ObjectID(liveIdStr),

@@ -124,6 +124,11 @@ const RAW_TRANSPORT_ALLOWLIST: Array<AllowlistEntry> = [
     reason:
       "Reads the docs' public Glossary data (DOCS_URL/glossary/<lang>.json, the docs' glossary route) for the product's term definitions, not the API: the route needs no session, so there is nothing to refresh. A failed read is forgotten and asked again, and the definition still links to the Glossary page.",
   },
+  {
+    file: "Common/UI/Utils/DocsSearch.ts",
+    reason:
+      "Reads the docs' public search (DOCS_URL/search/<lang>.json, the docs' search route) for Search's Documentation group, not the API: the route needs no session, so there is nothing to refresh. A read that fails is no results, so it must never sign the person out or open the Forbidden page, as the API client does on a 401 or a 403, while they type in Search.",
+  },
 ];
 
 function toPackagesPath(filePath: string): string {

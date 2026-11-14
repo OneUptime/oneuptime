@@ -14,6 +14,9 @@ import LIMIT_MAX from "../../Types/Database/LimitMax";
 import PositiveNumber from "../../Types/PositiveNumber";
 import LlmProvider from "../../Models/DatabaseModels/LlmProvider";
 import LlmProviderTestFailure from "../Utils/LLM/LlmProviderTestFailure";
+import LLMProviderExchangeRecorder from "../Utils/LLM/LLMProviderExchangeRecorder";
+import { LLMProviderExchange } from "../../Types/LLM/LLMProviderExchange";
+import BadDataExceptionWithDetails from "../../Types/Exception/BadDataExceptionWithDetails";
 import LLMService, {
   LLMCompletionResponse,
   LLMProviderConfig,
@@ -25,7 +28,7 @@ import LlmType from "../../Types/LLM/LlmType";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Exception from "../../Types/Exception/Exception";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import { JSONObject } from "../../Types/JSON";
+import { JSONArray, JSONObject } from "../../Types/JSON";
 import logger from "../Utils/Logger";
 
 /*
@@ -158,7 +161,38 @@ export default class LlmProviderAPI extends BaseAPI<
               : {}),
           };
 
+          /*
+           * Every request the test sends the provider, and what came back,
+           * secrets masked: the dialog shows them under its verdict, so the
+           * person testing can see the request and the provider's raw answer
+           * (issue #7080).
+           */
+          const exchanges: Array<LLMProviderExchange> = [];
+
           const runTestCompletion: (
+            withTools: boolean,
+          ) => Promise<LLMCompletionResponse> = async (
+            withTools: boolean,
+          ): Promise<LLMCompletionResponse> => {
+            const recorded: {
+              exchanges: Array<LLMProviderExchange>;
+              value?: LLMCompletionResponse;
+              error?: unknown;
+              failed: boolean;
+            } = await LLMProviderExchangeRecorder.record(() => {
+              return sendTestCompletion(withTools);
+            });
+
+            exchanges.push(...recorded.exchanges);
+
+            if (recorded.failed) {
+              throw recorded.error;
+            }
+
+            return recorded.value as LLMCompletionResponse;
+          };
+
+          const sendTestCompletion: (
             withTools: boolean,
           ) => Promise<LLMCompletionResponse> = (
             withTools: boolean,
@@ -254,11 +288,12 @@ export default class LlmProviderAPI extends BaseAPI<
               return Response.sendErrorResponse(
                 req,
                 res,
-                new BadDataException(
+                new BadDataExceptionWithDetails(
                   LlmProviderTestFailure.describe(
                     retryErr,
                     provider.llmType as LlmType,
                   ),
+                  { exchanges: exchanges as unknown as JSONArray },
                 ),
               );
             }
@@ -320,6 +355,7 @@ export default class LlmProviderAPI extends BaseAPI<
             success: true,
             supportsToolCalling: calledTheTestTool,
             message: message,
+            exchanges: exchanges as unknown as JSONArray,
           });
         } catch (err) {
           next(err);

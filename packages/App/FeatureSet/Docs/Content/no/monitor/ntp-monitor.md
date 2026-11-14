@@ -57,7 +57,7 @@ Klikk på **Test monitor**, velg en sonde under **Velg sonde** og klikk på **Kj
 
 ### Gå gjennom kriteriene
 
-**Monitorkriterier** starter med [standardkriteriene](#standardkriterier): frakoblet når serveren ikke leverer pålitelig tid, online når den gjør det. Endre dem ved behov, og klikk på **Neste**.
+**Kriterier** starter med [standardkriteriene](#standardkriterier): frakoblet når serveren ikke leverer pålitelig tid, online når den gjør det. Endre dem ved behov, og klikk på **Neste**.
 
 ### Velg sonder og opprett
 

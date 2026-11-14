@@ -38,7 +38,7 @@ Hver lokations status kommer fra hver enhed i dens undertræ, vurderet efter lok
 
 ## Hierarkiet
 
-Lokationer danner et træ. Hver lokation har en **Site Type** og eventuelt en overordnet lokation. Lokationstyper er projektets egen liste, under **Netværk → Indstillinger → Lokationstyper**, og et nyt projekt starter med Account Type, Region, Franchisee, Market og Unit, i den rækkefølge oppefra, plus Data Center og Other. Typerne danner deres eget hierarki (**Parent Site Type**), som afgør, hvilke lokationer der kan være forælder til en lokation. En type, der er markeret som **Is Unit Level**, er det nederste niveau i dit miljø, den enkelte butik eller filial: dens lokationer rummer enheder, ikke andre lokationer.
+Lokationer danner et træ. Hver lokation har en **Lokationstype** og eventuelt en overordnet lokation. Lokationstyper er projektets egen liste, under **Netværk → Indstillinger → Lokationstyper**, og et nyt projekt starter med Account Type, Region, Franchisee, Market og Unit, i den rækkefølge oppefra, plus Data Center og Other. Typerne danner deres eget hierarki (**Parent Site Type**), som afgør, hvilke lokationer der kan være forælder til en lokation. En type, der er markeret som **Is Unit Level**, er det nederste niveau i dit miljø, den enkelte butik eller filial: dens lokationer rummer enheder, ikke andre lokationer.
 
 En lokations type, navn, beskrivelse, forælder og placering redigeres ét sted: kortet **Site Settings** på lokationens side **Indstillinger**. Lokationens oversigt viser dem med et link **Rediger i Indstillinger**, og listen **Lokationer** tilføjer lokationer, men redigerer dem ikke.
 
@@ -54,7 +54,7 @@ Hver enhed knyttes til én lokation. En lokations undertræ er lokationen selv p
 Gå til **Netværk → Lokationer**, og klik på **Tilføj Lokation**.
 
 ### Sig, hvad lokationen er
-I trinnet **Site Details** vælger du **Site Type** (hvilken slags sted det er: en region, en butik, et datacenter) og skriver et **Navn**. Feltet **Lokationskode**, beskrivelsen, adressen og den bredde- og længdegrad, der placerer lokationen på kortet, er foldet sammen under **Flere felter**: udfyld dem nu eller senere. En lokationskode er en kort kode som et butiks- eller afdelingsnummer (`1216`); [navngivningsregler](/docs/monitor/network-device-monitor#navngiv-enheder-efter-din-navngivningskonvention) sætter den ind i enhedsnavne med `{site.code}`.
+I trinnet **Site Details** vælger du **Lokationstype** (hvilken slags sted det er: en region, en butik, et datacenter) og skriver et **Navn**. Feltet **Lokationskode**, beskrivelsen, adressen og den bredde- og længdegrad, der placerer lokationen på kortet, er foldet sammen under **Flere felter**: udfyld dem nu eller senere. En lokationskode er en kort kode som et butiks- eller afdelingsnummer (`1216`); [navngivningsregler](/docs/monitor/network-device-monitor#navngiv-enheder-efter-din-navngivningskonvention) sætter den ind i enhedsnavne med `{site.code}`.
 
 ### Placér den i træet
 I trinnet **Hierarchy** vælger du **Parent Site**, hvis lokationen ligger under en anden. Lad det være tomt for at holde lokationen på øverste niveau.
@@ -67,7 +67,7 @@ På en lokations egen side **Underordnede lokationer** spørger **Tilføj Undero
 
 ### Importér lokationer fra en CSV-fil
 
-For at hente et helt miljø ind på én gang åbner du menuen øverst på listen **Lokationer** og klikker på **Import from CSV**. Filen skal have en overskriftsrække; kolonnerne kan komme i vilkårlig rækkefølge, og deres navne skelner ikke mellem store og små bogstaver:
+For at hente et helt miljø ind på én gang åbner du menuen øverst på listen **Lokationer** og klikker på **Importér fra CSV**. Filen skal have en overskriftsrække; kolonnerne kan komme i vilkårlig rækkefølge, og deres navne skelner ikke mellem store og små bogstaver:
 
 ```csv title="sites.csv"
 name,siteType,parentName,address,latitude,longitude
@@ -141,6 +141,7 @@ Begge politikker er enige her, og det betyder mere, end det lyder:
 - Enheder, der aldrig har rapporteret noget, stemmer aldrig. En enhed, der venter på sin første polling, er ikke bevis på et nedbrud, så den holdes uden for begge sider af andelen, og en region, der er halvvejs gennem onboarding, vurderes på den halvdel, der har svaret.
 - En sonde-pollet enhed, den normale slags, stemmer med udfaldet af sin seneste polling: tilgængelig via ping eller SNMP, ikke hvor længe siden den sidst lykkedes. En enhed, der svarer på ping, mens dens SNMP-walk fejler, er tilgængelig og stemmer derefter; lokationen siger, at den er oppe, og enhedens række siger **SNMP failing**, så nogen retter loginoplysningerne.
 - En enhed med bundet monitor, en der er skiftet til tilsidesættelsen med bundet monitor på sin side Indstillinger, stemmer med status på den monitor, der er bundet til den, fordi intet poller den. Uden noget bundet har den aldrig rapporteret, så den stemmer slet ikke.
+- En enhed med bundet monitor, hvis monitor ikke kontrolleres, fordi dens overvågning er slået fra, eller den er arkiveret, stemmer heller ikke: den status, monitoren har, er kun det, dens seneste kontrol så. Enheden står som **Afventer**, med **Overvågning slået fra** eller **Overvågning arkiveret** ved siden af, indtil monitorens overvågning slås til igen, eller den fjernes fra arkivet.
 
 En netværksenheds-monitor på en sonde-pollet enhed ændrer ikke, hvordan enheden stemmer. En monitor med et kriterie "interface nede, altså Offline" ville stemple Offline på en switch, der svarer på hvert ping, og én mørk port ville gøre en hel lokation rød, mens hver enhedsrække under den viser Up: lokationen ville være uenig med den liste, den opsummerer. For en pollet enhed er pollingen kilden til dens tilstand; monitoren er der for at oprette hændelser.
 
@@ -185,7 +186,7 @@ Et gennemsnit over børn vægter en butik med to enheder lige så højt som et d
 
 ## Planlagt vedligeholdelse for netværkslokationer
 
-Knyt lokationer til en planlagt vedligeholdelse under **Andre berørte ressourcer**, i hændelsens trin **Berørte ressourcer**, som du ville gøre med en vært. En lokations egen side **Planlagt vedligeholdelse** viser de hændelser, der er knyttet til den, og dens **Opret planlagt vedligeholdelseshændelse** åbner formularen med lokationen allerede valgt.
+Knyt lokationer til en planlagt vedligeholdelse under **Andre berørte ressourcer**, i hændelsens trin **Berørte ressourcer**, som du ville gøre med en vært. En lokations egen side **Planlagt vedligeholdelse** viser de hændelser, der er knyttet til den, og dens **Opret vedligeholdelseshændelse** åbner formularen med lokationen allerede valgt.
 
 Et vindue på en forælder dækker alt under den: et vindue på en region dækker hvert marked og hver enhed i den, inklusive lokationer oprettet efter, at vinduet blev planlagt, så et regionalt skift af operatør ikke behøver at opremse fire hundrede butikker.
 
@@ -214,6 +215,8 @@ Kortet **Alerting** på en lokations side **Indstillinger** har **Alert When Unh
 
 Den advarer kun om ændringen: at slå den til for en lokation, der allerede er usund, gør klar til den næste ændring i stedet for at advare om fortiden. Degraded er ikke driftsklar, så en lokation på procentpolitikken advarer, så snart en af dens rapporterende enheder er nede, ligesom en lokation på politikken for værste status; advarslen forbliver åben, uden en ekstra, mens lokationen skifter mellem Degraded og Offline, og dens titel nævner den status, lokationen nåede først.
 
+Når intet på en lokation længere rapporterer en status, fordi monitorerne bag dens enheder har overvågningen slået fra, er arkiveret eller er slettet, går lokationen tilbage til ingen status i stedet for at beholde den sidste, og dens åbne advarsel løses med den grund som årsag. En enhed, der igen rapporterer et problem, åbner en ny advarsel.
+
 ## Fejlfinding
 
 :::details En region er altid rød
@@ -225,7 +228,11 @@ Der har aldrig kørt en opsummering for lokationen, så den har ingen tidslinjer
 :::
 
 :::details En enhed tæller ikke med i sin lokation
-Arkiverede enheder, og enheder, der endnu ikke har rapporteret, stemmer aldrig. En enhed med bundet monitor uden nogen monitor bundet har heller aldrig rapporteret. Tjek enhedens status: en enhed, der står som **Afventer**, begynder at stemme efter sin første polling.
+Arkiverede enheder, og enheder, der endnu ikke har rapporteret, stemmer aldrig. En enhed med bundet monitor uden nogen monitor bundet har heller aldrig rapporteret. Tjek enhedens status: en enhed, der står som **Afventer**, begynder at stemme efter sin første polling. En enhed med **Overvågning slået fra** eller **Overvågning arkiveret** ved siden af stemmer igen, så snart dens monitors overvågning slås til igen, eller monitoren fjernes fra arkivet.
+:::
+
+:::details En lokation har ikke længere en status
+Intet på lokationen rapporterer en status: monitorerne bag dens enheder har overvågningen slået fra, er arkiveret eller er slettet, så lokationens sidste status er fjernet og dens advarsel løst. Slå overvågningen til igen for de monitorer, eller fjern dem fra arkivet, så beregnes lokationens status igen ud fra dens enheder.
 :::
 
 :::details En lokations advarsel blev ikke udløst

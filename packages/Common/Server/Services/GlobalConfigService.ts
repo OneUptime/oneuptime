@@ -18,6 +18,9 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import BadDataException from "../../Types/Exception/BadDataException";
+import AmazonSesAuthenticationType, {
+  isAmazonSesAuthenticationType,
+} from "../../Types/Email/AmazonSesAuthenticationType";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import TelegramVerificationToken from "../Utils/TelegramVerificationToken";
@@ -198,6 +201,18 @@ export const ROOT_ONLY_SERVER_SETUP_COLUMNS: ReadonlyArray<keyof Model> = [
   "serverSetupChoices",
 ];
 
+/*
+ * The products switched off for every project (Types/Product/
+ * ServerProducts), written only through Admin Dashboard > Settings >
+ * Products' own route (ServerProducts), which keeps the list to products a
+ * server may switch off and records who changed it. Through the CRUD API a
+ * master admin could switch off Project Settings, or change it in someone
+ * else's name.
+ */
+export const ROOT_ONLY_SERVER_PRODUCTS_COLUMNS: ReadonlyArray<keyof Model> = [
+  "serverProducts",
+];
+
 const TELEGRAM_WEBHOOK_SECRET_CACHE_NAMESPACE: string =
   "global-config-security";
 const TELEGRAM_WEBHOOK_SECRET_GENERATION_KEY: string =
@@ -371,6 +386,40 @@ export class Service extends DatabaseService<Model> {
       allowZero: false,
     });
     TelemetryIngestionBudgetValidation.applyInstanceSettingRules(data);
+  }
+
+  /*
+   * How the server signs in to Amazon SES (#7000): an access key, the
+   * server's own IAM role, or nothing written (an access key, as before).
+   * Anything else is refused with what it may be. Signing in with the IAM
+   * role stores no key, so the access key it signed in with before is
+   * cleared in the same write: a key nothing uses any more is only one more
+   * to leak.
+   */
+  public static applyAmazonSesAuthenticationRules(
+    data: Record<string, unknown>,
+  ): void {
+    const value: unknown = data["amazonSesAuthenticationType"];
+
+    if (value === undefined || value === null) {
+      return;
+    }
+
+    if (value === "") {
+      data["amazonSesAuthenticationType"] = null;
+      return;
+    }
+
+    if (!isAmazonSesAuthenticationType(value)) {
+      throw new BadDataException(
+        `Amazon SES's Authentication Type must be "${AmazonSesAuthenticationType.AccessKey}" or "${AmazonSesAuthenticationType.ServerIamRole}".`,
+      );
+    }
+
+    if (value === AmazonSesAuthenticationType.ServerIamRole) {
+      data["amazonSesAccessKeyId"] = null;
+      data["amazonSesSecretAccessKey"] = null;
+    }
   }
 
   /*
@@ -807,6 +856,52 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * Refuses a write of the server's products by anyone but OneUptime itself
+   * (ROOT_ONLY_SERVER_PRODUCTS_COLUMNS): they are switched on Admin
+   * Dashboard > Settings > Products, which says who switched them.
+   */
+  public assertServerProductsWrittenByRootOnly(
+    data: unknown,
+    props: DatabaseCommonInteractionProps,
+  ): void {
+    if (props.isRoot) {
+      return;
+    }
+
+    const isWritten: boolean = ROOT_ONLY_SERVER_PRODUCTS_COLUMNS.some(
+      (column: keyof Model): boolean => {
+        return (
+          (data as Record<string, unknown> | undefined)?.[column as string] !==
+          undefined
+        );
+      },
+    );
+
+    if (!isWritten) {
+      return;
+    }
+
+    throw new NotAuthorizedException(
+      "The products switched off on this server are changed on Admin Dashboard > Settings > Products, and cannot be written here.",
+    );
+  }
+
+  /*
+   * Writes the products switched off for every project: one statement, no
+   * hooks. The caller (ServerProducts) forgets its copy afterwards.
+   */
+  public async writeServerProducts(settings: JSONObject): Promise<void> {
+    const data: PartialEntity<Model> = {};
+
+    (data as Record<string, unknown>)["serverProducts"] = settings;
+
+    await this.updateColumnsByIdWithoutHooks({
+      id: ObjectID.getZeroObjectID(),
+      data: data,
+    });
+  }
+
+  /*
    * Writes what admins chose on the setup checklist: one statement, no
    * hooks, updatedAt kept - a choice on a checklist, not a change of the
    * server's settings.
@@ -1188,11 +1283,15 @@ export class Service extends DatabaseService<Model> {
       createBy.data,
       createBy.props,
     );
+    this.assertServerProductsWrittenByRootOnly(createBy.data, createBy.props);
     this.assertTwilioSmsNumbersAreValid(createBy.data);
     this.assertTwilioUseIsValid(createBy.data);
     this.assertCallAndSmsProviderIsValid(createBy.data);
     Service.assertSessionLengthsAreValid(createBy.data);
     Service.applyTelemetryIngestionBudgetRules(
+      createBy.data as unknown as Record<string, unknown>,
+    );
+    Service.applyAmazonSesAuthenticationRules(
       createBy.data as unknown as Record<string, unknown>,
     );
     await this.prepareCallAndSmsGatewayForCreate(createBy);
@@ -1218,12 +1317,16 @@ export class Service extends DatabaseService<Model> {
       updateBy.data,
       updateBy.props,
     );
+    this.assertServerProductsWrittenByRootOnly(updateBy.data, updateBy.props);
     this.assertTwilioSmsNumbersAreValid(updateBy.data);
     this.assertTwilioUseIsValid(updateBy.data);
     await this.assertTwilioNumbersKeptForUse(updateBy);
     this.assertCallAndSmsProviderIsValid(updateBy.data);
     Service.assertSessionLengthsAreValid(updateBy.data);
     Service.applyTelemetryIngestionBudgetRules(
+      updateBy.data as unknown as Record<string, unknown>,
+    );
+    Service.applyAmazonSesAuthenticationRules(
       updateBy.data as unknown as Record<string, unknown>,
     );
     await this.prepareCallAndSmsGateway(updateBy);

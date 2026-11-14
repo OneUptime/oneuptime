@@ -351,8 +351,8 @@ export default class SlackScheduledMaintenanceActions {
       const confirmation: WorkspacePayloadMarkdown = {
         _type: "WorkspacePayloadMarkdown",
         text: (eventName
-          ? mdText`**Scheduled Event ${eventName}** created successfully. [View Event](${eventLink})`
-          : mdText`Scheduled event created successfully. [View Event](${eventLink})`
+          ? mdText`**Maintenance Event ${eventName}** created successfully. [View Event](${eventLink})`
+          : mdText`Maintenance event created successfully. [View Event](${eventLink})`
         ).toString(),
       };
 
@@ -383,8 +383,8 @@ export default class SlackScheduledMaintenanceActions {
             place: place,
             messageBlocks: [confirmation],
             text: eventName
-              ? `Scheduled Event ${eventName} created successfully.`
-              : "Scheduled event created successfully.",
+              ? `Maintenance Event ${eventName} created successfully.`
+              : "Maintenance event created successfully.",
           });
         }
       }
@@ -594,7 +594,7 @@ export default class SlackScheduledMaintenanceActions {
 
     const modalBlock: WorkspaceModalBlock = {
       _type: "WorkspaceModalBlock",
-      title: "New Scheduled Event",
+      title: "New Maintenance Event",
       submitButtonTitle: "Submit",
       cancelButtonTitle: "Cancel",
       actionId: SlackActionType.SubmitNewScheduledMaintenance,
@@ -1011,7 +1011,7 @@ export default class SlackScheduledMaintenanceActions {
 
     const modalBlock: WorkspaceModalBlock = {
       _type: "WorkspaceModalBlock",
-      title: "Change Event State",
+      title: "Change Maintenance State",
       submitButtonTitle: "Submit",
       cancelButtonTitle: "Cancel",
       actionId: SlackActionType.SubmitChangeScheduledMaintenanceState,

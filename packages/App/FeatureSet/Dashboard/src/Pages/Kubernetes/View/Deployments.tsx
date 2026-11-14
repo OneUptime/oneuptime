@@ -107,6 +107,7 @@ const KubernetesClusterDeployments: FunctionComponent<
           title: "Ready",
           key: "ready",
           description: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.deploymentReady,
+          isCount: true,
         },
       ]}
       getViewRoute={(resource: KubernetesResource): Route => {

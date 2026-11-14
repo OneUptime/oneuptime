@@ -24,9 +24,9 @@ Test" workflow provides both:
   installs the release binary at the `GOMPLATE_VERSION` that
   `Scripts/Install/configure.sh` pins.
 - **helm.** `KubernetesAgentOpenShiftAdmission.test.js` renders the
-  `kubernetes-agent` chart. Without helm on PATH its renders are skipped with
-  the reason logged, except when `CI` is set: then they fail. GitHub's runners
-  have helm.
+  `kubernetes-agent` chart, and `HelmEnvValuesQuoted.test.js` the `oneuptime`
+  chart. Without helm on PATH their renders are skipped with the reason
+  logged, except when `CI` is set: then they fail. GitHub's runners have helm.
 - **git.** `HomeBlogClone.test.js` runs `packages/Home/Scripts/CloneBlog.sh`,
   the Home image's blog clone, with the real git against git's own
   `http-backend` on 127.0.0.1 - a server that stalls a pack part-way, never
@@ -1189,6 +1189,32 @@ pod template out of the render, and holds it to what OpenShift's SCCs say:
 
 It needs `helm`: without it the renders are skipped with the reason logged,
 except when `CI` is set, when they fail. GitHub's runners have it.
+
+### `HelmEnvValuesQuoted.test.js`
+
+An env value a chart template writes unquoted (`value: {{ $.Values.x }}`) is
+read by YAML's rules for a plain scalar, and the charts' settings are often
+credentials and free text: `: ` fails the render, ` #` starts a comment that
+silently drops the rest of the value, a leading `*`, `&` or `!` is an alias,
+anchor or tag, and `123456`, `yes` or `0x1F` become a number or a boolean
+Kubernetes refuses. #7163 found it in the telemetry exporter's headers. This
+holds both charts to writing every such value as a quoted string:
+
+- the source: in every template under `HelmChart/`, an env value written as
+  one template action goes through the `oneuptime.envValue` helper or ends its
+  pipeline in `quote` (or `squote`, which the charts keep for numbers and
+  switches); a value built from several pieces, such as a Service's DNS
+  name, is left alone. The helper also leaves the whitespace around a value
+  out, as YAML always did, so a secret read from a file with its final newline
+  stays the secret the pods had;
+- the render: the `oneuptime` chart with every workload on, in the built-in and
+  the external database layouts, with each credential and free-text setting
+  it hands its pods set to a value full of YAML syntax and to number, boolean
+  and null lookalikes; every env entry that carries one holds it exactly, and
+  the exporter's headers reach every workload that sends OneUptime's own
+  telemetry (a workload added or dropped fails it).
+
+The render needs `helm`, as the OpenShift admission check above does.
 
 ### `KubernetesAiAgentRelease.test.js`
 

@@ -249,7 +249,7 @@ describe("Profiler → AI → Insights", () => {
       document.querySelectorAll("a[title]"),
     ).find((element: Element): boolean => {
       return (element.getAttribute("title") || "").startsWith(
-        "Open in Profiler",
+        "Open in Profiles",
       );
     }) as HTMLElement | undefined;
 

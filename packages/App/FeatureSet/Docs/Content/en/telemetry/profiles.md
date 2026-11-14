@@ -1,4 +1,4 @@
-# Continuous Profiling
+# Profiles
 
 Continuous profiling shows how your application spends CPU time and memory, function by function. OneUptime exposes a **Pyroscope-compatible ingest API**, so anything that can push to a Pyroscope server — the Grafana Alloy eBPF profiler or a Pyroscope language SDK — can push to OneUptime, and you read the result as flame graphs next to your logs, metrics and traces.
 
@@ -6,12 +6,12 @@ Continuous profiling shows how your application spends CPU time and memory, func
 - [Send profiles](#send-profiles): Grafana Alloy with eBPF, or a Pyroscope SDK in your app.
 - [Ingest endpoint](#ingest-endpoint): The base URL and the three ways to pass the key.
 - [Verify it is working](#verify-it-is-working): Check the key, the page and the upload status.
-- [Explore profiles](#explore-profiles-in-oneuptime): The Profiler: where the time goes, what changed, and Fix with AI.
+- [Explore profiles](#explore-profiles-in-oneuptime): Profiles: where the time goes, what changed, and Fix with AI.
 :::
 
 ## How it works
 
-A profiler samples your processes and uploads a profile every few seconds to OneUptime's `/pyroscope` endpoint, with your ingestion key. OneUptime stores each profile under the service it names and draws it as a flame graph under **Performance Profiles**.
+A profiler samples your processes and uploads a profile every few seconds to OneUptime's `/pyroscope` endpoint, with your ingestion key. OneUptime stores each profile under the service it names and draws it as a flame graph under **Profiles**.
 
 ```mermaid title="How profiles reach OneUptime"
 flowchart TB
@@ -22,7 +22,7 @@ flowchart TB
     end
     alloy -->|"push API"| endpoint["OneUptime /pyroscope"]
     sdk -->|"ingest or push API"| endpoint
-    endpoint --> profiles["Performance Profiles"]
+    endpoint --> profiles["Profiles"]
     profiles -.->|"trace and span IDs"| traces["Linked traces"]
 ```
 
@@ -35,7 +35,7 @@ You need a **Server** telemetry ingestion key. If you do not have one yet:
 
 Go to **Products → Project Settings**, open **Telemetry & APM** in the side menu and select **Ingestion Keys**.
 
-![The Telemetry Ingestion Keys page in Project Settings](/docs/static/images/TelemetryIngestionKeys.png)
+![The Ingestion Keys page in Project Settings](/docs/static/images/TelemetryIngestionKeys.png)
 
 ### Create a key
 
@@ -270,7 +270,7 @@ A valid token returns `200` with `{"valid": true, ...}`, and its `keyType` must 
 
 ### Open the Profiles page
 
-In the OneUptime Dashboard go to **Products → Performance Profiles**. With Alloy's 15-second collect interval (or the SDKs' 10- to 15-second upload interval), the first profiles and their flame graphs appear within a minute or two of the agent starting.
+In the OneUptime Dashboard go to **Products → Profiles**. With Alloy's 15-second collect interval (or the SDKs' 10- to 15-second upload interval), the first profiles and their flame graphs appear within a minute or two of the agent starting.
 
 ### Check the service
 
@@ -283,7 +283,7 @@ For the .NET profiler, set `DD_TRACE_DEBUG=1` on the application for a minute: i
 
 ## Explore profiles in OneUptime
 
-**Products → Performance Profiles** opens the Profiler on its **Overview**. It answers in words before any chart: where the time goes ("JSON.parse takes 42% of the CPU time in checkout") and, when the busiest function is a library's or the runtime's, the function of your own code that takes the most, with the library and runtime code it calls. At the top, pick a service, a kind of profile it has data for (**CPU time**, **Wall time**, **Memory**, **Allocations**, **Locks** or **Goroutines**, or one type under **More profile types**) and a window.
+**Products → Profiles** opens on its **Overview**. It answers in words before any chart: where the time goes ("JSON.parse takes 42% of the CPU time in checkout") and, when the busiest function is a library's or the runtime's, the function of your own code that takes the most, with the library and runtime code it calls. At the top, pick a service, a kind of profile it has data for (**CPU time**, **Wall time**, **Memory**, **Allocations**, **Locks** or **Goroutines**, or one type under **More profile types**) and a window.
 
 | Card | What it shows |
 | --- | --- |
@@ -319,7 +319,7 @@ When a profile carries trace and span IDs (for example as `trace_id` / `span_id`
 
 A span's **Profile samples** tab also includes the samples linked to the spans nested under it, since profilers often attach a request's CPU time to a child span rather than to the request span itself.
 
-A trace's page also links to the Profiler on the trace's service for the 15 minutes either side of it, when that service was profiled then, and a service's or a host's **Performance Profiles** page opens the Profiler on that service or host.
+A trace's page also links to Profiles on the trace's service for the 15 minutes either side of it, when that service was profiled then, and a service's or a host's **Profiles** page opens Profiles on that service or host.
 
 ## Find and fix slow code with AI
 
@@ -332,7 +332,7 @@ A function of your own code is filed when its service sent at least 500 samples 
 
 ### Turn it on
 
-**Products → Performance Profiles → AI → Settings** holds the switch **Find and fix slow code**, on for new projects. With **Enable AI** off, slow code is still found, but OneUptime AI does nothing with it. To open pull requests, OneUptime AI needs a repository connected in [Code](/docs/ai/ai-agent): the page says what is missing first. Each repository's code is changed on the Runner the repository picks in Code.
+**Products → Profiles → AI → Settings** holds the switch **Find and fix slow code**, on for new projects. With **Enable AI** off, slow code is still found, but OneUptime AI does nothing with it. To open pull requests, OneUptime AI needs a repository connected in [Code](/docs/ai/ai-agent): the page says what is missing first. Each repository's code is changed on the Runner the repository picks in Code.
 
 OneUptime AI opens at most 5 pull requests on its own each day (UTC), one for each finding, and never more than a repository's limit on open AI pull requests.
 
@@ -350,8 +350,8 @@ Under **More fields** a rule picks the code repositories, the MCP servers and th
 
 ### See what it did
 
-- **Products → Performance Profiles → AI → Insights** lists the slow code found, each finding with its evidence and **Open in Profiler**.
-- **Products → Performance Profiles → AI → Logs** lists every investigation and pull request, newest first, with how each one stands and what each investigation found.
+- **Products → Profiles → AI → Insights** lists the slow code found, each finding with its evidence and **Open in Profiles**.
+- **Products → Profiles → AI → Logs** lists every investigation and pull request, newest first, with how each one stands and what each investigation found.
 - In Code, the task says OneUptime started it, with a link to its finding, and the pull request says why it was opened.
 
 ## Data Retention

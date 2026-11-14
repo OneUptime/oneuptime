@@ -15,6 +15,7 @@ import CallService from "./CallService";
 import DataMigrationService from "./DataMigrationService";
 import MigrationFailureService from "./MigrationFailureService";
 import InstanceHealthLogService from "./InstanceHealthLogService";
+import ProductFeedbackService from "./ProductFeedbackService";
 import InstanceReceivingPeriodService from "./InstanceReceivingPeriodService";
 import InstanceTokenSigningKeyService from "./InstanceTokenSigningKeyService";
 import DomainService from "./DomainService";
@@ -645,6 +646,7 @@ const services: Array<BaseService> = [
   DataMigrationService,
   MigrationFailureService,
   InstanceHealthLogService,
+  ProductFeedbackService,
   InstanceReceivingPeriodService,
   InstanceTokenSigningKeyService,
   DomainService,

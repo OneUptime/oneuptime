@@ -6,12 +6,16 @@ import {
 } from "Common/Types/OpenStack/OpenStackOverview";
 import BreakableName from "Common/UI/Components/BreakableName/BreakableName";
 import Card from "Common/UI/Components/Card/Card";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import React, { FunctionComponent, ReactElement } from "react";
 import ResourcePartReadError from "../ResourcePart/ResourcePartReadError";
 import ResourcePartRow from "../ResourcePart/ResourcePartRow";
-import { formatBytes } from "../TelemetryResource/telemetryFormat";
+import {
+  formatOpenStackBytes,
+  formatOpenStackPercent,
+} from "../../Pages/OpenStack/Utils/OpenStackFigures";
 import {
   OpenStackBusyHypervisor,
   getOpenStackMostAllocatedHypervisors,
@@ -24,6 +28,10 @@ import {
  * numbers are last known, so it is not ranked here, and a list with nothing to rank says
  * nothing.
  */
+
+// A row's figure: never squeezed by a long name beside it, its digits all one width.
+export const OPENSTACK_TOP_CONSUMER_VALUE_CLASS_NAME: string =
+  "flex-none text-sm font-medium tabular-nums text-gray-700";
 
 // How many a list shows. The server reads no more than this for a project's.
 export const OPENSTACK_TOP_CONSUMERS_SHOWN: number = 5;
@@ -101,7 +109,9 @@ const OpenStackTopConsumersCard: FunctionComponent<ComponentProps> = (
       return {
         key: one.row.externalId || one.row.name || "",
         name: one.row.name || one.row.externalId || "",
-        value: `${translator.formatNumber(Math.round(one.percent))}%`,
+        value: formatOpenStackPercent(one.percent, {
+          language: translator.language,
+        }),
         to: props.getHypervisorRoute(one.row),
       };
     });
@@ -124,7 +134,9 @@ const OpenStackTopConsumersCard: FunctionComponent<ComponentProps> = (
       rows: toProjectRows(
         props.consumers?.projectsByVolumeBytes,
         (value: number): string => {
-          return formatBytes(value);
+          return formatOpenStackBytes(value, {
+            language: translator.language,
+          });
         },
       ),
     },
@@ -164,7 +176,7 @@ const OpenStackTopConsumersCard: FunctionComponent<ComponentProps> = (
         title="Top consumers"
         description="Who holds the most of this cloud, as Nova and Cinder report it: what is promised, not how busy it is."
       >
-        <div className="grid grid-cols-1 gap-4 px-5 pb-5 pt-1 md:px-6 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {lists.map((list: ConsumerList): ReactElement => {
             return (
               <div
@@ -192,9 +204,17 @@ const OpenStackTopConsumersCard: FunctionComponent<ComponentProps> = (
                               <BreakableName text={row.name} />
                             </bdi>
                           </span>
-                          <span className="flex-none text-sm font-medium tabular-nums text-gray-700">
-                            {row.value}
-                          </span>
+                          {/*
+                           * A figure reads its own way: a size keeps its
+                           * number before its unit on a page read from the
+                           * right ("۶٫۰ TiB", not "TiB ۶٫۰"), in the
+                           * reader's digits (issue #7191).
+                           */}
+                          <IsolatedText
+                            text={row.value}
+                            className={OPENSTACK_TOP_CONSUMER_VALUE_CLASS_NAME}
+                            dataTestId="openstack-top-consumers-value"
+                          />
                         </ResourcePartRow>
                       </li>
                     );

@@ -37,7 +37,7 @@ flowchart TB
 Modellen `ScheduledMaintenanceState` har `name`, `description`, `color` og `order` samt fire flag: `isScheduledState`, `isOngoingState`, `isEndedState` og `isResolvedState`. OneUptime læser flagene og rækkefølgen, aldrig navnet, så du kan omdøbe **Fuldført** til "Godkendt", uden at noget går i stykker.
 
 > [!TIP]
-> Listen findes under **Planlagt vedligeholdelse → Indstillinger → Begivenhedsstatus**. **Indstillinger** starter foldet sammen i sidemenuen: fold den ud først.
+> Listen findes under **Planlagt vedligeholdelse → Indstillinger → Vedligeholdelsesstatus**. **Indstillinger** starter foldet sammen i sidemenuen: fold den ud først.
 
 ## Standardtilstandene
 
@@ -74,7 +74,7 @@ En begivenhed starter, når den går fra en tilstand, hvor den venter, til **Iga
 
 - **Dens monitorer holder op med at blive kontrolleret** og skifter til dens **Skift overvågningsstatus til**, hvis den har en. En monitor, du føjer til begivenheden, mens den står på, skifter også.
 - **Dens statussider viser den som igangværende**, og dens abonnenter får besked: til tiden, hvis **Når begivenheden starter** er slået til, og manuelt, som **Underret statussideabonnenter** i dialogen siger.
-- **Dens ejere får besked**, hvis de har slået notifikationen om tilstandsskift til, og begivenheden vises under **Igangværende hændelser**.
+- **Dens ejere får besked**, hvis de har slået notifikationen om tilstandsskift til, og begivenheden vises under **Igangværende vedligeholdelseshændelser**.
 
 En begivenhed slutter, når den går fra en tilstand, hvor den står på, til **Afsluttet**, **Fuldført** eller en af dine egne tilstande efter **Afsluttet**. Så kontrolleres dens monitorer igen og vender tilbage til "operationel", medmindre en anden igangværende begivenhed stadig holder dem, og dens abonnenter får besked på samme måde: til tiden, hvis **Når begivenheden slutter** er slået til, og manuelt, som dialogen siger.
 
@@ -106,7 +106,7 @@ En tilstand, du tilføjer, er et trin, dit team gennemgår, og som de fire stand
 :::steps
 ### Åbn tilstandslisten
 
-Gå til **Planlagt vedligeholdelse → Indstillinger → Begivenhedsstatus**. Kortet **Tilstande for planlagt vedligeholdelse** viser dine tilstande i deres rækkefølge. Hver række viser sin farve og sit navn, hvad en begivenhed i den tæller som (kolonnen **Tæller som**) og sin beskrivelse.
+Gå til **Planlagt vedligeholdelse → Indstillinger → Vedligeholdelsesstatus**. Kortet **Tilstande for planlagt vedligeholdelse** viser dine tilstande i deres rækkefølge. Hver række viser sin farve og sit navn, hvad en begivenhed i den tæller som (kolonnen **Tæller som**) og sin beskrivelse.
 
 ### Opret tilstanden
 

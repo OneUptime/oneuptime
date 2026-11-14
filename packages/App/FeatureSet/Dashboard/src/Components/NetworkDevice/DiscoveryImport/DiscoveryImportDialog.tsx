@@ -86,6 +86,7 @@ import useNamingPreview, {
 } from "../Naming/useNamingPreview";
 import NamingPreviewSummary from "../Naming/NamingPreviewSummary";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
+import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * IMPORTING A DISCOVERY SCAN'S HOSTS (Network > Discovery > Review Results).
@@ -1055,10 +1056,12 @@ const DiscoveryImportDialog: FunctionComponent<DiscoveryImportDialogProps> = (
             {polling.error && (
               <Alert
                 type={AlertType.WARNING}
-                title={translator.translateTemplate(
-                  "Showing the last progress received. Retrying: {{error}}",
-                  { error: polling.error },
-                )}
+                title={
+                  <ErrorSentence
+                    template="Showing the last progress received. Retrying: {{error}}"
+                    error={polling.error}
+                  />
+                }
                 dataTestId="discovery-import-poll-error"
               />
             )}

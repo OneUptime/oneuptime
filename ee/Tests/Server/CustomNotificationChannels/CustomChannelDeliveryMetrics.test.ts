@@ -82,6 +82,8 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import UserNotificationStatus from "Common/Types/UserNotification/UserNotificationStatus";
+import OnCallTimelineRows from "Common/Tests/Server/TestingUtils/OnCallTimelineRows";
 import API from "Common/Utils/API";
 import {
   installFakeEnterpriseModule,
@@ -159,9 +161,10 @@ beforeEach(() => {
   ssrf = jest
     .spyOn(SSRFProtection, "validateWebhookTargetIsSafe")
     .mockResolvedValue(undefined as never);
-  jest
-    .spyOn(UserOnCallLogTimelineService, "updateOneById")
-    .mockResolvedValue(undefined as never);
+  // The notification's on-call log row, written over Sending only.
+  const timeline: OnCallTimelineRows = new OnCallTimelineRows();
+  timeline.add(TIMELINE_ID, UserNotificationStatus.Sending);
+  timeline.standIn(UserOnCallLogTimelineService);
   jest.spyOn(SignedWebhookPost, "sleep").mockResolvedValue(undefined);
 });
 

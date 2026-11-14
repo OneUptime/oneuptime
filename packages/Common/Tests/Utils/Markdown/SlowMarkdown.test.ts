@@ -35,6 +35,7 @@ const NO_LIMITS: SlowMarkdownLimits = {
   holdBackCodeBlockContent: false,
   countUrlLiterals: false,
   countWordUnderscores: false,
+  countAsMarked: false,
 };
 
 interface Recorded {
@@ -526,6 +527,7 @@ describe("holdBackSlowMarkdown - what is held back comes back as it was written"
         holdBackCodeBlockContent: next() < 0.5,
         countUrlLiterals: next() < 0.5,
         countWordUnderscores: next() < 0.5,
+        countAsMarked: next() < 0.5,
       });
 
       if (recorded.lines.length + recorded.code.length > 0) {

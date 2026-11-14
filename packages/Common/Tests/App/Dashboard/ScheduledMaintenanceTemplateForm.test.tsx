@@ -310,7 +310,7 @@ describe("Create Scheduled Maintenance Template", () => {
 
     expect(stepTitles()).toEqual([
       "Template Info",
-      "Event",
+      "Maintenance Details",
       "Resources Affected",
       "Recurring",
     ]);
@@ -320,7 +320,7 @@ describe("Create Scheduled Maintenance Template", () => {
     renderTemplateForm();
     await screen.findByRole("navigation", { name: "Progress" });
     await fillTemplateInfo();
-    await goToNextStep("Event");
+    await goToNextStep("Maintenance Details");
 
     expect(labelText("Title")).not.toContain("(Optional)");
     expect(labelText("Description")).toContain("(Optional)");
@@ -330,7 +330,7 @@ describe("Create Scheduled Maintenance Template", () => {
     renderTemplateForm();
     await screen.findByRole("navigation", { name: "Progress" });
     await fillTemplateInfo();
-    await goToNextStep("Event");
+    await goToNextStep("Maintenance Details");
 
     fireEvent.change(labelledControl("Title"), {
       target: { value: "Database maintenance" },
@@ -378,7 +378,7 @@ describe("Create Scheduled Maintenance Template", () => {
     renderTemplateForm();
     await screen.findByRole("navigation", { name: "Progress" });
     await fillTemplateInfo();
-    await goToNextStep("Event");
+    await goToNextStep("Maintenance Details");
     fireEvent.change(labelledControl("Title"), {
       target: { value: "Database maintenance" },
     });
@@ -446,7 +446,7 @@ describe("Create Scheduled Maintenance Template", () => {
     renderTemplateForm();
     await screen.findByRole("navigation", { name: "Progress" });
     await fillTemplateInfo();
-    await goToNextStep("Event");
+    await goToNextStep("Maintenance Details");
     fireEvent.change(labelledControl("Title"), {
       target: { value: "Database maintenance" },
     });
@@ -468,7 +468,7 @@ describe("Create Scheduled Maintenance Template", () => {
     renderTemplateForm();
     await screen.findByRole("navigation", { name: "Progress" });
     await fillTemplateInfo();
-    await goToNextStep("Event");
+    await goToNextStep("Maintenance Details");
     fireEvent.change(labelledControl("Title"), {
       target: { value: "Database maintenance" },
     });
@@ -513,7 +513,7 @@ describe("Create Scheduled Maintenance Template", () => {
     renderTemplateForm();
     await screen.findByRole("navigation", { name: "Progress" });
     await fillTemplateInfo();
-    await goToNextStep("Event");
+    await goToNextStep("Maintenance Details");
     fireEvent.change(labelledControl("Title"), {
       target: { value: "Database maintenance" },
     });

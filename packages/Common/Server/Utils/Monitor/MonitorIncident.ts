@@ -41,7 +41,9 @@ import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import MonitorEvaluationDetailsCapture, {
   GetEvaluationDetails,
 } from "./MonitorEvaluationDetailsCapture";
-import SeriesContextEnricher from "./SeriesContextEnricher";
+import MonitorRecordText, {
+  MonitorRecordTextResult,
+} from "./MonitorRecordText";
 import MonitorDependencySuppression, {
   DependencySuppressionResult,
 } from "./MonitorDependencySuppression";
@@ -68,6 +70,10 @@ import SeriesResourceLinker, {
   SeriesResolvedResourceIds,
 } from "./SeriesResourceLinker";
 import IncidentRoleFeedText from "../Incident/IncidentRoleFeedText";
+import CreatedNotificationHold, {
+  OwnersAddedBy,
+} from "../Notification/CreatedNotificationHold";
+import CreateBy from "../../Types/Database/CreateBy";
 
 export default class MonitorIncident {
   @CaptureSpan()
@@ -830,41 +836,24 @@ export default class MonitorIncident {
               seriesLabels,
             });
 
-          // A title is one bounded line; see buildTitleStorageMap.
-          const titleStorageMap: JSONObject =
-            MonitorTemplateUtil.buildTitleStorageMap({
-              monitorType: input.monitor.monitorType!,
-              storageMap,
-            });
-
           /*
            * Render the criteria's template, then make it say WHICH
-           * series it is about. Mirrors MonitorAlert exactly - the two
-           * must agree, or the same breach reads differently depending
-           * on whether the criteria was configured to raise an alert or
-           * an incident. See SeriesContextEnricher for why this is not
-           * done inside the template itself.
+           * series it is about (MonitorRecordText). MonitorAlert renders
+           * there too - the two must agree, or the same breach reads
+           * differently depending on whether the criteria was configured
+           * to raise an alert or an incident. See SeriesContextEnricher
+           * for why this is not done inside the template itself.
            */
-          incident.title = SeriesContextEnricher.enrichTitle({
-            title: MonitorTemplateUtil.processTemplateString({
-              value: criteriaIncident.title,
-              storageMap: titleStorageMap,
-            }),
+          const text: MonitorRecordTextResult = MonitorRecordText.render({
+            titleTemplate: criteriaIncident.title,
+            descriptionTemplate: criteriaIncident.description,
+            monitorType: input.monitor.monitorType!,
+            storageMap,
             seriesLabels,
           });
-          /*
-           * The description and remediation notes are Markdown: what the
-           * monitored system sent goes into them as text
-           * (processMarkdownTemplateString).
-           */
-          incident.description = SeriesContextEnricher.enrichDescription({
-            description: MonitorTemplateUtil.processMarkdownTemplateString({
-              value: criteriaIncident.description,
-              storageMap,
-            }),
-            seriesLabels,
-            monitorType: input.monitor.monitorType,
-          });
+
+          incident.title = text.title;
+          incident.description = text.description;
 
           /*
            * Resolve the incident severity. `criteriaIncident.incidentSeverityId`
@@ -1161,77 +1150,96 @@ export default class MonitorIncident {
           }
 
           /*
-           * Its pages start when OneUptime received the data that tripped
-           * the monitor, when it knows it (OnCallPageTiming).
+           * Its owners are added below, once it exists - the rules on an
+           * OpenStack project's, the criteria's and the network device's -
+           * and its owners' "Incident Created" notification waits for them
+           * (CreatedNotificationHold): until they are in, or adding them
+           * failed.
            */
-          const createdIncident: Incident =
-            await OnCallPageTiming.runAsMonitorTriggered(
+          const createBy: CreateBy<Incident> = {
+            data: incident,
+            props: {
+              isRoot: true,
+            },
+          };
+
+          CreatedNotificationHold.willAddOwners(createBy, OwnersAddedBy.Caller);
+
+          let createdIncident: Incident;
+
+          try {
+            /*
+             * Its pages start when OneUptime received the data that tripped
+             * the monitor, when it knows it (OnCallPageTiming).
+             */
+            createdIncident = await OnCallPageTiming.runAsMonitorTriggered(
               {
                 dataReceivedAt: OnCallPageTiming.getMonitorDataReceivedAt(
                   input.dataToProcess,
                 ),
               },
               (): Promise<Incident> => {
-                return IncidentService.create({
-                  data: incident,
-                  props: {
-                    isRoot: true,
-                  },
-                });
+                return IncidentService.create(createBy);
               },
             );
 
-          await OpenStackScopedRules.finishIncident({
-            projectId: input.monitor.projectId!,
-            incidentId: createdIncident.id!,
-            match: openStackRules,
-          });
+            await OpenStackScopedRules.finishIncident({
+              projectId: input.monitor.projectId!,
+              incidentId: createdIncident.id!,
+              match: openStackRules,
+            });
 
-          // Whoever asked to hear about a project this reaches, once they have seen who that tells.
-          await OpenStackProjectNotices.recordForIncident({
-            projectId: input.monitor.projectId!,
-            incidentId: createdIncident.id!,
-            isPrivate: incident.isPrivate,
-            series: openStackSeries,
-            monitorSteps: input.monitor.monitorSteps,
-          });
+            // Whoever asked to hear about a project this reaches, once they have seen who that tells.
+            await OpenStackProjectNotices.recordForIncident({
+              projectId: input.monitor.projectId!,
+              incidentId: createdIncident.id!,
+              isPrivate: incident.isPrivate,
+              series: openStackSeries,
+              monitorSteps: input.monitor.monitorSteps,
+            });
 
-          /*
-           * Add owner teams and users after incident creation. Owners
-           * configured on the criteria template are merged (deduped) with the
-           * owners of the network device this monitor watches, so device
-           * ownership flows into the incidents its monitor raises.
-           */
-          if (networkDeviceOwners === null) {
-            networkDeviceOwners =
-              await NetworkDeviceOwnerUserService.getDeviceOwnersForMonitor({
-                monitor: input.monitor,
-                monitorStepId: (
-                  input.dataToProcess as ProbeMonitorResponse
-                ).monitorStepId?.toString(),
-              });
-          }
+            /*
+             * Add owner teams and users after incident creation. Owners
+             * configured on the criteria template are merged (deduped) with
+             * the owners of the network device this monitor watches, so
+             * device ownership flows into the incidents its monitor raises.
+             */
+            if (networkDeviceOwners === null) {
+              networkDeviceOwners =
+                await NetworkDeviceOwnerUserService.getDeviceOwnersForMonitor({
+                  monitor: input.monitor,
+                  monitorStepId: (
+                    input.dataToProcess as ProbeMonitorResponse
+                  ).monitorStepId?.toString(),
+                });
+            }
 
-          const ownerUserIds: Array<ObjectID> = this.mergeOwnerIds(
-            criteriaIncident.ownerUserIds || [],
-            networkDeviceOwners.ownerUserIds,
-          );
+            const ownerUserIds: Array<ObjectID> = this.mergeOwnerIds(
+              criteriaIncident.ownerUserIds || [],
+              networkDeviceOwners.ownerUserIds,
+            );
 
-          const ownerTeamIds: Array<ObjectID> = this.mergeOwnerIds(
-            criteriaIncident.ownerTeamIds || [],
-            networkDeviceOwners.ownerTeamIds,
-          );
+            const ownerTeamIds: Array<ObjectID> = this.mergeOwnerIds(
+              criteriaIncident.ownerTeamIds || [],
+              networkDeviceOwners.ownerTeamIds,
+            );
 
-          if (ownerTeamIds.length || ownerUserIds.length) {
-            await IncidentService.addOwners(
-              input.monitor.projectId!,
-              createdIncident.id!,
-              ownerUserIds,
-              ownerTeamIds,
-              true, // notify owners
-              {
-                isRoot: true,
-              },
+            if (ownerTeamIds.length || ownerUserIds.length) {
+              await IncidentService.addOwners(
+                input.monitor.projectId!,
+                createdIncident.id!,
+                ownerUserIds,
+                ownerTeamIds,
+                true, // notify owners
+                {
+                  isRoot: true,
+                },
+              );
+            }
+          } finally {
+            await CreatedNotificationHold.ownersAreIn(
+              createBy,
+              OwnersAddedBy.Caller,
             );
           }
 

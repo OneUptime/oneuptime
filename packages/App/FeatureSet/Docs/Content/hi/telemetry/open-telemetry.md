@@ -36,7 +36,7 @@ flowchart TB
 
 ## शुरू करने से पहले
 
-- एक OneUptime प्रोजेक्ट जिसमें आप इंजेशन कुंजियां बना सकें: प्रोजेक्ट के स्वामी और व्यवस्थापक बना सकते हैं, और **Create Telemetry Ingestion Key** अनुमति वाला कोई भी व्यक्ति भी।
+- एक OneUptime प्रोजेक्ट जिसमें आप इंजेशन कुंजियां बना सकें: प्रोजेक्ट के स्वामी और व्यवस्थापक बना सकते हैं, और Create Ingestion Key अनुमति वाला कोई भी व्यक्ति भी।
 - एक एप्लिकेशन जिसमें आप OpenTelemetry SDK जोड़ सकें, या एक OpenTelemetry Collector।
 - आपके एप्लिकेशन या collector से `oneuptime.com` या आपके अपने OneUptime होस्ट तक आउटबाउंड HTTPS (पोर्ट 443)।
 
@@ -365,7 +365,7 @@ HTTP पर हर सिग्नल का एंडपॉइंट के न
 | लॉग | `https://oneuptime.com/otlp/v1/logs` |
 | प्रोफ़ाइल | `https://oneuptime.com/otlp/v1/profiles` |
 
-निरंतर प्रोफ़ाइलिंग के लिए ज़्यादातर प्रोफ़ाइलर इसके बजाय Pyroscope-संगत एंडपॉइंट पर भेजते हैं — देखें [निरंतर प्रोफ़ाइलिंग](/docs/telemetry/profiles)। OTLP प्रोफ़ाइल एक्सपोर्ट करने वाले collector को एक्सपोर्टर का `profiles_endpoint` `https://oneuptime.com/otlp/v1/profiles` पर सेट करना होगा, क्योंकि डिफ़ॉल्ट रूप से यह प्रोफ़ाइल एक डेवलपमेंट पथ पर भेजता है जिसे OneUptime सर्व नहीं करता।
+निरंतर प्रोफ़ाइलिंग के लिए ज़्यादातर प्रोफ़ाइलर इसके बजाय Pyroscope-संगत एंडपॉइंट पर भेजते हैं — देखें [प्रोफ़ाइल](/docs/telemetry/profiles)। OTLP प्रोफ़ाइल एक्सपोर्ट करने वाले collector को एक्सपोर्टर का `profiles_endpoint` `https://oneuptime.com/otlp/v1/profiles` पर सेट करना होगा, क्योंकि डिफ़ॉल्ट रूप से यह प्रोफ़ाइल एक डेवलपमेंट पथ पर भेजता है जिसे OneUptime सर्व नहीं करता।
 
 ### gRPC पर OTLP
 

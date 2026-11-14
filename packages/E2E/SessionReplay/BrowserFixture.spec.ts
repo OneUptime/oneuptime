@@ -6,6 +6,7 @@ import {
   expect,
   test,
 } from "@playwright/test";
+import { readFileSync } from "fs";
 import { mkdir } from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
@@ -2215,6 +2216,441 @@ test("the tab switcher fits a narrow viewport", async ({
 });
 
 /*
+ * #7096 and #7098, in the real player, drawn from the Dashboard's shipped
+ * locale files (?lang= loads them, ?identity=hidden leaves the end user's
+ * identity out of the manifest as the server does for a role without the
+ * grant).
+ */
+const DASHBOARD_LOCALES: string = path.resolve(
+  __dirname,
+  "../../App/FeatureSet/Dashboard/src/Locales",
+);
+const readDashboardLocale: (language: string) => Record<string, string> = (
+  language: string,
+): Record<string, string> => {
+  if (language === "en") {
+    return {};
+  }
+
+  return JSON.parse(
+    readFileSync(path.join(DASHBOARD_LOCALES, `${language}.json`), "utf8"),
+  ) as Record<string, string>;
+};
+// The marks the translator wraps a filled-in value in, so it reads in order.
+const ISOLATE_MARKS: RegExp = /[\u2066-\u2069]/g;
+const withoutIsolateMarks: (text: string) => string = (
+  text: string,
+): string => {
+  return text.replace(ISOLATE_MARKS, "");
+};
+const LATIN_DIGIT: RegExp = /[0-9]/;
+const PERSIAN_OPENED: RegExp = /باز شده در [۰-۹]+:[۰-۹]{2}/;
+const IDENTITY_GRANT: string = "Watch Session Replays";
+// A sentence as `language` words it, the grant filled in.
+const wordedIn: (language: string, sentence: string) => string = (
+  language: string,
+  sentence: string,
+): string => {
+  const words: string | undefined = readDashboardLocale(language)[sentence];
+
+  if (language !== "en") {
+    expect({ language, sentence, worded: Boolean(words) }).toEqual({
+      language,
+      sentence,
+      worded: true,
+    });
+  }
+
+  return (words || sentence).split("{{permission}}").join(IDENTITY_GRANT);
+};
+/*
+ * openPlayer in any language: the phase marker is worded in the reader's
+ * language, so this waits on the stage's own data-replay-phase.
+ */
+const openPlayerIn: (page: Page, query: string) => Promise<void> = async (
+  page: Page,
+  query: string,
+): Promise<void> => {
+  await page.goto(`${playerRoute}${query}`);
+  await expect(page.getByTestId("replay-stage")).toHaveAttribute(
+    "data-replay-phase",
+    "playing",
+    { timeout: 30000 },
+  );
+  await expect(
+    page
+      .frameLocator('[data-testid="replay-stage"] iframe')
+      .getByText("Complete your order"),
+  ).toBeVisible();
+};
+
+/*
+ * #7098: the tab picker is 448px wide, and it hung off the page wherever
+ * its button sat too close to the far edge for it - at a phone's width,
+ * and in Arabic and Persian, where the switcher sits at the other end of
+ * the strip. It now opens inside the page at every width, both ways, and
+ * the element painted at each of its corners is the picker itself, not
+ * whatever an ancestor's overflow left there.
+ */
+interface TabPageAsDrawn {
+  text: string;
+  readsAsWritten: boolean;
+}
+/*
+ * Each tab's page as the strip and the picker draw it, and whether its
+ * slash is drawn left of the letter after it, as "/cart" is written. On an
+ * Arabic or Persian page, laid out the page's way, it came out as "cart/".
+ * Pages hidden at this width (the pills' below sm) are left out.
+ */
+const tabPagesAsDrawn: (page: Page) => Promise<Array<TabPageAsDrawn>> = async (
+  page: Page,
+): Promise<Array<TabPageAsDrawn>> => {
+  return page
+    .getByTestId("replay-tab-switcher")
+    .evaluate((switcher: HTMLElement): Array<TabPageAsDrawn> => {
+      const drawn: Array<TabPageAsDrawn> = [];
+
+      for (const element of Array.from(
+        switcher.querySelectorAll<HTMLElement>(
+          '[data-testid="replay-tab-pill-page"], [data-testid="replay-tab-option-page"]',
+        ),
+      )) {
+        const walker: TreeWalker = document.createTreeWalker(
+          element,
+          NodeFilter.SHOW_TEXT,
+        );
+
+        for (
+          let node: Node | null = walker.nextNode();
+          node;
+          node = walker.nextNode()
+        ) {
+          const text: string = node.textContent || "";
+          const slash: number = text.indexOf("/");
+
+          if (slash < 0 || slash + 1 >= text.length) {
+            continue;
+          }
+
+          const boxOfCharacter: (index: number) => DOMRect = (
+            index: number,
+          ): DOMRect => {
+            const range: Range = document.createRange();
+
+            range.setStart(node as Node, index);
+            range.setEnd(node as Node, index + 1);
+
+            return range.getBoundingClientRect();
+          };
+          const slashBox: DOMRect = boxOfCharacter(slash);
+          const letterBox: DOMRect = boxOfCharacter(slash + 1);
+
+          if (slashBox.width > 0 && letterBox.width > 0) {
+            drawn.push({
+              text: text.trim(),
+              readsAsWritten: slashBox.x < letterBox.x,
+            });
+          }
+        }
+      }
+
+      return drawn;
+    });
+};
+for (const language of ["de", "ar", "fa"]) {
+  test(`the tab picker opens inside the page in ${language}, at a laptop's width and a phone's`, async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const width of [1280, 390]) {
+      await page.setViewportSize({ width, height: 900 });
+      await openPlayerIn(page, `?tabs=many&lang=${language}`);
+      await expect(page.locator("html")).toHaveAttribute(
+        "dir",
+        language === "de" ? "ltr" : "rtl",
+      );
+      await openTabPicker(page);
+      await expect(page.getByTestId("replay-tab-option")).toHaveCount(8);
+
+      const picker: ElementBox = await boxOf(
+        page.getByTestId("replay-tab-picker"),
+      );
+
+      expect({ language, width, left: picker.x >= -1 }).toEqual({
+        language,
+        width,
+        left: true,
+      });
+      expect({
+        language,
+        width,
+        right: picker.x + picker.width <= width + 1,
+      }).toEqual({ language, width, right: true });
+      expect(picker.width).toBeLessThanOrEqual(449);
+      // At a laptop's width it keeps its full 28rem.
+      if (width === 1280) {
+        expect(picker.width).toBeGreaterThanOrEqual(447);
+      }
+
+      const search: ElementBox = await boxOf(
+        page.getByTestId("replay-tab-picker-search"),
+      );
+      const painted: Array<boolean> = await page
+        .getByTestId("replay-tab-picker")
+        .evaluate(
+          (
+            element: HTMLElement,
+            points: Array<{ x: number; y: number }>,
+          ): Array<boolean> => {
+            return points.map((point: { x: number; y: number }): boolean => {
+              const hit: Element | null = document.elementFromPoint(
+                point.x,
+                point.y,
+              );
+
+              return Boolean(hit && element.contains(hit));
+            });
+          },
+          [
+            { x: picker.x + 4, y: search.y + search.height / 2 },
+            {
+              x: picker.x + picker.width - 4,
+              y: search.y + search.height / 2,
+            },
+          ],
+        );
+
+      expect({ language, width, painted }).toEqual({
+        language,
+        width,
+        painted: [true, true],
+      });
+
+      /*
+       * Every page the strip and the picker name reads "/cart", in Arabic
+       * and Persian too (each in an isolate of its own), at both widths.
+       */
+      const pagesDrawn: Array<TabPageAsDrawn> = await tabPagesAsDrawn(page);
+
+      expect(pagesDrawn.length).toBeGreaterThanOrEqual(7);
+      expect({
+        language,
+        width,
+        reversed: pagesDrawn.filter((drawn: TabPageAsDrawn): boolean => {
+          return !drawn.readsAsWritten;
+        }),
+      }).toEqual({ language, width, reversed: [] });
+
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
+      await screenshot(page, `session-replay-tab-picker-${language}-${width}`);
+    }
+  });
+}
+
+/*
+ * #7098: a Persian page counted the tabs in Persian digits while each
+ * tab's name read "زبانه 2" and its opening "باز شده در 0:30". Every
+ * figure the switcher writes is now in Persian digits, and a number typed
+ * in them finds the tab.
+ */
+test("a Persian reader reads every tab's number, opening and counts in Persian digits", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await openPlayerIn(page, "?tabs=many&lang=fa");
+  await openTabPicker(page);
+  await expect(page.getByTestId("replay-tab-option")).toHaveCount(8);
+
+  const figures: Array<string> = await page
+    .getByTestId("replay-tab-switcher")
+    .evaluate((switcher: HTMLElement): Array<string> => {
+      const texts: Array<string> = [];
+
+      for (const element of [
+        switcher,
+        ...Array.from(switcher.querySelectorAll<HTMLElement>("*")),
+      ]) {
+        for (const name of ["title", "aria-label"]) {
+          const value: string | null = element.getAttribute(name);
+
+          // A page address is the end user's own text.
+          if (value && !value.startsWith("https://")) {
+            texts.push(value);
+          }
+        }
+
+        if (
+          element.matches(
+            '[data-testid="replay-tab-pill"], [data-testid="replay-tab-option"], [data-testid="replay-tab-group"], [data-testid="replay-tab-summary"], [data-testid="replay-tab-picker-button"], [data-testid="replay-tab-option-errors"], [data-testid="replay-tab-option-frustrations"]',
+          )
+        ) {
+          texts.push(element.textContent || "");
+        }
+      }
+
+      return texts;
+    });
+
+  expect(figures.length).toBeGreaterThan(16);
+  expect(
+    figures.filter((text: string): boolean => {
+      return LATIN_DIGIT.test(text);
+    }),
+  ).toEqual([]);
+  await expect(tabOption(page, 4)).toContainText("زبانه ۴");
+  await expect(tabOption(page, 4)).toContainText(PERSIAN_OPENED);
+  await expect(
+    tabOption(page, 4).getByTestId("replay-tab-option-errors"),
+  ).toHaveText("۲");
+  await expect(
+    tabOption(page, 7).getByTestId("replay-tab-option-frustrations"),
+  ).toHaveText("۱");
+  await screenshot(page, "session-replay-tab-picker-fa-digits");
+
+  const search: Locator = page.getByTestId("replay-tab-picker-search");
+
+  // The number as the reader sees it, and as a Latin keyboard types it.
+  await search.fill("۷");
+  await expect(page.getByTestId("replay-tab-option")).toHaveCount(1);
+  await expect(tabOption(page, 7)).toBeVisible();
+  await search.fill("7");
+  await expect(page.getByTestId("replay-tab-option")).toHaveCount(1);
+  await expect(tabOption(page, 7)).toBeVisible();
+});
+
+/*
+ * #7096: where the player says the end user's identity is hidden, it said
+ * it "needs the identity permission" - a permission no roles screen lists.
+ * The header's tooltip and the session details' End user row now name
+ * Watch Session Replays, the grant the server shows the identity behind,
+ * in each language's words and quotes.
+ */
+const IDENTITY_TOOLTIP: string =
+  'Your role cannot read end-user identity. Ask a project admin for the "{{permission}}" permission.';
+const IDENTITY_ROW: string =
+  'Hidden - your role needs the "{{permission}}" permission';
+const IDENTITY_HINT: string =
+  'The exact reference your page passed to identify(). Needs the "{{permission}}" permission; never written to the URL.';
+
+test("with the identity hidden, the header and the session details name the grant that shows it", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  for (const language of ["en", "de", "ar", "fa"]) {
+    for (const width of [1280, 390]) {
+      await page.setViewportSize({ width, height: 900 });
+      await openPlayerIn(page, `?identity=hidden&lang=${language}`);
+
+      const user: Locator = page.getByTestId("replay-header-user");
+
+      await expect(user).toHaveText(wordedIn(language, "Identity hidden"));
+      expect(
+        withoutIsolateMarks((await user.getAttribute("title")) || ""),
+      ).toBe(wordedIn(language, IDENTITY_TOOLTIP));
+
+      await page.getByTestId("replay-open-details").click();
+
+      const row: Locator = page.getByTestId("replay-details-end-user");
+
+      await expect(row).toBeVisible();
+      expect(withoutIsolateMarks(await row.innerText())).toContain(
+        wordedIn(language, IDENTITY_ROW),
+      );
+
+      for (const text of [
+        (await user.getAttribute("title")) || "",
+        await row.innerText(),
+      ]) {
+        expect(text).toContain(IDENTITY_GRANT);
+        expect(text).not.toContain("identity permission");
+        expect(text).not.toContain("{{permission}}");
+      }
+
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
+      await screenshot(
+        page,
+        `session-replay-identity-hidden-${language}-${width}`,
+      );
+    }
+  }
+});
+
+test("the User filter's hint names the grant that shows who a session belongs to", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  for (const language of ["en", "de", "fa"]) {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await openList(page, `?lang=${language}`);
+    await page.getByTestId("session-replay-more").click();
+    await page.getByTestId("session-open-filters").click();
+
+    const row: Locator = page.getByTestId(
+      "session-filter-row-identifiedUserRef",
+    );
+
+    await expect(row).toBeVisible();
+
+    const hint: string = withoutIsolateMarks(
+      await row.locator("p").first().innerText(),
+    );
+
+    expect(hint).toBe(wordedIn(language, IDENTITY_HINT));
+    expect(hint).not.toContain("identity permission");
+
+    /*
+     * "identify()" is drawn as it is written, its brackets after its name,
+     * on the Persian page too: the fixture sets code in an Arabic or
+     * Persian sentence apart as the Dashboard does.
+     */
+    const bracketAfterName: boolean = await row
+      .locator("p")
+      .first()
+      .evaluate((paragraph: HTMLElement): boolean => {
+        const walker: TreeWalker = document.createTreeWalker(
+          paragraph,
+          NodeFilter.SHOW_TEXT,
+        );
+
+        for (
+          let node: Node | null = walker.nextNode();
+          node;
+          node = walker.nextNode()
+        ) {
+          const at: number = (node.textContent || "").indexOf("identify()");
+
+          if (at >= 0) {
+            const xOf: (index: number) => number = (index: number): number => {
+              const range: Range = document.createRange();
+
+              range.setStart(node as Node, index);
+              range.setEnd(node as Node, index + 1);
+
+              return range.getBoundingClientRect().x;
+            };
+
+            // The "y" of identify, then its "(".
+            return xOf(at + 7) < xOf(at + 8);
+          }
+        }
+
+        return false;
+      });
+
+    expect({ language, bracketAfterName }).toEqual({
+      language,
+      bracketAfterName: true,
+    });
+    await screenshot(page, `session-replay-filter-user-hint-${language}`);
+  }
+});
+
+/*
  * Issue #5181, in the real player: a prerendered page's vitals say they were
  * measured from when the visitor opened it, and a CLS reported again when it
  * grew links both ways to its other report - the link opens that row, its
@@ -2248,7 +2684,8 @@ test("a prerendered page's vitals name their view, and a CLS reported again link
   const fcpDetail: Locator =
     vitalRow("FCP 68ms good").getByTestId("rail-row-detail");
 
-  await expect(fcpDetail).toContainText("View");
+  /* The fact is labelled Navigation: "View" reads as a verb in most languages. */
+  await expect(fcpDetail).toContainText("Navigation");
   await expect(fcpDetail).toContainText(
     "Prerendered page load (measured from when it was opened)",
   );

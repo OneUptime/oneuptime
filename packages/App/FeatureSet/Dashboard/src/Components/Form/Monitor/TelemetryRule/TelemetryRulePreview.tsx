@@ -45,6 +45,7 @@ import {
   getPreviewVerdict,
   TelemetryRuleCopy,
 } from "../../../../Utils/Form/Monitor/TelemetryRule/TelemetryRuleText";
+import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * What a Logs, Traces or Exceptions rule would have caught: the monitor's
@@ -208,10 +209,11 @@ const TelemetryRulePreview: FunctionComponent<ComponentProps> = (
         role="status"
       >
         <span className="min-w-0">
-          {translator.translateTemplate(
-            "The preview could not be loaded: {{reason}}",
-            { reason: error },
-          )}
+          <ErrorSentence
+            template="The preview could not be loaded: {{reason}}"
+            error={error}
+            errorPlaceholder="reason"
+          />
         </span>
         {/* md:-ml-3 takes back the Button's own md:ml-3. */}
         <div className="md:-ml-3">

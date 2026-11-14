@@ -30,6 +30,7 @@ import Query from "../../../Types/Database/Query";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import ToolResultSerializer, { SerializedResult } from "./Serializer";
 import WidgetBuilder from "./WidgetBuilder";
+import { getSloCardWords } from "./ReadCardWords";
 import {
   ObservabilityTool,
   ToolArgs,
@@ -79,25 +80,6 @@ const COMPLIANCE_NOTE: string =
 const ARCHIVED_NOTE: string =
   "Note: this SLO is archived — it is hidden from the SLO list and is no longer evaluated, so its compliance figures are frozen as of its last evaluation before it was archived (see archivedAt). Unarchive it in the dashboard to resume measuring.\n";
 
-/*
- * The one-word state a person sees in the SLO list, with the same precedence
- * the list's Status column uses: Archived, then Disabled, then the persisted
- * status. A disabled or archived SLO keeps its last status column, and
- * reporting that stale value would claim a live measurement that is not
- * happening.
- */
-function describeLifecycleStatus(slo: ServiceLevelObjective): string {
-  if (slo.isArchived === true) {
-    return "Archived";
-  }
-
-  if (slo.isEnabled === false) {
-    return "Disabled";
-  }
-
-  return slo.sloStatus || "";
-}
-
 function joinNames(items: Array<{ name?: string }> | undefined): string {
   return (items || [])
     .map((item: { name?: string }) => {
@@ -128,14 +110,6 @@ function describeWindow(slo: ServiceLevelObjective): string {
     return SloWindowType.CalendarMonth;
   }
   return `${SloWindowType.Rolling} ${slo.windowDays ?? 30}d`;
-}
-
-// Percentage formatting for widget fields only; LLM rows keep raw numbers.
-function formatPercent(value: number | undefined | null): string {
-  if (value === undefined || value === null) {
-    return "not evaluated yet";
-  }
-  return `${Math.round(value * 100) / 100}%`;
 }
 
 /*
@@ -210,8 +184,6 @@ const POLICY_TIERS_NOTE: string =
  */
 const DEPLOYMENT_GATE_NOTE: string =
   "Note: deploymentsAllowed on an SLO row is the deploy gate CI/CD pipelines read before they release: it is false while the SLO is in an error budget policy tier that freezes deployments (deploymentsFrozenAt says since when), and true otherwise - also for an SLO with no policy. A Paused or Misconfigured SLO keeps the answer it had.\n";
-
-const NOT_VISIBLE_WIDGET_VALUE: string = "not visible to you";
 
 // The most tiers one SLO read returns; a policy has a handful.
 const POLICY_TIERS_READ_LIMIT: number = 25;
@@ -803,82 +775,43 @@ export const QuerySlosTool: ObservabilityTool = {
         widget: slo
           ? WidgetBuilder.resourceCard({
               title: `SLO ${slo.name ?? ""}`.trim(),
-              resourceType: "Service Level Objective",
               heading: slo.name || sloId.toString(),
-              subheading: slo.description,
-              fields: [
-                {
-                  label: "Target",
-                  value: formatPercent(slo.targetPercentage),
+              // In the reader's language (issue #7175): figures the reader's way.
+              words: getSloCardWords({
+                description: slo.description || undefined,
+                targetPercentage: slo.targetPercentage,
+                windowType: slo.windowType,
+                windowDays: slo.windowDays,
+                sliType: slo.sliType,
+                isArchived: slo.isArchived === true,
+                isEnabled: slo.isEnabled !== false,
+                sloStatus: slo.sloStatus,
+                currentSliPercentage: slo.currentSliPercentage,
+                errorBudgetRemainingPercentage:
+                  slo.errorBudgetRemainingPercentage,
+                currentBurnRate: slo.currentBurnRate,
+                monitorNames: joinNames(slo.monitors),
+                monitorRules: {
+                  isVisible: areMonitorRulesVisible,
+                  count: monitorRules.length,
+                  enabledCount: monitorRules.filter(
+                    (monitorRule: ServiceLevelObjectiveMonitorRule) => {
+                      return monitorRule.isEnabled !== false;
+                    },
+                  ).length,
                 },
-                { label: "Window", value: describeWindow(slo) },
-                { label: "SLI type", value: slo.sliType || "" },
-                { label: "Status", value: describeLifecycleStatus(slo) },
-                {
-                  label: "Current SLI",
-                  value: formatPercent(slo.currentSliPercentage),
+                burnRateRules: {
+                  isVisible: areBurnRateRulesVisible,
+                  count: rules.length,
                 },
-                {
-                  label: "Error budget left",
-                  value: formatPercent(slo.errorBudgetRemainingPercentage),
+                policyTiers: {
+                  currentName:
+                    slo.currentErrorBudgetPolicyTierName || undefined,
+                  isVisible: arePolicyTiersVisible,
+                  count: policyTiers.length,
                 },
-                {
-                  label: "Burn rate",
-                  value:
-                    slo.currentBurnRate !== undefined &&
-                    slo.currentBurnRate !== null
-                      ? String(Math.round(slo.currentBurnRate * 100) / 100)
-                      : "not evaluated yet",
-                },
-                { label: "Monitors", value: joinNames(slo.monitors) || "none" },
-                {
-                  label: "Monitor rules",
-                  /*
-                   * Not "none" when the rules could not be read: that would
-                   * claim the monitors are picked by hand.
-                   */
-                  value: !areMonitorRulesVisible
-                    ? NOT_VISIBLE_WIDGET_VALUE
-                    : monitorRules.length === 0
-                      ? "none - monitors are picked by hand"
-                      : `${
-                          monitorRules.filter(
-                            (monitorRule: ServiceLevelObjectiveMonitorRule) => {
-                              return monitorRule.isEnabled !== false;
-                            },
-                          ).length
-                        } of ${monitorRules.length} enabled`,
-                },
-                {
-                  label: "Burn-rate rules",
-                  // Not "0" when the rules could not be read.
-                  value: areBurnRateRulesVisible
-                    ? String(rules.length)
-                    : NOT_VISIBLE_WIDGET_VALUE,
-                },
-                {
-                  label: "Error budget policy tier",
-                  /*
-                   * The tier is SLO data, so it shows even when the tiers
-                   * cannot be read; "none" only when nothing says otherwise.
-                   */
-                  value:
-                    slo.currentErrorBudgetPolicyTierName ||
-                    (!arePolicyTiersVisible
-                      ? NOT_VISIBLE_WIDGET_VALUE
-                      : policyTiers.length === 0
-                        ? "no error budget policy"
-                        : "none - the budget is above every tier"),
-                },
-                {
-                  label: "Deployments",
-                  // SLO data too: shown whether or not the tiers can be read.
-                  value:
-                    slo.deploymentsAllowed === false
-                      ? "frozen by the error budget policy"
-                      : "allowed",
-                },
-              ],
+                deploymentsAllowed: slo.deploymentsAllowed,
+              }),
               link: {
                 type: AIChatCitationTargetType.SloView,
                 params: { sloId: sloId.toString() },

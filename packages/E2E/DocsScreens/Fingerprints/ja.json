@@ -1,0 +1,557 @@
+{
+  "home-goal-website": {
+    "text": [
+      "まず何をしますか？",
+      "Web サイトや API のダウンを知る",
+      "障害時に適切な担当者を呼び出す",
+      "ステータスページで顧客に伝える",
+      "ログ、メトリクス、トレースを見る",
+      "サーバー、Kubernetes、クラウドを見守る",
+      "別のツールから移行する",
+      "まずは見て回る",
+      "スキップ",
+      "続行",
+      "checkbox: on",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off"
+    ],
+    "outline": [
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "button: スキップ",
+      "button: 続行"
+    ],
+    "width": 902,
+    "height": 366
+  },
+  "home-goal-paging": {
+    "text": [
+      "まず何をしますか？",
+      "Web サイトや API のダウンを知る",
+      "障害時に適切な担当者を呼び出す",
+      "ステータスページで顧客に伝える",
+      "ログ、メトリクス、トレースを見る",
+      "サーバー、Kubernetes、クラウドを見守る",
+      "別のツールから移行する",
+      "まずは見て回る",
+      "スキップ",
+      "続行",
+      "checkbox: off",
+      "checkbox: on",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off"
+    ],
+    "outline": [
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "button: スキップ",
+      "button: 続行"
+    ],
+    "width": 902,
+    "height": 366
+  },
+  "home-goal-status-page": {
+    "text": [
+      "まず何をしますか？",
+      "Web サイトや API のダウンを知る",
+      "障害時に適切な担当者を呼び出す",
+      "ステータスページで顧客に伝える",
+      "ログ、メトリクス、トレースを見る",
+      "サーバー、Kubernetes、クラウドを見守る",
+      "別のツールから移行する",
+      "まずは見て回る",
+      "スキップ",
+      "続行",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: on",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off"
+    ],
+    "outline": [
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "button: スキップ",
+      "button: 続行"
+    ],
+    "width": 902,
+    "height": 366
+  },
+  "home-goals-three": {
+    "text": [
+      "まず何をしますか？",
+      "Web サイトや API のダウンを知る",
+      "障害時に適切な担当者を呼び出す",
+      "ステータスページで顧客に伝える",
+      "ログ、メトリクス、トレースを見る",
+      "サーバー、Kubernetes、クラウドを見守る",
+      "別のツールから移行する",
+      "まずは見て回る",
+      "スキップ",
+      "続行",
+      "checkbox: on",
+      "checkbox: on",
+      "checkbox: on",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off"
+    ],
+    "outline": [
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "button: スキップ",
+      "button: 続行"
+    ],
+    "width": 902,
+    "height": 366
+  },
+  "website-down-address": {
+    "text": [
+      "1",
+      "何を確認しますか？",
+      "OneUptime は 5 分ごとに複数の拠点から確認します。応答がない場合、またはエラーが返された場合、インシデントが作成されます。",
+      "Web サイトまたは API のアドレス",
+      "これは API エンドポイントです",
+      "確認を開始",
+      "その他のモニターの種類",
+      "value: https://acme-commerce.example",
+      "checkbox: off"
+    ],
+    "outline": [
+      "field text: https://example.com",
+      "field checkbox: ",
+      "button: 確認を開始",
+      "link: その他のモニターの種類"
+    ],
+    "width": 768,
+    "height": 298
+  },
+  "website-down-who": {
+    "text": [
+      "2",
+      "誰に知らせますか？",
+      "ダウンすると、OneUptime はインシデントを作成し、これらの人をそれぞれの「私への連絡方法」のとおりに呼び出します。最初に通知されるのはあなたで、メールで届きます。",
+      "呼び出し先",
+      "チームメンバーを追加",
+      "AL",
+      "Ada Lovelace",
+      "これにより、オンコールポリシー「Default on-call policy」が作成されます。このプロジェクトで新しいインシデントやアラートが発生するたびに、その人たちを呼び出します。",
+      "保存して続行"
+    ],
+    "outline": [
+      "button: チームメンバーを追加",
+      "button: Ada Lovelace を削除",
+      "button: 保存して続行"
+    ],
+    "width": 768,
+    "height": 302
+  },
+  "website-down-test": {
+    "text": [
+      "3",
+      "テストを送信する",
+      "今すぐ自分にテスト呼び出しを送信します。実際の呼び出しと同じ方法で送られ、すべてのメッセージに TEST と表示されます。完了するには、メッセージから確認してください。",
+      "自分にテスト呼び出しを送信",
+      "テストをスキップ"
+    ],
+    "outline": [
+      "button: 自分にテスト呼び出しを送信",
+      "button: テストをスキップ"
+    ],
+    "width": 768,
+    "height": 178
+  },
+  "website-down-summary": {
+    "text": [
+      "acme-commerce.example のセットアップが完了しました",
+      "チェック日時",
+      "5 分ごと、2 拠点から。",
+      "ダウンしたとき",
+      "応答がない場合、またはエラーが返された場合、OneUptime はインシデント（Critical Incident）を作成します。",
+      "通知先",
+      "オンコールポリシー「Default on-call policy」は、新しいインシデントとアラートのたびに Ada Lovelace を呼び出します。 あなたはこのモニターの所有者なので、ステータスが変わったときにメールが届きます。",
+      "テスト済み",
+      "Ada Lovelace さんが 14 秒 後にメールで確認しました。",
+      "次のステップ",
+      "ステータスページに表示",
+      "SMS または電話で呼び出しを受ける",
+      "モニターを開く",
+      "別のアドレスを確認"
+    ],
+    "outline": [
+      "heading: acme-commerce.example のセットアップが完了しました",
+      "heading: 次のステップ",
+      "link: ステータスページに表示",
+      "link: SMS または電話で呼び出しを受ける",
+      "link: モニターを開く",
+      "button: 別のアドレスを確認"
+    ],
+    "width": 768,
+    "height": 511
+  },
+  "paging-reach-you": {
+    "text": [
+      "1",
+      "どのように連絡しますか？",
+      "呼び出しは、確認済みのすべての方法に届きます。SMS と電話を受けるには電話番号を追加してください。",
+      "メール",
+      "メール · •••mple",
+      "SMS と電話",
+      "電話番号はまだありません。",
+      "このプロジェクトでは SMS がオフのため、それを使う呼び出しは送信されません。",
+      "このプロジェクトでは 電話 がオフのため、それを使う呼び出しは送信されません。",
+      "SMS と電話はこのプロジェクトの残高から支払われます。現在の残高は 0.00 USD です。番号を追加すると SMS が送信されるため、残高は 1.00 USD より多い必要があります。",
+      "残高を追加",
+      "SMS と電話を有効にする",
+      "モバイルアプリまたはブラウザー",
+      "未設定です。",
+      "通知方法から、OneUptime アプリを入手するか、このブラウザーで通知を有効にしてください。",
+      "アプリまたはこのブラウザーを設定",
+      "続行",
+      "再確認"
+    ],
+    "outline": [
+      "button: 残高を追加",
+      "button: SMS と電話を有効にする",
+      "link: アプリまたはこのブラウザーを設定",
+      "button: 続行",
+      "button: 再確認"
+    ],
+    "width": 768,
+    "height": 632
+  },
+  "paging-phone": {
+    "text": [
+      "1",
+      "どのように連絡しますか？",
+      "呼び出しは、確認済みのすべての方法に届きます。SMS と電話を受けるには電話番号を追加してください。",
+      "メール",
+      "メール · •••mple",
+      "SMS と電話",
+      "電話番号はまだありません。",
+      "SMS と電話はこのプロジェクトの残高から支払われます。現在の残高は 20.00 USD です。番号を追加すると SMS が送信されるため、残高は 1.00 USD より多い必要があります。",
+      "あなたの電話番号",
+      "SMS でコードを送信",
+      "モバイルアプリまたはブラウザー",
+      "未設定です。",
+      "通知方法から、OneUptime アプリを入手するか、このブラウザーで通知を有効にしてください。",
+      "アプリまたはこのブラウザーを設定",
+      "続行",
+      "再確認",
+      "placeholder: +15551234567"
+    ],
+    "outline": [
+      "field text: +15551234567",
+      "button: SMS でコードを送信",
+      "link: アプリまたはこのブラウザーを設定",
+      "button: 続行",
+      "button: 再確認"
+    ],
+    "width": 768,
+    "height": 564
+  },
+  "paging-who-else": {
+    "text": [
+      "2",
+      "ほかに誰がオンコールですか？",
+      "これにより、オンコールポリシー「Default on-call policy」が作成されます。このプロジェクトで新しいインシデントやアラートが発生するたびに、まずこの人たちを呼び出します。",
+      "最初に呼び出す",
+      "チームメンバーを追加",
+      "AL",
+      "Ada Lovelace",
+      "保存して続行"
+    ],
+    "outline": [
+      "button: チームメンバーを追加",
+      "button: Ada Lovelace を削除",
+      "button: 保存して続行"
+    ],
+    "width": 768,
+    "height": 246
+  },
+  "paging-no-answer": {
+    "text": [
+      "3",
+      "誰も応答しなかったら？",
+      "呼び出しは誰かが応答するまで待ちます。時間内に誰も応答しない場合:",
+      "別の人を呼び出す",
+      "同じ人をもう一度呼び出す",
+      "何もしない",
+      "待機時間(分)",
+      "次に呼び出す",
+      "チームメンバーを追加",
+      "GH",
+      "Grace Hopper",
+      "保存して続行",
+      "radio: on",
+      "radio: off",
+      "radio: off",
+      "value: 30"
+    ],
+    "outline": [
+      "field radio: ",
+      "field radio: ",
+      "field radio: ",
+      "field number: ",
+      "button: チームメンバーを追加",
+      "button: Grace Hopper を削除",
+      "button: 保存して続行"
+    ],
+    "width": 768,
+    "height": 510
+  },
+  "paging-test": {
+    "text": [
+      "4",
+      "テスト呼び出しを送信",
+      "今すぐポリシーをテストします。実際のインシデントと同じように最初のエスカレーションルールを呼び出し、各メッセージには TEST と表示されます。完了するにはメッセージから応答してください。",
+      "このポリシーをテスト",
+      "テストをスキップ"
+    ],
+    "outline": [
+      "button: このポリシーをテスト",
+      "button: テストをスキップ"
+    ],
+    "width": 768,
+    "height": 178
+  },
+  "paging-summary": {
+    "text": [
+      "呼び出しを設定しました",
+      "呼び出し先",
+      "新しいインシデントやアラートが発生するたびに「Default on-call policy」が実行され、Ada Lovelace (メール, SMS, 電話) を呼び出します。",
+      "誰も応答しない場合",
+      "30 分以内に誰も応答しない場合、Grace Hopper を呼び出します。",
+      "テスト済み",
+      "Ada Lovelace さんが 14 秒 後にメールで確認しました。",
+      "次のステップ",
+      "オンコールスケジュールで交代する",
+      "Slack または Microsoft Teams を接続",
+      "緊急度の低いインシデントは勤務時間内だけ呼び出す",
+      "呼び出せる人を確認",
+      "オンコールポリシーを開く",
+      "別のポリシーを設定"
+    ],
+    "outline": [
+      "heading: 呼び出しを設定しました",
+      "heading: 次のステップ",
+      "link: オンコールスケジュールで交代する",
+      "link: Slack または Microsoft Teams を接続",
+      "link: 緊急度の低いインシデントは勤務時間内だけ呼び出す",
+      "link: 呼び出せる人を確認",
+      "link: オンコールポリシーを開く",
+      "button: 別のポリシーを設定"
+    ],
+    "width": 768,
+    "height": 482
+  },
+  "status-page-pick": {
+    "text": [
+      "1",
+      "名前を付けて、表示する内容を選ぶ",
+      "ステータスページ名",
+      "表示する内容",
+      "選択した各モニターは、現在のステータスと稼働率とともにページに表示されます。",
+      "すべて選択",
+      "クリア",
+      "1 / 1 件を選択済み",
+      "Acme website",
+      "Operational",
+      "ページは作成するとすぐに公開されます。リンクを知っている人は誰でも、選択したモニターのステータスを見られます。",
+      "ステータスページを作成",
+      "value: Acme Commerce ステータス",
+      "checkbox: on"
+    ],
+    "outline": [
+      "field text: Acme ステータス",
+      "button: すべて選択",
+      "button: クリア",
+      "field checkbox: ",
+      "button: ステータスページを作成"
+    ],
+    "width": 768,
+    "height": 408
+  },
+  "status-page-review": {
+    "text": [
+      "2",
+      "お客様に見える内容",
+      "ステータスページはこのリンクで公開されています。表示内容と、表示されるものは次のとおりです。",
+      "Acme Commerce ステータス",
+      "表示されるもの",
+      "Acme website",
+      "Operational",
+      "公開リンク",
+      "https://oneuptime.acme-commerce.example/status-page/90000000-0000-4000-8000-000000000020",
+      "これらのモニターのインシデントは自動的にここに表示され、購読者にメールが送信されます。",
+      "アラートはここには表示されません。チーム向けです。",
+      "定期メンテナンスとお知らせは、投稿すると表示されます。",
+      "問題なし"
+    ],
+    "outline": [
+      "link: https://oneuptime.acme-commerce.example/status-page/90000000-0000-4000-8000-0000",
+      "button: 問題なし"
+    ],
+    "width": 768,
+    "height": 466
+  },
+  "status-page-summary": {
+    "text": [
+      "「Acme Commerce ステータス」を公開しました",
+      "アドレス",
+      "https://oneuptime.acme-commerce.example/status-page/90000000-0000-4000-8000-000000000020",
+      "表示内容",
+      "Acme website",
+      "自動で表示",
+      "これらのモニターのインシデントは自動的にここに表示され、購読者にメールが送信されます。",
+      "アラートはここには表示されません。チーム向けです。",
+      "定期メンテナンスとお知らせは、投稿すると表示されます。",
+      "自分らしくカスタマイズ（任意）",
+      "独自ドメイン status.example.com のようなアドレスでページを提供します。",
+      "ロゴと色 ページを自社の製品らしい見た目にします。",
+      "購読できるユーザー メール、SMS、Slack、Microsoft Teams、Webhook で。",
+      "公開ではなく非公開 招待した人、またはサインインした人だけがページを見られます。",
+      "次のステップ",
+      "最初のお知らせを投稿",
+      "メンテナンスをスケジュール",
+      "ステータスをウェブサイトに追加",
+      "このステータスページの設定を開く",
+      "別のステータスページをセットアップ"
+    ],
+    "outline": [
+      "heading: 「Acme Commerce ステータス」を公開しました",
+      "link: https://oneuptime.acme-commerce.example/status-page/90000000-0000-4000-8000-0000",
+      "heading: 自分らしくカスタマイズ（任意）",
+      "link: 独自ドメイン",
+      "link: ロゴと色",
+      "link: 購読できるユーザー",
+      "link: 公開ではなく非公開",
+      "heading: 次のステップ",
+      "link: 最初のお知らせを投稿",
+      "link: メンテナンスをスケジュール",
+      "link: ステータスをウェブサイトに追加",
+      "link: このステータスページの設定を開く",
+      "button: 別のステータスページをセットアップ"
+    ],
+    "width": 768,
+    "height": 682
+  },
+  "incident-feed": {
+    "text": [
+      "インシデントのフィード",
+      "このインシデントに起きたすべてのこと：ステータスの変更、メモ、所有者、送信されたすべての通知。",
+      "アクション",
+      "2026年9月14日月曜日",
+      "今日",
+      "BST",
+      "19:12",
+      "8 分前",
+      "Maya Chen",
+      "changed Incident #1042 State to Resolved",
+      "19:09",
+      "11 分前",
+      "Maya Chen",
+      "Private note: Rolling checkout-api back to 2026.09.14-1 to restore DB_POOL_MAX=40. Watching p95 on the checkout dashboard.",
+      "19:05",
+      "15 分前",
+      "Maya Chen",
+      "took the Incident Commander role on Incident #1042.",
+      "19:04",
+      "16 分前",
+      "Sam Rivera",
+      "changed Incident #1042 State to Acknowledged",
+      "19:01",
+      "19 分前",
+      "On Call Policy Started Executing: On Call Policy Checkout primary on-call started executing for Incident #1042. Users on call on this policy will now be notified.",
+      "Incident #1042 Created:",
+      "Checkout API p95 latency above 2s:",
+      "The API monitor for POST /api/checkout reported p95 latency of 2.4s for 3 consecutive checks from the eu-west-1 probe.",
+      "🔴 Incident State: Created",
+      "⚠️ Severity: SEV-2",
+      "🌎 Resources Affected:",
+      "Checkout API p95 latency",
+      "Orders DB connection pool"
+    ],
+    "outline": [
+      "heading: インシデントのフィード",
+      "button: アクション",
+      "button: その他のオプション",
+      "heading: 2026年9月14日月曜日",
+      "link: Incident #1042",
+      "link: Incident #1042",
+      "link: Incident #1042",
+      "link: Incident #1042",
+      "heading: Incident #1042 Created:",
+      "link: Checkout API p95 latency",
+      "link: Orders DB connection pool"
+    ],
+    "width": 576,
+    "height": 950
+  },
+  "incident-resolve": {
+    "text": [
+      "#1042",
+      "確認済み",
+      "SEV-2",
+      "Checkout API p95 latency above 2s",
+      "解決",
+      "作成",
+      "確認済み",
+      "解決済み",
+      "継続時間",
+      "19 分",
+      "インシデントコマンダー",
+      "MC",
+      "Maya Chen",
+      "所有者",
+      "CS",
+      "Checkout SRE",
+      "SR",
+      "Sam Rivera",
+      "追加",
+      "所有者を追加",
+      "モニター",
+      "Checkout API p95 latency",
+      "Orders DB connection pool"
+    ],
+    "outline": [
+      "heading: Checkout API p95 latency above 2s",
+      "button: 解決",
+      "button: 追加 所有者を追加",
+      "link: Checkout API p95 latency",
+      "link: Orders DB connection pool"
+    ],
+    "width": 876,
+    "height": 299
+  }
+}

@@ -60,7 +60,7 @@ Um agente travado deixa um rastro reconhecível: o mesmo span de ferramenta, de 
 
 :::steps
 1. Abra **Monitores**, clique em **Criar monitor** e escolha **Traços** em **Mais tipos de monitor**. Em **Sobre o que este monitor deve avisar você?**, escolha **Outra coisa** e limpe **Status do span**.
-2. Em **Mais campos**, defina **Filtrar por serviço de telemetria** como o serviço do agente e **Filtrar por atributos** como `gen_ai.tool.name` igual à ferramenta em que você espera o loop, como `search_web`. Se a sua instrumentação dá nome ao span de cada ferramenta, coloque esse nome em **O nome do span contém**.
+2. Em **Mais campos**, defina **Filtrar por serviço** como o serviço do agente e **Filtrar por atributos** como `gen_ai.tool.name` igual à ferramenta em que você espera o loop, como `search_web`. Se a sua instrumentação dá nome ao span de cada ferramenta, coloque esse nome em **O nome do span contém**.
 3. Defina a **Janela de tempo** como **Últimos 5 minutos**.
 4. Em **Quando alertar**, defina **Mais de** um número que nenhuma execução saudável atinge em cinco minutos, como `50`, e dê ao alerta um título como `Agent loop: support-bot`.
 :::

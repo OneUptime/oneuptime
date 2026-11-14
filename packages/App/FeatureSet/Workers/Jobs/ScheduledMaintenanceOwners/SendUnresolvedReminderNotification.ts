@@ -8,6 +8,7 @@ import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import NotificationSettingEventType from "Common/Types/NotificationSetting/NotificationSettingEventType";
 import ObjectID from "Common/Types/ObjectID";
 import ScheduledMaintenanceReminderStopState from "Common/Types/Reminder/ScheduledMaintenanceReminderStopState";
+import { getReminderIntervalInMinutes } from "Common/Types/Reminder/ReminderInterval";
 import { SMSMessage } from "Common/Types/SMS/SMS";
 import PushNotificationMessage from "Common/Types/PushNotification/PushNotificationMessage";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
@@ -124,9 +125,18 @@ const sendReminderForScheduledMaintenance: SendReminderForScheduledMaintenanceFu
       });
     };
 
+    /*
+     * A rule with no interval a reminder can follow - none, or one below a
+     * minute, which only a rule saved before the check can hold - reminds
+     * nobody, rather than every minute (Types/Reminder/ReminderInterval).
+     */
+    const intervalInMinutes: number | null = getReminderIntervalInMinutes(
+      rule?.reminderIntervalInMinutes,
+    );
+
     if (
       !rule ||
-      !rule.reminderIntervalInMinutes ||
+      intervalInMinutes === null ||
       scheduledMaintenance.enableReminders === false
     ) {
       return await stopReminders();
@@ -147,7 +157,7 @@ const sendReminderForScheduledMaintenance: SendReminderForScheduledMaintenanceFu
         data: {
           nextReminderNotificationAt: OneUptimeDate.addRemoveMinutes(
             scheduledMaintenance.startsAt,
-            rule.reminderIntervalInMinutes,
+            intervalInMinutes,
           ),
         },
         props: {
@@ -187,7 +197,7 @@ const sendReminderForScheduledMaintenance: SendReminderForScheduledMaintenanceFu
       data: {
         nextReminderNotificationAt: OneUptimeDate.addRemoveMinutes(
           OneUptimeDate.getCurrentDate(),
-          rule.reminderIntervalInMinutes,
+          intervalInMinutes,
         ),
         reminderNotificationSentCount:
           (scheduledMaintenance.reminderNotificationSentCount || 0) + 1,

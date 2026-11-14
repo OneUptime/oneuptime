@@ -28,7 +28,7 @@ flowchart LR
 ## Перед началом
 
 - **Поступающая телеметрия.** Карте сервисов нужны трассировки: см. [OpenTelemetry](/docs/telemetry/open-telemetry). Представлению инфраструктуры нужен хост или кластер, отправляющий данные: см. [агент Kubernetes](/docs/telemetry/kubernetes-agent). Сетевому представлению нужны сетевые устройства: см. [Мониторинг сетевых устройств](/docs/monitor/network-device-monitor).
-- **Роль, которая читает телеметрию.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member или Telemetry Viewer либо пользовательская роль с разрешением Read Telemetry Service.
+- **Роль, которая читает телеметрию.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member или Telemetry Viewer либо пользовательская роль с разрешением Read Inventory Item.
 
 ## Открыть топологию
 
@@ -114,7 +114,7 @@ OneUptime ищет вызовы между сервисами в ваших тр
 ## Дальнейшие шаги
 
 :::cards
-- [Каталог служб](/docs/telemetry/services): Все об одном сервисе.
+- [Сервисы](/docs/telemetry/services): Все об одном сервисе.
 - [Обозреватель трассировок](/docs/telemetry/traces-explorer): Запросы за каждой стрелкой.
 - [Обзор инвентаря](/docs/inventory/overview): Каждый ресурс, который рисует карта.
 - [Мониторинг сетевых устройств](/docs/monitor/network-device-monitor): Поместите вашу сеть на карту.

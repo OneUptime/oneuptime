@@ -29,7 +29,7 @@ flowchart TB
 | Pagina | Wat erop staat | De vraag die ze beantwoordt |
 | --- | --- | --- |
 | **Meldingsmethoden** | Je e-mailadressen, telefoonnummers, WhatsApp-nummers, Telegram-, Slack-, Microsoft Teams- en Mattermost-accounts, pushapparaten en webhooks | Waar kan OneUptime me bereiken? |
-| **Bereikbaarheidsregels** | Voor elk soort oproep en elke ernst: welke methode wordt geprobeerd en na hoe lang | Hoe word ik opgeroepen als ik dienst heb? |
+| **Hoe ik bereikbaar ben** | Voor elk soort oproep en elke ernst: welke methode wordt geprobeerd en na hoe lang | Hoe word ik opgeroepen als ik dienst heb? |
 | **Meldingsinstellingen** | Voor elke gebeurtenis rond een item van jou of rond je diensten: welke kanalen worden gebruikt | Waarover hoor ik verder nog, en waar? |
 
 Ze zijn met opzet gescheiden. Alle kanalen aanzetten in **Meldingsinstellingen** roept je nooit op, en een methode die je niet hebt geverifieerd wordt nooit gebruikt, wat je regels ook zeggen.
@@ -44,7 +44,7 @@ Open **Gebruikersinstellingen**, rechts in de balk onder de bovenste balk. Het z
 | Sectie | Pagina's |
 | --- | --- |
 | **Aan de slag** | **Instellingschecklist**: wat er nog in te stellen is, in de volgorde die telt |
-| **Waarschuwingen & meldingen** | **Meldingsmethoden**, **Bereikbaarheidsregels**, **Meldingsinstellingen** en **E-mailvoorkeuren**, waar je bepaalt hoeveel e-mails je nieuws oplevert |
+| **Waarschuwingen & meldingen** | **Meldingsmethoden**, **Hoe ik bereikbaar ben**, **Meldingsinstellingen** en **E-mailvoorkeuren**, waar je bepaalt hoeveel e-mails je nieuws oplevert |
 | **Bereikbaarheidslogboeken** | **Bereikbaarheidslogboeken**: elke keer dat je in dit project werd opgeroepen, en wat er werd verzonden |
 | **Beleid inkomend gesprek** | **Inkomende telefoonnummers**: het nummer waarop een beleid voor inkomende gesprekken je belt |
 | **Agenda** | **Agendafeed**: je diensten in je agenda-app, en herinneringen voordat ze beginnen |
@@ -53,17 +53,17 @@ Open **Gebruikersinstellingen**, rechts in de balk onder de bovenste balk. Het z
 
 **Aan de slag** en **Waarschuwingen & meldingen** zijn open; de andere secties beginnen ingeklapt, en een sectie gaat vanzelf open wanneer je op een van haar pagina's bent. **Werkruimte** verschijnt alleen als het project Slack, Microsoft Teams of Mattermost heeft gekoppeld.
 
-Projecteigenaren en -beheerders kunnen je instellingen ook bekijken: onder **Gebruikers** openen ze jouw rij en de sectie **Bereikbaarheid** daarvan, met **Gereedheid**, **Meldingsmethoden** en **Bereikbaarheidsregels**. Ze kunnen daar een methode voor je toevoegen, maar de code gaat naar de methode zelf, dus alleen jij kunt hem verifiëren.
+Projecteigenaren en -beheerders kunnen je instellingen ook bekijken: onder **Gebruikers** openen ze jouw rij en de sectie **Bereikbaarheid** daarvan, met **Gereedheid**, **Meldingsmethoden** en **Hoe ik bereikbaar ben**. Ze kunnen daar een methode voor je toevoegen, maar de code gaat naar de methode zelf, dus alleen jij kunt hem verifiëren.
 
 ## Waarmee je begint
 
 Wanneer je lid wordt van een project met een geverifieerd aanmeld-e-mailadres, stelt OneUptime je zo in dat een oproep je altijd kan bereiken:
 
 1. Je aanmeld-e-mailadres wordt toegevoegd als geverifieerde e-mailmethode.
-2. Voor elke ernst, op elk van de vier tabbladen van **Bereikbaarheidsregels**, stuurt een regel je een e-mail zodra je wordt opgeroepen.
+2. Voor elke ernst, op elk van de vier tabbladen van **Hoe ik bereikbaar ben**, stuurt een regel je een e-mail zodra je wordt opgeroepen.
 3. Een reeks nieuws over wat van jou is, en over je diensten, staat aan per e-mail. Zie [Meldingsinstellingen](/docs/notifications/notification-settings#wat-er-aanstaat-voor-een-nieuw-lid).
 
-Elke methode die je later verifieert, krijgt dezelfde regels: een regel voor elke ernst, verstuurd zodra je wordt opgeroepen. Een telefoonnummer voor sms verifiëren betekent dus dat elke oproep je ook een sms stuurt. Wil je sms alleen voor kritieke oproepen, verwijder dan de sms-regels van de andere ernstniveaus. Zie [Persoonlijke bereikbaarheidsregels](/docs/notifications/on-call-rules#de-regels-waarmee-je-begint).
+Elke methode die je later verifieert, krijgt dezelfde regels: een regel voor elke ernst, verstuurd zodra je wordt opgeroepen. Een telefoonnummer voor sms verifiëren betekent dus dat elke oproep je ook een sms stuurt. Wil je sms alleen voor kritieke oproepen, verwijder dan de sms-regels van de andere ernstniveaus. Zie [Hoe ik bereikbaar ben](/docs/notifications/on-call-rules#de-regels-waarmee-je-begint).
 
 ## De instellingschecklist
 
@@ -72,7 +72,7 @@ Elke methode die je later verifieert, krijgt dezelfde regels: een regel voor elk
 | Sectie | Wat ze controleert |
 | --- | --- |
 | **So we can reach you** | Je hebt een methode, elke toegevoegde methode is geverifieerd, en minstens één ervan zit op een kanaal dat het project heeft aangezet |
-| **How you want to be paged** | Elke ernst heeft een regel, op elk van de vier tabbladen van **Bereikbaarheidsregels** |
+| **How you want to be paged** | Elke ernst heeft een regel, op elk van de vier tabbladen van **Hoe ik bereikbaar ben** |
 | **Staying informed** | Je hoort wanneer een dienst begint, en achter elk kanaal dat je in **Meldingsinstellingen** hebt aangezet, staat een geverifieerde methode |
 | **Nice to have** | Een nummer voor inkomende gesprekken, je Slack- en Microsoft Teams-accounts, een agendalink en je profielvelden |
 
@@ -95,7 +95,7 @@ Een oproep kan je bereiken voor een soort en een ernst waarvoor je geen regel he
 2. Heb je die niet, dan één betaalde methode, in deze volgorde: sms, een telefoongesprek, WhatsApp, Telegram. Het is de eerste die je hebt geverifieerd, op een kanaal dat het project heeft aangezet.
 3. Heb je die ook niet, dan een webhook.
 
-Je krijgt daarover een e-mail, en de eigenaren van het bereikbaarheidsbeleid ook, of die van het project als het beleid er geen heeft. Is er helemaal niets geverifieerd, dan kan de oproep niet worden afgeleverd, en zegt de e-mail dat. Deze e-mails worden tegengehouden zolang er oproepen blijven komen, zodat een storm van oproepen geen storm van e-mails wordt. Hoe je de ontbrekende regel toevoegt, staat bij [Persoonlijke bereikbaarheidsregels](/docs/notifications/on-call-rules#als-een-ernst-geen-regel-heeft).
+Je krijgt daarover een e-mail, en de eigenaren van het bereikbaarheidsbeleid ook, of die van het project als het beleid er geen heeft. Is er helemaal niets geverifieerd, dan kan de oproep niet worden afgeleverd, en zegt de e-mail dat. Deze e-mails worden tegengehouden zolang er oproepen blijven komen, zodat een storm van oproepen geen storm van e-mails wordt. Hoe je de ontbrekende regel toevoegt, staat bij [Hoe ik bereikbaar ben](/docs/notifications/on-call-rules#als-een-ernst-geen-regel-heeft).
 
 ## De taal van je oproepen
 
@@ -131,7 +131,7 @@ Een nummer komt in je regels zodra het geverifieerd is. Klik op **Verifiëren** 
 
 :::cards
 - [Meldingsmethoden](/docs/notifications/notification-methods): Voeg de adressen toe waarop OneUptime je mag bereiken, en verifieer ze.
-- [Persoonlijke bereikbaarheidsregels](/docs/notifications/on-call-rules): Bepaal welke methode elke oproep probeert, en wanneer.
+- [Hoe ik bereikbaar ben](/docs/notifications/on-call-rules): Bepaal welke methode elke oproep probeert, en wanneer.
 - [Meldingsinstellingen](/docs/notifications/notification-settings): Kies het nieuws waarover je hoort, en via welke kanalen.
 - [Escalatieregels](/docs/on-call/escalation-rules): Hoe een bereikbaarheidsbeleid niveau voor niveau bepaalt wie wordt opgeroepen.
 :::

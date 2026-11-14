@@ -50,6 +50,7 @@ import WorkspaceDeliveryMetrics, {
   WorkspaceChannelPosts,
 } from "../WorkspaceDeliveryMetrics";
 import WorkspaceInlineImages from "../WorkspaceInlineImages";
+import WorkspaceChannelNotFound from "../WorkspaceChannelNotFound";
 import MattermostActionContext, {
   MAX_ACTIONS_PER_CONTEXT,
   MattermostAction,
@@ -855,7 +856,10 @@ export default class MattermostUtil extends WorkspaceBase {
 
     if (!channel) {
       throw new BadDataException(
-        `The Mattermost channel ${data.channelName} was not found. If it is a private channel, add OneUptime's bot to it in Mattermost.`,
+        WorkspaceChannelNotFound.getReason({
+          workspaceType: WorkspaceType.Mattermost,
+          channelName: data.channelName,
+        }),
       );
     }
 
@@ -1701,7 +1705,10 @@ export default class MattermostUtil extends WorkspaceBase {
               name: channelName,
               workspaceType: WorkspaceType.Mattermost,
             },
-            error: `The Mattermost channel ${channelName} was not found. If it is a private channel, add OneUptime's bot to it in Mattermost.`,
+            error: WorkspaceChannelNotFound.getReason({
+              workspaceType: WorkspaceType.Mattermost,
+              channelName: channelName,
+            }),
           });
         }
       } catch (err) {

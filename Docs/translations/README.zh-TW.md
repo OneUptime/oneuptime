@@ -47,6 +47,8 @@ OneUptime 是一個開源的可觀測性平台。它檢查你的網站、API 和
 - **[API、CLI 和 Terraform](https://oneuptime.com/docs/zh-TW/api-reference/api-reference)**：從你的指令碼和 CI 自動化 OneUptime，並以程式碼管理監測器、狀態頁面和待命。
 - **[MCP 伺服器](https://oneuptime.com/docs/zh-TW/ai/mcp-server)** (`https://oneuptime.com/mcp`)：連接 Claude、Cursor、搭配 GitHub Copilot 的 VS Code 或任何其他 Model Context Protocol（MCP）用戶端，然後請它調查事件、查詢日誌和追蹤、確認警示或設定監測器。
 
+逐步指南會帶你從頭到尾完成一項工作，無論是在 OneUptime Cloud 上還是在你自己的伺服器上：[在網站或 API 停擺時收到通知](https://oneuptime.com/docs/zh-TW/guides/website-down)、[透過電話、簡訊或推播接收呼叫](https://oneuptime.com/docs/zh-TW/guides/paging)和[發布狀態頁面](https://oneuptime.com/docs/zh-TW/guides/status-page)。
+
 其餘內容都在[文件](https://oneuptime.com/docs/zh-TW/introduction/getting-started)中。
 
 ## 開始使用

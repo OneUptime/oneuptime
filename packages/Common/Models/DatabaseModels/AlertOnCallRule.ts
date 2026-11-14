@@ -75,7 +75,7 @@ import {
   pluralName: "Alert On-Call Rules",
   icon: IconProp.Call,
   tableDescription:
-    "Configure rules for automatically executing on-call duty policies when matching alerts are created",
+    "Configure rules for automatically executing on-call policies when matching alerts are created",
 })
 export default class AlertOnCallRule extends OnCallRuleBaseModel {
   @ColumnAccessControl({
@@ -630,9 +630,8 @@ export default class AlertOnCallRule extends OnCallRuleBaseModel {
     required: false,
     type: TableColumnType.EntityArray,
     modelType: OnCallDutyPolicy,
-    title: "On-Call Duty Policies",
-    description:
-      "On-call duty policies to execute when an alert matches this rule.",
+    title: "On-Call Policies",
+    description: "On-call policies to execute when an alert matches this rule.",
   })
   @ManyToMany(
     () => {

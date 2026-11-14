@@ -57,7 +57,7 @@ function headingOutline(markdown: string): Array<number> {
 
 function onCallGroup(): NavGroup {
   const group: NavGroup | undefined = DocsNav.find((item: NavGroup) => {
-    return item.title === "On Call";
+    return item.title === "On-Call";
   });
 
   if (!group) {
@@ -172,7 +172,7 @@ describe("Schedule Timeline docs page", () => {
         "utf8",
       );
 
-      expect(english).toContain("**On-Call Duty** > **Schedule Timeline**");
+      expect(english).toContain("**On-Call** > **Schedule Timeline**");
       expect(onCallMenu).toContain('title: "Schedule Timeline"');
 
       // The schedules list's action, in its ⋯ menu, is named as the page.

@@ -166,7 +166,9 @@ describe.each(SERVICES)(
 
     test("refuses an owner who is not a member of the row's project as if the row did not exist", async () => {
       await expect(resend()).rejects.toThrow(
-        new BadDataException("Item not found"),
+        new BadDataException(
+          "This notification method is not in your list any more. Add it again, then verify it.",
+        ),
       );
     });
 
@@ -190,7 +192,7 @@ describe.each(SERVICES)(
           return { ...row(), isVerified: true };
         }) as never);
 
-      await expect(resend()).rejects.toThrow("not found");
+      await expect(resend()).rejects.toThrow("is not in your list any more");
     });
 
     test("asks about the row's own project and owner", async () => {

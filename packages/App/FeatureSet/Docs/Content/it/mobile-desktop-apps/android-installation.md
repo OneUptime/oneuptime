@@ -78,7 +78,7 @@ Nella dashboard, apri **Impostazioni utente → Metodi di notifica** e la scheda
 Fai clic su **Notifica di test** sulla riga del telefono. Sul telefono arriva una notifica; toccala per aprire l'app.
 :::
 
-Le tue regole di reperibilità decidono quali avvisi vanno al telefono, e con quale rapidità: vedi **Impostazioni utente → Regole di reperibilità**. Un nuovo telefono riceve le stesse regole predefinite di qualsiasi altro metodo che aggiungi.
+Le tue regole di reperibilità decidono quali avvisi vanno al telefono, e con quale rapidità: vedi **Impostazioni utente → Come contattarmi**. Un nuovo telefono riceve le stesse regole predefinite di qualsiasi altro metodo che aggiungi.
 
 ## Suonare in modalità silenziosa
 
@@ -139,7 +139,7 @@ L'app non è riuscita a raggiungere `https://<your-oneuptime>/api/status`. Contr
 - Controlla nelle impostazioni di Android che le notifiche dell'app siano attive, e che Non disturbare sia disattivato o gli avvisi critici attivi.
 - Controlla che il telefono compaia in **Notifiche push** in **Impostazioni utente → Metodi di notifica**, e inviagli una **Notifica di test**.
 - Se il telefono è segnato **Non riceve notifiche**, apri l'app da connesso. Registra di nuovo il telefono; vedi [Quando un telefono deve registrarsi di nuovo](/docs/mobile-desktop-apps/faq-troubleshooting#quando-un-telefono-deve-registrarsi-di-nuovo).
-- Controlla le tue regole di reperibilità in **Impostazioni utente → Regole di reperibilità**.
+- Controlla le tue regole di reperibilità in **Impostazioni utente → Come contattarmi**.
 - Su un OneUptime self-hosted, controlla che il server raggiunga il suo relay push: vedi [Notifiche push](/docs/self-hosted/push-notifications#accesso-di-rete).
 :::
 

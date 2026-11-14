@@ -5,7 +5,7 @@ A DNSSEC monitor checks that a signed DNS zone still validates: that it publishe
 :::cards
 - [Create the monitor](#create-a-dnssec-monitor): Six steps in the dashboard.
 - [What is checked](#how-it-works): The checks behind a valid chain.
-- [Monitoring criteria](#monitoring-criteria): Chain validity, keys, DS records, signatures, resolvers and nameservers.
+- [Criteria](#criteria): Chain validity, keys, DS records, signatures, resolvers and nameservers.
 - [Best practices](#best-practices): Thresholds and resolvers that work.
 :::
 
@@ -66,7 +66,7 @@ Click **Test Monitor**, pick a probe under **Select Probe** and click **Run Test
 
 ### Review the criteria
 
-**Monitor Criteria** starts with the [default criteria](#default-criteria): offline when the chain is broken, online when it is valid. To be warned before signatures expire, add a criteria (see [Best practices](#best-practices)), then click **Next**.
+The **Criteria** card starts with the [default criteria](#default-criteria): offline when the chain is broken, online when it is valid. To be warned before signatures expire, add a criteria (see [Best practices](#best-practices)), then click **Next**.
 
 ### Pick probes and create
 
@@ -84,7 +84,7 @@ Keep or change the **Probes** and the **Monitoring Interval** (it starts at **Ev
 | **Timeout (ms)** (under **More fields**) | `10000` | How long to wait for each DNS query, in milliseconds. One attempt may take up to three times this long in all. |
 | **Retries** (under **More fields**) | `3` | Retries after the first attempt fails. `0` means a single attempt. |
 
-## Monitoring Criteria
+## Criteria
 
 Criteria decide when the zone counts as online, degraded or offline, and whether that declares an incident or creates an alert. Each criteria checks one or more filters:
 

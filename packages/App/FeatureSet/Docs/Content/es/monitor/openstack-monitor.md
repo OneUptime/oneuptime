@@ -57,7 +57,7 @@ Un monitor nuevo empieza con **Cloud Stopped Reporting**, en **Sobre qué alerta
 
 ### Revisa los criterios
 
-Abre cada criterio en **Criterios del monitor** y comprueba su **Métrica**, **Agregación**, **Condición** y **Umbral**. Una plantilla los rellena. Con **Custom Metric** o **Avanzado**, el monitor empieza con los criterios por defecto, que solo detectan que la métrica deja de enviar datos, así que define tu propio umbral.
+Abre cada criterio en **Criterios** y comprueba su **Métrica**, **Agregación**, **Condición** y **Umbral**. Una plantilla los rellena. Con **Custom Metric** o **Avanzado**, el monitor empieza con los criterios por defecto, que solo detectan que la métrica deja de enviar datos, así que define tu propio umbral.
 
 ### Crea el monitor
 

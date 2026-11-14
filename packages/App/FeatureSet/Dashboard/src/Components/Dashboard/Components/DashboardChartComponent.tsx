@@ -32,6 +32,21 @@ import DashboardChartType from "Common/Types/Dashboard/Chart/ChartType";
 import DashboardVariableInterpolation from "Common/Utils/Dashboard/VariableInterpolation";
 import ExplorerLink from "../../Metrics/Utils/ExplorerLink";
 import { isPublicDashboard } from "../Utils/PublicDashboardContext";
+import {
+  useDashboardWidgetPlace,
+  useIsDashboardWidgetPreview,
+} from "./DashboardWidgetPreview";
+import {
+  DASHBOARD_WIDGET_SETUP_LINE_CLASS_NAME,
+  DASHBOARD_WIDGET_SETUP_LINE_TEST_ID,
+  DashboardWidgetSetupNeed,
+  getDashboardWidgetSetupLine,
+} from "./DashboardWidgetSetupCopy";
+import {
+  isMetricWidgetQuerySet,
+  withAverageWhenNotAggregated,
+} from "./MetricWidgetQuery";
+import DashboardWidgetLine from "./DashboardWidgetLine";
 import InvestigationDrawer from "../../Telemetry/LazyInvestigationDrawer";
 import useEventTimeReferenceLines, {
   EventTimeReferenceLines,
@@ -88,8 +103,13 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
     if (additionalQueryConfigs && additionalQueryConfigs.length > 0) {
       configs.push(...additionalQueryConfigs);
     }
+    /*
+     * A query that names no aggregation is drawn as its average, as its
+     * settings show it (withAverageWhenNotAggregated): the read, the
+     * chart's own details and Open in Metric Explorer all read it so.
+     */
     return DashboardVariableInterpolation.applyToQueryConfigs(
-      configs,
+      configs.map(withAverageWhenNotAggregated),
       props.variables,
     );
   }, [primaryQueryConfig, additionalQueryConfigs, props.variables]);
@@ -194,22 +214,14 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
       return;
     }
 
-    if (
-      !data.queryConfigs ||
-      data.queryConfigs.length === 0 ||
-      !data.queryConfigs[0] ||
-      !data.queryConfigs[0].metricQueryData ||
-      !data.queryConfigs[0].metricQueryData.filterData ||
-      Object.keys(data.queryConfigs[0].metricQueryData.filterData).length === 0
-    ) {
+    /*
+     * Nothing to read until a metric is picked: the widget says so in its
+     * place (isMetricPicked below), and an earlier read's error has nothing
+     * left to be about.
+     */
+    if (!isMetricWidgetQuerySet(data.queryConfigs?.[0])) {
       setIsLoading(false);
-      setError("Please select a metric. Click here to add a metric.");
-      return;
-    }
-
-    if (!data.queryConfigs[0].metricQueryData.filterData?.aggegationType) {
-      setIsLoading(false);
-      setError("Please select a aggregation. Click here to add a aggregation.");
+      setError("");
       return;
     }
 
@@ -388,15 +400,25 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
   const isPlayback: boolean = Boolean(props.isPlayback);
 
   /*
+   * The widget settings' live preview (issue #6859) is drawn over a board
+   * being edited: whatever would take the reader to another page - Open in
+   * Explorer, Investigate's links, a series' menu, an exemplar's, an
+   * incident's marker - would take the unsaved widgets with it. It draws
+   * the chart, and its zoom, with none of them.
+   */
+  const isPreview: boolean = useIsDashboardWidgetPreview();
+
+  /*
    * "Open in Explorer" deep link for this widget's queries. Suppressed on
    * the unauthenticated public dashboard (no project session, so the
-   * explorer route would just bounce to login), in edit mode (a
-   * navigation mid-edit would drop unsaved dashboard changes) and in a
-   * playlist's turn.
+   * explorer route would just bounce to login), in edit mode and in the
+   * live preview (a navigation mid-edit would drop unsaved dashboard
+   * changes) and in a playlist's turn.
    */
   const showOpenInExplorer: boolean =
     !isPublicDashboard() &&
     !props.isEditMode &&
+    !isPreview &&
     !isPlayback &&
     queryConfigs.length > 0;
 
@@ -449,6 +471,18 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
   const enableChartZoom: boolean = !props.isEditMode && !isPlayback;
 
   /*
+   * Until a metric is picked the chart draws what it needs instead of an
+   * empty plot, in words for where it is drawn: a click opens its settings
+   * only on the board being edited, its settings are right below it in the
+   * Live Preview, and a reader is only told what is missing (issue #7160).
+   */
+  const isMetricPicked: boolean = isMetricWidgetQuerySet(queryConfigs[0]);
+  const setupMessage: string = getDashboardWidgetSetupLine(
+    DashboardWidgetSetupNeed.Metric,
+    useDashboardWidgetPlace(props.isEditMode),
+  );
+
+  /*
    * Only offer double-click-to-reset while there is a zoom to undo. The
    * chart library delays single clicks to tell them apart from a
    * double-click, so an always-on handler would tax every bucket click
@@ -465,7 +499,7 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
    * they follow the same gating as the Open in Explorer button.
    */
   const enableSeriesActions: boolean =
-    !isPublicDashboard() && !props.isEditMode && !isPlayback;
+    !isPublicDashboard() && !props.isEditMode && !isPreview && !isPlayback;
 
   /*
    * Incident/alert/change-event markers for this widget's window (the
@@ -479,7 +513,42 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
       window: effectiveStartAndEndDate,
       queryConfigs: queryConfigs,
       refreshTick: props.refreshTick,
+      opensEvents: !isPreview,
     });
+
+  /*
+   * The setup prompt outranks the loading skeleton and the error, as on
+   * the Value and Gauge widgets: there is nothing to load, and nothing
+   * left to be wrong about.
+   */
+  if (!isMetricPicked) {
+    const setupTitle: string =
+      props.component.arguments.chartTitle?.trim() ||
+      translator.translateText("Chart") ||
+      "Chart";
+
+    return (
+      <div className="flex flex-col items-center justify-center w-full h-full gap-1.5">
+        <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center">
+          <div className="h-5 w-5 text-indigo-300">
+            <Icon icon={IconProp.ChartBar} />
+          </div>
+        </div>
+        <DashboardWidgetLine
+          as="p"
+          text={setupTitle}
+          className="text-xs font-medium text-gray-500 max-w-full truncate px-1"
+          title={setupTitle}
+        />
+        <p
+          className={DASHBOARD_WIDGET_SETUP_LINE_CLASS_NAME}
+          data-testid={DASHBOARD_WIDGET_SETUP_LINE_TEST_ID}
+        >
+          {translator.translateText(setupMessage)}
+        </p>
+      </div>
+    );
+  }
 
   if (isLoading && metricResults.length === 0) {
     // Skeleton loading for chart - only on initial load
@@ -512,7 +581,9 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
             <Icon icon={IconProp.ChartBar} />
           </div>
         </div>
-        <p className="text-xs text-gray-400 text-center max-w-48">{error}</p>
+        <p className="text-xs text-gray-400 text-center max-w-48">
+          {translator.translateText(error) || error}
+        </p>
       </div>
     );
   }
@@ -711,6 +782,7 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
           hideCard={true}
           topNOverrideScope={topNOverrideScope}
           enableSeriesActions={enableSeriesActions}
+          enableExemplarActions={!isPreview}
           chartSyncId={props.chartSyncId}
           timeReferenceLines={
             eventReferenceLines.length > 0 ? eventReferenceLines : undefined

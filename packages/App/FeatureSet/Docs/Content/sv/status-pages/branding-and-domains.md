@@ -2,6 +2,9 @@
 
 Din statussida är den enda skärmen i OneUptime som dina kunder tittar på, så den bör se ut som din egen och ligga på din egen domän, som `status.yourcompany.com`. Den här sidan går igenom sidan **Varumärke** kort för kort och lägger sedan statussidan på din domän: lägg till domänen, lägg till dess DNS-poster, så följer det kostnadsfria SSL-certifikatet av sig självt.
 
+> [!TIP]
+> Ny här? Följ guiden först: [Publicera en statussida](/docs/guides/status-page).
+
 :::cards
 - [Sidan Varumärke](#sidan-varumärke): Logotyp, tema, titel, favicon, länkar, sidfot, färger och språk.
 - [Anpassad HTML, CSS och JavaScript](#anpassad-html-css-och-javascript): Allt som de inbyggda inställningarna inte täcker.

@@ -158,7 +158,7 @@ Un episodio aperto da un avviso privato non è privato, quindi non mostra mai il
 
 ## Chi viene a sapere di un avviso
 
-- **Chi è reperibile.** Le policy di reperibilità dell'avviso chiamano le loro persone, ciascuna nel modo impostato in **Impostazioni utente → Regole di reperibilità**, nella scheda **Avvisi**. Rispondere alla chiamata riconosce l'avviso, e le chiamate si fermano.
+- **Chi è reperibile.** Le policy di reperibilità dell'avviso chiamano le loro persone, ciascuna nel modo impostato in **Impostazioni utente → Come contattarmi**, nella scheda **Avvisi**. Rispondere alla chiamata riconosce l'avviso, e le chiamate si fermano.
 - **I suoi proprietari.** Per e-mail, a meno che non abbiano scelto altri canali in **Impostazioni utente → Impostazioni notifiche**, nella scheda **Avvisi**: **Avviso creato**, **Stato dell'avviso modificato** e **Promemoria avviso** sono attivi per impostazione predefinita, mentre **Nota dell'avviso pubblicata** e **Aggiunto come proprietario dell'avviso** restano disattivati finché qualcuno non li attiva. Un avviso senza proprietari notifica invece i proprietari del progetto.
 - **I vostri strumenti di chat.** **Avvisi → Area di lavoro** contiene le regole di Slack e Microsoft Teams che pubblicano avvisi ed episodi nei canali. Vedere [Slack](/docs/workspace-connections/slack) e [Microsoft Teams](/docs/workspace-connections/microsoft-teams).
 

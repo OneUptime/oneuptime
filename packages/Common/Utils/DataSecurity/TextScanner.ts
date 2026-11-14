@@ -17,8 +17,8 @@ import BUILT_IN_DETECTORS from "./Detectors/Index";
  * wherever it sits, and a match is kept only by the window it starts in, so
  * none is counted twice. Windows bound what one regular expression sees,
  * which keeps V8's backtracking shallow however long the text is
- * (AGENTS.md, "Megabyte-long values"), and MAX_SCANNED_TEXT_LENGTH bounds
- * the work one value can ask for.
+ * (Docs/notifications/README.md, "Megabyte-long values"), and
+ * MAX_SCANNED_TEXT_LENGTH bounds the work one value can ask for.
  */
 
 export const WINDOW_SIZE: number = 65_536;

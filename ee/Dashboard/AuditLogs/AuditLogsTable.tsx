@@ -35,6 +35,7 @@ import {
   getAuditLogsQuery,
   getResourceLink,
   getResourceMeta,
+  getResourceTypeLabel,
 } from "@oneuptime/dashboard/Components/AuditLogs/AuditLogsTableUtils";
 import { AuditLogsTableProps } from "@oneuptime/dashboard/Enterprise/EnterprisePlugins";
 import AuditLogAction from "Common/Types/AuditLog/AuditLogAction";
@@ -532,7 +533,7 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
                   <div className="flex flex-col min-w-0">
                     {linkedNameEl}
                     <span className="text-[11px] text-gray-500">
-                      {type || "Resource"}
+                      {getResourceTypeLabel(type)}
                     </span>
                   </div>
                 </div>
@@ -762,7 +763,11 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
           setDetailItem(null);
         }}
         action={detailItem?.action || ""}
-        resourceType={detailItem?.resourceType}
+        resourceType={
+          detailItem?.resourceType
+            ? getResourceTypeLabel(detailItem.resourceType)
+            : undefined
+        }
         resourceName={detailItem?.resourceName}
         changes={detailItem?.changes}
       />

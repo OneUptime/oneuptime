@@ -390,7 +390,9 @@ describe.each(FETCH_CASES)("$componentName", (fetchCase: FetchCase) => {
     {
       failure: "a 502 from the gateway",
       error: new HTTPErrorResponse(502, { message: "Bad Gateway" }, {}),
-      message: "Error connecting to server. Please try again in few minutes.",
+      // Drawn as what happened and what to do next (#6836).
+      message:
+        "The OneUptime server did not answer. It may be starting or restarting. Try again in a few minutes.",
     },
   ])(
     "when the lookup fails with $failure it shows the friendly message and no pill",

@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import Route from "Common/Types/API/Route";
 import { STATE_SETTINGS_COPY } from "../../../Components/StateSettings/StateSettingsCopy";
 import {
   getStateSettingsColumns,
@@ -51,6 +52,10 @@ const IncidentSeveritiesPage: FunctionComponent<
         dragDropIndexField="order"
         sortBy="order"
         sortOrder={SortOrder.Ascending}
+        /* The docs page for this list (#6822): the severities every project starts with, and how to change them. */
+        documentationLink={Route.fromString(
+          "/docs/incidents/states-and-severities#the-seeded-severities",
+        )}
         cardProps={{
           title: STATE_SETTINGS_COPY[StateListType.IncidentSeverity].title,
           description:

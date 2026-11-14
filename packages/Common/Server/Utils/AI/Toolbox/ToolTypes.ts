@@ -12,6 +12,7 @@ import Permission from "../../../../Types/Permission";
 import {
   AIChatCitationTarget,
   AIChatWidget,
+  AIToolRefusal,
 } from "../../../../Types/AI/AIChatTypes";
 import { CodeRepositoryAllowance } from "../../../../Types/CodeRepository/CodeRepositoryAllowance";
 import { AIChatPageContext } from "../../../../Types/AI/AIChatPageContext";
@@ -55,6 +56,51 @@ export interface ToolContext {
    * change is saved by.
    */
   recordsSeen?: ReadonlyArray<AIChatRecordSeen> | undefined;
+  /*
+   * The setup actions the model asked for in the same answer as the call
+   * being prepared or checked, itself included, in the order it asked
+   * (#6829): one plan, approved on one card. A status page that shows a
+   * monitor the same plan sets up first names it as new, rather than as a
+   * monitor the project does not have. Handed to a prepare and a check
+   * only, never to a run: by then the monitor exists, or was skipped.
+   */
+  plannedCalls?: ReadonlyArray<PlannedToolCall> | undefined;
+}
+
+// A tool call of the answer being prepared (ToolContext.plannedCalls).
+export interface PlannedToolCall {
+  name: string;
+  arguments: JSONObject;
+}
+
+/*
+ * Why a setup action is not proposed at all (ObservabilityTool.
+ * checkBeforeApproval): what is missing - a permission, an address that is
+ * not one, monitors the project does not have, paging the project has set
+ * up already - said before a card is shown, never after the person approved
+ * it.
+ */
+export interface SetupActionRefusal {
+  // What the model is told instead of a card: what is needed, plainly.
+  toldModel: string;
+  // Set when it is the person's permissions or the project's plan.
+  refusal?: AIToolRefusal | undefined;
+}
+
+/*
+ * A setup action (#6829): it makes something that pages people or that
+ * customers see, so it waits for a person's approval in every permission
+ * mode, Auto-run included (ChatAgentRunner), and is checked before its card
+ * is shown (checkBeforeApproval).
+ */
+export interface SetupActionInfo {
+  /*
+   * Where the action runs in its plan once approved, lowest first: who is
+   * paged, then what is checked, then where it is shown - so a status page
+   * finds the monitor the same plan set up, whatever order the model asked
+   * in.
+   */
+  planOrder: number;
 }
 
 /*
@@ -193,6 +239,25 @@ export interface ObservabilityTool {
    */
   prepareMutation?:
     | ((args: JSONObject, ctx: ToolContext) => Promise<PreparedMutation>)
+    | undefined;
+  /*
+   * Set on Ask AI's setup actions (#6829, SetupTools): they ask for
+   * approval in every mode, and run in their plan's order once approved.
+   */
+  setupAction?: SetupActionInfo | undefined;
+  /*
+   * For a setup action: why it cannot be proposed, read with the person's
+   * props from the prepared arguments, before any card is shown - null
+   * when nothing stops it. The toolbox's own gates (the person, the
+   * project, the permissions) are checked first
+   * (AIToolbox.checkBeforeApproval). Never throws: a read that fails lets
+   * the card show, and running the action says what went wrong.
+   */
+  checkBeforeApproval?:
+    | ((
+        args: JSONObject,
+        ctx: ToolContext,
+      ) => Promise<SetupActionRefusal | null>)
     | undefined;
   execute(args: JSONObject, ctx: ToolContext): Promise<ToolExecutionResult>;
 }

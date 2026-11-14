@@ -1,5 +1,6 @@
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
-import { dashboardLabel, drawnDashboardLabel } from "./DocsDashboardLabels";
+import { drawnDashboardLabel } from "./DocsDashboardLabels";
+import { pathWithArrows } from "./DocsPageShape";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -20,8 +21,9 @@ import path from "path";
  * The panel draws its section titles and block names in the reader's
  * language (PickerItems' SectionHeading), so the workflow pages quote them
  * as that language's Dashboard draws them, Popular as Beliebt in German. The
- * incident settings page, which another docs task rewrites, still quotes
- * them in English and is held to that here.
+ * incident settings page does too: the Add Trigger panel's title
+ * (WorkflowAddButton's translationKey) and a resource's name, Incident as
+ * Vorfall, are drawn in the reader's language as well (#7100).
  */
 
 const CONTENT_DIR: string = path.resolve(
@@ -37,6 +39,11 @@ const PICKER_SOURCE: string = path.resolve(
 const PICKER_ITEMS_SOURCE: string = path.resolve(
   __dirname,
   "../../../../Common/UI/Components/Workflow/ComponentPicker/PickerItems.tsx",
+);
+
+const ADD_BUTTON_SOURCE: string = path.resolve(
+  __dirname,
+  "../../../../Common/UI/Components/Workflow/WorkflowAddButton.ts",
 );
 
 const LANGUAGES: Array<string> = [...SUPPORTED_DOCS_LANGUAGE_CODES];
@@ -104,8 +111,17 @@ describe("docs for the Add Component and Add Trigger panels", () => {
     expect(source).not.toContain('submitButtonText="Add to Workflow"');
 
     // The section titles are drawn through the translator.
-    expect(fs.readFileSync(PICKER_ITEMS_SOURCE, "utf8")).toContain(
-      "{translator.translateText(props.title)}",
+    const items: string = fs.readFileSync(PICKER_ITEMS_SOURCE, "utf8");
+
+    expect(items).toContain("{translator.translateText(props.title)}");
+    // So is a resource's name, the tile and the A to Z row alike.
+    expect(
+      countOf(items, "{translator.translateText(props.resource.name)}"),
+    ).toBe(2);
+
+    // The Add Trigger panel's title is a translation key.
+    expect(fs.readFileSync(ADD_BUTTON_SOURCE, "utf8")).toContain(
+      'WORKFLOW_ADD_TRIGGER_TITLE: string = translationKey("Add Trigger")',
     );
   });
 
@@ -181,15 +197,26 @@ describe("docs for the Add Component and Add Trigger panels", () => {
         ["**On Create Incident**", "/dashboard/{projectId}/workflows"],
       );
 
-      expect(line).toContain("**Add Trigger**");
       /*
-       * The panel's own sections, as an incident page names its language's
-       * Dashboard (Persian incident pages keep its English names).
+       * The panel, its sections and the Incident resource, as the
+       * language's Dashboard draws them, with the arrow the language's pages
+       * draw between them ("←" before a Persian one, #7611).
        */
-      expect(line).toContain(dashboardLabel(language, "OneUptime resources"));
-      expect(line).toContain("Incident**");
-      expect(line).toContain(`**${dashboardLabel(language, "Popular")}**`);
-      expect(line).not.toContain("**Add Component**");
+      expect(line).toContain(drawn(language, "Add Trigger"));
+      expect(line).toContain(
+        pathWithArrows(
+          [drawn(language, "OneUptime resources"), drawn(language, "Incident")],
+          language,
+        ),
+      );
+      expect(line).toContain(drawn(language, "Popular"));
+      expect(line).not.toContain(drawn(language, "Add Component"));
+      // Never in English where the language's Dashboard draws other words.
+      for (const english of ["Add Trigger", "Incident"]) {
+        if (drawnDashboardLabel(language, english) !== english) {
+          expect(line).not.toContain(`**${english}**`);
+        }
+      }
     },
   );
 });

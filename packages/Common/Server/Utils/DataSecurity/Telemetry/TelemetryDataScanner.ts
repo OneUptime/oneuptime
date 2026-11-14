@@ -84,12 +84,12 @@ import {
  * per signal, records per owner (LIMIT n BY), records per read, attributes
  * and events per record, and the length of every value - cut in the
  * database, so no megabyte-long value leaves it, and the engine reads at
- * most MAX_FIELD_VALUE_LENGTH of anything (AGENTS.md, "Megabyte-long
- * values"). A sample is two statements: which owners have data in the
- * window, and their newest records - the record keys picked from the light
- * columns first (a GLOBAL IN of the newest LIMIT n BY), so the wide columns
- * are read for the sampled records only. Every value in them is bound as a
- * parameter.
+ * most MAX_FIELD_VALUE_LENGTH of anything (Docs/notifications/README.md,
+ * "Megabyte-long values"). A sample is two statements: which owners have data
+ * in the window, and their newest records - the record keys picked from the
+ * light columns first (a GLOBAL IN of the newest LIMIT n BY), so the wide
+ * columns are read for the sampled records only. Every value in them is bound
+ * as a parameter.
  *
  * A company AI tool's conversations (LlmConversationPrivacy) are read by
  * owners and admins only, and a finding lands where everyone who reads
@@ -181,9 +181,18 @@ export interface SourceDefinition {
   countExpression: string;
   // Pick the sampled records' keys from the light columns first.
   readsKeysFirst: boolean;
+  // The service the reads run through.
   runner: TelemetryQueryRunner;
 }
 
+/*
+ * Each source's service is a getter, read when a read runs, not when this
+ * file loads. The services import, through their hooks, code that imports
+ * this file (SpanService -> ResourceEntityFilter -> ... ->
+ * DataSecurityRunner -> here), so this file can load while one of them is
+ * still loading, and a service taken then is undefined: once SpanService
+ * loaded first, every span and AI call read failed, and none was scanned.
+ */
 const SOURCES: Readonly<Record<TelemetrySampleSource, SourceDefinition>> = {
   [TelemetrySampleSource.Logs]: {
     source: TelemetrySampleSource.Logs,
@@ -195,7 +204,9 @@ const SOURCES: Readonly<Record<TelemetrySampleSource, SourceDefinition>> = {
     owner: "service",
     countExpression: "count()",
     readsKeysFirst: true,
-    runner: LogService,
+    get runner(): TelemetryQueryRunner {
+      return LogService;
+    },
   },
   [TelemetrySampleSource.Traces]: {
     source: TelemetrySampleSource.Traces,
@@ -208,7 +219,9 @@ const SOURCES: Readonly<Record<TelemetrySampleSource, SourceDefinition>> = {
     llmSpans: false,
     countExpression: "count()",
     readsKeysFirst: true,
-    runner: SpanService,
+    get runner(): TelemetryQueryRunner {
+      return SpanService;
+    },
   },
   [TelemetrySampleSource.Exceptions]: {
     source: TelemetrySampleSource.Exceptions,
@@ -220,7 +233,9 @@ const SOURCES: Readonly<Record<TelemetrySampleSource, SourceDefinition>> = {
     owner: "service",
     countExpression: "count()",
     readsKeysFirst: true,
-    runner: ExceptionInstanceService,
+    get runner(): TelemetryQueryRunner {
+      return ExceptionInstanceService;
+    },
   },
   [TelemetrySampleSource.AiConversations]: {
     source: TelemetrySampleSource.AiConversations,
@@ -233,7 +248,9 @@ const SOURCES: Readonly<Record<TelemetrySampleSource, SourceDefinition>> = {
     llmSpans: true,
     countExpression: "count()",
     readsKeysFirst: true,
-    runner: SpanService,
+    get runner(): TelemetryQueryRunner {
+      return SpanService;
+    },
   },
   [TelemetrySampleSource.RumLogs]: {
     source: TelemetrySampleSource.RumLogs,
@@ -245,7 +262,9 @@ const SOURCES: Readonly<Record<TelemetrySampleSource, SourceDefinition>> = {
     owner: "rum",
     countExpression: "count()",
     readsKeysFirst: true,
-    runner: LogService,
+    get runner(): TelemetryQueryRunner {
+      return LogService;
+    },
   },
   [TelemetrySampleSource.RumSpans]: {
     source: TelemetrySampleSource.RumSpans,
@@ -257,7 +276,9 @@ const SOURCES: Readonly<Record<TelemetrySampleSource, SourceDefinition>> = {
     owner: "rum",
     countExpression: "count()",
     readsKeysFirst: true,
-    runner: SpanService,
+    get runner(): TelemetryQueryRunner {
+      return SpanService;
+    },
   },
   [TelemetrySampleSource.RumSessions]: {
     source: TelemetrySampleSource.RumSessions,
@@ -271,7 +292,9 @@ const SOURCES: Readonly<Record<TelemetrySampleSource, SourceDefinition>> = {
     countExpression: "uniq(sessionId)",
     // A narrow table: its records are read in one pass.
     readsKeysFirst: false,
-    runner: RumSessionService,
+    get runner(): TelemetryQueryRunner {
+      return RumSessionService;
+    },
   },
 };
 

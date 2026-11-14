@@ -1,4 +1,4 @@
-# Continue profilering
+# Profielen
 
 Continue profilering laat zien waaraan uw applicatie CPU-tijd en geheugen besteedt, functie voor functie. OneUptime biedt een **met Pyroscope compatibele ingest-API**, dus alles wat naar een Pyroscope-server kan sturen (de eBPF-profiler van Grafana Alloy of een Pyroscope-SDK voor uw taal) kan naar OneUptime sturen, en u leest het resultaat als flame graphs naast uw logboeken, metrieken en traces.
 
@@ -11,7 +11,7 @@ Continue profilering laat zien waaraan uw applicatie CPU-tijd en geheugen bestee
 
 ## Hoe het werkt
 
-Een profiler neemt steekproeven van uw processen en uploadt om de paar seconden een profiel naar het endpoint `/pyroscope` van OneUptime, met uw ingestiesleutel. OneUptime slaat elk profiel op onder de service die het noemt en tekent het als flame graph onder **Prestatieprofielen**.
+Een profiler neemt steekproeven van uw processen en uploadt om de paar seconden een profiel naar het endpoint `/pyroscope` van OneUptime, met uw ingestiesleutel. OneUptime slaat elk profiel op onder de service die het noemt en tekent het als flame graph onder **Profielen**.
 
 ```mermaid title="Hoe profielen bij OneUptime komen"
 flowchart TB
@@ -270,7 +270,7 @@ Een geldig token geeft `200` met `{"valid": true, ...}`, en de `keyType` ervan m
 
 ### De profielpagina openen
 
-Ga in het OneUptime-dashboard naar **Producten → Prestatieprofielen**. Met het verzamelinterval van 15 seconden van Alloy (of het uploadinterval van 10 tot 15 seconden van de SDK's) verschijnen de eerste profielen en hun flame graphs binnen een of twee minuten na het starten van de agent.
+Ga in het OneUptime-dashboard naar **Producten → Profielen**. Met het verzamelinterval van 15 seconden van Alloy (of het uploadinterval van 10 tot 15 seconden van de SDK's) verschijnen de eerste profielen en hun flame graphs binnen een of twee minuten na het starten van de agent.
 
 ### De service controleren
 
@@ -283,7 +283,7 @@ Zet bij de .NET-profiler een minuut lang `DD_TRACE_DEBUG=1` op de applicatie: da
 
 ## Profielen verkennen in OneUptime
 
-**Producten → Prestatieprofielen** opent de Profiler op zijn **Overzicht**. Die antwoordt in woorden voordat er een grafiek komt: waar de tijd heen gaat ("In checkout neemt JSON.parse 42% van de CPU-tijd in.") en, wanneer de drukste functie van een bibliotheek of de runtime is, welke functie van uw eigen code het meest inneemt, met de bibliotheek- en runtimecode die ze aanroept. Kies bovenaan een service, een soort profiel waarvoor ze gegevens heeft (**CPU-tijd**, **Kloktijd**, **Geheugen**, **Allocaties**, **Locks** of **Goroutines**, of één type onder **Meer profieltypen**) en een tijdvenster.
+**Producten → Profielen** opent de Profiler op zijn **Overzicht**. Die antwoordt in woorden voordat er een grafiek komt: waar de tijd heen gaat ("In checkout neemt JSON.parse 42% van de CPU-tijd in.") en, wanneer de drukste functie van een bibliotheek of de runtime is, welke functie van uw eigen code het meest inneemt, met de bibliotheek- en runtimecode die ze aanroept. Kies bovenaan een service, een soort profiel waarvoor ze gegevens heeft (**CPU-tijd**, **Kloktijd**, **Geheugen**, **Allocaties**, **Locks** of **Goroutines**, of één type onder **Meer profieltypen**) en een tijdvenster.
 
 | Kaart | Wat die toont |
 | --- | --- |
@@ -319,7 +319,7 @@ Wanneer een profiel trace- en span-ID's draagt (bijvoorbeeld als samplelabels `t
 
 Het tabblad **Profielsamples** van een span bevat ook de samples die gekoppeld zijn aan de spans die eronder zijn genest, omdat profilers de CPU-tijd van een verzoek vaak aan een kindspan toekennen in plaats van aan de span van het verzoek zelf.
 
-De pagina van een trace linkt ook naar de Profiler op de service van de trace, voor de 15 minuten ervoor en erna, wanneer die service toen werd geprofileerd, en de pagina **Prestatieprofielen** van een service of host opent de Profiler op die service of host.
+De pagina van een trace linkt ook naar de Profiler op de service van de trace, voor de 15 minuten ervoor en erna, wanneer die service toen werd geprofileerd, en de pagina **Profielen** van een service of host opent de Profiler op die service of host.
 
 ## Trage code vinden en oplossen met AI
 
@@ -332,7 +332,7 @@ Een functie van uw eigen code wordt vastgelegd als de dienst in het afgelopen uu
 
 ### Inschakelen
 
-**Producten → Prestatieprofielen → AI → Instellingen** bevat de schakelaar **Trage code vinden en oplossen**, die voor nieuwe projecten aan staat. Staat **AI inschakelen** uit, dan wordt trage code nog gevonden, maar doet OneUptime AI er niets mee. Om pull requests te openen heeft OneUptime AI een repository nodig die in [Code](/docs/ai/ai-agent) is gekoppeld: de pagina zegt eerst wat ontbreekt. De code van elke repository wordt gewijzigd op de Runner die de repository in Code kiest.
+**Producten → Profielen → AI → Instellingen** bevat de schakelaar **Trage code vinden en oplossen**, die voor nieuwe projecten aan staat. Staat **AI inschakelen** uit, dan wordt trage code nog gevonden, maar doet OneUptime AI er niets mee. Om pull requests te openen heeft OneUptime AI een repository nodig die in [Code](/docs/ai/ai-agent) is gekoppeld: de pagina zegt eerst wat ontbreekt. De code van elke repository wordt gewijzigd op de Runner die de repository in Code kiest.
 
 OneUptime AI opent zelf maximaal 5 pull requests per dag (UTC), één per bevinding, en nooit meer dan de limiet van een repository voor open AI-pull requests.
 
@@ -350,8 +350,8 @@ Onder **Meer velden** kiest een regel de coderepositories, de MCP-servers en de 
 
 ### Zien wat het deed
 
-- **Producten → Prestatieprofielen → AI → Inzichten** toont de gevonden trage code, elke bevinding met haar bewijs en **Openen in Profiler**.
-- **Producten → Prestatieprofielen → AI → Logboeken** toont elk onderzoek en elke pull request, nieuwste eerst, met hoe elk ervoor staat en wat elk onderzoek vond.
+- **Producten → Profielen → AI → Inzichten** toont de gevonden trage code, elke bevinding met haar bewijs en **Openen in Profielen**.
+- **Producten → Profielen → AI → Logboeken** toont elk onderzoek en elke pull request, nieuwste eerst, met hoe elk ervoor staat en wat elk onderzoek vond.
 - In Code zegt de taak dat OneUptime haar startte, met een link naar haar bevinding, en de pull request zegt waarom hij werd geopend.
 
 ## Gegevensbewaring

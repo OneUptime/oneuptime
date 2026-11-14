@@ -18,6 +18,8 @@ import {
   CustomizableColumn,
 } from "../../../../UI/Components/ModelTable/ColumnPreference";
 import FieldType from "../../../../UI/Components/Types/FieldType";
+import { TABLE_EMPTY_VALUE_TEST_ID } from "../../../../UI/Components/Table/TableEmptyValue";
+import { EMPTY_VALUE_MARK } from "../../../../UI/Components/Detail/EmptyValue";
 import SecurityEvent from "../../../../Models/AnalyticsModels/SecurityEvent";
 import { JSONObject } from "../../../../Types/JSON";
 import "@testing-library/jest-dom";
@@ -266,10 +268,28 @@ describe("AttributeColumns - rendering", () => {
     );
   });
 
-  test("a missing value renders the placeholder rather than nothing", () => {
+  test("a missing value is the quiet dash every empty cell is, not a hyphen of its own", () => {
     const { container } = render(renderAttributeValue({ value: undefined }));
+    const empty: HTMLElement | null = container.querySelector(
+      `[data-testid="${TABLE_EMPTY_VALUE_TEST_ID}"]`,
+    );
 
-    expect(container.textContent).toBe("-");
+    // #7264: a '-' of its own was darker, with nothing for a screen reader.
+    expect(empty).not.toBeNull();
+    expect(container.textContent).toBe(`${EMPTY_VALUE_MARK}Not set`);
+  });
+
+  test("a dash for words is the quiet dash too", () => {
+    for (const dash of ["-", "\u2013", "\u2014"]) {
+      const { container } = render(
+        renderAttributeValue({ value: null, noValueMessage: dash }),
+      );
+
+      expect(
+        container.querySelector(`[data-testid="${TABLE_EMPTY_VALUE_TEST_ID}"]`),
+      ).not.toBeNull();
+      cleanup();
+    }
   });
 
   test("the placeholder is configurable", () => {
@@ -350,12 +370,15 @@ describe("AttributeColumns - generated column shape", () => {
     expect(container.textContent).toBe("web-1");
   });
 
-  test("the cell renders the placeholder for a row that lacks the key", () => {
+  test("the cell is the quiet dash for a row that lacks the key", () => {
     const { container } = render(
       column.getElement!(makeEvent({ "user.name": "bob" })),
     );
 
-    expect(container.textContent).toBe("-");
+    expect(
+      container.querySelector(`[data-testid="${TABLE_EMPTY_VALUE_TEST_ID}"]`),
+    ).not.toBeNull();
+    expect(container.textContent).toBe(`${EMPTY_VALUE_MARK}Not set`);
   });
 
   test("the export cell reads the same key the rendered cell does", () => {

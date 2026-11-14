@@ -15,7 +15,9 @@ import {
 import Route from "Common/Types/API/Route";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
+import ErrorExplanation from "Common/UI/Components/ErrorMessage/ErrorExplanation";
 import Icon from "Common/UI/Components/Icon/Icon";
+import { UNEXPLAINED_ERROR_MESSAGES } from "Common/Types/Exception/UnexplainedError";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -160,10 +162,14 @@ const ProjectHealthCard: FunctionComponent<ComponentProps> = (
                 data-testid="home-health-error"
                 className="mt-1 max-w-2xl break-words text-sm text-gray-600"
               >
-                {props.error ||
-                  translator.translateText(
-                    "Something went wrong. Please try again.",
-                  )}
+                {/*
+                 * What failed is the heading above; nobody's explanation
+                 * says what to do next, with the reference to give (#6836).
+                 */}
+                <ErrorExplanation
+                  message={props.error || UNEXPLAINED_ERROR_MESSAGES.server}
+                  hideWhatFailed={true}
+                />
               </p>
               <button
                 type="button"

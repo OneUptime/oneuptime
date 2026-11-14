@@ -267,7 +267,7 @@ export const DEVICE_STATUS_FACET_OPTIONS: Array<FilterChipDropdownOption> = [
     value: DeviceStatusFacetValue.Pending,
     label: "Pending",
     sublabel:
-      "No verdict yet — never polled, no probe assigned, or no monitor bound",
+      "No verdict yet — never polled, no probe assigned, no monitor bound, or the bound monitor is turned off or archived",
   },
 ];
 

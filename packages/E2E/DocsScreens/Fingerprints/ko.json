@@ -1,0 +1,557 @@
+{
+  "home-goal-website": {
+    "text": [
+      "무엇부터 하시겠어요?",
+      "웹사이트나 API가 다운되면 알기",
+      "문제가 생기면 적절한 담당자 호출하기",
+      "상태 페이지로 고객에게 알리기",
+      "로그, 메트릭, 트레이스 보기",
+      "서버, Kubernetes 또는 클라우드 지켜보기",
+      "다른 도구에서 옮겨 오는 중입니다",
+      "그냥 둘러보는 중입니다",
+      "건너뛰기",
+      "계속",
+      "checkbox: on",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off"
+    ],
+    "outline": [
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "button: 건너뛰기",
+      "button: 계속"
+    ],
+    "width": 902,
+    "height": 366
+  },
+  "home-goal-paging": {
+    "text": [
+      "무엇부터 하시겠어요?",
+      "웹사이트나 API가 다운되면 알기",
+      "문제가 생기면 적절한 담당자 호출하기",
+      "상태 페이지로 고객에게 알리기",
+      "로그, 메트릭, 트레이스 보기",
+      "서버, Kubernetes 또는 클라우드 지켜보기",
+      "다른 도구에서 옮겨 오는 중입니다",
+      "그냥 둘러보는 중입니다",
+      "건너뛰기",
+      "계속",
+      "checkbox: off",
+      "checkbox: on",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off"
+    ],
+    "outline": [
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "button: 건너뛰기",
+      "button: 계속"
+    ],
+    "width": 902,
+    "height": 366
+  },
+  "home-goal-status-page": {
+    "text": [
+      "무엇부터 하시겠어요?",
+      "웹사이트나 API가 다운되면 알기",
+      "문제가 생기면 적절한 담당자 호출하기",
+      "상태 페이지로 고객에게 알리기",
+      "로그, 메트릭, 트레이스 보기",
+      "서버, Kubernetes 또는 클라우드 지켜보기",
+      "다른 도구에서 옮겨 오는 중입니다",
+      "그냥 둘러보는 중입니다",
+      "건너뛰기",
+      "계속",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: on",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off"
+    ],
+    "outline": [
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "button: 건너뛰기",
+      "button: 계속"
+    ],
+    "width": 902,
+    "height": 366
+  },
+  "home-goals-three": {
+    "text": [
+      "무엇부터 하시겠어요?",
+      "웹사이트나 API가 다운되면 알기",
+      "문제가 생기면 적절한 담당자 호출하기",
+      "상태 페이지로 고객에게 알리기",
+      "로그, 메트릭, 트레이스 보기",
+      "서버, Kubernetes 또는 클라우드 지켜보기",
+      "다른 도구에서 옮겨 오는 중입니다",
+      "그냥 둘러보는 중입니다",
+      "건너뛰기",
+      "계속",
+      "checkbox: on",
+      "checkbox: on",
+      "checkbox: on",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off"
+    ],
+    "outline": [
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "button: 건너뛰기",
+      "button: 계속"
+    ],
+    "width": 902,
+    "height": 366
+  },
+  "website-down-address": {
+    "text": [
+      "1",
+      "무엇을 확인할까요?",
+      "OneUptime이 여러 위치에서 5분마다 확인합니다. 응답이 없거나 오류로 응답하면 인시던트가 열립니다.",
+      "웹사이트 또는 API 주소",
+      "API 엔드포인트입니다",
+      "확인 시작",
+      "더 많은 모니터 유형",
+      "value: https://acme-commerce.example",
+      "checkbox: off"
+    ],
+    "outline": [
+      "field text: https://example.com",
+      "field checkbox: ",
+      "button: 확인 시작",
+      "link: 더 많은 모니터 유형"
+    ],
+    "width": 768,
+    "height": 278
+  },
+  "website-down-who": {
+    "text": [
+      "2",
+      "누구에게 알릴까요?",
+      "다운되면 OneUptime이 인시던트를 열고 이 사람들을 각자의 '나에게 연락하는 방법'대로 호출합니다. 가장 먼저 호출되는 사람은 본인이며, 이메일로 받습니다.",
+      "호출 대상",
+      "팀 멤버 추가",
+      "AL",
+      "Ada Lovelace",
+      "온콜 정책이 만들어집니다: \"Default on-call policy\". 이 프로젝트에서 새 인시던트와 경고가 생길 때마다 그들을 호출합니다.",
+      "저장하고 계속"
+    ],
+    "outline": [
+      "button: 팀 멤버 추가",
+      "button: Ada Lovelace 제거",
+      "button: 저장하고 계속"
+    ],
+    "width": 768,
+    "height": 302
+  },
+  "website-down-test": {
+    "text": [
+      "3",
+      "테스트 보내기",
+      "지금 자신에게 테스트 호출을 보냅니다. 실제 호출과 같은 방식으로 전송되며 모든 메시지에 TEST라고 표시됩니다. 완료하려면 메시지에서 인지하세요.",
+      "나에게 테스트 호출 보내기",
+      "테스트 건너뛰기"
+    ],
+    "outline": [
+      "button: 나에게 테스트 호출 보내기",
+      "button: 테스트 건너뛰기"
+    ],
+    "width": 768,
+    "height": 178
+  },
+  "website-down-summary": {
+    "text": [
+      "acme-commerce.example 설정 완료",
+      "확인 시각",
+      "5분마다, 2개 위치에서.",
+      "다운되면",
+      "응답이 없거나 오류로 응답하면 OneUptime이 인시던트(Critical Incident)를 엽니다.",
+      "알림 대상",
+      "온콜 정책 \"Default on-call policy\": 새 인시던트와 경고가 생길 때마다 호출하는 대상은 Ada Lovelace입니다. 이 모니터의 소유자이므로 상태가 바뀌면 이메일을 받습니다.",
+      "테스트 완료",
+      "Ada Lovelace 님이 14초 후 이메일로 인지했습니다.",
+      "다음 단계",
+      "상태 페이지에 표시",
+      "SMS 또는 전화로 호출 받기",
+      "모니터 열기",
+      "다른 주소 확인"
+    ],
+    "outline": [
+      "heading: acme-commerce.example 설정 완료",
+      "heading: 다음 단계",
+      "link: 상태 페이지에 표시",
+      "link: SMS 또는 전화로 호출 받기",
+      "link: 모니터 열기",
+      "button: 다른 주소 확인"
+    ],
+    "width": 768,
+    "height": 471
+  },
+  "paging-reach-you": {
+    "text": [
+      "1",
+      "어떻게 연락할까요?",
+      "호출은 확인된 모든 방법으로 전송됩니다. SMS와 전화를 받으려면 전화번호를 추가하세요.",
+      "이메일",
+      "이메일 · •••mple",
+      "SMS 및 전화",
+      "아직 전화번호가 없습니다.",
+      "이 프로젝트에서 SMS이(가) 꺼져 있어 이를 사용하는 호출이 발송되지 않습니다.",
+      "이 프로젝트에서 전화 통화이(가) 꺼져 있어 이를 사용하는 호출이 발송되지 않습니다.",
+      "SMS와 전화 요금은 이 프로젝트의 잔액에서 결제되며, 현재 잔액은 0.00 USD입니다. 번호를 추가하면 SMS가 전송되므로 잔액이 1.00 USD보다 많아야 합니다.",
+      "잔액 추가",
+      "SMS 및 전화 켜기",
+      "모바일 앱 또는 브라우저",
+      "설정되지 않았습니다.",
+      "알림 방법에서 OneUptime 앱을 받거나 이 브라우저의 알림을 켜세요.",
+      "앱 또는 이 브라우저 설정",
+      "계속",
+      "다시 확인"
+    ],
+    "outline": [
+      "button: 잔액 추가",
+      "button: SMS 및 전화 켜기",
+      "link: 앱 또는 이 브라우저 설정",
+      "button: 계속",
+      "button: 다시 확인"
+    ],
+    "width": 768,
+    "height": 592
+  },
+  "paging-phone": {
+    "text": [
+      "1",
+      "어떻게 연락할까요?",
+      "호출은 확인된 모든 방법으로 전송됩니다. SMS와 전화를 받으려면 전화번호를 추가하세요.",
+      "이메일",
+      "이메일 · •••mple",
+      "SMS 및 전화",
+      "아직 전화번호가 없습니다.",
+      "SMS와 전화 요금은 이 프로젝트의 잔액에서 결제되며, 현재 잔액은 20.00 USD입니다. 번호를 추가하면 SMS가 전송되므로 잔액이 1.00 USD보다 많아야 합니다.",
+      "내 전화번호",
+      "SMS로 코드 받기",
+      "모바일 앱 또는 브라우저",
+      "설정되지 않았습니다.",
+      "알림 방법에서 OneUptime 앱을 받거나 이 브라우저의 알림을 켜세요.",
+      "앱 또는 이 브라우저 설정",
+      "계속",
+      "다시 확인",
+      "placeholder: +15551234567"
+    ],
+    "outline": [
+      "field text: +15551234567",
+      "button: SMS로 코드 받기",
+      "link: 앱 또는 이 브라우저 설정",
+      "button: 계속",
+      "button: 다시 확인"
+    ],
+    "width": 768,
+    "height": 544
+  },
+  "paging-who-else": {
+    "text": [
+      "2",
+      "다른 온콜 담당자는 누구인가요?",
+      "온콜 정책이 만들어집니다: \"Default on-call policy\". 이 프로젝트에서 새 인시던트와 경고가 생길 때마다 이 사람들을 먼저 호출합니다.",
+      "먼저 호출",
+      "팀 멤버 추가",
+      "AL",
+      "Ada Lovelace",
+      "저장하고 계속"
+    ],
+    "outline": [
+      "button: 팀 멤버 추가",
+      "button: Ada Lovelace 제거",
+      "button: 저장하고 계속"
+    ],
+    "width": 768,
+    "height": 246
+  },
+  "paging-no-answer": {
+    "text": [
+      "3",
+      "아무도 응답하지 않으면?",
+      "호출은 누군가 확인할 때까지 기다립니다. 제때 아무도 확인하지 않으면:",
+      "다른 사람 호출",
+      "같은 사람을 다시 호출",
+      "더 이상 아무것도 하지 않음",
+      "대기 시간(분)",
+      "다음에 호출",
+      "팀 멤버 추가",
+      "GH",
+      "Grace Hopper",
+      "저장하고 계속",
+      "radio: on",
+      "radio: off",
+      "radio: off",
+      "value: 30"
+    ],
+    "outline": [
+      "field radio: ",
+      "field radio: ",
+      "field radio: ",
+      "field number: ",
+      "button: 팀 멤버 추가",
+      "button: Grace Hopper 제거",
+      "button: 저장하고 계속"
+    ],
+    "width": 768,
+    "height": 510
+  },
+  "paging-test": {
+    "text": [
+      "4",
+      "테스트 호출 보내기",
+      "지금 정책을 테스트하세요. 실제 인시던트처럼 첫 번째 에스컬레이션 규칙을 호출하며, 모든 메시지에 TEST가 표시됩니다. 마치려면 메시지에서 확인하세요.",
+      "이 정책 테스트",
+      "테스트 건너뛰기"
+    ],
+    "outline": [
+      "button: 이 정책 테스트",
+      "button: 테스트 건너뛰기"
+    ],
+    "width": 768,
+    "height": 178
+  },
+  "paging-summary": {
+    "text": [
+      "호출이 설정되었습니다",
+      "호출 대상",
+      "새 인시던트나 경고가 생길 때마다 \"Default on-call policy\"가 실행되어 Ada Lovelace (이메일, SMS, 전화 통화)을(를) 호출합니다.",
+      "아무도 응답하지 않으면",
+      "30분 안에 아무도 확인하지 않으면 Grace Hopper을(를) 호출합니다.",
+      "테스트 완료",
+      "Ada Lovelace 님이 14초 후 이메일로 인지했습니다.",
+      "다음 단계",
+      "온콜 일정으로 교대하기",
+      "Slack 또는 Microsoft Teams 연결",
+      "덜 긴급한 인시던트는 근무 시간에만 호출",
+      "호출할 수 있는 사람 보기",
+      "온콜 정책 열기",
+      "다른 정책 설정"
+    ],
+    "outline": [
+      "heading: 호출이 설정되었습니다",
+      "heading: 다음 단계",
+      "link: 온콜 일정으로 교대하기",
+      "link: Slack 또는 Microsoft Teams 연결",
+      "link: 덜 긴급한 인시던트는 근무 시간에만 호출",
+      "link: 호출할 수 있는 사람 보기",
+      "link: 온콜 정책 열기",
+      "button: 다른 정책 설정"
+    ],
+    "width": 768,
+    "height": 482
+  },
+  "status-page-pick": {
+    "text": [
+      "1",
+      "이름을 짓고 표시할 항목을 선택하세요",
+      "상태 페이지 이름",
+      "표시할 항목",
+      "선택한 각 모니터는 현재 상태와 가동 시간과 함께 페이지에 표시됩니다.",
+      "모두 선택",
+      "지우기",
+      "1개 중 1개 선택됨",
+      "Acme website",
+      "Operational",
+      "페이지는 만드는 즉시 공개됩니다. 링크가 있는 사람은 누구나 선택한 모니터의 상태를 볼 수 있습니다.",
+      "상태 페이지 만들기",
+      "value: Acme Commerce 상태",
+      "checkbox: on"
+    ],
+    "outline": [
+      "field text: Acme 상태",
+      "button: 모두 선택",
+      "button: 지우기",
+      "field checkbox: ",
+      "button: 상태 페이지 만들기"
+    ],
+    "width": 768,
+    "height": 388
+  },
+  "status-page-review": {
+    "text": [
+      "2",
+      "고객에게 보이는 모습입니다",
+      "상태 페이지가 이 링크로 공개되었습니다. 표시되는 내용과 나타나는 항목은 다음과 같습니다.",
+      "Acme Commerce 상태",
+      "표시 항목",
+      "Acme website",
+      "Operational",
+      "공개 링크",
+      "https://oneuptime.acme-commerce.example/status-page/90000000-0000-4000-8000-000000000020",
+      "이 모니터 중 하나에서 인시던트가 발생하면 여기에 자동으로 표시되고 구독자에게 이메일이 발송됩니다.",
+      "경고는 여기에 표시되지 않습니다. 경고는 팀을 위한 것입니다.",
+      "예정된 유지보수와 공지는 게시하면 표시됩니다.",
+      "좋습니다"
+    ],
+    "outline": [
+      "link: https://oneuptime.acme-commerce.example/status-page/90000000-0000-4000-8000-0000",
+      "button: 좋습니다"
+    ],
+    "width": 768,
+    "height": 466
+  },
+  "status-page-summary": {
+    "text": [
+      "\"Acme Commerce 상태\" 페이지가 공개되었습니다",
+      "주소",
+      "https://oneuptime.acme-commerce.example/status-page/90000000-0000-4000-8000-000000000020",
+      "표시 내용",
+      "Acme website",
+      "자동으로 표시됨",
+      "이 모니터 중 하나에서 인시던트가 발생하면 여기에 자동으로 표시되고 구독자에게 이메일이 발송됩니다.",
+      "경고는 여기에 표시되지 않습니다. 경고는 팀을 위한 것입니다.",
+      "예정된 유지보수와 공지는 게시하면 표시됩니다.",
+      "나만의 스타일로 설정(선택 사항)",
+      "나만의 도메인 status.example.com 같은 주소에서 페이지를 제공합니다.",
+      "로고와 색상 페이지가 제품처럼 보이게 만드세요.",
+      "구독할 수 있는 사람 이메일, SMS, Slack, Microsoft Teams 또는 웹훅으로.",
+      "공개 대신 비공개 초대한 사람이나 로그인한 사람만 페이지를 볼 수 있습니다.",
+      "다음 단계",
+      "첫 공지 게시",
+      "유지보수 예약",
+      "웹사이트에 상태 추가",
+      "이 상태 페이지의 설정 열기",
+      "다른 상태 페이지 설정"
+    ],
+    "outline": [
+      "heading: \"Acme Commerce 상태\" 페이지가 공개되었습니다",
+      "link: https://oneuptime.acme-commerce.example/status-page/90000000-0000-4000-8000-0000",
+      "heading: 나만의 스타일로 설정(선택 사항)",
+      "link: 나만의 도메인",
+      "link: 로고와 색상",
+      "link: 구독할 수 있는 사람",
+      "link: 공개 대신 비공개",
+      "heading: 다음 단계",
+      "link: 첫 공지 게시",
+      "link: 유지보수 예약",
+      "link: 웹사이트에 상태 추가",
+      "link: 이 상태 페이지의 설정 열기",
+      "button: 다른 상태 페이지 설정"
+    ],
+    "width": 768,
+    "height": 682
+  },
+  "incident-feed": {
+    "text": [
+      "인시던트 피드",
+      "이 인시던트에 일어난 모든 일: 상태 변경, 노트, 소유자, 보낸 모든 알림.",
+      "작업",
+      "2026년 9월 14일 월요일",
+      "오늘",
+      "BST",
+      "19:12",
+      "8분 전",
+      "Maya Chen",
+      "changed Incident #1042 State to Resolved",
+      "19:09",
+      "11분 전",
+      "Maya Chen",
+      "Private note: Rolling checkout-api back to 2026.09.14-1 to restore DB_POOL_MAX=40. Watching p95 on the checkout dashboard.",
+      "19:05",
+      "15분 전",
+      "Maya Chen",
+      "took the Incident Commander role on Incident #1042.",
+      "19:04",
+      "16분 전",
+      "Sam Rivera",
+      "changed Incident #1042 State to Acknowledged",
+      "19:01",
+      "19분 전",
+      "On Call Policy Started Executing: On Call Policy Checkout primary on-call started executing for Incident #1042. Users on call on this policy will now be notified.",
+      "Incident #1042 Created:",
+      "Checkout API p95 latency above 2s:",
+      "The API monitor for POST /api/checkout reported p95 latency of 2.4s for 3 consecutive checks from the eu-west-1 probe.",
+      "🔴 Incident State: Created",
+      "⚠️ Severity: SEV-2",
+      "🌎 Resources Affected:",
+      "Checkout API p95 latency",
+      "Orders DB connection pool"
+    ],
+    "outline": [
+      "heading: 인시던트 피드",
+      "button: 작업",
+      "button: 추가 옵션",
+      "heading: 2026년 9월 14일 월요일",
+      "link: Incident #1042",
+      "link: Incident #1042",
+      "link: Incident #1042",
+      "link: Incident #1042",
+      "heading: Incident #1042 Created:",
+      "link: Checkout API p95 latency",
+      "link: Orders DB connection pool"
+    ],
+    "width": 576,
+    "height": 927
+  },
+  "incident-resolve": {
+    "text": [
+      "#1042",
+      "인지됨",
+      "SEV-2",
+      "Checkout API p95 latency above 2s",
+      "해결",
+      "생성됨",
+      "인지됨",
+      "해결됨",
+      "진행 시간",
+      "19분",
+      "인시던트 책임자",
+      "MC",
+      "Maya Chen",
+      "소유자",
+      "CS",
+      "Checkout SRE",
+      "SR",
+      "Sam Rivera",
+      "추가",
+      "소유자 추가",
+      "모니터",
+      "Checkout API p95 latency",
+      "Orders DB connection pool"
+    ],
+    "outline": [
+      "heading: Checkout API p95 latency above 2s",
+      "button: 해결",
+      "button: 추가 소유자 추가",
+      "link: Checkout API p95 latency",
+      "link: Orders DB connection pool"
+    ],
+    "width": 876,
+    "height": 279
+  }
+}

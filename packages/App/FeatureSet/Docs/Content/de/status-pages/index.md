@@ -2,6 +2,9 @@
 
 Eine Statusseite ist das öffentliche Gesicht von allem, was Sie überwachen: eine einzige URL, die Ihre Kunden aufrufen können, statt Ihnen zu schreiben und zu fragen, ob es nur bei ihnen klemmt. Sie zeigt den aktuellen Zustand der Dienste, die Sie sichtbar machen, die Vorfälle, an denen Sie gerade arbeiten, die Wartungen, die Sie geplant haben, und jede Ankündigung, die Sie oben anheften möchten. Um zwischen einer Statusseite und einem Dashboard zu wählen, lesen Sie [Was nehme ich wann?](/docs/introduction/which-one#dashboard-öffentliches-dashboard-oder-statusseite).
 
+> [!TIP]
+> Neu hier? Folgen Sie zuerst der Anleitung: [Eine Statusseite veröffentlichen](/docs/guides/status-page).
+
 Wenn um 2 Uhr nachts etwas kaputtgeht, ist die Statusseite das Erste, was Ihre Support-Warteschlange verlinkt. Und sie ist die Quelle, aus der Ihre Abonnenten benachrichtigt werden – es lohnt sich also, sie einzurichten, bevor Sie sie brauchen, und nicht mitten im Ausfall.
 
 :::cards
@@ -122,7 +125,7 @@ Die öffentliche Seite ist eine eigene App mit wenigen Routen:
 - `/rss` – der Feed.
 - `/login`, `/sso`, `/magic-link`, `/magic-link-login/:token` und `/master-password` – nur auf einer privaten Seite relevant.
 
-Die obere Navigationsleiste zeigt immer **Übersicht**; der Rest erscheint nur, wenn er aktiviert ist. **Vorfälle**, **Ankündigungen** und **Geplante Ereignisse** brauchen jeweils ihren Schalter; **Abonnieren** braucht sowohl **Abonnentenseite anzeigen** als auch mindestens einen aktivierten Abonnentenkanal. Eine private Seite bekommt zusätzlich einen Eintrag **Abmelden**.
+Die obere Navigationsleiste zeigt immer **Übersicht**; der Rest erscheint nur, wenn er aktiviert ist. **Vorfälle**, **Ankündigungen** und **Geplante Wartung** brauchen jeweils ihren Schalter; **Abonnieren** braucht sowohl **Abonnentenseite anzeigen** als auch mindestens einen aktivierten Abonnentenkanal. Eine private Seite bekommt zusätzlich einen Eintrag **Abmelden**.
 
 Ein einzelner Vorfall, eine Episode, eine Ankündigung oder ein geplantes Ereignis öffnet sich nur, wenn die Seite sie auflisten würde, unabhängig von ihrem Verlaufsfenster: Ein privater Vorfall oder eine private Episode, einer, der auf Statusseiten ausgeblendet ist, ein auf Statusseiten ausgeblendetes geplantes Ereignis oder eine erst später geplante Ankündigung wird auch über ihren Link nicht gefunden.
 
@@ -135,7 +138,7 @@ Die Übersicht ist die Seite, die die meisten Besucher überhaupt zu sehen bekom
 3. **Ein Gesamtprozentsatz der Verfügbarkeit**, wenn Sie ihn eingeschaltet haben: am Ende des Gesamtstatus-Banners, solange jede Ressource betriebsbereit ist. Standardmäßig aus.
 4. **Die Ressourcengruppen**, jede mit ihren Ressourcen, deren aktuellem Status und ihren Verfügbarkeitsbalken.
 5. **Aktive Vorfälle**, mit den aktiven Episoden.
-6. **Geplante Wartungsereignisse**.
+6. **Geplante Wartung**.
 
 Eine brandneue Seite ohne Inhalt zeigt einen leeren Zustand mit dem Hinweis, Ressourcen im Dashboard hinzuzufügen – Ihr Stichwort, zum Bildschirm **Ressourcen** zu gehen.
 
@@ -151,7 +154,7 @@ Was Besucher sehen, legen Sie in einer Karte fest: **Was Ihre Statusseite zeigt*
 - **Nur auf diese Seite beschränkte Vorfälle anzeigen** (`onlyShowScopedIncidents`) – ebenfalls in der Vorfallzeile, standardmäßig aus. Schalten Sie es ein, und die Seite zeigt nur noch die Vorfälle, die mit **Auf diese Statusseiten beschränken** auf sie beschränkt sind, und benachrichtigt ihre Abonnenten nur darüber. Vorfälle, die auf keine Seite beschränkt sind, einschließlich derer, die ein Monitor, Slack, Microsoft Teams, die API oder KI von sich aus eröffnet, erreichen sie nie, bis jemand die Seite zu ihnen hinzufügt. Es entscheidet auch, welche Vorfälle ihre Episoden auf die Seite bringen, und bleibt deshalb, wenn **Vorfälle anzeigen** aus ist. Für Seiten, die Monitore teilen, aber unterschiedliche Zielgruppen bedienen, siehe [Eine Statusseite pro Zielgruppe](/docs/status-pages/one-status-page-per-audience).
 - **Episoden anzeigen** (`showEpisodesOnStatusPage`) – standardmäßig an, mit **Die letzten … Tage anzeigen** (`showEpisodeHistoryInDays`, Standard 14) und **Episodenbeschriftungen anzeigen** (`showEpisodeLabelsOnStatusPage`, standardmäßig aus). Episoden sind ein eigenes Modell mit eigenen Endpunkten, keine Ansicht von Vorfällen.
 - **Ankündigungen anzeigen** (`showAnnouncementsOnStatusPage`) – standardmäßig an, mit **Die letzten … Tage anzeigen** (`showAnnouncementHistoryInDays`, Standard 14).
-- **Geplante Wartungsereignisse anzeigen** (`showScheduledMaintenanceEventsOnStatusPage`) – standardmäßig an, mit **Die letzten … Tage anzeigen** (`showScheduledEventHistoryInDays`, Standard 14) und **Ereignisbeschriftungen anzeigen** (`showScheduledEventLabelsOnStatusPage`, standardmäßig aus).
+- **Wartungsereignisse anzeigen** (`showScheduledMaintenanceEventsOnStatusPage`) – standardmäßig an, mit **Die letzten … Tage anzeigen** (`showScheduledEventHistoryInDays`, Standard 14) und **Labels der Wartungsereignisse anzeigen** (`showScheduledEventLabelsOnStatusPage`, standardmäßig aus).
 - **Verfügbarkeitsverlauf** – alles zur Verfügbarkeit der Seite, in einer Zeile:
   - **Die letzten … Tage anzeigen** (`showUptimeHistoryInDays`) ist die Länge des Verfügbarkeitsbalkens neben jeder Ressource. Standard 90, und der Wert muss zwischen 1 und 90 liegen. Jede Option **Verfügbarkeit % anzeigen** und **Statusverlaufsdiagramm anzeigen** an einer Ressource oder Gruppe liest diese Zahl, und der Gesamtprozentsatz der Verfügbarkeit ebenso.
   - **Gesamtprozentsatz der Verfügbarkeit anzeigen** (`showOverallUptimePercentOnStatusPage`) – standardmäßig aus. Schalten Sie es ein, und das Gesamtstatus-Banner endet mit einem Verfügbarkeitsprozentsatz für die ganze Seite, dem Durchschnitt ihrer Ressourcen und Gruppen, solange alles betriebsbereit ist. Solange es an ist, wählt **Genauigkeit** (`overallUptimePercentPrecision`), wie viele Nachkommastellen er zeigt: `99%`, `99.9%`, `99.99%` (der Standard) oder `99.999%`. Jede Ressource und jede Gruppe hat ihre eigene Genauigkeit.
@@ -165,7 +168,7 @@ Was Besucher sehen, legen Sie in einer Karte fest: **Was Ihre Statusseite zeigt*
 
 Ob die Seite einen Eintrag **Abonnieren** zeigt (**Abonnentenseite anzeigen**, `showSubscriberPageOnStatusPage`, standardmäßig an) und über welche Kanäle Besucher abonnieren können, legen Sie nicht auf diesem Bildschirm fest: Beides steht in der Karte **Kanäle** unter **Abonnenten → Abonnenten-Einstellungen** (siehe [Abonnementkanäle](/docs/status-pages/subscribers#abonnementkanäle)).
 
-Unter der Karte stehen **Statusseite als JSON exportieren**, das die eigenen Einstellungen der Statusseite als Datei herunterlädt, die Sie wieder importieren können, und **Archive status page** (siehe [Eine Statusseite archivieren](#eine-statusseite-archivieren)). Der Gesamtprozentsatz der Verfügbarkeit und die Ausfallzeit-Status waren hier früher zwei eigene Karten, jede hinter einer Schaltfläche **Bearbeiten**; jetzt sind sie Zeilen der Karte.
+Unter der Karte stehen **Statusseite als JSON exportieren**, das die eigenen Einstellungen der Statusseite als Datei herunterlädt, die Sie wieder importieren können, und **Statusseite archivieren** (siehe [Eine Statusseite archivieren](#eine-statusseite-archivieren)). Der Gesamtprozentsatz der Verfügbarkeit und die Ausfallzeit-Status waren hier früher zwei eigene Karten, jede hinter einer Schaltfläche **Bearbeiten**; jetzt sind sie Zeilen der Karte.
 
 **Wo die Farben sind.** Die Farben der Verfügbarkeitsbalken stehen nicht hier – die **Standard-Balkenfarbe** und die Balkenfarbregeln liegen unter **Weitere Einstellungen** auf **Statusseiten → Ihre Seite → Branding → Branding**. Das **Design** der Seite (hell, dunkel oder wie das Gerät jedes Besuchers eingestellt ist) ist eine Karte weit oben auf derselben Seite. Eine Markenfarbeinstellung gibt es nicht; alles, was über diese Steuerelemente hinausgeht, erledigen Sie mit **Benutzerdefiniertes CSS**.
 
@@ -225,7 +228,7 @@ Drei Wege, den Status anderswo als auf der Seite selbst zu zeigen.
 
 **RSS-Feed.** Jede Statusseite liefert `/rss` aus – einen Feed mit dem Titel „{Seitentitel} Updates“, mit dem **Seitentitel** der Seite aus **Branding** oder ihrem Namen, wenn sie keinen hat, und mit Einträgen, die mit `Incident: `, `Announcement: ` und `Scheduled Maintenance: ` beginnen. Jeder Eintrag ist so datiert, wie die Seite ihn datiert: ein Vorfall danach, wann er gemeldet wurde, eine Ankündigung danach, wann sie erschien, und ein geplantes Wartungsereignis danach, wann es beginnt; dessen Beschreibung beginnt mit seinem Zeitfenster. Praktisch für alle, die Ihre Updates lieber in einen Reader oder einen Chatbot leiten, als per E-Mail zu abonnieren.
 
-**Wartungskalender.** Jede Statusseite liefert außerdem `/maintenance.ics` aus: die geplante Wartung, die sie zeigt, als Kalender, den Google Kalender, Apple Kalender oder Outlook abonnieren können. Besucher fügen ihn mit **Kalender abonnieren** auf der Seite **Geplante Ereignisse** hinzu, und ein einzelnes Ereignis mit **Zum Kalender hinzufügen** auf dessen eigener Seite. Der Kalender einer privaten Seite ist leer, da sich eine Kalender-App nicht anmelden kann. Siehe [Wartungskalender](/docs/scheduled-maintenance/calendar#der-kalender-einer-statusseite).
+**Wartungskalender.** Jede Statusseite liefert außerdem `/maintenance.ics` aus: die geplante Wartung, die sie zeigt, als Kalender, den Google Kalender, Apple Kalender oder Outlook abonnieren können. Besucher fügen ihn mit **Kalender abonnieren** auf der Seite **Geplante Wartung** hinzu, und ein einzelnes Ereignis mit **Zum Kalender hinzufügen** auf dessen eigener Seite. Der Kalender einer privaten Seite ist leer, da sich eine Kalender-App nicht anmelden kann. Siehe [Wartungskalender](/docs/scheduled-maintenance/calendar#der-kalender-einer-statusseite).
 
 Wenn Sie die Daten lieber selbst abrufen, stehen hinter der Statusseite öffentliche Lese-Endpunkte für die Übersicht, Vorfälle, geplante Wartungsereignisse, Ankündigungen und Episoden – siehe [Öffentliche API](/docs/status-pages/public-api).
 
@@ -238,7 +241,7 @@ Archivieren Sie eine Statusseite, um sie offline zu nehmen, ohne sie zu löschen
 - **Verlässt die Liste der Statusseiten.** Sie finden sie unter **Statusseiten → Erweitert → Archiviert**.
 - **Behält alles.** Ihre Ressourcen, Gruppen, ihr Branding, ihre Domains, privaten Benutzer und Abonnenten bleiben erhalten, sodass das Wiederherstellen aus dem Archiv die Seite genau so wieder online bringt, wie sie war.
 
-Um eine Statusseite zu archivieren, öffnen Sie sie und gehen zu **Erweitert → Erweiterte Einstellungen → Archive status page**. Um mehrere zu archivieren, wählen Sie sie in der Liste **Statusseiten** aus und wählen **Archivieren**. Um eine zurückzuholen, öffnen Sie **Statusseiten → Erweitert → Archiviert**, wählen sie aus und wählen **Aus Archiv entfernen**, oder öffnen Sie sie und klicken Sie auf **Aus Archiv entfernen** im Banner oben auf ihren Seiten.
+Um eine Statusseite zu archivieren, öffnen Sie sie und gehen zu **Erweitert → Erweiterte Einstellungen → Statusseite archivieren**. Um mehrere zu archivieren, wählen Sie sie in der Liste **Statusseiten** aus und wählen **Archivieren**. Um eine zurückzuholen, öffnen Sie **Statusseiten → Erweitert → Archiviert**, wählen sie aus und wählen **Aus Archiv entfernen**, oder öffnen Sie sie und klicken Sie auf **Aus Archiv entfernen** im Banner oben auf ihren Seiten.
 
 ## Nächste Schritte
 

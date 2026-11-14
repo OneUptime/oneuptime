@@ -764,9 +764,9 @@ export class ResourceAiAccessServiceClass {
     if (!gates.hasLlmProvider) {
       gaps.push({
         code: "llm_provider_missing",
-        title: "No AI provider is configured",
+        title: "No LLM provider is configured",
         nextStep:
-          "Add a provider under Project Settings → AI → LLM Providers (or use OneUptime AI credits).",
+          "Add an LLM provider under Project Settings → AI → LLM Providers (or use OneUptime AI credits).",
         blocksInvestigation: true,
         blocksRemediation: true,
       });

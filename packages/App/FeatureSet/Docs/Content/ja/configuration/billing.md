@@ -125,7 +125,7 @@ SMS、電話、WhatsApp と Telegram のメッセージはプロジェクトの�
 
 | 残高 | 場所 |
 | --- | --- |
-| SMS、電話、WhatsApp、Telegram | **プロジェクト設定 → 通知 → 通知設定** |
+| SMS、電話、WhatsApp、Telegram | **プロジェクト設定 → 通知 → 通知チャネル** |
 | OneUptime AI | **プロジェクト設定 → AI → AI クレジット** |
 
 :::steps

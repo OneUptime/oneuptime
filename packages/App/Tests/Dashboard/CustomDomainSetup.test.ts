@@ -698,10 +698,33 @@ describe("the Custom Domains pages", () => {
     const kinds: string = readSource(KINDS);
 
     expect(kinds).toMatch(
-      /STATUS_PAGE_CUSTOM_DOMAINS: CustomDomainKind = \{ modelType: StatusPageDomain, parentColumn: "statusPageId", tableId: "domains-table", tableName: "Status Page > Domains", userPreferencesKey: "status-page-domains-table", saveFilterTableId: "status-page-domains-table", getCnameRecord: \(\): string => \{ return StatusPageCNameRecord; \}, cnameRecordVariable: "STATUS_PAGE_CNAME_RECORD", copy: STATUS_PAGE_CUSTOM_DOMAIN_COPY, \}/,
+      /STATUS_PAGE_CUSTOM_DOMAINS: CustomDomainKind = \{ modelType: StatusPageDomain, parentColumn: "statusPageId", tableId: "domains-table", tableName: "Status Page > Domains", userPreferencesKey: "status-page-domains-table", saveFilterTableId: "status-page-domains-table", getCnameRecord: \(\): string => \{ return StatusPageCNameRecord; \}, cnameRecordVariable: "STATUS_PAGE_CNAME_RECORD", copy: STATUS_PAGE_CUSTOM_DOMAIN_COPY, docsPath: "\/docs\/status-pages\/branding-and-domains#custom-domains", \}/,
     );
     expect(kinds).toMatch(
-      /DASHBOARD_CUSTOM_DOMAINS: CustomDomainKind = \{ modelType: DashboardDomain, parentColumn: "dashboardId", tableId: "dashboard-domains-table", tableName: "Dashboard > Domains", userPreferencesKey: "dashboard-domains-table", saveFilterTableId: "dashboard-domains-table", getCnameRecord: \(\): string => \{ return DashboardCNameRecord; \}, cnameRecordVariable: "DASHBOARD_CNAME_RECORD", copy: DASHBOARD_CUSTOM_DOMAIN_COPY, \}/,
+      /DASHBOARD_CUSTOM_DOMAINS: CustomDomainKind = \{ modelType: DashboardDomain, parentColumn: "dashboardId", tableId: "dashboard-domains-table", tableName: "Dashboard > Domains", userPreferencesKey: "dashboard-domains-table", saveFilterTableId: "dashboard-domains-table", getCnameRecord: \(\): string => \{ return DashboardCNameRecord; \}, cnameRecordVariable: "DASHBOARD_CNAME_RECORD", copy: DASHBOARD_CUSTOM_DOMAIN_COPY, docsPath: "\/docs\/dashboards\/sharing#custom-domains", \}/,
+    );
+  });
+});
+
+/*
+ * Each kind's list opens the docs section that explains it (#6822): View
+ * Documentation, from the kind's own docsPath, which DocsLinksResolve holds
+ * to a heading that exists.
+ */
+describe("the Custom Domains list's View Documentation", () => {
+  test("opens each kind's own docs section, from the kind", () => {
+    const kinds: string = readSource(KINDS);
+
+    for (const docsPath of [
+      "/docs/status-pages/branding-and-domains#custom-domains",
+      "/docs/dashboards/sharing#custom-domains",
+      "/docs/forms/sharing-and-security#custom-domains",
+    ]) {
+      expect(kinds).toContain(`docsPath: "${docsPath}"`);
+    }
+    expect(kinds.match(/docsPath: "/g)).toHaveLength(3);
+    expect(readSource(TABLE)).toContain(
+      "documentationLink={Route.fromString(kind.docsPath)}",
     );
   });
 });

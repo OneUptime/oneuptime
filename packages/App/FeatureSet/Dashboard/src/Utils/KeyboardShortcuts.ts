@@ -1,4 +1,5 @@
 import PageMap from "./PageMap";
+import ProductKey from "Common/Types/Product/ProductKey";
 import {
   EMPTY_KEYBOARD_SEQUENCE_STATE,
   KEYBOARD_SEQUENCE_TIMEOUT_IN_MS,
@@ -41,6 +42,12 @@ export interface DashboardGoToShortcut {
    */
   titleKey: string;
   defaultTitle: string;
+  /*
+   * The product it opens (#6814). A product the project hides is left out
+   * of the shortcuts dialog's list; its keys still go there, so nothing
+   * learned stops working.
+   */
+  product?: ProductKey | undefined;
 }
 
 /*
@@ -59,54 +66,63 @@ const DASHBOARD_GO_TO_SHORTCUTS: Array<DashboardGoToShortcut> = [
   {
     key: "m",
     pageMap: PageMap.MONITORS,
+    product: ProductKey.Monitors,
     titleKey: "navbar.items.monitorsTitle",
     defaultTitle: "Monitors",
   },
   {
     key: "i",
     pageMap: PageMap.INCIDENTS,
+    product: ProductKey.Incidents,
     titleKey: "navbar.items.incidentsTitle",
     defaultTitle: "Incidents",
   },
   {
     key: "a",
     pageMap: PageMap.ALERTS,
+    product: ProductKey.Alerts,
     titleKey: "navbar.items.alertsTitle",
     defaultTitle: "Alerts",
   },
   {
     key: "o",
     pageMap: PageMap.ON_CALL_DUTY,
+    product: ProductKey.OnCall,
     titleKey: "navbar.items.onCallDutyTitle",
-    defaultTitle: "On-Call Duty",
+    defaultTitle: "On-Call",
   },
   {
     key: "s",
     pageMap: PageMap.STATUS_PAGES,
+    product: ProductKey.StatusPages,
     titleKey: "navbar.items.statusPagesTitle",
     defaultTitle: "Status Pages",
   },
   {
     key: "e",
     pageMap: PageMap.SCHEDULED_MAINTENANCE_EVENTS,
+    product: ProductKey.ScheduledMaintenance,
     titleKey: "navbar.items.scheduledMaintenanceTitle",
     defaultTitle: "Scheduled Maintenance",
   },
   {
     key: "d",
     pageMap: PageMap.DASHBOARDS,
+    product: ProductKey.Dashboards,
     titleKey: "navbar.items.dashboardsTitle",
     defaultTitle: "Dashboards",
   },
   {
     key: "l",
     pageMap: PageMap.LOGS,
+    product: ProductKey.Logs,
     titleKey: "navbar.items.logsTitle",
     defaultTitle: "Logs",
   },
   {
     key: "t",
     pageMap: PageMap.TRACES,
+    product: ProductKey.Traces,
     titleKey: "navbar.items.tracesTitle",
     defaultTitle: "Traces",
   },
@@ -115,6 +131,20 @@ const DASHBOARD_GO_TO_SHORTCUTS: Array<DashboardGoToShortcut> = [
 export function getDashboardGoToShortcuts(): Array<DashboardGoToShortcut> {
   // A copy, so a caller sorting or splicing for display cannot edit the source.
   return [...DASHBOARD_GO_TO_SHORTCUTS];
+}
+
+/*
+ * The shortcuts the dialog lists for a project: every one but those that
+ * open a product the project hides (#6814).
+ */
+export function getListedDashboardGoToShortcuts(
+  hiddenProducts: ReadonlyArray<ProductKey>,
+): Array<DashboardGoToShortcut> {
+  return getDashboardGoToShortcuts().filter(
+    (shortcut: DashboardGoToShortcut): boolean => {
+      return !shortcut.product || !hiddenProducts.includes(shortcut.product);
+    },
+  );
 }
 
 /**

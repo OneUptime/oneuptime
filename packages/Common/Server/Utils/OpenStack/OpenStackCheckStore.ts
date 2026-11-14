@@ -60,8 +60,9 @@ import crypto from "crypto";
  * THE DATABASE HALF OF THE CHECKS: which of them a probe runs now, and what it found. It is the
  * collection's store (OpenStackProbeCollectionStore), for the same reasons.
  *
- * Claiming is atomic (FOR UPDATE SKIP LOCKED) and moves each claimed check's next time an interval
- * on, so two work requests never hand one check out twice. The checks a probe says it is still
+ * Claiming is one statement (FOR NO KEY UPDATE SKIP LOCKED) that moves each claimed check's next
+ * time an interval on, so two work requests never hand one check out twice, and no claim holds a
+ * check longer than that statement runs. The checks a probe says it is still
  * running are left out, so a run slower than its interval is skipped, not stacked: that is the first
  * of the two things that keep a run from starting while one is going. The other is on the cloud
  * itself, for a probe that restarted (OpenStackLifecycleCheck).
@@ -139,9 +140,11 @@ export interface OpenStackCheckCloudRecord {
 
 // What the store needs of the service that owns the table.
 export interface OpenStackCheckService {
-  executeTransaction: <T>(
-    run: (manager: OpenStackSqlManager) => Promise<T>,
-  ) => Promise<T>;
+  /*
+   * Its connection, for the claim's one self-committing statement. There is no transaction to
+   * open here: a claim's row locks must never outlive its statement (OneUptime issue #7194).
+   */
+  getRepository: () => { manager: OpenStackSqlManager };
   findBy: (options: {
     query: Record<string, unknown>;
     select: Record<string, unknown>;
@@ -753,6 +756,13 @@ export default class OpenStackCheckStore {
    * The check rows that are due, moved an interval on, and locked while they are: nothing else can
    * hand these out. A check nobody may run any more is claimed and answered with nothing, so it
    * does not sit at the head of every later claim.
+   *
+   * One self-committing statement (OneUptime issue #7194), as the collection's claim explains
+   * (OpenStackProbeCollectionStore.claimDueClouds): locked FOR NO KEY UPDATE SKIP LOCKED and moved
+   * on by the same statement, so no check stays locked past it. The interval is
+   * getSafeApiInterval's or getSafeLifecycleInterval's rule, in SQL (the last parameter is the
+   * default); the columns are NOT NULL integers, so it is the same rule. The ids come back in claim
+   * order, the longest overdue first.
    */
   private static async claimDueIds(
     service: OpenStackCheckService,
@@ -782,12 +792,10 @@ export default class OpenStackCheckStore {
       },
     );
 
-    return await service.executeTransaction(
-      async (manager: OpenStackSqlManager): Promise<Array<string>> => {
-        const rows: Array<{ _id: string; interval: number | null }> =
-          (await manager.query(
-            `
-        SELECT ck."_id", ck."${intervalColumn}" AS "interval"
+    const claimedRows: unknown = await service.getRepository().manager.query(
+      `
+      WITH "due" AS (
+        SELECT ck."_id", ck."${nextColumn}" AS "dueAt"
         FROM "OpenStackCloudCheck" ck
         INNER JOIN "OpenStackCloud" c ON ck."openStackCloudId" = c."_id"
         INNER JOIN "Project" p ON ck."projectId" = p."_id"
@@ -809,70 +817,50 @@ export default class OpenStackCheckStore {
           AND pr."deletedAt" IS NULL
           AND p."deletedAt" IS NULL
           AND p."isBlocked" = false
+          AND p."isSampleProject" = false
           AND (p."paymentProviderSubscriptionStatus" IS NULL
                OR p."paymentProviderSubscriptionStatus" = ANY($4::text[]))
           AND (p."paymentProviderMeteredSubscriptionStatus" IS NULL
                OR p."paymentProviderMeteredSubscriptionStatus" = ANY($4::text[]))
         ORDER BY ck."${nextColumn}" ASC NULLS FIRST
         LIMIT $3
-        FOR UPDATE OF ck SKIP LOCKED
-      `,
-            [
-              data.probeId.toString(),
-              currentDate,
-              data.limit,
-              SubscriptionStatusUtil.getActiveSubscriptionStatuses(),
-              runningIds,
-              IsBillingEnabled,
-            ],
-          )) as Array<{ _id: string; interval: number | null }>;
-
-        if (rows.length === 0) {
-          return [];
-        }
-
-        const caseFragments: Array<string> = [];
-        const parameters: Array<string | Date> = [];
-        let parameterIndex: number = 1;
-
-        for (const row of rows) {
-          const interval: number =
-            data.kind === "api"
-              ? OpenStackCheckStore.getSafeApiInterval(row.interval)
-              : OpenStackCheckStore.getSafeLifecycleInterval(row.interval);
-
-          caseFragments.push(
-            `WHEN $${parameterIndex} THEN $${parameterIndex + 1}::timestamptz`,
-          );
-          parameters.push(
-            row._id,
-            OneUptimeDate.addRemoveMinutes(currentDate, interval),
-          );
-          parameterIndex += 2;
-        }
-
-        const ids: Array<string> = rows.map((row: { _id: string }): string => {
-          return row._id;
-        });
-
-        const placeholders: Array<string> = ids.map(
-          (_id: string, index: number): string => {
-            return `$${parameterIndex + index}`;
-          },
-        );
-
-        parameters.push(...ids);
-
-        await manager.query(
-          `UPDATE "OpenStackCloudCheck" SET "${nextColumn}" = CASE "_id" ${caseFragments.join(
-            " ",
-          )} END WHERE "_id" IN (${placeholders.join(", ")})`,
-          parameters,
-        );
-
-        return ids;
-      },
+        FOR NO KEY UPDATE OF ck SKIP LOCKED
+      ),
+      "claimed" AS (
+        UPDATE "OpenStackCloudCheck" AS ck
+        SET "${nextColumn}" = $2::timestamptz + (
+            CASE
+              WHEN ck."${intervalColumn}" >= 1 THEN ck."${intervalColumn}"
+              ELSE $7::int
+            END
+          ) * INTERVAL '1 minute'
+        FROM "due"
+        WHERE ck."_id" = "due"."_id"
+        RETURNING ck."_id"
+      )
+      SELECT "due"."_id"
+      FROM "due"
+      INNER JOIN "claimed" ON "claimed"."_id" = "due"."_id"
+      ORDER BY "due"."dueAt" ASC NULLS FIRST
+    `,
+      [
+        data.probeId.toString(),
+        currentDate,
+        data.limit,
+        SubscriptionStatusUtil.getActiveSubscriptionStatuses(),
+        runningIds,
+        IsBillingEnabled,
+        data.kind === "api"
+          ? DEFAULT_OPENSTACK_API_CHECK_INTERVAL_IN_MINUTES
+          : DEFAULT_OPENSTACK_LIFECYCLE_CHECK_INTERVAL_IN_MINUTES,
+      ],
     );
+
+    return Array.isArray(claimedRows)
+      ? claimedRows.map((row: { _id: string }): string => {
+          return row._id;
+        })
+      : [];
   }
 
   private static async readClaimed(

@@ -33,6 +33,12 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import User from "Common/UI/Utils/User";
 import PermissionUtil from "Common/UI/Utils/Permission";
 import { setPageLanguage } from "Common/UI/Utils/PageLanguage";
+import { setCodeApartInSentence } from "Common/Types/CodeInSentence";
+import {
+  CODE_READS_AS_WRITTEN_POST_PROCESSOR,
+  codeReadsAsWrittenPostProcessor,
+  setCodeApartWith,
+} from "Common/UI/Utils/CodeReadsAsWritten";
 
 // Actual routed pages, shared components, manifest parsing, binary chunk decoding,
 // and the lazy rrweb Replayer all execute. Only API/user boundaries are replaced.
@@ -296,6 +302,12 @@ const visitorIds = [
 // identify()" nudge and every user cell reads "Visitor ..." - the shape of
 // the customer's screenshots in #3705.
 const isAnonymousFixture = params.get("identity") === "none";
+/*
+ * ?identity=hidden (#7096): the viewer's role lacks Watch Session Replays,
+ * so the manifest leaves the end user's identity out, as the server does,
+ * and the header and session details say which grant shows it.
+ */
+const isIdentityHidden = params.get("identity") === "hidden";
 const records = Array.from({ length: count }, (_, index) => {
   const startTimeUnixMs = started - index * 75 * 1000;
   const hasError = index % 3 === 0;
@@ -788,8 +800,18 @@ API.post = async ({ url, data }) => {
     return new HTTPResponse(200, health, {});
   }
   if (route === "manifest") {
-    const row =
+    const found =
       records.find((item) => item.sessionId === data.sessionId) || records[0];
+    // Left out, not emptied: an empty label is an anonymous end user.
+    const row = isIdentityHidden
+      ? Object.fromEntries(
+          Object.entries(found).filter(([key]) => {
+            return (
+              key !== "identifiedUserLabel" && key !== "identifiedUserTraits"
+            );
+          }),
+        )
+      : found;
     return new HTTPResponse(
       200,
       {
@@ -1748,12 +1770,22 @@ if (language !== "en") {
   }
 }
 setPageLanguage(language);
-await i18next.use(initReactI18next).init({
-  lng: language,
-  fallbackLng: "en",
-  resources,
-  interpolation: { escapeValue: false },
-});
+/*
+ * As the Dashboard's i18n set-up does: code in an Arabic or Persian sentence
+ * ("identify()", "/checkout") set apart as it is handed to the page, so it
+ * reads as written here too (Common/UI/Utils/CodeReadsAsWritten).
+ */
+setCodeApartWith(setCodeApartInSentence);
+await i18next
+  .use(initReactI18next)
+  .use(codeReadsAsWrittenPostProcessor)
+  .init({
+    postProcess: [CODE_READS_AS_WRITTEN_POST_PROCESSOR],
+    lng: language,
+    fallbackLng: "en",
+    resources,
+    interpolation: { escapeValue: false },
+  });
 function FixtureLayout() {
   Navigation.setNavigateHook(useNavigate());
   Navigation.setLocation(useLocation());

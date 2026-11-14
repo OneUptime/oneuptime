@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 50830,
-    "untranslated": 9677
+    "keys": 51296,
+    "untranslated": 9498
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -29,6 +29,7 @@
     "ClickHouse",
     "CloudKitty",
     "CloudWatch Metric Streams",
+    "Community Edition",
     "CrowdStrike",
     "DE",
     "DES",
@@ -40,6 +41,7 @@
     "Down + Out",
     "Edge",
     "Elasticsearch URL",
+    "Enterprise Edition",
     "Fluent Bit",
     "Full view",
     "Google SecOps",
@@ -90,6 +92,7 @@
     "PV",
     "PVC",
     "Passthrough",
+    "Ping",
     "Placement Groups",
     "PostgreSQL",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
@@ -209,8 +212,11 @@
     "{{count}} KB",
     "{{count}} Kubernetes",
     "{{count}} MB",
+    "{{count}} OSD",
+    "{{count}} SLO",
     "{{count}} SMS",
     "{{count}} VM",
+    "{{count}} ms",
     "{{count}} vCPU",
     "{{format}} JSON",
     "{{gigabytes}} GB",

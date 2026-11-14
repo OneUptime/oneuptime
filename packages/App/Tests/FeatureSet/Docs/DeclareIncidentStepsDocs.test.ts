@@ -1,4 +1,5 @@
 import IncidentStatusPageScopeCopy from "../../../FeatureSet/Dashboard/src/Components/Incident/IncidentStatusPageScopeCopy";
+import { drawnDashboardLabel } from "./DocsDashboardLabels";
 import { escapeRegExp } from "./DocsTranslationChecks";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
@@ -14,7 +15,7 @@ import path from "path";
  *
  * The English page and its Persian translation (the one translated corpus
  * kept in step with it; the older short translations fall back to their own
- * wording) must:
+ * wording) must, naming the form as its language's Dashboard draws it:
  *
  *   - give the form's steps, in the form's order, by their on-screen titles;
  *   - have a section per step, and none for a step that is gone;
@@ -40,10 +41,15 @@ const LANGUAGES: ReadonlyArray<string> = ["en", "fa"];
 
 const DECLARING_PAGE: string = "incidents/declaring-incidents";
 
+// A form's title or field as this language's Dashboard draws it.
+function uiName(language: string, english: string): string {
+  return drawnDashboardLabel(language, english);
+}
+
 // How each language writes a step's heading: "### Step 1 — Incident Details".
 const STEP_HEADING: Record<string, (index: number, title: string) => string> = {
   en: (index: number, title: string): string => {
-    return `### Step ${index} — ${title}`;
+    return `### Step ${index} — ${uiName("en", title)}`;
   },
   fa: (index: number, title: string): string => {
     const digits: string = String(index).replace(
@@ -52,19 +58,24 @@ const STEP_HEADING: Record<string, (index: number, title: string) => string> = {
         return "۰۱۲۳۴۵۶۷۸۹"[Number(digit)] as string;
       },
     );
-    return `### گام ${digits} — ${title}`;
+    return `### گام ${digits} — ${uiName("fa", title)}`;
   },
 };
 
 // "Under **More fields**:" in each language: the line before a step's folded fields.
 const UNDER_MORE_FIELDS: Record<string, string> = {
   en: "Under **More fields**:",
-  fa: "زیر **More fields**:",
+  fa: `زیر **${drawnDashboardLabel("fa", "More fields")}**:`,
 };
 
 // The declare wizard's old On-Call step, named in English or Persian.
-const OLD_ON_CALL_STEP: RegExp =
-  /\*\*On-Call\*\* step of the declare wizard|گام \*\*On-Call\*\* جادوگر اعلام/;
+const OLD_ON_CALL_STEP: RegExp = new RegExp(
+  [
+    "\\*\\*On-Call\\*\\* step of the declare wizard",
+    "گام \\*\\*On-Call\\*\\* جادوگر اعلام",
+    `گام \\*\\*${escapeRegExp(drawnDashboardLabel("fa", "On-Call"))}\\*\\* جادوگر اعلام`,
+  ].join("|"),
+);
 
 // The section "Declaring one by hand" by its heading in each language.
 const BY_HAND_HEADING: Record<string, string> = {
@@ -269,6 +280,11 @@ describe("the Declare Incident docs follow the form's steps", () => {
         BY_HAND_HEADING[language] as string,
       );
       const opening: string = byHand.trim().split("\n")[0] as string;
+      const stepTitles: Array<string> = formStepTitles().map(
+        (title: string): string => {
+          return uiName(language, title);
+        },
+      );
       const named: Array<string> = Array.from(
         opening.matchAll(/\*\*([^*]+)\*\*/g),
       )
@@ -277,10 +293,10 @@ describe("the Declare Incident docs follow the form's steps", () => {
         })
         .filter((name: string, index: number, all: Array<string>): boolean => {
           // Each step once, where the opening first names it.
-          return formStepTitles().includes(name) && all.indexOf(name) === index;
+          return stepTitles.includes(name) && all.indexOf(name) === index;
         });
 
-      expect(named).toEqual(formStepTitles());
+      expect(named).toEqual(stepTitles);
 
       // The steps that are gone are named nowhere in the section.
       for (const gone of ["**More**", "### Step 4", "### Step 5"]) {
@@ -318,7 +334,7 @@ describe("the Declare Incident docs follow the form's steps", () => {
             return field.isFolded;
           })
           .map((field: FormField): string => {
-            return field.title;
+            return uiName(language, field.title);
           });
 
         expect({ step: title, folded: listedFields(folded) }).toEqual({
@@ -330,7 +346,7 @@ describe("the Declare Incident docs follow the form's steps", () => {
         for (const name of listedFields(open)) {
           const field: FormField | undefined = stepFields.find(
             (candidate: FormField): boolean => {
-              return candidate.title === name;
+              return uiName(language, candidate.title) === name;
             },
           );
 
@@ -396,7 +412,9 @@ describe("the Declare Incident docs follow the form's steps", () => {
 
       expect(underMoreFields).toBeGreaterThan(-1);
       expect(listedFields(section.slice(0, underMoreFields))).toEqual(
-        openOnTheForm,
+        openOnTheForm.map((title: string): string => {
+          return uiName(language, title);
+        }),
       );
     },
   );
@@ -413,7 +431,7 @@ describe("the Declare Incident docs follow the form's steps", () => {
 
         expect({
           page: page,
-          says: markdown.includes("**On-Call & Roles**"),
+          says: markdown.includes(`**${uiName(language, "On-Call & Roles")}**`),
         }).toEqual({ page: page, says: true });
         // The template wizard still has its own On-Call step; the declare one does not.
         expect({

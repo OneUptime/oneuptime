@@ -52,6 +52,8 @@ Vul het adres in bij **E-mail**. Gebruikt nog geen OneUptime-account dit adres, 
 ### De uitnodiging versturen
 
 Klik op **Uitnodigen**. OneUptime e-mailt de uitnodiging en opent de pagina van die persoon. Tot de acceptatie staat die persoon als **Uitnodiging verzonden**.
+
+Op een zelfgehoste server die nog geen e-mail kan versturen, gaat er geen e-mail uit en staat die persoon als **Uitgenodigd**. Een hoofdbeheerder ziet eerst **Stuur ze hun uitnodigingslink**: kopieer de link, stuur die zelf naar die persoon en klik dan op **Klaar**. Ieder ander vraagt de beheerder van de server om [e-mail in te stellen](/docs/emails/smtp#het-formulier-openen).
 :::
 
 > [!TIP]
@@ -84,7 +86,7 @@ Filter de lijst op **Gebruiker**, **Status** of **Team**. Klik op een rij om de 
 | --- | --- |
 | **Profiel** | Naam, e-mailadres, foto en gebruikers-ID. |
 | **Teams** | De teams waarin die persoon zit. Voeg hier een team toe of verwijder er een. |
-| **Gereedheid**, **Meldingsmethoden**, **Bereikbaarheidsregels** | Of die persoon kan worden opgeroepen, en hoe. Zichtbaar voor Project Owners, Project Admins, de persoon zelf en iedereen die de meldingsregels van anderen mag lezen. Zie [Gereedheid en rapporten](/docs/on-call/readiness). |
+| **Gereedheid**, **Meldingsmethoden**, **Hoe ik bereikbaar ben** | Of die persoon kan worden opgeroepen, en hoe. Zichtbaar voor Project Owners, Project Admins, de persoon zelf en iedereen die de meldingsregels van anderen mag lezen. Zie [Gereedheid en rapporten](/docs/on-call/readiness). |
 | **Aangepaste velden** | De aangepaste velden van het project voor personen, als het die heeft. |
 | **Verwijderen uit project** | Die persoon uit het project halen. |
 
@@ -134,6 +136,8 @@ Naar één adres kunnen 10 uitnodigingen per uur worden gestuurd, voor projecten
 
 :::details De uitnodigingsmail is niet aangekomen, of de link is verlopen
 De uitnodiging hangt niet af van de e-mail. Vraag de persoon zich te registreren met het uitgenodigde adres: OneUptime stuurt dat adres een nieuwe link om het account af te maken. Wie al een account heeft, logt in en vindt de uitnodiging klaarstaan.
+
+Op een zelfgehoste server die nog geen e-mail kan versturen, kan registreren ook geen nieuwe link e-mailen: in plaats daarvan krijgt die persoon de melding om de uitnodigingslink te vragen. Zodra de beheerder van de server [e-mail heeft ingesteld](/docs/emails/smtp#het-formulier-openen), werkt registreren zoals hierboven. Tot dan kan een hoofdbeheerder die persoon uit het project verwijderen, opnieuw uitnodigen en de nieuwe uitnodigingslink sturen, die één keer werkt, alleen voor dat adres, 7 dagen lang.
 :::
 
 :::details Gebruiker uitnodigen meldt dat gebruikers via SCIM Push Groups worden beheerd

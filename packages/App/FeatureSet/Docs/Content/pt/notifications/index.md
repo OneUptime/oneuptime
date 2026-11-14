@@ -29,7 +29,7 @@ flowchart TB
 | Página | O que ela guarda | A pergunta que ela responde |
 | --- | --- | --- |
 | **Métodos de notificação** | Seus endereços de e-mail, números de telefone, números do WhatsApp, contas do Telegram, Slack, Microsoft Teams e Mattermost, dispositivos push e webhooks | Onde o OneUptime pode me encontrar? |
-| **Regras de Plantão** | Para cada tipo de acionamento e cada gravidade, qual método tentar e depois de quanto tempo | Como sou acionado enquanto estou de plantão? |
+| **Como me contatar** | Para cada tipo de acionamento e cada gravidade, qual método tentar e depois de quanto tempo | Como sou acionado enquanto estou de plantão? |
 | **Configurações de notificação** | Para cada evento sobre um registro seu ou sobre os seus turnos, quais canais usar | Do que mais fico sabendo, e onde? |
 
 Elas são separadas de propósito. Ativar todos os canais em **Configurações de notificação** nunca aciona você, e um método que você não verificou nunca é usado, seja o que for que suas regras digam.
@@ -44,7 +44,7 @@ Abra **Configurações do usuário**, à direita da barra abaixo da barra superi
 | Seção | Páginas |
 | --- | --- |
 | **Primeiros passos** | **Lista de configuração**: o que falta configurar, na ordem que importa |
-| **Alertas e notificações** | **Métodos de notificação**, **Regras de Plantão**, **Configurações de notificação** e **Preferências de e-mail**, que define quantos e-mails as suas novidades somam |
+| **Alertas e notificações** | **Métodos de notificação**, **Como me contatar**, **Configurações de notificação** e **Preferências de e-mail**, que define quantos e-mails as suas novidades somam |
 | **Registros de plantão** | **Registros de plantão**: cada vez que você foi acionado neste projeto, e o que foi enviado |
 | **Política de chamadas recebidas** | **Números de telefone recebidos**: o número em que uma política de chamadas recebidas liga para você |
 | **Calendário** | **Feed de calendário**: os seus turnos no seu app de calendário, e lembretes antes de começarem |
@@ -53,17 +53,17 @@ Abra **Configurações do usuário**, à direita da barra abaixo da barra superi
 
 **Primeiros passos** e **Alertas e notificações** ficam abertas; as outras seções começam recolhidas, e uma seção se abre sozinha quando você está em uma das páginas dela. **Espaço de trabalho** só aparece quando o projeto conectou o Slack, o Microsoft Teams ou o Mattermost.
 
-Proprietários e administradores do projeto também podem ver a sua configuração: em **Usuários**, eles abrem a sua linha e a seção **Plantão** dela, com **Prontidão**, **Métodos de notificação** e **Regras de Plantão**. Eles podem adicionar um método para você ali, mas o código vai para o próprio método, então só você pode verificá-lo.
+Proprietários e administradores do projeto também podem ver a sua configuração: em **Usuários**, eles abrem a sua linha e a seção **Plantão** dela, com **Prontidão**, **Métodos de notificação** e **Como me contatar**. Eles podem adicionar um método para você ali, mas o código vai para o próprio método, então só você pode verificá-lo.
 
 ## Com o que você começa
 
 Quando você entra em um projeto com um e-mail de login verificado, o OneUptime configura você para que um acionamento sempre consiga chegar até você:
 
 1. O seu e-mail de login é adicionado como método de e-mail verificado.
-2. Para cada gravidade, em cada uma das quatro abas de **Regras de Plantão**, uma regra envia um e-mail assim que você é acionado.
+2. Para cada gravidade, em cada uma das quatro abas de **Como me contatar**, uma regra envia um e-mail assim que você é acionado.
 3. Um conjunto de novidades sobre o que é seu, e sobre os seus turnos, fica ativado por e-mail. Veja [Configurações de notificação](/docs/notifications/notification-settings#o-que-fica-ativado-para-um-novo-membro).
 
-Cada método que você verificar depois recebe as mesmas regras: uma regra para cada gravidade, enviada assim que você é acionado. Então verificar um número de telefone para SMS significa que todo acionamento também manda um SMS para você. Para deixar o SMS só para acionamentos críticos, exclua as regras de SMS das outras gravidades. Veja [Regras de Plantão pessoais](/docs/notifications/on-call-rules#as-regras-com-que-você-começa).
+Cada método que você verificar depois recebe as mesmas regras: uma regra para cada gravidade, enviada assim que você é acionado. Então verificar um número de telefone para SMS significa que todo acionamento também manda um SMS para você. Para deixar o SMS só para acionamentos críticos, exclua as regras de SMS das outras gravidades. Veja [Como me contatar](/docs/notifications/on-call-rules#as-regras-com-que-você-começa).
 
 ## A lista de configuração
 
@@ -72,7 +72,7 @@ Cada método que você verificar depois recebe as mesmas regras: uma regra para 
 | Seção | O que ela verifica |
 | --- | --- |
 | **So we can reach you** | Você tem um método, cada método adicionado está verificado, e pelo menos um deles está em um canal que o projeto ativou |
-| **How you want to be paged** | Cada gravidade tem uma regra, em cada uma das quatro abas de **Regras de Plantão** |
+| **How you want to be paged** | Cada gravidade tem uma regra, em cada uma das quatro abas de **Como me contatar** |
 | **Staying informed** | Você fica sabendo quando um turno começa, e cada canal que você ativou em **Configurações de notificação** tem um método verificado por trás |
 | **Nice to have** | Um número para chamadas recebidas, as suas contas do Slack e do Microsoft Teams, um link de calendário e os seus campos de perfil |
 
@@ -95,7 +95,7 @@ Um acionamento pode chegar até você para um tipo e uma gravidade para os quais
 2. Se você não tem nenhum desses, um método pago, nesta ordem: SMS, uma chamada telefônica, WhatsApp, Telegram. É o primeiro que você verificou, em um canal que o projeto ativou.
 3. Se você também não tem nenhum desses, um webhook.
 
-Você recebe um e-mail avisando, e também os proprietários da política de plantão, ou os do projeto se a política não tiver. Se não houver nada verificado, o acionamento não pode ser entregue, e o e-mail diz isso. Esses e-mails ficam retidos enquanto os acionamentos continuam chegando, para que uma tempestade de acionamentos não vire uma tempestade de e-mails. Para adicionar a regra que falta, veja [Regras de Plantão pessoais](/docs/notifications/on-call-rules#quando-uma-gravidade-não-tem-regra).
+Você recebe um e-mail avisando, e também os proprietários da política de plantão, ou os do projeto se a política não tiver. Se não houver nada verificado, o acionamento não pode ser entregue, e o e-mail diz isso. Esses e-mails ficam retidos enquanto os acionamentos continuam chegando, para que uma tempestade de acionamentos não vire uma tempestade de e-mails. Para adicionar a regra que falta, veja [Como me contatar](/docs/notifications/on-call-rules#quando-uma-gravidade-não-tem-regra).
 
 ## O idioma dos seus acionamentos
 
@@ -131,7 +131,7 @@ Um número entra nas suas regras quando é verificado. Clique em **Verificar** n
 
 :::cards
 - [Métodos de notificação](/docs/notifications/notification-methods): Adicione e verifique os endereços em que o OneUptime pode encontrar você.
-- [Regras de Plantão pessoais](/docs/notifications/on-call-rules): Decida qual método cada acionamento tenta, e quando.
+- [Como me contatar](/docs/notifications/on-call-rules): Decida qual método cada acionamento tenta, e quando.
 - [Configurações de notificação](/docs/notifications/notification-settings): Escolha as novidades de que você fica sabendo, e por quais canais.
 - [Regras de escalonamento](/docs/on-call/escalation-rules): Como uma política de plantão decide quem é acionado, nível por nível.
 :::

@@ -9,50 +9,42 @@ export function getScheduleMaintenanceBreadcrumbs(
   const breadcrumpLinksMap: Dictionary<Link[]> = {
     ...BuildBreadcrumbLinksByTitles(PageMap.SCHEDULED_MAINTENANCE_EVENTS, [
       "Project",
-      "Scheduled Maintenance Events",
+      "Scheduled Maintenance",
     ]),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.ONGOING_SCHEDULED_MAINTENANCE_EVENTS,
-      [
-        "Project",
-        "Scheduled Maintenance Events",
-        "Ongoing Scheduled Maintenance",
-      ],
+      ["Project", "Scheduled Maintenance", "Ongoing Maintenance Events"],
     ),
     // The page by the name its side menu entry and its card give it.
     ...BuildBreadcrumbLinksByTitles(
       PageMap.SCHEDULED_MAINTENANCE_EVENTS_CALENDAR,
-      ["Project", "Scheduled Maintenance Events", "Maintenance Calendar"],
+      ["Project", "Scheduled Maintenance", "Maintenance Calendar"],
     ),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_SLACK,
-      ["Project", "Scheduled Maintenance Events", "Slack Workspace Connection"],
+      ["Project", "Scheduled Maintenance", "Slack Workspace Connection"],
     ),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.SCHEDULED_MAINTENANCE_EVENT_CREATE,
-      [
-        "Project",
-        "Scheduled Maintenance Events",
-        "New Scheduled Maintenance Event",
-      ],
+      ["Project", "Scheduled Maintenance", "New Maintenance Event"],
     ),
     ...BuildBreadcrumbLinksByTitles(PageMap.SCHEDULED_MAINTENANCE_VIEW, [
       "Project",
-      "Scheduled Maintenance Events",
-      "View Scheduled Maintenance Event",
+      "Scheduled Maintenance",
+      "View Maintenance Event",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SCHEDULED_MAINTENANCE_VIEW_OWNERS, [
       "Project",
-      "Scheduled Maintenance Events",
-      "View Scheduled Maintenance Event",
+      "Scheduled Maintenance",
+      "View Maintenance Event",
       "Owners",
     ]),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.SCHEDULED_MAINTENANCE_VIEW_STATE_TIMELINE,
       [
         "Project",
-        "Scheduled Maintenance Events",
-        "View Scheduled Maintenance Event",
+        "Scheduled Maintenance",
+        "View Maintenance Event",
         "State Timeline",
       ],
     ),
@@ -60,23 +52,23 @@ export function getScheduleMaintenanceBreadcrumbs(
       PageMap.SCHEDULED_MAINTENANCE_INTERNAL_NOTE,
       [
         "Project",
-        "Scheduled Maintenance Events",
-        "View Scheduled Maintenance Event",
+        "Scheduled Maintenance",
+        "View Maintenance Event",
         "Private Notes",
       ],
     ),
     ...BuildBreadcrumbLinksByTitles(PageMap.SCHEDULED_MAINTENANCE_PUBLIC_NOTE, [
       "Project",
-      "Scheduled Maintenance Events",
-      "View Scheduled Maintenance Event",
+      "Scheduled Maintenance",
+      "View Maintenance Event",
       "Public Notes",
     ]),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.SCHEDULED_MAINTENANCE_VIEW_CUSTOM_FIELDS,
       [
         "Project",
-        "Scheduled Maintenance Events",
-        "View Scheduled Maintenance Event",
+        "Scheduled Maintenance",
+        "View Maintenance Event",
         "Custom Fields",
       ],
     ),
@@ -84,23 +76,23 @@ export function getScheduleMaintenanceBreadcrumbs(
       PageMap.SCHEDULED_MAINTENANCE_VIEW_SETTINGS,
       [
         "Project",
-        "Scheduled Maintenance Events",
-        "View Scheduled Maintenance Event",
+        "Scheduled Maintenance",
+        "View Maintenance Event",
         "Settings",
       ],
     ),
     ...BuildBreadcrumbLinksByTitles(PageMap.SCHEDULED_MAINTENANCE_VIEW_DELETE, [
       "Project",
-      "Scheduled Maintenance Events",
-      "View Scheduled Maintenance Event",
+      "Scheduled Maintenance",
+      "View Maintenance Event",
       "Delete",
     ]),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.SCHEDULED_MAINTENANCE_VIEW_DESCRIPTION,
       [
         "Project",
-        "Scheduled Maintenance Events",
-        "View Scheduled Maintenance Event",
+        "Scheduled Maintenance",
+        "View Maintenance Event",
         "Description",
       ],
     ),
@@ -109,42 +101,37 @@ export function getScheduleMaintenanceBreadcrumbs(
       PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
       [
         "Project",
-        "Scheduled Maintenance Events",
+        "Scheduled Maintenance",
         "Microsoft Teams Workspace Connection",
       ],
     ),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_MATTERMOST,
-      ["Project", "Scheduled Maintenance Events", "Mattermost"],
+      ["Project", "Scheduled Maintenance", "Mattermost"],
     ),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTIONS,
-      ["Project", "Scheduled Maintenance Events", "Workspace"],
+      ["Project", "Scheduled Maintenance", "Workspace"],
     ),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.SCHEDULED_MAINTENANCE_VIEW_NOTIFICATION_LOGS,
       [
         "Project",
-        "Scheduled Maintenance Events",
-        "View Scheduled Maintenance Event",
+        "Scheduled Maintenance",
+        "View Maintenance Event",
         "Notification Logs",
       ],
     ),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.SCHEDULED_MAINTENANCE_VIEW_AI_LOGS,
-      [
-        "Project",
-        "Scheduled Maintenance Events",
-        "View Scheduled Maintenance Event",
-        "AI Logs",
-      ],
+      ["Project", "Scheduled Maintenance", "View Maintenance Event", "AI Logs"],
     ),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.SCHEDULED_MAINTENANCE_VIEW_RUNBOOKS,
       [
         "Project",
-        "Scheduled Maintenance Events",
-        "View Scheduled Maintenance Event",
+        "Scheduled Maintenance",
+        "View Maintenance Event",
         "Runbooks",
       ],
     ),
@@ -152,8 +139,8 @@ export function getScheduleMaintenanceBreadcrumbs(
       PageMap.SCHEDULED_MAINTENANCE_VIEW_AUDIT_LOGS,
       [
         "Project",
-        "Scheduled Maintenance Events",
-        "View Scheduled Maintenance Event",
+        "Scheduled Maintenance",
+        "View Maintenance Event",
         "Audit Logs",
       ],
     ),

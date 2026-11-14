@@ -10,6 +10,7 @@ import {
   TelemetryIngestionBudgetState,
   TelemetryIngestionBudgetStatus,
 } from "../../../../Types/Telemetry/TelemetryIngestionBudget";
+import { SeededRandom, seededRandom } from "../../../Helpers/SeededRandom";
 
 /*
  * Statuses as the ingestion budget status API answers them (issue #5917),
@@ -100,3 +101,112 @@ export function status(data: {
 
 export const LOGS: TelemetryIngestionBudgetSignal = ProductType.Logs;
 export const TRACES: TelemetryIngestionBudgetSignal = ProductType.Traces;
+
+/*
+ * What a status never holds in a place, put there by hostileAnswers: what a
+ * proxy, an older server or a test double might answer instead (issue
+ * #6486, where an offline test double answered {} and every explorer threw
+ * while it drew).
+ */
+export const HOSTILE_VALUES: ReadonlyArray<unknown> = [
+  undefined,
+  null,
+  {},
+  [],
+  "",
+  "text",
+  0,
+  -1,
+  1.5,
+  true,
+  false,
+  [null],
+  [{}],
+  { signals: null },
+  { signal: ProductType.Logs },
+];
+
+// Every path into a value, the value itself (the empty path) included.
+const pathsOf: (value: unknown, path: Array<string>) => Array<Array<string>> = (
+  value: unknown,
+  path: Array<string>,
+): Array<Array<string>> => {
+  if (typeof value !== "object" || value === null) {
+    return [path];
+  }
+
+  const paths: Array<Array<string>> = [path];
+
+  for (const key of Object.keys(value)) {
+    paths.push(
+      ...pathsOf((value as Record<string, unknown>)[key], [...path, key]),
+    );
+  }
+
+  return paths;
+};
+
+// A copy of the value with what is at the path replaced; the value untouched.
+const replacedAt: (
+  value: unknown,
+  path: Array<string>,
+  replacement: unknown,
+) => unknown = (
+  value: unknown,
+  path: Array<string>,
+  replacement: unknown,
+): unknown => {
+  if (path.length === 0) {
+    return replacement;
+  }
+
+  // An earlier change replaced what the path went through: nothing to do.
+  if (typeof value !== "object" || value === null) {
+    return value;
+  }
+
+  const [head, ...rest] = path as [string, ...Array<string>];
+  const copy: Record<string, unknown> | Array<unknown> = Array.isArray(value)
+    ? [...value]
+    : { ...(value as Record<string, unknown>) };
+
+  (copy as Record<string, unknown>)[head] = replacedAt(
+    (value as Record<string, unknown>)[head],
+    rest,
+    replacement,
+  );
+
+  return copy;
+};
+
+/*
+ * Answers drawn from a well-formed one, each with one to three of its fields
+ * - anywhere in it, the whole answer included - replaced by one of
+ * HOSTILE_VALUES. The same answers for the same seed on every run.
+ */
+export function hostileAnswers(data: {
+  from: unknown;
+  seed: number;
+  count: number;
+}): Array<unknown> {
+  const random: SeededRandom = seededRandom(data.seed);
+  const paths: Array<Array<string>> = pathsOf(data.from, []);
+  const answers: Array<unknown> = [];
+
+  for (let index: number = 0; index < data.count; index++) {
+    const changes: number = 1 + random(3);
+    let answer: unknown = data.from;
+
+    for (let change: number = 0; change < changes; change++) {
+      answer = replacedAt(
+        answer,
+        paths[random(paths.length)]!,
+        HOSTILE_VALUES[random(HOSTILE_VALUES.length)],
+      );
+    }
+
+    answers.push(answer);
+  }
+
+  return answers;
+}

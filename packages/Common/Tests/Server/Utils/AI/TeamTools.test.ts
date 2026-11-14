@@ -15,6 +15,12 @@ import Name from "../../../../Types/Name";
 import ObjectID from "../../../../Types/ObjectID";
 import PositiveNumber from "../../../../Types/PositiveNumber";
 import { afterEach, describe, expect, test } from "@jest/globals";
+import {
+  AIActionCardWords,
+  describeAIActionCardWords,
+} from "../../../../Types/AI/AIActionWords";
+import { dashboardTranslator } from "../../../Helpers/DashboardLocales";
+import { expectReadCardWorded } from "../../../Helpers/ReadCardWords";
 
 /*
  * query_teams answers "who is on the platform team?" / "which team should own
@@ -253,5 +259,42 @@ describe("query_teams — list mode", () => {
 describe("query_teams — permissions", () => {
   test("required permissions derive from the model read ACL", () => {
     expect(QueryTeamsTool.requiredPermissions.length).toBeGreaterThan(0);
+  });
+});
+
+/*
+ * A team with no members leaves a card, in the reader's language (issue
+ * #7175): its kind, its line and its facts are words every Dashboard
+ * language says; its description is data.
+ */
+describe("query_teams — the card of a team with no members", () => {
+  test("its words are worded in every language, and its English is the same words", async () => {
+    jest
+      .spyOn(TeamService, "findOneById")
+      .mockResolvedValue(buildTeam({ name: "DBA" }) as never);
+    jest.spyOn(TeamMemberService, "findBy").mockResolvedValue([] as never);
+
+    const result: ToolExecutionResult = await QueryTeamsTool.execute(
+      { teamId: TEAM_ID.toString() },
+      ctx,
+    );
+
+    const words: AIActionCardWords = expectReadCardWorded(result.widget);
+
+    expect(result.widget!.data["heading"]).toBe("DBA");
+    expect(describeAIActionCardWords(words)).toEqual({
+      kind: "Team",
+      line: "No members",
+      facts: [{ label: "Description", value: "Owns shared infrastructure." }],
+    });
+    expect(describeAIActionCardWords(words, dashboardTranslator("de"))).toEqual(
+      {
+        kind: "Team",
+        line: "Keine Mitglieder",
+        facts: [
+          { label: "Beschreibung", value: "Owns shared infrastructure." },
+        ],
+      },
+    );
   });
 });

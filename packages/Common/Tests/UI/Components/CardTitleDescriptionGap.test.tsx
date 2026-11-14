@@ -20,6 +20,7 @@ import Card, {
 } from "../../../UI/Components/Card/Card";
 import CardSections from "../../../UI/Components/Card/CardSections";
 import { TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME } from "../../../UI/Components/Table/TableHeaderControls";
+import { withProductText } from "../../../UI/Utils/ProductText";
 import IconProp from "../../../Types/Icon/IconProp";
 import "@testing-library/jest-dom";
 import { cleanup, render, screen } from "@testing-library/react";
@@ -79,6 +80,21 @@ const PILL_HEIGHT_IN_PX: number = 22;
 const PHONE_CONTROL_HEIGHT_IN_PX: number = 42;
 
 const MD_IN_PX: number = 768;
+
+/*
+ * The classes a description in words is drawn with: its place's, and the
+ * product's-words mark. Card marks a description it is given as words as
+ * the product's own, so a recording of the first-run pages shows it as
+ * written (Utils/ProductText, #6834; ProductTextMarked.test.tsx); every
+ * description here is words. The mark has no style: the layout read from
+ * these classes below is the same with it.
+ */
+const DRAWN_DESCRIPTION_CLASS_NAME: string = withProductText(
+  CARD_DESCRIPTION_CLASS_NAME,
+);
+const DRAWN_DESCRIPTION_UNDER_ACTIONS_CLASS_NAME: string = withProductText(
+  CARD_DESCRIPTION_UNDER_ACTIONS_CLASS_NAME,
+);
 
 function classOf(element: Element | null): string {
   return element?.getAttribute("class") || "";
@@ -734,7 +750,7 @@ describe("which classes each header draws with", () => {
         CARD_HEADER_TITLE_BLOCK_OVER_NOTHING_CLASS_NAME,
       );
       expect(classes.description).toBe(
-        CARD_DESCRIPTION_UNDER_ACTIONS_CLASS_NAME,
+        DRAWN_DESCRIPTION_UNDER_ACTIONS_CLASS_NAME,
       );
     },
   );
@@ -780,7 +796,7 @@ describe("which classes each header draws with", () => {
       );
       expect(classes.titleBlock).toBe("w-full min-w-0");
       expect(classes.actions).toBeNull();
-      expect(classes.description).toBe(CARD_DESCRIPTION_CLASS_NAME);
+      expect(classes.description).toBe(DRAWN_DESCRIPTION_CLASS_NAME);
     },
   );
 
@@ -793,7 +809,7 @@ describe("which classes each header draws with", () => {
     });
 
     expect(classes.descriptionInTitleBlock).toBe(true);
-    expect(classes.description).toBe(CARD_DESCRIPTION_CLASS_NAME);
+    expect(classes.description).toBe(DRAWN_DESCRIPTION_CLASS_NAME);
     expect(classes.actions).toBe(
       `${CARD_HEADER_ACTIONS_CLASS_NAME} md:flex-shrink-0`,
     );
@@ -824,7 +840,7 @@ describe("which classes each header draws with", () => {
       `${CARD_HEADER_TITLE_ROW_CLASS_NAME} ${CARD_HEADER_TITLE_LINE_CLASS_NAMES.besideActions}`,
     );
     expect(classOf(screen.getByTestId("card-description"))).toBe(
-      CARD_DESCRIPTION_UNDER_ACTIONS_CLASS_NAME,
+      DRAWN_DESCRIPTION_UNDER_ACTIONS_CLASS_NAME,
     );
   });
 
@@ -881,7 +897,7 @@ describe("which classes each header draws with", () => {
       CARD_HEADER_ACTIONS_BESIDE_TITLE_CLASS_NAMES.overNothing,
     );
     expect(classOf(screen.getByTestId("card-description"))).toBe(
-      CARD_DESCRIPTION_CLASS_NAME,
+      DRAWN_DESCRIPTION_CLASS_NAME,
     );
   });
 });
@@ -995,7 +1011,7 @@ describe.each(STACKED_LAYOUTS)(
              * 768px.
              */
             expect(classes.descriptionInTitleBlock).toBe(true);
-            expect(classes.description).toBe(CARD_DESCRIPTION_CLASS_NAME);
+            expect(classes.description).toBe(DRAWN_DESCRIPTION_CLASS_NAME);
             expect(laidOut.titleTop).toBe(0);
             expect(laidOut.descriptionTop! - laidOut.titleBottom).toBe(6);
             expect(

@@ -37,7 +37,7 @@ flowchart TB
 ## 开始之前
 
 - **正在到达的追踪。** 使用 [OpenTelemetry](/docs/telemetry/open-telemetry) 为你的服务埋点。**设置指南** 标签页会显示适合你的语言的代码。
-- **可以读取遥测的角色。** Project Owner、Project Admin、Project Member、Viewer、Telemetry Admin、Telemetry Member 或 Telemetry Viewer，或者拥有 Read Telemetry Service Traces 权限的自定义角色。角色的范围决定你能看到谁的 span：参见 [遥测](/docs/permissions/index#遥测)。
+- **可以读取遥测的角色。** Project Owner、Project Admin、Project Member、Viewer、Telemetry Admin、Telemetry Member 或 Telemetry Viewer，或者拥有 Read Traces 权限的自定义角色。角色的范围决定你能看到谁的 span：参见 [遥测](/docs/permissions/index#遥测)。
 
 ## 查找请求
 
@@ -183,6 +183,6 @@ span 通常在请求结束后一分钟内到达。点击追踪页面上的 **刷
 :::cards
 - [搜索语法](/docs/telemetry/search-syntax): 搜索框能理解的所有过滤条件。
 - [跟踪监控](/docs/monitor/traces-monitor): 在请求失败或变慢时收到警报。
-- [异常跟踪](/docs/telemetry/exceptions): 分诊你的 span 记录的错误。
+- [异常](/docs/telemetry/exceptions): 分诊你的 span 记录的错误。
 - [日志浏览器](/docs/telemetry/logs-explorer): 阅读一个请求写下的日志行。
 :::

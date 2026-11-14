@@ -324,7 +324,7 @@ export default class FormSubmission extends BaseModel {
     manyToOneRelationColumn: "scheduledMaintenanceId",
     type: TableColumnType.Entity,
     modelType: ScheduledMaintenance,
-    title: "Scheduled Maintenance Event",
+    title: "Maintenance Event",
     description:
       "The scheduled maintenance event this submission created. Empty for a form that creates incidents, and once that event is deleted.",
   })
@@ -352,7 +352,7 @@ export default class FormSubmission extends BaseModel {
     type: TableColumnType.ObjectID,
     required: false,
     canReadOnRelationQuery: true,
-    title: "Scheduled Maintenance Event ID",
+    title: "Maintenance Event ID",
     description:
       "ID of the scheduled maintenance event this submission created. Empty for a form that creates incidents, and once that event is deleted.",
     example: "b8c9d0e1-f2a3-4b4c-9d5e-6f7a8b9c0d1e",

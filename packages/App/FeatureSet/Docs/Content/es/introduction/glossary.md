@@ -42,13 +42,13 @@ Consulta [Crear un monitor](/docs/monitor/create-monitor).
 
 Las reglas de un monitor: qué significa cada resultado de una comprobación. Se evalúan en orden, y el primero que coincide puede cambiar el estado del monitor, declarar un incidente, crear una alerta o las tres cosas.
 
-Otros nombres: **Criterios de monitoreo**, **Criterios del monitor**, **Pasos del monitor**. Consulta [Criterios y estados de monitores](/docs/monitor/criteria-and-statuses).
+Otros nombres: **Criterios de monitoreo**, **Criterios del monitor**, **Pasos del monitor**. Consulta [Criterios y estados](/docs/monitor/criteria-and-statuses).
 
 ### Estado del monitor
 
 Cómo está un monitor en este momento. Cada proyecto nuevo tiene tres estados de monitor, **Operativo**, **Degradado** y **Sin conexión**, y puedes añadir los tuyos.
 
-Consulta [Criterios y estados de monitores](/docs/monitor/criteria-and-statuses).
+Consulta [Criterios y estados](/docs/monitor/criteria-and-statuses).
 
 ### Sonda
 
@@ -90,7 +90,7 @@ Consulta [Reglas de escalado](/docs/on-call/escalation-rules).
 
 Quién está de guardia en cada momento: las personas se turnan, y cada una pasa el relevo a la siguiente. Una regla de escalado que avisa a una programación avisa a quien esté de guardia en ella.
 
-Otros nombres: **Rotación**. Consulta [Programaciones de guardia](/docs/on-call/schedules).
+Otros nombres: **Rotación**, **Programación de la política de guardia**. Consulta [Programaciones de guardia](/docs/on-call/schedules).
 
 ### Capa
 
@@ -103,6 +103,12 @@ Consulta [Programaciones de guardia](/docs/on-call/schedules#capas).
 Una dirección en la que OneUptime puede localizarte dentro de un proyecto: una dirección de correo, un número de teléfono para SMS o llamadas, tu cuenta de Slack o de Microsoft Teams, o la aplicación de OneUptime en tu teléfono. Cada persona añade los suyos en **Ajustes de usuario**.
 
 Consulta [Métodos de notificación](/docs/notifications/notification-methods).
+
+### Cómo contactarme
+
+Tus propias reglas para que te avisen: cuáles de tus métodos de notificación prueba un aviso, y al cabo de cuánto tiempo. Una escalera cubre cada incidente, alerta y episodio, y una gravedad puede tener sus propias reglas. Cada persona define las suyas en **Ajustes de usuario**.
+
+Otros nombres: **Reglas de guardia personales**. Consulta [Cómo contactarme](/docs/notifications/on-call-rules).
 
 ### Página de estado
 
@@ -118,7 +124,7 @@ Consulta [Suscriptores y anuncios](/docs/status-pages/subscribers).
 
 ### Mantenimiento programado
 
-Trabajo previsto, anunciado con antelación. Un evento pasa por **Programado**, **En curso**, **Finalizado** y **Completado**, y las páginas de estado en las que se muestra informan de él a visitantes y suscriptores.
+Trabajo previsto, anunciado con antelación. Cada evento de mantenimiento pasa por los estados del mantenimiento **Programado**, **En curso**, **Finalizado** y **Completado**, y las páginas de estado en las que se muestra informan de él a visitantes y suscriptores.
 
 Otros nombres: **Evento de mantenimiento programado**, **Evento programado**, **Evento**. Consulta [Visión general del mantenimiento programado](/docs/scheduled-maintenance/index).
 
@@ -140,7 +146,7 @@ Consulta [Grupos de monitores](/docs/monitor/monitor-groups).
 
 Una aplicación o un microservicio que ejecutas. OneUptime añade uno la primera vez que llega su telemetría, con el nombre de su `service.name`, y reúne en una sola página sus registros, trazas, métricas, excepciones, incidentes y propietarios.
 
-Otros nombres: **Catálogo de servicios**, **Servicio de telemetría**. Consulta [Catálogo de servicios](/docs/telemetry/services).
+Otros nombres: **Catálogo de servicios**, **Servicio de telemetría**. Consulta [Servicios](/docs/telemetry/services).
 
 ### Host
 
@@ -256,7 +262,7 @@ Consulta [Reglas de etiquetas y propietarios](/docs/configuration/label-and-owne
 
 Un error que lanza tu código. OneUptime agrupa cada aparición del mismo error en una sola excepción, con su traza de pila, su tendencia y las solicitudes en las que ocurrió.
 
-Otros nombres: **Seguimiento de excepciones**, `/telemetry-exception`. Consulta [Seguimiento de excepciones](/docs/telemetry/exceptions).
+Otros nombres: **Seguimiento de excepciones**, `/telemetry-exception`. Consulta [Excepciones](/docs/telemetry/exceptions).
 
 ### Hallazgos de IA
 
@@ -300,7 +306,7 @@ Consulta [Explorador de trazas](/docs/telemetry/traces-explorer).
 
 Cómo gasta tu aplicación el tiempo de CPU y la memoria, función por función, enviado por un perfilador que envía los datos a la API compatible con Pyroscope de OneUptime.
 
-Otros nombres: **Perfiles de rendimiento**, **Perfilado continuo**. Consulta [Perfilado continuo](/docs/telemetry/profiles).
+Otros nombres: **Perfiles de rendimiento**, **Perfilado continuo**. Consulta [Perfiles](/docs/telemetry/profiles).
 
 ### IA / LLM
 
@@ -472,13 +478,13 @@ Consulta [¿Cuál uso?](/docs/introduction/which-one#sonda-agente-colector-o-run
 
 ### Reglas de guardia
 
-Dos cosas distintas. En **Incidentes** y **Alertas**, las reglas de guardia eligen las políticas de guardia que ejecuta un incidente o una alerta nuevos. En **Ajustes de usuario**, tus propias reglas de guardia deciden cuáles de tus métodos de notificación prueba un aviso, y al cabo de cuánto tiempo.
+En **Incidentes** y **Alertas**, las reglas de guardia eligen las políticas de guardia que ejecuta un incidente o una alerta nuevos. Las reglas propias de cada persona sobre cómo le llega un aviso también se llamaban reglas de guardia: ahora son **Cómo contactarme**, en **Ajustes de usuario**.
 
-Consulta [Configuración y automatización de incidentes](/docs/incidents/settings#reglas-de-guardia-de-incidentes) y [Reglas de guardia personales](/docs/notifications/on-call-rules).
+Consulta [Configuración y automatización de incidentes](/docs/incidents/settings#reglas-de-guardia-de-incidentes) y [Cómo contactarme](/docs/notifications/on-call-rules).
 
 ### Ajustes de notificaciones
 
-Dos páginas distintas. En **Ajustes de usuario**, qué actualizaciones te llegan sobre lo que es tuyo, y por qué canales. En **Ajustes del proyecto**, los interruptores del proyecto para SMS y llamadas, su saldo de mensajería, y su propio SMTP y Twilio.
+En **Ajustes de usuario**, qué actualizaciones te llegan sobre lo que es tuyo, y por qué canales. Los interruptores del proyecto para SMS y llamadas, su saldo de mensajería y su propio SMTP y Twilio también se llamaban ajustes de notificaciones: ahora son **Canales de notificación**, en **Ajustes del proyecto**.
 
 Consulta [Ajustes de notificaciones](/docs/notifications/notification-settings).
 

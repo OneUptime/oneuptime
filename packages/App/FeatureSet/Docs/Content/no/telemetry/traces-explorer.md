@@ -37,7 +37,7 @@ Utforskeren har fem faner:
 ## Før du begynner
 
 - **Spor som kommer inn.** Instrumenter tjenestene dine med [OpenTelemetry](/docs/telemetry/open-telemetry). Fanen **Oppsettveiledning** viser koden for språket ditt.
-- **En rolle som kan lese telemetri.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member eller Telemetry Viewer, eller en egendefinert rolle med tillatelsen Read Telemetry Service Traces. Omfanget avgjør hvem sine spans du ser: se [Telemetri](/docs/permissions/index#telemetri).
+- **En rolle som kan lese telemetri.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member eller Telemetry Viewer, eller en egendefinert rolle med tillatelsen Read Traces. Omfanget avgjør hvem sine spans du ser: se [Telemetri](/docs/permissions/index#telemetri).
 
 ## Finn en forespørsel
 
@@ -183,6 +183,6 @@ Hver rad er et span, ikke en forespørsel: med **Entry spans**, som er standard,
 :::cards
 - [Søkesyntaks](/docs/telemetry/search-syntax): Hvert filter søkefeltet forstår.
 - [Trase-overvåking](/docs/monitor/traces-monitor): Få varsel om mislykkede eller trege forespørsler.
-- [Unntakssporing](/docs/telemetry/exceptions): Gå gjennom feilene spannene dine registrerer.
+- [Unntak](/docs/telemetry/exceptions): Gå gjennom feilene spannene dine registrerer.
 - [Loggutforsker](/docs/telemetry/logs-explorer): Les logglinjene en forespørsel skrev.
 :::

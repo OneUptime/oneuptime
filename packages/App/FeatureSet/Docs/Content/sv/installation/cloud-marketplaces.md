@@ -127,8 +127,8 @@ Din prenumeration på marknadsplatsen är din licens. Varje rapport som marknads
 | Vad som händer | Vad utgåvemärket visar |
 | --- | --- |
 | Marknadsplatsen godtar timrapporterna | Enterprise Edition, licensierad via din marknadsplats. |
-| Ingen rapport har godtagits på 72 timmar | **Enterprise Edition (Marketplace Reports Failing)**: alla enterprise-funktioner fortsätter att fungera under en frist på 30 dagar. |
-| Marknadsplatsen svarar att installationen saknar prenumeration, eller fristen tar slut | **Enterprise Edition (Marketplace Subscription Ended)**: enterprise-funktionerna stoppas, precis som när en [licens löper ut](/docs/self-hosted/enterprise#när-en-licens-löper-ut-eller-saknas). |
+| Ingen rapport har godtagits på 72 timmar | **Enterprise Edition (rapporter till marknadsplatsen misslyckas)**: alla enterprise-funktioner fortsätter att fungera under en frist på 30 dagar. |
+| Marknadsplatsen svarar att installationen saknar prenumeration, eller fristen tar slut | **Enterprise Edition (prenumerationen på marknadsplatsen har upphört)**: enterprise-funktionerna stoppas, precis som när en [licens löper ut](/docs/self-hosted/enterprise#när-en-licens-löper-ut-eller-saknas). |
 
 Marknadsplatsen nekar en prenumeration som har sagts upp eller stängts av, och en installation som inte är den du köpte. Övervakning, larm, incidenter, jour och statussidor fortsätter att fungera i alla lägen, och inget tas bort. Prenumerera igen, så ger nästa godtagna rapport licens för Enterprise Edition igen, utan omstart.
 
@@ -162,7 +162,7 @@ Debiteringen beror inte på hur många repliker som körs: bara en körning i ta
 
 ## Felsökning
 
-:::details Utgåvemärket visar Enterprise Edition (Marketplace Reports Failing)
+:::details Utgåvemärket visar Enterprise Edition (rapporter till marknadsplatsen misslyckas)
 OneUptime kan inte rapportera till marknadsplatsen. Varje rad som OneUptime loggar om problemet börjar med `OneUptime Enterprise marketplace billing`; en rad som säger att användningen "cannot be reported" anger vad som saknas. De vanligaste orsakerna:
 
 - **AWS:** tjänstkontot `oneuptime` har ingen IAM-roll, eller så har rollen inte policyn `AWSMarketplaceMeteringFullAccess` (`AWSMarketplaceMeteringRegisterUsage` räcker inte). Koppla policyn till rollen, eller skapa rollen med `eksctl`-kommandot under [AWS Marketplace](#aws-marketplace) och starta sedan om OneUptimes poddar med `kubectl rollout restart deployment --namespace oneuptime`.
@@ -173,7 +173,7 @@ OneUptime kan inte rapportera till marknadsplatsen. Varje rad som OneUptime logg
 Användningen sparas medan du åtgärdar felet och debiteras så snart OneUptime kan rapportera igen. Användning som är äldre än 30 dagar debiteras inte.
 :::
 
-:::details Utgåvemärket visar Enterprise Edition (Marketplace Subscription Ended)
+:::details Utgåvemärket visar Enterprise Edition (prenumerationen på marknadsplatsen har upphört)
 Marknadsplatsen har nekat installationen: prenumerationen har sagts upp eller stängts av, eller så är installationen inte den som köptes på marknadsplatsen. Kontrollera prenumerationen på marknadsplatsen och prenumerera igen; nästa godtagna rapport ger licens för Enterprise Edition igen. Utgåvemärket visar samma sak när rapporterna har fortsatt att misslyckas under hela fristen.
 :::
 

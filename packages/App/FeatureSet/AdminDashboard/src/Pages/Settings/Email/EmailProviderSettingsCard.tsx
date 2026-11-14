@@ -9,7 +9,9 @@ import {
   GlobalEmailProviderTransport,
   getGlobalEmailProviderFormFields,
   getGlobalEmailProviderFormSteps,
+  getAmazonSesAuthenticationTypeTitle,
   getGlobalEmailProviderMissingSetting,
+  usesAmazonSesServerIamRole,
 } from "Common/UI/Components/SmtpConfig/SmtpConfigFormFields";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
@@ -27,9 +29,11 @@ import { useTranslation } from "react-i18next";
  * the builder a project's form is made from (SmtpConfigFormFields), so the
  * server's settings and a project's ask the same questions in the same
  * words. Its rows say whether the server sends through it now (Enabled, or
- * what is still missing), then what tells the account apart - the access
- * key ID and Region, the Mailgun domain and region - and who the emails come
- * from. No key is ever shown: the status reads only whether one is set.
+ * what is still missing), then what tells the account apart - how Amazon
+ * SES is signed in to (the access key, or this server's IAM role), the
+ * access key ID and Region, the Mailgun domain and region - and who the
+ * emails come from. No key is ever shown: the status reads only whether one
+ * is set.
  */
 
 export interface ComponentProps {
@@ -103,6 +107,7 @@ const STATUS_SELECT: Readonly<
   Record<GlobalEmailProviderTransport, Select<GlobalConfig>>
 > = {
   "Amazon SES": {
+    amazonSesAuthenticationType: true,
     amazonSesAccessKeyId: true,
     amazonSesSecretAccessKey: true,
     amazonSesRegion: true,
@@ -143,9 +148,30 @@ const EmailProviderSettingsCard: FunctionComponent<ComponentProps> = (
     props.transport === "Amazon SES"
       ? [
           {
+            field: { amazonSesAuthenticationType: true },
+            title: "Authentication Type",
+            fieldType: FieldType.Element,
+            getElement: (item: GlobalConfig): ReactElement => {
+              // Never picked: the server signs in with its access key.
+              return (
+                <span>
+                  {t(
+                    getAmazonSesAuthenticationTypeTitle(
+                      item.amazonSesAuthenticationType,
+                    ),
+                  )}
+                </span>
+              );
+            },
+          },
+          {
             field: { amazonSesAccessKeyId: true },
             title: "Access Key ID",
             placeholder: "None",
+            // The server's IAM role has no key to tell apart (#7000).
+            showIf: (item: GlobalConfig): boolean => {
+              return !usesAmazonSesServerIamRole(item);
+            },
           },
           {
             field: { amazonSesRegion: true },

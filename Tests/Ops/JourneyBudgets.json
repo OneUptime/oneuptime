@@ -77,6 +77,23 @@
         "words": 1020
       }
     },
+    "paged-by-phone-guided": {
+      "title": "Get paged by phone and escalate to a teammate (Cloud, guided setup)",
+      "path": "guided",
+      "startsAt": "Home, in a new project on OneUptime Cloud",
+      "endsWhen": "SMS and calls are on and paid for, my number is verified for both, a policy pages me for every new incident and alert, then Grace, and its test page was acknowledged",
+      "budget": {
+        "screens": 2,
+        "dialogs": 3,
+        "clicks": 19,
+        "fieldsTyped": 3,
+        "products": 2,
+        "keystrokes": 21,
+        "defaultsKept": 2,
+        "choices": 5,
+        "words": 829
+      }
+    },
     "status-page": {
       "title": "Publish a status page that shows the monitor",
       "path": "manual",

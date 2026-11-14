@@ -37,7 +37,7 @@ flowchart TB
 Das Modell `ScheduledMaintenanceState` hat `name`, `description`, `color` und `order`, dazu vier Flags: `isScheduledState`, `isOngoingState`, `isEndedState` und `isResolvedState`. OneUptime liest die Flags und die Reihenfolge, nie den Namen, deshalb können Sie **Abgeschlossen** in „Abgenommen“ umbenennen, ohne dass etwas kaputtgeht.
 
 > [!TIP]
-> Die Liste liegt unter **Geplante Wartung → Einstellungen → Ereignisstatus**. **Einstellungen** ist im Seitenmenü zunächst eingeklappt: Klappen Sie es zuerst auf.
+> Die Liste liegt unter **Geplante Wartung → Einstellungen → Wartungsstatus**. **Einstellungen** ist im Seitenmenü zunächst eingeklappt: Klappen Sie es zuerst auf.
 
 ## Die vorangelegten Status
 
@@ -74,7 +74,7 @@ Ein Ereignis startet, wenn es aus einem Status, in dem es wartet, nach **Laufend
 
 - **Seine Monitore werden nicht mehr geprüft** und wechseln zu seinem **Monitor-Status ändern in**, falls es einen hat. Ein Monitor, den Sie dem Ereignis während der Arbeit hinzufügen, wechselt ebenfalls.
 - **Seine Statusseiten führen es als laufend**, und seine Abonnenten werden informiert: zur geplanten Zeit, wenn **Wenn das Ereignis beginnt** eingeschaltet ist, und von Hand so, wie es **Statusseiten-Abonnenten benachrichtigen** im Dialog sagt.
-- **Seine Eigentümer werden informiert**, wenn sie die Benachrichtigung über Statusänderungen eingeschaltet haben, und das Ereignis erscheint unter **Laufende Ereignisse**.
+- **Seine Eigentümer werden informiert**, wenn sie die Benachrichtigung über Statusänderungen eingeschaltet haben, und das Ereignis erscheint unter **Laufende Wartungsereignisse**.
 
 Ein Ereignis endet, wenn es aus einem Status, in dem es läuft, nach **Beendet**, **Abgeschlossen** oder in einen eigenen Status nach **Beendet** wechselt. Dann werden seine Monitore wieder geprüft und kehren zu „betriebsbereit“ zurück, es sei denn, ein anderes laufendes Ereignis hält sie noch, und seine Abonnenten werden auf dieselbe Weise informiert: zur geplanten Zeit, wenn **Wenn das Ereignis endet** eingeschaltet ist, und von Hand so, wie es der Dialog sagt.
 
@@ -106,7 +106,7 @@ Ein Status, den Sie hinzufügen, ist ein Schritt, den Ihr Team durchläuft und d
 :::steps
 ### Die Statusliste öffnen
 
-Gehen Sie zu **Geplante Wartung → Einstellungen → Ereignisstatus**. Die Karte **Status der geplanten Wartung** listet Ihre Status in ihrer Reihenfolge. Jede Zeile zeigt Farbe und Name, als was ein Ereignis darin zählt (Spalte **Zählt als**) und ihre Beschreibung.
+Gehen Sie zu **Geplante Wartung → Einstellungen → Wartungsstatus**. Die Karte **Status der geplanten Wartung** listet Ihre Status in ihrer Reihenfolge. Jede Zeile zeigt Farbe und Name, als was ein Ereignis darin zählt (Spalte **Zählt als**) und ihre Beschreibung.
 
 ### Den Status erstellen
 

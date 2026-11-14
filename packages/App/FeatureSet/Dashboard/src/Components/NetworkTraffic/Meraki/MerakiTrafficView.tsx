@@ -113,6 +113,7 @@ import React, {
   useState,
 } from "react";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
+import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * THE MERAKI SIDE OF A TRAFFIC PAGE: a device's, a site's or the whole
@@ -805,10 +806,10 @@ const MerakiTrafficView: FunctionComponent<ComponentProps> = (
                 className="h-4 w-4 shrink-0 text-red-500"
               />
               <span>
-                {translator.translateTemplate(
-                  "Couldn't refresh — showing previously loaded data. {{error}}",
-                  { error: props.error },
-                )}
+                <ErrorSentence
+                  template="Couldn't refresh — showing previously loaded data. {{error}}"
+                  error={props.error}
+                />
               </span>
             </div>
           ) : (

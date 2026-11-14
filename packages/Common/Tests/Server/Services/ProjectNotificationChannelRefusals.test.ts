@@ -120,7 +120,7 @@ function expectSaysWhoCan(message: string): void {
     "A project owner, a Billing Admin or someone with Manage Billing",
   );
   expect(message).toContain(
-    "Project Settings > Notifications > Notification Settings",
+    "Project Settings > Notifications > Notification Channels",
   );
   expect(message.toLowerCase()).not.toContain("project admin");
   expect(message).not.toMatch(/please enable/i);
@@ -156,7 +156,7 @@ describe("adding a phone number for SMS", () => {
       getProjectNotificationChannelOffMessage(ProjectNotificationChannel.SMS),
     );
     expect(message).toBe(
-      "SMS is off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notifications > Notification Settings.",
+      "SMS is off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notifications > Notification Channels.",
     );
     expectSaysWhoCan(message);
   });
@@ -210,7 +210,7 @@ describe("adding a phone number for calls", () => {
     );
 
     expect(message).toBe(
-      "Phone calls are off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Settings.",
+      "Phone calls are off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.",
     );
     expectSaysWhoCan(message);
   });
@@ -246,7 +246,7 @@ describe("adding a WhatsApp number", () => {
     );
 
     expect(message).toBe(
-      "WhatsApp is off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notifications > Notification Settings.",
+      "WhatsApp is off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notifications > Notification Channels.",
     );
     expectSaysWhoCan(message);
   });
@@ -268,7 +268,7 @@ describe("linking a Telegram account", () => {
     );
 
     expect(message).toBe(
-      "Telegram is off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notifications > Notification Settings.",
+      "Telegram is off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notifications > Notification Channels.",
     );
     expectSaysWhoCan(message);
   });
@@ -344,7 +344,7 @@ describe("a status page's SMS subscriptions", () => {
 
     expect(message).toBe(STATUS_PAGE_SMS_SUBSCRIPTIONS_SMS_OFF_MESSAGE);
     expect(message).toBe(
-      "Visitors can't subscribe by SMS while SMS is off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notifications > Notification Settings.",
+      "Visitors can't subscribe by SMS while SMS is off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notifications > Notification Channels.",
     );
     expectSaysWhoCan(message);
   });

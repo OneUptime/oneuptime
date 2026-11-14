@@ -45,7 +45,8 @@ import {
  * same gated heartbeat as everything else ingest learns about it
  * (ResourceHeartbeat). Two callers write each row: the metrics snapshot
  * (counts, every batch) and the fenced maintenance pass, which carries the
- * version. These pin what that means for the version:
+ * version - for a Proxmox cluster each with a clock of its own (see its
+ * block below). These pin what that means for the version:
  *
  *   - the version lands, and a later snapshot write without it never
  *     blanks it (absent keys are not written);
@@ -119,11 +120,6 @@ type ServiceCase = {
 };
 
 const CASES: Array<ServiceCase> = [
-  {
-    name: "ProxmoxClusterService",
-    service: ProxmoxClusterService,
-    snapshot: { pveVersion: "8.2.4", nodeCount: 3, onlineNodeCount: 3 },
-  },
   {
     name: "CephClusterService",
     service: CephClusterService,
@@ -212,6 +208,144 @@ describe.each(CASES)("$name", ({ service, snapshot }: ServiceCase) => {
 
     expect(versionWrites()).toHaveLength(1);
     expect(versionWrites()[0]!.data["agentVersion"]).toBe(VERSION);
+  });
+});
+
+/*
+ * A Proxmox cluster keeps two clocks (issue #7439): lastSeenAt is when the
+ * cluster was last READ (updateLastSeen, the metrics snapshot) and
+ * agentLastSeenAt when its agent was last HEARD (updateAgentLastSeen, the
+ * fenced maintenance pass, which carries the version). Each has its own
+ * window, so neither waits behind the other - above all, an agent heartbeat
+ * never holds back a read's lastSeenAt, which would turn a cluster that is
+ * being read Disconnected.
+ */
+describe("ProxmoxClusterService", () => {
+  const SNAPSHOT: Parameters<typeof ProxmoxClusterService.updateLastSeen>[1] = {
+    pveVersion: "8.2.4",
+    nodeCount: 3,
+    onlineNodeCount: 3,
+  };
+
+  function readWrites(): Array<WriteCall> {
+    return writes.filter((write: WriteCall): boolean => {
+      return "lastSeenAt" in write.data;
+    });
+  }
+
+  function agentWrites(): Array<WriteCall> {
+    return writes.filter((write: WriteCall): boolean => {
+      return "agentLastSeenAt" in write.data;
+    });
+  }
+
+  beforeEach(() => {
+    writes = [];
+    cache = new Map<string, string>();
+    SingleFlight.clear();
+    ResourceHeartbeat.clearRecentHeartbeatMemo();
+    mockCache();
+    jest
+      .spyOn(ProxmoxClusterService, "updateColumnsByIdIfUnlockedWithoutHooks")
+      .mockImplementation(async (input: unknown) => {
+        const call: { id: ObjectID; data: unknown } = input as {
+          id: ObjectID;
+          data: unknown;
+        };
+        writes.push({
+          id: call.id,
+          data: { ...(call.data as Record<string, unknown>) },
+        });
+        return true;
+      });
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+    SingleFlight.clear();
+    ResourceHeartbeat.clearRecentHeartbeatMemo();
+  });
+
+  test("the version the agent reports lands on the row with the agent's own clock, never the read's", async () => {
+    await ProxmoxClusterService.updateAgentLastSeen(ROW_ID, {
+      agentVersion: VERSION,
+    });
+
+    expect(versionWrites()).toHaveLength(1);
+    const data: Record<string, unknown> = versionWrites()[0]!.data;
+    expect(data["agentVersion"]).toBe(VERSION);
+    expect(data["agentLastSeenAt"]).toBeInstanceOf(Date);
+    // Hearing the agent is not reading the cluster.
+    expect("lastSeenAt" in data).toBe(false);
+    expect("otelCollectorStatus" in data).toBe(false);
+    expect(versionWrites()[0]!.id.toString()).toBe(ROW_ID.toString());
+  });
+
+  test("an agent with no version stamp is still heard", async () => {
+    await ProxmoxClusterService.updateAgentLastSeen(ROW_ID);
+
+    expect(agentWrites()).toHaveLength(1);
+    expect(versionWrites()).toHaveLength(0);
+    expect(readWrites()).toHaveLength(0);
+  });
+
+  test("an empty version is never written: an install from before the pin reads Not reported", async () => {
+    await ProxmoxClusterService.updateAgentLastSeen(ROW_ID, {
+      agentVersion: "",
+    });
+
+    expect(versionWrites()).toHaveLength(0);
+  });
+
+  test("a read turns the cluster Connected and never blanks the version or the agent's clock", async () => {
+    await ProxmoxClusterService.updateAgentLastSeen(ROW_ID, {
+      agentVersion: VERSION,
+    });
+    letTheWindowPass();
+    await ProxmoxClusterService.updateLastSeen(ROW_ID, SNAPSHOT);
+
+    const last: Record<string, unknown> = writes[writes.length - 1]!.data;
+    expect(last["lastSeenAt"]).toBeInstanceOf(Date);
+    expect(last["otelCollectorStatus"]).toBe("connected");
+    expect("agentVersion" in last).toBe(false);
+    expect("agentLastSeenAt" in last).toBe(false);
+  });
+
+  test("a read right after the agent was heard still refreshes lastSeenAt: the agent's heartbeat never holds the read back", async () => {
+    await ProxmoxClusterService.updateAgentLastSeen(ROW_ID, {
+      agentVersion: VERSION,
+    });
+    SingleFlight.clear();
+    ResourceHeartbeat.clearRecentHeartbeatMemo();
+    // The snapshot of the same batch, moments later, with nothing new in it.
+    await ProxmoxClusterService.updateLastSeen(ROW_ID, {});
+
+    expect(readWrites()).toHaveLength(1);
+    expect(readWrites()[0]!.data["otelCollectorStatus"]).toBe("connected");
+  });
+
+  test("the agent heard right after a read lands at once too, version and all", async () => {
+    await ProxmoxClusterService.updateLastSeen(ROW_ID, SNAPSHOT);
+    SingleFlight.clear();
+    ResourceHeartbeat.clearRecentHeartbeatMemo();
+    await ProxmoxClusterService.updateAgentLastSeen(ROW_ID, {
+      agentVersion: VERSION,
+    });
+
+    expect(versionWrites()).toHaveLength(1);
+    expect(agentWrites()).toHaveLength(1);
+  });
+
+  test("within its window the agent's heartbeat is written once, however many batches hear it", async () => {
+    for (let i: number = 0; i < 5; i++) {
+      SingleFlight.clear();
+      ResourceHeartbeat.clearRecentHeartbeatMemo();
+      await ProxmoxClusterService.updateAgentLastSeen(ROW_ID, {
+        agentVersion: VERSION,
+      });
+    }
+
+    expect(agentWrites()).toHaveLength(1);
   });
 });
 

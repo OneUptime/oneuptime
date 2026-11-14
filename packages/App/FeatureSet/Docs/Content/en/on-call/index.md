@@ -2,11 +2,14 @@
 
 On-call is how OneUptime gets a person onto a problem, at any hour. When an incident, an alert or an episode needs someone, its on-call policies page people level by level until somebody acknowledges, and each person is reached the way they chose: a push notification, a text, a call, an email or a chat message. This page shows how the pieces fit together and where each one lives. The [Glossary](/docs/introduction/glossary#on-call-policy) explains each word on-call uses in a sentence or two.
 
+> [!TIP]
+> New here? Follow the guide first: [Get Paged by Phone, SMS or Push](/docs/guides/paging).
+
 :::cards
 - [How a page reaches someone](#how-a-page-reaches-someone): From a new incident to the person who answers.
 - [The building blocks](#the-building-blocks): Policies, escalation rules, schedules, overrides and personal rules.
 - [Set up on-call](#set-up-on-call): From nothing to a team that is paged, in five steps.
-- [Where on-call lives](#where-on-call-lives): The On-Call Duty menu, section by section.
+- [Where on-call lives](#where-on-call-lives): The On-Call menu, section by section.
 :::
 
 ## How a page reaches someone
@@ -16,7 +19,7 @@ flowchart TB
     record["Incident, alert<br/>or episode"] --> policy["Its on-call policies"]
     policy --> level["The next<br/>escalation rule"]
     level --> people["Who is on call,<br/>teams and people"]
-    people --> rules["Their personal<br/>on-call rules"]
+    people --> rules["Their How to<br/>Reach Me"]
     rules --> ack{"Acknowledged<br/>in time?"}
     ack -->|Yes| stop["Paging stops"]
     ack -->|No| level
@@ -25,7 +28,7 @@ flowchart TB
 1. A new incident, alert or episode runs its on-call policies at once: the ones picked on it, and the ones its on-call rules add. Each policy runs on its own. An on-call rule set to **Only during working hours** makes the policies it adds wait until those hours begin.
 2. A policy's first escalation rule pages straight away: whoever is on call in its schedules right now, every member of its teams, and the people it names.
 3. If one of them is away, a user override sends their page to the person who covers for them, or skips them.
-4. Each person is reached through their personal on-call rules: which of their methods is tried, and after how long. A page with no rule still reaches them on the methods they verified.
+4. Each person is reached as their How to Reach Me says: which of their methods is tried, and after how long. A page with no rule still reaches them on the methods they verified.
 5. If nobody acknowledges before the rule's wait runs out, the next rule pages. After the last one, the policy starts again if it repeats, and otherwise stops.
 
 Acknowledging or resolving the incident, alert or episode stops every policy that is still paging for it. OneUptime moves running policies on every minute, and records each run, rule by rule, in **Execution Logs**.
@@ -45,17 +48,17 @@ The words used across OneUptime are in the [Glossary](/docs/introduction/glossar
 | Escalation rule | One level of a policy: who it pages, and how long it waits for an acknowledgement | [Escalation Rules](/docs/on-call/escalation-rules) |
 | On-call schedule | Who is on call at any moment, as people take turns | [On-Call Schedules](/docs/on-call/schedules) |
 | User override | Who covers for someone while they are away | [User Overrides](/docs/on-call/user-overrides) |
-| Personal on-call rules | How one person is reached: which method, and after how long | [Personal On-Call Rules](/docs/notifications/on-call-rules) |
+| How to Reach Me | How one person is reached: which method, and after how long | [How to Reach Me](/docs/notifications/on-call-rules) |
 | Incoming call policy | A phone number that rings whoever is on call | [Incoming Call Policy](/docs/on-call/incoming-call-policy) |
 
-Policies, escalation rules, schedules and overrides belong to the project, under **On-Call Duty**. Notification methods and personal on-call rules belong to each person, under **User Settings**: an admin can look at someone's setup, but only that person can verify their phone or email. See [How OneUptime Reaches You](/docs/notifications/index).
+Policies, escalation rules, schedules and overrides belong to the project, under **On-Call**. Notification methods and How to Reach Me belong to each person, under **User Settings**: an admin can look at someone's setup, but only that person can verify their phone or email. See [How OneUptime Reaches You](/docs/notifications/index).
 
 ## Set up on-call
 
 :::steps
 ### Build a schedule
 
-Open **On-Call Duty** from the **Products** menu and go to **On-Call Schedules**. Click **Create On-Call Schedule**, name it, and under **Who takes turns?** pick the people in the order they take turns. See [On-Call Schedules](/docs/on-call/schedules).
+Open **On-Call** from the **Products** menu and go to **On-Call Schedules**. Click **Create On-Call Schedule**, name it, and under **Who takes turns?** pick the people in the order they take turns. See [On-Call Schedules](/docs/on-call/schedules).
 
 ### Create a policy
 
@@ -71,7 +74,7 @@ A project's first policy can do this as it is created: leave **Page this policy 
 
 ### Check that everyone can be reached
 
-Open **On-Call Duty → Readiness**. Everyone your policies can page is listed as **Ready**, **Needs setup** or **Unreachable**, with what is missing. See [Readiness & Reports](/docs/on-call/readiness).
+Open **On-Call → Readiness**. Everyone your policies can page is listed as **Ready**, **Needs setup** or **Unreachable**, with what is missing. See [Readiness & Reports](/docs/on-call/readiness).
 :::
 
 > [!NOTE]
@@ -79,7 +82,7 @@ Open **On-Call Duty → Readiness**. Everyone your policies can page is listed a
 
 ## Where on-call lives
 
-Open **On-Call Duty** from the **Products** menu in the top bar. It opens on **On-Call Policies**, at `/dashboard/{projectId}/on-call-duty/policies`, and its side menu holds the rest:
+Open **On-Call** from the **Products** menu in the top bar. It opens on **On-Call Policies**, at `/dashboard/{projectId}/on-call-duty/policies`, and its side menu holds the rest:
 
 | Section | Pages |
 | --- | --- |
@@ -87,7 +90,7 @@ Open **On-Call Duty** from the **Products** menu in the top bar. It opens on **O
 | **Schedules** | **On-Call Schedules**, **Schedule Timeline** and **Calendar Feeds** |
 | **Incoming Calls** | **Incoming Call Policies**: a phone number that rings whoever is on call |
 | **Advanced** | **User Overrides**, **Execution Logs** and **Archived Policies** |
-| **Reports** | **User On Call Time**: how long each person was on call |
+| **Reports** | **User On-Call Time**: how long each person was on call |
 | **Workspace** | **Slack**, **Microsoft Teams** and **Mattermost**: rules that post on-call events to a channel |
 | **Settings** | **Custom Fields**, **Label Rules** and **Owner Rules** |
 | **Developer** | **Terraform**, **API**, **CLI** and **AI Assistants**: on-call set up from code |
@@ -103,11 +106,11 @@ Open the incident's **On-Call Executions** page. Empty means the incident had no
 :::
 
 :::details Someone was paged on the wrong channel, or not at all
-Open **On-Call Duty → Readiness** and click **Coverage** on their row. It shows the methods they verified and every severity they have no rule for. Only they can fix it, under **User Settings**: send them a setup reminder from the same page. See [Readiness & Reports](/docs/on-call/readiness). On OneUptime Cloud, a phone that blocks unknown callers can silence a page: add [OneUptime's numbers](/docs/on-call/phone-number-whitelist) to its allow list.
+Open **On-Call → Readiness** and click **Coverage** on their row. It shows the methods they verified and every severity they have no rule for. Only they can fix it, under **User Settings**: send them a setup reminder from the same page. See [Readiness & Reports](/docs/on-call/readiness). On OneUptime Cloud, a phone that blocks unknown callers can silence a page: add [OneUptime's numbers](/docs/on-call/phone-number-whitelist) to its allow list.
 :::
 
 :::details A person on holiday is still being paged
-Add a user override with them under **Who is away?**. One under **On-Call Duty → Advanced → User Overrides** covers every policy; one on a policy's own **User Overrides** page covers that policy only. See [User Overrides](/docs/on-call/user-overrides).
+Add a user override with them under **Who is away?**. One under **On-Call → Advanced → User Overrides** covers every policy; one on a policy's own **User Overrides** page covers that policy only. See [User Overrides](/docs/on-call/user-overrides).
 :::
 
 ## Next steps

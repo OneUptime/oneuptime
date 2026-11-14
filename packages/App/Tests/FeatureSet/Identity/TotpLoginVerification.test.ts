@@ -586,7 +586,9 @@ describe("POST /verify-totp-auth — what it refuses", () => {
     await verifyTotp({ code: "000000" });
 
     expect(loginSucceeded()).toBe(false);
-    expect(loginErrorMessage()).toBe("Invalid code.");
+    expect(loginErrorMessage()).toBe(
+      "That code is not right. Enter the 6-digit code your authenticator app shows now.",
+    );
   });
 
   /*
@@ -618,7 +620,9 @@ describe("POST /verify-totp-auth — what it refuses", () => {
     await verifyTotp({ code: "123456" });
 
     expect(loginSucceeded()).toBe(false);
-    expect(loginErrorMessage()).toBe("Invalid two factor auth id.");
+    expect(loginErrorMessage()).toBe(
+      "This authenticator is no longer set up for your account. Go back and sign in again.",
+    );
   });
 
   it("refuses a code that is valid for a different account's secret", async () => {

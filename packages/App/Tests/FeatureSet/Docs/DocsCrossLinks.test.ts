@@ -70,8 +70,19 @@ describe("every page of the docs has a way in besides the sidebar", () => {
     expect(NAV_PAGES[0]).toBe(DOCS_HOME);
   });
 
+  /*
+   * The home needs no link, /docs opens it, but it may have some: the
+   * Quickstart sends whoever comes from another tool to its import section
+   * (#7031).
+   */
   it("links every page of the nav but the docs' home from another English page", () => {
-    expect(pagesWithNoWayIn(NAV_PAGES, englishPages())).toEqual([DOCS_HOME]);
+    expect(
+      pagesWithNoWayIn(NAV_PAGES, englishPages()).filter(
+        (page: string): boolean => {
+          return page !== DOCS_HOME;
+        },
+      ),
+    ).toEqual([]);
   });
 
   it("finds a page no other page links to, and does not count a page's links to itself", () => {

@@ -10,7 +10,12 @@ import {
   PROJECT_SETTINGS,
   SERVER_MESSAGES,
 } from "./AdministrationDocsPages";
-import { readPage } from "./DocsContentSupport";
+import {
+  DocsHeading,
+  DocsLink,
+  readPage,
+  scanMarkdown,
+} from "./DocsContentSupport";
 import {
   MenuSection,
   PACKAGES_DIR,
@@ -33,6 +38,7 @@ import PublicMessageRateLimit, {
   PublicMessageChannel,
   TeamMessageKind,
 } from "Common/Server/Utils/RateLimit/PublicMessageRateLimit";
+import { REGISTRATION_LINK_CANNOT_BE_EMAILED_MESSAGE } from "Common/Types/ServerSending/ServerSendingWords";
 import AllModelTypes from "Common/Models/DatabaseModels/Index";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ApiKey from "Common/Models/DatabaseModels/ApiKey";
@@ -167,6 +173,89 @@ const UP_TO_DAYS: RegExp = /up to (\d+) days/;
 
 function english(page: string): string {
   return readPage("en", page);
+}
+
+/*
+ * Where a self-hosted server's email is set up: the SMTP page's Open the
+ * form step, whose Self-hosted instance tab opens the Admin Dashboard's
+ * email settings.
+ */
+const SMTP_PAGE: string = "emails/smtp";
+const SMTP_FORM_LINK: string = "/docs/emails/smtp#open-the-form";
+
+/*
+ * What Inviting People says Invite does on a self-hosted server that cannot
+ * send email yet (#6971): the last paragraph of the Send the invitation
+ * step, and of the troubleshooting answer for an invitation email that did
+ * not arrive. AdministrationDocsTranslations holds every language to them.
+ */
+const NO_EMAIL_STEP: string =
+  "On a self-hosted server that cannot send email yet, no email goes out, and they show as **Invited**. A master admin sees **Send them their invitation link** first: copy the link, send it to them yourself, then click **Done**. Anyone else asks the server's admin to [set up email](/docs/emails/smtp#open-the-form).";
+const NO_EMAIL_ANSWER: string =
+  "On a self-hosted server that cannot send email yet, signing up cannot email them a new link either: it tells them to ask for their invitation link. Once the server's admin has [set up email](/docs/emails/smtp#open-the-form), signing up works as above. Until then, a master admin can remove them from the project and invite them again, and send them the new invitation link, which works once, only for that address, for 7 days.";
+
+const WHITESPACE_RUN: RegExp = /\s+/g;
+const PARAGRAPH_BREAK: RegExp = /\n[ \t]*\n/;
+const REGISTRATION_TOKEN_DAYS: RegExp =
+  /REGISTRATION_TOKEN_EXPIRY_IN_DAYS: number = (\d+);/;
+
+// Source with every run of whitespace made one space, so a match spans lines.
+function collapsed(source: string): string {
+  return source.replace(WHITESPACE_RUN, " ");
+}
+
+/*
+ * The body of a :::steps step, under its "### <title>" heading, up to the
+ * next step or the end of the steps (or of a block inside it). Empty when
+ * the page has no such step, which every test that reads it then fails on.
+ */
+function stepText(markdown: string, title: string): string {
+  const lines: Array<string> = markdown.split("\n");
+  const start: number = lines.indexOf(`### ${title}`);
+
+  if (start === -1) {
+    return "";
+  }
+
+  const rest: Array<string> = lines.slice(start + 1);
+  const end: number = rest.findIndex((line: string): boolean => {
+    return line === ":::" || line.startsWith("### ");
+  });
+
+  return (end === -1 ? rest : rest.slice(0, end)).join("\n").trim();
+}
+
+// The answer of a :::details block with this summary, or empty when there is none.
+function detailsText(markdown: string, summary: string): string {
+  const lines: Array<string> = markdown.split("\n");
+  const start: number = lines.indexOf(`:::details ${summary}`);
+
+  if (start === -1) {
+    return "";
+  }
+
+  const rest: Array<string> = lines.slice(start + 1);
+
+  return rest.slice(0, rest.indexOf(":::")).join("\n").trim();
+}
+
+// The paragraphs of a piece of markdown, in order.
+function paragraphs(markdown: string): Array<string> {
+  return markdown
+    .split(PARAGRAPH_BREAK)
+    .map((paragraph: string): string => {
+      return paragraph.trim();
+    })
+    .filter((paragraph: string): boolean => {
+      return paragraph.length > 0;
+    });
+}
+
+// Every link a piece of markdown makes, in order.
+function linkTargets(markdown: string): Array<string> {
+  return scanMarkdown(markdown).links.map((link: DocsLink): string => {
+    return link.target;
+  });
 }
 
 // A file of any package, as text.
@@ -733,6 +822,209 @@ describe("Inviting People", () => {
     );
   });
 
+  /*
+   * A self-hosted server that cannot send email yet still creates every
+   * invitation (#6825, #6877): nobody is emailed, the person shows as
+   * Invited, and a master admin is handed the link the email would have
+   * carried. The page says so where an inviter reads what Invite does - the
+   * last step - and where they look when the email never came (#6971).
+   */
+  describe("on a self-hosted server that cannot send email yet", () => {
+    const step: string = stepText(page, "Send the invitation");
+    const answer: string = detailsText(
+      page,
+      "The invitation email did not arrive, or its link expired",
+    );
+    const invitationLink: string = collapsed(
+      readCommonSource("UI/Components/InvitationLink/InvitationLinkModal.tsx"),
+    );
+    const serverEmail: string = collapsed(
+      readDashboardSource("Utils/ServerEmail.ts"),
+    );
+    const usersPage: string = collapsed(users);
+
+    it("ends the Send the invitation step with what Invite does there, in a paragraph of its own", () => {
+      expect(paragraphs(step)).toEqual([
+        "Click **Invite**. OneUptime emails the invitation and opens the person's page. They show as **Invitation Sent** until they accept.",
+        NO_EMAIL_STEP,
+      ]);
+      // The pill, the dialog's title and its button, as the Dashboard draws them.
+      expect(boldNames(NO_EMAIL_STEP)).toEqual([
+        "Invited",
+        "Send them their invitation link",
+        "Done",
+      ]);
+    });
+
+    it("shows the person as Invited, the pill the Users list draws while the server cannot send email", () => {
+      expect(usersPage).toContain(
+        'text={ cannotSendEmail(serverEmail) ? SERVER_EMAIL_COPY.invitedPill : "Invitation Sent" }',
+      );
+      expect(serverEmail).toContain(
+        "invitedPill: INVITATION_LINK_COPY.invitedPill,",
+      );
+      expect(invitationLink).toContain(
+        'invitedPill: translationKey("Invited"),',
+      );
+      // Only once the server is known not to send email: null while it is read.
+      expect(serverEmail).toContain(
+        "return serverEmail.canSendEmail === false;",
+      );
+      expect(NO_EMAIL_STEP).toContain(
+        "On a self-hosted server that cannot send email yet, no email goes out, and they show as **Invited**.",
+      );
+    });
+
+    it("hands a master admin the invitation link dialog after Invite, and opens the person's page on Done", () => {
+      // After Invite: a master admin gets the dialog; anyone else the person's page.
+      expect(usersPage).toContain(
+        "if ( cannotSendEmail(serverEmail) && serverEmail.isMasterAdmin && teamMember.id ) { setInvitationLinkFor({ teamMemberId: teamMember.id, viewPageRoute: new Route(viewPageRoute), }); } else { Navigation.navigate(new Route(viewPageRoute)); }",
+      );
+      // Done closes the dialog and goes on to the person's page.
+      expect(usersPage).toContain(
+        "const viewPageRoute: Route = invitationLinkFor.viewPageRoute; setInvitationLinkFor(null); Navigation.navigate(viewPageRoute);",
+      );
+
+      // The dialog: its title, the link with its copy button, and Done.
+      expect(invitationLink).toContain(
+        'title: translationKey("Send them their invitation link"),',
+      );
+      expect(invitationLink).toContain('done: translationKey("Done"),');
+      expect(invitationLink).toContain("title={INVITATION_LINK_COPY.title}");
+      expect(invitationLink).toContain(
+        "submitButtonText={INVITATION_LINK_COPY.done}",
+      );
+      expect(invitationLink).toContain(
+        "<CopyTextButton textToBeCopied={invitation.link}",
+      );
+      expect(invitationLink).toContain("Copy this link and send it yourself.");
+
+      expect(NO_EMAIL_STEP).toContain(
+        "A master admin sees **Send them their invitation link** first: copy the link, send it to them yourself, then click **Done**.",
+      );
+    });
+
+    it("sends anyone else to the server's admin, as the invite dialog's Email field does", () => {
+      expect(usersPage).toContain(
+        'description: cannotSendEmail(serverEmail) ? serverEmail.isMasterAdmin ? SERVER_EMAIL_COPY.inviteEmailDescriptionForAdmin : SERVER_EMAIL_COPY.inviteEmailDescription : "We email them an invitation to the team you pick.",',
+      );
+      expect(serverEmail).toContain(
+        "inviteEmailDescription: translationKey( \"This server cannot send email yet, so they get no invitation email. The invitation is still created: ask your server's admin to set up email.",
+      );
+      expect(NO_EMAIL_STEP).toContain(
+        `Anyone else asks the server's admin to [set up email](${SMTP_FORM_LINK}).`,
+      );
+    });
+
+    it("links where a self-hosted server's email is set up: the SMTP page's Open the form step, on its Self-hosted instance tab", () => {
+      expect(linkTargets(NO_EMAIL_STEP)).toEqual([SMTP_FORM_LINK]);
+      expect(linkTargets(NO_EMAIL_ANSWER)).toEqual([SMTP_FORM_LINK]);
+
+      const smtp: string = english(SMTP_PAGE);
+      const formStep: DocsHeading | undefined = scanMarkdown(
+        smtp,
+      ).headings.find((heading: DocsHeading): boolean => {
+        return heading.text === "Open the form";
+      });
+
+      expect(`/docs/${SMTP_PAGE}#${formStep?.slug}`).toBe(SMTP_FORM_LINK);
+
+      const form: string = stepText(smtp, "Open the form");
+      const selfHosted: string = form.slice(
+        form.indexOf("@tab Self-hosted instance\n"),
+      );
+
+      expect(form).toContain("@tab Self-hosted instance\n");
+      expect(selfHosted).toContain(
+        "In the Admin Dashboard, open **Settings**, then **Notifications > Emails** in the side menu",
+      );
+    });
+
+    it("ends the troubleshooting answer for a missing invitation email with what happens without email, in a paragraph of its own", () => {
+      expect(paragraphs(answer)).toEqual([
+        "The invitation does not depend on the email. Ask them to sign up with the address you invited: OneUptime emails that address a new link to finish creating the account. Someone who already has an account signs in and finds the invitation waiting.",
+        NO_EMAIL_ANSWER,
+      ]);
+      expect(boldNames(NO_EMAIL_ANSWER)).toEqual([]);
+    });
+
+    it("says signing up cannot email a new link there, and tells them to ask for their invitation link", () => {
+      const authentication: string = collapsed(
+        readPackageFile("App/FeatureSet/Identity/API/Authentication.ts"),
+      );
+      const refusal: number = authentication.indexOf(
+        "if (await ServerSendingStatus.isEmailKnownNotSetUp()) { return Response.sendErrorResponse( req, res, new BadDataException(REGISTRATION_LINK_CANNOT_BE_EMAILED_MESSAGE), ); }",
+      );
+
+      // Refused before the new link would be emailed.
+      expect(refusal).toBeGreaterThan(-1);
+      expect(refusal).toBeLessThan(
+        authentication.indexOf(
+          "AuthenticationEmail.sendCompleteRegistrationEmail({",
+        ),
+      );
+      expect(REGISTRATION_LINK_CANNOT_BE_EMAILED_MESSAGE).toContain(
+        "so it cannot email you a link to finish signing up. Ask the person who invited you for your invitation link",
+      );
+      expect(NO_EMAIL_ANSWER).toContain(
+        "On a self-hosted server that cannot send email yet, signing up cannot email them a new link either: it tells them to ask for their invitation link.",
+      );
+      expect(NO_EMAIL_ANSWER).toContain(
+        `Once the server's admin has [set up email](${SMTP_FORM_LINK}), signing up works as above.`,
+      );
+    });
+
+    it("gets a new link by removing the person and inviting them again: a pending person cannot be invited to the same team twice", () => {
+      const service: string = readCommonSource(
+        "Server/Services/TeamMemberService.ts",
+      );
+      const removal: string = between(
+        collapsed(readCommonSource("Server/API/TeamMemberAPI.ts")),
+        "/remove-user-from-project`",
+        "/:id/leave`",
+      );
+
+      // Inviting them to the same team again is refused while they are pending.
+      expect(service).toContain("Errors.TeamMemberService.ALREADY_INVITED");
+      // Remove from Project takes every membership, joined or not.
+      expect(removal).toContain(
+        "await this.service.deleteBy({ query: { userId: new ObjectID(userIdParam), projectId: projectId, } as Query<TeamMember>,",
+      );
+      expect(removal).not.toContain("hasAcceptedInvitation");
+      // Each invitation's dialog reads its own link.
+      expect(invitationLink).toContain(
+        "fetchInvitationLink(props.teamMemberId)",
+      );
+
+      expect(NO_EMAIL_ANSWER).toContain(
+        "Until then, a master admin can remove them from the project and invite them again, and send them the new invitation link,",
+      );
+    });
+
+    it("says how long the link works: once, only for that address, for the registration token's days", () => {
+      const token: string = readCommonSource(
+        "Server/Utils/UserRegistrationToken.ts",
+      );
+      const days: number = capturedNumber(token, REGISTRATION_TOKEN_DAYS);
+
+      expect(days).toBe(7);
+      // The link a master admin is handed is minted as the email's is.
+      expect(readCommonSource("Server/Utils/InvitationLink.ts")).toContain(
+        "await UserRegistrationToken.generateRegistrationLink({",
+      );
+      // Spent the first time it is used.
+      expect(collapsed(token)).toContain(
+        "The delete is what makes it single-use",
+      );
+      expect(invitationLink).toContain(
+        `It works once, only for this address, for ${days} days.`,
+      );
+      expect(NO_EMAIL_ANSWER).toContain(
+        `which works once, only for that address, for ${days} days.`,
+      );
+    });
+  });
+
   it("names the Users list's columns, statuses and filters", () => {
     for (const title of [
       'title: "User"',
@@ -803,7 +1095,7 @@ describe("Inviting People", () => {
     expect(pages).toEqual([
       "**Profile**",
       "**Teams**",
-      "**Readiness**, **Notification Methods**, **On-Call Rules**",
+      "**Readiness**, **Notification Methods**, **How to Reach Me**",
       "**Custom Fields**",
       "**Remove from Project**",
     ]);
@@ -813,7 +1105,7 @@ describe("Inviting People", () => {
       'title: "Teams"',
       'title: "Readiness"',
       'title: "Notification Methods"',
-      'title: "On-Call Rules"',
+      'title: "How to Reach Me"',
       'title: "Custom Fields"',
       'title: "Remove from Project"',
     ]) {
@@ -2151,7 +2443,7 @@ describe("Audit Logs", () => {
     }
 
     expect(section(page, "## What is recorded")).toContain(
-      "An administrator adding or removing a notification method or a personal on-call rule on someone else's account is recorded too, without the address or number itself.",
+      "An administrator adding or removing a notification method or a rule in How to Reach Me on someone else's account is recorded too, without the address or number itself.",
     );
   });
 

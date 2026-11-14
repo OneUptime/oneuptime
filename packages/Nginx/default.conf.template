@@ -1095,6 +1095,43 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_pass ${BACKEND_APP_TARGET};
     }
 
+    # The host collector's supervisor, asking for its host's config (OpAMP
+    # over HTTP, a POST every 30 seconds with the project's ingestion key).
+    # The installers point it at /telemetry/opamp/v1, which /telemetry above
+    # serves, but they first pointed it at /opamp/v1, and every host
+    # installed then still asks there. With BILLING_ENABLED=true the
+    # catch-all `location /` hands that to the marketing Home service, which
+    # answers 404: the host ran, and never got a config. This sends those
+    # hosts to the app whatever billing says, and they connect on their next
+    # poll, without anyone touching them.
+    #
+    # The trailing slash keeps the prefix to /opamp/ itself, so no other
+    # address that starts with "/opamp" leaves the marketing site. It
+    # proxies exactly like /telemetry, which serves the same router: the same
+    # pooled upstream connection, the same ingest logging switch, and the
+    # same 4M, so a message that fits one address fits the other (the app
+    # answers one over 1 MiB with its own 413).
+    location /opamp/ {
+        resolver ${NGINX_RESOLVER} valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
+
+        # Reuse pooled upstream connections for this high-volume ingest path.
+        proxy_http_version 1.1;
+        proxy_set_header Connection $connection_upgrade;
+
+        # Operator-controllable ingest logging, enabled by default. Parameters
+        # must match nginx.conf's access_log exactly; see /telemetry above.
+        access_log /var/log/nginx/access.log main buffer=64k flush=10s if=$ingest_access_log;
+
+        client_max_body_size 4M;
+
+        proxy_pass ${BACKEND_APP_TARGET};
+    }
+
     # Kubernetes cost-allocation ingestion endpoint, posted to by the
     # kubernetes-agent chart's cost poller. Needs its own location for the
     # same reason /otlp and /pyroscope do: with BILLING_ENABLED=true the

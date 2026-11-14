@@ -73,7 +73,7 @@ Cliquez sur **Créer un moniteur**. Le moniteur s'ouvre sur sa page **Vue d'ense
 | **Statut du span** | Les spans ayant l'un des statuts choisis : **Non défini**, **Ok** ou **Erreur**. | Vide : tous les statuts |
 | **Le nom du span contient** | Les spans dont le nom contient ce texte, sans tenir compte de la casse. | Vide : tous les spans |
 | **Fenêtre de temps** (dans **Quand alerter**) | Les spans commencés dans les 5 dernières secondes jusqu'aux 24 dernières heures. | **Dernières 5 minutes** |
-| **Filtrer par service de télémétrie** (sous **Plus de champs**) | Les spans de l'un des services choisis. | Vide : tous les services |
+| **Filtrer par service** (sous **Plus de champs**) | Les spans de l'un des services choisis. | Vide : tous les services |
 | **Filtrer par entité d'infrastructure** (sous **Plus de champs**) | Les spans de l'un des hôtes, pods, conteneurs et autres entités choisis. | Vide : toutes les entités |
 | **Filtrer par attributs** (sous **Plus de champs**) | Les spans dont les attributs remplissent chaque condition. Chaque condition a son propre opérateur, comme « égal à » ou « contient ». | Vide : aucune condition |
 
@@ -154,7 +154,7 @@ Avec 30 requêtes en échec, la règle correspond et l'incident est déclaré. U
 ## Dépannage
 
 :::details Le moniteur ne compte aucun span pour mon endpoint
-**Le nom du span contient** est comparé au nom du span, et l'instrumentation nomme souvent les spans serveur d'après la route (`POST /api/checkout`) ou seulement la méthode (`GET`). Trouvez le nom exact dans l'explorateur de traces. Ouvrez ensuite la page **Critères** du moniteur (sous **Configuration**) et cliquez sur **Modifier les critères de surveillance** : **Spans correspondants** montre ce que les filtres sélectionnent en ce moment.
+**Le nom du span contient** est comparé au nom du span, et l'instrumentation nomme souvent les spans serveur d'après la route (`POST /api/checkout`) ou seulement la méthode (`GET`). Trouvez le nom exact dans l'explorateur de traces. Ouvrez ensuite la page **Critères** du moniteur (sous **Configuration**) et cliquez sur **Modifier les critères** : **Spans correspondants** montre ce que les filtres sélectionnent en ce moment.
 :::
 
 :::details Les requêtes réussies ne sont pas comptées quand je filtre sur Ok

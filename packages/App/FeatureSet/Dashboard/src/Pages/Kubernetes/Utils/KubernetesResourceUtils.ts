@@ -1,4 +1,5 @@
 import Metric from "Common/Models/AnalyticsModels/Metric";
+import { formatReaderFigure } from "Common/Types/DateLanguage";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import OneUptimeDate from "Common/Types/Date";
@@ -335,11 +336,15 @@ export default class KubernetesResourceUtils {
     return Number.isFinite(date.getTime()) ? date : null;
   }
 
+  /*
+   * A pod's or a node's CPU and memory in the reader's digits ("۱۲٫۵٪",
+   * "12,5 %"; issue #7106). English reads as it always has.
+   */
   public static formatCpuValue(value: number | null): string {
     if (value === null || value === undefined) {
       return "N/A";
     }
-    return `${value.toFixed(1)}%`;
+    return formatReaderFigure(value, { decimals: 1, isPercent: true });
   }
 
   public static formatMemoryValue(bytes: number | null): string {
@@ -347,19 +352,25 @@ export default class KubernetesResourceUtils {
       return "N/A";
     }
 
+    // The number in the reader's digits, the unit as written: "۱۲٫۵ MB".
     if (bytes < 1024) {
-      return `${bytes} B`;
+      return `${formatReaderFigure(bytes, {
+        decimals: 1,
+        dropTrailingZeros: true,
+      })} B`;
     }
 
     if (bytes < 1024 * 1024) {
-      return `${(bytes / 1024).toFixed(1)} KB`;
+      return `${formatReaderFigure(bytes / 1024, { decimals: 1 })} KB`;
     }
 
     if (bytes < 1024 * 1024 * 1024) {
-      return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+      return `${formatReaderFigure(bytes / (1024 * 1024), { decimals: 1 })} MB`;
     }
 
-    return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+    return `${formatReaderFigure(bytes / (1024 * 1024 * 1024), {
+      decimals: 2,
+    })} GB`;
   }
 
   /**

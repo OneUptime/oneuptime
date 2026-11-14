@@ -7,6 +7,7 @@ import {
 } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { expectCardsFit } from "../SuiteHelpers/CardBodyFit";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
@@ -660,6 +661,59 @@ test.describe("a busy project", () => {
  * Find and start
  * ---------------------------------------------------------------------------
  */
+
+/*
+ * What a card holds lines up with its title (#6956). Explore's strip of
+ * categories scrolls sideways on a phone, so it clips what reaches past its
+ * edges: it reaches 4px past the card's padding all round and pads that
+ * back, so a focused tab's 2px ring shows whole - its top was cut - while
+ * the tabs still start under the title. Home's row of cards runs its lists
+ * to the cards' edges (HOME_ROW_CARD_BODY_CLASS_NAME), each row padded back.
+ */
+test.describe("Home's cards line up with their titles", () => {
+  test("Explore and the row under the health card, on a laptop and a phone; a tab's focus ring has room", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page);
+
+    await expectCardsFit(page, [
+      page.getByTestId("home-explore-products"),
+      page.getByTestId("home-needs-attention"),
+    ]);
+
+    for (const size of [
+      { width: 1280, height: 900 },
+      { width: 390, height: 844 },
+    ]) {
+      await page.setViewportSize(size);
+
+      // The room the strip leaves around its first tab, inside what it clips.
+      const room: { top: number; bottom: number; start: number } = await page
+        .getByRole("tablist", { name: "Product categories" })
+        .evaluate(
+          (list: Element): { top: number; bottom: number; start: number } => {
+            const strip: DOMRect = list.getBoundingClientRect();
+            const tab: DOMRect = list
+              .querySelector('[role="tab"]')!
+              .getBoundingClientRect();
+
+            return {
+              top: tab.top - strip.top,
+              bottom: strip.bottom - tab.bottom,
+              start: tab.left - strip.left,
+            };
+          },
+        );
+
+      // focus-visible:ring-2: two pixels on every side of a tab.
+      expect(room.top).toBeGreaterThanOrEqual(2);
+      expect(room.bottom).toBeGreaterThanOrEqual(2);
+      expect(room.start).toBeGreaterThanOrEqual(2);
+    }
+  });
+});
 
 test.describe("search and the create actions", () => {
   test("the search box opens the command palette, by mouse and by keyboard", async ({
@@ -2113,5 +2167,180 @@ test.describe("the row under the health card", () => {
 
     expect(background).not.toBe("rgb(255, 255, 255)");
     await screenshot(page, "home-quiet-dark");
+  });
+});
+
+/*
+ * Setup health (#6812): Needs attention ends with Setup while something in
+ * the project's setup needs a look, and its line opens the page that lists
+ * what is misconfigured, worst first, each finding with its fix.
+ */
+test.describe("setup health", () => {
+  const SETUP_HEALTH: string = `/dashboard/${PROJECT_ID}/home/setup-health`;
+
+  async function openSetupHealth(
+    page: Page,
+    query: string = "setup=busy",
+  ): Promise<void> {
+    await page.clock.setFixedTime(NOW);
+    await page.goto(`${SETUP_HEALTH}?${query}`);
+    await expect(page.getByTestId("synthetic-banner")).toBeVisible({
+      timeout: 60000,
+    });
+    await expect(page.getByTestId("setup-health-recheck")).toBeEnabled({
+      timeout: 30000,
+    });
+  }
+
+  test("Needs attention ends with Setup, and its line opens Setup Health, saying it came from Home", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await openReady(page, "scenario=healthy&setup=busy");
+
+    const setup: Locator = page.getByTestId("home-attention-group-setup");
+
+    await expect(setup).toBeVisible();
+    // Nothing is open: the card is the Setup section, never "all clear".
+    await expect(page.getByTestId("home-attention-empty")).toHaveCount(0);
+    await expect(page.getByTestId("home-attention-row-setup")).toHaveText(
+      "9 things in your setup need a look.",
+    );
+    await screenshot(page, "setup-health-home-1280");
+
+    await page.getByTestId("home-attention-row-setup").click();
+
+    await expect(page).toHaveURL(new RegExp(`/home/setup-health\\?from=home$`));
+    await expect(page.getByTestId("setup-health-recheck")).toBeEnabled();
+  });
+
+  test("with nothing to fix, Home says nothing of the setup", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, "scenario=healthy");
+
+    await expect(page.getByTestId("home-attention-empty")).toBeVisible();
+    await expect(page.getByTestId("home-attention-group-setup")).toHaveCount(0);
+  });
+
+  test("at 1280px: the findings by level, worst first, each with its fix, and Dismissed folded", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await openSetupHealth(page);
+
+    const levels: Array<string> = await page
+      .locator(
+        '[data-testid^="setup-health-level-"]:not([data-testid$="-count"])',
+      )
+      .evaluateAll((elements: Array<Element>): Array<string> => {
+        return elements.map((element: Element): string => {
+          return element.getAttribute("data-testid") || "";
+        });
+      });
+
+    expect(levels).toEqual([
+      "setup-health-level-pages_will_not_arrive",
+      "setup-health-level-worth_fixing",
+      "setup-health-level-suggestion",
+    ]);
+
+    const worst: Locator = page.getByTestId(
+      "setup-health-level-pages_will_not_arrive",
+    );
+
+    await expect(worst).toContainText(
+      "Nobody is paged for the alerts of Payments API: only incidents have on-call rules.",
+    );
+    await expect(worst.getByTestId("setup-health-fix").first()).toHaveText(
+      "Set Up Paging",
+    );
+
+    // Five monitors page nobody: three show, two fold.
+    const toggle: Locator = page.getByTestId("setup-health-group-toggle");
+
+    await expect(toggle).toHaveText("Show 2 more");
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
+
+    await expect(page.getByTestId("setup-health-dismissed-toggle")).toHaveText(
+      "Show 1",
+    );
+    await screenshot(page, "setup-health-1280");
+
+    await toggle.click();
+    await page.getByTestId("setup-health-dismissed-toggle").click();
+
+    await expect(page.getByTestId("setup-health-dismissed-by")).toHaveText(
+      "Dismissed by Maya Chen: Staging never pages anybody.",
+    );
+    await screenshot(page, "setup-health-1280-open");
+  });
+
+  test("at 390px: one column, nothing wider than the screen", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openSetupHealth(page);
+
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "setup-health-390");
+  });
+
+  test("dark: every card on a dark surface", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openSetupHealth(page, "setup=busy&theme=dark");
+
+    const background: string = await page
+      .getByTestId("setup-health-level-pages_will_not_arrive")
+      .getByTestId("card")
+      .locator(":scope > div")
+      .evaluate((frame: Element): string => {
+        return getComputedStyle(frame).backgroundColor;
+      });
+
+    expect(background).not.toBe("rgb(255, 255, 255)");
+    await screenshot(page, "setup-health-dark");
+  });
+
+  test("German, and Persian read right to left", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openSetupHealth(page, "setup=busy&lang=de");
+
+    await expect(page.locator("body")).not.toContainText(
+      "Pages Will Not Arrive",
+    );
+    await expect(page.locator("body")).toContainText("Payments API");
+    await screenshot(page, "setup-health-de");
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openSetupHealth(page, "setup=busy&lang=fa");
+
+    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "setup-health-fa-390");
+  });
+
+  test("nothing to fix, said plainly", async ({ page }: { page: Page }) => {
+    await openSetupHealth(page, "scenario=healthy");
+
+    await expect(page.getByTestId("setup-health-nothing-to-fix")).toContainText(
+      "Nothing to fix",
+    );
+    await expect(page.getByTestId("setup-health-finding")).toHaveCount(0);
+    await screenshot(page, "setup-health-nothing");
   });
 });

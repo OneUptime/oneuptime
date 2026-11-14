@@ -128,7 +128,7 @@ npm run update
 2. 输入你的许可证密钥并进行验证。
 :::
 
-安装会向 OneUptime 核对密钥，并存储收到的许可证。此后，它通过每日同步让许可证保持最新。要立即获取额外席位或续订之类的变更，请在同一页面使用 **Refresh license**。
+安装会向 OneUptime 核对密钥，并存储收到的许可证。此后，它通过每日同步让许可证保持最新。要立即获取额外席位或续订之类的变更，请在同一页面使用 **刷新许可证**。
 
 在线激活需要从 OneUptime 服务器到 `https://oneuptime.com` 的出站 HTTPS。如果服务器只能通过中继访问互联网，请将 `ENTERPRISE_LICENSE_SERVER_URL` 设置为中继的 `https://` 地址。中继必须把 `/api/enterprise-license/` 转发到 oneuptime.com。
 

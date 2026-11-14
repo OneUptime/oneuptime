@@ -44,6 +44,22 @@ export interface MoreMenuItem {
   category?: string; // Category for grouping items (e.g., "Essentials", "Observability")
   activeRoute?: Route | undefined; // Route to check for active state
   additionalActiveRoutes?: Array<Route> | undefined; // Extra routes that also mark this item active
+  /*
+   * A name for the product that never changes and reads the same in every
+   * language (the Dashboard's ProductKey): what pins and a project's hidden
+   * products are kept by, and what tells two items apart.
+   */
+  key?: string | undefined;
+  /*
+   * Nothing in it yet, and it is something one sets up: a quiet "Not set
+   * up" beside its name in the products menu.
+   */
+  isNotSetUp?: boolean | undefined;
+  /*
+   * The plan that can use it, where the project's plan cannot: "Growth"
+   * draws "Growth Plan" beside its name, before anyone opens it.
+   */
+  neededPlan?: string | undefined;
 }
 
 /*
@@ -87,14 +103,43 @@ export interface ComponentProps {
    */
   disableCommandKShortcut?: boolean | undefined;
   /*
-   * Rows of the phone's menu (below 768px, where the products dialog never
-   * opens): drawn first, above Home, and last, after User Settings. The
-   * Dashboard puts its Search and Help there, which its header has no room
-   * for on a phone (#6816). Each is handed the function that closes the
+   * Rows of the phone's menu (below 768px, PHONE_MENU_BELOW_WIDTH_IN_PX,
+   * where the products dialog never opens): drawn first, above Home, and
+   * last, after User Settings. The Dashboard puts its Search and Help there,
+   * which its header has no room for on a phone (#6816) and draws itself
+   * from 768px up (#7037). Each is handed the function that closes the
    * menu, for when it opens something.
    */
   mobileMenuTop?: ((closeMenu: () => void) => ReactElement) | undefined;
   mobileMenuBottom?: ((closeMenu: () => void) => ReactElement) | undefined;
+  /*
+   * The products the project hides (#6814): left out of the menu's
+   * categories and its Recently visited row, and listed under one more row
+   * at the foot of the menu, moreMenuHiddenTitle ("More products"). Search
+   * finds them as it finds every other product, and the row opens by itself
+   * on one of their pages.
+   */
+  moreMenuHiddenItems?: Array<MoreMenuItem> | undefined;
+  moreMenuHiddenTitle?: string | undefined;
+  /*
+   * Drawn under the hidden products, once their row is open, handed the
+   * function that closes the menu, for a link that leaves it.
+   */
+  moreMenuHiddenFooter?: ((closeMenu: () => void) => ReactElement) | undefined;
+  /*
+   * The products this person pinned, in order (#6814): drawn in the bar
+   * beside Home and Products - their names from xl up, their icons alone
+   * below - and first in the phone's menu, under pinnedLabel ("Pinned").
+   */
+  pinnedItems?: Array<MoreMenuItem> | undefined;
+  pinnedLabel?: string | undefined;
+  /*
+   * Pins or unpins a product, from its card in the products menu. Leave it
+   * unset for a menu without pins.
+   */
+  onTogglePin?: ((item: MoreMenuItem) => void) | undefined;
+  // Whether another product can be pinned (fewer than the most).
+  canPinMore?: boolean | undefined;
   className?: string;
   // Legacy support for children-based usage
   children?: ReactElement | Array<ReactElement>;
@@ -106,6 +151,16 @@ export interface ComponentProps {
  */
 const MOBILE_MENU_BOTTOM_GAP_IN_PX: number = 16;
 const MOBILE_MENU_MIN_HEIGHT_IN_PX: number = 160;
+
+/*
+ * Below this width the nav bar is the phone's menu (a toggle that lists the
+ * products, with mobileMenuTop and mobileMenuBottom); from it up, the
+ * desktop row and the products dialog. Tailwind's md: a header entry the
+ * phone's menu carries instead (the Dashboard's Search and Help) is drawn
+ * from md (`max-md:hidden md:flex`), so at every width it is in exactly one
+ * of the two.
+ */
+export const PHONE_MENU_BELOW_WIDTH_IN_PX: number = 768;
 
 /*
  * Keep the products-menu shortcut and the dashboard command palette on the
@@ -121,6 +176,16 @@ const isCommandKShortcut: (event: KeyboardEvent) => boolean = (
     !event.altKey &&
     event.key.toLowerCase() === "k"
   );
+};
+
+// The data-testid of a pinned product in the bar.
+export const NAVBAR_PINNED_ITEM_TEST_ID: string = "navbar-pinned-item";
+
+// A pinned product's element id in the bar: by its key, or its title.
+export const getPinnedItemId: (item: MoreMenuItem) => string = (
+  item: MoreMenuItem,
+): string => {
+  return `pinned-${item.key || item.title.toLowerCase().split(" ").join("-")}`;
 };
 
 const Navbar: FunctionComponent<ComponentProps> = (
@@ -139,6 +204,16 @@ const Navbar: FunctionComponent<ComponentProps> = (
   );
 
   /*
+   * Every product of the menu, the hidden ones too (#6814): a page of a
+   * product the project hides is still that product's page, named in the
+   * bar and remembered as visited.
+   */
+  const allMenuItems: Array<MoreMenuItem> = [
+    ...(props.moreMenuItems || []),
+    ...(props.moreMenuHiddenItems || []),
+  ];
+
+  /*
    * The product of the page the user is on, remembered as visited however
    * they got here: a Home tile, Search, a link in a notification, the back
    * button or a typed address, not only a pick in the products menu. Its
@@ -150,7 +225,7 @@ const Navbar: FunctionComponent<ComponentProps> = (
   const visitedProductRoute: string | undefined =
     hasMoreMenu &&
     doesMenuShowRecentProducts(props.moreMenuCategoriesOpenByDefault)
-      ? getVisitedProductRoute(props.moreMenuItems || [], isMoreMenuItemActive)
+      ? getVisitedProductRoute(allMenuItems, isMoreMenuItemActive)
       : undefined;
 
   useEffect(() => {
@@ -178,7 +253,7 @@ const Navbar: FunctionComponent<ComponentProps> = (
   // Check if we're on mobile
   useEffect(() => {
     const checkMobile: () => void = (): void => {
-      setIsMobile(window.innerWidth < 768); // md breakpoint
+      setIsMobile(window.innerWidth < PHONE_MENU_BELOW_WIDTH_IN_PX);
     };
 
     checkMobile();
@@ -331,9 +406,9 @@ const Navbar: FunctionComponent<ComponentProps> = (
 
   // Build all nav items including more menu items for mobile
   const allNavItems: Array<any> = [...props.items];
-  if (props.moreMenuItems) {
+  if (allMenuItems.length > 0) {
     allNavItems.push(
-      ...props.moreMenuItems.map((item: any) => {
+      ...allMenuItems.map((item: any) => {
         return {
           id: `more-${item.title.toLowerCase().replace(/\s+/g, "-")}`,
           title: item.title,
@@ -428,6 +503,10 @@ const Navbar: FunctionComponent<ComponentProps> = (
                 recentLabel={props.moreMenuRecentLabel}
                 topElement={props.mobileMenuTop?.(closeMobileMenu)}
                 bottomElement={props.mobileMenuBottom?.(closeMobileMenu)}
+                hiddenItems={props.moreMenuHiddenItems}
+                hiddenTitle={props.moreMenuHiddenTitle}
+                pinnedItems={props.pinnedItems}
+                pinnedLabel={props.pinnedLabel}
                 onNavigate={closeMobileMenu}
               />
             </nav>
@@ -450,7 +529,7 @@ const Navbar: FunctionComponent<ComponentProps> = (
     "bg-white flex text-center items-center lg:py-2 max-md:hidden md:flex";
 
   // Find active item in more menu items (needed for breadcrumb)
-  const activeMoreItem: MoreMenuItem | undefined = props.moreMenuItems?.find(
+  const activeMoreItem: MoreMenuItem | undefined = allMenuItems.find(
     (item: MoreMenuItem) => {
       return isMoreMenuItemActive(item);
     },
@@ -555,6 +634,37 @@ const Navbar: FunctionComponent<ComponentProps> = (
             )}
         </div>
 
+        {/*
+         * The products this person pinned (#6814), beside Home and
+         * Products: each one's name from xl up, its icon alone below, where
+         * five names would not fit beside the breadcrumb.
+         */}
+        {props.pinnedItems && props.pinnedItems.length > 0 && (
+          <div
+            data-testid="navbar-pinned"
+            role="group"
+            aria-label={translateString(props.pinnedLabel || "Pinned")}
+            className="ml-2 flex min-w-0 items-center gap-0.5 border-l border-gray-200 pl-2"
+          >
+            {props.pinnedItems.map((item: MoreMenuItem) => {
+              return (
+                <NavBarItem
+                  key={item.key || item.route.toString()}
+                  id={getPinnedItemId(item)}
+                  title={item.title}
+                  icon={item.icon}
+                  route={item.route}
+                  isActive={isMoreMenuItemActive(item)}
+                  labelClassName="max-xl:sr-only max-w-[10rem] truncate"
+                  iconClassName="h-4 w-4 flex-shrink-0 xl:mr-1.5"
+                  tooltip={item.title}
+                  dataTestId={NAVBAR_PINNED_ITEM_TEST_ID}
+                />
+              );
+            })}
+          </div>
+        )}
+
         {/* Other nav items */}
         {otherNavItems.map((item: NavItem) => {
           return (
@@ -597,6 +707,12 @@ const Navbar: FunctionComponent<ComponentProps> = (
         createPortal(
           <NavBarMenuModal
             items={props.moreMenuItems}
+            hiddenItems={props.moreMenuHiddenItems}
+            hiddenTitle={props.moreMenuHiddenTitle}
+            hiddenFooter={props.moreMenuHiddenFooter}
+            pinnedItems={props.pinnedItems}
+            onTogglePin={props.onTogglePin}
+            canPinMore={props.canPinMore}
             categoriesOpenByDefault={props.moreMenuCategoriesOpenByDefault}
             footer={props.moreMenuFooter}
             searchPlaceholder={props.moreMenuSearchPlaceholder}

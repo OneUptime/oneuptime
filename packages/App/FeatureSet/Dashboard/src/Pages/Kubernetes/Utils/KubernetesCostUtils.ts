@@ -1,4 +1,10 @@
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
+import {
+  formatReaderFigure,
+  getDateDisplayLanguage,
+  getNumberLocale,
+  isEnglishDateLanguage,
+} from "Common/Types/DateLanguage";
 import KubernetesCostAllocation from "Common/Models/AnalyticsModels/KubernetesCostAllocation";
 import ProjectUtil from "Common/UI/Utils/Project";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
@@ -77,13 +83,34 @@ export const formatCost: (value: number, currency?: string) => string = (
   currency?: string,
 ): string => {
   const symbol: string = !currency || currency === "USD" ? "$" : `${currency} `;
-  if (value !== 0 && Math.abs(value) < 0.01) {
-    return `${symbol}${value.toFixed(4)}`;
+  const isTiny: boolean = value !== 0 && Math.abs(value) < 0.01;
+  const english: string = isTiny
+    ? `${symbol}${value.toFixed(4)}`
+    : `${symbol}${value.toLocaleString("en-US", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`;
+  const language: string = getDateDisplayLanguage();
+
+  if (isEnglishDateLanguage(language) || !Number.isFinite(value)) {
+    return english;
   }
-  return `${symbol}${value.toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
+
+  /*
+   * An amount the way the reader's language writes money, as the Cloud
+   * pages' are (formatCloudMoney): "$۱۲٬۳۴۵٫۶۷" in Persian, "12.345,67 $"
+   * in German (issue #7106). A currency Intl does not know reads as before.
+   */
+  try {
+    return new Intl.NumberFormat(getNumberLocale(language), {
+      style: "currency",
+      currency: (currency || "USD").toUpperCase(),
+      minimumFractionDigits: isTiny ? 4 : 2,
+      maximumFractionDigits: isTiny ? 4 : 2,
+    }).format(value);
+  } catch {
+    return english;
+  }
 };
 
 export const formatEfficiency: (value: number | null) => string = (
@@ -92,7 +119,10 @@ export const formatEfficiency: (value: number | null) => string = (
   if (value === null || !Number.isFinite(value)) {
     return "-";
   }
-  return `${Math.round(value * 100)}%`;
+  return formatReaderFigure(Math.round(value * 100), {
+    decimals: 0,
+    isPercent: true,
+  });
 };
 
 /**

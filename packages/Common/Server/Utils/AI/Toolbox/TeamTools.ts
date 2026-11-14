@@ -13,6 +13,7 @@ import TeamMemberService from "../../../Services/TeamMemberService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import ToolResultSerializer, { SerializedResult } from "./Serializer";
 import WidgetBuilder from "./WidgetBuilder";
+import { getEmptyTeamCardWords } from "./ReadCardWords";
 import {
   ObservabilityTool,
   ToolArgs,
@@ -207,13 +208,11 @@ export const QueryTeamsTool: ObservabilityTool = {
               })
             : WidgetBuilder.resourceCard({
                 title: "Team",
-                resourceType: "Team",
                 heading: team.name || "Team",
-                subheading: "No members",
-                fields: [
-                  { label: "Description", value: team.description || "—" },
-                  { label: "Members", value: "0" },
-                ],
+                // In the reader's language (issue #7175).
+                words: getEmptyTeamCardWords({
+                  description: team.description || undefined,
+                }),
                 link: { type: AIChatCitationTargetType.Teams },
               }),
       };

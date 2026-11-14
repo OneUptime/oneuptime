@@ -15,7 +15,7 @@ const ScheduledMaintenancesLayout: FunctionComponent<
   const path: string = Navigation.getRoutePath(RouteUtil.getRoutes());
   return (
     <Page
-      title={"Scheduled Maintenance Events"}
+      title={"Scheduled Maintenance"}
       titleRight={
         <ProductAboutButton product={ProductKey.ScheduledMaintenance} />
       }

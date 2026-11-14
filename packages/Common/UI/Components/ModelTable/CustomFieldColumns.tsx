@@ -21,6 +21,7 @@ import {
 } from "../CustomFields/CustomFieldFormFields";
 import CustomFieldFileList from "../CustomFields/CustomFieldFileList";
 import TableDate from "../Table/TableDate";
+import { getTableNoValue } from "../Table/TableEmptyValue";
 import {
   CustomFieldFile,
   formatCustomFieldFileNames,
@@ -219,11 +220,13 @@ export const renderCustomFieldValue: RenderCustomFieldValueFunction = (data: {
   noValueMessage?: string | undefined;
 }): ReactElement => {
   const { value, definition } = data;
-  const noValueMessage: string = data.noValueMessage ?? "-";
 
-  const empty: ReactElement = (
-    <span className="text-gray-400">{noValueMessage}</span>
-  );
+  /*
+   * A field nobody filled in is the quiet dash every empty cell is - a "-"
+   * of its own was a hyphen beside it, with nothing for a screen reader to
+   * hear - or the column's own words (getTableNoValue).
+   */
+  const empty: ReactElement = getTableNoValue(data.noValueMessage);
 
   if (value === undefined || value === null || value === "") {
     return empty;

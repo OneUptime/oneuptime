@@ -908,8 +908,8 @@ export default class IncidentEpisode extends BaseModel {
     required: false,
     type: TableColumnType.EntityArray,
     modelType: OnCallDutyPolicy,
-    title: "On-Call Duty Policies",
-    description: "List of on-call duty policies to execute for this episode.",
+    title: "On-Call Policies",
+    description: "List of on-call policies to execute for this episode.",
   })
   @ManyToMany(
     () => {

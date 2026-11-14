@@ -106,14 +106,14 @@ Controleer of je een geverifieerde methode op dat kanaal hebt onder **Gebruikers
 :::
 
 :::details Ik krijg nog steeds e-mails terwijl ik alles heb uitgezet
-Oproepen volgen je bereikbaarheidsregels, niet deze schakelaars, en e-mails over aanmelden, beveiliging en facturering zijn geen nieuws over items. Elk project heeft eigen instellingen, dus controleer het project waar de e-mail vandaan kwam. Zie [Persoonlijke bereikbaarheidsregels](/docs/notifications/on-call-rules).
+Oproepen volgen je bereikbaarheidsregels, niet deze schakelaars, en e-mails over aanmelden, beveiliging en facturering zijn geen nieuws over items. Elk project heeft eigen instellingen, dus controleer het project waar de e-mail vandaan kwam. Zie [Hoe ik bereikbaar ben](/docs/notifications/on-call-rules).
 :::
 
 ## Volgende stappen
 
 :::cards
 - [Meldingsmethoden](/docs/notifications/notification-methods): Voeg de methoden toe waar je instellingen naartoe sturen.
-- [Persoonlijke bereikbaarheidsregels](/docs/notifications/on-call-rules): Bepaal hoe een oproep je bereikt.
+- [Hoe ik bereikbaar ben](/docs/notifications/on-call-rules): Bepaal hoe een oproep je bereikt.
 - [Meldingsoverzicht](/docs/emails/notification-rollup): Minder, vollere e-mails tijdens een golf.
 - [Hoe OneUptime je bereikt](/docs/notifications/index): Hoe methoden, regels en instellingen samenhangen.
 :::

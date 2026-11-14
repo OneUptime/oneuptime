@@ -88,7 +88,7 @@ const KNOWN_FILES: Record<string, KnownFile> = {
   },
   "Common/Server/Services/DashboardService.ts": {
     role: "reader",
-    why: "decides on create whether the config sent has any widget",
+    why: "decides on create whether the config sent has any widget; gives a create its template's widgets (applyTemplate, which the hook-free sample project calls too); and answers the query for the dashboards whose stored layout names a record (getQueryForLayoutsNaming, for Used By)",
   },
   "Common/Server/API/DashboardAPI.ts": {
     role: "reader",

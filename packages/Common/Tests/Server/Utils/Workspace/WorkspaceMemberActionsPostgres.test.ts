@@ -1988,7 +1988,7 @@ describePostgres("Slack and Microsoft Teams buttons, on Postgres", () => {
       expect(outcome.errorMessage).toBe(
         "Permission denied for tool: page_on_call_policy",
       );
-      expect(outcome.textForLlm).toContain("Execute On-Call Duty Policy");
+      expect(outcome.textForLlm).toContain("Execute On-Call Policies");
       await nothingWritten();
     });
   });

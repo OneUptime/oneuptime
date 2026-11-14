@@ -3,7 +3,10 @@ import {
   AIRunAttemptOutcome,
   AIRunFailureKind,
   classifyAIRunFailureMessage,
+  getRecordTokenLimitFailureKind,
+  isRecordTokenLimitFailureKind,
   parseAIRunAttemptEnd,
+  RECORD_TOKEN_LIMIT_FAILURE_KINDS,
 } from "../../../Types/AI/AIRunAttempt";
 import AIRunStatus, { AIRunStatusHelper } from "../../../Types/AI/AIRunStatus";
 import { PROJECT_AI_CREDITS_USED_UP_MESSAGE } from "../../../Utils/Project/ProjectBalance";
@@ -111,6 +114,54 @@ describe("classifyAIRunFailureMessage", () => {
       "This project has reached its daily AI token limit.",
       AIRunFailureKind.LimitReached,
     ],
+    /*
+     * The incident's or alert's own daily AI token limit (#7157): not the
+     * project's limits, and a limit of 0 pauses the work rather than
+     * running out until midnight.
+     */
+    [
+      "The Daily Incident AI Token Limit is set to 0, which pauses automatic AI work for incidents. Raise it above 0 under Incidents → AI → Settings → More settings, or clear it, then try again.",
+      AIRunFailureKind.IncidentTokenLimitPaused,
+    ],
+    [
+      "The Daily Alert AI Token Limit is set to 0, which pauses automatic AI work for alerts. Raise it above 0 under Alerts → AI → Settings → More settings, or clear it, then try again.",
+      AIRunFailureKind.AlertTokenLimitPaused,
+    ],
+    [
+      "Automatic AI work for incidents used 1,200 of its Daily Incident AI Token Limit of 1,000 tokens today. Raise or clear it under Incidents → AI → Settings → More settings, or wait until midnight UTC, when it resets. Then try again.",
+      AIRunFailureKind.IncidentTokenLimitUsedUp,
+    ],
+    [
+      "Automatic AI work for alerts used up today's Daily Alert AI Token Limit. Raise or clear it under Alerts → AI → Settings → More settings, or wait until midnight UTC, when it resets. Then try again.",
+      AIRunFailureKind.AlertTokenLimitUsedUp,
+    ],
+    // The words such a run failed with before, which stored runs keep.
+    [
+      "Daily autonomous AI token budget exhausted (0 of 0 tokens used today). Autonomous AI requests resume tomorrow (UTC) — raise or unset the limit under Incidents > AI > Settings.",
+      AIRunFailureKind.IncidentTokenLimitPaused,
+    ],
+    [
+      "Daily autonomous AI token budget exhausted (0 of 0 tokens used today). Autonomous AI requests resume tomorrow (UTC) — raise or unset the limit under Alerts > AI > Settings.",
+      AIRunFailureKind.AlertTokenLimitPaused,
+    ],
+    [
+      "Daily autonomous AI token budget exhausted (1,000,000 of 200,000 tokens used today). Autonomous AI requests resume tomorrow (UTC) — raise or unset the limit under Incidents > AI > Settings.",
+      AIRunFailureKind.IncidentTokenLimitUsedUp,
+    ],
+    [
+      "Daily autonomous AI token budget exhausted (500 of 500 tokens used today). Autonomous AI requests resume tomorrow (UTC) — raise or unset the limit under Alerts > AI > Settings.",
+      AIRunFailureKind.AlertTokenLimitUsedUp,
+    ],
+    // The oldest named no record: still a limit, which one unknown.
+    [
+      "Daily autonomous AI token budget exhausted (0 of 0 tokens used today). Autonomous AI requests resume tomorrow (UTC) — raise or unset the limit in the AI settings pages.",
+      AIRunFailureKind.LimitReached,
+    ],
+    // No provider stays no provider, whatever else the error says.
+    [
+      "No AI provider configured. The Daily Incident AI Token Limit is set to 0",
+      AIRunFailureKind.NotConfigured,
+    ],
     ["The project is out of AI credits.", AIRunFailureKind.CreditsUsedUp],
     // An older run's words, from before the shared wording.
     [
@@ -190,6 +241,59 @@ describe("classifyAIRunFailureMessage", () => {
     expect(
       classifyAIRunFailureMessage(undefined as unknown as string).failureKind,
     ).toBe(AIRunFailureKind.Other);
+  });
+});
+
+describe("the record's daily AI token limit as a failure kind (#7157)", () => {
+  test("four kinds: incident or alert, paused or used up", () => {
+    expect(RECORD_TOKEN_LIMIT_FAILURE_KINDS).toEqual([
+      AIRunFailureKind.IncidentTokenLimitPaused,
+      AIRunFailureKind.IncidentTokenLimitUsedUp,
+      AIRunFailureKind.AlertTokenLimitPaused,
+      AIRunFailureKind.AlertTokenLimitUsedUp,
+    ]);
+
+    for (const kind of Object.values(AIRunFailureKind)) {
+      expect({ kind, isRecord: isRecordTokenLimitFailureKind(kind) }).toEqual({
+        kind,
+        isRecord: RECORD_TOKEN_LIMIT_FAILURE_KINDS.includes(kind),
+      });
+    }
+
+    expect(isRecordTokenLimitFailureKind(null)).toBe(false);
+    expect(isRecordTokenLimitFailureKind(undefined)).toBe(false);
+    // The project's own daily AI limits are another setting.
+    expect(isRecordTokenLimitFailureKind(AIRunFailureKind.LimitReached)).toBe(
+      false,
+    );
+  });
+
+  test("a stop reads as its kind", () => {
+    expect(
+      getRecordTokenLimitFailureKind({ kind: "incident", isPaused: true }),
+    ).toBe(AIRunFailureKind.IncidentTokenLimitPaused);
+    expect(
+      getRecordTokenLimitFailureKind({ kind: "incident", isPaused: false }),
+    ).toBe(AIRunFailureKind.IncidentTokenLimitUsedUp);
+    expect(
+      getRecordTokenLimitFailureKind({ kind: "alert", isPaused: true }),
+    ).toBe(AIRunFailureKind.AlertTokenLimitPaused);
+    expect(
+      getRecordTokenLimitFailureKind({ kind: "alert", isPaused: false }),
+    ).toBe(AIRunFailureKind.AlertTokenLimitUsedUp);
+  });
+
+  test("an attempt end that names one is read as written", () => {
+    for (const failureKind of RECORD_TOKEN_LIMIT_FAILURE_KINDS) {
+      expect(
+        parseAIRunAttemptEnd({
+          outcome: AIRunAttemptOutcome.GaveUp,
+          failureKind,
+          attempt: 1,
+          maxAttempts: 3,
+        })?.failureKind,
+      ).toBe(failureKind);
+    }
   });
 });
 

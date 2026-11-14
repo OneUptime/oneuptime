@@ -12,7 +12,7 @@ En vaktretningslinje avgjør hvem som tilkalles om en hendelse eller et varsel, 
 ## Opprett en retningslinje
 
 :::steps
-1. Gå til **Vakttjeneste → Vaktretningslinjer**, og klikk på **Opprett Vaktpolicy**.
+1. Gå til **Vakt → Vaktretningslinjer**, og klikk på **Opprett Vaktpolicy**.
 2. Skriv inn et **Navn**, for eksempel "Betalinger primær".
 3. Klikk på **Legg til mottaker** under **Hvem varsles først?**, og velg vaktplanene, teamene og personene som skal tilkalles først.
 4. Klikk på **Opprett Vaktpolicy**. Retningslinjen åpner på siden **Eskaleringsregler**, med **Level 1** på plass.
@@ -22,7 +22,7 @@ En vaktretningslinje avgjør hvem som tilkalles om en hendelse eller et varsel, 
 
 For den første retningslinjen i et prosjekt spør skjemaet også **Utløs den ved hver nye hendelse og hvert nye varsel**, som starter slått på. Den legger til en regel under **Hendelser → Regler → Vaktregler** og en under **Varsler → Regler → Vaktregler**, som hver treffer alt og kjører denne retningslinjen. Bare folk som kan legge til vaktregler, får spørsmålet, så lenge prosjektet verken har en vaktpolicy eller en vaktregel.
 
-Listen **Vaktpolicyer** viser **Navn**, **Beskrivelse**, **Etiketter** og **Eiere** for hver retningslinje. Velg retningslinjer for å bruke **Legg til etiketter**, **Fjern etiketter**, **Legg til eier**, **Fjern eier**, **Arkiver** eller **Eksporter JSON**, eller for å slette dem. **Importer JSON** oppretter retningslinjer fra en eksport: en eksport inneholder retningslinjens egne innstillinger, ikke eskaleringsreglene eller eierne.
+Listen **Vaktretningslinjer** viser **Navn**, **Beskrivelse**, **Etiketter** og **Eiere** for hver retningslinje. Velg retningslinjer for å bruke **Legg til etiketter**, **Fjern etiketter**, **Legg til eier**, **Fjern eier**, **Arkiver** eller **Eksporter JSON**, eller for å slette dem. **Importer JSON** oppretter retningslinjer fra en eksport: en eksport inneholder retningslinjens egne innstillinger, ikke eskaleringsreglene eller eierne.
 
 ## Hva som kjører en retningslinje
 
@@ -109,7 +109,7 @@ flowchart TB
 Du finner utførelseslogger tre steder:
 
 - i retningslinjens egne **Utførelseslogger**, under **Logger**;
-- under **Vakttjeneste → Avansert → Utførelseslogger**, for alle retningslinjer, der direkte tilkallinger fra arbeidsflyter og chat står som **Direkte tilkalling**;
+- under **Vakt → Avansert → Utførelseslogger**, for alle retningslinjer, der direkte tilkallinger fra arbeidsflyter og chat står som **Direkte tilkalling**;
 - på siden **Vaktutførelser** for en hendelse eller et varsel.
 
 Hver rad viser hva som startet kjøringen, når, **Status** og hvem som bekreftet. **Vis tidslinje** åpner **Tidslinje for utførelsen**: hver eskaleringsregel, hvem den tilkalte, gjennom hvilken vaktplan, og hvordan hver tilkalling endte. **Varslet via** viser hvordan hver tilkalling nådde personen: telefonanrop, SMS, e-post, push-varsel og så videre. En vaktplan der ingen har vakt, viser **Ingen hadde vakt** i stedet for en person. Et nivå som ikke tilkalte noen, sier hvorfor, med **Gikk videre med en gang** under: retningslinjen ventet ikke på det. I OneUptime Cloud krever utførelseslogger abonnementet **Growth**.
@@ -119,13 +119,13 @@ Hver rad viser hva som startet kjøringen, når, **Status** og hvem som bekrefte
 Arkivering tar en retningslinje ut av drift og beholder alt: åpne **Innstillinger** for retningslinjen og klikk på **Arkiver** på arkivkortet, eller velg retningslinjer i listen og velg **Arkiver**.
 
 - En arkivert retningslinje tilkaller ingen. Hendelser og varsler som bruker den, hopper over den, og en kjøring som fortsatt eskalerer, stopper ved neste steg.
-- Den forlater listen **Vaktretningslinjer** og flyttes til **Vakttjeneste → Avansert → Arkiverte retningslinjer**, der **Fjern fra arkiv** setter den i drift igjen.
+- Den forlater listen **Vaktretningslinjer** og flyttes til **Vakt → Avansert → Arkiverte retningslinjer**, der **Fjern fra arkiv** setter den i drift igjen.
 
 **Slett retningslinjer**, under **Avansert**, sletter retningslinjen sammen med eskaleringsreglene og brukeroverstyringene. Sletting fra listen spør først og foreslår å arkivere i stedet.
 
 ## Hvem som kan endre en retningslinje
 
-**Prosjekteier**, **Prosjektadministrator**, **Prosjektmedlem**, **Vaktadministrator** og **Vaktmedlem** kan opprette, endre og slette retningslinjer; **Leser** og **Vaktleser** kan lese dem. I en egendefinert rolle heter tillatelsene **Create On-Call Duty Policy**, **Edit On-Call Duty Policy**, **Delete On-Call Duty Policy** og **Read On-Call Duty Policy**, og en rolle som er begrenset til enkelte etiketter, når bare retningslinjene som har dem. Å legge til eiere og egendefinerte felt krever abonnementet **Growth** i OneUptime Cloud.
+**Prosjekteier**, **Prosjektadministrator**, **Prosjektmedlem**, **Vaktadministrator** og **Vaktmedlem** kan opprette, endre og slette retningslinjer; **Leser** og **Vaktleser** kan lese dem. I en egendefinert rolle heter tillatelsene **Create On-Call Policy**, **Edit On-Call Policy**, **Delete On-Call Policy** og **Read On-Call Policy**, og en rolle som er begrenset til enkelte etiketter, når bare retningslinjene som har dem. Å legge til eiere og egendefinerte felt krever abonnementet **Growth** i OneUptime Cloud.
 
 ## API og Terraform
 
@@ -149,7 +149,7 @@ Se [Opprett regler med API-et eller Terraform](/docs/on-call/escalation-rules#op
 ## Feilsøking
 
 :::details En retningslinje kjørte, men ingen ble tilkalt
-Kjøringen viser **Execution Completed - No One Notified**. Åpne **Vis tidslinje**: en rad med **Ingen hadde vakt** peker på en vaktplan med et hull, og statusmeldingen i en rad med **Hoppet over** sier hvorfor, for eksempel noen som var borte uten noen til å dekke. **Vakttjeneste → Beredskap** viser hvem som ikke kunne nås.
+Kjøringen viser **Execution Completed - No One Notified**. Åpne **Vis tidslinje**: en rad med **Ingen hadde vakt** peker på en vaktplan med et hull, og statusmeldingen i en rad med **Hoppet over** sier hvorfor, for eksempel noen som var borte uten noen til å dekke. **Vakt → Beredskap** viser hvem som ikke kunne nås.
 :::
 
 :::details Neste nivå ble tilkalt et minutt etter ventetiden
@@ -161,7 +161,7 @@ Nivået før hadde ingen å tilkalle: ingen mottakere, ingen med vakt i vaktplan
 :::
 
 :::details En hendelse viser en retningslinje som ikke tilkalte noen
-Retningslinjen er arkivert: en arkivert retningslinje blir stående på hendelsene og varslene som bruker den, tilkaller ingen, og utførelsesloggen sier at den ikke ble utført. Fjern den fra arkivet under **Vakttjeneste → Avansert → Arkiverte retningslinjer**.
+Retningslinjen er arkivert: en arkivert retningslinje blir stående på hendelsene og varslene som bruker den, tilkaller ingen, og utførelsesloggen sier at den ikke ble utført. Fjern den fra arkivet under **Vakt → Avansert → Arkiverte retningslinjer**.
 :::
 
 ## Neste steg

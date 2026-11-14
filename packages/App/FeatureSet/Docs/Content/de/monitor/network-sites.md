@@ -141,6 +141,7 @@ Hier sind sich beide Richtlinien einig, und es zählt mehr, als es klingt:
 - Geräte, die noch nie etwas gemeldet haben, stimmen nie ab. Ein Gerät, das auf seine erste Abfrage wartet, ist kein Beleg für einen Ausfall, es fällt also aus beiden Seiten des Anteils heraus, und eine Region, die zur Hälfte eingebunden ist, wird nach der Hälfte bewertet, die geantwortet hat.
 - Ein sondenabgefragtes Gerät, die normale Art, stimmt mit dem Ergebnis seiner letzten Abfrage ab: erreichbar per Ping oder SNMP, nicht danach, wie lange sein letzter Erfolg her ist. Ein Gerät, das auf Ping antwortet, während sein SNMP-Walk fehlschlägt, ist erreichbar und stimmt so ab; der Standort sagt, dass er erreichbar ist, und die Zeile des Geräts sagt **SNMP schlägt fehl**, damit jemand die Anmeldedaten in Ordnung bringt.
 - Ein monitorgestütztes Gerät, eines, das auf seiner Einstellungen-Seite auf die Überschreibung mit gebundenem Monitor umgestellt ist, stimmt mit dem Status des daran gebundenen Monitors ab, weil nichts es abfragt. Ohne gebundenen Monitor hat es nie etwas gemeldet und stimmt also gar nicht ab.
+- Ein monitorgestütztes Gerät, dessen Monitor nicht geprüft wird, weil seine Überwachung ausgeschaltet oder er archiviert ist, stimmt ebenfalls nicht ab: Der Status dieses Monitors ist nur das, was seine letzte Prüfung gesehen hat. Das Gerät steht auf **Ausstehend**, mit **Überwachung aus** oder **Monitor archiviert** daneben, bis die Überwachung des Monitors wieder eingeschaltet oder er aus dem Archiv geholt wird.
 
 Ein Netzwerkgerät-Monitor auf einem sondenabgefragten Gerät ändert nicht, wie das Gerät abstimmt. Ein Monitor mit dem Kriterium „Schnittstelle ausgefallen, also Offline“ würde Offline auf einen Switch stempeln, der jeden Ping beantwortet, und ein dunkler Port würde einen ganzen Standort rot färben, während jede Gerätezeile darunter Up zeigt: Der Standort würde der Liste widersprechen, die er zusammenfasst. Für ein abgefragtes Gerät ist die Abfrage die Quelle seiner Integrität; der Monitor ist dafür da, Vorfälle auszulösen.
 
@@ -185,7 +186,7 @@ Ein Durchschnitt über die untergeordneten gewichtet eine Filiale mit zwei Gerä
 
 ## Geplante Wartung für Netzwerkstandorte
 
-Hängen Sie Standorte an ein geplantes Wartungsereignis unter **Andere betroffene Ressourcen**, im Schritt **Betroffene Ressourcen** des Ereignisses, wie Sie es mit einem Host tun würden. Die eigene Seite **Geplante Wartung** eines Standorts listet die daran gehängten Ereignisse, und ihr **Geplantes Wartungsereignis erstellen** öffnet das Formular mit dem schon gewählten Standort.
+Hängen Sie Standorte an ein geplantes Wartungsereignis unter **Andere betroffene Ressourcen**, im Schritt **Betroffene Ressourcen** des Ereignisses, wie Sie es mit einem Host tun würden. Die eigene Seite **Geplante Wartung** eines Standorts listet die daran gehängten Ereignisse, und ihr **Wartungsereignis erstellen** öffnet das Formular mit dem schon gewählten Standort.
 
 Ein Fenster an einem übergeordneten Standort deckt alles darunter ab: Ein Fenster an einer Region deckt jeden Markt und jede Einheit darin ab, auch Standorte, die nach der Planung des Fensters angelegt wurden, ein regionaler Providerwechsel muss also keine vierhundert Filialen aufzählen.
 
@@ -214,6 +215,8 @@ Die Karte **Alarmierung** auf der **Einstellungen**-Seite eines Standorts hat **
 
 Sie warnt nur bei der Änderung: Wenn Sie sie für einen Standort einschalten, der schon fehlerhaft ist, wird die nächste Änderung scharfgeschaltet, statt über die Vergangenheit zu warnen. Degraded ist nicht betriebsbereit, ein Standort mit der Anteilsrichtlinie warnt also, sobald eines seiner berichtenden Geräte ausgefallen ist, genau wie ein Standort mit der Richtlinie des schlechtesten Status; die Warnung bleibt offen, ohne eine zweite, während der Standort zwischen Degraded und Offline wechselt, und ihr Titel nennt den Status, den der Standort zuerst erreicht hat.
 
+Wenn an einem Standort nichts mehr einen Status meldet, weil bei den Monitoren hinter seinen Geräten die Überwachung ausgeschaltet ist, sie archiviert oder gelöscht wurden, kehrt der Standort zu keinem Status zurück, statt seinen letzten zu behalten, und seine offene Warnung löst sich mit diesem Grund als Ursache auf. Ein Gerät, das wieder ein Problem meldet, öffnet eine neue Warnung.
+
 ## Fehlerbehebung
 
 :::details Eine Region ist immer rot
@@ -225,7 +228,11 @@ Für den Standort lief nie eine Zusammenfassung, er hat also keine Zeilen in der
 :::
 
 :::details Ein Gerät zählt nicht für seinen Standort
-Archivierte Geräte und Geräte, die noch nichts gemeldet haben, stimmen nie ab. Ein monitorgestütztes Gerät ohne gebundenen Monitor hat ebenfalls nie etwas gemeldet. Prüfen Sie den Status des Geräts: Ein Gerät mit **Ausstehend** stimmt nach seiner ersten Abfrage ab.
+Archivierte Geräte und Geräte, die noch nichts gemeldet haben, stimmen nie ab. Ein monitorgestütztes Gerät ohne gebundenen Monitor hat ebenfalls nie etwas gemeldet. Prüfen Sie den Status des Geräts: Ein Gerät mit **Ausstehend** stimmt nach seiner ersten Abfrage ab. Eines mit **Überwachung aus** oder **Monitor archiviert** daneben stimmt wieder ab, sobald die Überwachung seines Monitors wieder eingeschaltet oder er aus dem Archiv geholt ist.
+:::
+
+:::details Ein Standort hat keinen Status mehr
+Nichts an dem Standort meldet einen Status: Bei den Monitoren hinter seinen Geräten ist die Überwachung ausgeschaltet, sie sind archiviert oder wurden gelöscht, daher wurde der letzte Status des Standorts entfernt und seine Warnung aufgelöst. Schalten Sie die Überwachung dieser Monitore wieder ein oder holen Sie sie aus dem Archiv, dann ergibt sich der Status des Standorts wieder aus seinen Geräten.
 :::
 
 :::details Die Warnung eines Standorts hat nicht ausgelöst

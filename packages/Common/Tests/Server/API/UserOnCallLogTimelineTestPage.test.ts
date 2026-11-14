@@ -34,6 +34,10 @@ import {
 } from "../../../Types/OnCallDutyPolicy/OnCallTestPage";
 import UserNotificationEventType from "../../../Types/UserNotification/UserNotificationEventType";
 import UserNotificationStatus from "../../../Types/UserNotification/UserNotificationStatus";
+import {
+  UpdateOneByInput,
+  updateNotificationWhileStill,
+} from "../TestingUtils/OnCallTimelineRows";
 import { beforeAll, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -127,8 +131,24 @@ function testPageMessage(
   item.userNotificationLogId = LOG;
   item.userNotificationEventType = UserNotificationEventType.TestPage;
   item.isAcknowledged = false;
+  // As the send left it, at the first version.
+  item.status = UserNotificationStatus.Sent;
+  item.version = 1;
   Object.assign(item, overrides);
+
+  if (overrides.isAcknowledged && !overrides.status) {
+    item.status = UserNotificationStatus.Acknowledged;
+  }
+
   return item;
+}
+
+// The test page's message every read returns, and every write lands on.
+let currentItem: UserOnCallLogTimeline;
+
+function givenItem(item: UserOnCallLogTimeline): void {
+  currentItem = item;
+  findItem.mockResolvedValue(item as never);
 }
 
 let findItem: jest.SpyInstance;
@@ -155,17 +175,19 @@ beforeEach(() => {
     .mockResolvedValue(Protocol.HTTPS);
   jest.spyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(new Date(NOW));
 
-  findItem = jest
-    .spyOn(UserOnCallLogTimelineService, "findOneById")
-    .mockResolvedValue(testPageMessage() as never);
+  findItem = jest.spyOn(UserOnCallLogTimelineService, "findOneById");
+  givenItem(testPageMessage());
 
   findLog = jest
     .spyOn(UserOnCallLogService, "findOneById")
     .mockResolvedValue({ id: LOG, acknowledgedAt: undefined } as never);
 
+  // Written as OnCallNotificationStatus writes: while still at the status and the version read.
   updateSpy = jest
-    .spyOn(UserOnCallLogTimelineService, "updateOneById")
-    .mockResolvedValue(1 as never);
+    .spyOn(UserOnCallLogTimelineService, "updateOneBy")
+    .mockImplementation((async (updateBy: UpdateOneByInput) => {
+      return updateNotificationWhileStill(currentItem, updateBy);
+    }) as never);
 
   // A test reads no record and no run to draw its page.
   incidentRead = jest
@@ -201,9 +223,7 @@ describe("a test page's link", () => {
   });
 
   test("once acknowledged from this message, says it works, with nothing to press", async () => {
-    findItem.mockResolvedValue(
-      testPageMessage({ isAcknowledged: true }) as never,
-    );
+    givenItem(testPageMessage({ isAcknowledged: true }));
 
     await callRoute(ACKNOWLEDGE_PAGE_ROUTE);
 
@@ -231,7 +251,11 @@ describe("a test page's Acknowledge", () => {
     await callRoute(ACKNOWLEDGE_ROUTE);
 
     expect(updateSpy).toHaveBeenCalledWith({
-      id: ITEM,
+      query: {
+        _id: ITEM.toString(),
+        status: UserNotificationStatus.Sent,
+        version: 1,
+      },
       data: {
         acknowledgedAt: NOW,
         isAcknowledged: true,
@@ -240,6 +264,7 @@ describe("a test page's Acknowledge", () => {
       },
       props: { isRoot: true },
     });
+    expect(currentItem.status).toBe(UserNotificationStatus.Acknowledged);
     expect(Response.redirect).not.toHaveBeenCalled();
     expect(Response.sendErrorResponse).not.toHaveBeenCalled();
 
@@ -249,10 +274,30 @@ describe("a test page's Acknowledge", () => {
     expect(variables["title"]).toBe("Test page acknowledged");
   });
 
+  test("pressed twice at once: the second press finds it acknowledged, writes nothing, and still says it works", async () => {
+    let pressedMeanwhile: boolean = false;
+
+    updateSpy.mockImplementation((async (updateBy: UpdateOneByInput) => {
+      if (!pressedMeanwhile) {
+        // The other press lands first.
+        pressedMeanwhile = true;
+        currentItem.status = UserNotificationStatus.Acknowledged;
+        currentItem.isAcknowledged = true;
+        currentItem.version = (currentItem.version || 0) + 1;
+      }
+
+      return updateNotificationWhileStill(currentItem, updateBy);
+    }) as never);
+
+    await callRoute(ACKNOWLEDGE_ROUTE);
+
+    expect(updateSpy).toHaveBeenCalledTimes(1);
+    expect(Response.sendErrorResponse).not.toHaveBeenCalled();
+    expect(rendered().variables["title"]).toBe("Test page acknowledged");
+  });
+
   test("pressed again, changes nothing and says it works", async () => {
-    findItem.mockResolvedValue(
-      testPageMessage({ isAcknowledged: true }) as never,
-    );
+    givenItem(testPageMessage({ isAcknowledged: true }));
 
     await callRoute(ACKNOWLEDGE_ROUTE);
 

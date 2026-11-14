@@ -190,7 +190,7 @@ Varje ställe som visar en enhet — listan Enheter, en plats Enheter-sida, öve
 | --- | --- |
 | **Uppe** | Den senaste avsökningen (ping eller SNMP), eller den bundna monitorn, nådde enheten. |
 | **Nere** | Den senaste avsökningen (ping eller SNMP), eller den bundna monitorn, kunde inte nå enheten. |
-| **Väntar** | Inget utslag än: aldrig avsökt, ingen sond tilldelad eller ingen monitor bunden. |
+| **Väntar** | Inget utslag än: aldrig avsökt, ingen sond tilldelad, ingen monitor bunden, eller så är den bundna monitorn avstängd eller arkiverad. |
 
 | Tillägg | Visas när | Vad du gör |
 | --- | --- | --- |
@@ -198,6 +198,8 @@ Varje ställe som visar en enhet — listan Enheter, en plats Enheter-sida, öve
 | **Ingen sond** | Enheten avsöks av en sond men har ingen, eller dess avsökning är avstängd. | Tilldela en sond som kan nå den; inget avsöker den förrän dess. |
 | **Ingen övervakning** | Enheten använder [åsidosättningen med bunden monitor](#åsidosättningen-med-bunden-monitor) och inget är bundet. | Bind en monitor, eller byt tillbaka den till avsökning via sond. |
 | **SNMP failing** | Uppe på ping, men den senaste SNMP-walken misslyckades. | Kontrollera autentiseringsuppgifterna, SNMP-agenten eller en ACL. |
+| **Övervakning avstängd** | Övervakningen av den bundna monitorn är avstängd, så enheten visar **Väntar** i stället för den status monitorn lämnades i. | Slå på övervakningen av monitorn igen, eller bind en annan monitor. |
+| **Övervakning arkiverad** | Den bundna monitorn är arkiverad, så enheten visar **Väntar** i stället för den status monitorn lämnades i. | Återställ monitorn från arkivet, eller bind en annan monitor. |
 
 Listan **Enheter** har ett filter **SNMP** med tre värden: **OK** (den senaste walken lyckades), **Misslyckas** (den senaste walken misslyckades) och **Not configured** (bara ping, inga autentiseringsuppgifter eller aldrig avsökt). "Vilka enheter har autentiseringsuppgifter som har slutat fungera" är ett klick bort. Listans kolumn **Interfaces (Up / Down)** visar **Ingen SNMP** i stället för `0 / 0` för en enhet som pingas och aldrig walkas: noll fungerande portar vore ett annat påstående, och ett felaktigt.
 

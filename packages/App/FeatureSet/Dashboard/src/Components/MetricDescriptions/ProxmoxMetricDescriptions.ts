@@ -140,7 +140,7 @@ export const PROXMOX_METRIC_DESCRIPTIONS: Record<ProxmoxMetric, string> = {
     "Unhealthy if a node is offline, the cluster is not quorate, a storage is unavailable or over 95% full, or an HA resource is in error or fence; Degraded if a storage is over 85% full, a start-on-boot guest is stopped, a guest is in no backup job or its last backup failed, or replication fails. Unknown if the agent is disconnected.",
   ),
   agentStatus: translationKey(
-    "Whether the OneUptime Proxmox agent is sending data for this cluster. It switches to Disconnected 15 to 20 minutes after data stops arriving, and the numbers on this page may then be out of date.",
+    "Whether the OneUptime Proxmox agent is reading this cluster from the Proxmox VE API. It switches to Disconnected 15 to 20 minutes after data stops arriving, and to Can't read API when the agent is still running but has not read the cluster for that long. Either way, the numbers on this page are as it last read them.",
   ),
   backupsLastOk: translationKey(
     "Guests whose last backup succeeded, as Proxmox VE's notifications reported it, with templates left out.",

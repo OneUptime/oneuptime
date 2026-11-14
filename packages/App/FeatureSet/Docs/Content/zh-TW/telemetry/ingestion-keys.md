@@ -45,7 +45,7 @@ flowchart TB
 
 ## 開始之前
 
-- **能夠管理擷取金鑰的角色。** Project Owner 或 Project Admin，或者擁有 Create Telemetry Ingestion Key 權限的自訂角色。Telemetry 角色不包含擷取金鑰。
+- **能夠管理擷取金鑰的角色。** Project Owner 或 Project Admin，或者擁有 Create Ingestion Key 權限的自訂角色。Telemetry 角色不包含擷取金鑰。
 - **在 OneUptime Cloud 上，需要付款方式。** 遙測依用量計費，因此 Free 方案的專案需要先新增付款方式才能建立金鑰。此時建立對話方塊最後會有一個顯示價格的 **帳單** 步驟。
 
 ## 建立擷取金鑰
@@ -85,7 +85,7 @@ x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_KEY
 
 ## 鎖定瀏覽器金鑰
 
-瀏覽器金鑰位於你的頁面中，任何人都能複製它。以下設定限制了副本能做的事。在金鑰頁面上透過 **編輯遙測擷取 Key** 變更它們。
+瀏覽器金鑰位於你的頁面中，任何人都能複製它。以下設定限制了副本能做的事。在金鑰頁面上透過 **編輯擷取金鑰** 變更它們。
 
 | 設定 | 作用 |
 | --- | --- |
@@ -104,7 +104,7 @@ x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_KEY
 ]
 ```
 
-[服務目錄](/docs/telemetry/services#服務如何進入目錄) 說明了固定的名稱如何決定服務。Kubernetes 代理程式的 Runner 和 AI 代理程式，以及基礎設施 AI 代理程式，不會使用固定了名稱的金鑰註冊：請給它們一個沒有固定名稱的伺服器金鑰。
+[服務](/docs/telemetry/services#服務如何進入目錄) 說明了固定的名稱如何決定服務。Kubernetes 代理程式的 Runner 和 AI 代理程式，以及基礎設施 AI 代理程式，不會使用固定了名稱的金鑰註冊：請給它們一個沒有固定名稱的伺服器金鑰。
 
 ## 輪替、停用或刪除金鑰
 
@@ -112,9 +112,9 @@ x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_KEY
 
 | 目的 | 操作 | 傳送端看到的結果 |
 | --- | --- | --- |
-| 立即停用金鑰，之後還能恢復 | 點選 **編輯遙測擷取 Key**，開啟 **存取與限制** 並關閉 **已啟用**。狀態會顯示 **Disabled — telemetry refused**。 | 重新啟用之前傳回 `422` |
+| 立即停用金鑰，之後還能恢復 | 點選 **編輯擷取金鑰**，開啟 **存取與限制** 並關閉 **已啟用**。狀態會顯示 **Disabled — telemetry refused**。 | 重新啟用之前傳回 `422` |
 | 替換外洩的密鑰值 | 點選 **重設密鑰** 並確認。金鑰保留其設定，並取得新的密鑰值。 | 傳送新密鑰值之前傳回 `401` |
-| 永久停用金鑰 | 點選頁面底部的 **刪除遙測擷取 Key**。 | `401` |
+| 永久停用金鑰 | 點選頁面底部的 **刪除擷取金鑰**。 | `401` |
 
 若要在不遺失資料的情況下更換密鑰值，請建立第二個金鑰，把傳送端移過去，等舊金鑰的 **Last Used At** 不再變動後再刪除它。**Last Used At** 每隔幾分鐘更新一次，而不是每個請求都更新。
 
@@ -155,7 +155,7 @@ x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_KEY
 
 :::cards
 - [OpenTelemetry](/docs/telemetry/open-telemetry): 用你的金鑰傳送追蹤、指標和日誌。
-- [服務目錄](/docs/telemetry/services): 查看你的遙測所歸入的服務。
+- [服務](/docs/telemetry/services): 查看你的遙測所歸入的服務。
 - [資料保留](/docs/telemetry/data-retention): 決定資料保留多長時間。
 - [捨棄過濾器與清理規則](/docs/telemetry/drop-filters-and-scrub-rules): 在儲存之前捨棄或遮罩資料。
 - [擷取預算](/docs/telemetry/ingestion-budgets): 限制每個金鑰一天內最多可傳送多少。

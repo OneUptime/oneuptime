@@ -1,5 +1,9 @@
 import { getNumberLocale } from "Common/Types/DateLanguage";
 import { formatNameList } from "../AiAccess/AiAccessModes";
+import {
+  CREATED_IMPORT_RESULT,
+  getCreatedImportResultLabel,
+} from "../../Utils/ImportResultWords";
 import CustomFieldType from "Common/Types/CustomField/CustomFieldType";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import {
@@ -32,6 +36,7 @@ import {
   translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
+import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
 
 /*
  * EVERY WORD THE IMPORT PAGE SAYS ABOUT A TOOL, AN ITEM OR A RUN.
@@ -156,15 +161,33 @@ export const TOOL_IMPORT_ACTION_LABELS: Record<ToolImportAction, string> = {
   [ToolImportAction.Skip]: translationKey("Not brought over"),
 };
 
-// The badge on an item in the report, and the counts at its top.
+/*
+ * The badge on an item in the report. "Created" is the import outcome's
+ * own key (ImportResultWords), never the date column's "Created": draw
+ * the badge with getToolImportOutcomeLabel.
+ */
 export const TOOL_IMPORT_OUTCOME_LABELS: Record<ToolImportOutcome, string> = {
-  [ToolImportOutcome.Created]: translationKey("Created"),
+  [ToolImportOutcome.Created]: CREATED_IMPORT_RESULT,
   [ToolImportOutcome.Invited]: translationKey("Invited"),
   [ToolImportOutcome.Matched]: translationKey("Already in OneUptime"),
   [ToolImportOutcome.AlreadyImported]: translationKey("Imported before"),
   [ToolImportOutcome.Skipped]: translationKey("Not brought over"),
   [ToolImportOutcome.Failed]: translationKey("Failed"),
 };
+
+// An item's outcome, as its badge in the report says it.
+export function getToolImportOutcomeLabel(
+  translator: Translator,
+  outcome: ToolImportOutcome,
+): string {
+  if (outcome === ToolImportOutcome.Created) {
+    return getCreatedImportResultLabel(translator);
+  }
+
+  const label: string = TOOL_IMPORT_OUTCOME_LABELS[outcome];
+
+  return translator.translateText(label) || label;
+}
 
 export const TOOL_IMPORT_STATUS_LABELS: Record<ToolImportRunStatus, string> = {
   [ToolImportRunStatus.Reading]: translationKey("Reading"),
@@ -1043,6 +1066,14 @@ function toTemplateValue(
     return durationValue(value);
   }
 
+  /*
+   * A part that could not be added says why in the server's words
+   * (PartNotAdded): said as any error in a sentence is (#7307).
+   */
+  if (key === "error" && typeof value === "string") {
+    return errorInSentence(value);
+  }
+
   if (typeof value === "number") {
     return translator.formatNumber(value);
   }
@@ -1053,7 +1084,8 @@ function toTemplateValue(
 /*
  * A note in the reader's language. Values are put in as they are, except a
  * kind (translated with the sentence), a date and a number (written the
- * reader's way). A note this build has no sentence for says nothing.
+ * reader's way), and an error (errorInSentence). A note this build has no
+ * sentence for says nothing.
  */
 export function describeToolImportNote(
   note: ToolImportNote,

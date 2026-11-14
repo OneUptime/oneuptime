@@ -52,7 +52,7 @@ Klicka på **Testa monitor**, välj en sond under **Välj sond** och klicka på 
 
 ### Gå igenom kriterierna
 
-**Monitorkriterier** börjar med [standardkriterierna](#standardkriterier): offline när namnet inte går att slå upp, online när det går. För att kontrollera vad posterna säger lägger du till ett filter **Värde för DNS-post** och klickar sedan på **Nästa**.
+**Kriterier** börjar med [standardkriterierna](#standardkriterier): offline när namnet inte går att slå upp, online när det går. För att kontrollera vad posterna säger lägger du till ett filter **Värde för DNS-post** och klickar sedan på **Nästa**.
 
 ### Välj sonder och skapa
 

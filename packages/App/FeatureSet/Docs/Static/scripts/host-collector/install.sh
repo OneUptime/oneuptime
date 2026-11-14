@@ -51,6 +51,10 @@ DEFAULT_DOWNLOAD_URL="https://github.com/open-telemetry/opentelemetry-collector-
 SERVICE_NAME="oneuptime-collector"
 SERVICE_USER="oneuptime-collector"
 MACOS_LABEL="com.oneuptime.collector"
+# Where the supervisor asks OneUptime for its config, under the OneUptime
+# URL: under /telemetry, which every OneUptime sends to its app, whatever
+# sits in front of it.
+OPAMP_PATH="/telemetry/opamp/v1"
 
 ONEUPTIME_URL=""
 INGESTION_KEY=""
@@ -157,8 +161,9 @@ require_root() {
     fi
 }
 
-# The HTTP status OneUptime refused the supervisor's key with, if it did,
-# read from this run's logs; empty while it has not.
+# The HTTP status the supervisor was turned away with, if it was, read from
+# this run's logs; empty while it has not been. 401, 403 and 422 refuse the
+# key; 404 says OneUptime is not at the address it asks for its config.
 refused_status() {
     if [ "$OS" = "linux" ]; then
         # This run of the service only: an earlier run's refusal (a wrong key
@@ -171,7 +176,7 @@ refused_status() {
     else
         logs="$(cat "$LOG_DIR/collector.log" 2>/dev/null || true)"
     fi
-    for status in 401 403 422; do
+    for status in 401 403 422 404; do
         case "$logs" in
             *"response from server: $status"*)
                 printf '%s' "$status"
@@ -330,6 +335,7 @@ main() {
 
     ONEUPTIME_URL="$(trim_url "$ONEUPTIME_URL")"
     DOWNLOAD_URL="$(trim_url "$DOWNLOAD_URL")"
+    OPAMP_URL="$ONEUPTIME_URL$OPAMP_PATH"
 
     is_url "$ONEUPTIME_URL" || fail "--url must be an http:// or https:// address, such as https://oneuptime.com."
     is_key "$INGESTION_KEY" || fail "--key does not look like an ingestion key. Copy it again from OneUptime."
@@ -491,7 +497,7 @@ main() {
 # Written by the OneUptime host collector installer. To change it, run the
 # installer again; the collector's own config comes from OneUptime.
 server:
-  endpoint: $(yaml_quote "$ONEUPTIME_URL/opamp/v1")
+  endpoint: $(yaml_quote "$ONEUPTIME_URL$OPAMP_PATH")
   headers:
     x-oneuptime-token: $(yaml_quote "$INGESTION_KEY")
 
@@ -637,6 +643,15 @@ EOF
     waited=0
     while [ "$waited" -lt 60 ]; do
         refusal="$(refused_status)"
+        if [ "$refusal" = "404" ]; then
+            say ""
+            say "OneUptime was not found at $OPAMP_URL (HTTP 404)."
+            say "That is where the collector asks for its config. Check that --url is the address you open"
+            say "OneUptime at, such as https://oneuptime.com, with nothing after it. If a proxy or load balancer"
+            say "of yours sits in front of OneUptime, have it send $OPAMP_PATH to OneUptime, as it does /otlp."
+            say "The collector stays installed and asks again every 30 seconds."
+            exit 1
+        fi
         if [ -n "$refusal" ]; then
             say ""
             say "OneUptime refused the key (HTTP $refusal)."

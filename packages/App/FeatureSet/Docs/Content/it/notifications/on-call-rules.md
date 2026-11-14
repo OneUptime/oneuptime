@@ -1,12 +1,13 @@
-# Regole di reperibilità personali
+# Come contattarmi
 
-Le vostre regole di reperibilità decidono come una chiamata vi raggiunge: quali dei vostri metodi di notifica OneUptime prova, e quanto tempo dopo l'inizio della chiamata. Ogni tipo di chiamata ha le sue regole, un insieme per gravità, così un incidente critico può telefonarvi subito mentre un avviso di bassa gravità aspetta un'e-mail. Le impostate in **Impostazioni utente → Regole di reperibilità**.
+Le vostre regole di reperibilità decidono come una chiamata vi raggiunge: quali dei vostri metodi di notifica OneUptime prova, e quanto tempo dopo l'inizio della chiamata. Ogni tipo di chiamata ha le sue regole, un insieme per gravità, così un incidente critico può telefonarvi subito mentre un avviso di bassa gravità aspetta un'e-mail. Le impostate in **Impostazioni utente → Come contattarmi**.
 
 > [!NOTE]
 > Queste regole sono solo vostre. Le **Regole di reperibilità** in **Incidenti → Regole** e **Avvisi → Regole** sono un'altra cosa: decidono quali politiche di reperibilità esegue un nuovo incidente o un nuovo avviso.
 
 :::cards
 - [Come una chiamata vi raggiunge](#come-una-chiamata-vi-raggiunge): Le vostre regole per una chiamata, passo dopo passo.
+- [Una sola sequenza per tutto](#una-sola-sequenza-per-tutto): I passaggi che ogni chiamata prova, impostati una volta.
 - [Le regole con cui partite](#le-regole-con-cui-partite): Cosa aggiunge ogni metodo verificato, e come sfoltirlo.
 - [Aggiungere una regola](#aggiungere-una-regola): Un metodo e un ritardo per una gravità.
 - [Regole push](#regole-push): Suonare anche in silenzioso, e ripetere finché qualcuno non riconosce.
@@ -26,9 +27,33 @@ flowchart TB
 
 La maggior parte dei messaggi può riconoscere la chiamata: e-mail, SMS e messaggi WhatsApp, Telegram, Slack, Microsoft Teams e Mattermost contengono un link per riconoscerla, e una telefonata vi chiede di premere 1. Se non potete gestire una chiamata, gli stessi messaggi vi permettono di escalarla, e una telefonata vi chiede di premere 2: la policy avvisa subito il livello successivo, e non venite più avvisati al riguardo. Vedi [Escalare un avviso](/docs/on-call/escalation-rules#escalare-un-avviso). Ogni chiamata ricevuta compare in **Impostazioni utente → Registri di reperibilità**, dove **Visualizza cronologia** mostra ogni messaggio inviato e se è stato consegnato.
 
+## Una sola sequenza per tutto
+
+**Impostazioni utente → Come contattarmi** si apre sulla tua sequenza: i passaggi che ogni chiamata prova, per incidenti, avvisi ed episodi di qualsiasi gravità. Ogni passaggio è uno dei tuoi metodi verificati e il momento in cui usarlo, ad esempio un SMS subito e una telefonata dopo 5 minuti. I passaggi con la stessa attesa partono insieme, così la sequenza si legge nell'ordine in cui chiama.
+
+:::steps
+### Aggiungere un modo per raggiungerti
+
+Scegli uno dei tuoi metodi verificati in **Aggiungi un modo per raggiungerti**. Un numero o un indirizzo che aspetta ancora il suo codice compare in **Non ancora verificato**, con **Verifica**.
+
+### Scegliere quando usarlo
+
+Accanto a ogni passaggio, scegli un'attesa da **Immediatamente** a **1 ora**. Un passaggio push dice anche come suona e se si ripete: vedi [Regole push](#regole-push).
+
+### Salvare
+
+Fai clic su **Salva sequenza**. Scrive le stesse regole in ogni scheda di ogni tab: le regole che aggiungeresti a mano a ogni scheda.
+:::
+
+**Testa le tue chiamate**, in fondo alla pagina, ti invia una chiamata di prova attraverso di esse.
+
+Quando una gravità merita altro, **Diverso per alcune gravità** apre i tab e le schede descritti più sotto. Una scheda diversa dalla tua sequenza è segnata con **Diverso dalla sequenza**, e la sequenza indica cosa fa ciascuna al suo posto. Se le tue regole sono già diverse, la pagina si apre sulle schede, con **Usa una sola sequenza per tutto**: salvando, prima nomina le schede che perdono la loro differenza. Una gravità che il tuo progetto ha archiviato mantiene le sue regole.
+
+Una policy di reperibilità decide chi viene chiamato e quando arriva il suo livello successivo. Come vieni raggiunto è questa sequenza, per ogni policy che ti chiama.
+
 ## Le quattro schede
 
-**Impostazioni utente → Regole di reperibilità** ha una scheda per ogni tipo di chiamata. Ogni scheda ha un riquadro per gravità, con il nome e il colore scelti dal vostro progetto:
+**Impostazioni utente → Come contattarmi** ha una scheda per ogni tipo di chiamata. Ogni scheda ha un riquadro per gravità, con il nome e il colore scelti dal vostro progetto:
 
 | Scheda | Chiamate per | Riquadri per |
 | --- | --- | --- |
@@ -60,11 +85,11 @@ Le vostre regole non hanno fasce di silenzio: lasciate le gravità basse sull'e-
 :::steps
 ### Aprite il riquadro
 
-Andate in **Impostazioni utente → Regole di reperibilità**, aprite la scheda del tipo di chiamata e trovate il riquadro della gravità.
+Andate in **Impostazioni utente → Come contattarmi**, aprite la scheda del tipo di chiamata e trovate il riquadro della gravità.
 
 ### Scegliete il metodo
 
-Fate clic su **Aggiungi: Regola di notifica**. In **Metodo di notifica**, scegliete uno dei vostri metodi verificati; un metodo che non avete verificato non viene proposto.
+Fate clic su **Aggiungi regola di notifica**. In **Metodo di notifica**, scegliete uno dei vostri metodi verificati; un metodo che non avete verificato non viene proposto.
 
 ### Scegliete il suono di un push
 
@@ -72,7 +97,7 @@ Per un telefono, scegliete **Notifica push**: **Avviso critico** o **Standard**.
 
 ### Impostate il ritardo
 
-Scegliete **Notificami dopo**: **Immediatamente**, **5 minuti**, **10 minuti**, **15 minuti**, **30 minuti** o **1 ora**. Poi fate clic su **Aggiungi: Regola di notifica** nella finestra.
+Scegliete **Notificami dopo**: **Immediatamente**, **5 minuti**, **10 minuti**, **15 minuti**, **30 minuti** o **1 ora**. Poi fate clic su **Aggiungi regola di notifica** nella finestra.
 :::
 
 Il riquadro elenca le sue regole in ordine di ritardo, con **Metodo di notifica** e **Notifica dopo** per ciascuna.
@@ -105,12 +130,12 @@ L'API può salvare una regola di esclusione, con `isOptOut` impostato e senza me
 :::
 
 :::details Disattivare il ripiego per un intero progetto
-Un proprietario del progetto, o qualcuno con **Manage Billing**, può impostare `disableOnCallNotificationFallback` del progetto tramite l'API. Una chiamata che non trova una regola allora non viene consegnata, e il suo registro dice che l'utente deve aggiungere regole in **Impostazioni utente → Regole di reperibilità**.
+Un proprietario del progetto, o qualcuno con **Manage Billing**, può impostare `disableOnCallNotificationFallback` del progetto tramite l'API. Una chiamata che non trova una regola allora non viene consegnata, e il suo registro dice che l'utente deve aggiungere regole in **Impostazioni utente → Come contattarmi**.
 :::
 
 ## Le regole di un collega
 
-I proprietari e gli amministratori del progetto possono vedere e cambiare la stessa pagina per chiunque nel progetto: in **Utenti** aprono la persona, poi **Regole di reperibilità** nella sezione **Reperibilità**. **Prontezza**, lì accanto, mostra se ogni gravità la raggiunge. Quando qualcun altro aggiunge, cambia o elimina le vostre regole, ricevete un'e-mail al riguardo, e ogni modifica compare nel registro di audit del progetto.
+I proprietari e gli amministratori del progetto possono vedere e cambiare la stessa pagina per chiunque nel progetto: in **Utenti** aprono la persona, poi **Come contattarmi** nella sezione **Reperibilità**. **Prontezza**, lì accanto, mostra se ogni gravità la raggiunge. Quando qualcun altro aggiunge, cambia o elimina le vostre regole, ricevete un'e-mail al riguardo, e ogni modifica compare nel registro di audit del progetto.
 
 ## Risoluzione dei problemi
 

@@ -34,7 +34,7 @@ Eine Lücke ist ein Schweregrad ohne Regel, auf dem Tab für Vorfälle, Vorfalle
 
 ## Die Seite Einsatzbereitschaft
 
-Öffnen Sie **Bereitschaftsdienst → Einsatzbereitschaft**. Die Karte **Bereitschaftsfähigkeit** listet jede Person, die eine Bereitschaftsrichtlinie im Projekt erreichen kann, die Personen mit Handlungsbedarf zuerst. Jede Person im Projekt kann sie öffnen.
+Öffnen Sie **Bereitschaft → Einsatzbereitschaft**. Die Karte **Bereitschaftsfähigkeit** listet jede Person, die eine Bereitschaftsrichtlinie im Projekt erreichen kann, die Personen mit Handlungsbedarf zuerst. Jede Person im Projekt kann sie öffnen.
 
 Über der Liste zählen die Kacheln **Bearbeiter**, **Bereit**, **Einrichtung erforderlich** und **Nicht erreichbar**. Klicken Sie auf **Bereit**, **Einrichtung erforderlich** oder **Nicht erreichbar**, um nur diese Bearbeiter zu listen, und klicken Sie erneut darauf, um alle zu listen.
 
@@ -58,7 +58,7 @@ Nur die Person selbst kann ihre Benachrichtigungsmethoden und Regeln hinzufügen
 3. Bestätigen Sie. Jede Person bekommt eine E-Mail, die nennt, was in ihrer eigenen Einrichtung fehlt, mit einem Link zu der Seite, auf der sie es behebt.
 :::
 
-Ein Banner sagt dann, wie viele Erinnerungen gesendet, übersprungen oder fehlgeschlagen sind, und warum, für jede, die nicht gesendet wurde. Niemand wird öfter als einmal in 24 Stunden erinnert, und ein Durchgang erinnert höchstens 250 Personen. Erinnerungen senden dürfen **Projektinhaber**, **Projektadministrator** oder **Bereitschafts-Administrator**, oder wer in einer eigenen Rolle **Edit On-Call Duty Policy** hat.
+Ein Banner sagt dann, wie viele Erinnerungen gesendet, übersprungen oder fehlgeschlagen sind, und warum, für jede, die nicht gesendet wurde. Niemand wird öfter als einmal in 24 Stunden erinnert, und ein Durchgang erinnert höchstens 250 Personen. Erinnerungen senden dürfen **Projektinhaber**, **Projektadministrator** oder **Bereitschafts-Administrator**, oder wer in einer eigenen Rolle **Edit On-Call Policy** hat.
 
 ## Einsatzbereitschaft auf anderen Seiten
 
@@ -75,7 +75,7 @@ Eine Woche, in der alle bereit sind, verschickt nichts, also bedeutet die E-Mail
 
 ## Bereitschaftszeit des Benutzers
 
-**Bereitschaftsdienst → Berichte → Bereitschaftszeit des Benutzers** zeigt, wie lange jede Person Bereitschaft hatte, über einen Zeitraum, den Sie wählen: zu Beginn **Letzter Monat**.
+**Bereitschaft → Berichte → Bereitschaftszeit des Benutzers** zeigt, wie lange jede Person Bereitschaft hatte, über einen Zeitraum, den Sie wählen: zu Beginn **Letzter Monat**.
 
 | Spalte | Was sie zeigt |
 | --- | --- |
@@ -108,5 +108,5 @@ Sie wird nur in einer Woche gesendet, in der jemand **Nicht erreichbar** oder **
 :::cards
 - [Wie OneUptime Sie erreicht](/docs/notifications/index): Die Methoden, Regeln und der Rückfall hinter jedem Status.
 - [Benachrichtigungsmethoden](/docs/notifications/notification-methods): Die Wege hinzufügen und verifizieren, auf denen OneUptime jemanden erreicht.
-- [Persönliche Bereitschaftsregeln](/docs/notifications/on-call-rules): Die Lücken schließen, Schweregrad für Schweregrad.
+- [Wie ich erreichbar bin](/docs/notifications/on-call-rules): Die Lücken schließen, Schweregrad für Schweregrad.
 :::

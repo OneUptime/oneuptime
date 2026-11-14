@@ -28,6 +28,8 @@ import { getMicrosoftTeamsAppLink } from "./MicrosoftTeamsAppLink";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { PluralTemplate, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
+import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
 
 interface ChatItem {
   id: string;
@@ -190,12 +192,7 @@ const MicrosoftTeamsChatsCard: FunctionComponent = (): ReactElement => {
       const message: string = API.getFriendlyErrorMessage(err as Exception);
 
       if (options?.refreshNames && hasLoaded) {
-        setRefreshError(
-          translator.translateTemplate(
-            "Chats could not be refreshed, so the list below may be out of date. {{error}}",
-            { error: message },
-          ),
-        );
+        setRefreshError(message);
       } else {
         setError(message);
       }
@@ -206,7 +203,7 @@ const MicrosoftTeamsChatsCard: FunctionComponent = (): ReactElement => {
         setAnnouncement(
           translator.translateTemplate(
             "Chats could not be refreshed. {{error}}",
-            { error: message },
+            { error: errorInSentence(message) },
           ),
         );
       }
@@ -272,7 +269,14 @@ const MicrosoftTeamsChatsCard: FunctionComponent = (): ReactElement => {
 
         {!isLoading && !error && refreshError && (
           <div className="mb-3">
-            <ErrorMessage message={refreshError} />
+            <ErrorMessage
+              message={
+                <ErrorSentence
+                  template="Chats could not be refreshed, so the list below may be out of date. {{error}}"
+                  error={refreshError}
+                />
+              }
+            />
           </div>
         )}
 

@@ -1,6 +1,7 @@
 import OneUptimeDate from "../../../Types/Date";
 import IconProp from "../../../Types/Icon/IconProp";
 import {
+  readTelemetryIngestionBudgetStatus,
   TelemetryIngestionBudgetScopeStatus,
   TelemetryIngestionBudgetSignalStatus,
   TelemetryIngestionBudgetState,
@@ -79,6 +80,10 @@ export const NO_BUDGETS_DESCRIPTION: string = translationKey(
 );
 export const COUNTERS_UNAVAILABLE: string = translationKey(
   "Today's counts could not be read right now. Budgets are not enforced while they cannot be counted.",
+);
+// An answer that is not a status: said as a failed read is, with Refresh.
+export const STATUS_UNREADABLE: string = translationKey(
+  "Something went wrong. Please try again.",
 );
 
 export interface ComponentProps {
@@ -425,8 +430,20 @@ const TelemetryIngestionBudgetStatusCard: FunctionComponent<ComponentProps> = (
     props
       .fetchStatus()
       .then((loaded: TelemetryIngestionBudgetStatus) => {
+        /*
+         * Read again, as it came off the network: an answer that is not a
+         * status fails like a read that failed, rather than a throw while
+         * the page draws.
+         */
+        const readable: TelemetryIngestionBudgetStatus | null =
+          readTelemetryIngestionBudgetStatus(loaded);
+
+        if (!readable) {
+          throw new Error(STATUS_UNREADABLE);
+        }
+
         if (isCurrent) {
-          setStatus(loaded);
+          setStatus(readable);
         }
       })
       .catch((err: unknown) => {

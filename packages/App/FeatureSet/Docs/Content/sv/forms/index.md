@@ -1,6 +1,6 @@
 # Formulär – översikt
 
-Ett formulär är en sida som alla med länken kan fylla i, utan ett OneUptime-konto. Varje inlämning skapar något i ditt projekt: en **incident**, för felrapporter, eller en **planerad underhållshändelse**, för ändrings- och underhållsbegäranden. Du bygger formulärets frågor i en dra-och-släpp-redigerare, bestämmer hur svaren blir posten och delar länken med dem som ska använda den.
+Ett formulär är en sida som alla med länken kan fylla i, utan ett OneUptime-konto. Varje inlämning skapar något i ditt projekt: en **incident**, för felrapporter, eller en **underhållshändelse**, för ändrings- och underhållsbegäranden. Du bygger formulärets frågor i en dra-och-släpp-redigerare, bestämmer hur svaren blir posten och delar länken med dem som ska använda den.
 
 Använd ett formulär när de som märker ett problem, eller behöver en ändring, inte är de som hanterar dina incidenter och ditt underhåll: supportpersonal, kolleger på en annan avdelning, en butikschef, en kunds driftteam. De öppnar länken, svarar på dina frågor och trycker på **Skicka**. Ditt team får en vanlig incident eller händelse, med svaren i dess fält och en privat anteckning som visar vem som skickade den.
 
@@ -257,7 +257,7 @@ Svaret på en filfråga är filerna så som de sparades, var och en med sin `fil
 
 ### Arbetsflöden
 
-Formulär har de genererade arbetsflödeskomponenterna: **On Create Form**, **On Update Form** och så vidare. Använd **On Create Incident** eller **On Create Scheduled Maintenance Event** för att agera på det som ett formulär har skapat.
+Formulär har de genererade arbetsflödeskomponenterna: **On Create Form**, **On Update Form** och så vidare. Använd **On Create Incident** eller **On Create Maintenance Event** för att agera på det som ett formulär har skapat.
 
 ### Den offentliga sidans egna slutpunkter
 

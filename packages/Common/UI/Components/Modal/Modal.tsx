@@ -71,6 +71,12 @@ export interface ComponentProps {
   isLoading?: undefined | boolean;
   disableSubmitButton?: undefined | boolean;
   error?: string | undefined;
+  /*
+   * What the dialog was doing, in the reader's language - "Couldn't delete
+   * the note." - said first when the error is one nobody explained
+   * (ModalBody).
+   */
+  errorWhatFailed?: string | undefined;
   isBodyLoading?: boolean | undefined;
   modalWidth?: ModalWidth | undefined;
   rightElement?: ReactElement | undefined;
@@ -755,7 +761,10 @@ const Modal: FunctionComponent<ComponentProps> = (
               data-anchored-popup-boundary="true"
             >
               <div ref={contentInnerRef}>
-                <ModalBody error={props.error}>
+                <ModalBody
+                  error={props.error}
+                  whatFailed={props.errorWhatFailed}
+                >
                   {!props.isBodyLoading ? (
                     /*
                      * A dialog is a surface of its own: a card drawn in it is

@@ -130,7 +130,6 @@ const DashboardsArchived: FunctionComponent<
             field: {
               description: true,
             },
-            noValueMessage: "-",
             title: "Description",
             type: FieldType.LongText,
             hideOnMobile: true,

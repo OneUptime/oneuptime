@@ -88,6 +88,7 @@ Tout ce que les personnes créent, modifient ou suppriment dans un projet est en
 | Flux d'activité | Un flux affiche des modifications que le journal d'audit enregistre déjà. |
 | L'état de travail de OneUptime | Les sessions des lecteurs des pages de statut, les tâches en attente et les autres états que OneUptime conserve pendant son travail. |
 | La configuration des notifications propre à une personne | Les adresses, les numéros et les règles d'astreinte personnelles de chaque personne n'appartiennent qu'à elle. |
+| Les préférences propres à une personne | Les produits que chaque personne épingle dans sa propre barre supérieure n'appartiennent qu'à elle, et elle seule les voit. |
 
 Un administrateur qui ajoute ou retire une méthode de notification ou une règle d'astreinte personnelle sur le compte de quelqu'un d'autre est aussi enregistré, sans l'adresse ni le numéro lui-même.
 

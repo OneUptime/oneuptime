@@ -26,7 +26,7 @@ flowchart TB
 
 - Eine Web-App, deren Code Sie ändern und neu ausliefern können und deren Abhängigkeiten über npm installiert werden.
 - Die Ursprünge, von denen Ihre Seiten ausgeliefert werden, etwa `https://app.example.com`. Ein Browser-Schlüssel nimmt Anfragen nur von den Ursprüngen an, die Sie bei ihm eintragen.
-- Eine Rolle, die Ingestion-Schlüssel erstellen darf: Projektbesitzer und -administratoren dürfen das, ebenso alle mit der Berechtigung **Create Telemetry Ingestion Key**.
+- Eine Rolle, die Ingestion-Schlüssel erstellen darf: Projektbesitzer und -administratoren dürfen das, ebenso alle mit der Berechtigung Create Ingestion Key.
 
 ## Einrichten
 

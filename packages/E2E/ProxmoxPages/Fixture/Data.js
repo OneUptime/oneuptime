@@ -704,10 +704,19 @@ function largeInventory(loadedAt) {
 export function buildEstate(scenario, loadedAt) {
   const estate = scenario.estate;
   const disconnected = scenario.collector === "disconnected";
+  /*
+   * Issue #7439: the agent runs, but the cluster is not read - it last read
+   * the cluster 25 minutes ago (unreadable), or never has (waiting).
+   */
+  const unreadable = scenario.collector === "unreadable";
+  const waiting = scenario.collector === "waiting";
   const notifications = scenario.notifications !== false;
 
   let inventory = [];
-  if (estate === "busy") {
+  if (waiting) {
+    // Nothing read yet: no inventory at all.
+    inventory = [];
+  } else if (estate === "busy") {
     inventory = busyInventory(loadedAt, { notifications });
   } else if (estate === "calm") {
     inventory = busyInventory(loadedAt, { healthy: true, notifications });
@@ -725,6 +734,15 @@ export function buildEstate(scenario, loadedAt) {
         ...record,
         metricsUpdatedAt: new Date(loadedAt - 3 * DAY),
         lastSeenAt: new Date(loadedAt - 3 * DAY),
+      };
+    });
+  }
+  if (unreadable) {
+    inventory = inventory.map((record) => {
+      return {
+        ...record,
+        metricsUpdatedAt: new Date(loadedAt - 25 * MINUTE),
+        lastSeenAt: new Date(loadedAt - 25 * MINUTE),
       };
     });
   }
@@ -746,14 +764,24 @@ export function buildEstate(scenario, loadedAt) {
       estate === "large"
         ? "Frankfurt production estate: 24 nodes behind the shared Ceph pool."
         : "Production cluster in the Amsterdam data centre: web, database and mail.",
-    otelCollectorStatus: disconnected ? "disconnected" : "connected",
-    lastSeenAt:
-      estate === "new"
+    otelCollectorStatus:
+      disconnected || unreadable || waiting ? "disconnected" : "connected",
+    // When the cluster was last read; never, while the agent waits.
+    lastSeenAt: waiting
+      ? undefined
+      : estate === "new"
         ? new Date(loadedAt - MINUTE)
-        : new Date(loadedAt - (disconnected ? 3 * DAY : MINUTE)),
+        : new Date(
+            loadedAt -
+              (disconnected ? 3 * DAY : unreadable ? 25 * MINUTE : MINUTE),
+          ),
+    // When the agent last sent anything, read or not (fenced to ~5 minutes).
+    agentLastSeenAt: new Date(
+      loadedAt - (disconnected ? 3 * DAY : waiting ? MINUTE : 3 * MINUTE),
+    ),
     pveVersion: estate === "new" ? undefined : "9.0.10",
     agentVersion:
-      estate === "native" || estate === "new" ? undefined : "0.161.1",
+      estate === "native" || estate === "new" ? undefined : "0.161.2",
     nodeCount: nodes.length,
     onlineNodeCount: nodes.filter((record) => {
       return record.isUp;

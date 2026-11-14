@@ -191,7 +191,7 @@ describe("executePolicy and an archived on-call policy", () => {
     const { create } = stub(null);
 
     await expect(executeForIncident()).rejects.toThrow(
-      `On-Call Duty Policy with id ${POLICY_ID.toString()} not found`,
+      `The on-call policy ${POLICY_ID.toString()} no longer exists. It may have been deleted.`,
     );
     expect(create).not.toHaveBeenCalled();
   });

@@ -1417,6 +1417,38 @@ describe("ResponderReadinessCard", () => {
       expect(screen.queryByText("Ada Ready")).toBeNull();
     });
 
+    /*
+     * A verified method's chip names the method and draws its masked
+     * identifier the way it is written: a number reads +1 ••• ••• 4821 in
+     * every language (PhoneNumberText), an address as its letters run.
+     * Printed as it came, a Persian or Arabic chip drew a number
+     * "4821 ••• ••• 1+".
+     */
+    test("each method chip keeps its identifier's own direction", async () => {
+      respondWith(summaryJson([PARTIAL_USER]));
+
+      await renderPolicyCard();
+
+      await screen.findByText("Jane Partial");
+
+      const identifiers: Array<HTMLElement> = within(
+        cardRowFor("Jane Partial"),
+      ).getAllByTestId("readiness-method-identifier");
+
+      expect(
+        identifiers.map((identifier: HTMLElement): Array<string | null> => {
+          return [
+            identifier.tagName.toLowerCase(),
+            identifier.textContent,
+            identifier.getAttribute("dir"),
+          ];
+        }),
+      ).toEqual([
+        ["bdi", MASKED_EMAIL, "ltr"],
+        ["bdi", MASKED_PHONE, "ltr"],
+      ]);
+    });
+
     test("the amber row states that its pages still arrive", async () => {
       respondWith(summaryJson([PARTIAL_USER]));
 

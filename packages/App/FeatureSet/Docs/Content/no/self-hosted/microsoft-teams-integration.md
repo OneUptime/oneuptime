@@ -361,7 +361,7 @@ Gi **TeamsAppInstallation.ReadForTeam.All** (trinn 2), slik at OneUptime fortell
 
 Installasjon skjer per team. Å legge til OneUptime i ett team gjør ingenting for andre team, og det gjør heller ikke det å koble til integrasjonen: det gir *lesetilgang* til Graph i hele leietakeren, og derfor kan kanalvelgeren vise deg kanaler fra team der boten ikke kan poste. Fullfør **trinn 9** i hvert team der du vil ha varsler.
 
-### "Testregel" fungerer, men ekte varsler kommer aldri frem
+### "Test regel" fungerer, men ekte varsler kommer aldri frem
 
 Kontroller hvilke mål regelen faktisk har slått på. En regel tester bare det den er satt opp for: med **Opprett en kanal for hver hendelse** slått på oppretter testen en kanal og poster i den, noe som beviser at boten kan poste *i teamet der den kanalen ble opprettet*, og ingenting om andre team. **Prosjektinnstillinger > Varsler > Varsellogger** registrerer hver testsending, inkludert den nøyaktige feilen fra Microsoft når en mislykkes.
 

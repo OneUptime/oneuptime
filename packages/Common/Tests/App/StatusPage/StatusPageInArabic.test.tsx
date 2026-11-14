@@ -129,7 +129,7 @@ describe("a status page read in Arabic", () => {
       "نظرة عامة",
       "الحوادث",
       "الإعلانات",
-      "الأحداث المجدولة",
+      "الصيانة المجدولة",
       "اشتراك",
     ]) {
       expect([word, screen.queryAllByText(word).length > 0]).toEqual([
@@ -142,7 +142,7 @@ describe("a status page read in Arabic", () => {
       "Overview",
       "Incidents",
       "Announcements",
-      "Scheduled Events",
+      "Scheduled Maintenance",
       "Subscribe",
     ]) {
       expect(screen.queryByText(english)).toBeNull();

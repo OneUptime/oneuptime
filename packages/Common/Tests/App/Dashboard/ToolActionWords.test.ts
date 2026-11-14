@@ -266,13 +266,18 @@ describe("whether the line under the title names what the action's lists stand f
     expect(getToolActionLeavesOutLists(action())).toBe(true);
   });
 
-  test.each(
-    Object.entries(AI_ACTION_PLURAL_LINES).filter(
-      ([name]: [string, PluralTemplate]): boolean => {
-        return name !== "moreFiles";
-      },
-    ),
-  )(
+  /*
+   * The plural lines that are a code change's cautions: moreFiles counts a
+   * list and is none, and a setup plan's lines (#6829: how often a monitor
+   * is checked, from how many locations) belong to other actions.
+   */
+  const codeChangePluralLines: Array<[string, PluralTemplate]> = Object.entries(
+    AI_ACTION_PLURAL_LINES,
+  ).filter(([, plural]: [string, PluralTemplate]): boolean => {
+    return AI_ACTION_CODE_CHANGE_LINES.includes(plural.other);
+  });
+
+  test.each(codeChangePluralLines)(
     "a code change's line %s never stands for its files: Files: N stays",
     (_name: string, plural: PluralTemplate) => {
       expect(getToolActionLeavesOutLists(pullRequest([codeLine(plural)]))).toBe(
@@ -281,8 +286,32 @@ describe("whether the line under the title names what the action's lists stand f
     },
   );
 
+  test("every code change caution is checked above, and a setup plan's line stands for what it says, as any other action's does", () => {
+    expect(codeChangePluralLines).toHaveLength(
+      AI_ACTION_CODE_CHANGE_LINES.length,
+    );
+    expect(
+      getToolActionLeavesOutLists(
+        action({
+          toolName: "set_up_website_monitoring",
+          words: {
+            title: aiActionSentence(AI_ACTION_TITLES.setUpWebsiteMonitoring, {
+              address: "example.com",
+            }),
+            description: [
+              aiActionPluralSentence(
+                AI_ACTION_PLURAL_LINES.checkedFromLocations,
+                2,
+              ),
+            ],
+          },
+        }),
+      ),
+    ).toBe(true);
+  });
+
   test("every code change line is one of them, and none of them is any other line", () => {
-    expect(AI_ACTION_CODE_CHANGE_LINES).toHaveLength(8);
+    expect(AI_ACTION_CODE_CHANGE_LINES).toHaveLength(9);
     for (const template of AI_ACTION_CODE_CHANGE_LINES) {
       expect(
         AI_ACTION_PLURAL_SENTENCES.some((plural: PluralTemplate): boolean => {

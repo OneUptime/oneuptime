@@ -2,6 +2,9 @@
 
 Votre page de statut est l'écran OneUptime que regardent vos clients : elle devrait donc vous ressembler et se trouver sur votre propre domaine, comme `status.yourcompany.com`. Cette page parcourt la page **Image de marque** carte par carte, puis place la page de statut sur votre domaine : ajoutez le domaine, ajoutez ses enregistrements DNS, et le certificat SSL gratuit suit de lui-même.
 
+> [!TIP]
+> Vous débutez ? Suivez d'abord le guide : [Publier une page de statut](/docs/guides/status-page).
+
 :::cards
 - [La page Image de marque](#la-page-image-de-marque): Logo, thème, titre, favicon, liens, pied de page, couleurs et langues.
 - [HTML, CSS et JavaScript personnalisés](#html-css-et-javascript-personnalisés): Tout ce que les réglages intégrés ne couvrent pas.

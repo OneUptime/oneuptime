@@ -181,7 +181,7 @@ const OpenStackRunbookTemplatesCard: FunctionComponent = (): ReactElement => {
         "What to check when one of these happens, and which fix it may come to. Adding one gives your team a runbook of its own to change: nothing in it runs on its own.",
       )}
     >
-      <div className="px-4 pb-2" data-testid="openstack-runbook-templates">
+      <div data-testid="openstack-runbook-templates">
         {OPENSTACK_RUNBOOK_TEMPLATES.map(
           (template: OpenStackRunbookTemplate): ReactElement => {
             return <TemplateRow key={template.id} template={template} />;

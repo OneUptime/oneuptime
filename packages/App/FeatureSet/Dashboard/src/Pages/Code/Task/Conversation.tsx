@@ -25,6 +25,7 @@ import { getCodeTaskTrail } from "../../../Components/Code/CodeTaskTrail";
 import CodeTaskTurn, {
   CodeTaskTurnHost,
 } from "../../../Components/Code/CodeTaskTurn";
+import CodeTaskTurnsNotShown from "../../../Components/Code/CodeTaskTurnsNotShown";
 import CodeHostMark from "../../../Components/Code/CodeHostMark";
 import {
   getConversationGrowthKey,
@@ -33,7 +34,9 @@ import {
   mergeTurnProgress,
 } from "../../../Components/Code/CodeTaskLive";
 import useCodeTaskLive from "../../../Components/Code/UseCodeTaskLive";
-import useFollowLatest from "../../../Components/Code/UseFollowLatest";
+import useFollowLatest, {
+  goToPageEnd,
+} from "../../../Components/Code/UseFollowLatest";
 import {
   CodePullRequestCopy,
   getPullRequestCopy,
@@ -70,6 +73,7 @@ import React, {
   ReactElement,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -134,8 +138,15 @@ const CodeTaskConversation: FunctionComponent<
   const [isStopping, setIsStopping] = useState<boolean>(false);
   const [isRetrying, setIsRetrying] = useState<boolean>(false);
   const [isAskingAgain, setIsAskingAgain] = useState<boolean>(false);
-  const bottomRef: React.RefObject<HTMLDivElement> =
-    useRef<HTMLDivElement>(null);
+  /*
+   * A reply was just sent: the page goes to its end, where the reply is
+   * drawn, once the task is read again with it.
+   */
+  const isGoingToEndRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+  // Cancels the second look at the end (goToPageEnd), if the page goes first.
+  const cancelGoingToEndRef: React.MutableRefObject<(() => void) | null> =
+    useRef<(() => void) | null>(null);
   // The conversation's turns: its last item is the latest turn's reply.
   const turnsRef: React.RefObject<HTMLOListElement> =
     useRef<HTMLOListElement>(null);
@@ -240,6 +251,30 @@ const CodeTaskConversation: FunctionComponent<
     isWorking,
     refresh: refreshLive,
   });
+
+  /*
+   * The reply just sent, drawn at the end of the conversation: the page
+   * goes there before it is painted, from wherever the reader sent it - a
+   * long task's first turn is as near the reply box as its newest - and
+   * again on the next frame, once what lays out a moment later is in.
+   * Before useFollowLatest, which then finds the reader at the end,
+   * watching AI take up the reply.
+   */
+  useLayoutEffect(() => {
+    if (!data || !isGoingToEndRef.current) {
+      return;
+    }
+
+    isGoingToEndRef.current = false;
+    cancelGoingToEndRef.current?.();
+    cancelGoingToEndRef.current = goToPageEnd();
+  }, [data]);
+
+  useEffect(() => {
+    return (): void => {
+      cancelGoingToEndRef.current?.();
+    };
+  }, []);
 
   useFollowLatest({
     growthKey: data ? getConversationGrowthKey(data.turns) : "",
@@ -489,8 +524,8 @@ const CodeTaskConversation: FunctionComponent<
             message: reply.message,
             context: reply.context,
           });
+          isGoingToEndRef.current = true;
           await load();
-          bottomRef.current?.scrollIntoView?.({ block: "end" });
         }}
         footer={
           /*
@@ -664,8 +699,12 @@ const CodeTaskConversation: FunctionComponent<
           ) : (
             <></>
           )}
-          {/* How long AI has worked on it, over all its turns. */}
-          <CodeTaskWorkTime turns={turns} hasClock={true} />
+          {/* How long AI has worked on it, over all its turns - shown or not. */}
+          <CodeTaskWorkTime
+            turns={turns}
+            notShownMilliseconds={data.turnsNotShown?.workMilliseconds}
+            hasClock={true}
+          />
           {pullRequest &&
           (pullRequest.state === "merged" || pullRequest.state === "closed") ? (
             <span
@@ -723,46 +762,56 @@ const CodeTaskConversation: FunctionComponent<
       >
         {turns.map((turn: CodeTaskTurnJSON, index: number) => {
           return (
-            <CodeTaskTurn
-              key={turn.runId}
-              turn={turn}
-              isLatest={index === turns.length - 1}
-              origin={index === 0 ? data.task.origin : undefined}
-              repositorySettingsRoute={
-                /*
-                 * A slow queue points at the repository's Runner: its
-                 * settings open there, with More settings open.
-                 */
-                data.repository
-                  ? getRepositorySettingsRoute(
-                      data.repository.id,
-                      CodeRepositorySetting.Runner,
-                    )
-                  : undefined
-              }
-              onRetry={
-                canRetry
-                  ? () => {
-                      void retry();
-                    }
-                  : undefined
-              }
-              onRetryNow={
-                canRetryNow
-                  ? () => {
-                      void retry();
-                    }
-                  : undefined
-              }
-              isRetrying={isRetrying}
-              repositoryHost={repositoryHost}
-              logRoute={new Route(
-                RouteUtil.populateRouteParams(
-                  RouteMap[PageMap.CODE_TASK_VIEW_LOG] as Route,
-                  { modelId: new ObjectID(taskId) },
-                ).toString(),
-              ).addQueryParams({ turn: turn.runId })}
-            />
+            <React.Fragment key={turn.runId}>
+              <CodeTaskTurn
+                turn={turn}
+                isLatest={index === turns.length - 1}
+                origin={index === 0 ? data.task.origin : undefined}
+                repositorySettingsRoute={
+                  /*
+                   * A slow queue points at the repository's Runner: its
+                   * settings open there, with More settings open.
+                   */
+                  data.repository
+                    ? getRepositorySettingsRoute(
+                        data.repository.id,
+                        CodeRepositorySetting.Runner,
+                      )
+                    : undefined
+                }
+                onRetry={
+                  canRetry
+                    ? () => {
+                        void retry();
+                      }
+                    : undefined
+                }
+                onRetryNow={
+                  canRetryNow
+                    ? () => {
+                        void retry();
+                      }
+                    : undefined
+                }
+                isRetrying={isRetrying}
+                repositoryHost={repositoryHost}
+                logRoute={new Route(
+                  RouteUtil.populateRouteParams(
+                    RouteMap[PageMap.CODE_TASK_VIEW_LOG] as Route,
+                    { modelId: new ObjectID(taskId) },
+                  ).toString(),
+                ).addQueryParams({ turn: turn.runId })}
+              />
+              {/*
+               * A long task: its first turn, then how many turns are not
+               * shown, then its newest.
+               */}
+              {index === 0 && data.turnsNotShown ? (
+                <CodeTaskTurnsNotShown turnsNotShown={data.turnsNotShown} />
+              ) : (
+                <></>
+              )}
+            </React.Fragment>
           );
         })}
       </ol>
@@ -772,7 +821,6 @@ const CodeTaskConversation: FunctionComponent<
        * conversation scrolls - its ground is the page's, faded above it.
        */}
       <div
-        ref={bottomRef}
         data-testid="code-task-footer"
         className="sticky bottom-0 z-10 mt-8 pb-4"
         style={STICKY_FOOTER_STYLE}

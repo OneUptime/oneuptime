@@ -25,6 +25,7 @@ import {
   buildTelemetrySampleStatement,
   foldAttributeKey,
   fromRawJsonValue,
+  getTelemetrySource,
   isConversationContentKey,
   isExcludedLocation,
   RESTRICTED_CONVERSATIONS_WARNING,
@@ -849,6 +850,44 @@ describe("when a read fails", () => {
 
     expect(logs.serviceName).toBeUndefined();
     expect(logs.result.warnings.join(" ")).toContain("No service with this ID");
+  });
+});
+
+/*
+ * The services the sources read through import, through their hooks, code
+ * that imports the scanner (SpanService -> ResourceEntityFilter -> ... ->
+ * DataSecurityRunner -> the scanner), so the scanner can load while one of
+ * them is still loading: the App loads SpanService first since #6894. A
+ * service the scanner took as it loaded was undefined then, and no span or
+ * AI call was ever read.
+ */
+describe("loading", () => {
+  test("with SpanService loaded first, every source still reads through its service", () => {
+    jest.isolateModules((): void => {
+      const spans: unknown = (
+        jest.requireActual("../../../../../Server/Services/SpanService") as {
+          default: unknown;
+        }
+      ).default;
+      const scanner: { getTelemetrySource: typeof getTelemetrySource } =
+        jest.requireActual(
+          "../../../../../Server/Utils/DataSecurity/Telemetry/TelemetryDataScanner",
+        ) as { getTelemetrySource: typeof getTelemetrySource };
+
+      expect(spans).toBeDefined();
+
+      for (const source of Object.values(TelemetrySampleSource)) {
+        expect(scanner.getTelemetrySource(source).runner).toBeDefined();
+      }
+
+      for (const source of [
+        TelemetrySampleSource.Traces,
+        TelemetrySampleSource.AiConversations,
+        TelemetrySampleSource.RumSpans,
+      ]) {
+        expect(scanner.getTelemetrySource(source).runner).toBe(spans);
+      }
+    });
   });
 });
 

@@ -2,15 +2,61 @@
 
 OneUptime er en open source-platform til observability. Den tjekker, at dine websteder, API'er og servere virker, indsamler de logs, metrikker og traces, dine applikationer sender, tilkalder den, der har vagt, når noget går ned, og holder dine kunder orienteret på en statusside. Det hele sker i ét produkt: værktøjet, der opdager et problem, er det samme, der tilkalder dit team. Brug OneUptime Cloud, eller kør OneUptime på dine egne servere.
 
-Start her:
+## Hvad vil du gøre?
+
+:::cards
+- [Få besked, når dit websted eller API går ned](/docs/guides/website-down): Tjek det fra sonder over hele verden, og få en e-mail eller bliv tilkaldt, når det fejler.
+- [Bliv tilkaldt via opkald, SMS eller push, og eskalér](/docs/guides/paging): Tilkald den, der har vagt, og den næste, hvis ingen svarer.
+- [Udgiv en statusside på dit eget domæne](/docs/guides/status-page): Fortæl dine kunder, hvad der sker, på en adresse, der er din egen.
+- [Send logs, metrikker og traces](/docs/telemetry/open-telemetry): Send dine applikationers telemetri med OpenTelemetry, søg i den, og få alarmer på den.
+- [Overvåg en server](/docs/telemetry/hosts): Tilføj en vært med én kommando, og hold øje med dens CPU, hukommelse og diske.
+- [Overvåg en Kubernetes-klynge](/docs/telemetry/kubernetes-agent): Installér agenten med Helm, og hold øje med hver node og pod.
+- [Få dit team med](/docs/permissions/index): Invitér personer, saml dem i teams, og bestem, hvem der må hvad.
+- [Før en hændelse fra første tilkald til postmortem-analyse](/docs/incidents/index): Erklær den, arbejd på den med dit team, hold kunderne orienteret, og lær af den.
+:::
+
+## Ny i OneUptime?
 
 :::cards
 - [Hurtigstart](/docs/introduction/quickstart): Overvåg et websted, bliv tilkaldt når det går ned, og udgiv en statusside.
 - [Grundbegreber](/docs/introduction/core-concepts): De få idéer, som alt andet bygger på, og hvordan de hænger sammen.
 - [Ordliste](/docs/introduction/glossary): Hvert ord, OneUptime bruger, forklaret med en sætning eller to og med dets andre navne.
 - [Hvilken skal jeg bruge?](/docs/introduction/which-one): Hændelse eller advarsel, arbejdsgang eller runbook, og de andre ting, der ligner hinanden, side om side.
-- [Startside og genveje](/docs/introduction/home): Find rundt i dashboardet, og de taster, der sparer dig for klik.
-- [Din konto](/docs/introduction/your-account): Din profil, din adgangskode, adgangsnøgler og totrinsgodkendelse.
+:::
+
+Kører du OneUptime på dine egne servere? Følg først [Selv-hosting-guide](/docs/installation/self-hosting-guide): den fører dig fra en tom server til en, der sender e-mails og tilkalder folk.
+
+## Hvis du kommer fra et andet værktøj
+
+**Projektindstillinger → Avanceret → Importér fra et andet værktøj** læser din opsætning i et andet værktøj, med en API-nøgle eller, for Uptime Kuma, en fil. Den viser dig, hvad den fandt, og opretter det, du sætter flueben ved. Intet ændres i det andet værktøj, og en ny import opretter aldrig noget to gange.
+
+:::details De elleve værktøjer, importen læser fra
+| Du kommer fra | Hvad OneUptime læser |
+| --- | --- |
+| [Opsgenie](/docs/moving-to-oneuptime/opsgenie) | Brugere, teams, planer, eskaleringer og tjenester |
+| [PagerDuty](/docs/moving-to-oneuptime/pagerduty) | Brugere, teams, planer, eskaleringspolitikker og tjenester |
+| [incident.io](/docs/moving-to-oneuptime/incident-io) | Brugere, teams, planer, eskaleringsstier, tjenester og hændelsesindstillinger |
+| [Splunk On-Call](/docs/moving-to-oneuptime/splunk-on-call) | Brugere, teams, rotationer og eskaleringspolitikker |
+| [Grafana OnCall](/docs/moving-to-oneuptime/grafana-oncall) | Brugere, teams, planer og eskaleringskæder |
+| [UptimeRobot](/docs/moving-to-oneuptime/uptimerobot) | Monitorer og offentlige statussider |
+| [Atlassian Statuspage](/docs/moving-to-oneuptime/atlassian-statuspage) | Sider, deres komponenter og grupper samt e-mailabonnenter |
+| [Better Stack](/docs/moving-to-oneuptime/better-stack) | Monitorer, heartbeats, statussider og e-mailabonnenter |
+| [Pingdom](/docs/moving-to-oneuptime/pingdom) | Oppetidstjek |
+| [StatusCake](/docs/moving-to-oneuptime/statuscake) | Oppetids-, SSL- og heartbeat-tjek |
+| [Uptime Kuma](/docs/moving-to-oneuptime/uptime-kuma) | Monitorer, fra en sikkerhedskopi eller metriksiden |
+:::
+
+:::details Hvad OneUptime erstatter
+| Funktion | Hvad den gør | Erstatter værktøjer som |
+| --- | --- | --- |
+| Oppetidsovervågning | Tjekker tilgængelighed og svartid fra steder over hele verden. | Pingdom, UptimeRobot |
+| Statussider | Viser kunderne den aktuelle status og historikken for dine tjenester. | Atlassian Statuspage |
+| Hændelsesstyring | Fører hændelser fra start til slut, med noter, ejere og en tidslinje. | incident.io |
+| Vagter og advarsler | Planlægger vagter og eskalerer, indtil nogen reagerer. | PagerDuty, Opsgenie |
+| Loghåndtering | Indsamler, søger i og visualiserer logs. | Loggly |
+| Arbejdsgange | Automatiserer handlinger og forbinder OneUptime med de værktøjer, du allerede bruger. | Zapier |
+| Application performance monitoring | Følger traces, svartider, gennemløb og fejlrater. | New Relic, Datadog |
+| Fejlsporing | Grupperer undtagelser med stakspor og kontekst. | Sentry |
 :::
 
 ## Sådan hænger OneUptime sammen
@@ -35,19 +81,18 @@ flowchart TB
 
 Dokumentationen er opbygget som sidepanelet, i ni afsnit. Vælg den del, du har brug for.
 
-### Overvågning
-
+:::details Overvågning
 :::cards
 - [Monitorer](/docs/monitor/create-monitor): Tjek websteder, API'er, porte, DNS, NTP-servere, certifikater og meget mere fra sonder over hele verden.
-- [Infrastrukturmonitorer](/docs/monitor/server-monitor): Hold øje med servere, Kubernetes, Docker, VMware, netværksudstyr og lagring.
+- [Infrastrukturmonitorer](/docs/monitor/host-monitor): Hold øje med servere, Kubernetes, Docker, VMware, netværksudstyr og lagring.
 - [Telemetrimonitorer](/docs/monitor/logs-monitor): Få advarsler om de logs, metrikker, traces, undtagelser og profiler, du sender.
 - [SLO'er](/docs/slo/introduction): Følg pålidelighedsmål, fejlbudgetter og forbrugsrater.
 - [Sonder](/docs/probe/custom-probe): Kør tjek inde fra dit eget netværk.
 - [Når OneUptime ikke modtager data](/docs/monitor/when-oneuptime-is-not-receiving): Hvorfor et hul hos OneUptime aldrig tæller som din nedetid.
 :::
+:::
 
-### Hændelseshåndtering
-
+:::details Hændelseshåndtering
 :::cards
 - [Hændelser](/docs/incidents/index): Erklær, koordiner og løs hændelser med en komplet tidslinje.
 - [Advarsler](/docs/alerts/index): Undersøg problemer, før dine brugere opdager dem, og saml støjen i episoder.
@@ -57,9 +102,9 @@ Dokumentationen er opbygget som sidepanelet, i ni afsnit. Vælg den del, du har 
 - [Planlagt vedligeholdelse](/docs/scheduled-maintenance/index): Annoncér planlagt arbejde, og sæt de monitorer, det berører, på pause.
 - [Workspace-forbindelser](/docs/workspace-connections/slack): Arbejd med hændelser fra Slack og Microsoft Teams.
 :::
+:::
 
-### Observability
-
+:::details Observability
 :::cards
 - [Telemetri](/docs/telemetry/open-telemetry): Send logs, metrikker og traces med OpenTelemetry, og søg i dem.
 - [Infrastrukturagenter](/docs/telemetry/hosts): Tilføj en vært med én kommando, og installér agenterne til Kubernetes, Docker, Proxmox, VMware og meget mere.
@@ -73,33 +118,33 @@ Dokumentationen er opbygget som sidepanelet, i ni afsnit. Vælg den del, du har 
 - [Dashboards](/docs/dashboards/index): Byg dashboards ud fra dine metrikker, logs og monitorer.
 - [Inventar](/docs/inventory/overview): Se hver tjeneste, vært og enhed, OneUptime kender.
 :::
+:::
 
-### Automatisering & AI
-
+:::details Automatisering & AI
 :::cards
 - [Runbooks](/docs/runbooks/index): Gør beredskabsprocedurer til trin, dit team kan køre.
 - [Formularer](/docs/forms/index): Lad alle melde et problem via en formular, der åbner en hændelse.
 - [Arbejdsgange](/docs/workflows/index): Automatisér handlinger, når der sker noget i OneUptime.
 - [AI](/docs/ai/ai-sre): Lad OneUptime AI undersøge hændelser og advarsler, og spørg den om dine systemer.
 :::
+:::
 
-### Integrationer
-
+:::details Integrationer
 :::cards
 - [Integrationer](/docs/integrations/index): Forbind Jira, ServiceNow, Grafana, Datadog, Huntress, SIEM-værktøjer, Discord, Telegram, IRC og meget mere.
 :::
+:::
 
-### Udviklere
-
+:::details Udviklere
 :::cards
 - [API-reference](/docs/api-reference/api-reference): Automatisér OneUptime med dets REST API.
 - [CLI](/docs/cli/index): Administrér OneUptime fra din terminal og din CI.
 - [Terraform-udbyder](/docs/terraform/index): Administrér monitorer, statussider og vagter som kode.
 - [Crossplane-udbyder](/docs/crossplane/index): Administrér dit projekt fra Kubernetes med Crossplane.
 :::
+:::
 
-### Administration
-
+:::details Administration
 :::cards
 - [Brugere og tilladelser](/docs/permissions/index): Invitér personer, organisér teams og styr, hvad de må.
 - [Identitet](/docs/identity/sso): Log ind med SAML- eller OIDC-single sign-on, og klargør brugere med SCIM.
@@ -107,46 +152,14 @@ Dokumentationen er opbygget som sidepanelet, i ni afsnit. Vælg den del, du har 
 - [E-mails](/docs/emails/smtp): Send OneUptimes e-mails via din egen SMTP-server.
 - [Mobil- og desktopapps](/docs/mobile-desktop-apps/index): Bliv tilkaldt og reager på iOS, Android, macOS, Windows og Linux.
 :::
+:::
 
-### Selv-hosting
-
+:::details Selv-hosting
 :::cards
 - [Installation](/docs/installation/self-hosting-guide): Installér, dimensionér og opgradér din egen OneUptime.
 - [Selvhostet opsætning](/docs/self-hosted/architecture): Arkitektur, integrationer og Enterprise-funktioner til din egen installation.
 :::
-
-## Hvis du kommer fra et andet værktøj
-
-### Tag din opsætning med
-
-**Projektindstillinger → Avanceret → Importér fra et andet værktøj** læser din opsætning i et andet værktøj, med en API-nøgle eller, for Uptime Kuma, en fil. Den viser dig, hvad den fandt, og opretter det, du sætter flueben ved. Intet ændres i det andet værktøj, og en ny import opretter aldrig noget to gange.
-
-| Du kommer fra | Hvad OneUptime læser |
-| --- | --- |
-| [Opsgenie](/docs/moving-to-oneuptime/opsgenie) | Brugere, teams, planer, eskaleringer og tjenester |
-| [PagerDuty](/docs/moving-to-oneuptime/pagerduty) | Brugere, teams, planer, eskaleringspolitikker og tjenester |
-| [incident.io](/docs/moving-to-oneuptime/incident-io) | Brugere, teams, planer, eskaleringsstier, tjenester og hændelsesindstillinger |
-| [Splunk On-Call](/docs/moving-to-oneuptime/splunk-on-call) | Brugere, teams, rotationer og eskaleringspolitikker |
-| [Grafana OnCall](/docs/moving-to-oneuptime/grafana-oncall) | Brugere, teams, planer og eskaleringskæder |
-| [UptimeRobot](/docs/moving-to-oneuptime/uptimerobot) | Monitorer og offentlige statussider |
-| [Atlassian Statuspage](/docs/moving-to-oneuptime/atlassian-statuspage) | Sider, deres komponenter og grupper samt e-mailabonnenter |
-| [Better Stack](/docs/moving-to-oneuptime/better-stack) | Monitorer, heartbeats, statussider og e-mailabonnenter |
-| [Pingdom](/docs/moving-to-oneuptime/pingdom) | Oppetidstjek |
-| [StatusCake](/docs/moving-to-oneuptime/statuscake) | Oppetids-, SSL- og heartbeat-tjek |
-| [Uptime Kuma](/docs/moving-to-oneuptime/uptime-kuma) | Monitorer, fra en sikkerhedskopi eller metriksiden |
-
-### Hvad OneUptime erstatter
-
-| Funktion | Hvad den gør | Erstatter værktøjer som |
-| --- | --- | --- |
-| Oppetidsovervågning | Tjekker tilgængelighed og svartid fra steder over hele verden. | Pingdom, UptimeRobot |
-| Statussider | Viser kunderne den aktuelle status og historikken for dine tjenester. | Atlassian Statuspage |
-| Hændelsesstyring | Fører hændelser fra start til slut, med noter, ejere og en tidslinje. | incident.io |
-| Vagter og advarsler | Planlægger vagter og eskalerer, indtil nogen reagerer. | PagerDuty, Opsgenie |
-| Loghåndtering | Indsamler, søger i og visualiserer logs. | Loggly |
-| Arbejdsgange | Automatiserer handlinger og forbinder OneUptime med de værktøjer, du allerede bruger. | Zapier |
-| Application performance monitoring | Følger traces, svartider, gennemløb og fejlrater. | New Relic, Datadog |
-| Fejlsporing | Grupperer undtagelser med stakspor og kontekst. | Sentry |
+:::
 
 ## Næste trin
 

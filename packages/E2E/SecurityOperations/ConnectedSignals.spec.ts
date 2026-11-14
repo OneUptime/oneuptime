@@ -1859,10 +1859,16 @@ test.describe("In your logs and traces", () => {
     const error: Locator = page.getByTestId("security-telemetry-error");
     await expect(error).toBeVisible({ timeout: 30000 });
     await expect(page.getByTestId("security-connected-error")).toHaveCount(0);
-    // Said as a signal that could not be searched is, then why, then Try again.
+    /*
+     * Said as a signal that could not be searched is, then why, then Try
+     * again. The fixture's answer says nothing ("Server Error"), so why is
+     * that the server could not explain it (#6836) - said once: the line
+     * already says the search did not finish, and Try again is its button.
+     */
     await expect(error).toHaveText(
-      "Logs and Traces could not be searched just now. Server Error Try again",
+      "Logs and Traces could not be searched just now. The server ran into a problem it could not explain. Try again",
     );
+    await expect(error).not.toContainText("Server Error");
     await expect(telemetry(page).getByRole("heading", { level: 3 })).toHaveText(
       "In your logs and traces",
     );

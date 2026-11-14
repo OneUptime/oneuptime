@@ -18,7 +18,7 @@ Andate in **Monitor** e fate clic su **Crea monitor**. Il modulo si apre sul pri
 
 La prima domanda è il **Tipo di monitor**: cosa volete monitorare?
 
-- I sei tipi che si creano più spesso vengono per primi: **Sito web**, **API**, **Ping**, **Porta**, **SSL Certificate** e **Richiesta in arrivo**, per gli heartbeat di cron job e webhook.
+- I sei tipi che si creano più spesso vengono per primi: **Sito web**, **API**, **Ping**, **Porta**, **Certificato SSL** e **Richiesta in arrivo**, per gli heartbeat di cron job e webhook.
 - **Altri tipi di monitor** elenca tutti gli altri tipi sotto la loro categoria, come **Infrastruttura** (Kubernetes, Docker, host) e **Telemetria** (registri, metriche, tracce). **Manuale**, un monitor di cui impostate voi lo stato, e **Stato della sonda**, che vi avvisa quando una sonda si disconnette, si trovano sotto **Altro**.
 - Oppure digitate nella casella di ricerca. Conosce le parole che già usate, come `k8s`, `postgres`, `heartbeat` o `tls`, e **Enter** sceglie il primo risultato.
 
@@ -44,7 +44,7 @@ Per un monitor controllato dalle sonde, **Testa il monitor** esegue il controllo
 
 ### Rivedere i criteri
 
-Sotto, i **Criteri del monitor** decidono quando il monitor cambia stato, dichiara un incidente o crea un avviso. Un nuovo monitor parte con criteri adatti alla maggior parte dei monitor, ciascuno ripiegato su una riga che dice cosa controlla e cosa fa. Un nuovo monitor di sito web, per esempio, viene segnato offline e dichiara un incidente quando il sito non risponde o risponde con un codice di stato di errore.
+Sotto, i **Criteri** decidono quando il monitor cambia stato, dichiara un incidente o crea un avviso. Un nuovo monitor parte con criteri adatti alla maggior parte dei monitor, ciascuno ripiegato su una riga che dice cosa controlla e cosa fa. Un nuovo monitor di sito web, per esempio, viene segnato offline e dichiara un incidente quando il sito non risponde o risponde con un codice di stato di errore.
 
 Fate clic su un criterio per aprirlo e modificarlo. **Aggiungi criteri** ne aggiunge uno, aperto e pronto da compilare. Per cambiare l'ordine, trascinate un criterio dalla maniglia alla sua sinistra.
 
@@ -72,11 +72,11 @@ flowchart TB
     end
 ```
 
-Gli incidenti e gli avvisi impostati per risolversi automaticamente, come quelli dei criteri predefiniti, si risolvono da soli appena il loro criterio smette di corrispondere. Un monitor controllato da più sonde cambia solo quando le sue sonde concordano: per impostazione predefinita, ogni sonda attiva e connessa deve arrivare allo stesso risultato. Per richiederne meno, impostate **Accordo tra sonde** nella pagina **Configurazione → Sonde e intervallo** del monitor. Per tutto ciò che un criterio può contenere e gli stati che un monitor può mostrare, vedere [Criteri e stati dei monitor](/docs/monitor/criteria-and-statuses).
+Gli incidenti e gli avvisi impostati per risolversi automaticamente, come quelli dei criteri predefiniti, si risolvono da soli appena il loro criterio smette di corrispondere. Un monitor controllato da più sonde cambia solo quando le sue sonde concordano: per impostazione predefinita, ogni sonda attiva e connessa deve arrivare allo stesso risultato. Per richiederne meno, impostate **Accordo tra sonde** nella pagina **Configurazione → Sonde e intervallo** del monitor. Per tutto ciò che un criterio può contenere e gli stati che un monitor può mostrare, vedere [Criteri e stati](/docs/monitor/criteria-and-statuses).
 
 ## Sonde e intervallo
 
-I monitor controllati dalle sonde terminano con questo passaggio: Sito web, API, Ping, IP, Porta, SSL Certificate, DNS, DNSSEC, NTP, Dominio, SQL Query, Database Health, Synthetic Monitor, Custom JavaScript Code e External Status Page. Le **Sonde** sono le macchine che eseguono i controlli, e le sonde predefinite del vostro progetto partono selezionate. L'**Intervallo di monitoraggio** parte da **Ogni 5 minuti**.
+I monitor controllati dalle sonde terminano con questo passaggio: Sito web, API, Ping, IP, Porta, Certificato SSL, DNS, DNSSEC, NTP, Dominio, SQL Query, Database Health, Synthetic Monitor, Custom JavaScript Code e External Status Page. Le **Sonde** sono le macchine che eseguono i controlli, e le sonde predefinite del vostro progetto partono selezionate. L'**Intervallo di monitoraggio** parte da **Ogni 5 minuti**.
 
 :::steps
 ### Scegliere le sonde
@@ -85,7 +85,7 @@ Mantenete le **Sonde** selezionate o sceglietene altre. Un monitor senza sonde n
 
 ### Scegliere la frequenza dei controlli
 
-Scegliete un **Intervallo di monitoraggio**, da **Ogni minuto** a **Ogni settimana**. Ai monitor Synthetic Monitor, Custom JavaScript Code e SSL Certificate vengono offerti intervalli di 5 minuti o più.
+Scegliete un **Intervallo di monitoraggio**, da **Ogni minuto** a **Ogni settimana**. Ai monitor Synthetic Monitor, Custom JavaScript Code e Certificato SSL vengono offerti intervalli di 5 minuti o più.
 
 ### Creare il monitor
 
@@ -103,7 +103,7 @@ Ogni tipo di monitor ha una propria pagina con le sue impostazioni, i suoi crite
 :::cards
 - [Monitor sito web](/docs/monitor/website-monitor): Controllare che una pagina si carichi, e cosa risponde.
 - [Monitor API](/docs/monitor/api-monitor): Chiamare un endpoint con un metodo, intestazioni e un corpo.
-- [Criteri e stati dei monitor](/docs/monitor/criteria-and-statuses): Cosa imposta lo stato di ogni monitor.
+- [Criteri e stati](/docs/monitor/criteria-and-statuses): Cosa imposta lo stato di ogni monitor.
 - [Modelli di monitor](/docs/monitor/monitor-templates): Creare molti monitor da una configurazione e mantenerli allineati.
 - [Gruppi di monitor](/docs/monitor/monitor-groups): Riunire più monitor in un unico stato.
 - [Incidenti](/docs/incidents/index): Cosa succede dopo che un monitor dichiara un incidente.

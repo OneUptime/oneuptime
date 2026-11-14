@@ -97,6 +97,7 @@ import {
 } from "../../Types/StatusPage/StatusPageArchive";
 import { STATUS_PAGE_OF_BLOCKED_PROJECT_SENDS_NOTHING_MESSAGE } from "../../Types/StatusPage/StatusPageProjectBlock";
 import BlockedProjectStatusPages from "../Utils/StatusPage/BlockedProjectStatusPages";
+import SampleProjectStatusPages from "../Utils/StatusPage/SampleProjectStatusPages";
 import MasterPasswordRequiredException from "../../Types/Exception/MasterPasswordRequiredException";
 import {
   MASTER_PASSWORD_COOKIE_IDENTIFIER,
@@ -257,6 +258,10 @@ const applyReportScheduleWrite: (
  * incidents to count, and whether the page only shows incidents limited to
  * it (IncidentStatusPageScope decides from that which incidents count).
  */
+// A status page asked for that is not there any more (#6836).
+export const STATUS_PAGE_GONE_MESSAGE: string =
+  "This status page no longer exists. It may have been deleted.";
+
 export const INCIDENT_COUNT_STATUS_PAGE_SELECT: Select<StatusPage> = {
   _id: true,
   projectId: true,
@@ -606,7 +611,7 @@ export class Service extends ProjectReferencesService<StatusPage> {
     });
 
     if (!createBy.data.projectId) {
-      throw new BadDataException("projectId is required");
+      throw new BadDataException("The status page has no project.");
     }
 
     // if the project is on the free plan, then only allow 1 status page.
@@ -980,7 +985,7 @@ export class Service extends ProjectReferencesService<StatusPage> {
   @CaptureSpan()
   public async findOwners(statusPageId: ObjectID): Promise<Array<User>> {
     if (!statusPageId) {
-      throw new BadDataException("statusPageId is required");
+      throw new BadDataException("No status page was named.");
     }
 
     const ownerUsers: Array<StatusPageOwnerUser> =
@@ -1100,13 +1105,13 @@ export class Service extends ProjectReferencesService<StatusPage> {
   ): Promise<URL> {
     if (!projectId) {
       throw new BadDataException(
-        "projectId is required to build status page dashboard link",
+        "A link to a status page in the Dashboard needs its project.",
       );
     }
 
     if (!statusPageId) {
       throw new BadDataException(
-        "statusPageId is required to build status page dashboard link",
+        "A link to a status page in the Dashboard needs the status page.",
       );
     }
 
@@ -1163,6 +1168,33 @@ export class Service extends ProjectReferencesService<StatusPage> {
           hasReadAccess: false,
           error: new NotFoundException(STATUS_PAGE_NOT_FOUND_MESSAGE),
         };
+      }
+
+      /*
+       * A sample project's page (issue #6808) is never public: a signed-in
+       * member of the sample reads it, from the Dashboard's link, without a
+       * status page sign-in, and nobody else reads it at all, whatever its
+       * own switches say (SampleProjectStatusPages).
+       */
+      if (statusPage) {
+        const sampleReadAccess: boolean | null =
+          await SampleProjectStatusPages.getReadAccess({
+            req: req,
+            statusPageId: statusPageId,
+          });
+
+        if (sampleReadAccess === true) {
+          return {
+            hasReadAccess: true,
+          };
+        }
+
+        if (sampleReadAccess === false) {
+          return {
+            hasReadAccess: false,
+            error: new NotFoundException(STATUS_PAGE_NOT_FOUND_MESSAGE),
+          };
+        }
       }
 
       if (statusPage?.ipWhitelist && statusPage.ipWhitelist.length > 0) {
@@ -2044,13 +2076,13 @@ export class Service extends ProjectReferencesService<StatusPage> {
         throw new BadDataException(STATUS_PAGE_ARCHIVED_SENDS_NOTHING_MESSAGE);
       }
 
-      throw new BadDataException("Status page not found");
+      throw new BadDataException(STATUS_PAGE_GONE_MESSAGE);
     }
 
     const statuspage: StatusPage = statusPages[0]!;
 
     if (!statuspage.id) {
-      throw new BadDataException("Status page not found");
+      throw new BadDataException(STATUS_PAGE_GONE_MESSAGE);
     }
 
     const statusPageURL: string = await this.getStatusPageURL(statuspage.id);
@@ -2326,7 +2358,7 @@ export class Service extends ProjectReferencesService<StatusPage> {
     });
 
     if (!statusPage) {
-      throw new BadDataException("Status page not found");
+      throw new BadDataException(STATUS_PAGE_GONE_MESSAGE);
     }
 
     const statusPageResources: StatusPageResource[] =

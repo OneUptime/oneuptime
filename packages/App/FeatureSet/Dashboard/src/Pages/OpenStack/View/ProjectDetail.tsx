@@ -411,7 +411,7 @@ const OpenStackCloudProjectDetail: FunctionComponent<
       >
         <ul
           data-testid="openstack-project-runs"
-          className="flex flex-wrap gap-x-6 gap-y-2 px-4 py-3 text-sm"
+          className="flex flex-wrap gap-x-6 gap-y-2 text-sm"
         >
           {WHAT_IT_RUNS.map(
             (thing: (typeof WHAT_IT_RUNS)[number]): ReactElement => {

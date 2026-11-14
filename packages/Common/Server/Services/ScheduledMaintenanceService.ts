@@ -58,6 +58,7 @@ import ScheduledMaintenanceStateTimeline from "../../Models/DatabaseModels/Sched
 import User from "../../Models/DatabaseModels/User";
 import Recurring from "../../Types/Events/Recurring";
 import OneUptimeDate from "../../Types/Date";
+import { getReminderIntervalInMinutes } from "../../Types/Reminder/ReminderInterval";
 import UpdateBy from "../Types/Database/UpdateBy";
 import Dictionary from "../../Types/Dictionary";
 import EmailTemplateType from "../../Types/Email/EmailTemplateType";
@@ -963,7 +964,7 @@ ${SubscriberMessageText.chatLinks(translator, { statusPageUrl: statusPageURL, un
       );
 
       if (!scheduledMaintenance) {
-        throw new BadDataException("Scheduled Maintenance Event not found");
+        throw new BadDataException("Maintenance event not found");
       }
 
       const startsAt: Date =
@@ -1728,7 +1729,7 @@ ${SubscriberMessageText.chatLinks(translator, { statusPageUrl: statusPageURL, un
 
       await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
         projectId: projectId,
-        subject: "scheduled maintenance event",
+        subject: "maintenance event",
         references: referencesInProject,
       });
     }
@@ -1915,6 +1916,21 @@ ${SubscriberMessageText.chatLinks(translator, { statusPageUrl: statusPageURL, un
     return recurringDate;
   }
 
+  /*
+   * The next scheduled maintenance number of this project, with the
+   * project's prefix for it: the one way an event is numbered. A create
+   * takes it in onBeforeCreate; the sample project, which writes its event
+   * without hooks, takes it here (RecordNumbersTakenInOnePlaceGuard).
+   */
+  @CaptureSpan()
+  public async takeNextScheduledMaintenanceNumber(
+    projectId: ObjectID,
+  ): Promise<{ counter: number; prefix: string | undefined }> {
+    return await ProjectService.incrementAndGetScheduledMaintenanceCounter(
+      projectId,
+    );
+  }
+
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
@@ -1998,7 +2014,7 @@ ${SubscriberMessageText.chatLinks(translator, { statusPageUrl: statusPageURL, un
      */
     await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
       projectId: projectId,
-      subject: "scheduled maintenance event",
+      subject: "maintenance event",
       references: [
         ...getWrittenRelationReferences({
           payload: createBy.data,
@@ -2017,10 +2033,7 @@ ${SubscriberMessageText.chatLinks(translator, { statusPageUrl: statusPageURL, un
     const scheduledMaintenanceCounterResult: {
       counter: number;
       prefix: string | undefined;
-    } =
-      await ProjectService.incrementAndGetScheduledMaintenanceCounter(
-        projectId,
-      );
+    } = await this.takeNextScheduledMaintenanceNumber(projectId);
 
     createBy.data.scheduledMaintenanceNumber =
       scheduledMaintenanceCounterResult.counter;
@@ -2127,9 +2140,14 @@ ${SubscriberMessageText.chatLinks(translator, { statusPageUrl: statusPageURL, un
           }),
         });
 
+      // A rule with no interval a reminder can follow reminds nobody.
+      const intervalInMinutes: number | null = getReminderIntervalInMinutes(
+        matchingRule?.reminderIntervalInMinutes,
+      );
+
       if (
         matchingRule &&
-        matchingRule.reminderIntervalInMinutes &&
+        intervalInMinutes !== null &&
         !(await this.isScheduledMaintenanceCompleted({
           scheduledMaintenanceId: data.scheduledMaintenanceId,
         }))
@@ -2151,7 +2169,7 @@ ${SubscriberMessageText.chatLinks(translator, { statusPageUrl: statusPageURL, un
 
         nextReminderNotificationAt = OneUptimeDate.addRemoveMinutes(
           referenceDate,
-          matchingRule.reminderIntervalInMinutes,
+          intervalInMinutes,
         );
 
         const startsAtBefore: Date | null | undefined =

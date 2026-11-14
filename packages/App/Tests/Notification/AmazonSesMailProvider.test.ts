@@ -9,23 +9,30 @@ import {
   test,
 } from "@jest/globals";
 import AmazonSesMailProvider, {
+  AMAZON_SES_CREDENTIAL_REFUSAL_CODES,
   AMAZON_SES_SEND_EMAIL_PATH,
   AMAZON_SES_SIGNING_SERVICE,
   AmazonSesSendEmailRequest,
 } from "../../FeatureSet/Notification/Services/MailProviders/AmazonSesMailProvider";
-import {
+import HttpMailApi, {
   MailApiAnswer,
   MailApiSendException,
 } from "../../FeatureSet/Notification/Services/MailProviders/HttpMailApi";
 import Email from "Common/Types/Email";
+import AmazonSesAuthenticationType from "Common/Types/Email/AmazonSesAuthenticationType";
 import EmailMessage from "Common/Types/Email/EmailMessage";
 import EmailServer from "Common/Types/Email/EmailServer";
 import MailTransportType from "Common/Types/Email/MailTransportType";
 import ObjectID from "Common/Types/ObjectID";
+import AwsDefaultCredentialChain, {
+  AwsChainHttpRequest,
+  AwsChainHttpResponse,
+} from "Common/Server/Utils/Aws/AwsDefaultCredentialChain";
 import { EmailInlineImage } from "Common/Server/Utils/Mail/EmailInlineImages";
 import {
   AmazonSesSendEmailJson,
   FakeAmazonSes,
+  FakeAmazonSesKeys,
   amazonSesError,
   sendAmazonSesTo,
   startFakeAmazonSes,
@@ -518,5 +525,483 @@ describe("sending, to a stand-in for SES", () => {
       "Amazon SES needs an Access Key ID, a Secret Access Key and a Region.",
     );
     expect(ses.requests).toHaveLength(0);
+  });
+});
+
+/*
+ * SIGNING IN AS THIS SERVER'S IAM ROLE (#7000): the server's own settings
+ * can send with the short-lived credentials AWS gives the server - here the
+ * EKS Pod Identity agent's, through the real credential chain - signed with
+ * their session token. SES refusing them drops them for new ones; a
+ * project's config may never sign in as the server.
+ */
+
+const ROLE_KEYS: Array<FakeAmazonSesKeys> = [
+  {
+    accessKeyId: "ASIAROLEFIRSTEXAMPLE",
+    secretAccessKey: "firstRoleSecretKeyEXAMPLE0123456789abcd",
+    sessionToken: "IQoJb3JpZ2luX2VjEFirstSessionTokenEXAMPLE",
+  },
+  {
+    accessKeyId: "ASIAROLESECONDEXAMPL",
+    secretAccessKey: "secondRoleSecretKeyEXAMPLE0123456789abc",
+    sessionToken: "IQoJb3JpZ2luX2VjESecondSessionTokenEXAMPLE",
+  },
+];
+
+const FIRST_KEYS: FakeAmazonSesKeys = ROLE_KEYS[0] as FakeAmazonSesKeys;
+const NEXT_KEYS: FakeAmazonSesKeys = ROLE_KEYS[1] as FakeAmazonSesKeys;
+
+const POD_IDENTITY_TOKEN: string = "eks-pod-identity-authorization-token";
+
+// The server's own Amazon SES settings, signing in with its IAM role: no key.
+const ROLE_SERVER: EmailServer = {
+  transportType: MailTransportType.AmazonSES,
+  username: undefined,
+  password: undefined,
+  fromEmail: new Email("alerts@example.test"),
+  fromName: "Acme Alerts",
+  awsAuthenticationType: AmazonSesAuthenticationType.ServerIamRole,
+  awsRegion: "eu-west-1",
+};
+
+interface PodIdentityChain {
+  chain: AwsDefaultCredentialChain;
+  // Every request the chain made to the Pod Identity agent.
+  asked: Array<AwsChainHttpRequest>;
+}
+
+/*
+ * A chain that gets the role's credentials from the EKS Pod Identity agent,
+ * which hands out `keys` in turn, each for an hour.
+ */
+function podIdentityChain(keys: Array<FakeAmazonSesKeys>): PodIdentityChain {
+  const asked: Array<AwsChainHttpRequest> = [];
+
+  const chain: AwsDefaultCredentialChain = new AwsDefaultCredentialChain({
+    env: {
+      AWS_CONTAINER_CREDENTIALS_FULL_URI:
+        "http://169.254.170.23/v1/credentials",
+      AWS_CONTAINER_AUTHORIZATION_TOKEN: POD_IDENTITY_TOKEN,
+    },
+    httpClient: async (
+      request: AwsChainHttpRequest,
+    ): Promise<AwsChainHttpResponse> => {
+      const handedOut: FakeAmazonSesKeys = keys[
+        Math.min(asked.length, keys.length - 1)
+      ] as FakeAmazonSesKeys;
+
+      asked.push(request);
+
+      return {
+        status: 200,
+        bodyText: JSON.stringify({
+          AccessKeyId: handedOut.accessKeyId,
+          SecretAccessKey: handedOut.secretAccessKey,
+          Token: handedOut.sessionToken,
+          Expiration: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+        }),
+      };
+    },
+  });
+
+  return { chain: chain, asked: asked };
+}
+
+// A send's failure, to look at what it says.
+async function failureOf(send: Promise<void>): Promise<Error> {
+  try {
+    await send;
+  } catch (error) {
+    return error as Error;
+  }
+
+  throw new Error("The send went through.");
+}
+
+describe("signing in as this server's IAM role, to a stand-in for SES", () => {
+  let ses: FakeAmazonSes;
+
+  beforeEach(async () => {
+    // SES knows the role's first and next credentials, as AWS would.
+    ses = await startFakeAmazonSes({ ...FIRST_KEYS, region: "eu-west-1" });
+    ses.acceptKeys(NEXT_KEYS);
+    sendAmazonSesTo(ses);
+    // A retry goes at once: what is tested is what it is signed with.
+    jest
+      .spyOn(
+        HttpMailApi as unknown as { sleep: (ms: number) => Promise<void> },
+        "sleep",
+      )
+      .mockResolvedValue(undefined);
+  });
+
+  afterEach(async () => {
+    jest.restoreAllMocks();
+    await ses.close();
+  });
+
+  test("the email is signed with the role's credentials and their session token, asked of the Pod Identity agent", async () => {
+    const pod: PodIdentityChain = podIdentityChain(ROLE_KEYS);
+
+    await new AmazonSesMailProvider({ credentialChain: pod.chain }).send(
+      mail(),
+      ROLE_SERVER,
+      { inlineImages: [LOGO] },
+    );
+
+    expect(ses.requests).toHaveLength(1);
+
+    const authorization: string = String(
+      ses.requests[0]!.headers.authorization,
+    );
+
+    expect(authorization).toContain(`Credential=${FIRST_KEYS.accessKeyId}/`);
+    expect(authorization).toContain("/eu-west-1/ses/aws4_request");
+    // The token is sent, and signed: SES would refuse it otherwise.
+    expect(ses.requests[0]!.headers["x-amz-security-token"]).toBe(
+      FIRST_KEYS.sessionToken,
+    );
+    expect(authorization).toContain("x-amz-security-token");
+
+    expect(pod.asked).toHaveLength(1);
+    expect(pod.asked[0]!.method).toBe("GET");
+    expect(pod.asked[0]!.url).toBe("http://169.254.170.23/v1/credentials");
+    expect(pod.asked[0]!.headers["Authorization"]).toBe(POD_IDENTITY_TOKEN);
+  });
+
+  test("the credentials in hand sign the next emails too: the agent is asked once", async () => {
+    const pod: PodIdentityChain = podIdentityChain(ROLE_KEYS);
+    const provider: AmazonSesMailProvider = new AmazonSesMailProvider({
+      credentialChain: pod.chain,
+    });
+
+    await provider.send(mail(), ROLE_SERVER, {});
+    await provider.send(
+      mail({ subject: "Incident #13 created" }),
+      ROLE_SERVER,
+      {},
+    );
+    await provider.send(
+      mail({ subject: "Incident #14 created" }),
+      ROLE_SERVER,
+      {},
+    );
+
+    expect(ses.requests).toHaveLength(3);
+    expect(pod.asked).toHaveLength(1);
+  });
+
+  test("credentials SES says expired are dropped: new ones are fetched, and the email goes on the next try", async () => {
+    const pod: PodIdentityChain = podIdentityChain(ROLE_KEYS);
+
+    ses.expireKeys(FIRST_KEYS.accessKeyId);
+
+    await new AmazonSesMailProvider({ credentialChain: pod.chain }).send(
+      mail(),
+      ROLE_SERVER,
+      {},
+    );
+
+    expect(ses.requests).toHaveLength(2);
+    expect(String(ses.requests[0]!.headers.authorization)).toContain(
+      `Credential=${FIRST_KEYS.accessKeyId}/`,
+    );
+    expect(String(ses.requests[1]!.headers.authorization)).toContain(
+      `Credential=${NEXT_KEYS.accessKeyId}/`,
+    );
+    expect(ses.requests[1]!.headers["x-amz-security-token"]).toBe(
+      NEXT_KEYS.sessionToken,
+    );
+    // The same email, signed afresh with the new credentials.
+    expect(ses.requests[1]!.body).toBe(ses.requests[0]!.body);
+    expect(pod.asked).toHaveLength(2);
+  });
+
+  test("credentials SES does not recognize are dropped too: the next email fetches new ones", async () => {
+    const pod: PodIdentityChain = podIdentityChain(ROLE_KEYS);
+    const provider: AmazonSesMailProvider = new AmazonSesMailProvider({
+      credentialChain: pod.chain,
+    });
+
+    ses.answerNextWith(
+      amazonSesError(
+        403,
+        "UnrecognizedClientException",
+        "The security token included in the request is invalid.",
+      ),
+    );
+
+    const error: Error = await failureOf(
+      provider.send(mail(), ROLE_SERVER, {}),
+    );
+
+    expect(error.message).toContain(
+      "Amazon SES does not recognize this server's IAM role credentials (HTTP 403 UnrecognizedClientException).",
+    );
+    expect(error.message).not.toContain("Access Key ID");
+
+    await provider.send(mail(), ROLE_SERVER, {});
+
+    expect(pod.asked).toHaveLength(2);
+    expect(String(ses.requests[1]!.headers.authorization)).toContain(
+      `Credential=${NEXT_KEYS.accessKeyId}/`,
+    );
+  });
+
+  test("a role that may not send reads as the role's policy, and never shows its secret or token", async () => {
+    const pod: PodIdentityChain = podIdentityChain(ROLE_KEYS);
+
+    ses.answerNextWith(
+      amazonSesError(
+        403,
+        "AccessDeniedException",
+        `User: arn:aws:sts::123456789012:assumed-role/oneuptime-ses/eks-pod is not authorized to perform: ses:SendEmail (token ${FIRST_KEYS.sessionToken}, secret ${FIRST_KEYS.secretAccessKey})`,
+      ),
+    );
+
+    const error: Error = await failureOf(
+      new AmazonSesMailProvider({ credentialChain: pod.chain }).send(
+        mail(),
+        ROLE_SERVER,
+        {},
+      ),
+    );
+
+    expect(error).toBeInstanceOf(MailApiSendException);
+    expect((error as MailApiSendException).isRetryable).toBe(false);
+    expect(error.message).toContain(
+      "This server's IAM role may not send with Amazon SES (HTTP 403 AccessDeniedException). Allow ses:SendEmail on the sender's identity in the role's policy.",
+    );
+    expect(error.message).not.toContain(String(FIRST_KEYS.sessionToken));
+    expect(error.message).not.toContain(FIRST_KEYS.secretAccessKey);
+    expect(error.message).toContain("[redacted]");
+  });
+
+  test("a project's config is refused if it asks for the server's role, before any credentials are fetched", async () => {
+    const pod: PodIdentityChain = podIdentityChain(ROLE_KEYS);
+    const provider: AmazonSesMailProvider = new AmazonSesMailProvider({
+      credentialChain: pod.chain,
+    });
+
+    for (const projectConfig of [
+      { ...ROLE_SERVER, id: ObjectID.generate() },
+      // An access key beside it changes nothing: the config asked for the role.
+      {
+        ...ROLE_SERVER,
+        id: ObjectID.generate(),
+        awsAccessKeyId: CREDENTIALS.accessKeyId,
+        awsSecretAccessKey: CREDENTIALS.secretAccessKey,
+      },
+    ]) {
+      await expect(provider.send(mail(), projectConfig, {})).rejects.toThrow(
+        "A project's Amazon SES config signs in with an access key. Only this server's own email settings may sign in with its IAM role.",
+      );
+    }
+
+    expect(pod.asked).toHaveLength(0);
+    expect(ses.requests).toHaveLength(0);
+  });
+
+  test("without a Region it is refused before anything is asked", async () => {
+    const pod: PodIdentityChain = podIdentityChain(ROLE_KEYS);
+
+    await expect(
+      new AmazonSesMailProvider({ credentialChain: pod.chain }).send(
+        mail(),
+        { ...ROLE_SERVER, awsRegion: undefined },
+        {},
+      ),
+    ).rejects.toThrow(
+      "Amazon SES needs a Region to sign in with this server's IAM role.",
+    );
+    expect(pod.asked).toHaveLength(0);
+    expect(ses.requests).toHaveLength(0);
+  });
+
+  test("a server with no AWS credentials is told what to give it, and the email is not tried again", async () => {
+    const asked: Array<AwsChainHttpRequest> = [];
+    const chain: AwsDefaultCredentialChain = new AwsDefaultCredentialChain({
+      env: { AWS_EC2_METADATA_DISABLED: "true" },
+      httpClient: async (
+        request: AwsChainHttpRequest,
+      ): Promise<AwsChainHttpResponse> => {
+        asked.push(request);
+        return { status: 500, bodyText: "" };
+      },
+    });
+
+    const error: Error = await failureOf(
+      new AmazonSesMailProvider({ credentialChain: chain }).send(
+        mail(),
+        ROLE_SERVER,
+        {},
+      ),
+    );
+
+    expect(error).toBeInstanceOf(MailApiSendException);
+    expect((error as MailApiSendException).isRetryable).toBe(false);
+    expect(error.message).toBe(
+      "Amazon SES could not sign in with this server's IAM role. This server has no AWS credentials. Give it an IAM role: IAM roles for service accounts or EKS Pod Identity on Amazon EKS, a task role on Amazon ECS, or an instance profile on Amazon EC2.",
+    );
+    expect(asked).toHaveLength(0);
+    expect(ses.requests).toHaveLength(0);
+  });
+
+  test("an agent that does not give credentials is asked again on each try, then reported with what it said", async () => {
+    let calls: number = 0;
+    const chain: AwsDefaultCredentialChain = new AwsDefaultCredentialChain({
+      env: {
+        AWS_CONTAINER_CREDENTIALS_RELATIVE_URI: "/v2/credentials/task-role",
+      },
+      httpClient: async (): Promise<AwsChainHttpResponse> => {
+        calls++;
+        return { status: 503, bodyText: "agent restarting" };
+      },
+    });
+
+    const error: Error = await failureOf(
+      new AmazonSesMailProvider({ credentialChain: chain }).send(
+        mail(),
+        ROLE_SERVER,
+        {},
+      ),
+    );
+
+    expect(error.message).toBe(
+      "Amazon SES could not sign in with this server's IAM role. The Amazon ECS credentials endpoint (169.254.170.2) refused to give this server credentials (HTTP 503). It said: agent restarting.",
+    );
+    expect((error as MailApiSendException).isRetryable).toBe(true);
+    expect(calls).toBe(HttpMailApi.MAX_ATTEMPTS);
+    expect(ses.requests).toHaveLength(0);
+  });
+
+  test("an access key config is as it was: signed with its key, nothing asked of the server's role", async () => {
+    const pod: PodIdentityChain = podIdentityChain(ROLE_KEYS);
+    const provider: AmazonSesMailProvider = new AmazonSesMailProvider({
+      credentialChain: pod.chain,
+    });
+
+    ses.acceptKeys({
+      accessKeyId: CREDENTIALS.accessKeyId,
+      secretAccessKey: CREDENTIALS.secretAccessKey,
+    });
+
+    await provider.send(mail(), SERVER, {});
+    // Whatever else the field holds reads as the access key it always was.
+    await provider.send(
+      mail(),
+      {
+        ...SERVER,
+        awsAuthenticationType: "IAM Role" as AmazonSesAuthenticationType,
+      },
+      {},
+    );
+    await provider.send(
+      mail(),
+      {
+        ...SERVER,
+        awsAuthenticationType: AmazonSesAuthenticationType.AccessKey,
+      },
+      {},
+    );
+
+    expect(ses.requests).toHaveLength(3);
+
+    for (const request of ses.requests) {
+      expect(String(request.headers.authorization)).toContain(
+        `Credential=${CREDENTIALS.accessKeyId}/`,
+      );
+      expect(request.headers["x-amz-security-token"]).toBeUndefined();
+    }
+
+    expect(pod.asked).toHaveLength(0);
+  });
+});
+
+describe("what a refusal says, signed in as the server's IAM role", () => {
+  function explainForRole(
+    status: number,
+    code: string,
+    message: string,
+  ): MailApiSendException {
+    return AmazonSesMailProvider.explainError(
+      answer(status, { message: message }, { "x-amzn-ErrorType": `${code}:` }),
+      {
+        region: "eu-west-1",
+        fromEmail: "alerts@example.test",
+        hadInlineImages: false,
+        signsInWith: AmazonSesAuthenticationType.ServerIamRole,
+        secrets: [FIRST_KEYS.secretAccessKey, FIRST_KEYS.sessionToken],
+      },
+    );
+  }
+
+  test("each credential refusal names the role, never an access key the server does not have", () => {
+    for (const [code, meaning] of [
+      [
+        "UnrecognizedClientException",
+        "Amazon SES does not recognize this server's IAM role credentials (HTTP 403 UnrecognizedClientException). New ones are fetched for the next email; if this goes on, check the IAM role this server runs as.",
+      ],
+      [
+        "InvalidClientTokenId",
+        "Amazon SES does not recognize this server's IAM role credentials (HTTP 403 InvalidClientTokenId).",
+      ],
+      [
+        "SignatureDoesNotMatch",
+        "Amazon SES did not accept the request's signature (HTTP 403 SignatureDoesNotMatch). Check that this server's clock is right.",
+      ],
+      [
+        "AccessDeniedException",
+        "This server's IAM role may not send with Amazon SES (HTTP 403 AccessDeniedException).",
+      ],
+      [
+        "ExpiredTokenException",
+        "This server's IAM role credentials expired before Amazon SES read them (HTTP 403 ExpiredTokenException). New ones are fetched for the next try.",
+      ],
+    ] as Array<[string, string]>) {
+      const error: MailApiSendException = explainForRole(403, code, "No.");
+
+      expect(error.message).toContain(meaning);
+      expect(error.message.toLowerCase()).not.toContain("access key");
+    }
+  });
+
+  test("expired credentials are tried again as the role - an access key that expired is not", () => {
+    expect(
+      explainForRole(403, "ExpiredTokenException", "expired").isRetryable,
+    ).toBe(true);
+    expect(explainForRole(400, "ExpiredToken", "expired").isRetryable).toBe(
+      true,
+    );
+    expect(
+      explain(
+        403,
+        { message: "expired" },
+        { "x-amzn-ErrorType": "ExpiredTokenException:" },
+      ).isRetryable,
+    ).toBe(false);
+  });
+
+  test("the refusals that drop the credentials in hand are SES's words for credentials it does not take", () => {
+    expect([...AMAZON_SES_CREDENTIAL_REFUSAL_CODES].sort()).toEqual(
+      [
+        "ExpiredToken",
+        "ExpiredTokenException",
+        "InvalidClientTokenId",
+        "UnrecognizedClientException",
+      ].sort(),
+    );
+  });
+
+  test("whatever SES echoes, the role's secret and session token are never in the message", () => {
+    const error: MailApiSendException = explainForRole(
+      400,
+      "MessageRejected",
+      `echo ${FIRST_KEYS.sessionToken} and ${FIRST_KEYS.secretAccessKey}`,
+    );
+
+    expect(error.message).not.toContain(String(FIRST_KEYS.sessionToken));
+    expect(error.message).not.toContain(FIRST_KEYS.secretAccessKey);
   });
 });

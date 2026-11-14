@@ -19,13 +19,13 @@ total budget = (100% − target) × window length
 
 | Mål | Vindue på 7 dage | Vindue på 28 dage | Vindue på 30 dage | Vindue på 90 dage |
 | --- | --- | --- | --- | --- |
-| 99% | 1h 40m 48s | 6h 43m 12s | 7h 12m | 21h 36m |
-| 99.5% | 50m 24s | 3h 21m 36s | 3h 36m | 10h 48m |
-| 99.9% | 10m 5s | 40m 19s | 43m 12s | 2h 9m 36s |
-| 99.95% | 5m 2s | 20m 10s | 21m 36s | 1h 4m 48s |
-| 99.99% | 1m 0s | 4m 2s | 4m 19s | 12m 58s |
+| 99 % | 1 t., 40 min. og 48 sek. | 6 t., 43 min. og 12 sek. | 7 t. og 12 min. | 21 t. og 36 min. |
+| 99,5 % | 50 min. og 24 sek. | 3 t., 21 min. og 36 sek. | 3 t. og 36 min. | 10 t. og 48 min. |
+| 99,9 % | 10 min. og 5 sek. | 40 min. og 19 sek. | 43 min. og 12 sek. | 2 t., 9 min. og 36 sek. |
+| 99,95 % | 5 min. og 2 sek. | 20 min. og 10 sek. | 21 min. og 36 sek. | 1 t., 4 min. og 48 sek. |
+| 99,99 % | 1 min. og 0 sek. | 4 min. og 2 sek. | 4 min. og 19 sek. | 12 min. og 58 sek. |
 
-SLO'ets side **Indstillinger** viser det budget, dets mål tillader, ved siden af målet, for eksempel "43m 12s nedetid pr. vindue på 30 dage".
+SLO'ets side **Indstillinger** viser det budget, dets mål tillader, ved siden af målet, for eksempel "43 min. og 12 sek. nedetid pr. vindue på 30 dage".
 
 ### Budgettet for et SLO med flere monitorer
 
@@ -35,7 +35,7 @@ I tilstanden **Gennemsnit af monitorsekunder** tælles budgettet i monitorsekund
 
 ### Budgettet for en kalendermåned
 
-Et SLO med kalendermåned har hele månedens budget fra første dag: et SLO på 99,9 % i en måned med 31 dage har alle sine 44m 38s den 1. Budgettet beregnes ikke forholdsmæssigt efter den del af måneden, der er gået, så et nedbrud på et minut om morgenen den 1. bruger et minut af månedens budget.
+Et SLO med kalendermåned har hele månedens budget fra første dag: et SLO på 99,9 % i en måned med 31 dage har alle sine 44 min. og 38 sek. den 1. Budgettet beregnes ikke forholdsmæssigt efter den del af måneden, der er gået, så et nedbrud på et minut om morgenen den 1. bruger et minut af månedens budget.
 
 ## Resterende budget
 

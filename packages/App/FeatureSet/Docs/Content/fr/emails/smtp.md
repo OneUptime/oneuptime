@@ -27,14 +27,14 @@ Sur une installation auto-hébergée, le serveur de messagerie de OneUptime est 
 
 ## Ajouter un serveur SMTP
 
-Ajoutez le serveur de messagerie d'un projet dans **Paramètres du projet > Notifications > Paramètres de notification**, dans la carte **Configurations SMTP personnalisées**, sous **Plus de paramètres**. Sur une installation auto-hébergée, le serveur par lequel OneUptime envoie lui-même se définit dans **Admin Dashboard > Paramètres > Notifications > E-mails**, dans la carte **Paramètres e-mail et SMTP personnalisés**. Les deux formulaires demandent le serveur et l'expéditeur ; le formulaire d'un projet demande d'abord son **Fournisseur**.
+Ajoutez le serveur de messagerie d'un projet dans **Paramètres du projet > Notifications > Canaux de notification**, dans la carte **Configurations SMTP personnalisées**, sous **Plus de paramètres**. Sur une installation auto-hébergée, le serveur par lequel OneUptime envoie lui-même se définit dans **Admin Dashboard > Paramètres > Notifications > E-mails**, dans la carte **Paramètres e-mail et SMTP personnalisés**. Les deux formulaires demandent le serveur et l'expéditeur ; le formulaire d'un projet demande d'abord son **Fournisseur**.
 
 :::steps
 ### Ouvrir le formulaire
 
 :::tabs
 @tab Projet
-Dans **Paramètres du projet > Notifications > Paramètres de notification**, ouvrez **Plus de paramètres** et cliquez sur **Créer : Configuration SMTP** dans la carte **Configurations SMTP personnalisées**.
+Dans **Paramètres du projet > Notifications > Canaux de notification**, ouvrez **Plus de paramètres** et cliquez sur **Créer : Configuration SMTP** dans la carte **Configurations SMTP personnalisées**.
 @tab Instance auto-hébergée
 Dans l'Admin Dashboard, ouvrez **Paramètres**, puis **Notifications > E-mails** dans le menu latéral (**Notifications** est replié au départ). Dans la carte **Paramètres du serveur de messagerie**, cliquez sur **Modifier le serveur** et réglez **Type de serveur de messagerie** sur `Custom SMTP`. Cliquez ensuite sur **Modifier la config SMTP** dans la carte **Paramètres e-mail et SMTP personnalisés**, qui apparaît en dessous.
 :::

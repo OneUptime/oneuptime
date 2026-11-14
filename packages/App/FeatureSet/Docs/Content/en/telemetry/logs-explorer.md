@@ -37,7 +37,7 @@ The explorer has five tabs:
 ## Before you begin
 
 - **Logs arriving.** Send them with [OpenTelemetry](/docs/telemetry/open-telemetry), [Fluent Bit](/docs/telemetry/fluentbit), [Fluentd](/docs/telemetry/fluentd) or [Syslog](/docs/telemetry/syslog). The **Setup Guide** tab shows the configuration for your language or collector.
-- **A role that reads telemetry.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member or Telemetry Viewer, or a custom role with the Read Telemetry Service Log permission. Its scope decides whose logs you see: see [Telemetry](/docs/permissions/index#telemetry).
+- **A role that reads telemetry.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member or Telemetry Viewer, or a custom role with the Read Logs permission. Its scope decides whose logs you see: see [Telemetry](/docs/permissions/index#telemetry).
 
 ## Find a log line
 
@@ -141,7 +141,7 @@ OneUptime files three kinds of finding:
 
 | Finding | When OneUptime files it | The pull request |
 | --- | --- | --- |
-| **Error Log** | A service logged one message at Error or Fatal 20 or more times in the hour, a message with words of its own and no exception. A message logged with an exception, or with a stack trace in it, is tracked in [Exception Tracking](/docs/telemetry/exceptions) instead. | Fixes why the error is logged, or logs it at the level it deserves. |
+| **Error Log** | A service logged one message at Error or Fatal 20 or more times in the hour, a message with words of its own and no exception. A message logged with an exception, or with a stack trace in it, is tracked in [Exceptions](/docs/telemetry/exceptions) instead. | Fixes why the error is logged, or logs it at the level it deserves. |
 | **Missing Logging** | At least 20 of an operation's spans failed in the hour, 5% or more of them, while at least 100 of the service's logs carry a trace id, and none of the operation's 20 most recent failed requests wrote a log line. Or a service sent 500 or more logs and 100 or more spans in the hour, and fewer than 1% of its logs carry a trace id. | Logs the failure where it happens, or makes the service's logs carry the trace id. |
 | **Noisy Log** | One message logged below Error is 25% or more of a service's lines in the hour, and some 10,000 lines or more. | Logs the line less: at Debug, once for a batch, or not at all. |
 

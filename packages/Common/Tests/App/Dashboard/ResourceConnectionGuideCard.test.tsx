@@ -24,6 +24,7 @@ import {
   ResourceConnectionGuide,
   getHostConnectionGuide,
   getKubernetesClusterConnectionGuide,
+  getProxmoxClusterConnectionGuide,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceConnection/ResourceConnectionGuides";
 import Route from "../../../Types/API/Route";
 import Navigation from "../../../UI/Utils/Navigation";
@@ -820,5 +821,170 @@ describe("ResourceConnectionGuideCard for a host OneUptime installed the collect
     expect(code.tagName).toBe("CODE");
     expect(code.className).not.toContain("break-all");
     expect(code.className).toContain("[overflow-wrap:anywhere]");
+  });
+});
+
+/*
+ * Issue #7439: a Proxmox cluster whose agent runs but cannot read the
+ * Proxmox VE API. The agent's own clock (agentLastSeenAt) is recent while
+ * the cluster is not read, so the card says the API needs looking at - not
+ * "stopped sending data", which sent people to a container that was fine -
+ * with the checks of the API: the diagnostic script, the token, the nodes.
+ */
+describe("ResourceConnectionGuideCard for a Proxmox cluster whose agent cannot read the API", () => {
+  const PROXMOX_GUIDE: ResourceConnectionGuide =
+    getProxmoxClusterConnectionGuide("pve-prod", "https://oneuptime.example");
+
+  function renderProxmox(props: {
+    status?: string;
+    lastSeenAt: Date | string | null;
+    agentLastSeenAt: Date | string | null;
+    guide?: ResourceConnectionGuide;
+  }): void {
+    render(
+      <ResourceConnectionGuideCard
+        status={props.status ?? "disconnected"}
+        lastSeenAt={props.lastSeenAt}
+        agentLastSeenAt={props.agentLastSeenAt}
+        guide={props.guide ?? PROXMOX_GUIDE}
+        documentationRoute={DOCS}
+      />,
+    );
+  }
+
+  test("read before and not now, the agent heard: it says the agent can't read the API, and since when", () => {
+    renderProxmox({
+      lastSeenAt: new Date("2026-09-30T11:35:00.000Z"),
+      agentLastSeenAt: new Date("2026-09-30T11:58:00.000Z"),
+    });
+
+    expect(card()).toHaveAttribute("data-state", "reading-stopped");
+    expect(card()).toHaveAttribute("data-variant", "unreadable");
+    expect(
+      screen.getByRole("heading", {
+        name: "The agent can't read the Proxmox VE API",
+      }),
+    ).toBeInTheDocument();
+    expect(card()).toHaveTextContent(
+      "The OneUptime Proxmox Agent is running, but it last read the cluster from the Proxmox VE API 25 minutes ago.",
+    );
+    expect(card()).toHaveTextContent(
+      "The nodes, guests and storage here are as it read them then.",
+    );
+    expect(card()).not.toHaveTextContent("stopped sending data");
+  });
+
+  test("it lists the checks of the API, with the diagnostic script and the failover container's logs", () => {
+    renderProxmox({
+      lastSeenAt: new Date("2026-09-30T11:35:00.000Z"),
+      agentLastSeenAt: new Date("2026-09-30T11:58:00.000Z"),
+    });
+
+    expect(stepTitles()).toEqual([
+      "Run the diagnostic script",
+      "Check the API token",
+      "Check that a node answers",
+    ]);
+    expect(card()).toHaveTextContent(
+      "curl -fsSL https://oneuptime.example/install/proxmox-agent/troubleshoot.sh -o troubleshoot.sh && bash troubleshoot.sh",
+    );
+    expect(
+      screen.getByText("docker logs oneuptime-pve-api-failover --tail 20")
+        .tagName,
+    ).toBe("CODE");
+    // Not the checks of an agent that stopped.
+    expect(
+      screen.queryByText("Check the agent is running"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("it is amber, like a cluster that stopped, and still links to the setup guide", () => {
+    renderProxmox({
+      lastSeenAt: new Date("2026-09-30T11:35:00.000Z"),
+      agentLastSeenAt: new Date("2026-09-30T11:58:00.000Z"),
+    });
+
+    expect(card()!.className).toContain("border-amber-200");
+    expect(
+      screen.getByRole("link", { name: "Open the setup guide" }),
+    ).toHaveAttribute("href", DOCS.toString());
+  });
+
+  test("never read, the agent heard: it says no read has come yet, in the calmer indigo, with the same checks", () => {
+    renderProxmox({
+      lastSeenAt: null,
+      agentLastSeenAt: new Date("2026-09-30T11:59:30.000Z"),
+    });
+
+    expect(card()).toHaveAttribute("data-state", "not-read-yet");
+    expect(card()).toHaveAttribute("data-variant", "waiting-for-read");
+    expect(
+      screen.getByRole("heading", {
+        name: "The agent has not read the cluster yet",
+      }),
+    ).toBeInTheDocument();
+    expect(card()).toHaveTextContent(
+      "The OneUptime Proxmox Agent is running and reads the cluster from the Proxmox VE API every 30 seconds, but no read has arrived yet.",
+    );
+    expect(card()!.className).toContain("border-indigo-200");
+    expect(stepTitles()).toEqual([
+      "Run the diagnostic script",
+      "Check the API token",
+      "Check that a node answers",
+    ]);
+    // Not the install steps: the agent is installed.
+    expect(screen.queryByText("Install the agent")).not.toBeInTheDocument();
+  });
+
+  test("an agent last heard over 15 minutes ago has stopped: the card says so, with the agent's checks", () => {
+    renderProxmox({
+      lastSeenAt: new Date("2026-09-30T11:00:00.000Z"),
+      agentLastSeenAt: new Date("2026-09-30T11:40:00.000Z"),
+    });
+
+    expect(card()).toHaveAttribute("data-state", "disconnected");
+    expect(card()).toHaveAttribute("data-variant", "stopped");
+    expect(
+      screen.getByRole("heading", {
+        name: "This cluster stopped sending data",
+      }),
+    ).toBeInTheDocument();
+    expect(stepTitles()[0]).toBe("Check the agent is running");
+  });
+
+  test("an agent that never reported reads as never connected: install it", () => {
+    renderProxmox({ lastSeenAt: null, agentLastSeenAt: null });
+
+    expect(card()).toHaveAttribute("data-state", "never-connected");
+    expect(card()).toHaveAttribute("data-variant", "setup");
+  });
+
+  test("a cluster that is read draws nothing, however its agent's clock reads", () => {
+    renderProxmox({
+      status: "connected",
+      lastSeenAt: new Date("2026-09-30T11:59:00.000Z"),
+      agentLastSeenAt: new Date("2026-09-30T11:57:00.000Z"),
+    });
+
+    expect(card()).toBeNull();
+  });
+
+  test("a guide with nothing to say about an unreadable resource reads it as before", () => {
+    renderProxmox({
+      lastSeenAt: new Date("2026-09-30T11:35:00.000Z"),
+      agentLastSeenAt: new Date("2026-09-30T11:58:00.000Z"),
+      guide: GUIDE,
+    });
+    expect(card()).toHaveAttribute("data-state", "disconnected");
+    expect(card()).toHaveAttribute("data-variant", "stopped");
+    cleanup();
+
+    renderProxmox({
+      lastSeenAt: null,
+      agentLastSeenAt: new Date("2026-09-30T11:58:00.000Z"),
+      guide: GUIDE,
+    });
+    expect(card()).toHaveAttribute("data-state", "never-connected");
+    expect(card()).toHaveAttribute("data-variant", "setup");
   });
 });

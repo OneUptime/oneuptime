@@ -47,6 +47,8 @@ OneUptime — платформа наблюдаемости с открытым 
 - **[API, CLI и Terraform](https://oneuptime.com/docs/ru/api-reference/api-reference)**: Автоматизировать OneUptime из ваших скриптов и CI и управлять мониторами, страницами статуса и дежурствами как кодом.
 - **[Сервер MCP](https://oneuptime.com/docs/ru/ai/mcp-server)** (`https://oneuptime.com/mcp`): Подключите Claude, Cursor, VS Code с GitHub Copilot или любой другой клиент Model Context Protocol (MCP) и попросите его разобраться с инцидентом, запросить логи и трассировки, подтвердить оповещение или настроить монитор.
 
+Пошаговые руководства проводят через одну задачу от начала до конца, в OneUptime Cloud или на вашем собственном сервере: [Узнавать, когда ваш сайт или API падает](https://oneuptime.com/docs/ru/guides/website-down), [Получать оповещения звонком, SMS или push](https://oneuptime.com/docs/ru/guides/paging) и [Опубликовать страницу статуса](https://oneuptime.com/docs/ru/guides/status-page).
+
 Всё остальное есть в [документации](https://oneuptime.com/docs/ru/introduction/getting-started).
 
 ## Начало работы

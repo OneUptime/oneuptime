@@ -2,6 +2,9 @@
 
 OneUptime Kubernetes 代理程式是一個 Helm Chart，它會收集叢集的指標、事件和 Pod 日誌、透過 eBPF 擷取的應用程式追蹤，以及每個節點的作業系統指標，並傳送到 OneUptime。只需一次 `helm install` 即可部署，不必修改應用程式的程式碼。[Kubernetes 監測器](/docs/monitor/kubernetes-monitor) 會根據它傳送的資料發出警示。
 
+> [!NOTE]
+> 本頁使用 Helm 逐步安裝代理程式，並提供適合你平台的預設組合。所有選項、Amazon EKS 附加元件、OpenShift 和 Kubernetes AI 代理程式都在它的完整參考 [Kubernetes 代理程式](/docs/telemetry/kubernetes-agent) 中。
+
 :::cards
 - [安裝代理程式](#安裝代理程式): 使用 Helm 的四個步驟。
 - [選擇預設組合](#選擇預設組合): 標準叢集、GKE Autopilot、EKS Fargate 或 OpenShift。
@@ -331,7 +334,7 @@ kubectl logs -n oneuptime-agent -l component=ebpf-instrument --tail=200
 
 ## 持續 CPU 剖析
 
-[OpenTelemetry eBPF Profiler](https://github.com/open-telemetry/opentelemetry-ebpf-profiler) 也可以在每個節點上執行，使用 `otel/opentelemetry-collector-ebpf-profiler` 映像檔。它以每秒 19 次的頻率對每個處理程序正在執行的內容取樣，支援 Go、Java、.NET、Python、Ruby、Node.js、PHP、Perl、C、C++ 和 Rust，並把剖析資料傳送到 OneUptime。這些資料會顯示在 **產品 → 效能設定檔** 下，也會作為火焰圖顯示在每個追蹤 Span 上。
+[OpenTelemetry eBPF Profiler](https://github.com/open-telemetry/opentelemetry-ebpf-profiler) 也可以在每個節點上執行，使用 `otel/opentelemetry-collector-ebpf-profiler` 映像檔。它以每秒 19 次的頻率對每個處理程序正在執行的內容取樣，支援 Go、Java、.NET、Python、Ruby、Node.js、PHP、Perl、C、C++ 和 Rust，並把剖析資料傳送到 OneUptime。這些資料會顯示在 **產品 → 效能剖析** 下，也會作為火焰圖顯示在每個追蹤 Span 上。
 
 **剖析預設關閉：** 它每個節點耗用的 CPU 和記憶體比 eBPF 檢測更多。用 `--set profiling.enabled=true` 開啟它。
 

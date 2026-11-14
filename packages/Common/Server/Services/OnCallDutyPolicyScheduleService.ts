@@ -933,7 +933,7 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
 
           const pushMessage: PushNotificationMessage =
             PushNotificationUtil.createGenericNotification({
-              title: "On-Call Duty Ended",
+              title: "On-Call Shift Ended",
               body: `You are no longer on-call for ${onCallPolicy.name!} as your roster on schedule ${onCallSchedule.name} has ended.`,
               tag: "on-call-duty-ended",
               requireInteraction: false,
@@ -1086,7 +1086,7 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
 
           const pushMessage: PushNotificationMessage =
             PushNotificationUtil.createGenericNotification({
-              title: "On-Call Duty Started",
+              title: "On-Call Shift Started",
               body: `You are now on-call for ${onCallPolicy.name!} on schedule ${onCallSchedule.name}.`,
               tag: "on-call-duty-started",
               requireInteraction: true,
@@ -1320,7 +1320,7 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
 
           const pushMessage: PushNotificationMessage =
             PushNotificationUtil.createGenericNotification({
-              title: "Next On-Call Duty",
+              title: "Next On-Call Shift",
               body: `You are next on-call for ${onCallPolicy.name!} on schedule ${onCallSchedule.name}.`,
               tag: "next-on-call-duty",
               requireInteraction: false,
@@ -1488,7 +1488,9 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
         "Schedule not found for scheduleId: " + scheduleId.toString(),
         { onCallDutyPolicyScheduleId: scheduleId.toString() } as LogAttributes,
       );
-      throw new BadDataException("Schedule not found");
+      throw new BadDataException(
+        "This on-call schedule no longer exists. It may have been deleted.",
+      );
     }
 
     logger.debug(
@@ -2131,7 +2133,9 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
       !OneUptimeDate.isBefore(options.windowStart, options.windowEnd) &&
       options.windowStart.getTime() !== options.windowEnd.getTime()
     ) {
-      throw new BadDataException("windowStart must be before windowEnd");
+      throw new BadDataException(
+        "The start of the time window must be before its end.",
+      );
     }
 
     const inputsById: Map<string, ScheduleResolutionInputs> =

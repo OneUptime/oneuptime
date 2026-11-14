@@ -6,6 +6,7 @@ import {
 } from "Common/Server/Enterprise/EnterpriseLicenseSnapshot";
 import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 import UserService from "Common/Server/Services/UserService";
+import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import logger from "Common/Server/Utils/Logger";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import EnterpriseLicenseSeatUtil from "./EnterpriseLicenseSeatUtil";
@@ -67,10 +68,14 @@ export const getDefaultLicenseProviderDependencies: () => LicenseProviderDepende
       /*
        * Every user on this installation, not just one project's: a seat is
        * consumed by a person existing here, whichever door they came through.
+       * Not a sample person (issue #6808): made up for a sample project, they
+       * are nobody, and never sign in.
        */
       getLocalUserCount: async (): Promise<number> => {
         const userCount: PositiveNumber = await UserService.countBy({
-          query: {},
+          query: {
+            sampleProjectId: QueryHelper.isNull(),
+          },
           props: {
             isRoot: true,
           },

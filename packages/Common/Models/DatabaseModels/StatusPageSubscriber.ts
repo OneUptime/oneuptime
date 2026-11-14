@@ -1061,7 +1061,7 @@ export default class StatusPageSubscriber extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Is Subscribed to All Event Types",
     description:
-      "Is Subscriber Subscribed to All Event Types (like Incidents, Scheduled Events, Announcements) on this status page?",
+      "Is Subscriber Subscribed to All Event Types (like Incidents, Maintenance Events, Announcements) on this status page?",
     defaultValue: true,
   })
   @Column({
@@ -1160,7 +1160,7 @@ export default class StatusPageSubscriber extends BaseModel {
     type: TableColumnType.JSON,
     title: "Subscribed to Event Types",
     description:
-      "Which event types is the subscriber subscribed to (like Incidents, Scheduled Events, Announcements)",
+      "Which event types is the subscriber subscribed to (like Incidents, Maintenance Events, Announcements)",
   })
   @Column({
     type: ColumnType.JSON,

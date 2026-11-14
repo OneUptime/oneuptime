@@ -42,13 +42,13 @@ Zie [Een monitor maken](/docs/monitor/create-monitor).
 
 De regels van een monitor: wat elk controleresultaat betekent. Ze worden op volgorde bekeken, en de eerste die overeenkomt kan de status van de monitor wijzigen, een incident melden, een waarschuwing aanmaken, of alle drie.
 
-Ook wel: **Bewakingscriteria**, **Monitorcriteria**, **Monitor Steps**. Zie [Monitorcriteria en statussen](/docs/monitor/criteria-and-statuses).
+Ook wel: **Bewakingscriteria**, **Monitorcriteria**, **Monitor Steps**. Zie [Criteria en statussen](/docs/monitor/criteria-and-statuses).
 
 ### Monitorstatus
 
 Hoe een monitor er op dit moment voor staat. Elk nieuw project heeft drie monitorstatussen, **Operationeel**, **Verminderd** en **Offline**, en u kunt er zelf meer toevoegen.
 
-Zie [Monitorcriteria en statussen](/docs/monitor/criteria-and-statuses).
+Zie [Criteria en statussen](/docs/monitor/criteria-and-statuses).
 
 ### Sonde
 
@@ -90,7 +90,7 @@ Zie [Escalatieregels](/docs/on-call/escalation-rules).
 
 Wie er op elk moment dienst heeft: mensen wisselen elkaar af, en ieder draagt over aan de volgende. Een escalatieregel die een schema oproept, roept degene op die daarin dienst heeft.
 
-Ook wel: **Rotation**. Zie [Bereikbaarheidsschema's](/docs/on-call/schedules).
+Ook wel: **Rotation**, **Schema van bereikbaarheidsbeleid**. Zie [Bereikbaarheidsschema's](/docs/on-call/schedules).
 
 ### Laag
 
@@ -103,6 +103,12 @@ Zie [Bereikbaarheidsschema's](/docs/on-call/schedules#lagen).
 Een adres waarop OneUptime u in een project mag bereiken: een e-mailadres, een telefoonnummer voor sms of oproepen, uw Slack- of Microsoft Teams-account, of de OneUptime-app op uw telefoon. Ieder voegt zijn eigen adressen toe onder **Gebruikersinstellingen**.
 
 Zie [Meldingsmethoden](/docs/notifications/notification-methods).
+
+### Hoe ik bereikbaar ben
+
+Uw eigen regels om opgeroepen te worden: welke van uw meldingsmethoden een oproep probeert, en na hoe lang. Eén ladder geldt voor elk incident, elke waarschuwing en elke episode, en een ernst kan eigen regels hebben. Ieder stelt de eigen regels in onder **Gebruikersinstellingen**.
+
+Ook wel: **Persoonlijke bereikbaarheidsregels**. Zie [Hoe ik bereikbaar ben](/docs/notifications/on-call-rules).
 
 ### Statuspagina
 
@@ -118,7 +124,7 @@ Zie [Abonnees en aankondigingen](/docs/status-pages/subscribers).
 
 ### Geplande onderhoud
 
-Gepland werk, vooraf aangekondigd. Een gebeurtenis doorloopt **Gepland**, **Lopend**, **Beëindigd** en **Voltooid**, en de statuspagina's waarop ze wordt getoond, informeren bezoekers en abonnees erover.
+Gepland werk, vooraf aangekondigd. Elke onderhoudsgebeurtenis doorloopt de onderhoudsstatussen **Gepland**, **Lopend**, **Beëindigd** en **Voltooid**, en de statuspagina's waarop ze wordt getoond, informeren bezoekers en abonnees erover.
 
 Ook wel: **Geplande onderhoudsgebeurtenis**, **Geplande gebeurtenis**, **Gebeurtenis**. Zie [Geplande onderhoud – Overzicht](/docs/scheduled-maintenance/index).
 
@@ -140,7 +146,7 @@ Zie [Monitorgroepen](/docs/monitor/monitor-groups).
 
 Een applicatie of microservice die u draait. OneUptime voegt hem toe zodra zijn eerste telemetrie binnenkomt, genoemd naar zijn `service.name`, en brengt zijn logs, traces, metrics, exceptions, incidenten en eigenaren samen op één pagina.
 
-Ook wel: **Servicecatalogus**, **Telemetrieservice**. Zie [Servicecatalogus](/docs/telemetry/services).
+Ook wel: **Servicecatalogus**, **Telemetrieservice**. Zie [Services](/docs/telemetry/services).
 
 ### Host
 
@@ -256,7 +262,7 @@ Zie [Label- en eigenaarsregels](/docs/configuration/label-and-owner-rules).
 
 Een fout die uw code opwerpt. OneUptime groepeert elk voorkomen van dezelfde fout tot één uitzondering, met de stacktrace, het verloop en de verzoeken waarin ze optrad.
 
-Ook wel: **Uitzonderingen volgen**, `/telemetry-exception`. Zie [Uitzonderingen volgen](/docs/telemetry/exceptions).
+Ook wel: **Uitzonderingen volgen**, `/telemetry-exception`. Zie [Uitzonderingen](/docs/telemetry/exceptions).
 
 ### AI-inzichten
 
@@ -300,7 +306,7 @@ Zie [Traceverkenner](/docs/telemetry/traces-explorer).
 
 Hoe uw applicatie CPU-tijd en geheugen besteedt, functie voor functie, verstuurd door een profiler die naar de Pyroscope-compatibele API van OneUptime pusht.
 
-Ook wel: **Prestatieprofielen**, **Continue profilering**. Zie [Continue profilering](/docs/telemetry/profiles).
+Ook wel: **Prestatieprofielen**, **Continue profilering**. Zie [Profielen](/docs/telemetry/profiles).
 
 ### AI / LLM
 
@@ -472,13 +478,13 @@ Zie [Welke gebruik ik?](/docs/introduction/which-one#sonde-agent-collector-of-ru
 
 ### Bereikbaarheidsregels
 
-Twee verschillende dingen. Onder **Incidenten** en **Waarschuwingen** kiezen bereikbaarheidsregels het bereikbaarheidsbeleid dat een nieuw incident of een nieuwe waarschuwing uitvoert. Onder **Gebruikersinstellingen** bepalen uw eigen bereikbaarheidsregels welke van uw meldingsmethoden een oproep probeert, en na hoe lang.
+Onder **Incidenten** en **Waarschuwingen** kiezen bereikbaarheidsregels het bereikbaarheidsbeleid dat een nieuw incident of een nieuwe waarschuwing uitvoert. De eigen regels van iemand over hoe een oproep die persoon bereikt, heetten ook bereikbaarheidsregels: ze heten nu **Hoe ik bereikbaar ben**, onder **Gebruikersinstellingen**.
 
-Zie [Incidentinstellingen en automatisering](/docs/incidents/settings#bereikbaarheidsregels-voor-incidenten) en [Persoonlijke bereikbaarheidsregels](/docs/notifications/on-call-rules).
+Zie [Incidentinstellingen en automatisering](/docs/incidents/settings#bereikbaarheidsregels-voor-incidenten) en [Hoe ik bereikbaar ben](/docs/notifications/on-call-rules).
 
 ### Meldingsinstellingen
 
-Twee verschillende pagina's. Onder **Gebruikersinstellingen**: welke updates over wat van u is u bereiken, en via welke kanalen. Onder **Projectinstellingen**: de schakelaars van het project voor sms en oproepen, het berichtentegoed ervan, en de eigen SMTP en Twilio ervan.
+Onder **Gebruikersinstellingen**: welke updates over wat van u is u bereiken, en via welke kanalen. De schakelaars van het project voor sms en oproepen, het berichtentegoed ervan en de eigen SMTP en Twilio ervan heetten ook meldingsinstellingen: ze heten nu **Meldingskanalen**, onder **Projectinstellingen**.
 
 Zie [Meldingsinstellingen](/docs/notifications/notification-settings).
 

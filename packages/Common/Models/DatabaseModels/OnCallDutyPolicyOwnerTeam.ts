@@ -77,8 +77,11 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 @CrudApiEndpoint(new Route("/on-call-duty-policy-owner-team"))
 @TableMetadata({
   tableName: "OnCallDutyPolicyOwnerTeam",
-  singularName: "OnCallDutyPolicy Team Owner",
-  pluralName: "OnCallDutyPolicy Team Owners",
+  singularName: "On-Call Policy Team Owner",
+  pluralName: "On-Call Policy Team Owners",
+  // Its names before #6817, which the API, the CLI and MCP keep.
+  apiSingularName: "OnCallDutyPolicy Team Owner",
+  apiPluralName: "OnCallDutyPolicy Team Owners",
   icon: IconProp.Signal,
   tableDescription: "Add teams as owners to your on-call policies.",
 })
@@ -274,8 +277,7 @@ export default class OnCallDutyPolicyOwnerTeam extends BaseModel {
     type: TableColumnType.Entity,
     modelType: OnCallDutyPolicy,
     title: "OnCallDutyPolicy",
-    description:
-      "Relation to OnCallDutyPolicy Resource in which this object belongs",
+    description: "Relation to the on-call policy this object belongs to",
   })
   @ManyToOne(
     () => {
@@ -317,7 +319,7 @@ export default class OnCallDutyPolicyOwnerTeam extends BaseModel {
     type: TableColumnType.ObjectID,
     required: true,
     canReadOnRelationQuery: true,
-    title: "OnCallDutyPolicy ID",
+    title: "On-Call Policy ID",
     description: "ID of the on-call policy the team owns",
   })
   @Column({

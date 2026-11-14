@@ -4,9 +4,11 @@ import RemediationRound, {
   getRoundChecks,
   getRoundExplanation,
   getRoundTryAgainRefusal,
+  getTokenLimitRefusal,
   toLifecycleEventsJson,
   toRoundRunJson,
 } from "../../../../Server/Utils/AutoRemediation/RemediationRound";
+import { AutonomousBudgetStatus } from "../../../../Server/Services/AIService";
 import AIInvestigationEngine from "../../../../Server/Utils/AI/SRE/AIInvestigationEngine";
 import AIInvestigationQueue from "../../../../Server/Utils/AI/SRE/InvestigationQueue";
 import AIRunEventService from "../../../../Server/Services/AIRunEventService";
@@ -1708,7 +1710,14 @@ describe("RemediationRound.tryAgain: a round that did not finish starts again", 
         "project_daily_limit_reached",
         RemediationRoundTryAgainRefusal.LimitReached,
       ],
-      ["daily_budget_exhausted", RemediationRoundTryAgainRefusal.LimitReached],
+      /*
+       * The incident's own daily AI token limit, which the queue read
+       * without handing it over: used up, the only other way it stops.
+       */
+      [
+        "daily_budget_exhausted",
+        RemediationRoundTryAgainRefusal.IncidentTokenLimitUsedUp,
+      ],
       ["budget_check_failed", RemediationRoundTryAgainRefusal.NotStarted],
     ])(
       "a queue that skips it (%s) says why, and nothing was named",
@@ -1729,5 +1738,122 @@ describe("RemediationRound.tryAgain: a round that did not finish starts again", 
         expect(mocks.roundRunChange).not.toHaveBeenCalled();
       },
     );
+
+    /*
+     * #7157: the record's own daily AI token limit, set to 0 (or below),
+     * pauses its automatic AI work until someone raises it: the refusal
+     * says so, and names the limit of the record the fix is for. Only a
+     * limit today's work used up says midnight.
+     */
+    it.each([
+      {
+        record: "incident",
+        limitInTokens: 0,
+        usedTokensToday: 0,
+        refusal: RemediationRoundTryAgainRefusal.IncidentTokenLimitPaused,
+      },
+      {
+        record: "incident",
+        limitInTokens: -10,
+        usedTokensToday: 0,
+        refusal: RemediationRoundTryAgainRefusal.IncidentTokenLimitPaused,
+      },
+      {
+        record: "incident",
+        limitInTokens: 1000,
+        usedTokensToday: 1200,
+        refusal: RemediationRoundTryAgainRefusal.IncidentTokenLimitUsedUp,
+      },
+      {
+        record: "alert",
+        limitInTokens: 0,
+        usedTokensToday: 0,
+        refusal: RemediationRoundTryAgainRefusal.AlertTokenLimitPaused,
+      },
+      {
+        record: "alert",
+        limitInTokens: -1,
+        usedTokensToday: 0,
+        refusal: RemediationRoundTryAgainRefusal.AlertTokenLimitPaused,
+      },
+      {
+        record: "alert",
+        limitInTokens: 1000,
+        usedTokensToday: 1000,
+        refusal: RemediationRoundTryAgainRefusal.AlertTokenLimitUsedUp,
+      },
+    ])(
+      "an $record's daily AI token limit of $limitInTokens: $refusal",
+      async (data: {
+        record: string;
+        limitInTokens: number;
+        usedTokensToday: number;
+        refusal: RemediationRoundTryAgainRefusal;
+      }) => {
+        const mocks: RoundMocks = mockRound(
+          data.record === "alert"
+            ? {
+                suggestion: fakeSuggestion({
+                  incidentId: undefined,
+                  alertId: ALERT_ID,
+                }),
+              }
+            : {},
+        );
+        mocks.enqueue.mockImplementation(
+          async (args: {
+            onNotEnqueued?:
+              | ((
+                  code: InvestigationNotStartedCode,
+                  budget?: AutonomousBudgetStatus,
+                ) => Promise<void>)
+              | undefined;
+          }): Promise<ObjectID | null> => {
+            await args.onNotEnqueued?.("daily_budget_exhausted", {
+              exhausted: true,
+              limitInTokens: data.limitInTokens,
+              usedTokensToday: data.usedTokensToday,
+            });
+            return null;
+          },
+        );
+
+        await expect(tryAgain()).rejects.toThrow(refusalOf(data.refusal));
+        expect(refusalOf(data.refusal).includes("midnight")).toBe(
+          data.limitInTokens > 0,
+        );
+        expect(mocks.roundRunChange).not.toHaveBeenCalled();
+      },
+    );
+
+    it("the token limit refusal reads the record and the limit, and a budget not handed over as used up", () => {
+      expect(getTokenLimitRefusal("incident", null)).toBe(
+        RemediationRoundTryAgainRefusal.IncidentTokenLimitUsedUp,
+      );
+      expect(getTokenLimitRefusal("alert", undefined)).toBe(
+        RemediationRoundTryAgainRefusal.AlertTokenLimitUsedUp,
+      );
+      expect(
+        getTokenLimitRefusal("incident", {
+          exhausted: true,
+          limitInTokens: 0,
+          usedTokensToday: 0,
+        }),
+      ).toBe(RemediationRoundTryAgainRefusal.IncidentTokenLimitPaused);
+      expect(
+        getTokenLimitRefusal("alert", {
+          exhausted: true,
+          limitInTokens: -3,
+          usedTokensToday: 0,
+        }),
+      ).toBe(RemediationRoundTryAgainRefusal.AlertTokenLimitPaused);
+      expect(
+        getTokenLimitRefusal("alert", {
+          exhausted: true,
+          limitInTokens: 1,
+          usedTokensToday: 1,
+        }),
+      ).toBe(RemediationRoundTryAgainRefusal.AlertTokenLimitUsedUp);
+    });
   });
 });

@@ -1,12 +1,13 @@
-# Persoonlijke bereikbaarheidsregels
+# Hoe ik bereikbaar ben
 
-Je bereikbaarheidsregels bepalen hoe een oproep je bereikt: welke van je meldingsmethoden OneUptime probeert, en hoe lang na het begin van de oproep. Elk soort oproep heeft eigen regels, één set per ernst, zodat een kritiek incident je meteen kan bellen terwijl een lichte waarschuwing op een e-mail wacht. Je stelt ze in onder **Gebruikersinstellingen → Bereikbaarheidsregels**.
+Je bereikbaarheidsregels bepalen hoe een oproep je bereikt: welke van je meldingsmethoden OneUptime probeert, en hoe lang na het begin van de oproep. Elk soort oproep heeft eigen regels, één set per ernst, zodat een kritiek incident je meteen kan bellen terwijl een lichte waarschuwing op een e-mail wacht. Je stelt ze in onder **Gebruikersinstellingen → Hoe ik bereikbaar ben**.
 
 > [!NOTE]
 > Deze regels zijn alleen van jou. De **Bereikbaarheidsregels** onder **Incidenten → Regels** en **Waarschuwingen → Regels** zijn iets anders: die bepalen welk bereikbaarheidsbeleid een nieuw incident of een nieuwe waarschuwing uitvoert.
 
 :::cards
 - [Hoe een oproep je bereikt](#hoe-een-oproep-je-bereikt): Je regels voor één oproep, stap voor stap.
+- [Eén reeks voor alles](#eén-reeks-voor-alles): De stappen die elke oproep probeert, één keer ingesteld.
 - [De regels waarmee je begint](#de-regels-waarmee-je-begint): Wat elke geverifieerde methode toevoegt, en hoe je het inkort.
 - [Een regel toevoegen](#een-regel-toevoegen): Een methode en een wachttijd voor één ernst.
 - [Pushregels](#pushregels): Door de stille modus heen klinken, en herhalen tot iemand bevestigt.
@@ -26,9 +27,33 @@ flowchart TB
 
 De meeste berichten kunnen de oproep bevestigen: e-mails, sms'jes en berichten via WhatsApp, Telegram, Slack, Microsoft Teams en Mattermost bevatten een bevestigingslink, en een telefoongesprek vraagt je op 1 te drukken. Kun je een oproep niet aannemen, dan kun je hem via dezelfde berichten escaleren, en een telefoongesprek vraagt je op 2 te drukken: het beleid roept meteen het volgende niveau op, en je wordt er niet meer over opgeroepen. Zie [Een oproep escaleren](/docs/on-call/escalation-rules#een-oproep-escaleren). Elke oproep die je krijgt, staat onder **Gebruikersinstellingen → Bereikbaarheidslogboeken**, waar **Tijdlijn bekijken** elk verzonden bericht toont en of het is afgeleverd.
 
+## Eén reeks voor alles
+
+**Gebruikersinstellingen → Hoe ik bereikbaar ben** opent met uw reeks: de stappen die elke oproep probeert, voor incidenten, waarschuwingen en episodes van elk ernstniveau. Elke stap is een van uw geverifieerde methoden en wanneer die wordt gebruikt, zoals meteen een sms en na 5 minuten een oproep. Stappen met dezelfde wachttijd gaan samen uit, dus de reeks leest in de volgorde waarin ze oproept.
+
+:::steps
+### Een manier toevoegen om u te bereiken
+
+Kies een van uw geverifieerde methoden bij **Een manier toevoegen om u te bereiken**. Een nummer of adres dat nog op zijn code wacht, staat onder **Nog niet geverifieerd**, met **Verifiëren**.
+
+### Kiezen wanneer die wordt gebruikt
+
+Kies naast elke stap een wachttijd van **Onmiddellijk** tot **1 uur**. Een push-stap zegt ook hoe die klinkt en of die herhaalt: zie [Pushregels](#pushregels).
+
+### Opslaan
+
+Klik op **Reeks opslaan**. Dat schrijft dezelfde regels in elke kaart van elk tabblad: de regels die u met de hand aan elke kaart zou toevoegen.
+:::
+
+**Test uw oproepen**, onderaan de pagina, stuurt u een testoproep via deze regels.
+
+Verdient een ernstniveau iets anders, dan opent **Anders voor sommige ernstniveaus** de tabbladen en kaarten die hieronder staan beschreven. Een kaart die van uw reeks afwijkt, is gemarkeerd met **Wijkt af van de reeks**, en de reeks vermeldt wat elke kaart in plaats daarvan doet. Wijken uw regels al af, dan opent de pagina op de kaarten, met **Eén reeks voor alles gebruiken**: bij opslaan noemt die eerst de kaarten die hun afwijking verliezen. Een ernstniveau dat uw project heeft gearchiveerd, houdt zijn eigen regels.
+
+Een dienstbeleid bepaalt wie wordt opgeroepen en wanneer het volgende niveau komt. Hoe u wordt bereikt, is deze reeks, voor elk beleid dat u oproept.
+
 ## De vier tabbladen
 
-**Gebruikersinstellingen → Bereikbaarheidsregels** heeft een tabblad voor elk soort oproep. Elk tabblad heeft een kaart per ernst, met de naam en de kleur die je project eraan gaf:
+**Gebruikersinstellingen → Hoe ik bereikbaar ben** heeft een tabblad voor elk soort oproep. Elk tabblad heeft een kaart per ernst, met de naam en de kleur die je project eraan gaf:
 
 | Tabblad | Oproepen voor | Kaarten voor |
 | --- | --- | --- |
@@ -60,7 +85,7 @@ Je eigen regels hebben geen stille uren: houd lage ernstniveaus op e-mail, of op
 :::steps
 ### De kaart openen
 
-Ga naar **Gebruikersinstellingen → Bereikbaarheidsregels**, open het tabblad voor het soort oproep en zoek de kaart van de ernst.
+Ga naar **Gebruikersinstellingen → Hoe ik bereikbaar ben**, open het tabblad voor het soort oproep en zoek de kaart van de ernst.
 
 ### De methode kiezen
 
@@ -105,12 +130,12 @@ De API kan een afmeldregel opslaan, met `isOptOut` ingesteld en zonder methode: 
 :::
 
 :::details De terugval voor een heel project uitzetten
-Een projecteigenaar, of iemand met **Manage Billing**, kan via de API `disableOnCallNotificationFallback` van het project instellen. Een oproep die geen regel vindt, wordt dan niet afgeleverd, en het logboek ervan zegt dat de gebruiker regels moet toevoegen onder **Gebruikersinstellingen → Bereikbaarheidsregels**.
+Een projecteigenaar, of iemand met **Manage Billing**, kan via de API `disableOnCallNotificationFallback` van het project instellen. Een oproep die geen regel vindt, wordt dan niet afgeleverd, en het logboek ervan zegt dat de gebruiker regels moet toevoegen onder **Gebruikersinstellingen → Hoe ik bereikbaar ben**.
 :::
 
 ## Regels van een teamgenoot
 
-Projecteigenaren en -beheerders kunnen dezelfde pagina voor iedereen in het project bekijken en wijzigen: onder **Gebruikers** openen ze de persoon, en dan **Bereikbaarheidsregels** in de sectie **Bereikbaarheid**. **Gereedheid**, ernaast, toont of elke ernst die persoon bereikt. Wanneer iemand anders je regels toevoegt, wijzigt of verwijdert, krijg je daarover een e-mail, en elke wijziging staat in het auditlogboek van het project.
+Projecteigenaren en -beheerders kunnen dezelfde pagina voor iedereen in het project bekijken en wijzigen: onder **Gebruikers** openen ze de persoon, en dan **Hoe ik bereikbaar ben** in de sectie **Bereikbaarheid**. **Gereedheid**, ernaast, toont of elke ernst die persoon bereikt. Wanneer iemand anders je regels toevoegt, wijzigt of verwijdert, krijg je daarover een e-mail, en elke wijziging staat in het auditlogboek van het project.
 
 ## Probleemoplossing
 

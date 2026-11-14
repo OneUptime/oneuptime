@@ -7,7 +7,7 @@ import {
   CapturedStatement,
   SUBSCRIPTION_COLUMNS,
   SubscriptionColumn,
-  captureClaimStatements,
+  captureClaimQueries,
   claimAdmitsProject,
   expectPlaceholdersMatchParameters,
   getBoundStatusList,
@@ -61,8 +61,12 @@ type ProjectStatuses = {
   paymentProviderMeteredSubscriptionStatus: string | null;
 };
 
+/*
+ * The claim is ONE statement (issue #7194): `claimedRows` is what it
+ * answers, the devices it claimed.
+ */
 async function captureClaim(
-  selectRows: Array<Record<string, unknown>> = [],
+  claimedRows: Array<Record<string, unknown>> = [],
   limit: number = 25,
 ): Promise<{
   statements: Array<CapturedStatement>;
@@ -70,9 +74,9 @@ async function captureClaim(
   claimed: Array<ObjectID>;
 }> {
   const service: NetworkDeviceServiceType = new NetworkDeviceServiceType();
-  const statements: Array<CapturedStatement> = captureClaimStatements(
+  const statements: Array<CapturedStatement> = captureClaimQueries(
     service,
-    selectRows,
+    claimedRows,
   );
 
   const claimed: Array<ObjectID> = await service.claimDevicesForPolling({
@@ -292,7 +296,7 @@ describe("NetworkDeviceService.claimDevicesForPolling keeps past_due projects po
       expect(sql).toContain('AND p."deletedAt" IS NULL');
       expect(sql).toContain('ORDER BY nd."nextPollAt" ASC');
       expect(sql).toContain("LIMIT $3");
-      expect(sql).toContain("FOR UPDATE OF nd SKIP LOCKED");
+      expect(sql).toContain("FOR NO KEY UPDATE OF nd SKIP LOCKED");
     });
   });
 
@@ -304,26 +308,24 @@ describe("NetworkDeviceService.claimDevicesForPolling keeps past_due projects po
       expect(claimed).toEqual([]);
     });
 
-    test("claims the selected rows and the update's own numbering still lines up", async () => {
+    test("claims and advances the due devices in the same one statement", async () => {
       const firstId: string = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
       const secondId: string = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 
       const { statements, claimed } = await captureClaim([
-        { _id: firstId, pollingIntervalInMinutes: 10 },
-        { _id: secondId, pollingIntervalInMinutes: null },
+        { _id: firstId },
+        { _id: secondId },
       ]);
 
-      expect(statements).toHaveLength(2);
+      // No second statement: nothing comes back to Node between the two.
+      expect(statements).toHaveLength(1);
 
-      const update: CapturedStatement = statements[1]!;
+      const sql: string = normalizeSql(statements[0]!.sql);
 
-      expect(normalizeSql(update.sql)).toContain('UPDATE "NetworkDevice"');
-      // (id, nextPollAt) per row, then the ids again for the IN list.
-      expect(update.parameters).toHaveLength(6);
-      expect(update.parameters).not.toContainEqual(
-        SubscriptionStatusUtil.getActiveSubscriptionStatuses(),
-      );
-      expectPlaceholdersMatchParameters(update);
+      expect(sql).toContain('UPDATE "NetworkDevice" AS device');
+      expect(sql).toContain('RETURNING device."_id"');
+      expect(sql).toContain('SELECT "_id" FROM "claimed"');
+      expectPlaceholdersMatchParameters(statements[0]!);
 
       expect(
         claimed.map((id: ObjectID) => {

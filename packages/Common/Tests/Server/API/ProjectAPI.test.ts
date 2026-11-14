@@ -122,7 +122,11 @@ describe("ProjectAPI", () => {
             paymentProviderMeteredSubscriptionStatus: true,
             paymentProviderSubscriptionStatus: true,
             isBlocked: true,
+            // A sample project's bar, drawn from the first paint (#6808).
+            isSampleProject: true,
             createdByUserId: true,
+            // The products the project shows, drawn before any request (#6814).
+            productSettings: true,
           },
         },
         limit: LIMIT_PER_PROJECT,
@@ -210,7 +214,11 @@ describe("ProjectAPI", () => {
             paymentProviderMeteredSubscriptionStatus: true,
             paymentProviderSubscriptionStatus: true,
             isBlocked: true,
+            // A sample project's bar, drawn from the first paint (#6808).
+            isSampleProject: true,
             createdByUserId: true,
+            // The products the project shows, drawn before any request (#6814).
+            productSettings: true,
           },
         },
         limit: LIMIT_PER_PROJECT,

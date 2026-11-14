@@ -156,7 +156,7 @@ test.describe("Telemetry ingestion key details", () => {
   const openEditForm: () => Promise<void> = async (): Promise<void> => {
     await ctx.page
       .getByRole("button", {
-        name: "Edit Telemetry Ingestion Key",
+        name: "Edit Ingestion Key",
         exact: true,
       })
       .click();
@@ -165,7 +165,7 @@ test.describe("Telemetry ingestion key details", () => {
     const next: Locator = modal().getByTestId("modal-footer-next-button");
 
     await expect(
-      modal().getByPlaceholder("Telemetry Ingestion Key Name", {
+      modal().getByPlaceholder("Ingestion Key Name", {
         exact: true,
       }),
     ).toBeVisible({ timeout: 30000 });
@@ -190,7 +190,7 @@ test.describe("Telemetry ingestion key details", () => {
       projectId: ctx.projectId,
       url: detailUrl(keyId),
       ready: ctx.page.getByRole("button", {
-        name: "Edit Telemetry Ingestion Key",
+        name: "Edit Ingestion Key",
         exact: true,
       }),
     });

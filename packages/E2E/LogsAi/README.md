@@ -42,7 +42,12 @@ The suite covers, on a laptop and on a phone, light and dark:
 - Activity: every investigation and pull request, newest first, a page at a
   time - each done investigation saying what OneUptime AI found (the error
   log's found its cause outside the code, so no pull request opened on its
-  own) - nothing yet and a read that failed.
+  own) - nothing yet and a read that failed;
+- the daily ingestion budget banner Logs' layout draws above every Logs
+  page: with today's Logs budget used up, the banner above the page says
+  until when and See budgets leads to Usage; with an answer that is not a
+  status (`{}`, which once took every explorer down, issue #6486), no banner,
+  no uncaught error, and the pages under the layout whole.
 
 ## Run it
 
@@ -64,3 +69,6 @@ node LogsAi/Fixture/server.js --watch
 
 then open `http://127.0.0.1:4436/dashboard/10000000-0000-4000-8000-000000000001/logs/ai/insights`.
 Scenarios are query parameters, listed at the top of `Fixture/LogFindings.js`.
+The ingestion budget read is answered in `Fixture/Fixture.js`: a 404 by
+default (no budget modelled, so no banner), today's Logs budget used up with
+`?budget=used-up`, and `{}` with `?budget=unreadable`.

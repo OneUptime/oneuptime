@@ -961,7 +961,9 @@ export default class GitHubAPI {
             res,
             error instanceof Error
               ? new BadDataException(error.message)
-              : new BadDataException("An error occurred"),
+              : new BadDataException(
+                  "The GitHub webhook could not be handled, and the error did not say why. GitHub sends it again on its own.",
+                ),
           );
         }
       },

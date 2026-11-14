@@ -127,8 +127,8 @@ kubectl get service --namespace <namespace>
 | 發生的情況 | 版本標籤顯示的內容 |
 | --- | --- |
 | 雲端市集接受每小時的回報 | Enterprise Edition，並註明透過您的雲端市集取得授權。 |
-| 72 小時內沒有任何回報被接受 | **Enterprise Edition (Marketplace Reports Failing)**：所有企業功能會在 30 天寬限期內繼續運作。 |
-| 雲端市集表示該安裝沒有訂閱，或寬限期結束 | **Enterprise Edition (Marketplace Subscription Ended)**：企業功能會停止，與[授權失效](/docs/self-hosted/enterprise#授權到期或缺少時)時相同。 |
+| 72 小時內沒有任何回報被接受 | **Enterprise Edition（雲端市集回報失敗）**：所有企業功能會在 30 天寬限期內繼續運作。 |
+| 雲端市集表示該安裝沒有訂閱，或寬限期結束 | **Enterprise Edition（雲端市集訂閱已結束）**：企業功能會停止，與[授權失效](/docs/self-hosted/enterprise#授權到期或缺少時)時相同。 |
 
 雲端市集拒絕的是已取消或已暫停的訂閱，以及並非您所購買的那個安裝。監控、警示、事件、待命與狀態頁面在任何情況下都會繼續運作，也不會刪除任何內容。重新訂閱後，下一次被接受的回報會再次為 Enterprise Edition 授權，無需重新啟動。
 
@@ -162,7 +162,7 @@ kubectl get service --namespace <namespace>
 
 ## 疑難排解
 
-:::details 版本標籤顯示 Enterprise Edition (Marketplace Reports Failing)
+:::details 版本標籤顯示 Enterprise Edition（雲端市集回報失敗）
 OneUptime 無法向雲端市集回報。它為此記錄的每一行日誌都以 `OneUptime Enterprise marketplace billing` 開頭；表示用量「cannot be reported」的那一行會指出缺少什麼。常見原因：
 
 - **AWS：** `oneuptime` 服務帳戶沒有 IAM 角色，或該角色沒有 `AWSMarketplaceMeteringFullAccess` 政策（只有 `AWSMarketplaceMeteringRegisterUsage` 不夠）。請將該政策關聯到這個角色，或使用 [AWS Marketplace](#aws-marketplace) 中的 `eksctl` 指令建立角色，然後以 `kubectl rollout restart deployment --namespace oneuptime` 重新啟動 OneUptime 的 Pod。
@@ -173,7 +173,7 @@ OneUptime 無法向雲端市集回報。它為此記錄的每一行日誌都以 
 在您修正問題期間，用量會被保留，並在 OneUptime 能再次回報後計費。超過 30 天的用量不會計費。
 :::
 
-:::details 版本標籤顯示 Enterprise Edition (Marketplace Subscription Ended)
+:::details 版本標籤顯示 Enterprise Edition（雲端市集訂閱已結束）
 雲端市集拒絕了該安裝：訂閱已被取消或暫停，或該安裝不是在雲端市集上購買的那一個。請在雲端市集上檢查訂閱並重新訂閱；下一次被接受的回報會再次為 Enterprise Edition 授權。如果回報在整個寬限期內持續失敗，也會顯示同樣的標籤。
 :::
 

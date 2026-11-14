@@ -3,6 +3,7 @@ import { describe, expect, test } from "@jest/globals";
 import * as fs from "fs";
 import * as path from "path";
 import {
+  OnboardedProductKey,
   PRODUCTS_WITHOUT_ONBOARDING,
   PRODUCT_ABOUT_TEXT,
   PRODUCT_EXAMPLE_DESCRIPTION,
@@ -73,9 +74,10 @@ function read(relativePath: string): string {
   return fs.readFileSync(path.join(DASHBOARD_SRC, relativePath), "utf8");
 }
 
-const ONBOARDINGS: Array<[ProductKey, ProductOnboarding]> = Object.entries(
-  PRODUCT_ONBOARDINGS,
-) as Array<[ProductKey, ProductOnboarding]>;
+const ONBOARDINGS: Array<[OnboardedProductKey, ProductOnboarding]> =
+  Object.entries(PRODUCT_ONBOARDINGS) as Array<
+    [OnboardedProductKey, ProductOnboarding]
+  >;
 
 // The products of the products menu, by the page each one opens.
 const MENU_ROUTE_PATTERN: RegExp =
@@ -120,7 +122,7 @@ const isResource: (product: ProductKey) => boolean = (
 };
 
 // Each product's layout: the one file that draws its page title.
-const LAYOUTS: Record<ProductKey, string> = {
+const LAYOUTS: Record<OnboardedProductKey, string> = {
   [ProductKey.Monitors]: "Pages/Monitor/Layout.tsx",
   [ProductKey.Incidents]: "Pages/Incidents/Layout.tsx",
   [ProductKey.Alerts]: "Pages/Alerts/Layout.tsx",
@@ -172,7 +174,10 @@ const LAYOUTS: Record<ProductKey, string> = {
  * product's own showcase (a list's, a telemetry explorer's, an overview's),
  * or the resource's showcase it already drew.
  */
-const FIRST_PAGES: Record<ProductKey, { file: string; draws: string }> = {
+const FIRST_PAGES: Record<
+  OnboardedProductKey,
+  { file: string; draws: string }
+> = {
   [ProductKey.Monitors]: {
     file: "Pages/Monitor/Monitors.tsx",
     draws: "product: ProductKey.Monitors,",
@@ -350,7 +355,7 @@ const FIRST_PAGES: Record<ProductKey, { file: string; draws: string }> = {
 };
 
 // The lists: each draws its explanation under its own empty table.
-const LISTS_UNDER_A_TABLE: Array<ProductKey> = [
+const LISTS_UNDER_A_TABLE: Array<OnboardedProductKey> = [
   ProductKey.Monitors,
   ProductKey.Incidents,
   ProductKey.Alerts,
@@ -363,6 +368,12 @@ const LISTS_UNDER_A_TABLE: Array<ProductKey> = [
   ProductKey.Workflows,
   ProductKey.Runbooks,
   ProductKey.Forms,
+];
+
+// The pages whose own words say what their product is for: the lists, and Code.
+const UNDER_THEIR_PAGES_OWN_WORDS: Array<OnboardedProductKey> = [
+  ...LISTS_UNDER_A_TABLE,
+  ProductKey.Code,
 ];
 
 // What draws the showcase of a list whose first step is a page of its own.
@@ -514,7 +525,7 @@ describe("every product of the products menu explains itself", () => {
 
   test("a resource's explanation is the showcase its empty list already draws", () => {
     for (const [product, showcase] of Object.entries(RESOURCE_SHOWCASES)) {
-      expect(PRODUCT_ONBOARDINGS[product as ProductKey].showcase).toBe(
+      expect(PRODUCT_ONBOARDINGS[product as OnboardedProductKey].showcase).toBe(
         showcase,
       );
     }
@@ -524,7 +535,7 @@ describe("every product of the products menu explains itself", () => {
 describe("each explanation is complete", () => {
   test.each(ONBOARDINGS)(
     "%s: a pitch, how to start, an example, and a documentation page that exists",
-    (product: ProductKey, onboarding: ProductOnboarding) => {
+    (product: OnboardedProductKey, onboarding: ProductOnboarding) => {
       const showcase: ResourceShowcase = onboarding.showcase;
 
       expect(onboarding.name.trim()).not.toBe("");
@@ -567,6 +578,50 @@ describe("each explanation is complete", () => {
       ).toBe(true);
     },
   );
+
+  /*
+   * A product's guide (#6821) is one of the docs' guides: a page of the
+   * Guides group, marked as a guide in the nav, on disk, and not the page
+   * its documentation link opens.
+   */
+  test("a product's guide is a guide of the docs, besides its documentation", () => {
+    const nav: string = fs.readFileSync(
+      path.join(DOCS, "Utils/Nav.ts"),
+      "utf8",
+    );
+    const guided: Array<string> = [];
+
+    for (const [product, onboarding] of ONBOARDINGS) {
+      if (!onboarding.guideRoute) {
+        continue;
+      }
+
+      const guidePath: string = onboarding.guideRoute.toString();
+
+      guided.push(product);
+      expect(guidePath).toMatch(/^\/docs\/guides\/[a-z-]+$/);
+      expect(guidePath).not.toBe(onboarding.docsRoute.toString());
+      expect(nav).toContain(`url: "${guidePath}",\n        isGuide: true,`);
+      expect(
+        fs.existsSync(
+          path.join(
+            DOCS,
+            "Content/en",
+            `${guidePath.replace("/docs/", "")}.md`,
+          ),
+        ),
+      ).toBe(true);
+    }
+
+    // The jobs that have a guide today; each new guide adds its product.
+    expect(guided).toEqual(
+      expect.arrayContaining([
+        ProductKey.Monitors,
+        ProductKey.OnCall,
+        ProductKey.StatusPages,
+      ]),
+    );
+  });
 
   test("a product's words are English translation keys a translator finds in en.json", () => {
     const missing: Array<string> = [];
@@ -719,7 +774,7 @@ function getNumbersWrittenAsText(showcase: ResourceShowcase): Array<string> {
 describe("an example's numbers are written in the reader's language", () => {
   test.each(ONBOARDINGS)(
     "%s: its example's numbers are figures, not English text",
-    (_product: ProductKey, onboarding: ProductOnboarding) => {
+    (_product: OnboardedProductKey, onboarding: ProductOnboarding) => {
       expect(getNumbersWrittenAsText(onboarding.showcase)).toEqual([]);
     },
   );
@@ -810,7 +865,7 @@ describe("an example's numbers are written in the reader's language", () => {
 describe("the explanation is where each product is", () => {
   test.each(ONBOARDINGS)(
     "%s: How it works sits beside its page's title",
-    (product: ProductKey) => {
+    (product: OnboardedProductKey) => {
       const layout: string = read(LAYOUTS[product]);
       const about: RegExp = new RegExp(
         `titleRight=\\{\\s*<ProductAboutButton\\s+product=\\{[^}]*ProductKey\\.${
@@ -824,7 +879,7 @@ describe("the explanation is where each product is", () => {
 
   test.each(ONBOARDINGS)(
     "%s: its first page draws it while there is nothing yet",
-    (product: ProductKey) => {
+    (product: OnboardedProductKey) => {
       const firstPage: { file: string; draws: string } = FIRST_PAGES[product];
 
       expect(read(firstPage.file)).toContain(firstPage.draws);
@@ -838,9 +893,9 @@ describe("the explanation is where each product is", () => {
    * Its title, steps, example and documentation follow; About, with no
    * table above it, says it all.
    */
-  test.each([...LISTS_UNDER_A_TABLE, ProductKey.Code])(
+  test.each(UNDER_THEIR_PAGES_OWN_WORDS)(
     "%s: under the page's own words, its showcase leaves its description to them",
-    (product: ProductKey) => {
+    (product: OnboardedProductKey) => {
       const firstPage: { file: string; draws: string } = FIRST_PAGES[product];
       const source: string = read(firstPage.file);
 
@@ -867,7 +922,7 @@ describe("the explanation is where each product is", () => {
 
   test("a showcase drawn alone says what its product is for", () => {
     for (const [product] of ONBOARDINGS) {
-      if ([...LISTS_UNDER_A_TABLE, ProductKey.Code].includes(product)) {
+      if (UNDER_THEIR_PAGES_OWN_WORDS.includes(product)) {
         continue;
       }
 
@@ -883,7 +938,8 @@ describe("the explanation is where each product is", () => {
   test("a telemetry product's button is its first step, and its setup guide waits for that telemetry", () => {
     for (const [product, firstRun] of Object.entries(TELEMETRY_FIRST_RUNS)) {
       const steps: Array<string> =
-        PRODUCT_ONBOARDINGS[product as ProductKey].showcase.steps || [];
+        PRODUCT_ONBOARDINGS[product as OnboardedProductKey].showcase.steps ||
+        [];
 
       expect(steps[0]).toBe(firstRun.startText);
       expect(firstRun.viewPage.startsWith("SERVICE_VIEW")).toBe(true);

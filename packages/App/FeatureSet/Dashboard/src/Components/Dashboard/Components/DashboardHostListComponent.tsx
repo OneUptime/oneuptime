@@ -47,6 +47,7 @@ import DashboardModelQueryInterpolation, {
 } from "Common/Utils/Dashboard/ModelQueryVariableInterpolation";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { getUnnamedText } from "./DashboardWidgetFallbackWords";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardHostListComponent;
@@ -225,7 +226,7 @@ const DashboardHostListComponentElement: FunctionComponent<ComponentProps> = (
   const honeycombTiles: Array<HoneycombTile> = hosts.map(
     (host: Host): HoneycombTile => {
       const id: string = (host._id as string) || "";
-      const name: string = (host.name as string) || "Unnamed";
+      const name: string = (host.name as string) || getUnnamedText(translator);
       const status: string =
         (host.otelCollectorStatus as string) || "disconnected";
       const isConnected: boolean = status === "connected";
@@ -276,7 +277,7 @@ const DashboardHostListComponentElement: FunctionComponent<ComponentProps> = (
 
   const rows: Array<ReactElement> = hosts.map((host: Host) => {
     const id: string = (host._id as string) || "";
-    const name: string = (host.name as string) || "Unnamed";
+    const name: string = (host.name as string) || getUnnamedText(translator);
     const status: string =
       (host.otelCollectorStatus as string) || "disconnected";
     const isConnected: boolean = status === "connected";
@@ -359,7 +360,10 @@ const DashboardHostListComponentElement: FunctionComponent<ComponentProps> = (
   return (
     <DashboardResourceListBase
       title={args.title}
-      pluralLabel="hosts"
+      countLabel={{
+        one: "{{count}} host",
+        other: "{{count}} hosts",
+      }}
       columns={COLUMNS}
       count={hosts.length}
       isLoading={isLoading}

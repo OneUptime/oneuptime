@@ -2,6 +2,9 @@
 
 OneUptime Kubernetes 代理是一个 Helm chart，它采集集群的指标、事件和 Pod 日志，并借助 eBPF 采集每个 Pod 的追踪、请求指标、服务图和网络流，无需修改代码，也无需 SDK。它还运行 [Kubernetes AI 代理](#kubernetes-ai-代理)，让 OneUptime AI 在调查事件或警报时运行只读的 `kubectl`。一条 `helm install` 即可部署；[Kubernetes 监控](/docs/monitor/kubernetes-monitor) 会根据它发送的数据发出警报。
 
+> [!NOTE]
+> 本页是代理的完整参考。第一次安装？[Kubernetes 代理(Helm 安装)](/docs/monitor/kubernetes-agent) 会带你逐步完成，并提供适用于你的平台的预设。
+
 :::cards
 - [安装代理](#安装代理): 使用 Helm 的四个步骤。
 - [作为 Amazon EKS 附加组件安装](#作为-amazon-eks-附加组件安装): 从 EKS 控制台安装，无需 Helm。

@@ -12,7 +12,7 @@ Eine Bereitschaftsrichtlinie entscheidet, wer zu einem Vorfall oder einer Warnun
 ## Eine Richtlinie anlegen
 
 :::steps
-1. Gehen Sie zu **Bereitschaftsdienst → Bereitschaftsrichtlinien** und klicken Sie auf **Bereitschaftsrichtlinie erstellen**.
+1. Gehen Sie zu **Bereitschaft → Bereitschaftsrichtlinien** und klicken Sie auf **Bereitschaftsrichtlinie erstellen**.
 2. Geben Sie einen **Name** ein, etwa „Zahlungen primär“.
 3. Klicken Sie unter **Wer wird zuerst alarmiert?** auf **Empfänger hinzufügen** und wählen Sie die Bereitschaftspläne, Teams und Personen, die zuerst alarmiert werden.
 4. Klicken Sie auf **Bereitschaftsrichtlinie erstellen**. Die Richtlinie öffnet sich auf ihrer Seite **Eskalationsregeln**, mit **Level 1** an seinem Platz.
@@ -109,7 +109,7 @@ flowchart TB
 Ausführungsprotokolle finden Sie an drei Stellen:
 
 - in den eigenen **Ausführungsprotokolle** der Richtlinie, unter **Protokolle**;
-- unter **Bereitschaftsdienst → Erweitert → Ausführungsprotokolle**, für jede Richtlinie, wobei direkte Alarmierungen aus Workflows und Chat als **Direkte Alarmierung** erscheinen;
+- unter **Bereitschaft → Erweitert → Ausführungsprotokolle**, für jede Richtlinie, wobei direkte Alarmierungen aus Workflows und Chat als **Direkte Alarmierung** erscheinen;
 - auf der Seite **Bereitschaftsausführungen** eines Vorfalls oder einer Warnung.
 
 Jede Zeile zeigt, was den Lauf ausgelöst hat, wann, seinen **Status** und wer ihn bestätigt hat. **Zeitachse anzeigen** öffnet seine **Zeitachse der Ausführung**: jede Eskalationsregel, wen sie alarmiert hat, über welchen Plan und wie jeder Alarm geendet hat. **Benachrichtigt über** zeigt, wie jeder Alarm die Person erreicht hat: Telefonanruf, SMS, E-Mail, Push-Benachrichtigung und so weiter. Ein Plan, in dem niemand Bereitschaft hat, zeigt statt einer Person **Niemand hatte Bereitschaft**. Eine Stufe, die niemanden alarmiert hat, sagt, warum, mit **Ohne Wartezeit fortgesetzt** darunter: Die Richtlinie hat nicht auf sie gewartet. In OneUptime Cloud brauchen Ausführungsprotokolle den Plan **Growth**.
@@ -119,13 +119,13 @@ Jede Zeile zeigt, was den Lauf ausgelöst hat, wann, seinen **Status** und wer i
 Archivieren stellt eine Richtlinie außer Dienst und behält alles: Öffnen Sie die **Einstellungen** der Richtlinie und klicken Sie auf ihrer Archivkarte auf **Archivieren**, oder wählen Sie Richtlinien in der Liste aus und wählen Sie **Archivieren**.
 
 - Eine archivierte Richtlinie alarmiert niemanden. Vorfälle und Warnungen, die sie verwenden, überspringen sie, und ein Lauf, der noch eskaliert, endet bei seinem nächsten Schritt.
-- Sie verlässt die Liste **Bereitschaftsrichtlinien** und landet unter **Bereitschaftsdienst → Erweitert → Archivierte Richtlinien**, wo **Aus Archiv entfernen** sie wieder in Dienst stellt.
+- Sie verlässt die Liste **Bereitschaftsrichtlinien** und landet unter **Bereitschaft → Erweitert → Archivierte Richtlinien**, wo **Aus Archiv entfernen** sie wieder in Dienst stellt.
 
 **Richtlinie löschen**, unter **Erweitert**, löscht die Richtlinie mitsamt ihren Eskalationsregeln und Benutzerüberschreibungen. Das Löschen aus der Liste fragt vorher nach und schlägt vor, stattdessen zu archivieren.
 
 ## Wer eine Richtlinie ändern darf
 
-**Projektinhaber**, **Projektadministrator**, **Projektmitglied**, **Bereitschafts-Administrator** und **Bereitschafts-Mitglied** dürfen Richtlinien anlegen, ändern und löschen; **Betrachter** und **Bereitschafts-Betrachter** dürfen sie lesen. In einer eigenen Rolle heißen die Berechtigungen **Create On-Call Duty Policy**, **Edit On-Call Duty Policy**, **Delete On-Call Duty Policy** und **Read On-Call Duty Policy**, und eine Rolle, die auf einige Beschriftungen beschränkt ist, erreicht nur die Richtlinien mit diesen Beschriftungen. Eigentümer und benutzerdefinierte Felder hinzuzufügen braucht in OneUptime Cloud den Plan **Growth**.
+**Projektinhaber**, **Projektadministrator**, **Projektmitglied**, **Bereitschafts-Administrator** und **Bereitschafts-Mitglied** dürfen Richtlinien anlegen, ändern und löschen; **Betrachter** und **Bereitschafts-Betrachter** dürfen sie lesen. In einer eigenen Rolle heißen die Berechtigungen **Create On-Call Policy**, **Edit On-Call Policy**, **Delete On-Call Policy** und **Read On-Call Policy**, und eine Rolle, die auf einige Beschriftungen beschränkt ist, erreicht nur die Richtlinien mit diesen Beschriftungen. Eigentümer und benutzerdefinierte Felder hinzuzufügen braucht in OneUptime Cloud den Plan **Growth**.
 
 ## API und Terraform
 
@@ -149,7 +149,7 @@ Wie Sie eine Richtlinie mit ihrer ersten Stufe in einer einzigen Anfrage anlegen
 ## Fehlerbehebung
 
 :::details Eine Richtlinie ist gelaufen, aber niemand wurde alarmiert
-Ihr Lauf zeigt **Execution Completed - No One Notified**. Öffnen Sie **Zeitachse anzeigen**: Eine Zeile mit **Niemand hatte Bereitschaft** verweist auf einen Plan mit einer Lücke, und die Statusmeldung einer Zeile **Übersprungen** sagt, warum, etwa weil jemand abwesend war und niemand ihn vertreten hat. **Bereitschaftsdienst → Einsatzbereitschaft** zeigt, wer nicht erreichbar war.
+Ihr Lauf zeigt **Execution Completed - No One Notified**. Öffnen Sie **Zeitachse anzeigen**: Eine Zeile mit **Niemand hatte Bereitschaft** verweist auf einen Plan mit einer Lücke, und die Statusmeldung einer Zeile **Übersprungen** sagt, warum, etwa weil jemand abwesend war und niemand ihn vertreten hat. **Bereitschaft → Einsatzbereitschaft** zeigt, wer nicht erreichbar war.
 :::
 
 :::details Die nächste Stufe wurde eine Minute nach ihrer Wartezeit alarmiert
@@ -161,7 +161,7 @@ Die Stufe davor hatte niemanden zu alarmieren: keine Empfänger, niemand mit Ber
 :::
 
 :::details Ein Vorfall nennt eine Richtlinie, die niemanden alarmiert hat
-Die Richtlinie ist archiviert: Eine archivierte Richtlinie bleibt an den Vorfällen und Warnungen, die sie verwenden, alarmiert niemanden, und ihr Ausführungsprotokoll sagt, dass sie nicht ausgeführt wurde. Holen Sie sie unter **Bereitschaftsdienst → Erweitert → Archivierte Richtlinien** aus dem Archiv.
+Die Richtlinie ist archiviert: Eine archivierte Richtlinie bleibt an den Vorfällen und Warnungen, die sie verwenden, alarmiert niemanden, und ihr Ausführungsprotokoll sagt, dass sie nicht ausgeführt wurde. Holen Sie sie unter **Bereitschaft → Erweitert → Archivierte Richtlinien** aus dem Archiv.
 :::
 
 ## Nächste Schritte

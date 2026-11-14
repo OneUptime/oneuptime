@@ -42,13 +42,13 @@ See [Creating a Monitor](/docs/monitor/create-monitor).
 
 A monitor's rules: what each check result means. They are checked in order, and the first one that matches can change the monitor's status, declare an incident, create an alert, or all three.
 
-Also called: **Monitoring Criteria**, **Monitor Criteria**, **Monitor Steps**. See [Monitor Criteria & Statuses](/docs/monitor/criteria-and-statuses).
+Also called: **Monitoring Criteria**, **Monitor Criteria**, **Monitor Steps**. See [Criteria & Statuses](/docs/monitor/criteria-and-statuses).
 
 ### Monitor Status
 
 What a monitor is right now. Every new project has three monitor statuses, **Operational**, **Degraded** and **Offline**, and you can add your own.
 
-See [Monitor Criteria & Statuses](/docs/monitor/criteria-and-statuses).
+See [Criteria & Statuses](/docs/monitor/criteria-and-statuses).
 
 ### Probe
 
@@ -90,7 +90,7 @@ See [Escalation Rules](/docs/on-call/escalation-rules).
 
 Who is on call at any moment: people take turns, and each one hands over to the next. An escalation rule that pages a schedule pages whoever is on call in it.
 
-Also called: **Rotation**. See [On-Call Schedules](/docs/on-call/schedules).
+Also called: **Rotation**, **On-Call Policy Schedule**. See [On-Call Schedules](/docs/on-call/schedules).
 
 ### Layer
 
@@ -103,6 +103,12 @@ See [On-Call Schedules](/docs/on-call/schedules#layers).
 An address OneUptime may reach you at in a project: an email address, a phone number for SMS or calls, your Slack or Microsoft Teams account, or the OneUptime app on your phone. Each person adds their own under **User Settings**.
 
 See [Notification Methods](/docs/notifications/notification-methods).
+
+### How to Reach Me
+
+Your own rules for being paged: which of your notification methods a page tries, and after how long. One ladder covers every incident, alert and episode, and a severity can have rules of its own. Each person sets their own under **User Settings**.
+
+Also called: **Personal On-Call Rules**. See [How to Reach Me](/docs/notifications/on-call-rules).
 
 ### Status Page
 
@@ -118,7 +124,7 @@ See [Subscribers & Announcements](/docs/status-pages/subscribers).
 
 ### Scheduled Maintenance
 
-Planned work, announced ahead of time. An event moves through **Scheduled**, **Ongoing**, **Ended** and **Completed**, and the status pages it is shown on tell visitors and subscribers about it.
+Planned work, announced ahead of time. Each maintenance event moves through the maintenance states **Scheduled**, **Ongoing**, **Ended** and **Completed**, and the status pages it is shown on tell visitors and subscribers about it.
 
 Also called: **Scheduled Maintenance Event**, **Scheduled Event**, **Event**. See [Scheduled Maintenance Overview](/docs/scheduled-maintenance/index).
 
@@ -140,7 +146,7 @@ See [Monitor Groups](/docs/monitor/monitor-groups).
 
 An application or microservice you run. OneUptime adds one the first time its telemetry arrives, named by its `service.name`, and brings its logs, traces, metrics, exceptions, incidents and owners together on one page.
 
-Also called: **Service Catalog**, **Telemetry Service**. See [Service Catalog](/docs/telemetry/services).
+Also called: **Service Catalog**, **Telemetry Service**. See [Services](/docs/telemetry/services).
 
 ### Host
 
@@ -256,7 +262,7 @@ See [Label and Owner Rules](/docs/configuration/label-and-owner-rules).
 
 An error your code throws. OneUptime groups every occurrence of the same error into one exception, with its stack trace, its trend and the requests it happened in.
 
-Also called: **Exception Tracking**, `/telemetry-exception`. See [Exception Tracking](/docs/telemetry/exceptions).
+Also called: **Exception Tracking**, `/telemetry-exception`. See [Exceptions](/docs/telemetry/exceptions).
 
 ### AI Insights
 
@@ -300,7 +306,7 @@ See [Traces Explorer](/docs/telemetry/traces-explorer).
 
 How your application spends CPU time and memory, function by function, sent by a profiler that pushes to OneUptime's Pyroscope-compatible API.
 
-Also called: **Performance Profiles**, **Continuous Profiling**. See [Continuous Profiling](/docs/telemetry/profiles).
+Also called: **Performance Profiles**, **Profiler**, **Continuous Profiling**. See [Profiles](/docs/telemetry/profiles).
 
 ### AI / LLM
 
@@ -472,13 +478,13 @@ See [Which One Do I Use?](/docs/introduction/which-one#probe-agent-collector-or-
 
 ### On-Call Rules
 
-Two different things. Under **Incidents** and **Alerts**, on-call rules pick the on-call policies a new incident or alert runs. Under **User Settings**, your own on-call rules decide which of your notification methods a page tries, and after how long.
+Under **Incidents** and **Alerts**, on-call rules pick the on-call policies a new incident or alert runs. A person's own rules for how a page reaches them were called on-call rules too: they are **How to Reach Me** now, under **User Settings**.
 
-See [Incident Settings & Automation](/docs/incidents/settings#incident-on-call-rules) and [Personal On-Call Rules](/docs/notifications/on-call-rules).
+See [Incident Settings & Automation](/docs/incidents/settings#incident-on-call-rules) and [How to Reach Me](/docs/notifications/on-call-rules).
 
 ### Notification Settings
 
-Two different pages. Under **User Settings**, which updates reach you about what you own, and on which channels. Under **Project Settings**, the project's switches for SMS and calls, its messaging balance, and its own SMTP and Twilio.
+Under **User Settings**, which updates reach you about what you own, and on which channels. The project's switches for SMS and calls, its messaging balance and its own SMTP and Twilio were called notification settings too: they are **Notification Channels** now, under **Project Settings**.
 
 See [Notification Settings](/docs/notifications/notification-settings).
 

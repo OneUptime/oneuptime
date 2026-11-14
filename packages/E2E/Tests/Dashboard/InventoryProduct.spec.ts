@@ -128,7 +128,7 @@ test.describe.skip("Inventory Product", () => {
       { link: "Logs", expectText: "Logs" },
       { link: "Traces", expectText: "Traces" },
       { link: "Metrics", expectText: "Metrics" },
-      { link: "Performance Profiles", expectText: "Performance Profiles" },
+      { link: "Profiles", expectText: "Profiles" },
       { link: "Exceptions", expectText: "Exceptions" },
       { link: "Custom Fields", expectText: "Custom Fields" },
       { link: "Incidents", expectText: "No incidents for this item" },

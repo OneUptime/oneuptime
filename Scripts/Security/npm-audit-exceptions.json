@@ -191,11 +191,6 @@
       "advisory": "GHSA-g3hv-75wg-m249",
       "expires": "2026-12-04",
       "reason": "minimatch has no fixed release in the lines its dependents ask for: GHSA-g3hv-75wg-m249 covers every version before 11.0.1 (published 2026-10-27), and the latest 3.x, 5.x, 9.x and 10.x releases (3.1.5, 5.1.9, 9.0.9, 10.2.6) are still affected (checked on 2026-10-31); 11 is a new major that none of them takes. Its globparts amplification needs a glob pattern somebody else writes. The copy a production install has comes through Expo's build tooling (@expo/cli, @expo/metro-config, @expo/config-plugins and @expo/fingerprint, through glob), which runs on a developer's or the CI machine with this repository's own app config and is not part of the app's bundle. The rest is jest's tooling (jest-expo, @testing-library/react-native), development only."
-    },
-    {
-      "advisory": "GHSA-3g3m-2fjr-6pw4",
-      "expires": "2026-12-04",
-      "reason": "glob has no fixed release in the lines its dependents ask for: GHSA-3g3m-2fjr-6pw4 covers 9.0.0 to 14.0.1 and is fixed in 14.0.2 (published 2026-10-27), and the latest 10.x and 13.x releases (10.5.0, 13.0.6) are still affected (checked on 2026-10-31); 14 is a new major that none of them takes. It lets a walk aborted through an AbortSignal keep reading the file system, which matters only to code that relies on a signal to stop a glob walk. The copy a production install has comes through Expo's build tooling (@expo/cli, @expo/metro-config, @expo/config-plugins and @expo/fingerprint), which runs on a developer's or the CI machine over this repository's own app and is not part of the app's bundle. jest's own glob here (7.2.3) is not affected."
     }
   ],
   "packages/Probe": [

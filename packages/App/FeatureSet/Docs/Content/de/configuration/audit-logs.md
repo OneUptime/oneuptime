@@ -88,6 +88,7 @@ Alles, was Personen in einem Projekt anlegen, ändern oder löschen, wird erfass
 | Aktivitätsfeeds | Ein Feed zeigt Änderungen, die das Audit-Protokoll bereits erfasst. |
 | Arbeitszustand von OneUptime | Sitzungen der Leser von Statusseiten, wartende Jobs und anderer Zustand, den OneUptime während seiner Arbeit hält. |
 | Die eigene Benachrichtigungseinrichtung einer Person | Die Adressen, Nummern und persönlichen Bereitschaftsregeln jeder Person gehören nur ihr. |
+| Die eigenen Präferenzen einer Person | Die Produkte, die jede Person in ihrer eigenen oberen Leiste fixiert, gehören nur ihr, und nur sie sieht sie. |
 
 Fügt ein Administrator eine Benachrichtigungsmethode oder eine persönliche Bereitschaftsregel zum Konto einer anderen Person hinzu oder entfernt sie, wird das ebenfalls erfasst, ohne die Adresse oder Nummer selbst.
 

@@ -483,7 +483,7 @@ MCP-сервер не хранит состояние: он не выдаёт и
 | Инциденты | Incident, Incident State, Incident Severity, Incident State Timeline, Incident Public Note, Incident Internal Note, Incident Alert, Postmortem Status |
 | Оповещения | Alert, Alert State, Alert Severity, Alert State Timeline, Alert Internal Note |
 | Страницы статуса | Status Page, Status Page Announcement |
-| Плановые работы | Scheduled Maintenance Event, Scheduled Maintenance State, Scheduled Maintenance State Timeline |
+| Плановые работы | Maintenance Event, Scheduled Maintenance State, Scheduled Maintenance State Timeline |
 | Команды и дежурства | Team, On-Call Policy |
 | Метки | Label |
 | Безопасность | Security Case, Security Case Evidence, Security Case Note, Security Case Priority, Security Case Status, Security Case Task, Security Detection, Security Playbook |

@@ -3,7 +3,7 @@
 Envoyez les e-mails de OneUptime par l'API HTTPS d'un fournisseur d'e-mail plutôt que par un serveur SMTP : Amazon SES, SendGrid, Mailgun, Postmark ou Resend. Un projet en choisit un pour une configuration SMTP, et une installation auto-hébergée peut envoyer tous ses propres e-mails par l'un d'eux. L'API est jointe en HTTPS sur le port 443 : les e-mails partent donc même depuis les réseaux qui bloquent les ports SMTP, et la clé de chaque fournisseur est stockée chiffrée.
 
 :::cards
-- [Amazon SES](#amazon-ses): Une clé d'accès IAM et la région où votre expéditeur est vérifié.
+- [Amazon SES](#amazon-ses): Une clé d'accès IAM, ou le rôle IAM propre au serveur, et la région où votre expéditeur est vérifié.
 - [SendGrid](#sendgrid): Une clé API avec l'accès Mail Send.
 - [Mailgun](#mailgun): Une clé API, le domaine d'envoi et sa région.
 - [Postmark](#postmark): Le jeton d'API du serveur.
@@ -15,7 +15,7 @@ Envoyez les e-mails de OneUptime par l'API HTTPS d'un fournisseur d'e-mail plut�
 
 :::tabs
 @tab Projet
-Dans **Paramètres du projet > Notifications > Paramètres de notification**, ouvrez **Plus de paramètres** et cliquez sur **Créer : Configuration SMTP** dans la carte **Configurations SMTP personnalisées**. À l'étape **Fournisseur**, saisissez un **Nom** et choisissez le fournisseur. L'étape suivante demande les paramètres de ce fournisseur, et l'étape **Expéditeur**, l'**E-mail de l'expéditeur** et le **Nom de l'expéditeur**. Une fois la configuration enregistrée, **Envoyer un e-mail de test** sur sa ligne vérifie qu'elle fonctionne.
+Dans **Paramètres du projet > Notifications > Canaux de notification**, ouvrez **Plus de paramètres** et cliquez sur **Créer : Configuration SMTP** dans la carte **Configurations SMTP personnalisées**. À l'étape **Fournisseur**, saisissez un **Nom** et choisissez le fournisseur. L'étape suivante demande les paramètres de ce fournisseur, et l'étape **Expéditeur**, l'**E-mail de l'expéditeur** et le **Nom de l'expéditeur**. Une fois la configuration enregistrée, **Envoyer un e-mail de test** sur sa ligne vérifie qu'elle fonctionne.
 @tab Instance auto-hébergée
 Dans l'Admin Dashboard, ouvrez **Paramètres**, puis **Notifications > E-mails**. Dans la carte **Paramètres du serveur de messagerie**, cliquez sur **Modifier le serveur** et choisissez le fournisseur comme **Type de serveur de messagerie**. La carte du fournisseur apparaît en dessous, par exemple **Paramètres Amazon SES** : cliquez sur son bouton de modification, par exemple **Modifier Amazon SES**, et renseignez les paramètres du fournisseur et l'étape **Expéditeur**. Tant qu'il lui manque quelque chose, la carte indique ce qui manque, et chaque e-mail est refusé avec le paramètre à renseigner.
 :::
@@ -54,10 +54,44 @@ Créez pour OneUptime un utilisateur IAM avec une politique qui autorise `ses:Se
 }
 ```
 
+Une installation auto-hébergée sur AWS peut se passer de la clé et [se connecter avec le rôle IAM du serveur](#se-connecter-avec-le-rôle-iam-du-serveur) à la place, avec la même politique.
+
 ### Remplir l'étape Amazon SES
 
 Saisissez l'**ID de clé d'accès** et la **Clé d'accès secrète**, ainsi que la **Région** dans laquelle votre identité est vérifiée, par exemple `us-east-1`.
 :::
+
+### Se connecter avec le rôle IAM du serveur
+
+Une installation auto-hébergée sur AWS peut envoyer ses propres e-mails en tant que rôle IAM qu'AWS donne au serveur, sans qu'aucune clé d'accès ne soit stockée dans OneUptime : les identifiants qu'AWS fournit expirent en quelques heures, et OneUptime en obtient de nouveaux avant qu'ils n'expirent. Cela ne concerne que les e-mails propres au serveur. La configuration Amazon SES d'un projet se connecte toujours avec une clé d'accès, car le rôle du serveur est l'identité AWS propre au serveur, pas celle d'un projet.
+
+Donnez au rôle la politique ci-dessus, puis exécutez OneUptime avec ce rôle :
+
+:::tabs
+@tab Amazon EKS
+Avec les rôles IAM pour les comptes de service, créez le rôle avec une politique d'approbation pour le fournisseur OIDC de votre cluster, et faites créer par le chart Helm un compte de service portant l'ARN du rôle. Les pods app et worker de OneUptime s'exécutent sous ce compte :
+
+```yaml title="values.yaml"
+serviceAccount:
+  create: true
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::123456789012:role/oneuptime-ses
+```
+
+Avec EKS Pod Identity, créez plutôt une association Pod Identity entre le rôle et ce compte de service, et omettez l'annotation.
+@tab Amazon ECS
+Définissez le rôle comme **Task role** de la définition de tâche de OneUptime.
+@tab Amazon EC2
+Attachez le rôle à l'instance comme profil d'instance. Avec OneUptime dans Docker sur l'instance, portez la limite de sauts des métadonnées d'instance à 2, pour que les conteneurs puissent les atteindre :
+
+```bash
+aws ec2 modify-instance-metadata-options --instance-id <instance-id> --http-put-response-hop-limit 2 --http-endpoint enabled
+```
+:::
+
+Ensuite, dans l'Admin Dashboard, cliquez sur **Modifier Amazon SES**, choisissez **Rôle IAM de ce serveur** comme **Type d'authentification** et saisissez la **Région**. L'enregistrement supprime toute clé d'accès stockée auparavant.
+
+OneUptime cherche les identifiants du serveur là où les SDK AWS les cherchent, dans cet ordre : `AWS_ACCESS_KEY_ID` et `AWS_SECRET_ACCESS_KEY` dans son environnement, un jeton d'identité web (`AWS_ROLE_ARN` et `AWS_WEB_IDENTITY_TOKEN_FILE`), le point de terminaison des identifiants de conteneur d'Amazon ECS et d'EKS Pod Identity, puis le service de métadonnées d'instance d'EC2 (IMDSv2).
 
 ## SendGrid
 
@@ -89,6 +123,14 @@ Vérifiez l'**ID de clé d'accès**, que la clé est active dans IAM, et que la 
 
 :::details "The access key may not send with Amazon SES"
 La politique de l'utilisateur IAM n'autorise pas `ses:SendEmail` sur votre identité. Ajoutez la politique ci-dessus.
+:::
+
+:::details "This server has no AWS credentials"
+Le serveur se connecte avec son rôle IAM, mais AWS ne lui donne aucun identifiant. Exécutez-le avec le rôle, comme le montre [Se connecter avec le rôle IAM du serveur](#se-connecter-avec-le-rôle-iam-du-serveur), puis redémarrez les pods ou les tâches de OneUptime : un pod reçoit les paramètres de son rôle à son démarrage. Dans Docker sur Amazon EC2, le message indique aussi quand la limite de sauts des métadonnées d'instance est trop basse.
+:::
+
+:::details "This server's IAM role may not send with Amazon SES" ou "did not let this server assume the role"
+La politique du rôle n'autorise pas `ses:SendEmail` sur votre identité : ajoutez la politique ci-dessus. Ou, sur Amazon EKS, la politique d'approbation du rôle n'autorise pas `sts:AssumeRoleWithWebIdentity` pour le fournisseur OIDC de votre cluster et le compte de service de OneUptime.
 :::
 
 :::details "Mailgun has no domain … in its US region"

@@ -1,4 +1,7 @@
 import Route from "Common/Types/API/Route";
+import ProductKey, {
+  OnboardedProductKey,
+} from "Common/Types/Product/ProductKey";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import PageMap from "../../Utils/PageMap";
 import { ResourceShowcase } from "../ResourceShowcase/ResourceShowcase";
@@ -41,51 +44,14 @@ import { ResourceShowcase } from "../ResourceShowcase/ResourceShowcase";
  * React-free, so App's tests read every product's words.
  */
 
-export enum ProductKey {
-  Monitors = "monitors",
-  Incidents = "incidents",
-  Alerts = "alerts",
-  OnCall = "on-call",
-  StatusPages = "status-pages",
-  ScheduledMaintenance = "scheduled-maintenance",
-  Slos = "slos",
-  Logs = "logs",
-  Metrics = "metrics",
-  Traces = "traces",
-  Profiles = "profiles",
-  Exceptions = "exceptions",
-  Llm = "llm",
-  DataObservability = "data-observability",
-  Topology = "topology",
-  SecurityEvents = "security-events",
-  DataSecurity = "data-security",
-  AIInsights = "ai-insights",
-  Code = "code",
-  Inventory = "inventory",
-  Services = "services",
-  Databases = "databases",
-  Queues = "queues",
-  Rum = "rum",
-  Hosts = "hosts",
-  Kubernetes = "kubernetes",
-  Docker = "docker",
-  DockerSwarm = "docker-swarm",
-  Podman = "podman",
-  Proxmox = "proxmox",
-  OpenStack = "openstack",
-  VMware = "vmware",
-  Ceph = "ceph",
-  StorageArrays = "storage-arrays",
-  Network = "network",
-  IoT = "iot",
-  Cloud = "cloud",
-  AppPlatforms = "app-platforms",
-  Serverless = "serverless",
-  Dashboards = "dashboards",
-  Workflows = "workflows",
-  Runbooks = "runbooks",
-  Forms = "forms",
-}
+/*
+ * The products' names (Common/Types/Product/ProductKey, #6814): every entry
+ * of the products menu has one, and the 43 that explain themselves here are
+ * the OnboardedProductKey ones. Re-exported, so everything that always read
+ * ProductKey from here still does.
+ */
+export { ProductKey };
+export type { OnboardedProductKey };
 
 export interface ProductOnboarding {
   // The page the products menu opens for the product.
@@ -98,6 +64,14 @@ export interface ProductOnboarding {
   showcase: ResourceShowcase;
   // The product's documentation: a page of the docs (/docs/...).
   docsRoute: Route;
+  /*
+   * The start-to-finish guide to the job people come to this product for
+   * (a page of the docs' Guides group, #6821), where the docs have one:
+   * linked first, as "Step-by-step guide", beside the documentation. The
+   * empty list and "How it works" both draw it, so the guide is where the
+   * job starts.
+   */
+  guideRoute?: Route | undefined;
 }
 
 /*

@@ -246,6 +246,11 @@ enum PageMap {
 
   HOME = "HOME",
   /*
+   * Setup health (#6812): what is misconfigured in the project, each
+   * finding with its fix. Opened from Home's "Needs attention" and Search.
+   */
+  HOME_SETUP_HEALTH = "HOME_SETUP_HEALTH",
+  /*
    * Where Home's own copies of the products' lists used to be (…/home/…):
    * Home is one page now, and their addresses forward to the products'
    * lists (Routes/MovedHomeRoutes).
@@ -547,6 +552,8 @@ enum PageMap {
   SERVICE_SETTINGS_LABEL_RULES = "SERVICE_SETTINGS_LABEL_RULES",
   SERVICE_SETTINGS_LABEL_RULE_VIEW = "SERVICE_SETTINGS_LABEL_RULE_VIEW",
   SERVICE_ARCHIVED = "SERVICE_ARCHIVED",
+  // Guided setup: send logs, metrics and traces, then get alerted (#6806).
+  SERVICES_GUIDED_SETUP = "SERVICES_GUIDED_SETUP",
 
   // Kubernetes (standalone product)
   KUBERNETES_ROOT = "KUBERNETES_ROOT",
@@ -1365,6 +1372,8 @@ enum PageMap {
   STATUS_PAGES_ROOT = "STATUS_PAGES_ROOT",
   STATUS_PAGES = "STATUS_PAGES",
   STATUS_PAGES_ARCHIVED = "STATUS_PAGES_ARCHIVED",
+  // Guided setup: publish a status page (#6806).
+  STATUS_PAGES_GUIDED_SETUP = "STATUS_PAGES_GUIDED_SETUP",
   STATUS_PAGE_ANNOUNCEMENTS = "STATUS_PAGE_ANNOUNCEMENTS",
   ANNOUNCEMENT_CREATE = "ANNOUNCEMENT_CREATE",
   ANNOUNCEMENT_VIEW = "ANNOUNCEMENT_VIEW",
@@ -1418,6 +1427,8 @@ enum PageMap {
   ON_CALL_DUTY_POLICIES = "ON_CALL_DUTY_POLICIES",
   ON_CALL_DUTY_POLICIES_ARCHIVED = "ON_CALL_DUTY_POLICIES_ARCHIVED",
   ON_CALL_DUTY_READINESS = "ON_CALL_DUTY_READINESS",
+  // Guided setup: page the right person, and escalate (#6805).
+  ON_CALL_DUTY_GUIDED_SETUP = "ON_CALL_DUTY_GUIDED_SETUP",
   ON_CALL_DUTY_CALENDAR_FEEDS = "ON_CALL_DUTY_CALENDAR_FEEDS",
   ON_CALL_DUTY_SCHEDULE_TIMELINE = "ON_CALL_DUTY_SCHEDULE_TIMELINE",
   ON_CALL_DUTY_POLICY_USER_OVERRIDES = "ON_CALL_DUTY_POLICY_USER_OVERRIDES",
@@ -1564,6 +1575,9 @@ enum PageMap {
 
   // Labels.
   SETTINGS_LABELS = "SETTINGS_LABELS",
+
+  // The products the project shows (#6814).
+  SETTINGS_PRODUCTS = "SETTINGS_PRODUCTS",
 
   // Import from another tool (Opsgenie, incident.io, ...).
   SETTINGS_IMPORT_FROM_TOOL = "SETTINGS_IMPORT_FROM_TOOL",

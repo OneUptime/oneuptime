@@ -236,6 +236,10 @@ De host blijft met zijn geschiedenis in OneUptime: archiveer of verwijder hem in
 HTTP `401`: de sleutel is fout, verlopen of verwijderd. HTTP `422`: hij is uitgeschakeld, een browsersleutel of vastgezet op één service. Kies in **Host toevoegen** een ingeschakelde serversleutel en voer de opdracht opnieuw uit: ze vervangt de sleutel op de host.
 :::
 
+:::details De opdracht meldt dat OneUptime niet is gevonden
+HTTP `404`: het adres waar de collector om zijn configuratie vraagt, je OneUptime-URL gevolgd door `/telemetry/opamp/v1`, bereikt OneUptime niet. Controleer of `--url` (`-Url` op Windows) het adres is waarop je OneUptime opent, zonder iets erachter. Staat er een eigen proxy of load balancer voor OneUptime, laat die dan `/telemetry/opamp/v1` naar OneUptime sturen, zoals hij `/otlp` stuurt. De collector blijft elke 30 seconden vragen, dus de host maakt verbinding zodra het adres werkt.
+:::
+
 :::details De host verschijnt niet
 Controleer of de host je OneUptime-URL via HTTPS bereikt, en lees daarna het log van de collector met de opdracht voor zijn systeem in [De collector van een host controleren](#de-collector-van-een-host-controleren).
 :::

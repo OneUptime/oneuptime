@@ -55,6 +55,7 @@ import MonitorService from "../../../Server/Services/MonitorService";
 import OnCallDutyPolicyService from "../../../Server/Services/OnCallDutyPolicyService";
 import OnCallReadinessService from "../../../Server/Services/OnCallReadinessService";
 import ProjectMilestoneService from "../../../Server/Services/ProjectMilestoneService";
+import ProjectProductsService from "../../../Server/Services/ProjectProductsService";
 import ProjectService from "../../../Server/Services/ProjectService";
 import StatusPageService from "../../../Server/Services/StatusPageService";
 import TeamMemberService from "../../../Server/Services/TeamMemberService";
@@ -67,6 +68,7 @@ import SubscriptionPlan, {
   PlanType,
 } from "../../../Types/Billing/SubscriptionPlan";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import NotFoundException from "../../../Types/Exception/NotFoundException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, {
@@ -119,7 +121,91 @@ let legacyCounts: {
   onCallPolicies: number;
 };
 let serverCanSendEmail: boolean;
-let writes: Array<{ sql: string; parameters: Array<unknown> }>;
+
+interface RecordedWrite {
+  sql: string;
+  parameters: Array<unknown>;
+  // Written in a transaction that holds the project row's lock.
+  holdsRowLock: boolean;
+}
+
+let writes: Array<RecordedWrite>;
+
+/*
+ * THE PROJECT ROW, AS POSTGRES LOCKS IT. `SELECT ... FOR UPDATE` takes the
+ * row's lock inside a transaction, waiting for whoever holds it, and reads
+ * the row once it has it; the lock is let go when the transaction ends. A
+ * read without FOR UPDATE takes no lock and reads the row as it is at that
+ * moment - so a writer that read it so loses what another wrote meanwhile.
+ */
+let rowLock: Promise<void>;
+let isRowThere: boolean;
+
+interface FakeTransaction {
+  releases: Array<() => void>;
+}
+
+const READ_STATE: RegExp =
+  /^SELECT "welcomeChecklistState" FROM "Project" WHERE "_id" = \$1 AND "deletedAt" IS NULL( FOR UPDATE)?$/;
+
+const fakeQuery: (
+  transaction: FakeTransaction | null,
+) => (sql: string, parameters: Array<unknown>) => Promise<unknown> = (
+  transaction: FakeTransaction | null,
+): ((sql: string, parameters: Array<unknown>) => Promise<unknown>) => {
+  return async (sql: string, parameters: Array<unknown>): Promise<unknown> => {
+    const read: RegExpMatchArray | null = sql.match(READ_STATE);
+
+    if (read) {
+      expect(parameters).toEqual([PROJECT_ID.toString()]);
+
+      if (read[1] && transaction) {
+        const held: Promise<void> = rowLock;
+        let release: () => void = (): void => {};
+
+        rowLock = new Promise<void>((resolve: () => void) => {
+          release = resolve;
+        });
+        transaction.releases.push(release);
+
+        await held;
+      }
+
+      return isRowThere
+        ? [
+            {
+              welcomeChecklistState: JSON.parse(
+                JSON.stringify(row.welcomeChecklistState ?? null),
+              ),
+            },
+          ]
+        : [];
+    }
+
+    writes.push({
+      sql: sql,
+      parameters: parameters,
+      holdsRowLock: Boolean(transaction && transaction.releases.length > 0),
+    });
+
+    if (
+      sql.startsWith(
+        `UPDATE "Project" SET "goals" = $1, "welcomeChecklistState" = $2`,
+      )
+    ) {
+      row.goals = JSON.parse(parameters[0] as string);
+      row.welcomeChecklistState = JSON.parse(parameters[1] as string);
+    } else if (
+      sql.startsWith(`UPDATE "Project" SET "welcomeChecklistState" = $1`)
+    ) {
+      row.welcomeChecklistState = JSON.parse(parameters[0] as string);
+    } else {
+      throw new Error(`Unexpected query: ${sql}`);
+    }
+
+    return [];
+  };
+};
 
 let readinessSpy: SpyInstance<
   typeof OnCallReadinessService.getReadinessForPolicy
@@ -133,6 +219,12 @@ let milestonesSpy: SpyInstance<
 type LegacyCountSpy = SpyInstance<() => Promise<PositiveNumber>>;
 let legacyCountSpies: Array<LegacyCountSpy>;
 let canSendSpy: SpyInstance;
+/*
+ * The products the goals need (#6814): ProjectProductsService works them
+ * out and is tested on its own (ProjectProductsService.test.ts); here, only
+ * that choosing the goals hands them over.
+ */
+let applyGoalsSpy: SpyInstance<typeof ProjectProductsService.applyGoals>;
 
 function permission(value: Permission): UserPermission {
   return {
@@ -215,37 +307,30 @@ beforeEach(() => {
   };
   serverCanSendEmail = true;
   writes = [];
+  rowLock = Promise.resolve();
+  isRowThere = true;
 
   jest
     .spyOn(ProjectService, "findOneById")
     .mockImplementation((async (): Promise<unknown> => {
-      return { ...row };
+      return isRowThere ? { ...row } : null;
     }) as never);
 
   jest.spyOn(ProjectService, "getRepository").mockReturnValue({
     manager: {
-      query: async (
-        sql: string,
-        parameters: Array<unknown>,
+      query: fakeQuery(null),
+      transaction: async (
+        work: (manager: unknown) => Promise<unknown>,
       ): Promise<unknown> => {
-        writes.push({ sql: sql, parameters: parameters });
+        const transaction: FakeTransaction = { releases: [] };
 
-        if (
-          sql.startsWith(
-            `UPDATE "Project" SET "goals" = $1, "welcomeChecklistState" = $2`,
-          )
-        ) {
-          row.goals = JSON.parse(parameters[0] as string);
-          row.welcomeChecklistState = JSON.parse(parameters[1] as string);
-        } else if (
-          sql.startsWith(`UPDATE "Project" SET "welcomeChecklistState" = $1`)
-        ) {
-          row.welcomeChecklistState = JSON.parse(parameters[0] as string);
-        } else {
-          throw new Error(`Unexpected query: ${sql}`);
+        try {
+          return await work({ query: fakeQuery(transaction) });
+        } finally {
+          for (const release of transaction.releases) {
+            release();
+          }
         }
-
-        return [];
       },
     },
   } as never);
@@ -325,6 +410,10 @@ beforeEach(() => {
     .mockImplementation((async (): Promise<boolean> => {
       return serverCanSendEmail;
     }) as never);
+
+  applyGoalsSpy = jest
+    .spyOn(ProjectProductsService, "applyGoals")
+    .mockImplementation((async (): Promise<void> => {}) as never);
 
   jest.spyOn(logger, "error").mockImplementation((() => {}) as never);
   jest.spyOn(logger, "debug").mockImplementation((() => {}) as never);
@@ -954,6 +1043,39 @@ describe("what a browser remembered of the old checklist", () => {
   });
 });
 
+describe("the products the goals need (#6814)", () => {
+  test("choosing the goals gives the project the products they need", async () => {
+    await WelcomeChecklistService.chooseGoals(OWNER(), ["telemetry", "uptime"]);
+
+    expect(applyGoalsSpy).toHaveBeenCalledTimes(1);
+    expect(applyGoalsSpy).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      // In the order of PROJECT_GOALS, as they are kept.
+      goals: [ProjectGoal.Uptime, ProjectGoal.Telemetry],
+    });
+  });
+
+  test("skipping the question hands over no goals", async () => {
+    await WelcomeChecklistService.chooseGoals(OWNER(), []);
+
+    expect(applyGoalsSpy).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      goals: [],
+    });
+  });
+
+  test("goals that are refused set no products", async () => {
+    await expect(
+      WelcomeChecklistService.chooseGoals(MEMBER(), ["uptime"]),
+    ).rejects.toBeInstanceOf(BadDataException);
+    await expect(
+      WelcomeChecklistService.chooseGoals(OWNER(), ["uptime", "world_peace"]),
+    ).rejects.toBeInstanceOf(BadDataException);
+
+    expect(applyGoalsSpy).not.toHaveBeenCalled();
+  });
+});
+
 describe("the writes", () => {
   test("go straight to the project's row, never through its update hooks", async () => {
     const update: SpyInstance<typeof ProjectService.updateOneById> = jest.spyOn(
@@ -975,5 +1097,205 @@ describe("the writes", () => {
     ]);
     expect(writes[0]!.parameters[2]).toBe(PROJECT_ID.toString());
     expect(writes[1]!.parameters[1]).toBe(PROJECT_ID.toString());
+  });
+
+  test("each is written holding the project row's lock, read inside it (#7043)", async () => {
+    row.welcomeChecklistState = null;
+
+    await WelcomeChecklistService.chooseGoals(OWNER(), ["uptime"]);
+    await WelcomeChecklistService.setHiddenForCaller(MEMBER(), true);
+    await WelcomeChecklistService.takeBrowserState(OWNER(), {
+      wasDismissed: true,
+      wasFinished: false,
+    });
+    await WelcomeChecklistService.noteTestPageAcknowledged({
+      projectId: PROJECT_ID,
+      userId: MEMBER_ID,
+    });
+    await WelcomeChecklistService.checkLegacyChecklist(PROJECT_ID, {});
+
+    expect(writes).toHaveLength(5);
+
+    for (const write of writes) {
+      expect(write.holdsRowLock).toBe(true);
+    }
+  });
+
+  test("a change that changes nothing writes nothing, and takes no other lock", async () => {
+    await WelcomeChecklistService.setHiddenForCaller(MEMBER(), false);
+
+    expect(writes).toHaveLength(0);
+  });
+
+  test("a project that is gone is not written", async () => {
+    isRowThere = false;
+
+    await expect(
+      WelcomeChecklistService.setHiddenForCaller(MEMBER(), true),
+    ).rejects.toThrow(NotFoundException);
+    expect(writes).toHaveLength(0);
+  });
+});
+
+/*
+ * EVERY PERSON WHO ACKNOWLEDGES A TEST IS NOTED (#7043). Each
+ * acknowledgement notes its person (OnCallTestPageEvents, for every one -
+ * UserOnCallLogTimelineTestPageAcknowledge); what could lose one was the
+ * note itself, a read of the state and a write of all of it a moment later:
+ * a second writer in between - a teammate acknowledging the same policy
+ * test, Home finishing the checklist - was overwritten.
+ */
+describe("every person who acknowledges a test is noted", () => {
+  const TEAMMATE_ID: ObjectID = new ObjectID(
+    "77777777-7777-4777-8777-777777777777",
+  );
+
+  const note: (userId: ObjectID) => Promise<void> = (
+    userId: ObjectID,
+  ): Promise<void> => {
+    return WelcomeChecklistService.noteTestPageAcknowledged({
+      projectId: PROJECT_ID,
+      userId: userId,
+    });
+  };
+
+  const hasAcknowledged: (userId: ObjectID) => Promise<boolean> = async (
+    userId: ObjectID,
+  ): Promise<boolean> => {
+    return (
+      await WelcomeChecklistService.getAnswer(
+        caller(userId, [Permission.ProjectMember]),
+      )
+    ).hasAcknowledgedTestPage;
+  };
+
+  test("two people who answer one policy's test, one after the other, are both noted", async () => {
+    await note(MEMBER_ID);
+    await note(TEAMMATE_ID);
+
+    expect(storedState().testPageAcknowledgedByUserIds).toEqual([
+      MEMBER_ID.toString(),
+      TEAMMATE_ID.toString(),
+    ]);
+    expect(await hasAcknowledged(MEMBER_ID)).toBe(true);
+    expect(await hasAcknowledged(TEAMMATE_ID)).toBe(true);
+    // Somebody who answered nothing is not.
+    expect(await hasAcknowledged(ADMIN_ID)).toBe(false);
+  });
+
+  test("two who answer at the same moment are both noted: neither write loses the other", async () => {
+    await Promise.all([note(MEMBER_ID), note(TEAMMATE_ID)]);
+
+    expect(
+      [...(storedState().testPageAcknowledgedByUserIds || [])].sort(),
+    ).toEqual([MEMBER_ID.toString(), TEAMMATE_ID.toString()].sort());
+  });
+
+  test("five who answer at once are all noted, each once", async () => {
+    const people: Array<ObjectID> = [
+      MEMBER_ID,
+      TEAMMATE_ID,
+      ADMIN_ID,
+      new ObjectID("88888888-8888-4888-8888-888888888888"),
+      new ObjectID("99999999-9999-4999-8999-999999999999"),
+    ];
+
+    await Promise.all(
+      [...people, MEMBER_ID, TEAMMATE_ID].map((userId: ObjectID) => {
+        return note(userId);
+      }),
+    );
+
+    expect(
+      [...(storedState().testPageAcknowledgedByUserIds || [])].sort(),
+    ).toEqual(
+      people
+        .map((userId: ObjectID): string => {
+          return userId.toString();
+        })
+        .sort(),
+    );
+  });
+
+  test("Home finishing the checklist while a test is answered keeps the answer", async () => {
+    milestones = [
+      ActivationMilestone.FirstCheckResultReceived,
+      ActivationMilestone.FirstNotificationDelivered,
+      ActivationMilestone.FirstStatusPageMonitorAdded,
+      ActivationMilestone.SecondMemberJoined,
+    ];
+
+    // The member acknowledges while the owner's Home reads the milestones.
+    milestonesSpy.mockImplementation((async (): Promise<unknown> => {
+      await note(MEMBER_ID);
+
+      return milestones.map((milestone: ActivationMilestone) => {
+        return {
+          milestone: milestone,
+          reachedAt: new Date(),
+          wasBackfilled: false,
+        };
+      });
+    }) as never);
+
+    expect((await WelcomeChecklistService.getAnswer(OWNER())).isFinished).toBe(
+      true,
+    );
+    expect(storedState().finishedBy).toBe(WelcomeChecklistFinishedBy.Outcomes);
+    expect(storedState().testPageAcknowledgedByUserIds).toEqual([
+      MEMBER_ID.toString(),
+    ]);
+  });
+
+  test("the old checklist's one look keeps an answer that lands while it counts", async () => {
+    row.welcomeChecklistState = null;
+    legacyCountSpies[0]!.mockImplementation((async () => {
+      await note(MEMBER_ID);
+      return count(0);
+    }) as never);
+
+    await WelcomeChecklistService.getAnswer(OWNER());
+
+    expect(storedState().legacyCheckedAt).toBeDefined();
+    expect(storedState().testPageAcknowledgedByUserIds).toEqual([
+      MEMBER_ID.toString(),
+    ]);
+  });
+
+  test("the old checklist looked at by two at once is looked at once: the second keeps the first's", async () => {
+    row.welcomeChecklistState = null;
+    legacyCounts = {
+      monitors: 3,
+      statusPages: 1,
+      teamMembers: 2,
+      onCallPolicies: 1,
+    };
+
+    await Promise.all([
+      WelcomeChecklistService.getAnswer(OWNER()),
+      WelcomeChecklistService.getAnswer(ADMIN()),
+    ]);
+
+    expect(storedState().finishedBy).toBe(WelcomeChecklistFinishedBy.Legacy);
+    expect(
+      writes.filter((write: RecordedWrite): boolean => {
+        return write.sql.includes("welcomeChecklistState");
+      }),
+    ).toHaveLength(1);
+  });
+
+  test("a member hiding their card while a teammate answers keeps both", async () => {
+    await Promise.all([
+      WelcomeChecklistService.setHiddenForCaller(MEMBER(), true),
+      note(TEAMMATE_ID),
+      WelcomeChecklistService.chooseGoals(OWNER(), ["on_call"]),
+    ]);
+
+    expect(storedState().hiddenForUserIds).toEqual([MEMBER_ID.toString()]);
+    expect(storedState().testPageAcknowledgedByUserIds).toEqual([
+      TEAMMATE_ID.toString(),
+    ]);
+    expect(storedState().goalsChosenByUserId).toBe(OWNER_ID.toString());
+    expect(row.goals).toEqual([ProjectGoal.OnCall]);
   });
 });

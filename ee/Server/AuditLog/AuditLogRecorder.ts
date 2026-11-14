@@ -848,9 +848,13 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
 
   /*
    * When the entry recorded now is deleted: the project's retention in
-   * calendar days, read by the one rule a failing export reckons with too
-   * (Common/Types/AuditLog/AuditLogRetention), so its "will start losing
-   * entries" email goes a day before this moment, whatever the stored value.
+   * calendar days, read by the one rule
+   * (Common/Types/AuditLog/AuditLogRetention). A failing export reads this
+   * stamp back - the soonest among the entries it has not sent - so its
+   * "will start losing entries" email goes a day before this moment,
+   * whatever the stored value and whatever the retention is changed to
+   * later (#6563); only when it cannot read the stamps does it reckon the
+   * moment by the same rule.
    */
   private computeRetentionDate(retentionInDays: number): Date {
     return getAuditLogRetentionDate({
@@ -1869,9 +1873,17 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
     return service;
   }
 
+  /*
+   * The type an entry is stored under: the model's name as the API keeps it
+   * (apiSingularName, Common/Utils/ModelApiName), so a model renamed on
+   * screen keeps one type across its old entries and its new ones.
+   */
   private getResourceType<TModel extends BaseModel>(model: TModel): string {
-    if (model.singularName) {
-      return model.singularName;
+    const storedName: string | null =
+      model.apiSingularName || model.singularName;
+
+    if (storedName) {
+      return storedName;
     }
     return (model as unknown as { constructor: { name: string } }).constructor
       .name;

@@ -353,7 +353,8 @@ describe("Test Rule for a Slack rule naming a workspace", () => {
         }),
       ),
     ).rejects.toThrow(
-      "Channel incidents does not exist. If this channel is private, you need to invite OneUptime bot to the channel and try again.",
+      // In the words its Notification Logs give the channel when the rule posts (#7115).
+      "The Slack channel #incidents was not found. If it is a private channel, invite OneUptime's bot to it in Slack.",
     );
     expect(postSpy).not.toHaveBeenCalled();
   });

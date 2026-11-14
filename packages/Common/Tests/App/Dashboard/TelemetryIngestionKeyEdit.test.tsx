@@ -196,7 +196,7 @@ async function renderDetail(): Promise<UserEvent> {
 }
 
 function editDialog(): HTMLElement {
-  return screen.getByRole("dialog", { name: "Edit Telemetry Ingestion Key" });
+  return screen.getByRole("dialog", { name: "Edit Ingestion Key" });
 }
 
 function activeStep(): string {
@@ -220,14 +220,12 @@ async function next(user: UserEvent): Promise<void> {
  */
 async function openEditForm(user: UserEvent): Promise<void> {
   await user.click(
-    await screen.findByRole("button", { name: "Edit Telemetry Ingestion Key" }),
+    await screen.findByRole("button", { name: "Edit Ingestion Key" }),
   );
   await waitFor(() => {
     expect(editDialog()).toBeVisible();
   });
-  await within(editDialog()).findByPlaceholderText(
-    "Telemetry Ingestion Key Name",
-  );
+  await within(editDialog()).findByPlaceholderText("Ingestion Key Name");
 }
 
 async function openBrowserSettings(user: UserEvent): Promise<void> {
@@ -275,7 +273,7 @@ describe("Telemetry ingestion key detail page", () => {
 
     expect(activeStep()).toBe("Details");
     expect(
-      within(editDialog()).getByPlaceholderText("Telemetry Ingestion Key Name"),
+      within(editDialog()).getByPlaceholderText("Ingestion Key Name"),
     ).toHaveValue("Storefront key");
     expect(
       within(editDialog()).queryByRole("textbox", {
@@ -303,9 +301,7 @@ describe("Telemetry ingestion key detail page", () => {
       }),
     ).toBeVisible();
     expect(
-      within(editDialog()).queryByPlaceholderText(
-        "Telemetry Ingestion Key Name",
-      ),
+      within(editDialog()).queryByPlaceholderText("Ingestion Key Name"),
     ).not.toBeInTheDocument();
 
     await next(user);

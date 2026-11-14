@@ -2,6 +2,9 @@
 
 OneUptime の Kubernetes エージェントは Helm チャートで、クラスターのメトリクス、イベント、Pod のログを収集し、eBPF を使ってすべての Pod のトレース、リクエストメトリクス、サービスグラフ、ネットワークフローも収集します。コードの変更も SDK も必要ありません。また、[Kubernetes AI エージェント](#kubernetes-ai-エージェント) も実行し、OneUptime AI がインシデントやアラートを調査する際に読み取り専用の `kubectl` を実行できるようにします。`helm install` 1 回で導入でき、[Kubernetes モニター](/docs/monitor/kubernetes-monitor) が送信された内容をもとにアラートを出します。
 
+> [!NOTE]
+> このページはエージェントの完全なリファレンスです。初めてインストールする場合は、 [Kubernetes エージェント (Helm インストール)](/docs/monitor/kubernetes-agent) で、プラットフォーム用のプリセットを使って順を追ってインストールできます。
+
 :::cards
 - [エージェントをインストールする](#エージェントをインストールする): Helm で 4 ステップ。
 - [Amazon EKS アドオンとしてインストールする](#amazon-eks-アドオンとしてインストールする): EKS コンソールから、Helm なしで。

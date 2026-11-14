@@ -64,14 +64,19 @@ import {
   getOnCallEmptyLevelTimelineMessage,
   isOnCallPageLineReached,
 } from "../../Types/OnCallDutyPolicy/OnCallEmptyLevel";
+import {
+  NOBODY_ON_CALL_IN_SCHEDULE_TIMELINE_MESSAGE,
+  NOT_A_PROJECT_MEMBER_TIMELINE_MESSAGE,
+  SENDING_NOTIFICATION_TO_USER_TIMELINE_MESSAGE,
+} from "../../Types/OnCallDutyPolicy/OnCallPageLine";
 
 /*
  * The escalation timeline's line for a recipient the rule would have paged
  * who is not a member of the project (they left, or never accepted their
- * invitation): nothing is sent to them.
+ * invitation): nothing is sent to them. Kept where it always was too
+ * (Types/OnCallDutyPolicy/OnCallPageLine), for whoever reads it from here.
  */
-export const NOT_A_PROJECT_MEMBER_TIMELINE_MESSAGE: string =
-  "Skipped because this user is not a member of the project.";
+export { NOT_A_PROJECT_MEMBER_TIMELINE_MESSAGE };
 
 /*
  * One person an escalation rule pages, or one schedule of the rule with
@@ -466,7 +471,7 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
 
     if (!rule) {
       throw new BadDataException(
-        `On-Call Duty Policy Escalation Rule with id ${ruleId.toString()} not found`,
+        `The escalation rule ${ruleId.toString()} no longer exists. It may have been deleted.`,
       );
     }
 
@@ -936,7 +941,7 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
       !options.triggeredByIncidentId
     ) {
       throw new BadDataException(
-        "triggeredByIncidentId is required when userNotificationEventType is IncidentCreated",
+        "An on-call policy run for a new incident must name the incident.",
       );
     }
 
@@ -946,7 +951,7 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
       !options.triggeredByAlertId
     ) {
       throw new BadDataException(
-        "triggeredByAlertId is required when userNotificationEventType is AlertCreated",
+        "An on-call policy run for a new alert must name the alert.",
       );
     }
 
@@ -956,7 +961,7 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
       !options.triggeredByAlertEpisodeId
     ) {
       throw new BadDataException(
-        "triggeredByAlertEpisodeId is required when userNotificationEventType is AlertEpisodeCreated",
+        "An on-call policy run for a new alert episode must name the episode.",
       );
     }
 
@@ -966,7 +971,7 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
       !options.triggeredByIncidentEpisodeId
     ) {
       throw new BadDataException(
-        "triggeredByIncidentEpisodeId is required when userNotificationEventType is IncidentEpisodeCreated",
+        "An on-call policy run for a new incident episode must name the episode.",
       );
     }
   }
@@ -1164,7 +1169,7 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
           } as LogAttributes,
         );
         let log: OnCallDutyPolicyExecutionLogTimeline = getNewLog();
-        log.statusMessage = "Sending notification to user.";
+        log.statusMessage = SENDING_NOTIFICATION_TO_USER_TIMELINE_MESSAGE;
         log.status = OnCallDutyExecutionLogTimelineStatus.Executing;
         log.alertSentToUserId = alertSentToUserId;
 
@@ -1509,8 +1514,7 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
         hadScheduleGap = true;
 
         const log: OnCallDutyPolicyExecutionLogTimeline = getNewLog();
-        log.statusMessage =
-          "Skipped because no active users are found in this schedule.";
+        log.statusMessage = NOBODY_ON_CALL_IN_SCHEDULE_TIMELINE_MESSAGE;
         log.status = OnCallDutyExecutionLogTimelineStatus.Skipped;
         log.onCallDutyScheduleId = target.scheduleId;
 
@@ -1796,11 +1800,11 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
     createdItem: Model,
   ): Promise<Model> {
     if (!createdItem.projectId) {
-      throw new BadDataException("projectId is required");
+      throw new BadDataException("The escalation rule has no project.");
     }
 
     if (!createdItem.id) {
-      throw new BadDataException("id is required");
+      throw new BadDataException("The new escalation rule has no ID.");
     }
 
     /*
@@ -2018,7 +2022,7 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
 
     if (!onCallDutyPolicyId) {
       throw new BadDataException(
-        "Status Page Resource onCallDutyPolicyId is required",
+        "Pick the on-call policy this escalation rule belongs to.",
       );
     }
 
@@ -2169,7 +2173,7 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
   ): Promise<OnDelete<Model>> {
     if (!deleteBy.query._id && !deleteBy.props.isRoot) {
       throw new BadDataException(
-        "_id should be present when deleting status page resource. Please try the delete with objectId",
+        "Name the escalation rule to delete by its ID.",
       );
     }
 
@@ -2196,7 +2200,7 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
 
       if (!resource) {
         throw new BadDataException(
-          "OnCallDutyPolicyEscalationRule with this id not found",
+          "This escalation rule no longer exists. Reload the page to see the current rules.",
         );
       }
 

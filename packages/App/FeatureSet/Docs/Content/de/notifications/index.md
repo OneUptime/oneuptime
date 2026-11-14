@@ -29,7 +29,7 @@ flowchart TB
 | Seite | Was sie enthält | Die Frage, die sie beantwortet |
 | --- | --- | --- |
 | **Benachrichtigungsmethoden** | Ihre E-Mail-Adressen, Telefonnummern, WhatsApp-Nummern, Telegram-, Slack-, Microsoft Teams- und Mattermost-Konten, Push-Geräte und Webhooks | Wo kann OneUptime mich erreichen? |
-| **Bereitschaftsregeln** | Für jede Art von Alarm und jeden Schweregrad: welche Methode versucht wird und nach welcher Zeit | Wie werde ich in der Bereitschaft alarmiert? |
+| **Wie ich erreichbar bin** | Für jede Art von Alarm und jeden Schweregrad: welche Methode versucht wird und nach welcher Zeit | Wie werde ich in der Bereitschaft alarmiert? |
 | **Benachrichtigungseinstellungen** | Für jedes Ereignis zu einem Datensatz, der Ihnen gehört, oder zu Ihren Schichten: welche Kanäle genutzt werden | Wovon erfahre ich sonst noch, und wo? |
 
 Sie sind mit Absicht getrennt. Jeden Kanal in den **Benachrichtigungseinstellungen** einzuschalten, alarmiert Sie nie, und eine Methode, die Sie nicht verifiziert haben, wird nie genutzt, was auch immer Ihre Regeln sagen.
@@ -44,7 +44,7 @@ Sie sind mit Absicht getrennt. Jeden Kanal in den **Benachrichtigungseinstellung
 | Abschnitt | Seiten |
 | --- | --- |
 | **Erste Schritte** | **Einrichtungs-Checkliste**: was noch einzurichten ist, in der Reihenfolge, die zählt |
-| **Warnungen & Benachrichtigungen** | **Benachrichtigungsmethoden**, **Bereitschaftsregeln**, **Benachrichtigungseinstellungen** und **E-Mail-Einstellungen**, wo Sie festlegen, wie viele E-Mails Ihre Neuigkeiten ergeben |
+| **Warnungen & Benachrichtigungen** | **Benachrichtigungsmethoden**, **Wie ich erreichbar bin**, **Benachrichtigungseinstellungen** und **E-Mail-Einstellungen**, wo Sie festlegen, wie viele E-Mails Ihre Neuigkeiten ergeben |
 | **Bereitschaftsprotokolle** | **Bereitschaftsprotokolle**: jeder Alarm an Sie in diesem Projekt, und was gesendet wurde |
 | **Richtlinie für eingehende Anrufe** | **Eingehende Telefonnummern**: die Nummer, unter der eine Richtlinie für eingehende Anrufe Sie anruft |
 | **Kalender** | **Kalender-Feed**: Ihre Schichten in Ihrer Kalender-App, und Erinnerungen, bevor sie beginnen |
@@ -53,17 +53,17 @@ Sie sind mit Absicht getrennt. Jeden Kanal in den **Benachrichtigungseinstellung
 
 **Erste Schritte** und **Warnungen & Benachrichtigungen** sind geöffnet; die anderen Abschnitte starten eingeklappt, und ein Abschnitt öffnet sich von selbst, wenn Sie auf einer seiner Seiten sind. **Arbeitsbereich** erscheint nur, wenn das Projekt Slack, Microsoft Teams oder Mattermost verbunden hat.
 
-Projekteigentümer und Admins können Ihre Einrichtung ebenfalls ansehen: Unter **Benutzer** öffnen sie Ihre Zeile und deren Abschnitt **Bereitschaft**, mit **Einsatzbereitschaft**, **Benachrichtigungsmethoden** und **Bereitschaftsregeln**. Sie können dort eine Methode für Sie hinzufügen, aber der Code geht an die Methode selbst, sodass nur Sie sie verifizieren können.
+Projekteigentümer und Admins können Ihre Einrichtung ebenfalls ansehen: Unter **Benutzer** öffnen sie Ihre Zeile und deren Abschnitt **Bereitschaft**, mit **Einsatzbereitschaft**, **Benachrichtigungsmethoden** und **Wie ich erreichbar bin**. Sie können dort eine Methode für Sie hinzufügen, aber der Code geht an die Methode selbst, sodass nur Sie sie verifizieren können.
 
 ## Womit Sie starten
 
 Wenn Sie einem Projekt mit einer verifizierten Anmelde-E-Mail beitreten, richtet OneUptime Sie so ein, dass ein Alarm Sie immer erreichen kann:
 
 1. Ihre Anmelde-E-Mail wird als verifizierte E-Mail-Methode hinzugefügt.
-2. Für jeden Schweregrad, auf jedem der vier Tabs der **Bereitschaftsregeln**, schickt Ihnen eine Regel eine E-Mail, sobald Sie alarmiert werden.
+2. Für jeden Schweregrad, auf jedem der vier Tabs der **Wie ich erreichbar bin**, schickt Ihnen eine Regel eine E-Mail, sobald Sie alarmiert werden.
 3. Eine Reihe von Neuigkeiten zu dem, was Ihnen gehört, und zu Ihren Schichten ist per E-Mail eingeschaltet. Siehe [Benachrichtigungseinstellungen](/docs/notifications/notification-settings#was-für-ein-neues-mitglied-eingeschaltet-ist).
 
-Jede Methode, die Sie später verifizieren, erhält dieselben Regeln: eine Regel für jeden Schweregrad, die gesendet wird, sobald Sie alarmiert werden. Eine Telefonnummer für SMS zu verifizieren heißt also, dass jeder Alarm Ihnen auch eine SMS schickt. Um SMS nur für kritische Alarme zu behalten, löschen Sie die SMS-Regeln der anderen Schweregrade. Siehe [Persönliche Bereitschaftsregeln](/docs/notifications/on-call-rules#die-regeln-mit-denen-sie-starten).
+Jede Methode, die Sie später verifizieren, erhält dieselben Regeln: eine Regel für jeden Schweregrad, die gesendet wird, sobald Sie alarmiert werden. Eine Telefonnummer für SMS zu verifizieren heißt also, dass jeder Alarm Ihnen auch eine SMS schickt. Um SMS nur für kritische Alarme zu behalten, löschen Sie die SMS-Regeln der anderen Schweregrade. Siehe [Wie ich erreichbar bin](/docs/notifications/on-call-rules#die-regeln-mit-denen-sie-starten).
 
 ## Die Einrichtungs-Checkliste
 
@@ -72,7 +72,7 @@ Jede Methode, die Sie später verifizieren, erhält dieselben Regeln: eine Regel
 | Abschnitt | Was er prüft |
 | --- | --- |
 | **Damit wir Sie erreichen können** | Sie haben eine Methode, jede hinzugefügte Methode ist verifiziert, und mindestens eine davon liegt auf einem Kanal, den das Projekt eingeschaltet hat |
-| **Wie Sie alarmiert werden möchten** | Jeder Schweregrad hat eine Regel, auf jedem der vier Tabs der **Bereitschaftsregeln** |
+| **Wie Sie alarmiert werden möchten** | Jeder Schweregrad hat eine Regel, auf jedem der vier Tabs der **Wie ich erreichbar bin** |
 | **Auf dem Laufenden bleiben** | Sie erfahren, wann eine Schicht beginnt, und hinter jedem Kanal, den Sie in den **Benachrichtigungseinstellungen** eingeschaltet haben, steht eine verifizierte Methode |
 | **Wünschenswert** | Eine Nummer für eingehende Anrufe, Ihre Slack- und Microsoft Teams-Konten, ein Kalender-Link und Ihre Profilfelder |
 
@@ -95,7 +95,7 @@ Ein Alarm kann Sie für eine Art und einen Schweregrad erreichen, für die Sie k
 2. Wenn Sie keine davon haben, eine kostenpflichtige Methode, in dieser Reihenfolge: SMS, ein Telefonanruf, WhatsApp, Telegram. Es ist die erste, die Sie verifiziert haben, auf einem Kanal, den das Projekt eingeschaltet hat.
 3. Wenn Sie auch davon keine haben, ein Webhook.
 
-Sie erhalten darüber eine E-Mail, ebenso die Eigentümer der Bereitschaftsrichtlinie, oder die Eigentümer des Projekts, wenn die Richtlinie keine hat. Ist gar nichts verifiziert, kann der Alarm nicht zugestellt werden, und die E-Mail sagt stattdessen das. Diese E-Mails werden zurückgehalten, solange weitere Alarme eintreffen, sodass ein Sturm von Alarmen kein Sturm von E-Mails wird. Wie Sie die fehlende Regel hinzufügen, steht unter [Persönliche Bereitschaftsregeln](/docs/notifications/on-call-rules#wenn-ein-schweregrad-keine-regel-hat).
+Sie erhalten darüber eine E-Mail, ebenso die Eigentümer der Bereitschaftsrichtlinie, oder die Eigentümer des Projekts, wenn die Richtlinie keine hat. Ist gar nichts verifiziert, kann der Alarm nicht zugestellt werden, und die E-Mail sagt stattdessen das. Diese E-Mails werden zurückgehalten, solange weitere Alarme eintreffen, sodass ein Sturm von Alarmen kein Sturm von E-Mails wird. Wie Sie die fehlende Regel hinzufügen, steht unter [Wie ich erreichbar bin](/docs/notifications/on-call-rules#wenn-ein-schweregrad-keine-regel-hat).
 
 ## Die Sprache Ihrer Alarme
 
@@ -131,7 +131,7 @@ Eine Nummer kommt in Ihre Regeln, sobald sie verifiziert ist. Klicken Sie in ihr
 
 :::cards
 - [Benachrichtigungsmethoden](/docs/notifications/notification-methods): Fügen Sie die Adressen hinzu, unter denen OneUptime Sie erreichen darf, und verifizieren Sie sie.
-- [Persönliche Bereitschaftsregeln](/docs/notifications/on-call-rules): Legen Sie fest, welche Methode jeder Alarm versucht, und wann.
+- [Wie ich erreichbar bin](/docs/notifications/on-call-rules): Legen Sie fest, welche Methode jeder Alarm versucht, und wann.
 - [Benachrichtigungseinstellungen](/docs/notifications/notification-settings): Wählen Sie die Neuigkeiten, von denen Sie erfahren, und über welche Kanäle.
 - [Eskalationsregeln](/docs/on-call/escalation-rules): Wie eine Bereitschaftsrichtlinie Stufe für Stufe entscheidet, wer alarmiert wird.
 :::

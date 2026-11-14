@@ -9,7 +9,11 @@
  * (light lettering) - a description, an announcement, an incident in progress, a
  * maintenance event, a list group whose history shows every bar colour
  * the recommended rules give a day - and days with no data - and a grid
- * group. Colours are the product's defaults for new projects.
+ * group of two rows by three columns, one cell empty: 580px of matrix,
+ * which a phone draws as a stack (StatusPageResourceGrid.spec.ts). With
+ * wideGrid (the query's grid=wide) the grid has six columns: 1,000px of
+ * matrix, which even a laptop draws as a stack, three tiles to a line.
+ * Colours are the product's defaults for new projects.
  */
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import File from "Common/Models/DatabaseModels/File";
@@ -177,7 +181,29 @@ const gridGroup = Object.assign(new StatusPageGroup(), {
   rowAxisLabel: "Service",
   columnAxisLabel: "Region",
   rowAxisValues: "API, Dashboard",
-  columnAxisValues: "US, EU",
+  columnAxisValues: "US, EU, Asia Pacific",
+  order: 2,
+});
+
+// The same group by six regions (wideGrid): a matrix no laptop fits.
+const WIDE_GRID_COLUMNS = [
+  "US East",
+  "US West",
+  "EU",
+  "Asia Pacific",
+  "South America",
+  "Africa",
+];
+
+const wideGridGroup = Object.assign(new StatusPageGroup(), {
+  _id: id(11),
+  name: "Regions",
+  isExpandedByDefault: true,
+  viewMode: "Grid",
+  rowAxisLabel: "Service",
+  columnAxisLabel: "Region",
+  rowAxisValues: "API, Dashboard",
+  columnAxisValues: WIDE_GRID_COLUMNS.join(", "),
   order: 2,
 });
 
@@ -212,15 +238,53 @@ const GRID_RESOURCES = [
   { name: "API in US", row: "API", column: "US", statusNow: OPERATIONAL },
   { name: "API in EU", row: "API", column: "EU", statusNow: DEGRADED },
   {
+    name: "API in Asia Pacific",
+    row: "API",
+    column: "Asia Pacific",
+    statusNow: OPERATIONAL,
+  },
+  {
     name: "Dashboard in US",
     row: "Dashboard",
     column: "US",
     statusNow: OPERATIONAL,
   },
+  {
+    name: "Dashboard in Asia Pacific",
+    row: "Dashboard",
+    column: "Asia Pacific",
+    statusNow: OFFLINE,
+  },
 ];
+
+/*
+ * The six-region grid's cells, row by row: one of each status in each row,
+ * and nothing in the Dashboard's EU cell.
+ */
+const WIDE_GRID_STATUSES = {
+  API: [OPERATIONAL, DEGRADED, OPERATIONAL, OPERATIONAL, OFFLINE, OPERATIONAL],
+  Dashboard: [OPERATIONAL, OPERATIONAL, null, DEGRADED, OPERATIONAL, OFFLINE],
+};
+
+const WIDE_GRID_RESOURCES = Object.entries(WIDE_GRID_STATUSES).flatMap(
+  ([row, statuses]) => {
+    return WIDE_GRID_COLUMNS.map((column, index) => {
+      return {
+        name: `${row} in ${column}`,
+        row,
+        column,
+        statusNow: statuses[index],
+      };
+    }).filter((entry) => {
+      return entry.statusNow !== null;
+    });
+  },
+);
 
 export const buildFixture = (data) => {
   const now = Date.now();
+  const gridGroupShown = data.wideGrid ? wideGridGroup : gridGroup;
+  const gridResources = data.wideGrid ? WIDE_GRID_RESOURCES : GRID_RESOURCES;
   const monitors = [];
   const resources = [];
   const timelines = [];
@@ -280,7 +344,7 @@ export const buildFixture = (data) => {
     });
   });
 
-  GRID_RESOURCES.forEach((entry, index) => {
+  gridResources.forEach((entry, index) => {
     const monitor = Object.assign(new Monitor(), {
       _id: id(150 + index),
       name: entry.name,
@@ -294,7 +358,7 @@ export const buildFixture = (data) => {
         displayName: entry.name,
         monitor,
         monitorId: monitor.id,
-        statusPageGroupId: gridGroup.id,
+        statusPageGroupId: gridGroupShown.id,
         rowAxisValue: entry.row,
         columnAxisValue: entry.column,
         showCurrentStatus: true,
@@ -442,7 +506,7 @@ export const buildFixture = (data) => {
     },
     overview: {
       statusPage: json(statusPage, StatusPage),
-      resourceGroups: jsonArray([listGroup, gridGroup], StatusPageGroup),
+      resourceGroups: jsonArray([listGroup, gridGroupShown], StatusPageGroup),
       statusPageResources: sharedResources,
       monitorStatuses: jsonArray(STATUSES, MonitorStatus),
       monitorStatusTimelines: jsonArray(timelines, MonitorStatusTimeline),
@@ -518,7 +582,7 @@ export const buildFixture = (data) => {
     },
     resources: {
       statusPageResources: sharedResources,
-      resourceGroups: jsonArray([listGroup, gridGroup], StatusPageGroup),
+      resourceGroups: jsonArray([listGroup, gridGroupShown], StatusPageGroup),
     },
   };
 };

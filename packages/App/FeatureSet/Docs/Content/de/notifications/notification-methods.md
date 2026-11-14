@@ -2,6 +2,9 @@
 
 Eine Benachrichtigungsmethode ist eine Adresse, unter der OneUptime Sie in einem Projekt erreichen darf: eine E-Mail-Adresse, eine Telefonnummer für SMS oder Anrufe, eine WhatsApp-Nummer, ein Telegram-Konto, Ihr Slack-, Microsoft Teams- oder Mattermost-Konto, ein Telefon oder Browser für Push-Benachrichtigungen oder ein Webhook. Sie fügen sie unter **Benutzereinstellungen → Benachrichtigungsmethoden** hinzu, verifizieren sie, und OneUptime nutzt sie sofort für Ihre Alarme.
 
+> [!TIP]
+> Neu hier? Folgen Sie zuerst der Anleitung: [Per Anruf, SMS oder Push alarmiert werden](/docs/guides/paging).
+
 :::cards
 - [Eine Methode wählen](#eine-methode-wählen): Was jede Methode braucht, und wie sie verifiziert wird.
 - [Eine Methode hinzufügen und verifizieren](#eine-methode-hinzufügen-und-verifizieren): E-Mail, SMS, Anrufe und WhatsApp, mit einem 6-stelligen Code.
@@ -170,7 +173,7 @@ Ein Webhook braucht keine Verifizierung, daher fügt das Hinzufügen sofort sein
 
 **SMS**, **Telefonanrufe**, **WhatsApp** und **Telegram** sind in jedem neuen Projekt ausgeschaltet, weil jede Nachricht Geld kostet: In OneUptime Cloud wird sie vom Guthaben des Projekts bezahlt, und SMS und Anrufe laufen stattdessen über das eigene Twilio-Konto des Projekts, wenn sein Standardkonto sie sendet. E-Mail, Push, Slack, Microsoft Teams, Mattermost und Webhooks sind immer eingeschaltet.
 
-Solange ein Kanal ausgeschaltet ist, kann niemand im Projekt eine Methode darauf hinzufügen: Seine Karte hat keine Schaltfläche zum Hinzufügen und sagt, wer ihn einschalten kann. Ein Projekteigentümer, ein **Abrechnungs-Administrator** oder jemand mit **Manage Billing** schaltet ihn ein, in der Karte **Benachrichtigungskanäle** unter **Projekteinstellungen → Benachrichtigungen → Benachrichtigungseinstellungen**. Ein Projekt-Admin kann das nicht. In einem selbst gehosteten OneUptime brauchen SMS und Anrufe außerdem ein Twilio-Konto oder ein Gateway, das Sie selbst betreiben, und Telegram einen Bot, den der Admin des Servers verbindet; siehe [Twilio-Integration](/docs/self-hosted/twilio-integration) und [SMS- und Anruf-Gateway](/docs/self-hosted/sms-and-call-gateway).
+Solange ein Kanal ausgeschaltet ist, kann niemand im Projekt eine Methode darauf hinzufügen: Seine Karte hat keine Schaltfläche zum Hinzufügen und sagt, wer ihn einschalten kann. Ein Projekteigentümer, ein **Abrechnungs-Administrator** oder jemand mit **Manage Billing** schaltet ihn ein, in der Karte **Benachrichtigungskanäle** unter **Projekteinstellungen → Benachrichtigungen → Benachrichtigungskanäle**. Ein Projekt-Admin kann das nicht. In einem selbst gehosteten OneUptime brauchen SMS und Anrufe außerdem ein Twilio-Konto oder ein Gateway, das Sie selbst betreiben, und Telegram einen Bot, den der Admin des Servers verbindet; siehe [Twilio-Integration](/docs/self-hosted/twilio-integration) und [SMS- und Anruf-Gateway](/docs/self-hosted/sms-and-call-gateway).
 
 ## Eine Methode löschen
 
@@ -197,7 +200,7 @@ Prüfen Sie, ob das Telefon unter **Geräte für Push-Benachrichtigungen** aufge
 ## Nächste Schritte
 
 :::cards
-- [Persönliche Bereitschaftsregeln](/docs/notifications/on-call-rules): Legen Sie fest, welche Methode jeder Alarm versucht, und wann.
+- [Wie ich erreichbar bin](/docs/notifications/on-call-rules): Legen Sie fest, welche Methode jeder Alarm versucht, und wann.
 - [Benachrichtigungseinstellungen](/docs/notifications/notification-settings): Wählen Sie die Neuigkeiten, von denen Sie erfahren, und über welche Kanäle.
 - [Apps – Übersicht](/docs/mobile-desktop-apps/index): Erhalten Sie Alarme auf Ihrem Telefon oder Desktop.
 - [Wie OneUptime Sie erreicht](/docs/notifications/index): Wie Methoden, Regeln und Einstellungen zusammenpassen.

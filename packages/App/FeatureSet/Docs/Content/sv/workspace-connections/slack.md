@@ -43,7 +43,7 @@ En Slack-arbetsyta kan vara ansluten till mer än ett projekt, till exempel prod
 :::steps
 ### Installera OneUptime i din Slack-arbetsyta
 
-Gå till **Projektinställningar** > **Arbetsyta** > **Slack** och klicka på **Anslut med Slack**. Välj arbetsytan och tillåt OneUptime. Slack skickar dig tillbaka till samma sida, som nu visar vilken arbetsyta projektet är anslutet till. Tills en arbetsyta är ansluten innehåller avsnittet **Arbetsyta** i menyerna Incidenter, Larm, Schemalagt underhåll, Monitorer och Jourtjänst **Anslut en arbetsyta**, som också leder hit.
+Gå till **Projektinställningar** > **Arbetsyta** > **Slack** och klicka på **Anslut med Slack**. Välj arbetsytan och tillåt OneUptime. Slack skickar dig tillbaka till samma sida, som nu visar vilken arbetsyta projektet är anslutet till. Tills en arbetsyta är ansluten innehåller avsnittet **Arbetsyta** i menyerna Incidenter, Larm, Schemalagt underhåll, Monitorer och Jour **Anslut en arbetsyta**, som också leder hit.
 
 ### Anslut ditt eget Slack-konto
 
@@ -55,7 +55,7 @@ Gå till **Incidenter** > **Arbetsyta** > **Slack**. Avsnittet **Arbetsyta** vis
 
 ### Testa regeln
 
-Klicka på **Testregel** på regelns rad. Ett testmeddelande kommer i de kanaler som regeln anger. Se [Testa en regel](#testa-en-regel).
+Klicka på **Testa regel** på regelns rad. Ett testmeddelande kommer i de kanaler som regeln anger. Se [Testa en regel](#testa-en-regel).
 :::
 
 ## Slack Enterprise-organisationer
@@ -67,7 +67,7 @@ Med Slack Enterprise Grid kan ett projekt arbeta i flera arbetsytor i din organi
 3. Kortet **Slack-arbetsytor** listar de arbetsytorna. Klicka på **Uppdatera** när OneUptime har lagts till i en ny arbetsyta.
 
 - **Vilken arbetsyta en regel använder.** Aviseringsregler väljer den **Slack-arbetsyta** som deras kanaler finns i. Lämnas fältet tomt använder regeln standardarbetsytan och letar först där efter kanalerna den anger. **Gör till standard** på kortet ändrar standarden. Tas OneUptime bort från standardarbetsytan blir den av de återstående arbetsytorna som kommer först i bokstavsordning standard. Den förblir standard när OneUptime läggs till i den gamla arbetsytan igen.
-- **En arbetsyta som OneUptime har tagits bort från.** En regel som väljer den postar inte i en annan arbetsyta i stället: regelns kort, **Testregel** och aviseringsloggarna säger att OneUptime inte längre är tillagt i den. Kortet **Slack-kanal** säger det också när kanalen ligger i den arbetsytan. Lägg till OneUptime i den arbetsytan igen i Slacks organisationsinställningar, eller välj en annan arbetsyta i regeln.
+- **En arbetsyta som OneUptime har tagits bort från.** En regel som väljer den postar inte i en annan arbetsyta i stället: regelns kort, **Testa regel** och aviseringsloggarna säger att OneUptime inte längre är tillagt i den. Kortet **Slack-kanal** säger det också när kanalen ligger i den arbetsytan. Lägg till OneUptime i den arbetsytan igen i Slacks organisationsinställningar, eller välj en annan arbetsyta i regeln.
 - **Var OneUptime fungerar.** Knappar, kommandon, fliken Home och OneUptime AI fungerar i var och en av de arbetsytorna, och medlemmar ansluter sitt eget Slack-konto från vilken som helst av dem.
 - **Ett projekt som är anslutet till en enda arbetsyta.** Hör den arbetsytan till organisationen behåller projektet sina regler, kanaler och anslutna konton när det installeras för hela organisationen med **Installera för organisationen** på samma sida. Den arbetsytan blir standard.
 - **På en egen server** tillåter en Slack-app som skapats från OneUptimes manifest redan detta: manifestet sätter `org_deploy_enabled`.
@@ -90,7 +90,7 @@ En aviseringsregel anger vilka händelser som publiceras i Slack, och var. Varje
 | **Larm** | **Larm**, **Larmepisoder**, **Sammanfattning** |
 | **Schemalagt underhåll** | En lista med regler |
 | **Monitorer** | En lista med regler |
-| **Jourtjänst** | En lista med regler |
+| **Jour** | En lista med regler |
 | **SLOs** | En lista med regler |
 
 Att skapa en regel går igenom fyra steg:
@@ -138,9 +138,9 @@ OneUptime-appen lägger till dem, på samma sätt som den lägger till personern
 
 ## Testa en regel
 
-**Testregel** på en regels rad publicerar ett testmeddelande för den regeln i de kanaler den anger, så att du ser att det kommer fram. Om regeln skapar en kanal för varje händelse skapar testet också en och bjuder in regelns personer till den.
+**Testa regel** på en regels rad publicerar ett testmeddelande för den regeln i de kanaler den anger, så att du ser att det kommer fram. Om regeln skapar en kanal för varje händelse skapar testet också en och bjuder in regelns personer till den.
 
-Precis som **Skicka test** bredvid en kanal i **Projektinställningar** > **Arbetsyta** > **Slack** kräver den behörighet att skapa aviseringsregler: **Projektägare**, **Projektadministratör**, **Projektmedlem**, **Inställningsadministratör**, **Inställningsmedlem**, eller **Create Workspace Notification Rule** och **Read Workspace Notification Rule** i en anpassad roll. För den som bara får se reglerna, som en **Tittare**, är **Testregel** låst, och dess verktygstips anger vad som krävs; API:et avvisar personens test med "You do not have permission to send test notifications in this project." På OneUptime Cloud kräver det **Growth**-planen att testa en regel, precis som att lägga till en.
+Precis som **Skicka test** bredvid en kanal i **Projektinställningar** > **Arbetsyta** > **Slack** kräver den behörighet att skapa aviseringsregler: **Projektägare**, **Projektadministratör**, **Projektmedlem**, **Inställningsadministratör**, **Inställningsmedlem**, eller **Create Workspace Notification Rule** och **Read Workspace Notification Rule** i en anpassad roll. För den som bara får se reglerna, som en **Tittare**, är **Testa regel** låst, och dess verktygstips anger vad som krävs; API:et avvisar personens test med "You do not have permission to send test notifications in this project." På OneUptime Cloud kräver det **Growth**-planen att testa en regel, precis som att lägga till en.
 
 På OneUptime Cloud kräver **Skicka test** bredvid en kanal också **Growth**-planen, eftersom att publicera i en kanal är vad regler och sammanfattningar gör. **Skicka test nu** på en sammanfattning kräver behörighet att skapa sammanfattningar (**Create Workspace Notification Summary** och **Read Workspace Notification Summary** i en anpassad roll) och, på OneUptime Cloud, **Growth**-planen; för alla andra är den låst, och dess verktygstips anger vad som krävs. En MCP-klient som är ansluten med skrivskyddad åtkomst kan inte skicka något test.
 
@@ -154,7 +154,7 @@ Formuläret för en sammanfattning har fyra steg: **Grundläggande information**
 
 ## Aviseringsregler under Growth-planen
 
-På OneUptime Cloud ingår aviseringsregler och sammanfattningar i **Growth**-planen och uppåt. Ett projekt under den behåller de regler och sammanfattningar det redan har, och de fortsätter att publicera i Slack. Därför visar varje produkts **Slack**-sida (Incidenter, Larm, Schemalagt underhåll, Jourtjänst, Monitorer) planmeddelandet med dem listade nedanför (**Aviseringsregler som fortfarande är konfigurerade**, **Sammanfattningar som fortfarande är konfigurerade**): ta bort en regel, eller stäng av eller ta bort en sammanfattning. Att lägga till eller ändra regler och sammanfattningar kräver **Growth**.
+På OneUptime Cloud ingår aviseringsregler och sammanfattningar i **Growth**-planen och uppåt. Ett projekt under den behåller de regler och sammanfattningar det redan har, och de fortsätter att publicera i Slack. Därför visar varje produkts **Slack**-sida (Incidenter, Larm, Schemalagt underhåll, Jour, Monitorer) planmeddelandet med dem listade nedanför (**Aviseringsregler som fortfarande är konfigurerade**, **Sammanfattningar som fortfarande är konfigurerade**): ta bort en regel, eller stäng av eller ta bort en sammanfattning. Att lägga till eller ändra regler och sammanfattningar kräver **Growth**.
 
 ## Bli larmad i Slack
 
@@ -166,7 +166,7 @@ För att bli larmad via direktmeddelande när du har jour lägger du till Slack 
 3. Klicka på **Send Test Message** på dess rad. Meddelandet kommer i dina direktmeddelanden i Slack.
 :::
 
-Att lägga till den lägger in den i dina jourregler direkt, så larm når dig i Slack från och med då. Ändra vilka larm den får under **Användarinställningar** > **Jourregler**.
+Att lägga till den lägger in den i dina jourregler direkt, så larm når dig i Slack från och med då. Ändra vilka larm den får under **Användarinställningar** > **Så når man mig**.
 
 ## Spara meddelanden som anteckningar
 
@@ -235,7 +235,7 @@ OneUptime svarar bara på det som riktas till den.
 - **I ett larms egen kanal.** I den kanal som OneUptime skapade för ett larm säger formuläret, så länge larmet är öppet, att incidenten deklareras från det larmet, och börjar med larmets titel och de resurser det är kopplat till som du får se. Incidenten kopplas till larmet, precis som en incident som deklareras från larmets sida, och incidenten för ett privat larm är också privat. När du inte får koppla larm till incidenter deklareras incidenten utan kopplingen, och du får veta varför.
 - **Vad ett formulär får ange.** Incidenten eller händelsen skapas med dina egna behörigheter och tillskrivs dig. En monitor, jourpolicy, etikett, allvarlighetsgrad eller status som du inte får läsa, eller en från ett annat projekt, avvisas som en som projektet inte har, även från ett formulär som öppnades innan din åtkomst ändrades, och inget skapas. OneUptime berättar varför i kanalen, i ett meddelande som bara du ser.
 
-**Execute On-Call Policy** på en incident, ett larm eller en episod fungerar på samma sätt: den kräver behörighet att köra en jourpolicy (**Projektägare**, **Projektadministratör**, **Projektmedlem**, **Jouradministratör** och **Jourmedlem**, eller **Execute On-Call Duty Policy** i en anpassad roll) och att läsa den incidenten, det larmet eller den episoden, och den erbjuder de aktiva jourpolicyer som du får läsa.
+**Execute On-Call Policy** på en incident, ett larm eller en episod fungerar på samma sätt: den kräver behörighet att köra en jourpolicy (**Projektägare**, **Projektadministratör**, **Projektmedlem**, **Jouradministratör** och **Jourmedlem**, eller **Execute On-Call Policies** i en anpassad roll) och att läsa den incidenten, det larmet eller den episoden, och den erbjuder de aktiva jourpolicyer som du får läsa.
 
 ## Larma någon från Slack
 
@@ -246,7 +246,7 @@ OneUptime svarar bara på det som riktas till den.
 - **Vem som larmas direkt.** Personerna du nämner med @, och de som har jour i de scheman som en användargrupp du nämner med @ följer (se [Jouranvändargrupper](#jouranvändargrupper)), när ett meddelande följer efter dem, eller utan meddelande i en incidents eller ett larms egen kanal. OneUptime känner igen en person på det OneUptime-konto som personens Slack-konto är anslutet till, eller annars på den e-postadress Slack har för personen. Ingen utanför projektet larmas.
 - **Allt annat öppnar ett formulär.** Utan någon nämnd med @, utan meddelande där larmningen behöver ett, med `@here`, med en användargrupp som inte följer något jourschema du kan se, eller med en person som OneUptime inte känner igen, öppnas formuläret **Page someone** med det du skrev ifyllt, och det säger vem det inte kunde välja. I en incidents eller ett larms egen kanal öppnas det med den incidenten eller det larmet. Välj personer, ett team, ett jourschema, som larmar den som har jour i det just nu, eller en jourpolicy, som larmar genom sina eskaleringsregler, och skicka det. Ett namn du skriver först, som i `/oneuptime page Primary The disk is full`, väljer schemat, teamet eller policyn med det namnet.
 - **Var det syns.** Kanalen visar larmningen som ett enda meddelande som hålls uppdaterat: vem som larmades och hur, varje team med sitt namn och sina personer efter, ditt meddelande, och vem som bekräftade. Där OneUptime inte kan posta, till exempel i en privat kanal den inte har bjudits in till, säger ett meddelande som bara du ser vem som larmades, med en länk till incidenten eller larmet.
-- **Vem som får larma.** I en incidents eller ett larms egen kanal alla som får köra en jourpolicy (**Projektägare**, **Projektadministratör**, **Projektmedlem**, **Jouradministratör** och **Jourmedlem**, eller **Execute On-Call Duty Policy** i en anpassad roll) och läsa den incidenten eller det larmet. Överallt annars skapar larmningen ett larm, så den kräver också behörighet att skapa ett: **Projektägare**, **Projektadministratör** och **Projektmedlem**, eller **Jourmedlem** tillsammans med **Larmmedlem** (**Execute On-Call Duty Policy** och **Create Alert** i en anpassad roll). Att larma personer, ett team eller ett schema direkt, utan en jourpolicy bakom larmningen, kräver också åtkomst till alla projektets jourpolicyer. Alla andra får veta det där de körde kommandot, och ingen larmas. På OneUptime Cloud kräver larmning Growth-planen: under den säger OneUptime vilken plan som krävs, och ingen larmas.
+- **Vem som får larma.** I en incidents eller ett larms egen kanal alla som får köra en jourpolicy (**Projektägare**, **Projektadministratör**, **Projektmedlem**, **Jouradministratör** och **Jourmedlem**, eller **Execute On-Call Policies** i en anpassad roll) och läsa den incidenten eller det larmet. Överallt annars skapar larmningen ett larm, så den kräver också behörighet att skapa ett: **Projektägare**, **Projektadministratör** och **Projektmedlem**, eller **Jourmedlem** tillsammans med **Larmmedlem** (**Execute On-Call Policies** och **Create Alert** i en anpassad roll). Att larma personer, ett team eller ett schema direkt, utan en jourpolicy bakom larmningen, kräver också åtkomst till alla projektets jourpolicyer. Alla andra får veta det där de körde kommandot, och ingen larmas. På OneUptime Cloud kräver larmning Growth-planen: under den säger OneUptime vilken plan som krävs, och ingen larmas.
 
 För att hålla personer informerade medan andra hanterar det larmar du dem som observatörer. Skriv `as observers` efter vem du larmar i en incidents eller ett larms egen kanal, som i `/oneuptime page @oversight as observers Team Y is on it`, eller välj **Observers: keep them informed** under **Page them as** i formuläret. Deras larmning säger att de är observatörer, och bekräftar de den säger det bara att de har sett den: incidenten eller larmet bekräftas inte, ingen annans larmning stoppas, och där larmningen visas står det att de larmas som observatörer. En larmning om något nytt behöver någon som hanterar det, så överallt annars avvisas `as observers`, och ingen larmas.
 
@@ -257,7 +257,7 @@ Håll en användargrupp i Slack, till exempel `@payments-oncall`, lika med dem s
 :::steps
 ### Anslut en användargrupp till ett schema
 
-Öppna schemat under **Jourtjänst** > **Jourscheman**. Klicka på **Anslut användargrupp** i dess kort **Användargrupper i Slack**, och välj en av arbetsytans användargrupper, eller **Skapa en ny användargrupp** med ett namn och ett alias. Medlemmarna ersätts direkt med dem som har jour.
+Öppna schemat under **Jour** > **Jourscheman**. Klicka på **Anslut användargrupp** i dess kort **Användargrupper i Slack**, och välj en av arbetsytans användargrupper, eller **Skapa en ny användargrupp** med ett namn och ett alias. Medlemmarna ersätts direkt med dem som har jour.
 
 ### Anslut den även till det sekundära schemat
 
@@ -268,7 +268,7 @@ För en grupp med både den primära och den sekundära jouren ansluter du samma
 - **Ingen har jour.** Slack kan inte behålla en användargrupp utan medlemmar, så OneUptime stänger av gruppen tills någon har jour, och slår sedan på den igen.
 - **Larma gruppen.** `/oneuptime page @payments-oncall The checkout API is down` larmar dem som har jour i de scheman gruppen följer. Se [Larma någon från Slack](#larma-någon-från-slack).
 - **Vad Slack kräver.** Användargrupper ingår i Slacks betalda abonnemang, och en arbetsyta kan låta bara sina ägare och administratörer ändra dem: kortet säger vilket, och vad du gör. Om Slack anslöts innan OneUptime kunde hålla användargrupper uppdaterade, ansluter du det igen en gång under **Projektinställningar** > **Arbetsyta** > **Slack**.
-- **Vem som får ansluta en.** De roller som får redigera scheman: **Projektägare**, **Projektadministratör**, **Projektmedlem**, **Jouradministratör** och **Jourmedlem**, eller **Edit On-Call Duty Policy Schedule** i en anpassad roll. På OneUptime Cloud kräver det abonnemanget **Growth** att ansluta en.
+- **Vem som får ansluta en.** De roller som får redigera scheman: **Projektägare**, **Projektadministratör**, **Projektmedlem**, **Jouradministratör** och **Jourmedlem**, eller **Edit On-Call Schedule** i en anpassad roll. På OneUptime Cloud kräver det abonnemanget **Growth** att ansluta en.
 - **I en Slack Enterprise-organisation.** När OneUptime är tillagt i två eller fler av dess arbetsytor frågar **Anslut användargrupp** först vilken **Slack-arbetsyta** gruppen finns i, och listar sedan den arbetsytans användargrupper. Kortet anger varje grupps arbetsyta, och OneUptime håller gruppen uppdaterad där.
 - **Koppla från.** OneUptime slutar ändra gruppen. Gruppen och dess medlemmar stannar i Slack som de är.
 
@@ -333,7 +333,7 @@ Det OneUptime sparar av detta — arbetsytans namn, dess kanaler, de Slack-konto
 ## Felsökning
 
 :::details En regel publicerar ingenting
-Kontrollera regelns villkor med **Testregel**: om testet kommer fram matchade inte regelns villkor händelsen. Om det inte gör det visar Slack-sidan varför. För en privat kanal måste du först bjuda in OneUptime-appen till den i Slack. Varje meddelande som OneUptime publicerar, och varje meddelande som Slack avvisade, visas i **Projektinställningar** > **Aviseringar** > **Aviseringsloggar**, på fliken **Arbetsyta**.
+Kontrollera regelns villkor med **Testa regel**: om testet kommer fram matchade inte regelns villkor händelsen. Om det inte gör det visar Slack-sidan varför. För en privat kanal måste du först bjuda in OneUptime-appen till den i Slack. Varje meddelande som OneUptime publicerar, och varje meddelande som Slack avvisade, visas i **Projektinställningar** > **Aviseringar** > **Aviseringsloggar**, på fliken **Arbetsyta**.
 :::
 
 :::details Någon saknas i en regels kanal

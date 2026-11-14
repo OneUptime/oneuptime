@@ -283,7 +283,7 @@ const INCIDENT_PAGE: EventPage = {
   ],
   detailsCard: "Incident Details",
   detailLabels: [
-    "On-Call Duty Policies",
+    "On-Call Policies",
     "Subscriber Notification Status",
     // The status pages the incident is limited to, read only.
     "Status Page Scope",
@@ -347,7 +347,7 @@ const ALERT_PAGE: EventPage = {
   detailLabels: [
     "Monitor",
     "Episode",
-    "On-Call Duty Policies",
+    "On-Call Policies",
     "Labels",
     "Alert Number",
   ],
@@ -464,7 +464,7 @@ const INCIDENT_EPISODE_PAGE: EventPage = {
     "Episode Severity",
     "Incident Count",
     "Grouping Rule",
-    "On-Call Duty Policies",
+    "On-Call Policies",
     "Labels",
   ],
   recordId: INCIDENT_EPISODE_ID,
@@ -516,7 +516,7 @@ const ALERT_EPISODE_PAGE: EventPage = {
     "Episode Severity",
     "Alert Count",
     "Grouping Rule",
-    "On-Call Duty Policies",
+    "On-Call Policies",
     "Labels",
   ],
   recordId: ALERT_EPISODE_ID,
@@ -3475,9 +3475,9 @@ test.describe("investigation states", () => {
  * and nothing on it moves until then.
  */
 const FAILED_CAUSE: string =
-  "The AI provider could not be reached, or was too busy to answer.";
+  "The LLM provider could not be reached, or was too busy to answer.";
 const FAILED_FIX: string =
-  "Check that the AI provider is up and that OneUptime can reach it, then try again.";
+  "Check that the LLM provider is up and that OneUptime can reach it, then try again.";
 // The fixture's refusal of Try again (?fail=investigation-try-again).
 const TRY_AGAIN_REFUSAL: string =
   "OneUptime AI is switched off for this project. A project owner or someone with Manage Billing can turn it on in Project Settings > AI > AI Features.";
@@ -3698,7 +3698,7 @@ test.describe("a run that did not finish (issues #6437, #6438)", () => {
     );
     await expect(step.getByTestId("activity-attempt-end")).toHaveText(
       new RegExp(
-        `^Did not finish: The AI provider did not answer within 120 seconds\\. Trying again at ${RETRY_TIME}\\.$`,
+        `^Did not finish: The LLM provider did not answer within 120 seconds\\. Trying again at ${RETRY_TIME}\\.$`,
       ),
     );
     // The model call that ran out of time failed; nothing promises a retry.
@@ -7592,7 +7592,8 @@ test.describe("the AI card as one line when AI was off for the record (?ai=off-*
       title: "Severity was below the minimum for AI investigation",
       description:
         "OneUptime AI investigates only the incidents with a severity of SEV-1 or higher, and this one's severity was SEV-2.",
-      serverWords: "did not meet the minimum SEV-1 investigation severity",
+      serverWords:
+        "did not meet the minimum severity for AI investigation (SEV-1)",
     },
     {
       name: "an alert, in German",
@@ -7601,7 +7602,8 @@ test.describe("the AI card as one line when AI was off for the record (?ai=off-*
       title: "Der Schweregrad lag unter dem Mindestwert für KI-Untersuchungen",
       description:
         "OneUptime AI untersucht nur Warnungen mit dem Schweregrad Critical oder höher, und diese Warnung hatte den Schweregrad High.",
-      serverWords: "did not meet the minimum Critical investigation severity",
+      serverWords:
+        "did not meet the minimum severity for AI investigation (Critical)",
     },
   ]) {
     test(`the whole card names the severity and the minimum for ${name} (?ai=off-severity&fixing=acted)`, async ({
@@ -22899,7 +22901,7 @@ test.describe("a fix that did not work, step by step (?fixes=rolled-back)", () =
  */
 const UNFINISHED_ROUND_FIX_ID: string = "93000000-0000-4000-8000-000000000010";
 const ROUND_TIMEOUT_CAUSE: string =
-  "The AI provider did not answer within 120 seconds.";
+  "The LLM provider did not answer within 120 seconds.";
 // The fixture's refusal of the round's Try again (?fail=round-try-again).
 const ROUND_LIMIT_REFUSAL: string =
   "The project reached its daily AI limit. OneUptime AI starts again at midnight UTC.";

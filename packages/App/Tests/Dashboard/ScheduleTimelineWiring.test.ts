@@ -4,7 +4,7 @@ import path from "path";
 import { DASHBOARD_LANGUAGES } from "Common/Tests/Helpers/TranslatedLanguages";
 
 /*
- * The schedule timeline is one component on two pages (On-Call Duty >
+ * The schedule timeline is one component on two pages (On-Call >
  * Schedule Timeline, and Teams > View Team > On-Call Schedules), a button on
  * the schedules list, two side-menu entries, two breadcrumb trails and one
  * API router. None of that wiring is reachable from a unit test - a route
@@ -189,7 +189,7 @@ describe("Breadcrumbs", () => {
 
     expect(onCall).toContain(
       compact(
-        '...BuildBreadcrumbLinksByTitles(PageMap.ON_CALL_DUTY_SCHEDULE_TIMELINE, [ "Project", "On-Call Duty", "Schedule Timeline", ])',
+        '...BuildBreadcrumbLinksByTitles(PageMap.ON_CALL_DUTY_SCHEDULE_TIMELINE, [ "Project", "On-Call", "Schedule Timeline", ])',
       ),
     );
     expect(teams).toContain(
@@ -201,7 +201,7 @@ describe("Breadcrumbs", () => {
 });
 
 describe("Side menus", () => {
-  test("On-Call Duty lists Schedule Timeline in the Schedules section, right after the list", () => {
+  test("On-Call lists Schedule Timeline in the Schedules section, right after the list", () => {
     const menu: string = readDashboardCode(
       "Pages",
       "OnCallDuty",

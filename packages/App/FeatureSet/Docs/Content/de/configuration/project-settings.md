@@ -5,6 +5,7 @@ Die Projekteinstellungen enthalten, was für das ganze Projekt gilt: seinen Name
 :::cards
 - [Eine Einstellung finden](#eine-einstellung-finden): Was jeder Abschnitt des Seitenmenüs enthält.
 - [Die Details des Projekts](#die-details-des-projekts): Sein Name, seine ID und der Support-Zugriff.
+- [Produkte](#produkte): Die Produkte, die dieses Projekt anzeigt, und die, die es ausblendet.
 - [Beschriftungen](#beschriftungen): Markierungen für Ressourcen, Berechtigungen und Regeln.
 - [Das Projekt löschen](#das-projekt-löschen): Was es erfordert und was mitgeht.
 :::
@@ -30,10 +31,10 @@ flowchart LR
 
 | Abschnitt | Seiten | Wo Sie mehr lesen |
 | --- | --- | --- |
-| **Grundlegend** | **Projekt**, **Beschriftungen** | [Die Details des Projekts](#die-details-des-projekts), [Beschriftungen](#beschriftungen) |
+| **Grundlegend** | **Projekt**, **Produkte**, **Beschriftungen** | [Die Details des Projekts](#die-details-des-projekts), [Produkte](#produkte), [Beschriftungen](#beschriftungen) |
 | **Arbeitsbereich** | **Slack**, **Microsoft Teams**, **Mattermost**, **Videoanrufe** | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Mattermost](/docs/workspace-connections/mattermost), [Videoanrufe](/docs/workspace-connections/video-calls) |
 | **Telemetrie & APM** | **Ingestion-Schlüssel**, **Datenaufbewahrung**, **Nutzung** | [Ingestion-Schlüssel](/docs/telemetry/ingestion-keys), [Datenaufbewahrung](/docs/telemetry/data-retention), [Telemetrie-Nutzung](/docs/telemetry/usage) |
-| **Benachrichtigungen** | **Benachrichtigungseinstellungen**, **Benachrichtigungsprotokolle**, **Mobile Apps** | [Benachrichtigungen](#benachrichtigungen) |
+| **Benachrichtigungen** | **Benachrichtigungskanäle**, **Benachrichtigungsprotokolle**, **Mobile Apps** | [Benachrichtigungen](#benachrichtigungen) |
 | **KI** | **KI-Funktionen**, **LLM-Anbieter**, **Externe MCP-Server**, **KI-Guthaben**, **KI-Protokolle**, **MCP-Server** | [LLM-Anbieter](/docs/ai/llm-provider), [Externe MCP-Server](/docs/ai/external-mcp-servers), [MCP-Server](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#kostenkontrollen) |
 | **Erweitert** | **Domänen**, **API-Schlüssel**, **Feature-Flags**, **Import aus anderem Tool** | [Eigene Domains](/docs/status-pages/branding-and-domains#eigene-domains), [API-Schlüssel](/docs/permissions/index#api-schlüssel), [Feature-Flags](#feature-flags), [Wechsel von Opsgenie](/docs/moving-to-oneuptime/opsgenie) und die anderen Umzugsanleitungen |
 | **Sicherheit** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
@@ -54,6 +55,20 @@ flowchart LR
 - **Datenresidenz**: in OneUptime Cloud, wo die Daten Ihres Projekts liegen sollen, wenn OneUptime das erfasst hat. Nur OneUptime setzt sie.
 
 **Kundensupport-Zugriff** entscheidet in OneUptime Cloud, ob das Support-Team von OneUptime das Projekt öffnen darf. Schalten Sie **OneUptime-Support Zugriff auf dieses Projekt gewähren** ein, wenn Sie Hilfe möchten: OneUptime fragt vorher, weil der Support dann alles im Projekt sehen und ändern kann, und Sie klicken auf **Support hereinlassen**. Schalten Sie es aus, sobald er fertig ist: Das wird sofort gespeichert. Project Owners und Project Admins ändern es.
+
+## Produkte
+
+**Projekteinstellungen → Grundlegend → Produkte** wählt die Produkte aus, die dieses Projekt im Menü **Produkte**, auf der Startseite und in der Liste der Suche anzeigt. Jedes Produkt hat einen Schalter, der beim Umlegen speichert: eingeschaltet zeigt das Produkt an. Benutzer, Teams und Projekteinstellungen werden immer angezeigt, und **Alle Produkte anzeigen** zeigt wieder alle an.
+
+Ein ausgeblendetes Produkt ist nicht ausgeschaltet. Es wandert unter **Weitere Produkte**, die letzte Zeile des Menüs **Produkte**: Die Suche findet es weiterhin, seine Seiten und seine API funktionieren, und seine Daten kommen weiter an. Wer es fixiert hat, behält seine Fixierung.
+
+Auf einem selbst gehosteten Server kann ein Master-Administrator ein Produkt außerdem für alle Projekte ausschalten, im Admin Dashboard unter **Einstellungen → Produkte** (siehe [Nur betreiben, was Sie brauchen](/docs/installation/docker-compose#nur-betreiben-was-sie-brauchen)). Ein solches Produkt hat hier keinen Schalter: Es zeigt **Auf diesem Server ausgeschaltet** an und nennt, wer es einschalten kann.
+
+Ein neues Projekt beginnt mit dem, wofür es laut seinem Inhaber auf der Startseite da ist: Die Grundlagen, die Einstellungen und was diese Ziele brauchen, werden angezeigt, der Rest wird ausgeblendet. Ein Projekt, das die Frage übersprungen hat oder vor ihr angelegt wurde, zeigt alle Produkte. Sobald jemand die Liste hier ändert, ändern die Ziele sie nicht mehr.
+
+Jedes Produkt sagt, was es für dieses Projekt ist: **In Verwendung**, **Nicht eingerichtet** oder, in OneUptime Cloud, den Tarif, den es braucht. Sobald ein ausgeblendetes Produkt Daten empfängt, sagt die Startseite es den Projektinhabern und -administratoren und bietet **Anzeigen** oder **Ausgeblendet lassen** an.
+
+Projektinhaber, Projektadministratoren und alle, die das Projekt bearbeiten dürfen, ändern sie; alle anderen im Projekt können sie sehen.
 
 ## Beschriftungen
 
@@ -81,7 +96,7 @@ Um eine Beschriftung außer Dienst zu stellen, archivieren Sie sie über das Men
 
 **Projekteinstellungen → Benachrichtigungen** enthält, wie das Projekt Benachrichtigungen sendet:
 
-- **Benachrichtigungseinstellungen**: Die Karte **Benachrichtigungskanäle** schaltet SMS, Telefonanrufe, WhatsApp und Telegram für das Projekt ein oder aus. Alle vier sind anfangs aus. Ein Project Owner, ein **Abrechnungs-Administrator** oder jemand mit **Manage Billing** schaltet sie. Die Seite enthält auch, eingeklappt unter **Weitere Einstellungen**, die eigenen Mailserver des Projekts unter **Benutzerdefinierte SMTP-Konfigurationen** (siehe [SMTP](/docs/emails/smtp)) und sein eigenes Twilio-Konto (siehe [Twilio-Integration](/docs/self-hosted/twilio-integration)). In OneUptime Cloud enthält sie das Guthaben, aus dem diese Nachrichten bezahlt werden: siehe [Vorausbezahltes Guthaben](/docs/configuration/billing#vorausbezahltes-guthaben).
+- **Benachrichtigungskanäle**: Die Karte **Benachrichtigungskanäle** schaltet SMS, Telefonanrufe, WhatsApp und Telegram für das Projekt ein oder aus. Alle vier sind anfangs aus. Ein Project Owner, ein **Abrechnungs-Administrator** oder jemand mit **Manage Billing** schaltet sie. Die Seite enthält auch, eingeklappt unter **Weitere Einstellungen**, die eigenen Mailserver des Projekts unter **Benutzerdefinierte SMTP-Konfigurationen** (siehe [SMTP](/docs/emails/smtp)) und sein eigenes Twilio-Konto (siehe [Twilio-Integration](/docs/self-hosted/twilio-integration)). In OneUptime Cloud enthält sie das Guthaben, aus dem diese Nachrichten bezahlt werden: siehe [Vorausbezahltes Guthaben](/docs/configuration/billing#vorausbezahltes-guthaben).
 - **Benachrichtigungsprotokolle**: jede Benachrichtigung, die das Projekt gesendet hat, mit einem Tab pro Kanal: **E-Mail**, **SMS**, **WhatsApp**, **Telegram**, **Webhook**, **Anruf**, **Push** und **Arbeitsbereich**.
 - **Mobile Apps**: wo Sie die Apps für iOS und Android bekommen. Siehe [Apps – Übersicht](/docs/mobile-desktop-apps/index).
 

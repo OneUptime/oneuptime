@@ -38,7 +38,7 @@ Linjen øverst nævner det mest presserende, der er åbent, i en tilsvarende far
 
 Ved siden af siger Hjem, hvornår den sidst læste projektet, og **Opdater** læser det igen. Når du vender tilbage til en fane med Hjem efter et minut eller mere, opdaterer den sig selv.
 
-Så længe intet overvåges endnu, slutter linjen med knappen **Opret din første overvågning**, som åbner formularen, der opretter en monitor. Kun personer, der har lov til at oprette monitorer, ser den.
+Så længe intet overvåges endnu, slutter linjen med knappen **Opret din første overvågning**, som åbner den guidede opsætning **Vide, når mit website eller API er nede**. Kun personer, der har lov til at oprette monitorer, ser den.
 
 ### De fem tal
 
@@ -49,7 +49,7 @@ Hvert tal tæller noget, siger, om det kræver din opmærksomhed, og åbner list
 | **Aktive hændelser** | Hændelser, der ikke er løst | **Alt er i orden** | **Hændelser → Aktive hændelser** |
 | **Aktive advarsler** | Advarsler, der ikke er løst | **Alt er i orden** | **Advarsler → Aktive advarsler** |
 | **Ikke-operationelle monitorer** | Monitorer, hvis status ikke er en driftsstatus. Arkiverede monitorer, og monitorer med overvågning slået fra, tæller ikke med. | **Alle i drift** | **Monitorer → Ikke operationel** |
-| **Igangværende vedligeholdelse** | Planlagte vedligeholdelser, der er i gang | **Ingen i gang** | **Planlagt vedligeholdelse → Igangværende hændelser** |
+| **Igangværende vedligeholdelse** | Planlagte vedligeholdelser, der er i gang | **Ingen i gang** | **Planlagt vedligeholdelse → Igangværende vedligeholdelseshændelser** |
 | **SLO'er i fare** | Aktive SLO'er, der er i fare eller har brugt deres fejlbudget op | **Budgetterne er sunde** | **SLOs** |
 
 Et tal over nul viser **Kræver opmærksomhed**, eller **I gang** og **Budgettet bruges op** for vedligeholdelse og SLO'er. Så længe en SLO er i fare, åbner **SLO'er i fare** listen **SLOs** filtreret til netop dem. Et projekt uden monitorer ser **Ingen monitorer endnu**, og et uden SLO'er ser **Ingen SLO'er endnu**: et tomt projekt er ikke det samme som et sundt. De to åbner så listerne **Monitorer** og **SLOs**, hvor du opretter en.
@@ -63,18 +63,18 @@ Hvert trin krydser sig selv af, når tingen virker, ikke når en post findes, og
 | Trin | Gennemført, når | Åbner |
 | --- | --- | --- |
 | **Importér fra dit nuværende værktøj** | En import fra et andet værktøj er gennemført. | **Importér fra et andet værktøj** |
-| **Opret din første overvågning** | Den første kontrol kommer ind. | Formularen **Opret monitor**, eller listen **Monitorer** for den, der ikke må oprette overvågninger. |
+| **Opret din første overvågning** | Den første kontrol kommer ind. | Den guidede opsætning **Vide, når mit website eller API er nede**, eller listen **Monitorer** for den, der ikke må oprette overvågninger. |
 | **Forbind en server eller en klynge** | De første metrikker kommer ind. | **Værter** |
-| **Send dine første logs, metrikker eller traces** | Projektets første logs, metrikker, traces, undtagelser eller profiler kommer ind. | **Protokoller** |
-| **Opsæt en vagtpolitik** | En testalarm bliver kvitteret, en alarm når nogen, eller en vagtregel kører en politik, der kan nå nogen. | **Vagtordning** |
-| **Udgiv en statusside** | En statusside viser en overvågning. | **Statussider** |
+| **Send dine første logs, metrikker eller traces** | Projektets første logs, metrikker, traces, undtagelser eller profiler kommer ind. | Den guidede opsætning **Send protokoller, metrikker og spor, og få derefter advarsler** |
+| **Opsæt en vagtpolitik** | En testalarm bliver kvitteret, en alarm når nogen, eller en vagtregel kører en politik, der kan nå nogen. | Den guidede opsætning **Tilkalde den rette person, når noget går ned** |
+| **Udgiv en statusside** | En statusside viser en overvågning. | Den guidede opsætning **Udgiv en statusside**, eller listen **Statussider** for den, der ikke må oprette statussider. |
 | **Inviter dit team** | Nogen accepterer din invitation. | **Brugere** |
 
 Det trin, du skal tage først, er markeret med **Næste trin**. På OneUptime Clouds Free-abonnement, der har én person, siger **Inviter dit team**, at det kræver Growth-abonnementet, og åbner **Fakturering**. På en selvhostet server, der endnu ikke kan sende e-mail, ser serverens administratorer først **Denne server kan ikke sende e-mail endnu**; det åbner administrationsdashboardet.
 
-Når du opretter en overvågning, en statusside eller en vagtpolitik fra et trin, siger siden, du lander på, hvad der kommer bagefter, med **Tilbage til opsætningen**.
+En guidet opsætning klarer hele opgaven på én side, et trin ad gangen, og slutter med, hvad den har sat op, og hvad du kan gøre bagefter. Søg efter dens navn for at åbne den igen senere.
 
-Under trinene viser **Sådan virker OneUptime** de fire kerneprodukter i den rækkefølge, et problem bevæger sig gennem dem: **Monitorer**, **Hændelser og advarsler**, **Vagtordning** og **Statussider**. Klik på et for at åbne det. Under dem står, hvad der fodrer kredsløbet, telemetri og infrastruktur, med links til [Grundbegreber](/docs/introduction/core-concepts) og [Ordliste](/docs/introduction/glossary).
+Under trinene viser **Sådan virker OneUptime** de fire kerneprodukter i den rækkefølge, et problem bevæger sig gennem dem: **Monitorer**, **Hændelser og advarsler**, **Vagt** og **Statussider**. Klik på et for at åbne det. Under dem står, hvad der fodrer kredsløbet, telemetri og infrastruktur, med links til [Grundbegreber](/docs/introduction/core-concepts) og [Ordliste](/docs/introduction/glossary).
 
 ```mermaid title="Hvornår velkomsttjeklisten vises"
 flowchart TB
@@ -93,6 +93,10 @@ Tjeklisten forsvinder for alle, når hvert trin er færdigt. For at skjule den f
 
 **Kræver opmærksomhed** viser ved navn det, tallene tæller: de åbne hændelser, de åbne advarsler, de monitorer, der ikke er i drift, SLO'erne i fare og de igangværende vedligeholdelser, det mest presserende først. Hver række viser sin alvor eller status, siger, hvornår en hændelse eller advarsel begyndte, og hvornår vedligeholdelsen slutter, og åbner posten. Hver slags viser op til fem, med **Vis alle** for resten, som åbner den samme liste som dens tal. Når intet er åbent, står der **Intet kræver din opmærksomhed**.
 
+### Opsætningens tilstand
+
+Når noget i projektets opsætning ville forhindre, at folk får besked, slutter **Kræver opmærksomhed** med **Opsætning**: hvor mange ting der bør ses på. Den åbner **Opsætningens tilstand**, som viser, hvad der er sat forkert op, det værste først, under **Tilkald når ikke frem**, **Værd at rette** og **Forslag**: en monitor, der ikke tilkalder nogen, en vagtpolitik, som intet kører, en person, der ikke kan tilkaldes, SMS slået fra, en vagttidsplan uden nogen på vagt, en statusside, der ikke viser nogen monitor. Hvert fund siger med én sætning, hvad der er galt, med knappen, der åbner rettelsen, og en monitors fund er de brud, som dens kort **Når den går ned** nævner. Et fund, som jeres team bevidst lader være, kan skjules med en begrundelse, for alle, og gendannes fra **Afvist**. Søg finder siden som **Opsætningens tilstand**, og Spørg AI svarer på "er min opsætning i orden?" ud fra den.
+
 ### Dit projekt
 
 **Dit projekt** tæller projektets **Monitorer**, **Statussider**, **Vagtpolitikker**, **SLOs**, **Tjenester**, **Dashboards** og **Arbejdsgange**, uden de arkiverede. Hver række åbner sin liste. En slags, som projektet ikke har nogen af, viser **Konfigurer** i stedet for et tal.
@@ -101,16 +105,19 @@ Tjeklisten forsvinder for alle, når hvert trin er færdigt. For at skjule den f
 
 ### Udforsk OneUptime
 
-**Udforsk OneUptime** viser produkterne i menuen **Produkter** én kategori ad gangen, begyndende med det grundlæggende. Hvert produkt siger, hvad det er til, og åbnes, når du klikker på det.
+**Udforsk OneUptime** viser produkterne i menuen **Produkter** én kategori ad gangen, begyndende med det grundlæggende. Hvert produkt siger, hvad det er til, og åbnes, når du klikker på det. De produkter, dit projekt skjuler, er ikke med.
 
 ## Find rundt
 
-Alt i OneUptime ligger under **Produkter** i topbjælken. Menuen viser sine grupper som rækkerne i én liste og åbner altid med den første af dem, det grundlæggende, foldet ud: Overvågninger, Hændelser, Advarsler, Vagtordning, Statussider, Planlagt vedligeholdelse og SLOs. Hver anden gruppe (Observabilitet, Sikkerhed, AI, Kode, Ressourcer, Infrastruktur, Cloud, Dashboards og automatisering og Indstillinger) er foldet sammen til en række i den samme liste. Hver række nævner gruppens produkter og siger, hvor mange der er. Klik på en række for at folde den ud eller sammen, eller gå til den med piletasterne og tryk på **Enter**.
+Alt i OneUptime ligger under **Produkter** i topbjælken. Menuen viser sine grupper som rækkerne i én liste og åbner altid med den første af dem, det grundlæggende, foldet ud: Overvågninger, Hændelser, Advarsler, Vagt, Statussider, Planlagt vedligeholdelse og SLOs. Hver anden gruppe (Observabilitet, Sikkerhed, AI, Kode, Ressourcer, Infrastruktur, Cloud, Dashboards og automatisering og Indstillinger) er foldet sammen til en række i den samme liste. Hver række nævner gruppens produkter og siger, hvor mange der er. Klik på en række for at folde den ud eller sammen, eller gå til den med piletasterne og tryk på **Enter**.
 
 - **Søgning finder alt.** Skriv i menuens søgefelt for at finde ethvert produkt på navn, på hvad det gør, eller på et velkendt ord som `k8s` eller `RUM`. Søgningen kigger også i de sammenfoldede grupper.
 - **Du starter, hvor du er.** Gruppen for den side, du er på, folder sig selv ud, og de produkter, du har åbnet for nylig, står øverst.
 - **Dine valg bliver.** Menuen husker i din browser, hvilke af de andre grupper du har foldet ud eller sammen. Det grundlæggende er foldet ud igen, hver gang du åbner menuen, også selvom du foldede det sammen.
 - **På en telefon** viser menuknappen produkterne på samme måde: det grundlæggende foldet ud øverst og hver anden gruppe som én række, der åbner med et tryk.
+- **Produkter, projektet ikke bruger.** En projektejer eller -administrator kan skjule dem under **Projektindstillinger → Grundlæggende → Produkter**. Et skjult produkt flytter ned under **Flere produkter**, menuens sidste række: Søgning finder det stadig, dets sider virker fortsat, og dets data bliver ved med at komme. Når et af dem begynder at modtage data, siger Hjem det til dem, der kan vise det igen.
+- **Fastgør.** Hold et produkt i den øverste bjælke ved siden af **Hjem** og **Produkter**: tryk på nålen på dets kort i menuen, eller på **Fastgør** ved siden af dets sides titel. Du kan fastgøre fem, og de følger dig til alle browsere. På en telefon kommer dine fastgjorte produkter først i menuen.
+- **Hvad der er i brug.** I hver gruppe undtagen det grundlæggende og indstillingerne kommer de produkter, dit projekt bruger, først, og et, du endnu ikke har sat op, siger **Ikke sat op**. I OneUptime Cloud nævner et produkt, som dit abonnement ikke omfatter, det abonnement, der omfatter det.
 
 ### Bjælkerne øverst
 
@@ -122,7 +129,7 @@ To bjælker løber hen over toppen af hver side.
 | Øverst til højre | **Søg** og **Spørg AI**, notifikationsklokken med det, der kræver dig nu (aktive hændelser og advarsler, de vagtpolitikker, du har vagt i, ventende invitationer), **Hjælp**, og dit billede, som åbner menuen for din [konto](/docs/introduction/your-account). |
 | Under dem | **Hjem** og **Produkter** til venstre, **Brugerindstillinger** til højre: hvordan OneUptime kontakter dig i dette projekt. |
 
-**Hjælp** starter med det, der hjælper dig med at lære: **Hurtigstart**, **Sådan virker OneUptime**, **Ordliste** og denne dokumentation (**Dokumentation**). Under dem ligger listen **Keyboard shortcuts** og support via e-mail og på Slack. På en smal skærm, som på en telefon, er **Søg**, **Spørg AI** og **Hjælp** udeladt for at spare plads; klokken og dit billede bliver.
+**Hjælp** starter med det, der hjælper dig med at lære: **Hurtigstart**, **Sådan virker OneUptime**, **Ordliste** og denne dokumentation (**Dokumentation**). Under dem ligger listen **Tastaturgenveje** og support via e-mail og på Slack. På en tablet eller i et smalt vindue er **Spørg AI** udeladt for at spare plads: den findes blandt handlingerne i **Søg**. På en telefon flytter **Søg** og **Hjælp** ind i menuknappens liste, øverst og nederst; klokken og dit billede bliver.
 
 Et ord med en prikket linje under, som **Sonder** i formularen til en ny monitor, fortæller, hvad det betyder, når du peger på det, tabber til det eller trykker på det. Dets **Læs mere** åbner ordet i [Ordliste](/docs/introduction/glossary).
 
@@ -142,9 +149,10 @@ Over hver sides titel viser et spor som *Projekt › Docker › Indstillinger �
 Tryk på **Cmd+K** (Mac) eller **Ctrl+K** (Windows og Linux), eller klik på søgeikonet i topbjælken, og begynd at skrive. Søgningen finder:
 
 - **Hver side i menuerne**, under det navn, menuen giver den: API-nøgler, Farezone, Vagtplaner, Hændelsesalvor, dine egne Notifikationsmetoder. Hvert resultat siger, hvor det ligger, for eksempel *Projektindstillinger › Avanceret*, så sider med samme navn (Brugerdefinerede felter under Hændelser, Advarsler og Monitorer) er lette at skelne.
-- **Indstillingerne på en side**, under det navn, deres kort eller kontakt viser: *Kræv SSO til login* finder SSO, og *Notifikationskanaler* finder Notifikationsindstillinger. Skriv navnet på engelsk eller på dit eget sprog.
+- **Indstillingerne på en side**, under det navn, deres kort eller kontakt viser: *Kræv SSO til login* finder SSO, og *Brugerdefinerede SMTP-konfigurationer* finder Notifikationskanaler. Skriv navnet på engelsk eller på dit eget sprog.
 - **Handlinger**, efter hvad du vil gøre: Erklær hændelse, Opret monitor eller Delete Project, som åbner Farezone. En handling, der ændrer noget, tilbydes kun til dem, der må udføre den.
 - **Dine monitorer, hændelser, advarsler, statussider og vagtpolitikker**, efter navn, og hændelser og advarsler også efter nummer, for eksempel `INC-42`. Hvert resultat for en hændelse eller advarsel starter med dens nummer, så to med samme titel kan kendes fra hinanden.
+- **Dokumentationen**, i en gruppe *Dokumentation* under alt det andet: de sider og afsnit, hvis ord passer til det, du skriver, på dit sprog, også med en tastefejl. Hver åbner i en ny fane, så du beholder din plads.
 
 Søgningen læser det, du skriver, som du mener det:
 
@@ -157,7 +165,7 @@ Med et tomt søgefelt viser søgningen de sider, du har åbnet for nylig, handli
 
 ## Tastaturgenveje
 
-Tryk på `?` hvor som helst i dashboardet for at se alle genveje, eller åbn **Hjælp** og vælg **Keyboard shortcuts**. På en Mac er `Mod` Command-tasten; på Windows og Linux er det Ctrl.
+Tryk på `?` hvor som helst i dashboardet for at se alle genveje, eller åbn **Hjælp** og vælg **Tastaturgenveje**. På en Mac er `Mod` Command-tasten; på Windows og Linux er det Ctrl.
 
 | Taster | Hvad de gør |
 | --- | --- |
@@ -177,7 +185,7 @@ Tryk på `g` og derefter et bogstav for at gå direkte til et produkt. Tryk bogs
 | `g` derefter `m` | Overvågninger |
 | `g` derefter `i` | Hændelser |
 | `g` derefter `a` | Advarsler |
-| `g` derefter `o` | Vagtordning |
+| `g` derefter `o` | Vagt |
 | `g` derefter `s` | Statussider |
 | `g` derefter `e` | Planlagt vedligeholdelse |
 | `g` derefter `d` | Dashboards |

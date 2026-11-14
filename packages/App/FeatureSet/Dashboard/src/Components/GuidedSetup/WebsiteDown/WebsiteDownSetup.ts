@@ -1,13 +1,28 @@
 import { DEFAULT_MONITORING_INTERVAL } from "../../../Utils/Form/Monitor/MonitoringIntervalDefault";
 import { GuidedSetupStepProgress } from "../GuidedSetupProgress";
-import URL from "Common/Types/API/URL";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import { MonitorStepProbeResponse } from "Common/Models/DatabaseModels/MonitorProbe";
 import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
-import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
+import {
+  CountedWhoIsToldFacts,
+  GUIDED_SETUP_POLICY_NAME,
+  WhoIsToldFacts,
+  WhoIsToldMode,
+  areWhoIsToldCountsKnown,
+  getWhoIsToldMode,
+} from "Common/Utils/GuidedSetup/OnCallPolicyRecords";
+import {
+  MONITOR_NAME_MAX_LENGTH,
+  WebsiteAddress,
+  WebsiteMonitorSeeds,
+  buildWebsiteMonitor as buildGuidedWebsiteMonitor,
+  getWebsiteAddressIdentity,
+  isSameWebsiteAddress,
+  parseWebsiteAddress,
+} from "Common/Utils/GuidedSetup/WebsiteMonitorRecords";
 import {
   OnCallTestPageResult,
   OnCallTestPageStatus,
@@ -27,7 +42,10 @@ import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
  *      monitor starts with, every five minutes, and the type's criteria
  *      (offline when it does not answer, or answers outside 200 to 399,
  *      which opens an incident). The monitor's probes check it at once,
- *      and their first answer is said in a sentence.
+ *      and their first answer is said in a sentence. An address one of
+ *      this person's monitors already checks makes no second monitor: the
+ *      setup goes on with theirs, and says so (#7059) - whatever the
+ *      browser kept of the run.
  *   2. Who should be told? A project with no on-call policy gets one,
  *      paging the people picked - "You", to start with - for every new
  *      incident and alert (FirstResponders, EveryNewEventRules). A project
@@ -44,6 +62,10 @@ import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 export const WEBSITE_DOWN_SETUP: string = "website_down";
 
+// The docs' start-to-finish guide to this job (#6821), linked from the page.
+export const WEBSITE_DOWN_SETUP_GUIDE_DOCS_PATH: string =
+  "/docs/guides/website-down";
+
 export enum WebsiteDownStep {
   Check = "check",
   WhoIsTold = "who_is_told",
@@ -56,8 +78,32 @@ export const WEBSITE_DOWN_STEPS: ReadonlyArray<WebsiteDownStep> = [
   WebsiteDownStep.Test,
 ];
 
-// The name of the policy the setup makes when the project has none.
-export const WEBSITE_DOWN_POLICY_NAME: string = "Default on-call policy";
+/*
+ * The name of the policy the setup makes when the project has none: the
+ * one Ask AI's set_up_paging makes too (Common/Utils/GuidedSetup).
+ */
+export const WEBSITE_DOWN_POLICY_NAME: string = GUIDED_SETUP_POLICY_NAME;
+
+/*
+ * The address, the monitor and who is told are built in Common, where Ask
+ * AI's setup actions (#6829) build them too, so for the same answers both
+ * make the same records.
+ */
+export {
+  MONITOR_NAME_MAX_LENGTH,
+  WhoIsToldMode,
+  areWhoIsToldCountsKnown,
+  getWebsiteAddressIdentity,
+  getWhoIsToldMode,
+  isSameWebsiteAddress,
+  parseWebsiteAddress,
+};
+export type {
+  CountedWhoIsToldFacts,
+  WebsiteAddress,
+  WebsiteMonitorSeeds,
+  WhoIsToldFacts,
+};
 
 export const WEBSITE_DOWN_COPY: {
   pageTitle: string;
@@ -69,6 +115,7 @@ export const WEBSITE_DOWN_COPY: {
   addressError: string;
   isApiLabel: string;
   startChecking: string;
+  existingMonitor: string;
   continueButton: string;
   cannotCreateMonitor: string;
   whoTitle: string;
@@ -79,6 +126,7 @@ export const WEBSITE_DOWN_COPY: {
   whoNobodyPicked: string;
   whoSave: string;
   whoExistingHelp: string;
+  policyMadeElsewhere: string;
   whoOwnerOnlyHelp: string;
   whoOnCallRulesLink: string;
   noEmail: string;
@@ -119,13 +167,20 @@ export const WEBSITE_DOWN_COPY: {
   ),
   isApiLabel: translationKey("This is an API endpoint"),
   startChecking: translationKey("Start checking"),
+  /*
+   * Said when the address is one this person's monitor already checks: the
+   * setup goes on with it, and makes no second (#7059).
+   */
+  existingMonitor: translationKey(
+    'Your monitor "{{name}}" already checks this address, so no new monitor was made.',
+  ),
   continueButton: translationKey("Continue"),
   cannotCreateMonitor: translationKey(
     "Creating a monitor needs permission you do not have in this project. Ask a project admin to give it to you, or to set this up.",
   ),
   whoTitle: translationKey("Who should be told?"),
   whoCreateHelp: translationKey(
-    "When it goes down, OneUptime opens an incident and pages these people through their own notification rules. It starts with you, by email.",
+    "When it goes down, OneUptime opens an incident and pages these people, each the way their How to Reach Me says. It starts with you, by email.",
   ),
   whoCreatePolicyNote: translationKey(
     'This makes the on-call policy "{{policy}}", which pages them for every new incident and alert in this project.',
@@ -137,8 +192,22 @@ export const WEBSITE_DOWN_COPY: {
   whoExistingHelp: translationKey(
     "This project already pages people through its on-call policies and on-call rules, so they decide who is paged when this monitor opens an incident. You own this monitor, so you are also emailed when it goes down.",
   ),
+  /*
+   * Said when Save and continue finds a policy another tab or device made
+   * since the step opened: why the people picked are gone, and that nothing
+   * was made twice (#7059).
+   */
+  policyMadeElsewhere: translationKey(
+    "An on-call policy was added to this project while this page was open, so no new policy was made.",
+  ),
+  /*
+   * Creating an on-call policy, its escalation rule and its two rules is not
+   * an admin's alone: project members and on-call members may too. Who
+   * cannot is pointed at the ones who always can, as the on-call setup's
+   * whoCannotCreate does.
+   */
   whoOwnerOnlyHelp: translationKey(
-    "You own this monitor, so you are emailed when it goes down. Paging a team needs a project admin: ask one to set up an on-call policy.",
+    "You own this monitor, so you are emailed when it goes down. Paging a team needs an on-call policy: ask a project owner or admin to set one up.",
   ),
   whoOnCallRulesLink: translationKey("See the on-call rules"),
   noEmail: translationKey(
@@ -178,94 +247,11 @@ export const WEBSITE_DOWN_COPY: {
 };
 
 /*
- * THE ADDRESS. A person types "example.com" as often as a whole URL:
- * without a scheme it is https. Only http and https are checked by a
- * Website or API monitor.
- */
-export interface WebsiteAddress {
-  url: string;
-  host: string;
-  // What the monitor is called: the host, and the path when there is one.
-  monitorName: string;
-}
-
-const SCHEME: RegExp = /^[a-z][a-z0-9+.-]*:\/\//i;
-const WHITESPACE: RegExp = /\s/;
-export const MONITOR_NAME_MAX_LENGTH: number = 100;
-
-export const parseWebsiteAddress: (input: string) => WebsiteAddress | null = (
-  input: string,
-): WebsiteAddress | null => {
-  const text: string = (input || "").trim();
-
-  if (!text || WHITESPACE.test(text)) {
-    return null;
-  }
-
-  const withScheme: string = SCHEME.test(text) ? text : `https://${text}`;
-
-  let parsed: globalThis.URL;
-
-  try {
-    parsed = new globalThis.URL(withScheme);
-  } catch {
-    return null;
-  }
-
-  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-    return null;
-  }
-
-  /*
-   * No user or password in it: "mailto:ana@example.com" given https:// in
-   * front reads as one, and a password must not become a monitor's name.
-   */
-  if (parsed.username || parsed.password) {
-    return null;
-  }
-
-  const host: string = parsed.hostname.toLowerCase();
-
-  // A host is a name with a dot in it, localhost, or an IP address.
-  if (
-    !host ||
-    (!host.includes(".") && !host.includes(":") && host !== "localhost")
-  ) {
-    return null;
-  }
-
-  try {
-    URL.fromString(withScheme);
-  } catch {
-    return null;
-  }
-
-  const path: string = parsed.pathname.replace(/\/+$/, "");
-  const name: string = `${host.replace(/^www\./, "")}${parsed.port ? `:${parsed.port}` : ""}${path}`;
-
-  return {
-    url: withScheme,
-    host: host,
-    monitorName:
-      name.length > MONITOR_NAME_MAX_LENGTH
-        ? name.slice(0, MONITOR_NAME_MAX_LENGTH)
-        : name,
-  };
-};
-
-// What a new monitor's default criteria are made with: the project's own.
-export interface WebsiteMonitorSeeds {
-  operationalStatusId: ObjectID;
-  offlineStatusId: ObjectID;
-  incidentSeverityId: ObjectID;
-  alertSeverityId: ObjectID;
-}
-
-/*
  * The monitor Create Monitor would make for this address with every
  * default kept: the type's criteria, in the reader's language, and five
- * minutes. The probes are left to the server, which adds the ones a new
- * monitor starts with when the create names none.
+ * minutes (Common/Utils/GuidedSetup/WebsiteMonitorRecords). The probes are
+ * left to the server, which adds the ones a new monitor starts with when
+ * the create names none.
  */
 export const buildWebsiteMonitor: (data: {
   address: WebsiteAddress;
@@ -278,32 +264,13 @@ export const buildWebsiteMonitor: (data: {
   seeds: WebsiteMonitorSeeds;
   translator?: Translator | undefined;
 }): Monitor => {
-  const monitorType: MonitorType = data.isApi
-    ? MonitorType.API
-    : MonitorType.Website;
-
-  const monitorSteps: MonitorSteps = MonitorSteps.getDefaultMonitorSteps({
-    defaultMonitorStatusId: data.seeds.operationalStatusId,
-    monitorType: monitorType,
-    monitorName: data.address.monitorName,
-    onlineMonitorStatusId: data.seeds.operationalStatusId,
-    offlineMonitorStatusId: data.seeds.offlineStatusId,
-    defaultIncidentSeverityId: data.seeds.incidentSeverityId,
-    defaultAlertSeverityId: data.seeds.alertSeverityId,
+  return buildGuidedWebsiteMonitor({
+    address: data.address,
+    isApi: data.isApi,
+    seeds: data.seeds,
+    monitoringInterval: DEFAULT_MONITORING_INTERVAL,
     translator: data.translator,
   });
-
-  monitorSteps.data?.monitorStepsInstanceArray[0]?.setMonitorDestination(
-    URL.fromString(data.address.url),
-  );
-
-  const monitor: Monitor = new Monitor();
-  monitor.name = data.address.monitorName;
-  monitor.monitorType = monitorType;
-  monitor.monitorSteps = monitorSteps;
-  monitor.monitoringInterval = DEFAULT_MONITORING_INTERVAL;
-
-  return monitor;
 };
 
 // The address a monitor checks, as its first step names it.
@@ -315,6 +282,36 @@ export const getMonitorAddress: (
   const destination: unknown = step?.data?.monitorDestination;
 
   return destination ? destination.toString() : "";
+};
+
+// What the setup reads of a monitor this person made, to know if it is theirs for an address.
+export interface OwnMonitorFacts {
+  monitorSteps?: MonitorSteps | undefined | null;
+  isArchived?: boolean | undefined;
+  disableActiveMonitoring?: boolean | undefined;
+}
+
+/*
+ * Whether a monitor this person made checks the address now, so the setup
+ * goes on with it instead of making a second (#7059): its first step asks
+ * for the same address, and it is neither archived nor turned off - one
+ * that is no longer checked does not answer "is my website down?".
+ */
+export const isMonitorCheckingAddress: (data: {
+  monitor: OwnMonitorFacts;
+  address: WebsiteAddress;
+}) => boolean = (data: {
+  monitor: OwnMonitorFacts;
+  address: WebsiteAddress;
+}): boolean => {
+  if (data.monitor.isArchived || data.monitor.disableActiveMonitoring) {
+    return false;
+  }
+
+  return isSameWebsiteAddress(
+    getMonitorAddress(data.monitor.monitorSteps),
+    data.address.url,
+  );
 };
 
 /*
@@ -533,56 +530,10 @@ export const describeFirstCheck: (data: {
 };
 
 /*
- * WHO IS TOLD, and how the step decides it.
+ * WHO IS TOLD, and how the step decides it: WhoIsToldMode and
+ * getWhoIsToldMode, re-exported above from Common/Utils/GuidedSetup, where
+ * Ask AI's set_up_paging decides it the same way.
  */
-export enum WhoIsToldMode {
-  // No on-call policy or rule yet: the setup makes one, paging who is picked.
-  CreatePolicy = "create_policy",
-  // The project pages people already: its own policies and rules decide.
-  ExistingPolicy = "existing_policy",
-  // Paging cannot be set up by this person: told as the monitor's owner.
-  OwnerEmailOnly = "owner_email_only",
-}
-
-export interface WhoIsToldFacts {
-  // Counts of the project's on-call policies and rules; null when unknown.
-  policyCount: number | null;
-  incidentRuleCount: number | null;
-  alertRuleCount: number | null;
-  mayCreatePolicy: boolean;
-  mayAddEscalationRules: boolean;
-  mayAddRules: boolean;
-}
-
-export const getWhoIsToldMode: (facts: WhoIsToldFacts) => WhoIsToldMode = (
-  facts: WhoIsToldFacts,
-): WhoIsToldMode => {
-  if (
-    facts.policyCount === null ||
-    facts.incidentRuleCount === null ||
-    facts.alertRuleCount === null
-  ) {
-    return WhoIsToldMode.OwnerEmailOnly;
-  }
-
-  if (
-    facts.policyCount > 0 ||
-    facts.incidentRuleCount > 0 ||
-    facts.alertRuleCount > 0
-  ) {
-    return WhoIsToldMode.ExistingPolicy;
-  }
-
-  if (
-    facts.mayCreatePolicy &&
-    facts.mayAddEscalationRules &&
-    facts.mayAddRules
-  ) {
-    return WhoIsToldMode.CreatePolicy;
-  }
-
-  return WhoIsToldMode.OwnerEmailOnly;
-};
 
 /*
  * THE RUN: what this pass through the setup made, as GuidedSetupRunStore

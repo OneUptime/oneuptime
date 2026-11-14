@@ -648,7 +648,10 @@ describe("testRule posting to existing channels is unchanged", () => {
       responses: [makeSendResponse({})],
     });
 
-    await expect(runTestRule(rule)).rejects.toThrow(/does not exist/);
+    // In the words its Notification Logs give the channel when the rule posts.
+    await expect(runTestRule(rule)).rejects.toThrow(
+      'Channel "typo-channel" was not found in this Microsoft Teams team. It may have been renamed or deleted.',
+    );
     expect(mocks.postSpy).not.toHaveBeenCalled();
   });
 
@@ -681,7 +684,7 @@ describe("testRule posting to existing channels is unchanged", () => {
       responses: [makeSendResponse({})],
     });
 
-    await expect(runTestRule(rule)).rejects.toThrow(/does not exist/);
+    await expect(runTestRule(rule)).rejects.toThrow(/was not found/);
     expect(mocks.postSpy).not.toHaveBeenCalled();
   });
 

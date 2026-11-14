@@ -677,7 +677,7 @@ flowchart TB
 - **分组** —— **事件分组依据**：**监视器**、**全部归在一起**、**严重程度**、**标题** 或 **自定义**。自定义会增加一个 **分组依据** 步骤，其中有支撑这些答案的五个开关（监视器、严重性、事件标题、事件标签和监视器标签；标签按其完整集合分组）。**仅对相近时间内到达的事件分组** 默认开启：只有当事件在片段上一个事件的时间窗口内到达时，才会加入该片段。关闭后，匹配的事件会持续加入未解决的片段，直到它被解决。**名称** 会跟随答案，直到你输入自己的名称，**已启用** 处于开启状态。
 - **哪些事件** —— 新规则默认的 **所有事件** 会对每个新事件进行分组；选择 **仅符合条件的事件** 会打开缩小规则范围的条件。
 
-规则能做的其他一切，都折叠在 **分组** 步骤末尾的 **更多字段** 下，分为三组：**值班与归属**（规则打开片段时要执行的值班策略、**片段所有者** 和片段角色分配）、**片段生命周期**（在打开片段前等待更多事件——一个带数量的开关——然后是重新打开最近解决的片段、在解决片段前等待，以及解决安静下来的片段——每一项都是一个带分钟数的开关）和 **详情**（规则的描述、片段标题和描述模板、在状态页上显示片段，以及片段标签）。折叠时，标题会列出其中包含的内容，规则使用的每个设置都会说明其设定值——“On-Call Duty Policies: 2”、“Reopen recently resolved episodes: 30 minutes”——所以编辑规则时永远不会隐藏它在做什么。展开它不会增加步骤：**创建事件分组规则** 位于最后一步 **哪些事件** 上。告警表单没有状态页或片段角色设置。
+规则能做的其他一切，都折叠在 **分组** 步骤末尾的 **更多字段** 下，分为三组：**值班与归属**（规则打开片段时要执行的值班策略、**片段所有者** 和片段角色分配）、**片段生命周期**（在打开片段前等待更多事件——一个带数量的开关——然后是重新打开最近解决的片段、在解决片段前等待，以及解决安静下来的片段——每一项都是一个带分钟数的开关）和 **详情**（规则的描述、片段标题和描述模板、在状态页上显示片段，以及片段标签）。折叠时，标题会列出其中包含的内容，规则使用的每个设置都会说明其设定值——“On-Call Policies: 2”、“Reopen recently resolved episodes: 30 minutes”——所以编辑规则时永远不会隐藏它在做什么。展开它不会增加步骤：**创建事件分组规则** 位于最后一步 **哪些事件** 上。告警表单没有状态页或片段角色设置。
 
 重新打开最近解决的片段，是片段在其状态列表中回退的唯一途径。当一个匹配的事件在该设置规定的分钟数内到达时，OneUptime 会把已解决的片段移回你的创建状态，并把该事件加入其中。其他任何人都做不到：片段的状态变更与事件的状态变更完全一样，受你的事件状态顺序约束，无论来自仪表板、Slack、Microsoft Teams、API 还是 Terraform（参见 [顺序是真正的约束](/docs/incidents/states-and-severities#顺序是真正的约束而不是显示偏好)）。重新打开也不会让片段中的事件回退：已经解决的事件仍保持已解决。告警分组规则也以同样的方式重新打开告警片段。
 
@@ -736,7 +736,7 @@ flowchart TB
 
 ## 用工作流驱动事件
 
-事件的工作流触发器不是手写的——OneUptime 从数据模型生成它们，所以事件家族中的每个模型都会获得以模型单数名称命名的 **On Create X**、**On Update X**、**On Create or Update X** 和 **On Delete X** 组件。最主要的是 **On Create Incident**、**On Update Incident**、**On Create or Update Incident** 和 **On Delete Incident**。你可以在 `/dashboard/{projectId}/workflows` 的 **Add Trigger** 面板中，在 **OneUptime 资源** → **Incident** 下找到它们；前两个也位于 **热门** 下。
+事件的工作流触发器不是手写的——OneUptime 从数据模型生成它们，所以事件家族中的每个模型都会获得以模型单数名称命名的 **On Create X**、**On Update X**、**On Create or Update X** 和 **On Delete X** 组件。最主要的是 **On Create Incident**、**On Update Incident**、**On Create or Update Incident** 和 **On Delete Incident**。你可以在 `/dashboard/{projectId}/workflows` 的 **添加触发器** 面板中，在 **OneUptime 资源** → **事件** 下找到它们；前两个也位于 **热门** 下。
 
 同样的生成机制还为配置本身提供了触发器：**On Create Incident State**、**On Update Incident Severity**、**On Create Incident Template**、**On Create Incident Note Template**、**On Create Incident State Timeline**、**On Create Incident Public Note**、**On Create Incident Internal Note**、**On Create Incident On-Call Rule**、**On Create Incident Role**、**On Create Incident Member** 等。每个模型还会获得对应的操作组件——**Find One Incident**、**Create One Incident**、**Update One Incident**、**Delete One Incident** 及其多行版本——所以名称相似的触发器和操作会并排出现在同一个类别中。**On Create Incident** 启动工作流；**Create One Incident** 创建一个事件。
 

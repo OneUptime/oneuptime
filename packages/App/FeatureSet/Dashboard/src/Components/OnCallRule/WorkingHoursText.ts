@@ -6,7 +6,7 @@ import WorkingHours, {
 import OnCallRuleWhenToPage from "Common/Types/OnCallDutyPolicy/OnCallRuleWhenToPage";
 import { JSONObject } from "Common/Types/JSON";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
-import { joinList } from "Common/UI/Utils/ListSeparator";
+import { joinClauses, joinList } from "Common/UI/Utils/ListSeparator";
 
 /*
  * AN ON-CALL RULE'S WORKING HOURS, IN THE READER'S WORDS.
@@ -290,11 +290,16 @@ export const describeWorkingHours: (
     return null;
   }
 
-  const hours: string = spans
-    .map((span: WorkingHoursSpan): string => {
+  /*
+   * Days that keep different hours are clauses of one line, set off with
+   * the semicolon of the script their names are written in: "Mon–Thu
+   * 08:30–18:00; Fri 08:30–15:00", "؛ " in Persian, "；" in Chinese.
+   */
+  const hours: string = joinClauses(
+    spans.map((span: WorkingHoursSpan): string => {
       return describeSpan(span, options);
-    })
-    .join("; ");
+    }),
+  );
 
   return options.withTimezone === false
     ? hours

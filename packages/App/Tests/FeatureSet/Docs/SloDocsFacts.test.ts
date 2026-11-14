@@ -173,6 +173,7 @@ const SOURCES: Record<string, string> = {
   settingsFields: `${DASHBOARD}/Pages/Slo/SloSettingsFormFields.ts`,
   evaluationCopy: `${DASHBOARD}/Components/Slo/SloEvaluationSwitchCopy.ts`,
   archiveCard: `${DASHBOARD}/Components/TelemetryResource/ArchiveResourceCard.tsx`,
+  archiveCardWords: `${DASHBOARD}/Components/Archive/ArchiveCardWords.ts`,
   statusTiles: `${DASHBOARD}/Components/Slo/SloStatusSummaryTiles.ts`,
   monitorsPage: `${DASHBOARD}/Pages/Slo/View/Monitors.tsx`,
   monitorRulesPage: `${DASHBOARD}/Pages/Slo/View/MonitorRules.tsx`,
@@ -526,7 +527,7 @@ describe("SLOs Overview, against the product", () => {
 
   it("says what the folded section's line says while it is at its defaults", () => {
     expect(readSource("sloFormFields")).toContain(
-      '"Measured over a rolling {{days}}-day window, and At Risk when less than {{threshold}}% of the error budget is left."',
+      '"Measured over a rolling {{days}}-day window, and At Risk when less than {{threshold}} of the error budget is left."',
     );
     expect(page).toContain(
       `the SLO is measured over a rolling ${DEFAULT_ROLLING_WINDOW_DAYS}-day window and turns At Risk when less than ${DEFAULT_AT_RISK_THRESHOLD_PERCENTAGE}% of its error budget is left`,
@@ -893,7 +894,11 @@ describe("SLOs Overview, against the product", () => {
     expect(copy).toContain(
       'turnOnButton: translationKey("Turn evaluation on")',
     );
-    expect(archive).toContain("`Archive ${singularName}`");
+    // The card titles itself "Archive {{itemName}}" with the name (#7195).
+    expect(archive).toContain("getArchiveCardWords(");
+    expect(readSource("archiveCardWords")).toMatch(
+      /translationKey\(\s*"Archive \{\{itemName\}\}",?\s*\)/,
+    );
     expect(settings).toContain('singularName="SLO"');
 
     const fields: string = readSource("settingsFields");
@@ -2413,11 +2418,16 @@ describe("Error Budget Policy, against the policy, the worker and the API", () =
     expect(adding).toContain("await Semaphore.lock({");
     expect(adding).toContain("await this.getMissingRecommendedTiers(data);");
     expect(adding).toContain("props: data.props,");
+    // All or nothing: a create that fails takes the tiers added before it back out.
+    expect(adding).toContain("await this.removeRecommendedTiersAdded({");
 
     const recommended: string = section(page, "The recommended policy");
 
     expect(recommended).toContain(
       "It adds only the tiers the SLO does not have: a tier with the same name, or with the same threshold, counts as there, whether it is on or off.",
+    );
+    expect(recommended).toContain(
+      "If one of the tiers cannot be added, none is: the SLO is left as it was, and you can try again.",
     );
     expect(recommended).toContain(
       "Each tier it adds is recorded in the SLO's audit logs as added by you.",

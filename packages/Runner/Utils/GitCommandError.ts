@@ -205,7 +205,8 @@ export default class GitCommandError extends Error {
     ).map((line: string): string => {
       /*
        * Each line bounded before the redactor's patterns read it: a server
-       * can write a line of megabytes, and no pattern reads one (AGENTS.md).
+       * can write a line of megabytes, and no pattern reads one
+       * (Docs/notifications/README.md, "Megabyte-long values").
        */
       return line.length > MAX_REASON_LINE_LENGTH
         ? line.substring(0, MAX_REASON_LINE_LENGTH)

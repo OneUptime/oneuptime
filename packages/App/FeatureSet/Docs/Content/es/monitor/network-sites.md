@@ -141,6 +141,7 @@ Las dos políticas coinciden aquí, y importa más de lo que parece:
 - Los dispositivos que nunca han informado nada nunca votan. Un dispositivo que espera su primer sondeo no es prueba de una caída, así que queda fuera de los dos lados de la proporción, y una región a medio incorporar se puntúa con la mitad que ha respondido.
 - Un dispositivo sondeado por sonda, el tipo normal, vota con el resultado de su último sondeo: accesible por ping o SNMP, no cuánto hace de su último éxito. Un dispositivo que responde al ping mientras su recorrido SNMP falla es accesible y vota así; el sitio dice que está activo, y la fila del dispositivo dice **SNMP fallando** para que alguien arregle las credenciales.
 - Un dispositivo respaldado por un monitor, uno pasado a la anulación con monitor vinculado en su página Ajustes, vota con el estado del monitor vinculado, porque nada lo sondea. Sin nada vinculado nunca ha informado, así que no vota en absoluto.
+- Un dispositivo respaldado por un monitor cuyo monitor no se comprueba, porque su monitoreo está desactivado o está archivado, tampoco vota: el estado de ese monitor es solo lo que vio su última comprobación. El dispositivo aparece como **Pendiente**, con **Monitoreo desactivado** o **Monitor archivado** al lado, hasta que se vuelva a activar el monitoreo del monitor o se desarchive.
 
 Un monitor de dispositivo de red sobre un dispositivo sondeado por sonda no cambia cómo vota el dispositivo. Un monitor con un criterio «interfaz caída, así que Offline» marcaría como Offline un switch que responde a cada ping, y un solo puerto apagado pondría en rojo todo un sitio mientras cada fila de dispositivo de debajo dice Activo: el sitio contradiría la lista que resume. Para un dispositivo sondeado, el sondeo es la fuente de su salud; el monitor está para abrir incidentes.
 
@@ -185,7 +186,7 @@ Una media sobre los hijos pesa igual una tienda con dos dispositivos que un cent
 
 ## Mantenimiento programado para sitios de red
 
-Asocia sitios a un evento de mantenimiento programado en **Otros recursos afectados**, en el paso **Recursos afectados** del evento, como harías con un host. La página **Mantenimiento programado** de un sitio lista los eventos asociados a él, y su **Crear evento de mantenimiento programado** abre el formulario con el sitio ya elegido.
+Asocia sitios a un evento de mantenimiento programado en **Otros recursos afectados**, en el paso **Recursos afectados** del evento, como harías con un host. La página **Mantenimiento programado** de un sitio lista los eventos asociados a él, y su **Crear evento de mantenimiento** abre el formulario con el sitio ya elegido.
 
 Una ventana en un padre cubre todo lo que tiene debajo: una ventana en una región cubre cada mercado y cada unidad que contiene, incluidos los sitios creados después de programar la ventana, así que un cambio de operador regional no tiene que listar cuatrocientas tiendas.
 
@@ -214,6 +215,8 @@ La tarjeta **Alertas** de la página **Ajustes** de un sitio tiene **Alertar cua
 
 Solo alerta sobre el cambio: activarla en un sitio que ya no está en buen estado arma el siguiente cambio en lugar de alertar sobre el pasado. Degraded no es operativo, así que un sitio con la política de porcentaje alerta en cuanto uno de sus dispositivos que informan cae, igual que un sitio con la política del peor estado; la alerta sigue abierta, sin una segunda, mientras el sitio pasa entre Degraded y Offline, y su título nombra el estado al que llegó primero el sitio.
 
+Cuando nada en un sitio informa ya de un estado, porque los monitores detrás de sus dispositivos tienen el monitoreo desactivado, están archivados o se eliminaron, el sitio vuelve a no tener estado en lugar de conservar el último, y su alerta abierta se resuelve con ese motivo como causa. Un dispositivo que vuelve a informar de un problema abre una alerta nueva.
+
 ## Solución de problemas
 
 :::details Una región está siempre en rojo
@@ -225,7 +228,11 @@ Nunca se ha ejecutado un resumen para el sitio, así que no tiene filas en su cr
 :::
 
 :::details Un dispositivo no cuenta para su sitio
-Los dispositivos archivados, y los que aún no han informado, nunca votan. Un dispositivo respaldado por un monitor sin monitor vinculado tampoco ha informado nunca. Comprueba el estado del dispositivo: un dispositivo **Pendiente** empieza a votar después de su primer sondeo.
+Los dispositivos archivados, y los que aún no han informado, nunca votan. Un dispositivo respaldado por un monitor sin monitor vinculado tampoco ha informado nunca. Comprueba el estado del dispositivo: un dispositivo **Pendiente** empieza a votar después de su primer sondeo. Uno con **Monitoreo desactivado** o **Monitor archivado** al lado vuelve a votar en cuanto se reactiva el monitoreo de su monitor o se desarchiva.
+:::
+
+:::details Un sitio ya no tiene estado
+Nada en el sitio informa de un estado: los monitores detrás de sus dispositivos tienen el monitoreo desactivado, están archivados o se eliminaron, así que se quitó el último estado del sitio y se resolvió su alerta. Vuelve a activar el monitoreo de esos monitores, o desarchívalos, y el estado del sitio vuelve a calcularse a partir de sus dispositivos.
 :::
 
 :::details La alerta de un sitio no se disparó

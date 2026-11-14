@@ -565,7 +565,7 @@ describe("Send Test Now on a summary says what the test came to", () => {
   test.each([
     [
       "a summary with no channels to post in",
-      "No channel names configured for summary",
+      "The summary has no channel to post in.",
       undefined,
     ],
     ["an older server, which answers its message alone", NOT_POSTED, undefined],
@@ -637,13 +637,13 @@ describe("Send Test Now on a summary says what the test came to", () => {
 
     testAnswer = new HTTPErrorResponse(
       400,
-      { message: "No channel names configured for summary" },
+      { message: "The summary has no channel to post in." },
       {},
     );
 
     const refused: HTMLElement = await sendTest();
     expect(within(refused).getByTestId("modal-error").textContent).toBe(
-      "No channel names configured for summary",
+      "The summary has no channel to post in.",
     );
     expect(
       within(refused).queryByTestId("workspace-summary-test-channels"),

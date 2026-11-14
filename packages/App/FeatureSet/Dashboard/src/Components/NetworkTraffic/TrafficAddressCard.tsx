@@ -1,7 +1,7 @@
 import NetworkAddressNameModal from "./NetworkAddressNameModal";
 import {
-  TRAFFIC_ADDRESS_SOURCE_LABELS,
   TrafficAddressLabel,
+  getTrafficAddressSourceText,
   getTrafficAddressText,
   hasRecordPage,
 } from "./NetworkTrafficAddressNames";
@@ -154,7 +154,7 @@ const TrafficAddressCard: FunctionComponent<ComponentProps> = (
   const facts: Array<ReactElement> = [
     <span key="source" data-testid="traffic-address-card-source">
       {label.source
-        ? translator.translateText(TRAFFIC_ADDRESS_SOURCE_LABELS[label.source])
+        ? getTrafficAddressSourceText(label.source, translator)
         : translator.translateText("No name yet")}
     </span>,
   ];

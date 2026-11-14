@@ -670,7 +670,13 @@ describe("InstallationTestPanel in the reader's language", () => {
     ).toBe("");
   });
 
-  it("draws a failed health read in the reader's language, the server's words as they came", async () => {
+  /*
+   * The server's words are looked up as any error put in a sentence is
+   * (ErrorSentence, #7307) - a message the Dashboard has words for reads in
+   * the reader's language, any other as it came - so here, where every
+   * lookup is marked, they are marked inside the sentence's own marks.
+   */
+  it("draws a failed health read in the reader's language, the server's words looked up inside it", async () => {
     postMock.mockResolvedValue(
       new HTTPErrorResponse(403, { message: "Not authorized" }, {}),
     );
@@ -684,7 +690,7 @@ describe("InstallationTestPanel in the reader's language", () => {
     const error: HTMLElement = await screen.findByTestId("install-test-error");
 
     expect(error).toHaveTextContent("⟦You cannot see recording health⟧");
-    expect(error).toHaveTextContent("⟦Server said: Not authorized⟧");
+    expect(error).toHaveTextContent("⟦Server said: ⟦Not authorized⟧⟧");
     expect(wordsNotLookedUp(error, []).trim()).toBe("");
   });
 
@@ -715,7 +721,7 @@ describe("InstallationTestPanel in the reader's language", () => {
     expect(
       await screen.findByTestId("install-test-apps-error"),
     ).toHaveTextContent(
-      "⟦The application list could not be loaded: Error: The list is unavailable⟧",
+      "⟦The application list could not be loaded: ⟦Error: The list is unavailable⟧⟧",
     );
   });
 });

@@ -125,6 +125,7 @@ import {
   SERIES_COUNT_TEMPLATE,
 } from "./SeriesCounts";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
+import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 export interface ComponentProps {
   metricViewData: MetricViewData;
@@ -205,6 +206,13 @@ export interface ComponentProps {
    * pass false.
    */
   enableSeriesActions?: boolean | undefined;
+  /*
+   * An exemplar's click opens its menu - View trace, View logs - on by
+   * default. A dashboard widget's live preview passes false (issue #6859):
+   * it sits over a board being edited, and either would leave the page
+   * with what is not saved yet. The exemplars are still drawn.
+   */
+  enableExemplarActions?: boolean | undefined;
   /*
    * Compare-to-previous-period overlays: results for the SAME queries
    * over the window shifted back by `compareOffsetMs`, index-aligned to
@@ -3157,7 +3165,10 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
         description: firstQuery.metricAliasData?.description || "",
         metricInfo,
         exemplarPoints: chartExemplars.length > 0 ? chartExemplars : undefined,
-        onExemplarClick: handleExemplarClick,
+        onExemplarClick:
+          props.enableExemplarActions === false
+            ? undefined
+            : handleExemplarClick,
         seriesControls: seriesControls,
         props: {
           data: renderSeries,
@@ -3417,10 +3428,12 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
             colorsOverride: undefined,
             seriesControls: (
               <ErrorMessage
-                message={translator.translateTemplate(
-                  "Formula error: {{error}}",
-                  { error: formulaResult.errorMessage || "" },
-                )}
+                message={
+                  <ErrorSentence
+                    template="Formula error: {{error}}"
+                    error={formulaResult.errorMessage || ""}
+                  />
+                }
               />
             ),
           }

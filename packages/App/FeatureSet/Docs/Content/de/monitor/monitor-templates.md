@@ -50,7 +50,7 @@ Wählen Sie unter **Überwachungs-Standardwerte** den **Monitortyp**, mit dersel
 Füllen Sie unter **Kriterien** aus, was geprüft wird, und die Kriterien, wie bei [Monitor erstellen](/docs/monitor/create-monitor#kriterien). Mit der Karte **Einstellungen für die Vorlagensynchronisierung** oben schützen Sie Felder vor Synchronisierungen (siehe [Werte pro Monitor behalten](#werte-pro-monitor-behalten)). Bei einem Monitortyp, den Sonden prüfen, fragt der letzte Schritt, **Intervall**, nach dem **Überwachungsintervall**. Klicken Sie auf dem letzten Schritt auf **Monitorvorlage erstellen**.
 :::
 
-Die Vorlage wird der Liste hinzugefügt. Öffnen Sie sie, um ihre Seite mit einer Karte pro Teil zu sehen: **Vorlageninformationen**, **Überwachungs-Standardwerte**, **Überwachungskriterien**, **Überwachungsintervall** (mit **Minimale Sonden-Übereinstimmung**), **Beschriftungen**, **Standardwerte für benutzerdefinierte Felder** (wenn das Projekt benutzerdefinierte Monitorfelder hat) und **Verknüpfte Monitore**. Jeden Teil ändern Sie auf seiner eigenen Karte, zum Beispiel mit **Kriterien bearbeiten** oder **Intervall bearbeiten**.
+Die Vorlage wird der Liste hinzugefügt. Öffnen Sie sie, um ihre Seite mit einer Karte pro Teil zu sehen: **Vorlageninformationen**, **Überwachungs-Standardwerte**, **Kriterien**, **Überwachungsintervall** (mit **Minimale Sonden-Übereinstimmung**), **Beschriftungen**, **Standardwerte für benutzerdefinierte Felder** (wenn das Projekt benutzerdefinierte Monitorfelder hat) und **Verknüpfte Monitore**. Jeden Teil ändern Sie auf seiner eigenen Karte, zum Beispiel mit **Kriterien bearbeiten** oder **Intervall bearbeiten**.
 
 ## Monitore aus einer Vorlage erstellen
 
@@ -85,7 +85,7 @@ Gehen Sie zu **Monitore → Einstellungen → Vorlagen** und öffnen Sie die Vor
 
 ### Ihre Kriterien bearbeiten
 
-Klicken Sie auf der Karte **Überwachungskriterien** auf **Kriterien bearbeiten**.
+Klicken Sie auf der Karte **Kriterien** auf **Kriterien bearbeiten**.
 
 ### Die Felder schützen
 
@@ -93,14 +93,14 @@ Setzen Sie unter **Einstellungen für die Vorlagensynchronisierung** neben jedem
 
 ### Speichern
 
-Speichern Sie Ihre Änderungen. Die Karte **Überwachungskriterien** und die Bestätigung beider Synchronisierungen unten listen die geschützten Felder auf.
+Speichern Sie Ihre Änderungen. Die Karte **Kriterien** und die Bestätigung beider Synchronisierungen unten listen die geschützten Felder auf.
 
 ### Synchronisieren
 
 Verwenden Sie **Kriterien mit verknüpften Monitoren synchronisieren** oder **Aus Vorlage synchronisieren** an einem einzelnen verknüpften Monitor.
 :::
 
-Schützen Sie zum Beispiel auf einer API-Vorlage **Monitor destination** und **Request headers**. Produktions- und Staging-Monitore behalten ihre eigenen URLs und Header, während beide die aktualisierten Kriterien der Vorlage und die übrigen ungeschützten Einstellungen erhalten.
+Schützen Sie zum Beispiel auf einer API-Vorlage **Monitor-Ziel** und **Anfrage-Header**. Produktions- und Staging-Monitore behalten ihre eigenen URLs und Header, während beide die aktualisierten Kriterien der Vorlage und die übrigen ungeschützten Einstellungen erhalten.
 
 Welche Optionen es gibt, hängt vom Monitortyp ab. Dazu gehören Ziele und Ports, HTTP-Anfrageoptionen, Datenbankverbindungen, DNS-Einstellungen, Infrastruktur-Selektoren und Telemetrie-Abfragen. Zusammengehörige Anmeldedaten, etwa ein Client-Zertifikat und sein privater Schlüssel, werden zusammen behalten.
 

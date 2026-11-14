@@ -61,6 +61,14 @@ const FSI: string = String.fromCharCode(0x2068);
 const PDI: string = String.fromCharCode(0x2069);
 const LRM: string = String.fromCharCode(0x200e);
 
+/*
+ * A negative number as Intl writes it for Persian: a left-to-right mark,
+ * then the minus sign (U+2212), then the digits - the mark ties the minus
+ * to its number in a line read from the right (issue #7102,
+ * NegativeNumbersInRightToLeftSentences). No code: the mark stays.
+ */
+const INTL_NEGATIVE_SIGN: string = `${LRM}${String.fromCharCode(0x2212)}`;
+
 type LocaleTree = { [key: string]: string | LocaleTree };
 
 interface Sentence {
@@ -513,29 +521,53 @@ describe("what the page is handed", () => {
 });
 
 describe("a mark a translator placed by hand", () => {
+  // The words of `text` that hold a left-to-right mark beside a letter or a digit.
+  const marksBesideWords: (text: string) => Array<string> = (
+    text: string,
+  ): Array<string> => {
+    return text
+      .split(/\s+/u)
+      .map((written: string): string => {
+        // Intl's own negative sign ties a minus to its number: no code.
+        return written.split(INTL_NEGATIVE_SIGN).join("");
+      })
+      .filter((run: string): boolean => {
+        return (
+          run.includes(LRM) && LETTER_OR_DIGIT.test(run.split(LRM).join(""))
+        );
+      });
+  };
+
   /*
    * A left-to-right mark (LRM) was how a Persian sentence kept "--help"
    * from reading "help--". The page now sets code apart itself, so a mark
    * beside code is one more character to copy: it is left only round a
-   * sign that is no code - a key's "{" or "<" - which nothing sets apart.
+   * sign that is no code - a key's "{" or "<" - which nothing sets apart,
+   * and before a negative number's minus sign, as Intl writes it.
    */
   test("is never beside code", () => {
     const besideCode: Array<string> = [];
 
     for (const sentence of RIGHT_TO_LEFT_SENTENCES) {
-      for (const run of sentence.text.split(/\s+/u)) {
-        if (
-          run.includes(LRM) &&
-          LETTER_OR_DIGIT.test(run.split(LRM).join(""))
-        ) {
-          besideCode.push(
-            `${sentence.app} ${sentence.language} "${sentence.key}": ${run}`,
-          );
-        }
+      for (const run of marksBesideWords(sentence.text)) {
+        besideCode.push(
+          `${sentence.app} ${sentence.language} "${sentence.key}": ${run}`,
+        );
       }
     }
 
     expect(besideCode).toEqual([]);
+  });
+
+  test("before a negative number's minus sign is Intl's own, not a mark beside code", () => {
+    const minusSign: string = String.fromCharCode(0x2212);
+
+    expect(marksBesideWords(`زیر ${LRM}${minusSign}۱۰۰ dBm`)).toEqual([]);
+    // A mark beside a flag, or a bare one before a number, is still found.
+    expect(marksBesideWords(`از ${LRM}--help${LRM} استفاده کنید`)).toEqual([
+      `${LRM}--help${LRM}`,
+    ]);
+    expect(marksBesideWords(`زیر ${LRM}-۱۰۰ dBm`)).toEqual([`${LRM}-۱۰۰`]);
   });
 
   /*

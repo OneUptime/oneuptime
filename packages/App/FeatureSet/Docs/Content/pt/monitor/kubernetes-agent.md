@@ -2,6 +2,9 @@
 
 O agente Kubernetes do OneUptime é um chart Helm que coleta as métricas, os eventos e os logs de pods do seu cluster, traces de aplicações capturados com eBPF e as métricas de sistema operacional de cada nó, e os envia ao OneUptime. Um único `helm install` o coloca em funcionamento, sem mudanças no código das suas aplicações. Os [monitores de Kubernetes](/docs/monitor/kubernetes-monitor) alertam sobre o que ele envia.
 
+> [!NOTE]
+> Esta página instala o agente com Helm, passo a passo, com um preset para a sua plataforma. Todas as opções, o complemento do Amazon EKS, o OpenShift e o agente de IA do Kubernetes estão em [Agente Kubernetes](/docs/telemetry/kubernetes-agent), a referência completa dele.
+
 :::cards
 - [Instalar o agente](#instalar-o-agente): Quatro passos com Helm.
 - [Escolher um preset](#escolher-um-preset): Clusters padrão, GKE Autopilot, EKS Fargate ou OpenShift.
@@ -331,7 +334,7 @@ kubectl logs -n oneuptime-agent -l component=ebpf-instrument --tail=200
 
 ## Profiling contínuo de CPU
 
-O [OpenTelemetry eBPF Profiler](https://github.com/open-telemetry/opentelemetry-ebpf-profiler) também pode rodar em cada nó, como a imagem `otel/opentelemetry-collector-ebpf-profiler`. Ele amostra o que cada processo está executando, 19 vezes por segundo, em Go, Java, .NET, Python, Ruby, Node.js, PHP, Perl, C, C++ e Rust, e envia os perfis ao OneUptime. Eles aparecem em **Produtos → Perfis de desempenho**, e como um flame graph em cada span de trace.
+O [OpenTelemetry eBPF Profiler](https://github.com/open-telemetry/opentelemetry-ebpf-profiler) também pode rodar em cada nó, como a imagem `otel/opentelemetry-collector-ebpf-profiler`. Ele amostra o que cada processo está executando, 19 vezes por segundo, em Go, Java, .NET, Python, Ruby, Node.js, PHP, Perl, C, C++ e Rust, e envia os perfis ao OneUptime. Eles aparecem em **Produtos → Perfis**, e como um flame graph em cada span de trace.
 
 **O profiling vem desativado por padrão:** ele custa mais CPU e memória por nó do que a instrumentação eBPF. Ative com `--set profiling.enabled=true`.
 

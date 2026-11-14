@@ -83,7 +83,10 @@ image:
 # Empty runs them as the namespace's default service account. On Amazon EKS
 # the AWS Marketplace edition runs them as a service account with an IAM role
 # (IAM roles for service accounts): that role is how the installation bills
-# its users through AWS Marketplace.
+# its users through AWS Marketplace. The server's own email can sign in to
+# Amazon SES as that role too, with no access key stored: in the Admin
+# Dashboard, Settings > Notifications > Emails > Edit Amazon SES > This
+# Server's IAM Role.
 serviceAccount:
   # Create the service account, named `name` (or "<release>-oneuptime").
   create: false
@@ -1358,6 +1361,16 @@ alerts:
 telemetry:
   disableIngestion: false
 
+# The products every project on this server offers, as the server starts
+# (SERVER_PRODUCTS): everything, monitoring-and-status-pages,
+# incident-response, or the products to keep on by key, comma-separated
+# (monitors,incidents,on-call,status-pages). A starting value only: once an
+# admin saves Admin Dashboard > Settings > Products, what they saved applies.
+# A product that is off is hidden in every project and its API refuses
+# changes; nothing is deleted, and what already runs keeps running.
+products:
+  onThisServer: everything
+
 # Browser source maps, uploaded from CI so exception stack traces can be shown
 # with original file names and line numbers instead of minified ones.
 #
@@ -1823,6 +1836,12 @@ openTelemetryExporter:
   # never serialized into a frontend env.js response.
   endpoint:
   # This can be for example: x-oneuptime-token=<YOUR_ONEUPTIME_TELEMETRY_INGEST_TOKEN>
+  # Write each header as name=value and separate headers with ';'. A value may
+  # hold '=', as a Basic Authorization value does. Nothing is exported without
+  # a header; one OneUptime cannot read is logged as a warning at startup.
+  # The chart hands the value to every pod exactly as set. In a values file,
+  # put a value that holds ': ' or ' #' in quotes: YAML reads those itself
+  # before the chart sees the value.
   headers:
   # Optional. Reported as k8s.cluster.name on OneUptime's own telemetry so its
   # pods group under this cluster in Topology. Pods always report their pod,

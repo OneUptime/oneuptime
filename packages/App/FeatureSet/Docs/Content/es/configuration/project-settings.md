@@ -5,6 +5,7 @@ Los ajustes del proyecto contienen lo que se aplica al proyecto entero: su nombr
 :::cards
 - [Encontrar un ajuste](#encontrar-un-ajuste): Qué contiene cada sección del menú lateral.
 - [Los detalles del proyecto](#los-detalles-del-proyecto): Su nombre, su ID y el acceso del soporte.
+- [Productos](#productos): Los productos que este proyecto muestra y los que oculta.
 - [Etiquetas](#etiquetas): Marcas para recursos, permisos y reglas.
 - [Eliminar el proyecto](#eliminar-el-proyecto): Qué se necesita y qué se va con él.
 :::
@@ -30,10 +31,10 @@ flowchart LR
 
 | Sección | Páginas | Dónde leer más |
 | --- | --- | --- |
-| **Básico** | **Proyecto**, **Etiquetas** | [Los detalles del proyecto](#los-detalles-del-proyecto), [Etiquetas](#etiquetas) |
+| **Básico** | **Proyecto**, **Productos**, **Etiquetas** | [Los detalles del proyecto](#los-detalles-del-proyecto), [Productos](#productos), [Etiquetas](#etiquetas) |
 | **Espacio de trabajo** | **Slack**, **Microsoft Teams**, **Mattermost**, **Videollamadas** | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Mattermost](/docs/workspace-connections/mattermost), [Videollamadas](/docs/workspace-connections/video-calls) |
 | **Telemetría y APM** | **Claves de ingesta**, **Retención de datos**, **Uso** | [Claves de ingesta](/docs/telemetry/ingestion-keys), [Retención de datos](/docs/telemetry/data-retention), [Uso de telemetría](/docs/telemetry/usage) |
-| **Notificaciones** | **Ajustes de notificaciones**, **Registros de notificación**, **Aplicaciones móviles** | [Notificaciones](#notificaciones) |
+| **Notificaciones** | **Canales de notificación**, **Registros de notificación**, **Aplicaciones móviles** | [Notificaciones](#notificaciones) |
 | **IA** | **Funciones de IA**, **Proveedores de LLM**, **Servidores MCP externos**, **Créditos de IA**, **Registros de IA**, **Servidor MCP** | [Proveedores de LLM](/docs/ai/llm-provider), [Servidores MCP externos](/docs/ai/external-mcp-servers), [Servidor MCP](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#control-de-costes) |
 | **Avanzado** | **Dominios**, **Claves de API**, **Feature flags**, **Importar desde otra herramienta** | [Dominios personalizados](/docs/status-pages/branding-and-domains#dominios-personalizados), [Claves de API](/docs/permissions/index#claves-de-api), [Feature flags](#feature-flags), [Migrar desde Opsgenie](/docs/moving-to-oneuptime/opsgenie) y las demás guías de migración |
 | **Seguridad** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
@@ -54,6 +55,20 @@ flowchart LR
 - **Residencia de datos**: en OneUptime Cloud, dónde deben guardarse los datos de su proyecto, cuando OneUptime lo ha registrado. Solo OneUptime lo establece.
 
 **Acceso del soporte al cliente**, en OneUptime Cloud, decide si el equipo de soporte de OneUptime puede abrir el proyecto. Active **Permitir que el soporte de OneUptime acceda a este proyecto** cuando quiera su ayuda: OneUptime pregunta antes, porque entonces el soporte puede ver y cambiar todo en el proyecto, y usted hace clic en **Dejar entrar al soporte**. Desactívelo cuando terminen: se guarda al instante. Los Project Owners y los Project Admins lo cambian.
+
+## Productos
+
+**Ajustes del proyecto → Básico → Productos** elige los productos que este proyecto muestra en su menú **Productos**, en Inicio y en la lista de la búsqueda. Cada producto tiene un interruptor que se guarda al cambiarlo: activado, muestra el producto. Usuarios, Equipos y Ajustes del proyecto se muestran siempre, y **Mostrar todos los productos** los vuelve a mostrar todos.
+
+Un producto oculto no está desactivado. Pasa a **Más productos**, la última fila del menú **Productos**: la búsqueda lo sigue encontrando, sus páginas y su API siguen funcionando, y sus datos siguen llegando. Quien lo fijó conserva su fijación.
+
+En un servidor autoalojado, un administrador maestro también puede desactivar un producto para todos los proyectos, en **Ajustes → Productos** del Admin Dashboard (consulta [Ejecuta solo lo que necesitas](/docs/installation/docker-compose#ejecuta-solo-lo-que-necesitas)). Un producto así no tiene interruptor aquí: dice **Desactivado en este servidor**, junto con quién puede activarlo.
+
+Un proyecto nuevo empieza con lo que su propietario dijo en Inicio que venía a hacer: se muestran los esenciales, Ajustes y lo que esos objetivos necesitan, y el resto se oculta. Un proyecto que se saltó la pregunta, o que se creó antes de ella, muestra todos los productos. En cuanto alguien cambia la lista aquí, los objetivos ya no la cambian.
+
+Cada producto dice lo que es para este proyecto: **En uso**, **Sin configurar** o, en OneUptime Cloud, el plan que necesita. Cuando un producto oculto empieza a recibir datos, Inicio se lo dice a los propietarios y administradores del proyecto y ofrece **Mostrarlo** o **Mantener oculto**.
+
+Los propietarios del proyecto, sus administradores y quien pueda editar el proyecto la cambian; los demás miembros del proyecto pueden verla.
 
 ## Etiquetas
 
@@ -81,7 +96,7 @@ Para retirar una etiqueta, archívela desde el menú **⋯** de su fila en lugar
 
 **Ajustes del proyecto → Notificaciones** contiene cómo envía notificaciones el proyecto:
 
-- **Ajustes de notificaciones**: la tarjeta **Canales de notificación** activa o desactiva SMS, llamadas telefónicas, WhatsApp y Telegram para el proyecto. Los cuatro empiezan desactivados. Los activa un Project Owner, un **Administrador de facturación** o alguien con **Manage Billing**. La página también contiene, plegados en **Más ajustes**, los servidores de correo propios del proyecto, en **Configuraciones de SMTP personalizado** (consulte [SMTP](/docs/emails/smtp)), y su propia cuenta de Twilio (consulte [Integración de Twilio](/docs/self-hosted/twilio-integration)). En OneUptime Cloud, contiene el saldo con el que se pagan estos mensajes: consulte [Saldos prepagados](/docs/configuration/billing#saldos-prepagados).
+- **Canales de notificación**: la tarjeta **Canales de notificación** activa o desactiva SMS, llamadas telefónicas, WhatsApp y Telegram para el proyecto. Los cuatro empiezan desactivados. Los activa un Project Owner, un **Administrador de facturación** o alguien con **Manage Billing**. La página también contiene, plegados en **Más ajustes**, los servidores de correo propios del proyecto, en **Configuraciones de SMTP personalizado** (consulte [SMTP](/docs/emails/smtp)), y su propia cuenta de Twilio (consulte [Integración de Twilio](/docs/self-hosted/twilio-integration)). En OneUptime Cloud, contiene el saldo con el que se pagan estos mensajes: consulte [Saldos prepagados](/docs/configuration/billing#saldos-prepagados).
 - **Registros de notificación**: cada notificación que envió el proyecto, con una pestaña por canal: **Correo electrónico**, **SMS**, **WhatsApp**, **Telegram**, **Webhook**, **Llamada**, **Push** y **Espacio de trabajo**.
 - **Aplicaciones móviles**: dónde conseguir las aplicaciones para iOS y Android. Consulte [Visión general de las aplicaciones](/docs/mobile-desktop-apps/index).
 

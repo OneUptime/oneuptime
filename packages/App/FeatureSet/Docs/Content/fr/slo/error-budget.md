@@ -19,13 +19,13 @@ total budget = (100% − target) × window length
 
 | Objectif | Fenêtre de 7 jours | Fenêtre de 28 jours | Fenêtre de 30 jours | Fenêtre de 90 jours |
 | --- | --- | --- | --- | --- |
-| 99% | 1h 40m 48s | 6h 43m 12s | 7h 12m | 21h 36m |
-| 99.5% | 50m 24s | 3h 21m 36s | 3h 36m | 10h 48m |
-| 99.9% | 10m 5s | 40m 19s | 43m 12s | 2h 9m 36s |
-| 99.95% | 5m 2s | 20m 10s | 21m 36s | 1h 4m 48s |
-| 99.99% | 1m 0s | 4m 2s | 4m 19s | 12m 58s |
+| 99 % | 1 h 40 min 48 s | 6 h 43 min 12 s | 7 h 12 min | 21 h 36 min |
+| 99,5 % | 50 min 24 s | 3 h 21 min 36 s | 3 h 36 min | 10 h 48 min |
+| 99,9 % | 10 min 5 s | 40 min 19 s | 43 min 12 s | 2 h 9 min 36 s |
+| 99,95 % | 5 min 2 s | 20 min 10 s | 21 min 36 s | 1 h 4 min 48 s |
+| 99,99 % | 1 min 0 s | 4 min 2 s | 4 min 19 s | 12 min 58 s |
 
-La page **Paramètres** du SLO affiche le budget que son objectif autorise à côté de l'objectif, par exemple « 43m 12s d'indisponibilité par fenêtre de 30 jours ».
+La page **Paramètres** du SLO affiche le budget que son objectif autorise à côté de l'objectif, par exemple « 43 min 12 s d'indisponibilité par fenêtre de 30 jours ».
 
 ### Le budget d'un SLO à plusieurs moniteurs
 
@@ -35,7 +35,7 @@ En mode **Moyenne des secondes des moniteurs**, le budget est compté en seconde
 
 ### Le budget d'un mois calendaire
 
-Un SLO par mois calendaire dispose du budget de tout le mois dès le premier jour : un SLO à 99,9 % dans un mois de 31 jours a ses 44m 38s entières le 1er. Le budget n'est pas calculé au prorata de la part du mois écoulée, une panne d'une minute le matin du 1er consomme donc une minute du budget du mois.
+Un SLO par mois calendaire dispose du budget de tout le mois dès le premier jour : un SLO à 99,9 % dans un mois de 31 jours a ses 44 min 38 s entières le 1er. Le budget n'est pas calculé au prorata de la part du mois écoulée, une panne d'une minute le matin du 1er consomme donc une minute du budget du mois.
 
 ## Budget restant
 

@@ -202,7 +202,7 @@ Om een gebeurtenistrigger te testen zonder op de gebeurtenis te wachten, klik je
 | **Incident**                              | Reageren als een incident wordt gemeld, bijgewerkt (bevestigd, opgelost) of verwijderd.   |
 | **Waarschuwing**                          | Dezelfde drie gebeurtenissen, voor waarschuwingen.                                        |
 | **Monitor**                               | Reageren als een monitor wordt toegevoegd, bewerkt of verwijderd.                         |
-| **Geplande onderhoudsgebeurtenis**         | Een onderhoudsvenster automatisch aankondigen zodra het is ingepland.                     |
+| **Onderhoudsgebeurtenis**         | Een onderhoudsvenster automatisch aankondigen zodra het is ingepland.                     |
 | **Abonnee van statuspagina**                  | Iemand verwelkomen die zich abonneert op een statuspagina.                                |
 | **Bereikbaarheidsbeleid**                 | Beleidswijzigingen synchroniseren met een ander roostersysteem.                           |
 

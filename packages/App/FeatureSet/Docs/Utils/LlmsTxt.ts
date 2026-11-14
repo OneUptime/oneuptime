@@ -1,6 +1,10 @@
 import { ContentPath } from "./Config";
 import DocsNav, { DocsNavSections, NavGroup } from "./Nav";
 import DocsPlaceholders from "./Placeholders";
+import {
+  cachedManifest,
+  withScreenAddresses,
+} from "../Screens/DocsScreenFiles";
 import { DEFAULT_DOCS_LANGUAGE } from "./I18n";
 import DatabaseConfig from "Common/Server/DatabaseConfig";
 import LocalFile from "Common/Server/Utils/LocalFile";
@@ -59,9 +63,13 @@ async function readEnglishMarkdown(pagePath: string): Promise<string | null> {
        * allow-list) so an LLM reading this file gets the same content a
        * human reading the page does, rather than a literal `{{TOKEN}}`.
        */
-      return DocsPlaceholders.render(
-        await LocalFile.read(candidate),
+      return withScreenAddresses(
+        DocsPlaceholders.render(
+          await LocalFile.read(candidate),
+          DEFAULT_DOCS_LANGUAGE,
+        ),
         DEFAULT_DOCS_LANGUAGE,
+        cachedManifest(),
       );
     }
   }

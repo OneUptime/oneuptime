@@ -14,6 +14,7 @@ import AIRunCodeFixRecommendation from "../../../../Types/AI/AIRunCodeFixRecomme
 import AIRunEventType from "../../../../Types/AI/AIRunEventType";
 import AIRunEvent from "../../../../Models/DatabaseModels/AIRunEvent";
 import { AIAgentRunLimits } from "../../../../Types/AI/AIAgentRunLimits";
+import { readRecordAiTokenLimitStop } from "../../../../Types/AI/RecordAiTokenLimit";
 import LogSeverity from "../../../../Types/Log/LogSeverity";
 import AIRunLimitsReader from "../AIRunLimitsReader";
 import {
@@ -115,8 +116,10 @@ const CODE_FIX_RECOMMENDATION_PERSIST_ATTEMPTS: number = 3;
 
 /*
  * Failures a retry cannot fix within the run's usefulness window: missing/
- * broken provider configuration and budget exhaustion (both messages minted
- * by our own gating in AIService/LLMService, so they are stable to match),
+ * broken provider configuration and the incident's or alert's own daily AI
+ * token limit (messages minted by our own gating in AIService/LLMService,
+ * so they are stable to match: "token budget exhausted" is how runs failed
+ * on the limit before #7157, readRecordAiTokenLimitStop how they do since),
  * the project's own daily AI limits, which hold until midnight UTC, and a
  * model context window too small for the run, which a retry would only fill
  * again until the operator raises it.
@@ -130,6 +133,7 @@ export const isPermanentInvestigationFailure: (message: string) => boolean = (
 ): boolean => {
   return (
     PERMANENT_FAILURE_RE.test(message) ||
+    readRecordAiTokenLimitStop(message) !== null ||
     PROJECT_DAILY_AI_LIMIT_REACHED_PATTERN.test(message) ||
     message.includes(LLMService.CONTEXT_WINDOW_OVERFLOW_ERROR)
   );

@@ -25,7 +25,7 @@ Silence alone never fails the agent. A healthy cost agent is idle most of the ti
 | Env var | Required | Default | Description |
 | --- | --- | --- | --- |
 | `ONEUPTIME_URL` | yes | — | Base URL of your OneUptime host, e.g. `https://oneuptime.com` |
-| `ONEUPTIME_API_KEY` | yes | — | Telemetry ingestion key (Project Settings > Telemetry Ingestion Keys) |
+| `ONEUPTIME_API_KEY` | yes | — | Ingestion key (Project Settings > Telemetry & APM > Ingestion Keys) |
 | `CLUSTER_NAME` | yes | — | Cluster identifier; must match the `k8s.cluster.name` the metrics agent stamps |
 | `COST_ENGINE_URL` | yes | — | Cost engine base URL, e.g. `http://opencost.opencost.svc.cluster.local:9003` |
 | `COST_ALLOCATION_PATH` | no | auto | Explicit allocation API path (skips auto-detection) |

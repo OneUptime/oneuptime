@@ -203,7 +203,7 @@ describe("project Settings: only Basic starts open", () => {
     [
       PageMap.SETTINGS_NOTIFICATION_SETTINGS,
       "Notifications",
-      "Notification Settings",
+      "Notification Channels",
     ],
     [PageMap.SETTINGS_AI_FEATURES, "AI", "AI Features"],
     [PageMap.SETTINGS_APIKEYS, "Advanced", "API Keys"],
@@ -261,17 +261,23 @@ describe("project Settings: only Basic starts open", () => {
    * "This should be in the advanced section in the side menu." (the
    * maintainer). A project brings its team over from another tool once,
    * when it starts, so the import waits last in Advanced, folded with the
-   * settings few people open; Basic keeps the project itself and its labels.
+   * settings few people open; Basic keeps the project itself, the products
+   * it shows and its labels.
    */
   describe("Import from another tool waits in Advanced", () => {
-    test("Basic holds the project and its labels, each with its icon, and nothing else", async () => {
+    /*
+     * Products (#6814) is a choice about the whole project, so it sits with
+     * the project itself, between Project and Labels.
+     */
+    test("Basic holds the project, its products and its labels, each with its icon, and nothing else", async () => {
       await renderSettingsMenuAt(PageMap.SETTINGS);
 
       expect(linksIn("Basic")).toEqual([
         { title: "Project", href: routeFor(PageMap.SETTINGS) },
+        { title: "Products", href: routeFor(PageMap.SETTINGS_PRODUCTS) },
         { title: "Labels", href: routeFor(PageMap.SETTINGS_LABELS) },
       ]);
-      expect(iconCountIn("Basic")).toBe(2);
+      expect(iconCountIn("Basic")).toBe(3);
     });
 
     test("on the Project page it is folded away in Advanced, and a click on Advanced shows it last", async () => {
@@ -409,11 +415,11 @@ describe("User Settings: the checklist and how you are reached start open", () =
   });
 
   /*
-   * Your on-call rules are one page, with a tab per kind, among the pages
-   * people come here for: it opens nothing folded, and no section of its
-   * own is left behind for it.
+   * How you are reached is one page (How to Reach Me, #6820: one ladder,
+   * with a tab per kind behind it), among the pages people come here for:
+   * it opens nothing folded, and no section of its own is left behind for it.
    */
-  test("On-Call Rules sits in Alerts & Notifications, right after the methods it uses", async () => {
+  test("How to Reach Me sits in Alerts & Notifications, right after the methods it uses", async () => {
     await renderUserSettingsMenuAt(PageMap.USER_SETTINGS_SETUP);
 
     expect(linksIn("Alerts & Notifications")).toEqual([
@@ -422,7 +428,7 @@ describe("User Settings: the checklist and how you are reached start open", () =
         href: routeFor(PageMap.USER_SETTINGS_NOTIFICATION_METHODS),
       },
       {
-        title: "On-Call Rules",
+        title: "How to Reach Me",
         href: routeFor(PageMap.USER_SETTINGS_ON_CALL_RULES),
       },
       {
@@ -438,10 +444,10 @@ describe("User Settings: the checklist and how you are reached start open", () =
     expect(sectionTitlesInOrder()).not.toContain("Alert On-Call");
   });
 
-  test("the On-Call Rules page marks its entry and opens nothing folded", async () => {
+  test("the How to Reach Me page marks its entry and opens nothing folded", async () => {
     await renderUserSettingsMenuAt(PageMap.USER_SETTINGS_ON_CALL_RULES);
 
-    expect(activeLinkTitles()).toEqual(["On-Call Rules"]);
+    expect(activeLinkTitles()).toEqual(["How to Reach Me"]);
     expect(isExpanded("Alerts & Notifications")).toBe(true);
     expect(isExpanded("On-Call Logs")).toBe(false);
   });

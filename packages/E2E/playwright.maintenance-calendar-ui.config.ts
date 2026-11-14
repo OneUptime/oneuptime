@@ -14,7 +14,7 @@ import { HOST_RESOLVER_RULE } from "./MaintenanceCalendar/StatusPageOrigins";
  *                                it and Calendar Settings, the month and week
  *                                grids, Schedule maintenance on a day, and
  *                                the Subscribe to calendar dialog;
- *   StatusPageCalendar.spec.ts   a status page's Scheduled Events: Subscribe
+ *   StatusPageCalendar.spec.ts   a status page's Scheduled Maintenance: Subscribe
  *                                to calendar, Add to calendar on an event's
  *                                page, and Copy link's copy on a page served
  *                                over plain http.

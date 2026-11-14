@@ -664,7 +664,14 @@ describe("EndpointAttachmentUtil.decideUpsert — unchanged sightings", () => {
     expect(decision.action).toBe("none");
   });
 
-  it("writes when lastSeenAt sits in the future (clock skew)", () => {
+  /*
+   * A sighting from before the row's lastSeenAt: an older poll processed
+   * after a newer one (issue #7389), or a row stamped by a clock a little
+   * ahead. The write keeps the later lastSeenAt (NetworkEndpointService), so
+   * an unchanged sighting has nothing to write - and a changed one still
+   * writes what changed.
+   */
+  it("writes nothing for an unchanged sighting from before the stored one", () => {
     const decision: EndpointUpsertDecision =
       EndpointAttachmentUtil.decideUpsert(
         { ...stableRow, lastSeenAt: new Date("2026-07-22T12:05:00Z") },
@@ -672,7 +679,22 @@ describe("EndpointAttachmentUtil.decideUpsert — unchanged sightings", () => {
         context,
       );
 
+    expect(decision.action).toBe("none");
+  });
+
+  it("still writes a sighting from before the stored one that says something new", () => {
+    const decision: EndpointUpsertDecision =
+      EndpointAttachmentUtil.decideUpsert(
+        { ...stableRow, lastSeenAt: new Date("2026-07-22T12:05:00Z") },
+        {
+          ...stableSighting,
+          attachment: { interfaceIndex: 9, portName: "Gi0/9", vlanId: 12 },
+        },
+        context,
+      );
+
     expect(decision.action).toBe("update");
+    expect(decision.attachedInterfaceIndex).toBe(9);
   });
 
   it("writes when the row has no lastSeenAt to compare against", () => {

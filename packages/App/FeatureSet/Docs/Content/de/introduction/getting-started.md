@@ -2,15 +2,61 @@
 
 OneUptime ist eine Open-Source-Observability-Plattform. Sie prüft, ob Ihre Websites, APIs und Server funktionieren, sammelt die Logs, Metriken und Traces, die Ihre Anwendungen senden, alarmiert die Bereitschaft, wenn etwas ausfällt, und informiert Ihre Kunden auf einer Statusseite. Das alles geschieht in einem Produkt: Das Werkzeug, das ein Problem bemerkt, ist auch das, das Ihr Team alarmiert. Nutzen Sie OneUptime Cloud, oder betreiben Sie OneUptime auf Ihren eigenen Servern.
 
-Beginnen Sie hier:
+## Was möchten Sie tun?
+
+:::cards
+- [Erfahren, wenn Ihre Website oder API ausfällt](/docs/guides/website-down): Von Sonden in aller Welt prüfen lassen und bei einem Ausfall eine E-Mail oder einen Alarm erhalten.
+- [Per Anruf, SMS oder Push alarmiert werden und eskalieren](/docs/guides/paging): Wer Bereitschaft hat, wird alarmiert, und die nächste Person, wenn niemand reagiert.
+- [Eine Statusseite auf Ihrer eigenen Domain veröffentlichen](/docs/guides/status-page): Ihren Kunden unter einer eigenen Adresse zeigen, was gerade passiert.
+- [Logs, Metriken und Traces senden](/docs/telemetry/open-telemetry): Die Telemetrie Ihrer Anwendungen mit OpenTelemetry senden, durchsuchen und darauf alarmieren.
+- [Einen Server überwachen](/docs/telemetry/hosts): Einen Host mit einem Befehl hinzufügen und CPU, Arbeitsspeicher und Festplatten im Blick behalten.
+- [Einen Kubernetes-Cluster überwachen](/docs/telemetry/kubernetes-agent): Den Agenten mit Helm installieren und jeden Node und Pod im Blick behalten.
+- [Ihr Team dazuholen](/docs/permissions/index): Personen einladen, in Teams ordnen und festlegen, wer was darf.
+- [Einen Vorfall von der ersten Alarmierung bis zur Postmortem-Analyse führen](/docs/incidents/index): Den Vorfall melden, im Team bearbeiten, Kunden informieren und daraus lernen.
+:::
+
+## Neu bei OneUptime?
 
 :::cards
 - [Schnellstart](/docs/introduction/quickstart): Eine Website überwachen, bei einem Ausfall alarmiert werden und eine Statusseite veröffentlichen.
 - [Grundkonzepte](/docs/introduction/core-concepts): Die wenigen Ideen, auf denen alles andere aufbaut, und wie sie zusammenhängen.
 - [Glossar](/docs/introduction/glossary): Jedes Wort, das OneUptime verwendet, in ein oder zwei Sätzen, mit seinen anderen Namen.
 - [Was nehme ich wann?](/docs/introduction/which-one): Vorfall oder Warnung, Workflow oder Runbook und die anderen Doppelgänger nebeneinander.
-- [Startseite & Tastenkürzel](/docs/introduction/home): Sich im Dashboard zurechtfinden, und die Tasten, die Ihnen Klicks sparen.
-- [Ihr Konto](/docs/introduction/your-account): Ihr Profil, Ihr Passwort, Passkeys und die Zwei-Faktor-Authentifizierung.
+:::
+
+Sie betreiben OneUptime auf Ihren eigenen Servern? Folgen Sie zuerst der [Anleitung zum Selbsthosten](/docs/installation/self-hosting-guide): Sie führt von einem leeren Server zu einem, der E-Mails sendet und Personen alarmiert.
+
+## Von einem anderen Werkzeug kommend
+
+**Projekteinstellungen → Erweitert → Import aus anderem Tool** liest Ihre Einrichtung in einem anderen Werkzeug, mit einem API-Schlüssel oder, bei Uptime Kuma, einer Datei. Es zeigt Ihnen, was es gefunden hat, und legt an, was Sie ankreuzen. Im anderen Werkzeug ändert sich nichts, und ein erneuter Import legt nie etwas doppelt an.
+
+:::details Die elf Werkzeuge, die der Import liest
+| Sie kommen von | Was OneUptime liest |
+| --- | --- |
+| [Opsgenie](/docs/moving-to-oneuptime/opsgenie) | Benutzer, Teams, Pläne, Eskalationen und Dienste |
+| [PagerDuty](/docs/moving-to-oneuptime/pagerduty) | Benutzer, Teams, Pläne, Eskalationsrichtlinien und Dienste |
+| [incident.io](/docs/moving-to-oneuptime/incident-io) | Benutzer, Teams, Pläne, Eskalationspfade, Dienste und Vorfalleinstellungen |
+| [Splunk On-Call](/docs/moving-to-oneuptime/splunk-on-call) | Benutzer, Teams, Rotationen und Eskalationsrichtlinien |
+| [Grafana OnCall](/docs/moving-to-oneuptime/grafana-oncall) | Benutzer, Teams, Pläne und Eskalationsketten |
+| [UptimeRobot](/docs/moving-to-oneuptime/uptimerobot) | Monitore und öffentliche Statusseiten |
+| [Atlassian Statuspage](/docs/moving-to-oneuptime/atlassian-statuspage) | Seiten, ihre Komponenten und Gruppen sowie E-Mail-Abonnenten |
+| [Better Stack](/docs/moving-to-oneuptime/better-stack) | Monitore, Heartbeats, Statusseiten und E-Mail-Abonnenten |
+| [Pingdom](/docs/moving-to-oneuptime/pingdom) | Uptime-Checks |
+| [StatusCake](/docs/moving-to-oneuptime/statuscake) | Uptime-, SSL- und Heartbeat-Checks |
+| [Uptime Kuma](/docs/moving-to-oneuptime/uptime-kuma) | Monitore, aus einem Backup oder der Metrikseite |
+:::
+
+:::details Was OneUptime ersetzt
+| Funktion | Was sie tut | Ersetzt Werkzeuge wie |
+| --- | --- | --- |
+| Verfügbarkeitsüberwachung | Prüft Verfügbarkeit und Antwortzeit von Standorten in aller Welt. | Pingdom, UptimeRobot |
+| Statusseiten | Zeigt Kunden den aktuellen Status und die Historie Ihrer Dienste. | Atlassian Statuspage |
+| Vorfallmanagement | Führt Vorfälle von Anfang bis Ende, mit Notizen, Eigentümern und einer Zeitleiste. | incident.io |
+| Bereitschaft und Warnungen | Plant Bereitschaftsdienste und eskaliert, bis jemand reagiert. | PagerDuty, Opsgenie |
+| Log-Verwaltung | Sammelt, durchsucht und visualisiert Logs. | Loggly |
+| Workflows | Automatisiert Aktionen und verbindet OneUptime mit den Werkzeugen, die Sie schon nutzen. | Zapier |
+| Application Performance Monitoring | Verfolgt Traces, Antwortzeiten, Durchsatz und Fehlerraten. | New Relic, Datadog |
+| Fehlerverfolgung | Gruppiert Ausnahmen mit Stacktraces und Kontext. | Sentry |
 :::
 
 ## So greift OneUptime ineinander
@@ -35,19 +81,18 @@ flowchart TB
 
 Die Dokumentation ist wie die Seitenleiste in neun Bereiche gegliedert. Wählen Sie den Teil, den Sie brauchen.
 
-### Monitoring
-
+:::details Monitoring
 :::cards
 - [Monitore](/docs/monitor/create-monitor): Websites, APIs, Ports, DNS, NTP-Server, Zertifikate und mehr von Sonden in aller Welt prüfen.
-- [Infrastruktur-Monitore](/docs/monitor/server-monitor): Server, Kubernetes, Docker, VMware, Netzwerkgeräte und Speicher überwachen.
+- [Infrastruktur-Monitore](/docs/monitor/host-monitor): Server, Kubernetes, Docker, VMware, Netzwerkgeräte und Speicher überwachen.
 - [Telemetrie-Monitore](/docs/monitor/logs-monitor): Bei den Logs, Metriken, Traces, Ausnahmen und Profilen warnen, die Sie senden.
 - [SLOs](/docs/slo/introduction): Zuverlässigkeitsziele, Fehlerbudgets und Burn-Rates verfolgen.
 - [Sonden](/docs/probe/custom-probe): Prüfungen aus Ihrem eigenen Netzwerk heraus ausführen.
 - [Wenn OneUptime keine Daten empfängt](/docs/monitor/when-oneuptime-is-not-receiving): Warum eine Lücke auf Seiten von OneUptime nie als Ihre Ausfallzeit zählt.
 :::
+:::
 
-### Incident-Response
-
+:::details Incident-Response
 :::cards
 - [Vorfälle](/docs/incidents/index): Vorfälle melden, koordinieren und beheben, mit einer vollständigen Zeitleiste.
 - [Warnungen](/docs/alerts/index): Probleme untersuchen, bevor Ihre Nutzer sie bemerken, und das Rauschen in Episoden bündeln.
@@ -57,9 +102,9 @@ Die Dokumentation ist wie die Seitenleiste in neun Bereiche gegliedert. Wählen 
 - [Geplante Wartung](/docs/scheduled-maintenance/index): Geplante Arbeiten ankündigen und die betroffenen Monitore pausieren.
 - [Workspace-Verbindungen](/docs/workspace-connections/slack): Vorfälle aus Slack und Microsoft Teams heraus bearbeiten.
 :::
+:::
 
-### Observability
-
+:::details Observability
 :::cards
 - [Telemetrie](/docs/telemetry/open-telemetry): Logs, Metriken und Traces mit OpenTelemetry senden und durchsuchen.
 - [Infrastruktur-Agenten](/docs/telemetry/hosts): Einen Host mit einem Befehl hinzufügen und die Agenten für Kubernetes, Docker, Proxmox, VMware und mehr installieren.
@@ -73,33 +118,33 @@ Die Dokumentation ist wie die Seitenleiste in neun Bereiche gegliedert. Wählen 
 - [Dashboards](/docs/dashboards/index): Dashboards aus Ihren Metriken, Logs und Monitoren bauen.
 - [Inventar](/docs/inventory/overview): Jeden Dienst, Host und jedes Gerät sehen, das OneUptime kennt.
 :::
+:::
 
-### Automatisierung & KI
-
+:::details Automatisierung & KI
 :::cards
 - [Runbooks](/docs/runbooks/index): Abläufe für den Ernstfall in Schritte verwandeln, die Ihr Team ausführen kann.
 - [Formulare](/docs/forms/index): Jeden ein Problem über ein Formular melden lassen, das einen Vorfall eröffnet.
 - [Workflows](/docs/workflows/index): Aktionen automatisieren, wenn in OneUptime etwas passiert.
 - [KI](/docs/ai/ai-sre): OneUptime AI Vorfälle und Warnungen untersuchen lassen und sie zu Ihren Systemen befragen.
 :::
+:::
 
-### Integrationen
-
+:::details Integrationen
 :::cards
 - [Integrationen](/docs/integrations/index): Jira, ServiceNow, Grafana, Datadog, Huntress, SIEM-Werkzeuge, Discord, Telegram, IRC und mehr anbinden.
 :::
+:::
 
-### Entwickler
-
+:::details Entwickler
 :::cards
 - [API-Referenz](/docs/api-reference/api-reference): OneUptime mit seiner REST-API automatisieren.
 - [CLI](/docs/cli/index): OneUptime aus Ihrem Terminal und Ihrer CI verwalten.
 - [Terraform-Provider](/docs/terraform/index): Monitore, Statusseiten und Bereitschaft als Code verwalten.
 - [Crossplane-Provider](/docs/crossplane/index): Ihr Projekt mit Crossplane aus Kubernetes verwalten.
 :::
+:::
 
-### Administration
-
+:::details Administration
 :::cards
 - [Benutzer und Berechtigungen](/docs/permissions/index): Personen einladen, Teams organisieren und festlegen, was sie dürfen.
 - [Identität](/docs/identity/sso): Mit SAML- oder OIDC-Single-Sign-on anmelden und Benutzer mit SCIM bereitstellen.
@@ -107,46 +152,14 @@ Die Dokumentation ist wie die Seitenleiste in neun Bereiche gegliedert. Wählen 
 - [E-Mails](/docs/emails/smtp): Die E-Mails von OneUptime über Ihren eigenen SMTP-Server versenden.
 - [Mobile und Desktop-Apps](/docs/mobile-desktop-apps/index): Alarme erhalten und reagieren unter iOS, Android, macOS, Windows und Linux.
 :::
+:::
 
-### Selbst hosten
-
+:::details Selbst hosten
 :::cards
 - [Installation](/docs/installation/self-hosting-guide): Ihr eigenes OneUptime installieren, dimensionieren und aktualisieren.
 - [Selbst gehostete Einrichtung](/docs/self-hosted/architecture): Architektur, Integrationen und Enterprise-Funktionen für Ihre eigene Installation.
 :::
-
-## Von einem anderen Werkzeug kommend
-
-### Ihre Einrichtung mitnehmen
-
-**Projekteinstellungen → Erweitert → Import aus anderem Tool** liest Ihre Einrichtung in einem anderen Werkzeug, mit einem API-Schlüssel oder, bei Uptime Kuma, einer Datei. Es zeigt Ihnen, was es gefunden hat, und legt an, was Sie ankreuzen. Im anderen Werkzeug ändert sich nichts, und ein erneuter Import legt nie etwas doppelt an.
-
-| Sie kommen von | Was OneUptime liest |
-| --- | --- |
-| [Opsgenie](/docs/moving-to-oneuptime/opsgenie) | Benutzer, Teams, Pläne, Eskalationen und Dienste |
-| [PagerDuty](/docs/moving-to-oneuptime/pagerduty) | Benutzer, Teams, Pläne, Eskalationsrichtlinien und Dienste |
-| [incident.io](/docs/moving-to-oneuptime/incident-io) | Benutzer, Teams, Pläne, Eskalationspfade, Dienste und Vorfalleinstellungen |
-| [Splunk On-Call](/docs/moving-to-oneuptime/splunk-on-call) | Benutzer, Teams, Rotationen und Eskalationsrichtlinien |
-| [Grafana OnCall](/docs/moving-to-oneuptime/grafana-oncall) | Benutzer, Teams, Pläne und Eskalationsketten |
-| [UptimeRobot](/docs/moving-to-oneuptime/uptimerobot) | Monitore und öffentliche Statusseiten |
-| [Atlassian Statuspage](/docs/moving-to-oneuptime/atlassian-statuspage) | Seiten, ihre Komponenten und Gruppen sowie E-Mail-Abonnenten |
-| [Better Stack](/docs/moving-to-oneuptime/better-stack) | Monitore, Heartbeats, Statusseiten und E-Mail-Abonnenten |
-| [Pingdom](/docs/moving-to-oneuptime/pingdom) | Uptime-Checks |
-| [StatusCake](/docs/moving-to-oneuptime/statuscake) | Uptime-, SSL- und Heartbeat-Checks |
-| [Uptime Kuma](/docs/moving-to-oneuptime/uptime-kuma) | Monitore, aus einem Backup oder der Metrikseite |
-
-### Was OneUptime ersetzt
-
-| Funktion | Was sie tut | Ersetzt Werkzeuge wie |
-| --- | --- | --- |
-| Verfügbarkeitsüberwachung | Prüft Verfügbarkeit und Antwortzeit von Standorten in aller Welt. | Pingdom, UptimeRobot |
-| Statusseiten | Zeigt Kunden den aktuellen Status und die Historie Ihrer Dienste. | Atlassian Statuspage |
-| Vorfallmanagement | Führt Vorfälle von Anfang bis Ende, mit Notizen, Eigentümern und einer Zeitleiste. | incident.io |
-| Bereitschaft und Warnungen | Plant Bereitschaftsdienste und eskaliert, bis jemand reagiert. | PagerDuty, Opsgenie |
-| Log-Verwaltung | Sammelt, durchsucht und visualisiert Logs. | Loggly |
-| Workflows | Automatisiert Aktionen und verbindet OneUptime mit den Werkzeugen, die Sie schon nutzen. | Zapier |
-| Application Performance Monitoring | Verfolgt Traces, Antwortzeiten, Durchsatz und Fehlerraten. | New Relic, Datadog |
-| Fehlerverfolgung | Gruppiert Ausnahmen mit Stacktraces und Kontext. | Sentry |
+:::
 
 ## Nächste Schritte
 

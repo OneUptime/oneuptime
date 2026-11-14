@@ -229,16 +229,33 @@ const PROBES_NOT_REPORTING = {
 };
 
 /*
+ * How the app answers a GET of the doctor's path without a master admin's
+ * session: the GET is the Admin Dashboard's, and the cluster key opens only
+ * the POST.
+ */
+const GET_OF_THE_DOCTORS_PATH = {
+  status: 401,
+  body: JSON.stringify({ message: "Unauthorized: Access token is required." }),
+  json: { message: "Unauthorized: Access token is required." },
+};
+
+/*
  * A fake network: { ready, doctor, address } are the answers to the ready
- * check, the server's answer and the address check; every request is
- * recorded with its headers.
+ * check, the server's answer (to a POST, as the app answers) and the address
+ * check; every request is recorded with its method and headers.
  */
 const fakeNetwork = (answers) => {
   const given = answers || {};
   const requests = [];
 
   const request = (url, options) => {
-    requests.push({ url: url, headers: (options && options.headers) || {} });
+    const method = (options && options.method) || "GET";
+
+    requests.push({
+      url: url,
+      method: method,
+      headers: (options && options.headers) || {},
+    });
 
     if (url.endsWith(READY_PATH)) {
       return Promise.resolve(
@@ -247,6 +264,10 @@ const fakeNetwork = (answers) => {
     }
 
     if (url.endsWith(DOCTOR_PATH)) {
+      if (method !== "POST") {
+        return Promise.resolve(GET_OF_THE_DOCTORS_PATH);
+      }
+
       if (given.doctor !== undefined) {
         return Promise.resolve(given.doctor);
       }
@@ -1069,20 +1090,38 @@ describe("npm run doctor", () => {
     expect(result.output).toContain("Nothing to fix. 1 thing worth a look.");
   });
 
-  test("the cluster key goes to the ingress on this server, and never to HOST", async () => {
+  test("the cluster key goes to the ingress on this server, in the clusterkey header of a POST, and never to HOST", async () => {
     const result = await runDoctor();
-    const withKey = result.network.requests.filter((entry) => {
-      return entry.headers.clusterkey !== undefined;
-    });
+    // A request presents the key by its header, under either name, or by its value anywhere.
+    const presentsTheKey = (entry) => {
+      return (
+        entry.url.indexOf(SECRET) !== -1 ||
+        Object.keys(entry.headers).some((name) => {
+          return /^(?:x-)?clusterkey$/i.test(name);
+        }) ||
+        Object.values(entry.headers).some((value) => {
+          return String(value).indexOf(SECRET) !== -1;
+        })
+      );
+    };
 
-    expect(withKey.map((entry) => entry.url)).toEqual([
-      `http://localhost${DOCTOR_PATH}`,
+    expect(result.network.requests.filter(presentsTheKey)).toEqual([
+      {
+        url: `http://localhost${DOCTOR_PATH}`,
+        method: "POST",
+        headers: { clusterkey: SECRET },
+      },
     ]);
-    expect(withKey[0].headers.clusterkey).toBe(SECRET);
-    // HOST is asked for the server's proof, without the key.
-    expect(result.network.requests.map((entry) => entry.url)).toContain(
-      "https://oneuptime.example.com/status-page-api/custom-domain-readiness/0123abcd.signature",
-    );
+    // HOST is asked for the server's proof, with a GET and without the key.
+    expect(
+      result.network.requests.filter((entry) => {
+        return !presentsTheKey(entry);
+      }),
+    ).toContainEqual({
+      url: "https://oneuptime.example.com/status-page-api/custom-domain-readiness/0123abcd.signature",
+      method: "GET",
+      headers: {},
+    });
   });
 
   test("the ingress on another port is checked there", async () => {
@@ -1246,11 +1285,29 @@ describe("tidied", () => {
 describe("against a real HTTP server standing in for the ingress", () => {
   let server;
   let port;
+  // Another server, which nothing should reach.
+  let elsewhere;
+  let elsewherePort;
+  // Where the doctor's path redirects to, when a test says.
+  let redirectTo = null;
+  // The ONEUPTIME_SECRET the app runs with, which it compares the key with.
+  let appKey = SECRET;
   const seen = [];
+  const seenElsewhere = [];
+
+  const recordOf = (req) => {
+    return {
+      method: req.method,
+      url: req.url,
+      clusterkey: req.headers.clusterkey,
+      contentLength: req.headers["content-length"],
+      transferEncoding: req.headers["transfer-encoding"],
+    };
+  };
 
   beforeAll(async () => {
     server = http.createServer((req, res) => {
-      seen.push({ url: req.url, clusterkey: req.headers.clusterkey });
+      seen.push(recordOf(req));
 
       if (req.url === READY_PATH) {
         res.writeHead(200);
@@ -1259,7 +1316,22 @@ describe("against a real HTTP server standing in for the ingress", () => {
       }
 
       if (req.url === DOCTOR_PATH) {
-        if (req.headers.clusterkey !== SECRET) {
+        if (req.method !== "POST") {
+          res.writeHead(GET_OF_THE_DOCTORS_PATH.status, {
+            "content-type": "application/json",
+          });
+          res.end(GET_OF_THE_DOCTORS_PATH.body);
+          return;
+        }
+
+        if (redirectTo) {
+          res.writeHead(307, { location: redirectTo });
+          res.end();
+          return;
+        }
+
+        // As the app compares a key: with its own, URI-encoded (ClusterKeyAuthorization.getClusterKey).
+        if (req.headers.clusterkey !== encodeURIComponent(appKey)) {
           res.writeHead(400, { "content-type": "application/json" });
           res.end(JSON.stringify({ error: "Invalid cluster key" }));
           return;
@@ -1273,18 +1345,47 @@ describe("against a real HTTP server standing in for the ingress", () => {
       res.writeHead(404);
       res.end();
     });
+    elsewhere = http.createServer((req, res) => {
+      seenElsewhere.push(recordOf(req));
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify(serverAnswer([EMAIL_NOT_SET_UP])));
+    });
 
     await new Promise((resolve) => {
       server.listen(0, "127.0.0.1", resolve);
     });
     port = server.address().port;
+    await new Promise((resolve) => {
+      elsewhere.listen(0, "127.0.0.1", resolve);
+    });
+    elsewherePort = elsewhere.address().port;
   });
 
   afterAll(async () => {
     await new Promise((resolve) => {
       server.close(resolve);
     });
+    await new Promise((resolve) => {
+      elsewhere.close(resolve);
+    });
   });
+
+  beforeEach(() => {
+    redirectTo = null;
+    appKey = SECRET;
+    seen.length = 0;
+    seenElsewhere.length = 0;
+  });
+
+  // The doctor's POST, as the server saw it.
+  const DOCTORS_POST = {
+    method: "POST",
+    url: DOCTOR_PATH,
+    clusterkey: SECRET,
+    // An empty body, said so.
+    contentLength: "0",
+    transferEncoding: undefined,
+  };
 
   const runAgainstServer = async (config) => {
     const directory = workspace(config);
@@ -1321,12 +1422,81 @@ describe("against a real HTTP server standing in for the ingress", () => {
 
     expect(result.output).toContain("✗ Email: Not set up yet");
     expect(result.code).toBe(1);
+    // One request presents the key: the doctor's POST.
     expect(
-      seen
-        .filter((entry) => entry.url === DOCTOR_PATH)
-        .map((entry) => entry.clusterkey),
-    ).toContain(SECRET);
+      seen.filter((entry) => {
+        return entry.url === DOCTOR_PATH || entry.clusterkey !== undefined;
+      }),
+    ).toEqual([DOCTORS_POST]);
+    expect(seen).toContainEqual({
+      method: "GET",
+      url: READY_PATH,
+      clusterkey: undefined,
+      contentLength: undefined,
+      transferEncoding: undefined,
+    });
   });
+
+  test("a redirect is not followed, so the key reaches no other server", async () => {
+    redirectTo = `http://127.0.0.1:${elsewherePort}${DOCTOR_PATH}`;
+
+    const result = await runAgainstServer(
+      healthyConfig([
+        `HOST=127.0.0.1:${port}`,
+        "HTTP_PROTOCOL=http",
+        "PROVISION_SSL=false",
+        `ONEUPTIME_HTTP_PORT=127.0.0.1:${port}`,
+      ]),
+    );
+
+    expect(
+      seen.filter((entry) => {
+        return entry.url === DOCTOR_PATH;
+      }),
+    ).toEqual([DOCTORS_POST]);
+    expect(seenElsewhere).toEqual([]);
+    expect(result.output).toContain(
+      "OneUptime could not say how its databases, migrations, queues and setup are (HTTP 307).",
+    );
+  });
+
+  /*
+   * Keys with characters URI-encoding changes: + / = @ & %, a Latin-1
+   * letter, which Node's http would send as one byte, and letters beyond
+   * Latin-1, which it would not send at all.
+   */
+  test.each([
+    ["+ / = @ & %", "Ab+c/d=e@f&g%h"],
+    ["a Latin-1 letter", "clé-du-cluster"],
+    ["letters beyond Latin-1", "clé-du-cluster-ä-ø-漢字-🔑"],
+  ])(
+    "a key with %s goes URI-encoded, as the app compares it, and the server's answer is read",
+    async (_characters, key) => {
+      appKey = key;
+
+      const result = await runAgainstServer(
+        healthyConfig([
+          `HOST=127.0.0.1:${port}`,
+          "HTTP_PROTOCOL=http",
+          "PROVISION_SSL=false",
+          `ONEUPTIME_HTTP_PORT=127.0.0.1:${port}`,
+          `ONEUPTIME_SECRET=${key}`,
+        ]),
+      );
+
+      expect(
+        seen.filter((entry) => {
+          return entry.url === DOCTOR_PATH;
+        }),
+      ).toEqual([
+        Object.assign({}, DOCTORS_POST, {
+          clusterkey: encodeURIComponent(key),
+        }),
+      ]);
+      expect(result.output).toContain("✗ Email: Not set up yet");
+      expect(result.output).not.toContain("did not accept ONEUPTIME_SECRET");
+    },
+  );
 
   test("a key the server refuses is said, not a crash", async () => {
     const result = await runAgainstServer(
@@ -1342,18 +1512,50 @@ describe("against a real HTTP server standing in for the ingress", () => {
     expect(result.output).toContain("did not accept ONEUPTIME_SECRET");
   });
 
-  test("defaultRequest: a status and JSON, and an error code for a closed port", async () => {
+  test("defaultRequest: a GET unless told otherwise, a status and JSON, and an error code for a closed port", async () => {
     const answer = await defaultRequest(
       `http://127.0.0.1:${port}${DOCTOR_PATH}`,
       {
+        method: "POST",
         headers: { clusterkey: SECRET },
       },
+    );
+    const ready = await defaultRequest(
+      `http://127.0.0.1:${port}${READY_PATH}`,
+      {},
     );
     const closed = await defaultRequest("http://127.0.0.1:1/", {});
 
     expect(answer.status).toBe(200);
     expect(answer.json.findings[0].id).toBe("setup-email");
+    expect(ready).toEqual({ status: 200, body: "ok", json: null });
+    expect(seen).toEqual([
+      DOCTORS_POST,
+      {
+        method: "GET",
+        url: READY_PATH,
+        clusterkey: undefined,
+        contentLength: undefined,
+        transferEncoding: undefined,
+      },
+    ]);
     expect(closed.error).toBe("ECONNREFUSED");
+  });
+
+  test("defaultRequest answers a redirect with its status, and asks no other server", async () => {
+    redirectTo = `http://127.0.0.1:${elsewherePort}${DOCTOR_PATH}`;
+
+    const answer = await defaultRequest(
+      `http://127.0.0.1:${port}${DOCTOR_PATH}`,
+      {
+        method: "POST",
+        headers: { clusterkey: SECRET },
+      },
+    );
+
+    expect(answer.status).toBe(307);
+    expect(seen).toEqual([DOCTORS_POST]);
+    expect(seenElsewhere).toEqual([]);
   });
 });
 

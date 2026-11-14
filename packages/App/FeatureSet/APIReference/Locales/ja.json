@@ -344,6 +344,7 @@
       "logsDesc": "アプリケーションプロセスの内部から取得できる診断ログです。このインスタンス自身の最近のログ行に加えて、Postgres、ClickHouse、Valkeyが公開している情報が含まれます。コンテナの標準出力は含まれません。それには<code>kubectl logs</code>または<code>docker logs</code>を使用してください。",
       "migrationsDesc": "Postgresのスキーマおよびデータのマイグレーションの状況：インスタンスが完全にマイグレーション済みかどうか、まだ保留中のものは何か、そして最近の失敗です。アップグレードが完了したことを確認するには、これを使用します。",
       "supportBundleDesc": "インスタンスに関するあらゆる診断情報を1つにまとめたJSONドキュメントです。バージョン、ランタイム、機密情報を伏せた設定、コンポーネントのヘルス、マイグレーション、データストアの診断、スキーマ、失敗したジョブ、ログが含まれます。サポートリクエストに添付するものとして、最も有用です。",
+      "doctorDesc": "インスタンスで対応が必要なことを、深刻なものから順に、それぞれの解決方法とともに示します：応答しないPostgres、ClickHouse、Valkey、保留中または失敗したマイグレーション、空き容量が少なくなったClickHouseのディスク、処理が遅れているキュー、新しいリリース、未完了のサーバー設定手順です。OneUptime Healthページの一番上に表示される一覧と同じです。",
       "queueNamesBody": "<code>{queueName}</code>パスパラメータは、<code>Workflow</code>、<code>Worker</code>、<code>Telemetry</code>、<code>Runbook</code>のいずれかである必要があります。それ以外は<code>400</code>で拒否されます。",
       "editions": "エディション",
       "editionsBody": "ほとんどのマスター管理者APIはOneUptime Enterprise Editionの一部であり、これらがバックエンドとなっているOneUptime Healthダッシュボードに対応しています。Communityインスタンスでは、データの代わりに<code>402 Payment Required</code>を返します。",

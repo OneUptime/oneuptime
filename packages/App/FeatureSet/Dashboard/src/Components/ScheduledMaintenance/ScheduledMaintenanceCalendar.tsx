@@ -576,9 +576,9 @@ const ScheduledMaintenanceCalendar: FunctionComponent<ComponentProps> = (
   );
 
   /*
-   * The header as All Events draws it (ModelTable's toolbar header): the
-   * title and the buttons on one line, the description under both across
-   * the card. Beside "Create Scheduled Maintenance Event" the default header
+   * The header as All Maintenance Events draws it (ModelTable's toolbar
+   * header): the title and the buttons on one line, the description under
+   * both across the card. Beside "Create Maintenance Event" the default header
    * squeezed the title into a column a word wide at tablet widths, and broke
    * the description over two lines on a laptop.
    */

@@ -18,6 +18,13 @@ import {
   AI_RESOURCE_TYPES_NOT_LINKABLE,
   getPageAffectedResource,
 } from "../../../../Types/AI/AiAffectedResources";
+import {
+  ADD_MONITORS_TO_STATUS_PAGE_TOOL_NAME,
+  PUBLISH_STATUS_PAGE_TOOL_NAME,
+  SET_UP_PAGING_TOOL_NAME,
+  SET_UP_WEBSITE_MONITORING_TOOL_NAME,
+  WHO_IS_TOLD_TOOL_NAME,
+} from "../../../../Types/AI/AISetupActions";
 
 /*
  * How the prompt speaks of commands on the infrastructure itself. Only a
@@ -65,7 +72,28 @@ export const INCIDENTS_ALERTS_AND_MONITORS_SECTION: string = `## Incidents, aler
 
 - Declare an incident (create_incident) for an outage or a problem users feel, which needs a response now. Raise an alert (create_alert) for something the team should look into that is not, or not yet, an outage: a host's memory running high, an error rate creeping up. When the user names one, create that one.
 - To write up a problem that already happened, at the user's word ("we had a checkout outage this morning, it's fixed, record it"), create the incident or alert with initialState "resolved", or "acknowledged" when somebody is still on it: it then pages nobody, and the approval card says so. Never set initialState for a problem that is still live, or to keep anybody from being paged.
-- An incident or an alert is created once, now, and watches nothing. A request to be alerted when or whenever something happens ("alert me when memory goes above 75%") asks for a monitor, and no tool here creates one: say so plainly, read the condition now with the metric tools, and if it holds now, offer to raise an alert about it. A person creates the monitor under Monitors → Create Monitor: a Host monitor watches a host's CPU, memory and disks (its High Memory Utilization template sets a memory threshold they can change), and a Metrics monitor watches any metric.`;
+- An incident or an alert is created once, now, and watches nothing. A request to be alerted when or whenever something happens asks for a monitor. The only monitor a tool here sets up watches a website or API address (${SET_UP_WEBSITE_MONITORING_TOOL_NAME}, see "Setting things up"). For any other condition ("alert me when memory goes above 75%") no tool here creates one: say so plainly, read the condition now with the metric tools, and if it holds now, offer to raise an alert about it. A person creates the monitor under Monitors → Create Monitor: a Host monitor watches a host's CPU, memory and disks (its High Memory Utilization template sets a memory threshold they can change), and a Metrics monitor watches any metric.`;
+
+/*
+ * Setting things up by conversation (issue #6829): the setup actions, one
+ * plan per request, approved on one card in every mode, what to read first,
+ * what to ask for, and how it ends - with the test page and who is told.
+ * Said only where actions can be taken: not in a read-only conversation,
+ * nor in Slack or Microsoft Teams, nor in an autonomous run.
+ */
+export const SETUP_SECTION: string = `## Setting things up
+
+- Asked to set something up - "monitor example.com every minute and text me if it is down", "page me when the API fails", "publish a status page", "put the API on our status page" - propose the setup actions: ${SET_UP_WEBSITE_MONITORING_TOOL_NAME} (a website or API monitor), ${SET_UP_PAGING_TOOL_NAME} (who is paged, in a project that pages nobody yet), ${PUBLISH_STATUS_PAGE_TOOL_NAME} (a public status page showing monitors) and ${ADD_MONITORS_TO_STATUS_PAGE_TOOL_NAME}. They make the same records as the guided setups, as the person.
+- Propose every part of one request in the same answer, so the person approves the plan once, on one card where each part can be skipped. Do not describe the plan and wait to be told to go on: the card is that question, and it already says what each part creates.
+- Read first what decides the plan: query_on_call_policies says whether the project pages people already, and then ${SET_UP_PAGING_TOOL_NAME} is not proposed (its own policies and rules decide: say so); query_monitors and query_status_pages find monitors and status pages by name.
+- Being paged, texted or called when a website is down is two parts: ${SET_UP_WEBSITE_MONITORING_TOOL_NAME}, and ${SET_UP_PAGING_TOOL_NAME} with reachMeBy ("text me" is sms) unless the project pages people already.
+- Ask only for what you cannot work out, once: the address when none was given, who to page when the people named are not found. Never ask for or add a phone number: the person adds and verifies it in Notification Methods. When the approval card says one is missing, say so after the setup and end with that page's citation (${FIND_DASHBOARD_PAGE_TOOL_NAME} "Notification Methods").
+- Setup actions always wait for the person's approval on the card, in every mode, Auto-run included.
+- A setup action that cannot be made is not proposed: its result says what is needed (a permission, an address, monitors, room in the project's plan). Say that, plainly.
+- Once the setup ran, say in a sentence or two what now exists and who is told, and exactly what was not created and why when a part failed. The cards under your answer open each record. Offer a test page in one sentence: the button under your answer sends it. Never say a test was sent.
+- "Who is told when example.com goes down?" is answered with ${WHO_IS_TOLD_TOOL_NAME}, which names every break in the chain.
+
+`;
 
 /*
  * How an answer reads (the maintainer, of Ask AI: "very noisy as well.
@@ -154,7 +182,7 @@ export enum ObservabilityChatSurface {
  * The action list shared by the two modes that can act. Read-only names the
  * same tools so the model can explain what switching modes unlocks.
  */
-const ACTION_LIST: string = `create incidents and alerts (create_incident / create_alert), link an incident or alert to the infrastructure and services it is about (add_incident_affected_resources / add_alert_affected_resources), acknowledge or resolve incidents and alerts, post internal notes (create_incident_note / create_alert_note — visible only to the team, never notifies status page subscribers; post_incident_status_update is the public counterpart), start an autonomous AI investigation (start_investigation), add a note to a security case (add_security_case_note), start a security playbook on a case (run_security_playbook — its containment steps still wait for a person's approval on the case), change code (open_code_pull_request, commit_code_to_branch), and build or change workflows (create_workflow / update_workflow)`;
+const ACTION_LIST: string = `create incidents and alerts (create_incident / create_alert), link an incident or alert to the infrastructure and services it is about (add_incident_affected_resources / add_alert_affected_resources), acknowledge or resolve incidents and alerts, post internal notes (create_incident_note / create_alert_note — visible only to the team, never notifies status page subscribers; post_incident_status_update is the public counterpart), start an autonomous AI investigation (start_investigation), add a note to a security case (add_security_case_note), start a security playbook on a case (run_security_playbook — its containment steps still wait for a person's approval on the case), change code (open_code_pull_request, commit_code_to_branch), build or change workflows (create_workflow / update_workflow), and set things up - a website or API monitor, who is paged, a status page and the monitors on it (${SET_UP_WEBSITE_MONITORING_TOOL_NAME}, ${SET_UP_PAGING_TOOL_NAME}, ${PUBLISH_STATUS_PAGE_TOOL_NAME}, ${ADD_MONITORS_TO_STATUS_PAGE_TOOL_NAME})`;
 
 /*
  * What the model says when asked to change something in Slack or Microsoft
@@ -164,7 +192,7 @@ const ACTION_LIST: string = `create incidents and alerts (create_incident / crea
 function buildChatAppActionGuidance(chatApp: ObservabilityChatApp): string {
   const note: string = chatApp.commandNote ? ` (${chatApp.commandNote})` : "";
 
-  return `5. You are answering in ${chatApp.name}, where OneUptime AI only reads. You have only read tools — you cannot modify anything, and you must not claim to have taken any action. When the user asks you to create an incident or an alert, link one to the resources it is about, acknowledge or resolve one, post an internal note (create_incident_note / create_alert_note), start an investigation (start_investigation), change code, or make any other change, say in one sentence that you cannot make changes from ${chatApp.name}, then how they can from there${note}: declare an incident with \`${chatApp.incidentCommand} <title>\`; acknowledge, resolve or page someone about an incident with \`${chatApp.incidentCommand} <number>\`, which shows its buttons, or with the buttons on OneUptime's message about the incident or alert; page a person or a team with \`${chatApp.pageCommand}\`; and for anything else, such as raising an alert, linking resources, starting an investigation or changing code, Ask AI in the OneUptime Dashboard, which proposes the change for them to approve: ${chatApp.askAiUrl} . Name only the way that fits what they asked. ${chatApp.name} has no modes: never tell them to switch modes.`;
+  return `5. You are answering in ${chatApp.name}, where OneUptime AI only reads. You have only read tools — you cannot modify anything, and you must not claim to have taken any action. When the user asks you to create an incident or an alert, link one to the resources it is about, acknowledge or resolve one, post an internal note (create_incident_note / create_alert_note), start an investigation (start_investigation), change code, or make any other change, say in one sentence that you cannot make changes from ${chatApp.name}, then how they can from there${note}: declare an incident with \`${chatApp.incidentCommand} <title>\`; acknowledge, resolve or page someone about an incident with \`${chatApp.incidentCommand} <number>\`, which shows its buttons, or with the buttons on OneUptime's message about the incident or alert; page a person or a team with \`${chatApp.pageCommand}\`; and for anything else, such as raising an alert, linking resources, starting an investigation, changing code, or setting up a monitor, paging or a status page, Ask AI in the OneUptime Dashboard, which proposes the change for them to approve: ${chatApp.askAiUrl} . Name only the way that fits what they asked. ${chatApp.name} has no modes: never tell them to switch modes.`;
 }
 
 function buildActionGuidance(
@@ -181,11 +209,11 @@ function buildActionGuidance(
   }
 
   if (mode === AIChatPermissionMode.ReadOnly) {
-    return `5. This conversation is READ-ONLY. You have only read tools — you cannot modify anything, and you must not claim to have taken any action. If the user asks you to create an incident or an alert, link one to the resources it is about, acknowledge an alert, post an internal note (create_incident_note / create_alert_note), start an investigation (start_investigation), change code, or make any other change, say that this conversation is Read-only, and that setting its permission mode to Ask to act, in the menu beside the box they type in, lets you propose the change for them to approve.`;
+    return `5. This conversation is READ-ONLY. You have only read tools — you cannot modify anything, and you must not claim to have taken any action. If the user asks you to create an incident or an alert, link one to the resources it is about, acknowledge an alert, post an internal note (create_incident_note / create_alert_note), start an investigation (start_investigation), change code, set up a monitor, paging or a status page, or make any other change, say that this conversation is Read-only, and that setting its permission mode to Ask to act, in the menu beside the box they type in, lets you propose the change for them to approve.`;
   }
 
   if (mode === AIChatPermissionMode.AutoRun) {
-    return `5. You can take actions: ${ACTION_LIST}. Actions you request run IMMEDIATELY without a separate confirmation. Because of that, only take an action the user clearly asked for; if intent is ambiguous, ask a clarifying question instead of acting. Read the relevant data first (e.g. query_incidents to get an incidentId, or read_code_file before rewriting a file) before acting on it. After an action succeeds, say in one sentence what you did: the card under your answer shows the record it created or changed, so do not list its details again.`;
+    return `5. You can take actions: ${ACTION_LIST}. Actions you request run IMMEDIATELY without a separate confirmation, except the setup actions, which always wait for the person's approval on a card. Because of that, only take an action the user clearly asked for; if intent is ambiguous, ask a clarifying question instead of acting. Read the relevant data first (e.g. query_incidents to get an incidentId, or read_code_file before rewriting a file) before acting on it. After an action succeeds, say in one sentence what you did: the card under your answer shows the record it created or changed, so do not list its details again.`;
   }
 
   // AskForApproval (default)
@@ -266,7 +294,7 @@ function buildAreaContextGuidance(context: AIChatPageContext): string {
     case AIChatPageContextType.TracesExplorer:
       return `the traces explorer. Questions about traces and latency are answered with query_traces (aggregations like p95 by endpoint) and get_trace (one trace's span tree).`;
     case AIChatPageContextType.ProfilesExplorer:
-      return `the Profiler (continuous profiling). Questions about where the CPU time or memory goes are answered with get_profile_hotspots (one service with serviceId, from lookup_context), what got slower - after a deploy or since an hour ago - with compare_profiles (changeTime takes a deploy's time from recent_changes), and one function's callers, callees and own-code time with get_profile_function.`;
+      return `the Profiles page (continuous profiling). Questions about where the CPU time or memory goes are answered with get_profile_hotspots (one service with serviceId, from lookup_context), what got slower - after a deploy or since an hour ago - with compare_profiles (changeTime takes a deploy's time from recent_changes), and one function's callers, callees and own-code time with get_profile_function.`;
     case AIChatPageContextType.MetricsExplorer:
       return `the metrics explorer. Discover metric names with lookup_context, then chart them with query_metrics; baseline_anomaly checks a metric against its learned baseline.`;
     case AIChatPageContextType.ExceptionsList:
@@ -458,14 +486,14 @@ ${INFRASTRUCTURE_COMMANDS_GUIDANCE}
 - Prefer aggregations (query_traces, log_histogram, query_metrics, top_exceptions, security_event_summary) to establish the shape of a problem, then drill into raw data (search_logs, get_trace, search_security_events) for evidence.
 - Always pass explicit ISO 8601 time ranges. If the user did not specify one, use the last hour for logs and the last 24 hours for metrics/traces, and say which window you used.
 - When durations are involved they are in milliseconds unless stated otherwise.
-- Platform questions have direct tools — answer them from those, not from telemetry: who is on call or how escalation works (get_on_call_status, query_on_call_policies); whether a page actually reached anyone (query_on_call_pages); who owns a resource (query_teams); what the runbook says (query_runbooks); what is public or has been announced to subscribers (query_status_pages, query_status_page_announcements); how much SLO error budget is left (query_slos); whether automation ran or failed (query_workflows); probe health (query_probes); early warnings that predate an incident (query_ai_insights).
+- Platform questions have direct tools — answer them from those, not from telemetry: who is on call or how escalation works (get_on_call_status, query_on_call_policies); whether a page actually reached anyone (query_on_call_pages); who owns a resource (query_teams); what the runbook says (query_runbooks); what is public or has been announced to subscribers (query_status_pages, query_status_page_announcements); how much SLO error budget is left (query_slos); whether automation ran or failed (query_workflows); probe health (query_probes); early warnings that predate an incident (query_ai_insights); whether the project's setup is OK - what would stop the right people from being told, and the fix for each (get_setup_health).
 - When a question is genuinely ambiguous (which service? which time window? which environment?) and a wrong guess would waste queries or mislead, ask one focused clarifying question instead of running default-window queries. When the ambiguity is minor, proceed and state the assumption explicitly in your answer.
 
 ${ONEUPTIME_QUESTIONS_SECTION}
 
 ${INCIDENTS_ALERTS_AND_MONITORS_SECTION}
 
-${data.permissionMode === AIChatPermissionMode.ReadOnly || data.chatApp ? "" : WORKFLOWS_SECTION}## Reading tool results
+${data.permissionMode === AIChatPermissionMode.ReadOnly || data.chatApp ? "" : WORKFLOWS_SECTION}${data.permissionMode === AIChatPermissionMode.ReadOnly || data.chatApp || surface === ObservabilityChatSurface.AutonomousRun ? "" : SETUP_SECTION}## Reading tool results
 
 - Results are sanitized before you see them: emails, IP addresses and secrets are replaced with markers like [redacted-email] or [redacted-ip]. Treat these as sanitization placeholders, never as literal data values. If the redacted value is itself what the user asked for, say the value is redacted in this view — do not guess it. The security tools (search_security_events, security_event_summary, query_security_cases, lookup_threat_intel, security_entity_activity, query_security_playbooks) keep IP addresses, email addresses and file hashes, because a security question is about them; they still redact secrets.
 - Long fields may end in "... [truncated]". To see the rest, narrow the query to fewer rows or fetch the single record by its id.

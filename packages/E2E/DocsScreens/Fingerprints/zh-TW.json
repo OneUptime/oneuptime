@@ -1,0 +1,557 @@
+{
+  "home-goal-website": {
+    "text": [
+      "您想先做什麼？",
+      "在我的網站或 API 停擺時得知",
+      "出問題時呼叫合適的人",
+      "用狀態頁面告知我的客戶",
+      "查看我的日誌、指標和追蹤",
+      "監看我的伺服器、Kubernetes 或雲端",
+      "我正從其他工具移轉過來",
+      "只是隨意看看",
+      "略過",
+      "繼續",
+      "checkbox: on",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off"
+    ],
+    "outline": [
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "button: 略過",
+      "button: 繼續"
+    ],
+    "width": 902,
+    "height": 366
+  },
+  "home-goal-paging": {
+    "text": [
+      "您想先做什麼？",
+      "在我的網站或 API 停擺時得知",
+      "出問題時呼叫合適的人",
+      "用狀態頁面告知我的客戶",
+      "查看我的日誌、指標和追蹤",
+      "監看我的伺服器、Kubernetes 或雲端",
+      "我正從其他工具移轉過來",
+      "只是隨意看看",
+      "略過",
+      "繼續",
+      "checkbox: off",
+      "checkbox: on",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off"
+    ],
+    "outline": [
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "button: 略過",
+      "button: 繼續"
+    ],
+    "width": 902,
+    "height": 366
+  },
+  "home-goal-status-page": {
+    "text": [
+      "您想先做什麼？",
+      "在我的網站或 API 停擺時得知",
+      "出問題時呼叫合適的人",
+      "用狀態頁面告知我的客戶",
+      "查看我的日誌、指標和追蹤",
+      "監看我的伺服器、Kubernetes 或雲端",
+      "我正從其他工具移轉過來",
+      "只是隨意看看",
+      "略過",
+      "繼續",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: on",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off"
+    ],
+    "outline": [
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "button: 略過",
+      "button: 繼續"
+    ],
+    "width": 902,
+    "height": 366
+  },
+  "home-goals-three": {
+    "text": [
+      "您想先做什麼？",
+      "在我的網站或 API 停擺時得知",
+      "出問題時呼叫合適的人",
+      "用狀態頁面告知我的客戶",
+      "查看我的日誌、指標和追蹤",
+      "監看我的伺服器、Kubernetes 或雲端",
+      "我正從其他工具移轉過來",
+      "只是隨意看看",
+      "略過",
+      "繼續",
+      "checkbox: on",
+      "checkbox: on",
+      "checkbox: on",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off"
+    ],
+    "outline": [
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "button: 略過",
+      "button: 繼續"
+    ],
+    "width": 902,
+    "height": 366
+  },
+  "website-down-address": {
+    "text": [
+      "1",
+      "我們要檢查什麼？",
+      "OneUptime 每 5 分鐘從多個位置檢查一次。如果沒有回應，或回應錯誤，就會建立事件。",
+      "網站或 API 位址",
+      "這是一個 API 端點",
+      "開始檢查",
+      "更多監測器類型",
+      "value: https://acme-commerce.example",
+      "checkbox: off"
+    ],
+    "outline": [
+      "field text: https://example.com",
+      "field checkbox: ",
+      "button: 開始檢查",
+      "link: 更多監測器類型"
+    ],
+    "width": 768,
+    "height": 278
+  },
+  "website-down-who": {
+    "text": [
+      "2",
+      "要通知誰？",
+      "當機時，OneUptime 會建立事件，並依這些人各自的「如何聯絡我」呼叫他們。首先收到電子郵件的是你。",
+      "呼叫對象",
+      "新增團隊成員",
+      "AL",
+      "Ada Lovelace",
+      "這會建立待命策略「Default on-call policy」，在此專案中每出現一個新事件和警示，都會呼叫他們。",
+      "儲存並繼續"
+    ],
+    "outline": [
+      "button: 新增團隊成員",
+      "button: 移除 Ada Lovelace",
+      "button: 儲存並繼續"
+    ],
+    "width": 768,
+    "height": 262
+  },
+  "website-down-test": {
+    "text": [
+      "3",
+      "傳送測試",
+      "現在傳送一則測試呼叫給自己。它的傳送方式與真實呼叫相同，每則訊息都標有 TEST。在訊息中確認即可完成。",
+      "傳送測試呼叫給我",
+      "略過測試"
+    ],
+    "outline": [
+      "button: 傳送測試呼叫給我",
+      "button: 略過測試"
+    ],
+    "width": 768,
+    "height": 178
+  },
+  "website-down-summary": {
+    "text": [
+      "acme-commerce.example 已設定完成",
+      "檢查時間",
+      "每 5 分鐘，來自 2 個位置。",
+      "當機時",
+      "如果沒有回應，或回應錯誤，OneUptime 會建立一個事件（Critical Incident）。",
+      "會通知誰",
+      "待命策略「Default on-call policy」會在每個新事件和警示出現時呼叫 Ada Lovelace。 你是此監測器的擁有者，所以它狀態變化時你會收到電子郵件。",
+      "已測試",
+      "Ada Lovelace 在 14 秒 後透過電子郵件確認。",
+      "下一步",
+      "在狀態頁面上顯示",
+      "透過 SMS 或電話接收呼叫",
+      "開啟監控器",
+      "檢查其他位址"
+    ],
+    "outline": [
+      "heading: acme-commerce.example 已設定完成",
+      "heading: 下一步",
+      "link: 在狀態頁面上顯示",
+      "link: 透過 SMS 或電話接收呼叫",
+      "link: 開啟監控器",
+      "button: 檢查其他位址"
+    ],
+    "width": 768,
+    "height": 471
+  },
+  "paging-reach-you": {
+    "text": [
+      "1",
+      "我們該如何聯絡你？",
+      "呼叫會傳送到你驗證過的每種方式。新增你的電話，即可接收簡訊和電話。",
+      "電子郵件",
+      "電子郵件 · •••mple",
+      "簡訊和電話",
+      "還沒有電話號碼。",
+      "此專案已關閉 SMS，因此使用它的呼叫不會發送。",
+      "此專案已關閉 電話，因此使用它的呼叫不會發送。",
+      "簡訊和電話費用從此專案的餘額中扣除，目前餘額為 0.00 USD。新增號碼會傳送一則簡訊，因此餘額必須高於 1.00 USD。",
+      "儲值餘額",
+      "開啟簡訊和電話",
+      "行動應用程式或瀏覽器",
+      "未設定。",
+      "在你的通知方式中取得 OneUptime 應用程式，或在此瀏覽器中開啟通知。",
+      "設定應用程式或此瀏覽器",
+      "繼續",
+      "重新檢查"
+    ],
+    "outline": [
+      "button: 儲值餘額",
+      "button: 開啟簡訊和電話",
+      "link: 設定應用程式或此瀏覽器",
+      "button: 繼續",
+      "button: 重新檢查"
+    ],
+    "width": 768,
+    "height": 572
+  },
+  "paging-phone": {
+    "text": [
+      "1",
+      "我們該如何聯絡你？",
+      "呼叫會傳送到你驗證過的每種方式。新增你的電話，即可接收簡訊和電話。",
+      "電子郵件",
+      "電子郵件 · •••mple",
+      "簡訊和電話",
+      "還沒有電話號碼。",
+      "簡訊和電話費用從此專案的餘額中扣除，目前餘額為 20.00 USD。新增號碼會傳送一則簡訊，因此餘額必須高於 1.00 USD。",
+      "你的電話號碼",
+      "透過簡訊傳送驗證碼",
+      "行動應用程式或瀏覽器",
+      "未設定。",
+      "在你的通知方式中取得 OneUptime 應用程式，或在此瀏覽器中開啟通知。",
+      "設定應用程式或此瀏覽器",
+      "繼續",
+      "重新檢查",
+      "placeholder: +15551234567"
+    ],
+    "outline": [
+      "field text: +15551234567",
+      "button: 透過簡訊傳送驗證碼",
+      "link: 設定應用程式或此瀏覽器",
+      "button: 繼續",
+      "button: 重新檢查"
+    ],
+    "width": 768,
+    "height": 544
+  },
+  "paging-who-else": {
+    "text": [
+      "2",
+      "還有誰待命？",
+      "這會建立待命策略「Default on-call policy」。在此專案中每出現一個新事件和警示，它都會先呼叫這些人。",
+      "首先呼叫",
+      "新增團隊成員",
+      "AL",
+      "Ada Lovelace",
+      "儲存並繼續"
+    ],
+    "outline": [
+      "button: 新增團隊成員",
+      "button: 移除 Ada Lovelace",
+      "button: 儲存並繼續"
+    ],
+    "width": 768,
+    "height": 226
+  },
+  "paging-no-answer": {
+    "text": [
+      "3",
+      "如果無人回應怎麼辦？",
+      "呼叫會等待有人確認。如果沒有人及時確認：",
+      "呼叫其他人",
+      "再次呼叫同一批人",
+      "不再執行任何動作",
+      "等待分鐘數",
+      "接著呼叫",
+      "新增團隊成員",
+      "GH",
+      "Grace Hopper",
+      "儲存並繼續",
+      "radio: on",
+      "radio: off",
+      "radio: off",
+      "value: 30"
+    ],
+    "outline": [
+      "field radio: ",
+      "field radio: ",
+      "field radio: ",
+      "field number: ",
+      "button: 新增團隊成員",
+      "button: 移除 Grace Hopper",
+      "button: 儲存並繼續"
+    ],
+    "width": 768,
+    "height": 510
+  },
+  "paging-test": {
+    "text": [
+      "4",
+      "傳送測試呼叫",
+      "立即測試此策略：它會像真實事件一樣呼叫第一條上報規則，每則訊息都標有 TEST。在訊息中確認即可完成。",
+      "測試此策略",
+      "略過測試"
+    ],
+    "outline": [
+      "button: 測試此策略",
+      "button: 略過測試"
+    ],
+    "width": 768,
+    "height": 178
+  },
+  "paging-summary": {
+    "text": [
+      "呼叫已設定",
+      "呼叫對象",
+      "每個新事件或警示都會執行「Default on-call policy」，它會呼叫 Ada Lovelace (電子郵件, SMS, 電話)。",
+      "如果無人回應",
+      "如果 30 分鐘內無人確認，將呼叫 Grace Hopper。",
+      "已測試",
+      "Ada Lovelace 在 14 秒 後透過電子郵件確認。",
+      "下一步",
+      "使用待命排班輪流待命",
+      "連接 Slack 或 Microsoft Teams",
+      "較不緊急的事件只在工作時間呼叫",
+      "查看誰可以被呼叫",
+      "開啟待命策略",
+      "設定另一個策略"
+    ],
+    "outline": [
+      "heading: 呼叫已設定",
+      "heading: 下一步",
+      "link: 使用待命排班輪流待命",
+      "link: 連接 Slack 或 Microsoft Teams",
+      "link: 較不緊急的事件只在工作時間呼叫",
+      "link: 查看誰可以被呼叫",
+      "link: 開啟待命策略",
+      "button: 設定另一個策略"
+    ],
+    "width": 768,
+    "height": 482
+  },
+  "status-page-pick": {
+    "text": [
+      "1",
+      "命名並選擇要顯示的內容",
+      "狀態頁面名稱",
+      "顯示的內容",
+      "您選擇的每個監測器都會連同其目前狀態與正常運作時間顯示在頁面上。",
+      "全選",
+      "清除",
+      "已選擇 1 / 1",
+      "Acme website",
+      "Operational",
+      "頁面建立後即公開：任何擁有連結的人都能看到您所選監測器的狀態。",
+      "建立狀態頁面",
+      "value: Acme Commerce 狀態",
+      "checkbox: on"
+    ],
+    "outline": [
+      "field text: Acme 狀態",
+      "button: 全選",
+      "button: 清除",
+      "field checkbox: ",
+      "button: 建立狀態頁面"
+    ],
+    "width": 768,
+    "height": 388
+  },
+  "status-page-review": {
+    "text": [
+      "2",
+      "這是客戶看到的內容",
+      "您的狀態頁面已透過此連結上線。以下是它顯示的內容，以及會出現在其中的內容。",
+      "Acme Commerce 狀態",
+      "它顯示",
+      "Acme website",
+      "Operational",
+      "公開連結",
+      "https://oneuptime.acme-commerce.example/status-page/90000000-0000-4000-8000-000000000020",
+      "這些監測器中任何一個發生事件時，會自動顯示在這裡，並向訂閱者寄送電子郵件。",
+      "警示永遠不會顯示在這裡。它們是給您的團隊看的。",
+      "排定維護和公告在您發布後才會顯示。",
+      "看起來不錯"
+    ],
+    "outline": [
+      "link: https://oneuptime.acme-commerce.example/status-page/90000000-0000-4000-8000-0000",
+      "button: 看起來不錯"
+    ],
+    "width": 768,
+    "height": 466
+  },
+  "status-page-summary": {
+    "text": [
+      "「Acme Commerce 狀態」已上線",
+      "地址",
+      "https://oneuptime.acme-commerce.example/status-page/90000000-0000-4000-8000-000000000020",
+      "顯示內容",
+      "Acme website",
+      "自動顯示",
+      "這些監測器中任何一個發生事件時，會自動顯示在這裡，並向訂閱者寄送電子郵件。",
+      "警示永遠不會顯示在這裡。它們是給您的團隊看的。",
+      "排定維護和公告在您發布後才會顯示。",
+      "打造專屬風格（選填）",
+      "您自己的網域 在 status.example.com 這樣的位址提供此頁面。",
+      "您的標誌和顏色 讓頁面看起來像您的產品。",
+      "誰可以訂閱 透過電子郵件、SMS、Slack、Microsoft Teams 或 Webhook。",
+      "私人而非公開 只有您邀請的人或已登入的人才能看到此頁面。",
+      "後續步驟",
+      "發布第一則公告",
+      "排定維護",
+      "將狀態新增到您的網站",
+      "開啟此狀態頁面的設定",
+      "設定另一個狀態頁面"
+    ],
+    "outline": [
+      "heading: 「Acme Commerce 狀態」已上線",
+      "link: https://oneuptime.acme-commerce.example/status-page/90000000-0000-4000-8000-0000",
+      "heading: 打造專屬風格（選填）",
+      "link: 您自己的網域",
+      "link: 您的標誌和顏色",
+      "link: 誰可以訂閱",
+      "link: 私人而非公開",
+      "heading: 後續步驟",
+      "link: 發布第一則公告",
+      "link: 排定維護",
+      "link: 將狀態新增到您的網站",
+      "link: 開啟此狀態頁面的設定",
+      "button: 設定另一個狀態頁面"
+    ],
+    "width": 768,
+    "height": 682
+  },
+  "incident-feed": {
+    "text": [
+      "事件動態消息",
+      "此事件發生過的一切：狀態變更、備註、擁有者以及傳送的每則通知。",
+      "操作",
+      "2026年9月14日星期一",
+      "今天",
+      "BST",
+      "19:12",
+      "8 分鐘前",
+      "Maya Chen",
+      "changed Incident #1042 State to Resolved",
+      "19:09",
+      "11 分鐘前",
+      "Maya Chen",
+      "Private note: Rolling checkout-api back to 2026.09.14-1 to restore DB_POOL_MAX=40. Watching p95 on the checkout dashboard.",
+      "19:05",
+      "15 分鐘前",
+      "Maya Chen",
+      "took the Incident Commander role on Incident #1042.",
+      "19:04",
+      "16 分鐘前",
+      "Sam Rivera",
+      "changed Incident #1042 State to Acknowledged",
+      "19:01",
+      "19 分鐘前",
+      "On Call Policy Started Executing: On Call Policy Checkout primary on-call started executing for Incident #1042. Users on call on this policy will now be notified.",
+      "Incident #1042 Created:",
+      "Checkout API p95 latency above 2s:",
+      "The API monitor for POST /api/checkout reported p95 latency of 2.4s for 3 consecutive checks from the eu-west-1 probe.",
+      "🔴 Incident State: Created",
+      "⚠️ Severity: SEV-2",
+      "🌎 Resources Affected:",
+      "Checkout API p95 latency",
+      "Orders DB connection pool"
+    ],
+    "outline": [
+      "heading: 事件動態消息",
+      "button: 操作",
+      "button: 更多選項",
+      "heading: 2026年9月14日星期一",
+      "link: Incident #1042",
+      "link: Incident #1042",
+      "link: Incident #1042",
+      "link: Incident #1042",
+      "heading: Incident #1042 Created:",
+      "link: Checkout API p95 latency",
+      "link: Orders DB connection pool"
+    ],
+    "width": 576,
+    "height": 927
+  },
+  "incident-resolve": {
+    "text": [
+      "#1042",
+      "已確認",
+      "SEV-2",
+      "Checkout API p95 latency above 2s",
+      "解決",
+      "已建立",
+      "已確認",
+      "已解決",
+      "已持續",
+      "19 分鐘",
+      "事件指揮官",
+      "MC",
+      "Maya Chen",
+      "擁有者",
+      "CS",
+      "Checkout SRE",
+      "SR",
+      "Sam Rivera",
+      "新增",
+      "新增擁有者",
+      "監測器",
+      "Checkout API p95 latency",
+      "Orders DB connection pool"
+    ],
+    "outline": [
+      "heading: Checkout API p95 latency above 2s",
+      "button: 解決",
+      "button: 新增 新增擁有者",
+      "link: Checkout API p95 latency",
+      "link: Orders DB connection pool"
+    ],
+    "width": 876,
+    "height": 299
+  }
+}

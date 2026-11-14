@@ -230,8 +230,8 @@ const KubernetesEnvVarsTab: FunctionComponent<ComponentProps> = (
             <div className="flex items-center gap-2 flex-shrink-0">
               <span className="text-sm text-gray-500 tabular-nums">
                 {translator.translateTemplate("{{shown}} of {{total}}", {
-                  shown: totalMatchCount,
-                  total: totalEnvCount,
+                  shown: translator.formatNumber(totalMatchCount),
+                  total: translator.formatNumber(totalEnvCount),
                 })}
               </span>
               <button

@@ -545,6 +545,8 @@ export const getCommanderFact: (
 
   return {
     label: input.holding.role.name || "Incident Commander",
+    // The project's own name for the role, read the way it was typed.
+    isLabelTyped: true,
     icon: input.holding.role.icon || IconProp.ShieldCheck,
     value: (
       <CommanderFactValue

@@ -158,6 +158,12 @@ const HELPERS: Array<{
       ProductEventName.ChecklistFinished,
     ],
   },
+  // Every answer a person gives (#6832) is kept, then sent as feedback/given.
+  {
+    file: "packages/Common/UI/Utils/ProductFeedback.ts",
+    entryPoints: ["ProductFeedback.submit("],
+    events: [ProductEventName.FeedbackGiven],
+  },
 ];
 
 // Where a page of the product sends the event, if anywhere.

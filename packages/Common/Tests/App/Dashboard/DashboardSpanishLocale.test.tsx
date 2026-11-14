@@ -132,7 +132,7 @@ const MODEL_NAMES_SPANISH: Array<[string, string]> = [
     "Color de las barras del gráfico de historial de la página de estado",
   ],
   ["Log Drop Filter", "Filtro de descarte de registros"],
-  ["Telemetry Ingestion Key", "Clave de ingesta de telemetría"],
+  ["Ingestion Key", "Clave de ingesta"],
   [
     "Workspace User Auth Token",
     "Token de autenticación de usuario del espacio de trabajo",

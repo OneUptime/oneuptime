@@ -336,7 +336,7 @@ describe("the path checks", () => {
 
   test.each([
     "Create them in Incidents → Settings → Postmortem Templates.",
-    "Create them in Scheduled Maintenance → Settings → Event Templates.",
+    "Create them in Scheduled Maintenance → Settings → Maintenance Templates.",
     "Create them in Status Pages → Settings → Announcement Templates.",
     "Add one under Monitors → Settings → Monitor Status, then try again.",
     "Add one under Alerts → Settings → Alert Severity.",
@@ -395,11 +395,46 @@ describe("paths in the Dashboard's copy", () => {
     expect(problems).toEqual([]);
   });
 
-  // The one sentence of the Dashboard that names the AI section today.
-  test("the cluster's investigation confirmation sends people to Incidents → AI → Settings", () => {
+  /*
+   * The cluster's investigation confirmation names the AI settings page of
+   * each kind it turns on (#7158): the alerts' limits are on the alerts'
+   * page, so turning on alerts never sends anyone to the incidents'.
+   */
+  test("the cluster's investigation confirmation sends each kind to its own AI settings", () => {
+    const source: string = readSource(
+      "Pages/Kubernetes/Utils/KubernetesAiAgentStatus.ts",
+    );
+
+    expect(source).toContain(
+      "This applies to every new incident in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings.",
+    );
+    expect(source).toContain(
+      "This applies to every new alert in {{project}}, not just this cluster. Limits live under Alerts → AI → Settings.",
+    );
+    expect(source).toContain(
+      "This applies to every new incident and alert in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings and Alerts → AI → Settings.",
+    );
+    expect(source).not.toContain(
+      "every new alert in {{project}}, not just this cluster. Limits live under Incidents",
+    );
+    expect(findProductAiPathProblems(source)).toEqual([]);
+  });
+
+  // "Alerts → AI → Settings" is a real page of the Alerts AI section.
+  test("Alerts → AI → Settings and Settings → More settings are pages the checks know", () => {
     expect(
-      readSource("Pages/Kubernetes/Utils/KubernetesAiAgentStatus.ts"),
-    ).toContain("Limits live under Incidents → AI → Settings.");
+      findProductAiPathProblems(
+        "Limits live under Incidents → AI → Settings and Alerts → AI → Settings.",
+      ),
+    ).toEqual([]);
+    expect(
+      findProductAiPathProblems(
+        "Raise it above 0 under Alerts → AI → Settings → More settings, or clear it, then try again.",
+      ),
+    ).toEqual([]);
+    expect(
+      findProductAiPathProblems("Limits live under Alerts → AI → Limits."),
+    ).toHaveLength(1);
   });
 
   test("no template dialog says templates are made in Project Settings", () => {
@@ -435,7 +470,7 @@ describe("the no-templates dialogs", () => {
     {
       file: "Components/ScheduledMaintenance/ScheduledMaintenanceTable.tsx",
       product: "Scheduled Maintenance",
-      page: "Event Templates",
+      page: "Maintenance Templates",
     },
     {
       file: "Components/Announcement/AnnouncementsTable.tsx",

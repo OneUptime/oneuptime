@@ -60,7 +60,7 @@ En agent som har satt seg fast, etterlater et spor du kan kjenne igjen: det samm
 
 :::steps
 1. Åpne **Overvåkere**, klikk på **Opprett monitor**, og velg **Spor** under **Flere monitortyper**. Under **Hva skal denne overvåkingen fortelle deg om?** velger du **Noe annet** og tømmer **Span-status**.
-2. Under **Flere felt** setter du **Filtrer etter telemetritjeneste** til agentens tjeneste og **Filtrer etter attributter** til `gen_ai.tool.name` lik verktøyet du venter at den går i løkke på, for eksempel `search_web`. Hvis instrumenteringen din gir hvert verktøys span et navn, setter du heller det navnet i **Span-navnet inneholder**.
+2. Under **Flere felt** setter du **Filtrer etter tjeneste** til agentens tjeneste og **Filtrer etter attributter** til `gen_ai.tool.name` lik verktøyet du venter at den går i løkke på, for eksempel `search_web`. Hvis instrumenteringen din gir hvert verktøys span et navn, setter du heller det navnet i **Span-navnet inneholder**.
 3. Sett **Tidsvindu** til **Siste 5 minutter**.
 4. I **Når det skal varsles** setter du **Mer enn** til et tall som ingen sunn kjøring når på fem minutter, for eksempel `50`, og gir varselet en tittel som `Agent loop: support-bot`.
 :::

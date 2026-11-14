@@ -201,6 +201,33 @@ const trackRequest: TrackRequestFunction = (result: unknown): unknown => {
  * requires, so the consts above are still in their temporal dead zone when the
  * factory body runs. Dereferencing them lazily, at call time, is what works.
  */
+/*
+ * How to Reach Me's own reads - the ladder above the tabs (#6820) - are not
+ * the tables': stood in for, so what is counted here is what the tables read.
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/NotificationRule/PagingLadder/PagingLadderApi",
+  () => {
+    return {
+      __esModule: true,
+      loadPagingLadderData: () => {
+        return Promise.resolve({ cells: [], rules: [], severityColors: {} });
+      },
+      loadOwnPagingMethods: () => {
+        return Promise.resolve([]);
+      },
+      savePagingLadder: () => {
+        return Promise.resolve({
+          createdCount: 0,
+          updatedCount: 0,
+          deletedCount: 0,
+          unchangedCount: 0,
+        });
+      },
+    };
+  },
+);
+
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
     __esModule: true,
@@ -405,6 +432,7 @@ import Name from "../../../Types/Name";
 import NotificationRuleType from "../../../Types/NotificationRule/NotificationRuleType";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
+import NotificationMethodUtil from "../../../UI/Utils/NotificationMethodUtil";
 import PermissionUtil from "../../../UI/Utils/Permission";
 import ProjectUtil from "../../../UI/Utils/Project";
 import UserUtil from "../../../UI/Utils/User";
@@ -895,10 +923,11 @@ const renderSection: RenderSectionFunction = (
 
   /*
    * The rules page reads its open tab from the browser's address, and an
-   * earlier test may have left a tab there: start from none, so the page
-   * opens on Incidents.
+   * earlier test may have left a tab there: start from the first tab's, so
+   * the page opens on Incidents. A bare address opens How to Reach Me's
+   * ladder, with these tabs a click behind it (#6820).
    */
-  window.history.replaceState({}, "", address);
+  window.history.replaceState({}, "", `${address}?type=incidents`);
 
   const { container } = render(
     <MemoryRouter initialEntries={[address]}>
@@ -1420,8 +1449,16 @@ describe("the page is read at rest, whichever order its fetches land in", () => 
 
     capturedTables.forEach((table: CapturedTableProps) => {
       expect(methodOptionsFor(table)).toEqual([
-        { label: `Email: ${MASKED_EMAIL}`, value: EMAIL_METHOD_ID },
-        { label: `SMS: ${MASKED_PHONE}`, value: SMS_METHOD_ID },
+        {
+          label: `Email: ${MASKED_EMAIL}`,
+          value: EMAIL_METHOD_ID,
+          ...NotificationMethodUtil.TRANSLATED_LABEL_OPTION,
+        },
+        {
+          label: `SMS: ${MASKED_PHONE}`,
+          value: SMS_METHOD_ID,
+          ...NotificationMethodUtil.TRANSLATED_LABEL_OPTION,
+        },
       ]);
 
       expect(table.noItemsMessage).toContain(
@@ -1732,8 +1769,16 @@ describe("the shared rules table, as the admin page wires it", () => {
        * device whose number it was never told.
        */
       expect(methodOptionsFor(table)).toEqual([
-        { label: `Email: ${MASKED_EMAIL}`, value: EMAIL_METHOD_ID },
-        { label: `SMS: ${MASKED_PHONE}`, value: SMS_METHOD_ID },
+        {
+          label: `Email: ${MASKED_EMAIL}`,
+          value: EMAIL_METHOD_ID,
+          ...NotificationMethodUtil.TRANSLATED_LABEL_OPTION,
+        },
+        {
+          label: `SMS: ${MASKED_PHONE}`,
+          value: SMS_METHOD_ID,
+          ...NotificationMethodUtil.TRANSLATED_LABEL_OPTION,
+        },
       ]);
     });
   });
@@ -2223,7 +2268,8 @@ describe("methods are a page of their own now, not a card on this one", () => {
      * that can change the answer it just gave.
      */
     expect(container.textContent).toContain("Notification methods");
-    expect(container.textContent).toContain("On-call rules");
+    // The person's own rules, by their page's name (#6817).
+    expect(container.textContent).toContain("How to Reach Me");
 
     /*
      * One entry for the rules, not one per kind: they are one page with a tab
@@ -2238,12 +2284,25 @@ describe("methods are a page of their own now, not a card on this one", () => {
       expect(container.textContent).not.toContain(retiredTitle);
     }
 
-    const rulesLink: HTMLElement | null = screen
-      .getByText("On-call rules")
-      .closest("a");
+    /*
+     * The rules tabs below open with a definition of the same words - a
+     * button that explains them, not a link - so the entry is the one the
+     * words sit in an anchor for, and there is exactly one of those.
+     */
+    const rulesLinks: Array<HTMLAnchorElement> = screen
+      .getAllByText("How to Reach Me")
+      .map((element: HTMLElement): HTMLAnchorElement | null => {
+        return element.closest("a");
+      })
+      .filter((link: HTMLAnchorElement | null): link is HTMLAnchorElement => {
+        return link !== null;
+      });
 
-    expect(rulesLink).not.toBeNull();
-    expect(rulesLink!.getAttribute("href")).toBe(
+    expect(rulesLinks).toHaveLength(1);
+
+    const rulesLink: HTMLAnchorElement = rulesLinks[0]!;
+
+    expect(rulesLink.getAttribute("href")).toBe(
       `/dashboard/${PROJECT_ID_STRING}/users/${TARGET_USER_ID_STRING}/on-call-rules`,
     );
     expect(container.textContent).toContain(

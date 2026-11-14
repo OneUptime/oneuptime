@@ -1,3 +1,4 @@
+import LeaveGuard from "../../Utils/LeaveGuard";
 import Navigation from "../../Utils/Navigation";
 import Route from "../../../Types/API/Route";
 import URL from "../../../Types/API/URL";
@@ -155,12 +156,46 @@ const Link: FunctionComponent<ComponentProps> = (
         }
       }}
       onClick={(event: React.MouseEvent<HTMLAnchorElement>) => {
+        const isModifiedClick: boolean =
+          event.metaKey || event.ctrlKey || event.shiftKey;
+
+        /*
+         * A page of this app, while the page shown holds work nobody has
+         * saved (LeaveGuard): the whole click waits for the page's answer -
+         * what it does first (a side menu's scroll to the top), the step,
+         * and what follows it. Keep Editing leaves the page exactly as it
+         * was; Discard Changes does all of it, as a click always did.
+         */
+        if (
+          props.to instanceof Route &&
+          !isModifiedClick &&
+          !props.openInNewTab &&
+          LeaveGuard.asksBeforeGoingTo(props.to.toString())
+        ) {
+          event.preventDefault();
+
+          const to: Route = props.to;
+
+          LeaveGuard.whenLeaving(to.toString(), () => {
+            if (props.onClick) {
+              props.onClick();
+            }
+
+            Navigation.navigate(to);
+
+            if (props.onNavigateComplete) {
+              props.onNavigateComplete();
+            }
+          });
+          return;
+        }
+
         if (props.onClick) {
           props.onClick();
         }
 
         // Let the browser handle modifier-key clicks natively (open in new tab/window).
-        if (event.metaKey || event.ctrlKey || event.shiftKey) {
+        if (isModifiedClick) {
           return;
         }
 

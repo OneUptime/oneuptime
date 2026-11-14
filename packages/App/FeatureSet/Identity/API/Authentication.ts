@@ -37,6 +37,12 @@ import Name from "Common/Types/Name";
 import RequestOrigin from "Common/Types/RequestOrigin";
 import ObjectID from "Common/Types/ObjectID";
 import { getSignupPasswordValidationError } from "Common/Types/Password";
+import {
+  getAccountAlreadyExistsMessage,
+  INCOMPLETE_RESET_LINK_MESSAGE,
+  INCOMPLETE_VERIFICATION_LINK_MESSAGE,
+  TWO_FACTOR_MESSAGES,
+} from "Common/Types/Accounts/SignInMessages";
 import MagicLink, {
   MAGIC_LINK_EXPIRY_MINUTES,
   MAGIC_LINK_INVALID_MESSAGE,
@@ -710,7 +716,9 @@ router.post(
           req,
           res,
           new BadDataException(
-            `User with email ${partialUser.email} already exists.`,
+            getAccountAlreadyExistsMessage(
+              partialUser.email?.toString() || "this email address",
+            ),
           ),
         );
       }
@@ -1082,7 +1090,9 @@ router.post(
       return Response.sendErrorResponse(
         req,
         res,
-        new BadRequestException("Failed to create a user"),
+        new BadRequestException(
+          "Your account was not created. Try again in a moment.",
+        ),
       );
     } catch (err) {
       // A sign-up refused for its rate limits says when to come back.
@@ -1421,7 +1431,11 @@ router.post(
        * predicate, and the query returns the newest verification token in the instance --
        * verifying an address the caller never proved they control.
        */
-      CredentialGuard.assertPresent(token.token, "Verification token");
+      CredentialGuard.assertPresent(
+        token.token,
+        "Verification token",
+        INCOMPLETE_VERIFICATION_LINK_MESSAGE,
+      );
 
       const alreadySavedToken: EmailVerificationToken | null =
         await EmailVerificationTokenService.findOneBy({
@@ -2072,7 +2086,11 @@ router.post(
        * password would silently reset the matched account's password to `undefined`.
        */
       CredentialGuard.assertAllPresent([
-        { value: user.resetPasswordToken, label: "Reset password token" },
+        {
+          value: user.resetPasswordToken,
+          label: "Reset password token",
+          message: INCOMPLETE_RESET_LINK_MESSAGE,
+        },
         { value: user.password, label: "Password" },
       ]);
 
@@ -3481,7 +3499,7 @@ const login: LoginFunction = async (options: {
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException("Invalid two factor auth id."),
+              new BadDataException(TWO_FACTOR_MESSAGES.authenticatorGone),
             );
           }
 
@@ -3489,7 +3507,7 @@ const login: LoginFunction = async (options: {
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException("Invalid code."),
+              new BadDataException(TWO_FACTOR_MESSAGES.wrongCode),
             );
           }
         } else if (verifyWebAuthn) {
@@ -3634,7 +3652,7 @@ const login: LoginFunction = async (options: {
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException("Invalid backup code."),
+              new BadDataException(TWO_FACTOR_MESSAGES.wrongBackupCode),
             );
           }
 
@@ -3777,7 +3795,7 @@ const login: LoginFunction = async (options: {
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException("Invalid two factor auth id."),
+              new BadDataException(TWO_FACTOR_MESSAGES.authenticatorGone),
             );
           }
 
@@ -3791,7 +3809,7 @@ const login: LoginFunction = async (options: {
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException("Invalid code."),
+              new BadDataException(TWO_FACTOR_MESSAGES.wrongCode),
             );
           }
 

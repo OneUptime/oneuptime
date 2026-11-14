@@ -491,6 +491,43 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/DatabaseServiceUpdateColumnsIfUnlockedPostgres.test.ts --forceExit
 
+      # Clones the migrated NetworkDevice, NetworkInterface, Project and Probe
+      # tables into an isolated schema and runs a probe's device claim
+      # (issue #7194): one statement that locks the due devices FOR NO KEY
+      # UPDATE SKIP LOCKED and moves their next poll. Only a database shows
+      # that it skips a held device instead of waiting, never hands a device
+      # to two claims, and - while its locks are held - lets the device's
+      # interfaces be written, which FOR UPDATE did not.
+      - name: Test the network device poll claim against Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_NETWORK_DEVICE_POLL_CLAIM_TESTS: "true"
+          NETWORK_DEVICE_POLL_CLAIM_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          NETWORK_DEVICE_POLL_CLAIM_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          NETWORK_DEVICE_POLL_CLAIM_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/NetworkDevicePollClaimPostgres.test.ts --forceExit
+
+      # Clones the migrated MonitorProbe, Monitor and Project tables into an
+      # isolated schema and runs a probe's monitor claim (issue #7194): a read
+      # of the due rows without a lock, then one statement that claims those
+      # still due that nobody else holds. Only a database shows that it skips
+      # a held row, never hands a row to two claims, and passes over a row
+      # another instance claimed between its read and its claim.
+      - name: Test the monitor probe claim against Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_MONITOR_PROBE_CLAIM_TESTS: "true"
+          MONITOR_PROBE_CLAIM_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          MONITOR_PROBE_CLAIM_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          MONITOR_PROBE_CLAIM_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/MonitorProbeClaimPostgres.test.ts --forceExit
+
       # Clones the migrated Workflow table (its unique key included) into an
       # isolated schema: the incoming email key's compare-and-set must write
       # once and let exactly one racing save win, no workflow may take
@@ -660,9 +697,14 @@ jobs:
       # Code: the backfill that puts existing code-fix runs on their
       # repository (never across projects, never failing on bad JSON) and
       # the grouped reads behind each repository's card - a task waits for
-      # its person only when its LATEST turn asked. Clones the migrated
-      # AIRun, CodeRepository and AIAgentTaskPullRequest into an isolated
-      # schema.
+      # its person only when its LATEST turn asked. And a task of more than
+      # 200 turns (issue #6529): read from its newest turns, each turn left
+      # out counted and read once, the pull request a late turn opened
+      # found. A list row of a task of 10,205 turns stands as its newest
+      # turn (issue #7131), and a link to a turn its page does not show is
+      # numbered where its conversation places it (issue #7130). Clones the
+      # migrated AIRun, CodeRepository and AIAgentTaskPullRequest into
+      # isolated schemas.
       - name: Test Code's backfill and repository stats against Postgres
         if: matrix.shard == 1
         working-directory: packages/Common
@@ -673,7 +715,8 @@ jobs:
           CODE_TASK_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
-          Tests/Server/Services/CodeTaskPostgres.test.ts --forceExit
+          Tests/Server/Services/CodeTaskPostgres.test.ts
+          Tests/Server/Services/CodeTaskLongThreadPostgres.test.ts --forceExit
 
       # Clones the migrated NetworkDevice, CloudResource and InventoryItem
       # tables into an isolated schema and runs the inventory mirror's
@@ -710,13 +753,17 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/NetworkDeviceDiscoveredDetailsPostgres.test.ts --forceExit
 
-      # Clones the migrated NetworkEndpoint table into an isolated schema and
-      # runs what a network controller's client list writes to it (issue
-      # #5379): the insert and the UPDATE ... FROM (VALUES ...) a walk shares.
-      # Only a database shows that a controller's row clears the ifIndex of a
-      # port it moved a client off, that a walk then takes the row back, and
-      # that a soft-deleted endpoint is never resurrected.
-      - name: Test a network controller's clients against Postgres
+      # Clones the migrated NetworkEndpoint table into isolated schemas and
+      # runs what walks and network controllers' client lists write to it.
+      # What a controller's list writes (issue #5379): the insert and the
+      # update a walk shares. Only a database shows that a controller's row
+      # clears the ifIndex of a port it moved a client off, that a walk then
+      # takes the row back, and that a soft-deleted endpoint is never
+      # resurrected. Then the writes at once (issue #7388): a row another
+      # writer holds is skipped, not waited for; a MAC another writer made
+      # first is decided again, not overwritten; and two writers of the same
+      # endpoints in opposite orders never deadlock.
+      - name: Test the endpoint inventory's writes against Postgres
         if: matrix.shard == 1
         working-directory: packages/Common
         env:
@@ -727,7 +774,29 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/NetworkEndpointControllerClientsPostgres.test.ts
+          Tests/Server/Services/NetworkEndpointWriteLocksPostgres.test.ts
           --forceExit
+
+      # Clones the migrated NetworkDevice, NetworkInterface and
+      # NetworkEndpoint tables into an isolated schema and writes polls of
+      # one device out of the order they were received (issue #7389): a
+      # retried job, or one that waited longer in the queue than the poll
+      # after it. Only a database shows that the device's verdict is a
+      # compare-and-set on the poll's receipt time - the newer verdict stands
+      # in either processing order, and when two polls are written at once,
+      # whichever commits first - that the last-seen times never move back,
+      # and that an older walk leaves the interfaces a newer one wrote.
+      - name: Test polls of one device written out of order against Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_NETWORK_DEVICE_POLL_ORDER_TESTS: "true"
+          NETWORK_DEVICE_POLL_ORDER_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          NETWORK_DEVICE_POLL_ORDER_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          NETWORK_DEVICE_POLL_ORDER_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/NetworkDevicePollOrderPostgres.test.ts --forceExit
 
       # Clones the migrated NetworkEndpoint, NetworkDevice,
       # NetworkTopologySuppression and Project tables into isolated schemas
@@ -2625,8 +2694,11 @@ jobs:
       # Clones the migrated Project, Probe, VMwareVCenter and
       # VMwareVCenterConnectionTest tables into an isolated schema and runs
       # VMware probe collection's hand-written SQL: a probe claims only its
-      # own due vCenters of live projects (FOR UPDATE SKIP LOCKED, the tenancy
-      # backstop, the subscription rule) and two claims never share one; a
+      # own due vCenters of live projects (one statement, FOR NO KEY UPDATE
+      # SKIP LOCKED, the tenancy backstop, the subscription rule), moved on by
+      # its interval rule; two claims never share one, a vCenter another
+      # writer holds is skipped, and - while a claim's locks are held - a row
+      # that names a vCenter is still written (issue #7390); a
       # report writes only the current settings' status; a settings change
       # bumps the settings version in one statement; and a connection test is
       # claimed once - its password wiped as it is handed out - answered only
@@ -2646,9 +2718,12 @@ jobs:
       # Clones the migrated Project, Probe, OpenStackCloud and
       # OpenStackCloudConnectionTest tables into an isolated schema and runs
       # OpenStack probe collection's hand-written SQL: a probe claims only its
-      # own due clouds of live projects (FOR UPDATE SKIP LOCKED, the tenancy
-      # backstop, the subscription rule) and two claims never share one; a
-      # report writes only the current settings' status; a settings change
+      # own due clouds and checks of live projects (one statement each, FOR NO
+      # KEY UPDATE SKIP LOCKED, the tenancy backstop, the subscription rule),
+      # moved on by their interval rules; two claims never share one, a row
+      # another writer holds is skipped, and - while a claim's locks are held
+      # - a row that names a cloud or a check is still written (issue #7390);
+      # a report writes only the current settings' status; a settings change
       # bumps the settings version in one statement; and a connection test is
       # claimed once, its secret wiped as it is handed out, answered only by
       # its probe, and expired with the reason.
@@ -2664,6 +2739,26 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/OpenStackProbeCollectionSqlPostgres.test.ts
           Tests/Server/Services/OpenStackCheckSqlPostgres.test.ts --forceExit
+
+      # Clones the migrated Project, Probe, DataSecuritySetting and DataStore
+      # tables into an isolated schema and runs the probes' data store claims
+      # (issue #7390): Data Security's content scans and Data Observability's
+      # table health, each one statement that locks the due stores FOR NO KEY
+      # UPDATE SKIP LOCKED and holds them for the probe. Only a database shows
+      # which stores, kinds and projects each hands out, that two claims never
+      # share a store, that a held store is skipped, and that - while a
+      # claim's locks are held - a row that names a store is still written.
+      - name: Test the probes' data store claims on migrated Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_DATA_STORE_PROBE_CLAIM_TESTS: "true"
+          DATA_STORE_PROBE_CLAIM_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          DATA_STORE_PROBE_CLAIM_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          DATA_STORE_PROBE_CLAIM_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/DataStoreProbeClaimPostgres.test.ts --forceExit
 
       # Clones the migrated InstanceReceivingPeriod table into an isolated
       # schema and runs the receiving ledger's SQL (issue #2825): heartbeats

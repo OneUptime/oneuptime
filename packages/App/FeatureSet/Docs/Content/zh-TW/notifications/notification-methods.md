@@ -2,6 +2,9 @@
 
 通知方式是 OneUptime 在某個專案中可以聯絡你的地址：一個電子郵件地址、一個用於簡訊或電話的電話號碼、一個 WhatsApp 號碼、一個 Telegram 帳戶、你的 Slack、Microsoft Teams 或 Mattermost 帳戶、一支接收推播通知的手機或一個瀏覽器，或者一個 Webhook。你在 **使用者設定 → 通知方式** 中新增並驗證它們，OneUptime 就會立即開始用它們呼叫你。
 
+> [!TIP]
+> 初次使用？請先依照指南操作：[透過電話、簡訊或推播接收呼叫](/docs/guides/paging)。
+
 :::cards
 - [選擇通知方式](#選擇通知方式): 每種方式需要什麼，以及如何驗證。
 - [新增並驗證通知方式](#新增並驗證通知方式): 郵件、簡訊、電話和 WhatsApp，使用 6 位數驗證碼。
@@ -170,7 +173,7 @@ Webhook 不需要驗證，因此新增後會立即新增其規則。私有地址
 
 **SMS**、 **語音電話**、 **WhatsApp** 和 **Telegram** 在每個新專案中預設關閉，因為每則訊息都要花錢：在 OneUptime Cloud 上，費用從專案餘額中支付；如果專案的預設 Twilio 帳戶用於傳送簡訊和電話，它們會改為透過專案自己的 Twilio 帳戶傳送。郵件、推播、Slack、Microsoft Teams、Mattermost 和 Webhook 一律開啟。
 
-管道關閉期間，專案中的任何人都無法在該管道上新增通知方式：它的卡片上沒有新增按鈕，並會說明誰可以開啟它。由專案擁有者、 **帳單管理員** 或擁有 **Manage Billing** 權限的人在 **專案設定 → 通知 → 通知設定** 的 **通知管道** 卡片中開啟。專案管理員無法開啟。在自架的 OneUptime 上，簡訊和電話還需要 Twilio 帳戶或你自己營運的閘道，Telegram 還需要伺服器管理員連接的機器人；請參閱 [Twilio 整合](/docs/self-hosted/twilio-integration) 和 [簡訊與電話閘道](/docs/self-hosted/sms-and-call-gateway)。
+管道關閉期間，專案中的任何人都無法在該管道上新增通知方式：它的卡片上沒有新增按鈕，並會說明誰可以開啟它。由專案擁有者、 **帳單管理員** 或擁有 **Manage Billing** 權限的人在 **專案設定 → 通知 → 通知管道** 的 **通知管道** 卡片中開啟。專案管理員無法開啟。在自架的 OneUptime 上，簡訊和電話還需要 Twilio 帳戶或你自己營運的閘道，Telegram 還需要伺服器管理員連接的機器人；請參閱 [Twilio 整合](/docs/self-hosted/twilio-integration) 和 [簡訊與電話閘道](/docs/self-hosted/sms-and-call-gateway)。
 
 ## 刪除通知方式
 
@@ -197,7 +200,7 @@ Webhook 不需要驗證，因此新增後會立即新增其規則。私有地址
 ## 後續步驟
 
 :::cards
-- [個人待命規則](/docs/notifications/on-call-rules): 決定每次呼叫嘗試哪種方式，以及何時嘗試。
+- [如何聯絡我](/docs/notifications/on-call-rules): 決定每次呼叫嘗試哪種方式，以及何時嘗試。
 - [通知設定](/docs/notifications/notification-settings): 選擇你要收到的更新，以及透過哪些管道。
 - [應用程式概觀](/docs/mobile-desktop-apps/index): 在手機或桌面上接收呼叫。
 - [OneUptime 如何聯絡你](/docs/notifications/index): 通知方式、規則和設定如何搭配。

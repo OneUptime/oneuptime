@@ -99,7 +99,7 @@ import {
   uninstallEnterpriseModule,
 } from "Common/Tests/Server/Enterprise/FakeEnterpriseModule";
 import { setTestBillingEnabled } from "Common/Tests/Server/Enterprise/TestBillingFlag";
-import { PROJECT_A } from "./AuditLogExportTestData";
+import { PROJECT_A, PROJECT_B } from "./AuditLogExportTestData";
 import {
   createInMemoryAuditLog,
   InMemoryAuditLog,
@@ -120,11 +120,15 @@ import RecordingDestination from "./Fakes/RecordingDestination";
  * with, sent or not, without anybody knowing.
  *
  *   - after 30 minutes of failures: "is failing", nothing lost yet;
- *   - a day before the oldest unsent entry is deleted (never sooner than
+ *   - a day before the first unsent entry is deleted (never sooner than
  *     the first email; never while nothing waits): "will start losing
  *     entries", from when, and that fixing it before then sends them - a
  *     longer retention keeps only entries recorded after the change, so it
  *     is not offered as a way to keep these;
+ *   - that moment already passed by the try the email goes on (an entry
+ *     the audit log has not dropped yet, past its own stamp): "is losing
+ *     entries", since when, and to fix the destination now so the export
+ *     sends the ones still kept - never "before then" (#7185);
  *   - each once per run of failures, without anything stored for it: the
  *     email is due when its moment passes between two tries;
  *   - a project's export emails the project's owners; the instance's, every
@@ -146,9 +150,11 @@ const at: (offsetInMs: number) => Date = (offsetInMs: number): Date => {
  * When the audit log deletes an entry recorded at `recordedAt`: once its
  * retentionDate passes, which AuditLogRecorder stamps `retentionInDays`
  * calendar days after it records the entry, by the server's own clock
- * (computeRetentionDate). The export reckons with that moment too
- * (getAuditLogExportEntriesLostAt), so every moment below that hangs on a
- * deletion is reckoned from this, never as `recordedAt + days * DAY`: these
+ * (computeRetentionDate). The export reads that stamp back, or reckons the
+ * same moment when it cannot (getAuditLogExportEntriesLostAt), and the
+ * in-memory audit log stamps its entries the recorder's way. So every
+ * moment below that hangs on a deletion is reckoned from this, never as
+ * `recordedAt + days * DAY`: these
  * dates cross the night of 25 October 2026, when clocks in Europe go back,
  * and on a server in such a zone that day is 25 hours long (#6361). So the
  * suite holds in whatever zone the machine runs in.
@@ -174,6 +180,11 @@ describe("which email a failure is due", () => {
   // Recorded just before the failures began: the usual oldest unsent entry.
   const OLDEST: Date = at(-MINUTE);
 
+  /*
+   * The entry waiting is deleted `retentionInDays` (7 unless said) calendar
+   * days after it was recorded, as the recorder stamps it; none waits for a
+   * null `oldestUnsentAt`.
+   */
   const notice: (data: {
     previousFailureAt: Date | null;
     now: Date;
@@ -185,13 +196,16 @@ describe("which email a failure is due", () => {
     oldestUnsentAt?: Date | null | undefined;
     retentionInDays?: number | undefined;
   }): AuditLogExportFailureNotice | null => {
+    const oldest: Date | null =
+      data.oldestUnsentAt === undefined ? OLDEST : data.oldestUnsentAt;
+
     return getAuditLogExportFailureNotice({
       failingSince: START,
       previousFailureAt: data.previousFailureAt,
       now: data.now,
-      oldestUnsentAt:
-        data.oldestUnsentAt === undefined ? OLDEST : data.oldestUnsentAt,
-      retentionInDays: data.retentionInDays || 7,
+      entriesLostAt: oldest
+        ? deletedAt(oldest, data.retentionInDays || 7)
+        : null,
     });
   };
 
@@ -236,8 +250,7 @@ describe("which email a failure is due", () => {
     expect(
       getAuditLogExportLosingNoticeAt({
         failingSince: START,
-        oldestUnsentAt: OLDEST,
-        retentionInDays: 7,
+        entriesLostAt: lostAt,
       })!.getTime(),
     ).toBe(losingAt);
     expect(
@@ -270,8 +283,7 @@ describe("which email a failure is due", () => {
     expect(
       getAuditLogExportLosingNoticeAt({
         failingSince: START,
-        oldestUnsentAt: oldest,
-        retentionInDays: 7,
+        entriesLostAt: deletedAt(oldest, 7),
       })!.toISOString(),
     ).toBe(new Date(losingAt).toISOString());
     expect(
@@ -295,8 +307,15 @@ describe("which email a failure is due", () => {
     expect(
       getAuditLogExportLosingNoticeAt({
         failingSince: START,
-        oldestUnsentAt: at(-6.8 * DAY),
-        retentionInDays: 7,
+        entriesLostAt: deletedAt(at(-6.8 * DAY), 7),
+      })!.toISOString(),
+    ).toBe(at(30 * MINUTE).toISOString());
+
+    // Or already passed (a stamp the table has not dropped yet): from the first email on, too.
+    expect(
+      getAuditLogExportLosingNoticeAt({
+        failingSince: START,
+        entriesLostAt: at(-HOUR),
       })!.toISOString(),
     ).toBe(at(30 * MINUTE).toISOString());
 
@@ -324,8 +343,7 @@ describe("which email a failure is due", () => {
     expect(
       getAuditLogExportLosingNoticeAt({
         failingSince: START,
-        oldestUnsentAt: null,
-        retentionInDays: 7,
+        entriesLostAt: null,
       }),
     ).toBeNull();
     expect(
@@ -394,6 +412,145 @@ describe("which email a failure is due", () => {
   });
 });
 
+/*
+ * #6563: each entry is deleted on the retentionDate the recorder stamped on
+ * it, from the retention its project had when it was recorded. The export
+ * reckoned the moment from the retention as it is NOW, so a retention
+ * lengthened from 7 days to 30 while entries waited - what someone whose
+ * export fails may do to buy time - put "will start losing entries" 22
+ * days after those entries were gone. The export now reads the soonest
+ * stamp on the entries it has not sent, and reckons from today's retention
+ * only when it cannot.
+ */
+describe("when entries are lost: the stamps on the entries waiting, not the retention as it is now", () => {
+  // Recorded just before the failures began, with a 7-day retention.
+  const OLDEST: Date = at(-MINUTE);
+  const STAMPED_7: Date = deletedAt(OLDEST, 7);
+
+  const noticeAt: (
+    entriesLostAt: Date,
+    previousFailureAt: number,
+    now: number,
+  ) => AuditLogExportFailureNotice | null = (
+    entriesLostAt: Date,
+    previousFailureAt: number,
+    now: number,
+  ): AuditLogExportFailureNotice | null => {
+    return getAuditLogExportFailureNotice({
+      failingSince: START,
+      previousFailureAt: new Date(previousFailureAt),
+      now: new Date(now),
+      entriesLostAt,
+    });
+  };
+
+  test("the soonest stamp is the moment, whatever the retention is now", () => {
+    for (const retentionInDays of [7, 14, 30, 180, -3, 500, Number.NaN]) {
+      expect({
+        retentionInDays,
+        lostAt: getAuditLogExportEntriesLostAt({
+          oldestUnsentAt: OLDEST,
+          retentionInDays,
+          soonestRetentionDate: STAMPED_7,
+        }).toISOString(),
+      }).toEqual({ retentionInDays, lostAt: STAMPED_7.toISOString() });
+    }
+  });
+
+  test("a stamp later than the oldest entry's reckoning is still the moment: a longer retention then, or a newer entry", () => {
+    const stamped30: Date = deletedAt(OLDEST, 30);
+
+    expect(
+      getAuditLogExportEntriesLostAt({
+        oldestUnsentAt: OLDEST,
+        retentionInDays: 7,
+        soonestRetentionDate: stamped30,
+      }).toISOString(),
+    ).toBe(stamped30.toISOString());
+  });
+
+  test("without a stamp (the audit log could not answer), it is reckoned as before: from the oldest entry waiting and the retention as it is now", () => {
+    for (const soonestRetentionDate of [null, undefined]) {
+      for (const retentionInDays of [7, 30]) {
+        expect(
+          getAuditLogExportEntriesLostAt({
+            oldestUnsentAt: OLDEST,
+            retentionInDays,
+            soonestRetentionDate,
+          }).toISOString(),
+        ).toBe(deletedAt(OLDEST, retentionInDays).toISOString());
+      }
+    }
+  });
+
+  test("lengthened from 7 days to 30 while an entry waited: 'losing entries' 24 hours before its 7-day stamp, not 22 days after it is gone", () => {
+    const lostAt: Date = getAuditLogExportEntriesLostAt({
+      oldestUnsentAt: OLDEST,
+      retentionInDays: 30,
+      soonestRetentionDate: STAMPED_7,
+    });
+    const due: number = STAMPED_7.getTime() - 24 * HOUR;
+
+    expect(
+      getAuditLogExportLosingNoticeAt({
+        failingSince: START,
+        entriesLostAt: lostAt,
+      })!.getTime(),
+    ).toBe(due);
+    expect(noticeAt(lostAt, due - HOUR, due)).toBe(
+      AuditLogExportFailureNotice.LosingEntries,
+    );
+    expect(noticeAt(lostAt, due - HOUR, due - 1)).toBeNull();
+
+    /*
+     * What the retention as it is now would say: lost 23 calendar days after
+     * the entry was deleted, and so told 22 days after it was gone. Calendar
+     * days, as the recorder counts them: where the clocks go back between the
+     * two (in the United States on 1 November 2026), those 23 days are an
+     * hour longer, and the suite holds in whatever zone the machine runs in.
+     */
+    const reckonedLostAt: Date = getAuditLogExportEntriesLostAt({
+      oldestUnsentAt: OLDEST,
+      retentionInDays: 30,
+    });
+    const reckonedDue: number = getAuditLogExportLosingNoticeAt({
+      failingSince: START,
+      entriesLostAt: reckonedLostAt,
+    })!.getTime();
+
+    expect(reckonedLostAt.toISOString()).toBe(
+      deletedAt(STAMPED_7, 23).toISOString(),
+    );
+    expect(reckonedDue).toBe(deletedAt(STAMPED_7, 23).getTime() - DAY);
+    expect(
+      Math.abs(reckonedDue - STAMPED_7.getTime() - 22 * DAY),
+    ).toBeLessThanOrEqual(HOUR);
+  });
+
+  test("shortened from 30 days to 7 while an entry waited: 'losing entries' 24 hours before its 30-day stamp, not three weeks early", () => {
+    const stamped30: Date = deletedAt(OLDEST, 30);
+    const lostAt: Date = getAuditLogExportEntriesLostAt({
+      oldestUnsentAt: OLDEST,
+      retentionInDays: 7,
+      soonestRetentionDate: stamped30,
+    });
+    const due: number = stamped30.getTime() - 24 * HOUR;
+    // Where the week of the retention as it is now would have put it.
+    const weekDue: number = losingNoticeAt(OLDEST, 7);
+
+    expect(
+      getAuditLogExportLosingNoticeAt({
+        failingSince: START,
+        entriesLostAt: lostAt,
+      })!.getTime(),
+    ).toBe(due);
+    expect(noticeAt(lostAt, weekDue - HOUR, weekDue + HOUR)).toBeNull();
+    expect(noticeAt(lostAt, due - HOUR, due)).toBe(
+      AuditLogExportFailureNotice.LosingEntries,
+    );
+  });
+});
+
 describe("the email's words", () => {
   const base: Parameters<typeof buildAuditLogExportFailureEmail>[0] = {
     notice: AuditLogExportFailureNotice.Failing,
@@ -402,8 +559,17 @@ describe("the email's words", () => {
     isInstanceExport: false,
     failingSince: START,
     oldestUnsentAt: at(-2 * MINUTE),
+    // Recorded with a week's retention, as the project keeps entries now.
+    entriesLostAt: deletedAt(at(-2 * MINUTE), 7),
+    // The try the email goes on: the entries waiting have a week left.
+    now: START,
     error: "The bucket refused the key (HTTP 403, AccessDenied).",
     retentionInDays: 7,
+  };
+
+  // What the emails write a date as.
+  const written: (date: Date) => string = (date: Date): string => {
+    return OneUptimeDate.getDateAsUserFriendlyFormattedString(date);
   };
 
   const titles: (email: AuditLogExportFailureEmail) => Array<string> = (
@@ -431,11 +597,29 @@ describe("the email's words", () => {
     expect(email.details[0]!.text).toBe("SIEM bucket");
     expect(email.details[1]!.text).toBe("Amazon S3");
     expect(email.details[4]!.text).toBe(base.error);
-    // What to do first, then why nothing is lost yet.
+    // What to do first, then why nothing is lost yet: until when.
+    expect(email.remediation).toBe(
+      `Fix the destination, and the export sends every entry waiting for it, oldest first. Nothing is lost yet: the audit log starts deleting them from about ${written(base.entriesLostAt!)}.`,
+    );
+    expect(email.buttonText).toBe("Open Audit Log Export");
+  });
+
+  test("'failing' with nothing waiting: how long the audit log keeps an entry recorded from now on", () => {
+    const email: AuditLogExportFailureEmail = buildAuditLogExportFailureEmail({
+      ...base,
+      oldestUnsentAt: null,
+      entriesLostAt: null,
+    });
+
+    expect(titles(email)).toEqual([
+      "Export: ",
+      "Destination: ",
+      "Failing since: ",
+      "Why: ",
+    ]);
     expect(email.remediation).toBe(
       "Fix the destination, and the export sends every entry waiting for it, oldest first. Nothing is lost yet: the audit log keeps each entry for 7 days.",
     );
-    expect(email.buttonText).toBe("Open Audit Log Export");
   });
 
   test("'losing entries': critical, from about when, and that fixing it before then sends them", () => {
@@ -457,11 +641,13 @@ describe("the email's words", () => {
       "Entries lost from: ",
       "Why: ",
     ]);
-    expect(email.details[4]!.text.startsWith("about ")).toBe(true);
+    expect(email.details[4]!.text).toBe(
+      `about ${written(base.entriesLostAt!)}`,
+    );
     // From when first, then what to do before then.
     expect(
       email.remediation.startsWith(
-        `From ${email.details[4]!.text}, the entries this export has not sent are deleted as they pass the audit log's retention of 7 days, and are never sent.`,
+        `From ${email.details[4]!.text}, the entries this export has not sent are deleted as they pass the audit log retention they were recorded with, and are never sent.`,
       ),
     ).toBe(true);
     expect(email.remediation).toContain(
@@ -487,6 +673,7 @@ describe("the email's words", () => {
       ...base,
       notice: AuditLogExportFailureNotice.LosingEntries,
       oldestUnsentAt: null,
+      entriesLostAt: null,
     });
 
     expect(email.subject).toBe('The audit log export "SIEM bucket" is failing');
@@ -498,11 +685,18 @@ describe("the email's words", () => {
     ]);
   });
 
-  test("the instance's export names the instance and each project's retention", () => {
+  test("the instance's export names the instance, when its entries waiting start to be deleted, and each project's retention", () => {
     const product: string = ProductBrandingText.getProductName();
     const failing: AuditLogExportFailureEmail = buildAuditLogExportFailureEmail(
       { ...base, isInstanceExport: true },
     );
+    const nothingWaiting: AuditLogExportFailureEmail =
+      buildAuditLogExportFailureEmail({
+        ...base,
+        isInstanceExport: true,
+        oldestUnsentAt: null,
+        entriesLostAt: null,
+      });
     const losing: AuditLogExportFailureEmail = buildAuditLogExportFailureEmail({
       ...base,
       isInstanceExport: true,
@@ -517,19 +711,25 @@ describe("the email's words", () => {
       `The audit log export "SIEM bucket" of your ${product} instance will start losing entries`,
     );
     expect(failing.remediation).toContain(
+      `Nothing is lost yet: the audit log starts deleting them from about ${written(base.entriesLostAt!)}.`,
+    );
+    expect(nothingWaiting.remediation).toContain(
       "Nothing is lost yet: entries stay in each project's audit log for as long as that project's retention.",
     );
     expect(losing.remediation).toContain(
-      "are deleted as they pass their project's audit log retention, and are never sent.",
+      "are deleted as they pass the audit log retention they were recorded with, and are never sent.",
     );
     expect(losing.remediation).toContain(
       "A longer retention in a project's Settings > Audit Logs > Settings only keeps that project's entries recorded after the change.",
     );
   });
 
-  test("it says the days the audit log keeps an entry, as the recorder keeps it, and an export with no name still reads", () => {
+  test("with nothing waiting it says the days the audit log keeps an entry, as the recorder keeps it, and an export with no name still reads", () => {
+    const nothingWaiting: Parameters<
+      typeof buildAuditLogExportFailureEmail
+    >[0] = { ...base, oldestUnsentAt: null, entriesLostAt: null };
     const email: AuditLogExportFailureEmail = buildAuditLogExportFailureEmail({
-      ...base,
+      ...nothingWaiting,
       exportName: "  ",
       retentionInDays: -3,
     });
@@ -552,26 +752,10 @@ describe("the email's words", () => {
       [500, "180 days"],
     ] as Array<[number, string]>) {
       expect(
-        buildAuditLogExportFailureEmail({ ...base, retentionInDays })
+        buildAuditLogExportFailureEmail({ ...nothingWaiting, retentionInDays })
           .remediation,
       ).toContain(`the audit log keeps each entry for ${days}.`);
     }
-
-    const losing: AuditLogExportFailureEmail = buildAuditLogExportFailureEmail({
-      ...base,
-      notice: AuditLogExportFailureNotice.LosingEntries,
-      retentionInDays: -3,
-    });
-
-    expect(losing.remediation).toContain(
-      "the audit log's retention of 7 days, and are never sent.",
-    );
-    expect(losing.details).toContainEqual({
-      title: "Entries lost from: ",
-      text: `about ${OneUptimeDate.getDateAsUserFriendlyFormattedString(
-        deletedAt(base.oldestUnsentAt as Date, 7),
-      )}`,
-    });
 
     const instance: AuditLogExportFailureEmail =
       buildAuditLogExportFailureEmail({
@@ -586,6 +770,82 @@ describe("the email's words", () => {
     );
   });
 
+  /*
+   * #6563: the entries waiting keep the retention they were recorded with.
+   * An email that said "the audit log's retention of 30 days" for entries
+   * stamped with a week told someone who had just lengthened the retention
+   * that they had a month.
+   */
+  test("the date is the entries' own stamp, never reckoned from the retention as it is now: a week's stamp in a project that keeps 30 days now", () => {
+    const stamped: Date = deletedAt(base.oldestUnsentAt!, 7);
+    const lengthened: Parameters<typeof buildAuditLogExportFailureEmail>[0] = {
+      ...base,
+      entriesLostAt: stamped,
+      retentionInDays: 30,
+    };
+
+    const losing: AuditLogExportFailureEmail = buildAuditLogExportFailureEmail({
+      ...lengthened,
+      notice: AuditLogExportFailureNotice.LosingEntries,
+    });
+    const failing: AuditLogExportFailureEmail =
+      buildAuditLogExportFailureEmail(lengthened);
+
+    expect(losing.details).toContainEqual({
+      title: "Entries lost from: ",
+      text: `about ${written(stamped)}`,
+    });
+    expect(
+      losing.remediation.startsWith(`From about ${written(stamped)},`),
+    ).toBe(true);
+    expect(failing.remediation).toContain(
+      `the audit log starts deleting them from about ${written(stamped)}.`,
+    );
+
+    for (const email of [losing, failing]) {
+      expect(email.remediation).not.toContain("30 days");
+      expect(email.remediation).not.toContain(
+        written(deletedAt(base.oldestUnsentAt!, 30)),
+      );
+    }
+  });
+
+  test("entries waiting are never said to be kept 'N days', in either email, for either export", () => {
+    // Any number of days ends in a digit followed by " day" (linear to match).
+    const DAYS_PATTERN: RegExp = /\d days?/;
+
+    for (const notice of [
+      AuditLogExportFailureNotice.Failing,
+      AuditLogExportFailureNotice.LosingEntries,
+    ]) {
+      for (const isInstanceExport of [false, true]) {
+        for (const retentionInDays of [7, 30, 180, -3]) {
+          const email: AuditLogExportFailureEmail =
+            buildAuditLogExportFailureEmail({
+              ...base,
+              notice,
+              isInstanceExport,
+              retentionInDays,
+            });
+
+          expect({
+            notice,
+            isInstanceExport,
+            retentionInDays,
+            says: DAYS_PATTERN.test(email.remediation),
+            hasDate: email.remediation.includes(written(base.entriesLostAt!)),
+          }).toEqual({
+            notice,
+            isInstanceExport,
+            retentionInDays,
+            says: false,
+            hasDate: true,
+          });
+        }
+      }
+    }
+  });
+
   test("never more rows than the template shows (six)", () => {
     for (const notice of [
       AuditLogExportFailureNotice.Failing,
@@ -596,9 +856,283 @@ describe("the email's words", () => {
       ).toBeLessThanOrEqual(6);
     }
   });
+
+  /*
+   * #7185: the moment the first of the entries waiting is deleted can have
+   * passed by the try the email goes on - the audit log drops a whole part
+   * only once every entry in it is past its stamp, so the export can wait
+   * to send an entry older than its retention (an Export From further back
+   * than the retention, an export turned off for longer, a backlog). The
+   * email said "will start losing entries" and "fix the destination before
+   * then" for a date in the past. It now says entries are being lost, since
+   * when, and to fix the destination now; a date still ahead keeps every
+   * word it had.
+   */
+  describe("once the first entry's date has passed by the try", () => {
+    const PROJECT_RETENTION: string =
+      "A longer retention (Project Settings > Audit Logs > Settings) only keeps the entries recorded after the change.";
+    const INSTANCE_RETENTION: string =
+      "A longer retention in a project's Settings > Audit Logs > Settings only keeps that project's entries recorded after the change.";
+
+    // The "losing entries" email for a first entry deleted `offsetInMs` from the try (START).
+    const losing: (
+      offsetInMs: number,
+      overrides?: Partial<
+        Parameters<typeof buildAuditLogExportFailureEmail>[0]
+      >,
+    ) => AuditLogExportFailureEmail = (
+      offsetInMs: number,
+      overrides: Partial<
+        Parameters<typeof buildAuditLogExportFailureEmail>[0]
+      > = {},
+    ): AuditLogExportFailureEmail => {
+      return buildAuditLogExportFailureEmail({
+        ...base,
+        notice: AuditLogExportFailureNotice.LosingEntries,
+        // Recorded nine days back with a week's retention: the audit log has not dropped it yet.
+        oldestUnsentAt: at(-9 * DAY),
+        entriesLostAt: at(offsetInMs),
+        now: START,
+        ...overrides,
+      });
+    };
+
+    // What the email for entries already being lost says, for a first entry deleted at `lostAt`.
+    const beingLost: (data: {
+      lostAt: Date;
+      subject: string;
+      retention: string;
+    }) => AuditLogExportFailureEmail = (data: {
+      lostAt: Date;
+      subject: string;
+      retention: string;
+    }): AuditLogExportFailureEmail => {
+      return {
+        subject: data.subject,
+        badgeType: "critical",
+        badgeText: "Entries being lost",
+        details: [
+          { title: "Export: ", text: "SIEM bucket" },
+          { title: "Destination: ", text: "Amazon S3" },
+          { title: "Failing since: ", text: written(START) },
+          { title: "Oldest entry not sent: ", text: written(at(-9 * DAY)) },
+          {
+            title: "Entries lost since: ",
+            text: `about ${written(data.lostAt)}`,
+          },
+          { title: "Why: ", text: base.error },
+        ],
+        remediation: `Fix the destination now, and the export sends the entries the audit log still keeps, oldest first. Since about ${written(data.lostAt)}, the entries this export has not sent are being deleted as they pass the audit log retention they were recorded with, and are never sent. ${data.retention}`,
+        buttonText: "Open Audit Log Export",
+      };
+    };
+
+    test("a date still ahead keeps the 'will start losing entries' email word for word, even a second before the moment", () => {
+      for (const offsetInMs of [1000, HOUR, 20 * HOUR, 3 * DAY]) {
+        const lostAt: Date = at(offsetInMs);
+
+        expect(losing(offsetInMs)).toEqual({
+          subject:
+            'The audit log export "SIEM bucket" will start losing entries',
+          badgeType: "critical",
+          badgeText: "Entries about to be lost",
+          details: [
+            { title: "Export: ", text: "SIEM bucket" },
+            { title: "Destination: ", text: "Amazon S3" },
+            { title: "Failing since: ", text: written(START) },
+            {
+              title: "Oldest entry not sent: ",
+              text: written(at(-9 * DAY)),
+            },
+            { title: "Entries lost from: ", text: `about ${written(lostAt)}` },
+            { title: "Why: ", text: base.error },
+          ],
+          remediation: `From about ${written(lostAt)}, the entries this export has not sent are deleted as they pass the audit log retention they were recorded with, and are never sent. Fix the destination before then, and the export sends them, oldest first. ${PROJECT_RETENTION}`,
+          buttonText: "Open Audit Log Export",
+        });
+      }
+    });
+
+    test("passed: 'is losing entries', since about when, and to fix the destination now so the export sends the entries still kept", () => {
+      for (const offsetInMs of [-1000, -HOUR, -2 * DAY, -23 * DAY]) {
+        expect(losing(offsetInMs)).toEqual(
+          beingLost({
+            lostAt: at(offsetInMs),
+            subject: 'The audit log export "SIEM bucket" is losing entries',
+            retention: PROJECT_RETENTION,
+          }),
+        );
+      }
+    });
+
+    test("at the moment itself, to the millisecond, the entries are being lost; a millisecond before, they are about to be", () => {
+      const atTheMoment: AuditLogExportFailureEmail = losing(0);
+      const justBefore: AuditLogExportFailureEmail = losing(1);
+
+      expect(atTheMoment).toEqual(
+        beingLost({
+          lostAt: START,
+          subject: 'The audit log export "SIEM bucket" is losing entries',
+          retention: PROJECT_RETENTION,
+        }),
+      );
+      expect(justBefore.subject).toBe(
+        'The audit log export "SIEM bucket" will start losing entries',
+      );
+      expect(justBefore.badgeText).toBe("Entries about to be lost");
+      expect(justBefore.details[4]!.title).toBe("Entries lost from: ");
+      expect(
+        justBefore.remediation.startsWith(`From about ${written(at(1))},`),
+      ).toBe(true);
+    });
+
+    test("the instance's export: of your instance, is losing entries, and each project's longer retention", () => {
+      const product: string = ProductBrandingText.getProductName();
+
+      expect(losing(-2 * DAY, { isInstanceExport: true })).toEqual(
+        beingLost({
+          lostAt: at(-2 * DAY),
+          subject: `The audit log export "SIEM bucket" of your ${product} instance is losing entries`,
+          retention: INSTANCE_RETENTION,
+        }),
+      );
+      expect(
+        losing(-2 * DAY, { isInstanceExport: true, exportName: " " }).subject,
+      ).toBe(
+        `An audit log export of your ${product} instance is losing entries`,
+      );
+      expect(losing(-2 * DAY, { exportName: "" }).subject).toBe(
+        "An audit log export is losing entries",
+      );
+      // Ahead, the instance's email keeps its words.
+      expect(losing(2 * DAY, { isInstanceExport: true }).subject).toBe(
+        `The audit log export "SIEM bucket" of your ${product} instance will start losing entries`,
+      );
+    });
+
+    test("a 'failing' email for a date already passed never says nothing is lost yet: it is the 'losing entries' one", () => {
+      for (const isInstanceExport of [false, true]) {
+        for (const offsetInMs of [0, -MINUTE, -5 * DAY]) {
+          expect(
+            losing(offsetInMs, {
+              notice: AuditLogExportFailureNotice.Failing,
+              isInstanceExport,
+            }),
+          ).toEqual(losing(offsetInMs, { isInstanceExport }));
+        }
+      }
+
+      // A date still ahead: the "failing" email, nothing lost yet.
+      const ahead: AuditLogExportFailureEmail = losing(2 * DAY, {
+        notice: AuditLogExportFailureNotice.Failing,
+      });
+
+      expect(ahead.subject).toBe(
+        'The audit log export "SIEM bucket" is failing',
+      );
+      expect(ahead.badgeType).toBe("warning");
+      expect(ahead.remediation).toContain(
+        `Nothing is lost yet: the audit log starts deleting them from about ${written(at(2 * DAY))}.`,
+      );
+    });
+
+    test("nothing waiting is never 'losing entries', however the clock reads", () => {
+      const email: AuditLogExportFailureEmail = losing(0, {
+        oldestUnsentAt: null,
+        entriesLostAt: null,
+        now: at(400 * DAY),
+      });
+
+      expect(email.subject).toBe(
+        'The audit log export "SIEM bucket" is failing',
+      );
+      expect(email.badgeText).toBe("Export failing");
+      expect(email.remediation).toBe(
+        "Fix the destination, and the export sends every entry waiting for it, oldest first. Nothing is lost yet: the audit log keeps each entry for 7 days.",
+      );
+    });
+
+    test("the date is read against the try, not the clock the email is built on", () => {
+      // A try far from today, either way: only `now` says whether the date has passed.
+      const lostAt: Date = new Date("2099-03-01T08:00:00.000Z");
+
+      expect(
+        losing(0, {
+          entriesLostAt: lostAt,
+          now: new Date("2099-03-02T08:00:00.000Z"),
+        }).subject,
+      ).toBe('The audit log export "SIEM bucket" is losing entries');
+      expect(
+        losing(0, {
+          entriesLostAt: new Date("2001-03-01T08:00:00.000Z"),
+          now: new Date("2001-02-28T08:00:00.000Z"),
+        }).subject,
+      ).toBe('The audit log export "SIEM bucket" will start losing entries');
+    });
+
+    test("for a passed date, no email asks for anything before it, or says entries will start or are about to be lost", () => {
+      const AHEAD_WORDS: Array<string> = [
+        "before then",
+        "will start",
+        "about to be lost",
+        "From about",
+        "Nothing is lost yet",
+        "Entries lost from",
+      ];
+
+      for (const notice of [
+        AuditLogExportFailureNotice.Failing,
+        AuditLogExportFailureNotice.LosingEntries,
+      ]) {
+        for (const isInstanceExport of [false, true]) {
+          for (const offsetInMs of [0, -1, -DAY, -40 * DAY]) {
+            const email: AuditLogExportFailureEmail = losing(offsetInMs, {
+              notice,
+              isInstanceExport,
+            });
+            const words: string = [
+              email.subject,
+              email.badgeText,
+              ...email.details.map(
+                (detail: { title: string; text: string }): string => {
+                  return `${detail.title}${detail.text}`;
+                },
+              ),
+              email.remediation,
+            ].join("\n");
+
+            expect({
+              notice,
+              isInstanceExport,
+              offsetInMs,
+              found: AHEAD_WORDS.filter((ahead: string): boolean => {
+                return words.includes(ahead);
+              }),
+              asksNow: email.remediation.startsWith(
+                "Fix the destination now, and the export sends the entries the audit log still keeps, oldest first.",
+              ),
+              rows: email.details.length,
+            }).toEqual({
+              notice,
+              isInstanceExport,
+              offsetInMs,
+              found: [],
+              asksNow: true,
+              rows: 6,
+            });
+          }
+        }
+      }
+    });
+  });
 });
 
-describe("the retention that decides when entries are lost", () => {
+/*
+ * The retention as it is now: what the "failing" email says an entry
+ * recorded from now on is kept for, and what the moment entries are lost is
+ * reckoned from when the stamps on the entries waiting cannot be read.
+ */
+describe("the retention as it is now", () => {
   afterEach(() => {
     jest.restoreAllMocks();
   });
@@ -723,6 +1257,8 @@ describe("who is emailed", () => {
       notice: AuditLogExportFailureNotice.Failing,
       failingSince: START,
       oldestUnsentAt: at(-MINUTE),
+      entriesLostAt: deletedAt(at(-MINUTE), 7),
+      now: START,
       error: "refused (HTTP 403)",
       retentionInDays: 7,
     };
@@ -801,6 +1337,12 @@ describe("who is emailed", () => {
     expect(message.vars["detail5Title"]).toBe("Why: ");
     expect(message.vars["detail5Text"]).toBe("refused (HTTP 403)");
     expect(message.vars["badgeType"]).toBe("warning");
+    // When the entries waiting start to be deleted: the date the notification carries.
+    expect(message.vars["remediation"]).toBe(
+      `Fix the destination, and the export sends every entry waiting for it, oldest first. Nothing is lost yet: the audit log starts deleting them from about ${OneUptimeDate.getDateAsUserFriendlyFormattedString(
+        deletedAt(at(-MINUTE), 7),
+      )}.`,
+    );
     expect(options.projectId.toString()).toBe(PROJECT_A);
     expect(options.userId.toString()).toBe(ada.id!.toString());
 
@@ -882,6 +1424,118 @@ describe("who is emailed", () => {
     ).resolves.toBeUndefined();
     expect(logger.error).toHaveBeenCalled();
   });
+
+  /*
+   * #7185: the notification carries the try it is due on, and the email
+   * reads whether the first entry's date has passed against it.
+   */
+  describe("a date that has passed by the try", () => {
+    // Deleted two days before the try: the audit log has not dropped it yet.
+    const LOST_AT: Date = at(-2 * DAY);
+
+    const passed: (
+      projectId: string | null,
+    ) => AuditLogExportFailureNotification = (
+      projectId: string | null,
+    ): AuditLogExportFailureNotification => {
+      return {
+        ...notification(projectId),
+        notice: AuditLogExportFailureNotice.LosingEntries,
+        oldestUnsentAt: at(-9 * DAY),
+        entriesLostAt: LOST_AT,
+        now: at(31 * MINUTE),
+      };
+    };
+
+    test("each owner is told the export is losing entries, since when, and to fix the destination now", async () => {
+      jest
+        .spyOn(ProjectService, "getOwners")
+        .mockResolvedValue([owner("ada@example.com")]);
+
+      await auditLogExportEmailNotifier.notifyFailure(passed(PROJECT_A));
+
+      expect(mockSendMail).toHaveBeenCalledTimes(1);
+
+      const [message] = mockSendMail.mock.calls[0] as [
+        { subject: string; vars: Record<string, string> },
+      ];
+
+      expect(message.subject).toBe(
+        'The audit log export "SIEM <bucket>" is losing entries',
+      );
+      expect(message.vars["subject"]).toBe(message.subject);
+      expect(message.vars["badgeType"]).toBe("critical");
+      expect(message.vars["badgeText"]).toBe("Entries being lost");
+      expect(message.vars["detail5Title"]).toBe("Entries lost since: ");
+      expect(message.vars["detail5Text"]).toBe(
+        `about ${OneUptimeDate.getDateAsUserFriendlyFormattedString(LOST_AT)}`,
+      );
+      expect(message.vars["detail6Title"]).toBe("Why: ");
+      expect(message.vars["remediation"]).toBe(
+        `Fix the destination now, and the export sends the entries the audit log still keeps, oldest first. Since about ${OneUptimeDate.getDateAsUserFriendlyFormattedString(
+          LOST_AT,
+        )}, the entries this export has not sent are being deleted as they pass the audit log retention they were recorded with, and are never sent. A longer retention (Project Settings > Audit Logs > Settings) only keeps the entries recorded after the change.`,
+      );
+    });
+
+    test("the instance's master admins are told the same, as a critical email", async () => {
+      await auditLogExportEmailNotifier.notifyFailure(passed(null));
+
+      const [sent] = mockSendToMasterAdmins.mock.calls[0] as [
+        {
+          check: {
+            subject: string;
+            isCritical: boolean;
+            badgeText: string;
+            details: Array<{ title: string; text: string }>;
+            remediation: string;
+          };
+        },
+      ];
+
+      expect(sent.check.subject).toBe(
+        `The audit log export "SIEM <bucket>" of your ${ProductBrandingText.getProductName()} instance is losing entries`,
+      );
+      expect(sent.check.isCritical).toBe(true);
+      expect(sent.check.badgeText).toBe("Entries being lost");
+      expect(sent.check.details).toContainEqual({
+        title: "Entries lost since: ",
+        text: `about ${OneUptimeDate.getDateAsUserFriendlyFormattedString(LOST_AT)}`,
+      });
+      expect(
+        sent.check.remediation.startsWith("Fix the destination now,"),
+      ).toBe(true);
+      expect(sent.check.remediation).toContain(
+        "A longer retention in a project's Settings > Audit Logs > Settings only keeps that project's entries recorded after the change.",
+      );
+    });
+
+    test("the date is read against the notification's try, never the clock it is sent on", async () => {
+      // Tries far from today, either way: only the notification's own time decides.
+      await auditLogExportEmailNotifier.notifyFailure({
+        ...passed(null),
+        entriesLostAt: new Date("2099-03-01T08:00:00.000Z"),
+        now: new Date("2099-03-02T08:00:00.000Z"),
+      });
+      await auditLogExportEmailNotifier.notifyFailure({
+        ...passed(null),
+        entriesLostAt: new Date("2001-03-01T08:00:00.000Z"),
+        now: new Date("2001-02-28T08:00:00.000Z"),
+      });
+
+      const subjects: Array<string> = mockSendToMasterAdmins.mock.calls.map(
+        (call: Array<unknown>): string => {
+          return (call[0] as { check: { subject: string } }).check.subject;
+        },
+      );
+      const product: string = ProductBrandingText.getProductName();
+
+      expect(subjects).toEqual([
+        `The audit log export "SIEM <bucket>" of your ${product} instance is losing entries`,
+        `The audit log export "SIEM <bucket>" of your ${product} instance will start losing entries`,
+      ]);
+    });
+  });
 });
 
 describe("the exporter tells people as its failures go on", () => {
@@ -892,6 +1546,8 @@ describe("the exporter tells people as its failures go on", () => {
   let retentionReads: number;
   let retentionInDays: number;
   let notifierFails: boolean;
+  // Also hands each notification to the real email notifier, as production does.
+  let emailForReal: boolean;
 
   const notifier: AuditLogExportNotifier = {
     getRetentionInDays: async (): Promise<number> => {
@@ -905,6 +1561,10 @@ describe("the exporter tells people as its failures go on", () => {
         throw new Error("could not send");
       }
       sent.push({ ...data, at: clock });
+
+      if (emailForReal) {
+        await auditLogExportEmailNotifier.notifyFailure(data);
+      }
     },
   };
 
@@ -943,9 +1603,27 @@ describe("the exporter tells people as its failures go on", () => {
       );
     };
 
-  // An entry recorded at `when` (whole seconds, as the audit log keeps them); its id.
-  const record: (when: Date) => string = (when: Date): string => {
-    return String(auditLog.add({ createdAt: when.toISOString() })["_id"]);
+  /*
+   * An entry recorded at `when` (whole seconds, as the audit log keeps
+   * them), stamped as the recorder stamps it with the retention its project
+   * had then (7 days unless said); its id.
+   */
+  const record: (
+    when: Date,
+    retention?: number | undefined,
+    projectId?: string | undefined,
+  ) => string = (
+    when: Date,
+    retention?: number | undefined,
+    projectId?: string | undefined,
+  ): string => {
+    return String(
+      auditLog.add({
+        createdAt: when.toISOString(),
+        retentionInDays: retention,
+        projectId,
+      })["_id"],
+    );
   };
 
   beforeEach(() => {
@@ -968,6 +1646,7 @@ describe("the exporter tells people as its failures go on", () => {
     retentionReads = 0;
     retentionInDays = 7;
     notifierFails = false;
+    emailForReal = false;
   });
 
   afterEach(() => {
@@ -1208,6 +1887,7 @@ describe("the exporter tells people as its failures go on", () => {
 
     await runUntil(exports, row, at(29 * MINUTE));
     expect(auditLog.reads).toEqual([]);
+    expect(auditLog.soonestReads).toEqual([]);
 
     await runUntil(exports, row, at(7 * DAY));
 
@@ -1216,6 +1896,9 @@ describe("the exporter tells people as its failures go on", () => {
       AuditLogExportFailureNotice.LosingEntries,
     ]);
     expect(sent[0]!.oldestUnsentAt!.toISOString()).toBe(oldest.toISOString());
+    expect(sent[1]!.entriesLostAt!.toISOString()).toBe(
+      deletedAt(oldest, 7).toISOString(),
+    );
     expect(
       auditLog.reads.every((read: { limit: number }): boolean => {
         return read.limit === 1;
@@ -1237,6 +1920,10 @@ describe("the exporter tells people as its failures go on", () => {
 
     expect(notices()).toEqual([AuditLogExportFailureNotice.Failing]);
     expect(sent[0]!.oldestUnsentAt).toBeNull();
+    expect(sent[0]!.entriesLostAt).toBeNull();
+    // No entry to lose, so no stamp to read.
+    expect(auditLog.reads.length).toBeGreaterThan(0);
+    expect(auditLog.soonestReads).toEqual([]);
   });
 
   test("an audit log that cannot be read either reckons from when the failures began", async () => {
@@ -1253,6 +1940,743 @@ describe("the exporter tells people as its failures go on", () => {
 
     expect(notices()).toEqual([AuditLogExportFailureNotice.Failing]);
     expect(sent[0]!.oldestUnsentAt!.toISOString()).toBe(START.toISOString());
+    // No stamp either (none it could read): reckoned from then, with the retention as it is now.
+    expect(sent[0]!.entriesLostAt!.toISOString()).toBe(
+      deletedAt(START, 7).toISOString(),
+    );
+  });
+
+  /*
+   * #6563, as the issue's acceptance reads: entries recorded with a 7-day
+   * retention, then the retention changed to 30. Each entry keeps the
+   * 7-day retentionDate it was stamped with, and the "losing entries" email
+   * is due 24 hours before the first of them is deleted - not 22 days
+   * after, as reckoning from the 30 days the project keeps entries now did.
+   */
+  test("a retention lengthened from 7 days to 30 while entries wait: 'losing entries' 24 hours before the first of them is deleted, by its own stamp", async () => {
+    retentionInDays = 30;
+    const row: StoredExport = webhookRow();
+    const exports: InMemoryExports = useInMemoryExports([row]);
+    const oldest: Date = at(-5 * MINUTE);
+    const first: string = record(oldest, 7);
+    record(at(-4 * MINUTE), 7);
+    webhook.failNext(
+      10_000,
+      new AuditLogExportDeliveryError("refused the key (HTTP 401)", {
+        retryable: false,
+        status: 401,
+      }),
+    );
+    const stamped: Date = auditLog.stampOf(first);
+    const losingAt: number = stamped.getTime() - 24 * HOUR;
+
+    // The recorder's 7 calendar days, not the 30 the project keeps now.
+    expect(stamped.toISOString()).toBe(deletedAt(oldest, 7).toISOString());
+
+    await runUntil(exports, row, new Date(losingAt + HOUR));
+
+    expect(notices()).toEqual([
+      AuditLogExportFailureNotice.Failing,
+      AuditLogExportFailureNotice.LosingEntries,
+    ]);
+    expect(sent[1]!.at.getTime()).toBeGreaterThanOrEqual(losingAt);
+    expect(sent[1]!.at.getTime() - losingAt).toBeLessThanOrEqual(HOUR);
+    // Before the entry is deleted, and both emails say when it is.
+    expect(sent[1]!.at.getTime()).toBeLessThan(stamped.getTime());
+    expect(sent[0]!.entriesLostAt!.toISOString()).toBe(stamped.toISOString());
+    expect(sent[1]!.entriesLostAt!.toISOString()).toBe(stamped.toISOString());
+    // The retention as it is now still travels with them, for the email's other words.
+    expect(sent[1]!.retentionInDays).toBe(30);
+    // Read from the export's own entries waiting, with each try.
+    expect(auditLog.soonestReads.length).toBeGreaterThan(1);
+    expect(
+      auditLog.soonestReads.every(
+        (read: { projectId: string | null }): boolean => {
+          return read.projectId === PROJECT_A;
+        },
+      ),
+    ).toBe(true);
+  });
+
+  test("a retention shortened from 30 days to 7 while entries wait: no 'losing entries' a week in, and one 24 hours before their 30-day stamp", async () => {
+    retentionInDays = 7;
+    const row: StoredExport = webhookRow();
+    const exports: InMemoryExports = useInMemoryExports([row]);
+    const oldest: Date = at(-5 * MINUTE);
+    const first: string = record(oldest, 30);
+    webhook.failNext(
+      10_000,
+      new AuditLogExportDeliveryError("refused", { retryable: false }),
+    );
+    const stamped: Date = auditLog.stampOf(first);
+    const losingAt: number = stamped.getTime() - 24 * HOUR;
+
+    expect(stamped.toISOString()).toBe(deletedAt(oldest, 30).toISOString());
+
+    // Where the 7 days the project keeps now would have put it: nothing yet.
+    await runUntil(exports, row, new Date(losingNoticeAt(oldest, 7) + DAY));
+    expect(notices()).toEqual([AuditLogExportFailureNotice.Failing]);
+
+    await runUntil(exports, row, new Date(losingAt + HOUR));
+
+    expect(notices()).toEqual([
+      AuditLogExportFailureNotice.Failing,
+      AuditLogExportFailureNotice.LosingEntries,
+    ]);
+    expect(sent[1]!.at.getTime()).toBeGreaterThanOrEqual(losingAt);
+    expect(sent[1]!.at.getTime() - losingAt).toBeLessThanOrEqual(HOUR);
+    expect(sent[1]!.entriesLostAt!.toISOString()).toBe(stamped.toISOString());
+  });
+
+  /*
+   * The soonest stamp, not the oldest entry's: here the retention went from
+   * 30 days to 7 and back to 30 while the export failed, so the newer entry
+   * is deleted three weeks before the older one - and reckoning from the
+   * oldest entry with the retention as it is now would have warned after
+   * both were gone.
+   */
+  test("a newer entry stamped sooner than the oldest one: 'losing entries' 24 hours before the newer one is deleted", async () => {
+    retentionInDays = 30;
+    const row: StoredExport = webhookRow({
+      startsAt: at(-3 * DAY),
+      createdAt: START,
+    });
+    const exports: InMemoryExports = useInMemoryExports([row]);
+    const older: Date = at(-2 * DAY);
+    record(older, 30);
+    const newer: string = record(at(-DAY), 7);
+    webhook.failNext(
+      10_000,
+      new AuditLogExportDeliveryError("refused", { retryable: false }),
+    );
+    const stamped: Date = auditLog.stampOf(newer);
+    const losingAt: number = stamped.getTime() - 24 * HOUR;
+
+    expect(stamped.getTime()).toBeLessThan(deletedAt(older, 30).getTime());
+
+    await runUntil(exports, row, new Date(losingAt + HOUR));
+
+    expect(notices()).toEqual([
+      AuditLogExportFailureNotice.Failing,
+      AuditLogExportFailureNotice.LosingEntries,
+    ]);
+    expect(sent[1]!.at.getTime()).toBeGreaterThanOrEqual(losingAt);
+    expect(sent[1]!.at.getTime() - losingAt).toBeLessThanOrEqual(HOUR);
+    // The oldest entry waiting is still the older one; the first deleted is the newer.
+    expect(sent[1]!.oldestUnsentAt!.toISOString()).toBe(older.toISOString());
+    expect(sent[1]!.entriesLostAt!.toISOString()).toBe(stamped.toISOString());
+  });
+
+  /*
+   * The instance's export waits for every project's entries: the first one
+   * deleted can be another project's, newer, stamped with a shorter
+   * retention than the shortest any project keeps now.
+   */
+  test("the instance's export: 'losing entries' 24 hours before the soonest stamp among every project's entries waiting", async () => {
+    // The shortest retention of any project now: B was lengthened since its entry.
+    retentionInDays = 30;
+    const row: StoredExport = webhookRow({
+      projectId: null,
+      name: "Instance archive",
+      startsAt: at(-3 * DAY),
+      createdAt: START,
+    });
+    const exports: InMemoryExports = useInMemoryExports([row]);
+    const older: Date = at(-2 * DAY);
+    record(older, 30, PROJECT_A);
+    const soonest: string = record(at(-DAY), 7, PROJECT_B);
+    record(at(-12 * HOUR), 14, PROJECT_A);
+    webhook.failNext(
+      10_000,
+      new AuditLogExportDeliveryError("refused", { retryable: false }),
+    );
+    const stamped: Date = auditLog.stampOf(soonest);
+    const losingAt: number = stamped.getTime() - 24 * HOUR;
+
+    await runUntil(exports, row, new Date(losingAt + HOUR));
+
+    expect(notices()).toEqual([
+      AuditLogExportFailureNotice.Failing,
+      AuditLogExportFailureNotice.LosingEntries,
+    ]);
+    expect(sent[1]!.at.getTime()).toBeGreaterThanOrEqual(losingAt);
+    expect(sent[1]!.at.getTime() - losingAt).toBeLessThanOrEqual(HOUR);
+    expect(sent[1]!.oldestUnsentAt!.toISOString()).toBe(older.toISOString());
+    expect(sent[1]!.entriesLostAt!.toISOString()).toBe(stamped.toISOString());
+    // Every project's entries, not one project's.
+    expect(auditLog.soonestReads.length).toBeGreaterThan(0);
+    expect(
+      auditLog.soonestReads.every(
+        (read: { projectId: string | null }): boolean => {
+          return read.projectId === null;
+        },
+      ),
+    ).toBe(true);
+  });
+
+  test("stamps that cannot be read: reckoned as before, from the oldest entry waiting and the retention as it is now, and said in the log", async () => {
+    retentionInDays = 7;
+    const { row, exports } = failingExport();
+    const oldest: Date = at(-5 * MINUTE);
+    const losingAt: number = losingNoticeAt(oldest, 7);
+    jest
+      .spyOn(auditLog.reader, "findSoonestRetentionDateForExport")
+      .mockRejectedValue(new Error("ClickHouse is down"));
+
+    await runUntil(exports, row, new Date(losingAt + HOUR));
+
+    // The retention has not changed: the same moment the stamps give.
+    expect(notices()).toEqual([
+      AuditLogExportFailureNotice.Failing,
+      AuditLogExportFailureNotice.LosingEntries,
+    ]);
+    expect(sent[1]!.at.getTime()).toBeGreaterThanOrEqual(losingAt);
+    expect(sent[1]!.at.getTime() - losingAt).toBeLessThanOrEqual(HOUR);
+    expect(sent[1]!.entriesLostAt!.toISOString()).toBe(
+      deletedAt(oldest, 7).toISOString(),
+    );
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining(
+        "has not sent are deleted; reckoning from the retention as it is now.",
+      ),
+    );
+  });
+
+  test("stamps that cannot be read after the retention was lengthened: reckoned from the retention as it is now, as before", async () => {
+    retentionInDays = 30;
+    const { row, exports } = failingExport();
+    const oldest: Date = at(-5 * MINUTE);
+    jest
+      .spyOn(auditLog.reader, "findSoonestRetentionDateForExport")
+      .mockRejectedValue(new Error("ClickHouse is down"));
+
+    await runUntil(exports, row, at(2 * HOUR));
+
+    expect(notices()).toEqual([AuditLogExportFailureNotice.Failing]);
+    expect(sent[0]!.entriesLostAt!.toISOString()).toBe(
+      deletedAt(oldest, 30).toISOString(),
+    );
+  });
+
+  test("a read that finds no stamp while a batch has just been read (the entry went meanwhile): reckoned as before, never left untold", async () => {
+    retentionInDays = 7;
+    const { row, exports } = failingExport();
+    const oldest: Date = at(-5 * MINUTE);
+    const losingAt: number = losingNoticeAt(oldest, 7);
+    jest
+      .spyOn(auditLog.reader, "findSoonestRetentionDateForExport")
+      .mockResolvedValue(null);
+
+    await runUntil(exports, row, new Date(losingAt + HOUR));
+
+    expect(notices()).toEqual([
+      AuditLogExportFailureNotice.Failing,
+      AuditLogExportFailureNotice.LosingEntries,
+    ]);
+    expect(sent[1]!.entriesLostAt!.toISOString()).toBe(
+      deletedAt(oldest, 7).toISOString(),
+    );
+  });
+
+  test("the stamps are read for the entries the export has not sent: from Export From, after its cursor, up to the try, and only once an email can be due", async () => {
+    const delivered: Date = at(-30 * MINUTE);
+    const deliveredId: string = record(delivered, 7);
+    const waiting: string = record(at(-20 * MINUTE), 30);
+    const row: StoredExport = webhookRow({
+      startsAt: at(-DAY),
+      cursorCreatedAt: delivered,
+      cursorEntryId: deliveredId,
+      exportedEntryCount: 1,
+    });
+    const exports: InMemoryExports = useInMemoryExports([row]);
+    webhook.failNext(
+      10_000,
+      new AuditLogExportDeliveryError("refused", { retryable: false }),
+    );
+
+    await runUntil(exports, row, at(29 * MINUTE));
+    expect(auditLog.soonestReads).toEqual([]);
+
+    await runUntil(exports, row, at(2 * HOUR));
+
+    expect(notices()).toEqual([AuditLogExportFailureNotice.Failing]);
+    // The delivered entry's sooner stamp is not the export's to lose.
+    expect(sent[0]!.entriesLostAt!.toISOString()).toBe(
+      auditLog.stampOf(waiting).toISOString(),
+    );
+    expect(auditLog.soonestReads[0]).toEqual({
+      projectId: PROJECT_A,
+      startsAt: at(-DAY),
+      until: sent[0]!.at,
+      after: { createdAt: delivered, id: deliveredId },
+    });
+  });
+
+  /*
+   * The issue's case as it unfolds: a week's retention, the export fails,
+   * and a day in someone lengthens the retention to 30 days to buy time,
+   * while recording goes on. The entries recorded before the change keep
+   * their week; the ones recorded since are kept 30 days and wait behind
+   * them. The first to be deleted is still the oldest, by its week.
+   */
+  test("a retention lengthened from 7 days to 30 a day into the failures, while recording goes on: 'losing entries' 24 hours before the first week-stamped entry is deleted", async () => {
+    retentionInDays = 7;
+    const row: StoredExport = webhookRow();
+    const exports: InMemoryExports = useInMemoryExports([row]);
+    const oldest: Date = at(-5 * MINUTE);
+    const first: string = record(oldest, 7);
+    webhook.failNext(
+      10_000,
+      new AuditLogExportDeliveryError("refused the key (HTTP 401)", {
+        retryable: false,
+        status: 401,
+      }),
+    );
+
+    await runUntil(exports, row, at(DAY));
+    expect(notices()).toEqual([AuditLogExportFailureNotice.Failing]);
+
+    // From now on the project keeps 30 days, and an entry is recorded every hour.
+    retentionInDays = 30;
+    const lengthenedAt: Date = clock;
+    const recordedSince: Array<string> = [];
+
+    for (let hour: number = 0; hour < 48; hour++) {
+      recordedSince.push(
+        record(new Date(lengthenedAt.getTime() + hour * HOUR), 30),
+      );
+    }
+
+    const stamped: Date = auditLog.stampOf(first);
+    const losingAt: number = stamped.getTime() - 24 * HOUR;
+
+    await runUntil(exports, row, new Date(losingAt + HOUR));
+
+    expect(notices()).toEqual([
+      AuditLogExportFailureNotice.Failing,
+      AuditLogExportFailureNotice.LosingEntries,
+    ]);
+    expect(sent[1]!.at.getTime()).toBeGreaterThanOrEqual(losingAt);
+    expect(sent[1]!.at.getTime() - losingAt).toBeLessThanOrEqual(HOUR);
+    expect(sent[1]!.entriesLostAt!.toISOString()).toBe(stamped.toISOString());
+    // The retention as it is now still travels with it, for the email's other words.
+    expect(sent[1]!.retentionInDays).toBe(30);
+    // The entries recorded since were waiting too, and every one of them goes later.
+    expect(
+      recordedSince.every((id: string): boolean => {
+        return auditLog.stampOf(id).getTime() > stamped.getTime();
+      }),
+    ).toBe(true);
+    // Reckoned from the 30 days the project keeps now, it was due three weeks after the entry was gone.
+    expect(losingNoticeAt(oldest, 30) - stamped.getTime()).toBeGreaterThan(
+      21 * DAY,
+    );
+  });
+
+  /*
+   * The stamps are read again with every try, the entries recorded since
+   * the failures began among them. A retention shortened while the export
+   * fails stamps the entries recorded from then on sooner than the ones
+   * waiting from before, so the first entry to be deleted can be one
+   * recorded after the first email: read only then, the stamps would have
+   * put "losing entries" three weeks after it was gone.
+   */
+  test("a retention shortened from 30 days to 7 while the export fails: an entry recorded since is deleted first, and 'losing entries' comes 24 hours before its own stamp", async () => {
+    retentionInDays = 30;
+    const row: StoredExport = webhookRow();
+    const exports: InMemoryExports = useInMemoryExports([row]);
+    const oldest: Date = at(-5 * MINUTE);
+    const first: string = record(oldest, 30);
+    webhook.failNext(
+      10_000,
+      new AuditLogExportDeliveryError("refused", { retryable: false }),
+    );
+
+    // The first email gives when the entry waiting then is deleted: 30 days on.
+    await runUntil(exports, row, at(2 * DAY));
+    expect(notices()).toEqual([AuditLogExportFailureNotice.Failing]);
+    expect(sent[0]!.entriesLostAt!.toISOString()).toBe(
+      auditLog.stampOf(first).toISOString(),
+    );
+
+    // Two days in, the project keeps a week from now on, and recording goes on.
+    retentionInDays = 7;
+    const shortened: string = record(clock, 7);
+    const stamped: Date = auditLog.stampOf(shortened);
+    const losingAt: number = stamped.getTime() - 24 * HOUR;
+
+    // The newer entry goes three weeks before the older one.
+    expect(
+      auditLog.stampOf(first).getTime() - stamped.getTime(),
+    ).toBeGreaterThan(20 * DAY);
+
+    await runUntil(exports, row, new Date(losingAt + HOUR));
+
+    expect(notices()).toEqual([
+      AuditLogExportFailureNotice.Failing,
+      AuditLogExportFailureNotice.LosingEntries,
+    ]);
+    expect(sent[1]!.at.getTime()).toBeGreaterThanOrEqual(losingAt);
+    expect(sent[1]!.at.getTime() - losingAt).toBeLessThanOrEqual(HOUR);
+    // The oldest entry waiting is still the first one; the first to be deleted is the newer.
+    expect(sent[1]!.oldestUnsentAt!.toISOString()).toBe(oldest.toISOString());
+    expect(sent[1]!.entriesLostAt!.toISOString()).toBe(stamped.toISOString());
+  });
+
+  /*
+   * ClickHouse drops a whole part of the audit log only once every entry in
+   * it has passed its stamp (the table's ttl_only_drop_parts), so an entry
+   * can outlive its retentionDate, and an export reading from far back
+   * finds it waiting. It can go at any moment: "losing entries" goes with
+   * the first email, 30 minutes in, from its own stamp, never one reckoned
+   * later.
+   */
+  test("an entry waiting past its own stamp (the audit log has not dropped it yet): 'losing entries' with the first email, from that stamp", async () => {
+    retentionInDays = 30;
+    const row: StoredExport = webhookRow({
+      startsAt: at(-10 * DAY),
+      createdAt: START,
+    });
+    const exports: InMemoryExports = useInMemoryExports([row]);
+    const expired: string = record(at(-9 * DAY), 7);
+    record(at(-HOUR), 30);
+    webhook.failNext(
+      10_000,
+      new AuditLogExportDeliveryError("refused", { retryable: false }),
+    );
+
+    await runUntil(exports, row, at(3 * HOUR));
+
+    expect(notices()).toEqual([AuditLogExportFailureNotice.LosingEntries]);
+    expect(sent[0]!.at.toISOString()).toBe(at(31 * MINUTE).toISOString());
+    expect(sent[0]!.entriesLostAt!.toISOString()).toBe(
+      auditLog.stampOf(expired).toISOString(),
+    );
+    expect(sent[0]!.entriesLostAt!.getTime()).toBeLessThan(START.getTime());
+    // The try's own time goes with it, so the email can say the date has passed (#7185).
+    expect(sent[0]!.now.toISOString()).toBe(at(31 * MINUTE).toISOString());
+  });
+
+  /*
+   * #7185, end to end: the exporter hands the email notifier the time of
+   * the try the email is due on, and the email the people who can fix the
+   * export get reads the first entry's date against it. Past it, "is losing
+   * entries" and "fix the destination now"; ahead of it, "will start losing
+   * entries" and "fix the destination before then", word for word as
+   * before.
+   */
+  describe("the email the exporter sends, read against the try", () => {
+    const written: (date: Date) => string = (date: Date): string => {
+      return OneUptimeDate.getDateAsUserFriendlyFormattedString(date);
+    };
+
+    // What the owners were sent, in order.
+    const mailed: () => Array<{
+      subject: string;
+      vars: Record<string, string>;
+    }> = (): Array<{ subject: string; vars: Record<string, string> }> => {
+      return mockSendMail.mock.calls.map(
+        (
+          call: Array<unknown>,
+        ): {
+          subject: string;
+          vars: Record<string, string>;
+        } => {
+          return call[0] as { subject: string; vars: Record<string, string> };
+        },
+      );
+    };
+
+    const losingNow: (lostAt: Date) => string = (lostAt: Date): string => {
+      return `Fix the destination now, and the export sends the entries the audit log still keeps, oldest first. Since about ${written(lostAt)}, the entries this export has not sent are being deleted as they pass the audit log retention they were recorded with, and are never sent. A longer retention (Project Settings > Audit Logs > Settings) only keeps the entries recorded after the change.`;
+    };
+
+    beforeEach(() => {
+      emailForReal = true;
+      mockSendMail.mockReset();
+      mockSendMail.mockResolvedValue({});
+      mockSendToMasterAdmins.mockReset();
+      mockSendToMasterAdmins.mockResolvedValue({});
+      jest
+        .spyOn(DatabaseConfig, "getDashboardUrl")
+        .mockResolvedValue(
+          URL.fromString("https://oneuptime.acme.test/dashboard"),
+        );
+      jest
+        .spyOn(ProjectService, "findOneById")
+        .mockResolvedValue(Object.assign(new Project(), { name: "Payments" }));
+      jest.spyOn(ProjectService, "getOwners").mockResolvedValue([
+        Object.assign(new User(), {
+          id: ObjectID.generate(),
+          email: new Email("ada@example.com"),
+        }),
+      ]);
+    });
+
+    test("Export From further back than the retention: one email, 30 minutes in, that the export is losing entries since the first one's stamp", async () => {
+      // Kept 30 days now; the entry waiting was recorded nine days ago with a week's.
+      retentionInDays = 30;
+      const row: StoredExport = webhookRow({
+        startsAt: at(-30 * DAY),
+        createdAt: START,
+      });
+      const exports: InMemoryExports = useInMemoryExports([row]);
+      const expired: string = record(at(-9 * DAY), 7);
+      record(at(-HOUR), 30);
+      webhook.failNext(
+        10_000,
+        new AuditLogExportDeliveryError("refused the key (HTTP 401)", {
+          retryable: false,
+        }),
+      );
+      const stamp: Date = auditLog.stampOf(expired);
+
+      await runUntil(exports, row, at(3 * DAY));
+
+      expect(stamp.getTime()).toBeLessThan(START.getTime());
+      expect(notices()).toEqual([AuditLogExportFailureNotice.LosingEntries]);
+      expect(sent[0]!.now.toISOString()).toBe(at(31 * MINUTE).toISOString());
+      expect(mailed()).toHaveLength(1);
+
+      const email: { subject: string; vars: Record<string, string> } =
+        mailed()[0]!;
+
+      expect(email.subject).toBe(
+        'The audit log export "SIEM webhook" is losing entries',
+      );
+      expect(email.vars["badgeType"]).toBe("critical");
+      expect(email.vars["badgeText"]).toBe("Entries being lost");
+      expect(email.vars["detail3Text"]).toBe(written(START));
+      expect(email.vars["detail4Title"]).toBe("Oldest entry not sent: ");
+      expect(email.vars["detail4Text"]).toBe(written(at(-9 * DAY)));
+      expect(email.vars["detail5Title"]).toBe("Entries lost since: ");
+      expect(email.vars["detail5Text"]).toBe(`about ${written(stamp)}`);
+      expect(email.vars["detail6Text"]).toBe("refused the key (HTTP 401)");
+      expect(email.vars["remediation"]).toBe(losingNow(stamp));
+    });
+
+    test("a backlog that fails again after a partial success: once it has failed 30 minutes, 'is losing entries' since the next entry's stamp", async () => {
+      retentionInDays = 7;
+      const row: StoredExport = webhookRow({
+        startsAt: at(-20 * DAY),
+        createdAt: START,
+      });
+      const exports: InMemoryExports = useInMemoryExports([row]);
+      // A backlog of entries past their week, ClickHouse not having dropped them yet.
+      record(at(-15 * DAY), 7);
+      const next: string = record(at(-12 * DAY), 7);
+      record(at(-10 * DAY), 7);
+
+      // One entry a batch: the first delivery works, every one after it fails.
+      const definition: ReturnType<
+        typeof getAuditLogExportDestinationDefinition
+      > = getAuditLogExportDestinationDefinition(
+        AuditLogExportDestinationType.Webhook,
+      )!;
+      jest
+        .spyOn(AuditLogExportSettingsUtil, "getDefinitionOrThrow")
+        .mockReturnValue({ ...definition, maxEntriesPerBatch: 1 });
+      let deliveries: number = 0;
+      AuditLogExportDestinationRegistry.setDestination(
+        AuditLogExportDestinationType.Webhook,
+        {
+          deliver: async (
+            delivery: AuditLogExportDelivery,
+          ): Promise<AuditLogExportDeliveryReceipt> => {
+            deliveries++;
+            if (deliveries > 1) {
+              throw new AuditLogExportDeliveryError("rate limited", {
+                retryable: false,
+              });
+            }
+            return { location: `recorded://${delivery.batch.id}` };
+          },
+        },
+      );
+      const stamp: Date = auditLog.stampOf(next);
+
+      await runUntil(exports, row, at(3 * HOUR));
+
+      expect(exports.get(row._id).exportedEntryCount).toBe(1);
+      expect(notices()).toEqual([AuditLogExportFailureNotice.LosingEntries]);
+      expect(sent[0]!.entriesLostAt!.toISOString()).toBe(stamp.toISOString());
+      expect(sent[0]!.now.toISOString()).toBe(sent[0]!.at.toISOString());
+      expect(
+        mailed().map((email: { subject: string }): string => {
+          return email.subject;
+        }),
+      ).toEqual(['The audit log export "SIEM webhook" is losing entries']);
+      expect(mailed()[0]!.vars["detail5Title"]).toBe("Entries lost since: ");
+      expect(mailed()[0]!.vars["remediation"]).toBe(losingNow(stamp));
+    });
+
+    test("the instance's export: its master admins are told it is losing entries, since the soonest stamp among every project's entries", async () => {
+      retentionInDays = 30;
+      const row: StoredExport = webhookRow({
+        projectId: null,
+        name: "Instance archive",
+        startsAt: at(-30 * DAY),
+        createdAt: START,
+      });
+      const exports: InMemoryExports = useInMemoryExports([row]);
+      record(at(-12 * DAY), 30, PROJECT_A);
+      const soonest: string = record(at(-8 * DAY), 7, PROJECT_B);
+      webhook.failNext(
+        10_000,
+        new AuditLogExportDeliveryError("refused", { retryable: false }),
+      );
+      const stamp: Date = auditLog.stampOf(soonest);
+
+      await runUntil(exports, row, at(3 * HOUR));
+
+      expect(notices()).toEqual([AuditLogExportFailureNotice.LosingEntries]);
+      expect(mockSendMail).not.toHaveBeenCalled();
+      expect(mockSendToMasterAdmins).toHaveBeenCalledTimes(1);
+
+      const [message] = mockSendToMasterAdmins.mock.calls[0] as [
+        {
+          check: {
+            subject: string;
+            isCritical: boolean;
+            badgeText: string;
+            details: Array<{ title: string; text: string }>;
+            remediation: string;
+          };
+        },
+      ];
+
+      expect(message.check.subject).toBe(
+        `The audit log export "Instance archive" of your ${ProductBrandingText.getProductName()} instance is losing entries`,
+      );
+      expect(message.check.isCritical).toBe(true);
+      expect(message.check.badgeText).toBe("Entries being lost");
+      expect(message.check.details).toContainEqual({
+        title: "Entries lost since: ",
+        text: `about ${written(stamp)}`,
+      });
+      expect(message.check.remediation).toBe(
+        `Fix the destination now, and the export sends the entries the audit log still keeps, oldest first. Since about ${written(stamp)}, the entries this export has not sent are being deleted as they pass the audit log retention they were recorded with, and are never sent. A longer retention in a project's Settings > Audit Logs > Settings only keeps that project's entries recorded after the change.`,
+      );
+    });
+
+    test("a date still ahead: 'is failing' after 30 minutes, then 'will start losing entries' a day before, word for word as before", async () => {
+      const oldest: Date = at(-5 * MINUTE);
+      const { row, exports } = failingExport(oldest);
+      const lostAt: Date = deletedAt(oldest, 7);
+
+      await runUntil(exports, row, new Date(losingNoticeAt(oldest, 7) + HOUR));
+
+      expect(notices()).toEqual([
+        AuditLogExportFailureNotice.Failing,
+        AuditLogExportFailureNotice.LosingEntries,
+      ]);
+
+      for (const notification of sent) {
+        expect(notification.now.toISOString()).toBe(
+          notification.at.toISOString(),
+        );
+        expect(notification.entriesLostAt!.getTime()).toBeGreaterThan(
+          notification.now.getTime(),
+        );
+      }
+
+      const [failing, losing] = mailed();
+
+      expect(failing!.subject).toBe(
+        'The audit log export "SIEM webhook" is failing',
+      );
+      expect(failing!.vars["remediation"]).toBe(
+        `Fix the destination, and the export sends every entry waiting for it, oldest first. Nothing is lost yet: the audit log starts deleting them from about ${written(lostAt)}.`,
+      );
+      expect(losing!.subject).toBe(
+        'The audit log export "SIEM webhook" will start losing entries',
+      );
+      expect(losing!.vars["badgeText"]).toBe("Entries about to be lost");
+      expect(losing!.vars["detail5Title"]).toBe("Entries lost from: ");
+      expect(losing!.vars["detail5Text"]).toBe(`about ${written(lostAt)}`);
+      expect(losing!.vars["remediation"]).toBe(
+        `From about ${written(lostAt)}, the entries this export has not sent are deleted as they pass the audit log retention they were recorded with, and are never sent. Fix the destination before then, and the export sends them, oldest first. A longer retention (Project Settings > Audit Logs > Settings) only keeps the entries recorded after the change.`,
+      );
+    });
+
+    test("turned off for longer than the retention, then on while its destination fails: one email, 30 minutes in, that it is losing entries since the first unsent one's stamp", async () => {
+      // It sent up to an entry 12 days old, then sat turned off; the project keeps a week.
+      const sentEntry: string = record(at(-12 * DAY), 7);
+      const firstUnsent: string = record(at(-11 * DAY), 7);
+      record(at(-HOUR), 7);
+      const row: StoredExport = webhookRow({
+        startsAt: at(-20 * DAY),
+        createdAt: at(-20 * DAY),
+        cursorCreatedAt: at(-12 * DAY),
+        cursorEntryId: sentEntry,
+        exportedEntryCount: 40,
+        lastExportedAt: at(-12 * DAY),
+      });
+      const exports: InMemoryExports = useInMemoryExports([row]);
+      webhook.failNext(
+        10_000,
+        new AuditLogExportDeliveryError("refused the key (HTTP 401)", {
+          retryable: false,
+        }),
+      );
+      const stamp: Date = auditLog.stampOf(firstUnsent);
+
+      await runUntil(exports, row, at(2 * DAY));
+
+      expect(stamp.getTime()).toBeLessThan(START.getTime());
+      expect(notices()).toEqual([AuditLogExportFailureNotice.LosingEntries]);
+      expect(sent[0]!.at.toISOString()).toBe(at(31 * MINUTE).toISOString());
+      expect(sent[0]!.now.toISOString()).toBe(sent[0]!.at.toISOString());
+      expect(mailed()).toHaveLength(1);
+
+      const email: { subject: string; vars: Record<string, string> } =
+        mailed()[0]!;
+
+      expect(email.subject).toBe(
+        'The audit log export "SIEM webhook" is losing entries',
+      );
+      expect(email.vars["badgeText"]).toBe("Entries being lost");
+      // The first entry it has not sent, not the one it sent before it was turned off.
+      expect(email.vars["detail4Text"]).toBe(written(at(-11 * DAY)));
+      expect(email.vars["detail5Title"]).toBe("Entries lost since: ");
+      expect(email.vars["detail5Text"]).toBe(`about ${written(stamp)}`);
+      expect(email.vars["remediation"]).toBe(losingNow(stamp));
+    });
+
+    test("the worker was down past the date: 'is failing' with the date ahead, then, at the first try after it, 'is losing entries' since that same date", async () => {
+      const oldest: Date = at(-5 * MINUTE);
+      const { row, exports } = failingExport(oldest);
+      const lostAt: Date = deletedAt(oldest, 7);
+
+      // The first email, while the date is a week ahead.
+      await runUntil(exports, row, at(DAY));
+      expect(notices()).toEqual([AuditLogExportFailureNotice.Failing]);
+
+      // Nothing runs again until two days after the date; the entry is still kept.
+      clock = new Date(lostAt.getTime() + 2 * DAY);
+      await exporter().exportAll();
+
+      expect(notices()).toEqual([
+        AuditLogExportFailureNotice.Failing,
+        AuditLogExportFailureNotice.LosingEntries,
+      ]);
+      expect(sent[1]!.now.toISOString()).toBe(clock.toISOString());
+      expect(sent[1]!.entriesLostAt!.toISOString()).toBe(lostAt.toISOString());
+
+      const [failing, lost] = mailed();
+
+      expect(failing!.vars["remediation"]).toBe(
+        `Fix the destination, and the export sends every entry waiting for it, oldest first. Nothing is lost yet: the audit log starts deleting them from about ${written(lostAt)}.`,
+      );
+      // The second email names the same date, now as passed: never "before then".
+      expect(lost!.subject).toBe(
+        'The audit log export "SIEM webhook" is losing entries',
+      );
+      expect(lost!.vars["badgeText"]).toBe("Entries being lost");
+      expect(lost!.vars["detail5Title"]).toBe("Entries lost since: ");
+      expect(lost!.vars["detail5Text"]).toBe(`about ${written(lostAt)}`);
+      expect(lost!.vars["remediation"]).toBe(losingNow(lostAt));
+    });
   });
 
   test("a failure after a delivery in the same run starts a new run of failures", async () => {

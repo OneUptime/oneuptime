@@ -143,7 +143,8 @@ export default class PcapFile {
    * base64 in the standard alphabet (what Buffer.toString("base64") writes).
    * Buffer.from would skip any character it does not know and decode the
    * rest, so the text is checked first - with a loop, never a regular
-   * expression: an upload is megabytes on one line (see AGENTS.md).
+   * expression: an upload is megabytes on one line (see
+   * Docs/notifications/README.md, "Megabyte-long values").
    */
   public static decodeBase64(text: string): Buffer | null {
     let end: number = text.length;

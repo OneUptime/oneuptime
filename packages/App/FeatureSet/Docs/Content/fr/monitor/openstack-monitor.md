@@ -57,7 +57,7 @@ Un nouveau moniteur démarre sur **Cloud Stopped Reporting**, sous **Sur quoi al
 
 ### Vérifier les critères
 
-Ouvrez chaque critère sous **Critères du moniteur** et vérifiez sa **Métrique**, son **Agrégation**, sa **Condition** et son **Seuil**. Un modèle les remplit. Avec **Custom Metric** ou **Avancé**, le moniteur démarre avec les critères par défaut, qui ne détectent que l'absence de données envoyées par la métrique : définissez donc votre propre seuil.
+Ouvrez chaque critère sous **Critères** et vérifiez sa **Métrique**, son **Agrégation**, sa **Condition** et son **Seuil**. Un modèle les remplit. Avec **Custom Metric** ou **Avancé**, le moniteur démarre avec les critères par défaut, qui ne détectent que l'absence de données envoyées par la métrique : définissez donc votre propre seuil.
 
 ### Créer le moniteur
 

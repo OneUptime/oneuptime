@@ -752,6 +752,159 @@ test.describe("Declare Incident", () => {
   });
 });
 
+/*
+ * A DROPDOWN'S DEFINED WORD OPENS ITS DEFINITION, AND NOTHING ELSE ON ITS
+ * TITLE DOES (#7543).
+ *
+ * Declare Incident's Initial State, as its Incident Severity, has a defined
+ * term for its title: a button that opens what the word means. A
+ * dropdown's title has no control to point at (no `for`), and a <label>
+ * with no `for` takes the first button inside it, the word's, for the
+ * control it labels: the browser handed that button a click on
+ * "(Optional)", or on the empty end of the title's row. Such a title is no
+ * longer a <label> (Forms/Fields/FieldLabel); the dropdown keeps its name.
+ */
+test.describe("Declare Incident's defined words", () => {
+  /*
+   * The product reads the glossary from its own host (DOCS_URL); the
+   * fixture's page allows reads from itself alone (connect-src 'self'): the
+   * browser sets that aside here, and the route below answers the read.
+   */
+  test.use({ bypassCSP: true });
+
+  const STATE_DEFINITION: string =
+    "Where an incident or an alert is in your response.";
+
+  // Waits for what a click started: Tippy draws a definition in a frame.
+  async function nextFrames(page: Page): Promise<void> {
+    await page.evaluate(async (): Promise<void> => {
+      for (let frame: number = 0; frame < 2; frame++) {
+        await new Promise<void>((resolve: () => void) => {
+          requestAnimationFrame(() => {
+            resolve();
+          });
+        });
+      }
+    });
+  }
+
+  test("Initial State: a click on its (Optional), or past its words, leaves the definition closed; a press on the word opens it, and the dropdown keeps its name", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.route(
+      /\/docs\/glossary\/[\w-]+\.json$/,
+      async (route: PlaywrightRoute) => {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          headers: { "Access-Control-Allow-Origin": "*" },
+          body: JSON.stringify({
+            lang: "en",
+            entries: [
+              { id: "state", term: "State", definition: STATE_DEFINITION },
+            ],
+          }),
+        });
+      },
+    );
+
+    await openForm(page);
+    await titleBox(page).fill("Checkout is down");
+    await openMoreFields(page);
+
+    const state: Locator = page.getByRole("combobox", {
+      name: /^Initial State/,
+    });
+    await expect(state).toBeVisible();
+
+    // The title's row, which names the dropdown, and the word in it.
+    const rowId: string | null = await state.getAttribute("aria-labelledby");
+    expect(rowId).toBeTruthy();
+    const row: Locator = page.locator(`[id="${rowId}"]`);
+    const word: Locator = row.getByTestId("defined-term");
+
+    await expect(state).toHaveAccessibleName("Initial State (Optional)");
+    await expect(word).toHaveAccessibleName("Initial State");
+
+    const definition: Locator = page.getByRole("dialog", {
+      name: "Initial State",
+    });
+
+    // The mark reads as every title's words do: under an arrow, as a label's.
+    const optionalMark: Locator = row.getByText("(Optional)", { exact: true });
+    expect(
+      await optionalMark.evaluate((element: Element): string => {
+        return getComputedStyle(element).cursor;
+      }),
+    ).toBe("default");
+
+    await optionalMark.click();
+    await nextFrames(page);
+
+    await expect(definition).toBeHidden();
+    await expect(word).toHaveAttribute("aria-expanded", "false");
+
+    // The empty end of the row, well past its words: the row itself is there.
+    const rowBox: {
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+    } | null = await row.boundingBox();
+    expect(rowBox).not.toBeNull();
+    const end: { x: number; y: number } = {
+      x: rowBox!.x + rowBox!.width - 8,
+      y: rowBox!.y + rowBox!.height / 2,
+    };
+    expect(
+      await page.evaluate((point: { x: number; y: number }): string | null => {
+        return document.elementFromPoint(point.x, point.y)?.id || null;
+      }, end),
+    ).toBe(rowId);
+
+    await page.mouse.click(end.x, end.y);
+    await nextFrames(page);
+
+    await expect(definition).toBeHidden();
+    await expect(word).toHaveAttribute("aria-expanded", "false");
+
+    // A press on the word opens it, and keeps it once the pointer moves away.
+    await word.click();
+    await expect(definition).toBeVisible();
+    await expect(definition.getByTestId("defined-term-definition")).toHaveText(
+      STATE_DEFINITION,
+    );
+    await page.mouse.move(0, 0);
+    await nextFrames(page);
+    await expect(definition).toBeVisible();
+
+    /*
+     * While it shows, the dropdown is still named by its title alone
+     * (#7561): the definition is drawn right after the title's row, which
+     * names the dropdown with every word inside it, and not in it.
+     */
+    await expect(
+      page.getByRole("combobox", {
+        name: "Initial State (Optional)",
+        exact: true,
+      }),
+    ).toBeVisible();
+    await expect(state).toHaveAccessibleName("Initial State (Optional)");
+
+    // The keyboard still goes from the word to Read more, and back.
+    await word.focus();
+    await page.keyboard.press("Tab");
+    await expect(
+      definition.getByTestId("defined-term-read-more"),
+    ).toBeFocused();
+    await page.keyboard.press("Shift+Tab");
+    await expect(word).toBeFocused();
+    await expect(definition).toBeVisible();
+  });
+});
+
 test.describe("Create Alert", () => {
   test("keeps Owners under More fields, offers the creator's teams, and says which rules will add whom", async ({
     page,

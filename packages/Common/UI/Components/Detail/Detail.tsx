@@ -43,7 +43,7 @@ import {
 } from "./DetailRecordTime";
 import { getDetailCopyText, hasDetailValue } from "./DetailValue";
 import { DetailValueContext } from "./DetailValueContext";
-import EmptyValue from "./EmptyValue";
+import EmptyValue, { isDashPlaceholder } from "./EmptyValue";
 import Field from "./Field";
 import FileModel from "../../../Models/DatabaseModels/DatabaseBaseModel/FileModel";
 import CustomFieldFileList, {
@@ -58,6 +58,9 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import GenericObject from "../../../Types/GenericObject";
 import IsolatedText from "../IsolatedText/IsolatedText";
 import IsolatedTextList from "../IsolatedText/IsolatedTextList";
+import PhoneNumberText from "../PhoneNumber/PhoneNumberText";
+import PhoneNumberTextList from "../PhoneNumber/PhoneNumberTextList";
+import { getPhoneNumbersOfValue } from "../../../Types/PhoneNumberDirection";
 import React, { ReactElement, useEffect, useState } from "react";
 
 export enum DetailStyle {
@@ -1012,6 +1015,29 @@ const Detail: DetailFunction = <T extends GenericObject>(
       );
     }
 
+    /*
+     * A phone number reads +447700900123 in every language: printed as it
+     * is, a Persian page put its "+" at the end (PhoneNumberText). A list
+     * of them typed as one value (a Twilio account's SMS numbers) is each
+     * of its numbers so, separated the reader's way (PhoneNumberTextList).
+     * No number leaves the field empty, for its placeholder.
+     */
+    if (data && field.fieldType === FieldType.Phone) {
+      const phoneNumbers: Array<string> = getPhoneNumbersOfValue(data);
+
+      data =
+        phoneNumbers.length > 1 ? (
+          <PhoneNumberTextList
+            phoneNumbers={phoneNumbers}
+            dataTestId="detail-phone-number-list"
+          />
+        ) : phoneNumbers[0] ? (
+          <PhoneNumberText phoneNumber={phoneNumbers[0]} />
+        ) : (
+          ""
+        );
+    }
+
     if (data && field.fieldType === FieldType.ObjectID) {
       /*
        * Read like the record's own ID on the ID line: an analytics row holds
@@ -1051,6 +1077,17 @@ const Detail: DetailFunction = <T extends GenericObject>(
             "' threw and was ignored. " +
             (err instanceof Error ? err.message : String(err)),
         );
+      }
+
+      /*
+       * A field whose own element is a bare dash (`<p>-</p>`) has no value:
+       * the card's own dash, read out as "Not set" - or the field's words
+       * for that - as a table's cell draws one (isDashPlaceholder). It drew
+       * a hyphen as dark as a value beside the dash of every empty field
+       * (#7264).
+       */
+      if (isDashPlaceholder(data)) {
+        data = "";
       }
     }
 

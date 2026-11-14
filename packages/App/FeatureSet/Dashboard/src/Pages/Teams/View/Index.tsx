@@ -1,9 +1,11 @@
 import OverviewCustomFields from "../../../Components/CustomFields/OverviewCustomFields";
 import OwnersCard from "../../../Components/Owners/OwnersCard";
 import { BUILT_IN_TEAM_OWNERS_REASON } from "../../../Components/Team/BuiltInTeamOwners";
+import UsedByCard from "../../../Components/UsedBy/UsedByCard";
 import PageComponentProps from "../../PageComponentProps";
 import URL from "Common/Types/API/URL";
 import ObjectID from "Common/Types/ObjectID";
+import { UsedByRecordKind } from "Common/Types/UsedBy/UsedBy";
 import Card from "Common/UI/Components/Card/Card";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
@@ -167,6 +169,13 @@ const TeamViewIndex: FunctionComponent<
           id="team-owners-built-in"
         />
       )}
+
+      {/*
+       * "Used by" (#6813): the on-call policies that page this team, and
+       * the monitors, status pages, services, policies and schedules it
+       * owns.
+       */}
+      <UsedByCard recordKind={UsedByRecordKind.Team} recordId={modelId} />
 
       <OverviewCustomFields
         modelId={modelId}

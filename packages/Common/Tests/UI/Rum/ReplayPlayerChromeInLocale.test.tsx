@@ -390,9 +390,10 @@ describe("ReplayHeader in the reader's language", () => {
     expect(screen.getByTestId("replay-header-user")).toHaveTextContent(
       "⟦Identity hidden⟧",
     );
+    // The grant that shows it, by the roles screen's title, filled in place (#7096).
     expect(screen.getByTestId("replay-header-user")).toHaveAttribute(
       "title",
-      "⟦The end user's identity needs the identity permission to view.⟧",
+      '⟦Your role cannot read end-user identity. Ask a project admin for the "Watch Session Replays" permission.⟧',
     );
 
     rerender(

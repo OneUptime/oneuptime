@@ -127,8 +127,8 @@ Uw marketplace-abonnement is uw licentie. Elk rapport dat de marketplace accepte
 | Wat er gebeurt | Wat het editielabel toont |
 | --- | --- |
 | De marketplace accepteert de rapporten van elk uur | De Enterprise Edition, gelicentieerd via uw marketplace. |
-| Er is al 72 uur geen rapport geaccepteerd | **Enterprise Edition (Marketplace Reports Failing)**: elke enterprisefunctie blijft werken tijdens een respijtperiode van 30 dagen. |
-| De marketplace meldt dat de installatie geen abonnement heeft, of de respijtperiode eindigt | **Enterprise Edition (Marketplace Subscription Ended)**: de enterprisefuncties stoppen, net als wanneer een [licentie verloopt](/docs/self-hosted/enterprise#als-een-licentie-verloopt-of-ontbreekt). |
+| Er is al 72 uur geen rapport geaccepteerd | **Enterprise Edition (marketplacerapporten mislukken)**: elke enterprisefunctie blijft werken tijdens een respijtperiode van 30 dagen. |
+| De marketplace meldt dat de installatie geen abonnement heeft, of de respijtperiode eindigt | **Enterprise Edition (marketplace-abonnement beëindigd)**: de enterprisefuncties stoppen, net als wanneer een [licentie verloopt](/docs/self-hosted/enterprise#als-een-licentie-verloopt-of-ontbreekt). |
 
 De marketplace weigert een opgezegd of opgeschort abonnement, of een andere installatie dan die u hebt gekocht. Monitoring, alerts, incidenten, piketdienst en statuspagina's blijven in alle gevallen werken, en er wordt niets verwijderd. Neem opnieuw een abonnement, en het volgende geaccepteerde rapport geeft de Enterprise Edition weer een licentie, zonder herstart.
 
@@ -162,7 +162,7 @@ De facturering hangt niet af van het aantal replica's dat draait: er rapporteert
 
 ## Problemen oplossen
 
-:::details Het editielabel toont Enterprise Edition (Marketplace Reports Failing)
+:::details Het editielabel toont Enterprise Edition (marketplacerapporten mislukken)
 OneUptime kan niet aan de marketplace rapporteren. Elke regel die het daarover logt, begint met `OneUptime Enterprise marketplace billing`; een regel die zegt dat het gebruik "cannot be reported", noemt wat er ontbreekt. De gebruikelijke oorzaken:
 
 - **AWS:** het serviceaccount `oneuptime` heeft geen IAM-rol, of de rol heeft het beleid `AWSMarketplaceMeteringFullAccess` niet (`AWSMarketplaceMeteringRegisterUsage` is niet genoeg). Koppel het beleid aan de rol, of maak de rol aan met het commando `eksctl` onder [AWS Marketplace](#aws-marketplace) en herstart daarna de pods van OneUptime met `kubectl rollout restart deployment --namespace oneuptime`.
@@ -173,7 +173,7 @@ OneUptime kan niet aan de marketplace rapporteren. Elke regel die het daarover l
 Het gebruik wordt bewaard terwijl u het probleem oplost, en gefactureerd zodra OneUptime weer kan rapporteren. Gebruik dat ouder is dan 30 dagen, wordt niet gefactureerd.
 :::
 
-:::details Het editielabel toont Enterprise Edition (Marketplace Subscription Ended)
+:::details Het editielabel toont Enterprise Edition (marketplace-abonnement beëindigd)
 De marketplace heeft de installatie geweigerd: het abonnement is opgezegd of opgeschort, of de installatie is niet de installatie die op de marketplace is gekocht. Controleer het abonnement op de marketplace en neem opnieuw een abonnement; het volgende geaccepteerde rapport geeft de Enterprise Edition weer een licentie. Hetzelfde label verschijnt wanneer de rapporten de hele respijtperiode bleven mislukken.
 :::
 

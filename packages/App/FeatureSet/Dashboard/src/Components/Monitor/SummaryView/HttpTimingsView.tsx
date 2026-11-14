@@ -2,8 +2,13 @@ import HttpPhaseTimings from "Common/Types/Monitor/HttpPhaseTimings";
 import React, { FunctionComponent, ReactElement } from "react";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { formatMilliseconds } from "../../../Utils/Milliseconds";
 import {
+  TIMING_BAR_TRACK_CLASS_NAME,
   TIMING_LABEL_CLASS_NAME,
+  TIMING_ROW_CLASS_NAME,
+  TIMING_ROW_TEST_ID,
+  TIMING_ROWS_CLASS_NAME,
   TIMING_VALUE_CLASS_NAME,
 } from "./SummaryFacts";
 
@@ -75,25 +80,29 @@ const HttpTimingsView: FunctionComponent<ComponentProps> = (
           "Where this check spent its time, from DNS lookup to the last byte.",
         )}
       </div>
-      <div className="space-y-2">
+      <div className={TIMING_ROWS_CLASS_NAME}>
         {phases.map((phase: TimingPhase) => {
           const percent: number =
             totalInMs > 0 ? (phase.valueInMs / totalInMs) * 100 : 0;
 
           return (
-            <div key={phase.label} className="flex items-center text-sm">
+            <div
+              key={phase.label}
+              className={TIMING_ROW_CLASS_NAME}
+              data-testid={TIMING_ROW_TEST_ID}
+            >
               <div className={TIMING_LABEL_CLASS_NAME}>
                 {translator.translateText(phase.label)}
               </div>
-              <div className="flex-1 mx-2">
+              <div className={TIMING_BAR_TRACK_CLASS_NAME}>
                 <div
                   className={`h-3 rounded ${phase.colorClassName}`}
                   style={{ width: `${Math.max(percent, 1)}%` }}
                 ></div>
               </div>
               <div className={TIMING_VALUE_CLASS_NAME}>
-                {translator.translateTemplate("{{value}} ms", {
-                  value: Math.round(phase.valueInMs * 100) / 100,
+                {formatMilliseconds(translator, phase.valueInMs, {
+                  maximumFractionDigits: 2,
                 })}
               </div>
             </div>

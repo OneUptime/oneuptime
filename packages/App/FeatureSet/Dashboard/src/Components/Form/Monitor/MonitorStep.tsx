@@ -2626,7 +2626,7 @@ return {
         />
       ) : (
         <Card
-          title="Monitor Criteria"
+          title="Criteria"
           titleGlossaryTerm={GlossaryTerm.Criteria}
           description="When this monitor changes status, declares an incident or creates an alert. They are checked from top to bottom, and the first one that matches decides."
           rightElement={

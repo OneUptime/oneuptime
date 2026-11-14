@@ -591,7 +591,7 @@ level: high
 
 Ein Monitor für Sicherheitsereignisse zählt die Ereignisse, die auf seine Filter passen, über ein gleitendes Fenster und wendet die üblichen Monitorkriterien auf die Zählung an: Er ändert den Status des Monitors, öffnet Warnungen oder Vorfälle und alarmiert die Bereitschaft. Erstellen Sie einen unter **Monitore → Monitor erstellen**, mit **Sicherheitsereignisse** als Typ; dort wird er mit Ihren anderen Monitoren aufgeführt.
 
-Sein Formular zeigt **Ereignisse überwachen, die diesen Text enthalten**, **Sicherheitsereignisse überwachen für (Zeit)**, **Ereignisschweregrad** und **Ereignisklasse**. **Nach Telemetrie-Dienst filtern**, **Nach Attributen filtern** und **Nach Beobachtungslisten filtern** warten unter **Weitere Felder**, dessen Kopf die zeigt, die ein Monitor nutzt. **Nach Beobachtungslisten filtern** behält die Ereignisse, deren Feld auf einer Ihrer [Beobachtungslisten](#beobachtungslisten) steht oder nicht steht. Seine Kriterien prüfen **Anzahl der Sicherheitsereignisse**.
+Sein Formular zeigt **Ereignisse überwachen, die diesen Text enthalten**, **Sicherheitsereignisse überwachen für (Zeit)**, **Ereignisschweregrad** und **Ereignisklasse**. **Nach Dienst filtern**, **Nach Attributen filtern** und **Nach Beobachtungslisten filtern** warten unter **Weitere Felder**, dessen Kopf die zeigt, die ein Monitor nutzt. **Nach Beobachtungslisten filtern** behält die Ereignisse, deren Feld auf einer Ihrer [Beobachtungslisten](#beobachtungslisten) steht oder nicht steht. Seine Kriterien prüfen **Anzahl der Sicherheitsereignisse**.
 
 | | Erkennungsregel | Monitor für Sicherheitsereignisse |
 | --- | --- | --- |

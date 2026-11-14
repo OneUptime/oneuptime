@@ -37,7 +37,7 @@ El explorador tiene cinco pestañas:
 ## Antes de empezar
 
 - **Trazas que llegan.** Instrumente sus servicios con [OpenTelemetry](/docs/telemetry/open-telemetry). La pestaña **Guía de configuración** muestra el código para su lenguaje.
-- **Un rol que pueda leer telemetría.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member o Telemetry Viewer, o un rol personalizado con el permiso Read Telemetry Service Traces. Su ámbito decide de quién son los spans que ve: consulte [Telemetría](/docs/permissions/index#telemetría).
+- **Un rol que pueda leer telemetría.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member o Telemetry Viewer, o un rol personalizado con el permiso Read Traces. Su ámbito decide de quién son los spans que ve: consulte [Telemetría](/docs/permissions/index#telemetría).
 
 ## Encontrar una solicitud
 
@@ -183,6 +183,6 @@ Cada fila es un span, no una solicitud: con **Entry spans**, el valor predetermi
 :::cards
 - [Sintaxis de búsqueda](/docs/telemetry/search-syntax): Todos los filtros que entiende el cuadro de búsqueda.
 - [Monitor de trazas](/docs/monitor/traces-monitor): Recibir alertas de solicitudes fallidas o lentas.
-- [Seguimiento de excepciones](/docs/telemetry/exceptions): Revisar los errores que registran sus spans.
+- [Excepciones](/docs/telemetry/exceptions): Revisar los errores que registran sus spans.
 - [Explorador de registros](/docs/telemetry/logs-explorer): Leer las líneas de registro que escribió una solicitud.
 :::

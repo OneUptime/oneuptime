@@ -568,7 +568,7 @@ describe("Needs attention, from the server's own statuses", () => {
       ],
       [
         "llm_provider_missing",
-        "Add an AI provider for this project, or use OneUptime AI credits.",
+        "Add an LLM provider for this project, or use OneUptime AI credits.",
         "open_llm_providers",
       ],
       [

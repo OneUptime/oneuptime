@@ -29,7 +29,7 @@ flowchart TB
 | Side | Hva den inneholder | Spørsmålet den svarer på |
 | --- | --- | --- |
 | **Varselmetoder** | E-postadressene, telefonnumrene og WhatsApp-numrene dine, Telegram-, Slack-, Microsoft Teams- og Mattermost-kontoene dine, push-enheter og webhooks | Hvor kan OneUptime nå meg? |
-| **Vaktregler** | For hver type tilkalling og hver alvorlighetsgrad: hvilken metode som prøves, og etter hvor lang tid | Hvordan blir jeg tilkalt mens jeg har vakt? |
+| **Slik når man meg** | For hver type tilkalling og hver alvorlighetsgrad: hvilken metode som prøves, og etter hvor lang tid | Hvordan blir jeg tilkalt mens jeg har vakt? |
 | **Varselinnstillinger** | For hver hendelse om noe du eier, eller om vaktene dine: hvilke kanaler som brukes | Hva annet får jeg vite om, og hvor? |
 
 De er atskilt med vilje. Å slå på alle kanaler i **Varselinnstillinger** tilkaller deg aldri, og en metode du ikke har verifisert blir aldri brukt, uansett hva reglene dine sier.
@@ -44,7 +44,7 @@ De er atskilt med vilje. Å slå på alle kanaler i **Varselinnstillinger** tilk
 | Seksjon | Sider |
 | --- | --- |
 | **Kom i gang** | **Oppsettsjekkliste**: hva som gjenstår å sette opp, i den rekkefølgen som teller |
-| **Varsler og notifikasjoner** | **Varselmetoder**, **Vaktregler**, **Varselinnstillinger** og **E-postinnstillinger**, der du bestemmer hvor mange e-poster oppdateringene dine blir til |
+| **Varsler og notifikasjoner** | **Varselmetoder**, **Slik når man meg**, **Varselinnstillinger** og **E-postinnstillinger**, der du bestemmer hvor mange e-poster oppdateringene dine blir til |
 | **Vaktlogger** | **Vaktlogger**: hver gang du ble tilkalt i dette prosjektet, og hva som ble sendt |
 | **Retningslinjer for innkommende anrop** | **Innkommende telefonnumre**: nummeret en policy for innkommende anrop ringer deg på |
 | **Kalender** | **Kalenderfeed**: vaktene dine i kalenderappen din, og påminnelser før de starter |
@@ -53,17 +53,17 @@ De er atskilt med vilje. Å slå på alle kanaler i **Varselinnstillinger** tilk
 
 **Kom i gang** og **Varsler og notifikasjoner** er åpne; de andre seksjonene starter sammenslått, og en seksjon åpner seg selv når du er på en av sidene dens. **Arbeidsområde** vises bare når prosjektet har koblet til Slack, Microsoft Teams eller Mattermost.
 
-Prosjekteiere og administratorer kan også se oppsettet ditt: Under **Brukere** åpner de raden din og seksjonen **Vakt** i den, med **Beredskap**, **Varselmetoder** og **Vaktregler**. De kan legge til en metode for deg der, men koden går til selve metoden, så bare du kan verifisere den.
+Prosjekteiere og administratorer kan også se oppsettet ditt: Under **Brukere** åpner de raden din og seksjonen **Vakt** i den, med **Beredskap**, **Varselmetoder** og **Slik når man meg**. De kan legge til en metode for deg der, men koden går til selve metoden, så bare du kan verifisere den.
 
 ## Dette starter du med
 
 Når du blir medlem av et prosjekt med en verifisert påloggings-e-post, setter OneUptime deg opp slik at en tilkalling alltid kan nå deg:
 
 1. Påloggings-e-posten din legges til som en verifisert e-postmetode.
-2. For hver alvorlighetsgrad, på hver av de fire fanene i **Vaktregler**, sender en regel deg en e-post så snart du blir tilkalt.
+2. For hver alvorlighetsgrad, på hver av de fire fanene i **Slik når man meg**, sender en regel deg en e-post så snart du blir tilkalt.
 3. En rekke oppdateringer om det du eier, og om vaktene dine, er slått på via e-post. Se [Varselinnstillinger](/docs/notifications/notification-settings#hva-som-er-slått-på-for-et-nytt-medlem).
 
-Hver metode du verifiserer senere, får de samme reglene: en regel for hver alvorlighetsgrad, sendt så snart du blir tilkalt. Å verifisere et telefonnummer for SMS betyr altså at hver tilkalling også sender deg en SMS. Vil du bare ha SMS ved kritiske tilkallinger, sletter du SMS-reglene for de andre alvorlighetsgradene. Se [Personlige vaktregler](/docs/notifications/on-call-rules#reglene-du-starter-med).
+Hver metode du verifiserer senere, får de samme reglene: en regel for hver alvorlighetsgrad, sendt så snart du blir tilkalt. Å verifisere et telefonnummer for SMS betyr altså at hver tilkalling også sender deg en SMS. Vil du bare ha SMS ved kritiske tilkallinger, sletter du SMS-reglene for de andre alvorlighetsgradene. Se [Slik når man meg](/docs/notifications/on-call-rules#reglene-du-starter-med).
 
 ## Oppsettsjekklisten
 
@@ -72,7 +72,7 @@ Hver metode du verifiserer senere, får de samme reglene: en regel for hver alvo
 | Seksjon | Hva den sjekker |
 | --- | --- |
 | **So we can reach you** | Du har en metode, hver metode du har lagt til er verifisert, og minst én av dem er på en kanal prosjektet har slått på |
-| **How you want to be paged** | Hver alvorlighetsgrad har en regel, på hver av de fire fanene i **Vaktregler** |
+| **How you want to be paged** | Hver alvorlighetsgrad har en regel, på hver av de fire fanene i **Slik når man meg** |
 | **Staying informed** | Du får vite når en vakt starter, og bak hver kanal du har slått på i **Varselinnstillinger**, står en verifisert metode |
 | **Nice to have** | Et nummer for innkommende anrop, Slack- og Microsoft Teams-kontoene dine, en kalenderlenke og profilfeltene dine |
 
@@ -95,7 +95,7 @@ En tilkalling kan nå deg for en type og en alvorlighetsgrad du ikke har noen re
 2. Har du ingen av dem, én betalt metode, i denne rekkefølgen: SMS, et telefonanrop, WhatsApp, Telegram. Det er den første du har verifisert, på en kanal prosjektet har slått på.
 3. Har du heller ingen av dem, en webhook.
 
-Du får en e-post om det, og det gjør også eierne av vaktpolicyen, eller prosjektets eiere hvis policyen ikke har noen. Er ingenting verifisert, kan tilkallingen ikke leveres, og e-posten sier det i stedet. Disse e-postene holdes tilbake mens tilkallingene fortsetter å komme, slik at en storm av tilkallinger ikke blir en storm av e-poster. Hvordan du legger til den manglende regelen, står under [Personlige vaktregler](/docs/notifications/on-call-rules#når-en-alvorlighetsgrad-ikke-har-noen-regel).
+Du får en e-post om det, og det gjør også eierne av vaktpolicyen, eller prosjektets eiere hvis policyen ikke har noen. Er ingenting verifisert, kan tilkallingen ikke leveres, og e-posten sier det i stedet. Disse e-postene holdes tilbake mens tilkallingene fortsetter å komme, slik at en storm av tilkallinger ikke blir en storm av e-poster. Hvordan du legger til den manglende regelen, står under [Slik når man meg](/docs/notifications/on-call-rules#når-en-alvorlighetsgrad-ikke-har-noen-regel).
 
 ## Språket i tilkallingene dine
 
@@ -131,7 +131,7 @@ Et nummer kommer med i reglene dine når det er verifisert. Klikk **Verifiser** 
 
 :::cards
 - [Varselmetoder](/docs/notifications/notification-methods): Legg til og verifiser adressene OneUptime kan nå deg på.
-- [Personlige vaktregler](/docs/notifications/on-call-rules): Bestem hvilken metode hver tilkalling prøver, og når.
+- [Slik når man meg](/docs/notifications/on-call-rules): Bestem hvilken metode hver tilkalling prøver, og når.
 - [Varselinnstillinger](/docs/notifications/notification-settings): Velg oppdateringene du får vite om, og via hvilke kanaler.
 - [Eskaleringsregler](/docs/on-call/escalation-rules): Hvordan en vaktpolicy avgjør hvem som tilkalles, nivå for nivå.
 :::

@@ -155,7 +155,7 @@ flowchart TB
 ## گام‌های بعدی
 
 :::cards
-- [معیارها و وضعیت‌های مانیتور](/docs/monitor/criteria-and-statuses): چه چیزی وضعیت هر مانیتور را تعیین می‌کند.
+- [معیارها و وضعیت‌ها](/docs/monitor/criteria-and-statuses): چه چیزی وضعیت هر مانیتور را تعیین می‌کند.
 - [منابع و گروه‌های صفحه وضعیت](/docs/status-pages/resources-and-groups): ردیف‌های یک صفحهٔ وضعیت را بچینید.
 - [مشترکان و اطلاعیه‌ها](/docs/status-pages/subscribers): دربارهٔ حادثه‌های یک گروه به مشتریان خبر دهید.
 :::

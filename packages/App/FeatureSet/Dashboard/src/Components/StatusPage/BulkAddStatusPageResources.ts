@@ -1,7 +1,10 @@
 import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
 import ObjectID from "Common/Types/ObjectID";
-import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import {
+  StatusPageResourceOptions,
+  buildStatusPageResource,
+} from "Common/Utils/GuidedSetup/StatusPageRecords";
 
 /*
  * What a status page bulk add puts on the page: monitors (Add Multiple
@@ -19,13 +22,7 @@ export interface BulkAddStatusPageTarget {
  * the same options the single resource form offers, minus display name and
  * description, which are copied from each monitor (or monitor group).
  */
-export interface BulkAddStatusPageResourceOptions {
-  displayTooltip?: string | undefined;
-  showCurrentStatus?: boolean | undefined;
-  showUptimePercent?: boolean | undefined;
-  uptimePercentPrecision?: UptimePrecision | undefined;
-  showStatusHistoryChart?: boolean | undefined;
-}
+export type BulkAddStatusPageResourceOptions = StatusPageResourceOptions;
 
 export type CreateStatusPageResourceFunction = (
   resource: StatusPageResource,
@@ -106,68 +103,26 @@ const toIdSet: ToIdSetFunction = (
   return idSet;
 };
 
-type BuildResourceFunction = (data: {
+/*
+ * One new resource, placed and set up as the bulk add says
+ * (Common/Utils/GuidedSetup/StatusPageRecords, where Ask AI's status page
+ * actions build theirs too). Its name and description are its monitor's
+ * (or monitor group's); the caller points it at what it shows.
+ */
+const buildResource: (data: {
   placement: BulkAddStatusPagePlacement;
   displayName: string;
   displayDescription: string | undefined;
-}) => StatusPageResource;
-
-/*
- * One new resource, placed and set up as the bulk add says. Its name and
- * description are its monitor's (or monitor group's); the caller points it
- * at what it shows.
- */
-const buildResource: BuildResourceFunction = (data: {
+}) => StatusPageResource = (data: {
   placement: BulkAddStatusPagePlacement;
   displayName: string;
   displayDescription: string | undefined;
 }): StatusPageResource => {
-  const placement: BulkAddStatusPagePlacement = data.placement;
-  const resource: StatusPageResource = new StatusPageResource();
-  resource.projectId = placement.projectId;
-  resource.statusPageId = placement.statusPageId;
-  resource.displayName = data.displayName;
-
-  if (data.displayDescription !== undefined) {
-    resource.displayDescription = data.displayDescription;
-  }
-
-  if (placement.statusPageGroupId) {
-    resource.statusPageGroupId = placement.statusPageGroupId;
-  }
-
-  if (placement.rowAxisValue) {
-    resource.rowAxisValue = placement.rowAxisValue;
-  }
-
-  if (placement.columnAxisValue) {
-    resource.columnAxisValue = placement.columnAxisValue;
-  }
-
-  const resourceOptions: BulkAddStatusPageResourceOptions =
-    placement.resourceOptions || {};
-
-  if (resourceOptions.displayTooltip) {
-    resource.displayTooltip = resourceOptions.displayTooltip;
-  }
-
-  if (resourceOptions.showCurrentStatus !== undefined) {
-    resource.showCurrentStatus = resourceOptions.showCurrentStatus;
-  }
-
-  if (resourceOptions.showUptimePercent !== undefined) {
-    resource.showUptimePercent = resourceOptions.showUptimePercent;
-  }
-
-  if (resourceOptions.uptimePercentPrecision) {
-    resource.uptimePercentPrecision = resourceOptions.uptimePercentPrecision;
-  }
-
-  if (resourceOptions.showStatusHistoryChart !== undefined) {
-    resource.showStatusHistoryChart = resourceOptions.showStatusHistoryChart;
-  }
-
-  return resource;
+  return buildStatusPageResource({
+    placement: data.placement,
+    displayName: data.displayName,
+    displayDescription: data.displayDescription,
+  });
 };
 
 /**

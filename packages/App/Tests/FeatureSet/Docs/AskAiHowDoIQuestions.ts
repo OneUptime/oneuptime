@@ -36,8 +36,17 @@ export const ASK_AI_HOW_DO_I_QUESTIONS: ReadonlyArray<AskAiHowDoIQuestion> = [
     question: "How do I get a text when my site is down?",
     searchWords: "SMS notification when a monitor is down",
     docsPage: "notifications/notification-methods",
+    // The guide (#6821) walks it from nothing to a tested page.
+    alsoAnswers: ["guides/paging"],
     dashboardPage: "Phone Numbers for SMS Notifications",
     dashboardPath: "/dashboard/:projectId/user-settings/notification-methods",
+  },
+  {
+    question: "How do I get paged on my phone when something breaks?",
+    docsPage: "guides/paging",
+    alsoAnswers: ["on-call/index", "notifications/notification-methods"],
+    dashboardPage: "Page the right person when something breaks",
+    dashboardPath: "/dashboard/:projectId/on-call-duty/setup",
   },
   {
     question: "What is an episode?",
@@ -77,6 +86,7 @@ export const ASK_AI_HOW_DO_I_QUESTIONS: ReadonlyArray<AskAiHowDoIQuestion> = [
     question:
       "How do I escalate to someone else when the first person does not answer?",
     docsPage: "on-call/escalation-rules",
+    alsoAnswers: ["guides/paging"],
     dashboardPage: "On-Call Policies",
     dashboardPath: "/dashboard/:projectId/on-call-duty/policies",
   },
@@ -89,12 +99,21 @@ export const ASK_AI_HOW_DO_I_QUESTIONS: ReadonlyArray<AskAiHowDoIQuestion> = [
   {
     question: "How do I create a status page?",
     docsPage: "status-pages/index",
+    alsoAnswers: ["guides/status-page"],
     dashboardPage: "All Status Pages",
     dashboardPath: "/dashboard/:projectId/status-pages",
   },
   {
     question: "How do I use my own domain for my status page?",
     docsPage: "status-pages/branding-and-domains",
+    alsoAnswers: ["guides/status-page"],
+  },
+  {
+    question: "How do I publish a status page on my own domain, with HTTPS?",
+    docsPage: "guides/status-page",
+    alsoAnswers: ["status-pages/branding-and-domains"],
+    dashboardPage: "Publish a status page",
+    dashboardPath: "/dashboard/:projectId/status-pages/setup",
   },
   {
     question: "How can my customers subscribe to status page updates?",
@@ -153,7 +172,8 @@ export const ASK_AI_HOW_DO_I_QUESTIONS: ReadonlyArray<AskAiHowDoIQuestion> = [
   {
     question: "Where do I get a telemetry ingestion key?",
     docsPage: "telemetry/ingestion-keys",
-    dashboardPage: "Telemetry Ingestion Keys",
+    dashboardPage: "Ingestion Keys",
+    dashboardPath: "/dashboard/:projectId/settings/telemetry-ingestion-keys",
   },
   {
     question: "How do I get warned before my SSL certificate expires?",

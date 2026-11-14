@@ -3,7 +3,7 @@
 Skicka OneUptimes e-post via en e-postleverantörs HTTPS-API i stället för via en SMTP-server: Amazon SES, SendGrid, Mailgun, Postmark eller Resend. Ett projekt väljer en av dem för en SMTP-konfiguration, och en egenvärdad installation kan skicka all sin egen e-post via en av dem. API:et nås över HTTPS på port 443, så e-posten går ut även från nätverk som blockerar SMTP-portarna, och varje leverantörs nyckel sparas krypterad.
 
 :::cards
-- [Amazon SES](#amazon-ses): En IAM-åtkomstnyckel och regionen där din avsändare är verifierad.
+- [Amazon SES](#amazon-ses): En IAM-åtkomstnyckel, eller serverns egen IAM-roll, och regionen där din avsändare är verifierad.
 - [SendGrid](#sendgrid): En API-nyckel med åtkomsten Mail Send.
 - [Mailgun](#mailgun): En API-nyckel, den sändande domänen och dess region.
 - [Postmark](#postmark): Serverns API-token.
@@ -15,7 +15,7 @@ Skicka OneUptimes e-post via en e-postleverantörs HTTPS-API i stället för via
 
 :::tabs
 @tab Projekt
-Öppna **Fler inställningar** under **Projektinställningar > Aviseringar > Aviseringsinställningar** och klicka på **Skapa SMTP-konfiguration** i kortet **Anpassade SMTP-konfigurationer**. I steget **Leverantör** anger du ett **Namn** och väljer leverantören. Nästa steg frågar efter den leverantörens inställningar, och steget **Avsändare** efter **E-post från** och **Från-namn**. När konfigurationen är sparad kontrollerar **Skicka test-e-post** på dess rad att den fungerar.
+Öppna **Fler inställningar** under **Projektinställningar > Aviseringar > Aviseringskanaler** och klicka på **Skapa SMTP-konfiguration** i kortet **Anpassade SMTP-konfigurationer**. I steget **Leverantör** anger du ett **Namn** och väljer leverantören. Nästa steg frågar efter den leverantörens inställningar, och steget **Avsändare** efter **E-post från** och **Från-namn**. När konfigurationen är sparad kontrollerar **Skicka test-e-post** på dess rad att den fungerar.
 @tab Egenvärdad instans
 Öppna **Inställningar** i Admin Dashboard och sedan **Notifieringar > E-post**. Klicka i kortet **E-post-serverinställningar** på **Redigera server** och välj leverantören som **Typ av e-postserver**. Leverantörens kort visas nedanför, till exempel **Amazon SES-inställningar**: klicka på dess redigeringsknapp, till exempel **Redigera Amazon SES**, och fyll i leverantörens inställningar och steget **Avsändare**. Så länge något saknas visar kortet vad som fattas, och varje e-postmeddelande avvisas med besked om vilken inställning som ska fyllas i.
 :::
@@ -54,10 +54,44 @@ Skapa en IAM-användare för OneUptime med en policy som tillåter `ses:SendEmai
 }
 ```
 
+En egenvärdad installation på AWS kan hoppa över nyckeln och i stället [logga in med serverns IAM-roll](#logga-in-med-serverns-iam-roll), med samma policy.
+
 ### Fyll i steget Amazon SES
 
 Ange **Åtkomstnyckel-ID** och **Hemlig åtkomstnyckel**, och den **Region** där din identitet är verifierad, till exempel `us-east-1`.
 :::
+
+### Logga in med serverns IAM-roll
+
+En egenvärdad installation på AWS kan skicka sin egen e-post som den IAM-roll som AWS ger servern, utan att någon åtkomstnyckel lagras i OneUptime: autentiseringsuppgifterna som AWS delar ut går ut inom några timmar, och OneUptime hämtar nya innan de gör det. Detta gäller bara serverns egen e-post. Ett projekts Amazon SES-konfiguration loggar alltid in med en åtkomstnyckel, eftersom serverns roll är serverns egen AWS-identitet, inte ett projekts.
+
+Ge rollen policyn ovan och kör sedan OneUptime som den:
+
+:::tabs
+@tab Amazon EKS
+Med IAM-roller för tjänstkonton skapar du rollen med en förtroendepolicy för klustrets OIDC-leverantör och låter Helm-diagrammet skapa ett tjänstkonto med rollens ARN. OneUptimes app- och worker-poddar körs som det:
+
+```yaml title="values.yaml"
+serviceAccount:
+  create: true
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::123456789012:role/oneuptime-ses
+```
+
+Med EKS Pod Identity skapar du i stället en Pod Identity-koppling mellan rollen och det tjänstkontot och utelämnar annoteringen.
+@tab Amazon ECS
+Ange rollen som **Task role** i OneUptimes uppgiftsdefinition.
+@tab Amazon EC2
+Koppla rollen till instansen som dess instansprofil. Med OneUptime i Docker på instansen höjer du hoppgränsen för instansmetadata till 2, så att containrarna kan nå dem:
+
+```bash
+aws ec2 modify-instance-metadata-options --instance-id <instance-id> --http-put-response-hop-limit 2 --http-endpoint enabled
+```
+:::
+
+Klicka sedan på **Redigera Amazon SES** i Admin Dashboard, välj **Den här serverns IAM-roll** som **Autentiseringstyp** och ange **Region**. När du sparar tas en åtkomstnyckel som lagrats tidigare bort.
+
+OneUptime letar efter serverns autentiseringsuppgifter där AWS SDK:erna gör det, i den här ordningen: `AWS_ACCESS_KEY_ID` och `AWS_SECRET_ACCESS_KEY` i dess miljö, en webbidentitetstoken (`AWS_ROLE_ARN` och `AWS_WEB_IDENTITY_TOKEN_FILE`), slutpunkten för containerautentiseringsuppgifter i Amazon ECS och EKS Pod Identity, och sist instansmetadatatjänsten i EC2 (IMDSv2).
 
 ## SendGrid
 
@@ -89,6 +123,14 @@ Kontrollera **Åtkomstnyckel-ID**, att nyckeln är aktiv i IAM och att **Hemlig 
 
 :::details "The access key may not send with Amazon SES"
 IAM-användarens policy tillåter inte `ses:SendEmail` för din identitet. Lägg till policyn ovan.
+:::
+
+:::details "This server has no AWS credentials"
+Servern loggar in med sin IAM-roll, men AWS ger den inga autentiseringsuppgifter. Kör den som rollen, som [Logga in med serverns IAM-roll](#logga-in-med-serverns-iam-roll) visar, och starta sedan om OneUptimes poddar eller uppgifter: en podd får sin rolls inställningar när den startar. I Docker på Amazon EC2 säger meddelandet också när hoppgränsen för instansmetadata är för låg.
+:::
+
+:::details "This server's IAM role may not send with Amazon SES" eller "did not let this server assume the role"
+Rollens policy tillåter inte `ses:SendEmail` för din identitet: lägg till policyn ovan. Eller, på Amazon EKS, tillåter rollens förtroendepolicy inte `sts:AssumeRoleWithWebIdentity` för klustrets OIDC-leverantör och OneUptimes tjänstkonto.
 :::
 
 :::details "Mailgun has no domain … in its US region"

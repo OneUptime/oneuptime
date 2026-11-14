@@ -68,6 +68,16 @@ const PALETTE_HOST: string = readAppCode(
 );
 
 /*
+ * What the NavBar reads the catalog through since #6814: the catalog,
+ * fitted to the project's products and the person's pins.
+ */
+const DASHBOARD_PRODUCTS_MENU: string = readAppCode(
+  "Utils",
+  "ProjectProducts",
+  "UseDashboardProductsMenu.ts",
+);
+
+/*
  * Effects contain nested handlers, so matching one by a meaningful state
  * update is less fragile than pinning the handler's local variable name.
  */
@@ -182,8 +192,16 @@ describe("command palette wiring", () => {
   });
 
   test("both the NavBar and the palette read the SAME page catalog hook", () => {
-    // Single source of truth: an item added to the hook reaches both surfaces.
-    expect(DASHBOARD_NAVBAR).toMatch(/useDashboardNavigationItems\s*\(/);
+    /*
+     * Single source of truth: an item added to the hook reaches both
+     * surfaces. The NavBar reads it through useDashboardProductsMenu, which
+     * fits the same catalog to the project's products (#6814).
+     */
+    expect(DASHBOARD_NAVBAR).toMatch(/useDashboardProductsMenu\s*\(/);
+    expect(DASHBOARD_PRODUCTS_MENU).toMatch(/useDashboardNavigationItems\s*\(/);
+    expect(DASHBOARD_PRODUCTS_MENU).toMatch(
+      /items:\s*navigation\.moreMenuItems/,
+    );
     expect(PALETTE_HOST).toMatch(/useDashboardNavigationItems\s*\(/);
 
     /*

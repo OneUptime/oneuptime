@@ -777,19 +777,50 @@ describe("filterPaletteCommands", () => {
         searchPenalty: 12,
       };
 
+      const apiKeyEvents: PaletteCommand = makePage(
+        "page-api-key-events",
+        "API Key Events",
+        ["Project Settings"],
+      );
+
       // "ak" is inside StatusCake, and the initials of API Keys.
       expect(
         ids(filterPaletteCommands([importStatusCake, apiKeys], "ak")),
       ).toEqual(["page-api-keys", "import-statuscake"]);
-      // Without the penalty, its letters would have hidden the initials.
+      // "ake" is inside StatusCake too, and the initials of API Key Events.
+      expect(
+        ids(filterPaletteCommands([importStatusCake, apiKeyEvents], "ake")),
+      ).toEqual(["page-api-key-events", "import-statuscake"]);
+      /*
+       * Without the penalty, its letters would have hidden the initials (one
+       * or two letters inside a word never do: see below).
+       */
       expect(
         ids(
           filterPaletteCommands(
-            [{ ...importStatusCake, searchPenalty: undefined }, apiKeys],
-            "ak",
+            [{ ...importStatusCake, searchPenalty: undefined }, apiKeyEvents],
+            "ake",
           ),
         ),
       ).toEqual(["import-statuscake"]);
+    });
+
+    test("one or two letters inside a word never push initials out: a sentence holds them anywhere", () => {
+      const apiKeys: PaletteCommand = makePage("page-api-keys", "API Keys", [
+        "Project Settings",
+      ]);
+      const onCallSetup: PaletteCommand = makePage(
+        "on-call-setup",
+        "Page the right person when something breaks",
+        ["On-Call Duty"],
+      );
+
+      // "ak" is inside "breaks": found, and listed after the initials.
+      expect(ids(filterPaletteCommands([onCallSetup, apiKeys], "ak"))).toEqual([
+        "page-api-keys",
+        "on-call-setup",
+      ]);
+      // Letters that start a word still push initials out (see 'ai' above).
     });
   });
 

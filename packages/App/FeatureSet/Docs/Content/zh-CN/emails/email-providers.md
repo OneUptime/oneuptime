@@ -3,7 +3,7 @@
 通过电子邮件提供商的 HTTPS API 而不是 SMTP 服务器发送 OneUptime 的邮件，支持 Amazon SES、SendGrid、Mailgun、Postmark 和 Resend。项目可以为 SMTP 配置选择一个提供商，自托管安装也可以通过提供商发送其自身的所有邮件。API 通过 443 端口上的 HTTPS 访问，因此即使网络封锁了 SMTP 端口，邮件也能照常发出；每个提供商的密钥都会加密存储。
 
 :::cards
-- [Amazon SES](#amazon-ses): IAM 访问密钥，以及发件人通过验证的区域。
+- [Amazon SES](#amazon-ses): IAM 访问密钥或服务器自身的 IAM 角色，以及发件人通过验证的区域。
 - [SendGrid](#sendgrid): 具有 Mail Send 权限的 API 密钥。
 - [Mailgun](#mailgun): API 密钥、发信域名及其区域。
 - [Postmark](#postmark): 服务器的 API 令牌。
@@ -15,7 +15,7 @@
 
 :::tabs
 @tab 项目
-在 **项目设置 > 通知 > 通知设置** 中展开 **更多设置**，在 **自定义 SMTP 配置** 卡片中点击 **创建SMTP 配置**。在 **提供商** 步骤中输入 **名称** 并选择提供商。下一步会询问该提供商的设置，**发件人** 步骤则询问 **发件人邮箱** 和 **发件人名称**。保存后，可使用配置所在行的 **发送测试电子邮件** 检查它是否正常工作。
+在 **项目设置 > 通知 > 通知渠道** 中展开 **更多设置**，在 **自定义 SMTP 配置** 卡片中点击 **创建SMTP 配置**。在 **提供商** 步骤中输入 **名称** 并选择提供商。下一步会询问该提供商的设置，**发件人** 步骤则询问 **发件人邮箱** 和 **发件人名称**。保存后，可使用配置所在行的 **发送测试电子邮件** 检查它是否正常工作。
 @tab 自托管实例
 在 Admin Dashboard 中打开 **设置**，然后打开 **通知 > 电子邮件**。在 **电子邮件服务器设置** 卡片中点击 **编辑服务器**，并将 **邮件服务器类型** 设置为该提供商。提供商的卡片会出现在其下方，例如 **Amazon SES 设置**：点击它的编辑按钮，例如 **编辑 Amazon SES**，然后填写提供商的设置和 **发件人** 步骤。在填写完所需的全部内容之前，该卡片会说明缺少什么，每封邮件都会被拒绝，并指明需要填写的设置。
 :::
@@ -54,10 +54,44 @@
 }
 ```
 
+在 AWS 上自托管的安装也可以不用密钥，而是附加同一策略，[使用服务器的 IAM 角色登录](#使用服务器的-iam-角色登录)。
+
 ### 填写 Amazon SES 步骤
 
 输入 **访问密钥 ID** 和 **私有访问密钥**，以及您的身份通过验证的 **区域**，例如 `us-east-1`。
 :::
+
+### 使用服务器的 IAM 角色登录
+
+在 AWS 上自托管的安装可以以 AWS 赋予服务器的 IAM 角色身份发送自己的邮件，OneUptime 中不存储任何访问密钥：AWS 发放的凭证会在数小时内过期，OneUptime 会在过期前获取新的凭证。这仅适用于服务器自己的邮件。项目的 Amazon SES 配置始终使用访问密钥登录，因为服务器的角色是服务器自己的 AWS 身份，而不是某个项目的。
+
+为角色附加上面的策略，然后以该角色运行 OneUptime：
+
+:::tabs
+@tab Amazon EKS
+使用服务账户的 IAM 角色时，用信任集群 OIDC 提供商的信任策略创建角色，并让 Helm Chart 创建一个带有该角色 ARN 的服务账户。OneUptime 的 app 和 worker Pod 以该账户运行：
+
+```yaml title="values.yaml"
+serviceAccount:
+  create: true
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::123456789012:role/oneuptime-ses
+```
+
+使用 EKS Pod Identity 时，改为在角色和该服务账户之间创建 Pod Identity 关联，并省略注解。
+@tab Amazon ECS
+将角色设置为 OneUptime 任务定义的 **Task role**。
+@tab Amazon EC2
+将角色作为实例配置文件附加到实例。如果 OneUptime 在实例上的 Docker 中运行，请将实例元数据的跃点限制提高到 2，以便容器能够访问它：
+
+```bash
+aws ec2 modify-instance-metadata-options --instance-id <instance-id> --http-put-response-hop-limit 2 --http-endpoint enabled
+```
+:::
+
+然后在 Admin Dashboard 中点击 **编辑 Amazon SES**，将 **认证类型** 选为 **此服务器的 IAM 角色**，并输入 **区域**。保存后，之前存储的访问密钥会被删除。
+
+OneUptime 按照 AWS SDK 的方式，依次在以下位置查找服务器的凭证：其环境中的 `AWS_ACCESS_KEY_ID` 和 `AWS_SECRET_ACCESS_KEY`、Web 身份令牌（`AWS_ROLE_ARN` 和 `AWS_WEB_IDENTITY_TOKEN_FILE`）、Amazon ECS 和 EKS Pod Identity 的容器凭证端点，最后是 EC2 的实例元数据服务（IMDSv2）。
 
 ## SendGrid
 
@@ -89,6 +123,14 @@
 
 :::details "The access key may not send with Amazon SES"
 IAM 用户的策略不允许对您的身份执行 `ses:SendEmail`。请添加上面的策略。
+:::
+
+:::details "This server has no AWS credentials"
+服务器使用其 IAM 角色登录，但 AWS 没有给它凭证。按照 [使用服务器的 IAM 角色登录](#使用服务器的-iam-角色登录) 所示以该角色运行它，然后重启 OneUptime 的 Pod 或任务：Pod 在启动时获取其角色的设置。在 Amazon EC2 上的 Docker 中，如果实例元数据的跃点限制过低，消息也会说明。
+:::
+
+:::details "This server's IAM role may not send with Amazon SES" 或 "did not let this server assume the role"
+角色的策略不允许对您的身份执行 `ses:SendEmail`：请添加上面的策略。或者，在 Amazon EKS 上，角色的信任策略不允许您集群的 OIDC 提供商和 OneUptime 的服务账户执行 `sts:AssumeRoleWithWebIdentity`。
 :::
 
 :::details "Mailgun has no domain … in its US region"

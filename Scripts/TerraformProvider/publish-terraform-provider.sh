@@ -42,6 +42,14 @@ NOTHING_TO_PUBLISH=false
 # commands — never written to git config or a credentials file on disk.
 PUSH_URL=""
 
+# Go's soft memory limit, for every Go command this script runs: go vet, go
+# test and GoReleaser's cross-compiles, one target after another. The
+# provider's internal/provider is one package of ~985 files, and without a
+# limit one compile of it alone took ~15 GB of a 16 GB CI runner. The
+# generator sets the same value for its own Go commands
+# (Scripts/TerraformProvider/Core/GoCommand.ts); a caller's own value wins.
+export GOMEMLIMIT="${GOMEMLIMIT:-10GiB}"
+
 # Files in the provider repo that are owned by the repo itself (the generator
 # does not emit them) and must survive the deletion-aware sync. .git is never
 # touched by `git rm`, so it needs no entry here. LICENSE is not one of them:

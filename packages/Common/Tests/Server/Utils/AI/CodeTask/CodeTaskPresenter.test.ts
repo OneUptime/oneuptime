@@ -8,6 +8,7 @@ import AlertService from "../../../../../Server/Services/AlertService";
 import IncidentService from "../../../../../Server/Services/IncidentService";
 import TelemetryExceptionService from "../../../../../Server/Services/TelemetryExceptionService";
 import UserService from "../../../../../Server/Services/UserService";
+import CodeTaskListRows from "../../../../../Server/Utils/AI/CodeTask/CodeTaskListRows";
 import CodeTaskOrigin from "../../../../../Server/Utils/AI/CodeTask/CodeTaskOrigin";
 import CodeTaskPresenter from "../../../../../Server/Utils/AI/CodeTask/CodeTaskPresenter";
 import AIAgentTaskPullRequest from "../../../../../Models/DatabaseModels/AIAgentTaskPullRequest";
@@ -24,6 +25,7 @@ import AIRunType from "../../../../../Types/AI/AIRunType";
 import CodeFixTaskType from "../../../../../Types/AI/CodeFixTaskType";
 import {
   CodeTaskContextType,
+  CodeTaskConversationJSON,
   CodeTaskFileStatus,
   CodeTaskOriginJSON,
   CodeTaskOriginType,
@@ -151,7 +153,37 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
+/*
+ * A list row is read per task by Postgres (CodeTaskListRows): how many
+ * replies and the newest, what the turns changed and what AI last said, and
+ * the pull request it shows - however many turns the task has (issue #7131).
+ * These run summarize on what those reads answer; the reads' own SQL runs on
+ * Postgres in CodeTaskLongThreadPostgres.test.ts.
+ */
 describe("CodeTaskPresenter.summarize", () => {
+  let readReplies: jest.SpiedFunction<typeof CodeTaskListRows.readReplies>;
+  let readOutcomes: jest.SpiedFunction<typeof CodeTaskListRows.readOutcomes>;
+  let readPullRequests: jest.SpiedFunction<
+    typeof CodeTaskListRows.readPullRequests
+  >;
+
+  beforeEach(() => {
+    readReplies = jest
+      .spyOn(CodeTaskListRows, "readReplies")
+      .mockResolvedValue(new Map());
+    readOutcomes = jest
+      .spyOn(CodeTaskListRows, "readOutcomes")
+      .mockResolvedValue(new Map());
+    readPullRequests = jest
+      .spyOn(CodeTaskListRows, "readPullRequests")
+      .mockResolvedValue(new Map());
+  });
+
+  // A read's answer for one task, keyed as the reads key it.
+  function ofTask<T>(value: T, taskId: ObjectID = TASK_ID): Map<string, T> {
+    return new Map<string, T>([[CodeTaskListRows.key(taskId), value]]);
+  }
+
   test("a task's state is its latest turn's, and its activity the latest moment of any", async () => {
     const task: AIRun = requestTurn({
       id: TASK_ID,
@@ -168,10 +200,16 @@ describe("CodeTaskPresenter.summarize", () => {
       message: "Use exponential backoff",
     });
 
-    jest.spyOn(AIRunService, "findBy").mockResolvedValue([reply]);
-    jest
-      .spyOn(AIAgentTaskPullRequestService, "findBy")
-      .mockResolvedValue([openPullRequest(TASK_ID, PullRequestState.Open)]);
+    readReplies.mockResolvedValue(
+      ofTask({
+        count: 1,
+        newest: reply,
+        lastActivityAt: new Date("2026-10-19T09:30:00.000Z"),
+      }),
+    );
+    readPullRequests.mockResolvedValue(
+      ofTask(openPullRequest(TASK_ID, PullRequestState.Open)),
+    );
 
     const [summary]: Array<CodeTaskSummaryJSON> =
       await CodeTaskPresenter.summarize({
@@ -202,12 +240,157 @@ describe("CodeTaskPresenter.summarize", () => {
       turnCount: 2,
       codeRepositoryId: REPOSITORY_ID.toString(),
     });
+
+    // Each read is asked once for the page, by the project and its tasks.
+    for (const read of [readReplies, readOutcomes, readPullRequests]) {
+      expect(read).toHaveBeenCalledTimes(1);
+      expect(read.mock.calls[0]![0]).toEqual({
+        projectId: PROJECT_ID,
+        taskIds: [TASK_ID],
+      });
+    }
+  });
+
+  /*
+   * A task kept open as a working thread for months: its row counts every
+   * turn, and stands as its newest - never as it stood at its 10,000th.
+   */
+  test("a task of 12,000 turns: its row counts every one, and stands as its newest", async () => {
+    const task: AIRun = requestTurn({
+      id: TASK_ID,
+      status: AIRunStatus.Completed,
+      createdAt: "2026-01-05T08:00:00.000Z",
+      message: "Keep the users API fast",
+    });
+    task.completedAt = new Date("2026-01-05T08:20:00.000Z");
+    const newest: AIRun = requestTurn({
+      id: REPLY_ID,
+      codeTaskId: TASK_ID,
+      status: AIRunStatus.Running,
+      createdAt: "2026-11-12T07:00:00.000Z",
+      message: "And the orders API",
+    });
+    newest.startedAt = new Date("2026-11-12T07:00:10.000Z");
+
+    readReplies.mockResolvedValue(
+      ofTask({
+        count: 11999,
+        newest,
+        lastActivityAt: new Date("2026-11-12T07:00:00.000Z"),
+      }),
+    );
+
+    const [summary]: Array<CodeTaskSummaryJSON> =
+      await CodeTaskPresenter.summarize({
+        projectId: PROJECT_ID,
+        tasks: [task],
+        props: READER,
+      });
+
+    expect(summary!.turnCount).toBe(12000);
+    expect(summary!.state).toBe(CodeTaskState.Working);
+    expect(summary!.isQueued).toBe(false);
+    expect(summary!.lastActivityAt).toBe("2026-11-12T07:00:00.000Z");
+    expect(summary!.startedAt).toBe("2026-11-12T07:00:10.000Z");
+    // Still working: no end, not the first turn's.
+    expect(summary).not.toHaveProperty("completedAt");
+  });
+
+  test("a task's activity is never before the task itself: its own end counts when nothing came after", async () => {
+    const task: AIRun = requestTurn({
+      id: TASK_ID,
+      status: AIRunStatus.Completed,
+      createdAt: "2026-10-19T08:00:00.000Z",
+      message: "Add retries",
+    });
+    task.completedAt = new Date("2026-10-19T08:30:00.000Z");
+
+    const [summary]: Array<CodeTaskSummaryJSON> =
+      await CodeTaskPresenter.summarize({
+        projectId: PROJECT_ID,
+        tasks: [task],
+        props: READER,
+      });
+
+    expect(summary!.lastActivityAt).toBe("2026-10-19T08:30:00.000Z");
+    expect(summary!.turnCount).toBe(1);
+    expect(summary!.state).toBe(CodeTaskState.Done);
+  });
+
+  test("each task on a page reads its own facts - never another task's", async () => {
+    const other: ObjectID = new ObjectID(
+      "0d1e2f3a-4b5c-4d6e-8f7a-8b9c0d1e2f3a",
+    );
+    const first: AIRun = requestTurn({
+      id: TASK_ID,
+      status: AIRunStatus.Completed,
+      createdAt: "2026-10-19T08:00:00.000Z",
+      message: "Add retries",
+    });
+    const second: AIRun = requestTurn({
+      id: other,
+      status: AIRunStatus.Error,
+      createdAt: "2026-10-19T08:05:00.000Z",
+      message: "Fix the flaky test",
+    });
+    const reply: AIRun = requestTurn({
+      id: REPLY_ID,
+      codeTaskId: other,
+      status: AIRunStatus.Running,
+      createdAt: "2026-10-19T09:00:00.000Z",
+      message: "Try again",
+    });
+
+    readReplies.mockResolvedValue(
+      ofTask(
+        {
+          count: 1,
+          newest: reply,
+          lastActivityAt: new Date("2026-10-19T09:00:00.000Z"),
+        },
+        other,
+      ),
+    );
+    readOutcomes.mockResolvedValue(
+      ofTask(
+        {
+          changes: { files: 3, additions: 30, deletions: 4 },
+          lastReply: "Rewrote the test.",
+        },
+        other,
+      ),
+    );
+    readPullRequests.mockResolvedValue(
+      ofTask(openPullRequest(REPLY_ID, PullRequestState.Open), other),
+    );
+
+    const [firstRow, secondRow]: Array<CodeTaskSummaryJSON> =
+      await CodeTaskPresenter.summarize({
+        projectId: PROJECT_ID,
+        tasks: [first, second],
+        props: READER,
+      });
+
+    expect(firstRow!.id).toBe(TASK_ID.toString());
+    expect(firstRow!.state).toBe(CodeTaskState.Done);
+    expect(firstRow!.turnCount).toBe(1);
+    expect(firstRow).not.toHaveProperty("pullRequest");
+    expect(firstRow).not.toHaveProperty("changes");
+    expect(firstRow).not.toHaveProperty("latestReply");
+
+    expect(secondRow!.id).toBe(other.toString());
+    expect(secondRow!.state).toBe(CodeTaskState.Working);
+    expect(secondRow!.turnCount).toBe(2);
+    expect(secondRow!.pullRequest?.number).toBe(17);
+    expect(secondRow!.changes).toEqual({
+      files: 3,
+      additions: 30,
+      deletions: 4,
+    });
+    expect(secondRow!.latestReply).toBe("Rewrote the test.");
   });
 
   test("a task whose latest turn asked something waits for its person", async () => {
-    jest.spyOn(AIRunService, "findBy").mockResolvedValue([]);
-    jest.spyOn(AIAgentTaskPullRequestService, "findBy").mockResolvedValue([]);
-
     const [summary]: Array<CodeTaskSummaryJSON> =
       await CodeTaskPresenter.summarize({
         projectId: PROJECT_ID,
@@ -243,7 +426,6 @@ describe("CodeTaskPresenter.summarize", () => {
     exception.message = "x is undefined";
 
     jest.spyOn(AIRunService, "findBy").mockResolvedValue([]);
-    jest.spyOn(AIAgentTaskPullRequestService, "findBy").mockResolvedValue([]);
     const findExceptions: jest.SpiedFunction<
       typeof TelemetryExceptionService.findBy
     > = jest
@@ -269,73 +451,29 @@ describe("CodeTaskPresenter.summarize", () => {
     expect(summary!.state).toBe(CodeTaskState.Failed);
   });
 
-  test("a row says how much its task changed over its turns: each file once, every turn's lines", async () => {
-    const task: AIRun = requestTurn({
-      id: TASK_ID,
-      status: AIRunStatus.Completed,
-      createdAt: "2026-10-19T08:00:00.000Z",
-      message: "Add retries",
-    });
-    const reply: AIRun = requestTurn({
-      id: REPLY_ID,
-      codeTaskId: TASK_ID,
-      status: AIRunStatus.Completed,
-      createdAt: "2026-10-19T09:00:00.000Z",
-      message: "Log each retry",
-    });
-    const outcomes: Record<string, AIRun["taskOutcome"]> = {
-      [TASK_ID.toString()]: {
-        summary: "Retries.",
-        filesChanged: [
-          {
-            path: "src/payments/client.ts",
-            status: CodeTaskFileStatus.Modified,
-            additions: 9,
-            deletions: 1,
-          },
-          {
-            path: "test/payments/retries.test.ts",
-            status: CodeTaskFileStatus.Added,
-            additions: 14,
-            deletions: 0,
-          },
-        ],
-      },
-      [REPLY_ID.toString()]: {
-        summary: "Logged.",
-        filesChanged: [
-          {
-            path: "src/payments/client.ts",
-            status: CodeTaskFileStatus.Modified,
-            additions: 4,
-            deletions: 0,
-          },
-        ],
-      },
-    };
-
+  test("a row says how much its task changed over its turns, and what AI last said - as Postgres added them up", async () => {
     const findRuns: jest.SpiedFunction<typeof AIRunService.findBy> = jest
       .spyOn(AIRunService, "findBy")
-      .mockImplementation((async (data: {
-        select?: Record<string, unknown>;
-      }): Promise<Array<AIRun>> => {
-        // The outcomes read; otherwise the task's replies.
-        if (data.select?.["taskOutcome"]) {
-          return [TASK_ID, REPLY_ID].map((id: ObjectID): AIRun => {
-            const run: AIRun = new AIRun();
-            run._id = id.toString();
-            run.taskOutcome = outcomes[id.toString()]!;
-            return run;
-          });
-        }
-        return [reply];
-      }) as never);
-    jest.spyOn(AIAgentTaskPullRequestService, "findBy").mockResolvedValue([]);
+      .mockResolvedValue([]);
+
+    readOutcomes.mockResolvedValue(
+      ofTask({
+        changes: { files: 2, additions: 27, deletions: 1 },
+        lastReply: "  Logged each retry.\n",
+      }),
+    );
 
     const [summary]: Array<CodeTaskSummaryJSON> =
       await CodeTaskPresenter.summarize({
         projectId: PROJECT_ID,
-        tasks: [task],
+        tasks: [
+          requestTurn({
+            id: TASK_ID,
+            status: AIRunStatus.Completed,
+            createdAt: "2026-10-19T08:00:00.000Z",
+            message: "Add retries",
+          }),
+        ],
         props: READER,
       });
 
@@ -344,26 +482,44 @@ describe("CodeTaskPresenter.summarize", () => {
       additions: 27,
       deletions: 1,
     });
+    expect(summary!.latestReply).toBe("Logged each retry.");
 
-    // Only the ids and outcomes are read, as OneUptime: the rows are the reader's already.
-    const read: {
-      select: Record<string, unknown>;
-      props: unknown;
-      query: Record<string, unknown>;
-    } = findRuns.mock.calls.find((call: Array<unknown>): boolean => {
-      return Boolean(
+    // No turn's outcome is read one by one: a task of any kind but a review.
+    for (const call of findRuns.mock.calls) {
+      expect(
         (call[0] as { select?: Record<string, unknown> }).select?.[
           "taskOutcome"
         ],
-      );
-    })![0] as never;
-    expect(read.select).toEqual({ _id: true, taskOutcome: true });
-    expect(read.props).toEqual({ isRoot: true });
+      ).toBeUndefined();
+    }
+  });
+
+  test("what AI last said is cut to fit a row, with an ellipsis", async () => {
+    readOutcomes.mockResolvedValue(
+      ofTask({ changes: null, lastReply: "a".repeat(700) }),
+    );
+
+    const [summary]: Array<CodeTaskSummaryJSON> =
+      await CodeTaskPresenter.summarize({
+        projectId: PROJECT_ID,
+        tasks: [
+          requestTurn({
+            id: TASK_ID,
+            status: AIRunStatus.Completed,
+            createdAt: "2026-10-19T08:00:00.000Z",
+            message: "Explain the code",
+          }),
+        ],
+        props: READER,
+      });
+
+    expect(summary!.latestReply).toHaveLength(600);
+    expect(summary!.latestReply!.endsWith("…")).toBe(true);
+    expect(summary).not.toHaveProperty("changes");
   });
 
   test("a task that changed no file says nothing about lines", async () => {
-    jest.spyOn(AIRunService, "findBy").mockResolvedValue([]);
-    jest.spyOn(AIAgentTaskPullRequestService, "findBy").mockResolvedValue([]);
+    readOutcomes.mockResolvedValue(ofTask({ changes: null }));
 
     const [summary]: Array<CodeTaskSummaryJSON> =
       await CodeTaskPresenter.summarize({
@@ -380,6 +536,7 @@ describe("CodeTaskPresenter.summarize", () => {
       });
 
     expect(summary).not.toHaveProperty("changes");
+    expect(summary).not.toHaveProperty("latestReply");
   });
 
   /*
@@ -407,7 +564,7 @@ describe("CodeTaskPresenter.summarize", () => {
     return async (data: {
       select?: Record<string, unknown>;
     }): Promise<Array<AIRun>> => {
-      // The outcomes read; a review has no replies.
+      // The review's own outcome.
       if (data.select?.["taskOutcome"]) {
         const run: AIRun = new AIRun();
         run._id = TASK_ID.toString();
@@ -423,14 +580,15 @@ describe("CodeTaskPresenter.summarize", () => {
       posting: ProductionReviewPosting.Link,
     });
 
-    jest.spyOn(AIRunService, "findBy").mockImplementation(
-      outcomesRead({
-        summary: "",
-        filesChanged: [],
-        productionReview: report,
-      }) as never,
-    );
-    jest.spyOn(AIAgentTaskPullRequestService, "findBy").mockResolvedValue([]);
+    const findRuns: jest.SpiedFunction<typeof AIRunService.findBy> = jest
+      .spyOn(AIRunService, "findBy")
+      .mockImplementation(
+        outcomesRead({
+          summary: "",
+          filesChanged: [],
+          productionReview: report,
+        }) as never,
+      );
 
     const [summary]: Array<CodeTaskSummaryJSON> =
       await CodeTaskPresenter.summarize({
@@ -456,6 +614,21 @@ describe("CodeTaskPresenter.summarize", () => {
     });
     // Its numbers, never the report itself: the row is a glance.
     expect(JSON.stringify(summary)).not.toContain("TypeError");
+
+    // Only the review's own outcome is read, as OneUptime: the row is the reader's already.
+    const read: {
+      select: Record<string, unknown>;
+      props: unknown;
+      query: Record<string, unknown>;
+    } = findRuns.mock.calls.find((call: Array<unknown>): boolean => {
+      return Boolean(
+        (call[0] as { select?: Record<string, unknown> }).select?.[
+          "taskOutcome"
+        ],
+      );
+    })![0] as never;
+    expect(read.select).toEqual({ _id: true, taskOutcome: true });
+    expect(read.props).toEqual({ isRoot: true });
   });
 
   test("a production review that found nothing says so", async () => {
@@ -466,7 +639,6 @@ describe("CodeTaskPresenter.summarize", () => {
         productionReview: emptyReport(),
       }) as never,
     );
-    jest.spyOn(AIAgentTaskPullRequestService, "findBy").mockResolvedValue([]);
 
     const [summary]: Array<CodeTaskSummaryJSON> =
       await CodeTaskPresenter.summarize({
@@ -483,7 +655,6 @@ describe("CodeTaskPresenter.summarize", () => {
     jest
       .spyOn(AIRunService, "findBy")
       .mockImplementation(outcomesRead(undefined) as never);
-    jest.spyOn(AIAgentTaskPullRequestService, "findBy").mockResolvedValue([]);
 
     const [summary]: Array<CodeTaskSummaryJSON> =
       await CodeTaskPresenter.summarize({
@@ -495,18 +666,19 @@ describe("CodeTaskPresenter.summarize", () => {
     expect(summary).not.toHaveProperty("productionReview");
   });
 
-  test("a task of another kind never shows a production review", async () => {
+  test("a task of another kind never shows a production review - its outcome is not even read", async () => {
     const task: AIRun = reviewTask();
     task.codeFixTaskType = CodeFixTaskType.CodeRequest;
 
-    jest.spyOn(AIRunService, "findBy").mockImplementation(
-      outcomesRead({
-        summary: "",
-        filesChanged: [],
-        productionReview: fullReport(),
-      }) as never,
-    );
-    jest.spyOn(AIAgentTaskPullRequestService, "findBy").mockResolvedValue([]);
+    const findRuns: jest.SpiedFunction<typeof AIRunService.findBy> = jest
+      .spyOn(AIRunService, "findBy")
+      .mockImplementation(
+        outcomesRead({
+          summary: "",
+          filesChanged: [],
+          productionReview: fullReport(),
+        }) as never,
+      );
 
     const [summary]: Array<CodeTaskSummaryJSON> =
       await CodeTaskPresenter.summarize({
@@ -516,6 +688,15 @@ describe("CodeTaskPresenter.summarize", () => {
       });
 
     expect(summary).not.toHaveProperty("productionReview");
+    expect(
+      findRuns.mock.calls.some((call: Array<unknown>): boolean => {
+        return Boolean(
+          (call[0] as { select?: Record<string, unknown> }).select?.[
+            "taskOutcome"
+          ],
+        );
+      }),
+    ).toBe(false);
   });
 
   test("a list reads nothing for no tasks", async () => {
@@ -532,6 +713,9 @@ describe("CodeTaskPresenter.summarize", () => {
       }),
     ).toEqual([]);
     expect(findRuns).not.toHaveBeenCalled();
+    expect(readReplies).not.toHaveBeenCalled();
+    expect(readOutcomes).not.toHaveBeenCalled();
+    expect(readPullRequests).not.toHaveBeenCalled();
   });
 });
 
@@ -621,6 +805,21 @@ describe("CodeTaskPresenter.toPullRequest: what production showed", () => {
       .spyOn(AIAgentTaskPullRequestService, "findBy")
       .mockResolvedValue([]);
     jest.spyOn(AIRunService, "findBy").mockResolvedValue([]);
+    // Postgres names the pull request the row shows; the rest say nothing.
+    jest.spyOn(AIRunService, "getRepository").mockReturnValue({
+      manager: {
+        query: async (sql: string): Promise<Array<Record<string, unknown>>> => {
+          return sql.includes('"pullRequestId"')
+            ? [
+                {
+                  taskId: TASK_ID.toString(),
+                  pullRequestId: "4d5e6f7a-8b9c-4d0e-9f1a-2b3c4d5e6f7a",
+                },
+              ]
+            : [];
+        },
+      },
+    } as never);
 
     await CodeTaskPresenter.summarize({
       projectId: PROJECT_ID,
@@ -911,6 +1110,44 @@ describe("CodeTaskPresenter.getConversation", () => {
     expect(conversation.turns[0]!.needsInput).toBe(false);
     expect(conversation.turns[0]!.state).toBe(CodeTaskState.Failed);
   });
+
+  /*
+   * A link to a turn (the Log page's ?turn=) is sent back on its own only
+   * for a turn the conversation does not show: one it shows - the first
+   * one too - is in its turns already, and nothing more is read.
+   */
+  test.each([
+    ["a turn it shows", REPLY_ID],
+    ["its first turn", TASK_ID],
+    [
+      "a turn it shows, named in capitals",
+      new ObjectID(REPLY_ID.toString().toUpperCase()),
+    ],
+  ])(
+    "a link to %s sends nothing more and reads nothing more",
+    async (_name: string, linkedTurnId: ObjectID) => {
+      const { task } = setUp();
+      const findOne: jest.SpiedFunction<typeof AIRunService.findOneBy> = jest
+        .spyOn(AIRunService, "findOneBy")
+        .mockResolvedValue(null);
+      const repository: jest.SpiedFunction<typeof AIRunService.getRepository> =
+        jest.spyOn(AIRunService, "getRepository");
+
+      const conversation: CodeTaskConversationJSON =
+        await CodeTaskPresenter.getConversation({
+          projectId: PROJECT_ID,
+          task,
+          canSeeChanges: true,
+          props: READER,
+          linkedTurnId,
+        });
+
+      expect(conversation.turns).toHaveLength(2);
+      expect(conversation).not.toHaveProperty("linkedTurn");
+      expect(findOne).not.toHaveBeenCalled();
+      expect(repository).not.toHaveBeenCalled();
+    },
+  );
 });
 
 describe("CodeTaskOrigin", () => {

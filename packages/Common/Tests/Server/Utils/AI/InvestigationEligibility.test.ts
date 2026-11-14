@@ -661,7 +661,13 @@ describe.each(subjects)(
         expect(result.source).toBe("current_configuration");
         expect(result.title).toContain("currently");
         expect(result.description).toContain(limit.toLocaleString("en-US"));
-        expect(result.description).toContain("has used");
+        /*
+         * A limit of 0 pauses the work, which no amount of use explains
+         * (#6738): it says so, as the card does.
+         */
+        expect(result.description).toContain(
+          limit === 0 ? "is set to 0, which pauses" : "has used",
+        );
         expect(result.description).toContain(
           "the original decision was not recorded",
         );

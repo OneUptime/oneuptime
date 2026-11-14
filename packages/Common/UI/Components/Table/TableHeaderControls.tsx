@@ -96,15 +96,22 @@ export const TABLE_HEADER_BUTTONS_BOX_CLASS_NAME: string =
  * button broke their words ("Create / On-Call / Schedule" stood three
  * lines tall), and in German "Gespeicherte Ansichten" ran past the card's
  * left edge.
+ *
+ * And no wider than the row (min-w-0): the box was as wide as its widest
+ * item's one line, so a time range picker holding a custom range that
+ * names its years ("Nov 12, 2025, 9:49 AM – Nov 12, 2026, 9:49 AM") ran
+ * 49px past the card's left edge at 390px instead of cutting the range
+ * short, as the picker does in a row that lets it. An item no row can
+ * shrink keeps its width, as before.
  */
 export const TABLE_HEADER_BUTTONS_CLASS_NAME: string =
-  "max-w-[600px] gap-3 opacity-100 max-md:flex-wrap max-md:justify-end max-md:[&>button]:w-auto max-md:[&>*>button]:w-auto";
+  "min-w-0 max-w-[600px] gap-3 opacity-100 max-md:flex-wrap max-md:justify-end max-md:[&>button]:w-auto max-md:[&>*>button]:w-auto";
 
 /*
  * The main button and the ⋯, one item of that row
  * (renderTableHeaderMainAndMore): where the row wraps they move to the
  * next line together. A main button too long to share its line with the ⋯
- * - "Create Scheduled Maintenance Event" on a 390px phone - says its short
+ * - "Create Maintenance Event" on a 390px phone - says its short
  * words there (CardButtonSchema.phoneTitle, "Create"); one without them
  * breaks its words beside it. As two items of the row, the ⋯ wrapped onto
  * a line of its own under a main button that filled the line. Each as
@@ -247,7 +254,7 @@ export function splitTableHeaderButtons(
 /*
  * The main button, as the header draws it. On a phone it says its short
  * words when it has them (CardButtonSchema.phoneTitle): beside the ⋯
- * there, "Create Scheduled Maintenance Event" broke onto two lines and
+ * there, "Create Maintenance Event" broke onto two lines and
  * stood twice as tall as the ⋯. Named by its whole title, which holds the
  * short words (ShortButtonWords), so a voice command and a screen reader
  * still find it by what it does; from md up it says the whole title.

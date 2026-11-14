@@ -2,6 +2,9 @@
 
 Der OneUptime-Kubernetes-Agent ist ein Helm-Chart, das die Metriken, Ereignisse und Pod-Logs Ihres Clusters, per eBPF erfasste Anwendungs-Traces und die Betriebssystem-Metriken jedes Knotens sammelt und an OneUptime sendet. Ein einziges `helm install` richtet ihn ein, ohne Codeänderungen in Ihren Anwendungen. [Kubernetes-Monitore](/docs/monitor/kubernetes-monitor) warnen auf Grundlage dessen, was er sendet.
 
+> [!NOTE]
+> Diese Seite installiert den Agenten Schritt für Schritt mit Helm, mit einem Preset für Ihre Plattform. Alle Optionen, das Add-on für Amazon EKS, OpenShift und der Kubernetes-KI-Agent stehen unter [Kubernetes-Agent](/docs/telemetry/kubernetes-agent), seiner vollständigen Referenz.
+
 :::cards
 - [Den Agenten installieren](#den-agenten-installieren): Vier Schritte mit Helm.
 - [Ein Preset wählen](#ein-preset-wählen): Standard-Cluster, GKE Autopilot, EKS Fargate oder OpenShift.
@@ -331,7 +334,7 @@ kubectl logs -n oneuptime-agent -l component=ebpf-instrument --tail=200
 
 ## Fortlaufendes CPU-Profiling
 
-Der [OpenTelemetry eBPF Profiler](https://github.com/open-telemetry/opentelemetry-ebpf-profiler) kann ebenfalls auf jedem Knoten laufen, als Image `otel/opentelemetry-collector-ebpf-profiler`. Er tastet 19-mal pro Sekunde ab, was jeder Prozess ausführt, in Go, Java, .NET, Python, Ruby, Node.js, PHP, Perl, C, C++ und Rust, und sendet die Profile an OneUptime. Sie erscheinen unter **Produkte → Performance-Profile** und als Flammengrafik an jedem Trace-Span.
+Der [OpenTelemetry eBPF Profiler](https://github.com/open-telemetry/opentelemetry-ebpf-profiler) kann ebenfalls auf jedem Knoten laufen, als Image `otel/opentelemetry-collector-ebpf-profiler`. Er tastet 19-mal pro Sekunde ab, was jeder Prozess ausführt, in Go, Java, .NET, Python, Ruby, Node.js, PHP, Perl, C, C++ und Rust, und sendet die Profile an OneUptime. Sie erscheinen unter **Produkte → Profile** und als Flammengrafik an jedem Trace-Span.
 
 **Profiling ist standardmäßig aus:** Es kostet pro Knoten mehr CPU und Speicher als die eBPF-Instrumentierung. Schalten Sie es mit `--set profiling.enabled=true` ein.
 

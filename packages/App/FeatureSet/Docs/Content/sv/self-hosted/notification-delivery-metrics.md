@@ -48,7 +48,7 @@ DISABLE_TELEMETRY_FOR_APP=false
 Ange dem i `config.env` och kör sedan `npm start`. `DISABLE_TELEMETRY_FOR_APP` är `true` som standard, och då skickas ingenting.
 :::
 
-OneUptime behöver både slutpunkten och huvudena: utan ett huvud skickar det ingenting. Skilj flera huvuden åt med `;`. OneUptime lägger själv till `/v1/metrics` på slutpunkten, och samma inställningar skickar också dess egna spår och loggar. Varje mått dyker upp så snart OneUptime registrerar det första gången: `notification.send.count` med det första skickade meddelandet.
+OneUptime behöver både slutpunkten och huvudena: utan ett huvud skickar det ingenting. Skriv varje huvud som `name=value` och skilj flera åt med `;`. Ett värde får innehålla `=`. OneUptime lägger själv till `/v1/metrics` på slutpunkten, och samma inställningar skickar också dess egna spår och loggar. Varje mått dyker upp så snart OneUptime registrerar det första gången: `notification.send.count` med det första skickade meddelandet.
 
 ### Skicka deltor till ett OneUptime-projekt
 
@@ -246,7 +246,7 @@ Formeln `$b / $a * 100` är andelen som inte levererades. Operatörer och avstä
 ## Felsökning
 
 :::details Inga aviseringsmått kommer fram
-Kontrollera att `OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT` och `OPENTELEMETRY_EXPORTER_OTLP_HEADERS` båda är angivna, och i Docker Compose att `DISABLE_TELEMETRY_FOR_APP` är `false`, och starta sedan om OneUptime. Ett mått dyker upp först när något har registrerats, så skicka en avisering först.
+Kontrollera att `OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT` och `OPENTELEMETRY_EXPORTER_OTLP_HEADERS` båda är angivna, och i Docker Compose att `DISABLE_TELEMETRY_FOR_APP` är `false`, och starta sedan om OneUptime. När OneUptime startar loggar det en varning om det inte kan läsa ett huvud, eller om det inte skickar något. Ett mått dyker upp först när något har registrerats, så skicka en avisering först.
 :::
 
 :::details Ett antal bara växer, eller en percentil rör sig knappt

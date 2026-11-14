@@ -5,6 +5,7 @@
 :::cards
 - [尋找設定](#尋找設定): 側邊選單中每個區段包含的內容。
 - [專案詳細資訊](#專案詳細資訊): 名稱、ID 和支援存取。
+- [產品](#產品): 此專案顯示的產品，以及它隱藏的產品。
 - [標籤](#標籤): 用於資源、權限和規則的標記。
 - [刪除專案](#刪除專案): 需要什麼，以及會隨之消失什麼。
 :::
@@ -30,10 +31,10 @@ flowchart LR
 
 | 區段 | 頁面 | 詳細閱讀 |
 | --- | --- | --- |
-| **基礎** | **專案**、**標籤** | [專案詳細資訊](#專案詳細資訊)、[標籤](#標籤) |
+| **基礎** | **專案**、**產品**、**標籤** | [專案詳細資訊](#專案詳細資訊)、[產品](#產品)、[標籤](#標籤) |
 | **工作區** | **Slack**、**Microsoft Teams**、**Mattermost**、**視訊通話** | [Slack](/docs/workspace-connections/slack)、[Microsoft Teams](/docs/workspace-connections/microsoft-teams)、[Mattermost](/docs/workspace-connections/mattermost)、[視訊通話](/docs/workspace-connections/video-calls) |
 | **遙測與 APM** | **擷取金鑰**、**資料保留**、**使用量** | [擷取金鑰](/docs/telemetry/ingestion-keys)、[資料保留](/docs/telemetry/data-retention)、[遙測使用量](/docs/telemetry/usage) |
-| **通知** | **通知設定**、**通知日誌**、**行動應用程式** | [通知](#通知) |
+| **通知** | **通知管道**、**通知日誌**、**行動應用程式** | [通知](#通知) |
 | **人工智慧** | **AI 功能**、**LLM 提供商**、**外部 MCP 伺服器**、**AI 點數**、**AI 日誌**、**MCP 伺服器** | [LLM 提供者](/docs/ai/llm-provider)、[外部 MCP 伺服器](/docs/ai/external-mcp-servers)、[MCP 伺服器](/docs/ai/mcp-server)、[AI SRE](/docs/ai/ai-sre#成本控制) |
 | **進階** | **網域**、**API 金鑰**、**功能旗標**、**從其他工具匯入** | [自訂網域](/docs/status-pages/branding-and-domains#自訂網域)、[API 金鑰](/docs/permissions/index#api-金鑰)、[功能旗標](#功能旗標)、[從 Opsgenie 移轉](/docs/moving-to-oneuptime/opsgenie)及其他移轉指南 |
 | **安全性** | **SSO**、**SCIM** | [SSO](/docs/identity/sso)、[SCIM](/docs/identity/scim) |
@@ -54,6 +55,20 @@ flowchart LR
 - **Data Residency**：在 OneUptime Cloud 上，OneUptime 記錄後你的專案資料所存放的位置。只有 OneUptime 會設定它。
 
 **客戶支援存取權**決定在 OneUptime Cloud 上 OneUptime 支援團隊能否開啟專案。需要協助時，開啟**允許 OneUptime 支援團隊存取此專案**：由於支援團隊屆時可以檢視和變更專案中的一切，OneUptime 會先確認，你再點選**允許支援團隊進入**。處理完後將其關閉：變更會立即儲存。Project Owner 和 Project Admin 可以變更此項。
+
+## 產品
+
+**專案設定 → 基礎 → 產品** 用於選擇此專案在 **產品** 選單、首頁和搜尋清單中顯示的產品。每個產品都有一個開關，切換後立即儲存：開啟即顯示該產品。使用者、團隊和專案設定一律顯示，**顯示所有產品** 會重新顯示全部產品。
+
+隱藏的產品並未關閉。它會移到 **產品** 選單的最後一列 **更多產品** 下：搜尋仍能找到它，它的頁面和 API 照常運作，資料也會持續送達。釘選了它的人仍保留釘選。
+
+在自行託管的伺服器上，主管理員也可以在 Admin Dashboard 的 **設定 → 產品** 中為所有專案關閉某個產品（請參閱 [只執行你需要的部分](/docs/installation/docker-compose#只執行你需要的部分)）。這樣的產品在這裡沒有開關：它會顯示 **已在此伺服器上關閉**，並說明誰可以開啟它。
+
+新專案從擁有者在首頁上回答的專案用途開始：顯示基礎群組、設定以及這些目標需要的產品，其餘產品被隱藏。略過了該問題的專案，或在該問題出現之前建立的專案，會顯示所有產品。一旦有人在這裡變更了清單，目標就不會再變更它。
+
+每個產品都會說明它對此專案而言的狀態：**使用中**、**未設定**，或在 OneUptime Cloud 上它需要的方案。當隱藏的產品開始收到資料時，首頁會告訴專案擁有者和管理員，並提供 **顯示** 或 **保持隱藏**。
+
+專案擁有者、專案管理員以及可以編輯專案的人可以變更它；專案中的其他所有人都可以查看。
 
 ## 標籤
 
@@ -81,7 +96,7 @@ flowchart LR
 
 **專案設定 → 通知**包含專案傳送通知的方式：
 
-- **通知設定**：**通知管道**卡片為專案開啟或關閉簡訊、電話、WhatsApp 和 Telegram。四者預設皆為關閉。由 Project Owner、**帳單管理員** 或擁有 **Manage Billing** 的人開啟它們。該頁面的 **更多設定** 中還包含專案自己的郵件伺服器，位於**自訂 SMTP 設定**下（請參閱[SMTP](/docs/emails/smtp)），以及專案自己的 Twilio 帳戶（請參閱[Twilio 整合](/docs/self-hosted/twilio-integration)）。在 OneUptime Cloud 上，它還包含支付這些訊息的餘額：請參閱[預付餘額](/docs/configuration/billing#預付餘額)。
+- **通知管道**：**通知管道**卡片為專案開啟或關閉簡訊、電話、WhatsApp 和 Telegram。四者預設皆為關閉。由 Project Owner、**帳單管理員** 或擁有 **Manage Billing** 的人開啟它們。該頁面的 **更多設定** 中還包含專案自己的郵件伺服器，位於**自訂 SMTP 設定**下（請參閱[SMTP](/docs/emails/smtp)），以及專案自己的 Twilio 帳戶（請參閱[Twilio 整合](/docs/self-hosted/twilio-integration)）。在 OneUptime Cloud 上，它還包含支付這些訊息的餘額：請參閱[預付餘額](/docs/configuration/billing#預付餘額)。
 - **通知日誌**：專案傳送的每則通知，每個管道一個分頁：**電子郵件**、**SMS**、**WhatsApp**、**Telegram**、**Webhook**、**呼叫**、**推送**和**工作區**。
 - **行動應用程式**：取得 iOS 和 Android 應用程式的位置。請參閱[應用程式概觀](/docs/mobile-desktop-apps/index)。
 

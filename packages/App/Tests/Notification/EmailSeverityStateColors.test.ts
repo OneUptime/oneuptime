@@ -478,7 +478,7 @@ const COLOURED_ROWS: Array<ColouredRow> = [
   },
   {
     template: "SubscriberScheduledMaintenanceEventStateChanged.hbs",
-    label: "Event State",
+    label: "Maintenance State",
     variable: "eventState",
   },
   {
