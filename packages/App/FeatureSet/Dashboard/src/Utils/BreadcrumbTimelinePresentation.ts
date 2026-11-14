@@ -450,7 +450,9 @@ export function formatBreadcrumbOffset(
 /*
  * Wall-clock time with milliseconds, e.g. "14:03:07.412", in the timezone the
  * user picked in User Settings (the browser's zone when they have not), so it
- * agrees with the full timestamp in the row's tooltip.
+ * agrees with the full timestamp in the row's tooltip. Its digits are the
+ * reader's ("۱۴:۰۳:۰۷.۴۱۲" on a Persian page), its marks the same in every
+ * language.
  */
 export function formatBreadcrumbClockTime(eventTime: Date): string {
   return OneUptimeDate.getDateAsCustomFormattedStringInTimezone({

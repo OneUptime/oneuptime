@@ -29,8 +29,11 @@ export const Moment: typeof moment = moment;
 /*
  * The custom shapes (getDateAsCustomFormattedStringInTimezone) a date's words
  * are written in the reader's language for, as Intl asks for them. A shape
- * with no words in it ("YYYY", "HH:mm:ss.SSS") reads the same in every
- * language; one that is not listed is written by moment, in English.
+ * with no words in it still takes the reader's digits: "HH:mm" here
+ * ("۲۲:۲۷" on a Persian page), and READER_DIGIT_CUSTOM_DATE_FORMATS, whose
+ * shapes keep moment's marks. A shape in neither list is moment's, in
+ * English and in Latin digits ("YYYY-MM-DD", which callers compare rather
+ * than show), so a shape a page shows belongs in one of them.
  *
  * English's "hh" keeps a 12-hour time's zero ("05:01 PM"), as moment writes
  * it; no other language writes one there ("오후 5:01", "5:01 م"), so the
@@ -52,6 +55,20 @@ const LOCALIZED_CUSTOM_DATE_FORMATS: Readonly<
   // A 24-hour time of day, in the reader's digits: "۲۲:۲۷" on a Persian page.
   "HH:mm": { hour: "2-digit", minute: "2-digit", hourCycle: "h23" },
 };
+
+/*
+ * The custom shapes with no words in them that are written as moment writes
+ * them, in the reader's digits (inReaderDigits) - the digits "HH:mm" takes:
+ * Persian's own, and the Latin ones of every other language of the
+ * product, Arabic too. Only the digits change, so the shape is the same in
+ * every language; Intl would put a comma before the milliseconds in German
+ * ("11:55:59,120") and dots between the hours, minutes and seconds in
+ * Danish ("11.55.59,120").
+ */
+const READER_DIGIT_CUSTOM_DATE_FORMATS: ReadonlyArray<string> = [
+  // An exception breadcrumb's Clock time: "۱۱:۵۵:۵۹.۱۲۰" on a Persian page.
+  "HH:mm:ss.SSS",
+];
 
 // A whole number of nanoseconds, as fromUnixNano reads one exactly.
 const UNIX_NANO_INTEGER_PATTERN: RegExp = /^[+-]?\d+$/;
@@ -1119,7 +1136,9 @@ export default class OneUptimeDate {
       LOCALIZED_CUSTOM_DATE_FORMATS[data.format];
 
     if (!options) {
-      return english();
+      return READER_DIGIT_CUSTOM_DATE_FORMATS.includes(data.format)
+        ? this.inReaderDigits(english)
+        : english();
     }
 
     return writeInDateDisplayLanguage(

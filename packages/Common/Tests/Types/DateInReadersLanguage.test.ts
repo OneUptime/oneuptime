@@ -9,6 +9,7 @@ import {
   withDateDisplayLanguage,
 } from "../../Types/DateLanguage";
 import Timezone from "../../Types/Timezone";
+import { DASHBOARD_LANGUAGES } from "../Helpers/TranslatedLanguages";
 
 /*
  * "Oct 06 2026, 10:05 BST", "5 hours ago", "2 days, 3 hours" were written
@@ -494,6 +495,84 @@ describe("times in the reader's digits", () => {
       }),
     ).toBe("10:05");
   });
+});
+
+/*
+ * A time of day to the millisecond ("HH:mm:ss.SSS"), the Clock time of an
+ * exception's breadcrumbs, was moment's in every language: "10:05:07.120"
+ * in Latin digits on a Persian page, beside "۱۰:۰۵" (#7856). It is now
+ * written in the digits "HH:mm" is written in - Persian's own, Latin ones
+ * in Arabic - and only its digits change: its marks are ":" and "." in
+ * every language, where Intl writes "10:05:07,120" in German and
+ * "10.05.07,120" in Danish.
+ */
+describe("a time of day to the millisecond", () => {
+  // 10:05:07.120 in London.
+  const MOMENT: Date = new Date("2026-10-06T09:05:07.120Z");
+
+  // A digit of any script, and anything else.
+  const DIGIT: RegExp = /\p{Nd}/gu;
+  const NOT_A_DIGIT: RegExp = /\P{Nd}/gu;
+
+  const clockTime: () => string = (): string => {
+    return OneUptimeDate.getDateAsCustomFormattedStringInTimezone({
+      date: MOMENT,
+      format: "HH:mm:ss.SSS",
+    });
+  };
+
+  const hourAndMinute: () => string = (): string => {
+    return OneUptimeDate.getDateAsCustomFormattedStringInTimezone({
+      date: MOMENT,
+      format: "HH:mm",
+    });
+  };
+
+  test("nothing set, or English: as it always read", () => {
+    expect(clockTime()).toBe("10:05:07.120");
+
+    setDateDisplayLanguage("en");
+
+    expect(clockTime()).toBe("10:05:07.120");
+    expect(getEnglishOf(clockTime())).toBeUndefined();
+  });
+
+  test("Persian: in Persian digits, as its hour and minute are, and remembered with its English", () => {
+    setDateDisplayLanguage("fa");
+
+    const time: string = clockTime();
+
+    expect(hourAndMinute()).toBe("۱۰:۰۵");
+    expect(time).toBe("۱۰:۰۵:۰۷.۱۲۰");
+    expect(time).not.toMatch(/[0-9]/);
+    // A sentence in English puts the English back.
+    expect(getEnglishOf(time)).toBe("10:05:07.120");
+  });
+
+  test("Arabic: in Latin digits, as its hour and minute are", () => {
+    setDateDisplayLanguage("ar");
+
+    expect(hourAndMinute()).toBe("10:05");
+    expect(clockTime()).toBe("10:05:07.120");
+  });
+
+  test.each([...DASHBOARD_LANGUAGES])(
+    "%s: in the digits its hour and minute are written in, with English's marks",
+    (language: string) => {
+      setDateDisplayLanguage(language);
+
+      const time: string = clockTime();
+      const hourAndMinuteDigits: string = hourAndMinute().replace(
+        NOT_A_DIGIT,
+        "",
+      );
+
+      expect(time.replace(DIGIT, "0")).toBe("00:00:00.000");
+      expect(
+        time.replace(NOT_A_DIGIT, "").slice(0, hourAndMinuteDigits.length),
+      ).toBe(hourAndMinuteDigits);
+    },
+  );
 });
 
 /*
