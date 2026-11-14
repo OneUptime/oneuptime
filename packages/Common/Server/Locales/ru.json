@@ -156,7 +156,7 @@
   "Incidents and outages": "Инциденты и сбои",
   "Incidents in this Episode ({{count}})": "Инциденты в этом эпизоде ({{count}})",
   "Low": "Низкий",
-  "Maintenance Event": "Обслуживание",
+  "Maintenance Event": "Событие обслуживания",
   "Maintenance Event: {{title}}": "Событие обслуживания: {{title}}",
   "Maintenance State": "Состояние обслуживания",
   "Maintenance events": "События обслуживания",
