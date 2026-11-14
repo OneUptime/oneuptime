@@ -728,16 +728,14 @@ describe("Scheduled maintenance overview page", () => {
 
       const skeleton: HTMLElement = screen.getByRole("status");
 
-      expect(skeleton).toHaveTextContent("Loading scheduled maintenance event");
+      expect(skeleton).toHaveTextContent("Loading maintenance event");
       expect(screen.queryByTestId("change-state")).toBe(null);
       expect(screen.queryByTestId("feed")).toBe(null);
 
       item.resolve(makeEvent());
       await flush();
 
-      expect(screen.queryByText("Loading scheduled maintenance event")).toBe(
-        null,
-      );
+      expect(screen.queryByText("Loading maintenance event")).toBe(null);
       expect(screen.getByTestId("change-state")).toBeInTheDocument();
       expect(screen.getByTestId("feed")).toBeInTheDocument();
       expect(changeStateMountMock).toHaveBeenCalledTimes(1);
@@ -890,9 +888,7 @@ describe("Scheduled maintenance overview page", () => {
       await renderPage();
 
       expect(
-        screen.getByText(
-          "This scheduled maintenance event could not be found.",
-        ),
+        screen.getByText("This maintenance event could not be found."),
       ).toBeInTheDocument();
       expect(screen.queryByRole("status")).toBe(null);
     });
@@ -944,7 +940,7 @@ describe("Scheduled maintenance overview page", () => {
 
       expect(screen.queryByText("First event")).toBe(null);
       expect(screen.getByRole("status")).toHaveTextContent(
-        "Loading scheduled maintenance event",
+        "Loading maintenance event",
       );
 
       second.resolve(makeEvent({ title: "Second event" }));
@@ -1031,7 +1027,7 @@ describe("Scheduled maintenance overview page", () => {
 
       expect(screen.queryByText("Server exploded")).toBe(null);
       expect(screen.getByRole("status")).toHaveTextContent(
-        "Loading scheduled maintenance event",
+        "Loading maintenance event",
       );
 
       backAgain.resolve(makeEvent({ title: "First event, reloaded" }));

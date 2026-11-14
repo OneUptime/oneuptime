@@ -34,7 +34,7 @@ const ScheduledMaintenanceDelete: FunctionComponent<
           fieldType: FormFieldSchemaType.Markdown,
           required: false,
           placeholder: "Description",
-          description: "Describe the scheduled maintenance event here.",
+          description: "Describe the maintenance event here.",
         },
       ]}
       modelDetailProps={{

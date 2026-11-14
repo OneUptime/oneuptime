@@ -211,7 +211,7 @@ describe("the emoji reaction tips, in English", () => {
     render(
       <WorkspaceReactionNotesTips
         workspaceType={WorkspaceType.MicrosoftTeams}
-        resourceName="scheduled maintenance event"
+        resourceName="maintenance event"
         supportsPublicNotes={true}
       />,
     );
@@ -220,7 +220,7 @@ describe("the emoji reaction tips, in English", () => {
     expect(markdown()).toContain(PIN_MAINTENANCE);
     expect(markdown()).not.toContain("Pin to channel");
     expect(markdown()).toContain(
-      "the channel OneUptime created for the scheduled maintenance event",
+      "the channel OneUptime created for the maintenance event",
     );
   });
 
@@ -229,7 +229,7 @@ describe("the emoji reaction tips, in English", () => {
     ["incident episode", PIN_EPISODE],
     ["alert", PIN_ALERT],
     ["alert episode", PIN_EPISODE],
-    ["scheduled maintenance event", PIN_MAINTENANCE],
+    ["maintenance event", PIN_MAINTENANCE],
   ])(
     "on the pages of an %s, a pin saves a note only the people who can see it can read",
     (resourceName: string, line: string) => {
@@ -260,7 +260,7 @@ describe("the emoji reaction tips, in English", () => {
         "alert episode",
         "incident",
         "incident episode",
-        "scheduled maintenance event",
+        "maintenance event",
       ].sort(),
     );
     expect(getReactionPrivateNoteLine("monitor")).toBe(PIN_INCIDENT);
