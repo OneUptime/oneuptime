@@ -17,7 +17,7 @@ import Express, {
 import Response from "Common/Server/Utils/Response";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import NetworkDeviceService, {
-  DeviceFleetSummary,
+  DeviceFleetScan,
 } from "Common/Server/Services/NetworkDeviceService";
 import NetworkSiteService, {
   SiteStatusCount,
@@ -26,6 +26,10 @@ import NetworkEndpointService from "Common/Server/Services/NetworkEndpointServic
 import MonitorStatusService from "Common/Server/Services/MonitorStatusService";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
+import NetworkEndpoint from "Common/Models/DatabaseModels/NetworkEndpoint";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import NetworkSummaryCache from "Common/Server/Utils/NetworkDevice/NetworkSummaryCache";
+import ReadLanes from "Common/Server/Utils/ReadLanes";
 import { getNetworkSiteTypeName } from "Common/Utils/NetworkSite/SiteTypeName";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import {
@@ -64,6 +68,30 @@ import NetworkDeviceMonitoringMethod, {
 // How many rows each "needs attention" teaser shows.
 const ATTENTION_LIST_LIMIT: number = 8;
 const VENDOR_LIST_LIMIT: number = 6;
+
+/*
+ * How many of a view's reads run at once: each holds a pooled connection,
+ * and the Overview has ten of them (ReadLanes). Two keep a view quick
+ * without one person's page taking a fifth of the pool from everyone else.
+ */
+export const VIEW_READ_LANES: number = 2;
+
+/*
+ * The records each view counts, whose read-permission scope decides who
+ * shares its cached answer (NetworkSummaryCache.getViewerScope).
+ */
+const FLEET_SCAN_MODELS: Array<{ new (): BaseModel }> = [NetworkDevice];
+const SITE_SUMMARY_MODELS: Array<{ new (): BaseModel }> = [
+  NetworkDevice,
+  NetworkSite,
+  MonitorStatus,
+];
+const OVERVIEW_MODELS: Array<{ new (): BaseModel }> = [
+  NetworkDevice,
+  NetworkSite,
+  NetworkEndpoint,
+  MonitorStatus,
+];
 
 /*
  * Devices with no vendor identity yet — never walked, or walked by a device
@@ -130,6 +158,33 @@ async function getProjectMonitorStatuses(
     offlineIds: offlineIds,
     byId: byId,
   };
+}
+
+/*
+ * The fleet, counted once (NetworkDeviceService.getFleetScan), kept for
+ * half a minute per project and viewer scope: the Overview, the Devices
+ * strip and the Sites strip share it.
+ */
+async function getFleetScan(
+  projectId: ObjectID,
+  props: DatabaseCommonInteractionProps,
+): Promise<DeviceFleetScan> {
+  return await NetworkSummaryCache.getOrBuild<DeviceFleetScan>({
+    view: "fleet-scan",
+    projectId: projectId,
+    scope: await NetworkSummaryCache.getViewerScope({
+      projectId: projectId,
+      props: props,
+      modelTypes: FLEET_SCAN_MODELS,
+    }),
+    build: (): Promise<DeviceFleetScan> => {
+      return NetworkDeviceService.getFleetScan({
+        projectId: projectId,
+        now: OneUptimeDate.getCurrentDate(),
+        props: props,
+      });
+    },
+  });
 }
 
 interface FleetStatusTally {
@@ -210,6 +265,8 @@ async function getDevicesNeedingAttention(data: {
   statuses: ProjectMonitorStatuses;
   props: DatabaseCommonInteractionProps;
   now: Date;
+  // The view's read lanes: each read waits for one (ReadLanes).
+  lanes: ReadLanes;
 }): Promise<JSONArray> {
   const selectColumns: {
     _id: boolean;
@@ -251,20 +308,23 @@ async function getDevicesNeedingAttention(data: {
    * is the single most alarming row it can have. Two reads, no NULL ordering
    * to get wrong.
    */
-  const neverAnsweredPromise: Promise<Array<NetworkDevice>> =
-    NetworkDeviceService.findBy({
-      query: {
-        projectId: data.projectId,
-        isArchived: false,
-        isReachable: false,
-        lastSeenAt: QueryHelper.isNull(),
-      },
-      select: selectColumns,
-      sort: {},
-      limit: ATTENTION_LIST_LIMIT,
-      skip: 0,
-      props: data.props,
-    });
+  const neverAnsweredPromise: Promise<Array<NetworkDevice>> = data.lanes.run(
+    (): Promise<Array<NetworkDevice>> => {
+      return NetworkDeviceService.findBy({
+        query: {
+          projectId: data.projectId,
+          isArchived: false,
+          isReachable: false,
+          lastSeenAt: QueryHelper.isNull(),
+        },
+        select: selectColumns,
+        sort: {},
+        limit: ATTENTION_LIST_LIMIT,
+        skip: 0,
+        props: data.props,
+      });
+    },
+  );
 
   /*
    * Sorted rather than read in index order: `lastSeenAt` is in no index on
@@ -273,22 +333,25 @@ async function getDevicesNeedingAttention(data: {
    * through that index and keeps the eight longest out of contact, a top-N
    * sort as large as the number of devices down.
    */
-  const unreachablePromise: Promise<Array<NetworkDevice>> =
-    NetworkDeviceService.findBy({
-      query: {
-        projectId: data.projectId,
-        isArchived: false,
-        isReachable: false,
-        lastSeenAt: QueryHelper.notNull(),
-      },
-      select: selectColumns,
-      sort: {
-        lastSeenAt: SortOrder.Ascending,
-      },
-      limit: ATTENTION_LIST_LIMIT,
-      skip: 0,
-      props: data.props,
-    });
+  const unreachablePromise: Promise<Array<NetworkDevice>> = data.lanes.run(
+    (): Promise<Array<NetworkDevice>> => {
+      return NetworkDeviceService.findBy({
+        query: {
+          projectId: data.projectId,
+          isArchived: false,
+          isReachable: false,
+          lastSeenAt: QueryHelper.notNull(),
+        },
+        select: selectColumns,
+        sort: {
+          lastSeenAt: SortOrder.Ascending,
+        },
+        limit: ATTENTION_LIST_LIMIT,
+        skip: 0,
+        props: data.props,
+      });
+    },
+  );
 
   /*
    * A monitor-backed device is never polled, so `isReachable` is NULL on it
@@ -297,20 +360,22 @@ async function getDevicesNeedingAttention(data: {
    */
   const monitorOfflinePromise: Promise<Array<NetworkDevice>> =
     data.statuses.offlineIds.length > 0
-      ? NetworkDeviceService.findBy({
-          query: {
-            projectId: data.projectId,
-            isArchived: false,
-            monitoringMethod: NetworkDeviceMonitoringMethod.Monitor,
-            currentMonitorStatusId: QueryHelper.any(data.statuses.offlineIds),
-          },
-          select: selectColumns,
-          sort: {
-            lastSeenAt: SortOrder.Ascending,
-          },
-          limit: ATTENTION_LIST_LIMIT,
-          skip: 0,
-          props: data.props,
+      ? data.lanes.run((): Promise<Array<NetworkDevice>> => {
+          return NetworkDeviceService.findBy({
+            query: {
+              projectId: data.projectId,
+              isArchived: false,
+              monitoringMethod: NetworkDeviceMonitoringMethod.Monitor,
+              currentMonitorStatusId: QueryHelper.any(data.statuses.offlineIds),
+            },
+            select: selectColumns,
+            sort: {
+              lastSeenAt: SortOrder.Ascending,
+            },
+            limit: ATTENTION_LIST_LIMIT,
+            skip: 0,
+            props: data.props,
+          });
         })
       : Promise.resolve([]);
 
@@ -321,22 +386,25 @@ async function getDevicesNeedingAttention(data: {
    * misconfigured-from-day-one case is the less urgent of the two, and the
    * read is bounded either way).
    */
-  const snmpFailingPromise: Promise<Array<NetworkDevice>> =
-    NetworkDeviceService.findBy({
-      query: {
-        projectId: data.projectId,
-        isArchived: false,
-        isReachable: true,
-        isSnmpReachable: false,
-      },
-      select: selectColumns,
-      sort: {
-        lastSnmpSeenAt: SortOrder.Ascending,
-      },
-      limit: ATTENTION_LIST_LIMIT,
-      skip: 0,
-      props: data.props,
-    });
+  const snmpFailingPromise: Promise<Array<NetworkDevice>> = data.lanes.run(
+    (): Promise<Array<NetworkDevice>> => {
+      return NetworkDeviceService.findBy({
+        query: {
+          projectId: data.projectId,
+          isArchived: false,
+          isReachable: true,
+          isSnmpReachable: false,
+        },
+        select: selectColumns,
+        sort: {
+          lastSnmpSeenAt: SortOrder.Ascending,
+        },
+        limit: ATTENTION_LIST_LIMIT,
+        skip: 0,
+        props: data.props,
+      });
+    },
+  );
 
   /*
    * Up with dark ports. `isSnmpReachable` must not be false: a failing walk
@@ -346,23 +414,26 @@ async function getDevicesNeedingAttention(data: {
    * through — a row written before the column existed still carries counts
    * a walk really did collect.
    */
-  const degradedPromise: Promise<Array<NetworkDevice>> =
-    NetworkDeviceService.findBy({
-      query: {
-        projectId: data.projectId,
-        isArchived: false,
-        isReachable: true,
-        isSnmpReachable: QueryHelper.equalToOrNull("true"),
-        interfacesDown: QueryHelper.greaterThan(0),
-      },
-      select: selectColumns,
-      sort: {
-        interfacesDown: SortOrder.Descending,
-      },
-      limit: ATTENTION_LIST_LIMIT,
-      skip: 0,
-      props: data.props,
-    });
+  const degradedPromise: Promise<Array<NetworkDevice>> = data.lanes.run(
+    (): Promise<Array<NetworkDevice>> => {
+      return NetworkDeviceService.findBy({
+        query: {
+          projectId: data.projectId,
+          isArchived: false,
+          isReachable: true,
+          isSnmpReachable: QueryHelper.equalToOrNull("true"),
+          interfacesDown: QueryHelper.greaterThan(0),
+        },
+        select: selectColumns,
+        sort: {
+          interfacesDown: SortOrder.Descending,
+        },
+        limit: ATTENTION_LIST_LIMIT,
+        skip: 0,
+        props: data.props,
+      });
+    },
+  );
 
   const [neverAnswered, unreachable, monitorOffline, snmpFailing, degraded]: [
     Array<NetworkDevice>,
@@ -509,33 +580,41 @@ async function getSitesNeedingAttention(data: {
   projectId: ObjectID;
   statuses: ProjectMonitorStatuses;
   props: DatabaseCommonInteractionProps;
+  // The view's read lanes (ReadLanes).
+  lanes: ReadLanes;
 }): Promise<JSONArray> {
   if (data.statuses.nonOperationalIds.length === 0) {
     return [];
   }
 
-  const sites: Array<NetworkSite> = await NetworkSiteService.findBy({
-    query: {
-      projectId: data.projectId,
-      currentMonitorStatusId: QueryHelper.any(data.statuses.nonOperationalIds),
+  const sites: Array<NetworkSite> = await data.lanes.run(
+    (): Promise<Array<NetworkSite>> => {
+      return NetworkSiteService.findBy({
+        query: {
+          projectId: data.projectId,
+          currentMonitorStatusId: QueryHelper.any(
+            data.statuses.nonOperationalIds,
+          ),
+        },
+        select: {
+          _id: true,
+          name: true,
+          // The type's name: the relation, and the old column as its fallback.
+          networkSiteType: {
+            name: true,
+          },
+          siteType: true,
+          currentMonitorStatusId: true,
+        },
+        sort: {
+          name: SortOrder.Ascending,
+        },
+        limit: ATTENTION_LIST_LIMIT,
+        skip: 0,
+        props: data.props,
+      });
     },
-    select: {
-      _id: true,
-      name: true,
-      // The type's name: the relation, and the old column as its fallback.
-      networkSiteType: {
-        name: true,
-      },
-      siteType: true,
-      currentMonitorStatusId: true,
-    },
-    sort: {
-      name: SortOrder.Ascending,
-    },
-    limit: ATTENTION_LIST_LIMIT,
-    skip: 0,
-    props: data.props,
-  });
+  );
 
   return sites.map((site: NetworkSite): JSONObject => {
     const status: MonitorStatus | undefined = site.currentMonitorStatusId
@@ -638,13 +717,217 @@ function getUnhealthyStatusIdsInUse(data: {
   return ids;
 }
 
+/*
+ * The site summary strip's numbers: the sites by rollup status, and the
+ * devices attached to none - three reads, two at a time.
+ */
+async function buildSiteSummary(
+  projectId: ObjectID,
+  props: DatabaseCommonInteractionProps,
+): Promise<JSONObject> {
+  const lanes: ReadLanes = new ReadLanes(VIEW_READ_LANES);
+
+  const [statuses, statusCounts, fleet]: [
+    ProjectMonitorStatuses,
+    Array<SiteStatusCount>,
+    DeviceFleetScan,
+  ] = await Promise.all([
+    lanes.run((): Promise<ProjectMonitorStatuses> => {
+      return getProjectMonitorStatuses(projectId, props);
+    }),
+    lanes.run((): Promise<Array<SiteStatusCount>> => {
+      return NetworkSiteService.getStatusCounts({
+        projectId: projectId,
+        props: props,
+      });
+    }),
+    lanes.run((): Promise<DeviceFleetScan> => {
+      return getFleetScan(projectId, props);
+    }),
+  ]);
+
+  const siteTally: {
+    totalSites: number;
+    unhealthySites: number;
+    sitesWithNoData: number;
+  } = tallySites({ statusCounts: statusCounts, statuses: statuses });
+
+  return {
+    totalSites: siteTally.totalSites,
+    unhealthySites: siteTally.unhealthySites,
+    sitesWithNoData: siteTally.sitesWithNoData,
+    devicesWithoutSite: fleet.summary.devicesWithoutSite,
+    unhealthyStatusIds: getUnhealthyStatusIdsInUse({
+      statusCounts: statusCounts,
+      statuses: statuses,
+    }),
+  };
+}
+
+/*
+ * The Network Overview: the fleet tally, the two "needs attention" teasers,
+ * the vendor breakdown and the endpoint count.
+ *
+ * Ten reads, two at a time (ReadLanes): the project's status ladder first,
+ * which the attention reads need, then the fleet scan (one pass over the
+ * devices for the tally, the vendors and the SNMP-failing count - kept for
+ * the strips too), the site and endpoint counts and the bounded attention
+ * reads. It used to start them all at once: one view held ten pooled
+ * connections, and failed outright when any one statement timed out on a
+ * busy database.
+ */
+async function buildOverview(
+  projectId: ObjectID,
+  props: DatabaseCommonInteractionProps,
+): Promise<JSONObject> {
+  const now: Date = OneUptimeDate.getCurrentDate();
+  const lanes: ReadLanes = new ReadLanes(VIEW_READ_LANES);
+
+  const statuses: ProjectMonitorStatuses = await lanes.run(
+    (): Promise<ProjectMonitorStatuses> => {
+      return getProjectMonitorStatuses(projectId, props);
+    },
+  );
+
+  const [
+    fleetScan,
+    siteStatusCounts,
+    endpointCount,
+    attentionDevices,
+    attentionSites,
+  ]: [DeviceFleetScan, Array<SiteStatusCount>, number, JSONArray, JSONArray] =
+    await Promise.all([
+      lanes.run((): Promise<DeviceFleetScan> => {
+        return getFleetScan(projectId, props);
+      }),
+      lanes.run((): Promise<Array<SiteStatusCount>> => {
+        return NetworkSiteService.getStatusCounts({
+          projectId: projectId,
+          props: props,
+        });
+      }),
+      lanes.run(async (): Promise<number> => {
+        const count: PositiveNumber = await NetworkEndpointService.countBy({
+          query: {
+            projectId: projectId,
+          },
+          props: props,
+        });
+
+        return count.toNumber();
+      }),
+      getDevicesNeedingAttention({
+        projectId: projectId,
+        statuses: statuses,
+        props: props,
+        now: now,
+        lanes: lanes,
+      }),
+      getSitesNeedingAttention({
+        projectId: projectId,
+        statuses: statuses,
+        props: props,
+        lanes: lanes,
+      }),
+    ]);
+
+  const fleet: FleetStatusTally = tallyFleetStatus({
+    groups: fleetScan.healthGroups,
+    statuses: statuses,
+    now: now,
+  });
+
+  const siteTally: {
+    totalSites: number;
+    unhealthySites: number;
+    sitesWithNoData: number;
+  } = tallySites({
+    statusCounts: siteStatusCounts,
+    statuses: statuses,
+  });
+
+  return {
+    fleet: {
+      total: fleet.total,
+      up: fleet.up,
+      down: fleet.down,
+      pending: fleet.pending,
+      interfacesDown: fleetScan.summary.interfacesDown,
+      /*
+       * Devices that answer ping while their SNMP walk fails - the same
+       * filter the attention list's SNMP-failing read pages through,
+       * counted whole by the fleet scan. The Overview's headline says how
+       * many devices are not reporting their details, and the attention
+       * list shows at most eight of them.
+       */
+      snmpFailing: fleetScan.snmpFailing,
+    },
+    siteCount: siteTally.totalSites,
+    unhealthySiteCount: siteTally.unhealthySites,
+    endpointCount: endpointCount,
+    vendors: getTopVendors(fleetScan.vendors),
+    attentionDevices: attentionDevices,
+    attentionSites: attentionSites,
+  };
+}
+
+/*
+ * The vendor breakdown's rows: the biggest VENDOR_LIST_LIMIT vendors as the
+ * fleet scan orders them (count, then the database's own order of the
+ * name), "Unknown" for devices with none yet.
+ */
+function getTopVendors(
+  vendors: Array<{ vendor: string; count: number }>,
+): JSONArray {
+  return (
+    vendors
+      .slice(0, VENDOR_LIST_LIMIT)
+      .map(
+        (vendor: {
+          vendor: string;
+          count: number;
+        }): { vendor: string; count: number } => {
+          return {
+            vendor: vendor.vendor || UNKNOWN_VENDOR_LABEL,
+            count: vendor.count,
+          };
+        },
+      )
+      /*
+       * Re-sorted after the label is applied, so a tie breaks on what
+       * the reader sees. The database orders on the raw grouped value,
+       * where unenriched devices are the empty string and therefore
+       * sort ahead of every named vendor — which would put "Unknown"
+       * first on an exact tie and read as a ranking decision nobody
+       * made. Six rows; the cost is nothing.
+       */
+      .sort(
+        (
+          first: { vendor: string; count: number },
+          second: { vendor: string; count: number },
+        ): number => {
+          if (second.count !== first.count) {
+            return second.count - first.count;
+          }
+          return first.vendor.localeCompare(second.vendor);
+        },
+      )
+      .map((vendor: { vendor: string; count: number }): JSONObject => {
+        return {
+          vendor: vendor.vendor,
+          count: vendor.count,
+        };
+      })
+  );
+}
+
 export default class NetworkSummaryAPI {
   public getRouter(): ExpressRouter {
     const router: ExpressRouter = Express.getRouter();
 
     /*
-     * The summary strip above the device list: four counts, one statement, no
-     * rows.
+     * The summary strip above the device list: four counts from the fleet
+     * scan the Overview and the Sites strip share, kept for half a minute.
      */
     router.post(
       "/network-device/summary",
@@ -662,19 +945,18 @@ export default class NetworkSummaryAPI {
             throw new BadDataException("Project not found in request");
           }
 
-          const summary: DeviceFleetSummary =
-            await NetworkDeviceService.getFleetSummary({
-              projectId: props.tenantId,
-              props: props,
-            });
+          const scan: DeviceFleetScan = await getFleetScan(
+            props.tenantId,
+            props,
+          );
 
           return Response.sendJsonObjectResponse(req, res, {
-            devicesUp: summary.devicesUp,
-            devicesDown: summary.devicesDown,
-            devicesPending: summary.devicesPending,
-            interfacesDown: summary.interfacesDown,
-            totalDevices: summary.totalDevices,
-            devicesWithoutSite: summary.devicesWithoutSite,
+            devicesUp: scan.summary.devicesUp,
+            devicesDown: scan.summary.devicesDown,
+            devicesPending: scan.summary.devicesPending,
+            interfacesDown: scan.summary.interfacesDown,
+            totalDevices: scan.summary.totalDevices,
+            devicesWithoutSite: scan.summary.devicesWithoutSite,
           });
         } catch (err) {
           next(err);
@@ -682,7 +964,7 @@ export default class NetworkSummaryAPI {
       },
     );
 
-    // The summary strip above the site list.
+    // The summary strip above the site list, kept for half a minute.
     router.post(
       "/network-site/summary",
       UserMiddleware.getUserMiddleware,
@@ -701,38 +983,21 @@ export default class NetworkSummaryAPI {
 
           const projectId: ObjectID = props.tenantId;
 
-          const [statuses, statusCounts, fleet]: [
-            ProjectMonitorStatuses,
-            Array<SiteStatusCount>,
-            DeviceFleetSummary,
-          ] = await Promise.all([
-            getProjectMonitorStatuses(projectId, props),
-            NetworkSiteService.getStatusCounts({
+          const summary: JSONObject =
+            await NetworkSummaryCache.getOrBuild<JSONObject>({
+              view: "site-summary",
               projectId: projectId,
-              props: props,
-            }),
-            NetworkDeviceService.getFleetSummary({
-              projectId: projectId,
-              props: props,
-            }),
-          ]);
+              scope: await NetworkSummaryCache.getViewerScope({
+                projectId: projectId,
+                props: props,
+                modelTypes: SITE_SUMMARY_MODELS,
+              }),
+              build: (): Promise<JSONObject> => {
+                return buildSiteSummary(projectId, props);
+              },
+            });
 
-          const siteTally: {
-            totalSites: number;
-            unhealthySites: number;
-            sitesWithNoData: number;
-          } = tallySites({ statusCounts: statusCounts, statuses: statuses });
-
-          return Response.sendJsonObjectResponse(req, res, {
-            totalSites: siteTally.totalSites,
-            unhealthySites: siteTally.unhealthySites,
-            sitesWithNoData: siteTally.sitesWithNoData,
-            devicesWithoutSite: fleet.devicesWithoutSite,
-            unhealthyStatusIds: getUnhealthyStatusIdsInUse({
-              statusCounts: statusCounts,
-              statuses: statuses,
-            }),
-          });
+          return Response.sendJsonObjectResponse(req, res, summary);
         } catch (err) {
           next(err);
         }
@@ -782,10 +1047,10 @@ export default class NetworkSummaryAPI {
     );
 
     /*
-     * The Network Overview landing page: the fleet tally, the two "needs
-     * attention" teasers, the vendor breakdown and the endpoint count — the
-     * whole page, in one request that returns a few kilobytes instead of two
-     * that returned several megabytes.
+     * The Network Overview landing page, in one request that returns a few
+     * kilobytes, kept for half a minute per project and viewer scope
+     * (NetworkSummaryCache) and built once for requests that arrive
+     * together (buildOverview).
      */
     router.post(
       "/network-device/overview",
@@ -804,156 +1069,22 @@ export default class NetworkSummaryAPI {
           }
 
           const projectId: ObjectID = props.tenantId;
-          const now: Date = OneUptimeDate.getCurrentDate();
 
-          const statuses: ProjectMonitorStatuses =
-            await getProjectMonitorStatuses(projectId, props);
-
-          const [
-            healthGroups,
-            siteStatusCounts,
-            vendors,
-            endpointCount,
-            snmpFailingCount,
-            attentionDevices,
-            attentionSites,
-          ]: [
-            Array<DeviceHealthGroup>,
-            Array<SiteStatusCount>,
-            Array<{ vendor: string; count: number }>,
-            number,
-            number,
-            JSONArray,
-            JSONArray,
-          ] = await Promise.all([
-            NetworkDeviceService.getHealthGroups({
+          const overview: JSONObject =
+            await NetworkSummaryCache.getOrBuild<JSONObject>({
+              view: "overview",
               projectId: projectId,
-              groupBySite: false,
-              now: now,
-              props: props,
-            }),
-            NetworkSiteService.getStatusCounts({
-              projectId: projectId,
-              props: props,
-            }),
-            NetworkDeviceService.getVendorBreakdown({
-              projectId: projectId,
-              limit: VENDOR_LIST_LIMIT,
-              props: props,
-            }),
-            NetworkEndpointService.countBy({
-              query: {
+              scope: await NetworkSummaryCache.getViewerScope({
                 projectId: projectId,
-              },
-              props: props,
-            }).then((count: PositiveNumber) => {
-              return count.toNumber();
-            }),
-            /*
-             * Devices that answer ping while their SNMP walk fails - the
-             * same rows the attention list's SNMP-failing read pages
-             * through, counted whole. The Overview's headline says how many
-             * devices are not reporting their details, and the attention
-             * list shows at most eight of them.
-             */
-            NetworkDeviceService.countBy({
-              query: {
-                projectId: projectId,
-                isArchived: false,
-                isReachable: true,
-                isSnmpReachable: false,
-              },
-              props: props,
-            }).then((count: PositiveNumber) => {
-              return count.toNumber();
-            }),
-            getDevicesNeedingAttention({
-              projectId: projectId,
-              statuses: statuses,
-              props: props,
-              now: now,
-            }),
-            getSitesNeedingAttention({
-              projectId: projectId,
-              statuses: statuses,
-              props: props,
-            }),
-          ]);
-
-          const fleet: FleetStatusTally = tallyFleetStatus({
-            groups: healthGroups,
-            statuses: statuses,
-            now: now,
-          });
-
-          const interfacesDown: number = healthGroups.reduce(
-            (total: number, group: DeviceHealthGroup): number => {
-              return total + group.interfacesDownTotal;
-            },
-            0,
-          );
-
-          const siteTally: {
-            totalSites: number;
-            unhealthySites: number;
-            sitesWithNoData: number;
-          } = tallySites({
-            statusCounts: siteStatusCounts,
-            statuses: statuses,
-          });
-
-          return Response.sendJsonObjectResponse(req, res, {
-            fleet: {
-              total: fleet.total,
-              up: fleet.up,
-              down: fleet.down,
-              pending: fleet.pending,
-              interfacesDown: interfacesDown,
-              snmpFailing: snmpFailingCount,
-            },
-            siteCount: siteTally.totalSites,
-            unhealthySiteCount: siteTally.unhealthySites,
-            endpointCount: endpointCount,
-            vendors: vendors
-              .map(
-                (vendor: {
-                  vendor: string;
-                  count: number;
-                }): { vendor: string; count: number } => {
-                  return {
-                    vendor: vendor.vendor || UNKNOWN_VENDOR_LABEL,
-                    count: vendor.count,
-                  };
-                },
-              )
-              /*
-               * Re-sorted after the label is applied, so a tie breaks on what
-               * the reader sees. The database orders on the raw grouped value,
-               * where unenriched devices are the empty string and therefore
-               * sort ahead of every named vendor — which would put "Unknown"
-               * first on an exact tie and read as a ranking decision nobody
-               * made. Six rows; the cost is nothing.
-               */
-              .sort(
-                (
-                  first: { vendor: string; count: number },
-                  second: { vendor: string; count: number },
-                ): number => {
-                  if (second.count !== first.count) {
-                    return second.count - first.count;
-                  }
-                  return first.vendor.localeCompare(second.vendor);
-                },
-              )
-              .map((vendor: { vendor: string; count: number }): JSONObject => {
-                return {
-                  vendor: vendor.vendor,
-                  count: vendor.count,
-                };
+                props: props,
+                modelTypes: OVERVIEW_MODELS,
               }),
-            attentionDevices: attentionDevices,
-            attentionSites: attentionSites,
-          });
+              build: (): Promise<JSONObject> => {
+                return buildOverview(projectId, props);
+              },
+            });
+
+          return Response.sendJsonObjectResponse(req, res, overview);
         } catch (err) {
           next(err);
         }

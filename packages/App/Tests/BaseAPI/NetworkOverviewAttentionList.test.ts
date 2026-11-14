@@ -21,6 +21,13 @@ import {
   ExpressResponse,
   NextFunction,
 } from "Common/Server/Utils/Express";
+import NetworkSummaryCache, {
+  PROJECT_WIDE_SCOPE,
+} from "Common/Server/Utils/NetworkDevice/NetworkSummaryCache";
+import {
+  DeviceFleetScan,
+  SNMP_FAILING_AGGREGATE,
+} from "Common/Server/Utils/NetworkDevice/DeviceHealthAggregation";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 
 jest.mock("Common/Server/Utils/Express", () => {
@@ -70,6 +77,7 @@ jest.mock("Common/Server/Services/NetworkDeviceService", () => {
       getFleetSummary: jest.fn(),
       getHealthGroups: jest.fn(),
       getVendorBreakdown: jest.fn(),
+      getFleetScan: jest.fn(),
     },
   };
 });
@@ -106,12 +114,42 @@ const deviceService: {
   countBy: jest.Mock;
   getHealthGroups: jest.Mock;
   getVendorBreakdown: jest.Mock;
+  getFleetScan: jest.Mock;
 } = NetworkDeviceService as unknown as {
   findBy: jest.Mock;
   countBy: jest.Mock;
   getHealthGroups: jest.Mock;
   getVendorBreakdown: jest.Mock;
+  getFleetScan: jest.Mock;
 };
+
+/*
+ * The Overview is kept per project and viewer scope for half a minute
+ * (NetworkSummaryCache): every test starts from nothing kept, and reads as
+ * a caller whose reads nothing narrows - the permission pipeline that
+ * decides that is held by NetworkSummaryCache.test.ts.
+ */
+jest
+  .spyOn(NetworkSummaryCache, "getViewerScope")
+  .mockResolvedValue(PROJECT_WIDE_SCOPE as never);
+
+// A fleet scan of an empty fleet, unless a test says otherwise.
+function fleetScan(overrides?: Partial<DeviceFleetScan>): DeviceFleetScan {
+  return {
+    summary: {
+      devicesUp: 0,
+      devicesDown: 0,
+      devicesPending: 0,
+      interfacesDown: 0,
+      totalDevices: 0,
+      devicesWithoutSite: 0,
+    },
+    healthGroups: [],
+    vendors: [],
+    snmpFailing: 0,
+    ...overrides,
+  };
+}
 const siteService: { findBy: jest.Mock; getStatusCounts: jest.Mock } =
   NetworkSiteService as unknown as {
     findBy: jest.Mock;
@@ -307,9 +345,8 @@ describe("POST /network-device/overview — the SNMP-failing attention bucket", 
     monitorStatusService.findBy.mockResolvedValue([OFFLINE_STATUS] as never);
     siteService.getStatusCounts.mockResolvedValue([] as never);
     siteService.findBy.mockResolvedValue([] as never);
-    deviceService.getHealthGroups.mockResolvedValue([] as never);
-    deviceService.getVendorBreakdown.mockResolvedValue([] as never);
-    deviceService.countBy.mockResolvedValue(new PositiveNumber(0) as never);
+    NetworkSummaryCache.clear();
+    deviceService.getFleetScan.mockResolvedValue(fleetScan() as never);
     endpointService.countBy.mockResolvedValue(new PositiveNumber(0) as never);
     respondTo({});
   });
@@ -532,8 +569,9 @@ describe("POST /network-device/overview — the SNMP-failing attention bucket", 
  * The Overview's headline counts the devices that are not reporting their
  * details ("6 devices are not reporting their details"), and the attention
  * list above shows at most eight of them - so the fleet carries the whole
- * count, read with the SAME query as the list's SNMP-failing read, counted
- * rather than paged.
+ * count. It is counted by the fleet scan (NetworkDeviceService.getFleetScan),
+ * the one pass over the project's devices the tally and the vendors come
+ * from too, with the filter the list's SNMP-failing read pages through.
  */
 describe("POST /network-device/overview — the fleet's SNMP-failing count", () => {
   beforeEach(() => {
@@ -544,9 +582,8 @@ describe("POST /network-device/overview — the fleet's SNMP-failing count", () 
     monitorStatusService.findBy.mockResolvedValue([OFFLINE_STATUS] as never);
     siteService.getStatusCounts.mockResolvedValue([] as never);
     siteService.findBy.mockResolvedValue([] as never);
-    deviceService.getHealthGroups.mockResolvedValue([] as never);
-    deviceService.getVendorBreakdown.mockResolvedValue([] as never);
-    deviceService.countBy.mockResolvedValue(new PositiveNumber(0) as never);
+    NetworkSummaryCache.clear();
+    deviceService.getFleetScan.mockResolvedValue(fleetScan() as never);
     endpointService.countBy.mockResolvedValue(new PositiveNumber(0) as never);
     respondTo({});
   });
@@ -558,8 +595,8 @@ describe("POST /network-device/overview — the fleet's SNMP-failing count", () 
     return body["fleet"] as JSONObject;
   }
 
-  function snmpFailingCountCall(): JSONObject {
-    const calls: Array<Array<unknown>> = deviceService.countBy.mock.calls;
+  function fleetScanCall(): JSONObject {
+    const calls: Array<Array<unknown>> = deviceService.getFleetScan.mock.calls;
 
     expect(calls).toHaveLength(1);
 
@@ -567,7 +604,9 @@ describe("POST /network-device/overview — the fleet's SNMP-failing count", () 
   }
 
   test("the fleet reports how many devices answer ping while their walk fails", async () => {
-    deviceService.countBy.mockResolvedValue(new PositiveNumber(6) as never);
+    deviceService.getFleetScan.mockResolvedValue(
+      fleetScan({ snmpFailing: 6 }) as never,
+    );
 
     const next: NextFunction = await callOverview();
 
@@ -575,8 +614,10 @@ describe("POST /network-device/overview — the fleet's SNMP-failing count", () 
     expect(fleet()["snmpFailing"]).toBe(6);
   });
 
-  test("it is a plain number, not the PositiveNumber the service hands back", async () => {
-    deviceService.countBy.mockResolvedValue(new PositiveNumber(3) as never);
+  test("it is a plain number", async () => {
+    deviceService.getFleetScan.mockResolvedValue(
+      fleetScan({ snmpFailing: 3 }) as never,
+    );
 
     await callOverview();
 
@@ -589,32 +630,38 @@ describe("POST /network-device/overview — the fleet's SNMP-failing count", () 
     expect(fleet()).toHaveProperty("snmpFailing", 0);
   });
 
-  test("it counts the list's own SNMP-failing rows: reachable, walk failing, not archived, this project", async () => {
+  test("it is counted by the fleet scan, with the list's own filter - not by a read of its own", async () => {
     await callOverview();
 
-    const query: JSONObject = snmpFailingCountCall()["query"] as JSONObject;
-
-    expect(query["projectId"]).toEqual(projectId);
-    expect(query["isArchived"]).toBe(false);
-    expect(query["isReachable"]).toBe(true);
-    expect(query["isSnmpReachable"]).toBe(false);
-
-    // The same filter the attention list pages through.
+    // The scan reads this project's devices that are not archived...
+    expect(fleetScanCall()["projectId"]).toEqual(projectId);
+    // ...and counts those the list's SNMP-failing read pages through.
     const listQuery: JSONObject = findByCallFor("snmpFailing")[
       "query"
     ] as JSONObject;
 
-    expect(query).toEqual(listQuery);
+    expect(listQuery["projectId"]).toEqual(projectId);
+    expect(listQuery["isArchived"]).toBe(false);
+    expect(listQuery["isReachable"]).toBe(true);
+    expect(listQuery["isSnmpReachable"]).toBe(false);
+    expect(SNMP_FAILING_AGGREGATE.expression).toBe(
+      `COUNT(*) FILTER (WHERE "NetworkDevice"."isReachable" = true AND "NetworkDevice"."isSnmpReachable" = false)`,
+    );
+
+    // No count of its own: the fleet is read once.
+    expect(deviceService.countBy).not.toHaveBeenCalled();
   });
 
   test("it counts with the caller's own permissions", async () => {
     await callOverview();
 
-    expect(snmpFailingCountCall()["props"]).toEqual({ tenantId: projectId });
+    expect(fleetScanCall()["props"]).toEqual({ tenantId: projectId });
   });
 
   test("the count is the whole fleet's, not capped at the list's eight rows", async () => {
-    deviceService.countBy.mockResolvedValue(new PositiveNumber(250) as never);
+    deviceService.getFleetScan.mockResolvedValue(
+      fleetScan({ snmpFailing: 250 }) as never,
+    );
     respondTo({
       snmpFailing: [
         makeDevice({
@@ -631,8 +678,8 @@ describe("POST /network-device/overview — the fleet's SNMP-failing count", () 
     expect(namesOnList()).toEqual(["branch-sw1"]);
   });
 
-  test("a failing count fails the request rather than reporting zero", async () => {
-    deviceService.countBy.mockRejectedValue(new Error("db down") as never);
+  test("a failing fleet scan fails the request rather than reporting zero", async () => {
+    deviceService.getFleetScan.mockRejectedValue(new Error("db down") as never);
 
     const next: NextFunction = await callOverview();
 
@@ -655,9 +702,8 @@ describe("POST /network-device/overview — the type of a site needing attention
     } as never);
     monitorStatusService.findBy.mockResolvedValue([OFFLINE_STATUS] as never);
     siteService.getStatusCounts.mockResolvedValue([] as never);
-    deviceService.getHealthGroups.mockResolvedValue([] as never);
-    deviceService.getVendorBreakdown.mockResolvedValue([] as never);
-    deviceService.countBy.mockResolvedValue(new PositiveNumber(0) as never);
+    NetworkSummaryCache.clear();
+    deviceService.getFleetScan.mockResolvedValue(fleetScan() as never);
     endpointService.countBy.mockResolvedValue(new PositiveNumber(0) as never);
     respondTo({});
   });
