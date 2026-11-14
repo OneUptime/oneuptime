@@ -28,7 +28,35 @@ import {
   hasUsableCredentials,
 } from "../../../Utils/NetworkDevice/SnmpCredentialUtil";
 import DnsResolutionCache from "./DnsResolutionCache";
+import InMemoryTTLCache from "../../Infrastructure/InMemoryTTLCache";
 import logger from "../Logger";
+
+/*
+ * How long a probe's answer for one source address is kept: which of its
+ * devices an SNMP trap or a syslog message from that address belongs to.
+ * A device added, renamed or given another address starts receiving its
+ * traps and syslog within this long - the bound syslog and flow records have
+ * always had (SyslogDeviceMatcher, NetworkFlowDeviceMatcher).
+ */
+export const SOURCE_MATCH_CACHE_TTL_MS: number = 60 * 1000;
+
+/*
+ * One entry per (probe, source address) a process has heard from, in each
+ * process. Fifty thousand covers every device of a large fleet sending traps
+ * through one worker; past it the oldest answer is dropped and asked again.
+ */
+export const SOURCE_MATCH_CACHE_MAX_ENTRIES: number = 50_000;
+
+/*
+ * A device a source address matched, as the cache keeps it: the columns the
+ * trap and syslog paths read of it, as plain values, so nothing a caller does
+ * to the devices it is handed can reach the next caller.
+ */
+interface SourceMatchedDevice {
+  id: string;
+  projectId: string;
+  name: string | undefined;
+}
 
 /*
  * Network Device monitor steps reference a NetworkDevice resource instead of
@@ -747,14 +775,134 @@ export default class NetworkDeviceHydrationUtil {
   }
 
   /*
+   * Which NetworkDevices (polled by the given probe) a datagram's source
+   * address belongs to - SNMP traps and probe-forwarded syslog both ask
+   * here, on every trap and every message - by the rules of
+   * lookupDevicesByProbeAndSource, answered from a per-process cache.
+   *
+   * Each answer is kept for SOURCE_MATCH_CACHE_TTL_MS, and an address that
+   * is no device's is kept too. Without the cache, every trap from an
+   * address no device has as its hostname - a device that sends from its
+   * loopback, one registered by DNS name, or one nobody added - read every
+   * device the probe polls (up to 10,000 rows) and resolved their DNS names,
+   * once per trap. Concurrent asks for an address not yet cached share one
+   * lookup, so a burst of traps from one sender costs one read.
+   *
+   * The devices handed back carry `_id`, `projectId` and `name` (traps log
+   * the name), and are the caller's own: changing one changes no other
+   * caller's. `select` is accepted for the callers that still pass it;
+   * `name` is always read.
+   */
+  public static async findDevicesByProbeAndSource(data: {
+    probeId: ObjectID;
+    sourceIpAddress: string;
+    select?: { name?: boolean | undefined } | undefined;
+  }): Promise<Array<NetworkDevice>> {
+    const address: string = data.sourceIpAddress.trim();
+    const key: string = `${data.probeId.toString()}|${address}`;
+
+    const cached: Array<SourceMatchedDevice> | undefined =
+      NetworkDeviceHydrationUtil.sourceMatchCache.get(key);
+
+    if (cached) {
+      return NetworkDeviceHydrationUtil.toSourceMatchedModels(cached);
+    }
+
+    let lookup: Promise<Array<SourceMatchedDevice>> | undefined =
+      NetworkDeviceHydrationUtil.sourceMatchesInFlight.get(key);
+
+    if (!lookup) {
+      lookup = NetworkDeviceHydrationUtil.lookupAndCacheSourceMatches({
+        key: key,
+        probeId: data.probeId,
+        sourceIpAddress: address,
+      });
+
+      NetworkDeviceHydrationUtil.sourceMatchesInFlight.set(key, lookup);
+    }
+
+    return NetworkDeviceHydrationUtil.toSourceMatchedModels(await lookup);
+  }
+
+  // Forget every cached source-address answer (tests; SyslogDeviceMatcher).
+  public static clearSourceMatchCache(): void {
+    NetworkDeviceHydrationUtil.sourceMatchCache.clear();
+    NetworkDeviceHydrationUtil.sourceMatchesInFlight.clear();
+  }
+
+  private static async lookupAndCacheSourceMatches(data: {
+    key: string;
+    probeId: ObjectID;
+    sourceIpAddress: string;
+  }): Promise<Array<SourceMatchedDevice>> {
+    try {
+      const found: Array<NetworkDevice> =
+        await NetworkDeviceHydrationUtil.lookupDevicesByProbeAndSource({
+          probeId: data.probeId,
+          sourceIpAddress: data.sourceIpAddress,
+          select: {
+            name: true,
+          },
+        });
+
+      const matched: Array<SourceMatchedDevice> = [];
+
+      for (const device of found) {
+        if (!device.id || !device.projectId) {
+          continue;
+        }
+
+        matched.push({
+          id: device.id.toString(),
+          projectId: device.projectId.toString(),
+          name: typeof device.name === "string" ? device.name : undefined,
+        });
+      }
+
+      /*
+       * A lookup that failed is not cached (it throws past this), so the
+       * next trap asks again instead of being matched to nobody for a
+       * minute.
+       */
+      NetworkDeviceHydrationUtil.sourceMatchCache.set(
+        data.key,
+        matched,
+        SOURCE_MATCH_CACHE_TTL_MS,
+      );
+
+      return matched;
+    } finally {
+      NetworkDeviceHydrationUtil.sourceMatchesInFlight.delete(data.key);
+    }
+  }
+
+  private static toSourceMatchedModels(
+    matched: Array<SourceMatchedDevice>,
+  ): Array<NetworkDevice> {
+    return matched.map((entry: SourceMatchedDevice): NetworkDevice => {
+      const device: NetworkDevice = new NetworkDevice(new ObjectID(entry.id));
+
+      device.projectId = new ObjectID(entry.projectId);
+
+      if (entry.name !== undefined) {
+        device.name = entry.name;
+      }
+
+      return device;
+    });
+  }
+
+  /*
    * Resolves which NetworkDevices (polled by the given probe) match a
-   * datagram source IP — SNMP traps and probe-forwarded syslog both route
-   * through here. Exact hostname == source-IP match first; devices
+   * datagram source IP, reading the database every time: SNMP traps and
+   * probe-forwarded syslog ask through findDevicesByProbeAndSource, which
+   * caches this; flow records through NetworkFlowDeviceMatcher, which
+   * caches its own answer. Exact hostname == source-IP match first; devices
    * registered by DNS name are matched by resolving their hostnames
    * through a shared positive/negative cache, so a device added as
    * "switch-01.example.com" still receives its traps and syslog.
    */
-  public static async findDevicesByProbeAndSource(data: {
+  public static async lookupDevicesByProbeAndSource(data: {
     probeId: ObjectID;
     sourceIpAddress: string;
     // Extra columns callers need (syslog attribution wants `name`).
@@ -899,4 +1047,15 @@ export default class NetworkDeviceHydrationUtil {
 
   // Shared across trap and syslog ingest; 5-minute TTL, failure-cached.
   private static dnsCache: DnsResolutionCache = new DnsResolutionCache();
+
+  // findDevicesByProbeAndSource's answers, by "probeId|address".
+  private static sourceMatchCache: InMemoryTTLCache<
+    Array<SourceMatchedDevice>
+  > = new InMemoryTTLCache(SOURCE_MATCH_CACHE_MAX_ENTRIES);
+
+  // The lookups under way, so concurrent asks for one address share one.
+  private static sourceMatchesInFlight: Map<
+    string,
+    Promise<Array<SourceMatchedDevice>>
+  > = new Map();
 }
