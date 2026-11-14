@@ -324,10 +324,6 @@ describe("MonitorResourceUtil.monitorResource and the monitor's open records", (
       return monitor;
     }) as never);
 
-    jest
-      .spyOn(MonitorResourceUtil, "refreshCurrentMonitorStatus")
-      .mockResolvedValue(undefined);
-
     const probe: Probe = new Probe();
     probe.name = "Frankfurt";
     probe.connectionStatus = ProbeConnectionStatus.Connected;

@@ -429,7 +429,7 @@ describe("MonitorResourceUtil.monitorResource with the probe that reported the r
     }
   });
 
-  test("a monitor type probes do not check takes no probe's result, before it is locked", async () => {
+  test("a monitor type probes do not check takes no probe's result, and the lock is given back", async () => {
     const unprobedTypes: Array<MonitorType> = Object.values(MonitorType).filter(
       (monitorType: MonitorType) => {
         return !MonitorTypeHelper.isProbableMonitor(monitorType);
@@ -461,7 +461,9 @@ describe("MonitorResourceUtil.monitorResource with the probe that reported the r
         }),
       ).rejects.toThrow(NOT_ASSIGNED);
 
-      expect(lockMock).not.toHaveBeenCalled();
+      // Refused as soon as the monitor is read, under its lock.
+      expect(findMonitorMock).toHaveBeenCalledTimes(1);
+      expect(Semaphore.release).toHaveBeenCalledTimes(1);
       expectNothingTouched();
     }
   });

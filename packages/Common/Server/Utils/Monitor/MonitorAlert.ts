@@ -395,9 +395,17 @@ export default class MonitorAlert {
      * monitor page shows, long after the monitor log has aged out.
      */
     monitorSummary?: MonitorSummarySnapshot | null | undefined;
+    /*
+     * The same, built the first time an alert is really created, once for
+     * every record of the evaluation (MonitorResource): used when no
+     * monitorSummary is passed.
+     */
+    getMonitorSummary?:
+      | (() => Promise<MonitorSummarySnapshot | null>)
+      | undefined;
     /**
      * The evaluation details of the criteria this call acts on, built
-     * the first time a alert is really created
+     * the first time an alert is really created
      * (MonitorEvaluationDetailsCapture). Stored on every alert the
      * details describe: not on one series of a grouped metric criteria.
      */
@@ -905,7 +913,11 @@ export default class MonitorAlert {
            * is what keeps its Dates as Dates when the page reads it back.
            */
           const serializedMonitorSummary: JSONObject | null = toStorableJson(
-            MonitorSummarySnapshotUtil.serialize(input.monitorSummary),
+            MonitorSummarySnapshotUtil.serialize(
+              input.monitorSummary !== undefined
+                ? input.monitorSummary
+                : await input.getMonitorSummary?.(),
+            ),
           );
 
           if (serializedMonitorSummary) {

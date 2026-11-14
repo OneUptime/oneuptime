@@ -104,6 +104,7 @@ import MonitorProbeLastResults, {
   MonitorProbeOfResult,
   MonitorProbesOfResult,
 } from "./MonitorProbeLastResults";
+import MonitorProbeResultOrder from "./MonitorProbeResultOrder";
 import MonitorOpenRecords, {
   MonitorOpenRecordsReading,
   MonitorRecordKind,
@@ -123,6 +124,13 @@ interface ProbeAgreementResult {
   agreedProbeNames: Array<string>;
 }
 
+/*
+ * How long a result must have waited for the monitor's lock before it asks
+ * whether a newer one from the same probe was seen meanwhile: a lock taken at
+ * the first attempt (retryInterval is 100 ms) had nothing waiting behind it.
+ */
+const LOCK_WAIT_WORTH_ORDERING_MS: number = 100;
+
 export interface MonitorResourceOptions {
   /*
    * The probe that reported this check result, as it authenticated to probe
@@ -134,6 +142,20 @@ export interface MonitorResourceOptions {
    * a heartbeat, a telemetry evaluation - pass none.
    */
   reportingProbeId?: ObjectID | undefined;
+  /*
+   * The secret key the result came in with, and the monitor column that
+   * holds it, from a caller that may have found the monitor by a key it
+   * kept (MonitorSecretKeyCache): the read of the monitor this makes anyway
+   * checks the key is still the monitor's, and a key that is not - rotated,
+   * or its monitor deleted - finds no monitor, as the caller's own lookup
+   * would have.
+   */
+  secretKey?:
+    | {
+        column: "serverMonitorSecretKey" | "incomingRequestSecretKey";
+        value: string;
+      }
+    | undefined;
 }
 
 export default class MonitorResourceUtil {
@@ -285,188 +307,46 @@ export default class MonitorResourceUtil {
 
     logger.debug("Processing probe response");
     logger.debug("Monitor ID: " + dataToProcess.monitorId);
-    logger.debug("Fetching Monitor...");
-
-    // fetch monitor
-    const monitor: Monitor | null = await MonitorService.findOneById({
-      id: dataToProcess.monitorId,
-      select: {
-        monitorSteps: true,
-        monitorType: true,
-        projectId: true,
-        ...MONITOR_PAUSE_FLAGS_SELECT,
-        currentMonitorStatusId: true,
-        _id: true,
-        name: true,
-        minimumProbeAgreement: true,
-        /*
-         * Whether the incidents and alerts this check opens keep its
-         * response content (MonitorRecordEvidence).
-         */
-        keepResponseContent: true,
-        /*
-         * How often this monitor is checked. Over-time criteria filters need
-         * it to work out how many samples a fully covered evaluation window
-         * should hold - without it a monitor that has only just started
-         * looks the same as one whose whole window is breaching.
-         */
-        monitoringInterval: true,
-        /*
-         * Recorded as oneuptime.label.* / oneuptime.customField.* attributes on
-         * every monitor metric this result produces, so response time and
-         * uptime are groupable by a project's own taxonomy. Selected here
-         * rather than re-read inside MonitorMetricUtil: this is the hottest
-         * Postgres path in the product and it already loads the monitor.
-         */
-        labels: {
-          _id: true,
-          name: true,
-        },
-        customFields: true,
-        /*
-         * Alert-dependency suppression inputs. Selected here for the same
-         * reason as labels: this query already loads the monitor on the
-         * hottest path, and both lists are empty for the overwhelming
-         * majority of monitors, in which case suppression costs nothing.
-         * Ids only — names are fetched by the suppression util's own
-         * parents query, so selecting them here would just duplicate the
-         * joined row payload on every evaluation.
-         */
-        dependsOnMonitors: {
-          _id: true,
-        },
-        suppressAlertsWhenParentMonitorStatuses: {
-          _id: true,
-        },
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    logger.debug("Monitor found");
-    logger.debug("Monitor ID: " + dataToProcess.monitorId);
-
-    if (!monitor) {
-      logger.debug(`${dataToProcess.monitorId.toString()} Monitor not found`);
-      throw new BadDataException(ExceptionMessages.MonitorNotFound);
-    }
-
-    if (!monitor.projectId) {
-      logger.debug(
-        `${dataToProcess.monitorId.toString()} Monitor does not have a projectId`,
-      );
-      throw new BadDataException("Monitor does not have a projectId");
-    }
-
-    dataToProcess.projectId = monitor.projectId;
 
     /*
-     * Probes check only the monitor types probes run (isProbableMonitor),
-     * and only the monitors they are assigned to - the assignment is held
-     * below, once the monitor's probe rows are read. A probe's result for any
-     * other monitor - a heartbeat, an incoming request, a telemetry or
-     * network device monitor - is no check that probe ran, and would
-     * otherwise be judged against that monitor's criteria and stored as its
-     * last request.
+     * A probe's result is recorded as seen before it waits for the lock, so
+     * that one which waited behind a newer result from the same probe can
+     * tell (MonitorProbeResultOrder).
      */
-    if (
-      reportingProbeId &&
-      !(
-        monitor.monitorType &&
-        MonitorTypeHelper.isProbableMonitor(monitor.monitorType)
-      )
-    ) {
-      logger.debug(
-        `${dataToProcess.monitorId.toString()} - Probe ${reportingProbeId.toString()} reported a check result for a monitor probes do not check. Refused.`,
-      );
+    const probeResultOrder: {
+      monitorId: ObjectID;
+      probeId: ObjectID;
+      checkedAt: Date | undefined;
+    } | null = reportingProbeId
+      ? {
+          monitorId: dataToProcess.monitorId,
+          probeId: reportingProbeId,
+          checkedAt: (dataToProcess as ProbeMonitorResponse).monitoredAt,
+        }
+      : null;
 
-      throw new BadDataException(ExceptionMessages.ProbeNotAssignedToMonitor);
+    if (probeResultOrder) {
+      await MonitorProbeResultOrder.record(probeResultOrder);
     }
 
     /*
-     * Archived first: an archived monitor is out of service whatever its
-     * other flags say, and a result that still reaches it (a probe that
-     * claimed it just before it was archived, an incoming request, an email)
-     * must open nothing and change nothing.
-     */
-    if (monitor.isArchived) {
-      logger.debug(
-        `${dataToProcess.monitorId.toString()} Monitor is archived. Unarchive it to start monitoring again.`,
-      );
-
-      throw new BadDataException(ExceptionMessages.MonitorArchived);
-    }
-
-    if (monitor.disableActiveMonitoring) {
-      logger.debug(
-        `${dataToProcess.monitorId.toString()} Monitor is disabled. Please enable it to start monitoring again.`,
-      );
-
-      throw new BadDataException(ExceptionMessages.MonitorDisabled);
-    }
-    if (monitor.disableActiveMonitoringBecauseOfManualIncident) {
-      logger.debug(
-        `${dataToProcess.monitorId.toString()} Monitor is disabled because an incident which is created manually is not resolved. Please resolve the incident to start monitoring again.`,
-      );
-
-      throw new BadDataException(
-        "Monitor is disabled because an incident which is created manually is not resolved. Please resolve the incident to start monitoring again.",
-      );
-    }
-
-    if (monitor.disableActiveMonitoringBecauseOfScheduledMaintenanceEvent) {
-      logger.debug(
-        `${dataToProcess.monitorId.toString()} Monitor is disabled because one of the maintenance events this monitor is attached to has not ended. Please end that maintenance event to start monitoring again.`,
-      );
-
-      throw new BadDataException(
-        "Monitor is disabled because one of the maintenance events this monitor is attached to has not ended. Please end that maintenance event to start monitoring again.",
-      );
-    }
-
-    /*
-     * A project a master admin blocked is not monitored: its monitors are no
-     * longer handed to probes or swept (getActiveProjectStatusQuery), and a
-     * result that still reaches one - a probe that claimed it just before
-     * the block, a heartbeat or an email its sender keeps sending, a trap -
-     * opens nothing and changes nothing. Returned rather than thrown: an
-     * outside sender keeps sending whatever OneUptime answers, and each of
-     * those would otherwise be a failed job. Cached per server
-     * (ProjectService.isProjectBlocked).
-     */
-    if (await ProjectService.isProjectBlocked(monitor.projectId)) {
-      logger.debug(
-        `${dataToProcess.monitorId.toString()} Monitor's project is blocked. Skipping.`,
-      );
-
-      return response;
-    }
-
-    /*
-     * Nor is a sample project's (issue #6808): its monitors show a made-up
-     * history, are handed to no probe and swept by no job, and a result
-     * that reaches one anyway - a heartbeat someone sends to its address -
-     * opens nothing and changes nothing.
-     */
-    if (await ProjectService.isSampleProject(monitor.projectId)) {
-      logger.debug(
-        `${dataToProcess.monitorId.toString()} Monitor's project is a sample project. Skipping.`,
-      );
-
-      return response;
-    }
-
-    /*
-     * Acquire a per-monitor lock so concurrent results for the same monitor are
-     * processed serially. This MUST come after the validation above: acquiring
-     * before the not-found/disabled checks meant those throw paths held — and
-     * leaked — the lock. redis-semaphore keeps a refresh timer alive until
-     * release() is called, so a leaked lock pinned the Redis key until pod
-     * restart and forced every other worker to spin on acquire. The try/finally
-     * below guarantees the lock is released on every exit path (return or
-     * throw); acquireTimeout/retryInterval cap the acquire spin so a contended
-     * lock fails fast instead of polling Redis for 10s.
+     * The per-monitor lock comes first, and the monitor is read once, under
+     * it, so concurrent results for the same monitor are processed serially
+     * and every decision below is made against the monitor as whichever
+     * evaluation held the lock last left it. Read before the lock, the
+     * monitor's status could be one that evaluation had just changed: the
+     * heartbeat cron flips a monitor Offline, the heartbeat that was already
+     * waiting on the lock matches "Online", the status timeline sees "already
+     * Online" and writes nothing - and the monitor stays Offline until the
+     * next evaluation. The status used to be read a second time once the
+     * lock was held for that; now the one read is.
+     *
+     * Every exit below - a refusal, a skipped project, a thrown error - gives
+     * the lock back (the finally at the end): redis-semaphore keeps a refresh
+     * timer alive until release() is called, so a lock leaked on a throw path
+     * pinned the Redis key until pod restart and forced every other worker to
+     * spin on acquire. acquireTimeout/retryInterval cap the acquire spin so a
+     * contended lock fails fast instead of polling Redis for 10s.
      *
      * On acquire timeout we DO NOT continue unlocked. Falling through without
      * the lock silently abandons the per-monitor serialization this lock exists
@@ -476,14 +356,17 @@ export default class MonitorResourceUtil {
      * lock is meant to handle. Instead we surface the contention so the work is
      * retried once the lock frees: the Telemetry queue re-runs each ingest job
      * up to 3x with exponential backoff, and the per-monitor crons catch-and-
-     * skip to re-evaluate on their next tick. The dominant source of
-     * same-monitor contention (an external sender hammering one Incoming
-     * Request URL) is collapsed upstream by BullMQ job coalescing at enqueue
-     * time (see TelemetryQueueService.addIncomingRequestIngestJob), so this
-     * throw is a correctness backstop for the rare residual collision (e.g.
-     * cron vs ingest), not the steady-state path.
+     * skip to re-evaluate on their next tick - unless the result is a probe's
+     * and a newer one from the same probe is waiting too: then it is dropped,
+     * and only the newest is judged (MonitorProbeResultOrder). The dominant
+     * source of same-monitor contention (an external sender hammering one
+     * Incoming Request URL) is collapsed upstream by BullMQ job coalescing at
+     * enqueue time (see TelemetryQueueService.addIncomingRequestIngestJob), so
+     * this throw is a correctness backstop for the rare residual collision
+     * (e.g. cron vs ingest), not the steady-state path.
      */
     let mutex: SemaphoreMutex | null = null;
+    const lockRequestedAt: number = Date.now();
 
     try {
       mutex = await Semaphore.lock({
@@ -494,6 +377,16 @@ export default class MonitorResourceUtil {
         acquireAttemptsLimit: 20,
       });
     } catch (err) {
+      if (
+        probeResultOrder &&
+        (await MonitorProbeResultOrder.isSuperseded(probeResultOrder))
+      ) {
+        logger.debug(
+          `${dataToProcess.monitorId.toString()} - A newer result from probe ${probeResultOrder.probeId.toString()} is waiting for this monitor's lock; this one is dropped.`,
+        );
+        return response;
+      }
+
       logger.debug(
         `${dataToProcess.monitorId.toString()} - Could not acquire per-monitor processing lock within the acquire window; another worker is processing this monitor. Deferring to retry to preserve serialization.`,
       );
@@ -513,17 +406,215 @@ export default class MonitorResourceUtil {
 
     try {
       /*
-       * The monitor above was loaded BEFORE this evaluation held the lock,
-       * and whichever evaluation held it until now may have just changed
-       * the monitor's status. Deciding against the pre-lock status skips the
-       * very transition that answers it: the heartbeat cron flips a monitor
-       * Offline, the heartbeat that was already waiting on the lock then
-       * matches "Online", the status timeline sees "already Online" and
-       * writes nothing - and the monitor stays Offline until the next
-       * evaluation. Re-read the one column every status decision below
-       * keys on, now that nothing else can change it.
+       * A result that waited for the lock behind a newer one from the same
+       * probe: judged after it, it would put the monitor back where the probe
+       * saw it before. Dropped - only the newest is judged. A result that got
+       * the lock at once has nothing newer behind it worth asking about.
        */
-      await MonitorResourceUtil.refreshCurrentMonitorStatus(monitor);
+      if (
+        probeResultOrder &&
+        Date.now() - lockRequestedAt >= LOCK_WAIT_WORTH_ORDERING_MS &&
+        (await MonitorProbeResultOrder.isSuperseded(probeResultOrder))
+      ) {
+        logger.debug(
+          `${dataToProcess.monitorId.toString()} - A newer result from probe ${probeResultOrder.probeId.toString()} was seen while this one waited for the monitor's lock; this one is dropped.`,
+        );
+        return response;
+      }
+
+      logger.debug("Fetching Monitor...");
+
+      // fetch monitor
+      const monitor: Monitor | null = await MonitorService.findOneById({
+        id: dataToProcess.monitorId,
+        select: {
+          monitorSteps: true,
+          monitorType: true,
+          projectId: true,
+          ...MONITOR_PAUSE_FLAGS_SELECT,
+          currentMonitorStatusId: true,
+          _id: true,
+          name: true,
+          minimumProbeAgreement: true,
+          /*
+           * Whether the incidents and alerts this check opens keep its
+           * response content (MonitorRecordEvidence).
+           */
+          keepResponseContent: true,
+          /*
+           * How often this monitor is checked. Over-time criteria filters need
+           * it to work out how many samples a fully covered evaluation window
+           * should hold - without it a monitor that has only just started
+           * looks the same as one whose whole window is breaching.
+           */
+          monitoringInterval: true,
+          /*
+           * Recorded as oneuptime.label.* / oneuptime.customField.* attributes on
+           * every monitor metric this result produces, so response time and
+           * uptime are groupable by a project's own taxonomy. Selected here
+           * rather than re-read inside MonitorMetricUtil: this is the hottest
+           * Postgres path in the product and it already loads the monitor.
+           */
+          labels: {
+            _id: true,
+            name: true,
+          },
+          customFields: true,
+          /*
+           * Alert-dependency suppression inputs. Selected here for the same
+           * reason as labels: this query already loads the monitor on the
+           * hottest path, and both lists are empty for the overwhelming
+           * majority of monitors, in which case suppression costs nothing.
+           * Ids only — names are fetched by the suppression util's own
+           * parents query, so selecting them here would just duplicate the
+           * joined row payload on every evaluation.
+           */
+          dependsOnMonitors: {
+            _id: true,
+          },
+          suppressAlertsWhenParentMonitorStatuses: {
+            _id: true,
+          },
+          // A key resolved from a cache is checked against the monitor's own.
+          ...(options?.secretKey ? { [options.secretKey.column]: true } : {}),
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      logger.debug("Monitor found");
+      logger.debug("Monitor ID: " + dataToProcess.monitorId);
+
+      if (!monitor) {
+        logger.debug(`${dataToProcess.monitorId.toString()} Monitor not found`);
+        throw new BadDataException(ExceptionMessages.MonitorNotFound);
+      }
+
+      if (!monitor.projectId) {
+        logger.debug(
+          `${dataToProcess.monitorId.toString()} Monitor does not have a projectId`,
+        );
+        throw new BadDataException("Monitor does not have a projectId");
+      }
+
+      /*
+       * A key the caller resolved from its cache that is no longer this
+       * monitor's - rotated, or the monitor gone and the id reused by nothing -
+       * finds no monitor, exactly as the caller's own lookup would have
+       * (MonitorSecretKeyCache).
+       */
+      if (
+        options?.secretKey &&
+        (
+          (monitor as unknown as Record<string, unknown>)[
+            options.secretKey.column
+          ]?.toString() || ""
+        ).toLowerCase() !== options.secretKey.value.trim().toLowerCase()
+      ) {
+        logger.debug(
+          `${dataToProcess.monitorId.toString()} - The secret key this result came in with is no longer the monitor's.`,
+        );
+        throw new BadDataException(ExceptionMessages.MonitorNotFound);
+      }
+
+      dataToProcess.projectId = monitor.projectId;
+
+      /*
+       * Probes check only the monitor types probes run (isProbableMonitor),
+       * and only the monitors they are assigned to - the assignment is held
+       * below, once the monitor's probe rows are read. A probe's result for any
+       * other monitor - a heartbeat, an incoming request, a telemetry or
+       * network device monitor - is no check that probe ran, and would
+       * otherwise be judged against that monitor's criteria and stored as its
+       * last request.
+       */
+      if (
+        reportingProbeId &&
+        !(
+          monitor.monitorType &&
+          MonitorTypeHelper.isProbableMonitor(monitor.monitorType)
+        )
+      ) {
+        logger.debug(
+          `${dataToProcess.monitorId.toString()} - Probe ${reportingProbeId.toString()} reported a check result for a monitor probes do not check. Refused.`,
+        );
+
+        throw new BadDataException(ExceptionMessages.ProbeNotAssignedToMonitor);
+      }
+
+      /*
+       * Archived first: an archived monitor is out of service whatever its
+       * other flags say, and a result that still reaches it (a probe that
+       * claimed it just before it was archived, an incoming request, an email)
+       * must open nothing and change nothing.
+       */
+      if (monitor.isArchived) {
+        logger.debug(
+          `${dataToProcess.monitorId.toString()} Monitor is archived. Unarchive it to start monitoring again.`,
+        );
+
+        throw new BadDataException(ExceptionMessages.MonitorArchived);
+      }
+
+      if (monitor.disableActiveMonitoring) {
+        logger.debug(
+          `${dataToProcess.monitorId.toString()} Monitor is disabled. Please enable it to start monitoring again.`,
+        );
+
+        throw new BadDataException(ExceptionMessages.MonitorDisabled);
+      }
+      if (monitor.disableActiveMonitoringBecauseOfManualIncident) {
+        logger.debug(
+          `${dataToProcess.monitorId.toString()} Monitor is disabled because an incident which is created manually is not resolved. Please resolve the incident to start monitoring again.`,
+        );
+
+        throw new BadDataException(
+          "Monitor is disabled because an incident which is created manually is not resolved. Please resolve the incident to start monitoring again.",
+        );
+      }
+
+      if (monitor.disableActiveMonitoringBecauseOfScheduledMaintenanceEvent) {
+        logger.debug(
+          `${dataToProcess.monitorId.toString()} Monitor is disabled because one of the maintenance events this monitor is attached to has not ended. Please end that maintenance event to start monitoring again.`,
+        );
+
+        throw new BadDataException(
+          "Monitor is disabled because one of the maintenance events this monitor is attached to has not ended. Please end that maintenance event to start monitoring again.",
+        );
+      }
+
+      /*
+       * A project a master admin blocked is not monitored: its monitors are no
+       * longer handed to probes or swept (getActiveProjectStatusQuery), and a
+       * result that still reaches one - a probe that claimed it just before
+       * the block, a heartbeat or an email its sender keeps sending, a trap -
+       * opens nothing and changes nothing. Returned rather than thrown: an
+       * outside sender keeps sending whatever OneUptime answers, and each of
+       * those would otherwise be a failed job. Cached per server
+       * (ProjectService.isProjectBlocked).
+       */
+      if (await ProjectService.isProjectBlocked(monitor.projectId)) {
+        logger.debug(
+          `${dataToProcess.monitorId.toString()} Monitor's project is blocked. Skipping.`,
+        );
+
+        return response;
+      }
+
+      /*
+       * Nor is a sample project's (issue #6808): its monitors show a made-up
+       * history, are handed to no probe and swept by no job, and a result
+       * that reaches one anyway - a heartbeat someone sends to its address -
+       * opens nothing and changes nothing.
+       */
+      if (await ProjectService.isSampleProject(monitor.projectId)) {
+        logger.debug(
+          `${dataToProcess.monitorId.toString()} Monitor's project is a sample project. Skipping.`,
+        );
+
+        return response;
+      }
 
       let probeName: string | undefined = undefined;
       const monitorName: string | undefined = monitor.name || undefined;
@@ -1512,14 +1603,36 @@ export default class MonitorResourceUtil {
          * same capture, so the incident page can show what the monitor
          * saw long after MonitorLog's TTL (one day by default) has
          * dropped the underlying log.
+         *
+         * Built only when a record is really created, once for every one
+         * (getMonitorSummary): almost every matched result creates nothing,
+         * and a Network Device monitor's capture reads its probe's name.
+         * What it captures is still the evaluation as it stands here - its
+         * events up to this point are copied now - so a record opened below
+         * shows what it showed when the capture was made up front.
          */
-        const monitorSummary: MonitorSummarySnapshot | null =
-          await MonitorSummaryCapture.capture({
-            monitor: monitor,
-            dataToProcess: dataToProcess,
-            evaluationSummary: evaluationSummary,
-            probeName: probeName,
-          });
+        const evaluationSummaryAtCapture: MonitorEvaluationSummary = {
+          ...evaluationSummary,
+          criteriaResults: [...evaluationSummary.criteriaResults],
+          events: [...evaluationSummary.events],
+        };
+
+        let monitorSummary: Promise<MonitorSummarySnapshot | null> | null =
+          null;
+
+        const getMonitorSummary: () => Promise<MonitorSummarySnapshot | null> =
+          (): Promise<MonitorSummarySnapshot | null> => {
+            if (!monitorSummary) {
+              monitorSummary = MonitorSummaryCapture.capture({
+                monitor: monitor,
+                dataToProcess: dataToProcess,
+                evaluationSummary: evaluationSummaryAtCapture,
+                probeName: probeName,
+              });
+            }
+
+            return monitorSummary;
+          };
 
         /*
          * Incoming-request grouping is event-driven: a webhook describes
@@ -1716,7 +1829,7 @@ export default class MonitorResourceUtil {
               autoResolveCriteriaInstanceIdIncidentIdsDictionary,
               criteriaInstance: criteriaInstance,
               evaluationSummary: evaluationSummary,
-              monitorSummary: monitorSummary,
+              getMonitorSummary: getMonitorSummary,
               getEvaluationDetails: getEvaluationDetails,
               props: {
                 telemetryQuery: telemetryQuery,
@@ -1742,7 +1855,7 @@ export default class MonitorResourceUtil {
             autoResolveCriteriaInstanceIdAlertIdsDictionary,
             criteriaInstance: criteriaInstanceAlertMap[matched.criteriaId]!,
             evaluationSummary: evaluationSummary,
-            monitorSummary: monitorSummary,
+            getMonitorSummary: getMonitorSummary,
             getEvaluationDetails: getEvaluationDetails,
             props: {
               telemetryQuery: telemetryQuery,
@@ -2182,33 +2295,6 @@ export default class MonitorResourceUtil {
     monitorProbe.lastMonitoringLog = lastMonitoringLog;
 
     return monitorProbe;
-  }
-
-  /*
-   * A primary-key read of a single column; kept separate from the monitor
-   * load above so that load can stay outside the lock (see the comment on
-   * the lock for why validation must come first).
-   */
-  public static async refreshCurrentMonitorStatus(
-    monitor: Monitor,
-  ): Promise<void> {
-    if (!monitor.id) {
-      return;
-    }
-
-    const latest: Monitor | null = await MonitorService.findOneById({
-      id: monitor.id,
-      select: {
-        currentMonitorStatusId: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    if (latest?.currentMonitorStatusId) {
-      monitor.currentMonitorStatusId = latest.currentMonitorStatusId;
-    }
   }
 
   /**
