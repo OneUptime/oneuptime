@@ -180,6 +180,15 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * The name a guided setup's status page starts with ("Acme Status"), in
+   * the language of the person it is made for - the guided setup's and Ask
+   * AI's alike (#7247). Only the sentence the file marks is read.
+   */
+  {
+    directory: "packages/Common/Utils/GuidedSetup/StatusPageRecords.ts",
+    kind: "keys",
+  },
+  /*
    * A monitor template's Template sync settings (#7546): the name of each
    * field a linked monitor can keep its own value for, and what it keeps
    * together, as the card and its summary line say them. Only the words the
@@ -784,6 +793,8 @@ export const USER_FACING_PROPS: ReadonlySet<string> = new Set<string>([
   "meaning",
   "message",
   "moreText",
+  // A stepped dialog's Next button, named for what it does (SteppedFormFooter).
+  "nextButtonText",
   "nextStep",
   "noItemsMessage",
   "noLogsMessage",

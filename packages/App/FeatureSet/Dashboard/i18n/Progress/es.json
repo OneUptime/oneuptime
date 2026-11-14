@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 52195,
+    "keys": 52219,
     "untranslated": 2180
   },
   "sameAsEnglish": [
@@ -90,7 +90,6 @@
     "Blade",
     "Bolivia",
     "Bootstrap",
-    "Breadcrumb",
     "Broker",
     "Broker: {{broker}}",
     "Bucket",

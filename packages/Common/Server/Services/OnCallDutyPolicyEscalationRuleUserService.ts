@@ -25,7 +25,8 @@ import OneUptimeDate from "../../Types/Date";
 import { createWhatsAppMessageFromTemplate } from "../Utils/WhatsAppTemplateUtil";
 import logger, { LogAttributes } from "../Utils/Logger";
 import { WhatsAppMessagePayload } from "../../Types/WhatsApp/WhatsAppMessage";
-import { mdText } from "../../Utils/Markdown/FeedMarkdown";
+import { MarkdownText, mdText } from "../../Utils/Markdown/FeedMarkdown";
+import OnCallChatText from "../Utils/OnCall/OnCallChatText";
 
 export class Service extends OnCallDutyPolicyChildService<Model> {
   public constructor() {
@@ -158,16 +159,36 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
     const projectId: ObjectID | undefined = createdModel.projectId;
 
     if (onCallDutyPolicyId) {
+      const addedUserMarkdown: MarkdownText =
+        await UserService.getUserMarkdownString({
+          userId: createdModel.user!.id!,
+          projectId: projectId!,
+        });
+
+      const policyLink: string = (
+        await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
+          projectId!,
+          onCallDutyPolicyId!,
+        )
+      ).toString();
+
       await OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem({
         onCallDutyPolicyId: onCallDutyPolicyId,
         projectId: projectId!,
         onCallDutyPolicyFeedEventType: OnCallDutyPolicyFeedEventType.UserAdded,
         displayColor: Gray500,
         feedInfoInMarkdown:
-          mdText`👨🏻‍💻 Added **${await UserService.getUserMarkdownString({
-            userId: createdModel.user!.id!,
-            projectId: projectId!,
-          })}** to the [On-Call Policy ${createdModel.onCallDutyPolicy?.name}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) escalation rule **${createdModel.onCallDutyPolicyEscalationRule?.name}** with order **${createdModel.onCallDutyPolicyEscalationRule?.order}**.`.toString(),
+          mdText`👨🏻‍💻 Added **${addedUserMarkdown}** to the [On-Call Policy ${createdModel.onCallDutyPolicy?.name}](${policyLink}) escalation rule **${createdModel.onCallDutyPolicyEscalationRule?.name}** with order **${createdModel.onCallDutyPolicyEscalationRule?.order}**.`.toString(),
+        // The channels hear who and the policy, not the rule (issue #7549).
+        chatInfoInMarkdown: OnCallChatText.policyChange({
+          emoji: "👨🏻‍💻",
+          isAdded: true,
+          what: mdText`**${addedUserMarkdown}**`,
+          policy: OnCallChatText.policy({
+            name: createdModel.onCallDutyPolicy?.name || "",
+            link: policyLink,
+          }),
+        }).toString(),
         userId: createdModel.createdByUserId! || undefined,
         workspaceNotification: {
           sendWorkspaceNotification: true,
@@ -245,14 +266,36 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
           item.onCallDutyPolicy?.name || "No name provided";
 
         if (user && user.name) {
+          const policyLink: string = (
+            await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
+              projectId!,
+              onCallDutyPolicyId!,
+            )
+          ).toString();
+
           await OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem({
             onCallDutyPolicyId: onCallDutyPolicyId,
             projectId: projectId,
+            /*
+             * A person taken out of an escalation rule: the policy pages
+             * them no more. It was filed as an owner removed, so the
+             * channels whose rules chose owners heard of it, and those that
+             * chose changes to the policy did not.
+             */
             onCallDutyPolicyFeedEventType:
-              OnCallDutyPolicyFeedEventType.OwnerUserRemoved,
+              OnCallDutyPolicyFeedEventType.UserRemoved,
             displayColor: Red500,
             feedInfoInMarkdown:
-              mdText`👨🏻‍💻 Removed **${user.name.toString()}** (${user.email?.toString()}) from the [On-Call Policy ${onCallDutyPolicyName}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) for escalation rule ${item.onCallDutyPolicyEscalationRule?.name} with order ${item.onCallDutyPolicyEscalationRule?.order}.`.toString(),
+              mdText`👨🏻‍💻 Removed **${user.name.toString()}** (${user.email?.toString()}) from the [On-Call Policy ${onCallDutyPolicyName}](${policyLink}) for escalation rule ${item.onCallDutyPolicyEscalationRule?.name} with order ${item.onCallDutyPolicyEscalationRule?.order}.`.toString(),
+            chatInfoInMarkdown: OnCallChatText.policyChange({
+              emoji: "👨🏻‍💻",
+              isAdded: false,
+              what: mdText`**${user.name.toString()}**`,
+              policy: OnCallChatText.policy({
+                name: onCallDutyPolicyName || "",
+                link: policyLink,
+              }),
+            }).toString(),
             userId: deleteByUserId || undefined,
             workspaceNotification: {
               sendWorkspaceNotification: true,

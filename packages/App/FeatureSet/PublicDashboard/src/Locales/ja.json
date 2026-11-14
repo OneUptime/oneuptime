@@ -21,5 +21,11 @@
   "This needs the latest version. Save your changes, then reload the page.": "これには最新バージョンが必要です。変更を保存してから、ページを再読み込みしてください。",
   "This couldn't be loaded.": "読み込めませんでした。",
   "Something went wrong": "問題が発生しました",
-  "An unexpected error has occurred. Please reload the page to continue": "予期しないエラーが発生しました。続行するにはページを再読み込みしてください"
+  "An unexpected error has occurred. Please reload the page to continue": "予期しないエラーが発生しました。続行するにはページを再読み込みしてください",
+  "Click to reveal": "クリックして表示",
+  "Click to copy": "クリックしてコピー",
+  "Copy": "コピー",
+  "Copied!": "コピーしました",
+  "Copy failed": "コピーに失敗しました",
+  "Hide": "非表示"
 }

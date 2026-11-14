@@ -2,12 +2,7 @@ import {
   UserFlowJourneysResponseDto,
   UserFlowSessionDto,
 } from "../../Types/Rum/UserFlow";
-import { LEFT_TO_RIGHT_ISOLATE } from "../../Types/CodeInSentence";
-import {
-  isSetApartInSentence,
-  LEFT_TO_RIGHT,
-  POP_DIRECTIONAL_ISOLATE,
-} from "../../Types/ReadingDirection";
+import { setPathApartInSentence } from "./PathInSentence";
 
 /*
  * The User Flows engine: recorded session journeys in, everything the page
@@ -606,12 +601,8 @@ export function getUserFlowPageText(page: string): string {
     return OTHER_PAGES_LABEL;
   }
 
-  const text: string = decodeWordEscapes(page);
-
   // A line read from the left sets a value apart for its right-to-left letters.
-  return isSetApartInSentence(text, LEFT_TO_RIGHT)
-    ? `${LEFT_TO_RIGHT_ISOLATE}${text}${POP_DIRECTIONAL_ISOLATE}`
-    : text;
+  return setPathApartInSentence(decodeWordEscapes(page));
 }
 
 /* ------------------------------------------------------------------ */

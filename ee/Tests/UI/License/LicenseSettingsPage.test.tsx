@@ -377,6 +377,42 @@ describe("reading the license", () => {
     expect(screen.getByText("Click to reveal")).toBeInTheDocument();
   });
 
+  /*
+   * The other facts are one line, cut short at their box's end. The key is
+   * not: cut to one line, a revealed key longer than its column lost its
+   * start on a phone and pushed Copy and Hide out of sight (on a Persian
+   * page, Hide was cut off). It wraps inside its box instead.
+   */
+  it("reveals the whole key, wrapped in its box, with Copy and Hide beside it", async () => {
+    await openPage();
+
+    const reveal: HTMLElement = screen.getByRole("button", {
+      name: "Click to reveal",
+    });
+    const value: HTMLElement = reveal.closest("dd") as HTMLElement;
+
+    expect(value).not.toBeNull();
+    expect(value).not.toHaveClass("truncate");
+    expect(screen.getByText("Licensed to").nextElementSibling).toHaveClass(
+      "truncate",
+    );
+
+    fireEvent.click(reveal);
+
+    const key: HTMLElement = screen.getByRole("revealed-text");
+
+    expect(key).toHaveTextContent("acme-license-key");
+    expect(value).toContainElement(key);
+    expect(key).toHaveClass("break-all");
+    expect(key.parentElement).toHaveClass("max-w-full");
+    expect(
+      within(value).getByRole("button", { name: "Copy" }),
+    ).toBeInTheDocument();
+    expect(
+      within(value).getByRole("button", { name: "Hide" }),
+    ).toBeInTheDocument();
+  });
+
   it("names the card with the Admin Dashboard's own word for it", async () => {
     await openPage();
 
