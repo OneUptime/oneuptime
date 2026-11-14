@@ -3,7 +3,6 @@ import PostgresAppInstance from "../../../../Server/Infrastructure/PostgresDatab
 import MonitorService from "../../../../Server/Services/MonitorService";
 import QueryHelper from "../../../../Server/Types/Database/QueryHelper";
 import logger from "../../../../Server/Utils/Logger";
-import NetworkDeviceWalkUtil from "../../../../Server/Utils/Monitor/NetworkDeviceWalkUtil";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../../../Types/Date";
 import { JSONObject } from "../../../../Types/JSON";
@@ -22,7 +21,7 @@ import {
 import { DataSource, Logger as TypeOrmLogger } from "typeorm";
 
 /*
- * MONITOR'S INDEXES ON POSTGRES (MatchMonitorIndexesToTheirReads1809152000000).
+ * MONITOR'S INDEXES ON POSTGRES (MatchMonitorIndexesToTheirReads1809165000000).
  *
  * Which index a read can use, and whether a write is a HOT update, only a
  * database answers. So this asks one migrated to the current head:
@@ -30,10 +29,10 @@ import { DataSource, Logger as TypeOrmLogger } from "typeorm";
  *   - the migrated "Monitor" carries exactly the indexes the model declares,
  *     every one valid (an online build that failed part way leaves an
  *     INVALID one behind), and none names a column the busiest writes move;
- *   - the reads those indexes are for, as the services build them - the
- *     device poll's fan-out (both halves), the Monitors menu's three counts,
- *     the list's first page, a heartbeat sweep's page and the device
- *     delete's foreign key check - each can be answered from its index;
+ *   - the reads those indexes are for, as the services build them - a
+ *     device delete's count of its automatic monitors and its foreign key
+ *     check, the Monitors menu's three counts, the list's first page and a
+ *     heartbeat sweep's page - each can be answered from its index;
  *   - the busiest writes - the telemetry sweep's stamp, the heartbeats, a
  *     request, an email, a server report - are HOT updates, which write no
  *     index entry; a status change is not, nor is the telemetry stamp with
@@ -115,11 +114,6 @@ const EXPECTED_INDEXES: ReadonlyArray<{
   {
     columns: "autoProvisionedNetworkDeviceId",
     predicate: '("autoProvisionedNetworkDeviceId" IS NOT NULL)',
-    isUnique: false,
-  },
-  {
-    columns: "projectId,_id",
-    predicate: `((("monitorType")::text = '${MonitorType.NetworkDevice}'::text) AND ("autoProvisionedNetworkDeviceId" IS NULL) AND ("deletedAt" IS NULL))`,
     isUnique: false,
   },
   { columns: "monitorType,_id", predicate: null, isUnique: false },
@@ -434,41 +428,27 @@ describePostgres("Monitor's indexes, on Postgres", () => {
       await database.query(`ANALYZE "${schema}"."Project"`);
     });
 
-    test("a device poll's fan-out: the monitors made for the device from their index, the hand-made ones from theirs", async () => {
+    /*
+     * NetworkDeviceService's preflight before it deletes a device: how many
+     * of the device's automatic monitors the caller would delete with it.
+     */
+    test("a device delete's count of the monitors made for it, from the device index", async () => {
       const statements: Array<Captured> = await statementsOf(() => {
-        return NetworkDeviceWalkUtil.findMonitorsWatchingDevices({
-          projectId: PROJECT_ID,
-          deviceIds: [DEVICE_ID.toString()],
+        return MonitorService.countBy({
+          query: {
+            projectId: PROJECT_ID,
+            autoProvisionedNetworkDeviceId: DEVICE_ID,
+            networkAlertPolicyId: QueryHelper.isNull(),
+          },
+          props: { isRoot: true },
         });
       });
 
-      expect(statements).toHaveLength(2);
-
-      const madeForTheDevice: Captured = statements.find(
-        (statement: Captured): boolean => {
-          return statement.sql.includes(
-            `"autoProvisionedNetworkDeviceId" IN (`,
-          );
-        },
-      )!;
-      const handMade: Captured = statements.find(
-        (statement: Captured): boolean => {
-          return statement.sql.includes(
-            `"autoProvisionedNetworkDeviceId" IS NULL`,
-          );
-        },
-      )!;
-
-      expect(await indexesPlannedFor(madeForTheDevice)).toEqual([
+      expect(statements).toHaveLength(1);
+      expect(await indexesPlannedFor(statements[0]!)).toEqual([
         await cloneIndex(
           "autoProvisionedNetworkDeviceId",
           '("autoProvisionedNetworkDeviceId" IS NOT NULL)',
-        ),
-      ]);
-      expect(await indexesPlannedFor(handMade)).toEqual([
-        await cloneIndex(
-          "projectId,_id",
-          `((("monitorType")::text = '${MonitorType.NetworkDevice}'::text) AND ("autoProvisionedNetworkDeviceId" IS NULL) AND ("deletedAt" IS NULL))`,
         ),
       ]);
     });

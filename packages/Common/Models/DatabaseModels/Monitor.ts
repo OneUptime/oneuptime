@@ -146,22 +146,15 @@ import NotificationRuleWorkspaceChannel from "../../Types/Workspace/Notification
  */
 @Index(["projectId", "isArchived", "createdAt"])
 /*
- * The monitors made for a network device: the device poll and SNMP trap
- * fan-out (NetworkDeviceWalkUtil.findMonitorsWatchingDevices), the device's
- * pages, the alert policy engine, and the device delete, whose foreign key
- * (ON DELETE RESTRICT) looks for them with no deletedAt and no template. The
- * unique index above requires a template, which none of these imply.
+ * The monitors made for a network device: the device's pages, the alert
+ * policy engine, and the device delete - its count of them and its foreign
+ * key (ON DELETE RESTRICT), which looks for them with no deletedAt and no
+ * template. The unique index above requires a template, which none of these
+ * imply. (A device poll and trap find their monitors through
+ * MonitorNetworkDevice.)
  */
 @Index(["autoProvisionedNetworkDeviceId"], {
   where: '"autoProvisionedNetworkDeviceId" IS NOT NULL',
-})
-/*
- * The other half of that fan-out: Network Device monitors made by hand,
- * which name their device only in their steps. Every poll reads the
- * project's, in id order.
- */
-@Index(["projectId", "_id"], {
-  where: `"monitorType" = '${MonitorType.NetworkDevice}' AND "autoProvisionedNetworkDeviceId" IS NULL AND "deletedAt" IS NULL`,
 })
 /*
  * A type's monitors in id order: the heartbeat and server sweeps

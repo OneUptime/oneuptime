@@ -148,7 +148,7 @@ function executedSql(query: jest.Mock): Array<string> {
 
 /*
  * Monitor's single-column index on monitorType became ("monitorType",
- * "_id") in MatchMonitorIndexesToTheirReads1809152000000: the heartbeat
+ * "_id") in MatchMonitorIndexesToTheirReads1809165000000: the heartbeat
  * sweeps page through one type by id. An index that leads with the column
  * serves the same scans.
  */

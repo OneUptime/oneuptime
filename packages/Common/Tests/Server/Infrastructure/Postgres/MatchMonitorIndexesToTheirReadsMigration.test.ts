@@ -2,9 +2,8 @@ import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import OnlineDdl, {
   OnlineIndex,
 } from "../../../../Server/Infrastructure/Postgres/OnlineDdl";
-import { MatchMonitorIndexesToTheirReads1809152000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809152000000-MatchMonitorIndexesToTheirReads";
+import { MatchMonitorIndexesToTheirReads1809165000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809165000000-MatchMonitorIndexesToTheirReads";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import MonitorType from "../../../../Types/Monitor/MonitorType";
 import {
   DefaultNamingStrategy,
   QueryRunner,
@@ -19,15 +18,16 @@ import path from "path";
  * MONITOR'S INDEXES, MATCHED TO WHAT READS THEM.
  *
  * Heartbeats, telemetry sweeps, server reports and status changes rewrite
- * "Monitor" rows all the time. An update that changes a column an index names - in its
- * key or a partial index's WHERE - cannot be HOT: it writes an entry into
- * every index on the table and leaves a dead row version for vacuum. On main
- * the busiest writes all moved an indexed timestamp, so none of them was
- * HOT, into 25 indexes each, while the reads that run most - every device
- * poll's fan-out, the Monitors menu's counts, the heartbeat sweeps - had no
- * index that fit them and read whole projects or the whole table.
+ * "Monitor" rows all the time. An update that changes a column an index
+ * names - in its key or a partial index's WHERE - cannot be HOT: it writes
+ * an entry into every index on the table and leaves a dead row version for
+ * vacuum. On main the busiest writes all moved an indexed timestamp, so none
+ * of them was HOT, into 25 indexes each, while reads that run all the time -
+ * the Monitors menu's counts, the heartbeat sweeps, a device delete's
+ * foreign key check - had no index that fit them and read whole projects or
+ * the whole table.
  *
- * MatchMonitorIndexesToTheirReads1809152000000 builds the indexes those
+ * MatchMonitorIndexesToTheirReads1809165000000 builds the indexes those
  * reads need and drops the ones no read uses, online.
  *
  * Pure SQL-contract and metadata assertions; OnlineDdl's own steps are
@@ -47,7 +47,6 @@ const NO_PROBE_ENABLED_WHERE: string =
   '"isNoProbeEnabledOnThisMonitor" = true AND "isArchived" = false AND "deletedAt" IS NULL';
 const PROBES_DISCONNECTED_WHERE: string =
   '"isAllProbesDisconnectedFromThisMonitor" = true AND "isArchived" = false AND "deletedAt" IS NULL';
-const HAND_MADE_DEVICE_MONITORS_WHERE: string = `"monitorType" = '${MonitorType.NetworkDevice}' AND "autoProvisionedNetworkDeviceId" IS NULL AND "deletedAt" IS NULL`;
 const MADE_FOR_A_DEVICE_WHERE: string =
   '"autoProvisionedNetworkDeviceId" IS NOT NULL';
 
@@ -68,10 +67,6 @@ const BUILT: ReadonlyArray<{ name: string; statement: string }> = [
   {
     name: indexName(["monitorType", "_id"]),
     statement: `CREATE INDEX "${indexName(["monitorType", "_id"])}" ON "Monitor" ("monitorType", "_id") `,
-  },
-  {
-    name: indexName(["projectId", "_id"], HAND_MADE_DEVICE_MONITORS_WHERE),
-    statement: `CREATE INDEX "${indexName(["projectId", "_id"], HAND_MADE_DEVICE_MONITORS_WHERE)}" ON "Monitor" ("projectId", "_id") WHERE ${HAND_MADE_DEVICE_MONITORS_WHERE}`,
   },
   {
     name: indexName(
@@ -146,7 +141,7 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe("MatchMonitorIndexesToTheirReads1809152000000", () => {
+describe("MatchMonitorIndexesToTheirReads1809165000000", () => {
   test("the indexes are named as TypeORM names them, the old ones as main has them", () => {
     expect(
       BUILT.map((index: { name: string }): string => {
@@ -157,7 +152,6 @@ describe("MatchMonitorIndexesToTheirReads1809152000000", () => {
       "IDX_32415a529149e372d15b03aeeb",
       "IDX_7211446751a8adf91b8dec60c7",
       "IDX_5856097e6093bb00fe11ee6d18",
-      "IDX_dca0d8b77fc3e95e295bbcc604",
       "IDX_26979816e9ae6fcec4920a9f89",
       "IDX_d624869a64f9b590b387f71985",
     ]);
@@ -186,8 +180,8 @@ describe("MatchMonitorIndexesToTheirReads1809152000000", () => {
   });
 
   test("builds every new index before it drops any old one, all online, outside a transaction", async () => {
-    const migration: MatchMonitorIndexesToTheirReads1809152000000 =
-      new MatchMonitorIndexesToTheirReads1809152000000();
+    const migration: MatchMonitorIndexesToTheirReads1809165000000 =
+      new MatchMonitorIndexesToTheirReads1809165000000();
 
     expect(migration.transaction).toBe(false);
     expect(
@@ -231,7 +225,7 @@ describe("MatchMonitorIndexesToTheirReads1809152000000", () => {
     expect(
       await statementsOf(
         (runner: QueryRunner) => {
-          return new MatchMonitorIndexesToTheirReads1809152000000().down(
+          return new MatchMonitorIndexesToTheirReads1809165000000().down(
             runner,
           );
         },
@@ -255,16 +249,16 @@ describe("MatchMonitorIndexesToTheirReads1809152000000", () => {
 
     expect(
       registered.filter((candidate: unknown): boolean => {
-        return candidate === MatchMonitorIndexesToTheirReads1809152000000;
+        return candidate === MatchMonitorIndexesToTheirReads1809165000000;
       }),
     ).toHaveLength(1);
     expect(
-      names.indexOf("MatchMonitorIndexesToTheirReads1809152000000"),
+      names.indexOf("MatchMonitorIndexesToTheirReads1809165000000"),
     ).toBeGreaterThan(
       names.indexOf("AddProbeCollectionClaimIndexes1809150400000"),
     );
-    expect(new MatchMonitorIndexesToTheirReads1809152000000().name).toBe(
-      "MatchMonitorIndexesToTheirReads1809152000000",
+    expect(new MatchMonitorIndexesToTheirReads1809165000000().name).toBe(
+      "MatchMonitorIndexesToTheirReads1809165000000",
     );
   });
 });

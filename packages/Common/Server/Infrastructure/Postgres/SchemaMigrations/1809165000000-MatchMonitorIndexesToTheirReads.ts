@@ -8,13 +8,11 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * Built:
  *
  *   ("autoProvisionedNetworkDeviceId") WHERE it IS NOT NULL - the monitors
- *     made for a network device: every device poll and SNMP trap's fan-out,
- *     the device's pages, the alert policy engine and the device delete's
- *     foreign key check, which read the whole project (or, the check, the
- *     whole table) without it. The unique index on the column requires a
- *     template, which none of them imply.
- *   ("projectId", "_id") of the hand-made Network Device monitors - the
- *     fan-out's other half, every poll.
+ *     made for a network device: the device's pages, the alert policy engine,
+ *     the device delete's count of them and its foreign key check (ON DELETE
+ *     RESTRICT), which read the whole project (or, the check, the whole
+ *     table) without it. The unique index on the column requires a template,
+ *     which none of them imply.
  *   ("projectId") of the monitors the Monitors menu's Probe Disconnected,
  *     Probe Disabled and Disabled entries count, each partial - counted again
  *     on every change to a monitor.
@@ -38,14 +36,14 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * their monitors by type.
  *
  * Online, outside a transaction: heartbeats, sweeps and status changes
- * write "Monitor" all the time. Every new index is built before an old one goes, so no
- * read is left without the index it had. Safe to run again after a stop
- * part way.
+ * write "Monitor" all the time. Every new index is built before an old one
+ * goes, so no read is left without the index it had. Safe to run again
+ * after a stop part way.
  */
-export class MatchMonitorIndexesToTheirReads1809152000000
+export class MatchMonitorIndexesToTheirReads1809165000000
   implements MigrationInterface
 {
-  public name: string = "MatchMonitorIndexesToTheirReads1809152000000";
+  public name: string = "MatchMonitorIndexesToTheirReads1809165000000";
 
   // CREATE / DROP INDEX CONCURRENTLY run outside a transaction.
   public transaction: boolean = false;
@@ -66,10 +64,6 @@ export class MatchMonitorIndexesToTheirReads1809152000000
     await OnlineDdl.createIndex(
       queryRunner,
       `CREATE INDEX "IDX_5856097e6093bb00fe11ee6d18" ON "Monitor" ("monitorType", "_id") `,
-    );
-    await OnlineDdl.createIndex(
-      queryRunner,
-      `CREATE INDEX "IDX_dca0d8b77fc3e95e295bbcc604" ON "Monitor" ("projectId", "_id") WHERE "monitorType" = 'Network Device' AND "autoProvisionedNetworkDeviceId" IS NULL AND "deletedAt" IS NULL`,
     );
     await OnlineDdl.createIndex(
       queryRunner,
@@ -195,10 +189,6 @@ export class MatchMonitorIndexesToTheirReads1809152000000
     await OnlineDdl.dropIndex(
       queryRunner,
       `DROP INDEX "public"."IDX_26979816e9ae6fcec4920a9f89"`,
-    );
-    await OnlineDdl.dropIndex(
-      queryRunner,
-      `DROP INDEX "public"."IDX_dca0d8b77fc3e95e295bbcc604"`,
     );
     await OnlineDdl.dropIndex(
       queryRunner,

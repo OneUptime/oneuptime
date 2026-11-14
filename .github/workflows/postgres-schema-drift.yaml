@@ -651,9 +651,9 @@ jobs:
 
       # Checks the migrated Monitor table's indexes (all valid, none on a
       # column the busiest writes move), then clones it with Project into an
-      # isolated schema: the device poll's fan-out, the Monitors menu's
-      # counts, the list's first page, a heartbeat sweep's page and the
-      # device delete's foreign key check must each be answerable from their
+      # isolated schema: a device delete's count of its monitors and its
+      # foreign key check, the Monitors menu's counts, the list's first page
+      # and a heartbeat sweep's page must each be answerable from their
       # index, and the telemetry, heartbeat and server writes must be HOT
       # updates (MatchMonitorIndexesToTheirReads).
       - name: Test Monitor's indexes and HOT updates against Postgres
