@@ -28,7 +28,9 @@ import { DataSource, Logger as TypeOrmLogger } from "typeorm";
  *
  *   - the migrated "Monitor" carries exactly the indexes the model declares,
  *     every one valid (an online build that failed part way leaves an
- *     INVALID one behind), and none names a column the busiest writes move;
+ *     INVALID one behind), none names a column the busiest writes move, and
+ *     a tenth of every page is kept free for the next update (fillfactor 90,
+ *     SetMonitorFillfactor);
  *   - the reads those indexes are for, as the services build them - a
  *     device delete's count of its automatic monitors and its foreign key
  *     check, the Monitors menu's three counts, the list's first page and a
@@ -292,6 +294,20 @@ describePostgres("Monitor's indexes, on Postgres", () => {
         `CREATE TABLE "${schema}"."${table}" (LIKE public."${table}" INCLUDING ALL)`,
       );
 
+      // The page room the migrations leave, which LIKE does not copy.
+      const options: Array<{ reloptions: Array<string> | null }> =
+        await database.query(
+          `SELECT reloptions FROM pg_class WHERE oid = $1::regclass`,
+          [`public."${table}"`],
+        );
+      for (const option of options[0]?.reloptions || []) {
+        if (option.startsWith("fillfactor=")) {
+          await database.query(
+            `ALTER TABLE "${schema}"."${table}" SET (${option})`,
+          );
+        }
+      }
+
       // A fixture names only what the statements touch.
       const columns: Array<{ column_name: string }> = await database.query(
         `SELECT column_name FROM information_schema.columns
@@ -378,6 +394,24 @@ describePostgres("Monitor's indexes, on Postgres", () => {
           });
         }),
       ).toEqual([]);
+    });
+
+    /*
+     * Room on every page for the next update (SetMonitorFillfactor): with
+     * no index on what they move, it is all the busiest writes need to be
+     * HOT.
+     */
+    test("keeps a tenth of every page free: fillfactor 90", async () => {
+      const rows: Array<{ reloptions: Array<string> | null }> =
+        await database.query(
+          `SELECT reloptions FROM pg_class WHERE oid = 'public."Monitor"'::regclass`,
+        );
+
+      expect(
+        (rows[0]?.reloptions || []).filter((option: string): boolean => {
+          return option.startsWith("fillfactor=");
+        }),
+      ).toEqual(["fillfactor=90"]);
     });
   });
 
