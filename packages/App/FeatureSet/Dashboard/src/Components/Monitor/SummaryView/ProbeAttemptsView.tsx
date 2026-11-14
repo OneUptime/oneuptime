@@ -5,6 +5,9 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { formatMilliseconds } from "../../../Utils/Milliseconds";
 import AttemptLine, { AttemptLinePart } from "./AttemptLine";
+import ProbeMessageLine from "./ProbeMessageLine";
+
+export const PROBE_ATTEMPT_FAILURE_TEST_ID: string = "probe-attempt-failure";
 
 export interface ComponentProps {
   attempts: Array<ProbeAttempt>;
@@ -81,7 +84,7 @@ const ProbeAttemptsView: FunctionComponent<ComponentProps> = (
               className="text-sm text-gray-700"
             >
               <AttemptLine testId="probe-attempt-line" parts={parts} />
-              <div className="ml-4 mt-1 text-xs text-gray-500">
+              <div className="ms-4 mt-1 text-xs text-gray-500">
                 {translator.translateTemplate(
                   "Started {{started}} → Responded {{responded}}",
                   {
@@ -100,9 +103,19 @@ const ProbeAttemptsView: FunctionComponent<ComponentProps> = (
                   },
                 )}
               </div>
+              {/*
+               * The attempt's own error - the network's or the runtime's,
+               * in English - in a line of its own direction, so on an
+               * Arabic or Persian page it reads left to right with its
+               * punctuation at its end, indented from where the page's
+               * lines start.
+               */}
               {failed && attempt.failureCause && (
-                <div className="ml-4 mt-1 text-xs text-red-700 break-all">
-                  {attempt.failureCause}
+                <div className="ms-4 mt-1 text-xs text-red-700">
+                  <ProbeMessageLine
+                    message={attempt.failureCause}
+                    dataTestId={PROBE_ATTEMPT_FAILURE_TEST_ID}
+                  />
                 </div>
               )}
             </li>

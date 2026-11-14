@@ -129,6 +129,20 @@ export const isReaderLanguage: (code: unknown) => boolean = (
 };
 
 /*
+ * The language a request names - a field of its body, sent by a frontend
+ * from the language it is read in - kept only when it is one of the codes
+ * OneUptime writes in, exactly as written ("de", "zh-TW"). Anything else -
+ * nothing, another type, a tag, text from outside - is undefined, so the
+ * caller decides what none means, and nothing sent here ever goes further
+ * than a code. Never longer than a code: no text is kept or read in parts.
+ */
+export const readRequestedReaderLanguage: (
+  value: unknown,
+) => string | undefined = (value: unknown): string | undefined => {
+  return isReaderLanguage(value) ? (value as string) : undefined;
+};
+
+/*
  * One of the languages OneUptime writes in for a tag: "de-AT" is "de",
  * "zh-HK" is "zh-TW", and a tag it does not write in - or none - is
  * English.

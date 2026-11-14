@@ -238,6 +238,27 @@ describe("InvestigationThreadService.sendMessage", () => {
     });
   });
 
+  /*
+   * A monitor the thread sets up names its criteria in the language the
+   * asker reads the Dashboard in (#7247): the turn carries it, and with
+   * none, the asker's saved language decides further down.
+   */
+  test("hands the turn the asker's Dashboard language", async () => {
+    await send({ language: "de" });
+    await flush();
+
+    expect((runTurn.mock.calls[0]![0] as ChatTurnRequest).language).toBe("de");
+  });
+
+  test("with no language, the turn carries none", async () => {
+    await send();
+    await flush();
+
+    expect(
+      (runTurn.mock.calls[0]![0] as ChatTurnRequest).language,
+    ).toBeUndefined();
+  });
+
   test("acts on clear requests by default (auto-run)", async () => {
     await send();
     await flush();
@@ -502,6 +523,37 @@ describe("InvestigationThreadService.respondToApproval", () => {
     expect(turn.isSharedThread).toBe(true);
     expect(turn.permissionMode).toBe(AIChatPermissionMode.AskForApproval);
     expect(decisions).toEqual([{ toolCallId: "call-1", approved: true }]);
+  });
+
+  test("the resumed turn - the one that makes an approved setup - carries the decider's Dashboard language (#7247)", async () => {
+    await InvestigationThreadService.respondToApproval({
+      projectId: PROJECT_ID,
+      subject: SUBJECT,
+      userId: VIEWER_ID,
+      props: deciderProps,
+      assistantMessageId: ASSISTANT_MESSAGE_ID,
+      approved: true,
+      language: "ar",
+    });
+    await flush();
+
+    const [turn] = resumeTurn.mock.calls[0]! as [ChatTurnRequest];
+    expect(turn.language).toBe("ar");
+  });
+
+  test("a resumed turn with no language carries none", async () => {
+    await InvestigationThreadService.respondToApproval({
+      projectId: PROJECT_ID,
+      subject: SUBJECT,
+      userId: VIEWER_ID,
+      props: deciderProps,
+      assistantMessageId: ASSISTANT_MESSAGE_ID,
+      approved: true,
+    });
+    await flush();
+
+    const [turn] = resumeTurn.mock.calls[0]! as [ChatTurnRequest];
+    expect(turn.language).toBeUndefined();
   });
 
   test("a resumed turn's commands are the decider's: its context is built with their props", async () => {
