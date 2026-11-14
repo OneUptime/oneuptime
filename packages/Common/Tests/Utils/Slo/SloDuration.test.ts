@@ -117,15 +117,15 @@ describe("SloDuration", () => {
     });
 
     it("in the reader's language too, English exactly as above", () => {
-      expect(formatDurationCompactInLanguage(41 * DAY + 1, "en", adjacent)).toBe(
-        "41d",
-      );
-      expect(formatDurationCompactInLanguage(41 * DAY + 1, "de", adjacent)).toBe(
-        formatDurationCompactInLanguage(41 * DAY, "de"),
-      );
-      expect(formatDurationCompactInLanguage(41 * DAY + 1, "fa", adjacent)).toBe(
-        formatDurationCompactInLanguage(41 * DAY, "fa"),
-      );
+      expect(
+        formatDurationCompactInLanguage(41 * DAY + 1, "en", adjacent),
+      ).toBe("41d");
+      expect(
+        formatDurationCompactInLanguage(41 * DAY + 1, "de", adjacent),
+      ).toBe(formatDurationCompactInLanguage(41 * DAY, "de"));
+      expect(
+        formatDurationCompactInLanguage(41 * DAY + 1, "fa", adjacent),
+      ).toBe(formatDurationCompactInLanguage(41 * DAY, "fa"));
       // The default keeps the seconds, in German as in English.
       expect(formatDurationCompactInLanguage(41 * DAY + 1, "de")).not.toBe(
         formatDurationCompactInLanguage(41 * DAY, "de"),

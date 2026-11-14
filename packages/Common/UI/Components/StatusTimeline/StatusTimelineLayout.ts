@@ -928,16 +928,17 @@ export const STATUS_TIMELINE_LEGEND_DURATION_UNITS: number = 2;
  * Whole seconds; nothing (or no number) reads as zero seconds ("0 secs",
  * "0 秒").
  */
-export const formatStatusTimelineCompactDuration: (seconds: number) => string =
-  (seconds: number): string => {
-    return OneUptimeDate.secondsToFormattedFriendlyTimeString(
-      isFinite(seconds) && seconds > 0 ? Math.floor(seconds) : 0,
-      {
-        maxUnits: STATUS_TIMELINE_LEGEND_DURATION_UNITS,
-        writesZero: true,
-      },
-    );
-  };
+export const formatStatusTimelineCompactDuration: (
+  seconds: number,
+) => string = (seconds: number): string => {
+  return OneUptimeDate.secondsToFormattedFriendlyTimeString(
+    isFinite(seconds) && seconds > 0 ? Math.floor(seconds) : 0,
+    {
+      maxUnits: STATUS_TIMELINE_LEGEND_DURATION_UNITS,
+      writesZero: true,
+    },
+  );
+};
 
 /*
  * ---------------------------------------------------------------------------

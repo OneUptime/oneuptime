@@ -4,9 +4,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { createInstance, i18n } from "i18next";
 import React from "react";
 import { I18nextProvider } from "react-i18next";
-import OneUptimeDate, {
-  ZERO_FRIENDLY_TIME_TEXT,
-} from "../../../../Types/Date";
+import OneUptimeDate, { ZERO_FRIENDLY_TIME_TEXT } from "../../../../Types/Date";
 import {
   DurationTextPart,
   formatDurationText,
@@ -154,15 +152,20 @@ describe("30 days 23 hours 42 minutes 40 seconds in the reader's language", () =
       );
 
       // Never a number left without its unit at the end.
-      expect({ language, text, endsInADigit: ENDS_IN_A_DIGIT.test(text) }).toEqual(
-        { language, text, endsInADigit: false },
-      );
+      expect({
+        language,
+        text,
+        endsInADigit: ENDS_IN_A_DIGIT.test(text),
+      }).toEqual({ language, text, endsInADigit: false });
 
       /*
        * Exactly the hours' unit as the language writes it ends the text
        * (English in the timelines' own words).
        */
-      const hours: string = intlDuration([{ count: 23, unit: "hour" }], language);
+      const hours: string = intlDuration(
+        [{ count: 23, unit: "hour" }],
+        language,
+      );
       const hoursUnit: string =
         language === "en" ? "hours" : hours.replace(NUMBERS, "").trim();
 
@@ -266,7 +269,8 @@ describe("30 days 23 hours 42 minutes 40 seconds in the reader's language", () =
 
 describe("OneUptimeDate.secondsToFormattedFriendlyTimeString's options", () => {
   test("maxUnits keeps the largest units, and nothing else changes", () => {
-    const full: string = OneUptimeDate.secondsToFormattedFriendlyTimeString(LONG);
+    const full: string =
+      OneUptimeDate.secondsToFormattedFriendlyTimeString(LONG);
 
     expect(full).toBe("30 days 23 hours 42 mins 40 secs");
     expect(
@@ -281,7 +285,8 @@ describe("OneUptimeDate.secondsToFormattedFriendlyTimeString's options", () => {
   });
 
   test("a maxUnits under one is no limit at all", () => {
-    const full: string = OneUptimeDate.secondsToFormattedFriendlyTimeString(LONG);
+    const full: string =
+      OneUptimeDate.secondsToFormattedFriendlyTimeString(LONG);
 
     expect(
       OneUptimeDate.secondsToFormattedFriendlyTimeString(LONG, { maxUnits: 0 }),

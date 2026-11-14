@@ -1333,9 +1333,7 @@ test.describe("on a phone, in dark mode and in German", () => {
       name: GERMAN["Auto-refresh"]!,
     });
     // The interval in German as well: "30 Sek.", not English's "30s" (#7303).
-    await expect(interval.locator("option:checked")).toHaveText(
-      "Alle 30 Sek.",
-    );
+    await expect(interval.locator("option:checked")).toHaveText("Alle 30 Sek.");
 
     /*
      * Each tile's title keeps clear of its icon: "Festplattenlatenz" ran
