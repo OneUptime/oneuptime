@@ -10,7 +10,7 @@ const ScheduledMaintenanceRunbookRulesPage: FunctionComponent<
     <Fragment>
       <RunbookRulesTable
         triggerEntityType={RunbookRuleTriggerEntity.ScheduledMaintenance}
-        entityLabel="scheduled maintenance event"
+        entityLabel="maintenance event"
       />
     </Fragment>
   );
