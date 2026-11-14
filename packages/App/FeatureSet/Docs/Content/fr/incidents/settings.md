@@ -736,7 +736,7 @@ Les règles que la page applique d'elle-même méritent d'être retenues :
 - L'ensemble des politiques réellement exécutées est l'union des politiques de chaque règle correspondante plus toutes les politiques rattachées à l'incident à la main ou par un modèle, dédoublonnée pour que chaque politique s'exécute au plus une fois. Quand deux règles qui correspondent déclenchent la même politique, elle alerte dès que l'une d'elles le permet : immédiatement l'emporte sur les heures ouvrées.
 
 > [!NOTE]
-> La gravité est un critère de correspondance ici et nulle part ailleurs. Une gravité d'incident n'a pas de champ d'astreinte — choisir « Critical Incident » n'alerte, à lui seul, personne. Si vous voulez que la gravité pilote les alertes, écrivez une règle d'astreinte qui s'appuie dessus.
+> La gravité est un critère de correspondance ici et nulle part ailleurs. Une gravité d'incident n'a pas de champ d'astreinte — choisir « Incident critique » n'alerte, à lui seul, personne. Si vous voulez que la gravité pilote les alertes, écrivez une règle d'astreinte qui s'appuie dessus.
 
 ## Rattacher directement des politiques d'astreinte
 
