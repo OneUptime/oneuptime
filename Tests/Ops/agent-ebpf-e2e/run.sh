@@ -33,6 +33,11 @@
 #        chart's receiver settings, run by docker in the HOST's root PID
 #        namespace and pointed at the apps node's traces_ctx_v1 pin (through
 #        /proc/<node>/root). It reads, never writes, and is removed afterwards.
+#        The chart's own profiler pods, whose exports PR-3 counts, resolve on
+#        kind only a process whose PID is the same number in the node as in
+#        the host (on arm64 they drop the samples of the rest), so the apps
+#        node gets one: apps/same-pid.pl, the node's shell in a busy loop at
+#        nice 19, started with clone3's set_tid.
 #   k3s -- k3s installed on the (throwaway, Linux) host itself: hostPID pods
 #        are in the root PID namespace and bpffs is the host's own, as on a
 #        real node, so the chart's own profiler is the one checked. For CI
@@ -89,6 +94,8 @@ REL=e2e
 FULL="${REL}-kubernetes-agent"
 HOST_PROFILER_NAME="${CLUSTER}-host-profiler"
 HOST_PROFILER_STARTED=false
+SAME_PID_FILE=/tmp/same-pid.txt # in the apps node (apps/same-pid.pl)
+SAME_PID_STARTED=false
 CREATED=false
 
 log() { printf '[%s] %s\n' "$(date -u +%H:%M:%S)" "$*" | tee -a "${OUT}/run.log" >&2; }
@@ -451,6 +458,23 @@ for i in $(seq 1 60); do
   case "${obi_log}" in *'Script successfully injected'*) break ;; esac
   sleep 5
 done
+if [ "${PLATFORM}" = kind ] && [ "${PROFILING}" = true ]; then
+  # The same-PID process (apps/same-pid.pl, and the top of this file): one
+  # process in the apps node whose PID there is its PID in the host's root
+  # namespace, as every process's is on a real node, so the chart's profiler
+  # on that node resolves it and PR-3 checks the export path with the samples
+  # of a process it can see. Started before the warmup, so the profiler has
+  # synchronized it before the load; stopped after the flush.
+  node_sh "${APPS_NODE}" "kill \$(sed -n 's/^samePid=//p' ${SAME_PID_FILE} 2>/dev/null) 2>/dev/null; rm -f ${SAME_PID_FILE}" || true
+  docker cp "${HERE}/apps/same-pid.pl" "${APPS_NODE}:/tmp/same-pid.pl" >/dev/null
+  docker exec -d "${APPS_NODE}" perl /tmp/same-pid.pl "$((WARMUP + LOAD_SECONDS + FLUSH + 900))" "${SAME_PID_FILE}"
+  SAME_PID_STARTED=true
+  for i in $(seq 1 30); do
+    node_sh "${APPS_NODE}" "test -s ${SAME_PID_FILE}" && break
+    sleep 1
+  done
+  log "same-PID process: $(node_sh "${APPS_NODE}" "cat ${SAME_PID_FILE}" 2>/dev/null || echo 'none')"
+fi
 if [ "${PLATFORM}" = kind ] && [ "${PROFILING}" = true ] && [ "${HOST_PROFILER}" = true ]; then
   # The root-namespace profiler (see the top of this file): the chart's own
   # receiver settings (configmap-profiling.yaml as rendered), with the pin
@@ -528,6 +552,16 @@ k -n loadgen logs job/loadgen >"${OUT}/loadgen.log" 2>&1 || true
 tail -1 "${OUT}/loadgen.log" | tee -a "${OUT}/run.log" >&2
 log "flush ${FLUSH}s"
 sleep "${FLUSH}"
+if [ "${SAME_PID_STARTED}" = true ]; then
+  node_sh "${APPS_NODE}" "kill \$(sed -n 's/^samePid=//p' ${SAME_PID_FILE}) 2>/dev/null" || true
+  # same-pid.pl adds how the process ended once it has seen it go.
+  for i in $(seq 1 10); do
+    node_sh "${APPS_NODE}" "grep -q '^ended=' ${SAME_PID_FILE}" 2>/dev/null && break
+    sleep 1
+  done
+  node_fetch "${APPS_NODE}" "${SAME_PID_FILE}" "${OUT}/same-pid.txt" 2>/dev/null ||
+    echo 'error=same-pid.pl wrote nothing' >"${OUT}/same-pid.txt"
+fi
 if [ "${HOST_PROFILER_STARTED}" = true ]; then
   docker stop -t 30 "${HOST_PROFILER_NAME}" >/dev/null 2>&1 || true
   docker logs "${HOST_PROFILER_NAME}" >"${OUT}/host-profiler/profiler.log" 2>&1 || true

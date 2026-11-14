@@ -108,7 +108,7 @@ x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_KEY
 
 ## 轮换、停用或删除密钥
 
-密钥的页面会显示它的 **状态**、隐藏在 **Click to reveal** 后面的 **密钥**，以及它的 **Last Used At**：OneUptime 最后一次接受用它发送的数据的时间。
+密钥的页面会显示它的 **状态**、隐藏在 **点击以显示** 后面的 **密钥**，以及它的 **Last Used At**：OneUptime 最后一次接受用它发送的数据的时间。
 
 | 目的 | 操作 | 发送方看到的结果 |
 | --- | --- | --- |

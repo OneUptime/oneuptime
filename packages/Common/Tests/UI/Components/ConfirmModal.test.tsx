@@ -291,3 +291,88 @@ describe("ConfirmModal initial focus", () => {
     expect(onSubmit).toHaveBeenCalledTimes(1);
   });
 });
+
+/*
+ * A confirmation's sentence is in its body, not under its title, so the
+ * dialog names it as its description: a screen reader reads the question
+ * with what it is about ("Leave without saving?, You have unsaved
+ * changes ..."), not only the title and the button the focus starts on.
+ */
+describe("ConfirmModal description for screen readers", () => {
+  it("describes the dialog by its sentence", () => {
+    render(
+      <ConfirmModal
+        title="Leave without saving?"
+        description="You have unsaved changes to this dashboard. If you leave now, they will be lost."
+        submitButtonText="Discard Changes"
+        submitButtonType={ButtonStyleType.DANGER}
+        closeButtonText="Keep Editing"
+        onSubmit={jest.fn()}
+        onClose={jest.fn()}
+      />,
+    );
+
+    const dialog: HTMLElement = screen.getByRole("dialog", {
+      name: "Leave without saving?",
+    });
+    const sentence: HTMLElement = screen.getByTestId(
+      "confirm-modal-description",
+    );
+
+    expect(sentence.id).not.toBe("");
+    expect(dialog).toHaveAttribute("aria-describedby", sentence.id);
+    expect(dialog).toHaveAccessibleDescription(
+      "You have unsaved changes to this dashboard. If you leave now, they will be lost.",
+    );
+  });
+
+  it("describes a notice too, and only by its sentence, not by what it also asks", () => {
+    render(
+      <ConfirmModal
+        title="Saved"
+        description="Runbook steps saved successfully."
+        submitButtonText="Got it"
+        onSubmit={jest.fn()}
+      >
+        <label>
+          <input type="checkbox" /> Do not show this again
+        </label>
+      </ConfirmModal>,
+    );
+
+    expect(
+      screen.getByRole("dialog", { name: "Saved" }),
+    ).toHaveAccessibleDescription("Runbook steps saved successfully.");
+  });
+
+  it("gives each open dialog its own description", () => {
+    render(
+      <>
+        <ConfirmModal
+          title="Could not save"
+          description="Step 3's URL is not a valid address."
+          submitButtonText="Close"
+          onSubmit={jest.fn()}
+        />
+        <ConfirmModal
+          title="Leave without saving?"
+          description="You have unsaved changes to this runbook's steps. If you leave now, they will be lost."
+          submitButtonText="Discard Changes"
+          submitButtonType={ButtonStyleType.DANGER}
+          closeButtonText="Keep Editing"
+          onSubmit={jest.fn()}
+          onClose={jest.fn()}
+        />
+      </>,
+    );
+
+    expect(
+      screen.getByRole("dialog", { name: "Could not save" }),
+    ).toHaveAccessibleDescription("Step 3's URL is not a valid address.");
+    expect(
+      screen.getByRole("dialog", { name: "Leave without saving?" }),
+    ).toHaveAccessibleDescription(
+      "You have unsaved changes to this runbook's steps. If you leave now, they will be lost.",
+    );
+  });
+});

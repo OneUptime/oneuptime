@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52212,
-    "untranslated": 2755
+    "keys": 52224,
+    "untranslated": 2754
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -115,7 +115,6 @@
     "Branch",
     "Branches",
     "Branding",
-    "Breadcrumb",
     "Broker",
     "Browser",
     "Browser · OpenTelemetry Web SDK",
