@@ -314,6 +314,38 @@ Translation guidelines:
   translate `<key>_one` for your "one" form. In ja/ko/zh-CN/zh-TW, `_one` is
   never shown, so translate it the same as the general form or leave it.
 
+### Spaces in Chinese and Japanese (zh-CN, zh-TW, ja)
+
+Chinese and Japanese put no space between their own words. These three files
+put one between their words and:
+
+- Latin text: `Docker 主机`, `Docker AI エージェント`;
+- a number: `最近 5 分钟`, `1 分以内`;
+- a `{{placeholder}}`, on each side: `请设置 {{agentName}}，只需几分钟。`,
+  `{{agentName}} 已不再上报数据`, `{{agentName}} は報告を停止しています`.
+
+Write that space even where the value you expect starts or ends in your own
+script. Some values are OneUptime's own words (a `translatableTerm` in the
+code: an agent's name, a kind of resource), and one key can take words of
+either kind: a host's collector is `OpenTelemetry Collector` or
+`OneUptime 收集器`. The Translator (`Common/Types/Translator.ts`) drops the
+space between such a term and a Chinese or Japanese character where the term
+starts or ends in Chinese or Japanese on that side:
+
+- `请设置 {{agentName}}，` reads `请设置设备或网关上的 OpenTelemetry 导出器，`;
+- `{{agentName}} 已不再上报数据` reads `OneUptime 收集器已不再上报数据`;
+- `撤销 {{agentName}} 的密钥` reads `撤销数据库 AI 代理的密钥`.
+
+It keeps the space beside a Latin letter or a digit
+(`OpenTelemetry Collector 已不再上报数据`), and beside a name someone typed, a
+number or a date, which the space sets apart. It never adds one: the key
+`{{agentName}}已不再上报数据` read `OpenTelemetry Collector已不再上报数据`
+(issue #7864). A space beside punctuation (`。`, `：`, `？`) is yours to write
+or leave out.
+
+Korean writes a space between its words anyway, so none of this applies to
+`ko`.
+
 ### Code in a sentence read from the right (ar, fa)
 
 In Arabic, Persian and any language read from the right that is added later:
