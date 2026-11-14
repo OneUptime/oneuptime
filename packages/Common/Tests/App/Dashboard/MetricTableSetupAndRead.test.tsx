@@ -269,9 +269,12 @@ function answerTheRead(): void {
           },
         );
 
-      for (const _formula of data.metricViewData.formulaConfigs) {
-        results.push({ data: [point("checkout", 24)] } as AggregatedResult);
-      }
+      // Each formula answers 24, after the queries, as the read answers.
+      results.push(
+        ...data.metricViewData.formulaConfigs.map((): AggregatedResult => {
+          return { data: [point("checkout", 24)] } as AggregatedResult;
+        }),
+      );
 
       return results;
     },

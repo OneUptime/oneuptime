@@ -316,12 +316,17 @@ function elementOf(
   props: DashboardBaseComponentProps,
   component: DashboardBaseComponent,
 ) => React.ReactElement {
-  return (
+  const drawn: (
+    props: DashboardBaseComponentProps,
+    component: DashboardBaseComponent,
+  ) => React.ReactElement = (
     props: DashboardBaseComponentProps,
     component: DashboardBaseComponent,
   ): React.ReactElement => {
     return <Element {...props} component={component} />;
   };
+
+  return drawn;
 }
 
 /*

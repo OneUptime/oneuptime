@@ -273,12 +273,13 @@ describe("every widget draws its error through the one error line", () => {
   test("each widget that keeps an error hands it to the error line, a placeholder or a view that draws one", () => {
     const DRAWS_IT: RegExp =
       /<(?:DashboardWidgetError|DashboardWidgetErrorLine|WidgetPlaceholder)\b|\b(?:error|message)=\{error\}/;
+    const KEEPS_AN_ERROR: RegExp = /\[error, setError\]/;
     const unhanded: Array<string> = [];
 
     for (const file of widgetFiles()) {
       const source: string = readWidget(file);
 
-      if (!/\[error, setError\]/.test(source)) {
+      if (!KEEPS_AN_ERROR.test(source)) {
         continue;
       }
 
