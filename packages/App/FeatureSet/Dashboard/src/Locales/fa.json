@@ -48475,7 +48475,7 @@
   "Domain Name Server": "سرور نام دامنه",
   "Domain Registrar": "ثبت‌کننده دامنه",
   "Domain Status Code": "کد وضعیت دامنه",
-  "Each day's count of the event, and of the people who did it that day. Days are in your time zone.": "شمار روزانهٔ رویداد و شمار افرادی که در آن روز انجامش دادند. روزها بر اساس منطقهٔ زمانی شما هستند.",
+  "Each day's count of the event, and of the people who did it that day. Days are in your time zone.": "شمار روزانهٔ رویداد و شمار افرادی که در آن روز انجامش دادند. روزها بر اساس منطقه زمانی شما هستند.",
   "Each event is also counted as the metric {{metric}}, by event name, and each metric() call is a metric of its own. Chart them in Metrics, add them to a dashboard, or alert on them with a Metrics monitor.": "هر رویداد همچنین بر اساس نام رویداد در متریک {{metric}} شمرده می‌شود و هر فراخوانی metric() یک متریک جداگانه است. آن‌ها را در متریک‌ها نمودار کنید، به یک داشبورد بیفزایید یا با یک مانیتور متریک روی آن‌ها هشدار بگذارید.",
   "Edit User Properties": "ویرایش ویژگی‌های کاربر",
   "Email Body": "متن ایمیل",
