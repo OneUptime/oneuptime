@@ -342,6 +342,36 @@ describe("StackTraceParser.parse - Ruby", () => {
     expect(result.frames[1]!.functionName).toBe("<main>");
   });
 
+  /*
+   * Ruby 3.x puts a built-in method written in Ruby, such as Kernel#loop or
+   * Integer#times, in an "<internal:...>" file. Those frames were marked as
+   * the app's own code, so the Stack Trace page highlighted them and grouping
+   * keyed on them (github.com/OneUptime/oneuptime/issues/8108).
+   */
+  test("marks Ruby 3.x's <internal:...> built-in frames as not inApp", () => {
+    const trace: string = [
+      "/app/jobs/sync.rb:12:in `block (2 levels) in perform'",
+      "<internal:numeric>:238:in `times'",
+      "/app/jobs/sync.rb:11:in `block in perform'",
+      "<internal:kernel>:187:in `loop'",
+      "/app/jobs/sync.rb:10:in `perform'",
+    ].join("\n");
+
+    const result: ParsedStackTrace = StackTraceParser.parse(trace);
+
+    expect(
+      result.frames.map((frame: StackFrame): [string, boolean] => {
+        return [frame.fileName, frame.inApp];
+      }),
+    ).toEqual([
+      ["/app/jobs/sync.rb", true],
+      ["<internal:numeric>", false],
+      ["/app/jobs/sync.rb", true],
+      ["<internal:kernel>", false],
+      ["/app/jobs/sync.rb", true],
+    ]);
+  });
+
   test("marks gems paths as not inApp", () => {
     const trace: string = [
       "/app/service.rb:12:in `process'",
