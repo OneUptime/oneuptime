@@ -102,7 +102,7 @@ När du har jour för en policy visar klockan uppe till höger det. Klicka på d
 ## Felsökning
 
 :::details Ingen larmades för en ny incident
-Öppna incidentens sida **Jourexekveringar**. Är den tom hade incidenten ingen jourpolicy: ingen valdes på den, och ingen jourregel matchade den. En körning med **Execution Completed - No One Notified** gick igenom varje eskaleringsregel utan att hitta någon: oftast ett schema där ingen har jour. Se [Exekveringsloggar](/docs/on-call/policies#exekveringsloggar). En körning med **Väntar** väntar på arbetstid för en jourregel inställd på **Endast under arbetstid** och larmar ingen förrän den börjar.
+Öppna incidentens sida **Jourexekveringar**. Är den tom hade incidenten ingen jourpolicy: ingen valdes på den, och ingen jourregel matchade den. En körning med **Exekvering slutförd - ingen aviserad** gick igenom varje eskaleringsregel utan att hitta någon: oftast ett schema där ingen har jour. Se [Exekveringsloggar](/docs/on-call/policies#exekveringsloggar). En körning med **Väntar** väntar på arbetstid för en jourregel inställd på **Endast under arbetstid** och larmar ingen förrän den börjar.
 :::
 
 :::details Någon larmades på fel kanal, eller inte alls

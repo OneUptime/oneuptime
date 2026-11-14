@@ -102,7 +102,7 @@ Cuando estás de guardia para una política, la campana de arriba a la derecha l
 ## Solución de problemas
 
 :::details No se avisó a nadie por un incidente nuevo
-Abre la página **Ejecuciones de guardia** del incidente. Si está vacía, el incidente no tenía ninguna política de guardia: no se eligió ninguna en él y ninguna regla de guardia coincidió. Una ejecución con **Execution Completed - No One Notified** recorrió todas las reglas de escalado sin encontrar a nadie: normalmente una programación sin nadie de guardia. Consulta [Registros de ejecución](/docs/on-call/policies#registros-de-ejecución). Una ejecución **Esperando** espera al horario laboral, por una regla de guardia configurada como **Solo en horario laboral**, y no avisa a nadie hasta que empiece.
+Abre la página **Ejecuciones de guardia** del incidente. Si está vacía, el incidente no tenía ninguna política de guardia: no se eligió ninguna en él y ninguna regla de guardia coincidió. Una ejecución con **Ejecución completada - no se notificó a nadie** recorrió todas las reglas de escalado sin encontrar a nadie: normalmente una programación sin nadie de guardia. Consulta [Registros de ejecución](/docs/on-call/policies#registros-de-ejecución). Una ejecución **Esperando** espera al horario laboral, por una regla de guardia configurada como **Solo en horario laboral**, y no avisa a nadie hasta que empiece.
 :::
 
 :::details Alguien recibió el aviso por el canal equivocado, o no lo recibió

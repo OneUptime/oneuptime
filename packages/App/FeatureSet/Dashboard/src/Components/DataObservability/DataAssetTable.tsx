@@ -18,7 +18,7 @@ import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ProjectUtil from "Common/UI/Utils/Project";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -29,11 +29,35 @@ export interface ComponentProps {
   dataStoreId?: ObjectID | undefined;
 }
 
+/*
+ * Each kind in words, keys of the Dashboard's locales: the Kind filter's
+ * menu, its chip and the line under a table's name read them alike, in the
+ * reader's language.
+ */
+const KIND_LABELS: Record<DataAssetKind, string> = {
+  [DataAssetKind.Table]: translationKey("Table"),
+  [DataAssetKind.View]: translationKey("View"),
+  [DataAssetKind.MaterializedView]: translationKey("Materialized View"),
+  [DataAssetKind.PartitionedTable]: translationKey("Partitioned Table"),
+  [DataAssetKind.ForeignTable]: translationKey("Foreign Table"),
+  [DataAssetKind.StoragePath]: translationKey("Storage Path"),
+};
+
 const KIND_OPTIONS: Array<DropdownOption> = DATA_ASSET_KINDS.map(
   (kind: DataAssetKind): DropdownOption => {
-    return { value: kind, label: kind };
+    return { value: kind, label: KIND_LABELS[kind] };
   },
 );
+
+// In the reader's language; a kind a newer server added, as it is stored.
+const getKindText: (kind: DataAssetKind, translator: Translator) => string = (
+  kind: DataAssetKind,
+  translator: Translator,
+): string => {
+  const label: string = KIND_LABELS[kind] || kind;
+
+  return translator.translateText(label) || label;
+};
 
 /*
  * The catalog: every table and view of the connected databases, with the
@@ -164,7 +188,7 @@ const DataAssetTable: FunctionComponent<ComponentProps> = (
                 <span className="block truncate text-xs text-gray-500">
                   {asset.dataStoreName}
                   {asset.assetKind && asset.assetKind !== DataAssetKind.Table
-                    ? ` · ${translator.translateText(asset.assetKind) || asset.assetKind}`
+                    ? ` · ${getKindText(asset.assetKind, translator)}`
                     : ""}
                 </span>
               </div>

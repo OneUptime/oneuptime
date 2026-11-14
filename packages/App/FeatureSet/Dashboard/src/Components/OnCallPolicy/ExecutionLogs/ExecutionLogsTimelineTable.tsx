@@ -20,13 +20,14 @@ import DirectPageLabel from "Common/UI/Components/OnCallDirectPage/DirectPageLab
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
-import DropdownUtil from "Common/UI/Utils/Dropdown";
-import { PASS_ON_PAGE_TEXT } from "../PassOn/PassOnPage";
 import NotifiedVia, {
   getNotifiedViaChannels,
   NOTIFIED_VIA_TITLE,
 } from "./NotifiedVia";
-import { withEscalatedStatusLabel } from "../PassOn/PassedOnStatus";
+import {
+  getOnCallTimelineStatusFilterOptions,
+  ON_CALL_TIMELINE_STATUS_LABELS,
+} from "./OnCallLogStatusLabels";
 import OnCallDutyPolicyEscalationRule from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
 import OnCallDutyPolicyExecutionLogTimeline from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLogTimeline";
 import User from "Common/Models/DatabaseModels/User";
@@ -214,11 +215,7 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
             type: FieldType.Dropdown,
             title: "Status",
             // An escalated line is stored "Passed On" and offered as Escalated.
-            filterDropdownOptions: withEscalatedStatusLabel(
-              DropdownUtil.getDropdownOptionsFromEnum(
-                OnCallDutyExecutionLogTimelineStatus,
-              ),
-            ),
+            filterDropdownOptions: getOnCallTimelineStatusFilterOptions(),
           },
         ]}
         columns={[
@@ -543,7 +540,11 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                 return (
                   <Pill
                     color={Green}
-                    text={OnCallDutyExecutionLogTimelineStatus.NotificationSent}
+                    text={
+                      ON_CALL_TIMELINE_STATUS_LABELS[
+                        OnCallDutyExecutionLogTimelineStatus.NotificationSent
+                      ]
+                    }
                   />
                 );
               } else if (
@@ -554,7 +555,10 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                   <Pill
                     color={Green}
                     text={
-                      OnCallDutyExecutionLogTimelineStatus.SuccessfullyAcknowledged
+                      ON_CALL_TIMELINE_STATUS_LABELS[
+                        OnCallDutyExecutionLogTimelineStatus
+                          .SuccessfullyAcknowledged
+                      ]
                     }
                   />
                 );
@@ -564,7 +568,11 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                 return (
                   <Pill
                     color={Red}
-                    text={OnCallDutyExecutionLogTimelineStatus.Error}
+                    text={
+                      ON_CALL_TIMELINE_STATUS_LABELS[
+                        OnCallDutyExecutionLogTimelineStatus.Error
+                      ]
+                    }
                   />
                 );
               } else if (
@@ -573,7 +581,11 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                 return (
                   <Pill
                     color={Yellow}
-                    text={OnCallDutyExecutionLogTimelineStatus.Skipped}
+                    text={
+                      ON_CALL_TIMELINE_STATUS_LABELS[
+                        OnCallDutyExecutionLogTimelineStatus.Skipped
+                      ]
+                    }
                   />
                 );
               } else if (
@@ -583,7 +595,11 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                 return (
                   <Pill
                     color={Yellow}
-                    text={OnCallDutyExecutionLogTimelineStatus.Executing}
+                    text={
+                      ON_CALL_TIMELINE_STATUS_LABELS[
+                        OnCallDutyExecutionLogTimelineStatus.Executing
+                      ]
+                    }
                   />
                 );
               } else if (
@@ -592,7 +608,11 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                 return (
                   <Pill
                     color={Yellow}
-                    text={OnCallDutyExecutionLogTimelineStatus.Started}
+                    text={
+                      ON_CALL_TIMELINE_STATUS_LABELS[
+                        OnCallDutyExecutionLogTimelineStatus.Started
+                      ]
+                    }
                   />
                 );
               } else if (
@@ -602,7 +622,11 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                 return (
                   <Pill
                     color={Yellow}
-                    text={PASS_ON_PAGE_TEXT.passedOnStatus}
+                    text={
+                      ON_CALL_TIMELINE_STATUS_LABELS[
+                        OnCallDutyExecutionLogTimelineStatus.PassedOn
+                      ]
+                    }
                   />
                 );
               }
@@ -610,7 +634,11 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
               return (
                 <Pill
                   color={Red}
-                  text={OnCallDutyExecutionLogTimelineStatus.Error}
+                  text={
+                    ON_CALL_TIMELINE_STATUS_LABELS[
+                      OnCallDutyExecutionLogTimelineStatus.Error
+                    ]
+                  }
                 />
               );
             },

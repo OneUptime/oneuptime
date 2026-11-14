@@ -50,8 +50,8 @@ stateDiagram-v2
 | **Wartet**                          | Die Ausführung parkt an einem **Sleep**-Baustein und setzt von selbst fort. Während sie wartet, belegt sie keinen Worker.                                                                                                                                        |
 | **Ausgeführt**                      | Die Ausführung hat das Ende erreicht, ohne fehlzuschlagen. Das ist der Erfolgsstatus: Die Pille zeigt **Ausgeführt**, nicht "Erfolg".                                                                                                                             |
 | **Fehler**                          | Ein Baustein hat die Ausführung gestoppt oder ist fehlgeschlagen, ohne dass etwas mit seinem Ausgang **Error** verbunden war. Auch verwendet, wenn eine eingereihte Ausführung nie übernommen wird, wenn die Fortsetzung einer schlafenden Ausführung verloren geht, wenn sich ein Zeitplanausdruck nicht auflösen lässt und wenn der Workflow ausgeschaltet oder archiviert wurde, während die Ausführung an einem **Sleep**-Baustein wartete. |
-| **Timeout**                         | Die Ausführung hat länger gedauert als erlaubt: standardmäßig 2 Minuten. Siehe [Wie lange eine Ausführung dauern darf](/docs/workflows/configuration#wie-lange-eine-ausführung-dauern-darf).                                                                                   |
-| **Execution Exceeded Current Plan** | Das Projekt hat seine Workflow-Ausführungen für die letzten 30 Tage aufgebraucht, oder das Abonnement ist unbezahlt. Die Ausführung wird aufgezeichnet, aber nicht ausgeführt. Nur OneUptime Cloud.                                                               |
+| **Zeitüberschreitung**              | Die Ausführung hat länger gedauert als erlaubt: standardmäßig 2 Minuten. Siehe [Wie lange eine Ausführung dauern darf](/docs/workflows/configuration#wie-lange-eine-ausführung-dauern-darf).                                                                                   |
+| **Ausführung überschreitet aktuellen Tarif** | Das Projekt hat seine Workflow-Ausführungen für die letzten 30 Tage aufgebraucht, oder das Abonnement ist unbezahlt. Die Ausführung wird aufgezeichnet, aber nicht ausgeführt. Nur OneUptime Cloud.                                                               |
 
 Ein Baustein, der seinen Ausgang **Error** nimmt – etwa ein API-Baustein, der eine 4xx-Antwort bekommt –, lässt die Ausführung nur fehlschlagen, wenn mit **Error** nichts verbunden ist. Sind dort Bausteine verbunden, laufen sie, und die Ausführung kann trotzdem mit **Ausgeführt** enden. Ist nichts verbunden, läuft der Rest der Ausführung weiter, dann endet sie mit **Fehler**, und die letzte Zeile ihres **Full Log** nennt den Baustein. So oder so wird der Schritt selbst rot gezeichnet, damit Sie ihn finden.
 
@@ -114,7 +114,7 @@ Ein Download enthält nichts, was Sie nicht schon in der Ausführung lesen könn
 3. Bei einem Webhook-Trigger bestätigen Sie, dass das andere System an die richtige URL sendet. Die meisten Tools protokollieren, wann sie einen Webhook senden – schauen Sie dort nach.
 4. Bei einem Zeitplan-Trigger bestätigen Sie, dass der Cron-Ausdruck zur erwarteten Zeit passt. Zeitpläne laufen in UTC.
 
-Erscheint die Ausführung doch, mit dem Status **Execution Exceeded Current Plan**, hat das Projekt alle seine Workflow-Ausführungen der letzten 30 Tage verbraucht, oder das Abonnement ist unbezahlt. Das Protokoll der Ausführung nennt die Anzahl und das Limit Ihres Plans. Das gilt nur für OneUptime Cloud.
+Erscheint die Ausführung doch, mit dem Status **Ausführung überschreitet aktuellen Tarif**, hat das Projekt alle seine Workflow-Ausführungen der letzten 30 Tage verbraucht, oder das Abonnement ist unbezahlt. Das Protokoll der Ausführung nennt die Anzahl und das Limit Ihres Plans. Das gilt nur für OneUptime Cloud.
 :::
 
 :::details Ein späterer Baustein lief nie

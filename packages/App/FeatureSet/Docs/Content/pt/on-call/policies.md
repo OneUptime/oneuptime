@@ -112,9 +112,9 @@ flowchart TB
 | --- | --- |
 | **Aguardando** | Uma regra de plantão definida como **Somente em horário comercial** faz a execução aguardar até esse horário começar: ela diz quando o acionamento começa, e até lá não aciona ninguém. Termina sem acionar se o incidente ou o alerta for confirmado ou resolvido antes. Começa a acionar na hora se o incidente ou o alerta mudar e passar a corresponder a uma regra de plantão que aciona imediatamente. |
 | **Agendado**, **Iniciada** | A execução está sendo preparada. Uma que ainda esteja aqui depois de 5 minutos é encerrada como **Erro**. |
-| **Executing** | A execução está acionando. O OneUptime a avança a cada minuto. |
-| **Execution Completed** | Alguém confirmou, o incidente ou alerta foi resolvido, todas as regras e repetições foram usadas, ou a política foi arquivada. |
-| **Execution Completed - No One Notified** | A execução passou por todas as regras sem acionar ninguém: em geral um agendamento sem ninguém de plantão, ou um nível sem destinatários. |
+| **Executando** | A execução está acionando. O OneUptime a avança a cada minuto. |
+| **Execução concluída** | Alguém confirmou, o incidente ou alerta foi resolvido, todas as regras e repetições foram usadas, ou a política foi arquivada. |
+| **Execução concluída - ninguém foi notificado** | A execução passou por todas as regras sem acionar ninguém: em geral um agendamento sem ninguém de plantão, ou um nível sem destinatários. |
 | **Erro** | A execução falhou. **Ver mensagem de status** diz por quê. |
 
 Você encontra registros de execução em três lugares:
@@ -160,7 +160,7 @@ Para criar uma política com seu primeiro nível em uma única requisição, vej
 ## Solução de problemas
 
 :::details Uma política foi executada, mas ninguém foi acionado
-A execução dela diz **Execution Completed - No One Notified**. Abra **Ver linha do tempo**: uma linha com **Ninguém estava de plantão** aponta para um agendamento com uma lacuna, e a mensagem de status de uma linha **Ignorado** diz por quê, por exemplo alguém ausente sem ninguém para cobrir. **Plantão → Prontidão** mostra quem não pôde ser contatado.
+A execução dela diz **Execução concluída - ninguém foi notificado**. Abra **Ver linha do tempo**: uma linha com **Ninguém estava de plantão** aponta para um agendamento com uma lacuna, e a mensagem de status de uma linha **Ignorado** diz por quê, por exemplo alguém ausente sem ninguém para cobrir. **Plantão → Prontidão** mostra quem não pôde ser contatado.
 :::
 
 :::details O próximo nível foi acionado um minuto depois da espera

@@ -214,7 +214,7 @@ I OneUptime Cloud krever arbeidsflyter planen Growth eller høyere, og hver plan
 | Scale      | 2000                         |
 | Enterprise | Ingen praktisk grense        |
 
-Vinduet glir: hver kjøring prosjektet registrerer, manuelt eller fra en trigger, teller i 30 dager. På planene Growth og Scale viser siden **Arbeidsflyter** et kort **Arbeidsflytkjøringer** med hvor mange prosjektet har brukt. Når grensen er nådd, registreres nye kjøringer med statusen **Execution Exceeded Current Plan** og utføres ikke, og det samme skjer mens abonnementet er ubetalt. Selvhostede installasjoner uten fakturering har ingen grense. På en plan som ikke kjører arbeidsflyter, sier **Bygger** og siden **Arbeidsflyter** det, med en lenke for å oppgradere.
+Vinduet glir: hver kjøring prosjektet registrerer, manuelt eller fra en trigger, teller i 30 dager. På planene Growth og Scale viser siden **Arbeidsflyter** et kort **Arbeidsflytkjøringer** med hvor mange prosjektet har brukt. Når grensen er nådd, registreres nye kjøringer med statusen **Utførelse overskred gjeldende abonnement** og utføres ikke, og det samme skjer mens abonnementet er ubetalt. Selvhostede installasjoner uten fakturering har ingen grense. På en plan som ikke kjører arbeidsflyter, sier **Bygger** og siden **Arbeidsflyter** det, med en lenke for å oppgradere.
 
 ## Hvor lenge en kjøring kan vare
 
@@ -224,7 +224,7 @@ Vinduet glir: hver kjøring prosjektet registrerer, manuelt eller fra en trigger
 | En **Run Custom JavaScript**-blokk                                | 5 sekunder     | `WORKFLOW_SCRIPT_TIMEOUT_IN_MS` |
 | En **Sleep**-blokk                                                | Høyst 30 dager | —                               |
 
-Kjøreren sjekker fristen før og etter hver blokk, og merker en kjøring som har gått over tiden, som **Timeout** så snart kontrollen kommer tilbake. Den kan ikke avbryte en blokk midtveis, så blokker som venter på nettverket, har sine egne tidsgrenser: en forespørsel fra Generate Text with AI gir opp etter høyst 60 sekunder, og en OAuth 2.0-tokenforespørsel etter 20. Ventetid ved en **Sleep**-blokk teller ikke med i tiden til en kjøring: kjøringen legges til side og får 2 nye minutter når den våkner.
+Kjøreren sjekker fristen før og etter hver blokk, og merker en kjøring som har gått over tiden, som **Tidsavbrudd** så snart kontrollen kommer tilbake. Den kan ikke avbryte en blokk midtveis, så blokker som venter på nettverket, har sine egne tidsgrenser: en forespørsel fra Generate Text with AI gir opp etter høyst 60 sekunder, og en OAuth 2.0-tokenforespørsel etter 20. Ventetid ved en **Sleep**-blokk teller ikke med i tiden til en kjøring: kjøringen legges til side og får 2 nye minutter når den våkner.
 
 ## Grense for å kalle andre arbeidsflyter
 

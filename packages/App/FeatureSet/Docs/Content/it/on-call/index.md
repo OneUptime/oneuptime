@@ -102,7 +102,7 @@ Quando siete reperibili per una policy, la campanella in alto a destra lo indica
 ## Risoluzione dei problemi
 
 :::details Nessuno è stato avvisato per un nuovo incidente
-Aprite la pagina **Esecuzioni di reperibilità** dell'incidente. Se è vuota, l'incidente non aveva nessuna policy di reperibilità: non ne è stata scelta nessuna e nessuna regola di reperibilità corrispondeva. Un'esecuzione con **Execution Completed - No One Notified** ha percorso ogni regola di escalation senza trovare nessuno: di solito una pianificazione in cui nessuno è reperibile. Vedi [Registri di esecuzione](/docs/on-call/policies#registri-di-esecuzione). Un'esecuzione **In attesa** attende l'orario di lavoro, per una regola di reperibilità impostata su **Solo durante l'orario di lavoro**, e non chiama nessuno finché non inizia.
+Aprite la pagina **Esecuzioni di reperibilità** dell'incidente. Se è vuota, l'incidente non aveva nessuna policy di reperibilità: non ne è stata scelta nessuna e nessuna regola di reperibilità corrispondeva. Un'esecuzione con **Esecuzione completata - nessuno è stato notificato** ha percorso ogni regola di escalation senza trovare nessuno: di solito una pianificazione in cui nessuno è reperibile. Vedi [Registri di esecuzione](/docs/on-call/policies#registri-di-esecuzione). Un'esecuzione **In attesa** attende l'orario di lavoro, per una regola di reperibilità impostata su **Solo durante l'orario di lavoro**, e non chiama nessuno finché non inizia.
 :::
 
 :::details Qualcuno è stato avvisato sul canale sbagliato, o per niente

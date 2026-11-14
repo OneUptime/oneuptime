@@ -50,8 +50,8 @@ stateDiagram-v2
 | **Wachten**                         | De uitvoering staat geparkeerd op een **Sleep**-blok en gaat vanzelf verder. Tijdens het wachten bezet ze geen worker.                                                                                                                                              |
 | **Uitgevoerd**                        | De uitvoering bereikte het einde zonder te mislukken. Dit is de geslaagde status: het label zegt **Uitgevoerd**, niet «Geslaagd».                                                                                                                                      |
 | **Fout**                            | Een blok stopte de uitvoering, of mislukte terwijl er niets op zijn uitgang **Error** was aangesloten. Wordt ook gebruikt als een uitvoering in de wachtrij nooit wordt opgepakt, als de hervatting van een slapende uitvoering verloren gaat, als een schema-expressie niet kan worden opgelost en als de workflow werd uitgezet of gearchiveerd terwijl de uitvoering op een **Sleep**-blok wachtte. |
-| **Timeout**                         | De uitvoering duurde langer dan toegestaan: standaard 2 minuten. Zie [Hoe lang een run mag duren](/docs/workflows/configuration#hoe-lang-een-run-mag-duren).                                                                                                            |
-| **Execution Exceeded Current Plan** | Het project heeft zijn workflow-uitvoeringen voor de laatste 30 dagen opgebruikt, of het abonnement is niet betaald. De uitvoering wordt vastgelegd maar niet uitgevoerd. Alleen OneUptime Cloud.                                                                   |
+| **Time-out**                        | De uitvoering duurde langer dan toegestaan: standaard 2 minuten. Zie [Hoe lang een run mag duren](/docs/workflows/configuration#hoe-lang-een-run-mag-duren).                                                                                                            |
+| **Uitvoering overschrijdt huidig abonnement** | Het project heeft zijn workflow-uitvoeringen voor de laatste 30 dagen opgebruikt, of het abonnement is niet betaald. De uitvoering wordt vastgelegd maar niet uitgevoerd. Alleen OneUptime Cloud.                                                                   |
 
 Een blok dat zijn uitgang **Error** neemt — een API-blok dat een 4xx kreeg, bijvoorbeeld — laat de uitvoering alleen mislukken als er niets op **Error** is aangesloten. Zijn daar blokken aangesloten, dan draaien die, en de uitvoering kan toch als **Uitgevoerd** eindigen. Is er niets aangesloten, dan loopt de rest van de uitvoering door, daarna eindigt ze als **Fout**, en de laatste regel van haar **Full Log** noemt het blok. Hoe dan ook wordt de stap zelf rood getekend, zodat je hem vindt.
 
@@ -114,7 +114,7 @@ Een download bevat niets wat je niet al in de uitvoering kon lezen. Geheimen en 
 3. Controleer bij een webhook-trigger of het andere systeem naar de juiste URL stuurt. De meeste tools loggen wanneer ze een webhook versturen — kijk daar.
 4. Controleer bij een schematrigger of de cron-expressie overeenkomt met de tijd die je verwacht. Schema's draaien in UTC.
 
-Verschijnt de uitvoering wel, met de status **Execution Exceeded Current Plan**, dan heeft het project al zijn workflow-uitvoeringen van de laatste 30 dagen gebruikt, of is het abonnement niet betaald. Het logboek van de uitvoering noemt het aantal en de limiet van je abonnement. Dit geldt alleen voor OneUptime Cloud.
+Verschijnt de uitvoering wel, met de status **Uitvoering overschrijdt huidig abonnement**, dan heeft het project al zijn workflow-uitvoeringen van de laatste 30 dagen gebruikt, of is het abonnement niet betaald. Het logboek van de uitvoering noemt het aantal en de limiet van je abonnement. Dit geldt alleen voor OneUptime Cloud.
 :::
 
 :::details Een later blok draaide nooit

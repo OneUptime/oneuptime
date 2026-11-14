@@ -102,7 +102,7 @@ Quand vous êtes d'astreinte pour une politique, la cloche en haut à droite l'i
 ## Dépannage
 
 :::details Personne n'a été alerté pour un nouvel incident
-Ouvrez la page **Exécutions d'astreinte** de l'incident. Si elle est vide, l'incident n'avait aucune politique d'astreinte : aucune n'a été choisie sur lui, et aucune règle d'astreinte ne lui correspondait. Une exécution à l'état **Execution Completed - No One Notified** a parcouru chaque règle d'escalade sans trouver personne : en général un planning où personne n'est d'astreinte. Voir [Journaux d'exécution](/docs/on-call/policies#journaux-dexécution). Une exécution **En attente** attend les heures ouvrées, pour une règle d'astreinte réglée sur **Uniquement pendant les heures ouvrées**, et n'alerte personne avant qu'elles commencent.
+Ouvrez la page **Exécutions d'astreinte** de l'incident. Si elle est vide, l'incident n'avait aucune politique d'astreinte : aucune n'a été choisie sur lui, et aucune règle d'astreinte ne lui correspondait. Une exécution à l'état **Exécution terminée - personne n'a été notifié** a parcouru chaque règle d'escalade sans trouver personne : en général un planning où personne n'est d'astreinte. Voir [Journaux d'exécution](/docs/on-call/policies#journaux-dexécution). Une exécution **En attente** attend les heures ouvrées, pour une règle d'astreinte réglée sur **Uniquement pendant les heures ouvrées**, et n'alerte personne avant qu'elles commencent.
 :::
 
 :::details Quelqu'un a été alerté sur le mauvais canal, ou pas du tout

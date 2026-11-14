@@ -50,8 +50,8 @@ stateDiagram-v2
 | **Venter**                          | Kørslen holder ved en **Sleep**-blok og fortsætter af sig selv. Den optager ingen worker, mens den venter.                                                                                                                                                           |
 | **Udført**                        | Kørslen nåede slutningen uden at mislykkes. Det er successtatussen: pillen siger **Udført**, ikke «Lykkedes».                                                                                                                                                       |
 | **Fejl**                            | En blok stoppede kørslen eller mislykkedes uden noget forbundet til sin udgang **Error**. Bruges også, når en kørsel i kø aldrig bliver taget, når genoptagelsen af en sovende kørsel går tabt, når et tidsplanudtryk ikke kan opløses, og når workflowet blev slået fra eller arkiveret, mens kørslen ventede ved en **Sleep**-blok. |
-| **Timeout**                         | Kørslen tog længere tid end tilladt: 2 minutter som standard. Se [Hvor længe en kørsel må tage](/docs/workflows/configuration#hvor-længe-en-kørsel-må-tage).                                                                                                             |
-| **Execution Exceeded Current Plan** | Projektet har brugt sine workflowkørsler for de seneste 30 dage, eller abonnementet er ubetalt. Kørslen registreres, men udføres ikke. Kun OneUptime Cloud.                                                                                                         |
+| **Tidsgrænse overskredet**          | Kørslen tog længere tid end tilladt: 2 minutter som standard. Se [Hvor længe en kørsel må tage](/docs/workflows/configuration#hvor-længe-en-kørsel-må-tage).                                                                                                             |
+| **Udførelse overskred aktuel plan** | Projektet har brugt sine workflowkørsler for de seneste 30 dage, eller abonnementet er ubetalt. Kørslen registreres, men udføres ikke. Kun OneUptime Cloud.                                                                                                         |
 
 En blok, der tager sin udgang **Error** — en API-blok, der fik en 4xx, for eksempel — får kun kørslen til at mislykkes, når intet er forbundet til **Error**. Er der blokke forbundet der, kører de, og kørslen kan stadig slutte som **Udført**. Er intet forbundet, kører resten af kørslen videre, derefter slutter den som **Fejl**, og den sidste linje i dens **Full Log** nævner blokken. Selve trinnet tegnes under alle omstændigheder med rødt, så du kan finde det.
 
@@ -114,7 +114,7 @@ En download indeholder intet, du ikke allerede kunne læse i kørslen. Hemmeligh
 3. For en webhook-trigger skal du bekræfte, at det andet system sender til den rigtige URL. De fleste værktøjer logger, når de sender en webhook — tjek dér.
 4. For en tidsplantrigger skal du bekræfte, at cron-udtrykket svarer til det tidspunkt, du forventer. Tidsplaner kører i UTC.
 
-Vises kørslen, med status **Execution Exceeded Current Plan**, har projektet brugt alle sine workflowkørsler for de seneste 30 dage, eller abonnementet er ubetalt. Kørslens log nævner antallet og dit abonnements grænse. Det gælder kun OneUptime Cloud.
+Vises kørslen, med status **Udførelse overskred aktuel plan**, har projektet brugt alle sine workflowkørsler for de seneste 30 dage, eller abonnementet er ubetalt. Kørslens log nævner antallet og dit abonnements grænse. Det gælder kun OneUptime Cloud.
 :::
 
 :::details En senere blok kørte aldrig

@@ -214,7 +214,7 @@ En OneUptime Cloud, los flujos de trabajo necesitan el plan Growth o superior, y
 | Scale      | 2.000                              |
 | Enterprise | Sin límite práctico                |
 
-La ventana es móvil: cada ejecución que registra el proyecto, a mano o desde un disparador, cuenta durante 30 días. En los planes Growth y Scale, la página **Flujos de trabajo** muestra una tarjeta **Ejecuciones del flujo de trabajo** con cuántas ha usado el proyecto. Una vez alcanzado el límite, las ejecuciones nuevas se registran con el estado **Execution Exceeded Current Plan** y no se ejecutan, y lo mismo ocurre mientras la suscripción está impagada. Las instalaciones autoalojadas sin facturación no tienen límite. En un plan que no ejecuta flujos de trabajo, el **Constructor** y la página **Flujos de trabajo** lo dicen, con un enlace para mejorar el plan.
+La ventana es móvil: cada ejecución que registra el proyecto, a mano o desde un disparador, cuenta durante 30 días. En los planes Growth y Scale, la página **Flujos de trabajo** muestra una tarjeta **Ejecuciones del flujo de trabajo** con cuántas ha usado el proyecto. Una vez alcanzado el límite, las ejecuciones nuevas se registran con el estado **La ejecución supera el plan actual** y no se ejecutan, y lo mismo ocurre mientras la suscripción está impagada. Las instalaciones autoalojadas sin facturación no tienen límite. En un plan que no ejecuta flujos de trabajo, el **Constructor** y la página **Flujos de trabajo** lo dicen, con un enlace para mejorar el plan.
 
 ## Cuánto puede durar una ejecución
 
@@ -224,7 +224,7 @@ La ventana es móvil: cada ejecución que registra el proyecto, a mano o desde u
 | Un bloque **Run Custom JavaScript**                          | 5 segundos         | `WORKFLOW_SCRIPT_TIMEOUT_IN_MS` |
 | Un bloque **Sleep**                                          | 30 días como máximo | —                              |
 
-El ejecutor comprueba el plazo antes y después de cada bloque, y marca una ejecución vencida como **Timeout** en cuanto recupera el control. No puede interrumpir un bloque a mitad, así que los bloques que esperan a la red tienen sus propios límites de tiempo: una solicitud de Generate Text with AI desiste a los 60 segundos como máximo, y una solicitud de token de OAuth 2.0 a los 20. Una espera en un bloque **Sleep** no cuenta para el tiempo de una ejecución: la ejecución se aparta y recibe 2 minutos nuevos al despertar.
+El ejecutor comprueba el plazo antes y después de cada bloque, y marca una ejecución vencida como **Tiempo de espera agotado** en cuanto recupera el control. No puede interrumpir un bloque a mitad, así que los bloques que esperan a la red tienen sus propios límites de tiempo: una solicitud de Generate Text with AI desiste a los 60 segundos como máximo, y una solicitud de token de OAuth 2.0 a los 20. Una espera en un bloque **Sleep** no cuenta para el tiempo de una ejecución: la ejecución se aparta y recibe 2 minutos nuevos al despertar.
 
 ## Límite al llamar a otros flujos de trabajo
 

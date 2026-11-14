@@ -214,7 +214,7 @@ Sur OneUptime Cloud, les workflows demandent le forfait Growth ou supérieur, et
 | Scale      | 2 000                                |
 | Enterprise | Pas de limite pratique               |
 
-La fenêtre est glissante : chaque exécution enregistrée par le projet, à la main ou depuis un déclencheur, compte pendant 30 jours. Sur les forfaits Growth et Scale, la page **Flux de travail** affiche une carte **Exécutions du flux de travail** avec le nombre d'exécutions utilisées par le projet. Une fois la limite atteinte, les nouvelles exécutions sont enregistrées avec le statut **Execution Exceeded Current Plan** et ne s'exécutent pas, et il en va de même tant que l'abonnement est impayé. Les installations auto-hébergées sans facturation n'ont pas de limite. Sur un forfait qui n'exécute aucun workflow, le **Constructeur** et la page **Flux de travail** le disent, avec un lien pour passer à un forfait supérieur.
+La fenêtre est glissante : chaque exécution enregistrée par le projet, à la main ou depuis un déclencheur, compte pendant 30 jours. Sur les forfaits Growth et Scale, la page **Flux de travail** affiche une carte **Exécutions du flux de travail** avec le nombre d'exécutions utilisées par le projet. Une fois la limite atteinte, les nouvelles exécutions sont enregistrées avec le statut **Exécution au-delà du forfait actuel** et ne s'exécutent pas, et il en va de même tant que l'abonnement est impayé. Les installations auto-hébergées sans facturation n'ont pas de limite. Sur un forfait qui n'exécute aucun workflow, le **Constructeur** et la page **Flux de travail** le disent, avec un lien pour passer à un forfait supérieur.
 
 ## Combien de temps peut durer une exécution
 
@@ -224,7 +224,7 @@ La fenêtre est glissante : chaque exécution enregistrée par le projet, à la 
 | Un bloc **Run Custom JavaScript**                            | 5 secondes         | `WORKFLOW_SCRIPT_TIMEOUT_IN_MS` |
 | Un bloc **Sleep**                                            | 30 jours au plus   | —                               |
 
-Le moteur d'exécution vérifie l'échéance avant et après chaque bloc, et marque une exécution en retard **Timeout** dès que la main lui revient. Il ne peut pas interrompre un bloc en cours de route : les blocs qui attendent le réseau ont donc leurs propres délais : une requête Generate Text with AI abandonne au bout de 60 secondes au plus, et une demande de jeton OAuth 2.0 au bout de 20. Une attente sur un bloc **Sleep** ne compte pas dans la durée d'une exécution : l'exécution est mise de côté et reçoit 2 nouvelles minutes à son réveil.
+Le moteur d'exécution vérifie l'échéance avant et après chaque bloc, et marque une exécution en retard **Délai dépassé** dès que la main lui revient. Il ne peut pas interrompre un bloc en cours de route : les blocs qui attendent le réseau ont donc leurs propres délais : une requête Generate Text with AI abandonne au bout de 60 secondes au plus, et une demande de jeton OAuth 2.0 au bout de 20. Une attente sur un bloc **Sleep** ne compte pas dans la durée d'une exécution : l'exécution est mise de côté et reçoit 2 nouvelles minutes à son réveil.
 
 ## Limite d'appels entre workflows
 

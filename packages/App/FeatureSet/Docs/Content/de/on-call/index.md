@@ -102,7 +102,7 @@ Haben Sie Bereitschaft für eine Richtlinie, zeigt die Glocke oben rechts das an
 ## Fehlerbehebung
 
 :::details Bei einem neuen Vorfall wurde niemand alarmiert
-Öffnen Sie die Seite **Bereitschaftsausführungen** des Vorfalls. Ist sie leer, hatte der Vorfall keine Bereitschaftsrichtlinie: Bei ihm wurde keine gewählt, und keine Bereitschaftsregel hat gepasst. Ein Lauf mit **Execution Completed - No One Notified** ist durch jede Eskalationsregel gegangen und hat niemanden gefunden: meist ein Plan, in dem niemand Bereitschaft hat. Siehe [Ausführungsprotokolle](/docs/on-call/policies#ausführungsprotokolle). Ein Lauf mit **Wartet** wartet für eine Bereitschaftsregel mit **Nur während der Arbeitszeiten** auf die Arbeitszeiten und alarmiert niemanden, bis sie beginnen.
+Öffnen Sie die Seite **Bereitschaftsausführungen** des Vorfalls. Ist sie leer, hatte der Vorfall keine Bereitschaftsrichtlinie: Bei ihm wurde keine gewählt, und keine Bereitschaftsregel hat gepasst. Ein Lauf mit **Ausführung abgeschlossen - niemand benachrichtigt** ist durch jede Eskalationsregel gegangen und hat niemanden gefunden: meist ein Plan, in dem niemand Bereitschaft hat. Siehe [Ausführungsprotokolle](/docs/on-call/policies#ausführungsprotokolle). Ein Lauf mit **Wartet** wartet für eine Bereitschaftsregel mit **Nur während der Arbeitszeiten** auf die Arbeitszeiten und alarmiert niemanden, bis sie beginnen.
 :::
 
 :::details Jemand wurde auf dem falschen Kanal alarmiert, oder gar nicht

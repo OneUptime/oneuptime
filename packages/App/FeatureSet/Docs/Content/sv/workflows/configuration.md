@@ -214,7 +214,7 @@ I OneUptime Cloud kräver arbetsflöden planen Growth eller högre, och varje pl
 | Scale      | 2 000                           |
 | Enterprise | Ingen praktisk gräns            |
 
-Fönstret är rullande: varje körning som projektet registrerar, manuellt eller från en utlösare, räknas i 30 dagar. På planerna Growth och Scale visar sidan **Arbetsflöden** ett kort, **Arbetsflödeskörningar**, med hur många projektet har använt. När gränsen är nådd registreras nya körningar med statusen **Execution Exceeded Current Plan** och utförs inte, och detsamma händer medan abonnemanget är obetalt. Självhostade installationer utan fakturering har ingen gräns. På en plan som inte kör arbetsflöden säger **Byggare** och sidan **Arbetsflöden** det, med en länk för att uppgradera.
+Fönstret är rullande: varje körning som projektet registrerar, manuellt eller från en utlösare, räknas i 30 dagar. På planerna Growth och Scale visar sidan **Arbetsflöden** ett kort, **Arbetsflödeskörningar**, med hur många projektet har använt. När gränsen är nådd registreras nya körningar med statusen **Exekvering överskred aktuell plan** och utförs inte, och detsamma händer medan abonnemanget är obetalt. Självhostade installationer utan fakturering har ingen gräns. På en plan som inte kör arbetsflöden säger **Byggare** och sidan **Arbetsflöden** det, med en länk för att uppgradera.
 
 ## Hur länge en körning får ta
 
@@ -224,7 +224,7 @@ Fönstret är rullande: varje körning som projektet registrerar, manuellt eller
 | Ett **Run Custom JavaScript**-block                               | 5 sekunder     | `WORKFLOW_SCRIPT_TIMEOUT_IN_MS` |
 | Ett **Sleep**-block                                               | Högst 30 dagar | —                               |
 
-Körmotorn kontrollerar tidsfristen före och efter varje block och markerar en körning som har dragit över tiden som **Timeout** så snart kontrollen återkommer. Den kan inte avbryta ett block mitt i, så block som väntar på nätverket har egna tidsgränser: en förfrågan från Generate Text with AI ger upp efter högst 60 sekunder, och en OAuth 2.0-tokenförfrågan efter 20. Väntan vid ett **Sleep**-block räknas inte mot en körnings tid: körningen läggs åt sidan och får 2 nya minuter när den vaknar.
+Körmotorn kontrollerar tidsfristen före och efter varje block och markerar en körning som har dragit över tiden som **Tidsgränsen överskreds** så snart kontrollen återkommer. Den kan inte avbryta ett block mitt i, så block som väntar på nätverket har egna tidsgränser: en förfrågan från Generate Text with AI ger upp efter högst 60 sekunder, och en OAuth 2.0-tokenförfrågan efter 20. Väntan vid ett **Sleep**-block räknas inte mot en körnings tid: körningen läggs åt sidan och får 2 nya minuter när den vaknar.
 
 ## Gräns för att anropa andra arbetsflöden
 

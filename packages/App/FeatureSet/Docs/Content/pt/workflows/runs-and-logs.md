@@ -50,8 +50,8 @@ stateDiagram-v2
 | **Aguardando**                      | A execução está parada em um bloco **Sleep** e vai continuar sozinha. Ela não ocupa nenhum worker enquanto espera.                                                                                                                                                   |
 | **Executado**                        | A execução chegou ao fim sem falhar. Esse é o status de sucesso: o selo diz **Executado**, não «Sucesso».                                                                                                                                                              |
 | **Erro**                            | Um bloco parou a execução, ou falhou sem nada ligado à sua saída **Error**. Também é usado quando uma execução na fila nunca é pega, quando a retomada de uma execução adormecida se perde, quando uma expressão de agendamento não pode ser resolvida e quando o workflow foi desligado ou arquivado enquanto a execução esperava em um bloco **Sleep**. |
-| **Timeout**                         | A execução demorou mais do que o permitido: 2 minutos por padrão. Veja [Quanto tempo uma execução pode durar](/docs/workflows/configuration#quanto-tempo-uma-execução-pode-durar).                                                                                                 |
-| **Execution Exceeded Current Plan** | O projeto esgotou as execuções de workflow dos últimos 30 dias, ou a assinatura está em atraso. A execução é registrada mas não roda. Só no OneUptime Cloud.                                                                                                       |
+| **Tempo esgotado**                  | A execução demorou mais do que o permitido: 2 minutos por padrão. Veja [Quanto tempo uma execução pode durar](/docs/workflows/configuration#quanto-tempo-uma-execução-pode-durar).                                                                                                 |
+| **Execução excedeu o plano atual** | O projeto esgotou as execuções de workflow dos últimos 30 dias, ou a assinatura está em atraso. A execução é registrada mas não roda. Só no OneUptime Cloud.                                                                                                       |
 
 Um bloco que toma a saída **Error** — um bloco API que recebeu um 4xx, por exemplo — só faz a execução falhar quando nada está ligado a **Error**. Se houver blocos ligados ali, eles rodam, e a execução ainda pode terminar como **Executado**. Se nada estiver ligado, o resto da execução continua, depois ela termina como **Erro**, e a última linha do seu **Full Log** nomeia o bloco. De qualquer forma, o próprio passo é desenhado em vermelho, para você encontrá-lo.
 
@@ -114,7 +114,7 @@ Um download não contém nada que você já não pudesse ler na execução. Segr
 3. Para um gatilho de webhook, confirme que o outro sistema está enviando para a URL certa. A maioria das ferramentas registra quando envia um webhook — confira lá.
 4. Para um gatilho agendado, confirme que a expressão cron corresponde ao horário que você espera. Os agendamentos rodam em UTC.
 
-Se a execução aparece, com o status **Execution Exceeded Current Plan**, o projeto esgotou as execuções de workflow dos últimos 30 dias, ou a assinatura está em atraso. O log da execução informa a contagem e o limite do seu plano. Isso só vale para o OneUptime Cloud.
+Se a execução aparece, com o status **Execução excedeu o plano atual**, o projeto esgotou as execuções de workflow dos últimos 30 dias, ou a assinatura está em atraso. O log da execução informa a contagem e o limite do seu plano. Isso só vale para o OneUptime Cloud.
 :::
 
 :::details Um bloco seguinte nunca rodou

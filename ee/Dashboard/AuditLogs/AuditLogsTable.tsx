@@ -48,6 +48,8 @@ import {
   isSessionAuditLogAction,
 } from "Common/Types/AuditLog/AuditLogSessionEvent";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   Fragment,
   FunctionComponent,
@@ -146,7 +148,9 @@ const ACTION_STYLES: { [key: string]: ActionStyle } = {
 
 /*
  * The Action filter's choices: every action, by its words, so nobody has
- * to know that a sign-in is recorded as "SignIn".
+ * to know that a sign-in is recorded as "SignIn". The words are keys of the
+ * locales, looked up in the reader's language in the filter's menu, its
+ * chip and the Action column alike.
  */
 export const AUDIT_LOG_ACTION_FILTER_OPTIONS: Array<DropdownOption> =
   Object.values(AuditLogAction).map(
@@ -158,6 +162,7 @@ export const AUDIT_LOG_ACTION_FILTER_OPTIONS: Array<DropdownOption> =
 const AuditLogsTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [detailItem, setDetailItem] = useState<AuditLog | null>(null);
 
   /*
@@ -468,7 +473,8 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
                     thick={ThickProp.Thick}
                     className={`h-3 w-3 ${style.iconColor}`}
                   />
-                  {style.label}
+                  {/* In the words the Action filter offers it in. */}
+                  {translator.translateText(style.label) || style.label}
                 </span>
               );
             },
