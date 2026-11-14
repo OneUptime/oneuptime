@@ -52232,5 +52232,7 @@
   "Saved as \"{{value}}\".": "Сохраняется как «{{value}}».",
   "The Azure namespace: the first part of <namespace>.servicebus.windows.net. Leave empty only for the emulator or a custom domain.": "Пространство имен Azure: первая часть <namespace>.servicebus.windows.net. Оставляйте поле пустым только для эмулятора или собственного домена.",
   "The queue, topic or subscription name your applications and broker use. A URL, ARN or resource path is reduced to its name.": "Имя очереди, темы или подписки, которое используют ваши приложения и брокер. URL, ARN или путь к ресурсу сокращается до этого имени.",
-  "This email was sent without a subject.": "Это письмо отправлено без темы."
+  "This email was sent without a subject.": "Это письмо отправлено без темы.",
+  "Exclusion rule": "Правило исключения",
+  "Import rule": "Правило импорта"
 }

@@ -37,7 +37,7 @@ flowchart TB
 
 Modellen `IncidentState` har `name`, `description`, `color` och `order`, plus tre booleans: `isCreatedState`, `isAcknowledgedState` och `isResolvedState`. Allt som produkten gör med tillstånd utgår från de booleans och från `order` — aldrig från tillståndets namn. Därför kan du byta namn på **Löst** till "Closed" utan att något går sönder: flaggan följer med raden.
 
-Modellen `IncidentSeverity` har `name`, `description`, `color` och `order` och inget annat. Det finns inga flaggor. Inget i OneUptime behandlar av sig självt **Critical Incident** annorlunda än **Minor Incident** — allvarlighetsgraden spelar bara roll där du riktar något mot den, som matchningskriteriet **Allvarlighetsgrader för incidenter** i en jourregel.
+Modellen `IncidentSeverity` har `name`, `description`, `color` och `order` och inget annat. Det finns inga flaggor. Inget i OneUptime behandlar av sig självt **Kritisk incident** annorlunda än **Mindre incident** — allvarlighetsgraden spelar bara roll där du riktar något mot den, som matchningskriteriet **Allvarlighetsgrader för incidenter** i en jourregel.
 
 Några snabba regler:
 
@@ -138,9 +138,9 @@ Tre allvarlighetsgrader skapas med projektet, i den här ordningen, den allvarli
 
 | Allvarlighetsgrad     | `order` | Färg      | Förskapad beskrivning                                                                                                                                                                     |
 | --------------------- | ------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Critical Incident** | `1`     | `#b70400` | Issues causing very high impact to customers. Immediate response is required. Examples include a full outage, or a data breach.                                                          |
-| **Major Incident**    | `2`     | `#fd625e` | Issues causing significant impact. Immediate response is usually required. We might have some workarounds that mitigate the impact on customers. Examples include an important sub-system failing. |
-| **Minor Incident**    | `3`     | `#ffbf53` | Issues with low impact, which can usually be handled within working hours. Most customers are unlikely to notice any problems. Examples include a slight drop in application performance. |
+| **Kritisk incident** | `1`     | `#b70400` | Issues causing very high impact to customers. Immediate response is required. Examples include a full outage, or a data breach.                                                          |
+| **Stor incident**    | `2`     | `#fd625e` | Issues causing significant impact. Immediate response is usually required. We might have some workarounds that mitigate the impact on customers. Examples include an important sub-system failing. |
+| **Mindre incident**    | `3`     | `#ffbf53` | Issues with low impact, which can usually be handled within working hours. Most customers are unlikely to notice any problems. Examples include a slight drop in application performance. |
 
 Allvarlighetsgraden är obligatorisk när du deklarerar en incident, och den är obligatorisk i varje incidentspecifikation i en monitors kriterier, så varje incident — manuell eller automatisk — kommer med en. Se [Deklarera en incident](/docs/incidents/declaring-incidents) för deklarationsflödet och [Incident- och larmmallar](/docs/monitor/incident-alert-templating) för vägen via monitorer.
 
@@ -155,7 +155,7 @@ Två skillnader mot tillstånd:
 - **Det finns inget skydd mot borttagning.** Vilken allvarlighetsgrad som helst kan tas bort, även de tre förskapade.
 - **Det finns inga flaggor att ärva och inget "Räknas som".** En ny allvarlighetsgrad beter sig exakt som de förskapade — den är en etikett med en färg och en rang.
 
-Där allvarlighetsgraden gör mer än att beskriva: under **Incidenter → Regler → Jourregler** är en regels fält **Allvarlighetsgrader för incidenter** ett matchningskriterium. Att ange **Critical Incident** där är hur "larma databasteamet vid allt kritiskt" uttrycks — jourpolicyn sitter på regeln, inte på allvarlighetsgraden.
+Där allvarlighetsgraden gör mer än att beskriva: under **Incidenter → Regler → Jourregler** är en regels fält **Allvarlighetsgrader för incidenter** ett matchningskriterium. Att ange **Kritisk incident** där är hur "larma databasteamet vid allt kritiskt" uttrycks — jourpolicyn sitter på regeln, inte på allvarlighetsgraden.
 
 **Att ändra en incidents allvarlighetsgrad** — under **Redigera** på incidentens kort **Incidentdetaljer**, via API:t eller Terraform (`incidentSeverityId`), med ett arbetsflöde eller med AI-verktygen — gör samma fyra saker oavsett hur det skickas: incidentens flöde får en post **Incident updated** som nämner den nya allvarlighetsgraden, incidentens SLA-tidsgränser räknas om, dess påminnelseregel matchas igen, och incidentmåtten räknar en ändring av allvarlighetsgrad. Att spara den allvarlighetsgrad som incidenten redan har gör ingen av dem, så redigerar du bara titeln på en incident förblir dess SLA-tidsgränser, påminnelser och antal ändringar av allvarlighetsgrad som de var. Ett larms allvarlighetsgrad fungerar på samma sätt för dess flödespost och dess påminnelser.
 
