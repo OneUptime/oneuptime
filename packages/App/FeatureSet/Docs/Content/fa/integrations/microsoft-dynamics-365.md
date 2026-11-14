@@ -374,7 +374,7 @@ Dynamics 365 ستون `severitycode` را با تنها یک گزینه عرضه
 3. کنش داخلی **HTTP** را اضافه کنید: **Method** برابر `POST`، **URI** برابر نشانی گردش کاری، سرآیندهای `Content-Type: application/json` و `X-OneUptime-Secret: <your secret>`، و بدنه‌ای که از ردیف ساخته شده: `oneuptimeIncidentId` همان ستون پیوند بدون `oneuptime-incident-` است، مانند `replace(<link column>, 'oneuptime-incident-', '')`، در کنار `ticketnumber` و `statecode`.
 4. جریان را ذخیره و روشن کنید.
 
-اتصال‌دهنده Microsoft Dataverse ممتاز است: مالک جریان به مجوز آن نیاز دارد، و اگر مجوز منقضی شود جریان متوقف می‌شود. تحویل معمولاً چند ثانیه طول می‌کشد.
+اتصال‌دهنده Microsoft Dataverse ممتاز است: مالک جریان به پروانهٔ آن نیاز دارد، و اگر پروانه منقضی شود جریان متوقف می‌شود. تحویل معمولاً چند ثانیه طول می‌کشد.
 @tab Dataverse webhook
 1. نشانی گردش کاری را با [Plug-in Registration Tool](https://learn.microsoft.com/en-us/power-apps/developer/data-platform/register-web-hook) ثبت کنید: **Register New WebHook**، با احراز هویت **HttpHeader** و سرآیند `X-OneUptime-Secret`.
 2. یک گام برای پیام **Update** روی `incident` ثبت کنید، با **Filtering Attributes** محدود به ستون‌هایی که نیاز دارید، **PostOperation** و **Asynchronous**.
