@@ -14,8 +14,10 @@ import {
 
 /*
  * Which devices a trap, a syslog message or a flow record belongs to, by the
- * address it came from (findDevicesByProbeAndSource), among the devices the
- * receiving probe polls:
+ * address it came from (lookupDevicesByProbeAndSource - traps and syslog ask
+ * through findDevicesByProbeAndSource, which caches its answers; see
+ * NetworkDeviceSourceMatchCache.test.ts), among the devices the receiving
+ * probe polls:
  *
  *   1. hostname equal to the address (the fast, indexed lookup);
  *   2. hostname the same address in another spelling (IPv6);
@@ -75,7 +77,7 @@ afterEach(() => {
 });
 
 async function match(address: string): Promise<Array<NetworkDevice>> {
-  return NetworkDeviceHydrationUtil.findDevicesByProbeAndSource({
+  return NetworkDeviceHydrationUtil.lookupDevicesByProbeAndSource({
     probeId: PROBE,
     sourceIpAddress: address,
   });
