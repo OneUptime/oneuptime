@@ -370,6 +370,59 @@ export class Service extends ProjectReferencesService<Model> {
       [data.metricTypeId.toString(), serviceIds],
     );
   }
+
+  /*
+   * Which of the given services are already associated with the metric type.
+   *
+   * The ingest reconcile only ever needs to know about the services in ITS
+   * batch. It used to find out by loading the metric type's whole `services`
+   * relation — one entity per service that has EVER emitted the metric, on
+   * every pass through the fence. Hosts that give each cron run a uniquely
+   * named container add thousands of services a day to the container metrics,
+   * and that read alone was enough to saturate the ingest workers. This asks
+   * the junction about the given services only, through its primary key.
+   * Identifiers come from entity metadata, and every value is bound.
+   */
+  @CaptureSpan()
+  public async findAttachedServiceIds(data: {
+    metricTypeId: ObjectID;
+    serviceIds: Array<ObjectID>;
+  }): Promise<Set<string>> {
+    if (!data.metricTypeId) {
+      throw new BadDataException("metricTypeId is required");
+    }
+
+    if (!data.serviceIds || data.serviceIds.length === 0) {
+      return new Set<string>();
+    }
+
+    const junction: ReturnType<typeof QueryUtil.getManyToManyRelationMetadata> =
+      QueryUtil.getManyToManyRelationMetadata(Model, "services");
+
+    if (!junction) {
+      throw new BadDataException(
+        "MetricTypeService.findAttachedServiceIds: the services relation has no junction metadata",
+      );
+    }
+
+    const rows: Array<{ serviceId: string }> =
+      await this.getRepository().manager.query(
+        `SELECT "${junction.relationColumnName}" AS "serviceId" FROM "${junction.joinTableName}" ` +
+          `WHERE "${junction.ownerColumnName}" = $1 AND "${junction.relationColumnName}" = ANY($2::uuid[])`,
+        [
+          data.metricTypeId.toString(),
+          data.serviceIds.map((id: ObjectID) => {
+            return id.toString();
+          }),
+        ],
+      );
+
+    return new Set<string>(
+      rows.map((row: { serviceId: string }) => {
+        return row.serviceId;
+      }),
+    );
+  }
 }
 
 export default new Service();
