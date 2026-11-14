@@ -147,6 +147,16 @@ describe("one meaning per key", () => {
     );
   });
 
+  /*
+   * #7781: an open invoice's status read the button's verb, "Abrir" ("open
+   * it"), in its pill and the Invoice Status filter. It has a key of its own.
+   */
+  test("an open invoice's status is its own key, looked up only by the invoices' list", () => {
+    expect(filesLookingUp("Open (invoice status)")).toEqual([
+      "Pages/Settings/Invoices.tsx",
+    ]);
+  });
+
   test("a session's tabs are counted with keys of their own, never the Home page's", () => {
     expect(filesLookingUp("{{count}} open")).toEqual([
       "Components/Home/NeedsAttention.tsx",
@@ -299,6 +309,10 @@ describe("the locales word each meaning as its own", () => {
         language,
         same: false,
       });
+      expect({
+        language,
+        same: verb === locale["Open (invoice status)"],
+      }).toEqual({ language, same: false });
 
       /*
        * The tooltip's "Tab 2 · Öffnen", put back as a sentence: the state is

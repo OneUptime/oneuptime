@@ -26,7 +26,6 @@ import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Query from "Common/Types/BaseDatabase/Query";
 import ProjectUtil from "Common/UI/Utils/Project";
-import DropdownUtil from "Common/UI/Utils/Dropdown";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import OnCallDutyPolicyExecutionLog from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
@@ -41,6 +40,10 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageMap from "../../../Utils/PageMap";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  getOnCallPolicyRunStatusFilterOptions,
+  ON_CALL_POLICY_RUN_STATUS_LABELS,
+} from "./OnCallLogStatusLabels";
 
 /*
  * The two columns that hold what people wrote wrap their text: "Policy
@@ -165,7 +168,14 @@ const getStatusPill: (item: OnCallDutyPolicyExecutionLog) => ReactElement = (
   item: OnCallDutyPolicyExecutionLog,
 ): ReactElement => {
   if (item["status"] === OnCallDutyPolicyStatus.Completed) {
-    return <Pill color={Green} text={OnCallDutyPolicyStatus.Completed} />;
+    return (
+      <Pill
+        color={Green}
+        text={
+          ON_CALL_POLICY_RUN_STATUS_LABELS[OnCallDutyPolicyStatus.Completed]
+        }
+      />
+    );
   } else if (
     item["status"] === OnCallDutyPolicyStatus.CompletedWithNoNotifications
   ) {
@@ -177,7 +187,11 @@ const getStatusPill: (item: OnCallDutyPolicyExecutionLog) => ReactElement = (
     return (
       <Pill
         color={Yellow}
-        text={OnCallDutyPolicyStatus.CompletedWithNoNotifications}
+        text={
+          ON_CALL_POLICY_RUN_STATUS_LABELS[
+            OnCallDutyPolicyStatus.CompletedWithNoNotifications
+          ]
+        }
         tooltip={
           isOnCallDirectPage(item)
             ? DIRECT_PAGE_PAGED_NOBODY_TOOLTIP
@@ -195,7 +209,12 @@ const getStatusPill: (item: OnCallDutyPolicyExecutionLog) => ReactElement = (
      */
     return (
       <div>
-        <Pill color={Blue} text={OnCallDutyPolicyStatus.Waiting} />
+        <Pill
+          color={Blue}
+          text={
+            ON_CALL_POLICY_RUN_STATUS_LABELS[OnCallDutyPolicyStatus.Waiting]
+          }
+        />
         {item.statusMessage ? (
           <p
             className={ON_CALL_LOGS_WAITING_MESSAGE_CLASS_NAME}
@@ -209,14 +228,38 @@ const getStatusPill: (item: OnCallDutyPolicyExecutionLog) => ReactElement = (
       </div>
     );
   } else if (item["status"] === OnCallDutyPolicyStatus.Started) {
-    return <Pill color={Yellow} text={OnCallDutyPolicyStatus.Started} />;
+    return (
+      <Pill
+        color={Yellow}
+        text={ON_CALL_POLICY_RUN_STATUS_LABELS[OnCallDutyPolicyStatus.Started]}
+      />
+    );
   } else if (item["status"] === OnCallDutyPolicyStatus.Scheduled) {
-    return <Pill color={Yellow} text={OnCallDutyPolicyStatus.Scheduled} />;
+    return (
+      <Pill
+        color={Yellow}
+        text={
+          ON_CALL_POLICY_RUN_STATUS_LABELS[OnCallDutyPolicyStatus.Scheduled]
+        }
+      />
+    );
   } else if (item["status"] === OnCallDutyPolicyStatus.Executing) {
-    return <Pill color={Yellow} text={OnCallDutyPolicyStatus.Executing} />;
+    return (
+      <Pill
+        color={Yellow}
+        text={
+          ON_CALL_POLICY_RUN_STATUS_LABELS[OnCallDutyPolicyStatus.Executing]
+        }
+      />
+    );
   }
 
-  return <Pill color={Red} text={OnCallDutyPolicyStatus.Error} />;
+  return (
+    <Pill
+      color={Red}
+      text={ON_CALL_POLICY_RUN_STATUS_LABELS[OnCallDutyPolicyStatus.Error]}
+    />
+  );
 };
 
 export interface ComponentProps {
@@ -359,9 +402,8 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
       field: {
         status: true,
       },
-      filterDropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
-        OnCallDutyPolicyStatus,
-      ),
+      // In the words each row's pill draws.
+      filterDropdownOptions: getOnCallPolicyRunStatusFilterOptions(),
     },
     {
       title: "Triggered at",

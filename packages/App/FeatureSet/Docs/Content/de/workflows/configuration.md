@@ -214,7 +214,7 @@ In OneUptime Cloud brauchen Workflows den Growth-Plan oder höher, und jeder Pla
 | Scale      | 2.000                                |
 | Enterprise | Praktisch unbegrenzt                 |
 
-Das Fenster rollt: Jede Ausführung, die das Projekt aufzeichnet, von Hand oder durch einen Trigger, zählt 30 Tage lang. In den Plänen Growth und Scale zeigt die Seite **Arbeitsabläufe** eine Karte **Arbeitsablauf-Ausführungen** mit dem, was das Projekt verbraucht hat. Ist die Grenze erreicht, werden neue Ausführungen mit dem Status **Execution Exceeded Current Plan** aufgezeichnet und nicht ausgeführt, und dasselbe passiert, solange das Abonnement unbezahlt ist. Selbst gehostete Installationen ohne Abrechnung haben keine Grenze. In einem Plan, der keine Workflows ausführt, sagen der **Editor** und die Seite **Arbeitsabläufe** das, mit einem Link zum Upgrade.
+Das Fenster rollt: Jede Ausführung, die das Projekt aufzeichnet, von Hand oder durch einen Trigger, zählt 30 Tage lang. In den Plänen Growth und Scale zeigt die Seite **Arbeitsabläufe** eine Karte **Arbeitsablauf-Ausführungen** mit dem, was das Projekt verbraucht hat. Ist die Grenze erreicht, werden neue Ausführungen mit dem Status **Ausführung überschreitet aktuellen Tarif** aufgezeichnet und nicht ausgeführt, und dasselbe passiert, solange das Abonnement unbezahlt ist. Selbst gehostete Installationen ohne Abrechnung haben keine Grenze. In einem Plan, der keine Workflows ausführt, sagen der **Editor** und die Seite **Arbeitsabläufe** das, mit einem Link zum Upgrade.
 
 ## Wie lange eine Ausführung dauern darf
 
@@ -224,7 +224,7 @@ Das Fenster rollt: Jede Ausführung, die das Projekt aufzeichnet, von Hand oder 
 | Ein **Run Custom JavaScript**-Baustein | 5 Sekunden  | `WORKFLOW_SCRIPT_TIMEOUT_IN_MS` |
 | Ein **Sleep**-Baustein          | höchstens 30 Tage  | —                               |
 
-Der Runner prüft die Frist vor und nach jedem Baustein und markiert eine überfällige Ausführung als **Timeout**, sobald er wieder die Kontrolle hat. Er kann einen Baustein nicht mittendrin unterbrechen, daher haben Bausteine, die auf das Netz warten, eigene Zeitgrenzen: Eine Anfrage von Generate Text with AI gibt nach höchstens 60 Sekunden auf, eine OAuth-2.0-Token-Anfrage nach 20. Das Warten an einem **Sleep**-Baustein zählt nicht zur Zeit einer Ausführung: Die Ausführung wird beiseitegelegt und bekommt beim Aufwachen frische 2 Minuten.
+Der Runner prüft die Frist vor und nach jedem Baustein und markiert eine überfällige Ausführung als **Zeitüberschreitung**, sobald er wieder die Kontrolle hat. Er kann einen Baustein nicht mittendrin unterbrechen, daher haben Bausteine, die auf das Netz warten, eigene Zeitgrenzen: Eine Anfrage von Generate Text with AI gibt nach höchstens 60 Sekunden auf, eine OAuth-2.0-Token-Anfrage nach 20. Das Warten an einem **Sleep**-Baustein zählt nicht zur Zeit einer Ausführung: Die Ausführung wird beiseitegelegt und bekommt beim Aufwachen frische 2 Minuten.
 
 ## Grenze beim Aufrufen anderer Workflows
 

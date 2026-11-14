@@ -15,6 +15,7 @@ import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ProjectUtil from "Common/UI/Utils/Project";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import React, { FunctionComponent, ReactElement } from "react";
 
 const SCHEMA_EVENTS: Array<DataAssetFeedEventType> = [
@@ -27,14 +28,17 @@ const SCHEMA_EVENTS: Array<DataAssetFeedEventType> = [
   DataAssetFeedEventType.AssetRestored,
 ];
 
+// The Change filter's words, keys of the Dashboard's locales.
 const EVENT_LABELS: Record<string, string> = {
-  [DataAssetFeedEventType.ColumnAdded]: "Column added",
-  [DataAssetFeedEventType.ColumnRemoved]: "Column removed",
-  [DataAssetFeedEventType.ColumnRenamed]: "Column renamed",
-  [DataAssetFeedEventType.ColumnTypeChanged]: "Type changed",
-  [DataAssetFeedEventType.ColumnNullabilityChanged]: "Nullability changed",
-  [DataAssetFeedEventType.AssetDropped]: "Table dropped",
-  [DataAssetFeedEventType.AssetRestored]: "Table restored",
+  [DataAssetFeedEventType.ColumnAdded]: translationKey("Column added"),
+  [DataAssetFeedEventType.ColumnRemoved]: translationKey("Column removed"),
+  [DataAssetFeedEventType.ColumnRenamed]: translationKey("Column renamed"),
+  [DataAssetFeedEventType.ColumnTypeChanged]: translationKey("Type changed"),
+  [DataAssetFeedEventType.ColumnNullabilityChanged]: translationKey(
+    "Nullability changed",
+  ),
+  [DataAssetFeedEventType.AssetDropped]: translationKey("Table dropped"),
+  [DataAssetFeedEventType.AssetRestored]: translationKey("Table restored"),
 };
 
 const EVENT_OPTIONS: Array<DropdownOption> = SCHEMA_EVENTS.map(

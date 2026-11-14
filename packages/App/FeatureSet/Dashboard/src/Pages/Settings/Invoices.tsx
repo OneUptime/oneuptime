@@ -16,7 +16,6 @@ import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { APP_API_URL, BILLING_PUBLIC_KEY } from "Common/UI/Config";
 import BaseAPI from "Common/UI/Utils/API/API";
-import DropdownUtil from "Common/UI/Utils/Dropdown";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import BillingInvoice, {
@@ -29,6 +28,8 @@ import React, {
   useState,
 } from "react";
 import ProjectUtil from "Common/UI/Utils/Project";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import Project from "Common/Models/DatabaseModels/Project";
 import {
   getBillingActionLockedReason,
@@ -66,6 +67,83 @@ const NOT_PAYABLE_INVOICE_STATUSES: Array<InvoiceStatus> = [
   InvoiceStatus.Deleted,
 ];
 
+/*
+ * "Open" alone is every Open button's verb, and every language words it so
+ * ("Abrir", "Öffnen"), so an open invoice's status has a key of its own,
+ * worded as the state: German "Offen", Spanish "Pendiente". The key's
+ * English names its meaning for the translator; an English page still reads
+ * "Open", as Stripe words it.
+ */
+const OPEN_INVOICE_STATUS: string = translationKey("Open (invoice status)");
+
+/*
+ * An invoice's status in words - Stripe's "uncollectible" read as
+ * "Uncollectible" - keys of the Dashboard's locales: the Invoice Status
+ * filter's menu, its chip and each row's pill read them alike, in the
+ * reader's language.
+ */
+const INVOICE_STATUS_LABELS: Record<InvoiceStatus, string> = {
+  [InvoiceStatus.Paid]: translationKey("Paid"),
+  [InvoiceStatus.Draft]: translationKey("Draft"),
+  [InvoiceStatus.Void]: translationKey("Void"),
+  [InvoiceStatus.Uncollectible]: translationKey("Uncollectible"),
+  [InvoiceStatus.Deleted]: translationKey("Deleted"),
+  [InvoiceStatus.Open]: OPEN_INVOICE_STATUS,
+  [InvoiceStatus.Undefined]: translationKey("Undefined"),
+};
+
+type GetInvoiceStatusLabelFunction = (
+  translator: Translator,
+  status: string | undefined,
+) => string;
+
+/*
+ * A status in the reader's language. One a newer server added reads as it
+ * is stored.
+ */
+const getInvoiceStatusLabel: GetInvoiceStatusLabelFunction = (
+  translator: Translator,
+  status: string | undefined,
+): string => {
+  const key: string | undefined =
+    INVOICE_STATUS_LABELS[(status || "") as InvoiceStatus];
+
+  if (!key) {
+    return Text.uppercaseFirstLetter(status || "");
+  }
+
+  // English, and a language with no wording of its own, read "Open".
+  if (key === OPEN_INVOICE_STATUS && !translator.hasTranslation(key)) {
+    return Text.uppercaseFirstLetter(InvoiceStatus.Open);
+  }
+
+  return translator.translateText(key) || key;
+};
+
+type GetInvoiceStatusOptionsFunction = (
+  translator: Translator,
+) => Array<DropdownOption>;
+
+/*
+ * The Invoice Status filter: every status in the words its pill draws,
+ * already in the reader's language, so the menu and the chip draw them as
+ * they are, never looked up a second time.
+ */
+const getInvoiceStatusOptions: GetInvoiceStatusOptionsFunction = (
+  translator: Translator,
+): Array<DropdownOption> => {
+  return Object.values(InvoiceStatus).map(
+    (status: InvoiceStatus): DropdownOption => {
+      return {
+        value: status,
+        label: getInvoiceStatusLabel(translator, status),
+        isUserContent: true,
+        isInPageDirection: true,
+      };
+    },
+  );
+};
+
 type IsInvoicePayableFunction = (invoice: BillingInvoice) => boolean;
 
 const isInvoicePayable: IsInvoicePayableFunction = (
@@ -79,6 +157,7 @@ const isInvoicePayable: IsInvoicePayableFunction = (
 const Settings: FunctionComponent<ComponentProps> = (
   _props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isPaymentProcessing, setIsPaymentProcessing] =
@@ -323,16 +402,7 @@ const Settings: FunctionComponent<ComponentProps> = (
               },
               title: "Invoice Status",
               type: FieldType.Dropdown,
-              filterDropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
-                InvoiceStatus,
-              ).map((option: DropdownOption) => {
-                return {
-                  value: option.value,
-                  label: Text.uppercaseFirstLetter(
-                    (option.value as string) || "Undefined",
-                  ),
-                };
-              }),
+              filterDropdownOptions: getInvoiceStatusOptions(translator),
             },
           ]}
           columns={[
@@ -376,20 +446,16 @@ const Settings: FunctionComponent<ComponentProps> = (
               type: FieldType.Text,
 
               getElement: (item: BillingInvoice) => {
-                if (item["status"] === InvoiceStatus.Paid) {
-                  return (
-                    <Pill
-                      text={Text.uppercaseFirstLetter(item["status"] as string)}
-                      color={Green}
-                    />
-                  );
-                }
-                return (
-                  <Pill
-                    text={Text.uppercaseFirstLetter(item["status"] as string)}
-                    color={Yellow}
-                  />
+                // In the words the Invoice Status filter offers it in.
+                const text: string = getInvoiceStatusLabel(
+                  translator,
+                  item["status"],
                 );
+
+                if (item["status"] === InvoiceStatus.Paid) {
+                  return <Pill text={text} color={Green} />;
+                }
+                return <Pill text={text} color={Yellow} />;
               },
             },
           ]}

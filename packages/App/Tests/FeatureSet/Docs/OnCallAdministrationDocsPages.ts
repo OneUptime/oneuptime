@@ -85,23 +85,21 @@ export const ROLE_NAMES: ReadonlyArray<string> = [
  *
  *   - "Level 1": the name the server gives a policy's first escalation rule
  *     (EscalationRuleDefaults), as the other on-call pages keep it;
- *   - the execution statuses the Dashboard shows in English (Executing,
- *     Execution Completed, Execution Completed - No One Notified): its pill
- *     translates only the statuses its locales hold;
  *   - the workflow builder's "Page an On-Call Policy" step, whose component
  *     titles are not translated;
  *   - the custom permissions' titles, which the permission picker draws as
  *     they are.
+ *
+ * The execution statuses are no longer among them: every one is a key of the
+ * locales (#7781), so a page names Executing, Execution Completed and
+ * Execution Completed - No One Notified as its Dashboard draws them.
  */
 export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
   {
-    [ON_CALL_OVERVIEW]: ["Level 1", "Execution Completed - No One Notified"],
+    [ON_CALL_OVERVIEW]: ["Level 1"],
     [ON_CALL_POLICIES]: [
       "Level 1",
       "Page an On-Call Policy",
-      "Executing",
-      "Execution Completed",
-      "Execution Completed - No One Notified",
       "Create On-Call Policy",
       "Edit On-Call Policy",
       "Delete On-Call Policy",

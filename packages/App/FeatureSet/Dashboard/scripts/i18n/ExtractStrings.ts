@@ -294,6 +294,21 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * An audit log entry's action in words - Sign In, Session Timeout - as
+   * the audit log's Action column and its Action filter draw it, and a
+   * workflow run's status - Timeout, Execution Exceeded Current Plan - as
+   * the runs' Status pill and their Status filter draw it (#7781). Only the
+   * words the files mark are read: the stored values they label are not.
+   */
+  {
+    directory: "packages/Common/Types/AuditLog/AuditLogActionLabel.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/Workflow/WorkflowStatus.ts",
+    kind: "keys",
+  },
+  /*
    * A naming rule's name pattern and lookup table (issue #6619): what each
    * placeholder is, and what is wrong with a pattern or a table, as the
    * rule form says it. Only the sentences the files mark are read: the

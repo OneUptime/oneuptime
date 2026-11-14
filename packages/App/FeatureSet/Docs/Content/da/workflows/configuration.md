@@ -214,7 +214,7 @@ I OneUptime Cloud kræver workflows Growth-planen eller højere, og hver plan ti
 | Scale      | 2.000                      |
 | Enterprise | Ingen praktisk grænse      |
 
-Vinduet glider: hver kørsel, projektet registrerer, manuelt eller fra en trigger, tæller med i 30 dage. På Growth- og Scale-planerne viser siden **Arbejdsgange** et kort, **Arbejdsgangskørsler**, med hvor mange projektet har brugt. Når grænsen er nået, registreres nye kørsler med status **Execution Exceeded Current Plan** og udføres ikke, og det samme sker, mens abonnementet er ubetalt. Selvhostede installationer uden fakturering har ingen grænse. På en plan, der ikke kører workflows, siger **Bygger** og siden **Arbejdsgange** det, med et link til at opgradere.
+Vinduet glider: hver kørsel, projektet registrerer, manuelt eller fra en trigger, tæller med i 30 dage. På Growth- og Scale-planerne viser siden **Arbejdsgange** et kort, **Arbejdsgangskørsler**, med hvor mange projektet har brugt. Når grænsen er nået, registreres nye kørsler med status **Udførelse overskred aktuel plan** og udføres ikke, og det samme sker, mens abonnementet er ubetalt. Selvhostede installationer uden fakturering har ingen grænse. På en plan, der ikke kører workflows, siger **Bygger** og siden **Arbejdsgange** det, med et link til at opgradere.
 
 ## Hvor længe en kørsel må tage
 
@@ -224,7 +224,7 @@ Vinduet glider: hver kørsel, projektet registrerer, manuelt eller fra en trigge
 | En **Run Custom JavaScript**-blok                                | 5 sekunder    | `WORKFLOW_SCRIPT_TIMEOUT_IN_MS` |
 | En **Sleep**-blok                                                | Højst 30 dage | —                               |
 
-Afvikleren tjekker deadlinen før og efter hver blok og markerer en kørsel, der er over tiden, som **Timeout**, så snart kontrollen vender tilbage. Den kan ikke afbryde en blok midtvejs, så blokke, der venter på netværket, har deres egne tidsgrænser: en forespørgsel fra Generate Text with AI giver op efter højst 60 sekunder og en OAuth 2.0-tokenforespørgsel efter 20. Ventetid ved en **Sleep**-blok tæller ikke med i en kørsels tid: kørslen lægges til side og får friske 2 minutter, når den vågner.
+Afvikleren tjekker deadlinen før og efter hver blok og markerer en kørsel, der er over tiden, som **Tidsgrænse overskredet**, så snart kontrollen vender tilbage. Den kan ikke afbryde en blok midtvejs, så blokke, der venter på netværket, har deres egne tidsgrænser: en forespørgsel fra Generate Text with AI giver op efter højst 60 sekunder og en OAuth 2.0-tokenforespørgsel efter 20. Ventetid ved en **Sleep**-blok tæller ikke med i en kørsels tid: kørslen lægges til side og får friske 2 minutter, når den vågner.
 
 ## Grænse for at kalde andre workflows
 

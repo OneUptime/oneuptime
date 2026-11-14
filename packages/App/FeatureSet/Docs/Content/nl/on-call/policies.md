@@ -112,9 +112,9 @@ flowchart TB
 | --- | --- |
 | **Wachten** | Een bereikbaarheidsregel op **Alleen tijdens werktijden** laat de uitvoering wachten tot die tijden beginnen: ze zegt wanneer het oproepen begint, en roept tot dan niemand op. Ze eindigt zonder oproep als het incident of de waarschuwing eerst wordt bevestigd of opgelost. Ze begint meteen met oproepen als het incident of de waarschuwing verandert en nu op een bereikbaarheidsregel past die direct oproept. |
 | **Gepland**, **Gestart** | De uitvoering wordt voorbereid. Een die er na 5 minuten nog staat, wordt gestopt als **Fout**. |
-| **Executing** | De uitvoering roept op. OneUptime brengt haar elke minuut een stap verder. |
-| **Execution Completed** | Iemand heeft bevestigd, het incident of de waarschuwing is opgelost, elke regel en herhaling is gebruikt, of het beleid is gearchiveerd. |
-| **Execution Completed - No One Notified** | De uitvoering is door elke regel gegaan zonder iemand op te roepen: meestal een schema waarin niemand dienst heeft, of een niveau zonder ontvangers. |
+| **Wordt uitgevoerd** | De uitvoering roept op. OneUptime brengt haar elke minuut een stap verder. |
+| **Uitvoering voltooid** | Iemand heeft bevestigd, het incident of de waarschuwing is opgelost, elke regel en herhaling is gebruikt, of het beleid is gearchiveerd. |
+| **Uitvoering voltooid - niemand gemeld** | De uitvoering is door elke regel gegaan zonder iemand op te roepen: meestal een schema waarin niemand dienst heeft, of een niveau zonder ontvangers. |
 | **Fout** | De uitvoering is mislukt. **Statusbericht bekijken** zegt waarom. |
 
 Uitvoeringslogboeken vind je op drie plekken:
@@ -160,7 +160,7 @@ Hoe je een beleid met zijn eerste niveau in één verzoek maakt, lees je bij [Re
 ## Probleemoplossing
 
 :::details Een beleid liep, maar niemand werd opgeroepen
-De uitvoering ervan toont **Execution Completed - No One Notified**. Open **Tijdlijn bekijken**: een rij met **Niemand was bereikbaar** wijst op een schema met een gat, en het statusbericht van een rij **Overgeslagen** zegt waarom, bijvoorbeeld iemand die afwezig was zonder vervanger. **Bereikbaarheid → Gereedheid** toont wie niet bereikt kon worden.
+De uitvoering ervan toont **Uitvoering voltooid - niemand gemeld**. Open **Tijdlijn bekijken**: een rij met **Niemand was bereikbaar** wijst op een schema met een gat, en het statusbericht van een rij **Overgeslagen** zegt waarom, bijvoorbeeld iemand die afwezig was zonder vervanger. **Bereikbaarheid → Gereedheid** toont wie niet bereikt kon worden.
 :::
 
 :::details Het volgende niveau werd een minuut na zijn wachttijd opgeroepen

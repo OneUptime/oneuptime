@@ -240,16 +240,18 @@ describe.each(TRANSLATED_LANGUAGES)("in %s", (language: string) => {
     );
   });
 
-  it("keeps the status a run with nobody notified shows in English, on the English row's line", () => {
+  it("names the status a run with nobody notified shows as its Dashboard draws it, on the English row's line", () => {
+    const drawn: string = drawnDashboardLabel(
+      language,
+      OnCallDutyPolicyStatus.CompletedWithNoNotifications,
+    );
     const row: string = lines(language, POLICIES)[
       lines("en", POLICIES).indexOf(NO_ONE_NOTIFIED_ROW)
     ]!;
 
-    expect(
-      row.startsWith(
-        `| **${OnCallDutyPolicyStatus.CompletedWithNoNotifications}** | `,
-      ),
-    ).toBe(true);
+    // A key of every locale (#7781): no language's pill reads it in English.
+    expect(drawn).not.toBe(OnCallDutyPolicyStatus.CompletedWithNoNotifications);
+    expect(row.startsWith(`| **${drawn}** | `)).toBe(true);
     expect(row).not.toBe(NO_ONE_NOTIFIED_ROW);
   });
 

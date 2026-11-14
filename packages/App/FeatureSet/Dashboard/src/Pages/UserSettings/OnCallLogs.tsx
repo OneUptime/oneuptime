@@ -13,10 +13,11 @@ import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import DirectPageLabel from "Common/UI/Components/OnCallDirectPage/DirectPageLabel";
 import Pill from "Common/UI/Components/Pill/Pill";
-import { PASS_ON_PAGE_TEXT } from "../../Components/OnCallPolicy/PassOn/PassOnPage";
-import { withEscalatedStatusLabel } from "../../Components/OnCallPolicy/PassOn/PassedOnStatus";
+import {
+  getUserOnCallLogStatusFilterOptions,
+  USER_ON_CALL_LOG_STATUS_LABELS,
+} from "../../Components/OnCallPolicy/ExecutionLogs/OnCallLogStatusLabels";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import DropdownUtil from "Common/UI/Utils/Dropdown";
 import Navigation from "Common/UI/Utils/Navigation";
 import User from "Common/UI/Utils/User";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
@@ -142,11 +143,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
             title: "Status",
             type: FieldType.Dropdown,
             // A page you escalated is stored "Passed On" and offered as Escalated.
-            filterDropdownOptions: withEscalatedStatusLabel(
-              DropdownUtil.getDropdownOptionsFromEnum(
-                UserNotificationExecutionStatus,
-              ),
-            ),
+            filterDropdownOptions: getUserOnCallLogStatusFilterOptions(),
           },
           {
             field: {
@@ -243,7 +240,11 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 return (
                   <Pill
                     color={Green}
-                    text={UserNotificationExecutionStatus.Completed}
+                    text={
+                      USER_ON_CALL_LOG_STATUS_LABELS[
+                        UserNotificationExecutionStatus.Completed
+                      ]
+                    }
                   />
                 );
               } else if (
@@ -252,7 +253,11 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 return (
                   <Pill
                     color={Yellow}
-                    text={UserNotificationExecutionStatus.Started}
+                    text={
+                      USER_ON_CALL_LOG_STATUS_LABELS[
+                        UserNotificationExecutionStatus.Started
+                      ]
+                    }
                   />
                 );
               } else if (
@@ -261,7 +266,11 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 return (
                   <Pill
                     color={Yellow}
-                    text={UserNotificationExecutionStatus.Scheduled}
+                    text={
+                      USER_ON_CALL_LOG_STATUS_LABELS[
+                        UserNotificationExecutionStatus.Scheduled
+                      ]
+                    }
                   />
                 );
               } else if (
@@ -270,7 +279,11 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 return (
                   <Pill
                     color={Yellow}
-                    text={UserNotificationExecutionStatus.Executing}
+                    text={
+                      USER_ON_CALL_LOG_STATUS_LABELS[
+                        UserNotificationExecutionStatus.Executing
+                      ]
+                    }
                   />
                 );
               } else if (
@@ -280,7 +293,11 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 return (
                   <Pill
                     color={Yellow}
-                    text={PASS_ON_PAGE_TEXT.passedOnStatus}
+                    text={
+                      USER_ON_CALL_LOG_STATUS_LABELS[
+                        UserNotificationExecutionStatus.PassedOn
+                      ]
+                    }
                   />
                 );
               }
@@ -288,7 +305,11 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
               return (
                 <Pill
                   color={Red}
-                  text={UserNotificationExecutionStatus.Error}
+                  text={
+                    USER_ON_CALL_LOG_STATUS_LABELS[
+                      UserNotificationExecutionStatus.Error
+                    ]
+                  }
                 />
               );
             },
