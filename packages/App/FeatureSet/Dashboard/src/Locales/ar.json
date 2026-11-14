@@ -2533,7 +2533,6 @@
   "External caller dials your dedicated incoming call number": "يتصل متصل خارجي برقم المكالمات الواردة المخصص لك",
   "Face ID unlock and encrypted delivery.": "فتح القفل بـ Face ID وتسليم مشفّر.",
   "Failed": "فشل",
-  "Failed At": "وقت الفشل",
   "Failed Jobs History Limit": "حد سجل Jobs الفاشلة",
   "Failed Proposals": "المقترحات الفاشلة",
   "Failed to create processor. Please try again.": "فشل إنشاء المعالج. يرجى المحاولة مرة أخرى.",
@@ -52257,5 +52256,14 @@
   "Non-operational first, Disabled last": "التي لا تعمل بشكل طبيعي أولًا، والمعطّلة أخيرًا",
   "Non-operational monitors first": "المراقبات التي لا تعمل بشكل طبيعي أولًا",
   "Non-operational monitors only": "المراقبات التي لا تعمل بشكل طبيعي فقط",
+  "Certificate Error": "خطأ في الشهادة",
+  "DNS Resolution": "تحليل أسماء DNS",
+  "Network Error": "خطأ في الشبكة",
+  "Request Aborted": "أُلغي الطلب",
+  "Request was tried {{count}} times and it timed out.": "عدد محاولات الطلب: {{count}}، وانتهت مهلته.",
+  "Request was tried {{count}} times and it timed out._one": "جرت محاولة الطلب مرة واحدة وانتهت مهلته.",
+  "Server Response": "استجابة الخادم",
+  "TCP Connection": "اتصال TCP",
+  "Target Resolution": "تحليل عنوان الهدف",
   "Turned off for this monitor": "معطّل لهذه المراقبة"
 }

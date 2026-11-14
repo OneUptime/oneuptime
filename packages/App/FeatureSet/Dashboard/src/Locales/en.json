@@ -2533,7 +2533,6 @@
   "External caller dials your dedicated incoming call number": "External caller dials your dedicated incoming call number",
   "Face ID unlock and encrypted delivery.": "Face ID unlock and encrypted delivery.",
   "Failed": "Failed",
-  "Failed At": "Failed At",
   "Failed Jobs History Limit": "Failed Jobs History Limit",
   "Failed Proposals": "Failed Proposals",
   "Failed to create processor. Please try again.": "Failed to create processor. Please try again.",
@@ -52257,5 +52256,14 @@
   "Non-operational first, Disabled last": "Non-operational first, Disabled last",
   "Non-operational monitors first": "Non-operational monitors first",
   "Non-operational monitors only": "Non-operational monitors only",
+  "Certificate Error": "Certificate Error",
+  "DNS Resolution": "DNS Resolution",
+  "Network Error": "Network Error",
+  "Request Aborted": "Request Aborted",
+  "Request was tried {{count}} times and it timed out.": "Request was tried {{count}} times and it timed out.",
+  "Request was tried {{count}} times and it timed out._one": "Request was tried once and it timed out.",
+  "Server Response": "Server Response",
+  "TCP Connection": "TCP Connection",
+  "Target Resolution": "Target Resolution",
   "Turned off for this monitor": "Turned off for this monitor"
 }
