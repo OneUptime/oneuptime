@@ -37,8 +37,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * on the table and leaves a dead row version for vacuum. Their sweeps find
  * their monitors by type.
  *
- * Online, outside a transaction: every probe result, heartbeat and sweep
- * writes "Monitor". Every new index is built before an old one goes, so no
+ * Online, outside a transaction: heartbeats, sweeps and status changes
+ * write "Monitor" all the time. Every new index is built before an old one goes, so no
  * read is left without the index it had. Safe to run again after a stop
  * part way.
  */

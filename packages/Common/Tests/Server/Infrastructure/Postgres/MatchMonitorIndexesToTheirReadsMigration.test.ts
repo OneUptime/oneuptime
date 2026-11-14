@@ -18,8 +18,8 @@ import path from "path";
 /*
  * MONITOR'S INDEXES, MATCHED TO WHAT READS THEM.
  *
- * Every probe result, heartbeat, telemetry sweep and status change rewrites
- * a "Monitor" row. An update that changes a column an index names - in its
+ * Heartbeats, telemetry sweeps, server reports and status changes rewrite
+ * "Monitor" rows all the time. An update that changes a column an index names - in its
  * key or a partial index's WHERE - cannot be HOT: it writes an entry into
  * every index on the table and leaves a dead row version for vacuum. On main
  * the busiest writes all moved an indexed timestamp, so none of them was

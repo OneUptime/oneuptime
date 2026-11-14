@@ -127,15 +127,15 @@ import NotificationRuleWorkspaceChannel from "../../Types/Workspace/Notification
   },
 )
 /*
- * INDEXES. Every probe result, heartbeat, telemetry sweep and status change
- * rewrites a row here, and an update can only be HOT (no index entry at all)
- * when it changes no column an index names, in its key or its WHERE. So an
- * index is here because a read needs it, and a column that a frequent write
- * moves is named by none: telemetryMonitorLastMonitorAt and NextMonitorAt
- * (every minute), the incoming request and email heartbeat stamps (every 30
- * seconds), serverMonitorRequestReceivedAt (every report). Their sweeps find
- * their monitors by type, below. A partial index holds, and costs a write,
- * only for the rows its WHERE matches.
+ * INDEXES. Heartbeats, telemetry sweeps, server reports and status changes
+ * rewrite rows here all the time, and an update can only be HOT (no index
+ * entry at all) when it changes no column an index names, in its key or its
+ * WHERE. So an index is here because a read needs it, and a column that a
+ * frequent write moves is named by none: telemetryMonitorLastMonitorAt and
+ * NextMonitorAt (every minute), the incoming request and email heartbeat
+ * stamps (every 30 seconds), serverMonitorRequestReceivedAt (every report).
+ * Their sweeps find their monitors by type, below. A partial index holds,
+ * and costs a write, only for the rows its WHERE matches.
  *
  * Every list of this resource pins `isArchived` inside a project (the main
  * list hides archived rows, the Archived page shows only them), so the pair
