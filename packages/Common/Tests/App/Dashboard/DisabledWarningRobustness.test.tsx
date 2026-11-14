@@ -241,13 +241,16 @@ describe("getDisabledMessage", () => {
         monitorWith({ disableActiveMonitoringBecauseOfManualIncident: true }),
       ),
     ).toContain("resolve the incident");
+    // The record is a maintenance event (#6817), as the pages around it say.
     expect(
       getDisabledMessage(
         monitorWith({
           disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true,
         }),
       ),
-    ).toContain("scheduled maintenance event");
+    ).toBe(
+      "We are not monitoring this monitor since it is disabled because of an ongoing maintenance event. To enable active monitoring, please end the maintenance event.",
+    );
   });
 
   test("an enabled, manual or missing monitor has no banner", () => {

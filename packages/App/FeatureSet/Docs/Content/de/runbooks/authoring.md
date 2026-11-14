@@ -37,7 +37,7 @@ Schritte laufen **der Reihe nach**. Um die Reihenfolge zu ändern, ziehen Sie ei
 
 ### Die Schritte speichern
 
-Klicken Sie auf **Schritte speichern**. Bis dahin zeigt der Editor **Nicht gespeicherte Änderungen**. Nach dem Speichern sehen Sie **Gespeichert**, und das Runbook ist bereit zum [Ausführen](/docs/runbooks/running).
+Klicken Sie auf **Schritte speichern**. Bis dahin zeigt der Editor **Nicht gespeicherte Änderungen**. Nach dem Speichern sehen Sie **Gespeichert**, und das Runbook ist bereit zum [Ausführen](/docs/runbooks/running). Wer die Schritte vor dem Speichern verlässt, wird zuerst gefragt. Ein Link im Seitenmenü, in den Breadcrumbs oder in der oberen Leiste sowie die Zurück- und Vorwärts-Schaltflächen Ihres Browsers öffnen **Ohne Speichern verlassen?** mit zwei Möglichkeiten: **Weiter bearbeiten** bleibt mit Ihren Änderungen bei den Schritten, und **Änderungen verwerfen** öffnet die Seite, die Sie öffnen wollten. Beim Schließen oder Neuladen des Tabs fragt Ihr Browser mit seinem eigenen Dialog.
 :::
 
 ## Aufbau eines Schritts

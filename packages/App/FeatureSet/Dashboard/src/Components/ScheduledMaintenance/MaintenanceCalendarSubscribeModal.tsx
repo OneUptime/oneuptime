@@ -74,7 +74,7 @@ export const MAINTENANCE_CALENDAR_REFRESH_CADENCE_COPY: string = translationKey(
 );
 
 export const MAINTENANCE_LINK_OWNERSHIP_COPY: string = translationKey(
-  "Anyone with this link sees every scheduled maintenance event in this project. It belongs to the project: treat it like a password, and regenerate it if it is shared by mistake.",
+  "Anyone with this link sees every maintenance event in this project. It belongs to the project: treat it like a password, and regenerate it if it is shared by mistake.",
 );
 
 const ID_PREFIX: string = "maintenance-calendar-feed";
@@ -353,7 +353,7 @@ const MaintenanceCalendarSubscribeModal: FunctionComponent<ComponentProps> = (
           idPrefix={ID_PREFIX}
           icon={IconProp.Calendar}
           title="No calendar link yet"
-          description="Publish one link for your team. Anyone with it sees every scheduled maintenance event in this project, in their own calendar app, kept up to date."
+          description="Publish one link for your team. Anyone with it sees every maintenance event in this project, in their own calendar app, kept up to date."
           control={publishControl}
         />
       </div>
@@ -440,7 +440,7 @@ const MaintenanceCalendarSubscribeModal: FunctionComponent<ComponentProps> = (
     <Fragment>
       <Modal
         title="Subscribe to scheduled maintenance"
-        description="Every scheduled maintenance event in this project, in Google Calendar, Outlook or Apple Calendar. It keeps itself up to date."
+        description="Every maintenance event in this project, in Google Calendar, Outlook or Apple Calendar. It keeps itself up to date."
         modalWidth={ModalWidth.Medium}
         onClose={props.onClose}
         closeButtonText="Done"

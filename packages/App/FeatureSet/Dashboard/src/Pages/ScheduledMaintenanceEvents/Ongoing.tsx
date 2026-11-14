@@ -44,7 +44,7 @@ const ScheduledMaintenancesPage: FunctionComponent<
       noItemsMessage="No ongoing events so far."
       emptyState={{ isAllClear: true }}
       title="Ongoing Maintenance Events"
-      description="Scheduled maintenance events that are in progress right now. An event leaves this list when it ends."
+      description="Maintenance events that are in progress right now. An event leaves this list when it ends."
     />
   );
 };

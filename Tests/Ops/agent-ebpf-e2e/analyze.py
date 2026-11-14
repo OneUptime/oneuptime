@@ -190,6 +190,38 @@ def load_profiles(out, name='profiles.json'):
     return exports, samples
 
 
+def exports_with_pid(out, pid, name='profiles.json'):
+    """How many export requests hold a sample of process `pid`, and how many samples it has in all."""
+    exports = samples = 0
+    for req in jsonl(os.path.join(out, name)):
+        st = req.get('dictionary', {}).get('stringTable', [])
+        n = 0
+        for rp in req.get('resourceProfiles', []):
+            ra = {}
+            for a in rp.get('resource', {}).get('attributes', []):
+                key = a.get('key') or st[int(a.get('keyStrindex', 0))]
+                ra[key] = profile_value(a.get('value'), st)
+            if str(ra.get('process.pid')) != str(pid):
+                continue
+            for sp in rp.get('scopeProfiles', []):
+                for p in sp.get('profiles', []):
+                    for s in p.get('samples', []):
+                        n += len(s.get('timestampsUnixNano', [])) or 1
+        exports += 1 if n else 0
+        samples += n
+    return exports, samples
+
+
+def load_same_pid(out):
+    """run.sh's same-pid.txt (kind): {'samePid': ..., 'ended': ...} or {'error': ...}; {} when there is none."""
+    fields = {}
+    for line in read(os.path.join(out, 'same-pid.txt')).splitlines():
+        key, sep, value = line.partition('=')
+        if sep:
+            fields[key.strip()] = value.strip()
+    return fields
+
+
 def load_ctx_probe(out):
     """traces_ctx_v1 entries the probe saw: (tgid, tid, trace hex, span hex)."""
     entries = set()
@@ -521,9 +553,26 @@ def main():
             pcn[ra.get('k8s.cluster.name')] += n
         nsamples = sum(n for _, n, _ in samples)
         R['profiles'] = {'exports': exports, 'samples': nsamples, 'byNode': dict(nodes), 'byClusterName': dict(pcn)}
-        C.add('PR-3', exports >= 3 and nsamples > 0 and set(pcn) == {args.cluster_name},
-              "profiles reach OneUptime's /otlp/v1/profiles, stamped with k8s.cluster.name",
-              {'exports': exports, 'samples': nsamples, 'clusterName': dict(pcn)}, '>=3 exports')
+        pr3 = exports >= 3 and nsamples > 0 and set(pcn) == {args.cluster_name}
+        pr3_measured = {'exports': exports, 'samples': nsamples, 'clusterName': dict(pcn)}
+        pr3_threshold = '>=3 exports'
+        if args.platform == 'kind':
+            # A KinD node is a nested PID namespace: the chart's profiler pods
+            # resolve only a process whose PID is the same number in the node
+            # and in the host, and on arm64 they drop the samples of every
+            # other one. Left to those, the exports were whatever host process
+            # had a PID number a node also uses (systemd, containerd, the CI
+            # runner's own threads): 2 to 99 a run. run.sh starts one such
+            # process in the apps node (apps/same-pid.pl), so the export path
+            # is checked with the samples of a process the profiler can see.
+            same = load_same_pid(out)
+            same_exports, same_samples = exports_with_pid(out, same['samePid']) if 'samePid' in same else (0, 0)
+            pr3_measured['samePid'] = dict(same, exports=same_exports, samples=same_samples)
+            R['profiles']['samePid'] = pr3_measured['samePid']
+            pr3 = pr3 and same_exports >= 3
+            pr3_threshold = '>=3 exports, the same-PID process in >=3 of them'
+        C.add('PR-3', pr3, "profiles reach OneUptime's /otlp/v1/profiles, stamped with k8s.cluster.name",
+              pr3_measured, pr3_threshold)
 
         # OBI side of the correlation: what OBI keeps in the pinned map is the
         # context of the app's real, exported spans.

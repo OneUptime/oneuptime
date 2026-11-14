@@ -20,6 +20,12 @@ import { describe, expect, test } from "@jest/globals";
  * list - every rule saved before, and every new rule), key updates only, or
  * the ones ticked. The first message and a video call's Join button are
  * posted whatever it says.
+ *
+ * An on-call policy rule chooses too (#7549), from updates of its own:
+ * who is on call now, who is next, nobody on call, overrides, changes to
+ * the policy and its owners. A NEW on-call rule starts on the key updates -
+ * who is on call now, and when nobody is - where every other kind of rule
+ * starts on every update.
  */
 
 const {
@@ -37,6 +43,11 @@ const {
   AI,
   Edits,
   Other,
+  OnCallNow,
+  OnCallNext,
+  NobodyOnCall,
+  Overrides,
+  PolicyChanges,
 } = NotificationRuleUpdateKind;
 
 const EVERY_KIND: Array<NotificationRuleUpdateKind> = Object.values(
@@ -50,7 +61,11 @@ const CHOOSING: Array<NotificationRuleEventType> = [
   NotificationRuleEventType.IncidentEpisode,
   NotificationRuleEventType.AlertEpisode,
   NotificationRuleEventType.ScheduledMaintenance,
+  NotificationRuleEventType.OnCallDutyPolicy,
 ];
+
+const ON_CALL_RULE: NotificationRuleEventType =
+  NotificationRuleEventType.OnCallDutyPolicy;
 
 const NOT_CHOOSING: Array<NotificationRuleEventType> = Object.values(
   NotificationRuleEventType,
@@ -103,6 +118,11 @@ describe("the kinds of update", () => {
       "AI",
       "Edits",
       "Other",
+      "OnCallNow",
+      "OnCallNext",
+      "NobodyOnCall",
+      "Overrides",
+      "PolicyChanges",
     ]);
   });
 
@@ -216,9 +236,56 @@ describe("the updates each kind of rule chooses from", () => {
         NotificationRuleEventType.ScheduledMaintenance,
       ),
     ).toEqual([StateChanges, PublicNotes, PrivateNotes, Other]);
+
+    /*
+     * An on-call policy's: who is on call, and what changed about it -
+     * nothing is Everything else.
+     */
+    expect(NotificationRuleUpdates.getChoosableKinds(ON_CALL_RULE)).toEqual([
+      OnCallNow,
+      OnCallNext,
+      NobodyOnCall,
+      Overrides,
+      PolicyChanges,
+      Owners,
+    ]);
   });
 
-  test("monitor, on-call, security and SLO rules have no choice: they post every update", () => {
+  test("a record's updates are never an on-call policy's, nor the other way round", () => {
+    const onCallOnly: Array<NotificationRuleUpdateKind> = [
+      OnCallNow,
+      OnCallNext,
+      NobodyOnCall,
+      Overrides,
+      PolicyChanges,
+    ];
+
+    for (const eventType of CHOOSING) {
+      const choosable: Array<NotificationRuleUpdateKind> =
+        NotificationRuleUpdates.getChoosableKinds(eventType);
+
+      for (const kind of onCallOnly) {
+        expect({
+          eventType,
+          kind,
+          offered: eventType === ON_CALL_RULE,
+        }).toEqual({ eventType, kind, offered: choosable.includes(kind) });
+      }
+    }
+
+    // Owners is the one update both have.
+    expect(
+      NotificationRuleUpdates.getChoosableKinds(ON_CALL_RULE).filter(
+        (kind: NotificationRuleUpdateKind): boolean => {
+          return NotificationRuleUpdates.getChoosableKinds(
+            INCIDENT_RULE,
+          ).includes(kind);
+        },
+      ),
+    ).toEqual([Owners]);
+  });
+
+  test("monitor, security and SLO rules have no choice: they post every update", () => {
     expect(NOT_CHOOSING.length).toBeGreaterThan(0);
 
     for (const eventType of [...NOT_CHOOSING, undefined]) {
@@ -302,6 +369,19 @@ describe("Key updates only", () => {
         NotificationRuleEventType.ScheduledMaintenance,
       ),
     ).toEqual([StateChanges, PublicNotes]);
+    // An on-call channel: who is on call, and when nobody is.
+    expect(NotificationRuleUpdates.getKeyKinds(ON_CALL_RULE)).toEqual([
+      OnCallNow,
+      NobodyOnCall,
+    ]);
+  });
+
+  test("leaves an on-call channel's noise out: who is next, overrides, changes to the policy, owners", () => {
+    for (const noise of [OnCallNext, Overrides, PolicyChanges, Owners]) {
+      expect(NotificationRuleUpdates.getKeyKinds(ON_CALL_RULE)).not.toContain(
+        noise,
+      );
+    }
   });
 
   test("is a choice of the rule's own updates, in their order, and never all of them", () => {
@@ -947,12 +1027,10 @@ describe("what is wrong with the updates a rule is saved with", () => {
     ).toBe("Monitor rules post every update: leave updatesToPost out.");
     expect(
       NotificationRuleUpdates.getValidationError({
-        eventType: NotificationRuleEventType.OnCallDutyPolicy,
+        eventType: NotificationRuleEventType.SecurityCase,
         updatesToPost: [Paging],
       }),
-    ).toBe(
-      "On-Call Duty Policy rules post every update: leave updatesToPost out.",
-    );
+    ).toBe("Security Case rules post every update: leave updatesToPost out.");
     expect(
       NotificationRuleUpdates.getValidationError({
         eventType: undefined,
@@ -977,6 +1055,30 @@ describe("what is wrong with the updates a rule is saved with", () => {
         "updatesToPost is a list of the updates the rule posts, any of: StateChanges, PublicNotes, PrivateNotes, Other. Leave it out to post every update.",
       );
     }
+  });
+
+  test("an on-call policy rule takes its own updates, and not a record's", () => {
+    expect(
+      NotificationRuleUpdates.getValidationError({
+        eventType: ON_CALL_RULE,
+        updatesToPost: [OnCallNow, NobodyOnCall, Owners],
+      }),
+    ).toBeNull();
+    expect(
+      NotificationRuleUpdates.getValidationError({
+        eventType: ON_CALL_RULE,
+        updatesToPost: [OnCallNow, Paging],
+      }),
+    ).toBe(
+      'updatesToPost lists "Paging", which On-Call Duty Policy rules cannot choose. They choose any of: OnCallNow, OnCallNext, NobodyOnCall, Overrides, PolicyChanges, Owners.',
+    );
+    // ...and an incident rule none of an on-call policy's.
+    expect(
+      NotificationRuleUpdates.getValidationError({
+        eventType: INCIDENT_RULE,
+        updatesToPost: [OnCallNow],
+      }),
+    ).toContain('updatesToPost lists "OnCallNow", which Incident rules');
   });
 
   test("an update the kind of rule cannot choose is refused, by name", () => {
@@ -1022,5 +1124,95 @@ describe("what is wrong with the updates a rule is saved with", () => {
     expect(error).toContain(`updatesToPost lists "${"x".repeat(79)}, which`);
     expect(error).not.toContain("x".repeat(80));
     expect(error.length).toBeLessThan(400);
+  });
+});
+
+describe("what a new rule starts with", () => {
+  test("a new on-call policy rule starts on the key updates: who is on call now, and when nobody is", () => {
+    expect(
+      NotificationRuleUpdates.getNewRuleUpdatesToPost(ON_CALL_RULE),
+    ).toEqual([OnCallNow, NobodyOnCall]);
+    expect(NotificationRuleUpdates.getNewRuleUpdates(ON_CALL_RULE)).toEqual({
+      updatesToPost: [OnCallNow, NobodyOnCall],
+    });
+
+    // ...which its Updates step shows as Key updates only.
+    expect(
+      NotificationRuleUpdates.getChoice({
+        rule: NotificationRuleUpdates.getNewRuleUpdates(ON_CALL_RULE),
+        eventType: ON_CALL_RULE,
+      }),
+    ).toBe(NotificationRuleUpdatesChoice.KeyUpdates);
+    expect(
+      NotificationRuleUpdates.getNewRuleUpdatesToPost(ON_CALL_RULE),
+    ).toEqual(NotificationRuleUpdates.getKeyKinds(ON_CALL_RULE));
+  });
+
+  test("every other new rule starts on every update, as rules always did", () => {
+    for (const eventType of [
+      ...Object.values(NotificationRuleEventType).filter(
+        (eventType: NotificationRuleEventType): boolean => {
+          return eventType !== ON_CALL_RULE;
+        },
+      ),
+      undefined,
+    ]) {
+      expect({
+        eventType,
+        starts: NotificationRuleUpdates.getNewRuleUpdatesToPost(eventType),
+      }).toEqual({ eventType, starts: undefined });
+      expect(NotificationRuleUpdates.getNewRuleUpdates(eventType)).toEqual({});
+    }
+  });
+
+  test("a rule saved before - an on-call rule with no list - goes on posting every update", () => {
+    for (const kind of NotificationRuleUpdates.getChoosableKinds(
+      ON_CALL_RULE,
+    )) {
+      expect(
+        NotificationRuleUpdates.wantsUpdate({
+          rule: {},
+          updateKinds: [kind],
+        }),
+      ).toBe(true);
+    }
+
+    expect(
+      NotificationRuleUpdates.getChoice({ rule: {}, eventType: ON_CALL_RULE }),
+    ).toBe(NotificationRuleUpdatesChoice.EveryUpdate);
+  });
+
+  test("a new on-call rule posts a handoff and a gap, and not who is next, an override or a change to the policy", () => {
+    const rule: RuleWithUpdates =
+      NotificationRuleUpdates.getNewRuleUpdates(ON_CALL_RULE);
+
+    for (const [kind, wanted] of [
+      [OnCallNow, true],
+      [NobodyOnCall, true],
+      [OnCallNext, false],
+      [Overrides, false],
+      [PolicyChanges, false],
+      [Owners, false],
+      // The policy's first message is posted by every rule.
+      [Created, true],
+    ] as Array<[NotificationRuleUpdateKind, boolean]>) {
+      expect({
+        kind,
+        wanted: NotificationRuleUpdates.wantsUpdate({
+          rule: rule,
+          updateKinds: [kind],
+        }),
+      }).toEqual({ kind, wanted });
+    }
+  });
+
+  test("hands out a copy, so a new rule's list is its own", () => {
+    const first: Array<NotificationRuleUpdateKind> =
+      NotificationRuleUpdates.getNewRuleUpdatesToPost(ON_CALL_RULE)!;
+    first.push(Overrides);
+
+    expect(
+      NotificationRuleUpdates.getNewRuleUpdatesToPost(ON_CALL_RULE),
+    ).toEqual([OnCallNow, NobodyOnCall]);
   });
 });
