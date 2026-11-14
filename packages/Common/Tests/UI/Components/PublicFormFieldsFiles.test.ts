@@ -32,7 +32,12 @@ import {
   validateFormSubmission,
 } from "../../../Types/Form/FormPublic";
 import { JSONObject } from "../../../Types/JSON";
+import { Translator, createTranslator } from "../../../Types/Translator";
 import { describe, expect, test } from "@jest/globals";
+import fs from "fs";
+import path from "path";
+import { dashboardTranslator } from "../../Helpers/DashboardLocales";
+import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 
 /*
  * A form's file questions on its public page (and in the builder's preview):
@@ -100,10 +105,14 @@ const kept: KeptFunction = (
 };
 
 // What a question's picker says it takes, as the picker says it.
-const hintOf: (field: Field<JSONObject>) => string | undefined = (
+const hintOf: (
   field: Field<JSONObject>,
+  translator?: Translator,
+) => string | undefined = (
+  field: Field<JSONObject>,
+  translator: Translator = getGlobalTranslator(),
 ): string | undefined => {
-  return getFilePickerPromptWords(getGlobalTranslator(), {
+  return getFilePickerPromptWords(translator, {
     hint: field.fileHint,
     maxFiles: field.maxFiles,
     maxFileSizeInBytes: field.maxFileSizeInBytes,
@@ -181,6 +190,169 @@ describe("a file question's input", () => {
       });
 
       expect(hintOf(field!)).toBe(hint);
+    },
+  );
+
+  /*
+   * In the reader's language (issue #7421): the public form page reads the
+   * Accounts app's words, the form builder's preview the Dashboard's - the
+   * same sentence in both. The count is the question's, in the reader's
+   * digits; one file is said in the words for one; Russian's 21 (a count
+   * Russian calls "one") and Arabic's 11 take the sentence that reads right
+   * for any count, never the one-file sentence.
+   */
+  const accountsTranslator: (language: string) => Translator = (
+    language: string,
+  ): Translator => {
+    const words: Record<string, string> = JSON.parse(
+      fs.readFileSync(
+        path.resolve(
+          __dirname,
+          "../../../../App/FeatureSet/Accounts/src/Locales",
+          language + ".json",
+        ),
+        "utf8",
+      ),
+    ) as Record<string, string>;
+
+    return createTranslator((text: string): string | undefined => {
+      return Object.prototype.hasOwnProperty.call(words, text)
+        ? words[text]
+        : undefined;
+    }, language);
+  };
+
+  const questionOf: (maxFiles: number) => Field<JSONObject> = (
+    maxFiles: number,
+  ): Field<JSONObject> => {
+    return buildPublicFormFields({
+      name: "Form",
+      isCaptchaRequired: false,
+      fields: [
+        {
+          id: "logs",
+          label: "Logs",
+          type: PublicFormFieldType.MultipleFiles,
+          isRequired: false,
+          maxFiles: maxFiles,
+        },
+      ],
+    })[0]!;
+  };
+
+  const IN_LANGUAGES: Array<[string, number, string]> = [
+    [
+      "en",
+      3,
+      "Up to 3 files of 10 MB each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.",
+    ],
+    [
+      "de",
+      3,
+      "Bis zu 3 Dateien mit je 10 MB: PDF-, Office- und OpenDocument-Dateien, Bilder, Text, CSV, JSON, ZIP oder PCAP.",
+    ],
+    [
+      "de",
+      1,
+      "Eine Datei mit bis zu 10 MB: PDF-, Office- und OpenDocument-Dateien, Bilder, Text, CSV, JSON, ZIP oder PCAP.",
+    ],
+    [
+      "ru",
+      3,
+      "Максимум файлов: 3, каждый до 10 MB: файлы PDF, Office и OpenDocument, изображения, текст, CSV, JSON, ZIP или PCAP.",
+    ],
+    [
+      "ru",
+      21,
+      "Максимум файлов: 21, каждый до 10 MB: файлы PDF, Office и OpenDocument, изображения, текст, CSV, JSON, ZIP или PCAP.",
+    ],
+    [
+      "ru",
+      1,
+      "Один файл до 10 MB: файлы PDF, Office и OpenDocument, изображения, текст, CSV, JSON, ZIP или PCAP.",
+    ],
+    [
+      "ar",
+      3,
+      "الحد الأقصى للملفات: 3، حتى 10 MB لكل ملف: ملفات PDF وOffice وOpenDocument والصور والنصوص وCSV وJSON وZIP أو PCAP.",
+    ],
+    [
+      "ar",
+      11,
+      "الحد الأقصى للملفات: 11، حتى 10 MB لكل ملف: ملفات PDF وOffice وOpenDocument والصور والنصوص وCSV وJSON وZIP أو PCAP.",
+    ],
+    [
+      "ar",
+      1,
+      "ملف واحد حتى 10 MB: ملفات PDF وOffice وOpenDocument والصور والنصوص وCSV وJSON وZIP أو PCAP.",
+    ],
+    [
+      "fa",
+      3,
+      "حداکثر \u06F3 فایل، هر کدام تا \u06F1\u06F0 MB: فایل‌های PDF، Office و OpenDocument، تصویر، متن، CSV، JSON، ZIP یا PCAP.",
+    ],
+    [
+      "fa",
+      1,
+      "یک فایل تا \u06F1\u06F0 MB: فایل‌های PDF، Office و OpenDocument، تصویر، متن، CSV، JSON، ZIP یا PCAP.",
+    ],
+  ];
+
+  test.each(IN_LANGUAGES)(
+    "on the public form page in %s, a question that takes %p files says it",
+    (language: string, maxFiles: number, words: string) => {
+      const hint: string = hintOf(
+        questionOf(maxFiles),
+        accountsTranslator(language),
+      )!;
+
+      expect(withoutIsolateMarks(hint)).toBe(words);
+    },
+  );
+
+  test.each(IN_LANGUAGES)(
+    "in the form builder's preview in %s, a question that takes %p files says it",
+    (language: string, maxFiles: number, words: string) => {
+      const hint: string = hintOf(
+        questionOf(maxFiles),
+        dashboardTranslator(language),
+      )!;
+
+      expect(withoutIsolateMarks(hint)).toBe(words);
+    },
+  );
+
+  // On a page read from the right, the count and the limit are each set apart from the words.
+  test.each([
+    ["ar", "3", "10 MB"],
+    ["fa", "\u06F3", "\u06F1\u06F0 MB"],
+  ])(
+    "%s: the count and the limit are set apart from the words around them",
+    (language: string, count: string, size: string) => {
+      const hint: string = hintOf(
+        questionOf(3),
+        accountsTranslator(language),
+      )!;
+
+      expect(hint).toContain("\u2068" + count + "\u2069");
+      expect(hint).toContain("\u2068" + size + "\u2069");
+    },
+  );
+
+  // A question that takes 3 never says the 10 a field can hold, in any digits.
+  const TEN: RegExp = /10|\u06F1\u06F0/;
+
+  test.each(["en", "de", "ru", "ar", "fa"])(
+    "%s: a question that takes 3 files never says the 10 a field can hold",
+    (language: string) => {
+      const hint: string = withoutIsolateMarks(
+        hintOf(questionOf(3), accountsTranslator(language))!,
+      );
+      const withoutLimit: string = hint
+        .replace("10 MB", "")
+        .replace("\u06F1\u06F0 MB", "");
+
+      expect(withoutLimit).not.toMatch(TEN);
     },
   );
 

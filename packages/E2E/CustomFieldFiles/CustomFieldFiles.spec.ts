@@ -1399,8 +1399,9 @@ test.describe("a public form's file questions", () => {
       csv("b.csv"),
       csv("c.csv"),
     ]);
+    // Full, it says its three in Persian's digit, in a sentence of its own words.
     await expect(formPicker(page, "evidence")).toContainText(
-      accountsText("fa", FULL_NOTE_KEY).replace("{{count}}", PERSIAN_THREE),
+      accountsText("fa", FULL_NOTE_KEY).replace("{{count}}", "\u06F3"),
     );
   });
 

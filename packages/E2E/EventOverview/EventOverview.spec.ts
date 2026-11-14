@@ -17058,6 +17058,148 @@ test.describe("an incident call's transcript (?calls=)", () => {
     });
   });
 
+  /*
+   * A file extension in a Persian or Arabic sentence of the Add transcript
+   * dialog keeps its dot before its letters (issue #7419): ".vtt", never
+   * "vtt.". Laid out as the locale file holds the sentence, the dot - a
+   * sign with no direction of its own - is drawn after the letters on a
+   * page read from the right; the Dashboard's i18next sets each extension
+   * apart as code (Common/UI/Utils/CodeReadsAsWritten). Measured on the
+   * drawn text itself: the dot's box is left of its letters' box.
+   */
+  interface DrawnExtension {
+    extension: string;
+    dotRight: number;
+    lettersLeft: number;
+  }
+
+  async function drawnExtensions(
+    line: Locator,
+    extensions: ReadonlyArray<string>,
+  ): Promise<Array<DrawnExtension>> {
+    return line.evaluate(
+      (element: Element, written: ReadonlyArray<string>) => {
+        const found: Array<DrawnExtension> = [];
+        const walker: TreeWalker = document.createTreeWalker(
+          element,
+          NodeFilter.SHOW_TEXT,
+        );
+
+        for (
+          let node: Node | null = walker.nextNode();
+          node;
+          node = walker.nextNode()
+        ) {
+          const text: string = node.textContent || "";
+
+          for (const extension of written) {
+            const at: number = text.indexOf(extension);
+
+            if (at < 0) {
+              continue;
+            }
+
+            const dot: Range = document.createRange();
+            dot.setStart(node, at);
+            dot.setEnd(node, at + 1);
+            const letters: Range = document.createRange();
+            letters.setStart(node, at + 1);
+            letters.setEnd(node, at + extension.length);
+
+            found.push({
+              extension,
+              dotRight: dot.getBoundingClientRect().right,
+              lettersLeft: letters.getBoundingClientRect().left,
+            });
+          }
+        }
+
+        return found;
+      },
+      extensions,
+    );
+  }
+
+  function expectDotsFirst(drawn: Array<DrawnExtension>): void {
+    for (const extension of drawn) {
+      expect([
+        extension.extension,
+        extension.dotRight <= extension.lettersLeft + 0.5,
+      ]).toEqual([extension.extension, true]);
+    }
+  }
+
+  async function openAddTranscript(page: Page, query: string): Promise<Locator> {
+    await open(page, INCIDENT_PATH, query);
+    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+    const add: Locator = callsCard(page).getByTestId("call-transcript-add");
+    await expect(add).toBeVisible({ timeout: 30000 });
+    await add.click();
+    const dialog: Locator = page.getByTestId("add-call-transcript");
+    await expect(dialog).toBeVisible();
+    return dialog;
+  }
+
+  test("on a Persian page, the Add transcript dialog draws .vtt, .srt and .txt with their dots first (?calls=teams&lang=fa&dir=auto)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const dialog: Locator = await openAddTranscript(
+      page,
+      "calls=teams&lang=fa&dir=auto",
+    );
+
+    const dropZone: Locator = dialog
+      .getByTestId("add-call-transcript-choose-file")
+      .locator("span")
+      .last();
+    const hint: Locator = dialog.getByTestId("add-call-transcript-hint");
+
+    const inDropZone: Array<DrawnExtension> = await drawnExtensions(dropZone, [
+      ".vtt",
+      ".srt",
+      ".txt",
+    ]);
+    const inHint: Array<DrawnExtension> = await drawnExtensions(hint, [
+      ".vtt",
+    ]);
+
+    expect(
+      inDropZone.map((drawn: DrawnExtension): string => {
+        return drawn.extension;
+      }),
+    ).toEqual([".vtt", ".srt", ".txt"]);
+    expect(inHint).toHaveLength(1);
+    expectDotsFirst([...inDropZone, ...inHint]);
+    // The limit, a value of the sentence, in Persian digits.
+    await expect(dropZone).toContainText("۵ MB");
+
+    await screenshotElement(dialog, "add-call-transcript-fa");
+  });
+
+  test("on an Arabic page, Zoom's line draws (.vtt) with its dot first, at 390px (?calls=zoom&lang=ar&dir=auto)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const dialog: Locator = await openAddTranscript(
+      page,
+      "calls=zoom&lang=ar&dir=auto",
+    );
+
+    const inHint: Array<DrawnExtension> = await drawnExtensions(
+      dialog.getByTestId("add-call-transcript-hint"),
+      [".vtt"],
+    );
+
+    expect(inHint).toHaveLength(1);
+    expectDotsFirst(inHint);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await screenshotElement(dialog, "add-call-transcript-ar-390");
+  });
+
   test("the suggested root cause: marked Not confirmed, resting on the call's lines in the order they were said", async ({
     page,
   }: {
