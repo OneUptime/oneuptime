@@ -750,7 +750,7 @@ describe("an SSL check's Certificate Problem and Error", () => {
       const { container } = renderIn(
         language,
         <SSLCertificateMonitorView
-          probeMonitorResponse={sslResponse(TIMEOUT, { isTimeout: true })}
+          probeMonitorResponse={sslResponse(TIMEOUT, {})}
         />,
       );
 
