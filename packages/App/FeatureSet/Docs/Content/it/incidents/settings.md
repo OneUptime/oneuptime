@@ -20,6 +20,7 @@ Aprite **Incidenti** dal menu **Prodotti** nella barra superiore, poi espandete 
 | **Modelli di incidenti**        | Precompilare un intero incidente — titolo, descrizione, risorse, policy di reperibilità, proprietari, etichette. |
 | **Modelli di note**             | Testo riutilizzabile per note pubbliche e private.                                                 |
 | **Approvazione delle note pubbliche** | Fai approvare le note pubbliche prima che vengano pubblicate e scegli chi le approva. |
+| **Notifiche agli iscritti** | Scegliere se **Notifica gli iscritti alla pagina di stato** parte spuntata quando qualcuno dichiara un incidente. Attivo per impostazione predefinita. |
 | **Modelli post-mortem**         | Strutture di post-mortem riutilizzabili.                                                           |
 | **Stati del post-mortem** | Gli stati che un post-mortem attraversa, da Non iniziato a Completato. |
 | **Campi personalizzati**        | Definire campi aggiuntivi che compaiono su ogni incidente.                                         |
@@ -183,6 +184,14 @@ Alla maggior parte dei progetti basta un passaggio. Aggiungetene un altro quando
 - **Nessuno approva la propria nota, né due passaggi della stessa nota.** Chi ha inviato una nota per l'approvazione non può approvarla né rifiutarla, e chi ha approvato uno dei suoi passaggi non può approvarne un altro.
 
 Solo i proprietari e gli amministratori del progetto possono modificare queste impostazioni, e tutti quelli che leggono le note vedono chi le approva. **Manutenzione programmata → Impostazioni → Approvazione delle note pubbliche** è la stessa pagina per gli eventi di manutenzione programmata, con un proprio interruttore e propri passaggi. Che cosa fa una nota mentre attende, e come decide chi approva, è spiegato in [Approvazione delle note pubbliche](/docs/incidents/notes-owners-and-feed#approvazione-delle-note-pubbliche).
+
+## Notifiche agli iscritti
+
+Quando qualcuno dichiara un incidente, **Notifica gli iscritti alla pagina di stato** parte spuntata, quindi gli iscritti alla pagina di stato vengono a sapere dell'incidente a meno che chi lo dichiara non tolga la spunta. Se il vostro team lavora su un incidente prima che qualcuno all'esterno lo sappia, fate invece partire la casella senza spunta: andate in **Incidenti → Impostazioni → Notifiche agli iscritti** (`/dashboard/{projectId}/incidents/settings/subscriber-notifications`) e disattivate **Notifica gli iscritti alla pagina di stato per impostazione predefinita**. È attivo in ogni progetto finché non lo disattivate, e si salva non appena lo cambiate. Solo i Project Owners e i Project Admins possono cambiarlo; per tutti gli altri l'interruttore è bloccato e dice quale permesso serve.
+
+Finché è disattivato, la casella parte senza spunta in **Dichiara nuovo incidente**, che l'incidente venga dichiarato dall'elenco degli incidenti, da un modello, da un avviso o da un monitor, e la sua descrizione dice che in questo progetto è deselezionata per impostazione predefinita. Gli iscritti vengono informati solo se chi dichiara la spunta. Nel riepilogo, prima dell'invio, accanto al suo **No** c'è **Passa a Sì**, che spunta la casella senza tornare a **Risorse interessate**. Non viene offerto per un incidente privato, che nessuna pagina di stato mostra. L'interruttore cambia solo come parte la casella: l'incidente registra come è stata lasciata la casella, e uno dichiarato senza notifica resta silenzioso, come descrive [Dichiarare un incidente](/docs/incidents/declaring-incidents).
+
+Anche un incidente dichiarato da Slack o Microsoft Teams, o chiedendolo a OneUptime AI, segue l'interruttore: lì nulla chiede degli iscritti, quindi finché l'interruttore è disattivato viene dichiarato senza notificarli, e potete avvisarli più tardi con una nota pubblica. Gli incidenti creati in qualsiasi altro modo — dai monitor, o tramite l'API, Terraform o i flussi di lavoro — mantengono il proprio `shouldStatusPageSubscribersBeNotifiedOnIncidentCreated`, che notifica gli iscritti a meno che non sia `false`. Tramite l'API, l'interruttore è il campo `notifyStatusPageSubscribersOfNewIncidentsByDefault` del progetto.
 
 ## Modelli post-mortem
 

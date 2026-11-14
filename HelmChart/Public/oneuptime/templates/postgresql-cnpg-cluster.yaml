@@ -33,7 +33,9 @@ spec:
   # StatefulSet — see HelmChart/Docs/Postgres.md for the migration runbook.
   bootstrap:
     initdb:
-      database: {{ $cnpg.database | default "oneuptimedb" | quote }}
+      # The database the app connects to (its DATABASE_NAME), written the
+      # same way: through oneuptime.envValue, without the whitespace around it.
+      database: {{ include "oneuptime.envValue" ($cnpg.database | default "oneuptimedb") }}
       owner: {{ $cnpg.owner | default "oneuptime" | quote }}
 
   {{- $persistence := $cnpg.persistence | default dict }}
