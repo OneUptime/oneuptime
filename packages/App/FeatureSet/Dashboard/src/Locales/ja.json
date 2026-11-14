@@ -52248,5 +52248,7 @@
   "Who is on call now, and when nobody is.": "現在のオンコール担当者と、担当者がいないとき。",
   "Who takes over at the next hand-off, and when.": "次の引き継ぎで誰が引き継ぐか、いつか。",
   "With none ticked, the rule posts only when an on-call policy is created.": "何もチェックしない場合、ルールはオンコールポリシーが作成されたときにだけ投稿します。",
-  "Only when an on-call policy is created": "オンコールポリシーの作成時のみ"
+  "Only when an on-call policy is created": "オンコールポリシーの作成時のみ",
+  "You have unsaved changes to this form's questions. If you leave now, they will be lost.": "このフォームの質問に保存されていない変更があります。今ページを離れると、変更は失われます。",
+  "You have unsaved changes to this runbook's steps. If you leave now, they will be lost.": "この Runbook のステップに保存されていない変更があります。今ページを離れると、変更は失われます。"
 }

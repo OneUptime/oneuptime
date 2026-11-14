@@ -52248,5 +52248,7 @@
   "Who is on call now, and when nobody is.": "Qui est d'astreinte maintenant, et quand personne ne l'est.",
   "Who takes over at the next hand-off, and when.": "Qui prend le relais à la prochaine relève, et quand.",
   "With none ticked, the rule posts only when an on-call policy is created.": "Si rien n'est coché, la règle publie seulement lorsqu'une politique d'astreinte est créée.",
-  "Only when an on-call policy is created": "Seulement lorsqu'une politique d'astreinte est créée"
+  "Only when an on-call policy is created": "Seulement lorsqu'une politique d'astreinte est créée",
+  "You have unsaved changes to this form's questions. If you leave now, they will be lost.": "Vous avez des modifications non enregistrées sur les questions de ce formulaire. Si vous quittez la page maintenant, elles seront perdues.",
+  "You have unsaved changes to this runbook's steps. If you leave now, they will be lost.": "Vous avez des modifications non enregistrées sur les étapes de ce runbook. Si vous quittez la page maintenant, elles seront perdues."
 }

@@ -52248,5 +52248,7 @@
   "Who is on call now, and when nobody is.": "Hvem der har vagt nu, og hvornår ingen har.",
   "Who takes over at the next hand-off, and when.": "Hvem der overtager ved næste vagtskifte, og hvornår.",
   "With none ticked, the rule posts only when an on-call policy is created.": "Er intet markeret, poster reglen kun, når en vagtpolitik oprettes.",
-  "Only when an on-call policy is created": "Kun når en vagtpolitik oprettes"
+  "Only when an on-call policy is created": "Kun når en vagtpolitik oprettes",
+  "You have unsaved changes to this form's questions. If you leave now, they will be lost.": "Du har ikke-gemte ændringer i spørgsmålene i denne formular. Hvis du forlader siden nu, går de tabt.",
+  "You have unsaved changes to this runbook's steps. If you leave now, they will be lost.": "Du har ikke-gemte ændringer i trinnene i denne runbook. Hvis du forlader siden nu, går de tabt."
 }

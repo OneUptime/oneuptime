@@ -52248,5 +52248,7 @@
   "Who is on call now, and when nobody is.": "Кто дежурит сейчас и когда никто не дежурит.",
   "Who takes over at the next hand-off, and when.": "Кто заступает при следующей передаче смены и когда.",
   "With none ticked, the rule posts only when an on-call policy is created.": "Если ничего не отмечено, правило публикует сообщения, только когда создаётся политика дежурства.",
-  "Only when an on-call policy is created": "Только когда создаётся политика дежурства"
+  "Only when an on-call policy is created": "Только когда создаётся политика дежурства",
+  "You have unsaved changes to this form's questions. If you leave now, they will be lost.": "У вас есть несохранённые изменения в вопросах этой формы. Если вы уйдёте сейчас, они будут потеряны.",
+  "You have unsaved changes to this runbook's steps. If you leave now, they will be lost.": "У вас есть несохранённые изменения в шагах этого сценария. Если вы уйдёте сейчас, они будут потеряны."
 }

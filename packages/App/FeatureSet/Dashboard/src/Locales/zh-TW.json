@@ -52248,5 +52248,7 @@
   "Who is on call now, and when nobody is.": "目前待命人員，以及何時無人待命。",
   "Who takes over at the next hand-off, and when.": "下次交接時由誰接手，以及何時接手。",
   "With none ticked, the rule posts only when an on-call policy is created.": "如果未勾選任何項目，規則只會在建立待命策略時張貼。",
-  "Only when an on-call policy is created": "僅在建立待命策略時"
+  "Only when an on-call policy is created": "僅在建立待命策略時",
+  "You have unsaved changes to this form's questions. If you leave now, they will be lost.": "您對此表單的問題有未儲存的變更。如果現在離開，這些變更將會遺失。",
+  "You have unsaved changes to this runbook's steps. If you leave now, they will be lost.": "您對此操作手冊的步驟有未儲存的變更。如果現在離開，這些變更將會遺失。"
 }

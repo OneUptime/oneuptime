@@ -52248,5 +52248,7 @@
   "Who is on call now, and when nobody is.": "Wer jetzt Bereitschaft hat und wann niemand Bereitschaft hat.",
   "Who takes over at the next hand-off, and when.": "Wer bei der nächsten Übergabe übernimmt und wann.",
   "With none ticked, the rule posts only when an on-call policy is created.": "Ist nichts ausgewählt, postet die Regel nur, wenn eine Bereitschaftsrichtlinie erstellt wird.",
-  "Only when an on-call policy is created": "Nur wenn eine Bereitschaftsrichtlinie erstellt wird"
+  "Only when an on-call policy is created": "Nur wenn eine Bereitschaftsrichtlinie erstellt wird",
+  "You have unsaved changes to this form's questions. If you leave now, they will be lost.": "Sie haben nicht gespeicherte Änderungen an den Fragen dieses Formulars. Wenn Sie die Seite jetzt verlassen, gehen sie verloren.",
+  "You have unsaved changes to this runbook's steps. If you leave now, they will be lost.": "Sie haben nicht gespeicherte Änderungen an den Schritten dieses Runbooks. Wenn Sie die Seite jetzt verlassen, gehen sie verloren."
 }

@@ -52248,5 +52248,7 @@
   "Who is on call now, and when nobody is.": "当前值班人员，以及何时无人值班。",
   "Who takes over at the next hand-off, and when.": "下次交接时由谁接班，以及何时接班。",
   "With none ticked, the rule posts only when an on-call policy is created.": "如果未勾选任何项，规则只会在创建值班策略时发布。",
-  "Only when an on-call policy is created": "仅在创建值班策略时"
+  "Only when an on-call policy is created": "仅在创建值班策略时",
+  "You have unsaved changes to this form's questions. If you leave now, they will be lost.": "您对此表单的问题有未保存的更改。如果现在离开，这些更改将会丢失。",
+  "You have unsaved changes to this runbook's steps. If you leave now, they will be lost.": "您对此运行手册的步骤有未保存的更改。如果现在离开，这些更改将会丢失。"
 }

@@ -52248,5 +52248,7 @@
   "Who is on call now, and when nobody is.": "Who is on call now, and when nobody is.",
   "Who takes over at the next hand-off, and when.": "Who takes over at the next hand-off, and when.",
   "With none ticked, the rule posts only when an on-call policy is created.": "With none ticked, the rule posts only when an on-call policy is created.",
-  "Only when an on-call policy is created": "Only when an on-call policy is created"
+  "Only when an on-call policy is created": "Only when an on-call policy is created",
+  "You have unsaved changes to this form's questions. If you leave now, they will be lost.": "You have unsaved changes to this form's questions. If you leave now, they will be lost.",
+  "You have unsaved changes to this runbook's steps. If you leave now, they will be lost.": "You have unsaved changes to this runbook's steps. If you leave now, they will be lost."
 }

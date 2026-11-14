@@ -52248,5 +52248,7 @@
   "Who is on call now, and when nobody is.": "Chi è reperibile ora, e quando non lo è nessuno.",
   "Who takes over at the next hand-off, and when.": "Chi subentra al prossimo cambio turno, e quando.",
   "With none ticked, the rule posts only when an on-call policy is created.": "Se non ne selezioni nessuno, la regola pubblica solo quando viene creata una policy di reperibilità.",
-  "Only when an on-call policy is created": "Solo quando viene creata una policy di reperibilità"
+  "Only when an on-call policy is created": "Solo quando viene creata una policy di reperibilità",
+  "You have unsaved changes to this form's questions. If you leave now, they will be lost.": "Hai modifiche non salvate alle domande di questo modulo. Se esci ora, andranno perse.",
+  "You have unsaved changes to this runbook's steps. If you leave now, they will be lost.": "Hai modifiche non salvate ai passaggi di questo runbook. Se esci ora, andranno perse."
 }

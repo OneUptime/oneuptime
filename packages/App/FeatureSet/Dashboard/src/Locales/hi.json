@@ -52248,5 +52248,7 @@
   "Who is on call now, and when nobody is.": "अभी ऑन-कॉल कौन है, और कब कोई नहीं है।",
   "Who takes over at the next hand-off, and when.": "अगले हैंडऑफ़ पर कौन संभालेगा, और कब।",
   "With none ticked, the rule posts only when an on-call policy is created.": "कुछ भी न चुनने पर, नियम केवल ऑन-कॉल नीति बनने पर पोस्ट करता है।",
-  "Only when an on-call policy is created": "केवल ऑन-कॉल नीति बनने पर"
+  "Only when an on-call policy is created": "केवल ऑन-कॉल नीति बनने पर",
+  "You have unsaved changes to this form's questions. If you leave now, they will be lost.": "इस फ़ॉर्म के प्रश्नों में आपके कुछ बदलाव सहेजे नहीं गए हैं। अगर आप अभी पेज छोड़ते हैं, तो वे खो जाएँगे।",
+  "You have unsaved changes to this runbook's steps. If you leave now, they will be lost.": "इस रनबुक के चरणों में आपके कुछ बदलाव सहेजे नहीं गए हैं। अगर आप अभी पेज छोड़ते हैं, तो वे खो जाएँगे।"
 }

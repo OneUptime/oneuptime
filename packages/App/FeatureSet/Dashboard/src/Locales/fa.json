@@ -52248,5 +52248,7 @@
   "Who is on call now, and when nobody is.": "چه کسی اکنون آنکال است، و چه زمانی کسی نیست.",
   "Who takes over at the next hand-off, and when.": "چه کسی در تحویل شیفت بعدی کار را به دست می‌گیرد، و چه زمانی.",
   "With none ticked, the rule posts only when an on-call policy is created.": "اگر هیچ‌کدام علامت نخورده باشد، قاعده فقط هنگام ایجاد سیاست آنکال ارسال می‌کند.",
-  "Only when an on-call policy is created": "فقط هنگام ایجاد سیاست آنکال"
+  "Only when an on-call policy is created": "فقط هنگام ایجاد سیاست آنکال",
+  "You have unsaved changes to this form's questions. If you leave now, they will be lost.": "تغییرهای ذخیره‌نشده‌ای در پرسش‌های این فرم دارید. اگر اکنون خارج شوید، از بین می‌روند.",
+  "You have unsaved changes to this runbook's steps. If you leave now, they will be lost.": "تغییرهای ذخیره‌نشده‌ای در گام‌های این رانبوک دارید. اگر اکنون خارج شوید، از بین می‌روند."
 }

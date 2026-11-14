@@ -52248,5 +52248,7 @@
   "Who is on call now, and when nobody is.": "Quién está de guardia ahora, y cuándo no hay nadie.",
   "Who takes over at the next hand-off, and when.": "Quién toma el relevo en el próximo cambio de turno, y cuándo.",
   "With none ticked, the rule posts only when an on-call policy is created.": "Sin ninguna marcada, la regla solo publica cuando se crea una política de guardia.",
-  "Only when an on-call policy is created": "Solo cuando se crea una política de guardia"
+  "Only when an on-call policy is created": "Solo cuando se crea una política de guardia",
+  "You have unsaved changes to this form's questions. If you leave now, they will be lost.": "Tienes cambios sin guardar en las preguntas de este formulario. Si sales ahora, se perderán.",
+  "You have unsaved changes to this runbook's steps. If you leave now, they will be lost.": "Tienes cambios sin guardar en los pasos de este runbook. Si sales ahora, se perderán."
 }
