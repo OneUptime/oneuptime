@@ -15470,7 +15470,6 @@
   "SSO User": "کاربر SSO",
   "STIX/TAXII 2.1 feed subscriptions. Indicators are polled on an interval, enrich incoming events with threat.* attributes, and matches open deduplicated alerts — the same machinery as Sigma detection rules.": "STIX/TAXII 2.1 feed subscriptions. Indicators are polled on an interval, enrich incoming events with threat.* attributes, and matches open deduplicated alerts — the same machinery as Sigma detection rules.",
   "STIX/TAXII 2.1 threat-intelligence feeds. Indicators are polled on an interval and matched against incoming security events.": "STIX/TAXII 2.1 threat-intelligence feeds. Indicators are polled on an interval and matched against incoming security events.",
-  "Safe to publish in a page. Accepted only from the allowed origins below, and only for trace, log, metric and session replay ingest.": "انتشار آن در یک صفحه بی‌خطر است. فقط از مبدأهای مجاز زیر پذیرفته می‌شود، و فقط برای دریافت ترِیس، لاگ، متریک و بازپخش نشست.",
   "Safety cap so a high-cardinality field cannot open unbounded incidents. Defaults to 100.": "سقف ایمنی تا فیلدی با مقادیر متمایز زیاد نتواند حوادث بی‌شماری باز کند. پیش‌فرض ۱۰۰ است.",
   "Safety: read-only tools are annotated so MCP clients can auto-approve them, while destructive tools (like deletes) require explicit confirmation. A client connected by sign-in can also be limited to read-only access when it is authorized.": "Safety: read-only tools are annotated so MCP clients can auto-approve them, while destructive tools (like deletes) require explicit confirmation. A client connected by sign-in can also be limited to read-only access when it is authorized.",
   "Saint Barthélemy": "سن بارتلمی",
@@ -46774,7 +46773,6 @@
   "Couldn't load logs": "بارگیری لاگ‌ها ممکن نشد",
   "Show the past day": "نمایش روز گذشته",
   "This browser key has no allowed origins, so every request made with it is refused. Add your web origins or exact app:// mobile identities in Project Settings > Telemetry & APM > Ingestion Keys before using this snippet.": "این کلید مرورگر هیچ مبدأ مجازی ندارد، پس هر درخواستی که با آن فرستاده شود رد می‌شود. پیش از استفاده از این قطعه‌کد، مبدأهای وب خود یا شناسه‌های دقیق app:// اپ‌های موبایل را در تنظیمات پروژه > تله‌متری و APM > کلیدهای دریافت داده اضافه کنید.",
-  "Browser key — intended for client distribution. Web origins may send trace, log, metric and session replay ingest; app:// identities authorize React Native replay only. Accepted identities: {{identities}}. Native app identities are self-asserted, not platform attestation.": "کلید مرورگر — برای توزیع در کلاینت‌ها در نظر گرفته شده است. مبدأهای وب می‌توانند ترِیس، لاگ، متریک و بازپخش نشست بفرستند؛ شناسه‌های app:// فقط بازپخش نشست React Native را مجاز می‌کنند. شناسه‌های پذیرفته: {{identities}}. شناسه‌های اپ‌های بومی را خود اپ اعلام می‌کند و تأیید پلتفرم نیستند.",
   "RUM logs key": "کلید لاگ‌های RUM",
   "{{arrived}} of {{count}} metrics arrived in the selected range.": "متریک‌های رسیده در بازهٔ انتخاب‌شده: {{arrived}} از {{count}}.",
   "{{arrived}} of {{count}} metrics arrived in the selected range._one": "متریک‌های رسیده در بازهٔ انتخاب‌شده: {{arrived}} از {{count}}.",
@@ -52244,5 +52242,7 @@
   "Saved as \"{{value}}\".": "با نام «{{value}}» ذخیره می‌شود.",
   "The Azure namespace: the first part of <namespace>.servicebus.windows.net. Leave empty only for the emulator or a custom domain.": "بخش اول <namespace>.servicebus.windows.net، یعنی namespace شما در Azure. فقط برای شبیه‌ساز یا یک دامنه سفارشی آن را خالی بگذارید.",
   "The queue, topic or subscription name your applications and broker use. A URL, ARN or resource path is reduced to its name.": "نام صف، موضوع یا اشتراکی که برنامه‌ها و کارگزار شما استفاده می‌کنند. یک URL، ARN یا مسیر منبع به نام آن کوتاه می‌شود.",
-  "This email was sent without a subject.": "این ایمیل بدون موضوع ارسال شده است."
+  "This email was sent without a subject.": "این ایمیل بدون موضوع ارسال شده است.",
+  "Browser key — intended for client distribution. Web origins may send traces, logs, metrics, session replays and Sentry events; app:// identities authorize React Native replay only. Accepted identities: {{identities}}. Native app identities are self-asserted, not platform attestation.": "کلید مرورگر — برای توزیع در کلاینت‌ها در نظر گرفته شده است. مبدأهای وب می‌توانند ترِیس، لاگ، متریک، بازپخش نشست و رویدادهای Sentry بفرستند؛ شناسه‌های app:// فقط بازپخش نشست React Native را مجاز می‌کنند. شناسه‌های پذیرفته: {{identities}}. شناسه‌های اپ‌های بومی را خود اپ اعلام می‌کند و تأیید پلتفرم نیستند.",
+  "Safe to publish in a page. Accepted only from the allowed origins below, and only for traces, logs, metrics, session replays and Sentry events.": "انتشار آن در یک صفحه بی‌خطر است. فقط از مبدأهای مجاز زیر پذیرفته می‌شود، و فقط برای ترِیس، لاگ، متریک، بازپخش نشست و رویدادهای Sentry."
 }

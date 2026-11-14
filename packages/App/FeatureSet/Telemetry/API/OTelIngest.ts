@@ -301,7 +301,7 @@ router.get(
          * which is otherwise a silent 403 per export batch much later on.
          */
         message: isBrowserKey
-          ? "Ingestion token is valid, but it is a BROWSER ingestion key. It is accepted only from a browser, only from one of its allowed origins, and only for OTLP traces, logs and metrics and session replay. Use a server ingestion key in a collector, an agent, or any backend service."
+          ? "Ingestion token is valid, but it is a BROWSER ingestion key. It is accepted only from a browser, only from one of its allowed origins, and only for OTLP traces, logs and metrics, session replays, and events from a Sentry browser SDK. Use a server ingestion key in a collector, an agent, or any backend service."
           : "Ingestion token is valid.",
       });
     } catch (err) {

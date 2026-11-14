@@ -15470,7 +15470,6 @@
   "SSO User": "SSO User",
   "STIX/TAXII 2.1 feed subscriptions. Indicators are polled on an interval, enrich incoming events with threat.* attributes, and matches open deduplicated alerts — the same machinery as Sigma detection rules.": "STIX/TAXII 2.1 feed subscriptions. Indicators are polled on an interval, enrich incoming events with threat.* attributes, and matches open deduplicated alerts — the same machinery as Sigma detection rules.",
   "STIX/TAXII 2.1 threat-intelligence feeds. Indicators are polled on an interval and matched against incoming security events.": "STIX/TAXII 2.1 threat-intelligence feeds. Indicators are polled on an interval and matched against incoming security events.",
-  "Safe to publish in a page. Accepted only from the allowed origins below, and only for trace, log, metric and session replay ingest.": "Safe to publish in a page. Accepted only from the allowed origins below, and only for trace, log, metric and session replay ingest.",
   "Safety cap so a high-cardinality field cannot open unbounded incidents. Defaults to 100.": "Safety cap so a high-cardinality field cannot open unbounded incidents. Defaults to 100.",
   "Safety: read-only tools are annotated so MCP clients can auto-approve them, while destructive tools (like deletes) require explicit confirmation. A client connected by sign-in can also be limited to read-only access when it is authorized.": "Safety: read-only tools are annotated so MCP clients can auto-approve them, while destructive tools (like deletes) require explicit confirmation. A client connected by sign-in can also be limited to read-only access when it is authorized.",
   "Saint Barthélemy": "Saint Barthélemy",
@@ -46774,7 +46773,6 @@
   "Couldn't load logs": "无法加载日志",
   "Show the past day": "显示过去一天",
   "This browser key has no allowed origins, so every request made with it is refused. Add your web origins or exact app:// mobile identities in Project Settings > Telemetry & APM > Ingestion Keys before using this snippet.": "此浏览器密钥没有允许的来源，因此用它发出的每个请求都会被拒绝。使用此代码片段之前，请在“项目设置 > 遥测与 APM > 摄取密钥”中添加你的 Web 来源或确切的移动应用 app:// 标识。",
-  "Browser key — intended for client distribution. Web origins may send trace, log, metric and session replay ingest; app:// identities authorize React Native replay only. Accepted identities: {{identities}}. Native app identities are self-asserted, not platform attestation.": "浏览器密钥——用于分发到客户端。Web 来源可以发送追踪、日志、指标和会话回放；app:// 标识仅授权 React Native 的会话回放。接受的标识：{{identities}}。原生应用标识由应用自行声明，并非平台证明。",
   "RUM logs key": "RUM 日志密钥",
   "{{arrived}} of {{count}} metrics arrived in the selected range.": "所选时间范围内到达了 {{count}} 个指标中的 {{arrived}} 个。",
   "{{arrived}} of {{count}} metrics arrived in the selected range._one": "所选时间范围内到达了 {{count}} 个指标中的 {{arrived}} 个。",
@@ -52244,5 +52242,7 @@
   "Saved as \"{{value}}\".": "保存为“{{value}}”。",
   "The Azure namespace: the first part of <namespace>.servicebus.windows.net. Leave empty only for the emulator or a custom domain.": "Azure 命名空间：<namespace>.servicebus.windows.net 的第一部分。仅在使用模拟器或自定义域时留空。",
   "The queue, topic or subscription name your applications and broker use. A URL, ARN or resource path is reduced to its name.": "您的应用和 Broker 使用的队列、主题或订阅名称。URL、ARN 或资源路径会缩减为该名称。",
-  "This email was sent without a subject.": "此邮件发送时没有主题。"
+  "This email was sent without a subject.": "此邮件发送时没有主题。",
+  "Browser key — intended for client distribution. Web origins may send traces, logs, metrics, session replays and Sentry events; app:// identities authorize React Native replay only. Accepted identities: {{identities}}. Native app identities are self-asserted, not platform attestation.": "浏览器密钥——用于分发到客户端。Web 来源可以发送追踪、日志、指标、会话回放和 Sentry 事件；app:// 标识仅授权 React Native 的会话回放。接受的标识：{{identities}}。原生应用标识由应用自行声明，并非平台证明。",
+  "Safe to publish in a page. Accepted only from the allowed origins below, and only for traces, logs, metrics, session replays and Sentry events.": "可以安全发布在页面中。只接受来自下方允许的来源的请求，并且只能用于追踪、日志、指标、会话回放和 Sentry 事件。"
 }

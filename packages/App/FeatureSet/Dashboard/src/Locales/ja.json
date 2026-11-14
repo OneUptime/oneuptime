@@ -15470,7 +15470,6 @@
   "SSO User": "SSO ユーザー",
   "STIX/TAXII 2.1 feed subscriptions. Indicators are polled on an interval, enrich incoming events with threat.* attributes, and matches open deduplicated alerts — the same machinery as Sigma detection rules.": "STIX/TAXII 2.1 フィードの購読。インジケーターは一定間隔でポーリングされ、受信イベントを threat.* 属性で補強し、一致すると重複排除されたアラートを作成します — Sigma の検出ルールと同じ仕組みです。",
   "STIX/TAXII 2.1 threat-intelligence feeds. Indicators are polled on an interval and matched against incoming security events.": "STIX/TAXII 2.1 の脅威インテリジェンスフィード。インジケーターは一定間隔でポーリングされ、受信したセキュリティイベントと照合されます。",
-  "Safe to publish in a page. Accepted only from the allowed origins below, and only for trace, log, metric and session replay ingest.": "ページに公開しても安全です。下の許可されたオリジンからのみ受け付けられ、トレース、ログ、メトリクス、セッションリプレイの取り込みにのみ使用できます。",
   "Safety cap so a high-cardinality field cannot open unbounded incidents. Defaults to 100.": "カーディナリティの高いフィールドで無制限にインシデントが作成されないようにするための安全上限。デフォルトは 100 です。",
   "Safety: read-only tools are annotated so MCP clients can auto-approve them, while destructive tools (like deletes) require explicit confirmation. A client connected by sign-in can also be limited to read-only access when it is authorized.": "安全性: 読み取り専用のツールにはアノテーションが付いているため MCP クライアントは自動承認でき、破壊的なツール（削除など）には明示的な確認が必要です。サインインで接続されたクライアントは、認可時に読み取り専用のアクセスに制限することもできます。",
   "Saint Barthélemy": "サン・バルテルミー",
@@ -46774,7 +46773,6 @@
   "Couldn't load logs": "ログを読み込めませんでした",
   "Show the past day": "過去 1 日を表示",
   "This browser key has no allowed origins, so every request made with it is refused. Add your web origins or exact app:// mobile identities in Project Settings > Telemetry & APM > Ingestion Keys before using this snippet.": "このブラウザーキーには許可されたオリジンがないため、このキーを使ったリクエストはすべて拒否されます。このスニペットを使う前に、「プロジェクト設定 > テレメトリと APM > 取り込みキー」で Web オリジンまたはモバイルアプリの正確な app:// ID を追加してください。",
-  "Browser key — intended for client distribution. Web origins may send trace, log, metric and session replay ingest; app:// identities authorize React Native replay only. Accepted identities: {{identities}}. Native app identities are self-asserted, not platform attestation.": "ブラウザーキーはクライアントへの配布を想定しています。Web オリジンはトレース、ログ、メトリクス、セッションリプレイを送信できます。app:// ID が許可するのは React Native のセッションリプレイのみです。受け付ける ID: {{identities}}。ネイティブアプリの ID はアプリ自身による申告であり、プラットフォームによる証明ではありません。",
   "RUM logs key": "RUM ログキー",
   "{{arrived}} of {{count}} metrics arrived in the selected range.": "選択した範囲に届いたメトリクス: {{count}} 件中 {{arrived}} 件。",
   "{{arrived}} of {{count}} metrics arrived in the selected range._one": "選択した範囲に届いたメトリクス: {{count}} 件中 {{arrived}} 件。",
@@ -52244,5 +52242,7 @@
   "Saved as \"{{value}}\".": "「{{value}}」として保存されます。",
   "The Azure namespace: the first part of <namespace>.servicebus.windows.net. Leave empty only for the emulator or a custom domain.": "Azure の Namespace で、<namespace>.servicebus.windows.net の最初の部分です。空欄にするのは、エミュレーターまたはカスタムドメインを使う場合だけです。",
   "The queue, topic or subscription name your applications and broker use. A URL, ARN or resource path is reduced to its name.": "アプリとブローカーが使うキュー、トピック、またはサブスクリプションの名前。URL、ARN、リソースパスはその名前に短縮されます。",
-  "This email was sent without a subject.": "このメールは件名なしで送信されました。"
+  "This email was sent without a subject.": "このメールは件名なしで送信されました。",
+  "Browser key — intended for client distribution. Web origins may send traces, logs, metrics, session replays and Sentry events; app:// identities authorize React Native replay only. Accepted identities: {{identities}}. Native app identities are self-asserted, not platform attestation.": "ブラウザーキーはクライアントへの配布を想定しています。Web オリジンはトレース、ログ、メトリクス、セッションリプレイ、Sentry のイベントを送信できます。app:// ID が許可するのは React Native のセッションリプレイのみです。受け付ける ID: {{identities}}。ネイティブアプリの ID はアプリ自身による申告であり、プラットフォームによる証明ではありません。",
+  "Safe to publish in a page. Accepted only from the allowed origins below, and only for traces, logs, metrics, session replays and Sentry events.": "ページに公開しても安全です。下の許可されたオリジンからのみ受け付けられ、トレース、ログ、メトリクス、セッションリプレイ、Sentry のイベントにのみ使用できます。"
 }
