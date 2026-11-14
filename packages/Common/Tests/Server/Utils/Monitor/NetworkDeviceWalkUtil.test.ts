@@ -8,10 +8,12 @@ import NetworkDeviceMetricUtil from "../../../../Server/Utils/Monitor/NetworkDev
 import NetworkInventoryUtil from "../../../../Server/Utils/Monitor/NetworkInventoryUtil";
 import SnmpInterfaceRateUtil from "../../../../Server/Utils/Monitor/SnmpInterfaceRateUtil";
 import MonitorService from "../../../../Server/Services/MonitorService";
+import MonitorNetworkDeviceService from "../../../../Server/Services/MonitorNetworkDeviceService";
 import NetworkDeviceService from "../../../../Server/Services/NetworkDeviceService";
 import FindBy from "../../../../Server/Types/Database/FindBy";
 import QueryHelper from "../../../../Server/Types/Database/QueryHelper";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
+import MonitorNetworkDevice from "../../../../Models/DatabaseModels/MonitorNetworkDevice";
 import NetworkDevice from "../../../../Models/DatabaseModels/NetworkDevice";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import LIMIT_MAX from "../../../../Types/Database/LimitMax";
@@ -45,7 +47,7 @@ import OnCallPageTiming from "../../../../Server/Utils/OnCall/OnCallPageTiming";
  * These tests mock every collaborator and pin the orchestration contract:
  * the probe-scoping security guard, what flows into each collaborator (and
  * in what order), the lastWalkLog persistence gating, the fan-out lookup
- * (indexed column UNION legacy step JSON, deduped), the synthesized
+ * (MonitorNetworkDevice, then the monitors it names), the synthesized
  * ProbeMonitorResponse shape under every ping/walk combination, and the
  * fault-isolation guarantees (metrics/criteria failures never break the
  * pipeline).
@@ -70,6 +72,7 @@ const PREVIOUS_WALK_LOG: JSONObject = {
 let deviceFindSpy: jest.SpyInstance;
 let deviceUpdateSpy: jest.SpyInstance;
 let monitorFindSpy: jest.SpyInstance;
+let linkFindSpy: jest.SpyInstance;
 let monitorResourceSpy: jest.SpyInstance;
 let inventorySpy: jest.SpyInstance;
 let metricsSpy: jest.SpyInstance;
@@ -85,24 +88,51 @@ function buildDevice(): NetworkDevice {
 }
 
 /*
- * The fan-out lookup issues two queries on the same column and the mock
- * has to tell them apart: QueryHelper.any / isNull are replaced with
- * sentinels so the query object says which it is.
+ * The fan-out lookup reads MonitorNetworkDevice for the device's rows, then
+ * the monitors they name, by id. The mock answers both from `monitors`, the
+ * project's Network Device monitors, the way Postgres keeps the table: a row
+ * for each device a monitor's steps name. QueryHelper.any is replaced with a
+ * sentinel so a query says which ids it asked for.
  */
-type MonitorLinkQuery = { __in?: Array<string>; __isNull?: true };
+type MonitorIdsQuery = { __in?: Array<string> };
 
-function linkQueryOf(findBy: FindBy<Monitor>): MonitorLinkQuery | undefined {
-  return (findBy.query as unknown as JSONObject)[
-    "autoProvisionedNetworkDeviceId"
-  ] as MonitorLinkQuery | undefined;
+function rowsNaming(
+  monitors: Array<Monitor>,
+  deviceIds: Array<string>,
+): Array<MonitorNetworkDevice> {
+  const rows: Array<MonitorNetworkDevice> = [];
+
+  for (const monitor of monitors) {
+    const named: Set<string> = new Set();
+
+    for (const step of monitor.monitorSteps?.data?.monitorStepsInstanceArray ||
+      []) {
+      const deviceId: string | undefined =
+        step?.data?.networkDeviceMonitor?.networkDeviceId;
+
+      if (!deviceId || !deviceIds.includes(deviceId) || named.has(deviceId)) {
+        continue;
+      }
+
+      named.add(deviceId);
+
+      const row: MonitorNetworkDevice = new MonitorNetworkDevice(
+        ObjectID.generate(),
+      );
+      row.monitorId = monitor.id!;
+      row.networkDeviceId = new ObjectID(deviceId);
+      row.projectId = monitor.projectId!;
+      rows.push(row);
+    }
+  }
+
+  return rows;
 }
 
 function mockPipeline(options?: {
   device?: NetworkDevice | null | undefined;
-  // Hand-made monitors: linked to the device only through their step JSON.
+  // The project's Network Device monitors, hand-made or provisioned.
   monitors?: Array<Monitor> | undefined;
-  // Provisioned monitors: linked through autoProvisionedNetworkDeviceId.
-  indexedMonitors?: Array<Monitor> | undefined;
 }): void {
   deviceFindSpy = jest
     .spyOn(NetworkDeviceService, "findOneBy")
@@ -122,31 +152,41 @@ function mockPipeline(options?: {
     .mockResolvedValue(true);
   jest.spyOn(QueryHelper, "any").mockImplementation(((
     values: Array<string | ObjectID | number>,
-  ): MonitorLinkQuery => {
+  ): MonitorIdsQuery => {
     return {
       __in: values.map((value: string | ObjectID | number) => {
         return value.toString();
       }),
     };
   }) as never);
-  jest
-    .spyOn(QueryHelper, "isNull")
-    .mockReturnValue({ __isNull: true } as never);
+  linkFindSpy = jest
+    .spyOn(MonitorNetworkDeviceService, "findBy")
+    .mockImplementation(
+      async (
+        findBy: FindBy<MonitorNetworkDevice>,
+      ): Promise<Array<MonitorNetworkDevice>> => {
+        const asked: MonitorIdsQuery | undefined = (
+          findBy.query as unknown as JSONObject
+        )["networkDeviceId"] as MonitorIdsQuery | undefined;
+
+        return rowsNaming(options?.monitors || [], asked?.__in || []);
+      },
+    );
   monitorFindSpy = jest
     .spyOn(MonitorService, "findBy")
     .mockImplementation(
       async (findBy: FindBy<Monitor>): Promise<Array<Monitor>> => {
-        const link: MonitorLinkQuery | undefined = linkQueryOf(findBy);
+        const asked: MonitorIdsQuery | undefined = (
+          findBy.query as unknown as JSONObject
+        )["_id"] as MonitorIdsQuery | undefined;
 
-        if (link?.__isNull) {
-          return options?.monitors || [];
-        }
-
-        if (link?.__in) {
-          return options?.indexedMonitors || [];
-        }
-
-        return [];
+        return (options?.monitors || [])
+          .filter((monitor: Monitor) => {
+            return (asked?.__in || []).includes(monitor.id!.toString());
+          })
+          .sort((a: Monitor, b: Monitor) => {
+            return a.id!.toString().localeCompare(b.id!.toString());
+          });
       },
     );
   monitorResourceSpy = jest
@@ -162,17 +202,6 @@ function mockPipeline(options?: {
     .spyOn(SnmpInterfaceRateUtil, "attachInterfaceRates")
     .mockImplementation(() => {
       return undefined;
-    });
-}
-
-function monitorFindCalls(kind: "indexed" | "legacy"): Array<FindBy<Monitor>> {
-  return monitorFindSpy.mock.calls
-    .map((call: Array<unknown>) => {
-      return call[0] as FindBy<Monitor>;
-    })
-    .filter((findBy: FindBy<Monitor>) => {
-      const link: MonitorLinkQuery | undefined = linkQueryOf(findBy);
-      return kind === "legacy" ? Boolean(link?.__isNull) : Boolean(link?.__in);
     });
 }
 
@@ -728,8 +757,13 @@ describe("NetworkDeviceWalkUtil.processWalkResult — fault isolation", () => {
 
     await expect(runWalk(buildSnmpResponse())).resolves.toBeUndefined();
 
+    // The monitors come back in id order; the one after the failure still runs.
+    const [, later] = [first, second].sort((a: Monitor, b: Monitor) => {
+      return a.id!.toString().localeCompare(b.id!.toString());
+    });
+
     expect(monitorResourceSpy).toHaveBeenCalledTimes(2);
-    expect(synthesized(1).monitorId.toString()).toBe(second.id!.toString());
+    expect(synthesized(1).monitorId.toString()).toBe(later!.id!.toString());
   });
 });
 
@@ -779,12 +813,15 @@ describe("NetworkDeviceWalkUtil.processWalkResult — monitor fan-out", () => {
       monitorResourceSpy.mock.calls.map((call: Array<ProbeMonitorResponse>) => {
         return call[0]!.monitorId.toString();
       });
-    expect(evaluatedMonitorIds).toEqual([
-      watching.id!.toString(),
-      watchingTwice.id!.toString(),
-      watchingTwice.id!.toString(),
-      watchingBoth.id!.toString(),
-    ]);
+    // In whatever order the monitors come back (by id, from the lookup).
+    expect([...evaluatedMonitorIds].sort()).toEqual(
+      [
+        watching.id!.toString(),
+        watchingTwice.id!.toString(),
+        watchingTwice.id!.toString(),
+        watchingBoth.id!.toString(),
+      ].sort(),
+    );
 
     // The two-step monitor is evaluated once per referencing step.
     const twiceStepIds: Array<string> = monitorResourceSpy.mock.calls
@@ -815,11 +852,12 @@ describe("NetworkDeviceWalkUtil.processWalkResult — monitor fan-out", () => {
     );
   });
 
-  test("a provisioned monitor found through its column is evaluated like a hand-made one", async () => {
+  test("a provisioned monitor is found, and evaluated, like a hand-made one", async () => {
     const provisioned: Monitor = buildMonitor({
       steps: [buildStep(DEVICE_ID)],
     });
-    mockPipeline({ indexedMonitors: [provisioned] });
+    provisioned.autoProvisionedNetworkDeviceId = new ObjectID(DEVICE_ID);
+    mockPipeline({ monitors: [provisioned] });
 
     await runWalk(buildSnmpResponse());
 
@@ -873,14 +911,41 @@ describe("NetworkDeviceWalkUtil.processWalkResult — monitor fan-out", () => {
 });
 
 /*
- * The fan-out lookup is the prerequisite for alert policies: a walk must
- * find the monitors watching its device by an indexed column, not by
- * scanning every Network Device monitor's step JSON in the project. The
- * scan survives, paged and restricted to rows the index cannot serve, for
- * hand-made monitors that carry the link only in their steps.
+ * The fan-out lookup reads MonitorNetworkDevice - the table Postgres keeps
+ * from every monitor's steps (MonitorNetworkDevicePostgres pins the
+ * triggers) - and then the monitors it names, by id. It never reads the
+ * steps of every Network Device monitor in the project, as it did on every
+ * poll and every trap.
  */
 describe("NetworkDeviceWalkUtil.findMonitorsWatchingDevices", () => {
-  test("an empty device list short-circuits without querying", async () => {
+  function deviceIdsAsked(): Array<Array<string>> {
+    return linkFindSpy.mock.calls.map((call: Array<unknown>) => {
+      return (
+        (
+          (call[0] as FindBy<MonitorNetworkDevice>)
+            .query as unknown as JSONObject
+        )["networkDeviceId"] as MonitorIdsQuery
+      ).__in!;
+    });
+  }
+
+  function monitorIdsAsked(): Array<Array<string>> {
+    return monitorFindSpy.mock.calls.map((call: Array<unknown>) => {
+      return (
+        ((call[0] as FindBy<Monitor>).query as unknown as JSONObject)[
+          "_id"
+        ] as MonitorIdsQuery
+      ).__in!;
+    });
+  }
+
+  function ids(monitors: Array<Monitor>): Array<string> {
+    return monitors.map((monitor: Monitor) => {
+      return monitor.id!.toString();
+    });
+  }
+
+  test("an empty device list asks nothing", async () => {
     mockPipeline();
 
     const monitors: Array<Monitor> =
@@ -890,10 +955,22 @@ describe("NetworkDeviceWalkUtil.findMonitorsWatchingDevices", () => {
       });
 
     expect(monitors).toEqual([]);
+    expect(linkFindSpy).not.toHaveBeenCalled();
     expect(monitorFindSpy).not.toHaveBeenCalled();
   });
 
-  test("issues an indexed query on the device column and a legacy scan restricted to unlinked rows, both scoped, sorted and paged", async () => {
+  test("ids that are not ids are dropped, and a list of only those asks nothing", async () => {
+    mockPipeline();
+
+    await NetworkDeviceWalkUtil.findMonitorsWatchingDevices({
+      projectId: PROJECT_ID,
+      deviceIds: ["", "not-a-uuid", "'; DROP TABLE x; --"],
+    });
+
+    expect(linkFindSpy).not.toHaveBeenCalled();
+  });
+
+  test("asks the table for the device's rows in the project, as root, sorted and paged", async () => {
     mockPipeline();
 
     await NetworkDeviceWalkUtil.findMonitorsWatchingDevices({
@@ -901,72 +978,32 @@ describe("NetworkDeviceWalkUtil.findMonitorsWatchingDevices", () => {
       deviceIds: [DEVICE_ID, OTHER_DEVICE_ID],
     });
 
-    const indexed: Array<FindBy<Monitor>> = monitorFindCalls("indexed");
-    const legacy: Array<FindBy<Monitor>> = monitorFindCalls("legacy");
-    expect(indexed).toHaveLength(1);
-    expect(legacy).toHaveLength(1);
+    expect(linkFindSpy).toHaveBeenCalledTimes(1);
 
-    expect(linkQueryOf(indexed[0]!)?.__in).toEqual([
+    const findBy: FindBy<MonitorNetworkDevice> = linkFindSpy.mock
+      .calls[0]![0] as FindBy<MonitorNetworkDevice>;
+    const query: JSONObject = findBy.query as unknown as JSONObject;
+
+    expect((query["projectId"] as ObjectID).toString()).toBe(
+      PROJECT_ID.toString(),
+    );
+    expect((query["networkDeviceId"] as MonitorIdsQuery).__in).toEqual([
       DEVICE_ID,
       OTHER_DEVICE_ID,
     ]);
-    expect(linkQueryOf(legacy[0]!)?.__isNull).toBe(true);
-
-    for (const findBy of [indexed[0]!, legacy[0]!]) {
-      const query: JSONObject = findBy.query as unknown as JSONObject;
-      expect((query["projectId"] as ObjectID).toString()).toBe(
-        PROJECT_ID.toString(),
-      );
-      expect(query["monitorType"]).toBe(MonitorType.NetworkDevice);
-      expect((findBy.sort as unknown as JSONObject)["_id"]).toBe(
-        SortOrder.Ascending,
-      );
-      expect(findBy.limit).toBe(LIMIT_MAX);
-      expect(findBy.skip).toBe(0);
-      expect(findBy.props.isRoot).toBe(true);
-      expect((findBy.select as unknown as JSONObject)["monitorSteps"]).toBe(
-        true,
-      );
-    }
+    expect(query["_id"]).toBeUndefined();
+    expect((findBy.sort as unknown as JSONObject)["_id"]).toBe(
+      SortOrder.Ascending,
+    );
+    expect(findBy.limit).toBe(LIMIT_MAX);
+    expect(findBy.skip).toBe(0);
+    expect(findBy.props.isRoot).toBe(true);
+    expect(findBy.select).toEqual({ _id: true, monitorId: true });
   });
 
-  test("keeps only legacy monitors with at least one step referencing a given device, tolerating malformed steps", async () => {
-    const watching: Monitor = buildMonitor({ steps: [buildStep(DEVICE_ID)] });
-    const watchingOther: Monitor = buildMonitor({
-      steps: [buildStep(OTHER_DEVICE_ID)],
-    });
-    const mixedSteps: Monitor = buildMonitor({
-      steps: [buildStep(undefined), buildStep(DEVICE_ID)],
-    });
-
-    // Degenerate rows must be skipped, not crash the filter.
-    const noSteps: Monitor = new Monitor();
-    noSteps.id = ObjectID.generate();
-    noSteps.projectId = PROJECT_ID;
-
-    const stepsWithoutData: Monitor = buildMonitor({ steps: [] });
-    stepsWithoutData.monitorSteps!.data = undefined;
-
-    const stepWithoutData: MonitorStep = new MonitorStep();
-    stepWithoutData.data = undefined;
-    const stepDataMissing: Monitor = buildMonitor({
-      steps: [stepWithoutData],
-    });
-
-    const noDeviceReference: Monitor = buildMonitor({
-      steps: [buildStep(undefined)],
-    });
-
+  test("a device no monitor watches reads no monitor", async () => {
     mockPipeline({
-      monitors: [
-        watching,
-        watchingOther,
-        mixedSteps,
-        noSteps,
-        stepsWithoutData,
-        stepDataMissing,
-        noDeviceReference,
-      ],
+      monitors: [buildMonitor({ steps: [buildStep(OTHER_DEVICE_ID)] })],
     });
 
     const monitors: Array<Monitor> =
@@ -975,21 +1012,75 @@ describe("NetworkDeviceWalkUtil.findMonitorsWatchingDevices", () => {
         deviceIds: [DEVICE_ID],
       });
 
-    expect(
-      monitors.map((monitor: Monitor) => {
-        return monitor.id!.toString();
-      }),
-    ).toEqual([watching.id!.toString(), mixedSteps.id!.toString()]);
+    expect(monitors).toEqual([]);
+    expect(monitorFindSpy).not.toHaveBeenCalled();
   });
 
-  test("matches monitors referencing ANY of the given devices", async () => {
-    const watchingFirst: Monitor = buildMonitor({
-      steps: [buildStep(DEVICE_ID)],
+  test("reads the monitors it names by id, in the project, as Network Device monitors, with their steps and pause flags", async () => {
+    const watching: Monitor = buildMonitor({ steps: [buildStep(DEVICE_ID)] });
+    mockPipeline({ monitors: [watching] });
+
+    const monitors: Array<Monitor> =
+      await NetworkDeviceWalkUtil.findMonitorsWatchingDevices({
+        projectId: PROJECT_ID,
+        deviceIds: [DEVICE_ID],
+      });
+
+    expect(ids(monitors)).toEqual([watching.id!.toString()]);
+    expect(monitorFindSpy).toHaveBeenCalledTimes(1);
+
+    const findBy: FindBy<Monitor> = monitorFindSpy.mock
+      .calls[0]![0] as FindBy<Monitor>;
+    const query: JSONObject = findBy.query as unknown as JSONObject;
+
+    expect((query["_id"] as MonitorIdsQuery).__in).toEqual([
+      watching.id!.toString(),
+    ]);
+    expect((query["projectId"] as ObjectID).toString()).toBe(
+      PROJECT_ID.toString(),
+    );
+    expect(query["monitorType"]).toBe(MonitorType.NetworkDevice);
+    expect(findBy.props.isRoot).toBe(true);
+    expect(findBy.limit).toBe(1);
+    expect(findBy.select).toMatchObject({
+      _id: true,
+      projectId: true,
+      monitorSteps: true,
+      isArchived: true,
+      disableActiveMonitoring: true,
+      disableActiveMonitoringBecauseOfManualIncident: true,
+      disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true,
     });
-    const watchingSecond: Monitor = buildMonitor({
-      steps: [buildStep(OTHER_DEVICE_ID)],
+  });
+
+  test("never reads Network Device monitors by project: every monitor read names its ids", async () => {
+    mockPipeline({
+      monitors: [
+        buildMonitor({ steps: [buildStep(DEVICE_ID)] }),
+        buildMonitor({ steps: [buildStep(OTHER_DEVICE_ID)] }),
+      ],
     });
-    mockPipeline({ monitors: [watchingFirst, watchingSecond] });
+
+    await NetworkDeviceWalkUtil.findMonitorsWatchingDevices({
+      projectId: PROJECT_ID,
+      deviceIds: [DEVICE_ID],
+    });
+
+    for (const call of monitorFindSpy.mock.calls) {
+      const query: JSONObject = (call[0] as FindBy<Monitor>)
+        .query as unknown as JSONObject;
+
+      expect(query["_id"]).toBeDefined();
+      expect(query["autoProvisionedNetworkDeviceId"]).toBeUndefined();
+    }
+  });
+
+  test("a monitor that watches several of the devices is read once", async () => {
+    const both: Monitor = buildMonitor({
+      steps: [buildStep(DEVICE_ID), buildStep(OTHER_DEVICE_ID)],
+    });
+    const one: Monitor = buildMonitor({ steps: [buildStep(OTHER_DEVICE_ID)] });
+    mockPipeline({ monitors: [both, one] });
 
     const monitors: Array<Monitor> =
       await NetworkDeviceWalkUtil.findMonitorsWatchingDevices({
@@ -997,55 +1088,155 @@ describe("NetworkDeviceWalkUtil.findMonitorsWatchingDevices", () => {
         deviceIds: [DEVICE_ID, OTHER_DEVICE_ID],
       });
 
-    expect(monitors).toHaveLength(2);
+    expect(ids(monitors).sort()).toEqual(
+      [both.id!.toString(), one.id!.toString()].sort(),
+    );
+    expect(monitorIdsAsked()).toHaveLength(1);
+    expect(monitorIdsAsked()[0]).toHaveLength(2);
   });
 
-  test("unions the indexed and legacy results, indexed first, deduped by id", async () => {
-    const provisioned: Monitor = buildMonitor({
-      steps: [buildStep(DEVICE_ID)],
-    });
-    const handMade: Monitor = buildMonitor({ steps: [buildStep(DEVICE_ID)] });
+  test("a device named twice is asked about once", async () => {
+    mockPipeline();
 
-    /*
-     * A row cannot really be in both sets (the legacy scan is restricted to
-     * NULL links), but the union must not depend on that: a monitor the
-     * indexed query returned is never evaluated twice.
-     */
-    mockPipeline({
-      indexedMonitors: [provisioned],
-      monitors: [provisioned, handMade],
+    await NetworkDeviceWalkUtil.findMonitorsWatchingDevices({
+      projectId: PROJECT_ID,
+      deviceIds: [DEVICE_ID, DEVICE_ID, OTHER_DEVICE_ID, DEVICE_ID],
     });
 
-    const monitors: Array<Monitor> =
+    expect(deviceIdsAsked()).toEqual([[DEVICE_ID, OTHER_DEVICE_ID]]);
+  });
+
+  test("a page of the stale poll check is asked about in chunks", async () => {
+    mockPipeline();
+
+    const devices: Array<string> = Array.from(
+      { length: NetworkDeviceWalkUtil.FAN_OUT_ID_CHUNK_SIZE * 2 + 1 },
+      () => {
+        return ObjectID.generate().toString();
+      },
+    );
+
+    await NetworkDeviceWalkUtil.findMonitorsWatchingDevices({
+      projectId: PROJECT_ID,
+      deviceIds: devices,
+    });
+
+    expect(
+      deviceIdsAsked().map((chunk: Array<string>) => {
+        return chunk.length;
+      }),
+    ).toEqual([
+      NetworkDeviceWalkUtil.FAN_OUT_ID_CHUNK_SIZE,
+      NetworkDeviceWalkUtil.FAN_OUT_ID_CHUNK_SIZE,
+      1,
+    ]);
+    expect(deviceIdsAsked().flat()).toEqual(devices);
+  });
+
+  test("the monitors found are read in chunks too, and come back in id order", async () => {
+    const monitors: Array<Monitor> = Array.from(
+      { length: NetworkDeviceWalkUtil.FAN_OUT_ID_CHUNK_SIZE + 3 },
+      () => {
+        return buildMonitor({ steps: [buildStep(DEVICE_ID)] });
+      },
+    );
+    mockPipeline({ monitors: monitors });
+
+    const found: Array<Monitor> =
       await NetworkDeviceWalkUtil.findMonitorsWatchingDevices({
         projectId: PROJECT_ID,
         deviceIds: [DEVICE_ID],
       });
 
     expect(
-      monitors.map((monitor: Monitor) => {
-        return monitor.id!.toString();
+      monitorIdsAsked().map((chunk: Array<string>) => {
+        return chunk.length;
       }),
-    ).toEqual([provisioned.id!.toString(), handMade.id!.toString()]);
+    ).toEqual([NetworkDeviceWalkUtil.FAN_OUT_ID_CHUNK_SIZE, 3]);
+    expect(ids(found)).toEqual(ids(monitors).sort());
   });
 
-  test("the legacy scan pages until a short page, and finds a monitor on the second page", async () => {
+  test("a full page of rows asks for the next one, after the last row's id", async () => {
     mockPipeline();
 
-    const firstPage: Array<Monitor> = Array.from({ length: LIMIT_MAX }, () => {
-      return buildMonitor({ steps: [buildStep(OTHER_DEVICE_ID)] });
-    });
-    const straggler: Monitor = buildMonitor({ steps: [buildStep(DEVICE_ID)] });
-
-    monitorFindSpy.mockImplementation(
-      async (findBy: FindBy<Monitor>): Promise<Array<Monitor>> => {
-        if (linkQueryOf(findBy)?.__in) {
-          return [];
-        }
-
-        return (findBy.skip as number) === 0 ? firstPage : [straggler];
+    const lastRowId: ObjectID = ObjectID.generate();
+    const fullPage: Array<MonitorNetworkDevice> = Array.from(
+      { length: LIMIT_MAX },
+      (_value: unknown, index: number) => {
+        const row: MonitorNetworkDevice = new MonitorNetworkDevice(
+          index === LIMIT_MAX - 1 ? lastRowId : ObjectID.generate(),
+        );
+        row.monitorId = ObjectID.generate();
+        return row;
       },
     );
+    const straggler: MonitorNetworkDevice = new MonitorNetworkDevice(
+      ObjectID.generate(),
+    );
+    straggler.monitorId = ObjectID.generate();
+
+    const greaterThan: jest.SpyInstance = jest
+      .spyOn(QueryHelper, "greaterThan")
+      .mockImplementation(((value: ObjectID) => {
+        return { __after: value.toString() };
+      }) as never);
+
+    linkFindSpy.mockImplementation(
+      async (
+        findBy: FindBy<MonitorNetworkDevice>,
+      ): Promise<Array<MonitorNetworkDevice>> => {
+        return (findBy.query as unknown as JSONObject)["_id"]
+          ? [straggler]
+          : fullPage;
+      },
+    );
+    monitorFindSpy.mockResolvedValue([]);
+
+    await NetworkDeviceWalkUtil.findMonitorsWatchingDevices({
+      projectId: PROJECT_ID,
+      deviceIds: [DEVICE_ID],
+    });
+
+    expect(linkFindSpy).toHaveBeenCalledTimes(2);
+    expect(greaterThan).toHaveBeenCalledWith(lastRowId);
+    expect(
+      (
+        (linkFindSpy.mock.calls[1]![0] as FindBy<MonitorNetworkDevice>)
+          .query as unknown as JSONObject
+      )["_id"],
+    ).toEqual({ __after: lastRowId.toString() });
+
+    // Every row's monitor is read: the first page's and the straggler's.
+    expect(monitorIdsAsked().flat()).toHaveLength(LIMIT_MAX + 1);
+  });
+
+  test("columns a caller adds are read as well", async () => {
+    mockPipeline({
+      monitors: [buildMonitor({ steps: [buildStep(DEVICE_ID)] })],
+    });
+
+    await NetworkDeviceWalkUtil.findMonitorsWatchingDevices({
+      projectId: PROJECT_ID,
+      deviceIds: [DEVICE_ID],
+      select: { createdAt: true },
+    });
+
+    expect(
+      (monitorFindSpy.mock.calls[0]![0] as FindBy<Monitor>).select,
+    ).toMatchObject({ createdAt: true, monitorSteps: true });
+  });
+
+  test("a monitor provisioned for the device is found like a hand-made one, and so is one whose steps were edited to name it", async () => {
+    const provisioned: Monitor = buildMonitor({
+      steps: [buildStep(DEVICE_ID)],
+    });
+    provisioned.autoProvisionedNetworkDeviceId = new ObjectID(DEVICE_ID);
+
+    // Provisioned for another device, then edited to watch this one.
+    const edited: Monitor = buildMonitor({ steps: [buildStep(DEVICE_ID)] });
+    edited.autoProvisionedNetworkDeviceId = new ObjectID(OTHER_DEVICE_ID);
+
+    mockPipeline({ monitors: [provisioned, edited] });
 
     const monitors: Array<Monitor> =
       await NetworkDeviceWalkUtil.findMonitorsWatchingDevices({
@@ -1053,13 +1244,9 @@ describe("NetworkDeviceWalkUtil.findMonitorsWatchingDevices", () => {
         deviceIds: [DEVICE_ID],
       });
 
-    const legacy: Array<FindBy<Monitor>> = monitorFindCalls("legacy");
-    expect(legacy).toHaveLength(2);
-    expect(legacy[0]!.skip).toBe(0);
-    expect(legacy[1]!.skip).toBe(LIMIT_MAX);
-
-    expect(monitors).toHaveLength(1);
-    expect(monitors[0]!.id!.toString()).toBe(straggler.id!.toString());
+    expect(ids(monitors).sort()).toEqual(
+      [provisioned.id!.toString(), edited.id!.toString()].sort(),
+    );
   });
 });
 

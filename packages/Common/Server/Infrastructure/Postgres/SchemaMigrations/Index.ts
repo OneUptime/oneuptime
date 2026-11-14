@@ -986,6 +986,8 @@ import { AddProbeCollectionClaimIndexes1809150400000 } from "./1809150400000-Add
 import { DropRedundantMonitorProbeIndexes1809151000000 } from "./1809151000000-DropRedundantMonitorProbeIndexes";
 import { DropNetworkDeviceLastSeenAtAndProjectIdIndexes1809151100000 } from "./1809151100000-DropNetworkDeviceLastSeenAtAndProjectIdIndexes";
 import { SetMonitorProbeAndNetworkDeviceFillfactor1809151200000 } from "./1809151200000-SetMonitorProbeAndNetworkDeviceFillfactor";
+import { AddMonitorNetworkDevice1809163000000 } from "./1809163000000-AddMonitorNetworkDevice";
+import { BackfillMonitorNetworkDevice1809163100000 } from "./1809163100000-BackfillMonitorNetworkDevice";
 
 export default [
   InitialMigration,
@@ -1976,4 +1978,6 @@ export default [
   DropRedundantMonitorProbeIndexes1809151000000,
   DropNetworkDeviceLastSeenAtAndProjectIdIndexes1809151100000,
   SetMonitorProbeAndNetworkDeviceFillfactor1809151200000,
+  AddMonitorNetworkDevice1809163000000,
+  BackfillMonitorNetworkDevice1809163100000,
 ];

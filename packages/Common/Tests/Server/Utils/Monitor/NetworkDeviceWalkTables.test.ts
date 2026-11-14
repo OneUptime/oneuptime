@@ -3,6 +3,7 @@ import NetworkDeviceWalkUtil from "../../../../Server/Utils/Monitor/NetworkDevic
 import NetworkDeviceMetricUtil from "../../../../Server/Utils/Monitor/NetworkDeviceMetricUtil";
 import NetworkInventoryUtil from "../../../../Server/Utils/Monitor/NetworkInventoryUtil";
 import MonitorService from "../../../../Server/Services/MonitorService";
+import MonitorNetworkDeviceService from "../../../../Server/Services/MonitorNetworkDeviceService";
 import NetworkDeviceService from "../../../../Server/Services/NetworkDeviceService";
 import NetworkDeviceOidTemplateService from "../../../../Server/Services/NetworkDeviceOidTemplateService";
 import NetworkDevice from "../../../../Models/DatabaseModels/NetworkDevice";
@@ -615,6 +616,7 @@ describe("NetworkDeviceWalkUtil.processWalkResult with tables", () => {
       .spyOn(NetworkDeviceService, "updateColumnsByIdWithoutHooks")
       .mockResolvedValue(undefined);
     jest.spyOn(MonitorService, "findBy").mockResolvedValue([]);
+    jest.spyOn(MonitorNetworkDeviceService, "findBy").mockResolvedValue([]);
     inventorySpy = jest
       .spyOn(NetworkInventoryUtil, "updateFromWalk")
       .mockResolvedValue(undefined);

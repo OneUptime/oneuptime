@@ -273,6 +273,7 @@ import MonitorGroupResource from "./MonitorGroupResource";
 import MonitorOwnerTeam from "./MonitorOwnerTeam";
 import MonitorOwnerUser from "./MonitorOwnerUser";
 import MonitorProbe from "./MonitorProbe";
+import MonitorNetworkDevice from "./MonitorNetworkDevice";
 import MonitorSecret from "./MonitorSecret";
 import MonitorStatus from "./MonitorStatus";
 import MonitorStatusTimeline from "./MonitorStatusTimeline";
@@ -1002,6 +1003,7 @@ const AllModelTypes: Array<{
   StatusPageSCIM,
 
   MonitorProbe,
+  MonitorNetworkDevice,
 
   MonitorOwnerTeam,
   MonitorOwnerUser,
