@@ -515,10 +515,27 @@ const getPolicyResolverMock: () => MockedFn = (): MockedFn => {
   return TelemetryIngestionKeyService.getPolicyFromSecretKey as unknown as MockedFn;
 };
 
+const getMarkUsedMock: () => MockedFn = (): MockedFn => {
+  return TelemetryIngestionKeyService.markUsed as unknown as MockedFn;
+};
+
+// The ids of the keys stamped as used since the mock was last cleared.
+const stampedKeyIds: () => Array<string> = (): Array<string> => {
+  return getMarkUsedMock().mock.calls.map((args: Array<unknown>): string => {
+    return String(args[0]);
+  });
+};
+
+/*
+ * Nothing went to any signal's queue - and so no key was stamped as used
+ * either: the server stamps a key only for an export the queue took
+ * (issue #7887), never for a refused, failed or dropped one.
+ */
 const assertNothingEnqueued: () => void = (): void => {
   for (const signal of signals) {
     expect(signal.getQueue()).not.toHaveBeenCalled();
   }
+  expect(stampedKeyIds()).toEqual([]);
 };
 
 /*
@@ -1349,6 +1366,9 @@ describe.each(signals)("live gRPC $name Export", (signal: Signal) => {
           expect(other.getQueue()).not.toHaveBeenCalled();
         }
       }
+
+      // The key that sent it is now in use (issue #7887).
+      expect(stampedKeyIds()).toEqual([policy.ingestionKeyId.toString()]);
     },
   );
 
@@ -1489,6 +1509,8 @@ describe.each(signals)("live gRPC $name Export", (signal: Signal) => {
        */
       expect(signal.getQueue()).toHaveBeenCalledTimes(1);
       expect(logTranscript()).toContain("redis-backend-detail-must-not-leak");
+      // Not taken, so not used: the exporter's retry is what stamps the key.
+      expect(stampedKeyIds()).toEqual([]);
     },
   );
 
@@ -1706,9 +1728,11 @@ describe("live gRPC refusal reply depends on the reason alone", () => {
  * the live gRPC server with the same resolver answer and the same token in
  * the same header, and the two answers must agree: admitted on both, or
  * refused on both with HTTP's sentence as the gRPC details and HTTP's status
- * mapped onto the gRPC code. The combinations (a key both disabled and
- * expired, a disabled browser key, ...) pin that both sides check in the
- * same order, since only the first refusal is reported.
+ * mapped onto the gRPC code. They agree on the key's last-used stamp too:
+ * both stamp an admitted key, by its id, and neither stamps a refused one
+ * (issue #7887). The combinations (a key both disabled and expired, a
+ * disabled browser key, ...) pin that both sides check in the same order,
+ * since only the first refusal is reported.
  * ---------------------------------------------------------------------------
  */
 interface AgreementCase {
@@ -1859,10 +1883,14 @@ describe("HTTP and gRPC agree on every credential, case by case", () => {
             ? credentialEntries(null)
             : credentialEntries(token, header);
 
+        getMarkUsedMock().mockClear();
         const http: HttpVerdict = await askHttpMiddleware(resolution, entries);
         for (const other of signals) {
           other.getQueue().mockClear();
         }
+        // What HTTP stamped as used; the gRPC call is observed on its own.
+        const httpStamped: Array<string> = stampedKeyIds();
+        getMarkUsedMock().mockClear();
 
         const outcome: ExportOutcome = await callExport(
           signal,
@@ -1879,6 +1907,11 @@ describe("HTTP and gRPC agree on every credential, case by case", () => {
           expect(signal.getQueue().mock.calls[0]![0].projectId).toBe(
             (resolution as TelemetryIngestionKeyPolicy).projectId,
           );
+          expect(httpStamped).toEqual([
+            (
+              resolution as TelemetryIngestionKeyPolicy
+            ).ingestionKeyId.toString(),
+          ]);
         } else if (
           http.nextArgs !== null &&
           http.nextArgs[0] instanceof PaymentRequiredException
@@ -1892,11 +1925,16 @@ describe("HTTP and gRPC agree on every credential, case by case", () => {
             details: (http.nextArgs[0] as PaymentRequiredException).message,
           });
           assertNothingEnqueued();
+          expect(httpStamped).toEqual([]);
         } else {
           // HTTP refused it: gRPC refuses with the same sentence.
           expectRefusalReply(outcome, expectedReplyFor(http));
           assertNothingEnqueued();
+          expect(httpStamped).toEqual([]);
         }
+
+        // Both stamped the same key, or neither stamped any.
+        expect(stampedKeyIds()).toEqual(httpStamped);
 
         if (token !== null) {
           expect(clientObservableText(outcome)).not.toContain(token);
