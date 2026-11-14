@@ -15,6 +15,7 @@ import {
   createTranslator,
   Translator,
 } from "../../../UI/Utils/TranslateTemplate";
+import { dashboardTranslator } from "../../Helpers/DashboardLocales";
 
 /*
  * How many filters a folded monitor criteria says it has - in its header
@@ -139,5 +140,30 @@ describe("a criteria's filter count", () => {
         filterCondition: FilterCondition.Any,
       }),
     ).toBe("2 Filter (EINER)");
+  });
+
+  /*
+   * #7728: Swedish words "3 filters" as "3 filter", as English words one
+   * filter. That plural was taken for an English placeholder, and the
+   * header read an English sentence around the Swedish condition: "3
+   * filters (VALFRI)". Read from the Swedish file.
+   */
+  test("reads whole in Swedish, whose plural reads like English's singular", () => {
+    const swedish: Translator = dashboardTranslator("sv");
+
+    expect(
+      getCriteriaFilterCountText({
+        translator: swedish,
+        filters: filters(3),
+        filterCondition: FilterCondition.Any,
+      }),
+    ).toBe("3 filter (VALFRI)");
+    expect(
+      getCriteriaFilterCountText({
+        translator: swedish,
+        filters: filters(2),
+        filterCondition: undefined,
+      }),
+    ).toBe("2 filter (ALLA)");
   });
 });

@@ -124,7 +124,7 @@ Alles aus dem Formular lässt sich auf den Seiten des Ereignisses ändern, auße
 ## Notizen posten, während die Arbeit läuft
 
 - **Öffentliche Notizen** sind Updates für Ihre Kunden: Sie erscheinen auf den Statusseiten des Ereignisses, und jede kann deren Abonnenten mit **Statusseiten-Abonnenten benachrichtigen** informieren.
-- **Private Notizen** sind nur für Ihr Team.
+- **Private Notizen** kann nur lesen, wer das Ereignis sehen kann.
 
 Schreiben Sie eine auf der Seite **Öffentliche Notizen** oder **Private Notizen** des Ereignisses oder über das Menü **Aktionen** des **Feed der geplanten Wartung** mit **Öffentliche Notiz hinzufügen** oder **Private Notiz hinzufügen**. Dasselbe Menü startet ein Runbook mit **Runbook ausführen**. Eine Notizvorlage füllt Text aus, den Ihr Team oft schreibt: siehe [Wartungsregeln & Einstellungen](/docs/scheduled-maintenance/settings#notizvorlagen).
 

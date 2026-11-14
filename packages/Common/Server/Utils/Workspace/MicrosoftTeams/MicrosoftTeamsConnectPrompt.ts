@@ -381,14 +381,14 @@ const CREATE_PRESSES: ReadonlyMap<
   [
     MicrosoftTeamsScheduledMaintenanceActionType.NewScheduledMaintenance,
     {
-      purpose: "create a scheduled maintenance event",
+      purpose: "create a maintenance event",
       command: WorkspaceCommandName.Maintenance,
     },
   ],
   [
     MicrosoftTeamsScheduledMaintenanceActionType.SubmitNewScheduledMaintenance,
     {
-      purpose: "create a scheduled maintenance event",
+      purpose: "create a maintenance event",
       command: WorkspaceCommandName.Maintenance,
     },
   ],

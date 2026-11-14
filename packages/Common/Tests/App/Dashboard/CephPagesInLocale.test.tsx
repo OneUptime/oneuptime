@@ -679,7 +679,7 @@ describe("a Ceph cluster's Overview in Persian", () => {
     expect(screen.getByTestId("ceph-hero-osds")).toHaveTextContent(
       "۵/۶ OSD فعال",
     );
-    expect(screen.getByTestId("ceph-hero-pools")).toHaveTextContent("۲ Pool");
+    expect(screen.getByTestId("ceph-hero-pools")).toHaveTextContent("۲ استخر");
 
     const capacity: HTMLElement = tileTitled(worded(FA, "Capacity Used"));
     expect(

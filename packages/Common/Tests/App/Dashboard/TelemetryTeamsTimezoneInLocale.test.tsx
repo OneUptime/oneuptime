@@ -342,31 +342,56 @@ describe("UI review: a processor's mapping arrow on a page read from the right",
     );
   }
 
-  test("the arrow turns on an Arabic or Persian page, where the match value is on the right", () => {
-    expect(MAPPING_ARROW_CLASS_NAME.split(" ")).toEqual(
-      expect.arrayContaining(["inline-block", "rtl:-scale-x-100"]),
+  // The mapping row's arrows, as drawn: "→" or "←".
+  function mappingArrows(): Array<Element> {
+    return Array.from(document.querySelectorAll("span")).filter(
+      (span: Element): boolean => {
+        return ["→", "←"].includes(span.textContent?.trim() || "");
+      },
     );
+  }
+
+  /*
+   * The arrow is "←" on a page read from the right (DirectionArrow). A
+   * class that mirrored it there as well would turn it back to point right.
+   */
+  test("the arrow is turned once, by the glyph the page's language draws", () => {
+    expect(MAPPING_ARROW_CLASS_NAME).not.toMatch(/scale-x|rotate/);
   });
 
   test.each([
     TracePipelineProcessorType.SpanNameRemapper,
     TracePipelineProcessorType.StatusRemapper,
     TracePipelineProcessorType.SpanKindRemapper,
-  ])("Arabic: the %s's mapping row turns its arrow", async (type: string) => {
-    await i18next.changeLanguage("ar");
-    renderProcessor(type as TracePipelineProcessorType);
+  ])(
+    "Arabic: the %s's mapping row points from the match value, on the right, to what it becomes",
+    async (type: string) => {
+      await i18next.changeLanguage("ar");
+      renderProcessor(type as TracePipelineProcessorType);
 
-    const arrows: Array<Element> = Array.from(
-      document.querySelectorAll("span"),
-    ).filter((span: Element): boolean => {
-      return span.textContent?.trim() === "→";
-    });
+      const arrows: Array<Element> = mappingArrows();
 
-    expect(arrows).toHaveLength(1);
-    expect(arrows[0]!.className).toBe(MAPPING_ARROW_CLASS_NAME);
+      expect(
+        arrows.map((arrow: Element): string => {
+          return arrow.textContent || "";
+        }),
+      ).toEqual(["←"]);
+      expect(arrows[0]!.className).toBe(MAPPING_ARROW_CLASS_NAME);
+    },
+  );
+
+  test("English: the mapping row's arrow points right, as it did", async () => {
+    await i18next.changeLanguage("en");
+    renderProcessor(TracePipelineProcessorType.SpanNameRemapper);
+
+    expect(
+      mappingArrows().map((arrow: Element): string => {
+        return arrow.textContent || "";
+      }),
+    ).toEqual(["→"]);
   });
 
-  test("no mapping arrow in the form is drawn without the turning class", () => {
+  test("every mapping arrow in the form is the page's arrow, in the mapping arrow's class", () => {
     const source: string = fs.readFileSync(
       path.resolve(
         __dirname,
@@ -375,15 +400,15 @@ describe("UI review: a processor's mapping arrow on a page read from the right",
       "utf8",
     );
     const arrows: Array<string> = Array.from(
-      source.matchAll(/<span className=\{?([^>]*)>\s*→\s*<\/span>/g),
+      source.matchAll(/<DirectionArrow\s+className=\{([^}]*)\}\s*\/>/g),
     ).map((match: RegExpMatchArray): string => {
       return match[1]!;
     });
 
     expect(arrows).toEqual([
-      "MAPPING_ARROW_CLASS_NAME}",
-      "MAPPING_ARROW_CLASS_NAME}",
-      "MAPPING_ARROW_CLASS_NAME}",
+      "MAPPING_ARROW_CLASS_NAME",
+      "MAPPING_ARROW_CLASS_NAME",
+      "MAPPING_ARROW_CLASS_NAME",
     ]);
   });
 });

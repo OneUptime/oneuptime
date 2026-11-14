@@ -1119,6 +1119,13 @@ export default class AnalyticsDatabaseService<
         );
       }
 
+      /*
+       * The reader's zone the day, week, month and year buckets follow
+       * (#7277): a name in the Timezone list or nothing, refused with a 400
+       * otherwise, before any statement is built.
+       */
+      AggregateUtil.readTimezone(aggregateBy.timezone);
+
       if (!aggregateBy.aggregationTimestampColumnName) {
         throw new BadDataException(
           "aggregationTimestampColumnName is required",

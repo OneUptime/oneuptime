@@ -86,6 +86,17 @@ export class Service extends ProjectReferencesService<Model> {
       }
     }
 
+    /*
+     * Who owns the event changed, so a rule with an owners condition may
+     * match it now ("Scheduled Maintenance Owner is none of ..."): a rule
+     * that starts to match opens its channel, as it does when an
+     * incident's owners change - whose change is posted, which checks the
+     * rules on the way (WorkspaceNotificationRuleService
+     * .createChannelsForRulesThatNowMatch). A maintenance event's owner
+     * changes are not posted, so the rules are checked here.
+     */
+    await Service.checkRulesAgain(itemsToDelete);
+
     return onDelete;
   }
 
@@ -130,6 +141,15 @@ export class Service extends ProjectReferencesService<Model> {
       }
     }
 
+    /*
+     * A new owner can make a rule with an owners condition match the event
+     * ("Scheduled Maintenance Owner is any of Platform team"): that rule
+     * opens its channel now, with its people - this owner among them, as a
+     * rule that invites owners invites them. Checked before this owner is
+     * invited to the channels the event has already.
+     */
+    await Service.checkRulesAgain([createdItem]);
+
     // get notification rule where inviteOwners is true.
     const notificationRules: Array<WorkspaceNotificationRule> =
       await WorkspaceNotificationRuleService.getNotificationRulesWhereInviteOwnersIsTrue(
@@ -166,6 +186,38 @@ export class Service extends ProjectReferencesService<Model> {
     });
 
     return createdItem;
+  }
+
+  /*
+   * The rules of the events whose owners changed, checked again: a rule
+   * that now matches one, and creates a channel, opens it
+   * (createChannelsForRulesThatNowMatch, which never throws).
+   */
+  public static async checkRulesAgain(rows: Array<Model>): Promise<void> {
+    const checked: Set<string> = new Set();
+
+    for (const row of rows) {
+      if (!row.scheduledMaintenanceId || !row.projectId) {
+        continue;
+      }
+
+      const key: string = row.scheduledMaintenanceId.toString();
+
+      if (checked.has(key)) {
+        continue;
+      }
+
+      checked.add(key);
+
+      await WorkspaceNotificationRuleService.createChannelsForRulesThatNowMatch(
+        {
+          projectId: row.projectId,
+          notificationFor: {
+            scheduledMaintenanceId: row.scheduledMaintenanceId,
+          },
+        },
+      );
+    }
   }
 }
 

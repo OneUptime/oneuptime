@@ -13,7 +13,7 @@ import {
   CloudResolvedRelationship,
   resolveCloudRelationships,
 } from "Common/Types/Cloud/CloudResourceIndex";
-import { getCloudResourceTypeDisplayName } from "Common/Types/Cloud/CloudResourceCatalog";
+import { getCloudResourceTypeText } from "Common/Types/Cloud/CloudResourceCatalog";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
@@ -51,11 +51,12 @@ import { getCloudRelationshipLabel } from "./CloudRelationshipWords";
  * CLOUD_NEIGHBOUR_READ_LIMIT of them, with a line saying so when the
  * account holds more - and grouped by CloudConnectionGroups.
  *
- * Each one's kind reads as words: the catalog's label ("EC2 Instance"), a
+ * Each one's kind reads as words, as every other page names it
+ * (getCloudResourceTypeText): the catalog's label, a cloud's product name
+ * drawn as written in every language ("EC2 Instance", "Virtual Machine"), a
  * named only type's in the reader's language ("Subnet", "Security Group":
  * NAMED_ONLY_RESOURCE_TYPES), or any other type in words ("Transit Gateway
- * (EC2)") - never "AWS::EC2::Subnet" as the cloud writes it
- * (getCloudResourceTypeDisplayName).
+ * (EC2)") - never "AWS::EC2::Subnet" as the cloud writes it.
  */
 
 export interface ComponentProps {
@@ -178,7 +179,7 @@ const CloudResourceInventoryCards: FunctionComponent<ComponentProps> = (
     relationship: CloudResolvedRelationship,
   ): ReactElement => {
     const typeLabel: string = relationship.otherType
-      ? getCloudResourceTypeDisplayName(provider, relationship.otherType)
+      ? getCloudResourceTypeText(provider, relationship.otherType, translator)
       : "";
 
     /*
@@ -226,7 +227,7 @@ const CloudResourceInventoryCards: FunctionComponent<ComponentProps> = (
             className="ml-2 text-xs text-gray-500"
             data-testid="cloud-connection-type"
           >
-            <bdi>{translator.translateText(typeLabel) || typeLabel}</bdi>
+            <bdi>{typeLabel}</bdi>
           </span>
         ) : (
           <></>

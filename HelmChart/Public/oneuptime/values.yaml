@@ -132,6 +132,14 @@ testHook:
 # other. OneUptime refuses a value its repository ships ("secret", or a
 # "please-change-this-..." placeholder) from every caller. The bundled global
 # Runner does not hold it: it presents its own key (globalRunner.key below).
+#
+# The chart drops the whitespace around each of these keys (and around each
+# probe's key, globalRunner.key and vllm.apiKey), so a key read from a file
+# with its final newline (helm --set-file, Terraform's file()) is used, and
+# stored in `<release>-secrets`, without it. Older charts stored such a key
+# with its newline. The first upgrade that still sets the key here stores it
+# without; take a key out of these values only on a later upgrade, or the pods
+# switch to the copy stored with the newline, which is a different key.
 oneuptimeSecret:
 registerProbeKey:
 encryptionSecret:
@@ -1346,6 +1354,135 @@ pushNotification:
   # send their pushes through this one (their pushNotification.relayUrl);
   # expo.accessToken alone sends this server's own pushes and relays nothing.
   relayServerEnabled:
+
+# The Twilio account this server sends SMS and makes calls with, for projects
+# that have no Twilio account of their own - what Admin Dashboard > Settings >
+# Call and SMS otherwise sets up. Set accountSid, and the account is the one
+# these values describe: the one saved in the Admin Dashboard is not used, and
+# the Admin Dashboard shows this one, read-only. Leave accountSid empty to keep
+# setting the account up in the Admin Dashboard. Something wrong with these
+# values (a number that is not a phone number, a missing auth token) keeps the
+# account from sending until it is fixed: the app's log and the Admin
+# Dashboard say what. See https://oneuptime.com/docs/self-hosted/twilio-integration
+twilio:
+  # The Account SID from the Twilio Console (it starts with AC).
+  accountSid:
+  # The account's auth token. Or leave it empty and name a Secret below.
+  authToken:
+  # What the account is used for: calls-and-sms (what empty means), sms-only
+  # or calls-only.
+  usedFor:
+  # The number calls go out from, with its country code: "+14155550100".
+  # Quote it - YAML reads +14155550100 as a number, which the chart refuses -
+  # and pass it with --set-string, not --set. Not needed for sms-only.
+  primaryPhoneNumber:
+  # More numbers, comma-separated ("+441234567890,+461234567890"): one is
+  # used instead of the primary number when it matches the recipient's
+  # country code.
+  secondaryPhoneNumbers:
+  # The numbers every SMS goes out from, comma-separated, for phone numbers
+  # that can only make calls. Required for sms-only; left empty, SMS go out
+  # from the same numbers as calls.
+  smsPhoneNumbers:
+  # Read the auth token from a Secret you manage instead of authToken, to keep
+  # it out of these values (Helm stores them with every revision). Create it in
+  # the release's namespace:
+  #   kubectl create secret generic oneuptime-twilio -n <namespace> \
+  #     --from-literal=authToken=<auth token>
+  # Leave authToken empty then: the chart refuses the two together.
+  existingSecret:
+    name:
+    # The key of that Secret that holds the auth token.
+    authTokenKey: authToken
+
+# How this server sends its own email - what Admin Dashboard > Settings >
+# Emails otherwise sets up. Set serverType, and the settings are the ones these
+# values describe: the ones saved in the Admin Dashboard are not used, and the
+# Admin Dashboard shows these, read-only. Leave serverType empty to keep
+# setting email up in the Admin Dashboard. Something wrong with these values (a
+# port that is not a number, a missing password) keeps the server from sending
+# email until it is fixed: the app's log and the Admin Dashboard say what. Only
+# the values the server type reads are used. See
+# https://oneuptime.com/docs/emails/email-providers#set-the-servers-email-with-environment-variables
+email:
+  # custom-smtp (your own mail server, or Microsoft Graph), sendgrid,
+  # amazon-ses, mailgun, postmark or resend.
+  serverType:
+  # The address every email comes from, such as alerts@example.com.
+  fromEmail:
+  # The name every email comes from. Required for custom-smtp and sendgrid;
+  # the others send with the product's name when it is empty.
+  fromName:
+  smtp:
+    # smtp (what empty means), or microsoft-graph to send through Microsoft
+    # Graph with the OAuth app below instead of a mail server.
+    transport:
+    # The mail server, such as smtp.example.com, and its port, such as 587.
+    host:
+    port:
+    # true to send only over an encrypted connection with a valid
+    # certificate; empty means false, and the certificate is not checked.
+    # Port 465 is always encrypted.
+    requireTls:
+    # username-and-password (what empty means), oauth or none.
+    authType:
+    # The mailbox to sign in as, which oauth needs too. With
+    # username-and-password, leave both the username and the password empty
+    # to send without signing in.
+    username:
+    # The password, or an API key your provider gives you. Or leave it empty
+    # and name a Secret below.
+    password:
+    # The OAuth app, for authType oauth or transport microsoft-graph.
+    oauth:
+      # client-credentials (what empty means) or jwt-bearer.
+      providerType:
+      clientId:
+      # The client secret - for jwt-bearer, the private key in PEM format. Or
+      # leave it empty and name a Secret below.
+      clientSecret:
+      # Such as https://login.microsoftonline.com/<tenant>/oauth2/v2.0/token.
+      tokenUrl:
+      # Such as https://outlook.office365.com/.default.
+      scope:
+  sendgrid:
+    # Or leave it empty and name a Secret below.
+    apiKey:
+  amazonSes:
+    # access-key (what empty means), or server-iam-role to sign in as the IAM
+    # role AWS gives the server's pods (EKS Pod Identity, IRSA), with no key.
+    authenticationType:
+    accessKeyId:
+    # Or leave it empty and name a Secret below.
+    secretAccessKey:
+    # The Region your sender is verified in, such as us-east-1.
+    region:
+  mailgun:
+    # Or leave it empty and name a Secret below.
+    apiKey:
+    # The sending domain, such as mg.example.com.
+    domain:
+    # us (what empty means) or eu.
+    region:
+  postmark:
+    # The server API token. Or leave it empty and name a Secret below.
+    serverToken:
+  resend:
+    # Or leave it empty and name a Secret below.
+    apiKey:
+  # Read the password or key the settings use from a Secret you manage
+  # instead, to keep it out of these values (Helm stores them with every
+  # revision). Create it in the release's namespace:
+  #   kubectl create secret generic oneuptime-email -n <namespace> \
+  #     --from-literal=smtpPassword=<password>
+  # Leave the password or key empty then: the chart refuses the two together.
+  existingSecret:
+    name:
+    # The key of that Secret that holds it. Left empty: smtpPassword,
+    # smtpOAuthClientSecret (oauth or microsoft-graph), sendgridApiKey,
+    # amazonSesSecretAccessKey, mailgunApiKey, postmarkServerToken or
+    # resendApiKey, for the settings that read it.
+    key:
 
 incidents:
   disableAutomaticCreation: false

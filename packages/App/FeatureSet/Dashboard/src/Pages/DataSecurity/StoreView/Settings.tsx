@@ -98,7 +98,7 @@ const DataStoreSettings: FunctionComponent<
         return (
           <StoreExclusionsInput
             initialValue={values.scanExclusions}
-            placeholder={translator.translateText("e.g. backups/")}
+            placeholder="e.g. backups/"
             ariaLabelledby={elementProps.ariaLabelledby}
             ariaDescribedby={elementProps.ariaDescribedby}
             error={elementProps.error}

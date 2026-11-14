@@ -170,7 +170,7 @@ Tutto ciò che è nello snippet arriva ai tuoi visitatori, quindi chiunque può 
 | **Scade il** | Dopo questa data la chiave non viene più accettata. |
 | **Abilitato** | Disattivalo per fermare subito una chiave trapelata. |
 
-Una chiave Browser scrive tracce, log e metriche OTLP, oltre alle riproduzioni delle sessioni; ogni altra via di acquisizione la rifiuta. Queste impostazioni si cambiano nella pagina della chiave. Il tipo di chiave non si può cambiare dopo la creazione della chiave.
+Una chiave Browser scrive tracce, log e metriche OTLP, riproduzioni delle sessioni ed eventi di un [SDK di Sentry nel browser](/docs/telemetry/compatible-endpoints#sdk-di-sentry); ogni altra via di acquisizione la rifiuta. Queste impostazioni si cambiano nella pagina della chiave. Il tipo di chiave non si può cambiare dopo la creazione della chiave.
 
 > [!WARNING]
 > Non mettere mai una chiave **Server** in una pagina. Una chiave Server scrive qualsiasi tipo di telemetria da qualsiasi posto, senza controllo dell'origine, quindi chiunque legga la tua pagina potrebbe scrivere nel tuo progetto.

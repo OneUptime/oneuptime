@@ -248,8 +248,8 @@ export default class EmailLog extends BaseModel {
     required: true,
     type: TableColumnType.ShortText,
     allowedValues: Object.values(MailStatus),
-    title: "Status of the SMS",
-    description: "Status of the SMS sent",
+    title: "Status of the Email",
+    description: "Status of the email sent",
     canReadOnRelationQuery: false,
     example: "Success",
   })

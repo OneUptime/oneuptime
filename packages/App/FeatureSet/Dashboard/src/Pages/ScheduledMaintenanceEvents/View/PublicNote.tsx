@@ -1,6 +1,8 @@
 import EventNotes from "../../../Components/EventNotes/EventNotes";
 import { getScheduledMaintenancePublicNoteKind } from "../../../Components/EventNotes/NoteKinds/ScheduledMaintenanceNoteKinds";
-import useParentNotifyDefault from "../../../Components/EventNotes/useParentNotifyDefault";
+import useParentNotifyDefault, {
+  PUBLIC_NOTES_LOAD_FAILED,
+} from "../../../Components/EventNotes/useParentNotifyDefault";
 import PageComponentProps from "../../PageComponentProps";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenancePublicNote from "Common/Models/DatabaseModels/ScheduledMaintenancePublicNote";
@@ -9,12 +11,14 @@ import PublicNoteSubscriberNotificationDefault from "Common/Types/StatusPage/Pub
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Navigation from "Common/UI/Utils/Navigation";
+import useTranslateValue from "Common/UI/Utils/Translation";
 import React, { FunctionComponent, ReactElement } from "react";
 
 const ScheduledMaintenancePublicNotes: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+  const { translateString } = useTranslateValue();
 
   const { isNotifyingByDefault, error } =
     useParentNotifyDefault<ScheduledMaintenance>({
@@ -31,7 +35,12 @@ const ScheduledMaintenancePublicNotes: FunctionComponent<PageComponentProps> = (
     });
 
   if (error) {
-    return <ErrorMessage message={error} />;
+    return (
+      <ErrorMessage
+        message={error}
+        whatFailed={translateString(PUBLIC_NOTES_LOAD_FAILED)}
+      />
+    );
   }
 
   if (isNotifyingByDefault === null) {

@@ -10,6 +10,7 @@ import WorkspaceMessagePayload, {
   WorkspaceMessageBlock,
 } from "../../../../Types/Workspace/WorkspaceMessagePayload";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
+import { NotificationRuleUpdateKind } from "../../../../Types/Workspace/NotificationRules/NotificationRuleUpdates";
 import Semaphore, { SemaphoreMutex } from "../../../Infrastructure/Semaphore";
 import WorkspaceLiveMessageService from "../../../Services/WorkspaceLiveMessageService";
 import WorkspaceNotificationRuleService, {
@@ -143,6 +144,10 @@ export default class WorkspaceLiveMessages {
    * rules name - in every workspace the project is connected to, and keeps
    * each post. A place it cannot be posted in is logged in Notification Logs
    * and left out.
+   *
+   * A message that says which updates it is (updateKinds: an on-call
+   * policy's run is Paging) is posted only where a rule wants one of them
+   * (NotificationRuleUpdates).
    */
   @CaptureSpan()
   public static async postEverywhere(data: {
@@ -153,6 +158,7 @@ export default class WorkspaceLiveMessages {
     // What its notification shows (WorkspaceMessagePayload.text).
     text?: string | undefined;
     messageData?: WorkspaceLiveMessageData | undefined;
+    updateKinds?: ReadonlyArray<NotificationRuleUpdateKind> | undefined;
   }): Promise<Array<WorkspaceLiveMessage>> {
     const kept: Array<WorkspaceLiveMessage> = [];
 
@@ -168,6 +174,7 @@ export default class WorkspaceLiveMessages {
             projectId: data.projectId,
             notificationFor: data.notificationFor,
             workspaceType: workspaceType,
+            updateKinds: data.updateKinds,
           });
       } catch (err) {
         logger.error(

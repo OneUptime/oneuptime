@@ -429,7 +429,7 @@
           </div>
         </div>
 
-        <!-- Feature 3: Search with SQL -->
+        <!-- Feature 3: Search by Field or Text -->
         <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
           <div class="relative">
             <div class="flex items-center gap-4 mb-6">
@@ -440,8 +440,8 @@
               </div>
               <span class="text-sm font-semibold text-amber-600 uppercase tracking-wide">Powerful Search</span>
             </div>
-            <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Search in seconds or write a custom SQL query</h3>
-            <p class="mt-4 text-lg text-gray-600">Search logs with full text search or search with Clickhouse SQL. Search petabytes of data in seconds. No rehydration needed. One of the most cost effective log solutions in the market.</p>
+            <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Search in seconds, by field or by text</h3>
+            <p class="mt-4 text-lg text-gray-600">Search logs by any field or attribute, or by free text, in one query language. Search petabytes of data in seconds. No rehydration needed. One of the most cost effective log solutions in the market.</p>
             <ul class="mt-6 space-y-3">
               <li class="flex items-center gap-3 text-gray-600">
                 <svg class="h-5 w-5 text-amber-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -453,7 +453,7 @@
                 <svg class="h-5 w-5 text-amber-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                 </svg>
-                Clickhouse SQL queries
+                Filters on any field or attribute
               </li>
               <li class="flex items-center gap-3 text-gray-600">
                 <svg class="h-5 w-5 text-amber-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -474,7 +474,7 @@
               <!-- Subtle background -->
               <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
 
-              <!-- SQL Query Interface Mockup -->
+              <!-- Log Search Mockup -->
               <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
                 <!-- Browser header -->
                 <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
@@ -490,29 +490,23 @@
 
                 <!-- Query area -->
                 <div class="p-4">
-                  <!-- SQL Editor -->
-                  <div class="bg-gray-900 rounded-lg p-3 mb-4 font-mono text-xs">
-                    <div class="text-purple-400">SELECT</div>
-                    <div class="text-gray-300 pl-4">timestamp, level, message, service</div>
-                    <div class="text-purple-400">FROM</div>
-                    <div class="text-gray-300 pl-4">logs</div>
-                    <div class="text-purple-400">WHERE</div>
-                    <div class="text-gray-300 pl-4">level = <span class="text-amber-400">'ERROR'</span></div>
-                    <div class="text-gray-300 pl-4 flex items-center gap-1">
-                      <span class="text-purple-400">AND</span> service = <span class="text-amber-400">'api-server'</span>
+                  <!-- Search query -->
+                  <div class="bg-gray-900 rounded-lg p-3 mb-4 font-mono text-xs leading-relaxed">
+                    <div class="text-gray-500 mb-1">Search logs</div>
+                    <div class="text-gray-300 flex flex-wrap gap-x-2">
+                      <span><span class="text-purple-400">severity:</span><span class="text-amber-400">error</span></span>
+                      <span><span class="text-purple-400">service:</span><span class="text-amber-400">api-server</span></span>
+                      <span><span class="text-purple-400">-@http.route:</span><span class="text-amber-400">/health*</span></span>
                     </div>
-                    <div class="text-purple-400">ORDER BY</div>
-                    <div class="text-gray-300 pl-4">timestamp <span class="text-purple-400">DESC</span></div>
-                    <div class="text-purple-400">LIMIT <span class="text-cyan-400">100</span></div>
                   </div>
 
                   <!-- Run button and stats -->
                   <div class="flex items-center justify-between mb-4">
                     <button class="px-3 py-1.5 bg-purple-600 text-white text-xs font-medium rounded-lg flex items-center gap-1.5">
                       <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                       </svg>
-                      Run Query
+                      Search
                     </button>
                     <div class="flex items-center gap-3 text-xs text-gray-500">
                       <span class="flex items-center gap-1">
@@ -521,7 +515,7 @@
                         </svg>
                         48ms
                       </span>
-                      <span>847 rows</span>
+                      <span>847 logs</span>
                     </div>
                   </div>
 

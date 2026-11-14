@@ -1,0 +1,100 @@
+// Prometheus remote write 1.0 (prometheus.WriteRequest).
+//
+// Wire-compatible with prompb/remote.proto and prompb/types.proto in
+// github.com/prometheus/prometheus, without their gogoproto options:
+// https://prometheus.io/docs/specs/prw/remote_write_spec/
+syntax = "proto3";
+
+package prometheus;
+
+message WriteRequest {
+  repeated TimeSeries timeseries = 1;
+  // Cortex uses this field to determine the source of the write request.
+  reserved 2;
+  repeated MetricMetadata metadata = 3;
+}
+
+message MetricMetadata {
+  enum MetricType {
+    UNKNOWN = 0;
+    COUNTER = 1;
+    GAUGE = 2;
+    HISTOGRAM = 3;
+    GAUGEHISTOGRAM = 4;
+    SUMMARY = 5;
+    INFO = 6;
+    STATESET = 7;
+  }
+
+  MetricType type = 1;
+  string metric_family_name = 2;
+  string help = 4;
+  string unit = 5;
+}
+
+message Sample {
+  double value = 1;
+  // Milliseconds since the epoch.
+  int64 timestamp = 2;
+}
+
+message Exemplar {
+  repeated Label labels = 1;
+  double value = 2;
+  int64 timestamp = 3;
+}
+
+// A native histogram (sparse, exponential buckets).
+message Histogram {
+  enum ResetHint {
+    UNKNOWN = 0;
+    YES = 1;
+    NO = 2;
+    GAUGE = 3;
+  }
+
+  oneof count {
+    uint64 count_int = 1;
+    double count_float = 2;
+  }
+
+  double sum = 3;
+  sint32 schema = 4;
+  double zero_threshold = 5;
+
+  oneof zero_count {
+    uint64 zero_count_int = 6;
+    double zero_count_float = 7;
+  }
+
+  repeated BucketSpan negative_spans = 8;
+  repeated sint64 negative_deltas = 9;
+  repeated double negative_counts = 10;
+
+  repeated BucketSpan positive_spans = 11;
+  repeated sint64 positive_deltas = 12;
+  repeated double positive_counts = 13;
+
+  ResetHint reset_hint = 14;
+  int64 timestamp = 15;
+
+  // The bucket boundaries of a histogram with custom buckets (schema -53).
+  repeated double custom_values = 16;
+}
+
+message BucketSpan {
+  sint32 offset = 1;
+  uint32 length = 2;
+}
+
+message TimeSeries {
+  repeated Label labels = 1;
+  repeated Sample samples = 2;
+  repeated Exemplar exemplars = 3;
+  repeated Histogram histograms = 4;
+}
+
+message Label {
+  string name = 1;
+  string value = 2;
+}

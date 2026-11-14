@@ -49,7 +49,7 @@ import WorkspaceIncidentFromAlert, {
  */
 
 export interface CreateFormText {
-  // "an incident", "a scheduled maintenance event": what the form creates.
+  // "an incident", "a maintenance event": what the form creates.
   what: string;
   // Below the project in the dashboard, where the same thing can be created.
   dashboardRoute: string;
@@ -70,7 +70,7 @@ const INCIDENT_FORM: CreateFormText = {
 };
 
 const SCHEDULED_MAINTENANCE_FORM: CreateFormText = {
-  what: "a scheduled maintenance event",
+  what: "a maintenance event",
   dashboardRoute: "/scheduled-maintenance-events/create",
   command: WorkspaceCommandName.Maintenance,
   lists: "monitors and labels",
@@ -225,7 +225,7 @@ export default class MicrosoftTeamsCreateCommands {
         // Submitting checks the same permission.
         createPermission: {
           modelType: ScheduledMaintenance,
-          action: "create a scheduled maintenance event",
+          action: "create a maintenance event",
         },
       });
 

@@ -259,21 +259,54 @@ describe("what the form starts with", () => {
     expect(cover.getDefaultValue).toBeUndefined();
   });
 
-  test("'Starts' starts as now, worked out when the form opens", () => {
-    const opened: Date = OneUptimeDate.fromString("2026-03-03T12:34:56.000Z");
+  test("'Starts' starts as now, to the minute, worked out when the form opens", () => {
+    const opened: Date = OneUptimeDate.fromString("2026-03-03T12:34:56.789Z");
     jest.spyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(opened);
 
     const starts: OverrideField = byTitle(fields(ALEX), "Starts");
 
+    /*
+     * Issue #7593: it was 12:34:56, so Starts read "03/03/2026 12:34:56"
+     * beside an Ends of "12:36" and the browser's picker asked for seconds.
+     * Now is the minute the form was opened in.
+     */
     expect(starts.defaultValue).toBeUndefined();
-    expect(starts.getDefaultValue?.({})).toBe("2026-03-03T12:34:56.000Z");
-    expect(getDefaultUserOverrideStartsAt()).toBe("2026-03-03T12:34:56.000Z");
+    expect(starts.getDefaultValue?.({})).toBe("2026-03-03T12:34:00.000Z");
+    expect(getDefaultUserOverrideStartsAt()).toBe("2026-03-03T12:34:00.000Z");
 
     // Opened again an hour later, it is that hour's now.
     const later: Date = OneUptimeDate.fromString("2026-03-03T13:34:56.000Z");
     jest.spyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(later);
 
-    expect(starts.getDefaultValue?.({})).toBe("2026-03-03T13:34:56.000Z");
+    expect(starts.getDefaultValue?.({})).toBe("2026-03-03T13:34:00.000Z");
+  });
+
+  test("'Starts' has already begun when the form opens: the cover is in force at once", () => {
+    for (const opened of [
+      "2026-03-03T12:34:00.000Z",
+      "2026-03-03T12:34:00.001Z",
+      "2026-03-03T12:34:59.999Z",
+      "2026-12-31T23:59:59.999Z",
+    ]) {
+      const now: Date = OneUptimeDate.fromString(opened);
+      jest.spyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(now);
+
+      const startsAt: Date = OneUptimeDate.fromString(
+        getDefaultUserOverrideStartsAt(),
+      );
+
+      expect({
+        opened,
+        notAfterNow: startsAt.getTime() <= now.getTime(),
+        withinTheMinute: now.getTime() - startsAt.getTime() < 60 * 1000,
+        onTheMinute: startsAt.getUTCSeconds() + startsAt.getUTCMilliseconds(),
+      }).toEqual({
+        opened,
+        notAfterNow: true,
+        withinTheMinute: true,
+        onTheMinute: 0,
+      });
+    }
   });
 
   test("'Ends' starts empty: only the person booking knows when the cover stops", () => {
@@ -327,9 +360,11 @@ describe("the two people pickers", () => {
   test("the fields use these pickers", () => {
     const list: Array<OverrideField> = fields(ALEX);
 
-    expect(byTitle(list, "Who is away?").peoplePicker).toEqual(
-      getUserOverrideAwayPickerConfig(),
-    );
+    // Adding, who is away is picked: shown alone only when an override is edited.
+    expect(byTitle(list, "Who is away?").peoplePicker).toEqual({
+      ...getUserOverrideAwayPickerConfig(),
+      isReadOnly: false,
+    });
     expect(byTitle(list, "Who covers?").peoplePicker).toEqual(
       getUserOverrideCoverPickerConfig(),
     );
@@ -441,7 +476,10 @@ describe("what the form refuses", () => {
     expect(byTitle(list, "Who covers?").customValidation?.(values)).toBe(
       USER_OVERRIDE_SAME_PERSON_MESSAGE,
     );
-    expect(byTitle(list, "Starts").customValidation).toBeUndefined();
+    // Adding, Starts has nothing of its own to check: only an edit's start is held.
+    expect(byTitle(list, "Starts").customValidation?.(values) ?? null).toBe(
+      null,
+    );
     expect(byTitle(list, "Ends").customValidation?.(values)).toBe(
       USER_OVERRIDE_ENDS_BEFORE_START_MESSAGE,
     );

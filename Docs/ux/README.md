@@ -510,6 +510,12 @@ work out, starts from a default for everything else, and folds what most people 
 - **A date is written by `OneUptimeDate` in the reader's language,** never put into an English
   template literal. Enforced by
   [DatesInEnglishTextGuard](../../packages/App/Tests/Dashboard/DatesInEnglishTextGuard.test.ts).
+- **A date and time people fill in shows and keeps hours and minutes, never seconds.** Add User
+  Override's Starts read "13/11/2026 11:15:52", and nobody schedules a shift to the second (#7593).
+  Draw the field with the shared Input. Only a field read against telemetry's own timestamps, like a
+  time range's From and To, opts in to seconds (`showSecondsForDateTime`), with its reason listed.
+  Enforced by
+  [MinutePickersGuard](../../packages/Common/Tests/UI/MinutePickersGuard.test.ts).
 - **A duration in milliseconds is written in the reader's language,** with the Dashboard's
   `formatMilliseconds` ("{{value}} ms", each language's own unit and order, the figure in the
   reader's digits), never a figure joined to " ms": every monitor's Response Time read "ms 411" on
@@ -549,11 +555,24 @@ then `npm run i18n:validate` from the root.
   [DashboardListNameCellsGuard](../../packages/Common/Tests/App/Dashboard/DashboardListNameCellsGuard.test.ts)
   and
   [TranslatedSentenceInRowGuard](../../packages/Common/Tests/UI/TranslatedSentenceInRowGuard.test.ts).
-- **A path's arrows point the way it is read.** A browser never turns "→" round, so on a page read
-  from the right it points each step back at the one before: Arabic and Persian write "←" beside a
-  step in their own words (`تنظیمات پروژه ← پیشرفته`), and keep "→" between two steps left in Latin
-  letters, which are drawn from the left. ">" and "›" turn round by themselves. Enforced by
+- **A path's arrows point the way it is read, and a link's the way it leads.** A browser never turns
+  "→" round, so on a page read from the right it points each step back at the one before: Arabic and
+  Persian write "←" beside a step in their own words (`تنظیمات پروژه ← پیشرفته`), and keep "→"
+  between two steps left in Latin letters, which are drawn from the left. ">" and "›" turn round by
+  themselves. A link that leads on ends with "←" there ("All metrics →" is `همهٔ متریک‌ها ←`), and
+  one that leads back starts with "→" ("← Back" is `→ بازگشت`). Enforced by
   [PathArrowsInRightToLeftSentences](../../packages/Common/Tests/App/PathArrowsInRightToLeftSentences.test.ts).
+- **An arrow a component draws points the way its line is read.** Between two values ("Declared →
+  Acknowledged", "12.5% → 15.0%") or after a link's words, never write "→" into a component: draw
+  `DirectionArrow`, or take `getArrowOn` or `joinWithArrowsOn` from `Common/Types/DirectionArrow`.
+  On a page read from the right the arrow is "←", the first value is drawn at the right, and each
+  value is set apart so the arrow stays the line's. A line that reads one way on every page, like
+  the names of the user flow map's bands (drawn from the left everywhere), takes
+  `joinWithArrowsInDirection`, and its box takes that way too (`getOneWayLineDirection`), whatever
+  letters its values are in. Enforced by
+  [ComponentArrowsInRightToLeftPages](../../packages/Common/Tests/App/ComponentArrowsInRightToLeftPages.test.ts)
+  and
+  [DirectionArrowsInReadersLanguage](../../packages/Common/Tests/App/Dashboard/DirectionArrowsInReadersLanguage.test.tsx).
 - **A bare word has one meaning everywhere,** because a label is translated by its English text.
   "Any" is the Match Condition's word. Enforced by
   [MatchConditionAnyWordGuard](../../packages/Common/Tests/UI/Components/Forms/MatchConditionAnyWordGuard.test.ts).
@@ -565,6 +584,33 @@ then `npm run i18n:validate` from the root.
   [NounKeysDrawnAsLabelsGuard](../../packages/Common/Tests/App/Dashboard/NounKeysDrawnAsLabelsGuard.test.ts)
   and
   [NounLabelsStartWithACapital](../../packages/Common/Tests/App/Dashboard/NounLabelsStartWithACapital.test.tsx).
+- **A cloud's product name is written as the cloud writes it.** A kind of cloud resource is named by
+  the catalog's label, a product's name ("Virtual Machine", "Cloud Run"), in every language and on
+  every page: the rows, the cards, the overview, Topology, a Type filter's menu and its chip. The docs'
+  tables of supported resources write them so too. Never look a label up: some are also Dashboard
+  words, and a Spanish menu said "Máquina virtual" over rows that said "Virtual Machine". A kind the
+  catalog only names in words reads in the reader's words ("Subred"), through
+  `getCloudResourceTypeText`; a Type filter takes its options from `getCloudResourceTypeOptions`.
+  Enforced by
+  [CloudResourceTypeNamesGuard](../../packages/Common/Tests/App/Dashboard/CloudResourceTypeNamesGuard.test.ts)
+  and
+  [CloudResourceTypeNamesInSpanish](../../packages/Common/Tests/App/Dashboard/CloudResourceTypeNamesInSpanish.test.tsx).
+- **French sets its colon and semicolon apart,** as it does its question and exclamation marks:
+  "Étape {{number}} : {{fields}}", with a space before the mark, as the Dashboard's French writes it
+  thousands of times. One text did not ("... depuis une analyse IA: {{label}}", #7679). Only a mark
+  that belongs to the English, as written, stays next to its word: a field a search is typed with
+  ("user:"), or a setting in a vendor's console. Enforced by
+  [DashboardFrenchPunctuation](../../packages/App/Tests/Dashboard/DashboardFrenchPunctuation.test.ts).
+- **An option reads the same in a filter's menu and in its chip.** An option's label is either the
+  product's words, a key looked up in the reader's language wherever the option is drawn, or a name
+  marked `isUserContent` and drawn as written: a record's ("Network"), a value read from data, a
+  product's own ("Google Cloud", "Resend"). A Spanish Health filter read "Con problemas" in its menu
+  and "Unhealthy" in its chip; a monitor named "Network" read "Red" in a menu over rows that said
+  "Network"; the email provider Resend read "Reenviar". Draw an option through
+  `getDropdownOptionText`. Enforced by
+  [FilterOptionLabelsGuard](../../packages/Common/Tests/App/Dashboard/FilterOptionLabelsGuard.test.ts)
+  and
+  [FilterChipAndMenuInSpanish](../../packages/Common/Tests/App/Dashboard/FilterChipAndMenuInSpanish.test.tsx).
 - **Pick words that translate as you mean them.** "About" read "Regarding" in 13 languages, so the
   button says "How it works"; "Uptime" read "runtime", so a share of time up says "Availability". Not
   enforced: use judgement.

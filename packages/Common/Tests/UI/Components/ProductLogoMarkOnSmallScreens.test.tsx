@@ -201,10 +201,18 @@ describe("the mark a small screen draws", () => {
   });
 });
 
+/*
+ * A logo asks for the mark by being handed getProductMarkSource, as the
+ * Dashboard's header does: ProductLogo does not call it on its own, so the
+ * sign-in pages, which never draw the mark, are built without it.
+ */
 describe("a logo that asks for the mark on small screens", () => {
   test("is one image, named for the product: the logo from sm, the mark below it", () => {
     const { container } = render(
-      <ProductLogo className="logo" markOnSmallScreens={true} />,
+      <ProductLogo
+        className="logo"
+        markOnSmallScreens={getProductMarkSource}
+      />,
     );
 
     const images: Array<HTMLElement> = screen.getAllByRole("img");
@@ -230,7 +238,10 @@ describe("a logo that asks for the mark on small screens", () => {
     setTheme(Theme.Dark);
 
     const { container } = render(
-      <ProductLogo className="logo" markOnSmallScreens={true} />,
+      <ProductLogo
+        className="logo"
+        markOnSmallScreens={getProductMarkSource}
+      />,
     );
 
     expect(screen.getByRole("img")).toHaveAttribute(
@@ -248,7 +259,10 @@ describe("a logo that asks for the mark on small screens", () => {
 
   test("follows a theme switched while it is drawn", () => {
     const { container } = render(
-      <ProductLogo className="logo" markOnSmallScreens={true} />,
+      <ProductLogo
+        className="logo"
+        markOnSmallScreens={getProductMarkSource}
+      />,
     );
 
     setTheme(Theme.Dark);
@@ -264,7 +278,10 @@ describe("a logo that asks for the mark on small screens", () => {
     setTheme(Theme.Dark);
 
     const { container } = render(
-      <ProductLogo className="logo" markOnSmallScreens={true} />,
+      <ProductLogo
+        className="logo"
+        markOnSmallScreens={getProductMarkSource}
+      />,
     );
 
     expect(screen.getByRole("img", { name: "Acme" })).toHaveAttribute(
@@ -281,7 +298,10 @@ describe("a logo that asks for the mark on small screens", () => {
     setBranding(ACME_LOGO_NO_TAB_ICON);
 
     const { container } = render(
-      <ProductLogo className="logo" markOnSmallScreens={true} />,
+      <ProductLogo
+        className="logo"
+        markOnSmallScreens={getProductMarkSource}
+      />,
     );
 
     expect(screen.getByRole("img", { name: "Acme" })).toHaveAttribute(
@@ -298,7 +318,7 @@ describe("a logo that asks for the mark on small screens", () => {
       <ProductLogo
         className="logo"
         nameClassName="name"
-        markOnSmallScreens={true}
+        markOnSmallScreens={getProductMarkSource}
       />,
     );
 

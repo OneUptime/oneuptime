@@ -1145,6 +1145,7 @@ export const DataObservabilityRoutePath: Dictionary<string> = {
 export const MetricsRoutePath: Dictionary<string> = {
   [PageMap.METRICS]: "",
   [PageMap.METRICS_INSIGHTS]: "insights",
+  [PageMap.METRICS_PROMQL]: "promql",
   [PageMap.METRIC_VIEW]: "view",
   [PageMap.METRICS_DOCUMENTATION]: "documentation",
   [PageMap.METRICS_SETTINGS_PIPELINE_RULES]: "settings/pipeline-rules",
@@ -1395,6 +1396,8 @@ export const IncidentsRoutePath: Dictionary<string> = {
   [PageMap.INCIDENTS_SETTINGS_LINKED_ALERTS]: "settings/linked-alerts",
   [PageMap.INCIDENTS_SETTINGS_PUBLIC_NOTE_APPROVAL]:
     "settings/public-note-approval",
+  [PageMap.INCIDENTS_SETTINGS_SUBSCRIBER_NOTIFICATIONS]:
+    "settings/subscriber-notifications",
   [PageMap.INCIDENTS_SETTINGS_EPISODE_MEMBERSHIP]:
     "settings/episode-membership",
   [PageMap.INCIDENTS_SETTINGS_NUMBERING]: "settings/numbering",
@@ -1578,6 +1581,7 @@ export const SettingsRoutePath: Dictionary<string> = {
   [PageMap.SETTINGS_AI_EXTERNAL_MCP_SERVERS]: "external-mcp-servers",
   [PageMap.SETTINGS_AI_EXTERNAL_MCP_SERVER_VIEW]: `external-mcp-servers/${RouteParams.ModelID}`,
   [PageMap.SETTINGS_AI_CREDITS]: "ai-credits",
+  [PageMap.SETTINGS_AI_RESULTS]: "ai-results",
   [PageMap.SETTINGS_AI_LOGS]: "ai-logs",
   [PageMap.SETTINGS_MCP_SERVER]: "mcp-server",
   [PageMap.SETTINGS_APIKEYS]: `api-keys`,
@@ -2865,6 +2869,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.INCIDENTS_SETTINGS_PUBLIC_NOTE_APPROVAL]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
       IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_PUBLIC_NOTE_APPROVAL]
+    }`,
+  ),
+
+  [PageMap.INCIDENTS_SETTINGS_SUBSCRIBER_NOTIFICATIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_SUBSCRIBER_NOTIFICATIONS]
     }`,
   ),
 
@@ -9069,6 +9079,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.METRICS_PROMQL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/metrics/${
+      MetricsRoutePath[PageMap.METRICS_PROMQL]
+    }`,
+  ),
+
   [PageMap.METRICS_SETTINGS_PIPELINE_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/metrics/${
       MetricsRoutePath[PageMap.METRICS_SETTINGS_PIPELINE_RULES]
@@ -9551,6 +9567,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SETTINGS_AI_CREDITS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
       SettingsRoutePath[PageMap.SETTINGS_AI_CREDITS]
+    }`,
+  ),
+
+  [PageMap.SETTINGS_AI_RESULTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_AI_RESULTS]
     }`,
   ),
 

@@ -185,6 +185,7 @@ import RunbookOwnerTeamService from "./RunbookOwnerTeamService";
 import RunbookLabelRuleService from "./RunbookLabelRuleService";
 import RunbookVariableService from "./RunbookVariableService";
 import AIInsightService from "./AIInsightService";
+import AIRunRecordingService from "./AIRunRecordingService";
 
 // Monitors
 import MonitorService from "./MonitorService";
@@ -805,6 +806,7 @@ const services: Array<BaseService> = [
   RunbookLabelRuleService,
   RunbookVariableService,
   AIInsightService,
+  AIRunRecordingService,
   MonitorFeedService,
   KubernetesClusterFeedService,
   DockerHostFeedService,

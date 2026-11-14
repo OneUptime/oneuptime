@@ -225,9 +225,7 @@ const MerakiConnectionEditModal: FunctionComponent<ComponentProps> = (
                 setApiKey(value);
                 setKeyTest(null);
               }}
-              placeholder={translator.translateText(
-                "Leave empty to keep the key",
-              )}
+              placeholder="Leave empty to keep the key"
               dataTestId="meraki-edit-key"
             />
           </div>

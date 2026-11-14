@@ -30,6 +30,8 @@ export interface ComponentProps<T extends GenericObject> {
   name?: string | undefined;
   isLoading?: boolean | undefined;
   error?: string | undefined;
+  // What the dialog was doing, said first for an error nobody explained (Modal).
+  errorWhatFailed?: string | undefined;
   onClose?: undefined | (() => void);
   submitButtonText?: undefined | string;
   onSubmit?: undefined | ((data: T) => void);

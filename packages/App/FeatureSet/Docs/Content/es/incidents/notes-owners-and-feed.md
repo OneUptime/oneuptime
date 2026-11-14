@@ -64,7 +64,7 @@ Abre el incidente y elige **Notas → Notas públicas** en su menú lateral. El 
 
 ### Escribir la actualización
 
-Escribe la nota en Markdown, o empieza desde una de tus **Plantillas** o desde **Redactar con IA**. Añade archivos con **Asociar** si los suscriptores deben verlos.
+Escribe la nota en Markdown, o empieza desde una de tus **Plantillas** o desde **Redactar con IA**. Añade archivos con **Adjuntar** si los suscriptores deben verlos.
 
 ### Decidir a quién se avisa
 
@@ -82,7 +82,7 @@ El mismo editor se abre en un diálogo desde **Añadir nota pública** en el men
 | La nota                                                | El cuerpo, en Markdown. Obligatorio.                                                                                                          |
 | **Plantillas**                                         | Inserta una de tus plantillas de notas en la nota, después de lo que ya has escrito. Consulta [Plantillas de notas](#plantillas-de-notas).         |
 | **Redactar con IA**                                    | Redacta la nota a partir del incidente, para que la edites. Consulta [Generar una nota con IA](#generar-una-nota-con-ia).                   |
-| **Asociar**                                            | Archivos compartidos con los suscriptores en la página de estado. Opcional.                                                                   |
+| **Adjuntar**                                           | Archivos compartidos con los suscriptores en la página de estado. Opcional.                                                                   |
 | **Publicada ahora**                                         | Cuándo dice la nota que se publicó: el momento en que la publicas, salvo que elijas aquí una hora anterior, en tu zona horaria actual.        |
 | **Notificar a los suscriptores de la página de estado** | Casilla. Activada por defecto, salvo que el incidente se declarara sin notificar a los suscriptores; entonces empieza desactivada. Desactívala para publicar sin hacer ruido. |
 
@@ -99,7 +99,7 @@ Cada nota muestra quién la escribió, su hora de publicación, el Markdown rend
 
 ## Publicar una nota privada
 
-**Notas → Notas privadas** es deliberadamente más sencilla. Es el mismo editor, que dice **Private · Only your team can see this**, con la nota, **Plantillas**, **Redactar con IA** y **Asociar** para archivos destinados al equipo de respuesta al incidente. **Añadir nota privada** en el menú **Acciones** del feed del incidente la abre en un diálogo. Por la API, las notas privadas son `/api/incident-internal-note`.
+**Notas → Notas privadas** es deliberadamente más sencilla. Es el mismo editor, que dice **Privado · Solo quien puede ver este incidente puede leer esto**, con la nota, **Plantillas**, **Redactar con IA** y **Adjuntar** para archivos, que solo puede abrir quien puede leer la nota. **Añadir nota privada** en el menú **Acciones** del feed del incidente la abre en un diálogo. Por la API, las notas privadas son `/api/incident-internal-note`.
 
 Sin hora de publicación ni casilla de suscriptores: la nota se marca con la hora en que se crea.
 
@@ -118,7 +118,7 @@ Las notas públicas publicadas antes de que el incidente se hiciera privado se q
 
 ## Adjuntos en las notas
 
-Ambos tipos de nota aceptan archivos adjuntos con el botón **Asociar** del editor, y ambos muestran bajo el cuerpo de la nota una lista de adjuntos con un enlace **Download attachment** por archivo.
+Ambos tipos de nota aceptan archivos adjuntos con el botón **Adjuntar** del editor, y ambos muestran bajo el cuerpo de la nota una lista de adjuntos con un enlace **Download attachment** por archivo.
 
 Donde se separan es en quién puede obtener el archivo:
 
@@ -164,7 +164,7 @@ Las gestionas en **Incidentes → Ajustes → Plantillas de notas**: la tarjeta 
 
 ## Publicar notas desde Slack o Microsoft Teams
 
-Si has conectado un espacio de trabajo, los respondedores nunca tienen que salir del canal. Tanto Slack como Microsoft Teams ofrecen una acción para añadir una nota que abre un diálogo con un desplegable **Note Type** —**Public Note** (publicada en la página de estado) o **Private Note** (visible solo para los miembros del equipo)— y un cuadro de texto **Note**, y escribe el resultado directamente en el incidente. En un incidente privado no pide **Note Type** y añade una nota privada: consulta [Los incidentes privados solo admiten notas privadas](#los-incidentes-privados-solo-admiten-notas-privadas).
+Si has conectado un espacio de trabajo, los respondedores nunca tienen que salir del canal. Tanto Slack como Microsoft Teams ofrecen una acción para añadir una nota que abre un diálogo con un desplegable **Note Type** —**Public Note** (publicada en la página de estado) o **Private Note** (solo puede leerla quien puede ver el incidente)— y un cuadro de texto **Note**, y escribe el resultado directamente en el incidente. En un incidente privado no pide **Note Type** y añade una nota privada: consulta [Los incidentes privados solo admiten notas privadas](#los-incidentes-privados-solo-admiten-notas-privadas).
 
 Tres detalles que conviene conocer:
 

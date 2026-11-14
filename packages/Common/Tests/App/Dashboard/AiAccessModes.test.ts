@@ -377,6 +377,20 @@ describe("the every-mode protections", () => {
   });
 
   /*
+   * French sets its semicolon apart with a space, as its own sentence for
+   * four does ("{{first}} ; {{second}} ; {{third}} ; et {{fourth}}"): the
+   * clauses said together take the same (#7629).
+   */
+  test("more than four in French put a space before every semicolon", () => {
+    expect(
+      joinAiAccessProtections(
+        ["a", "b", "c", "d", "e", "f"],
+        dashboardTranslator("fr"),
+      ),
+    ).toBe("a ; b ; c ; d ; e ; et f");
+  });
+
+  /*
    * A translated clause ends with its own language's full stop: Chinese
    * and Japanese write 。, Hindi ।. An English clause left in such a
    * locale keeps its full stop.

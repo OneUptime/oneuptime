@@ -37,6 +37,13 @@ import TwilioConfigWrite, {
   TwilioUseAndNumbers,
 } from "../../Types/CallAndSMS/TwilioConfigWrite";
 import { GLOBAL_TWILIO_CONFIG_USE_SELECT } from "../Utils/TwilioConfigSelect";
+import { getServerTwilioEnvironment } from "../Utils/ServerTwilioConfig";
+import { SERVER_TWILIO_SET_BY_ENVIRONMENT_MESSAGE } from "../../Types/CallAndSMS/ServerTwilioEnvironment";
+import { getServerEmailEnvironment } from "../Utils/ServerEmailSettings";
+import {
+  SERVER_EMAIL_COLUMNS,
+  SERVER_EMAIL_SET_BY_ENVIRONMENT_MESSAGE,
+} from "../../Types/Email/ServerEmailEnvironment";
 import CallAndSmsProviders, {
   CALL_AND_SMS_GATEWAY_URL_TITLE,
   DEFAULT_CALL_AND_SMS_PROVIDER,
@@ -103,6 +110,22 @@ const twilioUseAndNumbersOf: (
     smsPhoneNumbers: config.twilioSmsPhoneNumbers,
   };
 };
+
+/*
+ * The columns of the server's own Twilio account (Admin Dashboard >
+ * Settings > Call and SMS): the ones the GLOBAL_TWILIO_ environment
+ * variables stand in for once they are set (Types/CallAndSMS/
+ * ServerTwilioEnvironment), when nobody but OneUptime itself may write them
+ * (assertTwilioAccountNotSetByEnvironment).
+ */
+export const SERVER_TWILIO_ACCOUNT_COLUMNS: ReadonlyArray<keyof Model> = [
+  "twilioAccountSID",
+  "twilioAuthToken",
+  "twilioUsedFor",
+  "twilioPrimaryPhoneNumber",
+  "twilioSecondaryPhoneNumbers",
+  "twilioSmsPhoneNumbers",
+];
 
 /*
  * The columns that hold this installation's license state and identity. They
@@ -701,6 +724,72 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * While the GLOBAL_TWILIO_ environment variables set the server's Twilio
+   * account (#7515), its saved columns are not what sends, so a write to
+   * them - Admin Dashboard > Settings > Call and SMS, or the API - is
+   * refused with where the account is changed instead: one that went
+   * through would say "Saved" and change nothing. An explicit null counts as
+   * a write. OneUptime's own writes (props.isRoot: the data migrations) go
+   * through, and change nothing that is sent either.
+   */
+  public assertTwilioAccountNotSetByEnvironment(
+    data: unknown,
+    props: DatabaseCommonInteractionProps | undefined,
+  ): void {
+    if (props?.isRoot) {
+      return;
+    }
+
+    const written: boolean = SERVER_TWILIO_ACCOUNT_COLUMNS.some(
+      (column: keyof Model): boolean => {
+        return (
+          (data as Record<string, unknown> | null)?.[column as string] !==
+          undefined
+        );
+      },
+    );
+
+    if (!written || !getServerTwilioEnvironment().isSet) {
+      return;
+    }
+
+    throw new BadDataException(SERVER_TWILIO_SET_BY_ENVIRONMENT_MESSAGE);
+  }
+
+  /*
+   * While the GLOBAL_EMAIL_ environment variables set the server's email
+   * settings (#7738), its saved columns (SERVER_EMAIL_COLUMNS) are not what
+   * sends, so a write to them - Admin Dashboard > Settings > Emails, or the
+   * API - is refused with where the settings are changed instead: one that
+   * went through would say "Saved" and change nothing. An explicit null
+   * counts as a write. OneUptime's own writes (props.isRoot: the data
+   * migrations) go through, and change nothing that is sent either.
+   */
+  public assertEmailSettingsNotSetByEnvironment(
+    data: unknown,
+    props: DatabaseCommonInteractionProps | undefined,
+  ): void {
+    if (props?.isRoot) {
+      return;
+    }
+
+    const written: boolean = SERVER_EMAIL_COLUMNS.some(
+      (column: keyof Model): boolean => {
+        return (
+          (data as Record<string, unknown> | null)?.[column as string] !==
+          undefined
+        );
+      },
+    );
+
+    if (!written || !getServerEmailEnvironment().isSet) {
+      return;
+    }
+
+    throw new BadDataException(SERVER_EMAIL_SET_BY_ENVIRONMENT_MESSAGE);
+  }
+
+  /*
    * Refuses any write to ROOT_ONLY_LICENSE_COLUMNS that does not come from
    * OneUptime itself. An explicit null counts as a write: clearing the license
    * token is as much a forgery as setting one.
@@ -1284,6 +1373,8 @@ export class Service extends DatabaseService<Model> {
       createBy.props,
     );
     this.assertServerProductsWrittenByRootOnly(createBy.data, createBy.props);
+    this.assertTwilioAccountNotSetByEnvironment(createBy.data, createBy.props);
+    this.assertEmailSettingsNotSetByEnvironment(createBy.data, createBy.props);
     this.assertTwilioSmsNumbersAreValid(createBy.data);
     this.assertTwilioUseIsValid(createBy.data);
     this.assertCallAndSmsProviderIsValid(createBy.data);
@@ -1318,6 +1409,8 @@ export class Service extends DatabaseService<Model> {
       updateBy.props,
     );
     this.assertServerProductsWrittenByRootOnly(updateBy.data, updateBy.props);
+    this.assertTwilioAccountNotSetByEnvironment(updateBy.data, updateBy.props);
+    this.assertEmailSettingsNotSetByEnvironment(updateBy.data, updateBy.props);
     this.assertTwilioSmsNumbersAreValid(updateBy.data);
     this.assertTwilioUseIsValid(updateBy.data);
     await this.assertTwilioNumbersKeptForUse(updateBy);

@@ -52,6 +52,10 @@ import {
   getGroupingWaitKey,
   getRecordsArrivedTogether,
 } from "../Utils/Rules/GroupingRuleEpisodeWait";
+import ConnectedServices, {
+  MAX_EPISODES_COMPARED,
+  RecordServices,
+} from "../Utils/Topology/ConnectedServices";
 
 export interface GroupingResult {
   grouped: boolean;
@@ -157,6 +161,7 @@ class AlertGroupingEngineServiceClass {
             groupByAlertTitle: true,
             groupByAlertLabels: true,
             groupByMonitorLabels: true,
+            groupByConnectedServices: true,
             // Time settings
             enableTimeWindow: true,
             timeWindowMinutes: true,
@@ -487,8 +492,31 @@ class AlertGroupingEngineServiceClass {
     rule: AlertGroupingRule,
     options: GroupingOptions = {},
   ): Promise<GroupingResult> {
+    /*
+     * A rule that groups by connected services: the services the alert is
+     * on and those connected to them on the Service Map, read before the
+     * lock is taken. Null for any other rule.
+     */
+    const services: RecordServices | null = await this.readConnectedServices(
+      alert,
+      rule,
+    );
+
+    /*
+     * The alert is on a service: which of the rule's open episodes it joins
+     * is decided by the services of the alerts in them (ConnectedServices).
+     */
+    const connectedServiceIds: Set<string> | undefined =
+      services && services.serviceIds.size > 0
+        ? services.connectedServiceIds
+        : undefined;
+
     // Build the grouping key based on groupBy fields
-    const groupingKey: string = await this.buildGroupingKey(alert, rule);
+    const groupingKey: string = await this.buildGroupingKey(
+      alert,
+      rule,
+      services,
+    );
 
     /*
      * The keys an episode of the alert's group can be stored with: as built,
@@ -571,6 +599,7 @@ class AlertGroupingEngineServiceClass {
           rule.id!,
           groupingKeysToMatch,
           timeWindowCutoff,
+          connectedServiceIds,
         );
 
       if (existingEpisode && existingEpisode.id) {
@@ -642,6 +671,7 @@ class AlertGroupingEngineServiceClass {
               rule.id!,
               groupingKeysToMatch,
               reopenCutoff,
+              connectedServiceIds,
             );
 
           if (recentlyResolvedEpisode && recentlyResolvedEpisode.id) {
@@ -688,6 +718,7 @@ class AlertGroupingEngineServiceClass {
           alert: alert,
           groupingWaitKey: groupingWaitKey,
           timeWindowMinutes: timeWindowMinutes,
+          connectedServiceIds: connectedServiceIds,
         });
 
         if (alertsWaiting.length + 1 < alertsToOpenEpisode) {
@@ -771,6 +802,7 @@ class AlertGroupingEngineServiceClass {
   private async buildGroupingKey(
     alert: Alert,
     rule: AlertGroupingRule,
+    services: RecordServices | null = null,
   ): Promise<string> {
     const parts: Array<string> = [];
 
@@ -819,8 +851,100 @@ class AlertGroupingEngineServiceClass {
       parts.push(`monitorLabels:${sortedLabelIds.join(",")}`);
     }
 
+    /*
+     * Group by connected services - only if explicitly enabled. An alert on
+     * a service shares its part with every other; one on no service is
+     * grouped by its monitor (ConnectedServices.getGroupingKeyPart).
+     */
+    if (rule.groupByConnectedServices) {
+      parts.push(
+        ConnectedServices.getGroupingKeyPart({
+          services: services,
+          monitorId: alert.monitorId,
+          groupsByMonitor: Boolean(rule.groupByMonitor),
+        }),
+      );
+    }
+
     // If no group by options are enabled, all matching alerts go into a single episode
     return parts.join("|") || "default";
+  }
+
+  /*
+   * The services the alert is on and those connected to them on the Service
+   * Map, for a rule that groups by connected services; null for any other
+   * rule. A read that fails is logged and leaves the alert on no service:
+   * it is grouped by its monitor rather than not at all.
+   */
+  @CaptureSpan()
+  private async readConnectedServices(
+    alert: Alert,
+    rule: AlertGroupingRule,
+  ): Promise<RecordServices | null> {
+    if (!rule.groupByConnectedServices || !alert.id || !alert.projectId) {
+      return null;
+    }
+
+    try {
+      return await ConnectedServices.readForAlert({
+        projectId: alert.projectId,
+        alertId: alert.id,
+      });
+    } catch (error) {
+      logger.error(
+        `Error reading the connected services of alert ${alert.id.toString()}; grouping it by its monitor: ${error}`,
+        { projectId: alert.projectId.toString() } as LogAttributes,
+      );
+
+      return {
+        serviceIds: new Set<string>(),
+        connectedServiceIds: new Set<string>(),
+      };
+    }
+  }
+
+  /*
+   * Of the rule's episodes found for the alert's group, the most recently
+   * active first, the first that holds an alert on a service connected to
+   * the alert's (ConnectedServices). Null when none does.
+   */
+  @CaptureSpan()
+  private async findConnectedEpisode(
+    projectId: ObjectID,
+    episodes: Array<AlertEpisode>,
+    connectedServiceIds: Set<string>,
+  ): Promise<AlertEpisode | null> {
+    const episodeIds: Array<ObjectID> = episodes
+      .map((episode: AlertEpisode): ObjectID | undefined => {
+        return episode.id || undefined;
+      })
+      .filter((id: ObjectID | undefined): id is ObjectID => {
+        return Boolean(id);
+      });
+
+    if (episodeIds.length === 0) {
+      return null;
+    }
+
+    const connectedEpisodeId: ObjectID | null =
+      ConnectedServices.pickConnectedEpisodeId({
+        episodeIds: episodeIds,
+        servicesByEpisode: await ConnectedServices.readServicesOfAlertEpisodes({
+          projectId: projectId,
+          episodeIds: episodeIds,
+        }),
+        connectedServiceIds: connectedServiceIds,
+      });
+
+    if (!connectedEpisodeId) {
+      return null;
+    }
+
+    return (
+      episodes.find((episode: AlertEpisode): boolean => {
+        return episode.id?.toString() === connectedEpisodeId.toString();
+      }) || null
+    );
   }
 
   @CaptureSpan()
@@ -873,6 +997,7 @@ class AlertGroupingEngineServiceClass {
     ruleId: ObjectID,
     groupingKeys: Array<string>,
     timeWindowCutoff: Date | null,
+    connectedServiceIds?: Set<string> | undefined,
   ): Promise<AlertEpisode | null> {
     /*
      * Find active episode with matching rule and any of the grouping keys
@@ -901,6 +1026,35 @@ class AlertGroupingEngineServiceClass {
       query.lastAlertAddedAt = QueryHelper.greaterThanEqualTo(timeWindowCutoff);
     }
 
+    /*
+     * Grouping by connected services: every alert of the rule on a service
+     * shares the key, so the open episodes found are compared by the
+     * services of their alerts.
+     */
+    if (connectedServiceIds) {
+      const episodes: Array<AlertEpisode> = await AlertEpisodeService.findBy({
+        query: query as any,
+        sort: {
+          lastAlertAddedAt: SortOrder.Descending,
+        },
+        select: {
+          _id: true,
+          lastAlertAddedAt: true,
+        },
+        limit: MAX_EPISODES_COMPARED,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      return await this.findConnectedEpisode(
+        projectId,
+        episodes,
+        connectedServiceIds,
+      );
+    }
+
     const episode: AlertEpisode | null = await AlertEpisodeService.findOneBy({
       query: query as any,
       sort: {
@@ -924,7 +1078,42 @@ class AlertGroupingEngineServiceClass {
     ruleId: ObjectID,
     groupingKeys: Array<string>,
     reopenCutoff: Date,
+    connectedServiceIds?: Set<string> | undefined,
   ): Promise<AlertEpisode | null> {
+    /*
+     * Grouping by connected services: the recently resolved episodes found
+     * are compared by the services of their alerts, the most recently
+     * resolved first.
+     */
+    if (connectedServiceIds) {
+      const episodes: Array<AlertEpisode> = await AlertEpisodeService.findBy({
+        query: {
+          projectId: projectId,
+          alertGroupingRuleId: ruleId,
+          groupingKey: QueryHelper.any(groupingKeys),
+          resolvedAt: QueryHelper.greaterThanEqualTo(reopenCutoff),
+        },
+        sort: {
+          resolvedAt: SortOrder.Descending,
+        },
+        select: {
+          _id: true,
+          resolvedAt: true,
+        },
+        limit: MAX_EPISODES_COMPARED,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      return await this.findConnectedEpisode(
+        projectId,
+        episodes,
+        connectedServiceIds,
+      );
+    }
+
     /*
      * Find recently resolved episode with matching rule and any of the
      * grouping keys the group's episodes are stored with
@@ -966,6 +1155,11 @@ class AlertGroupingEngineServiceClass {
     alert: Alert;
     groupingWaitKey: string;
     timeWindowMinutes: number | null;
+    /*
+     * Grouping by connected services: only the alerts waiting on a service
+     * connected to the alert's wait with it.
+     */
+    connectedServiceIds?: Set<string> | undefined;
   }): Promise<Array<Alert>> {
     const projectId: ObjectID = data.alert.projectId!;
 
@@ -1011,8 +1205,35 @@ class AlertGroupingEngineServiceClass {
       },
     });
 
+    let connectedAlertsWaiting: Array<Alert> = alertsWaiting;
+
+    if (data.connectedServiceIds && alertsWaiting.length > 0) {
+      const servicesByAlert: Map<
+        string,
+        Set<string>
+      > = await ConnectedServices.readServicesOfAlerts({
+        projectId: projectId,
+        alertIds: alertsWaiting
+          .map((waiting: Alert): ObjectID | undefined => {
+            return waiting.id || undefined;
+          })
+          .filter((id: ObjectID | undefined): id is ObjectID => {
+            return Boolean(id);
+          }),
+      });
+
+      connectedAlertsWaiting = alertsWaiting.filter(
+        (waiting: Alert): boolean => {
+          return ConnectedServices.intersects(
+            servicesByAlert.get(ConnectedServices.key(waiting.id)),
+            data.connectedServiceIds,
+          );
+        },
+      );
+    }
+
     return getRecordsArrivedTogether({
-      waiting: alertsWaiting,
+      waiting: connectedAlertsWaiting,
       timeWindowMinutes: data.timeWindowMinutes,
       now: OneUptimeDate.getCurrentDate(),
     });
@@ -1263,6 +1484,9 @@ class AlertGroupingEngineServiceClass {
         }
         if (rule.groupByMonitorLabels) {
           groupByParts.push("Monitor Labels");
+        }
+        if (rule.groupByConnectedServices) {
+          groupByParts.push("Connected Services");
         }
 
         const groupByDescription: string =

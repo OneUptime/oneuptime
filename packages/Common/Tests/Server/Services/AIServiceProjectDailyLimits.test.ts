@@ -841,6 +841,8 @@ describe.each([
           .select,
       ).toEqual({
         enableAi: true,
+        // A sample project uses no AI (#6808): refused on this same row.
+        isSampleProject: true,
         aiCurrentBalanceInUSDCents: true,
         // Auto Recharge refills used-up credits before the call.
         enableAutoRechargeAiBalance: true,

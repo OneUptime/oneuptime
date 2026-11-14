@@ -25,6 +25,7 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import AlertEpisodeFeedService from "./AlertEpisodeFeedService";
 import WorkspaceStateChangePosting from "../Utils/Workspace/WorkspaceStateChangePosting";
+import NotificationRuleUpdates from "../../Types/Workspace/NotificationRules/NotificationRuleUpdates";
 import { AlertEpisodeFeedEventType } from "../../Models/DatabaseModels/AlertEpisodeFeed";
 import { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import StateChangeLock from "../Utils/StateChangeLock";
@@ -553,6 +554,16 @@ export class Service extends ProjectReferencesService<AlertEpisodeStateTimeline>
     const episodeDisplayNumber: string =
       episode?.episodeNumberWithPrefix || "#" + (episode?.episodeNumber || 0);
 
+    // Whether the episode was resolved in the state before this one.
+    const previousAlertStateId: ObjectID | undefined =
+      onCreate.carryForward.statusTimelineBeforeThisStatus?.alertStateId;
+    const wasResolved: boolean = previousAlertStateId
+      ? await AlertStateService.isResolvedAlertState({
+          projectId: createdItem.projectId!,
+          alertStateId: previousAlertStateId,
+        })
+      : false;
+
     await AlertEpisodeFeedService.createAlertEpisodeFeedItem({
       alertEpisodeId: createdItem.alertEpisodeId!,
       projectId: createdItem.projectId!,
@@ -578,6 +589,16 @@ export class Service extends ProjectReferencesService<AlertEpisodeStateTimeline>
           },
         ),
         leadWithAuthor: true,
+        /*
+         * Resolving it, or reopening it, is an update of its own for the
+         * rules that choose their updates: a quiet channel hears of it.
+         */
+        updateKinds: [
+          NotificationRuleUpdates.getStateChangeKind({
+            isResolved: isResolvedState,
+            wasResolved: wasResolved,
+          }),
+        ],
       },
     });
 
@@ -607,6 +628,14 @@ export class Service extends ProjectReferencesService<AlertEpisodeStateTimeline>
         stateId: createdItem.alertStateId,
         previousStateId:
           onCreate.carryForward.statusTimelineBeforeThisStatus?.alertStateId,
+        /*
+         * Who changed it: somebody paged about the episode by a policy a
+         * person started by hand (OnCallPolicyStartedByHand), or as an
+         * observer, answers their page by acknowledging it
+         * (OnCallPersonPageAnswer).
+         */
+        changedByUserId:
+          createdItem.createdByUserId || onCreate.createBy.props.userId,
       });
     }
 

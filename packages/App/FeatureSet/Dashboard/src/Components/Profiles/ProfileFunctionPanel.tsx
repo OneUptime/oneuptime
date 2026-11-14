@@ -13,6 +13,11 @@ import SideOver from "Common/UI/Components/SideOver/SideOver";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { getArrowBack } from "Common/Types/DirectionArrow";
+import {
+  getReadingDirection,
+  setApartInSentence,
+} from "Common/Types/ReadingDirection";
 import { ProfileFunctionChange } from "Common/Utils/Profiles/ProfileComparison";
 import {
   ProfileFrameOrigin,
@@ -539,6 +544,11 @@ const ProfileFunctionPanel: FunctionComponent<ComponentProps> = (
                         {formatProfileShare(share)}
                       </span>
                     </div>
+                    {/*
+                     * The callers further up, each after an arrow back to
+                     * the one before it: set apart, so the arrow points
+                     * the way the page reads.
+                     */}
                     {chain.frames.length > 1 ? (
                       <p className="truncate font-mono text-xs text-gray-400">
                         {chain.frames
@@ -548,7 +558,10 @@ const ProfileFunctionPanel: FunctionComponent<ComponentProps> = (
                               functionName: string;
                               fileName: string;
                             }): string => {
-                              return `← ${frame.functionName}`;
+                              return `${getArrowBack(translator.language)} ${setApartInSentence(
+                                frame.functionName,
+                                getReadingDirection(translator.language),
+                              )}`;
                             },
                           )
                           .join(" ")}

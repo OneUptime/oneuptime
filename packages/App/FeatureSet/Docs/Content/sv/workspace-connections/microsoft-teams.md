@@ -91,14 +91,17 @@ En aviseringsregel anger vilka händelser som publiceras i Microsoft Teams, och 
 | **Jour** | En lista med regler |
 | **SLOs** | En lista med regler |
 
-Att skapa en regel går igenom fyra steg:
+Att skapa en regel går igenom upp till fem steg:
 
 | Steg | Vad du anger |
 | --- | --- |
 | **Grundläggande** | **Regelnamn** och **Regelbeskrivning**. |
 | **Villkor** | Vilka händelser regeln gäller, till exempel efter allvarlighetsgrad, tillstånd, etikett, monitor eller ord i titeln. De kontrolleras när en händelse skapas och igen vid varje uppdatering som OneUptime publicerar om den, så en regel för bekräftade incidenter verkar när en incident bekräftas. En ny regel gäller varje händelse, till exempel **Alla incidenter**. För att snäva in den väljer du **Endast incidenter som uppfyller villkoren** och lägger till villkoren. Med två eller fler anger **Matchningsvillkor** om alla måste matcha, eller om det räcker med ett. |
 | **Mål** | Var den publicerar: en befintlig kanal i ett team som du väljer, de chattar som du väljer, en kanal för varje incident (eller larm, episod, händelse, monitor eller jourpolicy) som skapas i ett team som du väljer, eller flera av dessa tillsammans. Under steget säger **Vad regeln gör** det i meningar, som regelns kort. |
+| **Uppdateringar** | Endast incidenter, larm, episoder och schemalagt underhåll: vilka uppdateringar regeln publicerar efter postens första meddelande. **Alla uppdateringar**, som en ny regel börjar med, publicerar alla. **Bara viktiga uppdateringar** publicerar dem som betyder mest, som steget listar för varje slags post: för en incident att den löses eller öppnas igen, ändringar av allvarlighetsgrad, offentliga anteckningar och efteranalysen. Med **Välj uppdateringar** bockar du för dem en i taget. Vad du än väljer publicerar regeln postens första meddelande, och ett videosamtal när ett startar. |
 | **Video Call** | Endast incidenter och larm: starta ett samtal för var och en. Se [Videosamtal](/docs/workspace-connections/video-calls). |
+
+Varje villkor läses som en mening: fältet, hur det jämförs och värdet. Värden att välja kommer från projektets egna listor, som dess tillstånd, allvarlighetsgrader, etiketter och monitorer. En regel för jourpolicyer väljer sina policyer under **Jourpolicy**, som fortsätter att matcha en policy efter att den har bytt namn, medan **Namn på jourpolicy** matchar ord i en policys namn. Varje sorts händelse som har ägare har ett ägarvillkor, som **Ägare av incident**: välj personer och team, så matchar det de personer och team som är registrerade som händelsens ägare. Att vara med i ett team som äger händelsen räknas inte. En ägare som läggs till senare får regeln att matcha från den uppdateringen, och en regel som skapar kanaler skapar kanalen då. Ett arkiverat värde, som en allvarlighetsgrad eller en jourpolicy, erbjuds inte för ett nytt villkor. En regel som redan har ett behåller det, märkt **Arkiverad**, och matchar fortfarande de händelser som har det. En person, ett team eller en policy som projektet inte längre har stannar kvar i villkoret, och regelns kort säger det.
 
 Ett SLO:s regel publicerar ändringarna i dess felbudgetpolicy: när SLO:et går in i en nivå, återhämtar sig till en mindre allvarlig nivå eller lämnar alla nivåer, och när dess distributioner fryses eller tillåts igen. Den publicerar bara i befintliga kanaler och chattar, eftersom ett SLO inte får någon egen kanal. Se [Publicera i Slack, Microsoft Teams och Mattermost](/docs/slo/error-budget-policy#publicera-i-slack-microsoft-teams-och-mattermost).
 
@@ -108,7 +111,7 @@ En regel skapar sin kanal första gången en händelse matchar den: när händel
 
 För att ta med dem som har jour väljer du deras jourscheman under **Nämn dem som har jour**. När kanalen skapas publicerar OneUptime, direkt efter postens första meddelande, ett meddelande i den som med @ nämner dem som har jour i de schemana, så att Microsoft Teams aviserar dem. Ingen larmas. OneUptime hittar varje person i teamet via det Microsoft Teams-konto som personen har anslutit till OneUptime, eller annars via personens e-postadress. Den som inte är med i teamet kan inte öppna dess kanaler och nämns därför i stället i meddelandet, med skälet. En privat kanal kan bara öppnas av dess medlemmar, så lägg till de jourhavande i kanalen i Microsoft Teams.
 
-Varje senare uppdatering av posten — en tillståndsändring, en anteckning, en ny ägare — publiceras i dess kanaler, och i de befintliga kanaler och chattar som dess regler anger så länge deras villkor stämmer. OneUptime kan inte arkivera en Microsoft Teams-kanal, så en regels kanal finns kvar när dess post är avslutad; arkivera eller ta bort den i Microsoft Teams.
+Varje senare uppdatering av posten — en tillståndsändring, en anteckning, en ny ägare — publiceras i dess kanaler, och i de befintliga kanaler och chattar som dess regler anger så länge deras villkor stämmer, när en regel som publicerar där väljer den i sitt steg **Uppdateringar**. OneUptime kan inte arkivera en Microsoft Teams-kanal, så en regels kanal finns kvar när dess post är avslutad; arkivera eller ta bort den i Microsoft Teams.
 
 En incident, ett larm, en episod eller en schemalagd underhållshändelse med en egen kanal har **Öppna i Microsoft Teams** i sidhuvudet på sin sida i OneUptime, bredvid tillståndsknapparna. Den öppnar kanalen i en ny flik, i Microsoft Teams-appen eller i webbläsaren. En post med två egna kanaler listar båda under knappen. En post med kanaler i både Slack och Microsoft Teams har i stället en knapp, **Öppna kanal**, som listar alla. De befintliga kanaler och chattar som dina regler publicerar i erbjuds inte.
 
@@ -158,7 +161,7 @@ Reagera på ett meddelande, eller ett svar, i den kanal som OneUptime skapade f�
 
 | Reaktion | Sparas som |
 | --- | --- |
-| 📌 eller 📍 | En privat anteckning, som bara ditt team ser |
+| 📌 eller 📍 | En privat anteckning, som bara de som kan se posten kan läsa |
 | 📣 eller 📢 | En offentlig anteckning, som visas på statussidan. Endast incidenter och schemalagda underhållshändelser. På en privat incident en privat anteckning, och bekräftelsen säger varför. När projektets offentliga anteckningar kräver godkännande visas den först när den har godkänts, och bekräftelsen säger vem den väntar på: se [Godkännande av offentliga anteckningar](/docs/incidents/notes-owners-and-feed#godkännande-av-offentliga-anteckningar). |
 
 Anteckningen behåller meddelandet så som Microsoft Teams visade det: formateringen, länkarna och koden, personerna det nämner, med namn, och filerna och bilderna som länkar till dem. En offentlig anteckning utelämnar filerna och bilderna, eftersom de bara öppnas för ditt team.
@@ -253,7 +256,7 @@ En incidents kort har fyra knappar, **Acknowledge Incident**, **Resolve Incident
 | **Change Severity** | Anger incidentens allvarlighetsgrad. |
 | **Change Incident State** | Flyttar incidenten till ett senare tillstånd. |
 | **Assign Role** | Ger någon en roll i incidenten, som **Incident Commander**. En roll för en person går över till den personen. |
-| **Page Someone** | Larmar personer, ett team, den som har jour i ett schema just nu, eller en jourpolicy om incidenten, med ett valfritt meddelande. Personer larmas tills någon av dem svarar; en policy larmar tills någon bekräftar incidenten. |
+| **Page Someone** | Larmar personer, ett team, den som har jour i ett schema just nu, eller en jourpolicy om incidenten, med ett valfritt meddelande. Alla som den larmar, även personerna i en policy, larmas tills någon av dem svarar eller incidenten är löst. |
 | **Edit Custom Fields** | Anger incidentens anpassade fält, vart och ett ifyllt med det incidenten har. Ett fält som lämnas tomt rensas. |
 
 `incident 42`, skrivet till boten, svarar med incident 42, de här knapparna och dess meny. Skriv numret som OneUptime visar det: `42`, `#42` eller `INC-42`. I en incidents egen kanal visar `incident` ensamt den incidenten.

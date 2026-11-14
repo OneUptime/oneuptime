@@ -56,6 +56,8 @@ import { recordPassOn } from "./OnCallNotificationStatus";
 import { isOnCallPageAgainRun } from "../../../Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout";
 import { isOnCallObserverPage } from "../../../Types/OnCallDutyPolicy/OnCallObserverPage";
 import { isOnCallPersonPage } from "../../../Types/OnCallDutyPolicy/OnCallPersonPage";
+import { isOnCallPolicyStartedByHand } from "../../../Types/OnCallDutyPolicy/OnCallPolicyStartedByHand";
+import { isOnCallPageAnsweredAsAPage } from "../../../Types/OnCallDutyPolicy/OnCallAcknowledgePage";
 import { isOnCallTestPage } from "../../../Types/OnCallDutyPolicy/OnCallTestPage";
 
 /*
@@ -124,6 +126,8 @@ const RUN_SELECT: Select<OnCallDutyPolicyExecutionLog> = {
   /*
    * So is a page a person asked for (OnCallPersonPage), told apart by these
    * two with onCallDutyPolicyId above: all three, as isOnCallPersonPage asks.
+   * And a policy a person started by hand (OnCallPolicyStartedByHand), which
+   * asks for userNotificationEventType above too.
    */
   triggeredByUserId: true,
   triggeredByWorkflowId: true,
@@ -417,19 +421,26 @@ export default class OnCallPagePassOn {
         continue;
       }
 
+      /*
+       * A page again (OnCallAcknowledgementTimeout): its record was
+       * acknowledged all along, so the page itself is what the person
+       * acknowledges. So is a person's page, or a policy started by hand,
+       * about a record acknowledged already (isAnsweredAsAPage) - asked for
+       * by hand, not a page again, which the app words apart (isAskedFor).
+       */
+      const isAnsweredAsAPage: boolean = await this.isAnsweredAsAPage(
+        read.state.run,
+      );
+
       pages.push({
         executionLogId: executionLogId.toString(),
         preview: await this.predict({
           userId: data.userId,
           run: read.state.run,
         }),
-        /*
-         * A page again (OnCallAcknowledgementTimeout): its record was
-         * acknowledged all along, so the page itself is what the person
-         * acknowledges.
-         */
-        ...(isOnCallPageAgainRun(read.state.run)
-          ? { isPageAgain: true as const }
+        ...(isAnsweredAsAPage ? { isPageAgain: true as const } : {}),
+        ...(isAnsweredAsAPage && !isOnCallPageAgainRun(read.state.run)
+          ? { isAskedFor: true as const }
           : {}),
         /*
          * An observer's page (OnCallObserverPage): the person is kept
@@ -748,19 +759,84 @@ export default class OnCallPagePassOn {
   }
 
   /*
+   * Whether a run is taken only once one of its people answers it, or its
+   * record is resolved - not by the record being acknowledged: a page again,
+   * a page a person asked for, a policy a person started by hand. Observers'
+   * pages are not (see isRecordAcknowledged).
+   */
+  private static isTakenOnlyByAnAnswer(
+    run: OnCallDutyPolicyExecutionLog,
+  ): boolean {
+    return (
+      isOnCallPageAgainRun(run) ||
+      isOnCallPersonPage(run) ||
+      isOnCallPolicyStartedByHand(run)
+    );
+  }
+
+  /*
+   * Whether the person answers their open page of a run as the page it is -
+   * "Acknowledge again" in the Dashboard and the app, which acknowledges it
+   * as its link, a call's 1 or a text would
+   * (OnCallAcknowledgementTimeout.acknowledgePagesAgainForRecord): a page
+   * again, whose record was acknowledged all along; and a page a person asked
+   * for, or a policy a person started by hand, once its record is
+   * acknowledged - the record's own Acknowledge is gone then, and it was the
+   * one other way to answer the page there. Before that, acknowledging the
+   * record answers it (OnCallPersonPageAnswer). Best effort: a record that
+   * cannot be read offers no "Acknowledge again", and Escalate as before.
+   */
+  private static async isAnsweredAsAPage(
+    run: OnCallDutyPolicyExecutionLog,
+  ): Promise<boolean> {
+    if (isOnCallPageAgainRun(run)) {
+      return true;
+    }
+
+    if (!isOnCallPageAnsweredAsAPage(run)) {
+      return false;
+    }
+
+    const record: {
+      kind: OnCallTimeoutRecordKind;
+      recordId: ObjectID;
+    } | null = OnCallAcknowledgementTimeout.getRunRecord(run);
+
+    if (!record) {
+      return false;
+    }
+
+    try {
+      const state: OnCallTimeoutRecordState | null =
+        await OnCallAcknowledgementTimeout.readRecordState(record);
+
+      return Boolean(state && state.isAcknowledged && !state.isResolved);
+    } catch (err) {
+      logger.error(
+        `Could not read whether ${record.kind} ${record.recordId.toString()} is acknowledged; offering no Acknowledge again for its page.`,
+        {
+          projectId: run.projectId?.toString(),
+        } as LogAttributes,
+      );
+      logger.error(err as Error);
+      return false;
+    }
+  }
+
+  /*
    * Who acknowledged the record a run pages about, by its state timeline
    * (OnCallAcknowledgementTimeout.readRecordStanding): somebody who
    * acknowledged it in the Dashboard, the app, Slack or Microsoft Teams
    * answered no page, so the run does not name them - and the refusal said
    * only "already acknowledged" (https://github.com/OneUptime/oneuptime/issues/6711).
-   * A page again and a person's page are taken by an answer to the page,
-   * which the run names, so none is read for them. Best effort: undefined
-   * when nobody did by name, or it cannot be read.
+   * A page again, a person's page and a policy started by hand are taken by
+   * an answer to the page, which the run names, so none is read for them.
+   * Best effort: undefined when nobody did by name, or it cannot be read.
    */
   private static async readRecordAcknowledgerName(
     run: OnCallDutyPolicyExecutionLog,
   ): Promise<string | undefined> {
-    if (isOnCallPageAgainRun(run) || isOnCallPersonPage(run)) {
+    if (this.isTakenOnlyByAnAnswer(run)) {
       return undefined;
     }
 
@@ -824,13 +900,15 @@ export default class OnCallPagePassOn {
    * Read as taken because the record was acknowledged, its people were
    * refused "already acknowledged, so there is nothing to escalate" while
    * it went on calling them (https://github.com/OneUptime/oneuptime/issues/6710).
+   * And so is a policy a person started by hand (OnCallPolicyStartedByHand),
+   * which goes on until answered for the same reason.
    * An observer's page is left as it was: observers are told, not asked to
    * take it, and are offered nothing to escalate.
    */
   private static async isRecordAcknowledged(
     run: OnCallDutyPolicyExecutionLog,
   ): Promise<boolean> {
-    if (isOnCallPageAgainRun(run) || isOnCallPersonPage(run)) {
+    if (this.isTakenOnlyByAnAnswer(run)) {
       if (run.acknowledgedAt) {
         return true;
       }
