@@ -85,6 +85,7 @@ import WorkspaceIncidentFromAlert, {
   WorkspaceDeclaringAlert,
 } from "../../WorkspaceIncidentFromAlert";
 import SlackAffectedResources from "../SlackAffectedResources";
+import NewIncidentSubscriberNotificationDefaultReader from "../../../StatusPage/NewIncidentSubscriberNotificationDefaultReader";
 
 export default class SlackIncidentActions {
   @CaptureSpan()
@@ -324,6 +325,19 @@ export default class SlackIncidentActions {
       if (alertLink?.isPrivate) {
         incident.isPrivate = true;
       }
+
+      /*
+       * The form asks nothing about status page subscribers, so they are
+       * told as the project starts "Notify Status Page Subscribers" on
+       * Declare New Incident (Incidents > Settings > Subscriber
+       * Notifications): unticked there, declared here without notifying.
+       */
+      await NewIncidentSubscriberNotificationDefaultReader.applyToIncidentDeclaredWithoutBox(
+        {
+          incident: incident,
+          projectId: slackRequest.projectId!,
+        },
+      );
 
       /*
        * Created with the member's props, so it is credited to them and
