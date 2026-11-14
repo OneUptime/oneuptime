@@ -208,6 +208,21 @@ describe("docs search, on the real docs", () => {
     BUILD_TIMEOUT_MS,
   );
 
+  /*
+   * The German API reference names its step by the button's word (#7876):
+   * the button is "API-Schlüssel erstellen". The step said "anlegen", so
+   * the button's name found it 14th, after other tools' "erstellen" steps.
+   */
+  test(
+    "German: the button's name opens the API reference's step that creates an API key",
+    async () => {
+      expect(urls(await search("de", "API-Schlüssel erstellen"))[0]).toBe(
+        "/docs/de/api-reference/api-reference#einen-api-schlüssel-erstellen",
+      );
+    },
+    BUILD_TIMEOUT_MS,
+  );
+
   test(
     "French: a half-typed word, a reader's word and a phrase from the middle of a page",
     async () => {
