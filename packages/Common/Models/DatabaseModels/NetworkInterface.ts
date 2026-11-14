@@ -514,7 +514,7 @@ export default class NetworkInterface extends BaseModel {
     canReadOnRelationQuery: true,
     title: "In Rate (Mbps)",
     description:
-      "Most recent inbound throughput in Mbps, computed from SNMP counters.",
+      "Inbound throughput in Mbps, computed from SNMP counters between two polls. Written again when it moves by a tenth or more (and by more than 1% of the link speed), and at least every 15 minutes.",
   })
   @Column({
     nullable: true,
@@ -543,7 +543,7 @@ export default class NetworkInterface extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Out Rate (Mbps)",
     description:
-      "Most recent outbound throughput in Mbps, computed from SNMP counters.",
+      "Outbound throughput in Mbps, computed from SNMP counters between two polls. Written again when it moves by a tenth or more (and by more than 1% of the link speed), and at least every 15 minutes.",
   })
   @Column({
     nullable: true,
@@ -572,7 +572,7 @@ export default class NetworkInterface extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Utilization Percent",
     description:
-      "Most recent utilization as a percent of interface speed (max of in/out).",
+      "Utilization as a percent of interface speed (max of in/out) between two polls. Written again when it moves by a tenth or more (and by more than a point), crosses 80%, and at least every 15 minutes.",
   })
   @Column({
     nullable: true,
@@ -601,7 +601,7 @@ export default class NetworkInterface extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Errors Per Second",
     description:
-      "Most recent error rate (in + out errors per second) computed from SNMP counters.",
+      "Error rate (in + out errors per second) computed from SNMP counters between two polls. Written again when errors start or stop, when it moves by a tenth or more, and at least every 15 minutes.",
   })
   @Column({
     nullable: true,
@@ -629,7 +629,8 @@ export default class NetworkInterface extends BaseModel {
     type: TableColumnType.Date,
     canReadOnRelationQuery: true,
     title: "Last Seen At",
-    description: "When this interface was last seen in an SNMP walk",
+    description:
+      "When an SNMP walk last saw this interface, to within 15 minutes: a walk that finds an interface unchanged writes it again only every 15 minutes.",
   })
   @Column({
     nullable: true,
