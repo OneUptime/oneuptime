@@ -299,7 +299,7 @@ export const CorrelateClassEventsPanel: FunctionComponent<
             dataTestId="correlate-drilldown-close"
             buttonStyle={ButtonStyleType.ICON}
             icon={IconProp.Close}
-            ariaLabel={t("Close")}
+            ariaLabel="Close"
             onClick={props.onClose}
           />
         </div>
@@ -491,7 +491,7 @@ export const CorrelateObservablePivotPanel: FunctionComponent<
             dataTestId="correlate-action-dismiss"
             buttonStyle={ButtonStyleType.ICON}
             icon={IconProp.Close}
-            ariaLabel={t("Clear selection")}
+            ariaLabel="Clear selection"
             onClick={props.onDismiss}
           />
         </div>

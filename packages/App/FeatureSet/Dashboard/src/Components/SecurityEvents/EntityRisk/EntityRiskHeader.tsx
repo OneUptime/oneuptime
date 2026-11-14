@@ -174,9 +174,7 @@ const EntityRiskHeader: FunctionComponent<ComponentProps> = (
             {reset ? (
               <div className={SECURITY_CASE_HEADER_MORE_PLACE_CLASS_NAME}>
                 <MoreMenu
-                  ariaLabel={translator.translateText(
-                    MORE_ENTITY_ACTIONS_LABEL,
-                  )}
+                  ariaLabel={MORE_ENTITY_ACTIONS_LABEL}
                   dataTestId={ENTITY_RISK_HEADER_TEST_IDS.more}
                   elementToBeShownInsteadOfButton={
                     <Icon

@@ -196,6 +196,7 @@ const CheckRow: FunctionComponent<CheckRowProps> = (
             ariaLabel={translator.translateTemplate("Severity of {{check}}", {
               check: title,
             })}
+            isAriaLabelTranslated={true}
             dataTestId={`${testId}-severity`}
             onChange={(
               value: DropdownValue | Array<DropdownValue> | null,

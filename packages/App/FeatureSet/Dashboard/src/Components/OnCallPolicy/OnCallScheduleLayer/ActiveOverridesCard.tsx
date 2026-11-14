@@ -139,6 +139,7 @@ const ActiveOverridesCard: FunctionComponent<ComponentProps> = (
           "Edit the override for {{name}}",
           { name: row.originalName },
         )}
+        isAriaLabelTranslated={true}
         buttonStyle={ButtonStyleType.LINK}
         buttonSize={ButtonSize.ExtraSmall}
         className="ml-auto"

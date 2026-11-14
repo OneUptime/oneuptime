@@ -13,6 +13,8 @@ export interface ComponentProps {
    * options. Left out, it is "More options", like a table's and a feed's.
    */
   ariaLabel?: string | undefined;
+  // In the reader's words already: said as given (MoreMenu's, #7790).
+  isAriaLabelTranslated?: boolean | undefined;
   dataTestId?: string | undefined;
 }
 
@@ -64,6 +66,7 @@ const CardMoreMenu: FunctionComponent<ComponentProps> = (
       menuIcon={IconProp.EllipsisHorizontal}
       text=""
       ariaLabel={props.ariaLabel}
+      isAriaLabelTranslated={props.isAriaLabelTranslated}
       dataTestId={props.dataTestId}
       elementToBeShownInsteadOfButton={
         <button

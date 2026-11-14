@@ -494,9 +494,7 @@ const SecurityCaseTasks: FunctionComponent<ComponentProps> = (
          */}
         <div className="-mt-1 flex shrink-0 items-center md:-mt-0.5">
           <MoreMenu
-            ariaLabel={translator.translateText(
-              SECURITY_CASE_TASKS_COPY.moreActions,
-            )}
+            ariaLabel={SECURITY_CASE_TASKS_COPY.moreActions}
             dataTestId={SECURITY_CASE_TASKS_TEST_IDS.more}
             menuIcon={IconProp.EllipsisHorizontal}
             isMenuPortaled={true}

@@ -514,6 +514,7 @@ const ProjectSubscription: FunctionComponent = (): ReactElement => {
                 title: t("pages.projectSubscription.fieldTrialEndsAt"),
                 fieldType: FieldType.DateTime,
                 placeholder: t("pages.projectSubscription.noTrial"),
+                isPlaceholderTranslated: true,
               },
               {
                 field: {
@@ -670,6 +671,7 @@ const ProjectSubscription: FunctionComponent = (): ReactElement => {
                   return limit === null ? (
                     <PlaceholderText
                       text={t("pages.projectSubscription.noMonitorLimit")}
+                      isTextTranslated={true}
                     />
                   ) : (
                     <span data-testid="project-active-monitor-limit">

@@ -25,7 +25,14 @@ import Icon, { ThickProp } from "../Icon/Icon";
 
 export interface NavItem {
   id: string;
+  // In English, looked up where it is drawn.
   title: string;
+  /*
+   * The title is in the reader's words already: a front end's own keyed
+   * text, as the Dashboard's are (t("navbar.home")). Drawn as given, never
+   * looked up again (#7790).
+   */
+  isTitleTranslated?: boolean | undefined;
   icon: IconProp;
   route: Route;
   activeRoute?: Route | undefined;
@@ -34,7 +41,15 @@ export interface NavItem {
 }
 
 export interface MoreMenuItem {
+  // In English, looked up where it is drawn: the bar, its breadcrumb, a pin.
   title: string;
+  /*
+   * The title is in the reader's words already, as the Dashboard's
+   * products are (t("navbar.items.networkTitle")): drawn as given, never
+   * looked up again. In Spanish the Dashboard says "Red" for Network, and
+   * "Red" looked up again is "Rojo" (#7790).
+   */
+  isTitleTranslated?: boolean | undefined;
   description: string;
   /** Acronyms and alternate names users can search for in navigation. */
   keywords?: Array<string> | undefined;
@@ -98,6 +113,16 @@ export interface ComponentProps {
     description: string;
     link: URL;
   };
+  /*
+   * These texts are in the reader's words already, as the Dashboard's keyed
+   * ones are: drawn as given, never looked up again (#7790). Left unset,
+   * each is English, looked up where it is drawn.
+   */
+  isMoreMenuNoResultsTextTranslated?: boolean | undefined;
+  isMoreMenuKeyboardHintTranslated?: boolean | undefined;
+  isMoreMenuRecentLabelTranslated?: boolean | undefined;
+  // The footer's title and its description.
+  isMoreMenuFooterTranslated?: boolean | undefined;
   /*
    * When true, Cmd/Ctrl+K never opens or toggles the products menu — for apps
    * where another surface (e.g. a command palette) owns that shortcut. The
@@ -392,6 +417,7 @@ const Navbar: FunctionComponent<ComponentProps> = (
           <div className={className}>
             <NavBarItem
               title={props.rightElement.title}
+              isTitleTranslated={props.rightElement.isTitleTranslated}
               icon={props.rightElement.icon}
               route={props.rightElement.route}
               activeRoute={props.rightElement.activeRoute}
@@ -416,6 +442,7 @@ const Navbar: FunctionComponent<ComponentProps> = (
         return {
           id: `more-${item.title.toLowerCase().replace(/\s+/g, "-")}`,
           title: item.title,
+          isTitleTranslated: item.isTitleTranslated,
           icon: item.icon,
           route: item.route,
           activeRoute: item.activeRoute,
@@ -431,6 +458,7 @@ const Navbar: FunctionComponent<ComponentProps> = (
     allNavItems.push({
       id: `right-${props.rightElement.title.toLowerCase().replace(/\s+/g, "-")}`,
       title: props.rightElement.title,
+      isTitleTranslated: props.rightElement.isTitleTranslated,
       icon: props.rightElement.icon,
       route: props.rightElement.route,
       activeRoute: props.rightElement.activeRoute,
@@ -457,6 +485,7 @@ const Navbar: FunctionComponent<ComponentProps> = (
             <NavBarItem
               id={activeItem.id}
               title={activeItem.title}
+              isTitleTranslated={activeItem.isTitleTranslated}
               icon={activeItem.icon}
               exact={true}
               route={undefined}
@@ -505,6 +534,7 @@ const Navbar: FunctionComponent<ComponentProps> = (
                 categoriesOpenByDefault={props.moreMenuCategoriesOpenByDefault}
                 rightElement={props.rightElement}
                 recentLabel={props.moreMenuRecentLabel}
+                isRecentLabelTranslated={props.isMoreMenuRecentLabelTranslated}
                 topElement={props.mobileMenuTop?.(closeMobileMenu)}
                 bottomElement={props.mobileMenuBottom?.(closeMobileMenu)}
                 hiddenItems={props.moreMenuHiddenItems}
@@ -563,6 +593,7 @@ const Navbar: FunctionComponent<ComponentProps> = (
               key={homeItem.id}
               id={homeItem.id}
               title={homeItem.title}
+              isTitleTranslated={homeItem.isTitleTranslated}
               icon={homeItem.icon}
               activeRoute={homeItem.activeRoute}
               route={homeItem.route}
@@ -588,10 +619,14 @@ const Navbar: FunctionComponent<ComponentProps> = (
                  * opens already are: the Admin Dashboard hands its sections
                  * over in English, and its page's own section ("Projects")
                  * was the one English word in its header in every language.
+                 * The Dashboard's are in them already, and drawn as given:
+                 * looked up again, its Network ("Red") read "Rojo" (#7790).
                  */}
                 <span>
-                  {translateString(activeMoreItem.title) ??
-                    activeMoreItem.title}
+                  {activeMoreItem.isTitleTranslated
+                    ? activeMoreItem.title
+                    : translateString(activeMoreItem.title) ??
+                      activeMoreItem.title}
                 </span>
                 <Icon
                   icon={IconProp.ChevronDown}
@@ -656,12 +691,14 @@ const Navbar: FunctionComponent<ComponentProps> = (
                   key={item.key || item.route.toString()}
                   id={getPinnedItemId(item)}
                   title={item.title}
+                  isTitleTranslated={item.isTitleTranslated}
                   icon={item.icon}
                   route={item.route}
                   isActive={isMoreMenuItemActive(item)}
                   labelClassName="max-xl:sr-only max-w-[10rem] truncate"
                   iconClassName="h-4 w-4 flex-shrink-0 xl:mr-1.5"
                   tooltip={item.title}
+                  isTooltipTranslated={item.isTitleTranslated}
                   dataTestId={NAVBAR_PINNED_ITEM_TEST_ID}
                 />
               );
@@ -676,6 +713,7 @@ const Navbar: FunctionComponent<ComponentProps> = (
               key={item.id}
               id={item.id}
               title={item.title}
+              isTitleTranslated={item.isTitleTranslated}
               icon={item.icon}
               activeRoute={item.activeRoute}
               route={item.route}
@@ -689,6 +727,7 @@ const Navbar: FunctionComponent<ComponentProps> = (
         <div className={className}>
           <NavBarItem
             title={props.rightElement.title}
+            isTitleTranslated={props.rightElement.isTitleTranslated}
             icon={props.rightElement.icon}
             route={props.rightElement.route}
             activeRoute={props.rightElement.activeRoute}
@@ -719,15 +758,19 @@ const Navbar: FunctionComponent<ComponentProps> = (
             canPinMore={props.canPinMore}
             categoriesOpenByDefault={props.moreMenuCategoriesOpenByDefault}
             footer={props.moreMenuFooter}
+            isFooterTranslated={props.isMoreMenuFooterTranslated}
             searchPlaceholder={props.moreMenuSearchPlaceholder}
             searchLabel={props.moreMenuSearchLabel}
             isSearchPlaceholderTranslated={
               props.isMoreMenuSearchPlaceholderTranslated
             }
             noResultsText={props.moreMenuNoResultsText}
+            isNoResultsTextTranslated={props.isMoreMenuNoResultsTextTranslated}
             showCommandKShortcutHint={!props.disableCommandKShortcut}
             keyboardHint={props.moreMenuKeyboardHint}
+            isKeyboardHintTranslated={props.isMoreMenuKeyboardHintTranslated}
             recentLabel={props.moreMenuRecentLabel}
+            isRecentLabelTranslated={props.isMoreMenuRecentLabelTranslated}
             onClose={closeMoreMenu}
           />,
           document.body,

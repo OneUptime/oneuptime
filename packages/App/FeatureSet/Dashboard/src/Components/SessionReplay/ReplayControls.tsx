@@ -465,6 +465,7 @@ const ReplayControls: FunctionComponent<ReplayControlsProps> = (
                 speed: formatReplaySpeed(speed),
               },
             )}
+            isAriaLabelTranslated={true}
             title="Playback speed (< slower, > faster)"
             className="min-w-[3.25rem] tabular-nums"
             onClick={(): void => {

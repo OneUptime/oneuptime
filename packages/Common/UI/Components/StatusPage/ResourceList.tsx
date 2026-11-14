@@ -262,6 +262,7 @@ const ResourceList: FunctionComponent<ComponentProps> = (
             ariaLabel={translator.translateTemplate("Edit {{name}}", {
               name: name,
             })}
+            isAriaLabelTranslated={true}
             dataTestId="status-page-resource-row-edit"
             disabled={isBusy}
             className="text-gray-400 hover:bg-gray-200 hover:text-gray-700"
@@ -337,6 +338,7 @@ const ResourceList: FunctionComponent<ComponentProps> = (
           ariaLabel={translator.translateTemplate("Select {{name}}", {
             name: name,
           })}
+          isAriaLabelTranslated={true}
           hoverText={translator.translateTemplate("Select {{name}}", {
             name: name,
           })}

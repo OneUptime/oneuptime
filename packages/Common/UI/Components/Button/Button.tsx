@@ -158,6 +158,12 @@ export interface ComponentProps {
   className?: string | undefined;
   tooltip?: string | undefined;
   ariaLabel?: string | undefined;
+  /*
+   * The aria label is in the reader's words already: a sentence the page
+   * builds around a value, or a front end's own keyed text. Said as given,
+   * never looked up again (#7790). Left unset, it is English, looked up here.
+   */
+  isAriaLabelTranslated?: boolean | undefined;
   ariaExpanded?: boolean | undefined;
   ariaHaspopup?:
     | "menu"
@@ -231,6 +237,7 @@ const Button: FunctionComponent<ComponentProps> = ({
   className,
   tooltip,
   ariaLabel,
+  isAriaLabelTranslated,
   ariaExpanded,
   ariaHaspopup,
   ariaControls,
@@ -552,7 +559,7 @@ const Button: FunctionComponent<ComponentProps> = ({
    * row's trash can), is named by its title or else its tooltip.
    */
   const computedAriaLabel: string | undefined =
-    translateString(ariaLabel) ||
+    (isAriaLabelTranslated ? ariaLabel : translateString(ariaLabel)) ||
     (buttonStyle === ButtonStyleType.ICON ||
     buttonStyle === ButtonStyleType.ICON_LIGHT ||
     !hasWords

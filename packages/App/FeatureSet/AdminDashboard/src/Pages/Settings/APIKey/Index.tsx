@@ -85,6 +85,7 @@ const Settings: FunctionComponent = (): ReactElement => {
                 isCopyable: true,
               },
               placeholder: t("pages.settings.apiKey.apiKeyNotGenerated"),
+              isPlaceholderTranslated: true,
             },
             {
               field: {
@@ -93,6 +94,7 @@ const Settings: FunctionComponent = (): ReactElement => {
               title: "Enabled",
               fieldType: FieldType.Boolean,
               placeholder: t("common.notEnabled"),
+              isPlaceholderTranslated: true,
             },
           ],
           modelId: ObjectID.getZeroObjectID(),

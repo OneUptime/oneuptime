@@ -881,6 +881,7 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
                                   openInNewTab={false}
                                   className="block truncate font-mono text-[12px] font-medium text-red-700 hover:underline"
                                   title={message}
+                                  isTitleTranslated={true}
                                 >
                                   {message}
                                 </Link>

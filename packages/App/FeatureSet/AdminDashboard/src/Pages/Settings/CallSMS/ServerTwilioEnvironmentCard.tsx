@@ -263,6 +263,7 @@ const ServerTwilioEnvironmentCard: FunctionComponent<ComponentProps> = (
                  * the page's own words, in the page's direction.
                  */
                 placeholder: t("common.none"),
+                isPlaceholderTranslated: true,
               },
               {
                 key: "authToken",
@@ -286,6 +287,7 @@ const ServerTwilioEnvironmentCard: FunctionComponent<ComponentProps> = (
                 description: ServerTwilioEnvironmentVariable.PrimaryPhoneNumber,
                 fieldType: FieldType.Phone,
                 placeholder: t("common.none"),
+                isPlaceholderTranslated: true,
                 // An account used for SMS only makes no calls, from any number.
                 showIf: (account: EnvironmentAccountItem): boolean => {
                   return TwilioConfigUses.makesCalls(account.usedFor);
@@ -298,6 +300,7 @@ const ServerTwilioEnvironmentCard: FunctionComponent<ComponentProps> = (
                 fieldType: FieldType.Phone,
                 // Without them, SMS go out from the numbers calls do.
                 placeholder: t("pages.settings.callSms.smsSameAsCalls"),
+                isPlaceholderTranslated: true,
                 showIf: (account: EnvironmentAccountItem): boolean => {
                   return TwilioConfigUses.sendsSms(account.usedFor);
                 },
@@ -309,6 +312,7 @@ const ServerTwilioEnvironmentCard: FunctionComponent<ComponentProps> = (
                   ServerTwilioEnvironmentVariable.SecondaryPhoneNumbers,
                 fieldType: FieldType.Phone,
                 placeholder: t("common.none"),
+                isPlaceholderTranslated: true,
                 showIf: (account: EnvironmentAccountItem): boolean => {
                   return TwilioConfigUses.makesCalls(account.usedFor);
                 },

@@ -1298,7 +1298,7 @@ const CorrelateGraph: FunctionComponent = (): ReactElement => {
               data-testid="security-events-correlate-time-range"
             >
               <Dropdown
-                ariaLabel={t("Time Range")}
+                ariaLabel="Time Range"
                 isClearable={false}
                 options={timeRangeOptions}
                 value={

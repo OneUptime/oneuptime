@@ -806,6 +806,7 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
                           "View trace {{id}}",
                           { id: traceId },
                         )}
+                        isTitleTranslated={true}
                       >
                         {traceId}
                       </Link>
@@ -848,6 +849,7 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
                           "View span {{id}}",
                           { id: spanId },
                         )}
+                        isTitleTranslated={true}
                       >
                         {spanId}
                       </Link>
@@ -890,6 +892,7 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
                           "View session replay {{id}}",
                           { id: sessionId },
                         )}
+                        isTitleTranslated={true}
                       >
                         {sessionId}
                       </Link>

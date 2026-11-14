@@ -337,10 +337,7 @@ const DataSecurityOverviewPage: FunctionComponent<
         />
       )}
 
-      <EventStatBar
-        columns={4}
-        ariaLabel={translator.translateText("Data security figures")}
-      >
+      <EventStatBar columns={4} ariaLabel="Data security figures">
         <EventStatTile
           variant="segment"
           icon={IconProp.Fingerprint}

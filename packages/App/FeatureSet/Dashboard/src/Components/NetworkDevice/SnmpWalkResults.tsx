@@ -456,6 +456,7 @@ const SnmpWalkResultRow: FunctionComponent<RowProps> = (
           ariaLabel={translator.translateTemplate("More actions for {{oid}}", {
             oid: view.oid,
           })}
+          isAriaLabelTranslated={true}
           menuIcon={IconProp.EllipsisHorizontal}
           isMenuPortaled={true}
           dataTestId="snmp-walk-row-more"

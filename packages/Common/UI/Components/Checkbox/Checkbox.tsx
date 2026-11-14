@@ -32,6 +32,12 @@ export interface CategoryProps {
    */
   ariaLabel?: string | undefined;
   /*
+   * The aria label is in the reader's words already: a sentence the page
+   * builds around a value, or a front end's own keyed text. Said as given,
+   * never looked up again (#7790). Left unset, it is English, looked up here.
+   */
+  isAriaLabelTranslated?: boolean | undefined;
+  /*
    * The hover text on the input itself - NOT `title` above, which is the visible
    * label rendered beside the box. Its most useful job is on a DISABLED box,
    * where it is the only place the reason can live: a box that cannot be ticked
@@ -91,7 +97,11 @@ const CheckboxElement: FunctionComponent<CategoryProps> = (
             onFocus={props.onFocus}
             onBlur={props.onBlur}
             data-testid={props.dataTestId}
-            aria-label={translateValue(props.ariaLabel) as string | undefined}
+            aria-label={
+              props.isAriaLabelTranslated
+                ? props.ariaLabel
+                : (translateValue(props.ariaLabel) as string | undefined)
+            }
             title={translateValue(props.hoverText) as string | undefined}
             aria-describedby={props.description ? descriptionId : undefined}
             aria-invalid={props.error ? "true" : undefined}

@@ -605,6 +605,7 @@ const CallTranscriptBlock: FunctionComponent<ComponentProps> = (
         ariaLabel={translator.translateTemplate("Transcript of the {{call}}", {
           call: props.callLabel,
         })}
+        isAriaLabelTranslated={true}
         dataTestId="call-transcript-menu"
         elementToBeShownInsteadOfButton={
           /*

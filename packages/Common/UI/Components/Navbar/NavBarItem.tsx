@@ -9,7 +9,14 @@ import IconProp from "../../../Types/Icon/IconProp";
 import React, { FunctionComponent, ReactElement, ReactNode } from "react";
 
 export interface ComponentProps {
+  // In English, looked up here.
   title: string;
+  /*
+   * The title is in the reader's words already: a front end's own keyed
+   * text, as the Dashboard's products and the status page's pages are.
+   * Drawn as given, never looked up again (#7790).
+   */
+  isTitleTranslated?: boolean | undefined;
   icon?: undefined | IconProp;
   route?: undefined | Route;
   activeRoute?: undefined | Route;
@@ -33,8 +40,12 @@ export interface ComponentProps {
   labelClassName?: string | undefined;
   // Classes for the icon, in place of the gap it keeps from its label.
   iconClassName?: string | undefined;
-  // A hover tip, in the caller's English: the name of an icon-only item.
+  /*
+   * A hover tip: the name of an icon-only item. In the caller's English,
+   * or in the reader's words already where isTooltipTranslated says so.
+   */
   tooltip?: string | undefined;
+  isTooltipTranslated?: boolean | undefined;
   // Drawn after the label, inside the link: a quiet mark such as "Not set up".
   trailing?: ReactNode | undefined;
   dataTestId?: string | undefined;
@@ -44,7 +55,9 @@ const NavBarItem: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
-  const translatedTitle: string = translateString(props.title) ?? props.title;
+  const translatedTitle: string = props.isTitleTranslated
+    ? props.title
+    : translateString(props.title) ?? props.title;
   const activeRoute: Route | undefined = props.activeRoute || props.route;
   const isActive: boolean =
     props.isActive !== undefined
@@ -84,6 +97,7 @@ const NavBarItem: FunctionComponent<ComponentProps> = (
         onClick={props.onClick}
         onMouseLeave={props.onMouseLeave}
         title={props.tooltip}
+        isTitleTranslated={props.isTooltipTranslated}
         dataTestId={props.dataTestId}
       >
         {props.icon ? (

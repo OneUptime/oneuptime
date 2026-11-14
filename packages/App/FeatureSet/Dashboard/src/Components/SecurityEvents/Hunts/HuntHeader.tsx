@@ -310,7 +310,7 @@ const HuntHeader: FunctionComponent<ComponentProps> = (
             </div>
             <div className={SECURITY_CASE_HEADER_MORE_PLACE_CLASS_NAME}>
               <MoreMenu
-                ariaLabel={translator.translateText(MORE_ACTIONS)}
+                ariaLabel={MORE_ACTIONS}
                 dataTestId={HUNTS_TEST_IDS.more}
                 elementToBeShownInsteadOfButton={
                   <Icon

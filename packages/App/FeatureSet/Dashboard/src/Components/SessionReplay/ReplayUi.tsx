@@ -180,6 +180,12 @@ export interface ReplayToolButtonProps {
   title?: string | undefined;
   tooltip?: string | undefined;
   ariaLabel?: string | undefined;
+  /*
+   * The aria label is in the reader's words already: a sentence the page
+   * builds around a value, or a front end's own keyed text. Said as given,
+   * never looked up again (#7790). Left unset, it is English, looked up here.
+   */
+  isAriaLabelTranslated?: boolean | undefined;
   dataTestId?: string | undefined;
   className?: string | undefined;
   onClick: () => void;
@@ -243,8 +249,9 @@ export const ReplayToolButton: React.ForwardRefExoticComponent<
       translateString(props.title) ?? props.title;
     const translatedTooltip: string | undefined =
       translateString(props.tooltip) ?? props.tooltip;
-    const translatedAriaLabel: string | undefined =
-      translateString(props.ariaLabel) ?? props.ariaLabel;
+    const translatedAriaLabel: string | undefined = props.isAriaLabelTranslated
+      ? props.ariaLabel
+      : translateString(props.ariaLabel) ?? props.ariaLabel;
 
     /*
      * A single icon with no label gets a square button; anything wider -

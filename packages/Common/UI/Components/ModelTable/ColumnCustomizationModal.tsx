@@ -532,6 +532,7 @@ const ColumnCustomizationModal: ColumnCustomizationModalFunction = <
             ariaLabel={translator.translateTemplate("Move {{column}} up", {
               column: translatableTerm(entry.column.title),
             })}
+            isAriaLabelTranslated={true}
             className={`text-gray-400 ${
               isSearching || index === 0
                 ? ""
@@ -552,6 +553,7 @@ const ColumnCustomizationModal: ColumnCustomizationModalFunction = <
             ariaLabel={translator.translateTemplate("Move {{column}} down", {
               column: translatableTerm(entry.column.title),
             })}
+            isAriaLabelTranslated={true}
             className={`text-gray-400 ${
               isSearching || index === entries.length - 1
                 ? ""
@@ -573,6 +575,7 @@ const ColumnCustomizationModal: ColumnCustomizationModalFunction = <
               ariaLabel={translator.translateTemplate("Remove {{column}}", {
                 column: translatableTerm(entry.column.title),
               })}
+              isAriaLabelTranslated={true}
               className={`text-gray-400 ${
                 isOnlyVisibleColumn ? "" : "hover:bg-red-100 hover:text-red-600"
               }`}
@@ -787,6 +790,7 @@ const ColumnCustomizationModal: ColumnCustomizationModalFunction = <
                   ariaLabel={translator.translateTemplate("Add {{column}}", {
                     column: translatableTerm(entry.column.title),
                   })}
+                  isAriaLabelTranslated={true}
                   className="flex-none text-gray-400 hover:bg-gray-200 hover:text-gray-700"
                   dataTestId={`add-column-${entry.id}`}
                   onClick={() => {

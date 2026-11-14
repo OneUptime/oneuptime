@@ -148,6 +148,7 @@ const Projects: FunctionComponent = (): ReactElement => {
                   title: t("pages.projectView.dataResidencyFieldTitle"),
                   fieldType: FieldType.Text,
                   placeholder: t("pages.projectView.dataResidencyNotSet"),
+                  isPlaceholderTranslated: true,
                 },
               ],
               modelId: modelId,

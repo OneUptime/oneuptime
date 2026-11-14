@@ -629,6 +629,7 @@ const DropdownOptionsInput: FunctionComponent<ComponentProps> = (
                 "What happens to {{option}}",
                 { option: entry.value },
               )}
+              isAriaLabelTranslated={true}
               onChange={(
                 value: DropdownValue | Array<DropdownValue> | null,
               ) => {
@@ -653,6 +654,7 @@ const DropdownOptionsInput: FunctionComponent<ComponentProps> = (
               ariaLabel={translator.translateTemplate("Put {{option}} back", {
                 option: entry.value,
               })}
+              isAriaLabelTranslated={true}
               onClick={() => {
                 if (entry.removed) {
                   undoRemove(entry.removed);

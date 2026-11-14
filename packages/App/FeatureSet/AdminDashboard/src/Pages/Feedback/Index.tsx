@@ -456,7 +456,7 @@ const FeedbackPage: FunctionComponent = (): ReactElement => {
                 return option.value === kind;
               })}
               isClearable={false}
-              ariaLabel={translator.translateText("Kind") || "Kind"}
+              ariaLabel="Kind"
               dataTestId="admin-feedback-kind"
               onChange={(
                 value: DropdownValue | Array<DropdownValue> | null,
