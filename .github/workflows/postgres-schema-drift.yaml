@@ -2462,10 +2462,11 @@ jobs:
 
       # DatabaseService takes a page of a joined read in one query where one
       # query gives the same page (PagedFind: every join to-one, or a record
-      # named by its primary key); TypeORM takes it in two. Holds both to
-      # the same pages of monitors, monitor probes and incidents with their
-      # relations, ties and deleted rows. Clones the migrated tables into an
-      # isolated schema.
+      # named by its primary key), and the ids of a page whose to-many joins
+      # are only selected from the table itself; TypeORM takes them in two
+      # over every join. Holds both to the same pages of monitors, monitor
+      # probes and incidents with their relations, ties and deleted rows.
+      # Clones the migrated tables into an isolated schema.
       - name: Test one-query pages of joined reads on migrated Postgres
         if: matrix.shard == 2
         working-directory: packages/Common
@@ -2477,6 +2478,44 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Infrastructure/Postgres/PagedFindPostgres.test.ts
+          --forceExit
+
+      # A list's count stops at the cap it asks for (CappedCount: the read's
+      # own query with LIMIT upTo + 1, counted). Holds its answers to
+      # repository.count's, or upTo + 1, for reads by project, through
+      # labels that repeat a record in the join, through a to-one relation,
+      # with deleted rows and alternatives. Clones the migrated tables into
+      # an isolated schema.
+      - name: Test capped list counts on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_CAPPED_COUNT_TESTS: "true"
+          CAPPED_COUNT_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          CAPPED_COUNT_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          CAPPED_COUNT_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/CappedCountPostgres.test.ts
+          --forceExit
+
+      # The Network Overview counts the fleet in one scan
+      # (NetworkDeviceService.getFleetScan) where it ran four reads: the
+      # summary strip's numbers, the health buckets, the vendor breakdown and
+      # the SNMP-failing count. Holds the folded scan to all four, run as
+      # they were, over a fleet on every health boundary and again after an
+      # outage. Clones the migrated table into an isolated schema.
+      - name: Test the Network Overview's fleet scan on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_NETWORK_FLEET_SCAN_TESTS: "true"
+          NETWORK_FLEET_SCAN_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          NETWORK_FLEET_SCAN_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          NETWORK_FLEET_SCAN_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/NetworkFleetScanPostgres.test.ts
           --forceExit
 
       # Clones the migrated alert, note, service, AI insight, team, API key

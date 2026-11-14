@@ -5589,25 +5589,25 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
               hasMore !== undefined &&
               !isCountCapped &&
               data.length > 0 && (
-              <span
-                className="flex-none whitespace-nowrap rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700"
-                title={translator.translatePlural(
-                  SEARCH_RESULT_COUNT_ON_PAGE,
-                  data.length,
-                  {
+                <span
+                  className="flex-none whitespace-nowrap rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700"
+                  title={translator.translatePlural(
+                    SEARCH_RESULT_COUNT_ON_PAGE,
+                    data.length,
+                    {
+                      count: `${translator.formatNumber(data.length)}${
+                        hasMore ? "+" : ""
+                      }`,
+                    },
+                  )}
+                >
+                  {translator.translatePlural(SEARCH_MATCH_COUNT, data.length, {
                     count: `${translator.formatNumber(data.length)}${
                       hasMore ? "+" : ""
                     }`,
-                  },
-                )}
-              >
-                {translator.translatePlural(SEARCH_MATCH_COUNT, data.length, {
-                  count: `${translator.formatNumber(data.length)}${
-                    hasMore ? "+" : ""
-                  }`,
-                })}
-              </span>
-            )}
+                  })}
+                </span>
+              )}
             {searchText.length > 0 || selectedLabels.length > 0 ? (
               <button
                 type="button"

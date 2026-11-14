@@ -128,9 +128,7 @@ describe("AddAlertAndIncidentListIndexes1809169000000", () => {
     expect(
       await statementsOf(
         (runner: QueryRunner) => {
-          return new AddAlertAndIncidentListIndexes1809169000000().down(
-            runner,
-          );
+          return new AddAlertAndIncidentListIndexes1809169000000().down(runner);
         },
         { isTransactionActive: true },
       ),
@@ -178,7 +176,9 @@ describe.each([
 
   function columnsOf(index: IndexMetadataArgs): Array<string> {
     if (!Array.isArray(index.columns)) {
-      throw new Error("An index declares its columns as a function; list them.");
+      throw new Error(
+        "An index declares its columns as a function; list them.",
+      );
     }
     return index.columns as Array<string>;
   }

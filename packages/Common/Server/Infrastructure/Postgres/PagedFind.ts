@@ -216,8 +216,10 @@ export default class PagedFind {
       loadEagerRelations: false,
     };
 
-    const idBuilder: SelectQueryBuilder<TEntity> =
-      PagedFind.createQueryBuilder(repository, idOptions);
+    const idBuilder: SelectQueryBuilder<TEntity> = PagedFind.createQueryBuilder(
+      repository,
+      idOptions,
+    );
 
     /*
      * Its joins, if any, are the ones its filter and order name. Each must

@@ -311,7 +311,7 @@ export default class BaseAPI<
       const countPromise: Promise<PositiveNumber> = this.service.countBy({
         query: { ...query },
         props: { ...databaseProps },
-        upTo: countCap,
+        ...(countCap !== undefined ? { upTo: countCap } : {}),
       });
 
       /*
@@ -349,20 +349,28 @@ export default class BaseAPI<
       count = await this.service.countBy({
         query,
         props: databaseProps,
-        upTo: countCap,
+        ...(countCap !== undefined ? { upTo: countCap } : {}),
       });
     }
 
-    const isCountCapped: boolean =
-      countCap !== undefined && count.toNumber() > countCap;
+    // More matched than the cap: the count is the cap, and says so.
+    if (countCap !== undefined && count.toNumber() > countCap) {
+      return Response.sendEntityArrayResponse(
+        req,
+        res,
+        list,
+        new PositiveNumber(countCap),
+        this.entityType,
+        { isCountCapped: true },
+      );
+    }
 
     return Response.sendEntityArrayResponse(
       req,
       res,
       list,
-      isCountCapped ? new PositiveNumber(countCap as number) : count,
+      count,
       this.entityType,
-      isCountCapped ? { isCountCapped: true } : undefined,
     );
   }
 
