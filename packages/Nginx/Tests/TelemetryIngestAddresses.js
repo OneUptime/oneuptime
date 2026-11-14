@@ -38,6 +38,20 @@ const TELEMETRY_INDEX = `${TELEMETRY_DIRECTORY}/Index.ts`;
 const COMPATIBLE_INGEST_DOCS =
   "packages/App/FeatureSet/Docs/Content/en/telemetry/compatible-endpoints.md";
 
+// The logs guide's Fluent Bit and Fluentd files (Send your first logs).
+const LOG_SHIPPER_SNIPPETS =
+  "packages/App/FeatureSet/Dashboard/src/Components/Telemetry/LogShipperSnippets.ts";
+
+/*
+ * The Setup Guide's OpenTelemetry SDK snippets, which give an exporter its
+ * signal's URL under <YOUR_ONEUPTIME_URL>, and the guide, which fills that
+ * with its OTLP endpoint (issue #7885).
+ */
+const OTEL_SDK_SNIPPETS =
+  "packages/App/FeatureSet/Dashboard/src/Components/Telemetry/OtelSdkSnippets.ts";
+const TELEMETRY_SETUP_GUIDE =
+  "packages/App/FeatureSet/Dashboard/src/Components/Telemetry/Documentation.tsx";
+
 const HOST_COLLECTOR_INSTALL_SH =
   "packages/App/FeatureSet/Docs/Static/scripts/host-collector/install.sh";
 const HOST_COLLECTOR_INSTALL_PS1 =
@@ -79,6 +93,25 @@ const TELEMETRY_INGEST_ADDRESSES = [
               contains:
                 "HOST_COLLECTOR_EXPORTER_ENDPOINT: string = `${HOST_COLLECTOR_URL_REFERENCE}/otlp`",
             },
+            // An SDK exporter given its signal's URL in code.
+            {
+              file: OTEL_SDK_SNIPPETS,
+              contains: `"<YOUR_ONEUPTIME_URL>/v1/${signal}"`,
+            },
+            // The guide's OTLP endpoint, which <YOUR_ONEUPTIME_URL> is.
+            {
+              file: TELEMETRY_SETUP_GUIDE,
+              contains: "`${httpProtocol}://${HOST}/otlp`",
+            },
+            // Fluent Bit's opentelemetry output, as its Logs_uri.
+            ...(signal === "logs"
+              ? [
+                  {
+                    file: LOG_SHIPPER_SNIPPETS,
+                    contains: 'FLUENT_BIT_LOGS_URI: string = "/otlp/v1/logs"',
+                  },
+                ]
+              : []),
           ],
         },
       ],
@@ -177,6 +210,10 @@ const TELEMETRY_INGEST_ADDRESSES = [
             file: "packages/App/FeatureSet/Docs/Content/en/telemetry/fluentd.md",
             contains: "endpoint https://oneuptime.com/fluentd/logs",
           },
+          {
+            file: LOG_SHIPPER_SNIPPETS,
+            contains: 'FLUENTD_LOGS_PATH: string = "/fluentd/logs"',
+          },
         ],
       },
     ],
@@ -201,7 +238,8 @@ const TELEMETRY_INGEST_ADDRESSES = [
         handedOutBy: [
           {
             file: COMPATIBLE_INGEST_DOCS,
-            contains: "url: https://oneuptime.com/telemetry/prometheus/api/v1/write",
+            contains:
+              "url: https://oneuptime.com/telemetry/prometheus/api/v1/write",
           },
         ],
       },
@@ -251,7 +289,8 @@ const TELEMETRY_INGEST_ADDRESSES = [
         handedOutBy: [
           {
             file: COMPATIBLE_INGEST_DOCS,
-            contains: "curl https://oneuptime.com/telemetry/services/collector/event",
+            contains:
+              "curl https://oneuptime.com/telemetry/services/collector/event",
           },
         ],
       },

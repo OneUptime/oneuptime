@@ -1,6 +1,20 @@
 import "@testing-library/jest-dom";
-import { afterEach, beforeAll, describe, expect, test } from "@jest/globals";
-import { act, cleanup, render, screen, within } from "@testing-library/react";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  test,
+} from "@jest/globals";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import * as React from "react";
@@ -20,8 +34,12 @@ import {
   MINUTES_AND_SECONDS_TEMPLATE,
   MINUTES_TEMPLATE,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/BreadcrumbTimelinePresentation";
+import OneUptimeDate from "../../../Types/Date";
+import { getArrowOn } from "../../../Types/DirectionArrow";
 import { JSONObject } from "../../../Types/JSON";
+import Timezone from "../../../Types/Timezone";
 import { PluralTemplate, Translator } from "../../../Types/Translator";
+import { followLanguageForDates } from "../../../UI/Utils/DateDisplayLanguage";
 import { drawLine, getDrawnText } from "../../Helpers/BidiLayout";
 import {
   DASHBOARD_LANGUAGES,
@@ -52,6 +70,11 @@ import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
  * page (#7818). The counts are in the reader's digits now, and such an
  * event reads the reader's word for it; the rows fold alike in every
  * language.
+ *
+ * Its Clock toggle wrote each event's time of day as moment does,
+ * "11:55:59.120" in Latin digits beside those Persian chips (#7856). It is
+ * in the reader's digits now, as every other time of day is, with the
+ * marks English writes.
  */
 
 const EXCEPTION_TIME: Date = new Date("2026-09-14T11:56:00.000Z");
@@ -560,6 +583,8 @@ describe("the Breadcrumbs card, drawn in the reader's language", () => {
       },
       interpolation: { escapeValue: false },
     });
+    // As the Dashboard does: dates follow the reader's language.
+    followLanguageForDates(i18next);
   });
 
   afterEach(() => {
@@ -700,5 +725,70 @@ describe("the Breadcrumbs card, drawn in the reader's language", () => {
     ]);
 
     expect(summaries()).toEqual(["Event", "All", "Could not reserve stock"]);
+  });
+
+  /*
+   * The Clock toggle: each event's time of day to the millisecond, on the
+   * clock of the zone the reader picked (UTC here).
+   */
+  describe("with the Clock toggle on", () => {
+    // FOLDED_EVENTS, and one 880 ms before the exception: 11:55:59.120.
+    const CLOCK_EVENTS: Array<BreadcrumbEvent> = [
+      ...FOLDED_EVENTS,
+      event("stock.checked", -880),
+    ];
+
+    // The card for CLOCK_EVENTS in `language`, showing each event's time of day.
+    const renderClockIn: (language: string) => Promise<HTMLElement> = async (
+      language: string,
+    ): Promise<HTMLElement> => {
+      const card: HTMLElement = await renderIn(language, CLOCK_EVENTS);
+      const clock: HTMLElement = screen.getByTestId(
+        "breadcrumb-time-format-clock",
+      );
+
+      fireEvent.click(clock);
+      expect(clock).toHaveAttribute("aria-checked", "true");
+
+      return card;
+    };
+
+    beforeAll(() => {
+      OneUptimeDate.setUserTimezone(Timezone.UTC);
+    });
+
+    afterAll(() => {
+      OneUptimeDate.setUserTimezone(null);
+    });
+
+    test("English: each time of day reads as it always did", async () => {
+      await renderClockIn("en");
+
+      expect(times()).toEqual([
+        "11:53:55.000",
+        "11:55:47.500 → 11:55:51.000",
+        "11:55:58.766",
+        "11:55:59.120",
+        "11:56:00.000",
+      ]);
+    });
+
+    test("Persian: each time of day in Persian digits, with English's marks", async () => {
+      await renderClockIn("fa");
+
+      expect(times()).toEqual([
+        "۱۱:۵۳:۵۵.۰۰۰",
+        `۱۱:۵۵:۴۷.۵۰۰ ${getArrowOn("fa")} ۱۱:۵۵:۵۱.۰۰۰`,
+        "۱۱:۵۵:۵۸.۷۶۶",
+        "۱۱:۵۵:۵۹.۱۲۰",
+        "۱۱:۵۶:۰۰.۰۰۰",
+      ]);
+    });
+
+    test("Persian: no Latin digit anywhere on the card", async () => {
+      const card: HTMLElement = await renderClockIn("fa");
+
+      expect(card.textContent).not.toMatch(LATIN_DIGIT);
+    });
   });
 });
