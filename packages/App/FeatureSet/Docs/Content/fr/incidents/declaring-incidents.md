@@ -55,7 +55,7 @@ La ressource est recherchée avec vos propres autorisations : si vous ne pouvez 
 ### Étape 1 — Détails de l'incident
 
 - **Titre** — obligatoire. Le résumé d'une ligne que tout le monde verra dans la liste, dans Slack et (si l'incident est visible) sur votre page de statut. Texte indicatif : `Incident Title`.
-- **Gravité de l'incident** — obligatoire. L'une des gravités configurées pour votre projet ; les nouveaux projets sont créés avec **Critical Incident**, **Major Incident** et **Minor Incident**.
+- **Gravité de l'incident** — obligatoire. L'une des gravités configurées pour votre projet ; les nouveaux projets sont créés avec **Incident critique**, **Incident majeur** et **Incident mineur**.
 - **Description** — facultative, écrite en Markdown. C'est le champ qui s'affiche sur la page de statut, alors écrivez-le pour les clients plutôt que pour votre équipe. Une image que vous y placez est montrée à tout le monde tant que l'incident est visible sur les pages de statut, et seulement aux membres de votre projet tant qu'il est masqué. Vous pourrez la modifier plus tard depuis **Description** dans le menu latéral de l'incident.
 
 Sous **Plus de champs** :
