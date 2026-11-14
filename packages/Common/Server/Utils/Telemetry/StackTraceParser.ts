@@ -83,6 +83,12 @@ const LIBRARY_PATTERNS: Array<RegExp> = [
   /\/gems\//,
   /\/rubygems\//,
   /\/ruby\/\d+\.\d+\.\d+\//,
+  /*
+   * Ruby 3.x puts a built-in method written in Ruby, such as Kernel#loop, in
+   * a file it names "<internal:...>": "<internal:kernel>:187:in 'loop'". No
+   * other language here names a file that way.
+   */
+  /^<internal:/,
   // C#/.NET
   /^System\./,
   /^Microsoft\./,
