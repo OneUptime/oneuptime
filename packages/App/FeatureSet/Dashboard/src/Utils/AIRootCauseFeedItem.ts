@@ -29,7 +29,7 @@ export const AI_ROOT_CAUSE_FEED_LEAD: string =
 /*
  * A follow-up check's entry starts with this in place of the lead above,
  * followed by the reason its report gives: "OneUptime AI checked again after
- * alert #12 opened on Host web-1, 2 minutes after this incident was
+ * alert #12 opened on host web-1, 2 minutes after this incident was
  * declared: High CPU on web-1."
  */
 export const AI_FOLLOW_UP_FEED_LEAD: string = "OneUptime AI checked again";

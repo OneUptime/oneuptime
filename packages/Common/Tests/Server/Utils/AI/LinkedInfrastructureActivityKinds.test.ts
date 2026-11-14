@@ -30,7 +30,7 @@ import { CloudResourceKind } from "../../../../Types/Cloud/CloudResourceKind";
  * said "No open or recent alerts on Cloud resource checkout · us-east-1":
  *
  *  - the linked infrastructure's activity records an environment as
- *    CLOUD_ENVIRONMENT_ACTIVITY_KIND, and words it as a Cloud environment
+ *    CLOUD_ENVIRONMENT_ACTIVITY_KIND, and words it as a cloud environment
  *    in the English an API reader gets;
  *  - a resource of a connected account, and a cloud row whose kind was not
  *    read, stay CloudResource; every other kind is recorded as it was;
@@ -177,14 +177,14 @@ describe("the linked infrastructure's activity", () => {
         linkedTo([ENVIRONMENT, RESOURCE]),
       )?.message,
     ).toBe(
-      "No open or recent alerts on Cloud environment checkout · us-east-1 and Cloud resource orders-db",
+      "No open or recent alerts on cloud environment checkout · us-east-1 and cloud resource orders-db",
     );
 
     expect(
       LinkedInfrastructureContext.buildActivityNote(linkedTo([ENVIRONMENT], 2))
         ?.message,
     ).toBe(
-      "Read 2 open or recent alerts on Cloud environment checkout · us-east-1",
+      "Read 2 open or recent alerts on cloud environment checkout · us-east-1",
     );
   });
 
@@ -194,7 +194,7 @@ describe("the linked infrastructure's activity", () => {
     ]);
     expect(
       LinkedInfrastructureContext.buildActivityNote(linkedTo([HOST]))?.message,
-    ).toBe("No open or recent alerts on Host web-1");
+    ).toBe("No open or recent alerts on host web-1");
   });
 
   test("an activity recorded before (an environment as CloudResource) still reads", () => {
@@ -206,7 +206,7 @@ describe("the linked infrastructure's activity", () => {
         hasMoreAlerts: false,
         lookbackMinutes: 30,
       }),
-    ).toBe("No open or recent alerts on Cloud resource checkout · us-east-1");
+    ).toBe("No open or recent alerts on cloud resource checkout · us-east-1");
   });
 });
 
@@ -231,26 +231,26 @@ describe("a follow-up check on an environment", () => {
     );
     expect(note.followUpCheck?.resourceName).toBe("checkout · us-east-1");
     expect(note.message).toBe(
-      'Checking again: alert #12 opened on Cloud environment "checkout · us-east-1" after the first analysis',
+      "Checking again: alert #12 opened on cloud environment checkout · us-east-1 after the first analysis",
     );
   });
 
-  test("its report's first line says Cloud environment, never Cloud resource", () => {
+  test("its report's first line says cloud environment, never cloud resource", () => {
     const lead: string = IncidentFollowUpCheck.buildReportLead(
       followUp(ENVIRONMENT),
     ).toString();
 
-    expect(lead).toContain("opened on Cloud environment checkout · us-east-1");
-    expect(lead).not.toContain("Cloud resource");
+    expect(lead).toContain("opened on cloud environment checkout · us-east-1");
+    expect(lead.toLowerCase()).not.toContain("cloud resource");
   });
 
-  test("a resource of a connected account is still a Cloud resource", () => {
+  test("a resource of a connected account is still a cloud resource", () => {
     expect(
       IncidentFollowUpCheck.buildActivityNote(followUp(RESOURCE)).followUpCheck
         ?.resourceKind,
     ).toBe("CloudResource");
     expect(
       IncidentFollowUpCheck.buildReportLead(followUp(RESOURCE)).toString(),
-    ).toContain("opened on Cloud resource orders-db");
+    ).toContain("opened on cloud resource orders-db");
   });
 });

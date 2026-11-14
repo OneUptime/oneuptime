@@ -105,7 +105,7 @@ describe("the AI SRE page says what an investigation reads", () => {
         hasMoreAlerts: false,
         lookbackMinutes: RELATED_ALERTS_LOOKBACK_MINUTES,
       }),
-    ).toBe("Read 2 open or recent alerts on Host web-1");
+    ).toBe("Read 2 open or recent alerts on host web-1");
   });
 
   test("the host metrics it names are read one state at a time, and busy CPU is user plus system", () => {

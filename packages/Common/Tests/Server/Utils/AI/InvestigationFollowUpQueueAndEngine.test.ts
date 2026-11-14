@@ -328,7 +328,7 @@ describe("what the engine records", () => {
   const CONTEXT_NOTES: Array<AIRunEventResultSummary> = [
     {
       message:
-        'Checking again: alert #12 opened on Host "web-1" after the first analysis',
+        "Checking again: alert #12 opened on host web-1 after the first analysis",
       severity: "Info",
       followUpCheck: {
         alertNumber: 12,
@@ -338,7 +338,7 @@ describe("what the engine records", () => {
       },
     },
     {
-      message: "Read 2 open or recent alerts on Host web-1",
+      message: "Read 2 open or recent alerts on host web-1",
       severity: "Info",
       linkedInfrastructure: {
         resources: [{ kind: "Host", name: "web-1" }],
@@ -451,7 +451,7 @@ describe("what the engine records", () => {
       projectId: PROJECT_ID,
       attemptCount: 1,
       request: request({
-        reportLead: mdText`**Checked again** after alert #12 opened on Host web-1, 2 minutes after this incident was declared.`,
+        reportLead: mdText`**Checked again** after alert #12 opened on host web-1, 2 minutes after this incident was declared.`,
       }),
     });
     await AIInvestigationEngine.executeRun({
@@ -463,7 +463,7 @@ describe("what the engine records", () => {
 
     expect(
       posted[0]!.startsWith(
-        "## 🧠 AI — Automated Root Cause Analysis\n\n**Checked again** after alert #12 opened on Host web-1, 2 minutes after this incident was declared.\n\n**Summary** — shop-api saturated the CPU of web-1.",
+        "## 🧠 AI — Automated Root Cause Analysis\n\n**Checked again** after alert #12 opened on host web-1, 2 minutes after this incident was declared.\n\n**Summary** — shop-api saturated the CPU of web-1.",
       ),
     ).toBe(true);
     expect(
