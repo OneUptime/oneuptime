@@ -53,6 +53,12 @@ export interface ComponentProps {
   className?: string | undefined;
   dataTestId?: string | undefined;
   infoDataTestId?: string | undefined;
+  /*
+   * The (i)'s own classes, beside the ones that put it after the words: a
+   * linked tile lifts it above the link laid over the tile ("relative
+   * z-10"), so a press on it never follows the link.
+   */
+  infoClassName?: string | undefined;
 }
 
 // The attribute of the box that glues the (i) to the last word.
@@ -78,7 +84,9 @@ const WordsWithInfoTooltip: FunctionComponent<ComponentProps> = (
       <InfoTooltip
         label={props.label}
         text={description}
-        className={INFO_AFTER_WORDS_CLASS_NAME}
+        className={[INFO_AFTER_WORDS_CLASS_NAME, props.infoClassName]
+          .filter(Boolean)
+          .join(" ")}
         dataTestId={props.infoDataTestId}
       />
     </span>

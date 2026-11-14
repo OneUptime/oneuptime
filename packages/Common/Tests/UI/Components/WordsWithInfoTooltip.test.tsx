@@ -244,6 +244,40 @@ describe("WordsWithInfoTooltip, rendered", () => {
     expect(info).not.toHaveClass("ml-1");
   });
 
+  test("the (i)'s own classes join the ones that put it after the words", () => {
+    render(
+      <WordsWithInfoTooltip
+        text="Clients"
+        label="Clients"
+        description="Platforms the app was used on."
+        infoClassName="relative z-10"
+        infoDataTestId="title-info"
+      />,
+    );
+
+    const info: HTMLElement = screen.getByTestId("title-info");
+
+    // A linked tile lifts it above the link laid over the tile.
+    expect(info).toHaveClass("relative", "z-10", "ms-1", "align-middle");
+    expectGlued(glueOf(document.body), info);
+    cleanup();
+
+    // Without any, only the ones that put it after the words.
+    render(
+      <WordsWithInfoTooltip
+        text="Clients"
+        label="Clients"
+        description="Platforms the app was used on."
+        infoDataTestId="title-info"
+      />,
+    );
+
+    expect(screen.getByTestId("title-info")).not.toHaveClass("relative");
+    expect(screen.getByTestId("title-info").className).not.toContain(
+      "undefined",
+    );
+  });
+
   test("Arabic: the (i) follows the last word read, which a right-to-left line draws on its left", () => {
     render(
       <div dir="rtl">
