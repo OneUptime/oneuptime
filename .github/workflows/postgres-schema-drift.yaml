@@ -650,12 +650,13 @@ jobs:
           Tests/Server/Utils/Runbook/RunbookApprovalsMovePostgres.test.ts --forceExit
 
       # Checks the migrated Monitor table's indexes (all valid, none on a
-      # column the busiest writes move), then clones it with Project into an
-      # isolated schema: a device delete's count of its monitors and its
-      # foreign key check, the Monitors menu's counts, the list's first page
-      # and a heartbeat sweep's page must each be answerable from their
-      # index, and the telemetry, heartbeat and server writes must be HOT
-      # updates (MatchMonitorIndexesToTheirReads).
+      # column the busiest writes move) and fillfactor (90), then clones it
+      # with Project into an isolated schema: a device delete's count of its
+      # monitors and its foreign key check, the Monitors menu's counts, the
+      # list's first page and a heartbeat sweep's page must each be
+      # answerable from their index, and the telemetry, heartbeat and server
+      # writes must be HOT updates (MatchMonitorIndexesToTheirReads,
+      # SetMonitorFillfactor).
       - name: Test Monitor's indexes and HOT updates against Postgres
         if: matrix.shard == 3
         working-directory: packages/Common
