@@ -82,10 +82,7 @@ export class AccessTokenService extends BaseService {
             tenantPermissions.get(keyOf(projectId));
 
           const cacheKey: string =
-            UserPermissionUtil.buildTenantPermissionCacheKey(
-              userId,
-              projectId,
-            );
+            UserPermissionUtil.buildTenantPermissionCacheKey(userId, projectId);
 
           /*
            * A project named by a membership with no team in it holds no

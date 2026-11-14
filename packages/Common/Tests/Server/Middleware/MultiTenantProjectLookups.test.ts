@@ -271,8 +271,10 @@ describe("what a request across projects reads", () => {
       globalPermissions: [],
     };
 
-    const result: Dictionary<UserTenantAccessPermission> | null =
-      await resolve(ids, { userGlobalAccessPermission: globalPermission });
+    const result: Dictionary<UserTenantAccessPermission> | null = await resolve(
+      ids,
+      { userGlobalAccessPermission: globalPermission },
+    );
 
     expect(loadAccessRules).toHaveBeenCalledTimes(1);
     expect(loadAccessRules).toHaveBeenCalledWith(ids);
@@ -448,8 +450,10 @@ describe("each project is answered as before", () => {
     blocked.add(key(isBlocked!));
     isProjectBlocked.mockClear();
 
-    const result: Dictionary<UserTenantAccessPermission> | null =
-      await resolve([isBlocked!], { req: masterAdminRequest });
+    const result: Dictionary<UserTenantAccessPermission> | null = await resolve(
+      [isBlocked!],
+      { req: masterAdminRequest },
+    );
 
     expect(Object.keys(result || {})).toEqual([isBlocked!.toString()]);
     expect(isProjectBlocked).not.toHaveBeenCalled();
@@ -472,8 +476,9 @@ describe("each project is answered as before", () => {
       projectId!.toString().toUpperCase(),
     );
 
-    const result: Dictionary<UserTenantAccessPermission> | null =
-      await resolve([capitals]);
+    const result: Dictionary<UserTenantAccessPermission> | null = await resolve(
+      [capitals],
+    );
 
     expect(Object.keys(result || {})).toEqual([capitals.toString()]);
   });

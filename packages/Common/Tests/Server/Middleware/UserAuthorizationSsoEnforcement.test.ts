@@ -10,10 +10,7 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import SsoAuthorizationException from "../../../Types/Exception/SsoAuthorizationException";
 import TenantNotFoundException from "../../../Types/Exception/TenantNotFoundException";
 import ObjectID from "../../../Types/ObjectID";
-import {
-  UserGlobalAccessPermission,
-  UserTenantAccessPermission,
-} from "../../../Types/Permission";
+import { UserTenantAccessPermission } from "../../../Types/Permission";
 import FakeEnterpriseModule, {
   createEditionStateCases,
   createLicenseSnapshot,

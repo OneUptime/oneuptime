@@ -101,7 +101,10 @@ const mockValuesOf: ValuesOfFunction = (
   return [String(queryValue).toLowerCase()];
 };
 
-type MatchesFunction = (asked: Array<string> | null, value: ObjectID) => boolean;
+type MatchesFunction = (
+  asked: Array<string> | null,
+  value: ObjectID,
+) => boolean;
 
 const mockMatches: MatchesFunction = (
   asked: Array<string> | null,
@@ -112,9 +115,7 @@ const mockMatches: MatchesFunction = (
 
 type FindMembersFunction = (
   kind: string,
-) => (data: {
-  query: Record<string, unknown>;
-}) => Promise<Array<TeamMember>>;
+) => (data: { query: Record<string, unknown> }) => Promise<Array<TeamMember>>;
 
 const mockFindMembers: FindMembersFunction = (kind: string) => {
   return async (data: {
@@ -209,9 +210,9 @@ const mockReadStore: ReadStoreFunction = (
   const raw: string | undefined = mockStore.get(mockStoreKey(namespace, key));
 
   return raw
-    ? (JSONFunctions.deserialize(JSONFunctions.parse(raw) as JSONObject) as
-        | JSONObject
-        | null)
+    ? (JSONFunctions.deserialize(
+        JSONFunctions.parse(raw) as JSONObject,
+      ) as JSONObject | null)
     : null;
 };
 
@@ -1087,10 +1088,7 @@ describe("a request across projects reads every project's set at once (getUserTe
     for (const projectId of asked) {
       one.set(
         projectId.toString().toLowerCase(),
-        await AccessTokenService.getUserTenantAccessPermission(
-          USER,
-          projectId,
-        ),
+        await AccessTokenService.getUserTenantAccessPermission(USER, projectId),
       );
     }
 
@@ -1108,9 +1106,7 @@ describe("a request across projects reads every project's set at once (getUserTe
       expect(permissionsOf(all.get(key))).toEqual(permissionsOf(one.get(key)));
     }
 
-    expect(all.get(unlistedGone.projectId.toString().toLowerCase())).toBe(
-      null,
-    );
+    expect(all.get(unlistedGone.projectId.toString().toLowerCase())).toBe(null);
     expect(all.get(missingNonMember.projectId.toString().toLowerCase())).toBe(
       null,
     );

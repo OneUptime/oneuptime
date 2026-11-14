@@ -141,8 +141,7 @@ const READS_TABLE: (table: string) => RegExp = (table: string): RegExp => {
 
 // Every statement the DataSource runs while counting is on.
 class StatementLog implements Logger {
-  public statements: Array<{ query: string; parameters: Array<unknown> }> =
-    [];
+  public statements: Array<{ query: string; parameters: Array<unknown> }> = [];
   public isCounting: boolean = false;
 
   public logQuery(
@@ -442,8 +441,7 @@ describePostgres(
       const projectRows: Array<Array<string | number | boolean | null>> = [];
       const teamRows: Array<Array<string | number | boolean | null>> = [];
       const labelRows: Array<Array<string | number | boolean | null>> = [];
-      const permissionRows: Array<Array<string | number | boolean | null>> =
-        [];
+      const permissionRows: Array<Array<string | number | boolean | null>> = [];
       const permissionLabelRows: Array<
         Array<string | number | boolean | null>
       > = [];
@@ -1028,11 +1026,9 @@ describePostgres(
           }
 
           const read: { query: string; parameters: Array<unknown> } =
-            statementLog.statements.find(
-              (statement: { query: string }) => {
-                return READS_TABLE("TeamMember").test(statement.query);
-              },
-            )!;
+            statementLog.statements.find((statement: { query: string }) => {
+              return READS_TABLE("TeamMember").test(statement.query);
+            })!;
 
           expect(read).toBeTruthy();
 

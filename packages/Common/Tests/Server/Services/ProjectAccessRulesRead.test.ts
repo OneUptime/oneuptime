@@ -74,7 +74,9 @@ const rowOf: RowOfFunction = (id: string): Project | null => {
 type IdsOfFunction = (query: Record<string, unknown>) => Array<string>;
 
 // The ids a findBy asks for: QueryHelper.any(...) carries them as a parameter.
-const idsOf: IdsOfFunction = (query: Record<string, unknown>): Array<string> => {
+const idsOf: IdsOfFunction = (
+  query: Record<string, unknown>,
+): Array<string> => {
   const parameters: Record<string, unknown> =
     (query["_id"] as { objectLiteralParameters?: Record<string, unknown> })
       ?.objectLiteralParameters || {};
@@ -149,12 +151,13 @@ const askAll: AskAllFunction = async (
   requireSsoForLogin: boolean;
   requiredProviderId: string | null;
 }> => {
-  const [isBlocked, requireSsoForLogin, requiredProviderId] =
-    await Promise.all([
+  const [isBlocked, requireSsoForLogin, requiredProviderId] = await Promise.all(
+    [
       ProjectService.isProjectBlocked(projectId),
       ProjectService.getRequireSsoForLogin(projectId),
       ProjectService.getRequireSsoWithSsoProviderId(projectId),
-    ]);
+    ],
+  );
 
   return {
     isBlocked,
@@ -174,17 +177,17 @@ beforeEach(() => {
       return rowOf(data.id.toString());
     }) as never);
 
-  findBy = jest.spyOn(ProjectService, "findBy").mockImplementation((async (
-    data: { query: Record<string, unknown> },
-  ) => {
-    return idsOf(data.query)
-      .map((id: string) => {
-        return rowOf(id);
-      })
-      .filter((project: Project | null): project is Project => {
-        return Boolean(project);
-      });
-  }) as never);
+  findBy = jest
+    .spyOn(ProjectService, "findBy")
+    .mockImplementation((async (data: { query: Record<string, unknown> }) => {
+      return idsOf(data.query)
+        .map((id: string) => {
+          return rowOf(id);
+        })
+        .filter((project: Project | null): project is Project => {
+          return Boolean(project);
+        });
+    }) as never);
 });
 
 afterEach(() => {
@@ -452,12 +455,10 @@ describe("loadAccessRules reads every project not kept in one statement", () => 
       "pool exhausted",
     );
 
-    await expect(ProjectService.isProjectBlocked(ids[0]!)).resolves.toBe(
+    await expect(ProjectService.isProjectBlocked(ids[0]!)).resolves.toBe(false);
+    await expect(ProjectService.getRequireSsoForLogin(ids[1]!)).resolves.toBe(
       false,
     );
-    await expect(
-      ProjectService.getRequireSsoForLogin(ids[1]!),
-    ).resolves.toBe(false);
     expect(readCount()).toBe(3);
   });
 
@@ -540,16 +541,12 @@ describe("loadAccessRules reads every project not kept in one statement", () => 
     wire.resolve(staleRows);
     await load;
 
-    await expect(ProjectService.isProjectBlocked(ids[0]!)).resolves.toBe(
-      true,
-    );
-    await expect(ProjectService.isProjectBlocked(ids[1]!)).resolves.toBe(
+    await expect(ProjectService.isProjectBlocked(ids[0]!)).resolves.toBe(true);
+    await expect(ProjectService.isProjectBlocked(ids[1]!)).resolves.toBe(false);
+    // The rule read with it is kept: only the block was told.
+    await expect(ProjectService.getRequireSsoForLogin(ids[0]!)).resolves.toBe(
       false,
     );
-    // The rule read with it is kept: only the block was told.
-    await expect(
-      ProjectService.getRequireSsoForLogin(ids[0]!),
-    ).resolves.toBe(false);
     expect(readCount()).toBe(2);
   });
 
@@ -570,12 +567,12 @@ describe("loadAccessRules reads every project not kept in one statement", () => 
     wire.resolve(staleRows);
     await load;
 
-    await expect(
-      ProjectService.getRequireSsoForLogin(ids[1]!),
-    ).resolves.toBe(true);
-    await expect(
-      ProjectService.getRequireSsoForLogin(ids[2]!),
-    ).resolves.toBe(false);
+    await expect(ProjectService.getRequireSsoForLogin(ids[1]!)).resolves.toBe(
+      true,
+    );
+    await expect(ProjectService.getRequireSsoForLogin(ids[2]!)).resolves.toBe(
+      false,
+    );
     expect(readCount()).toBe(2);
 
     // Every project's rules forgotten while a read is on the wire: none is kept.
