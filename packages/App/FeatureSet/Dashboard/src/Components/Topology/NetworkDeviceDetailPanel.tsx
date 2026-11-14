@@ -282,7 +282,12 @@ const NetworkDeviceDetailPanel: FunctionComponent<ComponentProps> = (
       onClose={props.onClose}
       size={SideOverSize.Small}
     >
-      <div className="space-y-6">
+      {/*
+       * The drawer brings its own top spacing from sm up, where the
+       * side-over leaves it to its content: without it the status row - and
+       * a "Monitoring off" pill beside it - sat on the header's edge.
+       */}
+      <div className="space-y-6 sm:pt-6">
         <div>
           {/*
            * Wraps on a narrow drawer: a qualifier in a long language (German
