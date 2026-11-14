@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52194,
-    "untranslated": 9345
+    "keys": 52218,
+    "untranslated": 9341
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -45,7 +45,6 @@
     "Bare Metal",
     "Blade",
     "Branding",
-    "Breadcrumb",
     "Browser",
     "Browser · OpenTelemetry Web SDK",
     "Brute force detected",

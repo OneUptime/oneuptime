@@ -1,6 +1,6 @@
 # Guida rapida
 
-Questa guida ti porta da un account nuovo a una configurazione funzionante in circa quindici minuti: un monitor che controlla il tuo sito web ogni cinque minuti, una policy di reperibilità che ti avvisa quando il sito va giù, e una pagina di stato che informa i tuoi clienti. Segue l'elenco **Benvenuto in OneUptime 👋** nella home page del tuo progetto.
+Questa guida ti porta da un account nuovo a una configurazione funzionante in circa quindici minuti: un monitor che controlla il tuo sito web ogni cinque minuti, una policy di reperibilità che ti avvisa quando il sito va giù, e una pagina di stato che informa i tuoi clienti. Segue l'elenco **Benvenuto in OneUptime 👋** nella home page del tuo progetto, e le configurazioni guidate che i suoi passaggi aprono.
 
 Arrivi da un altro strumento? [Importa la tua configurazione](/docs/introduction/getting-started#se-arrivi-da-un-altro-strumento) per prima cosa: i tuoi monitor, le pianificazioni di reperibilità e le pagine di stato vengono con te.
 
@@ -42,69 +42,87 @@ Fai clic su **Crea progetto**. Si apre la home page del tuo progetto, con l'elen
 ## Monitorare il tuo sito web
 
 :::steps
-### Aprire la creazione del monitor
+### Aprire la configurazione del sito web
 
-Nell'elenco, fai clic su **Crea il tuo primo monitor**. Puoi anche aprire **Monitor** dal menu **Prodotti** e fare clic su **Crea monitor**.
-
-### Scegliere Sito web
-
-In **Tipo di monitor**, scegli **Sito web**. Inserisci un **Nome**, per esempio `Website`, e fai clic su **Avanti**.
+Nell'elenco, fai clic su **Crea il tuo primo monitor**. Si apre la configurazione guidata **Sapere quando il mio sito web o la mia API non funziona**, che controlla il tuo sito, sceglie chi viene avvisato e invia un test, in una sola pagina. Chi non può creare monitor vede invece l'elenco **Monitor**.
 
 ### Inserire l'indirizzo
 
-Inserisci l'indirizzo completo del tuo sito in **URL sito web**, per esempio `https://example.com`. OneUptime aggiunge i criteri per te: il monitor passa a **Offline** e dichiara un incidente quando il sito non risponde, o risponde con un errore. Fai clic su **Avanti**.
+![Il passaggio «Cosa dobbiamo controllare?», con «Inizia il controllo» evidenziato](screen:website-down-address)
 
-### Creare il monitor
+In **Cosa dobbiamo controllare?**, inserisci l'indirizzo completo del tuo sito in **Indirizzo del sito web o dell'API**, per esempio `https://example.com`, e fai clic su **Inizia il controllo**. Le sonde lo controllano subito, poi ogni 5 minuti: quando il sito non risponde, o risponde con un errore, il monitor passa a **Offline** e dichiara un incidente. Fai clic su **Continua**.
 
-Mantieni le **Sonde** selezionate e l'**Intervallo di monitoraggio** di **Ogni 5 minuti**, poi fai clic su **Crea monitor**. Si apre la pagina del monitor, e le sonde iniziano a controllare il tuo sito.
+Con il piano Free di OneUptime Cloud, i monitor vengono addebitati in base all'uso, quindi il progetto ha bisogno di un metodo di pagamento prima di poter controllare il tuo sito: senza, il passaggio ti chiede di [aggiungere un metodo di pagamento](/docs/configuration/billing#metodi-di-pagamento).
+
+### Scegliere chi viene avvisato
+
+In **Chi deve essere avvisato?**, sei già in **Chi viene chiamato**. Fai clic su **Salva e continua**: così viene creata `Default on-call policy`, che ti chiama per ogni nuovo incidente e ogni nuovo avviso del progetto, via e-mail per cominciare. Per chiamare anche membri del team che sono già nel progetto, fai prima clic su **Aggiungi membri del team**.
+
+### Inviarti un test
+
+In **Invia un test**, fai clic su **Inviami una chiamata di test**, scegli una **Gravità** e fai clic su **Invia chiamata di test**. Apri il link nell'e-mail, che riporta TEST, e conferma lì la chiamata. Poi fai clic su **Fatto** nella finestra di dialogo, e su **Continua**: la configurazione termina con un riepilogo di ciò che ha impostato.
 :::
 
-Per provare il controllo prima di salvare, fai clic su **Testa il monitor** nel secondo passaggio. Tutti gli altri tipi di monitor sono descritti in [Creare un monitor](/docs/monitor/create-monitor).
+Per impostare tu ogni opzione, o per controllare qualcosa che non sia un sito web, apri **Monitor** dal menu **Prodotti** e fai clic su **Crea monitor**. [Creare un monitor](/docs/monitor/create-monitor) descrive il modulo e ogni tipo di monitor.
 
-Per controllare anche un'API, scegliere chi viene avvisato e inviare una chiamata di test che dimostra che il messaggio ti raggiunge, segui [Sapere quando il tuo sito web o la tua API smette di funzionare](/docs/guides/website-down).
+Per controllare anche un'API, e sapere cosa fare quando il primo controllo non torna mai, segui [Sapere quando il tuo sito web o la tua API smette di funzionare](/docs/guides/website-down).
 
 ## Essere avvisati quando va giù
 
-Così com'è, un incidente senza proprietari viene inviato via e-mail ai proprietari del progetto, e tra loro ci sei tu. Per essere avvisato finché qualcuno non risponde, crea una policy di reperibilità: la prima di un progetto si attiva per ogni nuovo incidente e ogni nuovo avviso.
+La configurazione del sito web ha già creato `Default on-call policy`, che ti chiama via e-mail per ogni nuovo incidente e ogni nuovo avviso, quindi l'elenco segna **Configura una policy di reperibilità** come completato. La sua configurazione guidata aggiunge comunque il tuo telefono, le persone chiamate insieme a te e cosa succede quando nessuno risponde.
 
 :::steps
-### Creare una policy di reperibilità
+### Aprire la configurazione della reperibilità
 
-Nell'elenco, fai clic su **Configura una policy di reperibilità**, oppure apri **Reperibilità** dal menu **Prodotti**. Fai clic su **Crea: Policy di reperibilità** e inserisci un **Nome**. In **Chi viene avvisato per primo?**, fai clic su **Aggiungi destinatario** e scegli te stesso. Lascia attivo **Attivarla per ogni nuovo incidente e ogni nuovo avviso** e fai clic su **Crea: Policy di reperibilità**.
-
-### Vedere la regola che la attiva
-
-L'interruttore ha aggiunto una regola di reperibilità per gli incidenti e una per gli avvisi. Per vedere la tua, apri **Incidenti** dal menu **Prodotti**, espandi **Regole** nel menu laterale e scegli **Regole di reperibilità**: corrisponde a **Tutti gli incidenti**. Per attivare la policy solo per alcuni incidenti, come quelli critici, modifica lì la regola, oppure fai clic su **Crea: Incident On-Call Rule** per aggiungerne una tua.
+Premi `Ctrl+K` (`Cmd+K` su un Mac), digita `get paged` e scegli **Avvisare la persona giusta quando qualcosa si guasta**. Finché l'elenco non ha segnato **Configura una policy di reperibilità**, quel passaggio apre la stessa configurazione guidata.
 
 ### Scegliere come essere raggiunto
 
-La tua e-mail di accesso è già un modo per raggiungerti. Per ricevere anche SMS o chiamate, apri **Impostazioni utente** nella barra sotto la barra superiore, vai in **Metodi di notifica** e, nella scheda **Contatto diretto**, aggiungi il tuo numero in **Numeri di telefono per le notifiche SMS** o **Numeri di telefono per le notifiche tramite chiamata**. Fai clic su **Verifica** e inserisci il codice che OneUptime ti invia. Un numero verificato viene usato subito per gli avvisi di reperibilità.
+![Il passaggio «Come dobbiamo raggiungerti?», con «Attiva SMS e chiamate» evidenziato](screen:paging-reach-you)
+
+In **Come dobbiamo raggiungerti?**, la tua e-mail di accesso è già elencata. Per le notifiche push, installa l'app OneUptime On-Call dall'App Store o da Google Play, accedi e fai clic su **Ricontrolla**. Per ricevere anche SMS e chiamate, fai clic su **Attiva SMS e chiamate**, inserisci il tuo numero in **Il tuo numero di telefono** e fai clic su **Inviami un codice via SMS**: su OneUptime Cloud, SMS e chiamate si pagano con il credito del progetto, quindi il passaggio ti chiede prima di aggiungerne. Fai clic su **Continua**.
+
+### Scegliere chi altro viene chiamato
+
+In **Chi altro è reperibile?**, lascia `Default on-call policy` in **Policy di reperibilità**. Per chiamare membri del team insieme a te, aggiungili in **Aggiungi alla prima regola di escalation**. Fai clic su **Salva e continua**.
+
+### Decidere cosa succede se nessuno risponde
+
+In **E se nessuno risponde?**, scegli **Richiama le stesse persone** finché sei l'unica persona nel progetto. Quando ci sono membri del team, **Chiama qualcun altro** chiama la persona che scegli in **Chiamati dopo**. Su OneUptime Cloud, solo i piani a pagamento offrono questa scelta. Fai clic su **Salva e continua**.
+
+### Inviare una chiamata di test
+
+In **Invia una chiamata di test**, fai clic su **Testa questa policy**, scegli una **Gravità** e fai clic su **Invia chiamata di test**. Conferma la chiamata dall'e-mail, dall'SMS o dalla telefonata, poi fai clic su **Fatto** nella finestra di dialogo, e su **Continua**. La configurazione termina su **Le chiamate sono configurate**.
 :::
 
 > [!NOTE]
 > SMS e chiamate sono disattivati in un nuovo progetto. Un proprietario del progetto, un Billing Admin o chi ha Manage Billing li attiva nella scheda **Canali di notifica**, in **Impostazioni del progetto → Notifiche → Canali di notifica**.
 
-Per altri livelli, turni e quanto attende ogni livello, vedi [Regole di escalation](/docs/on-call/escalation-rules) e [Pianificazioni di reperibilità](/docs/on-call/schedules).
+Due regole di reperibilità attivano la policy: una per ogni nuovo incidente e una per ogni nuovo avviso. Per vedere la prima, apri **Incidenti** dal menu **Prodotti**, espandi **Regole** nel menu laterale e scegli **Regole di reperibilità**: corrisponde a **Tutti gli incidenti**. Per attivare la policy solo per alcuni incidenti, come quelli critici, modifica lì la regola, oppure fai clic su **Crea: Incident On-Call Rule** per aggiungerne una tua.
 
-Per essere avvisato via SMS, telefonata e push, con la persona successiva avvisata quando nessuno risponde e una chiamata di test che lo dimostra, segui [Essere avvisati per chiamata, SMS o push](/docs/guides/paging).
+Per creare invece una policy campo per campo, apri **Reperibilità** dal menu **Prodotti** e fai clic su **Crea: Policy di reperibilità**. Per altri livelli, turni e quanto attende ogni livello, vedi [Regole di escalation](/docs/on-call/escalation-rules) e [Pianificazioni di reperibilità](/docs/on-call/schedules).
+
+Per ogni schermata della configurazione, e cosa fare quando una chiamata non arriva, segui [Essere avvisati per chiamata, SMS o push](/docs/guides/paging).
 
 ## Pubblicare una pagina di stato
 
 :::steps
-### Creare la pagina di stato
+### Aprire la configurazione della pagina di stato
 
-Nell'elenco, fai clic su **Pubblica una pagina di stato**, oppure apri **Pagine di stato** dal menu **Prodotti**. Fai clic su **Crea pagina di stato**, inserisci un **Nome**, per esempio `Acme Status`, e fai clic su **Crea pagina di stato**. La nuova pagina si apre sulla sua **Panoramica**.
+Nell'elenco, fai clic su **Pubblica una pagina di stato**. Si apre la configurazione guidata **Pubblica una pagina di stato**, che dà un nome alla pagina, ci mette il tuo monitor e mostra ciò che vedono i tuoi clienti. Chi non può creare pagine di stato vede invece l'elenco **Pagine di stato**. Il riepilogo della configurazione del sito web apre la stessa configurazione, come **Mostralo su una pagina di stato**.
 
-### Aggiungere il tuo monitor
+### Darle un nome e scegliere il tuo monitor
 
-Fai clic su **Aggiungi monitor** nella **Panoramica** oppure, nel menu laterale della pagina, in **Risorse**, scegli **Monitor**; nei progetti con i gruppi di monitor attivati si chiama **Risorse**. Fai clic su **Aggiungi monitor**, scegli il monitor del tuo sito web e fai clic su **Aggiungi monitor**. La riga mostra ai visitatori il nome del monitor; cambialo in **Nome visualizzato**, se vuoi.
+![Il passaggio «Dalle un nome e scegli cosa mostra», con «Crea la pagina di stato» evidenziato](screen:status-page-pick)
+
+In **Dalle un nome e scegli cosa mostra**, tieni il **Nome della pagina di stato** che propone, o inserisci il tuo. In **Cosa mostra**, spunta il monitor del tuo sito web, e fai clic su **Crea la pagina di stato**. Da questo momento la pagina è pubblica al suo link: chiunque abbia il suo indirizzo può aprirla.
 
 ### Aprire la pagina
 
-Scegli **Panoramica** nel menu laterale. La scheda **Link della pagina di stato** porta alla tua pagina di stato: aprila, e il tuo sito web risulta operativo.
+In **Questo è ciò che vedono i tuoi clienti**, apri l'indirizzo sotto **Link pubblico**: il tuo sito web risulta operativo. Tornato nella configurazione, fai clic su **Va bene**. La configurazione termina con un riepilogo di cosa fare dopo.
 :::
 
-Una nuova pagina di stato è pubblica: chiunque abbia il suo indirizzo può aprirla. Per darle il tuo dominio, il tuo logo e i tuoi colori, vedi [Branding e domini della pagina di stato](/docs/status-pages/branding-and-domains).
+Per creare invece una pagina a mano, apri **Pagine di stato** dal menu **Prodotti** e fai clic su **Crea pagina di stato**, poi aggiungi il tuo monitor con **Aggiungi monitor** nella sua **Panoramica**. Per dare alla pagina il tuo logo e i tuoi colori, vedi [Branding e domini della pagina di stato](/docs/status-pages/branding-and-domains).
 
 Per portare la pagina di stato sul tuo dominio, in HTTPS, segui [Pubblicare una pagina di stato](/docs/guides/status-page).
 

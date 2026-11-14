@@ -37,8 +37,16 @@ import NotificationRuleWorkspaceChannel, {
  * and the title is a severity change and an edit - and is posted where any
  * of them is wanted.
  *
- * Monitor, on-call policy, security and SLO rules post every update; they
- * have no choice yet (getChoosableKinds is empty for them).
+ * An on-call policy rule chooses too (issue #7549), from updates of its
+ * own: who is on call now, who is next, nobody on call, overrides, changes
+ * to the policy and its owners. A handoff is one message - "📞 @Ana is now
+ * on call for Payments until Fri at 5:50 PM" - that names who is next only
+ * where a rule asks for it (OnCallHandoffPosts). A NEW on-call rule starts
+ * with the key updates ticked (getNewRuleUpdatesToPost): who is on call
+ * now, and when nobody is.
+ *
+ * Monitor, security and SLO rules post every update; they have no choice
+ * yet (getChoosableKinds is empty for them).
  */
 export enum NotificationRuleUpdateKind {
   // The record's first message: declared, created or scheduled. Always posted.
@@ -71,6 +79,24 @@ export enum NotificationRuleUpdateKind {
   Edits = "Edits",
   // Everything else: linked records, reminders, delivery problems.
   Other = "Other",
+
+  /*
+   * An on-call policy's updates (issue #7549). Each of its feed entries is
+   * one of these, or Owners (FeedUpdateKinds).
+   */
+  // A handoff: who is on call now in one of the policy's schedules, until when.
+  OnCallNow = "OnCallNow",
+  // Who takes over at the next handoff.
+  OnCallNext = "OnCallNext",
+  // A schedule with nobody on call: alerts that reach it page no one.
+  NobodyOnCall = "NobodyOnCall",
+  // Somebody covering for somebody else, and covers taken back.
+  Overrides = "Overrides",
+  /*
+   * Schedules, people and teams added to or removed from the policy's
+   * escalation rules.
+   */
+  PolicyChanges = "PolicyChanges",
 }
 
 // What a rule picks on its Updates step.
@@ -150,6 +176,15 @@ const CHOOSABLE_UPDATE_KINDS: Readonly<
     NotificationRuleUpdateKind.PrivateNotes,
     NotificationRuleUpdateKind.Other,
   ],
+  // Everything an on-call policy's feed posts: nothing is Everything else.
+  [NotificationRuleEventType.OnCallDutyPolicy]: [
+    NotificationRuleUpdateKind.OnCallNow,
+    NotificationRuleUpdateKind.OnCallNext,
+    NotificationRuleUpdateKind.NobodyOnCall,
+    NotificationRuleUpdateKind.Overrides,
+    NotificationRuleUpdateKind.PolicyChanges,
+    NotificationRuleUpdateKind.Owners,
+  ],
 };
 
 /*
@@ -182,6 +217,33 @@ const KEY_UPDATE_KINDS: Readonly<
   [NotificationRuleEventType.ScheduledMaintenance]: [
     NotificationRuleUpdateKind.StateChanges,
     NotificationRuleUpdateKind.PublicNotes,
+  ],
+  /*
+   * Who is on call: each handoff, and a schedule left with nobody on call -
+   * the two things an on-call channel is for (issue #7549).
+   */
+  [NotificationRuleEventType.OnCallDutyPolicy]: [
+    NotificationRuleUpdateKind.OnCallNow,
+    NotificationRuleUpdateKind.NobodyOnCall,
+  ],
+};
+
+/*
+ * What a NEW rule of a kind starts with, when that is not every update. An
+ * on-call channel used to hear of every handoff three times over, and of
+ * every schedule, person and team added to the policy (issue #7549): a new
+ * on-call rule starts on the key updates instead - who is on call now, and
+ * when nobody is - and its Updates step offers the rest. Rules saved
+ * before keep posting every update.
+ */
+const NEW_RULE_UPDATE_KINDS: Readonly<
+  Partial<
+    Record<NotificationRuleEventType, ReadonlyArray<NotificationRuleUpdateKind>>
+  >
+> = {
+  [NotificationRuleEventType.OnCallDutyPolicy]: [
+    NotificationRuleUpdateKind.OnCallNow,
+    NotificationRuleUpdateKind.NobodyOnCall,
   ],
 };
 
@@ -227,6 +289,32 @@ export default class NotificationRuleUpdates {
     eventType: NotificationRuleEventType | undefined,
   ): boolean {
     return this.getChoosableKinds(eventType).length > 0;
+  }
+
+  /*
+   * The updates a new rule of this kind starts with, or undefined when it
+   * starts posting every update (NEW_RULE_UPDATE_KINDS).
+   */
+  public static getNewRuleUpdatesToPost(
+    eventType: NotificationRuleEventType | undefined,
+  ): Array<NotificationRuleUpdateKind> | undefined {
+    const kinds: ReadonlyArray<NotificationRuleUpdateKind> | undefined =
+      eventType ? NEW_RULE_UPDATE_KINDS[eventType] : undefined;
+
+    return kinds ? [...kinds] : undefined;
+  }
+
+  /*
+   * A new rule's JSON, as far as its updates go: the updates its kind
+   * starts with, or nothing - every update.
+   */
+  public static getNewRuleUpdates(
+    eventType: NotificationRuleEventType | undefined,
+  ): RuleWithUpdates {
+    const kinds: Array<NotificationRuleUpdateKind> | undefined =
+      this.getNewRuleUpdatesToPost(eventType);
+
+    return kinds ? { updatesToPost: kinds } : {};
   }
 
   // Key updates only, in the order the Updates step lists them.
@@ -372,7 +460,7 @@ export default class NotificationRuleUpdates {
   /*
    * Whether a message of these kinds goes wherever the record's messages
    * go, whatever the rules chose: one that says nothing of its kind - a
-   * monitor's, an on-call policy's - or one every rule posts.
+   * monitor's - or one every rule posts.
    */
   public static isPostedEverywhere(
     updateKinds: ReadonlyArray<NotificationRuleUpdateKind> | undefined,
