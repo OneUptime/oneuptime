@@ -52250,5 +52250,11 @@
   "With none ticked, the rule posts only when an on-call policy is created.": "Er intet markeret, poster reglen kun, når en vagtpolitik oprettes.",
   "Only when an on-call policy is created": "Kun når en vagtpolitik oprettes",
   "You have unsaved changes to this form's questions. If you leave now, they will be lost.": "Du har ikke-gemte ændringer i spørgsmålene i denne formular. Hvis du forlader siden nu, går de tabt.",
-  "You have unsaved changes to this runbook's steps. If you leave now, they will be lost.": "Du har ikke-gemte ændringer i trinnene i denne runbook. Hvis du forlader siden nu, går de tabt."
+  "You have unsaved changes to this runbook's steps. If you leave now, they will be lost.": "Du har ikke-gemte ændringer i trinnene i denne runbook. Hvis du forlader siden nu, går de tabt.",
+  "Monitors ({{count}})": "Monitorer ({{count}})",
+  "Monitors in status \"{{status}}\" ({{count}})": "Monitorer med status \"{{status}}\" ({{count}})",
+  "Monitors with problems ({{count}})": "Monitorer med problemer ({{count}})",
+  "Non-operational first, Disabled last": "Ikke-operationelle først, Deaktiveret sidst",
+  "Non-operational monitors first": "Ikke-operationelle monitorer først",
+  "Non-operational monitors only": "Kun ikke-operationelle monitorer"
 }

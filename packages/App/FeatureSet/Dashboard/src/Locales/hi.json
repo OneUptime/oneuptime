@@ -52250,5 +52250,11 @@
   "With none ticked, the rule posts only when an on-call policy is created.": "कुछ भी न चुनने पर, नियम केवल ऑन-कॉल नीति बनने पर पोस्ट करता है।",
   "Only when an on-call policy is created": "केवल ऑन-कॉल नीति बनने पर",
   "You have unsaved changes to this form's questions. If you leave now, they will be lost.": "इस फ़ॉर्म के प्रश्नों में आपके कुछ बदलाव सहेजे नहीं गए हैं। अगर आप अभी पेज छोड़ते हैं, तो वे खो जाएँगे।",
-  "You have unsaved changes to this runbook's steps. If you leave now, they will be lost.": "इस रनबुक के चरणों में आपके कुछ बदलाव सहेजे नहीं गए हैं। अगर आप अभी पेज छोड़ते हैं, तो वे खो जाएँगे।"
+  "You have unsaved changes to this runbook's steps. If you leave now, they will be lost.": "इस रनबुक के चरणों में आपके कुछ बदलाव सहेजे नहीं गए हैं। अगर आप अभी पेज छोड़ते हैं, तो वे खो जाएँगे।",
+  "Monitors ({{count}})": "मॉनिटर ({{count}})",
+  "Monitors in status \"{{status}}\" ({{count}})": "\"{{status}}\" स्थिति वाले मॉनिटर ({{count}})",
+  "Monitors with problems ({{count}})": "समस्याओं वाले मॉनिटर ({{count}})",
+  "Non-operational first, Disabled last": "गैर-संचालन पहले, अक्षम अंत में",
+  "Non-operational monitors first": "गैर-संचालन मॉनिटर पहले",
+  "Non-operational monitors only": "केवल गैर-संचालन मॉनिटर"
 }

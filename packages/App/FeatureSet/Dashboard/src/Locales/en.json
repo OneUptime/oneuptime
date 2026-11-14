@@ -52250,5 +52250,11 @@
   "With none ticked, the rule posts only when an on-call policy is created.": "With none ticked, the rule posts only when an on-call policy is created.",
   "Only when an on-call policy is created": "Only when an on-call policy is created",
   "You have unsaved changes to this form's questions. If you leave now, they will be lost.": "You have unsaved changes to this form's questions. If you leave now, they will be lost.",
-  "You have unsaved changes to this runbook's steps. If you leave now, they will be lost.": "You have unsaved changes to this runbook's steps. If you leave now, they will be lost."
+  "You have unsaved changes to this runbook's steps. If you leave now, they will be lost.": "You have unsaved changes to this runbook's steps. If you leave now, they will be lost.",
+  "Monitors ({{count}})": "Monitors ({{count}})",
+  "Monitors in status \"{{status}}\" ({{count}})": "Monitors in status \"{{status}}\" ({{count}})",
+  "Monitors with problems ({{count}})": "Monitors with problems ({{count}})",
+  "Non-operational first, Disabled last": "Non-operational first, Disabled last",
+  "Non-operational monitors first": "Non-operational monitors first",
+  "Non-operational monitors only": "Non-operational monitors only"
 }

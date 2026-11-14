@@ -52250,5 +52250,11 @@
   "With none ticked, the rule posts only when an on-call policy is created.": "何もチェックしない場合、ルールはオンコールポリシーが作成されたときにだけ投稿します。",
   "Only when an on-call policy is created": "オンコールポリシーの作成時のみ",
   "You have unsaved changes to this form's questions. If you leave now, they will be lost.": "このフォームの質問に保存されていない変更があります。今ページを離れると、変更は失われます。",
-  "You have unsaved changes to this runbook's steps. If you leave now, they will be lost.": "この Runbook のステップに保存されていない変更があります。今ページを離れると、変更は失われます。"
+  "You have unsaved changes to this runbook's steps. If you leave now, they will be lost.": "この Runbook のステップに保存されていない変更があります。今ページを離れると、変更は失われます。",
+  "Monitors ({{count}})": "モニター（{{count}}）",
+  "Monitors in status \"{{status}}\" ({{count}})": "ステータスが「{{status}}」のモニター（{{count}}）",
+  "Monitors with problems ({{count}})": "問題のあるモニター（{{count}}）",
+  "Non-operational first, Disabled last": "非稼働を先頭に、無効を最後に",
+  "Non-operational monitors first": "非稼働のモニターを先頭に",
+  "Non-operational monitors only": "非稼働のモニターのみ"
 }

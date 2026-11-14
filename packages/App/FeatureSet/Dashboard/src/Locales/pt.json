@@ -52250,5 +52250,11 @@
   "With none ticked, the rule posts only when an on-call policy is created.": "Sem nenhuma marcada, a regra publica apenas quando uma política de plantão é criada.",
   "Only when an on-call policy is created": "Somente quando uma política de plantão é criada",
   "You have unsaved changes to this form's questions. If you leave now, they will be lost.": "Você tem alterações não salvas nas perguntas deste formulário. Se sair agora, elas serão perdidas.",
-  "You have unsaved changes to this runbook's steps. If you leave now, they will be lost.": "Você tem alterações não salvas nas etapas deste runbook. Se sair agora, elas serão perdidas."
+  "You have unsaved changes to this runbook's steps. If you leave now, they will be lost.": "Você tem alterações não salvas nas etapas deste runbook. Se sair agora, elas serão perdidas.",
+  "Monitors ({{count}})": "Monitores ({{count}})",
+  "Monitors in status \"{{status}}\" ({{count}})": "Monitores no status \"{{status}}\" ({{count}})",
+  "Monitors with problems ({{count}})": "Monitores com problemas ({{count}})",
+  "Non-operational first, Disabled last": "Não operacionais primeiro, Desabilitado por último",
+  "Non-operational monitors first": "Monitores não operacionais primeiro",
+  "Non-operational monitors only": "Apenas monitores não operacionais"
 }

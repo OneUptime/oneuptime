@@ -52250,5 +52250,11 @@
   "With none ticked, the rule posts only when an on-call policy is created.": "إن لم يُحدَّد أي منها، لا تنشر القاعدة إلا عند إنشاء سياسة مناوبة.",
   "Only when an on-call policy is created": "عند إنشاء سياسة مناوبة فقط",
   "You have unsaved changes to this form's questions. If you leave now, they will be lost.": "لديك تغييرات غير محفوظة في أسئلة هذا النموذج. إذا غادرت الآن، فستُفقد.",
-  "You have unsaved changes to this runbook's steps. If you leave now, they will be lost.": "لديك تغييرات غير محفوظة في خطوات دليل التشغيل هذا. إذا غادرت الآن، فستُفقد."
+  "You have unsaved changes to this runbook's steps. If you leave now, they will be lost.": "لديك تغييرات غير محفوظة في خطوات دليل التشغيل هذا. إذا غادرت الآن، فستُفقد.",
+  "Monitors ({{count}})": "المراقبات ({{count}})",
+  "Monitors in status \"{{status}}\" ({{count}})": "المراقبات في الحالة «{{status}}» ({{count}})",
+  "Monitors with problems ({{count}})": "المراقبات التي بها مشكلات ({{count}})",
+  "Non-operational first, Disabled last": "التي لا تعمل بشكل طبيعي أولًا، والمعطّلة أخيرًا",
+  "Non-operational monitors first": "المراقبات التي لا تعمل بشكل طبيعي أولًا",
+  "Non-operational monitors only": "المراقبات التي لا تعمل بشكل طبيعي فقط"
 }

@@ -52250,5 +52250,11 @@
   "With none ticked, the rule posts only when an on-call policy is created.": "اگر هیچ‌کدام علامت نخورده باشد، قاعده فقط هنگام ایجاد سیاست آنکال ارسال می‌کند.",
   "Only when an on-call policy is created": "فقط هنگام ایجاد سیاست آنکال",
   "You have unsaved changes to this form's questions. If you leave now, they will be lost.": "تغییرهای ذخیره‌نشده‌ای در پرسش‌های این فرم دارید. اگر اکنون خارج شوید، از بین می‌روند.",
-  "You have unsaved changes to this runbook's steps. If you leave now, they will be lost.": "تغییرهای ذخیره‌نشده‌ای در گام‌های این رانبوک دارید. اگر اکنون خارج شوید، از بین می‌روند."
+  "You have unsaved changes to this runbook's steps. If you leave now, they will be lost.": "تغییرهای ذخیره‌نشده‌ای در گام‌های این رانبوک دارید. اگر اکنون خارج شوید، از بین می‌روند.",
+  "Monitors ({{count}})": "مانیتورها ({{count}})",
+  "Monitors in status \"{{status}}\" ({{count}})": "مانیتورهای با وضعیت «{{status}}» ({{count}})",
+  "Monitors with problems ({{count}})": "مانیتورهای دارای مشکل ({{count}})",
+  "Non-operational first, Disabled last": "خارج از سرویس‌ها اول، غیرفعال‌ها آخر",
+  "Non-operational monitors first": "مانیتورهای خارج از سرویس اول",
+  "Non-operational monitors only": "فقط مانیتورهای خارج از سرویس"
 }

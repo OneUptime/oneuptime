@@ -52250,5 +52250,11 @@
   "With none ticked, the rule posts only when an on-call policy is created.": "Als er niets is aangevinkt, plaatst de regel alleen een bericht wanneer een bereikbaarheidsbeleid wordt aangemaakt.",
   "Only when an on-call policy is created": "Alleen wanneer een bereikbaarheidsbeleid wordt aangemaakt",
   "You have unsaved changes to this form's questions. If you leave now, they will be lost.": "U hebt niet-opgeslagen wijzigingen in de vragen van dit formulier. Als u nu weggaat, gaan ze verloren.",
-  "You have unsaved changes to this runbook's steps. If you leave now, they will be lost.": "U hebt niet-opgeslagen wijzigingen in de stappen van dit runbook. Als u nu weggaat, gaan ze verloren."
+  "You have unsaved changes to this runbook's steps. If you leave now, they will be lost.": "U hebt niet-opgeslagen wijzigingen in de stappen van dit runbook. Als u nu weggaat, gaan ze verloren.",
+  "Monitors ({{count}})": "Monitoren ({{count}})",
+  "Monitors in status \"{{status}}\" ({{count}})": "Monitoren met status \"{{status}}\" ({{count}})",
+  "Monitors with problems ({{count}})": "Monitoren met problemen ({{count}})",
+  "Non-operational first, Disabled last": "Niet-operationele eerst, Uitgeschakeld laatst",
+  "Non-operational monitors first": "Niet-operationele monitoren eerst",
+  "Non-operational monitors only": "Alleen niet-operationele monitoren"
 }

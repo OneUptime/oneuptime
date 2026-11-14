@@ -52250,5 +52250,11 @@
   "With none ticked, the rule posts only when an on-call policy is created.": "Если ничего не отмечено, правило публикует сообщения, только когда создаётся политика дежурства.",
   "Only when an on-call policy is created": "Только когда создаётся политика дежурства",
   "You have unsaved changes to this form's questions. If you leave now, they will be lost.": "У вас есть несохранённые изменения в вопросах этой формы. Если вы уйдёте сейчас, они будут потеряны.",
-  "You have unsaved changes to this runbook's steps. If you leave now, they will be lost.": "У вас есть несохранённые изменения в шагах этого сценария. Если вы уйдёте сейчас, они будут потеряны."
+  "You have unsaved changes to this runbook's steps. If you leave now, they will be lost.": "У вас есть несохранённые изменения в шагах этого сценария. Если вы уйдёте сейчас, они будут потеряны.",
+  "Monitors ({{count}})": "Мониторы ({{count}})",
+  "Monitors in status \"{{status}}\" ({{count}})": "Мониторы в статусе «{{status}}» ({{count}})",
+  "Monitors with problems ({{count}})": "Мониторы с проблемами ({{count}})",
+  "Non-operational first, Disabled last": "Сначала неработающие, «Отключено» в конце",
+  "Non-operational monitors first": "Сначала неработающие мониторы",
+  "Non-operational monitors only": "Только неработающие мониторы"
 }
