@@ -136,9 +136,9 @@ describe("HiddenText from the keyboard", () => {
     const box: HTMLElement = screen.getByRole("hidden-text");
 
     expect(box).toHaveClass("max-w-full");
-    expect(
-      screen.getByRole("button", { name: "Click to reveal" }),
-    ).toHaveClass("max-w-full");
+    expect(screen.getByRole("button", { name: "Click to reveal" })).toHaveClass(
+      "max-w-full",
+    );
 
     fireEvent.click(box);
 
