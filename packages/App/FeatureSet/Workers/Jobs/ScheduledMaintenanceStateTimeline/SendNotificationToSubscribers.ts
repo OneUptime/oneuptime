@@ -858,7 +858,7 @@ RunCron(
           );
         } else {
           logger.debug(
-            `No subscribers were notified for scheduled maintenance state change. All status pages either hide scheduled maintenance events or had no matching subscribers.`,
+            `No subscribers were notified for scheduled maintenance state change. All status pages either hide maintenance events or had no matching subscribers.`,
           );
 
           const scheduledMaintenanceNumber: string =
@@ -878,7 +878,7 @@ RunCron(
               feedInfoInMarkdown:
                 mdText`📧 **No notification sent to subscribers** for the state change of [Scheduled Maintenance ${scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId, scheduledMaintenanceId)).toString()}) to **${scheduledEventStateTimeline.scheduledMaintenanceState.name}**`.toString(),
               moreInformationInMarkdown:
-                "Subscriber notifications were skipped because all associated status pages either do not send notifications to their subscribers, hide scheduled maintenance events, or had no matching subscribers.",
+                "Subscriber notifications were skipped because all associated status pages either do not send notifications to their subscribers, hide maintenance events, or had no matching subscribers.",
               workspaceNotification: {
                 sendWorkspaceNotification: false,
               },

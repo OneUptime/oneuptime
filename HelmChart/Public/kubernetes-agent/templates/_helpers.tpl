@@ -19,6 +19,16 @@ no error anywhere to say so.
 `required` set, but JSON Schema `required` only checks that the key is PRESENT,
 and the chart's default value is the empty string, so it passes. Failing at
 render is the only place this can be caught before the data is wrong.
+
+Every template reads the name through this helper, never .Values.clusterName
+itself, so each component gets the same name: without the whitespace around it
+(a name read from a file keeps its final newline), and refused when missing. A
+name with spaces around it once reached the log tailer and the cost agent
+untrimmed while the collectors sent it trimmed, so one cluster arrived under
+two names (#7336). Write it into YAML with `| quote` (inside printf when it is
+part of a longer value), never inside literal quotes, where a '"' or '\' in
+the name ends the string or starts an escape.
+Tests/Ops/KubernetesAgentClusterName.test.js holds every template to it.
 */}}
 {{- define "kubernetes-agent.clusterName" -}}
 {{- required "clusterName is required: it identifies this cluster's nodes, namespaces, pods and deployments in OneUptime, and two clusters installed without it will be merged into one. Set it with --set clusterName=<name>." (.Values.clusterName | trim) -}}
