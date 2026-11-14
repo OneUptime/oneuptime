@@ -99,6 +99,10 @@ jest.mock(
 
 import KubernetesClusterControlPlane from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/ControlPlane";
 import { chartWordsInReadersLanguage } from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/KubernetesChartWords";
+import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
+
+// The page reads its cluster from the address, not from its props.
+const PAGE_PROPS: PageComponentProps = {} as unknown as PageComponentProps;
 
 type LocaleTree = { [key: string]: string | LocaleTree };
 
@@ -168,7 +172,7 @@ async function everyChart(instance: i18n): Promise<Array<ChartWords>> {
   await act(async () => {
     render(
       <I18nextProvider i18n={instance}>
-        <KubernetesClusterControlPlane {...({} as never)} />
+        <KubernetesClusterControlPlane {...PAGE_PROPS} />
       </I18nextProvider>,
     );
   });
