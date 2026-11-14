@@ -8248,7 +8248,7 @@
   "Branch offices - v2c": "Sucursales - v2c",
   "Brazil": "Brasil",
   "Breach Notification Sent At": "Notificación de incumplimiento enviada el",
-  "Breadcrumb": "Breadcrumb",
+  "Breadcrumb": "Ruta de navegación",
   "Breadcrumb events": "Eventos de breadcrumb",
   "Breadcrumb time format": "Formato de hora de los breadcrumbs",
   "Breakdown": "Desglose",
@@ -52252,5 +52252,11 @@
   "With none ticked, the rule posts only when an on-call policy is created.": "Sin ninguna marcada, la regla solo publica cuando se crea una política de guardia.",
   "Only when an on-call policy is created": "Solo cuando se crea una política de guardia",
   "You have unsaved changes to this form's questions. If you leave now, they will be lost.": "Tienes cambios sin guardar en las preguntas de este formulario. Si sales ahora, se perderán.",
-  "You have unsaved changes to this runbook's steps. If you leave now, they will be lost.": "Tienes cambios sin guardar en los pasos de este runbook. Si sales ahora, se perderán."
+  "You have unsaved changes to this runbook's steps. If you leave now, they will be lost.": "Tienes cambios sin guardar en los pasos de este runbook. Si sales ahora, se perderán.",
+  "Monitors ({{count}})": "Monitores ({{count}})",
+  "Monitors in status \"{{status}}\" ({{count}})": "Monitores con el estado \"{{status}}\" ({{count}})",
+  "Monitors with problems ({{count}})": "Monitores con problemas ({{count}})",
+  "Non-operational first, Disabled last": "No operativos primero, Deshabilitado al final",
+  "Non-operational monitors first": "Monitores no operativos primero",
+  "Non-operational monitors only": "Solo monitores no operativos"
 }
