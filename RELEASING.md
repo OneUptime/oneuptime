@@ -56,11 +56,6 @@ release (`gh release list --limit 1`).
 
 If the release only has fixes, bump the patch version. If it has new features, bump the minor version. If we are releasing new products or breaking changes then bump up the major version. If you are bumping up the major version, please update the upgrading guide. 
 
-Once the release branch is cut, someone who has not seen its changes walks it
-as a newcomer, as [Docs/ux/newcomer-walkthrough.md](Docs/ux/newcomer-walkthrough.md)
-says, and posts the result on the epic #6802. The walk never holds the release
-back: what it finds is filed as issues for a later release.
-
 ### 1. Cut the release branch from `main`
 
 ```bash
