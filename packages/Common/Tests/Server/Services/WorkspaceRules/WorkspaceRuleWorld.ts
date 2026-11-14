@@ -54,6 +54,7 @@ import ObjectID from "../../../../Types/ObjectID";
 import NotificationRuleEventType from "../../../../Types/Workspace/NotificationRules/EventType";
 import NotificationRuleCondition from "../../../../Types/Workspace/NotificationRules/NotificationRuleCondition";
 import NotificationRuleWorkspaceChannel from "../../../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
+import { NotificationRuleUpdateKind } from "../../../../Types/Workspace/NotificationRules/NotificationRuleUpdates";
 import IncidentNotificationRule from "../../../../Types/Workspace/NotificationRules/NotificationRuleTypes/IncidentNotificationRule";
 import WorkspaceNotificationActionType from "../../../../Types/Workspace/WorkspaceNotificationActionType";
 import WorkspaceNotificationStatus from "../../../../Types/Workspace/WorkspaceNotificationStatus";
@@ -209,6 +210,8 @@ export interface RuleOptions {
   archive?: boolean | undefined;
   existingChannels?: string | undefined;
   teamToCreateChannelIn?: string | undefined;
+  // Left out: every update, as every rule saved before the Updates step.
+  updatesToPost?: Array<NotificationRuleUpdateKind> | undefined;
 }
 
 // A rule as the database holds it.
@@ -244,6 +247,10 @@ export function makeRule(options: RuleOptions = {}): WorkspaceNotificationRule {
 
   if (options.teamToCreateChannelIn) {
     notificationRule.teamToCreateChannelIn = options.teamToCreateChannelIn;
+  }
+
+  if (options.updatesToPost) {
+    notificationRule.updatesToPost = options.updatesToPost;
   }
 
   rule.notificationRule = notificationRule as never;
@@ -501,15 +508,20 @@ export default class WorkspaceRuleWorld {
 
   /*
    * Something about the incident is posted, as the incident's feed posts
-   * it: a state change, a note.
+   * it: a state change, a note - with the updates it is, as the feed names
+   * them (FeedUpdateKinds), or none, as a message of no kind.
    */
-  public async postAboutIncident(markdown: string): Promise<void> {
+  public async postAboutIncident(
+    markdown: string,
+    updateKinds?: Array<NotificationRuleUpdateKind> | undefined,
+  ): Promise<void> {
     await WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification({
       projectId: PROJECT_ID,
       notificationFor: { incidentId: INCIDENT_ID },
       feedInfoInMarkdown: markdown,
       workspaceNotification: {
         sendWorkspaceNotification: true,
+        ...(updateKinds ? { updateKinds: updateKinds } : {}),
       },
     });
 
