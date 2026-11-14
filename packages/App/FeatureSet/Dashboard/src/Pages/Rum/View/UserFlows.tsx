@@ -454,7 +454,7 @@ const RumApplicationUserFlows: FunctionComponent<
                     )}
                   >
                     {getUserFlowPageText(page.page)} (
-                    {formatUserFlowCount(page.sessions)})
+                    {formatUserFlowCount(page.sessions, translator)})
                   </option>
                 );
               })}
