@@ -52,6 +52,8 @@ Na lista, clique em **Crie seu primeiro monitor**. Isso abre a configuração gu
 
 Em **O que devemos verificar?**, digite o endereço completo do seu site em **Endereço do site ou da API**, por exemplo `https://example.com`, e clique em **Começar a verificar**. As sondas verificam o site na hora e depois a cada 5 minutos: quando o site não responde, ou responde com um erro, o monitor fica **Offline** e declara um incidente. Clique em **Continuar**.
 
+No plano Free do OneUptime Cloud, os monitores são cobrados conforme o uso, então o projeto precisa de uma forma de pagamento antes de poder verificar o seu site: sem ela, a etapa pede que você [adicione uma forma de pagamento](/docs/configuration/billing#métodos-de-pagamento).
+
 ### Escolher quem é avisado
 
 Em **Quem deve ser avisado?**, você já está em **Quem é acionado**. Clique em **Salvar e continuar**: isso cria a `Default on-call policy`, que aciona você a cada novo incidente e a cada novo alerta do projeto, por e-mail para começar. Para acionar também membros da equipe que já estão no projeto, clique antes em **Adicionar membros da equipe**.
@@ -86,7 +88,7 @@ Em **Quem mais está de plantão?**, mantenha a `Default on-call policy` em **Po
 
 ### Decidir o que acontece se ninguém responder
 
-Em **E se ninguém responder?**, escolha **Acionar as mesmas pessoas de novo** enquanto você for a única pessoa no projeto. Quando houver membros da equipe, **Acionar outra pessoa** aciona a pessoa que você escolher em **Acionados em seguida**. Clique em **Salvar e continuar**.
+Em **E se ninguém responder?**, escolha **Acionar as mesmas pessoas de novo** enquanto você for a única pessoa no projeto. Quando houver membros da equipe, **Acionar outra pessoa** aciona a pessoa que você escolher em **Acionados em seguida**. No OneUptime Cloud, só os planos pagos oferecem essa opção. Clique em **Salvar e continuar**.
 
 ### Enviar uma chamada de teste
 

@@ -1036,6 +1036,85 @@ describe("Quickstart", () => {
     );
   });
 
+  /*
+   * A new Cloud project starts on the Free plan, where a second escalation
+   * rule is not offered: the step shows only the repeat, and says why. The
+   * Quickstart says so, rather than promise a choice most readers never see.
+   */
+  it("says Page someone else is offered on Cloud's paid plans only, as the step decides", () => {
+    const setupApi: string = oneLine(
+      dashboard("Components/GuidedSetup/OnCall/OnCallSetupApi.ts"),
+    );
+    const noAnswer: string = (
+      quickstartStepsOf("## Get paged when it goes down")[3] as QuickstartStep
+    ).body;
+
+    expect(setupApi).toContain(
+      "export const maySecondEscalationLevel: () => boolean = (): boolean => { if (!BILLING_ENABLED) { return true; } return ProjectUtil.getCurrentPlan() !== PlanType.Free; };",
+    );
+    expect(
+      setupWord(QUICKSTART_SETUP_COPIES.onCall, "noAnswerFreePlan"),
+    ).toContain("which needs a paid plan");
+    expect(noAnswer).toContain(
+      `under **${setupWord(QUICKSTART_SETUP_COPIES.onCall, "noAnswerSecondLevelLabel")}**. On OneUptime Cloud, only paid plans offer that choice. Click **Save and continue**.`,
+    );
+  });
+
+  /*
+   * On Cloud, a Free plan project with no card on file may not make a monitor
+   * that runs checks: the server refuses the website setup's create with the
+   * payment-required message. The Quickstart says so where the reader first
+   * meets it, with where to add one.
+   */
+  it("says a Free plan project on Cloud needs a payment method before the website setup can check, as the server requires", () => {
+    const monitorService: string = oneLine(
+      readSource(COMMON_DIR, "Server/Services/MonitorService.ts"),
+    );
+    const payAsYouGo: string = oneLine(
+      readSource(COMMON_DIR, "Server/Services/PayAsYouGoBillingService.ts"),
+    );
+    const address: QuickstartStep = quickstartStepsOf(
+      "## Monitor your website",
+    )[1] as QuickstartStep;
+    const billing: string = readPage("en", "configuration/billing");
+
+    // Every monitor but a Manual one asks for pay-as-you-go on create.
+    expect(monitorService).toContain(
+      "if (IsBillingEnabled && createBy.props.tenantId) { if (createBy.data.monitorType !== MonitorType.Manual) { await PayAsYouGoBillingService.requirePayAsYouGo( createBy.props.tenantId, ); }",
+    );
+    // Which a paid plan has, and the Free plan has only with a card on file.
+    expect(payAsYouGo).toContain(
+      'if (plan.getName() !== PlanType.Free) { return "paid-plan"; }',
+    );
+    expect(payAsYouGo).toContain(
+      'if ( await BillingService.hasPaymentMethods(project.paymentProviderCustomerId) ) { return "payment-method"; }',
+    );
+    expect(payAsYouGo).toContain(
+      '"Add a payment method in Project Settings > Billing and Invoices > Billing before using paid monitoring or telemetry. These features have usage charges even on the Free plan.',
+    );
+    // The website setup makes a Website or an API monitor, never a Manual one.
+    expect(
+      buildWebsiteMonitor({
+        address: parseWebsiteAddress("https://example.com") as WebsiteAddress,
+        isApi: true,
+        seeds: {
+          operationalStatusId: ObjectID.generate(),
+          offlineStatusId: ObjectID.generate(),
+          incidentSeverityId: ObjectID.generate(),
+          alertSeverityId: ObjectID.generate(),
+        },
+        monitoringInterval: GUIDED_SETUP_MONITORING_INTERVAL,
+      }).monitorType,
+    ).not.toBe(MonitorType.Manual);
+
+    expect(address.body).toContain(
+      "On OneUptime Cloud's Free plan, monitors are billed as they are used, so the project needs a payment method before it can check your site: without one, the step asks you to [add a payment method](/docs/configuration/billing#payment-methods).",
+    );
+    // The link lands on the billing page's section that adds one.
+    expect(billing.split("\n")).toContain("## Payment methods");
+    expect(billing).toContain("adding one turns on pay-as-you-go usage");
+  });
+
   it("says the reach step lists the sign-in email, finds the app with Recheck, and asks for balance before a number on Cloud", () => {
     const reach: string = (
       quickstartStepsOf("## Get paged when it goes down")[1] as QuickstartStep

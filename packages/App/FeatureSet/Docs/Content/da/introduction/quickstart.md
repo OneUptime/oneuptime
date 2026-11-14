@@ -50,7 +50,9 @@ Klik på **Opret din første overvågning** i tjeklisten. Det åbner den guidede
 
 ![Trinnet »Hvad skal vi tjekke?«, med »Start tjekket« fremhævet](screen:website-down-address)
 
-Under **Hvad skal vi tjekke?** indtaster du hele adressen på dit websted i **Adresse på website eller API**, for eksempel `https://example.com`, og klikker på **Start tjekket**. Proberne tjekker det med det samme og derefter hvert 5. minut: Når webstedet ikke svarer, eller svarer med en fejl, skifter monitoren til **Offline** og erklærer en hændelse. Klik på **Fortsæt**.
+Under **Hvad skal vi tjekke?** indtaster du hele adressen på dit websted i **Adresse på website eller API**, for eksempel `https://example.com`, og klikker på **Start tjekket**. Sonderne tjekker det med det samme og derefter hvert 5. minut: Når webstedet ikke svarer, eller svarer med en fejl, skifter monitoren til **Offline** og erklærer en hændelse. Klik på **Fortsæt**.
+
+På Free-planen i OneUptime Cloud faktureres monitorer efter forbrug, så projektet skal have en betalingsmetode, før det kan tjekke dit websted: uden en beder trinnet dig om at [tilføje en betalingsmetode](/docs/configuration/billing#betalingsmetoder).
 
 ### Vælg, hvem der får besked
 
@@ -86,7 +88,7 @@ Under **Hvem har ellers vagt?** beholder du `Default on-call policy` under **Vag
 
 ### Beslut, hvad der sker, hvis ingen svarer
 
-Under **Hvad hvis ingen svarer?** vælger du **Tilkald de samme personer igen**, så længe du er den eneste person i projektet. Når der er kommet teammedlemmer til, tilkalder **Tilkald en anden** den person, du vælger under **Tilkaldes derefter**. Klik på **Gem og fortsæt**.
+Under **Hvad hvis ingen svarer?** vælger du **Tilkald de samme personer igen**, så længe du er den eneste person i projektet. Når der er kommet teammedlemmer til, tilkalder **Tilkald en anden** den person, du vælger under **Tilkaldes derefter**. I OneUptime Cloud tilbyder kun de betalte planer det valg. Klik på **Gem og fortsæt**.
 
 ### Send et testkald
 

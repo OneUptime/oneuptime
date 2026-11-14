@@ -52,6 +52,8 @@ Dans la liste de vérification, cliquez sur **Créez votre premier moniteur**. C
 
 Sous **Que devons-nous vérifier ?**, saisissez l'adresse complète de votre site dans **Adresse du site web ou de l'API**, par exemple `https://example.com`, et cliquez sur **Lancer la vérification**. Les sondes la vérifient aussitôt, puis toutes les 5 minutes : quand le site ne répond pas, ou répond par une erreur, le moniteur passe **Hors ligne** et déclare un incident. Cliquez sur **Continuer**.
 
+Avec le forfait Free de OneUptime Cloud, les moniteurs sont facturés à l'usage, donc le projet a besoin d'un moyen de paiement avant de pouvoir vérifier votre site : sans moyen de paiement, l'étape vous demande d'[ajouter un moyen de paiement](/docs/configuration/billing#moyens-de-paiement).
+
 ### Choisir qui est prévenu
 
 Sous **Qui faut-il prévenir ?**, vous êtes déjà dans **Qui est alerté**. Cliquez sur **Enregistrer et continuer** : cela crée `Default on-call policy`, qui vous alerte pour chaque nouvel incident et chaque nouvelle alerte du projet, par e-mail pour commencer. Pour alerter aussi des membres de l'équipe qui font déjà partie du projet, cliquez d'abord sur **Ajouter des membres de l'équipe**.
@@ -86,7 +88,7 @@ Sous **Qui d'autre est d'astreinte ?**, gardez `Default on-call policy` sous **P
 
 ### Décider de ce qui se passe si personne ne répond
 
-Sous **Et si personne ne répond ?**, choisissez **Alerter à nouveau les mêmes personnes** tant que vous êtes la seule personne du projet. Une fois des membres de l'équipe arrivés, **Alerter quelqu'un d'autre** alerte la personne que vous choisissez sous **Alertés ensuite**. Cliquez sur **Enregistrer et continuer**.
+Sous **Et si personne ne répond ?**, choisissez **Alerter à nouveau les mêmes personnes** tant que vous êtes la seule personne du projet. Une fois des membres de l'équipe arrivés, **Alerter quelqu'un d'autre** alerte la personne que vous choisissez sous **Alertés ensuite**. Sur OneUptime Cloud, seuls les forfaits payants proposent ce choix. Cliquez sur **Enregistrer et continuer**.
 
 ### Envoyer un appel de test
 

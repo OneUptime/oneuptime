@@ -52,6 +52,8 @@ In the checklist, click **Create your first monitor**. It opens the guided setup
 
 Under **What should we check?**, type the full address of your site in **Website or API address**, such as `https://example.com`, and click **Start checking**. The probes check it at once, then every 5 minutes: when the site does not answer, or answers with an error, the monitor goes **Offline** and declares an incident. Click **Continue**.
 
+On OneUptime Cloud's Free plan, monitors are billed as they are used, so the project needs a payment method before it can check your site: without one, the step asks you to [add a payment method](/docs/configuration/billing#payment-methods).
+
 ### Choose who is told
 
 Under **Who should be told?**, you are already in **Who is paged**. Click **Save and continue**: this makes `Default on-call policy`, which pages you for every new incident and alert in the project, by email to start with. To page teammates who are already in the project as well, click **Add teammates** first.
@@ -86,7 +88,7 @@ Under **Who else is on call?**, keep `Default on-call policy` under **On-call po
 
 ### Decide what happens if nobody answers
 
-Under **What if nobody answers?**, pick **Page the same people again** while you are the only person in the project. Once teammates are in, **Page someone else** pages the person you pick under **Paged next**. Click **Save and continue**.
+Under **What if nobody answers?**, pick **Page the same people again** while you are the only person in the project. Once teammates are in, **Page someone else** pages the person you pick under **Paged next**. On OneUptime Cloud, only paid plans offer that choice. Click **Save and continue**.
 
 ### Send a test page
 

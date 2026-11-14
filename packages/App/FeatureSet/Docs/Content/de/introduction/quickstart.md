@@ -52,6 +52,8 @@ Klicken Sie in der Checkliste auf **Ersten Monitor erstellen**. Damit öffnet si
 
 Geben Sie unter **Was sollen wir prüfen?** die vollständige Adresse Ihrer Website in **Adresse der Website oder API** ein, etwa `https://example.com`, und klicken Sie auf **Prüfung starten**. Die Sonden prüfen sie sofort und danach alle 5 Minuten: Antwortet die Website nicht oder mit einem Fehler, wechselt der Monitor zu **Offline** und meldet einen Vorfall. Klicken Sie auf **Weiter**.
 
+Im Free-Tarif von OneUptime Cloud werden Monitore nach Nutzung abgerechnet, daher braucht das Projekt eine Zahlungsmethode, bevor es Ihre Website prüfen kann: Ohne sie bittet der Schritt Sie, [eine Zahlungsmethode hinzuzufügen](/docs/configuration/billing#zahlungsmethoden).
+
 ### Festlegen, wer informiert wird
 
 Unter **Wer soll informiert werden?** stehen Sie bereits in **Wer alarmiert wird**. Klicken Sie auf **Speichern und weiter**: Dabei wird die Richtlinie `Default on-call policy` angelegt, die Sie bei jedem neuen Vorfall und jeder neuen Warnung im Projekt alarmiert, zunächst per E-Mail. Um auch Teammitglieder zu alarmieren, die schon im Projekt sind, klicken Sie vorher auf **Teammitglieder hinzufügen**.
@@ -86,7 +88,7 @@ Behalten Sie unter **Wer hat sonst Bereitschaft?** die Richtlinie `Default on-ca
 
 ### Festlegen, was passiert, wenn niemand antwortet
 
-Wählen Sie unter **Was, wenn niemand antwortet?** die Option **Dieselben Personen erneut alarmieren**, solange Sie die einzige Person im Projekt sind. Sobald Teammitglieder dabei sind, alarmiert **Jemand anderen alarmieren** die Person, die Sie unter **Als Nächstes alarmiert** wählen. Klicken Sie auf **Speichern und weiter**.
+Wählen Sie unter **Was, wenn niemand antwortet?** die Option **Dieselben Personen erneut alarmieren**, solange Sie die einzige Person im Projekt sind. Sobald Teammitglieder dabei sind, alarmiert **Jemand anderen alarmieren** die Person, die Sie unter **Als Nächstes alarmiert** wählen. In OneUptime Cloud bieten nur die kostenpflichtigen Tarife diese Option. Klicken Sie auf **Speichern und weiter**.
 
 ### Eine Test-Alarmierung senden
 

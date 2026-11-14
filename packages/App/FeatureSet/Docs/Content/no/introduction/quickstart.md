@@ -52,6 +52,8 @@ Klikk på **Opprett din første overvåker** i sjekklisten. Det åpner det veile
 
 Under **Hva skal vi sjekke?** skriver du hele adressen til nettstedet ditt i **Adresse til nettsted eller API**, for eksempel `https://example.com`, og klikker på **Start sjekkingen**. Sondene sjekker det med en gang, og deretter hvert 5. minutt: Når nettstedet ikke svarer, eller svarer med en feil, går monitoren til **Frakoblet** og erklærer en hendelse. Klikk på **Fortsett**.
 
+På Free-planen i OneUptime Cloud faktureres monitorer etter bruk, så prosjektet trenger en betalingsmåte før det kan sjekke nettstedet ditt: uten en ber steget deg om å [legge til en betalingsmåte](/docs/configuration/billing#betalingsmetoder).
+
 ### Velg hvem som får beskjed
 
 Under **Hvem skal få beskjed?** står du allerede i **Hvem som tilkalles**. Klikk på **Lagre og fortsett**: Det oppretter `Default on-call policy`, som tilkaller deg ved hver nye hendelse og hvert nye varsel i prosjektet, til å begynne med på e-post. For også å tilkalle teammedlemmer som allerede er i prosjektet, klikker du først på **Legg til teammedlemmer**.
@@ -86,7 +88,7 @@ Under **Hvem andre har vakt?** beholder du `Default on-call policy` under **Vakt
 
 ### Bestem hva som skjer hvis ingen svarer
 
-Under **Hva om ingen svarer?** velger du **Tilkall de samme personene igjen** så lenge du er den eneste personen i prosjektet. Når det er kommet teammedlemmer, tilkaller **Tilkall noen andre** personen du velger under **Tilkalles deretter**. Klikk på **Lagre og fortsett**.
+Under **Hva om ingen svarer?** velger du **Tilkall de samme personene igjen** så lenge du er den eneste personen i prosjektet. Når det er kommet teammedlemmer, tilkaller **Tilkall noen andre** personen du velger under **Tilkalles deretter**. I OneUptime Cloud tilbyr bare de betalte planene det valget. Klikk på **Lagre og fortsett**.
 
 ### Send et testoppkall
 

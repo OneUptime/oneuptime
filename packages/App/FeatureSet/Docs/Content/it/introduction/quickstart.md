@@ -52,6 +52,8 @@ Nell'elenco, fai clic su **Crea il tuo primo monitor**. Si apre la configurazion
 
 In **Cosa dobbiamo controllare?**, inserisci l'indirizzo completo del tuo sito in **Indirizzo del sito web o dell'API**, per esempio `https://example.com`, e fai clic su **Inizia il controllo**. Le sonde lo controllano subito, poi ogni 5 minuti: quando il sito non risponde, o risponde con un errore, il monitor passa a **Offline** e dichiara un incidente. Fai clic su **Continua**.
 
+Con il piano Free di OneUptime Cloud, i monitor vengono addebitati in base all'uso, quindi il progetto ha bisogno di un metodo di pagamento prima di poter controllare il tuo sito: senza, il passaggio ti chiede di [aggiungere un metodo di pagamento](/docs/configuration/billing#metodi-di-pagamento).
+
 ### Scegliere chi viene avvisato
 
 In **Chi deve essere avvisato?**, sei già in **Chi viene chiamato**. Fai clic su **Salva e continua**: così viene creata `Default on-call policy`, che ti chiama per ogni nuovo incidente e ogni nuovo avviso del progetto, via e-mail per cominciare. Per chiamare anche membri del team che sono già nel progetto, fai prima clic su **Aggiungi membri del team**.
@@ -86,7 +88,7 @@ In **Chi altro è reperibile?**, lascia `Default on-call policy` in **Policy di 
 
 ### Decidere cosa succede se nessuno risponde
 
-In **E se nessuno risponde?**, scegli **Richiama le stesse persone** finché sei l'unica persona nel progetto. Quando ci sono membri del team, **Chiama qualcun altro** chiama la persona che scegli in **Chiamati dopo**. Fai clic su **Salva e continua**.
+In **E se nessuno risponde?**, scegli **Richiama le stesse persone** finché sei l'unica persona nel progetto. Quando ci sono membri del team, **Chiama qualcun altro** chiama la persona che scegli in **Chiamati dopo**. Su OneUptime Cloud, solo i piani a pagamento offrono questa scelta. Fai clic su **Salva e continua**.
 
 ### Inviare una chiamata di test
 

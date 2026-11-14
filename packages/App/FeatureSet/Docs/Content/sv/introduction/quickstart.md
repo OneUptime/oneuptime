@@ -52,6 +52,8 @@ Klicka på **Skapa din första övervakare** i checklistan. Den öppnar den guid
 
 Under **Vad ska vi kontrollera?** skriver du in hela adressen till din webbplats i **Adress till webbplats eller API**, till exempel `https://example.com`, och klickar på **Börja kontrollera**. Sonderna kontrollerar den direkt och sedan var 5:e minut: när webbplatsen inte svarar, eller svarar med ett fel, går monitorn till **Offline** och deklarerar en incident. Klicka på **Fortsätt**.
 
+På Free-planen i OneUptime Cloud faktureras monitorer efter användning, så projektet behöver en betalningsmetod innan det kan kontrollera din webbplats: utan en ber steget dig att [lägga till en betalningsmetod](/docs/configuration/billing#betalningsmetoder).
+
 ### Välj vem som får veta
 
 Under **Vem ska få veta?** står du redan i **Vem som larmas**. Klicka på **Spara och fortsätt**: det skapar `Default on-call policy`, som larmar dig vid varje ny incident och varje nytt larm i projektet, till att börja med via e-post. För att också larma teammedlemmar som redan finns i projektet klickar du först på **Lägg till teammedlemmar**.
@@ -86,7 +88,7 @@ Under **Vem mer har jour?** behåller du `Default on-call policy` under **Jourpo
 
 ### Bestäm vad som händer om ingen svarar
 
-Under **Tänk om ingen svarar?** väljer du **Larma samma personer igen** så länge du är den enda personen i projektet. När teammedlemmar har tillkommit larmar **Larma någon annan** den person du väljer under **Larmas sedan**. Klicka på **Spara och fortsätt**.
+Under **Tänk om ingen svarar?** väljer du **Larma samma personer igen** så länge du är den enda personen i projektet. När teammedlemmar har tillkommit larmar **Larma någon annan** den person du väljer under **Larmas sedan**. I OneUptime Cloud erbjuder bara de betalda planerna det valet. Klicka på **Spara och fortsätt**.
 
 ### Skicka ett testlarm
 

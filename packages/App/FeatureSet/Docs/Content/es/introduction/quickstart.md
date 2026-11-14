@@ -52,6 +52,8 @@ En la lista, haz clic en **Crea tu primer monitor**. Se abre la configuración g
 
 En **¿Qué debemos comprobar?**, escribe la dirección completa de tu sitio en **Dirección del sitio web o de la API**, por ejemplo `https://example.com`, y haz clic en **Empezar a comprobar**. Las sondas la comprueban de inmediato y luego cada 5 minutos: cuando el sitio no responde, o responde con un error, el monitor pasa a **Sin conexión** y declara un incidente. Haz clic en **Continuar**.
 
+En el plan Free de OneUptime Cloud, los monitores se cobran según su uso, así que el proyecto necesita un método de pago antes de poder comprobar tu sitio: sin él, el paso te pide [añadir un método de pago](/docs/configuration/billing#métodos-de-pago).
+
 ### Elegir a quién se avisa
 
 En **¿A quién hay que avisar?**, ya estás en **A quién se avisa**. Haz clic en **Guardar y continuar**: así se crea `Default on-call policy`, que te avisa con cada nuevo incidente y cada nueva alerta del proyecto, por correo para empezar. Para avisar también a miembros del equipo que ya están en el proyecto, haz clic antes en **Añadir miembros del equipo**.
@@ -86,7 +88,7 @@ En **¿Quién más está de guardia?**, deja `Default on-call policy` en **Polí
 
 ### Decidir qué pasa si nadie responde
 
-En **¿Y si nadie responde?**, elige **Volver a avisar a las mismas personas** mientras seas la única persona del proyecto. Cuando haya miembros del equipo, **Avisar a otra persona** avisa a la persona que elijas en **Avisados después**. Haz clic en **Guardar y continuar**.
+En **¿Y si nadie responde?**, elige **Volver a avisar a las mismas personas** mientras seas la única persona del proyecto. Cuando haya miembros del equipo, **Avisar a otra persona** avisa a la persona que elijas en **Avisados después**. En OneUptime Cloud, solo los planes de pago ofrecen esa opción. Haz clic en **Guardar y continuar**.
 
 ### Enviar un aviso de prueba
 
