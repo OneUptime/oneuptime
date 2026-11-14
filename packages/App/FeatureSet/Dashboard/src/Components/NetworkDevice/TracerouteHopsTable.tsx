@@ -51,10 +51,16 @@ const TracerouteHopsTable: FunctionComponent<ComponentProps> = (
         className={`${hopColumns.getTableWidthClassName("min-w-full")} text-sm text-gray-700`}
         {...hopColumns.tableAttributes}
       >
+        {/*
+         * Each header and cell starts where the page's lines start - on the
+         * right of an Arabic or Persian page - so a header stays over its
+         * values; a plain th whose row is left to the default would be
+         * centred, so each one says text-start itself.
+         */}
         <thead>
-          <tr className="text-left text-xs text-gray-500">
+          <tr className="text-xs text-gray-500">
             <ResizableHeaderCell
-              className="pr-4 pb-2 font-medium"
+              className="pe-4 pb-2 text-start font-medium"
               resize={hopColumns.getResize(
                 "hop",
                 translator.translateText("Hop") || "Hop",
@@ -64,7 +70,7 @@ const TracerouteHopsTable: FunctionComponent<ComponentProps> = (
               <span>{translator.translateText("Hop")}</span>
             </ResizableHeaderCell>
             <ResizableHeaderCell
-              className="pr-4 pb-2 font-medium"
+              className="pe-4 pb-2 text-start font-medium"
               resize={hopColumns.getResize(
                 "host",
                 translator.translateText("Host") || "Host",
@@ -74,7 +80,7 @@ const TracerouteHopsTable: FunctionComponent<ComponentProps> = (
               <span>{translator.translateText("Host")}</span>
             </ResizableHeaderCell>
             <ResizableHeaderCell
-              className="pb-2 font-medium"
+              className="pb-2 text-start font-medium"
               resize={hopColumns.getResize(
                 "rtt",
                 translator.translateText("RTT") || "RTT",
@@ -110,12 +116,12 @@ const TracerouteHopsTable: FunctionComponent<ComponentProps> = (
                  * every page so its address stays in its brackets.
                  */}
                 <td
-                  className="pr-4 py-1 tabular-nums"
+                  className="pe-4 py-1 tabular-nums"
                   data-testid="traceroute-hop-number"
                 >
                   {translator.formatNumber(hop.hopNumber)}
                 </td>
-                <td className="pr-4 py-1 font-mono break-all">
+                <td className="pe-4 py-1 font-mono break-all">
                   <bdi dir="ltr">
                     {hop.isTimeout
                       ? "* * *"

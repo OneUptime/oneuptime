@@ -434,6 +434,109 @@ describe("Network path card in the reader's language", () => {
     expect(headers()[1]).toBe(persian["Host"]);
   });
 
+  /*
+   * Every sentence the card writes itself, in each of the four shapes it
+   * takes: no English sentence of it is left on a German or Persian page
+   * (the probe's own message and the hosts are the probe's, not the
+   * card's, and stay as written).
+   */
+  it("German and Persian: none of the card's own English sentences is left", () => {
+    const ENGLISH_SENTENCES: Array<string> = [
+      "Network Path at Time of Failure",
+      "Traceroute captured by the probe when this check failed.",
+      "No path was recorded.",
+      "Route reached the destination.",
+      "Route broke at hop",
+      "Route did not reach the destination.",
+      "resolved to",
+      "Lookup for",
+    ];
+    const SHAPES: Array<TraceRoute> = [
+      BROKEN_ROUTE,
+      buildTraceRoute({ failureMessage: "Traceroute timed out" }),
+      buildTraceRoute({
+        hops: HOPS,
+        destinationAddress: "203.0.113.9",
+        totalHops: 3,
+        isComplete: true,
+      }),
+      buildTraceRoute({
+        hops: HOPS,
+        destinationAddress: "203.0.113.9",
+        totalHops: 3,
+      }),
+    ];
+
+    for (const language of ["de", "fa"]) {
+      for (const shape of SHAPES) {
+        renderIn(language, shape);
+
+        const words: string = withoutIsolateMarks(
+          document.body.textContent || "",
+        );
+
+        for (const sentence of ENGLISH_SENTENCES) {
+          expect({
+            language,
+            sentence,
+            found: words.includes(sentence),
+          }).toEqual({ language, sentence, found: false });
+        }
+        cleanup();
+      }
+    }
+  });
+
+  it("Persian: the DNS line is the Persian sentence, its time in Persian digits", () => {
+    renderIn("fa", BROKEN_ROUTE);
+
+    const persian: Record<string, string> = readDashboardLocale("fa");
+    const words: string = withoutIsolateMarks(document.body.textContent || "");
+
+    expect(words).toContain(
+      persian["{{host}} resolved to {{addresses}} in {{time}} ms"]!.replace(
+        "{{host}}",
+        "api.example.com",
+      )
+        .replace("{{addresses}}", "203.0.113.9")
+        .replace("{{time}}", "۱٬۲۳۴"),
+    );
+  });
+
+  it("German and Persian: a failed lookup is the reader's sentence", () => {
+    for (const language of ["de", "fa"]) {
+      render(
+        <I18nextProvider i18n={instances[language]!}>
+          <NetworkPathView
+            networkPathTrace={{
+              timestamp: MONITORED_AT,
+              dnsLookup: {
+                hostName: "api.example.com",
+                resolvedAddresses: [],
+                resolvedInMS: 12,
+                isSuccess: false,
+                errorMessage: undefined,
+              },
+            }}
+          />
+        </I18nextProvider>,
+      );
+
+      const words: string = withoutIsolateMarks(
+        document.body.textContent || "",
+      );
+
+      expect(words).toContain(
+        readDashboardLocale(language)["Lookup for {{host}} failed"]!.replace(
+          "{{host}}",
+          "api.example.com",
+        ),
+      );
+      expect(words).not.toContain("Lookup for");
+      cleanup();
+    }
+  });
+
   it("Arabic and Persian: the probe's own message and each host read left to right", () => {
     for (const language of ["ar", "fa"]) {
       renderIn(language, BROKEN_ROUTE);
@@ -453,6 +556,38 @@ describe("Network path card in the reader's language", () => {
       }
       expect(hosts[0]).toHaveTextContent("gw.example.com (192.168.1.1)");
       cleanup();
+    }
+  });
+
+  /*
+   * On an Arabic or Persian page the hop table starts on the right: each
+   * header starts where the page's lines start (text-start, never the row's
+   * old text-left, which kept the headers on the left over values drawn
+   * from the right), and the gap between columns is on each cell's end.
+   */
+  it("each header and cell starts where the page's lines start", () => {
+    renderIn("fa", BROKEN_ROUTE);
+
+    const headerCells: Array<Element> = Array.from(
+      document.querySelectorAll("thead th"),
+    );
+
+    expect(headerCells).toHaveLength(3);
+    for (const cell of headerCells) {
+      expect(cell).toHaveClass("text-start");
+      expect(cell).not.toHaveClass("text-left");
+      expect(cell).not.toHaveClass("pr-4");
+    }
+    expect(document.querySelector("thead tr")).not.toHaveClass("text-left");
+
+    const bodyCells: Array<Element> = Array.from(
+      document.querySelectorAll("tbody tr:first-child td"),
+    );
+
+    expect(bodyCells[0]).toHaveClass("pe-4");
+    expect(bodyCells[1]).toHaveClass("pe-4");
+    for (const cell of bodyCells) {
+      expect(cell).not.toHaveClass("pr-4");
     }
   });
 });
