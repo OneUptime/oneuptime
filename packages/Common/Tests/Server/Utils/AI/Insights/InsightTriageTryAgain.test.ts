@@ -288,12 +288,10 @@ describe("InsightTriage.tryAgain", () => {
     insightWithTriage(lastRunId);
     lastRunIs(AIRunStatus.Completed);
 
-    await expect(InsightTriage.tryAgain({ insightId })).rejects.toMatchObject(
-      {
-        message: "Only a triage that did not finish can be tried again.",
-        details: { refusalCode: AiRunRefusalCode.TriageFinished },
-      },
-    );
+    await expect(InsightTriage.tryAgain({ insightId })).rejects.toMatchObject({
+      message: "Only a triage that did not finish can be tried again.",
+      details: { refusalCode: AiRunRefusalCode.TriageFinished },
+    });
   });
 
   test("every refusal has words, and the ones a setting fixes name where", () => {

@@ -860,9 +860,7 @@ describe("the insight's AI Triage, in Arabic, right to left", () => {
     ).toHaveAttribute("dir", "auto");
   });
 
-  test.each(
-    tryAgainRefusals(TRIAGE_REFUSAL, AiRunRefusalCode.TriageFinished),
-  )(
+  test.each(tryAgainRefusals(TRIAGE_REFUSAL, AiRunRefusalCode.TriageFinished))(
     "Try again refused - %s - is laid out by its own first letter",
     async (
       _refusal: string,

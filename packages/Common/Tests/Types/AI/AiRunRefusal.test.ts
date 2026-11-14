@@ -152,9 +152,7 @@ describe("each record and each button has its own sentence", () => {
   });
 
   test("who may not change the record is told which button they pressed", () => {
-    expect(
-      AI_RUN_REFUSALS[getNotAllowedRefusal("incident", "try_again")],
-    ).toBe(
+    expect(AI_RUN_REFUSALS[getNotAllowedRefusal("incident", "try_again")]).toBe(
       "You do not have permission to change this incident, so you cannot start its investigation again.",
     );
     expect(
@@ -213,7 +211,9 @@ describe("AiRunRefusalException", () => {
     expect(error.message).toBe(
       "This project has no LLM provider to investigate with. Add one in Project Settings > AI > LLM Providers, then try again.",
     );
-    expect(error.details).toEqual({ refusalCode: "no_provider_to_investigate" });
+    expect(error.details).toEqual({
+      refusalCode: "no_provider_to_investigate",
+    });
     expect(error.refusalCode).toBe(AiRunRefusalCode.NoProviderToInvestigate);
   });
 });

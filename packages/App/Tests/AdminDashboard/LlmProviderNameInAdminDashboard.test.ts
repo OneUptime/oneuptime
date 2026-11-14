@@ -79,10 +79,7 @@ interface LocaleWord {
 }
 
 // Every key and every value of a locale, nested sections included.
-function localeWords(
-  value: unknown,
-  at: string = "",
-): Array<LocaleWord> {
+function localeWords(value: unknown, at: string = ""): Array<LocaleWord> {
   if (typeof value === "string") {
     return [{ path: at, text: value }];
   }
@@ -202,7 +199,9 @@ describe("the Admin Dashboard says LLM provider for the LLM Providers setting", 
 
     // Stored in admins' choices and used as a key: never renamed.
     expect(catalogue).toContain('AiProvider = "ai-provider",');
-    expect(catalogue).toContain('llmProviders: "/admin/settings/llm-providers"');
+    expect(catalogue).toContain(
+      'llmProviders: "/admin/settings/llm-providers"',
+    );
     expect(checklist).toContain('addLlmProvider: "Add an LLM provider",');
     expect(checklist).toContain("route(PageMap.SETTINGS_LLM_PROVIDERS)");
   });

@@ -212,12 +212,15 @@ describe("no page says AI provider for the project's LLM provider", () => {
 });
 
 describe("the two paragraphs name the LLM provider and link its page", () => {
-  it.each(PARAGRAPHS)("English: $name", (paragraph) => {
-    const line: string = paragraphLine("en", paragraph);
+  it.each(PARAGRAPHS)(
+    "English: $name",
+    (paragraph: (typeof PARAGRAPHS)[number]) => {
+      const line: string = paragraphLine("en", paragraph);
 
-    expect(line).toContain(paragraph.english);
-    expect(line).not.toMatch(AI_PROVIDER_FORMS["en"]!);
-  });
+      expect(line).toContain(paragraph.english);
+      expect(line).not.toMatch(AI_PROVIDER_FORMS["en"]!);
+    },
+  );
 
   it.each(
     TRANSLATED_LANGUAGES.flatMap((lang: string) => {
@@ -225,19 +228,24 @@ describe("the two paragraphs name the LLM provider and link its page", () => {
         return { lang, paragraph };
       });
     }),
-  )("$lang: $paragraph.name", ({ lang, paragraph }) => {
-    const line: string = paragraphLine(lang, paragraph);
-    const toLlmProviders: Array<{ text: string; target: string }> = linksOf(
-      line,
-    ).filter((link: { text: string; target: string }): boolean => {
-      return link.target === LLM_PROVIDERS_PAGE;
-    });
+  )(
+    "$lang: $paragraph.name",
+    (data: { lang: string; paragraph: (typeof PARAGRAPHS)[number] }) => {
+      const lang: string = data.lang;
+      const paragraph: (typeof PARAGRAPHS)[number] = data.paragraph;
+      const line: string = paragraphLine(lang, paragraph);
+      const toLlmProviders: Array<{ text: string; target: string }> = linksOf(
+        line,
+      ).filter((link: { text: string; target: string }): boolean => {
+        return link.target === LLM_PROVIDERS_PAGE;
+      });
 
-    // One link, as in English, worded with the language's LLM word.
-    expect(toLlmProviders.length).toBe(1);
-    expect(toLlmProviders[0]!.text).toContain("LLM");
-    expect(line).not.toMatch(AI_PROVIDER_FORMS[lang]!);
-  });
+      // One link, as in English, worded with the language's LLM word.
+      expect(toLlmProviders.length).toBe(1);
+      expect(toLlmProviders[0]!.text).toContain("LLM");
+      expect(line).not.toMatch(AI_PROVIDER_FORMS[lang]!);
+    },
+  );
 });
 
 describe("the reading itself", () => {

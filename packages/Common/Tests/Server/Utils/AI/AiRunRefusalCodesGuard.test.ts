@@ -125,19 +125,19 @@ describe("what the refusing places throw", () => {
     expect(source).not.toMatch(START_NOW_SENTENCES);
   });
 
-  test.each(["/ai-investigation/try-again", "/ai-investigation/investigate-now"])(
-    "the %s route throws only coded refusals",
-    (routePath: string) => {
-      const body: string = getRouteBody(readSource(API_FILE), routePath);
+  test.each([
+    "/ai-investigation/try-again",
+    "/ai-investigation/investigate-now",
+  ])("the %s route throws only coded refusals", (routePath: string) => {
+    const body: string = getRouteBody(readSource(API_FILE), routePath);
 
-      expect(body.length).toBeGreaterThan(0);
-      expect(
-        getThrownExceptions(body).filter((name: string): boolean => {
-          return name !== "AiRunRefusalException";
-        }),
-      ).toEqual([]);
-    },
-  );
+    expect(body.length).toBeGreaterThan(0);
+    expect(
+      getThrownExceptions(body).filter((name: string): boolean => {
+        return name !== "AiRunRefusalException";
+      }),
+    ).toEqual([]);
+  });
 
   test("the record check both routes make refuses with codes, apart from a malformed request", () => {
     const source: string = readSource(API_FILE);

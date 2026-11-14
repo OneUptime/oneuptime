@@ -69,6 +69,9 @@ const TITLE: string = "LLM provider";
 const NOT_SET_UP: string =
   "Not set up: add an LLM provider so projects can use OneUptime AI.";
 const ACTION: string = "Add an LLM provider";
+
+// What the step said before (#7356), in any of its forms.
+const AI_PROVIDER_IN_ENGLISH: RegExp = /\bAI[ -]providers?\b/i;
 const STEP_WORDS: ReadonlyArray<string> = [TITLE, NOT_SET_UP, ACTION];
 
 // The page the button opens, as the Admin Dashboard's side menu names it.
@@ -248,9 +251,7 @@ describe("the step's words", () => {
   });
 
   test("not set up: add an LLM provider; set up: unchanged", () => {
-    expect(
-      SERVER_SETUP_STATUS_WORDS[ServerSetupCheckId.AiProvider],
-    ).toEqual({
+    expect(SERVER_SETUP_STATUS_WORDS[ServerSetupCheckId.AiProvider]).toEqual({
       [ServerSetupStatus.NotSetUp]: NOT_SET_UP,
       [ServerSetupStatus.Done]: "Set up: projects can use OneUptime AI.",
     });
@@ -287,7 +288,7 @@ describe("the step's words", () => {
 
     expect(
       everyWord.filter((word: string): boolean => {
-        return /\bAI[ -]providers?\b/i.test(word);
+        return AI_PROVIDER_IN_ENGLISH.test(word);
       }),
     ).toEqual([]);
   });
@@ -347,9 +348,7 @@ describe("in every language the Admin Dashboard speaks", () => {
         ).not.toContain(aiProvider);
       }
 
-      expect((words[NOT_SET_UP] as string).includes("OneUptime AI")).toBe(
-        true,
-      );
+      expect((words[NOT_SET_UP] as string).includes("OneUptime AI")).toBe(true);
 
       // The old words are gone from every language.
       for (const old of [

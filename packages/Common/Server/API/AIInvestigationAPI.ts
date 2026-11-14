@@ -289,9 +289,7 @@ export async function assertSubjectReadableInTenant(data: {
 
   if (!subject || !subject.projectId) {
     // Its code beside it: Try again and Investigate now word it (#7359).
-    throw new AiRunRefusalException(
-      getRecordNotFoundRefusal(data.subjectType),
-    );
+    throw new AiRunRefusalException(getRecordNotFoundRefusal(data.subjectType));
   }
 
   CommonAPI.assertResourceBelongsToProject({

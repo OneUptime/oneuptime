@@ -865,8 +865,7 @@ function startNowProblem(
           tokenLimit.lane === "Alert" ? "alert" : "incident",
           tokenLimit.budget,
         )
-      : START_NOW_REFUSALS[problem] ||
-        AiRunRefusalCode.InvestigationNotStarted;
+      : START_NOW_REFUSALS[problem] || AiRunRefusalCode.InvestigationNotStarted;
 
   return {
     isStarted: false,
