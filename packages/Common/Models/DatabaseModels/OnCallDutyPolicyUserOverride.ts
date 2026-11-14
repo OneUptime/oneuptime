@@ -77,7 +77,7 @@ import { PlanType } from "../../Types/Billing/SubscriptionPlan";
   pluralName: "User Overrides",
   icon: IconProp.Call,
   tableDescription:
-    "While someone is away, a user override sends the alerts that would page them to the person who covers, for a set time. With nobody named to cover, it skips them instead: each of their turns in an on-call schedule goes to the next person in the rotation. An override on an on-call policy applies to that policy only; one without a policy applies to every on-call policy.",
+    "While someone is away, a user override sends the alerts that would page them to the person who covers, for a set time. With nobody named to cover, it skips them instead: each of their turns in an on-call schedule goes to the next person in the rotation. An override on an on-call policy applies to that policy only; one without a policy applies to every on-call policy. One person's overrides on the same policy, or their global ones, may not overlap in time.",
 })
 export default class OnCallDutyPolicyUserOverride extends BaseModel {
   @ColumnAccessControl({
@@ -434,7 +434,14 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
       Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyUserOverride,
     ],
-    update: [],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.EditOnCallDutyPolicyUserOverride,
+    ],
   })
   @TableColumn({
     manyToOneRelationColumn: "routeAlertsToUserId",
@@ -477,7 +484,14 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
       Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyUserOverride,
     ],
-    update: [],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.EditOnCallDutyPolicyUserOverride,
+    ],
   })
   @TableColumn({
     type: TableColumnType.ObjectID,
@@ -498,7 +512,7 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
     type: TableColumnType.Date,
     required: true,
     description:
-      "When the override starts sending the Override User's alerts to the Route Alerts To User - or, with none, skipping their turns.",
+      "When the override starts sending the Override User's alerts to the Route Alerts To User - or, with none, skipping their turns. It can be changed until the override starts, to a time from now on.",
   })
   @ColumnAccessControl({
     create: [
@@ -519,7 +533,14 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
       Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyUserOverride,
     ],
-    update: [],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.EditOnCallDutyPolicyUserOverride,
+    ],
   })
   @Column({
     nullable: false,
@@ -532,7 +553,7 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
     type: TableColumnType.Date,
     required: true,
     description:
-      "When the override ends, which has to be after it starts. From then on, alerts page the Override User again, and their turns in each rotation are theirs again.",
+      "When the override ends, which has to be after it starts. From then on, alerts page the Override User again, and their turns in each rotation are theirs again. It can be changed until the override ends, to a time from now on: an end of now ends it now.",
   })
   @ColumnAccessControl({
     create: [
@@ -553,7 +574,14 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
       Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyUserOverride,
     ],
-    update: [],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.EditOnCallDutyPolicyUserOverride,
+    ],
   })
   @Column({
     nullable: false,

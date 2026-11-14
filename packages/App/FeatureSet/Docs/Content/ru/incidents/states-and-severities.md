@@ -37,7 +37,7 @@ flowchart TB
 
 У модели `IncidentState` есть `name`, `description`, `color` и `order`, а также три логических поля: `isCreatedState`, `isAcknowledgedState` и `isResolvedState`. Всё, что продукт делает с состояниями, опирается на эти логические поля и на `order` — и никогда на имя состояния. Поэтому вы можете переименовать **Устранён** в «Closed», и ничего не сломается: флаг остаётся со строкой.
 
-У модели `IncidentSeverity` есть `name`, `description`, `color` и `order` — и больше ничего. Флагов нет. Ничто в OneUptime само по себе не обрабатывает **Critical Incident** иначе, чем **Minor Incident**, — серьёзность важна только там, где вы на неё что-то нацеливаете, например в критерии совпадения **Уровни серьёзности инцидентов** правила дежурства.
+У модели `IncidentSeverity` есть `name`, `description`, `color` и `order` — и больше ничего. Флагов нет. Ничто в OneUptime само по себе не обрабатывает **Критический инцидент** иначе, чем **Незначительный инцидент**, — серьёзность важна только там, где вы на неё что-то нацеливаете, например в критерии совпадения **Уровни серьёзности инцидентов** правила дежурства.
 
 Несколько коротких правил:
 
@@ -138,9 +138,9 @@ flowchart TB
 
 | Серьёзность           | `order` | Цвет      | Исходное описание                                                                                                                                                                         |
 | --------------------- | ------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Critical Incident** | `1`     | `#b70400` | Issues causing very high impact to customers. Immediate response is required. Examples include a full outage, or a data breach.                                                          |
-| **Major Incident**    | `2`     | `#fd625e` | Issues causing significant impact. Immediate response is usually required. We might have some workarounds that mitigate the impact on customers. Examples include an important sub-system failing. |
-| **Minor Incident**    | `3`     | `#ffbf53` | Issues with low impact, which can usually be handled within working hours. Most customers are unlikely to notice any problems. Examples include a slight drop in application performance. |
+| **Критический инцидент** | `1`     | `#b70400` | Issues causing very high impact to customers. Immediate response is required. Examples include a full outage, or a data breach.                                                          |
+| **Серьёзный инцидент**    | `2`     | `#fd625e` | Issues causing significant impact. Immediate response is usually required. We might have some workarounds that mitigate the impact on customers. Examples include an important sub-system failing. |
+| **Незначительный инцидент**    | `3`     | `#ffbf53` | Issues with low impact, which can usually be handled within working hours. Most customers are unlikely to notice any problems. Examples include a slight drop in application performance. |
 
 Уровень серьёзности обязателен при объявлении инцидента и обязателен в каждой спецификации инцидента в критериях монитора, поэтому каждый инцидент — ручной или автоматический — приходит с ним. Процесс объявления см. в [Объявление инцидента](/docs/incidents/declaring-incidents), а путь через монитор — в [Шаблоны инцидентов и оповещений](/docs/monitor/incident-alert-templating).
 
@@ -155,7 +155,7 @@ flowchart TB
 - **Защиты от удаления нет.** Любой уровень серьёзности можно удалить, включая три исходных.
 - **Нет флагов для наследования и нет «Считается».** Новый уровень серьёзности ведёт себя точно так же, как исходные, — это метка с цветом и рангом.
 
-Где серьёзность делает больше, чем описывает: в **Инциденты → Правила → Правила дежурства** поле **Уровни серьёзности инцидентов** правила — это критерий совпадения. Указать там **Critical Incident** — так выражается «вызывать команду баз данных при всём критическом»: политика дежурства находится в правиле, а не в уровне серьёзности.
+Где серьёзность делает больше, чем описывает: в **Инциденты → Правила → Правила дежурства** поле **Уровни серьёзности инцидентов** правила — это критерий совпадения. Указать там **Критический инцидент** — так выражается «вызывать команду баз данных при всём критическом»: политика дежурства находится в правиле, а не в уровне серьёзности.
 
 **Изменение уровня серьёзности инцидента** — через **Редактировать** на карточке **Сведения об инциденте** инцидента, через API или Terraform (`incidentSeverityId`), рабочим процессом или инструментами ИИ — делает одни и те же четыре вещи, как бы оно ни было отправлено: лента инцидента получает запись **Incident updated** с новым уровнем серьёзности, сроки SLA инцидента пересчитываются, его правило напоминаний сопоставляется заново, а метрики инцидентов учитывают одно изменение уровня серьёзности. Сохранение уровня серьёзности, который у инцидента уже есть, не делает ничего из этого, поэтому правка только заголовка инцидента оставляет его сроки SLA, напоминания и счётчик изменений серьёзности без изменений. Уровень серьёзности оповещения работает так же для его записи в ленте и напоминаний.
 

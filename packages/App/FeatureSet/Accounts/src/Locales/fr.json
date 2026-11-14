@@ -42,6 +42,13 @@
     "errorOnSignUp": "Veuillez compléter le captcha avant de vous inscrire."
   },
   "login": {
+    "title": "Connectez-vous à votre compte",
+    "subtitle": "Utilisez votre mot de passe, le SSO de votre organisation ou une clé d’accès.",
+    "sessionEnded": {
+      "lengthReached": "Vous avez été déconnecté, car votre session a atteint sa limite de durée. Reconnectez-vous pour reprendre là où vous en étiez.",
+      "inactive": "Vous avez été déconnecté après une période d’inactivité. Reconnectez-vous pour reprendre là où vous en étiez."
+    },
+    "submitButton": "Connexion",
     "passkey": {
       "signIn": "Se connecter avec une clé d’accès",
       "inProgress": "Terminez ou annulez la connexion par clé d’accès avant d’utiliser votre mot de passe.",
@@ -57,13 +64,6 @@
       "insecure": "Les clés d’accès nécessitent une connexion sécurisée (HTTPS). Vous pouvez toujours vous connecter avec votre mot de passe ou le SSO.",
       "tryAgain": "Réessayer avec une clé d’accès"
     },
-    "title": "Connectez-vous à votre compte",
-    "subtitle": "Utilisez votre mot de passe, le SSO de votre organisation ou une clé d’accès.",
-    "sessionEnded": {
-      "lengthReached": "Vous avez été déconnecté, car votre session a atteint sa limite de durée. Reconnectez-vous pour reprendre là où vous en étiez.",
-      "inactive": "Vous avez été déconnecté après une période d’inactivité. Reconnectez-vous pour reprendre là où vous en étiez."
-    },
-    "submitButton": "Connexion",
     "forgotPassword": "Mot de passe oublié ?",
     "signInWithSso": "Se connecter avec SSO",
     "signInWithMicrosoft": "Se connecter avec Microsoft",

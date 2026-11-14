@@ -37,7 +37,7 @@ Los pasos se ejecutan **en orden**. Para cambiar el orden, arrastra un paso por 
 
 ### Guardar los pasos
 
-Haz clic en **Guardar pasos**. Hasta entonces, el editor muestra **Cambios sin guardar**. Una vez guardado, ves **Guardado** y el runbook está listo para [ejecutarse](/docs/runbooks/running).
+Haz clic en **Guardar pasos**. Hasta entonces, el editor muestra **Cambios sin guardar**. Una vez guardado, ves **Guardado** y el runbook está listo para [ejecutarse](/docs/runbooks/running). Salir de los pasos antes de guardar pregunta primero. Un enlace del menú lateral, de la ruta de navegación o de la barra superior, o los botones Atrás y Adelante de tu navegador, abren **¿Salir sin guardar?** con dos opciones: **Seguir editando** se queda en los pasos con tus cambios, y **Descartar cambios** sigue hacia la página que estabas abriendo. Cerrar o recargar la pestaña pregunta con el propio diálogo de tu navegador.
 :::
 
 ## Anatomía de un paso

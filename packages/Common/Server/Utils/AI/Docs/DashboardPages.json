@@ -1840,6 +1840,31 @@
     "kind": "page"
   },
   {
+    "title": "Subscriber Notifications",
+    "where": [
+      "Incidents",
+      "Settings"
+    ],
+    "keywords": [
+      "notify subscribers",
+      "notify status page subscribers",
+      "status page subscribers",
+      "subscriber emails"
+    ],
+    "path": "/dashboard/:projectId/incidents/settings/subscriber-notifications",
+    "kind": "page"
+  },
+  {
+    "title": "Notify status page subscribers by default",
+    "where": [
+      "Incidents",
+      "Settings",
+      "Subscriber Notifications"
+    ],
+    "path": "/dashboard/:projectId/incidents/settings/subscriber-notifications",
+    "kind": "setting"
+  },
+  {
     "title": "Episode Membership",
     "where": [
       "Incidents",

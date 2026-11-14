@@ -93,13 +93,14 @@ Eine Benachrichtigungsregel legt fest, welche Ereignisse in Slack gepostet werde
 | **Bereitschaft** | Eine Liste von Regeln |
 | **SLOs** | Eine Liste von Regeln |
 
-Eine Regel wird in vier Schritten angelegt:
+Eine Regel wird in bis zu fünf Schritten angelegt:
 
 | Schritt | Was Sie festlegen |
 | --- | --- |
 | **Grundlegend** | **Regelname** und **Regelbeschreibung**. |
 | **Bedingungen** | Für welche Ereignisse die Regel gilt, zum Beispiel nach Schweregrad, Status, Beschriftung, Monitor oder Wörtern im Titel. Sie werden geprüft, wenn ein Ereignis erstellt wird, und erneut bei jedem Update, das OneUptime dazu postet, sodass eine Regel für bestätigte Vorfälle greift, sobald ein Vorfall bestätigt wird. Eine neue Regel gilt für jedes Ereignis, etwa **Alle Vorfälle**. Um sie einzugrenzen, wählen Sie **Nur Vorfälle, die den Bedingungen entsprechen** und fügen die Bedingungen hinzu. Bei zwei oder mehr legt **Abgleichsbedingung** fest, ob alle zutreffen müssen oder eine genügt. |
 | **Ziel** | Wohin sie postet: **In vorhandenen Kanälen posten** mit den Kanalnamen, **Einen Kanal für jeden Vorfall erstellen** (oder jede Warnung, Episode, jedes Ereignis, jeden Monitor oder jede Bereitschaftsrichtlinie) mit den Personen, die ihm beitreten, oder beides. Unter dem Schritt sagt **Was diese Regel tut** in Sätzen, was sie tut, wie die Karte der Regel. |
+| **Aktualisierungen** | Nur Vorfälle, Warnungen, Episoden, geplante Wartungen und Bereitschaftsrichtlinien: welche Aktualisierungen die Regel nach der ersten Nachricht des Datensatzes postet. **Jede Aktualisierung** postet alle, und eine neue Regel beginnt damit, außer bei einer Bereitschaftsrichtlinie. **Nur wichtige Aktualisierungen** postet die wichtigsten, die der Schritt für jede Art von Datensatz auflistet: bei einem Vorfall seine Behebung oder Wiedereröffnung, Änderungen des Schweregrads, öffentliche Notizen und das Postmortem; bei einer Bereitschaftsrichtlinie, wer jetzt Bereitschaft hat und wann niemand sie hat, womit eine neue Regel für Bereitschaftsrichtlinien beginnt. Mit **Aktualisierungen auswählen** haken Sie sie einzeln an. Was Sie auch wählen, die Regel postet die erste Nachricht des Datensatzes und einen Videoanruf, wenn einer beginnt. Siehe [Bereitschaftsnachrichten](#bereitschaftsnachrichten). |
 | **Videoanruf** | Nur Vorfälle und Warnungen: für jeden einen Anruf starten. Siehe [Videoanrufe](/docs/workspace-connections/video-calls). |
 
 Jede Bedingung liest sich wie ein Satz: das Feld, wie es verglichen wird, und der Wert. Werte zum Auswählen stammen aus den Listen des Projekts, etwa seinen Status, Schweregraden, Beschriftungen und Monitoren. Eine Regel für Bereitschaftsrichtlinien wählt diese unter **Bereitschaftsrichtlinie** aus und trifft eine Richtlinie so auch nach einer Umbenennung, während **Name der Bereitschaftsrichtlinie** Wörter im Namen einer Richtlinie abgleicht. Jede Art von Ereignis mit Eigentümern hat eine Eigentümer-Bedingung, etwa **Eigentümer des Vorfalls**: Wählen Sie Personen und Teams aus, und sie trifft die Personen und Teams, die als Eigentümer des Ereignisses eingetragen sind. Die Mitgliedschaft in einem Team, dem das Ereignis gehört, zählt nicht. Ein später hinzugefügter Eigentümer lässt die Regel ab diesem Update greifen, und eine Regel, die Kanäle erstellt, erstellt den Kanal dann. Ein archivierter Wert, etwa ein Schweregrad oder eine Bereitschaftsrichtlinie, wird für eine neue Bedingung nicht angeboten. Eine Regel, die bereits einen enthält, behält ihn, als **Archiviert** markiert, und trifft weiterhin die Ereignisse, die ihn haben. Eine Person, ein Team oder eine Richtlinie, die das Projekt nicht mehr hat, bleibt in der Bedingung, und die Karte der Regel weist darauf hin.
@@ -114,7 +115,7 @@ Eine Regel erstellt ihren Kanal, wenn ein Ereignis zum ersten Mal auf sie zutrif
 
 Bei einem Bereitschaftsplan unter **Außerdem einladen** tritt bei, wer beim Erstellen des Kanals laut der Seite des Bereitschaftsplans darin Bereitschaft hat, ohne alarmiert zu werden. Um Personen nur zu den Kanälen bestimmter Vorfälle hinzuzufügen, geben Sie einer zweiten Regel diese Bedingungen und diese Personen, mit demselben **Präfix für Kanalnamen** wie die erste: Regeln, auf die ein Vorfall beim Erstellen seines Kanals zutrifft, teilen sich diesen Kanal, und jede fügt ihre eigenen Personen hinzu.
 
-Jede spätere Änderung des Datensatzes — ein Statuswechsel, eine Notiz, ein neuer Eigentümer — wird in seinen Kanälen gepostet und in den bestehenden Kanälen, die seine Regeln nennen, solange deren Bedingungen zutreffen. Ist **Kanal archivieren, wenn der Vorfall behoben ist** an, oder sein Gegenstück für Warnungen, Episoden, Ereignisse, Monitore und Bereitschaftsrichtlinien, archiviert die Regel, die einen Kanal erstellt hat, ihn, wenn der Datensatz behoben, abgeschlossen oder gelöscht ist, egal was ihre Bedingungen dann sagen. Ein Vorfall, eine Warnung oder Episode, die bereits behoben erstellt wird, bekommt keinen eigenen Kanal; ihre Erstellungsnachricht geht trotzdem in die Kanäle, die Ihre Regeln nennen. Siehe [Bereits bestätigt oder behoben gemeldet](/docs/incidents/declaring-incidents#bereits-bestätigt-oder-behoben-gemeldet).
+Jede spätere Änderung des Datensatzes — ein Statuswechsel, eine Notiz, ein neuer Eigentümer — wird in seinen Kanälen gepostet und in den bestehenden Kanälen, die seine Regeln nennen, solange deren Bedingungen zutreffen, wenn eine Regel, die dort postet, sie in ihrem Schritt **Aktualisierungen** auswählt. Ist **Kanal archivieren, wenn der Vorfall behoben ist** an, oder sein Gegenstück für Warnungen, Episoden, Ereignisse, Monitore und Bereitschaftsrichtlinien, archiviert die Regel, die einen Kanal erstellt hat, ihn, wenn der Datensatz behoben, abgeschlossen oder gelöscht ist, egal was ihre Bedingungen dann sagen. Ein Vorfall, eine Warnung oder Episode, die bereits behoben erstellt wird, bekommt keinen eigenen Kanal; ihre Erstellungsnachricht geht trotzdem in die Kanäle, die Ihre Regeln nennen. Siehe [Bereits bestätigt oder behoben gemeldet](/docs/incidents/declaring-incidents#bereits-bestätigt-oder-behoben-gemeldet).
 
 Ein Vorfall, eine Warnung, eine Episode oder ein geplantes Wartungsereignis mit einem eigenen Kanal hat im Kopf seiner Seite in OneUptime, neben den Statusschaltflächen, **In Slack öffnen**. Das öffnet diesen Kanal in einem neuen Tab, in der Slack-App oder im Browser. Ein Datensatz mit zwei eigenen Kanälen listet beide unter der Schaltfläche. Ein Datensatz mit Kanälen in Slack und in Microsoft Teams hat stattdessen eine Schaltfläche **Kanal öffnen**, die sie alle auflistet. Die bestehenden Kanäle, in die Ihre Regeln posten, werden nicht angeboten.
 
@@ -123,6 +124,29 @@ Ein Kanal bleibt lesbar: Jedes Ereignis wird einmal gepostet, und der erste Stat
 **Projekteinstellungen** > **Arbeitsbereich** > **Slack** listet die Kanäle, die OneUptime sieht, mit **Test senden** neben jedem. Einem öffentlichen Kanal tritt OneUptime beim ersten Posten selbst bei. Ein privater Kanal wird erst aufgelistet und kann erst bespielt werden, nachdem die OneUptime-App in Slack in ihn eingeladen wurde.
 
 Eine Benachrichtigungsregel kann Teams gehören. **Zuständige Teams** unter **Weitere Felder** beschränkt sie auf die Teams, die Sie auswählen: Nur deren Mitglieder und Projektadministratoren können sie bearbeiten oder löschen, alle anderen, die die Regeln sehen, sehen sie schreibgeschützt. Siehe [Regeln, die Teams gehören](/docs/permissions/index#regeln-die-teams-gehören).
+
+### Bereitschaftsnachrichten
+
+Bei jeder Übergabe erfahren die Kanäle einer Bereitschaftsrichtlinie in einer Zeile, wer Bereitschaft hat:
+
+> 📞 @ana is now on call for Payments until tomorrow at 5:50 PM, then @bob.
+
+- Payments verlinkt die Richtlinie in OneUptime. Alarmiert die Richtlinie mehr als einen Zeitplan, nennt die Zeile auch den Zeitplan: Payments (Primary).
+- Eine Person wird mit ihrem Slack-Namen genannt, sobald sie ihr Slack-Konto mit OneUptime verbunden hat, und bis dahin mit ihrem Namen in OneUptime. Zeiten erscheinen in der Zeitzone jedes Lesers.
+- Alarmieren mehrere Eskalationsregeln der Richtlinie denselben Zeitplan, wird jede Übergabe einmal gepostet, nicht einmal pro Regel.
+
+Eine Regel postet, was sie in ihrem Schritt **Aktualisierungen** gewählt hat, und eine neue Regel beginnt mit **Nur wichtige Aktualisierungen**: wer jetzt Bereitschaft hat und wann niemand sie hat.
+
+| Aktualisierung | Was der Kanal erfährt |
+| --- | --- |
+| **Wer jetzt Bereitschaft hat** | Die Zeile oben, bei jeder Übergabe. |
+| **Wer als Nächstes Bereitschaft hat** | Wer bei der nächsten Übergabe übernimmt und wann: am Ende dieser Zeile, oder in einer eigenen Zeile für eine Regel, die nicht postet, wer jetzt Bereitschaft hat. |
+| **Niemand in Bereitschaft** | Ein Zeitplan, in dem niemand mehr Bereitschaft hat, sodass Warnungen, die ihn erreichen, niemanden alarmieren: "⚠️ Nobody is on call for Payments until tomorrow at 5:50 PM, when @bob takes over." |
+| **Benutzerüberschreibungen** | Eine hinzugefügte, geänderte oder zurückgenommene Vertretung: wer abwesend ist und wer vertritt. |
+| **Änderungen an der Richtlinie** | Zeitpläne, Personen und Teams, die ihren Eskalationsregeln hinzugefügt oder daraus entfernt wurden. |
+| **Eigentümer** | Hinzugefügte und entfernte Eigentümer. |
+
+Ein Kanal erhält eine Nachricht pro Übergabe, auch wenn zwei Regeln in ihm posten. Eine Bereitschaftsregel, die gespeichert wurde, bevor Regeln ihre Aktualisierungen wählten, postet weiterhin alle.
 
 ## Wer im Kanal eines Datensatzes ist
 

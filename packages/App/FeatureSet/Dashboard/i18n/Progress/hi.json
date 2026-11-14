@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 51818,
-    "untranslated": 9443
+    "keys": 52208,
+    "untranslated": 9258
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -41,6 +41,7 @@
     "Down + Out",
     "Edge",
     "Elasticsearch URL",
+    "Enter",
     "Enterprise Edition",
     "Fluent Bit",
     "Full view",
@@ -61,6 +62,7 @@
     "IP",
     "Infrastructure only",
     "IoT",
+    "JSON",
     "JVM CPU",
     "JavaScript API",
     "Keystone",

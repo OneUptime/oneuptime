@@ -399,8 +399,22 @@ async function toDestination(user: UserEvent): Promise<void> {
   await settle();
 }
 
-// On from the Destination step, which checks the destination on the way.
+/*
+ * On from the Destination step, which checks the destination on the way,
+ * to the Updates step: which updates the rule posts (#7581).
+ */
+async function toUpdates(user: UserEvent): Promise<void> {
+  await next(user);
+  await waitForStep("Updates");
+  await within(dialog()).findByRole("radiogroup", {
+    name: "Which updates to post",
+  });
+  await settle();
+}
+
+// On through the Updates step, as it is, to the Video Call step.
 async function toVideoCall(user: UserEvent): Promise<void> {
+  await toUpdates(user);
   await next(user);
   await waitForStep("Video Call");
   await within(dialog()).findByRole("switch", {
@@ -427,13 +441,14 @@ describe("Create a Slack notification rule for incidents", () => {
     cleanup();
   });
 
-  test("walks Basic, Conditions, Destination, then Video Call", async () => {
+  test("walks Basic, Conditions, Destination, Updates, then Video Call", async () => {
     await renderForm(NotificationRuleEventType.Incident);
 
     expect(stepTitles()).toEqual([
       "Basic",
       "Conditions",
       "Destination",
+      "Updates",
       "Video Call",
     ]);
     expect(activeStep()).toBe("Basic");
@@ -1070,6 +1085,504 @@ describe("Create a Slack notification rule for incidents", () => {
  * The rules list around the form: what a rule of each kind is called, and
  * what the list says when there is none.
  */
+/*
+ * #7581: A RULE CHOOSES WHICH UPDATES IT POSTS.
+ *
+ * The customer's #executive-alerts should hear that an incident was
+ * declared and resolved, not every note, owner and page. The Updates step,
+ * after Destination, asks which updates the rule posts there: Every update
+ * (where a new rule starts, as every rule before it posted), Key updates
+ * only (one click), or Choose updates, a box per update.
+ */
+describe("Choose which updates a rule posts (#7581)", () => {
+  const INCIDENT_KEY_UPDATES: Array<string> = [
+    "ResolvedAndReopened",
+    "SeverityChanges",
+    "PublicNotes",
+    "Postmortem",
+  ];
+
+  beforeEach(() => {
+    createOrUpdateMock.mockReset().mockResolvedValue({ data: {} });
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  // To the Updates step, posting to #leadership.
+  async function toUpdatesPostingTo(user: UserEvent): Promise<void> {
+    await toDestination(user);
+    await user.click(switchNamed(/^Post to existing channels/));
+    fireEvent.change(
+      await within(dialog()).findByPlaceholderText("#incidents, #ops"),
+      { target: { value: "#leadership" } },
+    );
+    await settle();
+    await toUpdates(user);
+  }
+
+  function answer(name: string): HTMLElement {
+    return within(dialog()).getByRole("radio", { name: name });
+  }
+
+  function updateBoxes(): Array<HTMLElement> {
+    return within(
+      within(dialog()).getByRole("group", { name: "Choose updates" }),
+    ).getAllByRole("checkbox");
+  }
+
+  function boxNames(): Array<string> {
+    return updateBoxes().map((box: HTMLElement): string => {
+      return (
+        dialog().querySelector(`label[for="${box.id}"]`)?.textContent || ""
+      );
+    });
+  }
+
+  async function createdRule(): Promise<JSONObject> {
+    await waitFor(() => {
+      expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+    });
+
+    return createCall().model.notificationRule as unknown as JSONObject;
+  }
+
+  test("asks after Destination which updates to post, on Every update to begin with", async () => {
+    const user: UserEvent = await renderForm(
+      NotificationRuleEventType.Incident,
+    );
+
+    await toUpdatesPostingTo(user);
+
+    const heading: HTMLElement = within(dialog()).getByRole("heading", {
+      name: "Which updates to post",
+    });
+
+    expect(heading.tagName).toBe("H3");
+    expect(
+      within(dialog()).getByText(
+        "The rule always posts when an incident is declared. Pick the updates it posts after that.",
+      ),
+    ).toBeVisible();
+    expect(
+      within(
+        within(dialog()).getByRole("radiogroup", {
+          name: "Which updates to post",
+        }),
+      )
+        .getAllByRole("radio")
+        .map((radio: HTMLElement): string => {
+          return (
+            dialog().querySelector(`label[for="${radio.id}"]`)?.textContent ||
+            ""
+          );
+        }),
+    ).toEqual(["Every update", "Key updates only", "Choose updates"]);
+    expect(answer("Every update")).toBeChecked();
+    expect(answer("Every update")).toHaveAccessibleDescription(
+      "State changes, notes, owners, paging, edits and everything else.",
+    );
+    expect(answer("Key updates only")).toHaveAccessibleDescription(
+      "Resolved and reopened, severity changes, public notes and the postmortem.",
+    );
+    // No boxes until Choose updates is picked.
+    expect(
+      within(dialog()).queryByRole("group", { name: "Choose updates" }),
+    ).not.toBeInTheDocument();
+    // Not the last step: an incident rule can still start a video call.
+    expect(
+      within(dialog()).queryByRole("button", { name: SUBMIT_LABEL }),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a rule left on Every update is saved without a list, as every rule before it", async () => {
+    const user: UserEvent = await renderForm(
+      NotificationRuleEventType.Incident,
+    );
+
+    await toUpdatesPostingTo(user);
+    await next(user);
+    await waitForStep("Video Call");
+    await settle();
+    await submit(user);
+
+    const rule: JSONObject = await createdRule();
+
+    expect(Object.keys(rule)).not.toContain("updatesToPost");
+    expect(rule["existingChannelNames"]).toBe("#leadership");
+    // The step's own key is form-only: never sent.
+    expect(createCall().miscDataProps).toEqual({});
+  });
+
+  test("REGRESSION: Key updates only is one click, and the rule is saved with the incident's key updates", async () => {
+    const user: UserEvent = await renderForm(
+      NotificationRuleEventType.Incident,
+    );
+
+    await toUpdatesPostingTo(user);
+    await user.click(answer("Key updates only"));
+    await settle();
+
+    expect(answer("Key updates only")).toBeChecked();
+    expect(answer("Every update")).not.toBeChecked();
+
+    await next(user);
+    await waitForStep("Video Call");
+    await settle();
+    await submit(user);
+
+    const rule: JSONObject = await createdRule();
+
+    expect(rule["updatesToPost"]).toEqual(INCIDENT_KEY_UPDATES);
+    // The other steps' choices are kept alongside it.
+    expect(rule["shouldPostToExistingChannel"]).toBe(true);
+    expect(rule["existingChannelNames"]).toBe("#leadership");
+    expect(rule["filterCondition"]).toBe(FilterCondition.All);
+  });
+
+  test("Choose updates shows a box per update, ticked as the rule posts so far, and saves what is left ticked", async () => {
+    const user: UserEvent = await renderForm(
+      NotificationRuleEventType.Incident,
+    );
+
+    await toUpdatesPostingTo(user);
+    await user.click(answer("Choose updates"));
+    await settle();
+
+    expect(boxNames()).toEqual([
+      "Resolved and reopened",
+      "Other state changes",
+      "Severity changes",
+      "Public notes",
+      "Private notes",
+      "Owners and roles",
+      "Paging",
+      "Postmortem",
+      "AI analysis and fixes",
+      "Other edits",
+      "Everything else",
+    ]);
+    // From Every update: every box ticked, so nothing changed yet.
+    for (const updateBox of updateBoxes()) {
+      expect(updateBox).toBeChecked();
+    }
+
+    await user.click(box(/^Private notes/));
+    await user.click(box(/^Paging/));
+    await user.click(box(/^Owners and roles/));
+    await settle();
+
+    expect(box(/^Private notes/)).not.toBeChecked();
+    // Still Choose updates, though the boxes changed.
+    expect(answer("Choose updates")).toBeChecked();
+
+    await next(user);
+    await waitForStep("Video Call");
+    await settle();
+    await submit(user);
+
+    expect((await createdRule())["updatesToPost"]).toEqual([
+      "ResolvedAndReopened",
+      "StateChanges",
+      "SeverityChanges",
+      "PublicNotes",
+      "Postmortem",
+      "AI",
+      "Edits",
+      "Other",
+    ]);
+  });
+
+  test("from Key updates only, Choose updates starts with the key updates ticked", async () => {
+    const user: UserEvent = await renderForm(
+      NotificationRuleEventType.Incident,
+    );
+
+    await toUpdatesPostingTo(user);
+    await user.click(answer("Key updates only"));
+    await settle();
+    await user.click(answer("Choose updates"));
+    await settle();
+
+    expect(
+      updateBoxes()
+        .filter((updateBox: HTMLElement): boolean => {
+          return (updateBox as HTMLInputElement).checked;
+        })
+        .map((updateBox: HTMLElement): string => {
+          return (
+            dialog().querySelector(`label[for="${updateBox.id}"]`)
+              ?.textContent || ""
+          );
+        }),
+    ).toEqual([
+      "Resolved and reopened",
+      "Severity changes",
+      "Public notes",
+      "Postmortem",
+    ]);
+
+    // Ticking one more makes it the rule's own choice.
+    await user.click(box(/^Paging/));
+    await settle();
+    await next(user);
+    await waitForStep("Video Call");
+    await settle();
+    await submit(user);
+
+    expect((await createdRule())["updatesToPost"]).toEqual([
+      "ResolvedAndReopened",
+      "SeverityChanges",
+      "PublicNotes",
+      "Paging",
+      "Postmortem",
+    ]);
+  });
+
+  test("with every box cleared, it says what the rule still posts, and saves an empty list", async () => {
+    const user: UserEvent = await renderForm(
+      NotificationRuleEventType.Incident,
+    );
+
+    await toUpdatesPostingTo(user);
+    await user.click(answer("Key updates only"));
+    await settle();
+    await user.click(answer("Choose updates"));
+    await settle();
+
+    expect(
+      within(dialog()).queryByTestId(
+        "notification-rule-updates-nothing-chosen",
+      ),
+    ).not.toBeInTheDocument();
+
+    for (const name of [
+      /^Resolved and reopened/,
+      /^Severity changes/,
+      /^Public notes/,
+      /^Postmortem/,
+    ]) {
+      await user.click(box(name));
+    }
+    await settle();
+
+    expect(
+      within(dialog()).getByTestId("notification-rule-updates-nothing-chosen"),
+    ).toHaveTextContent(
+      "With none ticked, the rule posts only when an incident is declared or a video call starts.",
+    );
+
+    await next(user);
+    await waitForStep("Video Call");
+    await settle();
+    await submit(user);
+
+    expect((await createdRule())["updatesToPost"]).toEqual([]);
+  });
+
+  test("back to Every update after a choice saves no list again", async () => {
+    const user: UserEvent = await renderForm(
+      NotificationRuleEventType.Incident,
+    );
+
+    await toUpdatesPostingTo(user);
+    await user.click(answer("Key updates only"));
+    await settle();
+    await user.click(answer("Every update"));
+    await settle();
+    await next(user);
+    await waitForStep("Video Call");
+    await settle();
+    await submit(user);
+
+    expect(Object.keys(await createdRule())).not.toContain("updatesToPost");
+  });
+
+  test.each([
+    [
+      NotificationRuleEventType.Alert,
+      ["Basic", "Conditions", "Destination", "Updates", "Video Call"],
+    ],
+    [
+      NotificationRuleEventType.IncidentEpisode,
+      ["Basic", "Conditions", "Destination", "Updates"],
+    ],
+    [
+      NotificationRuleEventType.AlertEpisode,
+      ["Basic", "Conditions", "Destination", "Updates"],
+    ],
+    [
+      NotificationRuleEventType.ScheduledMaintenance,
+      ["Basic", "Conditions", "Destination", "Updates"],
+    ],
+    [NotificationRuleEventType.Monitor, ["Basic", "Conditions", "Destination"]],
+    // An on-call policy rule chooses its updates too (#7549).
+    [
+      NotificationRuleEventType.OnCallDutyPolicy,
+      ["Basic", "Conditions", "Destination", "Updates"],
+    ],
+  ])(
+    "a %s rule walks %j",
+    async (eventType: NotificationRuleEventType, steps: Array<string>) => {
+      await renderForm(eventType);
+
+      expect(stepTitles()).toEqual(steps);
+    },
+  );
+
+  test.each([
+    [
+      NotificationRuleEventType.Alert,
+      "The rule always posts when an alert is created. Pick the updates it posts after that.",
+      ["ResolvedAndReopened", "SeverityChanges"],
+    ],
+    [
+      NotificationRuleEventType.IncidentEpisode,
+      "The rule always posts when an incident episode is created. Pick the updates it posts after that.",
+      ["ResolvedAndReopened", "PublicNotes"],
+    ],
+    [
+      NotificationRuleEventType.AlertEpisode,
+      "The rule always posts when an alert episode is created. Pick the updates it posts after that.",
+      ["ResolvedAndReopened"],
+    ],
+    [
+      NotificationRuleEventType.ScheduledMaintenance,
+      "The rule always posts when a maintenance event is created. Pick the updates it posts after that.",
+      ["StateChanges", "PublicNotes"],
+    ],
+  ])(
+    "a %s rule's step speaks of its records, and Key updates only saves its own key updates",
+    async (
+      eventType: NotificationRuleEventType,
+      description: string,
+      keyUpdates: Array<string>,
+    ) => {
+      const user: UserEvent = await renderForm(eventType);
+
+      await toUpdatesPostingTo(user);
+
+      expect(within(dialog()).getByText(description)).toBeVisible();
+
+      await user.click(answer("Key updates only"));
+      await settle();
+
+      if (eventType === NotificationRuleEventType.Alert) {
+        await next(user);
+        await waitForStep("Video Call");
+        await settle();
+      }
+
+      // An episode or maintenance rule is created from its Updates step.
+      await submit(user);
+
+      expect((await createdRule())["updatesToPost"]).toEqual(keyUpdates);
+    },
+  );
+
+  /*
+   * An on-call policy rule's updates are who is on call (#7549). A new one
+   * starts on its key updates - who is on call now, and when nobody is -
+   * where every other new rule starts on every update: the customer's
+   * channel heard every handoff, override and change to the policy.
+   */
+  test("REGRESSION: a new on-call policy rule opens on Key updates only, and is saved with who is on call now and nobody on call", async () => {
+    const user: UserEvent = await renderForm(
+      NotificationRuleEventType.OnCallDutyPolicy,
+    );
+
+    await toUpdatesPostingTo(user);
+
+    expect(
+      within(dialog()).getByText(
+        "The rule always posts when an on-call policy is created. Pick the updates it posts after that.",
+      ),
+    ).toBeVisible();
+    expect(answer("Key updates only")).toBeChecked();
+    expect(answer("Every update")).not.toBeChecked();
+    expect(answer("Key updates only")).toHaveAccessibleDescription(
+      "Who is on call now, and when nobody is.",
+    );
+    expect(answer("Every update")).toHaveAccessibleDescription(
+      "Who is on call now and next, nobody on call, overrides, and changes to the policy and its owners.",
+    );
+
+    // The last step: an on-call policy rule starts no video call.
+    await submit(user);
+
+    const rule: JSONObject = await createdRule();
+
+    expect(rule["updatesToPost"]).toEqual(["OnCallNow", "NobodyOnCall"]);
+    expect(rule["existingChannelNames"]).toBe("#leadership");
+  });
+
+  test("an on-call policy rule's boxes are who is on call now and next, nobody on call, user overrides, changes to the policy and owners", async () => {
+    const user: UserEvent = await renderForm(
+      NotificationRuleEventType.OnCallDutyPolicy,
+    );
+
+    await toUpdatesPostingTo(user);
+    await user.click(answer("Choose updates"));
+    await settle();
+
+    expect(boxNames()).toEqual([
+      "Who is on call now",
+      "Who is on call next",
+      "Nobody on call",
+      "User overrides",
+      "Changes to the policy",
+      "Owners",
+    ]);
+    // Ticked as the new rule posts: its key updates.
+    expect(
+      updateBoxes().map((box: HTMLElement): boolean => {
+        return (box as HTMLInputElement).checked;
+      }),
+    ).toEqual([true, false, true, false, false, false]);
+
+    await user.click(
+      within(dialog()).getByRole("checkbox", { name: "Who is on call next" }),
+    );
+    await settle();
+    await submit(user);
+
+    expect((await createdRule())["updatesToPost"]).toEqual([
+      "OnCallNow",
+      "OnCallNext",
+      "NobodyOnCall",
+    ]);
+  });
+
+  test("an on-call policy rule put on Every update is saved without a list, as rules saved before it", async () => {
+    const user: UserEvent = await renderForm(
+      NotificationRuleEventType.OnCallDutyPolicy,
+    );
+
+    await toUpdatesPostingTo(user);
+    await user.click(answer("Every update"));
+    await settle();
+    await submit(user);
+
+    expect(Object.keys(await createdRule())).not.toContain("updatesToPost");
+  });
+
+  test("every other new rule still opens on Every update", async () => {
+    for (const eventType of [
+      NotificationRuleEventType.Alert,
+      NotificationRuleEventType.ScheduledMaintenance,
+    ]) {
+      const user: UserEvent = await renderForm(eventType);
+
+      await toUpdatesPostingTo(user);
+
+      expect(answer("Every update")).toBeChecked();
+
+      cleanup();
+    }
+  });
+});
+
 describe("the rules list", () => {
   afterEach(() => {
     cleanup();
@@ -1128,6 +1641,8 @@ describe("the rules list", () => {
       "Rule Description",
       "Which incidents",
       "Then",
+      // On the card of a rule that leaves some updates out.
+      "Updates",
       "Video Call",
       // On the card of a rule teams own (RuleOwningTeams' showInListIf).
       "Owning Teams",
@@ -1355,7 +1870,7 @@ describe("Name the channel a rule creates", () => {
 
     expect(
       within(dialog()).getByText(
-        "Each new channel is named after its scheduled maintenance event. Anything you write here replaces the event's number prefix.",
+        "Each new channel is named after its maintenance event. Anything you write here replaces the event's number prefix.",
       ),
     ).toBeVisible();
     expect(preview()).toBe("#sm-42");
@@ -1364,7 +1879,7 @@ describe("Name the channel a rule creates", () => {
 
     // maint- takes the place of SM-: maint-42, as such rules always named it.
     expect(preview()).toBe("#maint-42");
-    expect(previewNotes()).toBe("For scheduled maintenance event SM-42.");
+    expect(previewNotes()).toBe("For maintenance event SM-42.");
   });
 
   test("creates the rule without a prefix: no channel name is required any more", async () => {
@@ -1520,7 +2035,7 @@ describe("Name the channel a rule creates", () => {
     [
       NotificationRuleEventType.ScheduledMaintenance,
       "#sm-42",
-      "For scheduled maintenance event SM-42.",
+      "For maintenance event SM-42.",
     ],
     [NotificationRuleEventType.Monitor, "#website", "For the monitor Website."],
   ])(

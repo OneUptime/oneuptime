@@ -42,6 +42,13 @@
     "errorOnSignUp": "Fuldfør captcha-udfordringen, før du tilmelder dig."
   },
   "login": {
+    "title": "Log ind på din konto",
+    "subtitle": "Brug din adgangskode, din organisations SSO eller en adgangsnøgle.",
+    "sessionEnded": {
+      "lengthReached": "Du blev logget ud, fordi din session nåede sin tidsgrænse. Log ind igen for at fortsætte, hvor du slap.",
+      "inactive": "Du blev logget ud efter en periode uden aktivitet. Log ind igen for at fortsætte, hvor du slap."
+    },
+    "submitButton": "Log ind",
     "passkey": {
       "signIn": "Log ind med en adgangsnøgle",
       "inProgress": "Fuldfør eller annuller login med adgangsnøgle, før du bruger din adgangskode.",
@@ -57,13 +64,6 @@
       "insecure": "Adgangsnøgler kræver en sikker forbindelse (HTTPS). Du kan stadig logge ind med din adgangskode eller SSO.",
       "tryAgain": "Prøv adgangsnøglen igen"
     },
-    "title": "Log ind på din konto",
-    "subtitle": "Brug din adgangskode, din organisations SSO eller en adgangsnøgle.",
-    "sessionEnded": {
-      "lengthReached": "Du blev logget ud, fordi din session nåede sin tidsgrænse. Log ind igen for at fortsætte, hvor du slap.",
-      "inactive": "Du blev logget ud efter en periode uden aktivitet. Log ind igen for at fortsætte, hvor du slap."
-    },
-    "submitButton": "Log ind",
     "forgotPassword": "Glemt adgangskode?",
     "signInWithSso": "Log ind med SSO",
     "signInWithMicrosoft": "Log ind med Microsoft",

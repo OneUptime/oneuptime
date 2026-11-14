@@ -479,13 +479,14 @@ describe("the project's stepped forms", () => {
     /*
      * Its one Rules step drew the whole rule (its own form, so the scan sees
      * one field there - see LongFormStepsGuard for that form). A rule for
-     * incidents or alerts also asks, on a step of its own, whether it starts
-     * a video call for the event, and where.
+     * incidents, alerts, episodes or scheduled maintenance asks which
+     * updates it posts on a step of its own (#7581), and one for incidents
+     * or alerts whether it starts a video call for the event, and where.
      */
     [
       `${DASHBOARD}/Components/Workspace/WorkspaceNotificationRulesTable.tsx`,
       "ModelTable: Settings > Workspace Notification Rules",
-      ["basic", "conditions", "destination", "videoCall"],
+      ["basic", "conditions", "destination", "updates", "videoCall"],
     ],
     /*
      * Grouping rules ask two questions and then create: Grouping (how to

@@ -16,7 +16,7 @@ Un incidente è il documento su cui lavora il vostro team quando qualcosa si rom
 
 - **Un prodotto a sé** — aprite **Incidenti** dal menu **Prodotti** nella barra superiore; l'elenco si trova in `/dashboard/{projectId}/incidents`.
 - **Tre stati predefiniti** — **Identificato**, **Riconosciuto** e **Risolto** vengono creati per ogni nuovo progetto. Potete aggiungere i vostri; i tre predefiniti si possono rinominare e ricolorare, ma mai eliminare.
-- **Tre gravità predefinite** — **Critical Incident**, **Major Incident** e **Minor Incident**. Una gravità è un'etichetta con un colore e un ordine: non ha alcun comportamento proprio.
+- **Tre gravità predefinite** — **Incidente critico**, **Incidente grave** e **Incidente minore**. Una gravità è un'etichetta con un colore e un ordine: non ha alcun comportamento proprio.
 - **Cinque vie d'accesso** — la procedura guidata **Dichiara incidente**, **Crea da modello**, una regola dei criteri di un monitor, `POST /api/incident`, oppure un [modulo](/docs/forms/index) che chiunque abbia il link può compilare.
 - **Numerati per progetto** — ogni incidente riceve un numero di incidente da un contatore del progetto, mostrato con il prefisso del vostro progetto: `INC-42` in un nuovo progetto, oppure `#42` senza prefisso. Il numero precede il titolo dell'incidente nelle sue pagine, nella scheda del browser, nella ricerca e nelle finestre di dialogo che lo riguardano, così gli incidenti con lo stesso titolo si distinguono.
 - **Due tipi di note** — le note private (note interne) per il vostro team, le note pubbliche per gli iscritti alla pagina di stato.
@@ -143,11 +143,11 @@ Ogni nuovo progetto riceve anche tre gravità:
 
 | Gravità               | Ordine | Colore                | Che cosa significa                                         |
 | --------------------- | ------ | --------------------- | ---------------------------------------------------------- |
-| **Critical Incident** | 1      | Bordeaux (`#b70400`)  | Impatto molto alto sui clienti, che richiede una risposta immediata. |
-| **Major Incident**    | 2      | Rosso (`#fd625e`)     | Impatto significativo, che di solito richiede una risposta immediata. |
-| **Minor Incident**    | 3      | Giallo (`#ffbf53`)    | Impatto basso, di solito gestito in orario di lavoro.      |
+| **Incidente critico** | 1      | Bordeaux (`#b70400`)  | Impatto molto alto sui clienti, che richiede una risposta immediata. |
+| **Incidente grave**    | 2      | Rosso (`#fd625e`)     | Impatto significativo, che di solito richiede una risposta immediata. |
+| **Incidente minore**    | 3      | Giallo (`#ffbf53`)    | Impatto basso, di solito gestito in orario di lavoro.      |
 
-Le gravità hanno `name`, `description`, `color` e `order`, e nient'altro. Non ci sono flag, e nessun percorso del codice tratta «Critical Incident» diversamente da qualsiasi altra riga. La gravità è il modo in cui le persone fanno il triage, ed è disponibile come criterio di corrispondenza quando scrivete regole di reperibilità — ma scegliere una gravità non avvisa, da sola, nessuno.
+Le gravità hanno `name`, `description`, `color` e `order`, e nient'altro. Non ci sono flag, e nessun percorso del codice tratta «Incidente critico» diversamente da qualsiasi altra riga. La gravità è il modo in cui le persone fanno il triage, ed è disponibile come criterio di corrispondenza quando scrivete regole di reperibilità — ma scegliere una gravità non avvisa, da sola, nessuno.
 
 Modificate o aggiungete gravità in **Incidenti → Impostazioni → Gravità incidente**. Le descrizioni predefinite complete si trovano in [Stati e gravità degli incidenti](/docs/incidents/states-and-severities).
 
@@ -162,7 +162,7 @@ Aprite **Incidenti** dal menu **Prodotti** nella barra superiore. Il suo menu la
 | **IA**               | **Informazioni**, **Registri**, **Impostazioni**: che cosa OneUptime AI ha imparato dai vostri incidenti e tutto ciò che ha fatto per loro, e che cosa può fare da sola — con le regole su quali incidenti esamina e corregge. Vedete [AI SRE](/docs/ai/ai-sre). |
 | **Area di lavoro**   | Gli spazi di chat che questo progetto ha collegato: **Slack**, **Microsoft Teams** e **Mattermost**, ciascuno con le sue regole di notifica per gli incidenti. Se nessuno è collegato, contiene **Collega un'area di lavoro**, una pagina che mostra tutti e tre e come collegarli. |
 | **Regole**           | I motori di regole: **Regole di raggruppamento**, **Regole di reperibilità**, **Regole del proprietario**, **Regole di runbook**, **Regole di privacy**, **Regole etichette**, **Regole SLA**, **Regole dei promemoria**. |
-| **Impostazioni**     | **Stato incidente**, **Gravità incidente**, **Modelli di incidenti**, **Modelli di note**, **Approvazione delle note pubbliche**, **Modelli post-mortem**, **Stati del post-mortem**, **Campi personalizzati**, **Ruoli incidente**, **Misurazioni**, **Avvisi collegati**, **Appartenenza agli episodi**, **Numerazione**, **Conservazione dei dati**. |
+| **Impostazioni**     | **Stato incidente**, **Gravità incidente**, **Modelli di incidenti**, **Modelli di note**, **Approvazione delle note pubbliche**, **Notifiche agli iscritti**, **Modelli post-mortem**, **Stati del post-mortem**, **Campi personalizzati**, **Ruoli incidente**, **Misurazioni**, **Avvisi collegati**, **Appartenenza agli episodi**, **Numerazione**, **Conservazione dei dati**. |
 
 **Panoramica** ed **Episodi** sono aperte; **IA**, **Area di lavoro**, **Regole**, **Impostazioni** e **Sviluppatori** sono ripiegate per impostazione predefinita, così il menu si apre sugli elenchi che usate ogni giorno. Fate clic sul titolo di una sezione per espanderla e trovare le pagine a cui fa riferimento il resto di questa documentazione; una sezione si apre anche da sola ogni volta che siete su una delle sue pagine. La configurazione degli incidenti non si trova nelle impostazioni del progetto; vive tutta qui.
 

@@ -20,6 +20,7 @@ Konfigurationen af hændelser ligger under **Hændelser**, ikke under **Projekti
 | **Hændelsesskabeloner**      | Udfylde en hel hændelse på forhånd — titel, beskrivelse, ressourcer, vagtpolitikker, ejere, etiketter. |
 | **Noteskabeloner**           | Genbrugelig tekst til offentlige og private noter.                                           |
 | **Godkendelse af offentlige noter** | Lad offentlige noter blive godkendt, før de offentliggøres, og vælg, hvem der godkender dem. |
+| **Notifikationer til abonnenter** | Vælge, om **Underret statussideabonnenter** starter markeret, når nogen erklærer en hændelse. Slået til som standard. |
 | **Postmortem-skabeloner**    | Genbrugelige strukturer til postmortems.                                                     |
 | **Postmortem-statusser** | De statusser, en postmortem bevæger sig igennem, fra Ikke startet til Fuldført. |
 | **Brugerdefinerede felter**  | Definere ekstra felter, der vises på hver hændelse.                                          |
@@ -183,6 +184,14 @@ De fleste projekter har brug for ét trin. Tilføj endnu et, når en note har br
 - **Ingen godkender deres egen note eller to trin af én note.** Den, der sendte en note til godkendelse, kan hverken godkende eller afvise den, og den, der godkendte et af dens trin, kan ikke godkende et andet.
 
 Kun projektejere og -administratorer kan ændre disse indstillinger, og alle, der læser noterne, kan se, hvem der godkender dem. **Planlagt vedligeholdelse → Indstillinger → Godkendelse af offentlige noter** er den samme side for planlagte vedligeholdelsesbegivenheder, med sin egen kontakt og sine egne trin. Hvad en note gør, mens den venter, og hvordan godkendere tager stilling, står under [Godkendelse af offentlige noter](/docs/incidents/notes-owners-and-feed#godkendelse-af-offentlige-noter).
+
+## Notifikationer til abonnenter
+
+Når nogen erklærer en hændelse, starter **Underret statussideabonnenter** markeret, så abonnenterne på statussiden hører om hændelsen, medmindre den, der erklærer den, fjerner markeringen. Hvis dit team arbejder på en hændelse, før nogen udenfor hører om den, kan du i stedet lade feltet starte umarkeret: gå til **Hændelser → Indstillinger → Notifikationer til abonnenter** (`/dashboard/{projectId}/incidents/settings/subscriber-notifications`), og slå **Underret statussideabonnenter som standard** fra. Den er slået til i alle projekter, indtil du slår den fra, og gemmes, så snart du slår den om. Kun Project Owners og Project Admins kan ændre den; for alle andre er kontakten låst og siger, hvilken tilladelse den kræver.
+
+Mens den er slået fra, starter feltet umarkeret på **Erklær ny hændelse**, uanset om hændelsen erklæres fra hændelseslisten, en skabelon, en advarsel eller en monitor, og dets beskrivelse siger, at det som standard ikke er markeret i dette projekt. Abonnenterne får kun besked, hvis den, der erklærer, markerer det. På opsummeringen, før du sender, står **Skift til Ja** ved siden af dets **Nej** og markerer feltet uden at gå tilbage til **Berørte ressourcer**. Det tilbydes ikke for en privat hændelse, som ingen statusside viser. Kontakten ændrer kun, hvordan feltet starter: hændelsen gemmer, hvordan feltet blev efterladt, og en hændelse, der er erklæret uden underretning, forbliver stille, som [Opret en hændelse](/docs/incidents/declaring-incidents) beskriver.
+
+En hændelse, der erklæres fra Slack eller Microsoft Teams, eller som du beder OneUptime AI om at erklære, følger også kontakten: der spørges ikke om abonnenter, så mens kontakten er slået fra, erklæres den uden at underrette dem, og du kan fortælle dem det senere med en offentlig note. Hændelser, der oprettes på anden vis — af monitorer, eller via API'et, Terraform eller arbejdsgange — beholder deres egen `shouldStatusPageSubscribersBeNotifiedOnIncidentCreated`, som underretter abonnenterne, medmindre den er `false`. Via API'et er kontakten projektets felt `notifyStatusPageSubscribersOfNewIncidentsByDefault`.
 
 ## Postmortem-skabeloner
 
@@ -727,7 +736,7 @@ De regler, siden selv kommer med, er værd at gøre til dine egne:
 - Det sæt politikker, der faktisk udføres, er foreningen af hver matchende regels politikker plus enhver politik, der er knyttet til hændelsen i hånden eller af en skabelon, uden dubletter, så hver politik kører højst én gang. Når to matchende regler tilkalder den samme politik, tilkalder den, så snart en af dem tillader det: med det samme vinder over arbejdstiden.
 
 > [!NOTE]
-> Alvorsgraden er et matchkriterium her og ingen andre steder. Der er intet vagtfelt på en hændelsesalvorsgrad — at vælge "Critical Incident" tilkalder ikke i sig selv nogen. Vil du have, at alvorsgraden styrer tilkaldelsen, så skriv en vagtregel, der matcher på den.
+> Alvorsgraden er et matchkriterium her og ingen andre steder. Der er intet vagtfelt på en hændelsesalvorsgrad — at vælge "Kritisk hændelse" tilkalder ikke i sig selv nogen. Vil du have, at alvorsgraden styrer tilkaldelsen, så skriv en vagtregel, der matcher på den.
 
 ## Knyt vagtpolitikker direkte
 

@@ -262,7 +262,7 @@
       "countRequestTitle": "Antall-forespørsel",
       "aggregateHeading": "Aggreger",
       "aggregateIntro": "Dette endepunktet utfører aggregeringer på serversiden (sum, gjennomsnitt, antall og persentiler) over dine {{title}} og grupperer resultatene i tidsintervaller. Det driver diagrammer og dashbord.",
-      "aggregateByDescription": "Aggregeringen som skal kjøres. Angi aggregationType (Count, Sum, Avg, Min, Max, P50, P90, P95, P99), aggregateColumnName, aggregationTimestampColumnName, startTimestamp, endTimestamp og valgfritt query og groupBy.",
+      "aggregateByDescription": "Aggregeringen som skal kjøres. Angi aggregationType (Count, Sum, Avg, Min, Max, P50, P90, P95, P99), aggregateColumnName, aggregationTimestampColumnName, startTimestamp, endTimestamp og valgfritt query og groupBy. Som standard utledes størrelsen på tidsintervallene fra vinduet; angi det valgfrie aggregationInterval for å låse den (Minute, Hour, Day, Week, Month, Year), for eksempel Day-intervaller over et vindu på én uke, eller sett det til Total for å få ett enkelt aggregat per gruppe over hele vinduet, uten tidsintervaller. Day-, Week-, Month- og Year-intervaller starter ved midnatt UTC, og uker starter på mandag; angi den valgfrie timezone som navnet på en tidssone, for eksempel America/New_York, for i stedet å la dem starte ved midnatt i den tidssonen. Et navn som ikke er en kjent tidssone, avvises.",
       "aggregateRequestTitle": "Aggregeringsforespørsel",
       "createHeading": "Opprett {{title}}",
       "createIntro": "Dette endepunktet lar deg opprette et nytt objekt.",

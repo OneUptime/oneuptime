@@ -39,7 +39,7 @@ Drag a card by its handle to move it, or use **Move Up** and **Move Down** on th
 
 ### Save the form
 
-**Save Changes** saves every change at once. Until you save, the builder says **Unsaved changes** and offers **Discard Changes**, and the browser asks before you leave the page.
+**Save Changes** saves every change at once. Until you save, the builder says **Unsaved changes** and offers **Discard Changes**. Leaving the builder before you save asks first. A link in the side menu, the breadcrumbs or the top bar, or your browser's back and forward buttons, open **Leave without saving?** with two choices: **Keep Editing** stays in the builder with your changes, and **Discard Changes** goes on to the page you were opening. Closing or reloading the tab asks with your browser's own dialog.
 :::
 
 - **The form's header** shows its name and description as the public page will. **Edit Name and Description** changes them.
