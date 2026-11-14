@@ -364,6 +364,45 @@ describe("the Containers tab, drawn", () => {
     expect(values[0]!.meaningDirection).toBe("rtl");
   });
 
+  /*
+   * The Restarts card beside the requests: a count, in the reader's digits
+   * as the cores are - a Persian card read "12" beside "۰٫۲۵".
+   */
+  test.each([
+    ["en", "12"],
+    ["de", "12"],
+    ["ar", "12"],
+    ["fa", "۱۲"],
+  ])(
+    "in %s, the restarts are counted in the reader's digits: %s",
+    (language: string, restarts: string) => {
+      render(
+        <I18nextProvider i18n={instances[language]!}>
+          <KubernetesContainersTab
+            containers={[CONTAINER]}
+            initContainers={[]}
+            containerStatuses={[
+              {
+                name: "app",
+                ready: true,
+                restartCount: 12,
+                state: "running",
+                reason: "",
+                image: "nginx:1.27",
+              },
+            ]}
+          />
+        </I18nextProvider>,
+      );
+
+      expect(screen.getByText(restarts)).toBeInTheDocument();
+
+      if (language === "fa") {
+        expect(screen.queryByText("12")).toBeNull();
+      }
+    },
+  );
+
   test("a value with nothing to add draws Kubernetes' value alone", () => {
     render(
       <I18nextProvider i18n={instances["fa"]!}>

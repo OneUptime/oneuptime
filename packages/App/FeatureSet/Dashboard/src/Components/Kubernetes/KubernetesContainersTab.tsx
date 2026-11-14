@@ -220,7 +220,11 @@ const ContainerCard: FunctionComponent<ContainerCardProps> = (
               }
               value={
                 <StatusBadge
-                  text={String(props.status.restartCount)}
+                  /*
+                   * A count, in the reader's digits ("۲" on a Persian page),
+                   * as the cores beside it are.
+                   */
+                  text={translator.formatNumber(props.status.restartCount)}
                   type={
                     props.status.restartCount > 0
                       ? StatusBadgeType.Warning

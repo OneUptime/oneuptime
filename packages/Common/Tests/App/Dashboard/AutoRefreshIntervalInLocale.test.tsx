@@ -475,6 +475,33 @@ describe("a dashboard's auto-refresh menu", () => {
       });
     }
   });
+
+  /*
+   * The ring's seconds left, beside the interval: a Persian page read "60"
+   * inside the ring beside "۱ دقیقه".
+   */
+  test.each([
+    ["en", "60"],
+    ["de", "60"],
+    ["ar", "60"],
+    ["fa", "۶۰"],
+  ])(
+    "in %s, the ring counts its seconds in the reader's digits: %s",
+    (language: string, seconds: string) => {
+      drawToolbar(language, DashboardMode.View);
+
+      const countdown: HTMLElement = screen.getByTestId(
+        "dashboard-auto-refresh-countdown",
+      );
+
+      expect(countdown).toHaveTextContent(seconds);
+
+      if (language === "fa") {
+        expect(countdown.textContent || "").not.toMatch(LATIN_DIGIT);
+        expect(countdown.textContent || "").toMatch(PERSIAN_DIGIT);
+      }
+    },
+  );
 });
 
 describe("the editing row's Default auto-refresh", () => {

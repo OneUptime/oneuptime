@@ -174,6 +174,7 @@ interface CountdownCircleProps {
 const CountdownCircle: FunctionComponent<CountdownCircleProps> = (
   props: CountdownCircleProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [progress, setProgress] = useState<number>(0);
   const startTimeRef: React.MutableRefObject<number> = useRef<number>(
     Date.now(),
@@ -257,8 +258,15 @@ const CountdownCircle: FunctionComponent<CountdownCircleProps> = (
             className="transition-none"
           />
         </svg>
-        <div className="absolute inset-0 flex items-center justify-center text-[8px] font-semibold text-indigo-600">
-          {remainingSec}
+        <div
+          className="absolute inset-0 flex items-center justify-center text-[8px] font-semibold text-indigo-600"
+          data-testid="dashboard-auto-refresh-countdown"
+        >
+          {/*
+           * The seconds left in the reader's digits, as the interval beside
+           * it is written: "۲۷" beside "۳۰ ثانیه" on a Persian page.
+           */}
+          {translator.formatNumber(remainingSec)}
         </div>
       </div>
       <span className="text-[11px] text-gray-500 font-medium">
