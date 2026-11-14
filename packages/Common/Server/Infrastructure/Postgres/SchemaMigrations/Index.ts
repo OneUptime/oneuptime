@@ -991,6 +991,7 @@ import { BackfillMonitorNetworkDevice1809163100000 } from "./1809163100000-Backf
 import { SetNetworkInterfaceFillfactor1809164000000 } from "./1809164000000-SetNetworkInterfaceFillfactor";
 import { AddInventoryItemMirrorKeysetIndex1809164100000 } from "./1809164100000-AddInventoryItemMirrorKeysetIndex";
 import { MatchMonitorIndexesToTheirReads1809165000000 } from "./1809165000000-MatchMonitorIndexesToTheirReads";
+import { AddOnCallExecutionLogListIndexes1809166000000 } from "./1809166000000-AddOnCallExecutionLogListIndexes";
 
 export default [
   InitialMigration,
@@ -1986,4 +1987,5 @@ export default [
   SetNetworkInterfaceFillfactor1809164000000,
   AddInventoryItemMirrorKeysetIndex1809164100000,
   MatchMonitorIndexesToTheirReads1809165000000,
+  AddOnCallExecutionLogListIndexes1809166000000,
 ];
