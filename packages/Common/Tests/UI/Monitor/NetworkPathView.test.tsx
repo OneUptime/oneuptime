@@ -590,4 +590,24 @@ describe("Network path card in the reader's language", () => {
       expect(cell).not.toHaveClass("pr-4");
     }
   });
+
+  /*
+   * A round trip is a figure with its unit, which a phone must not break
+   * between the two ("۴۸٫۲۷" on one line, "میلی‌ثانیه" on the next): the
+   * host column gives way instead (break-all).
+   */
+  it("a hop's round trip stays on one line, in the reader's digits and unit", () => {
+    renderIn("fa", BROKEN_ROUTE);
+
+    const times: Array<HTMLElement> =
+      screen.getAllByTestId("traceroute-hop-rtt");
+
+    expect(times).toHaveLength(3);
+    for (const time of times) {
+      expect(time).toHaveClass("whitespace-nowrap");
+    }
+    expect(times[0]!.textContent).toBe(
+      readDashboardLocale("fa")["{{value}} ms"]!.replace("{{value}}", "۱"),
+    );
+  });
 });

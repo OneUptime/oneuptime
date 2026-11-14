@@ -130,7 +130,15 @@ const TracerouteHopsTable: FunctionComponent<ComponentProps> = (
                         }`}
                   </bdi>
                 </td>
-                <td className="py-1">
+                {/*
+                 * A round trip is one figure with its unit: kept on one
+                 * line ("48.27 ms", "۴۸٫۲۷ میلی‌ثانیه") while the host
+                 * gives way on a phone.
+                 */}
+                <td
+                  className="py-1 whitespace-nowrap"
+                  data-testid="traceroute-hop-rtt"
+                >
                   {hop.roundTripTimeInMS !== undefined
                     ? formatMilliseconds(translator, hop.roundTripTimeInMS)
                     : "-"}
