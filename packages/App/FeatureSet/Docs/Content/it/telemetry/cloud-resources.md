@@ -39,7 +39,7 @@ Le risorse cloud sono uno dei vari posti in cui compare il tuo cloud:
 | Macchine virtuali con un OpenTelemetry Collector installato | **Host** | Le metriche e i log propri dell'host. Vedi [Collector OpenTelemetry sull'host](/docs/telemetry/host-otel-collector) |
 | Code e topic usati dalle tue applicazioni | **Code** | Span, e le stesse metriche cloud. Vedi [Code](/docs/telemetry/queues) |
 
-Una risorsa può comparire in più di un posto. Una macchina virtuale con il collector installato è un **Host**, e le sue metriche di piattaforma (crediti CPU, disco e rete come li vede l'hypervisor) la rendono anche una **Risorsa cloud**. Una coda SQS è una **Queue** e una **Risorsa cloud**. Ogni vista mostra ciò che sa la sua fonte.
+Una risorsa può comparire in più di un posto. Una macchina virtuale con il collector installato è un **Host**, e le sue metriche di piattaforma (crediti CPU, disco e rete come li vede l'hypervisor) la rendono anche una **Risorsa cloud**. Una coda SQS è una **Coda** e una **Risorsa cloud**. Ogni vista mostra ciò che sa la sua fonte.
 
 ## Prima di iniziare
 

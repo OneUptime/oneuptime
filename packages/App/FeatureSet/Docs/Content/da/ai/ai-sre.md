@@ -589,7 +589,7 @@ Alle tre indstillinger er **slået til som standard for nye projekter** (et proj
 
 1. **Overvåg telemetri for problemer**: slår overvågningsløkken, indbakken og triagen til.
 2. **Åbn en pull request med en rettelse, når en indsigt peger på din kode**: slår oprettelse af rettelsesopgaver til for kvalificerede indsigter. Det kræver den samme opsætning som det manuelle forløb "Fix with AI": et forbundet repository og en LLM-udbyder.
-3. **Arkivér forventede undtagelser**: grupper af undtagelser, som triagen klassificerer som forventede afvisninger (afviste logins, plangrænser, scannere, der udløser bevidst validering), arkiveres, så de ikke længere vises som uløste. Brugerfejl og infrastrukturtilstande bliver det aldrig, og du kan hente en arkiveret gruppe tilbage fra fanen **Arkiveret**.
+3. **Arkiver forventede undtagelser**: grupper af undtagelser, som triagen klassificerer som forventede afvisninger (afviste logins, plangrænser, scannere, der udløser bevidst validering), arkiveres, så de ikke længere vises som uløste. Brugerfejl og infrastrukturtilstande bliver det aldrig, og du kan hente en arkiveret gruppe tilbage fra fanen **Arkiveret**.
 
 Med **Aktivér AI** slået fra findes indsigter stadig (detektorerne bruger ingen AI), men ingen får triage, arkiveres eller rettes; siden med indstillinger siger det øverst. Uden en LLM-udbyder, som OneUptime AI kan bruge, siger den, at indsigter ikke får triage.
 

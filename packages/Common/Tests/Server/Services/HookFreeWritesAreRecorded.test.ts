@@ -44,7 +44,9 @@ import { beforeAll, describe, expect, test } from "@jest/globals";
  *
  *   - Recorded: the change is recorded by the code that makes it - this
  *     guard checks the function calls AuditLogService.record*, or a function
- *     that does;
+ *     that does; a write in a transaction may be recorded once it has
+ *     committed, by the function that runs it (RECORDED_ONCE_COMMITTED),
+ *     which the guard checks records and calls the function the write is in;
  *   - otherwise, why it is OneUptime's own work and no entry is right: the
  *     kinds in WHY_NOT_RECORDED.
  *
@@ -515,6 +517,12 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
     "(module) Alert": Why.Bookkeeping,
     "(module) Incident": Why.Bookkeeping,
   },
+  "packages/Common/Server/Utils/OnCall/ScheduleLayersSave.ts": {
+    "ScheduleLayersSave.insertLayerUsers OnCallDutyPolicyScheduleLayerUser":
+      Why.Recorded,
+    "ScheduleLayersSave.write OnCallDutyPolicyScheduleLayer": Why.Recorded,
+    "ScheduleLayersSave.write OnCallDutyPolicyScheduleLayerUser": Why.Recorded,
+  },
   "packages/Common/Server/Utils/OpenStack/OpenStackCheckStore.ts": {
     "OpenStackCheckStore.claimDueIds OpenStackCloudCheck": Why.Reported,
     "OpenStackCheckStore.noteWhyNotRunning *": Why.Reported,
@@ -605,6 +613,24 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   },
   "packages/Common/Server/Utils/VMware/VMwareProbeCollectionStore.ts": {
     "VMwareProbeCollectionStore.recordCollectionReport *": Why.Reported,
+  },
+};
+
+/*
+ * Writes made in a transaction and recorded once it has committed, by the
+ * function that runs it: AuditLogService.record* takes no transaction, so an
+ * entry written before the commit could stand for a change a rollback undid.
+ * The function such a write is in records nothing itself; the one named here
+ * calls it, and records - by file, "<the function the write is in>": "<the
+ * function that records it>". Each write is decided Recorded in DECIDED too.
+ */
+const RECORDED_ONCE_COMMITTED: Readonly<
+  Record<string, Readonly<Record<string, string>>>
+> = {
+  // A schedule's layers, saved in one go (ScheduleLayersSave.save).
+  "packages/Common/Server/Utils/OnCall/ScheduleLayersSave.ts": {
+    "ScheduleLayersSave.insertLayerUsers": "ScheduleLayersSave.save",
+    "ScheduleLayersSave.write": "ScheduleLayersSave.save",
   },
 };
 
@@ -736,6 +762,27 @@ function decisionOf(site: Site): Why | undefined {
   return file ? file[site.key] : undefined;
 }
 
+/*
+ * Whether a write is recorded once its transaction commits: the function
+ * RECORDED_ONCE_COMMITTED names for it records, and calls the function the
+ * write is in.
+ */
+function isRecordedOnceCommitted(site: Site): boolean {
+  const recorder: string | undefined =
+    RECORDED_ONCE_COMMITTED[site.file]?.[site.inFunction];
+
+  if (!recorder) {
+    return false;
+  }
+
+  const file: string = path.join(REPOSITORY_ROOT, site.file);
+
+  return (
+    scanner.isRecordingFunction(file, recorder) &&
+    scanner.callsInFile(file, recorder, site.inFunction)
+  );
+}
+
 beforeAll(() => {
   scanner = new HookFreeWriteScanner({
     repoRoot: REPOSITORY_ROOT,
@@ -830,13 +877,14 @@ describe("writes that go round DatabaseService's hooks", () => {
     expect(undecided).toEqual([]);
   });
 
-  test("decided as recorded are in a function that records them", () => {
+  test("decided as recorded are recorded: by the function they are in, or once committed by the one that runs it", () => {
     const unrecorded: Array<string> = sites
       .filter((site: Site): boolean => {
         return (
           site.isTracked &&
           decisionOf(site) === Why.Recorded &&
-          !site.isRecorded
+          !site.isRecorded &&
+          !isRecordedOnceCommitted(site)
         );
       })
       .map((site: Site): string => {
@@ -867,6 +915,39 @@ describe("writes that go round DatabaseService's hooks", () => {
     }
 
     expect(stale).toEqual([]);
+  });
+
+  test("every function recorded once committed still writes, and its writes are decided Recorded", () => {
+    const eeIsHere: boolean = fs.existsSync(path.join(EE_ROOT, "Server"));
+    const wrong: Array<string> = [];
+
+    for (const [file, writers] of Object.entries(RECORDED_ONCE_COMMITTED)) {
+      if (relativeEe(file) && !eeIsHere) {
+        continue;
+      }
+
+      for (const writer of Object.keys(writers)) {
+        const writes: Array<Site> = sites.filter((site: Site): boolean => {
+          return (
+            site.isTracked && site.file === file && site.inFunction === writer
+          );
+        });
+
+        if (writes.length === 0) {
+          wrong.push(`${file} ${writer}: writes nothing the audit log tracks`);
+        }
+
+        for (const site of writes) {
+          if (decisionOf(site) !== Why.Recorded) {
+            wrong.push(
+              `${file}:${site.line} ${site.key}: not decided Recorded`,
+            );
+          }
+        }
+      }
+    }
+
+    expect(wrong).toEqual([]);
   });
 
   test("every reason not to record says why", () => {

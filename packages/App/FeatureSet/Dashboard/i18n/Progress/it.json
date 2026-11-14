@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52081,
-    "untranslated": 9397
+    "keys": 52218,
+    "untranslated": 9341
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -465,7 +465,6 @@
     "vSphere Client",
     "vertical pod autoscaler",
     "volume",
-    "workflow",
     "writesets",
     "x86",
     "z",
