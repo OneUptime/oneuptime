@@ -38,6 +38,17 @@ jest.mock("../../../../FeatureSet/Workers/Utils/Cron", () => {
   };
 });
 
+/*
+ * Where each run's record stands, answered one record at a time by the
+ * per-record reads this suite mocks, as the worker read them before it read
+ * a page's records together (Fixtures/OnCallRecordStatesPerRecord).
+ */
+jest.mock("Common/Server/Utils/OnCall/OnCallRecordStates", () => {
+  return jest
+    .requireActual("../Fixtures/OnCallRecordStatesPerRecord")
+    .onCallRecordStatesReadPerRecord();
+});
+
 jest.mock("Common/Server/Utils/Logger", () => {
   return {
     __esModule: true,
@@ -54,7 +65,7 @@ jest.mock("Common/Server/Services/OnCallDutyPolicyExecutionLogService", () => {
   return {
     __esModule: true,
     default: {
-      findAllBy: jest.fn(),
+      findBy: jest.fn(),
       updateOneById: jest.fn(),
       claimEscalationAdvance: jest.fn(),
     },
@@ -126,11 +137,11 @@ const JOB_NAME: string =
   "OnCallDutyPolicyExecutionLog:ExecutePendingExecutions";
 
 const executionLogService: {
-  findAllBy: jest.Mock;
+  findBy: jest.Mock;
   updateOneById: jest.Mock;
   claimEscalationAdvance: jest.Mock;
 } = OnCallDutyPolicyExecutionLogService as unknown as {
-  findAllBy: jest.Mock;
+  findBy: jest.Mock;
   updateOneById: jest.Mock;
   claimEscalationAdvance: jest.Mock;
 };
@@ -333,7 +344,7 @@ describe("a policy whose last rule went unacknowledged", () => {
       times: 2,
       pass: 1,
     });
-    executionLogService.findAllBy.mockResolvedValue([log]);
+    executionLogService.findBy.mockResolvedValue([log]);
 
     await tick();
 
@@ -354,7 +365,7 @@ describe("a policy whose last rule went unacknowledged", () => {
         times: 2,
         pass: pass,
       });
-      executionLogService.findAllBy.mockResolvedValue([log]);
+      executionLogService.findBy.mockResolvedValue([log]);
 
       await tick();
 
@@ -374,7 +385,7 @@ describe("a policy whose last rule went unacknowledged", () => {
       times: 2,
       pass: 3,
     });
-    executionLogService.findAllBy.mockResolvedValue([last]);
+    executionLogService.findBy.mockResolvedValue([last]);
 
     await tick();
 
@@ -394,7 +405,7 @@ describe("a policy whose last rule went unacknowledged", () => {
         times: times,
         pass: 1,
       });
-      executionLogService.findAllBy.mockResolvedValue([log]);
+      executionLogService.findBy.mockResolvedValue([log]);
 
       await tick();
 
@@ -415,7 +426,7 @@ describe("a policy whose last rule went unacknowledged", () => {
       times: 3,
       pass: 1,
     });
-    executionLogService.findAllBy.mockResolvedValue([log]);
+    executionLogService.findBy.mockResolvedValue([log]);
 
     await tick();
 
@@ -447,7 +458,7 @@ describe("a policy whose last rule went unacknowledged", () => {
       times: 3,
       pass: 1,
     });
-    executionLogService.findAllBy.mockResolvedValue([log]);
+    executionLogService.findBy.mockResolvedValue([log]);
 
     await tick();
 
@@ -468,7 +479,7 @@ describe("a policy whose last rule went unacknowledged", () => {
       times: 0,
       pass: 1,
     });
-    executionLogService.findAllBy.mockResolvedValue([log]);
+    executionLogService.findBy.mockResolvedValue([log]);
 
     await tick();
 
@@ -482,7 +493,7 @@ describe("a policy whose last rule went unacknowledged", () => {
       times: 2,
       pass: 1,
     });
-    executionLogService.findAllBy.mockResolvedValue([log]);
+    executionLogService.findBy.mockResolvedValue([log]);
 
     await tick();
 
@@ -490,12 +501,12 @@ describe("a policy whose last rule went unacknowledged", () => {
   });
 
   test("the sweep reads the switch with the number", async () => {
-    executionLogService.findAllBy.mockResolvedValue([]);
+    executionLogService.findBy.mockResolvedValue([]);
 
     await tick();
 
     const select: Record<string, Record<string, unknown>> = (
-      executionLogService.findAllBy.mock.calls[0]![0] as {
+      executionLogService.findBy.mock.calls[0]![0] as {
         select: Record<string, Record<string, unknown>>;
       }
     ).select;

@@ -32,6 +32,17 @@ jest.mock("../../../../FeatureSet/Workers/Utils/Cron", () => {
   };
 });
 
+/*
+ * Where each run's record stands, answered one record at a time by the
+ * per-record reads this suite mocks, as the worker read them before it read
+ * a page's records together (Fixtures/OnCallRecordStatesPerRecord).
+ */
+jest.mock("Common/Server/Utils/OnCall/OnCallRecordStates", () => {
+  return jest
+    .requireActual("../Fixtures/OnCallRecordStatesPerRecord")
+    .onCallRecordStatesReadPerRecord();
+});
+
 jest.mock("Common/Server/Utils/Logger", () => {
   return {
     __esModule: true,
@@ -48,7 +59,7 @@ jest.mock("Common/Server/Services/OnCallDutyPolicyExecutionLogService", () => {
   return {
     __esModule: true,
     default: {
-      findAllBy: jest.fn(),
+      findBy: jest.fn(),
       updateOneById: jest.fn(),
       claimEscalationAdvance: jest.fn(),
     },
@@ -143,11 +154,11 @@ const JOB_NAME: string =
   "OnCallDutyPolicyExecutionLog:ExecutePendingExecutions";
 
 const executionLogService: {
-  findAllBy: jest.Mock;
+  findBy: jest.Mock;
   updateOneById: jest.Mock;
   claimEscalationAdvance: jest.Mock;
 } = OnCallDutyPolicyExecutionLogService as unknown as {
-  findAllBy: jest.Mock;
+  findBy: jest.Mock;
   updateOneById: jest.Mock;
   claimEscalationAdvance: jest.Mock;
 };
@@ -268,7 +279,7 @@ describe("a page again whose incident is acknowledged, as it was all along", () 
     const log: OnCallDutyPolicyExecutionLog = runOnLevelOne({
       pageAgainNumber: 1,
     });
-    executionLogService.findAllBy.mockResolvedValue([log]);
+    executionLogService.findBy.mockResolvedValue([log]);
 
     await tick();
 
@@ -286,7 +297,7 @@ describe("a page again whose incident is acknowledged, as it was all along", () 
       pageAgainNumber: 3,
       alert: true,
     });
-    executionLogService.findAllBy.mockResolvedValue([log]);
+    executionLogService.findBy.mockResolvedValue([log]);
 
     await tick();
 
@@ -306,7 +317,7 @@ describe("a page again whose record is resolved", () => {
     const log: OnCallDutyPolicyExecutionLog = runOnLevelOne({
       pageAgainNumber: 1,
     });
-    executionLogService.findAllBy.mockResolvedValue([log]);
+    executionLogService.findBy.mockResolvedValue([log]);
 
     await tick();
 
@@ -325,7 +336,7 @@ describe("a page again whose record is resolved", () => {
       isResolved: true,
     });
 
-    executionLogService.findAllBy.mockResolvedValue([
+    executionLogService.findBy.mockResolvedValue([
       runOnLevelOne({ pageAgainNumber: 1, alert: true }),
     ]);
 
@@ -341,7 +352,7 @@ describe("a page again whose record is gone", () => {
   test("ends with an error that says so", async () => {
     timeout.readRecordState.mockResolvedValue(null);
 
-    executionLogService.findAllBy.mockResolvedValue([
+    executionLogService.findBy.mockResolvedValue([
       runOnLevelOne({ pageAgainNumber: 1 }),
     ]);
 
@@ -358,7 +369,7 @@ describe("a page again whose record is gone", () => {
 
 describe("every other run", () => {
   test("is ended by its record's acknowledgement, as it always was", async () => {
-    executionLogService.findAllBy.mockResolvedValue([runOnLevelOne({})]);
+    executionLogService.findBy.mockResolvedValue([runOnLevelOne({})]);
 
     await tick();
 
@@ -376,12 +387,12 @@ describe("every other run", () => {
 
 describe("the sweep", () => {
   test("reads whether each run is a page again", async () => {
-    executionLogService.findAllBy.mockResolvedValue([]);
+    executionLogService.findBy.mockResolvedValue([]);
 
     await tick();
 
     const select: Record<string, unknown> = (
-      executionLogService.findAllBy.mock.calls[0]![0] as {
+      executionLogService.findBy.mock.calls[0]![0] as {
         select: Record<string, unknown>;
       }
     ).select;

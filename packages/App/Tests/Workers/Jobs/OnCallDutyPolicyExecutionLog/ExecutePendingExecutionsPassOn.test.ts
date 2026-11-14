@@ -34,6 +34,17 @@ jest.mock("../../../../FeatureSet/Workers/Utils/Cron", () => {
   };
 });
 
+/*
+ * Where each run's record stands, answered one record at a time by the
+ * per-record reads this suite mocks, as the worker read them before it read
+ * a page's records together (Fixtures/OnCallRecordStatesPerRecord).
+ */
+jest.mock("Common/Server/Utils/OnCall/OnCallRecordStates", () => {
+  return jest
+    .requireActual("../Fixtures/OnCallRecordStatesPerRecord")
+    .onCallRecordStatesReadPerRecord();
+});
+
 jest.mock("Common/Server/Utils/Logger", () => {
   return {
     __esModule: true,
@@ -50,7 +61,7 @@ jest.mock("Common/Server/Services/OnCallDutyPolicyExecutionLogService", () => {
   return {
     __esModule: true,
     default: {
-      findAllBy: jest.fn(),
+      findBy: jest.fn(),
       findOneById: jest.fn(),
       updateOneById: jest.fn(),
       claimEscalationAdvance: jest.fn(),
@@ -119,12 +130,12 @@ const JOB_NAME: string =
   "OnCallDutyPolicyExecutionLog:ExecutePendingExecutions";
 
 const executionLogService: {
-  findAllBy: jest.Mock;
+  findBy: jest.Mock;
   findOneById: jest.Mock;
   updateOneById: jest.Mock;
   claimEscalationAdvance: jest.Mock;
 } = OnCallDutyPolicyExecutionLogService as unknown as {
-  findAllBy: jest.Mock;
+  findBy: jest.Mock;
   findOneById: jest.Mock;
   updateOneById: jest.Mock;
   claimEscalationAdvance: jest.Mock;
@@ -233,7 +244,7 @@ beforeEach(() => {
 
 describe("a tick once a rule's wait has run out", () => {
   test("claims the move from the time the run was read with", async () => {
-    executionLogService.findAllBy.mockResolvedValue([runOnLevel1()]);
+    executionLogService.findBy.mockResolvedValue([runOnLevel1()]);
 
     await tick();
 
@@ -246,7 +257,7 @@ describe("a tick once a rule's wait has run out", () => {
 
   test("hands the next rule the people who passed the run's page on", async () => {
     timelineService.findBy.mockResolvedValue([passedOn(ANA)]);
-    executionLogService.findAllBy.mockResolvedValue([runOnLevel1()]);
+    executionLogService.findBy.mockResolvedValue([runOnLevel1()]);
 
     await tick();
 
@@ -277,7 +288,7 @@ describe("a tick once a rule's wait has run out", () => {
         hadScheduleGap: false,
         movesOnAtOnce: false,
       });
-    executionLogService.findAllBy.mockResolvedValue([runOnLevel1()]);
+    executionLogService.findBy.mockResolvedValue([runOnLevel1()]);
 
     await tick();
 
@@ -294,7 +305,7 @@ describe("a tick once a rule's wait has run out", () => {
 
   test("does nothing when a page passed on moved the run on first", async () => {
     executionLogService.claimEscalationAdvance.mockResolvedValue(false);
-    executionLogService.findAllBy.mockResolvedValue([runOnLevel1()]);
+    executionLogService.findBy.mockResolvedValue([runOnLevel1()]);
 
     await tick();
 
@@ -305,7 +316,7 @@ describe("a tick once a rule's wait has run out", () => {
   test("leaves a run whose wait has not run out to wait", async () => {
     const log: OnCallDutyPolicyExecutionLog = runOnLevel1();
     log.lastEscalationRuleExecutedAt = new Date();
-    executionLogService.findAllBy.mockResolvedValue([log]);
+    executionLogService.findBy.mockResolvedValue([log]);
 
     await tick();
 
