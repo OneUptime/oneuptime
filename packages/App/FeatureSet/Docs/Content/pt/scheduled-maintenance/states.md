@@ -1,6 +1,6 @@
 # Estados da manutenção
 
-Todo evento de manutenção programada está em um único **estado**: em que ponto o trabalho está, de planejado a aprovado. Os estados decidem o que o OneUptime faz com o evento: quando seus monitores deixam de ser verificados, o que suas páginas de status mostram, quando seus lembretes param. Esta página cobre os quatro estados com que todo projeto começa, o que move um evento entre eles e como adicionar etapas próprias.
+Todo evento de manutenção está em um único **estado**: em que ponto o trabalho está, de planejado a aprovado. Os estados decidem o que o OneUptime faz com o evento: quando seus monitores deixam de ser verificados, o que suas páginas de status mostram, quando seus lembretes param. Esta página cobre os quatro estados com que todo projeto começa, o que move um evento entre eles e como adicionar etapas próprias.
 
 :::cards
 - [Os estados iniciais](#os-estados-iniciais): Agendado, Em andamento, Encerrado e Concluído.

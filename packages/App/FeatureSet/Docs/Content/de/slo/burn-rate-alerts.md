@@ -255,7 +255,7 @@ Manche Änderungen lösen immer auf, was eine Regel offen hat, unabhängig von i
 
 ## Geplante Wartung
 
-Solange irgendein Monitor des SLO in einem laufenden geplanten Wartungsereignis ist, lösen seine Burn-Rate-Regeln keine Warnung aus und melden keinen Vorfall: Geplante Arbeit soll niemanden alarmieren. Was die Regeln bereits offen haben, wird weiterhin wie gewohnt aufgelöst. Die Zeit zählt trotzdem zum Fehlerbudget, gemäß den Ausfall-Status des SLO.
+Solange irgendein Monitor des SLO in einem laufenden Wartungsereignis ist, lösen seine Burn-Rate-Regeln keine Warnung aus und melden keinen Vorfall: Geplante Arbeit soll niemanden alarmieren. Was die Regeln bereits offen haben, wird weiterhin wie gewohnt aufgelöst. Die Zeit zählt trotzdem zum Fehlerbudget, gemäß den Ausfall-Status des SLO.
 
 ## Der SLO-Feed
 
@@ -271,8 +271,8 @@ Eine Regel löst erst aus, wenn das SLO ein volles langes Zeitfenster an Überwa
 Das automatische Auflösen folgt dem langen Zeitfenster: Sobald die Burn-Rate im langen Zeitfenster unter den Schwellenwert fällt, wird die Warnung aufgelöst. Geben Sie der Regel ein längeres langes Zeitfenster, oder schalten Sie **Warnung automatisch beheben** aus und lösen Sie die Warnung von Hand auf.
 :::
 
-:::details Während eines geplanten Wartungsereignisses hat nichts ausgelöst
-Burn-Rate-Regeln bleiben still, solange einer der Monitore des SLO in einem laufenden geplanten Wartungsereignis ist. Die Ausfallzeit zählt trotzdem zum Budget.
+:::details Während eines Wartungsereignisses hat nichts ausgelöst
+Burn-Rate-Regeln bleiben still, solange einer der Monitore des SLO in einem laufenden Wartungsereignis ist. Die Ausfallzeit zählt trotzdem zum Budget.
 :::
 
 :::details Gibt es eine Mindestanzahl an Stichproben?

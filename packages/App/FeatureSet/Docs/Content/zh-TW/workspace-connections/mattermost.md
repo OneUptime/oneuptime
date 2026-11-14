@@ -112,7 +112,7 @@ Mattermost 沒有可供 OneUptime 將您導向過去的登入頁面，因此 One
 
 人員會透過其已連接的 Mattermost 帳戶加入規則的頻道；否則，當您的伺服器向機器人顯示電子郵件地址時（ **System Console** > **Site Configuration** > **Users and Teams** > **Show Email Address** ），會透過使用其電子郵件地址的 Mattermost 帳戶加入。OneUptime 會在頻道中用一則訊息列出它無法加入的所有人，並附上連接其帳戶的連結。
 
-擁有專屬頻道的事件、警示、片段或排定維護事件，會在其 OneUptime 頁面標題的狀態按鈕旁顯示 **在 Mattermost 中開啟**。它會在新分頁中開啟您的 Mattermost 伺服器上的該頻道。擁有兩個專屬頻道的紀錄會在按鈕下列出這兩個頻道。同時在 Slack 或 Microsoft Teams 中有頻道的紀錄，會改為只顯示一個 **開啟頻道** 按鈕，列出所有頻道。不會提供您的規則所發布到的現有頻道。
+擁有專屬頻道的事件、警示、片段或維護事件，會在其 OneUptime 頁面標題的狀態按鈕旁顯示 **在 Mattermost 中開啟**。它會在新分頁中開啟您的 Mattermost 伺服器上的該頻道。擁有兩個專屬頻道的紀錄會在按鈕下列出這兩個頻道。同時在 Slack 或 Microsoft Teams 中有頻道的紀錄，會改為只顯示一個 **開啟頻道** 按鈕，列出所有頻道。不會提供您的規則所發布到的現有頻道。
 
 規則所在列的 **測試規則** 會將該規則的測試訊息發布到它指定的頻道，與 Slack 中一樣。
 
@@ -120,7 +120,7 @@ OneUptime 的訊息不會因其引用的內容而通知任何人：包含 `@chan
 
 ## 紀錄頻道中的成員
 
-擁有專屬 Mattermost 頻道的事件、警示、片段或排定維護事件，在其 OneUptime 頁面上有一張 **Mattermost 頻道** 卡片。卡片顯示該頻道（一個在您的 Mattermost 伺服器上開啟它的連結）、它是否為私人頻道，以及頻道中有誰，您排在最前面。無需 Mattermost 管理員，即可在卡片上：
+擁有專屬 Mattermost 頻道的事件、警示、片段或維護事件，在其 OneUptime 頁面上有一張 **Mattermost 頻道** 卡片。卡片顯示該頻道（一個在您的 Mattermost 伺服器上開啟它的連結）、它是否為私人頻道，以及頻道中有誰，您排在最前面。無需 Mattermost 管理員，即可在卡片上：
 
 - **加入頻道** 會在您不在頻道中時把您加入頻道。
 - **新增成員** 會開啟專案的人員和團隊清單：選擇一個人即新增此人，選擇一個團隊即新增其中的所有人。
@@ -145,7 +145,7 @@ OneUptime 的訊息附有按鈕，以及一個 **More actions** 選單，用於�
 | **事件片段、警示片段** | **Acknowledge**、 **Resolve**、 **Add Note**、 **Change State**、 **Execute On-Call Policy** |
 | **排定維護** | **Mark as Ongoing**、 **Mark as Complete**、 **Add Note**、 **Change State** |
 
-**Add Note**、 **Change State**、 **Change Severity** 和 **Execute On-Call Policy** 會在 Mattermost 中開啟一個表單。事件或排定維護活動上的備註可以是公開的（顯示在狀態頁面上），也可以是私人的；私人事件上的備註一律是私人的，警示上的備註也一律是私人的。每則訊息還有一個在 OneUptime 中開啟其紀錄的連結，用於其他所有操作。如果專案的公開備註需要核准，從表單送出的公開備註會等待核准，並有一則只有你能看到的訊息說明它在等待誰：請參閱 [公開備註核准](/docs/incidents/notes-owners-and-feed#公開備註核准)。
+**Add Note**、 **Change State**、 **Change Severity** 和 **Execute On-Call Policy** 會在 Mattermost 中開啟一個表單。事件或維護事件上的備註可以是公開的（顯示在狀態頁面上），也可以是私人的；私人事件上的備註一律是私人的，警示上的備註也一律是私人的。每則訊息還有一個在 OneUptime 中開啟其紀錄的連結，用於其他所有操作。如果專案的公開備註需要核准，從表單送出的公開備註會等待核准，並有一則只有你能看到的訊息說明它在等待誰：請參閱 [公開備註核准](/docs/incidents/notes-owners-and-feed#公開備註核准)。
 
 如果您的 Mattermost 帳戶尚未連接，按鈕會告訴您這一點，並附上前往 **使用者設定** > **工作區** > **Mattermost** 的連結。連接您的帳戶後，再按一次按鈕。
 

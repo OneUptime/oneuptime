@@ -227,7 +227,7 @@ Elke pagina die het incident bereikt, krijgt dezelfde waarden: ze horen bij het 
 
 ## Hoe dit verschilt van gepland onderhoud
 
-Geplande onderhoudsgebeurtenissen hebben ook een lijst **Statuspagina's**, maar die werkt anders:
+Onderhoudsgebeurtenissen hebben ook een lijst **Statuspagina's**, maar die werkt anders:
 
 - **Gepland onderhoud vervangt.** De gebeurtenis wordt getoond op precies de pagina's in haar lijst, of die haar monitoren nu vermelden of niet.
 - **Een incident beperkt.** Zijn lijst kiest alleen uit de pagina's die zijn monitoren al vermelden. Een pagina kiezen die geen ervan vermeldt, doet niets, en het formulier zegt dat. Zet eerst de monitor op die pagina.

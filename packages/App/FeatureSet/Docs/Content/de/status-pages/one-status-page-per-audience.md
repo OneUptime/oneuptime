@@ -227,7 +227,7 @@ Jede Seite, die der Vorfall erreicht, bekommt dieselben Werte: Sie gehören zum 
 
 ## Wie sich das von geplanter Wartung unterscheidet
 
-Geplante Wartungsereignisse haben auch eine Liste **Statusseiten**, aber sie funktioniert anders:
+Wartungsereignisse haben auch eine Liste **Statusseiten**, aber sie funktioniert anders:
 
 - **Geplante Wartung ersetzt.** Das Ereignis erscheint genau auf den Seiten in seiner Liste, ob sie seine Monitore auflisten oder nicht.
 - **Ein Vorfall grenzt ein.** Seine Liste wählt nur unter den Seiten, die seine Monitore schon auflisten. Eine Seite zu wählen, die keinen davon auflistet, bewirkt nichts, und das Formular sagt das. Setzen Sie den Monitor zuerst auf diese Seite.

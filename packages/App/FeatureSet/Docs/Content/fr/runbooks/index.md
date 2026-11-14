@@ -1,6 +1,6 @@
 # Vue d'ensemble des Runbooks
 
-Un runbook est une procédure de réponse réutilisable : une liste ordonnée d'étapes manuelles et automatisées que vous exécutez sur un incident, une alerte ou un événement de maintenance planifiée. Il transforme le fil « on fait quoi maintenant ? » en une checklist que toute personne d'astreinte peut suivre à 3 h du matin, avec les scripts, les appels d'API et les approbations déjà écrits. Les runbooks s'adressent aux ingénieurs d'astreinte qui répondent aux incidents et aux équipes plateforme qui automatisent cette réponse. Pour choisir entre un runbook, un workflow, un playbook et une règle IA, consultez [Lequel choisir ?](/docs/introduction/which-one#workflow-runbook-playbook-ou-règle-ia).
+Un runbook est une procédure de réponse réutilisable : une liste ordonnée d'étapes manuelles et automatisées que vous exécutez sur un incident, une alerte ou un événement de maintenance. Il transforme le fil « on fait quoi maintenant ? » en une checklist que toute personne d'astreinte peut suivre à 3 h du matin, avec les scripts, les appels d'API et les approbations déjà écrits. Les runbooks s'adressent aux ingénieurs d'astreinte qui répondent aux incidents et aux équipes plateforme qui automatisent cette réponse. Pour choisir entre un runbook, un workflow, un playbook et une règle IA, consultez [Lequel choisir ?](/docs/introduction/which-one#workflow-runbook-playbook-ou-règle-ia).
 
 :::cards
 - [Rédiger un runbook](/docs/runbooks/authoring): Créer un runbook et écrire ses étapes.
@@ -46,7 +46,7 @@ Les mots utilisés dans tout OneUptime se trouvent dans le [Glossaire](/docs/int
 | --- | --- |
 | **Runbook** | Le modèle. Une procédure nommée et réutilisable, avec une liste ordonnée d'étapes et un interrupteur **Exécuter ce runbook**. |
 | **Étape** | Un élément d'un runbook. Elle a un type (Manual, JavaScript, HTTP request, Bash, SSH, kubectl ou AI), un titre, une description et des réglages propres à son type. |
-| **Règle de runbook** | Une règle qui attache automatiquement un ou plusieurs runbooks aux incidents, alertes ou événements de maintenance planifiée qui remplissent ses conditions : leurs moniteurs, leur gravité, leurs étiquettes, les étiquettes de leurs moniteurs, leur titre ou leur description. |
+| **Règle de runbook** | Une règle qui attache automatiquement un ou plusieurs runbooks aux incidents, alertes ou événements de maintenance qui remplissent ses conditions : leurs moniteurs, leur gravité, leurs étiquettes, les étiquettes de leurs moniteurs, leur titre ou leur description. |
 | **Exécution** | Une exécution d'un runbook. Elle est créée quand une règle se déclenche, quand quelqu'un clique sur **Exécuter le Runbook** sur un événement, ou quand quelqu'un clique sur **Exécuter maintenant** sur le runbook lui-même. Elle contient un instantané des étapes ainsi que le statut et la sortie de chaque étape. |
 | **Instantané** | La copie figée des étapes du runbook qui vit sur chaque exécution. Vous pouvez modifier le runbook plus tard sans réécrire l'historique des exécutions passées. |
 | **Agent Runbook** | Un petit agent que vous faites tourner sur un hôte de votre propre infrastructure. Il exécute les étapes JavaScript, Bash, SSH et kubectl qui le désignent. Aussi appelé Runner. Un agent Runbook global, l'un de ceux qu'OneUptime fait tourner pour chaque projet, exécute les étapes JavaScript qui n'en nomment aucun, sauf si le projet a un agent Runbook par défaut. |
@@ -74,7 +74,7 @@ Un runbook peut tous les mélanger. La force des runbooks est d'entremêler des 
 | Comment | Où | L'exécution est attachée à |
 | --- | --- | --- |
 | Une règle de runbook | **Incidents**, **Alertes** ou **Maintenance planifiée** → **Règles** → **Règles de runbook** | Le nouvel incident, la nouvelle alerte ou le nouvel événement |
-| **Exécuter le Runbook** | La page **Runbooks** d'un incident, d'une alerte ou d'un événement de maintenance planifiée | Cet événement |
+| **Exécuter le Runbook** | La page **Runbooks** d'un incident, d'une alerte ou d'un événement de maintenance | Cet événement |
 | **Exécuter maintenant** | La page **Vue d'ensemble** du runbook | Rien : une exécution ponctuelle |
 | Une règle IA | Voir [AI SRE](/docs/ai/ai-sre) | L'incident ou l'alerte |
 | La planification du runbook | La page **Déclencheurs** du runbook, voir [Déclencheurs de runbook](/docs/runbooks/triggers#exécuter-selon-une-planification) | Rien : une exécution sans surveillance |

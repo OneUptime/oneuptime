@@ -198,7 +198,7 @@ Laat AI halverwege de uitvoering iets analyseren, samenvatten of beslissen. Het 
 | **Prompt** | Wat de AI moet doen. Bijvoorbeeld: "Bekijk de uitvoer van de vorige stappen en zeg of het veilig is om met het herstel door te gaan." |
 | **LLM-provider** | Optioneel. **Projectstandaard** gebruikt de standaardprovider van het project. Leg een provider vast wanneer de stap een bepaald model nodig heeft, zoals een zelf gehost model voor gegevens die uw netwerk niet mogen verlaten. Zie [LLM-providers](/docs/ai/llm-provider). |
 | **Context van vorige stap opnemen** | Als dit aan staat, ziet de AI alles over de stappen die vóór deze stap liepen: titel, type, status, uitvoer en foutmeldingen. Hij krijgt tot 4.000 tekens van de uitvoer van elke stap. |
-| **Triggercontext opnemen** | Als dit aan staat, ziet de AI wat de uitvoering startte: het gekoppelde incident, de waarschuwing of het geplande onderhoudsevenement (beschrijving, ernst, huidige status, getroffen monitoren, grondoorzaak, statustijdlijn en openbare notities), of wie het runbook met de hand startte. |
+| **Triggercontext opnemen** | Als dit aan staat, ziet de AI wat de uitvoering startte: het gekoppelde incident, de waarschuwing of de onderhoudsgebeurtenis (beschrijving, ernst, huidige status, getroffen monitoren, grondoorzaak, statustijdlijn en openbare notities), of wie het runbook met de hand startte. |
 
 Om een mens erbij te houden, zet u **Goedkeuring vereisen** aan op de stap na een AI-stap: de AI analyseert, iemand leest het antwoord, en de herstelstap loopt pas zodra die persoon hem goedkeurt.
 

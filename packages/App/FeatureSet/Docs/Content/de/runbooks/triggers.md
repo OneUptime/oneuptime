@@ -24,7 +24,7 @@ flowchart TB
     execution --> worker["Der OneUptime Worker<br/>führt die Schritte aus"]
 ```
 
-Ein Auslöser startet einen Lauf so, wie **Jetzt ausführen** es tut: Der Lauf ist eine Ausführung der aktuellen Schritte des Runbooks und hängt an keinem Vorfall, keiner Warnung und keinem geplanten Wartungsereignis. Jeder Lauf hält fest, was ihn gestartet hat. Die **Ausführungen** des Runbooks und **Runbooks → Ausführungen** zeigen es unter **Ausgelöst von**, mit dem Zeitpunkt, zu dem ein geplanter Lauf fällig war, oder der Adresse, die den Webhook aufgerufen hat, und beide Listen lassen sich danach filtern.
+Ein Auslöser startet einen Lauf so, wie **Jetzt ausführen** es tut: Der Lauf ist eine Ausführung der aktuellen Schritte des Runbooks und hängt an keinem Vorfall, keiner Warnung und keinem Wartungsereignis. Jeder Lauf hält fest, was ihn gestartet hat. Die **Ausführungen** des Runbooks und **Runbooks → Ausführungen** zeigen es unter **Ausgelöst von**, mit dem Zeitpunkt, zu dem ein geplanter Lauf fällig war, oder der Adresse, die den Webhook aufgerufen hat, und beide Listen lassen sich danach filtern.
 
 ## Bevor Sie beginnen
 

@@ -227,7 +227,7 @@ Chaque page qu'atteint l'incident reçoit les mêmes valeurs : elles appartienne
 
 ## En quoi cela diffère de la maintenance planifiée
 
-Les événements de maintenance planifiée ont aussi une liste **Pages de statut**, mais elle fonctionne différemment :
+Les événements de maintenance ont aussi une liste **Pages de statut**, mais elle fonctionne différemment :
 
 - **La maintenance planifiée remplace.** L'événement s'affiche exactement sur les pages de sa liste, qu'elles listent ses moniteurs ou non.
 - **Un incident restreint.** Sa liste ne choisit que parmi les pages qui listent déjà ses moniteurs. Choisir une page qui n'en liste aucun ne fait rien, et le formulaire le dit. Placez d'abord le moniteur sur cette page.

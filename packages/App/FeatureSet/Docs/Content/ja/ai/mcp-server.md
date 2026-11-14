@@ -253,7 +253,7 @@ API キーもサインインもなしで、クライアントは公開ツール�
 - **`oneuptime_describe_resource`**: リソースのフィールドと、それらで絞り込み、並べ替え、選択する方法
 - **`get_public_status_page_overview`**: 公開ステータスページの概要
 - **`get_public_status_page_incidents`**: 公開ステータスページのインシデント
-- **`get_public_status_page_scheduled_maintenance`**: その定期メンテナンスイベント
+- **`get_public_status_page_scheduled_maintenance`**: そのメンテナンスイベント
 - **`get_public_status_page_announcements`**: そのお知らせ
 
 公開ステータスページのツールは、ステータスページの ID(UUID)かドメイン名を受け取ります。これらだけを使うには、アドレスだけで、認証情報なしで接続します:

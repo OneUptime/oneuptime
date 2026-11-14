@@ -92,7 +92,7 @@ Et spørgsmål af typen **Fil** eller **Flere filer** tager filer fra indsendere
 
 ### Felter på det, formularen opretter
 
-Felterne på en hændelse, eller på en planlagt vedligeholdelsesbegivenhed, som en indsender kan besvare. Svaret bliver feltets værdi.
+Felterne på en hændelse, eller på en vedligeholdelseshændelse, som en indsender kan besvare. Svaret bliver feltets værdi.
 
 | Hændelsesfelt | Besvares med |
 | --- | --- |

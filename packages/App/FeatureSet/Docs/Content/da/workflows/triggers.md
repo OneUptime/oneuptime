@@ -163,7 +163,7 @@ For at forbinde Huntress klikker du på triggeren **Huntress Incident Report** p
 
 ## OneUptime-begivenhedstriggere
 
-Næsten alt i OneUptime — monitorer, hændelser, advarsler, planlagte vedligeholdelser, statussider, vagtpolitikker, teams — kan starte et workflow. Hver tilbyder op til fire triggere:
+Næsten alt i OneUptime — monitorer, hændelser, advarsler, vedligeholdelseshændelser, statussider, vagtpolitikker, teams — kan starte et workflow. Hver tilbyder op til fire triggere:
 
 - **On Create** — udløses, når en ny tilføjes.
 - **On Update** — udløses, når en ændres. At gemme en post med de værdier, den allerede har, som en formular gemt uden ændringer eller en kontakt sendt, som den allerede står, er ikke en ændring og udløser den ikke.

@@ -105,7 +105,7 @@ flowchart TB
 
 SLO 的规则会发布其错误预算策略的变化：在 SLO 进入某个级别、恢复到较轻的级别或离开所有级别时，以及在其部署被冻结或重新被允许时。它只发布到现有的频道和聊天，因为 SLO 不会拥有专属频道。请参阅 [发布到 Slack、Microsoft Teams 和 Mattermost](/docs/slo/error-budget-policy#发布到-slackmicrosoft-teams-和-mattermost)。
 
-规则创建的频道以其记录命名：事件 INC-42 得到 `inc-42`，警报 ALT-7 得到 `alt-7`；在没有编号前缀的项目中，事件 42 得到 `incident-42`。 **频道名称前缀** 中的文字放在名称前面，因此 `prod-` 会得到 `prod-inc-42`，表单会在您输入时显示名称。对于计划维护事件，前缀会取代其编号前缀：SM-5 得到 `sm-5`，`maint-` 会得到 `maint-5`。OneUptime 只保留字母、数字、空格、`-` 和 `_`，最多为 Microsoft Teams 接受的 50 个字符。如果团队中已有同名频道（例如其他项目的频道或最近 30 天内删除的频道），OneUptime 会加上 `-2`、`-3` 等。
+规则创建的频道以其记录命名：事件 INC-42 得到 `inc-42`，警报 ALT-7 得到 `alt-7`；在没有编号前缀的项目中，事件 42 得到 `incident-42`。 **频道名称前缀** 中的文字放在名称前面，因此 `prod-` 会得到 `prod-inc-42`，表单会在您输入时显示名称。对于维护事件，前缀会取代其编号前缀：SM-5 得到 `sm-5`，`maint-` 会得到 `maint-5`。OneUptime 只保留字母、数字、空格、`-` 和 `_`，最多为 Microsoft Teams 接受的 50 个字符。如果团队中已有同名频道（例如其他项目的频道或最近 30 天内删除的频道），OneUptime 会加上 `-2`、`-3` 等。
 
 规则的频道会在事件首次匹配该规则时创建：在事件创建时，或之后在事件仍未结束时，由某次更新使其匹配时。针对已确认事件的规则会在事件被确认时创建频道。Microsoft Teams 会向团队中的每个人显示团队的频道，因此 OneUptime 不会逐个把人加入频道：您选择的团队中的每个人都可以打开频道，正如规则表单在 **谁会加入频道** 下所说。私密事件、警报或片段会获得私密频道，只有其成员可见；请在 Microsoft Teams 中添加人员。
 
@@ -113,7 +113,7 @@ SLO 的规则会发布其错误预算策略的变化：在 SLO 进入某个级�
 
 此后记录的每次更新（状态变化、备注、新所有者）都会发布到它的频道，并在规则的条件匹配期间发布到其规则指定的现有频道和聊天；发布哪些更新，由向该处发布的规则在 **更新** 步骤中选择。OneUptime 无法归档 Microsoft Teams 频道，因此记录结束后，规则的频道会保留；请在 Microsoft Teams 中归档或删除它。
 
-拥有专属频道的事件、警报、片段或计划维护事件，会在其 OneUptime 页面标题的状态按钮旁显示 **在 Microsoft Teams 中打开**。它会在新标签页中打开该频道，进入 Microsoft Teams 应用或浏览器。拥有两个专属频道的记录会在按钮下列出这两个频道。在 Slack 和 Microsoft Teams 中都有频道的记录，会改为只显示一个 **打开频道** 按钮，列出所有频道。不会提供您的规则所发布到的现有频道和聊天。
+拥有专属频道的事件、警报、片段或维护事件，会在其 OneUptime 页面标题的状态按钮旁显示 **在 Microsoft Teams 中打开**。它会在新标签页中打开该频道，进入 Microsoft Teams 应用或浏览器。拥有两个专属频道的记录会在按钮下列出这两个频道。在 Slack 和 Microsoft Teams 中都有频道的记录，会改为只显示一个 **打开频道** 按钮，列出所有频道。不会提供您的规则所发布到的现有频道和聊天。
 
 记录的页面上还有一张 **Microsoft Teams 频道** 卡片，说明谁可以打开该频道：团队中的所有人，或者对于私密频道，是其成员，由频道所有者在 Microsoft Teams 中添加。OneUptime 不会更改 Microsoft Teams 频道中的成员。对于 Slack 频道，卡片会列出频道中有谁，并可以添加成员：请参阅 [记录频道中的成员](/docs/workspace-connections/slack#记录频道中的成员)。
 
@@ -165,12 +165,12 @@ Payments 链接到 OneUptime 中的策略。将 Microsoft Teams 账户连接到 
 
 ## 将消息保存为备注
 
-在 OneUptime 为事件、警报、片段或计划维护活动创建的频道中，对一条消息或回复添加回应，OneUptime 就会将其保存为该记录的备注。它会在一分钟内检测到回应，并在消息串中回复确认：
+在 OneUptime 为事件、警报、片段或维护事件创建的频道中，对一条消息或回复添加回应，OneUptime 就会将其保存为该记录的备注。它会在一分钟内检测到回应，并在消息串中回复确认：
 
 | 回应 | 保存为 |
 | --- | --- |
 | 📌 或 📍 | 只有能查看该记录的人才能阅读的私密备注 |
-| 📣 或 📢 | 显示在状态页上的公开备注。仅限事件和计划维护活动。在私密事件上为私密备注，确认消息会说明原因。如果项目的公开备注需要审批，它会在获批后才显示，确认消息会说明它在等待谁：参见 [公开备注审批](/docs/incidents/notes-owners-and-feed#公开备注审批)。 |
+| 📣 或 📢 | 显示在状态页上的公开备注。仅限事件和维护事件。在私密事件上为私密备注，确认消息会说明原因。如果项目的公开备注需要审批，它会在获批后才显示，确认消息会说明它在等待谁：参见 [公开备注审批](/docs/incidents/notes-owners-and-feed#公开备注审批)。 |
 
 备注会保留消息在 Microsoft Teams 中的样子：格式、链接和代码，以名字显示的被提及的人，以及指向其文件和图片的链接。公开备注会去掉文件和图片，因为它们只对您的团队开放。
 
@@ -213,7 +213,7 @@ Payments 链接到 OneUptime 中的策略。将 Microsoft Teams 账户连接到 
 
 向 OneUptime 机器人输入 `incident` 或 `maintenance`，无论是在个人聊天、频道还是群聊中，都会为输入的人打开一个表单。表单以此人的身份填写：即以其 Microsoft Teams 账户所连接的 OneUptime 账户的身份（请参阅 [连接 Microsoft Teams](#连接-microsoft-teams) ），按该账户在项目中的权限提交。账户未连接的人，或 OneUptime 账户已不再是项目成员的人，会在提及其本人的回复中收到该怎么做的说明，而不是表单。
 
-- **谁可以使用。** 能在 OneUptime 中声明事件或创建计划维护活动的人：对于事件，是 **项目所有者**、 **项目管理员**、 **项目成员**、 **事件管理员** 和 **事件成员** （自定义角色中的 **Create Incident** ）；对于活动，是 **计划维护管理员** 和 **计划维护成员** （ **Create Scheduled Maintenance** ）。其他任何人都会收到告知，并且得不到表单。
+- **谁可以使用。** 能在 OneUptime 中声明事件或创建维护事件的人：对于事件，是 **项目所有者**、 **项目管理员**、 **项目成员**、 **事件管理员** 和 **事件成员** （自定义角色中的 **Create Incident** ）；对于活动，是 **计划维护管理员** 和 **计划维护成员** （ **Create Scheduled Maintenance** ）。其他任何人都会收到告知，并且得不到表单。
 - **表单提供什么。** 每个列表（严重程度、监视器、监视器状态、值班策略和标签）都包含请求表单的人可以读取的内容，与 OneUptime 中的同一列表一致，卡片上的 "not shown" 说明也只统计这些：如果角色仅限于某些标签，则为带有这些标签的监视器和值班策略。此人完全无法读取的列表会被省略。已归档的值班策略永远不会提供。
 - **事件是关于什么的。** 在事件卡片上， **Affected Resources** 会在有人输入时，在项目的主机、网络设备、集群、数据库、云资源和服务中搜索此人可以读取的内容，并把选中的资源关联到事件：OneUptime AI 会调查并修复事件所关联的内容（请参阅 [集群的修复作用于哪些事件](/docs/ai/ai-sre#集群的修复作用于哪些事件) ）。如果请求卡片的人无法读取其中任何一项，或者项目中没有这些内容，卡片就不会显示此字段。监视器只有在有人从卡片的监视器列表中选择时才会被关联，正如该列表所说：关联到有人声明的事件的监视器会暂停其检查，直到事件解决。机器人的确认消息会写明事件编号并附上事件链接，还会列出事件所关联的内容。选中的资源如果已无法再关联（已删除、已归档，或提交卡片的人已无法再查看），就会被省略，机器人会在提及此人的回复中告诉此人。
 - **在警报的专属频道中。** 在 OneUptime 为某个警报创建的频道中，只要警报仍未关闭，输入 `incident` 就会打开一张卡片，说明事件是从该警报声明的，并以警报的标题以及警报所关联的、请求卡片的人可以查看的资源开始。事件会关联到该警报，就像从警报页面声明的事件一样，私密警报的事件也是私密的。如果提交卡片的人无权将警报关联到事件，事件会在没有该关联的情况下声明，机器人会告诉此人原因。
@@ -276,11 +276,11 @@ Payments 链接到 OneUptime 中的策略。将 Microsoft Teams 账户连接到 
 
 ## 从 Microsoft Teams 处理事件、警报和活动
 
-OneUptime 卡片上的按钮以点击者的身份执行，无论是在个人聊天、频道还是群聊中：即以其 Microsoft Teams 账户所连接的 OneUptime 账户的身份，按该账户在项目中的权限执行。事件、警报或片段上的 **Acknowledge**、 **Resolve**、 **Change State**、 **Add Note** 和 **Execute On-Call Policy**，以及计划维护活动上的 **Mark as Ongoing**、 **Mark as Complete**、 **Change State** 和 **Add Note**，各自会做出与 OneUptime 中相同操作一样的更改，并在那里记在此人名下：记录的状态时间线和动态会显示是谁更改了其状态，备注也归此人所有。通过回应从消息保存的备注也以同样方式发布。
+OneUptime 卡片上的按钮以点击者的身份执行，无论是在个人聊天、频道还是群聊中：即以其 Microsoft Teams 账户所连接的 OneUptime 账户的身份，按该账户在项目中的权限执行。事件、警报或片段上的 **Acknowledge**、 **Resolve**、 **Change State**、 **Add Note** 和 **Execute On-Call Policy**，以及维护事件上的 **Mark as Ongoing**、 **Mark as Complete**、 **Change State** 和 **Add Note**，各自会做出与 OneUptime 中相同操作一样的更改，并在那里记在此人名下：记录的状态时间线和动态会显示是谁更改了其状态，备注也归此人所有。通过回应从消息保存的备注也以同样方式发布。
 
-- **谁可以使用。** 能在 OneUptime 中做出同样更改的人。确认、解决事件或更改其状态需要更改其状态的权限： **项目所有者**、 **项目管理员**、 **项目成员**、 **事件管理员** 和 **事件成员**，或自定义角色中的 **Create Incident State Timeline**。警报、片段或计划维护活动需要其自身类型的同等权限（例如 **Create Alert State Timeline** ），备注需要发布该类备注的权限。与 OneUptime 中的状态面板一样，它们不要求编辑事件或警报本身的权限。其他任何人都会收到告知，并且不会有任何更改。
+- **谁可以使用。** 能在 OneUptime 中做出同样更改的人。确认、解决事件或更改其状态需要更改其状态的权限： **项目所有者**、 **项目管理员**、 **项目成员**、 **事件管理员** 和 **事件成员**，或自定义角色中的 **Create Incident State Timeline**。警报、片段或维护事件需要其自身类型的同等权限（例如 **Create Alert State Timeline** ），备注需要发布该类备注的权限。与 OneUptime 中的状态面板一样，它们不要求编辑事件或警报本身的权限。其他任何人都会收到告知，并且不会有任何更改。
 - **哪些记录。** 与在 OneUptime 中一样，是此人可以读取的记录：如果角色仅限于某些标签，则为带有这些标签的事件、警报、片段和活动。任何其他记录上的按钮都会说明原因，并且不会有任何更改：对于此人的角色无法触及的事件，回复 "your access in this project does not include this incident. Ask a project admin for access to it."；对于此人不是负责人的私密事件，回复 "this incident is private, so only its owners and the project's owners and admins can see it. Ask one of them to add you as an owner."；对于此后已删除的事件，回复 "the incident was not found. It may have been deleted." 在 OneUptime Cloud 上，项目套餐不包含的更改会被拒绝，并说明所需的套餐。
-- **Change State 提供什么。** 按项目的顺序，提供此人可以读取、记录接下来可以转入的状态：不会提供早于其当前状态的状态，片段也与事件、警报或计划维护活动一样，因为状态更改永远不会让记录在其列表中回退（参见 [顺序是真正的约束](/docs/incidents/states-and-severities#顺序是真正的约束而不是显示偏好)）。如果此人一个都无法读取，机器人会说 "No incident states are available to you in this project. Ask a project admin for access to them."；如果记录处于它能达到的最后一个状态，则会说 "There is no later state to move this incident to." 这两种情况都不会显示空卡片。
+- **Change State 提供什么。** 按项目的顺序，提供此人可以读取、记录接下来可以转入的状态：不会提供早于其当前状态的状态，片段也与事件、警报或维护事件一样，因为状态更改永远不会让记录在其列表中回退（参见 [顺序是真正的约束](/docs/incidents/states-and-severities#顺序是真正的约束而不是显示偏好)）。如果此人一个都无法读取，机器人会说 "No incident states are available to you in this project. Ask a project admin for access to them."；如果记录处于它能达到的最后一个状态，则会说 "There is no later state to move this incident to." 这两种情况都不会显示空卡片。
 - **私密事件上的 Add Note。** 私密事件不能添加公开备注，因此它的卡片不会询问备注类型，而是添加一条私密备注。在它设为私密之前发送的卡片也会添加私密备注，并说明这一点。参见[私密事件只能添加私密备注](/docs/incidents/notes-owners-and-feed#私密事件只能添加私密备注)。
 - **Escalate.** 卡片上的 **Escalate** 会针对卡片所涉及的事件、警报或片段执行其值班策略，以点击者的身份，并使用与 **Execute On-Call Policy** 相同的权限。不涉及其中任何一种的卡片会得到 "This on-call policy can only be executed for an incident, an alert or an episode. Open the record you are paging about and use Execute On-Call Policy there." 的回复，并且不会呼叫任何人。
 - **在哪里收到回复。** 在同一个对话中（在频道中即卡片的话题中）以提及此人的回复答复，因此 Microsoft Teams 会通知此人。按得太晚的按钮会说明谁先操作了、何时操作的，例如 "Incident INC-2 was already acknowledged by Simon Lee at 6:07 PM."

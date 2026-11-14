@@ -221,7 +221,7 @@ oneuptime <resource> resolve <id>
 
 ### `oneuptime <resource> start`
 
-किसी अनुसूचित रखरखाव इवेंट को आपके प्रोजेक्ट की जारी स्थिति में ले जाती है।
+किसी रखरखाव इवेंट को आपके प्रोजेक्ट की जारी स्थिति में ले जाती है।
 
 ```bash
 oneuptime <resource> start <id>
@@ -233,7 +233,7 @@ oneuptime <resource> start <id>
 
 ### `oneuptime <resource> end`
 
-किसी अनुसूचित रखरखाव इवेंट को आपके प्रोजेक्ट की समाप्त स्थिति में ले जाती है।
+किसी रखरखाव इवेंट को आपके प्रोजेक्ट की समाप्त स्थिति में ले जाती है।
 
 ```bash
 oneuptime <resource> end <id>
@@ -245,7 +245,7 @@ oneuptime <resource> end <id>
 
 ### `oneuptime <resource> add-note`
 
-किसी घटना, अलर्ट, उनमें से किसी के एपिसोड या किसी अनुसूचित रखरखाव इवेंट में नोट जोड़ती है।
+किसी घटना, अलर्ट, उनमें से किसी के एपिसोड या किसी रखरखाव इवेंट में नोट जोड़ती है।
 
 ```bash
 oneuptime <resource> add-note <id> --note <markdown> [--public]

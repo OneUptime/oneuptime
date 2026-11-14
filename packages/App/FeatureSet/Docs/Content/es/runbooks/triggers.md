@@ -24,7 +24,7 @@ flowchart TB
     execution --> worker["El Worker de OneUptime<br/>ejecuta los pasos"]
 ```
 
-Un desencadenante inicia una ejecución como lo hace **Ejecutar ahora**: la ejecución recorre los pasos actuales del runbook y no está vinculada a ningún incidente, alerta ni evento de mantenimiento programado. Cada ejecución registra qué la inició. Las **Ejecuciones** del runbook y **Runbooks → Ejecuciones** lo muestran en **Activado por**, con la hora en que vencía una ejecución programada o la dirección que llamó al webhook, y ambas listas se pueden filtrar por ello.
+Un desencadenante inicia una ejecución como lo hace **Ejecutar ahora**: la ejecución recorre los pasos actuales del runbook y no está vinculada a ningún incidente, alerta ni evento de mantenimiento. Cada ejecución registra qué la inició. Las **Ejecuciones** del runbook y **Runbooks → Ejecuciones** lo muestran en **Activado por**, con la hora en que vencía una ejecución programada o la dirección que llamó al webhook, y ambas listas se pueden filtrar por ello.
 
 ## Antes de empezar
 

@@ -1,6 +1,6 @@
 # Planlagt vedligeholdelse – Oversigt
 
-En planlagt vedligeholdelsesbegivenhed fortæller alle om planlagt arbejde, før det sker: en databaseopgradering, en netværksændring, en flytning til nye servere. OneUptime starter og afslutter begivenheden til tiden, holder op med at kontrollere de berørte monitorer, mens arbejdet står på, og viser den på dine statussider, så planlagt nedetid aldrig ligner et nedbrud. Denne side forklarer, hvordan en begivenhed forløber, hvor alt findes i dashboardet, og hvad en begivenhed ændrer i resten af OneUptime.
+En vedligeholdelseshændelse fortæller alle om planlagt arbejde, før det sker: en databaseopgradering, en netværksændring, en flytning til nye servere. OneUptime starter og afslutter begivenheden til tiden, holder op med at kontrollere de berørte monitorer, mens arbejdet står på, og viser den på dine statussider, så planlagt nedetid aldrig ligner et nedbrud. Denne side forklarer, hvordan en begivenhed forløber, hvor alt findes i dashboardet, og hvad en begivenhed ændrer i resten af OneUptime.
 
 :::cards
 - [Hvordan en begivenhed forløber](#hvordan-en-begivenhed-forløber): Fra planlagt til fuldført, for det meste af sig selv.
@@ -44,7 +44,7 @@ Meddelelser beskrives i [Abonnenter og meddelelser](/docs/status-pages/subscribe
 - **Formularen.** Klik på **Opret vedligeholdelseshændelse** på listen over begivenheder eller på fanen **Planlagt vedligeholdelse** for en vært, en klynge, en tjeneste, en netværkslokation eller en anden ressource, som vælger den ressource for dig. Se [Opret vedligeholdelsesbegivenheder](/docs/scheduled-maintenance/creating-events).
 - **En skabelon.** **Opret fra skabelon** udfylder formularen fra en skabelon, du har gemt til arbejde, du ofte udfører. Se [Skabeloner og tilbagevendende begivenheder](/docs/scheduled-maintenance/templates).
 - **En tidsplan.** En tilbagevendende skabelon opretter en ny begivenhed efter en tidsplan, for eksempel hver uge eller hver måned, uden at nogen åbner formularen.
-- **En formular.** En formular, hvis indsendelser opretter vedligeholdelsesbegivenheder, gør en ændringsanmodning til en begivenhed. Se [Hvad en indsendelse opretter](/docs/forms/on-submit#sådan-bliver-en-indsendelse-til-en-planlagt-vedligeholdelsesbegivenhed).
+- **En formular.** En formular, hvis indsendelser opretter vedligeholdelsesbegivenheder, gør en ændringsanmodning til en begivenhed. Se [Hvad en indsendelse opretter](/docs/forms/on-submit#sådan-bliver-en-indsendelse-til-en-vedligeholdelseshændelse).
 - **Chat.** `/oneuptime maintenance` i Slack, eller `maintenance` skrevet til OneUptime-botten i Microsoft Teams, åbner formularen i dit chatværktøj. Se [Slack](/docs/workspace-connections/slack#opret-hændelser-og-vedligeholdelse-fra-slack).
 - **Kode.** API'et på `/api/scheduled-maintenance`, Terraform-ressourcen `oneuptime_scheduled_maintenance_event` og trinnet **Create One Maintenance Event** i et workflow.
 
@@ -74,7 +74,7 @@ Mens en begivenhed står på, behandler OneUptime det nedbrud, den planlægger, 
 - **Dens andre ressourcer forbliver stille.** En telemetrimonitor, der overvåger mange værter, klynger, databaser eller tjenester med én serie hver, opretter ingen hændelse eller advarsel for en serie, hvis ressource begivenheden dækker, mens de andre serier bliver ved med at advare. Monitorerne for en cloudressource, som begivenheden dækker, såsom dens anbefalede, opretter slet ingen hændelse eller advarsel.
 - **Netværkslokationer og SLO'er holder igen.** En netværkslokation, som begivenheden dækker, holder op med at regne sit planlagte nedbrud med mod lokationerne over den, og et SLO's forbrugsrateregler udløser intet, så længe en af dets monitorer er i vedligeholdelse. Se [Netværkslokationer](/docs/monitor/network-sites#planlagt-vedligeholdelse-for-netværkslokationer) og [Forbrugsrateadvarsler og -hændelser](/docs/slo/burn-rate-alerts#planlagt-vedligeholdelse).
 - **Dine statussider viser den.** Begivenheden vises på de statussider, du har valgt, først som kommende, så som igangværende og så som overstået, så længe **Synlig på statussiden** er slået til i dens **Indstillinger**, og fra dens **Offentliggør den**, hvis du har valgt et. Når den er startet, viser oppetidshistorikken på disse sider for hver ressource, dens monitorer står på, den på hver dag, dens vindue berører, og de ressourcer viser "Under vedligeholdelse", mens den kører; monitorens oppetidshistorik i dashboardet viser den på samme måde. Se [Oppetidsprocenter og historikdiagrammer](/docs/status-pages/resources-and-groups#oppetidsprocenter-og-historikdiagrammer).
-- **Abonnenterne hører om det.** Som standard får abonnenterne på de sider besked, når den planlægges, når den starter, og når den slutter, og de får en påmindelse før start, hvis du opsætter påmindelser. Se [Planlagte vedligeholdelsesbegivenheder](/docs/status-pages/subscribers#planlagte-vedligeholdelsesbegivenheder).
+- **Abonnenterne hører om det.** Som standard får abonnenterne på de sider besked, når den planlægges, når den starter, og når den slutter, og de får en påmindelse før start, hvis du opsætter påmindelser. Se [Vedligeholdelseshændelser](/docs/status-pages/subscribers#vedligeholdelseshændelser).
 - **Dit team hører om det.** Dens ejere får besked, som deres [notifikationsindstillinger](/docs/notifications/notification-settings) siger, og Slack-, Microsoft Teams- og Mattermost-reglerne under **Arbejdsområde** poster den i dine kanaler.
 
 ## En begivenheds egne sider
@@ -108,7 +108,7 @@ Kun de monitorer, begivenheden nævner under **Monitorer**, holder op med at bli
 :::
 
 :::details Begivenheden vises ikke på min statusside
-Kontrollér, at begivenheden nævner siden under **Vis begivenhed på disse statussider**, og at **Synlig på statussiden** er slået til i begivenhedens **Indstillinger**. Viser dens overskrift **Endnu ikke på statussider**, vises den fra dens **Offentliggør den**: se [Offentliggør den senere](/docs/scheduled-maintenance/creating-events#offentliggør-den-senere). Kontrollér derefter selve statussiden: den skal vise planlagte vedligeholdelsesbegivenheder, og en begivenhed, der startede længere tilbage end sidens historikvindue, 14 dage medmindre du har ændret det, vises ikke længere.
+Kontrollér, at begivenheden nævner siden under **Vis begivenhed på disse statussider**, og at **Synlig på statussiden** er slået til i begivenhedens **Indstillinger**. Viser dens overskrift **Endnu ikke på statussider**, vises den fra dens **Offentliggør den**: se [Offentliggør den senere](/docs/scheduled-maintenance/creating-events#offentliggør-den-senere). Kontrollér derefter selve statussiden: den skal vise vedligeholdelseshændelser, og en begivenhed, der startede længere tilbage end sidens historikvindue, 14 dage medmindre du har ændret det, vises ikke længere.
 :::
 
 ## Næste skridt

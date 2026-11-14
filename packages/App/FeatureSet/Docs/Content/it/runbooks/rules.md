@@ -35,7 +35,7 @@ Quando una regola scatta, per ogni runbook che indica:
 1. Il runbook viene caricato.
 2. I suoi passaggi vengono copiati come **istantanea** su una nuova esecuzione di runbook.
 3. L'esecuzione viene messa nella coda del worker dei runbook.
-4. L'esecuzione viene collegata all'entità di origine: compare nella pagina **Runbook** dell'incidente, dell'avviso o dell'evento di manutenzione programmata e nell'elenco **Esecuzioni** del runbook.
+4. L'esecuzione viene collegata all'entità di origine: compare nella pagina **Runbook** dell'incidente, dell'avviso o dell'evento di manutenzione e nell'elenco **Esecuzioni** del runbook.
 
 Puoi vedere ogni esecuzione, avviata da una regola o no, in **Runbook → Esecuzioni**, filtrata per stato, runbook o data di inizio.
 
@@ -72,12 +72,12 @@ In **Runbook**, scegli uno o più **Runbook da avviare**. Il **Nome** della rego
 
 ## Condizioni
 
-Ogni condizione confronta un aspetto dell'incidente, dell'avviso o dell'evento di manutenzione programmata con un valore che indichi tu. Una regola di runbook offre gli stessi criteri delle altre regole del suo prodotto: una regola di runbook per gli incidenti confronta ciò che confronta una regola di privacy o di reperibilità per gli incidenti.
+Ogni condizione confronta un aspetto dell'incidente, dell'avviso o dell'evento di manutenzione con un valore che indichi tu. Una regola di runbook offre gli stessi criteri delle altre regole del suo prodotto: una regola di runbook per gli incidenti confronta ciò che confronta una regola di privacy o di reperibilità per gli incidenti.
 
 | Criterio | Cosa controlla |
 | --- | --- |
-| **Monitor** | I monitor coinvolti dall'incidente o dall'evento di manutenzione programmata, oppure il monitor che ha generato l'avviso. |
-| **Gravità degli incidenti** / **Gravità degli avvisi** | La gravità dell'incidente o dell'avviso. Gli eventi di manutenzione programmata non hanno gravità, quindi le loro regole non la offrono. |
+| **Monitor** | I monitor coinvolti dall'incidente o dall'evento di manutenzione, oppure il monitor che ha generato l'avviso. |
+| **Gravità degli incidenti** / **Gravità degli avvisi** | La gravità dell'incidente o dell'avviso. Gli eventi di manutenzione non hanno gravità, quindi le loro regole non la offrono. |
 | **Etichette dell'incidente** / **Etichette dell'avviso** / **Etichette evento** | Le etichette dell'incidente, dell'avviso o dell'evento stesso, comprese quelle che le regole sulle etichette hanno aggiunto alla creazione. |
 | **Etichette del monitor** | Le etichette dei suoi monitor. Etichetta i tuoi monitor `production` o `staging` per eseguire un runbook in un solo ambiente. |
 | **Titolo dell'incidente** / **Titolo dell'avviso** / **Titolo evento** | Il suo titolo. |

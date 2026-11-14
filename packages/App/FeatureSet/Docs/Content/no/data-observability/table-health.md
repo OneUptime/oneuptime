@@ -41,7 +41,7 @@ Under **Databaser** velger du **Anbefalte varsler** for en database. Hver anbefa
 
 Velg alvorlighetsgrader, vaktordninger, eiere og etiketter når du oppretter dem. Deretter er de vanlige monitorer: rediger dem, demp dem eller legg dem på en statusside som alle andre.
 
-En etterfylling eller en migrering skal ikke tilkalle noen. Oppgi databasen under **Data Observability Databaser** på en [planlagt vedlikeholdshendelse](/docs/scheduled-maintenance/index), eller legg databaseserveren i en, så er datavarslene stille mens hendelsen pågår.
+En etterfylling eller en migrering skal ikke tilkalle noen. Oppgi databasen under **Data Observability Databaser** på en [vedlikeholdshendelse](/docs/scheduled-maintenance/index), eller legg databaseserveren i en, så er datavarslene stille mens hendelsen pågår.
 
 ## Metrikker hver tabell skriver
 

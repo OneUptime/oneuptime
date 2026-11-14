@@ -92,7 +92,7 @@ Una domanda **File** o **Più file** prende i file dal computer di chi invia e l
 
 ### Campi di ciò che il modulo crea
 
-I campi di un incidente, o di un evento di manutenzione programmata, a cui un mittente può rispondere. La risposta diventa il valore del campo.
+I campi di un incidente, o di un evento di manutenzione, a cui un mittente può rispondere. La risposta diventa il valore del campo.
 
 | Campo dell'incidente | Si risponde con |
 | --- | --- |

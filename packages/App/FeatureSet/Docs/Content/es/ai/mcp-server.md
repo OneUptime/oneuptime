@@ -253,7 +253,7 @@ Sin una clave de API ni un inicio de sesión, un cliente puede usar las herramie
 - **`oneuptime_describe_resource`**: los campos de un recurso y cómo filtrar, ordenar y seleccionar por ellos
 - **`get_public_status_page_overview`**: la vista general de una página de estado pública
 - **`get_public_status_page_incidents`**: los incidentes de una página de estado pública
-- **`get_public_status_page_scheduled_maintenance`**: sus eventos de mantenimiento programado
+- **`get_public_status_page_scheduled_maintenance`**: sus eventos de mantenimiento
 - **`get_public_status_page_announcements`**: sus anuncios
 
 Las herramientas de páginas de estado públicas reciben el ID de una página de estado (un UUID) o su nombre de dominio. Para usar solo estas, conéctate con la dirección y sin credenciales:

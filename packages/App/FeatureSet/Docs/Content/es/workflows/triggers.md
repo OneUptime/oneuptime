@@ -163,7 +163,7 @@ Para conectar Huntress, haz clic en el disparador **Huntress Incident Report** e
 
 ## Disparadores de eventos de OneUptime
 
-Casi todo en OneUptime — monitores, incidentes, alertas, eventos de mantenimiento programado, páginas de estado, políticas de guardia, equipos — puede disparar un flujo de trabajo. Cada uno ofrece hasta cuatro disparadores:
+Casi todo en OneUptime — monitores, incidentes, alertas, eventos de mantenimiento, páginas de estado, políticas de guardia, equipos — puede disparar un flujo de trabajo. Cada uno ofrece hasta cuatro disparadores:
 
 - **On Create** — salta cuando se añade uno nuevo.
 - **On Update** — salta cuando se cambia uno. Guardar un registro con los valores que ya tiene, como un formulario guardado sin cambios o un interruptor enviado tal como ya está, no es un cambio y no lo dispara.

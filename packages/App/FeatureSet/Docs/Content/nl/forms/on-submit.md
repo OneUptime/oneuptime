@@ -4,7 +4,7 @@ Elke inzending via een formulier maakt één record aan in je project: een **inc
 
 :::cards
 - [Hoe een inzending een incident wordt](#hoe-een-inzending-een-incident-wordt): Elk veld van het nieuwe incident, en waar de waarde ervan vandaan komt.
-- [Hoe een inzending een geplande onderhoudsgebeurtenis wordt](#hoe-een-inzending-een-geplande-onderhoudsgebeurtenis-wordt): Hetzelfde, voor een onderhoudsverzoek.
+- [Hoe een inzending een onderhoudsgebeurtenis wordt](#hoe-een-inzending-een-onderhoudsgebeurtenis-wordt): Hetzelfde, voor een onderhoudsverzoek.
 - [De instellingen Bij verzenden](#de-instellingen-bij-verzenden): Standaardwaarden, wat altijd wordt gekoppeld, eigenaren en publicatie.
 - [De privénotitie](#de-privénotitie): Wie het inzond, en de antwoorden die in geen veld staan.
 :::
@@ -92,7 +92,7 @@ Zet **Zichtbaar op statuspagina** aan op de pagina **Instellingen** van het inci
 Omdat het incident werd gemeld met **Statuspagina-abonnees op de hoogte stellen** uit, verstuurt publiceren niet de melding "incident aangemaakt". Plaats om abonnees in te lichten een openbare notitie met **Statuspagina-abonnees op de hoogte stellen** aangevinkt — zie [Een openbare notitie plaatsen](/docs/incidents/notes-owners-and-feed#een-openbare-notitie-plaatsen).
 :::
 
-## Hoe een inzending een geplande onderhoudsgebeurtenis wordt
+## Hoe een inzending een onderhoudsgebeurtenis wordt
 
 | Veld | Komt uit |
 | --- | --- |

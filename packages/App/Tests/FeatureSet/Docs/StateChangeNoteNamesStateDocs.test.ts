@@ -236,7 +236,7 @@ describe("the Persian guides say the same", () => {
   const subscribers: string = readGuide("fa", SUBSCRIBERS_PAGE);
   const maintenance: string = sectionOf(
     subscribers,
-    "### رویدادهای نگهداری زمان‌بندی‌شده",
+    "### رویدادهای تعمیر و نگهداری",
   );
   const noteTemplates: string = sectionOf(
     subscribers,

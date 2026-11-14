@@ -163,7 +163,7 @@ Um Huntress zu verbinden, klicken Sie auf der Arbeitsfläche auf den Trigger **H
 
 ## OneUptime-Ereignis-Trigger
 
-Fast alles in OneUptime – Monitore, Vorfälle, Warnungen, geplante Wartungen, Statusseiten, Bereitschaftsrichtlinien, Teams – kann einen Workflow auslösen. Jedes bietet bis zu vier Trigger:
+Fast alles in OneUptime – Monitore, Vorfälle, Warnungen, Wartungsereignisse, Statusseiten, Bereitschaftsrichtlinien, Teams – kann einen Workflow auslösen. Jedes bietet bis zu vier Trigger:
 
 - **On Create** – löst aus, wenn ein neues hinzugefügt wird.
 - **On Update** – löst aus, wenn eines geändert wird. Einen Datensatz mit den Werten zu speichern, die er schon hat, etwa ein Formular, das ohne Änderung gespeichert wird, oder einen Schalter, der so gesendet wird, wie er schon steht, ist keine Änderung und löst ihn nicht aus.

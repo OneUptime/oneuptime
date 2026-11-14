@@ -96,7 +96,7 @@ Disse påminnelsene er for teamet ditt. Påminnelsene statussideabonnentene dine
 
 ### Godkjenning av offentlige notater
 
-**Planlagt vedlikehold → Innstillinger → Godkjenning av offentlige notater** får de offentlige notatene på planlagte vedlikeholdshendelser godkjent før de publiseres. Siden fungerer som hendelsenes, med egen bryter og egne trinn: slå på **Krev godkjenning før offentlige notater publiseres**, og velg under **Hvem godkjenner** hvem som godkjenner. Dermed kan vedlikeholdsnotater kreve godkjenning mens hendelsesnotater ikke gjør det, eller godkjennes av andre personer. Bare **Prosjekteier** og **Prosjektadministrator** kan endre den. Se [Godkjenning av offentlige notater](/docs/incidents/settings#godkjenning-av-offentlige-notater) for trinnene, og [Godkjenning av offentlige notater](/docs/incidents/notes-owners-and-feed#godkjenning-av-offentlige-notater) for hva et notat gjør mens det venter.
+**Planlagt vedlikehold → Innstillinger → Godkjenning av offentlige notater** får de offentlige notatene på vedlikeholdshendelser godkjent før de publiseres. Siden fungerer som hendelsenes, med egen bryter og egne trinn: slå på **Krev godkjenning før offentlige notater publiseres**, og velg under **Hvem godkjenner** hvem som godkjenner. Dermed kan vedlikeholdsnotater kreve godkjenning mens hendelsesnotater ikke gjør det, eller godkjennes av andre personer. Bare **Prosjekteier** og **Prosjektadministrator** kan endre den. Se [Godkjenning av offentlige notater](/docs/incidents/settings#godkjenning-av-offentlige-notater) for trinnene, og [Godkjenning av offentlige notater](/docs/incidents/notes-owners-and-feed#godkjenning-av-offentlige-notater) for hva et notat gjør mens det venter.
 
 ### Egendefinerte felt
 

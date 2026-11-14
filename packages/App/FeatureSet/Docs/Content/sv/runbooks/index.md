@@ -1,6 +1,6 @@
 # Runbooks – Översikt
 
-Ett runbook är en återanvändbar responsprocedur: en ordnad lista med manuella och automatiserade steg som du kör på en incident, ett larm eller en schemalagd underhållshändelse. Det gör tråden "vad gör vi nu?" till en checklista som alla i jouren kan följa klockan 3 på natten, med skript, API-anrop och godkännanden redan skrivna. Runbooks är till för jourhavande ingenjörer som hanterar incidenter och för plattformsteam som automatiserar den hanteringen. För att välja mellan ett runbook, ett arbetsflöde, en playbook och en AI-regel, se [Vilken ska jag använda?](/docs/introduction/which-one#arbetsflöde-runbook-playbook-eller-ai-regel).
+Ett runbook är en återanvändbar responsprocedur: en ordnad lista med manuella och automatiserade steg som du kör på en incident, ett larm eller en underhållshändelse. Det gör tråden "vad gör vi nu?" till en checklista som alla i jouren kan följa klockan 3 på natten, med skript, API-anrop och godkännanden redan skrivna. Runbooks är till för jourhavande ingenjörer som hanterar incidenter och för plattformsteam som automatiserar den hanteringen. För att välja mellan ett runbook, ett arbetsflöde, en playbook och en AI-regel, se [Vilken ska jag använda?](/docs/introduction/which-one#arbetsflöde-runbook-playbook-eller-ai-regel).
 
 :::cards
 - [Skriva ett runbook](/docs/runbooks/authoring): Skapa ett runbook och skriv dess steg.
@@ -46,7 +46,7 @@ Orden som används i hela OneUptime finns samlade på sidan [Ordlista](/docs/int
 | --- | --- |
 | **Runbook** | Mallen. En namngiven, återanvändbar procedur med en ordnad lista med steg och en brytare **Kör det här runbooket**. |
 | **Steg** | En punkt i ett runbook. Den har en typ (Manual, JavaScript, HTTP request, Bash, SSH, kubectl eller AI), en titel, en beskrivning och typspecifika inställningar. |
-| **Runbook-regel** | En regel som automatiskt kopplar ett eller flera runbooks till incidenter, larm eller schemalagda underhållshändelser som uppfyller dess villkor: deras monitorer, allvarlighetsgrad, etiketter, monitoretiketter, titel eller beskrivning. |
+| **Runbook-regel** | En regel som automatiskt kopplar ett eller flera runbooks till incidenter, larm eller underhållshändelser som uppfyller dess villkor: deras monitorer, allvarlighetsgrad, etiketter, monitoretiketter, titel eller beskrivning. |
 | **Körning** | En körning av ett runbook. Skapas när en regel utlöses, när någon klickar på **Kör Runbook** på en händelse eller när någon klickar på **Kör nu** på själva runbooket. Den innehåller en ögonblicksbild av stegen och varje stegs status och output. |
 | **Ögonblicksbild** | Den frysta kopian av runbookets steg som ligger på varje körning. Du kan redigera runbooket senare utan att skriva om historiken för tidigare körningar. |
 | **Runner** | En liten agent som du kör på en värd i din egen infrastruktur. Den kör de JavaScript-, Bash-, SSH- och kubectl-steg som pekar på den. Kallas även en runbook-agent. En global Runner, en av dem som OneUptime kör för alla projekt, kör de JavaScript-steg som inte nämner någon, om inte projektet har en standard-Runner. |
@@ -74,7 +74,7 @@ Ett runbook kan blanda alla. Styrkan med runbooks är att väva samman mänsklig
 | Hur | Var | Körningen kopplas till |
 | --- | --- | --- |
 | En runbook-regel | **Incidenter**, **Larm** eller **Schemalagt underhåll** → **Regler** → **Runbook-regler** | Den nya incidenten, larmet eller händelsen |
-| **Kör Runbook** | Sidan **Runbooks** för en incident, ett larm eller en schemalagd underhållshändelse | Den händelsen |
+| **Kör Runbook** | Sidan **Runbooks** för en incident, ett larm eller en underhållshändelse | Den händelsen |
 | **Kör nu** | Runbookets sida **Översikt** | Ingenting: en ad hoc-körning |
 | En AI-regel | Se [AI SRE](/docs/ai/ai-sre) | Incidenten eller larmet |
 | Runbookets schema | Runbookets sida **Utlösare**, se [Runbook-utlösare](/docs/runbooks/triggers#kör-enligt-ett-schema) | Ingenting: en obevakad körning |

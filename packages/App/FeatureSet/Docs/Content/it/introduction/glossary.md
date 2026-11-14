@@ -384,7 +384,7 @@ Altri nomi: **Attività**. Vedi [Codice](/docs/ai/ai-agent).
 
 ### Modulo
 
-Una pagina che chiunque abbia il link può compilare, senza un account. Ogni invio crea un incidente, per segnalare un problema, o un evento di manutenzione programmata, per richiedere una modifica.
+Una pagina che chiunque abbia il link può compilare, senza un account. Ogni invio crea un incidente, per segnalare un problema, o un evento di manutenzione, per richiedere una modifica.
 
 Vedi [Panoramica dei moduli](/docs/forms/index).
 

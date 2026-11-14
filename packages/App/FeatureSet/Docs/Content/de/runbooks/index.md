@@ -1,6 +1,6 @@
 # Runbooks – Übersicht
 
-Ein Runbook ist ein wiederverwendbares Reaktionsverfahren: eine geordnete Liste manueller und automatisierter Schritte, die Sie für einen Vorfall, eine Warnung oder ein geplantes Wartungsereignis ausführen. Es macht aus dem Thread „Was tun wir jetzt?“ eine Checkliste, der jede Person in Bereitschaft um 3 Uhr nachts folgen kann, mit bereits geschriebenen Skripten, API-Aufrufen und Freigaben. Runbooks sind für die Bereitschaftsingenieure gedacht, die auf Vorfälle reagieren, und für die Plattform-Teams, die diese Reaktion automatisieren. Um zwischen einem Runbook, einem Workflow, einem Playbook und einer KI-Regel zu wählen, lesen Sie [Was nehme ich wann?](/docs/introduction/which-one#workflow-runbook-playbook-oder-ki-regel).
+Ein Runbook ist ein wiederverwendbares Reaktionsverfahren: eine geordnete Liste manueller und automatisierter Schritte, die Sie für einen Vorfall, eine Warnung oder ein Wartungsereignis ausführen. Es macht aus dem Thread „Was tun wir jetzt?“ eine Checkliste, der jede Person in Bereitschaft um 3 Uhr nachts folgen kann, mit bereits geschriebenen Skripten, API-Aufrufen und Freigaben. Runbooks sind für die Bereitschaftsingenieure gedacht, die auf Vorfälle reagieren, und für die Plattform-Teams, die diese Reaktion automatisieren. Um zwischen einem Runbook, einem Workflow, einem Playbook und einer KI-Regel zu wählen, lesen Sie [Was nehme ich wann?](/docs/introduction/which-one#workflow-runbook-playbook-oder-ki-regel).
 
 :::cards
 - [Ein Runbook verfassen](/docs/runbooks/authoring): Ein Runbook erstellen und seine Schritte schreiben.
@@ -46,7 +46,7 @@ Die Wörter, die in ganz OneUptime verwendet werden, stehen im [Glossar](/docs/i
 | --- | --- |
 | **Runbook** | Die Vorlage. Ein benanntes, wiederverwendbares Verfahren mit einer geordneten Liste von Schritten und einem Schalter **Dieses Runbook ausführen**. |
 | **Schritt** | Ein Element eines Runbooks. Er hat einen Typ (Manual, JavaScript, HTTP request, Bash, SSH, kubectl oder AI), einen Titel, eine Beschreibung und typspezifische Einstellungen. |
-| **Runbook-Regel** | Eine Regel, die ein oder mehrere Runbooks automatisch an Vorfälle, Warnungen oder geplante Wartungsereignisse hängt, die ihren Bedingungen entsprechen: ihren Monitoren, ihrem Schweregrad, ihren Beschriftungen, den Beschriftungen ihrer Monitore, ihrem Titel oder ihrer Beschreibung. |
+| **Runbook-Regel** | Eine Regel, die ein oder mehrere Runbooks automatisch an Vorfälle, Warnungen oder Wartungsereignisse hängt, die ihren Bedingungen entsprechen: ihren Monitoren, ihrem Schweregrad, ihren Beschriftungen, den Beschriftungen ihrer Monitore, ihrem Titel oder ihrer Beschreibung. |
 | **Ausführung** | Ein Lauf eines Runbooks. Sie entsteht, wenn eine Regel greift, wenn jemand an einem Ereignis auf **Runbook ausführen** klickt oder wenn jemand am Runbook selbst auf **Jetzt ausführen** klickt. Sie enthält eine Momentaufnahme der Schritte sowie Status und Ausgabe jedes Schritts. |
 | **Momentaufnahme** | Die eingefrorene Kopie der Runbook-Schritte, die auf jeder Ausführung liegt. Sie können das Runbook später bearbeiten, ohne die Geschichte früherer Läufe umzuschreiben. |
 | **Runner** | Ein kleiner Agent, den Sie auf einem Host in Ihrer eigenen Infrastruktur betreiben. Er führt die JavaScript-, Bash-, SSH- und kubectl-Schritte aus, die ihn benennen. Auch Runbook-Agent genannt. Ein globaler Runner, einer, den OneUptime für jedes Projekt betreibt, führt die JavaScript-Schritte aus, die keinen nennen, sofern das Projekt keinen Standard-Runner hat. |
@@ -74,7 +74,7 @@ Ein Runbook kann alle Typen mischen. Die Stärke von Runbooks liegt darin, mensc
 | Wie | Wo | Die Ausführung hängt an |
 | --- | --- | --- |
 | Eine Runbook-Regel | **Vorfälle**, **Warnungen** oder **Geplante Wartung** → **Regeln** → **Runbook-Regeln** | Dem neuen Vorfall, der neuen Warnung oder dem neuen Ereignis |
-| **Runbook ausführen** | Die Seite **Runbooks** eines Vorfalls, einer Warnung oder eines geplanten Wartungsereignisses | Diesem Ereignis |
+| **Runbook ausführen** | Die Seite **Runbooks** eines Vorfalls, einer Warnung oder eines Wartungsereignisses | Diesem Ereignis |
 | **Jetzt ausführen** | Die Seite **Übersicht** des Runbooks | Nichts: ein Ad-hoc-Lauf |
 | Eine KI-Regel | Siehe [AI SRE](/docs/ai/ai-sre) | Dem Vorfall oder der Warnung |
 | Der Zeitplan des Runbooks | Die Seite **Auslöser** des Runbooks, siehe [Runbook-Auslöser](/docs/runbooks/triggers#nach-zeitplan-ausführen) | Nichts: ein unbeaufsichtigter Lauf |

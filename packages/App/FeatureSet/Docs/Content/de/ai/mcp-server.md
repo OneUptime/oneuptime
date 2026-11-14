@@ -253,7 +253,7 @@ Ohne API-Schlüssel und ohne Anmeldung kann ein Client die öffentlichen Tools v
 - **`oneuptime_describe_resource`**: die Felder einer Ressource und wie Sie nach ihnen filtern, sortieren und auswählen
 - **`get_public_status_page_overview`**: die Übersicht einer öffentlichen Statusseite
 - **`get_public_status_page_incidents`**: die Vorfälle einer öffentlichen Statusseite
-- **`get_public_status_page_scheduled_maintenance`**: ihre geplanten Wartungsereignisse
+- **`get_public_status_page_scheduled_maintenance`**: ihre Wartungsereignisse
 - **`get_public_status_page_announcements`**: ihre Ankündigungen
 
 Die Tools für öffentliche Statusseiten nehmen die ID einer Statusseite (eine UUID) oder ihren Domainnamen entgegen. Um nur diese zu verwenden, verbinden Sie sich mit der Adresse und ohne Zugangsdaten:

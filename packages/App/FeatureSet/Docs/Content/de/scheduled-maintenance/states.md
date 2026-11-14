@@ -1,6 +1,6 @@
 # Wartungsstatus
 
-Jedes geplante Wartungsereignis ist in genau einem **Status**: wo die Arbeit steht, von geplant bis abgenommen. Status entscheiden, was OneUptime mit dem Ereignis tut: wann seine Monitore nicht mehr geprüft werden, was Ihre Statusseiten zeigen, wann seine Erinnerungen enden. Diese Seite behandelt die vier Status, mit denen jedes Projekt beginnt, was ein Ereignis zwischen ihnen bewegt und wie Sie eigene Schritte hinzufügen.
+Jedes Wartungsereignis ist in genau einem **Status**: wo die Arbeit steht, von geplant bis abgenommen. Status entscheiden, was OneUptime mit dem Ereignis tut: wann seine Monitore nicht mehr geprüft werden, was Ihre Statusseiten zeigen, wann seine Erinnerungen enden. Diese Seite behandelt die vier Status, mit denen jedes Projekt beginnt, was ein Ereignis zwischen ihnen bewegt und wie Sie eigene Schritte hinzufügen.
 
 :::cards
 - [Die vorangelegten Status](#die-vorangelegten-status): Geplant, Laufend, Beendet und Abgeschlossen.

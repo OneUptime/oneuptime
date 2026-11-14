@@ -1,6 +1,6 @@
 # 公開 API
 
-すべてのステータスページは、読み取り専用の小さな JSON エンドポイント群に応答します。概要、サマリー、稼働率、インシデント、エピソード、計画メンテナンスのイベント、お知らせです。これらはステータスページ自体が読み込むエンドポイントなので、訪問者が見るものとまったく同じものを返し、公開ページなら API キーは不要です。自分のアプリ、チャットボット、壁掛けディスプレイにステータスを表示するのに使えます。
+すべてのステータスページは、読み取り専用の小さな JSON エンドポイント群に応答します。概要、サマリー、稼働率、インシデント、エピソード、メンテナンスイベント、お知らせです。これらはステータスページ自体が読み込むエンドポイントなので、訪問者が見るものとまったく同じものを返し、公開ページなら API キーは不要です。自分のアプリ、チャットボット、壁掛けディスプレイにステータスを表示するのに使えます。
 
 :::cards
 - [エンドポイント](#エンドポイント): ページが表示するものごとに 1 つのエンドポイント。
@@ -57,8 +57,8 @@ flowchart TB
 | `/incidents/{statusPageIdOrDomain}/{incidentId}` | `POST` | 1 件のインシデント。 |
 | `/episodes/{statusPageIdOrDomain}` | `POST` | ページが一覧に載せるインシデントのエピソード。 |
 | `/episodes/{statusPageIdOrDomain}/{episodeId}` | `POST` | 1 件のエピソード。 |
-| `/scheduled-maintenance-events/{statusPageIdOrDomain}` | `GET`、`POST` | ページが一覧に載せる計画メンテナンスのイベントと、その公開メモと状態の変化。 |
-| `/scheduled-maintenance-events/{statusPageIdOrDomain}/{scheduledMaintenanceId}` | `POST` | 1 件の計画メンテナンスのイベント。 |
+| `/scheduled-maintenance-events/{statusPageIdOrDomain}` | `GET`、`POST` | ページが一覧に載せるメンテナンスイベントと、その公開メモと状態の変化。 |
+| `/scheduled-maintenance-events/{statusPageIdOrDomain}/{scheduledMaintenanceId}` | `POST` | 1 件のメンテナンスイベント。 |
 | `/announcements/{statusPageIdOrDomain}` | `GET`、`POST` | ページが一覧に載せるお知らせ。 |
 | `/announcements/{statusPageIdOrDomain}/{announcementId}` | `POST` | 1 件のお知らせ。 |
 
@@ -140,13 +140,13 @@ print((overview.get("overallStatus") or {}).get("name"))  # Operational
 | `activeIncidents`、`incidentPublicNotes`、`incidentStateTimelines`、`incidentStates` | ページが表示する未解決のインシデント、その公開メモと状態の変化、そしてプロジェクトのインシデントの状態。 |
 | `timelineIncidents` | 稼働率バーの期間内のインシデント (解決済みを含む)。バーのツールチップ用です。 |
 | `activeEpisodes`、`episodePublicNotes`、`episodeStateTimelines` | インシデントのエピソードについての同じもの。 |
-| `scheduledMaintenanceEvents`、`scheduledMaintenanceEventsPublicNotes`、`scheduledMaintenanceStateTimelines`、`scheduledMaintenanceStates` | これから始まる、または進行中の計画メンテナンスのイベントと、その公開メモと状態の変化。 |
-| `timelineScheduledMaintenanceEvents` | 稼働率バーの期間内の、開始済みの計画メンテナンスのイベント (進行中または終了済み)。バーのツールチップと各日のダイアログ用です。ページが表示し、そのモニターのいずれかを含むイベントだけで、それぞれページのモニターだけが付きます。 |
+| `scheduledMaintenanceEvents`、`scheduledMaintenanceEventsPublicNotes`、`scheduledMaintenanceStateTimelines`、`scheduledMaintenanceStates` | これから始まる、または進行中のメンテナンスイベントと、その公開メモと状態の変化。 |
+| `timelineScheduledMaintenanceEvents` | 稼働率バーの期間内の、開始済みのメンテナンスイベント (進行中または終了済み)。バーのツールチップと各日のダイアログ用です。ページが表示し、そのモニターのいずれかを含むイベントだけで、それぞれページのモニターだけが付きます。 |
 | `activeAnnouncements` | いま表示中のお知らせ: 開始済みで、まだ終了していないもの。 |
 
 ## サマリーを読む
 
-サマリーは、監視ツールがページに求めるものだけに絞った概要です。各リソースのステータスと、進行中の計画メンテナンスのイベントがそのリソースに影響しているかどうかを返します。ページが表示する履歴がどれだけ多くても小さいままで、別の OneUptime の [外部ステータスページモニター](/docs/monitor/external-status-page-monitor#oneuptime-のステータスページ) が読み取るのもこのサマリーです。概要と同じキャッシュから、同じアクセスルールの後で返されます。
+サマリーは、監視ツールがページに求めるものだけに絞った概要です。各リソースのステータスと、進行中のメンテナンスイベントがそのリソースに影響しているかどうかを返します。ページが表示する履歴がどれだけ多くても小さいままで、別の OneUptime の [外部ステータスページモニター](/docs/monitor/external-status-page-monitor#oneuptime-のステータスページ) が読み取るのもこのサマリーです。概要と同じキャッシュから、同じアクセスルールの後で返されます。
 
 ```bash
 curl https://oneuptime.com/status-page-api/summary/YOUR_STATUS_PAGE_ID
@@ -195,7 +195,7 @@ curl https://oneuptime.com/status-page-api/summary/YOUR_STATUS_PAGE_ID
 | `overallStatus` | バナーが示すとおりのページ全体のステータス: `name`、`color`、`isOperational`。ページのすべてのリソースが **未監視** の場合は `null`。 |
 | `resources` | ページが表示する各リソース (ページの順): ページ上の `name`、上位のグループを含む `groupName`、`currentStatus`、`isMonitored`、`isUnderMaintenance`。 |
 | `activeIncidents` | ページが表示する未解決のインシデント。それぞれ、影響するリソースの `affectedResourceIds` が付きます。 |
-| `ongoingScheduledMaintenance`, `upcomingScheduledMaintenance` | 進行中の計画メンテナンスのイベントと、これから始まるイベント。それぞれに `affectedResourceIds` が付きます。 |
+| `ongoingScheduledMaintenance`, `upcomingScheduledMaintenance` | 進行中のメンテナンスイベントと、これから始まるイベント。それぞれに `affectedResourceIds` が付きます。 |
 
 ページがリソースの `currentStatus` を表示しない場合、その値は `null` です。`isMonitored` が `false` の場合も同じです。そのリソースは、モニターの監視がオフか、モニターグループのすべてのモニターで監視がオフのため何にもチェックされず、ページには **未監視** と表示されます。 `isUnderMaintenance` は、進行中のイベントがリソースのモニターか、そのモニターグループ内のモニターを指定している間、それらのモニターのステータスにかかわらず `true` です。
 
@@ -384,7 +384,7 @@ for incident in incidents:
 | -------- | -------------------- |
 | インシデント | `incidents`、`incidentPublicNotes`、`incidentStateTimelines`、`incidentStates`、`statusPageResources`、`monitorsInGroup` |
 | エピソード | `episodes`、`episodePublicNotes`、`episodeStateTimelines`、`incidentStates`、`statusPageResources`、`monitorsInGroup` |
-| 計画メンテナンスのイベント | `scheduledMaintenanceEvents`、`scheduledMaintenanceEventsPublicNotes`、`scheduledMaintenanceStateTimelines`、`scheduledMaintenanceStates`、`statusPageResources`、`monitorsInGroup` |
+| メンテナンスイベント | `scheduledMaintenanceEvents`、`scheduledMaintenanceEventsPublicNotes`、`scheduledMaintenanceStateTimelines`、`scheduledMaintenanceStates`、`statusPageResources`、`monitorsInGroup` |
 | お知らせ | `announcements`、`statusPageResources`、`monitorsInGroup` |
 
 単一項目のリクエストは同じキーで応答し、その 1 件のレコードが入ります。
@@ -406,7 +406,7 @@ for incident in incidents:
 
 ## ステータスページを読むほかの方法
 
-- **RSS。** すべてのステータスページは `/rss` を提供します。インシデント、お知らせ、計画メンテナンスのイベントのフィードで、どの項目もページと同じ日付が付きます。[埋め込みバッジと RSS フィード](/docs/status-pages/index#埋め込みバッジと-rss-フィード) を参照してください。
+- **RSS。** すべてのステータスページは `/rss` を提供します。インシデント、お知らせ、メンテナンスイベントのフィードで、どの項目もページと同じ日付が付きます。[埋め込みバッジと RSS フィード](/docs/status-pages/index#埋め込みバッジと-rss-フィード) を参照してください。
 - **llms.txt。** `/rss` と並んで、すべてのステータスページが `/llms.txt` を提供します。AI エージェントに RSS フィードと概要の JSON の場所を示すものです。
 - **MCP。** AI エージェントは、OneUptime の MCP サーバー (`https://oneuptime.com/mcp`) を通じて、API キーなしでページを読めます。ページの ID またはドメインを `statusPageIdOrDomain` として渡します。既定でオンになっており、ページのサイドメニューの **AI → MCP** にある **MCP サーバーを有効化** でオフにできます。[MCP サーバー](/docs/ai/mcp-server) を参照してください。
 - **REST API。** ステータスページ、リソース、購読者、お知らせを作成または変更するには、API キーを使って [OneUptime API](/docs/api-reference/api-reference) を使用します。

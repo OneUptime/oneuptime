@@ -12,7 +12,7 @@
 
 ```mermaid title="一个事件列表，三个日历"
 flowchart TB
-    events["计划维护事件"] --> view["仪表板中的<br/>日历视图"]
+    events["维护事件"] --> view["仪表板中的<br/>日历视图"]
     events --> team["团队的链接<br/>每个事件"]
     events --> page["状态页的链接<br/>页面显示的内容"]
     team --> apps["日历应用"]
@@ -59,11 +59,11 @@ OneUptime 会立即读取新日历。读取后，它的 **状态** 显示 **正�
 
 每个日历保留从 90 天前到一年后的事件，最多 2,000 个，离今天最近的优先。大于 5 MB 的日历不会被读取。重复事件、它们的例外和时区会按日历应用写入的方式读取，全天事件在任何时区都保持在它的日期上。一个项目最多可以有 20 个外部日历，日历的一个视图最多绘制它们的 500 个事件。
 
-能创建、编辑和删除计划维护事件的角色可以添加、更改和移除外部日历，任何能读取这些事件的人都能在日历上看到它们。OneUptime 从不读取它自己服务器上的地址或云元数据地址，OneUptime Cloud 会拒绝私有网络上的地址。自托管服务器可以读取你自己网络中的日历，除非 `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` 为 `true` 。
+能创建、编辑和删除维护事件的角色可以添加、更改和移除外部日历，任何能读取这些事件的人都能在日历上看到它们。OneUptime 从不读取它自己服务器上的地址或云元数据地址，OneUptime Cloud 会拒绝私有网络上的地址。自托管服务器可以读取你自己网络中的日历，除非 `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` 为 `true` 。
 
 ## 团队的日历链接
 
-日历下方的 **订阅日历** 会打开项目的日历链接：一个秘密的 iCalendar（`.ics`）链接，把项目的每个计划维护事件放进 Google 日历、Outlook、Apple 日历，或任何能按 URL 订阅日历的应用。
+日历下方的 **订阅日历** 会打开项目的日历链接：一个秘密的 iCalendar（`.ics`）链接，把项目的每个维护事件放进 Google 日历、Outlook、Apple 日历，或任何能按 URL 订阅日历的应用。
 
 :::steps
 ### 发布链接
@@ -86,7 +86,7 @@ https://<your host>/api/scheduled-maintenance-calendar/project/<token>/maintenan
 ```
 
 > [!WARNING]
-> 任何拥有该链接的人，无需登录即可看到项目的每个计划维护事件。请像对待密码一样对待它，如果不小心分享出去，请重新生成。
+> 任何拥有该链接的人，无需登录即可看到项目的每个维护事件。请像对待密码一样对待它，如果不小心分享出去，请重新生成。
 
 ### 谁可以看到链接
 
@@ -94,9 +94,9 @@ https://<your host>/api/scheduled-maintenance-calendar/project/<token>/maintenan
 
 | 操作 | 谁可以执行 |
 | --- | --- |
-| 复制链接 | 能读取项目每个计划维护事件的人 |
-| **发布链接** | 还能创建计划维护事件的人 |
-| **重新生成链接** 、 **禁用链接** | 还能编辑计划维护事件的人 |
+| 复制链接 | 能读取项目每个维护事件的人 |
+| **发布链接** | 还能创建维护事件的人 |
+| **重新生成链接** 、 **禁用链接** | 还能编辑维护事件的人 |
 
 ### 管理链接
 
@@ -158,6 +158,6 @@ Google 日历从 Google 的服务器读取链接，所以 OneUptime 服务器必
 
 :::cards
 - [创建维护事件](/docs/scheduled-maintenance/creating-events): 表单的每个字段，以及之后会发生什么。
-- [订阅者与公告](/docs/status-pages/subscribers#计划维护事件): 状态页的订阅者会收到哪些关于维护的通知。
+- [订阅者与公告](/docs/status-pages/subscribers#维护事件): 状态页的订阅者会收到哪些关于维护的通知。
 - [日历订阅源](/docs/on-call/calendar-feeds): 同样类型的链接，用于值班班次。
 :::

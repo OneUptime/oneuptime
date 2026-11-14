@@ -183,7 +183,7 @@ Die meisten Projekte brauchen einen Schritt. Fügen Sie einen weiteren hinzu, we
 - **Änderungen gelten sofort.** Wer genehmigen darf, wird gelesen, wenn jemand entscheidet, und Notizen, die bereits warten, folgen Ihren Änderungen. Wenn Sie Schritte hinzufügen, löschen oder neu ordnen oder ändern, wen ein Schritt nennt, wird jeder, der eine wartende Notiz jetzt genehmigen kann und noch nicht zu ihr gefragt wurde, über seine Benachrichtigungseinstellungen gefragt, ebenso jemand, der einem Team beitritt, das der Schritt nennt, auf den eine Notiz wartet. Niemand wird zweimal zum selben Schritt einer Notiz gefragt. Wer vom Schritt oder aus seinem Team entfernt wird, kann nicht mehr über die Notiz entscheiden, und seine Nachricht dazu in Slack, Microsoft Teams oder Mattermost sagt das. Eine Notiz behält die Genehmigungen, die sie hat.
 - **Niemand genehmigt die eigene Notiz oder zwei Schritte einer Notiz.** Wer eine Notiz zur Genehmigung gesendet hat, kann sie weder genehmigen noch ablehnen, und wer einen ihrer Schritte genehmigt hat, kann keinen weiteren genehmigen.
 
-Nur Projektinhaber und -administratoren können diese Einstellungen ändern, und alle, die die Notizen lesen, sehen, wer sie genehmigt. **Geplante Wartung → Einstellungen → Genehmigung öffentlicher Notizen** ist dieselbe Seite für geplante Wartungsereignisse, mit eigenem Schalter und eigenen Schritten. Was eine Notiz tut, während sie wartet, und wie Genehmigende entscheiden, steht unter [Genehmigung öffentlicher Notizen](/docs/incidents/notes-owners-and-feed#genehmigung-öffentlicher-notizen).
+Nur Projektinhaber und -administratoren können diese Einstellungen ändern, und alle, die die Notizen lesen, sehen, wer sie genehmigt. **Geplante Wartung → Einstellungen → Genehmigung öffentlicher Notizen** ist dieselbe Seite für Wartungsereignisse, mit eigenem Schalter und eigenen Schritten. Was eine Notiz tut, während sie wartet, und wie Genehmigende entscheiden, steht unter [Genehmigung öffentlicher Notizen](/docs/incidents/notes-owners-and-feed#genehmigung-öffentlicher-notizen).
 
 ## Abonnentenbenachrichtigungen
 
@@ -236,7 +236,7 @@ Jede Definition hat:
 - **In Abonnentenbenachrichtigungen aufnehmen** – unter **Weitere Felder**. Sendet das Feld und seinen Wert mit den Nachrichten des Vorfalls an Statusseiten-Abonnenten: die Standard-E-Mail, die Slack- und Microsoft-Teams-Nachrichten und Webhooks, aber nicht SMS. Abonnenten stehen meist außerhalb Ihres Teams; schalten Sie es also nur für Felder ein, die gefahrlos geteilt werden können. Siehe [Abonnenten & Ankündigungen](/docs/status-pages/subscribers#vorfälle).
 - **Vorlagenvariable** – der Schlüssel, über den eine Vorlage das Feld erreicht, `{{incident.customFields.<key>}}`, in Notiz-Vorlagen und eigenen Abonnenten-Benachrichtigungsvorlagen. Er wird beim Anlegen des Felds aus dessen Namen gebildet – Kleinbuchstaben, Ziffern und Unterstriche, sodass `Expected Resolution` zu `expected_resolution` wird, mit angehängtem `_2`, `_3` und so weiter, wenn ein anderes Feld den Schlüssel schon hat – und er ändert sich nicht, wenn das Feld umbenannt wird. Niemand setzt ihn von Hand: Die API ignoriert einen dafür gesendeten Wert. Mit dem älteren `{{customFields.<key>}}` geschriebene Vorlagen funktionieren weiter. Nachschlagen müssen Sie ihn nie: Die Editoren, die ihn einsetzen – die **Notiz** einer Notiz-Vorlage und die eigenen Abonnenten-Benachrichtigungsvorlagen einer Statusseite für Vorfallereignisse –, listen die Variable jedes Felds unter **Vorlagenvariablen**, mit dem Namen des Felds. Auch das Formular **Bearbeiten** eines Felds zeigt sie, schreibgeschützt, unten in **Weitere Felder**, mit einer Schaltfläche, die sie kopiert.
 
-**Reihenfolge**, **Beim Erstellen anzeigen**, **Beim Erstellen erforderlich**, **In Abonnentenbenachrichtigungen aufnehmen** und **Vorlagenvariable** gibt es nur bei benutzerdefinierten Vorfallfeldern. Die benutzerdefinierten Felder von Monitoren, Warnungen, geplanten Wartungsereignissen und den anderen Ressourcen haben sie nicht.
+**Reihenfolge**, **Beim Erstellen anzeigen**, **Beim Erstellen erforderlich**, **In Abonnentenbenachrichtigungen aufnehmen** und **Vorlagenvariable** gibt es nur bei benutzerdefinierten Vorfallfeldern. Die benutzerdefinierten Felder von Monitoren, Warnungen, Wartungsereignissen und den anderen Ressourcen haben sie nicht.
 
 Die Definitionen liegen in einem eigenen Modell; die Werte liegen am Vorfall selbst in der Spalte `customFields`. An einem einzelnen Vorfall füllen Sie sie über **Benutzerdefinierte Felder** im Seitenmenü des Vorfalls aus (`/dashboard/{projectId}/incidents/{incidentId}/custom-fields`), wo die Felder in ihrer **Reihenfolge** aufgeführt sind. Vorfall-Vorlagen halten Werte für dieselben Felder in ihren eigenen `customFields`.
 
@@ -362,7 +362,7 @@ Beim Speichern werden eine umbenannte Option und ein Wert, für den Sie eine Opt
 
 Ein Vorfall, dessen Wert sein Feld nicht mehr anbietet, zeigt den Wert, markiert als _keine Option mehr_, auf seiner Seite **Benutzerdefinierte Felder** und in der Vorfallliste. Das Bearbeiten seiner anderen Felder behält ihn; wählen Sie eine andere Option, um ihn zu ändern.
 
-Die benutzerdefinierten Felder jeder anderen Ressource funktionieren genauso: Monitore, Warnungen, geplante Wartungsereignisse, Statusseiten, Bereitschaftsrichtlinien, Teams, Teammitglieder und Inventarelemente. Wird eine Option eines Monitorfelds umbenannt oder hinzugefügt, geschieht dasselbe in den Vorfall-, Warnungs- und Wartungsfeldern, die es kopieren (siehe [Von einem Monitor kopierte Felder](#von-einem-monitor-kopierte-felder)), damit sie weiterhin jeden Wert anbieten, den sie kopieren.
+Die benutzerdefinierten Felder jeder anderen Ressource funktionieren genauso: Monitore, Warnungen, Wartungsereignisse, Statusseiten, Bereitschaftsrichtlinien, Teams, Teammitglieder und Inventarelemente. Wird eine Option eines Monitorfelds umbenannt oder hinzugefügt, geschieht dasselbe in den Vorfall-, Warnungs- und Wartungsfeldern, die es kopieren (siehe [Von einem Monitor kopierte Felder](#von-einem-monitor-kopierte-felder)), damit sie weiterhin jeden Wert anbieten, den sie kopieren.
 
 Über die API senden Sie die neue Liste als `dropdownOptions` und die Umbenennungen in `miscDataProps`:
 
@@ -396,7 +396,7 @@ flowchart TB
     resolved -->|"Zeit bis zum Postmortem"| postmortem["Das Postmortem wird veröffentlicht"]
 ```
 
-Warnungen und geplante Wartungsereignisse haben dieselbe Funktion, unter **Warnungen → Einstellungen → Messungen** und **Geplante Wartung → Einstellungen → Messungen**. Alles Folgende gilt für alle drei, jeweils mit ihren eigenen Zeitpunkten.
+Warnungen und Wartungsereignisse haben dieselbe Funktion, unter **Warnungen → Einstellungen → Messungen** und **Geplante Wartung → Einstellungen → Messungen**. Alles Folgende gilt für alle drei, jeweils mit ihren eigenen Zeitpunkten.
 
 ### Vorgefertigte Messungen
 
@@ -477,7 +477,7 @@ Die Seite jedes Vorfalls zeigt seine eigenen Messungen in einer Karte **Messunge
 
 Eine Messung, deren Beginn oder Ende Sie ändern, zeigt an jedem Vorfall weiter ihren alten Wert, bis OneUptime sie neu berechnet hat, wie es auch ihr Diagramm tut. Direkt nach einem Statuswechsel aus der Kopfzeile des Vorfalls zeigt die Karte die neuen Werte, sobald OneUptime sie berechnet hat, meist sofort.
 
-Warnungen und geplante Wartungsereignisse haben dieselbe Karte auf ihren Seiten. Bei einem Wartungsereignis kommt **Nicht erreicht**, sobald das Ereignis beendet ist: sobald es im beendeten oder im abgeschlossenen Status ist oder in einem eigenen Status nach dem beendeten Status. Seine Zeitpunkte richten sich nach denselben Positionen: **Die Wartung beginnt**, **Die Wartung endet** und **Die Wartung wird abgeschlossen** sind die Wechsel in einen Status, in dem das Ereignis läuft, vorbei oder abgeschlossen ist, aus einem, in dem es das nicht war. Ein Ereignis, das direkt aus dem laufenden Status abgeschlossen wird, endet also dort, ein Ereignis, das aus dem beendeten Status direkt in einen eigenen Status nach dem abgeschlossenen Status wechselt, wird dort abgeschlossen, und ein Wechsel vom abgeschlossenen Status in einen solchen Status schließt nichts erneut ab. Siehe [Geplante Wartungsereignisse](/docs/status-pages/subscribers#geplante-wartungsereignisse). Die Karte entfällt, wenn keine aktivierte Messung **Auf Vorfallseiten anzeigen** eingeschaltet hat, und für jemanden, der Messungen nicht lesen darf.
+Warnungen und Wartungsereignisse haben dieselbe Karte auf ihren Seiten. Bei einem Wartungsereignis kommt **Nicht erreicht**, sobald das Ereignis beendet ist: sobald es im beendeten oder im abgeschlossenen Status ist oder in einem eigenen Status nach dem beendeten Status. Seine Zeitpunkte richten sich nach denselben Positionen: **Die Wartung beginnt**, **Die Wartung endet** und **Die Wartung wird abgeschlossen** sind die Wechsel in einen Status, in dem das Ereignis läuft, vorbei oder abgeschlossen ist, aus einem, in dem es das nicht war. Ein Ereignis, das direkt aus dem laufenden Status abgeschlossen wird, endet also dort, ein Ereignis, das aus dem beendeten Status direkt in einen eigenen Status nach dem abgeschlossenen Status wechselt, wird dort abgeschlossen, und ein Wechsel vom abgeschlossenen Status in einen solchen Status schließt nichts erneut ab. Siehe [Wartungsereignisse](/docs/status-pages/subscribers#wartungsereignisse). Die Karte entfällt, wenn keine aktivierte Messung **Auf Vorfallseiten anzeigen** eingeschaltet hat, und für jemanden, der Messungen nicht lesen darf.
 
 ### Beginn der Auswirkung, und warum es leer ist
 
@@ -563,7 +563,7 @@ Der Dialog sagt vor dem Speichern, was falsch ist, und die API lehnt dieselben P
 
 Project Owners, Project Admins und jeder mit **Edit Project** können die Präfixe ändern. Alle anderen sehen sie, mit gesperrter Schaltfläche **Aktualisieren**.
 
-Warnungen und geplante Wartungsereignisse haben dieselbe Seite: **Warnungen → Einstellungen → Nummerierung** für Warnungs- und Warnungsepisodennummern (`ALT-` und `AE-` für neue Projekte) und **Geplante Wartung → Einstellungen → Nummerierung** für Ereignisnummern (`SM-`). In allen dreien funktionieren die alten Adressen der Seite weiter und öffnen **Nummerierung**: **Weitere Einstellungen** (`…/settings/more`) und **Nummernpräfix** (`…/settings/number-prefix`).
+Warnungen und Wartungsereignisse haben dieselbe Seite: **Warnungen → Einstellungen → Nummerierung** für Warnungs- und Warnungsepisodennummern (`ALT-` und `AE-` für neue Projekte) und **Geplante Wartung → Einstellungen → Nummerierung** für Ereignisnummern (`SM-`). In allen dreien funktionieren die alten Adressen der Seite weiter und öffnen **Nummerierung**: **Weitere Einstellungen** (`…/settings/more`) und **Nummernpräfix** (`…/settings/number-prefix`).
 
 ## Nächste Nummern
 
@@ -589,7 +589,7 @@ Der Dialog sagt vor dem Speichern, was falsch ist, und gespeichert werden nur di
 
 Project Owners, Project Admins und jeder mit **Edit Project** können die nächsten Nummern ändern, so wie die Präfixe. Alle anderen sehen sie, mit gesperrter Schaltfläche **Aktualisieren**.
 
-Warnungen und geplante Wartungsereignisse haben dieselbe Karte auf ihren Seiten **Nummerierung**: **Nächste Warnungsnummer** und **Nächste Nummer der Warnungsepisode** sowie **Nächste Nummer der geplanten Wartung**. [Import aus anderem Tool](/docs/moving-to-oneuptime/incident-io) übernimmt Ihre Einrichtung, nicht Ihre vergangenen Vorfälle, und lässt die Nummern daher, wie sie sind: Legen Sie die nächsten Nummern fest, bevor in OneUptime der erste Vorfall gemeldet wird.
+Warnungen und Wartungsereignisse haben dieselbe Karte auf ihren Seiten **Nummerierung**: **Nächste Warnungsnummer** und **Nächste Nummer der Warnungsepisode** sowie **Nächste Nummer der geplanten Wartung**. [Import aus anderem Tool](/docs/moving-to-oneuptime/incident-io) übernimmt Ihre Einrichtung, nicht Ihre vergangenen Vorfälle, und lässt die Nummern daher, wie sie sind: Legen Sie die nächsten Nummern fest, bevor in OneUptime der erste Vorfall gemeldet wird.
 
 ## Schalter für verknüpfte Warnungen
 

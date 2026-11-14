@@ -175,7 +175,7 @@ Un épisode d'incidents a lui aussi une page **Post-mortem**, sous **Investigati
 
 Le post-mortem d'un épisode se limite à la note : il n'a pas de pièces jointes, et aucune page de statut ne l'affiche. OneUptime AI n'en rédige pas de lui-même quand un épisode est résolu. Le générer demande le rôle Project Owner ou Project Admin, ou un rôle personnalisé avec l'autorisation Edit Incident Episode. Il n'a pas de statut non plus, et la liste des post-mortems ne l'inclut pas.
 
-Les alertes et les événements de maintenance planifiée n'ont pas de post-mortem.
+Les alertes et les événements de maintenance n'ont pas de post-mortem.
 
 ## Via l'API
 

@@ -253,7 +253,7 @@ MCP 伺服器有三種運作方式。
 - **`oneuptime_describe_resource`**：資源的欄位，以及如何依欄位篩選、排序和選取
 - **`get_public_status_page_overview`**：公開狀態頁的概覽
 - **`get_public_status_page_incidents`**：公開狀態頁的事件
-- **`get_public_status_page_scheduled_maintenance`**：它的排定維護事件
+- **`get_public_status_page_scheduled_maintenance`**：它的維護事件
 - **`get_public_status_page_announcements`**：它的公告
 
 公開狀態頁工具接受狀態頁的 ID（UUID）或其網域名稱。如果只使用這些工具，請只用位址連接，不帶任何認證：

@@ -24,7 +24,7 @@ flowchart TB
     execution --> worker["De OneUptime Worker<br/>voert de stappen uit"]
 ```
 
-Een trigger start een uitvoering zoals **Nu uitvoeren** dat doet: de uitvoering loopt door de huidige stappen van het runbook en hangt aan geen enkel incident, geen waarschuwing en geen gepland onderhoudsevenement. Elke uitvoering legt vast wat haar startte. De **Uitvoeringen** van het runbook en **Runbooks → Uitvoeringen** tonen dat onder **Geactiveerd door**, met wanneer een geplande uitvoering gepland stond of het adres dat de webhook aanriep, en op beide lijsten kun je erop filteren.
+Een trigger start een uitvoering zoals **Nu uitvoeren** dat doet: de uitvoering loopt door de huidige stappen van het runbook en hangt aan geen enkel incident, geen waarschuwing en geen onderhoudsgebeurtenis. Elke uitvoering legt vast wat haar startte. De **Uitvoeringen** van het runbook en **Runbooks → Uitvoeringen** tonen dat onder **Geactiveerd door**, met wanneer een geplande uitvoering gepland stond of het adres dat de webhook aanriep, en op beide lijsten kun je erop filteren.
 
 ## Voordat je begint
 

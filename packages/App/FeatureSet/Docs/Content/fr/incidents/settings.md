@@ -183,7 +183,7 @@ La plupart des projets n'ont besoin que d'une étape. Ajoutez-en une autre quand
 - **Les changements comptent aussitôt.** Qui peut approuver est lu au moment où quelqu'un décide, et les notes qui attendent déjà suivent vos changements. Quand vous ajoutez, supprimez ou réordonnez des étapes, ou changez qui une étape nomme, chaque personne qui peut désormais approuver une note en attente et à qui on ne l'a pas encore demandé est sollicitée par ses paramètres de notification, de même que quiconque rejoint une équipe que nomme l'étape attendue par une note. Personne n'est sollicité deux fois pour la même étape d'une note. Une personne retirée de l'étape, ou de son équipe, ne peut plus décider de la note, et son message à son sujet dans Slack, Microsoft Teams ou Mattermost le dit. Une note garde les approbations qu'elle a reçues.
 - **Personne n'approuve sa propre note, ni deux étapes d'une même note.** Qui a envoyé une note pour approbation ne peut ni l'approuver ni la rejeter, et qui a approuvé l'une de ses étapes ne peut pas en approuver une autre.
 
-Seuls les propriétaires et les administrateurs du projet peuvent modifier ces paramètres, et tous ceux qui lisent les notes voient qui les approuve. **Maintenance planifiée → Paramètres → Approbation des notes publiques** est la même page pour les événements de maintenance planifiée, avec son propre interrupteur et ses propres étapes. Ce que fait une note pendant qu'elle attend, et comment les approbateurs décident, est décrit dans [Approbation des notes publiques](/docs/incidents/notes-owners-and-feed#approbation-des-notes-publiques).
+Seuls les propriétaires et les administrateurs du projet peuvent modifier ces paramètres, et tous ceux qui lisent les notes voient qui les approuve. **Maintenance planifiée → Paramètres → Approbation des notes publiques** est la même page pour les événements de maintenance, avec son propre interrupteur et ses propres étapes. Ce que fait une note pendant qu'elle attend, et comment les approbateurs décident, est décrit dans [Approbation des notes publiques](/docs/incidents/notes-owners-and-feed#approbation-des-notes-publiques).
 
 ## Notifications aux abonnés
 
@@ -236,7 +236,7 @@ Chaque définition a :
 - **Inclure dans les notifications aux abonnés** — sous **Plus de champs**. Envoie le champ et sa valeur aux abonnés des pages de statut avec les messages de l'incident : l'e-mail, les messages Slack et Microsoft Teams et les webhooks par défaut, mais pas les SMS. Les abonnés sont généralement extérieurs à votre équipe ; ne l'activez donc que pour des champs sans risque à partager. Voir [Abonnés et annonces](/docs/status-pages/subscribers#incidents).
 - **Variable de modèle** — la clé par laquelle un modèle atteint le champ, `{{incident.customFields.<key>}}`, dans les modèles de notes et les modèles de notification personnalisés des abonnés. Elle est construite à partir du nom du champ à sa création — lettres minuscules, chiffres et tirets bas, si bien que `Expected Resolution` devient `expected_resolution`, avec `_2`, `_3` et ainsi de suite ajoutés quand un autre champ a déjà la clé — et elle ne change pas quand le champ est renommé. Personne ne la définit à la main : l'API ignore une valeur envoyée pour elle. Les modèles écrits avec l'ancien `{{customFields.<key>}}` continuent de fonctionner. Vous n'avez jamais besoin de la chercher : les éditeurs qui l'insèrent — la **Note** d'un modèle de note et les modèles de notification personnalisés des abonnés d'une page de statut pour les événements d'incident — listent la variable de chaque champ sous **Variables de modèle**, avec le nom du champ. Le formulaire **Modifier** d'un champ l'affiche aussi, en lecture seule, en bas de **Plus de champs**, avec un bouton qui la copie.
 
-**Ordre**, **Afficher à la création**, **Obligatoire à la création**, **Inclure dans les notifications aux abonnés** et **Variable de modèle** n'existent que sur les champs personnalisés d'incident. Les champs personnalisés des moniteurs, des alertes, des événements de maintenance planifiée et des autres ressources ne les ont pas.
+**Ordre**, **Afficher à la création**, **Obligatoire à la création**, **Inclure dans les notifications aux abonnés** et **Variable de modèle** n'existent que sur les champs personnalisés d'incident. Les champs personnalisés des moniteurs, des alertes, des événements de maintenance et des autres ressources ne les ont pas.
 
 Les définitions vivent dans leur propre modèle ; les valeurs vivent sur l'incident lui-même, dans la colonne `customFields`. Sur un incident donné, vous les remplissez depuis **Champs personnalisés** dans le menu latéral de l'incident (`/dashboard/{projectId}/incidents/{incidentId}/custom-fields`), où les champs sont listés dans leur **Ordre**. Les modèles d'incident gardent des valeurs pour les mêmes champs dans leurs propres `customFields`.
 
@@ -362,7 +362,7 @@ Les options d'un champ **Liste déroulante (choix unique)** ou **Liste déroulan
 
 Un incident dont le champ ne propose plus la valeur affiche la valeur, marquée _n'est plus une option_, sur sa page **Champs personnalisés** et dans la liste des incidents. Modifier ses autres champs la conserve ; choisissez une autre option pour la changer.
 
-Les champs personnalisés de toutes les autres ressources fonctionnent de la même façon : moniteurs, alertes, événements de maintenance planifiée, pages de statut, politiques d'astreinte, équipes, membres d'équipe et éléments d'inventaire. Renommer une option d'un champ de moniteur, ou en ajouter une, fait de même dans les champs d'incident, d'alerte et de maintenance planifiée qui le copient (voir [Champs copiés d'un moniteur](#champs-copiés-dun-moniteur)), pour qu'ils continuent de proposer chaque valeur qu'ils copient.
+Les champs personnalisés de toutes les autres ressources fonctionnent de la même façon : moniteurs, alertes, événements de maintenance, pages de statut, politiques d'astreinte, équipes, membres d'équipe et éléments d'inventaire. Renommer une option d'un champ de moniteur, ou en ajouter une, fait de même dans les champs d'incident, d'alerte et de maintenance planifiée qui le copient (voir [Champs copiés d'un moniteur](#champs-copiés-dun-moniteur)), pour qu'ils continuent de proposer chaque valeur qu'ils copient.
 
 Par l'API, envoyez la nouvelle liste sous `dropdownOptions`, et les renommages dans `miscDataProps` :
 
@@ -396,7 +396,7 @@ flowchart TB
     resolved -->|"Délai du post-mortem"| postmortem["Le post-mortem est publié"]
 ```
 
-Les alertes et les événements de maintenance planifiée ont la même fonctionnalité, dans **Alertes → Paramètres → Mesures** et **Maintenance planifiée → Paramètres → Mesures**. Tout ce qui suit s'applique aux trois, chacun avec ses propres moments.
+Les alertes et les événements de maintenance ont la même fonctionnalité, dans **Alertes → Paramètres → Mesures** et **Maintenance planifiée → Paramètres → Mesures**. Tout ce qui suit s'applique aux trois, chacun avec ses propres moments.
 
 ### Mesures prêtes à l'emploi
 
@@ -477,7 +477,7 @@ La page de chaque incident montre ses propres mesures dans une carte **Mesures**
 
 Une mesure dont vous changez le début ou la fin continue d'afficher son ancienne valeur sur chaque incident jusqu'à ce que OneUptime l'ait recalculée, comme le fait son graphique. Juste après un changement d'état depuis l'en-tête de l'incident, la carte affiche les nouvelles valeurs dès que OneUptime les a calculées, en général immédiatement.
 
-Les alertes et les événements de maintenance planifiée ont la même carte sur leurs pages. Pour un événement de maintenance, **Non atteint** arrive une fois l'événement terminé : une fois qu'il est dans l'état terminé ou dans l'état achevé, ou dans l'un de vos états placé après l'état terminé. Ses moments suivent les mêmes positions : **La maintenance commence**, **La maintenance se termine** et **La maintenance est achevée** sont les passages dans un état où l'événement est en cours, terminé ou achevé depuis un état où il ne l'était pas — un événement achevé directement depuis l'état en cours se termine donc là, un événement passé de l'état terminé directement à l'un de vos états placé après l'état achevé y est achevé, et passer de l'état achevé à un tel état n'achève rien de nouveau. Voir [Événements de maintenance planifiée](/docs/status-pages/subscribers#événements-de-maintenance-planifiée). La carte est omise quand aucune mesure activée n'a **Afficher sur les pages des incidents** activé, et pour une personne qui ne peut pas lire les mesures.
+Les alertes et les événements de maintenance ont la même carte sur leurs pages. Pour un événement de maintenance, **Non atteint** arrive une fois l'événement terminé : une fois qu'il est dans l'état terminé ou dans l'état achevé, ou dans l'un de vos états placé après l'état terminé. Ses moments suivent les mêmes positions : **La maintenance commence**, **La maintenance se termine** et **La maintenance est achevée** sont les passages dans un état où l'événement est en cours, terminé ou achevé depuis un état où il ne l'était pas — un événement achevé directement depuis l'état en cours se termine donc là, un événement passé de l'état terminé directement à l'un de vos états placé après l'état achevé y est achevé, et passer de l'état achevé à un tel état n'achève rien de nouveau. Voir [Événements de maintenance](/docs/status-pages/subscribers#événements-de-maintenance). La carte est omise quand aucune mesure activée n'a **Afficher sur les pages des incidents** activé, et pour une personne qui ne peut pas lire les mesures.
 
 ### Début de l'impact, et pourquoi il est vide
 
@@ -563,7 +563,7 @@ La boîte de dialogue dit ce qui ne va pas avant l'enregistrement, et l'API refu
 
 Les Project Owners, les Project Admins et toute personne ayant **Edit Project** peuvent changer les préfixes. Tous les autres les voient avec le bouton **Mettre à jour** verrouillé.
 
-Les alertes et les événements de maintenance planifiée ont la même page : **Alertes → Paramètres → Numérotation** pour les numéros d'alerte et d'épisode d'alerte (`ALT-` et `AE-` pour les nouveaux projets), et **Maintenance planifiée → Paramètres → Numérotation** pour les numéros d'événement (`SM-`). Dans les trois, les anciennes adresses de la page fonctionnent toujours et ouvrent **Numérotation** : **Plus de paramètres** (`…/settings/more`) et **Préfixe de numéro** (`…/settings/number-prefix`).
+Les alertes et les événements de maintenance ont la même page : **Alertes → Paramètres → Numérotation** pour les numéros d'alerte et d'épisode d'alerte (`ALT-` et `AE-` pour les nouveaux projets), et **Maintenance planifiée → Paramètres → Numérotation** pour les numéros d'événement (`SM-`). Dans les trois, les anciennes adresses de la page fonctionnent toujours et ouvrent **Numérotation** : **Plus de paramètres** (`…/settings/more`) et **Préfixe de numéro** (`…/settings/number-prefix`).
 
 ## Prochains numéros
 
@@ -589,7 +589,7 @@ La boîte de dialogue dit ce qui ne va pas avant l'enregistrement, et seuls les 
 
 Les Project Owners, les Project Admins et toute personne ayant **Edit Project** peuvent changer les prochains numéros, comme les préfixes. Tous les autres les voient avec le bouton **Mettre à jour** verrouillé.
 
-Les alertes et les événements de maintenance planifiée ont la même carte sur leurs pages **Numérotation** : **Prochain numéro d'alerte** et **Prochain numéro d'épisode d'alerte**, et **Prochain numéro de maintenance planifiée**. [Importer depuis un autre outil](/docs/moving-to-oneuptime/incident-io) reprend votre configuration, pas vos incidents passés, et laisse donc les numéros tels quels : définissez les prochains numéros avant que le premier incident soit déclaré dans OneUptime.
+Les alertes et les événements de maintenance ont la même carte sur leurs pages **Numérotation** : **Prochain numéro d'alerte** et **Prochain numéro d'épisode d'alerte**, et **Prochain numéro de maintenance planifiée**. [Importer depuis un autre outil](/docs/moving-to-oneuptime/incident-io) reprend votre configuration, pas vos incidents passés, et laisse donc les numéros tels quels : définissez les prochains numéros avant que le premier incident soit déclaré dans OneUptime.
 
 ## Interrupteurs d'alertes liées
 

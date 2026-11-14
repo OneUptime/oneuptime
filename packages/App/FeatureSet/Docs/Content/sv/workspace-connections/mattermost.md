@@ -112,7 +112,7 @@ För att publicera i en befintlig kanal anger du dess namn så som det står i k
 
 Personer går med i en regels kanal via det Mattermost-konto de har anslutit, eller annars via det Mattermost-konto som har deras e-postadress, när din server visar e-postadresser för boten (**System Console** > **Site Configuration** > **Users and Teams** > **Show Email Address**). OneUptime nämner alla som den inte kunde lägga till i ett enda meddelande i kanalen, med en länk för att ansluta sitt konto.
 
-En incident, ett larm, en episod eller en schemalagd underhållshändelse med en egen kanal har **Öppna i Mattermost** i sidhuvudet på sin sida i OneUptime, bredvid tillståndsknapparna. Den öppnar kanalen i en ny flik, på din Mattermost-server. En post med två egna kanaler listar båda under knappen. En post som också har kanaler i Slack eller Microsoft Teams har i stället en knapp, **Öppna kanal**, som listar alla. De befintliga kanaler som dina regler publicerar i erbjuds inte.
+En incident, ett larm, en episod eller en underhållshändelse med en egen kanal har **Öppna i Mattermost** i sidhuvudet på sin sida i OneUptime, bredvid tillståndsknapparna. Den öppnar kanalen i en ny flik, på din Mattermost-server. En post med två egna kanaler listar båda under knappen. En post som också har kanaler i Slack eller Microsoft Teams har i stället en knapp, **Öppna kanal**, som listar alla. De befintliga kanaler som dina regler publicerar i erbjuds inte.
 
 **Testa regel** på en regels rad publicerar ett testmeddelande för den regeln i de kanaler den anger, precis som för Slack.
 
@@ -120,7 +120,7 @@ OneUptimes meddelanden aviserar ingen genom det de citerar: ett namn eller en be
 
 ## Vem som är i en posts kanal
 
-En incident, ett larm, en episod eller en schemalagd underhållshändelse med en egen Mattermost-kanal har kortet **Mattermost-kanal** på sin sida i OneUptime. Kortet visar kanalen, som en länk som öppnar den på din Mattermost-server, om den är privat och vem som är med i den, du först. Från kortet, utan en Mattermost-administratör:
+En incident, ett larm, en episod eller en underhållshändelse med en egen Mattermost-kanal har kortet **Mattermost-kanal** på sin sida i OneUptime. Kortet visar kanalen, som en länk som öppnar den på din Mattermost-server, om den är privat och vem som är med i den, du först. Från kortet, utan en Mattermost-administratör:
 
 - **Gå med i kanalen** lägger till dig när du inte är med i kanalen.
 - **Lägg till personer** öppnar en lista över projektets personer och team: välj en person för att lägga till personen, eller ett team för att lägga till alla i det.
@@ -145,7 +145,7 @@ OneUptimes meddelanden har knappar, och en meny **More actions** för det som f�
 | **Incidentepisod, larmepisod** | **Acknowledge**, **Resolve**, **Add Note**, **Change State**, **Execute On-Call Policy** |
 | **Schemalagt underhåll** | **Mark as Ongoing**, **Mark as Complete**, **Add Note**, **Change State** |
 
-**Add Note**, **Change State**, **Change Severity** och **Execute On-Call Policy** öppnar ett formulär i Mattermost. En anteckning på en incident eller en schemalagd underhållshändelse kan vara offentlig, och visas då på statussidan, eller privat; en anteckning på en privat incident är alltid privat, och en anteckning på ett larm är också alltid privat. Varje meddelande har också en länk som öppnar dess post i OneUptime, för allt annat. När projektets offentliga anteckningar kräver godkännande väntar en offentlig anteckning från formuläret på det, och ett meddelande som bara du ser säger vem den väntar på: se [Godkännande av offentliga anteckningar](/docs/incidents/notes-owners-and-feed#godkännande-av-offentliga-anteckningar).
+**Add Note**, **Change State**, **Change Severity** och **Execute On-Call Policy** öppnar ett formulär i Mattermost. En anteckning på en incident eller en underhållshändelse kan vara offentlig, och visas då på statussidan, eller privat; en anteckning på en privat incident är alltid privat, och en anteckning på ett larm är också alltid privat. Varje meddelande har också en länk som öppnar dess post i OneUptime, för allt annat. När projektets offentliga anteckningar kräver godkännande väntar en offentlig anteckning från formuläret på det, och ett meddelande som bara du ser säger vem den väntar på: se [Godkännande av offentliga anteckningar](/docs/incidents/notes-owners-and-feed#godkännande-av-offentliga-anteckningar).
 
 Om ditt Mattermost-konto inte är anslutet än säger en knapp det, med en länk till **Användarinställningar** > **Arbetsyta** > **Mattermost**. Anslut ditt konto och tryck sedan på knappen igen.
 

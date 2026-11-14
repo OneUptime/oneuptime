@@ -175,7 +175,7 @@ OneUptime 會在三個時刻自動移動事後分析：
 
 片段的事後分析只有備註：它沒有附件，也沒有狀態頁面會顯示它。片段解決時，OneUptime AI 不會自動起草。產生需要 Project Owner 或 Project Admin 角色，或擁有 Edit Incident Episode 權限的自訂角色。它也沒有狀態，事後分析清單也不包含它。
 
-警示和排定維護事件沒有事後分析。
+警示和維護事件沒有事後分析。
 
 ## 透過 API
 

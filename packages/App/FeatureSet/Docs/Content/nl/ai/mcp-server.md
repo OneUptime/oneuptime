@@ -253,7 +253,7 @@ Zonder API-sleutel of aanmelding kan een client de openbare tools gebruiken:
 - **`oneuptime_describe_resource`**: de velden van een resource en hoe je erop filtert, sorteert en selecteert
 - **`get_public_status_page_overview`**: het overzicht van een openbare statuspagina
 - **`get_public_status_page_incidents`**: de incidenten van een openbare statuspagina
-- **`get_public_status_page_scheduled_maintenance`**: de geplande onderhoudsgebeurtenissen ervan
+- **`get_public_status_page_scheduled_maintenance`**: de onderhoudsgebeurtenissen ervan
 - **`get_public_status_page_announcements`**: de aankondigingen ervan
 
 De tools voor openbare statuspagina's nemen de ID van een statuspagina (een UUID) of de domeinnaam ervan. Om alleen deze te gebruiken, koppel je met het adres en zonder inloggegevens:

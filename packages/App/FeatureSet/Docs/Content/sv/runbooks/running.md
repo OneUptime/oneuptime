@@ -39,9 +39,9 @@ En ny körning är **Schemalagd** tills en Worker tar den och markerar den som *
 
 Det finns fem sätt som en runbook-körning skapas på:
 
-1. **Automatiskt via en regel**: en [runbook-regel](/docs/runbooks/rules) startar den när en matchande incident, ett matchande larm eller en matchande schemalagd underhållshändelse skapas. En AI-regel kan också starta en; se [AI SRE](/docs/ai/ai-sre).
-2. **Manuellt från en händelse**: klicka på **Kör Runbook** på en incident, ett larm eller en schemalagd underhållshändelse. Körningen kopplas till den händelsen.
-3. **Manuellt från runbookets sida**: klicka på **Kör nu** på ett runbooks sida **Översikt**. Körningen kopplas inte till någon incident, något larm eller någon schemalagd underhållshändelse.
+1. **Automatiskt via en regel**: en [runbook-regel](/docs/runbooks/rules) startar den när en matchande incident, ett matchande larm eller en matchande underhållshändelse skapas. En AI-regel kan också starta en; se [AI SRE](/docs/ai/ai-sre).
+2. **Manuellt från en händelse**: klicka på **Kör Runbook** på en incident, ett larm eller en underhållshändelse. Körningen kopplas till den händelsen.
+3. **Manuellt från runbookets sida**: klicka på **Kör nu** på ett runbooks sida **Översikt**. Körningen kopplas inte till någon incident, något larm eller någon underhållshändelse.
 4. **Enligt ett schema**: runbookets schema startar den vid bestämda tider. Se [Kör enligt ett schema](/docs/runbooks/triggers#kör-enligt-ett-schema).
 5. **Från ett annat verktyg**: en `POST` till runbookets webhook-URL startar den, med värdena som anropet skickar. Se [Anropa webhooken](/docs/runbooks/triggers#anropa-webhooken).
 
@@ -49,7 +49,7 @@ Så startar du en manuellt:
 
 :::tabs
 @tab Från en händelse
-1. Öppna incidenten, larmet eller den schemalagda underhållshändelsen och gå till dess sida **Runbooks**.
+1. Öppna incidenten, larmet eller underhållshändelsen och gå till dess sida **Runbooks**.
 2. Klicka på **Kör Runbook**. Dialogen **Kör en Runbook** listar projektets påslagna runbooks.
 3. Klicka på **Kör** bredvid runbooket. Körningen visas i händelsens lista: klicka på **Visa** för att öppna den.
 @tab Från runbooket

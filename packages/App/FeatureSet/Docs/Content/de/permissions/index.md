@@ -173,7 +173,7 @@ Die Erlaubt-Einträge eines Benutzers addieren sich über alle seine Teams, eine
 
 ### Einen Status ändern
 
-Ein Vorfall, eine Warnung, eine Warnungs- oder Vorfall-Episode und eine geplante Wartung wechseln ihren Status, und ein Monitor seinen Monitorstatus, durch eine neue Zeile in ihrer Statuszeitachse. **Bestätigen**, **Beheben**, **Status ändern**, die Seite **Zustands-Zeitachse**, die API und Workflows fügen alle eine solche Zeile hinzu. Dafür braucht es die Berechtigung, Einträge dieser Zeitachse anzulegen, zusammen mit einer Berechtigung, den Datensatz zu lesen, den sie ändert:
+Ein Vorfall, eine Warnung, eine Warnungs- oder Vorfall-Episode und ein Wartungsereignis wechseln ihren Status, und ein Monitor seinen Monitorstatus, durch eine neue Zeile in ihrer Statuszeitachse. **Bestätigen**, **Beheben**, **Status ändern**, die Seite **Zustands-Zeitachse**, die API und Workflows fügen alle eine solche Zeile hinzu. Dafür braucht es die Berechtigung, Einträge dieser Zeitachse anzulegen, zusammen mit einer Berechtigung, den Datensatz zu lesen, den sie ändert:
 
 | Um den Status zu ändern von | Braucht es |
 | --- | --- |
@@ -181,7 +181,7 @@ Ein Vorfall, eine Warnung, eine Warnungs- oder Vorfall-Episode und eine geplante
 | Einer Warnung | **Create Alert State Timeline** |
 | Einer Warnungsepisode | **Create Alert Episode State Timeline** |
 | Einer Vorfall-Episode | **Create Incident Episode State Timeline** |
-| Einer geplanten Wartung | **Create Scheduled Maintenance State Timeline** |
+| Einem Wartungsereignis | **Create Scheduled Maintenance State Timeline** |
 | Einem Monitor (seinem Status) | **Create Monitor Status Timeline** |
 
 Den neuen Status - und was dazugehört, etwa wann eine Episode behoben wurde oder wann eine Wartung ihre Abonnenten das nächste Mal erinnert - schreibt OneUptime danach selbst in den Datensatz. Ein Statuswechsel braucht also nicht zusätzlich eine Berechtigung, den Datensatz zu bearbeiten: Eine eigene Rolle mit **Create Incident State Timeline**, aber ohne **Edit Incident** ändert den Status eines Vorfalls. Wollen Sie ein Team davon abhalten, Status zu ändern, sperren Sie die Berechtigung zum Anlegen in der Zeitachse; eine Sperre auf **Edit Incident** lässt Statuswechsel unberührt. Labels, Eigentümer und private Datensätze schränken die Berechtigung zum Anlegen in der Zeitachse ein wie jede andere, über den Datensatz, dessen Status sie ändert: siehe die Regeln zum Geltungsbereich weiter unten.
@@ -214,7 +214,7 @@ Manche Rollen sind per Definition projektweit und bieten überhaupt keinen Geltu
 
 ## Eigentümer
 
-Ein Eigentümer ist ein Benutzer oder ein Team, das einer konkreten Ressource zugeordnet ist. Die meisten Ressourcen, die etwas Betriebliches darstellen — Monitore, Vorfälle, Warnungen, geplante Wartungen, Bereitschaftsrichtlinien, Dashboards, Services, Statusseiten, Workflows, Runbooks und SLOs — haben einen Tab **Eigentümer**.
+Ein Eigentümer ist ein Benutzer oder ein Team, das einer konkreten Ressource zugeordnet ist. Die meisten Ressourcen, die etwas Betriebliches darstellen — Monitore, Vorfälle, Warnungen, Wartungsereignisse, Bereitschaftsrichtlinien, Dashboards, Services, Statusseiten, Workflows, Runbooks und SLOs — haben einen Tab **Eigentümer**.
 
 Eigentümer erfüllen zwei Aufgaben:
 

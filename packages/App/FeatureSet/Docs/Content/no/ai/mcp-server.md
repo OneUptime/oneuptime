@@ -253,7 +253,7 @@ Uten en API-nøkkel eller en innlogging kan en klient bruke de offentlige verkt�
 - **`oneuptime_describe_resource`**: feltene til en ressurs og hvordan du filtrerer, sorterer og velger på dem
 - **`get_public_status_page_overview`**: oversikten over en offentlig statusside
 - **`get_public_status_page_incidents`**: hendelsene på en offentlig statusside
-- **`get_public_status_page_scheduled_maintenance`**: de planlagte vedlikeholdshendelsene dens
+- **`get_public_status_page_scheduled_maintenance`**: vedlikeholdshendelsene dens
 - **`get_public_status_page_announcements`**: kunngjøringene dens
 
 Verktøyene for offentlige statussider tar en statussides ID (en UUID) eller domenenavnet dens. For å bruke bare disse kobler du til med adressen og uten påloggingsdetaljer:

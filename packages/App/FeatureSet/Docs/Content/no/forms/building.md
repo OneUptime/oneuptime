@@ -92,7 +92,7 @@ Et spørsmål av typen **Fil** eller **Flere filer** tar filer fra innsenderens 
 
 ### Felt på det skjemaet oppretter
 
-Feltene på en hendelse, eller på en planlagt vedlikeholdsbegivenhet, som en innsender kan svare på. Svaret blir feltets verdi.
+Feltene på en hendelse, eller på en vedlikeholdshendelse, som en innsender kan svare på. Svaret blir feltets verdi.
 
 | Hendelsesfelt | Besvares med |
 | --- | --- |

@@ -163,7 +163,7 @@ Para conectar o Huntress, clique no gatilho **Huntress Incident Report** no canv
 
 ## Gatilhos de eventos do OneUptime
 
-Quase tudo no OneUptime — monitores, incidentes, alertas, eventos de manutenção agendada, páginas de status, políticas de plantão, equipes — pode disparar um workflow. Cada um oferece até quatro gatilhos:
+Quase tudo no OneUptime — monitores, incidentes, alertas, eventos de manutenção, páginas de status, políticas de plantão, equipes — pode disparar um workflow. Cada um oferece até quatro gatilhos:
 
 - **On Create** — dispara quando um novo é adicionado.
 - **On Update** — dispara quando um é alterado. Salvar um registro com os valores que ele já tem, como um formulário salvo sem alterações ou uma chave enviada na posição em que já estava, não é uma alteração e não o dispara.

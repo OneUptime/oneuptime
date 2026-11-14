@@ -1,6 +1,6 @@
 # Offentligt API
 
-Varje statussida svarar på en liten uppsättning JSON-endpoints som bara läser: dess översikt, en sammanfattning, drifttid, incidenter, episoder, planerade underhållshändelser och meddelanden. Det är de endpoints som statussidan själv läser in, så de returnerar exakt det som en besökare ser, och en offentlig sida behöver ingen API-nyckel. Använd dem för att visa din status i din egen app, en chattbot eller på en väggskärm.
+Varje statussida svarar på en liten uppsättning JSON-endpoints som bara läser: dess översikt, en sammanfattning, drifttid, incidenter, episoder, underhållshändelser och meddelanden. Det är de endpoints som statussidan själv läser in, så de returnerar exakt det som en besökare ser, och en offentlig sida behöver ingen API-nyckel. Använd dem för att visa din status i din egen app, en chattbot eller på en väggskärm.
 
 :::cards
 - [Endpoints](#endpoints): En endpoint för varje sak som sidan visar.
@@ -57,8 +57,8 @@ Där en sökväg nedan säger `{statusPageIdOrDomain}` kan du skicka sidans ID e
 | `/incidents/{statusPageIdOrDomain}/{incidentId}` | `POST` | En incident. |
 | `/episodes/{statusPageIdOrDomain}` | `POST` | Incidentepisoderna som sidan listar. |
 | `/episodes/{statusPageIdOrDomain}/{episodeId}` | `POST` | En episod. |
-| `/scheduled-maintenance-events/{statusPageIdOrDomain}` | `GET`, `POST` | De planerade underhållshändelserna som sidan listar, med deras offentliga anteckningar och tillståndsändringar. |
-| `/scheduled-maintenance-events/{statusPageIdOrDomain}/{scheduledMaintenanceId}` | `POST` | En planerad underhållshändelse. |
+| `/scheduled-maintenance-events/{statusPageIdOrDomain}` | `GET`, `POST` | Underhållshändelserna som sidan listar, med deras offentliga anteckningar och tillståndsändringar. |
+| `/scheduled-maintenance-events/{statusPageIdOrDomain}/{scheduledMaintenanceId}` | `POST` | En underhållshändelse. |
 | `/announcements/{statusPageIdOrDomain}` | `GET`, `POST` | Meddelandena som sidan listar. |
 | `/announcements/{statusPageIdOrDomain}/{announcementId}` | `POST` | Ett meddelande. |
 
@@ -140,13 +140,13 @@ Den samlade statusen är den sämsta aktuella statusen bland monitorerna och mon
 | `activeIncidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates` | De olösta incidenter som sidan visar, deras offentliga anteckningar och tillståndsändringar, och projektets incidenttillstånd. |
 | `timelineIncidents` | Incidenterna i drifttidsstaplarnas tidsfönster, lösta inräknade, för staplarnas verktygstips. |
 | `activeEpisodes`, `episodePublicNotes`, `episodeStateTimelines` | Samma sak för incidentepisoder. |
-| `scheduledMaintenanceEvents`, `scheduledMaintenanceEventsPublicNotes`, `scheduledMaintenanceStateTimelines`, `scheduledMaintenanceStates` | De planerade underhållshändelser som ännu inte har börjat eller pågår, deras offentliga anteckningar och tillståndsändringar. |
-| `timelineScheduledMaintenanceEvents` | De planerade underhållshändelserna i drifttidsstaplarnas tidsfönster som har börjat, oavsett om de pågår eller är över, för staplarnas verktygstips och varje dags dialog: de som sidan visar och som gäller någon av dess monitorer, var och en med bara sidans monitorer. |
+| `scheduledMaintenanceEvents`, `scheduledMaintenanceEventsPublicNotes`, `scheduledMaintenanceStateTimelines`, `scheduledMaintenanceStates` | De underhållshändelser som ännu inte har börjat eller pågår, deras offentliga anteckningar och tillståndsändringar. |
+| `timelineScheduledMaintenanceEvents` | Underhållshändelserna i drifttidsstaplarnas tidsfönster som har börjat, oavsett om de pågår eller är över, för staplarnas verktygstips och varje dags dialog: de som sidan visar och som gäller någon av dess monitorer, var och en med bara sidans monitorer. |
 | `activeAnnouncements` | Meddelandena som visas nu: påbörjade och inte avslutade. |
 
 ## Läs sammanfattningen
 
-Sammanfattningen är översikten nedbantad till det som ett övervakningsverktyg frågar en sida om: varje resurs status, och om en pågående planerad underhållshändelse berör den. Den förblir liten hur mycket historik sidan än visar, och den är det som [monitorn för externa statussidor](/docs/monitor/external-status-page-monitor#oneuptime-statussidor) i en annan OneUptime läser. Den kommer från samma cache som översikten, efter samma åtkomstregler.
+Sammanfattningen är översikten nedbantad till det som ett övervakningsverktyg frågar en sida om: varje resurs status, och om en pågående underhållshändelse berör den. Den förblir liten hur mycket historik sidan än visar, och den är det som [monitorn för externa statussidor](/docs/monitor/external-status-page-monitor#oneuptime-statussidor) i en annan OneUptime läser. Den kommer från samma cache som översikten, efter samma åtkomstregler.
 
 ```bash
 curl https://oneuptime.com/status-page-api/summary/YOUR_STATUS_PAGE_ID
@@ -195,7 +195,7 @@ Svaret:
 | `overallStatus` | Sidans övergripande status, som dess banner visar den: `name`, `color` och `isOperational`. `null` när varje resurs på sidan visas som **Inte övervakad**. |
 | `resources` | Varje resurs som sidan visar, i dess ordning: dess `name` på sidan, dess `groupName` med grupperna ovanför, dess `currentStatus`, `isMonitored` och `isUnderMaintenance`. |
 | `activeIncidents` | De olösta incidenter som sidan visar, var och en med `affectedResourceIds` för de resurser den berör. |
-| `ongoingScheduledMaintenance`, `upcomingScheduledMaintenance` | De planerade underhållshändelser som pågår eller ska komma, var och en med sina `affectedResourceIds`. |
+| `ongoingScheduledMaintenance`, `upcomingScheduledMaintenance` | De underhållshändelser som pågår eller ska komma, var och en med sina `affectedResourceIds`. |
 
 En resurs `currentStatus` är `null` när sidan inte visar den, och när `isMonitored` är `false`: ingenting kontrollerar resursen, eftersom dess monitors övervakning är avstängd eller alla monitorer i dess monitorgrupp har den avstängd, så sidan visar den som **Inte övervakad**. `isUnderMaintenance` är `true` medan en pågående händelse nämner en av resursens monitorer, eller en monitor i dess monitorgrupp, oavsett vilken status de monitorerna har.
 
@@ -384,7 +384,7 @@ for incident in incidents:
 | -------- | -------------------- |
 | Incidenter | `incidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates`, `statusPageResources`, `monitorsInGroup` |
 | Episoder | `episodes`, `episodePublicNotes`, `episodeStateTimelines`, `incidentStates`, `statusPageResources`, `monitorsInGroup` |
-| Planerade underhållshändelser | `scheduledMaintenanceEvents`, `scheduledMaintenanceEventsPublicNotes`, `scheduledMaintenanceStateTimelines`, `scheduledMaintenanceStates`, `statusPageResources`, `monitorsInGroup` |
+| Underhållshändelser | `scheduledMaintenanceEvents`, `scheduledMaintenanceEventsPublicNotes`, `scheduledMaintenanceStateTimelines`, `scheduledMaintenanceStates`, `statusPageResources`, `monitorsInGroup` |
 | Meddelanden | `announcements`, `statusPageResources`, `monitorsInGroup` |
 
 En request efter en enskild post svarar med samma nycklar, som innehåller den enda posten.
@@ -406,7 +406,7 @@ Ett fel svarar med en statuskod och JSON-innehåll som säger varför:
 
 ## Andra sätt att läsa en statussida
 
-- **RSS.** Varje statussida tillhandahåller `/rss`, ett flöde med dess incidenter, meddelanden och planerade underhållshändelser, var och en daterad som sidan daterar den. Se [Den inbäddbara brickan och RSS-flödet](/docs/status-pages/index#den-inbäddbara-brickan-och-rss-flödet).
+- **RSS.** Varje statussida tillhandahåller `/rss`, ett flöde med dess incidenter, meddelanden och underhållshändelser, var och en daterad som sidan daterar den. Se [Den inbäddbara brickan och RSS-flödet](/docs/status-pages/index#den-inbäddbara-brickan-och-rss-flödet).
 - **llms.txt.** Bredvid `/rss` tillhandahåller varje statussida `/llms.txt`, som visar AI-agenter vägen till RSS-flödet och översiktens JSON.
 - **MCP.** AI-agenter kan läsa sidan via OneUptimes MCP-server på `https://oneuptime.com/mcp`, utan API-nyckel, genom att ange sidans ID eller domän som `statusPageIdOrDomain`. Den är påslagen som standard; stäng av den med **Aktivera MCP-server** under **AI → MCP** i sidans sidomeny. Se [MCP-server](/docs/ai/mcp-server).
 - **REST-API:et.** För att skapa eller ändra statussidor, resurser, prenumeranter och meddelanden använder du [OneUptime-API:et](/docs/api-reference/api-reference) med en API-nyckel.

@@ -32,7 +32,7 @@ flowchart TB
 
 Statussider ligger under **Statussider** i menuen **Produkter** i den øverste bjælke, blandt de vigtigste. Alt på denne side gælder pr. statusside: et projekt kan have så mange, det vil — en offentlig til kunder, en privat til et internt publikum, en pr. region til et bestemt marked.
 
-Siden viser de monitorer, du sætter på den, som ressourcer, og hændelser når siden gennem de monitorer. [Planlagte vedligeholdelseshændelser](/docs/scheduled-maintenance/index) og meddelelser når den direkte: hver af dem angiver de statussider, den vises på. Besøgende læser siden, og abonnenter får besked om hver ændring på de kanaler, de har valgt.
+Siden viser de monitorer, du sætter på den, som ressourcer, og hændelser når siden gennem de monitorer. [Vedligeholdelseshændelser](/docs/scheduled-maintenance/index) og meddelelser når den direkte: hver af dem angiver de statussider, den vises på. Besøgende læser siden, og abonnenter får besked om hver ændring på de kanaler, de har valgt.
 
 ## Kort fortalt
 
@@ -226,11 +226,11 @@ Tre måder at vise status andre steder end på selve siden.
 
 **Indlejret statusmærke.** Under **Statussider → din side → Avanceret → Indlejret status** slår du **Aktivér indlejret statusmærke** til (`enableEmbeddedOverallStatus`, slået fra som standard). Første gang du slår det til, får mærket sit token (`embeddedOverallStatusToken`), og kortet **Indlejr mærket** viser mærket, leveret fra `/api/status-page/badge/<status-page-id>?token=<token>`, med dets **HTML** og dets **Markdown, med link til statussiden** at kopiere, så du kan sætte den aktuelle samlede status ind i din dokumentation, din apps sidefod eller en markedsføringsside. Markdown-koden linker til sidens første aktive brugerdefinerede domæne, også et med et certifikat, du har uploadet, eller til dens adresse på OneUptime, så længe intet er aktivt. Tokenet ligger på kortet **Sikkerhedstoken** under **Yderligere indstillinger**, med **Regenerer token** til når linket er blevet delt for bredt.
 
-**RSS-feed.** Hver statusside leverer `/rss`: et feed med titlen "{sidetitel} Updates", med den **Sidetitel**, der er angivet under **Branding**, eller sidens navn, hvis den ikke har nogen, og hvis elementer begynder med `Incident: `, `Announcement: ` og `Scheduled Maintenance: `. Hvert element er dateret, som siden daterer det: en hændelse efter, hvornår den blev erklæret, en meddelelse efter, hvornår den kom op, og en planlagt vedligeholdelsesbegivenhed efter, hvornår den begynder, og dens beskrivelse starter med dens tidsvindue. Nyttigt for dem, der hellere vil trække dine opdateringer ind i en feedlæser eller en chatbot end abonnere via e-mail.
+**RSS-feed.** Hver statusside leverer `/rss`: et feed med titlen "{sidetitel} Updates", med den **Sidetitel**, der er angivet under **Branding**, eller sidens navn, hvis den ikke har nogen, og hvis elementer begynder med `Incident: `, `Announcement: ` og `Scheduled Maintenance: `. Hvert element er dateret, som siden daterer det: en hændelse efter, hvornår den blev erklæret, en meddelelse efter, hvornår den kom op, og en vedligeholdelseshændelse efter, hvornår den begynder, og dens beskrivelse starter med dens tidsvindue. Nyttigt for dem, der hellere vil trække dine opdateringer ind i en feedlæser eller en chatbot end abonnere via e-mail.
 
 **Vedligeholdelseskalender.** Hver statusside leverer også `/maintenance.ics`: den planlagte vedligeholdelse, den viser, som en kalender, Google Kalender, Apple Kalender eller Outlook kan abonnere på. Besøgende tilføjer den med **Abonner på kalender** på sidens side **Planlagt vedligeholdelse**, og en enkelt begivenhed med **Føj til kalender** på begivenhedens egen side. En privat sides kalender er tom, da en kalenderapp ikke kan logge ind. Se [Vedligeholdelseskalender](/docs/scheduled-maintenance/calendar#en-statussides-kalender).
 
-Hvis du hellere vil hente dataene selv, bygger statussiden på offentlige læse-endpoints for oversigten, hændelserne, de planlagte vedligeholdelsesbegivenheder, meddelelserne og episoderne: se [Offentlig API](/docs/status-pages/public-api).
+Hvis du hellere vil hente dataene selv, bygger statussiden på offentlige læse-endpoints for oversigten, hændelserne, vedligeholdelseshændelserne, meddelelserne og episoderne: se [Offentlig API](/docs/status-pages/public-api).
 
 ## At arkivere en statusside
 

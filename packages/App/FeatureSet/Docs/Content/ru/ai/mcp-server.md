@@ -253,7 +253,7 @@ MCP-сервер работает тремя способами.
 - **`oneuptime_describe_resource`**: поля ресурса и то, как по ним фильтровать, сортировать и выбирать
 - **`get_public_status_page_overview`**: обзор публичной страницы статуса
 - **`get_public_status_page_incidents`**: инциденты публичной страницы статуса
-- **`get_public_status_page_scheduled_maintenance`**: её события плановых работ
+- **`get_public_status_page_scheduled_maintenance`**: её события обслуживания
 - **`get_public_status_page_announcements`**: её объявления
 
 Инструменты публичных страниц статуса принимают ID страницы статуса (UUID) или её доменное имя. Чтобы использовать только их, подключитесь с адресом и без учётных данных:

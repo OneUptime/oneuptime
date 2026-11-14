@@ -206,7 +206,7 @@ You do not have permissions to create Incident Internal Note. It is read through
 
 #### 寫入所列出或指定的記錄
 
-建立或變更所列出的記錄——事件的監測器和待命策略、警示的服務、排定維護活動的狀態頁面、規則的 Runbook——在你有讀取該類記錄的權限時遵循該權限，並且無論如何都遵循對其讀取設定的帶標籤封鎖：超出範圍的記錄會以同樣的 `400` 被拒絕。變更只檢查它新增到清單中的記錄，因此清單中已有的記錄會保留。
+建立或變更所列出的記錄——事件的監測器和待命策略、警示的服務、維護事件的狀態頁面、規則的 Runbook——在你有讀取該類記錄的權限時遵循該權限，並且無論如何都遵循對其讀取設定的帶標籤封鎖：超出範圍的記錄會以同樣的 `400` 被拒絕。變更只檢查它新增到清單中的記錄，因此清單中已有的記錄會保留。
 
 建立或變更在專用欄位中指定的那一筆記錄——警示的監測器、狀態頁面資源所顯示的監測器、成本預算的服務、Runbook 執行所連結的事件——無論用它的哪個名稱，都遵循同樣的規則：超出你讀取該類記錄權限的記錄，或帶有讀取封鎖所移除之標籤的記錄，會以同樣的 `400` 被拒絕。變更只在指定了與欄位已有記錄不同的記錄時才檢查它。OneUptime 的全域探針和 AI 代理程式供每個專案使用，對每個專案保持開放。範本替你填入的記錄在填入後、儲存任何內容之前也以同樣方式檢查：事件範本向由它宣告的事件新增的監測器、狀態頁面和待命策略，必須是你可以讀取的，就像是你親自選擇的一樣。
 
@@ -246,7 +246,7 @@ Conflicting Monitor references were provided. monitorId and monitor are names fo
 
 ### 開關
 
-開或關的欄位——`isEnabled`、`isVisibleOnStatusPage`、`isArchived` 以及其他所有 `true` 或 `false` 欄位——接受 `true` 或 `false`。資料庫會讀作其中之一的文字和數字會被當作該值接受，對 API、Terraform 和工作流程都一樣：`"true"`、`"yes"`、`"on"`、`"1"` 和 `1` 是 `true`，`"false"`、`"no"`、`"off"`、`"0"` 和 `0` 是 `false`，不區分大小寫。OneUptime 對該記錄所做的一切也都把它當作該值處理：以 `"isVisibleOnStatusPage": "true"` 傳送的排定維護活動會在狀態頁面上顯示其圖片，而 `"isEnabled": "false"` 會像 `false` 一樣在低於方案時關閉資源。任何其他值，例如 `"maybe"`、`""` 或 `2`，都會被拒絕，並傳回一個指明欄位的 `400`：
+開或關的欄位——`isEnabled`、`isVisibleOnStatusPage`、`isArchived` 以及其他所有 `true` 或 `false` 欄位——接受 `true` 或 `false`。資料庫會讀作其中之一的文字和數字會被當作該值接受，對 API、Terraform 和工作流程都一樣：`"true"`、`"yes"`、`"on"`、`"1"` 和 `1` 是 `true`，`"false"`、`"no"`、`"off"`、`"0"` 和 `0` 是 `false`，不區分大小寫。OneUptime 對該記錄所做的一切也都把它當作該值處理：以 `"isVisibleOnStatusPage": "true"` 傳送的維護事件會在狀態頁面上顯示其圖片，而 `"isEnabled": "false"` 會像 `false` 一樣在低於方案時關閉資源。任何其他值，例如 `"maybe"`、`""` 或 `2`，都會被拒絕，並傳回一個指明欄位的 `400`：
 
 ```text
 isVisibleOnStatusPage must be true or false.
@@ -276,7 +276,7 @@ API 參考將這些欄位標示為唯讀。請求在其他變更之外為其中�
 
 ### 變更記錄的狀態
 
-記錄的狀態透過其狀態時間軸中的一列來變更——`POST /api/incident-state-timeline`、`/api/alert-state-timeline`、`/api/incident-episode-state-timeline`、`/api/alert-episode-state-timeline` 或 `/api/scheduled-maintenance-state-timeline`——或者透過寫入其目前狀態（`currentIncidentStateId`、`currentAlertStateId`、`currentScheduledMaintenanceStateId` 或關聯）的更新來變更，後者會記錄同樣的一列。無論哪種方式，都由一條規則約束狀態轉換，對片段和對事件、警示或排定維護活動都一樣：在你專案的順序中早於記錄目前狀態的狀態，會在儲存任何內容之前被拒絕，記錄已處於的狀態也一樣：
+記錄的狀態透過其狀態時間軸中的一列來變更——`POST /api/incident-state-timeline`、`/api/alert-state-timeline`、`/api/incident-episode-state-timeline`、`/api/alert-episode-state-timeline` 或 `/api/scheduled-maintenance-state-timeline`——或者透過寫入其目前狀態（`currentIncidentStateId`、`currentAlertStateId`、`currentScheduledMaintenanceStateId` 或關聯）的更新來變更，後者會記錄同樣的一列。無論哪種方式，都由一條規則約束狀態轉換，對片段和對事件、警示或維護事件都一樣：在你專案的順序中早於記錄目前狀態的狀態，會在儲存任何內容之前被拒絕，記錄已處於的狀態也一樣：
 
 ```text
 Episode cannot transition to Acknowledged state from Resolved state because Acknowledged is before Resolved in the order of incident states.

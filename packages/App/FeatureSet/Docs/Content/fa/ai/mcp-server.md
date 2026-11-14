@@ -253,7 +253,7 @@ GitHub Copilot Chat را در حالت عامل باز کنید و برای نم
 - **`oneuptime_describe_resource`**: فیلدهای یک منبع و روش فیلتر، مرتب‌سازی و انتخاب بر اساس آن‌ها
 - **`get_public_status_page_overview`**: نمای کلی یک صفحهٔ وضعیت عمومی
 - **`get_public_status_page_incidents`**: حادثه‌های یک صفحهٔ وضعیت عمومی
-- **`get_public_status_page_scheduled_maintenance`**: رویدادهای نگهداری زمان‌بندی‌شدهٔ آن
+- **`get_public_status_page_scheduled_maintenance`**: رویدادهای تعمیر و نگهداری آن
 - **`get_public_status_page_announcements`**: اطلاعیه‌های آن
 
 ابزارهای صفحهٔ وضعیت عمومی شناسهٔ صفحهٔ وضعیت (یک UUID) یا نام دامنهٔ آن را می‌گیرند. برای استفادهٔ تنها از این‌ها، فقط با نشانی و بدون هیچ اعتبارنامه‌ای وصل شوید:

@@ -174,7 +174,7 @@ oneuptime incident-state list --query '{"isResolvedState":true}' --sort '{"order
 
 ## Bekreft, løs og legg til notater
 
-Hendelser, varsler, episodene deres og planlagte vedlikeholdshendelser har kommandoer for det knappene i dashbordet gjør på dem:
+Hendelser, varsler, episodene deres og vedlikeholdshendelser har kommandoer for det knappene i dashbordet gjør på dem:
 
 | Kommando | Hva den gjør | Ressurser |
 | --- | --- | --- |

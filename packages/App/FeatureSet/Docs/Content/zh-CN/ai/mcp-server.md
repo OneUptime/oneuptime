@@ -253,7 +253,7 @@ MCP 服务器有三种工作方式。
 - **`oneuptime_describe_resource`**：资源的字段，以及如何按字段筛选、排序和选择
 - **`get_public_status_page_overview`**：公共状态页的概览
 - **`get_public_status_page_incidents`**：公共状态页的事件
-- **`get_public_status_page_scheduled_maintenance`**：它的计划维护事件
+- **`get_public_status_page_scheduled_maintenance`**：它的维护事件
 - **`get_public_status_page_announcements`**：它的公告
 
 公共状态页工具接受状态页的 ID（UUID）或其域名。如果只使用这些工具，请只用地址连接，不带任何凭据：

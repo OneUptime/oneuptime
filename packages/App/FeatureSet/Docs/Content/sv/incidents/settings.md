@@ -183,7 +183,7 @@ De flesta projekt behöver ett steg. Lägg till ett till när en anteckning beh�
 - **Ändringar gäller direkt.** Vem som får godkänna läses när någon tar ställning, och anteckningar som redan väntar följer dina ändringar. När du lägger till, tar bort eller flyttar steg, eller ändrar vem ett steg nämner, tillfrågas alla som nu kan godkänna en väntande anteckning och inte har tillfrågats om den än via sina aviseringsinställningar, och detsamma gäller den som går med i ett team som steget en anteckning väntar på nämner. Ingen tillfrågas två gånger om samma steg i en anteckning. Den som tas bort från steget, eller ur dess team, kan inte längre ta ställning till anteckningen, och deras meddelande om den i Slack, Microsoft Teams eller Mattermost säger det. En anteckning behåller de godkännanden den har.
 - **Ingen godkänner sin egen anteckning, eller två steg av en anteckning.** Den som skickade en anteckning för godkännande kan varken godkänna eller avvisa den, och den som godkände ett av dess steg kan inte godkänna ett annat.
 
-Bara projektägare och -administratörer kan ändra de här inställningarna, och alla som läser anteckningarna kan se vem som godkänner dem. **Schemalagt underhåll → Inställningar → Godkännande av offentliga anteckningar** är samma sida för schemalagda underhållshändelser, med en egen brytare och egna steg. Vad en anteckning gör medan den väntar, och hur godkännare tar ställning, står under [Godkännande av offentliga anteckningar](/docs/incidents/notes-owners-and-feed#godkännande-av-offentliga-anteckningar).
+Bara projektägare och -administratörer kan ändra de här inställningarna, och alla som läser anteckningarna kan se vem som godkänner dem. **Schemalagt underhåll → Inställningar → Godkännande av offentliga anteckningar** är samma sida för underhållshändelser, med en egen brytare och egna steg. Vad en anteckning gör medan den väntar, och hur godkännare tar ställning, står under [Godkännande av offentliga anteckningar](/docs/incidents/notes-owners-and-feed#godkännande-av-offentliga-anteckningar).
 
 ## Aviseringar till prenumeranter
 
@@ -236,7 +236,7 @@ Varje definition har:
 - **Ta med i aviseringar till prenumeranter** — under **Fler fält**. Skickar fältet och dess värde till statussidans prenumeranter med incidentens meddelanden: standardmeddelandena via e-post, i Slack och i Microsoft Teams och webhooks, men inte sms. Prenumeranter finns oftast utanför ditt team, så slå bara på det för fält som kan delas säkert. Se [Prenumeranter och meddelanden](/docs/status-pages/subscribers#incidenter).
 - **Mallvariabel** — nyckeln som en mall når fältet med, `{{incident.customFields.<key>}}`, i anteckningsmallar och anpassade mallar för aviseringar till prenumeranter. Den bildas från fältets namn när fältet skapas — gemener, siffror och understreck, så `Expected Resolution` blir `expected_resolution`, med `_2`, `_3` och så vidare tillagt när ett annat fält redan har nyckeln — och den ändras inte när fältet byter namn. Ingen sätter den för hand: API:t ignorerar ett värde som skickas för den. Mallar som har skrivits med den äldre `{{customFields.<key>}}` fortsätter att fungera. Du behöver aldrig slå upp den: redigerarna som infogar den — en anteckningsmalls **Anteckning** och en statussidas anpassade mallar för aviseringar till prenumeranter för incidenthändelser — listar varje fälts variabel under **Mallvariabler**, efter fältets namn. Ett fälts formulär **Redigera** visar den också, skrivskyddad, längst ner i **Fler fält**, med en knapp som kopierar den.
 
-**Ordning**, **Visa vid skapande**, **Obligatoriskt vid skapande**, **Ta med i aviseringar till prenumeranter** och **Mallvariabel** finns bara på anpassade incidentfält. De anpassade fälten på monitorer, larm, schemalagda underhållshändelser och de andra resurserna har dem inte.
+**Ordning**, **Visa vid skapande**, **Obligatoriskt vid skapande**, **Ta med i aviseringar till prenumeranter** och **Mallvariabel** finns bara på anpassade incidentfält. De anpassade fälten på monitorer, larm, underhållshändelser och de andra resurserna har dem inte.
 
 Definitionerna finns i en egen modell; värdena finns på själva incidenten i kolumnen `customFields`. På en enskild incident fyller du i dem från **Anpassade fält** i incidentens sidomeny (`/dashboard/{projectId}/incidents/{incidentId}/custom-fields`), där fälten listas i sin **Ordning**. Incidentmallar behåller värden för samma fält i sina egna `customFields`.
 
@@ -362,7 +362,7 @@ När du sparar flyttas ett alternativ med nytt namn och ett värde som du välje
 
 En incident vars värde dess fält inte längre erbjuder visar värdet, markerat som _inte längre ett alternativ_, på sin sida **Anpassade fält** och i listan över incidenter. Att redigera dess andra fält behåller det; välj ett annat alternativ för att ändra det.
 
-De anpassade fälten på alla andra resurser fungerar på samma sätt: monitorer, larm, schemalagda underhållshändelser, statussidor, jourpolicyer, team, teammedlemmar och lagerobjekt. Att byta namn på ett alternativ i ett monitorfält, eller lägga till ett, gör samma sak med incident-, larm- och underhållsfälten som kopierar det (se [Fält som kopieras från en monitor](#fält-som-kopieras-från-en-monitor)), så att de fortsätter att erbjuda varje värde som de kopierar.
+De anpassade fälten på alla andra resurser fungerar på samma sätt: monitorer, larm, underhållshändelser, statussidor, jourpolicyer, team, teammedlemmar och lagerobjekt. Att byta namn på ett alternativ i ett monitorfält, eller lägga till ett, gör samma sak med incident-, larm- och underhållsfälten som kopierar det (se [Fält som kopieras från en monitor](#fält-som-kopieras-från-en-monitor)), så att de fortsätter att erbjuda varje värde som de kopierar.
 
 Via API:t skickar du den nya listan som `dropdownOptions`, och namnbytena i `miscDataProps`:
 
@@ -396,7 +396,7 @@ flowchart TB
     resolved -->|"Tid till efteranalys"| postmortem["Efteranalysen publiceras"]
 ```
 
-Larm och schemalagda underhållshändelser har samma funktion, under **Larm → Inställningar → Mätningar** och **Schemalagt underhåll → Inställningar → Mätningar**. Allt nedan gäller för alla tre, var och en med sina egna ögonblick.
+Larm och underhållshändelser har samma funktion, under **Larm → Inställningar → Mätningar** och **Schemalagt underhåll → Inställningar → Mätningar**. Allt nedan gäller för alla tre, var och en med sina egna ögonblick.
 
 ### Färdiga mätningar
 
@@ -477,7 +477,7 @@ Varje incidents sida visar sina egna mätningar på ett kort **Mätningar**, dir
 
 En mätning vars start eller slut du ändrar fortsätter att visa sitt gamla värde på varje incident tills OneUptime har räknat ut den igen, liksom dess diagram. Direkt efter en tillståndsändring från incidentens rubrik visar kortet de nya värdena så snart OneUptime har räknat ut dem, oftast direkt.
 
-Larm och schemalagda underhållshändelser har samma kort på sina sidor. För en underhållshändelse visas **Inte nådd** när händelsen har avslutats: när den är i det avslutade eller det slutförda tillståndet, eller i ett eget tillstånd efter det avslutade tillståndet. Dess ögonblick följer samma platser: **Underhållet startar**, **Underhållet slutar** och **Underhållet slutförs** är flyttarna till ett tillstånd där händelsen pågår, är över eller är slutförd från ett där den inte var det — så en händelse som slutförs direkt från det pågående tillståndet slutar där, en händelse som flyttas från det avslutade tillståndet direkt till ett eget tillstånd efter det slutförda tillståndet slutförs där, och att gå vidare från det slutförda tillståndet till ett sådant tillstånd slutför ingenting igen. Se [Schemalagda underhållshändelser](/docs/status-pages/subscribers#schemalagda-underhållshändelser). Kortet utelämnas när ingen aktiverad mätning har **Visa på incidentsidor** påslaget, och för någon som inte får läsa mätningar.
+Larm och underhållshändelser har samma kort på sina sidor. För en underhållshändelse visas **Inte nådd** när händelsen har avslutats: när den är i det avslutade eller det slutförda tillståndet, eller i ett eget tillstånd efter det avslutade tillståndet. Dess ögonblick följer samma platser: **Underhållet startar**, **Underhållet slutar** och **Underhållet slutförs** är flyttarna till ett tillstånd där händelsen pågår, är över eller är slutförd från ett där den inte var det — så en händelse som slutförs direkt från det pågående tillståndet slutar där, en händelse som flyttas från det avslutade tillståndet direkt till ett eget tillstånd efter det slutförda tillståndet slutförs där, och att gå vidare från det slutförda tillståndet till ett sådant tillstånd slutför ingenting igen. Se [Underhållshändelser](/docs/status-pages/subscribers#underhållshändelser). Kortet utelämnas när ingen aktiverad mätning har **Visa på incidentsidor** påslaget, och för någon som inte får läsa mätningar.
 
 ### Påverkan började, och varför det är tomt
 
@@ -563,7 +563,7 @@ Dialogen säger vad som är fel innan du sparar, och API:t avvisar samma prefix.
 
 Project Owners, Project Admins och alla med **Edit Project** kan ändra prefixen. Alla andra ser dem med knappen **Uppdatera** låst.
 
-Larm och schemalagda underhållshändelser har samma sida: **Larm → Inställningar → Numrering** för numren på larm och larmepisoder (`ALT-` och `AE-` i nya projekt), och **Schemalagt underhåll → Inställningar → Numrering** för numren på händelser (`SM-`). I alla tre fungerar sidans gamla adresser fortfarande och öppnar **Numrering**: **Fler inställningar** (`…/settings/more`) och **Nummerprefix** (`…/settings/number-prefix`).
+Larm och underhållshändelser har samma sida: **Larm → Inställningar → Numrering** för numren på larm och larmepisoder (`ALT-` och `AE-` i nya projekt), och **Schemalagt underhåll → Inställningar → Numrering** för numren på händelser (`SM-`). I alla tre fungerar sidans gamla adresser fortfarande och öppnar **Numrering**: **Fler inställningar** (`…/settings/more`) och **Nummerprefix** (`…/settings/number-prefix`).
 
 ## Nästa nummer
 
@@ -589,7 +589,7 @@ Dialogen säger vad som är fel innan du sparar, och bara de nummer du har ändr
 
 Project Owners, Project Admins och alla med **Edit Project** kan ändra nästa nummer, precis som prefixen. Alla andra ser dem med knappen **Uppdatera** låst.
 
-Larm och schemalagda underhållshändelser har samma kort på sina sidor **Numrering**: **Nästa larmnummer** och **Nästa nummer för larmepisod**, samt **Nästa nummer för schemalagt underhåll**. [Importera från ett annat verktyg](/docs/moving-to-oneuptime/incident-io) tar med din konfiguration, inte dina tidigare incidenter, och lämnar därför numren som de är: ställ in nästa nummer innan den första incidenten deklareras i OneUptime.
+Larm och underhållshändelser har samma kort på sina sidor **Numrering**: **Nästa larmnummer** och **Nästa nummer för larmepisod**, samt **Nästa nummer för schemalagt underhåll**. [Importera från ett annat verktyg](/docs/moving-to-oneuptime/incident-io) tar med din konfiguration, inte dina tidigare incidenter, och lämnar därför numren som de är: ställ in nästa nummer innan den första incidenten deklareras i OneUptime.
 
 ## Reglage för länkade larm
 

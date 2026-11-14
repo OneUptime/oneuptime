@@ -4,7 +4,7 @@ Hver indsendelse via en formular opretter én post i dit projekt: en **hændelse
 
 :::cards
 - [Sådan bliver en indsendelse til en hændelse](#sådan-bliver-en-indsendelse-til-en-hændelse): Hvert felt på den nye hændelse, og hvor dets værdi kommer fra.
-- [Sådan bliver en indsendelse til en planlagt vedligeholdelsesbegivenhed](#sådan-bliver-en-indsendelse-til-en-planlagt-vedligeholdelsesbegivenhed): Det samme, for en anmodning om vedligeholdelse.
+- [Sådan bliver en indsendelse til en vedligeholdelseshændelse](#sådan-bliver-en-indsendelse-til-en-vedligeholdelseshændelse): Det samme, for en anmodning om vedligeholdelse.
 - [Indstillingerne Ved indsendelse](#indstillingerne-ved-indsendelse): Standardværdier, hvad der altid tilknyttes, ejere og offentliggørelse.
 - [Den private note](#den-private-note): Hvem der sendte den, og de svar, intet felt indeholder.
 :::
@@ -92,7 +92,7 @@ Slå **Synlig på statussiden** til fra hændelsens side **Indstillinger**.
 Fordi hændelsen blev oprettet med **Underret statussideabonnenter** slået fra, sender det ikke notifikationen "hændelse oprettet" at offentliggøre den. For at give abonnenterne besked skal du slå en offentlig note op med **Underret statussideabonnenter** markeret — se [Slå en offentlig note op](/docs/incidents/notes-owners-and-feed#slå-en-offentlig-note-op).
 :::
 
-## Sådan bliver en indsendelse til en planlagt vedligeholdelsesbegivenhed
+## Sådan bliver en indsendelse til en vedligeholdelseshændelse
 
 | Felt | Kommer fra |
 | --- | --- |

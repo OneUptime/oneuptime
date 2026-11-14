@@ -12,7 +12,7 @@ Der Wartungskalender zeigt Ihre geplante Wartung nach Datum: auf einer eigenen S
 
 ```mermaid title="Eine Liste von Ereignissen, drei Kalender"
 flowchart TB
-    events["Geplante<br/>Wartungsereignisse"] --> view["Die Kalenderansicht<br/>im Dashboard"]
+    events["Wartungsereignisse"] --> view["Die Kalenderansicht<br/>im Dashboard"]
     events --> team["Der Link des Teams<br/>jedes Ereignis"]
     events --> page["Der Link einer<br/>Statusseite<br/>was die Seite zeigt"]
     team --> apps["Kalender-Apps"]
@@ -59,11 +59,11 @@ Kopieren Sie den Link aus den Freigabeeinstellungen des Kalenders selbst: in Goo
 
 Jeder Kalender behält seine Ereignisse von 90 Tagen zurück bis ein Jahr voraus, bis zu 2.000 davon, die heute nächsten zuerst. Ein Kalender über 5 MB wird nicht gelesen. Wiederkehrende Ereignisse, ihre Ausnahmen und ihre Zeitzonen werden so gelesen, wie die Kalender-App sie geschrieben hat, und ein ganztägiges Ereignis bleibt in jeder Zeitzone auf seinem Datum. Ein Projekt kann bis zu 20 externe Kalender haben, und eine Ansicht des Kalenders zeichnet bis zu 500 ihrer Ereignisse.
 
-Die Rollen, die geplante Wartungsereignisse erstellen, bearbeiten und löschen, fügen externe Kalender hinzu, ändern und entfernen sie, und jeder, der die Ereignisse lesen darf, sieht sie im Kalender. OneUptime liest nie eine Adresse auf seinem eigenen Server oder eine Cloud-Metadatenadresse, und OneUptime Cloud lehnt Adressen in einem privaten Netzwerk ab. Ein selbst gehosteter Server kann einen Kalender in Ihrem eigenen Netzwerk lesen, außer `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` ist `true`.
+Die Rollen, die Wartungsereignisse erstellen, bearbeiten und löschen, fügen externe Kalender hinzu, ändern und entfernen sie, und jeder, der die Ereignisse lesen darf, sieht sie im Kalender. OneUptime liest nie eine Adresse auf seinem eigenen Server oder eine Cloud-Metadatenadresse, und OneUptime Cloud lehnt Adressen in einem privaten Netzwerk ab. Ein selbst gehosteter Server kann einen Kalender in Ihrem eigenen Netzwerk lesen, außer `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` ist `true`.
 
 ## Der Kalenderlink des Teams
 
-**Kalender abonnieren**, unter dem Kalender, öffnet den Kalenderlink des Projekts: einen geheimen iCalendar-Link (`.ics`), der jedes geplante Wartungsereignis des Projekts in Google Kalender, Outlook, Apple Kalender oder jede App bringt, die einen Kalender per URL abonniert.
+**Kalender abonnieren**, unter dem Kalender, öffnet den Kalenderlink des Projekts: einen geheimen iCalendar-Link (`.ics`), der jedes Wartungsereignis des Projekts in Google Kalender, Outlook, Apple Kalender oder jede App bringt, die einen Kalender per URL abonniert.
 
 :::steps
 ### Den Link veröffentlichen
@@ -86,7 +86,7 @@ https://<your host>/api/scheduled-maintenance-calendar/project/<token>/maintenan
 ```
 
 > [!WARNING]
-> Wer den Link hat, sieht jedes geplante Wartungsereignis des Projekts, ohne sich anzumelden. Behandeln Sie ihn wie ein Passwort und erzeugen Sie ihn neu, wenn er versehentlich weitergegeben wurde.
+> Wer den Link hat, sieht jedes Wartungsereignis des Projekts, ohne sich anzumelden. Behandeln Sie ihn wie ein Passwort und erzeugen Sie ihn neu, wenn er versehentlich weitergegeben wurde.
 
 ### Wer den Link sehen kann
 
@@ -94,9 +94,9 @@ Der Link zeigt jedes Ereignis des Projekts, daher zeigt der Dialog ihn nur Perso
 
 | Aktion | Wer sie ausführen kann |
 | --- | --- |
-| Den Link kopieren | Jeder, der jedes geplante Wartungsereignis des Projekts lesen darf |
-| **Link veröffentlichen** | Jeder, der außerdem geplante Wartungsereignisse erstellen darf |
-| **Link neu erzeugen**, **Link deaktivieren** | Jeder, der außerdem geplante Wartungsereignisse bearbeiten darf |
+| Den Link kopieren | Jeder, der jedes Wartungsereignis des Projekts lesen darf |
+| **Link veröffentlichen** | Jeder, der außerdem Wartungsereignisse erstellen darf |
+| **Link neu erzeugen**, **Link deaktivieren** | Jeder, der außerdem Wartungsereignisse bearbeiten darf |
 
 ### Den Link verwalten
 
@@ -158,6 +158,6 @@ Der Grund steht unter **Funktioniert nicht** in seinem **Status**: kein Kalender
 
 :::cards
 - [Wartungsereignisse erstellen](/docs/scheduled-maintenance/creating-events): Das Formular, Feld für Feld, und was danach passiert.
-- [Abonnenten & Ankündigungen](/docs/status-pages/subscribers#geplante-wartungsereignisse): Was die Abonnenten einer Statusseite über Wartung erfahren.
+- [Abonnenten & Ankündigungen](/docs/status-pages/subscribers#wartungsereignisse): Was die Abonnenten einer Statusseite über Wartung erfahren.
 - [Kalender-Feeds](/docs/on-call/calendar-feeds): Dieselbe Art von Link für Bereitschaftsschichten.
 :::

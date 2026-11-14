@@ -1,6 +1,6 @@
 # États de la maintenance
 
-Chaque événement de maintenance planifiée est dans un seul **état** : où en sont les travaux, de prévus à validés. Les états décident de ce que OneUptime fait de l'événement : quand ses moniteurs cessent d'être vérifiés, ce que montrent vos pages de statut, quand ses rappels s'arrêtent. Cette page présente les quatre états avec lesquels démarre chaque projet, ce qui fait passer un événement de l'un à l'autre et comment ajouter vos propres étapes.
+Chaque événement de maintenance est dans un seul **état** : où en sont les travaux, de prévus à validés. Les états décident de ce que OneUptime fait de l'événement : quand ses moniteurs cessent d'être vérifiés, ce que montrent vos pages de statut, quand ses rappels s'arrêtent. Cette page présente les quatre états avec lesquels démarre chaque projet, ce qui fait passer un événement de l'un à l'autre et comment ajouter vos propres étapes.
 
 :::cards
 - [Les états initiaux](#les-états-initiaux): Planifié, En cours, Terminé et Achevé.

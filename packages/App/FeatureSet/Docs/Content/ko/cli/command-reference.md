@@ -221,7 +221,7 @@ oneuptime <resource> resolve <id>
 
 ### `oneuptime <resource> start`
 
-예정된 유지 관리 이벤트를 프로젝트의 진행 중 상태로 옮깁니다.
+유지 관리 이벤트를 프로젝트의 진행 중 상태로 옮깁니다.
 
 ```bash
 oneuptime <resource> start <id>
@@ -233,7 +233,7 @@ oneuptime <resource> start <id>
 
 ### `oneuptime <resource> end`
 
-예정된 유지 관리 이벤트를 프로젝트의 종료됨 상태로 옮깁니다.
+유지 관리 이벤트를 프로젝트의 종료됨 상태로 옮깁니다.
 
 ```bash
 oneuptime <resource> end <id>
@@ -245,7 +245,7 @@ oneuptime <resource> end <id>
 
 ### `oneuptime <resource> add-note`
 
-인시던트, 알림, 그 에피소드 또는 예정된 유지 관리 이벤트에 메모를 추가합니다.
+인시던트, 알림, 그 에피소드 또는 유지 관리 이벤트에 메모를 추가합니다.
 
 ```bash
 oneuptime <resource> add-note <id> --note <markdown> [--public]

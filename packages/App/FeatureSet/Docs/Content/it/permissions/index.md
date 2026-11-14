@@ -173,7 +173,7 @@ Le voci concesse a un utente si sommano su tutti i suoi team, ma un blocco si ap
 
 ### Cambiare uno stato
 
-Un incidente, un avviso, un episodio di avvisi o di incidenti e una manutenzione pianificata cambiano stato, e un monitor cambia il suo stato, con una nuova riga nella loro cronologia degli stati. **Riconosci**, **Risolvi**, **Cambia stato**, la pagina **Cronologia stato**, l'API e i workflow ne aggiungono tutti una. Aggiungerla richiede l'autorizzazione di creazione di quella cronologia, insieme a un'autorizzazione a leggere il record che modifica:
+Un incidente, un avviso, un episodio di avvisi o di incidenti e un evento di manutenzione cambiano stato, e un monitor cambia il suo stato, con una nuova riga nella loro cronologia degli stati. **Riconosci**, **Risolvi**, **Cambia stato**, la pagina **Cronologia stato**, l'API e i workflow ne aggiungono tutti una. Aggiungerla richiede l'autorizzazione di creazione di quella cronologia, insieme a un'autorizzazione a leggere il record che modifica:
 
 | Per cambiare lo stato di | Serve |
 | --- | --- |
@@ -181,7 +181,7 @@ Un incidente, un avviso, un episodio di avvisi o di incidenti e una manutenzione
 | Un avviso | **Create Alert State Timeline** |
 | Un episodio di avvisi | **Create Alert Episode State Timeline** |
 | Un episodio di incidenti | **Create Incident Episode State Timeline** |
-| Una manutenzione pianificata | **Create Scheduled Maintenance State Timeline** |
+| Un evento di manutenzione | **Create Scheduled Maintenance State Timeline** |
 | Un monitor (il suo stato) | **Create Monitor Status Timeline** |
 
 Il record prende poi il nuovo stato da OneUptime stessa, con ciò che lo accompagna, come il momento in cui un episodio è stato risolto o quello in cui una manutenzione ricorderà di nuovo ai suoi iscritti. Un cambio quindi non richiede anche un'autorizzazione a modificare il record: un ruolo personalizzato con **Create Incident State Timeline** ma senza **Edit Incident** cambia lo stato di un incidente. Per impedire a un team di cambiare stati, bloccate l'autorizzazione di creazione della cronologia; un blocco su **Edit Incident** lascia stare i cambi di stato. Le etichette, i proprietari e i record privati restringono l'autorizzazione di creazione della cronologia come restringono qualsiasi altra, attraverso il record di cui cambia lo stato: vedete le regole sull'ambito più sotto.
@@ -214,7 +214,7 @@ Alcuni ruoli sono per definizione validi su tutto il progetto e non offrono alcu
 
 ## Proprietari
 
-Un proprietario è un utente o un team associato a una risorsa specifica. La maggior parte delle risorse che rappresentano qualcosa che gestite — monitor, incidenti, avvisi, manutenzioni pianificate, policy di reperibilità, dashboard, servizi, pagine di stato, workflow, runbook e SLO — ha una scheda **Proprietari**.
+Un proprietario è un utente o un team associato a una risorsa specifica. La maggior parte delle risorse che rappresentano qualcosa che gestite — monitor, incidenti, avvisi, eventi di manutenzione, policy di reperibilità, dashboard, servizi, pagine di stato, workflow, runbook e SLO — ha una scheda **Proprietari**.
 
 I proprietari svolgono due compiti:
 
