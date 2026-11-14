@@ -795,8 +795,7 @@ describe("what sits beside the durations", () => {
   /*
    * A DNS lookup's time is part of a whole sentence, worded with its unit
    * by each language: Arabic and Persian word it, Persian in its own
-   * digits; German has it in English for now, so its figure is written as
-   * English writes it.
+   * digits; German words it too, its figure grouped as German groups it.
    */
   test("a network path's DNS lookup: the sentence's own unit, the figure in the sentence's digits", () => {
     const trace: NetworkPathTrace = {
@@ -834,7 +833,7 @@ describe("what sits beside the durations", () => {
       `DNS: نام example.com در ۱٬۲۳۴ ${UNIT.fa} به 93.184.216.34 حل شد`,
     );
     expect(sentence("de")).toBe(
-      "DNS: example.com resolved to 93.184.216.34 in 1,234 ms",
+      "DNS: example.com wurde in 1.234 ms zu 93.184.216.34 aufgelöst",
     );
   });
 });

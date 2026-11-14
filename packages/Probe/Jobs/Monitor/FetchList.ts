@@ -6,6 +6,7 @@ import {
 } from "../../Config";
 import MonitorUtil from "../../Utils/Monitors/Monitor";
 import ProbeAPIRequest from "../../Utils/ProbeAPIRequest";
+import ServerBusy from "../../Utils/ServerBusy";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPMethod from "Common/Types/API/HTTPMethod";
@@ -213,6 +214,15 @@ export class FetchListAndProbe {
 
       logger.debug("Fetched monitor list");
       logger.debug(result);
+
+      /*
+       * The server is too busy to hand out monitors now: nothing was
+       * claimed, they stay due, and this worker asks again at its next tick.
+       */
+      if (ServerBusy.isBusyAnswer(result)) {
+        ServerBusy.note("monitors");
+        return;
+      }
 
       const monitors: Array<Monitor> = BaseModel.fromJSONArray(
         result.data as JSONArray,

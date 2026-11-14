@@ -23,7 +23,7 @@ flowchart TB
     trace --> criteria
 ```
 
-Wanneer een controle mislukt, traceert de sonde ook de route naar het adres, en voegt wat ze vond aan het resultaat toe als **Network Path at Time of Failure**, zodat u ziet waar de route brak.
+Wanneer een controle mislukt, traceert de sonde ook de route naar het adres, en voegt wat ze vond aan het resultaat toe als **Netwerkpad op het moment van de storing**, zodat u ziet waar de route brak.
 
 Welke u gebruikt:
 
@@ -139,7 +139,7 @@ Maak het venster langer dan het monitoringinterval, zodat het meerdere controles
 ## Problemen oplossen
 
 :::details Het adres is bereikbaar, maar de monitor meldt offline
-Het adres, of een firewall ervoor, beantwoordt geen ICMP-echoverzoeken van de sonde. Sta ICMP-echoverzoeken van de sondes toe, of bewaak in plaats daarvan een dienst op dat adres met een [poortmonitor](/docs/monitor/port-monitor). **Network Path at Time of Failure**, bij de mislukte controle, toont hoe ver de route kwam.
+Het adres, of een firewall ervoor, beantwoordt geen ICMP-echoverzoeken van de sonde. Sta ICMP-echoverzoeken van de sondes toe, of bewaak in plaats daarvan een dienst op dat adres met een [poortmonitor](/docs/monitor/port-monitor). **Netwerkpad op het moment van de storing**, bij de mislukte controle, toont hoe ver de route kwam.
 :::
 
 :::details Een IPv6-adres mislukt altijd

@@ -27,7 +27,11 @@ import { listSourceFiles, toRelativePath } from "../../ForeignHiddenRuleGuard";
  *   - the timeout sentence written by hand anywhere but its one template
  *     (Common/Utils/Monitor/ProbeFailureReading), which the probe writes
  *     and every view reads back;
- *   - a probe check that times out and does not write it from there.
+ *   - a probe check that times out and does not write it from there;
+ *   - the monitor overview (its hero's Latest result and its Probes card)
+ *     drawing a check's failure cause other than through
+ *     getProbeFailureCauseText, which words the timeout sentence and
+ *     leaves the rest as written (#8003).
  */
 
 const REPOSITORY_ROOT: string = path.resolve(
@@ -43,6 +47,19 @@ const SUMMARY_VIEW_DIRECTORY: string = path.join(
   REPOSITORY_ROOT,
   "packages/App/FeatureSet/Dashboard/src/Components/Monitor/SummaryView",
 );
+
+/*
+ * What draws the monitor overview's words: its cards, and the hero and
+ * facts MonitorOverviewPresentationUtil writes. MonitorOverviewProbeUtil
+ * only reads the stored cause into the overview's data, as written.
+ */
+const OVERVIEW_DRAWERS: ReadonlyArray<string> = [
+  "packages/App/FeatureSet/Dashboard/src/Components/Monitor/Overview",
+  "packages/Common/Utils/Monitor/MonitorOverviewPresentationUtil.ts",
+];
+
+// The one call that turns a stored failure cause into the reader's text.
+const FAILURE_CAUSE_READER: string = "getProbeFailureCauseText";
 
 const TEMPLATE_FILE: string =
   "packages/Common/Utils/Monitor/ProbeFailureReading.ts";
@@ -238,6 +255,105 @@ const findWrittenSentence: (
   return found;
 };
 
+interface FailureCauseReads {
+  // Reads that draw the stored cause as it is.
+  drawnAsStored: Array<Finding>;
+  // Reads handed to getProbeFailureCauseText.
+  worded: number;
+}
+
+type FailureCauseReading = "worded" | "tested" | "drawn";
+
+/*
+ * Whether a read of `failureCause` only tests it - the condition of a
+ * ?: or an if, the left of an &&, under a ! or a typeof - or is handed to
+ * getProbeFailureCauseText; anything else draws the stored text.
+ */
+const readsFailureCauseAs: (
+  sourceFile: ts.SourceFile,
+  read: ts.Node,
+) => FailureCauseReading = (
+  sourceFile: ts.SourceFile,
+  read: ts.Node,
+): FailureCauseReading => {
+  let child: ts.Node = read;
+  let parent: ts.Node | undefined = read.parent;
+
+  while (parent) {
+    if (
+      ts.isCallExpression(parent) &&
+      parent.expression.getText(sourceFile) === FAILURE_CAUSE_READER &&
+      child !== parent.expression
+    ) {
+      return "worded";
+    }
+
+    if (
+      (ts.isConditionalExpression(parent) && parent.condition === child) ||
+      (ts.isIfStatement(parent) && parent.expression === child) ||
+      (ts.isBinaryExpression(parent) &&
+        parent.left === child &&
+        parent.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken) ||
+      (ts.isPrefixUnaryExpression(parent) &&
+        parent.operator === ts.SyntaxKind.ExclamationToken) ||
+      ts.isTypeOfExpression(parent)
+    ) {
+      return "tested";
+    }
+
+    if (
+      ts.isStatement(parent) ||
+      ts.isFunctionLike(parent) ||
+      ts.isJsxAttribute(parent) ||
+      ts.isJsxElement(parent) ||
+      ts.isJsxExpression(parent)
+    ) {
+      return "drawn";
+    }
+
+    child = parent;
+    parent = parent.parent;
+  }
+
+  return "drawn";
+};
+
+// Every read of a stored failure cause (x.failureCause) in a source.
+const readFailureCauses: (
+  fileName: string,
+  source: string,
+) => FailureCauseReads = (
+  fileName: string,
+  source: string,
+): FailureCauseReads => {
+  const sourceFile: ts.SourceFile = parse(fileName, source);
+  const result: FailureCauseReads = { drawnAsStored: [], worded: 0 };
+
+  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+    if (
+      ts.isPropertyAccessExpression(node) &&
+      node.name.getText(sourceFile) === "failureCause"
+    ) {
+      const reading: FailureCauseReading = readsFailureCauseAs(
+        sourceFile,
+        node,
+      );
+
+      if (reading === "worded") {
+        result.worded += 1;
+      } else if (reading === "drawn") {
+        result.drawnAsStored.push(findingAt(sourceFile, node));
+      }
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(sourceFile);
+
+  return result;
+};
+
 const isTestFile: (relativeFile: string) => boolean = (
   relativeFile: string,
 ): boolean => {
@@ -321,6 +437,89 @@ describe("a probe's message on a monitor's summary", () => {
 
     expect(values.handDrawn).toEqual([]);
     expect(values.probeMessageLines).toBe(2);
+  });
+});
+
+describe("a check's failure cause on the monitor overview", () => {
+  const overviewFiles: Array<string> = OVERVIEW_DRAWERS.flatMap(
+    (drawer: string): Array<string> => {
+      const absolute: string = path.join(REPOSITORY_ROOT, drawer);
+
+      return fs.statSync(absolute).isDirectory()
+        ? listSourceFiles(absolute)
+        : [absolute];
+    },
+  );
+
+  test("is drawn through getProbeFailureCauseText wherever it is drawn", () => {
+    const drawnAsStored: Array<string> = [];
+    let worded: number = 0;
+
+    for (const file of overviewFiles) {
+      const reads: FailureCauseReads = readFailureCauses(
+        file,
+        fs.readFileSync(file, "utf-8"),
+      );
+
+      worded += reads.worded;
+
+      for (const finding of reads.drawnAsStored) {
+        drawnAsStored.push(
+          `${toRelativePath(REPOSITORY_ROOT, file)}:${finding.line} ${finding.text}`,
+        );
+      }
+    }
+
+    expect(drawnAsStored).toEqual([]);
+    // The hero's Latest result and the Probes card's failure line.
+    expect(worded).toBeGreaterThanOrEqual(2);
+  });
+
+  test("negative control: the overview as it drew the cause is found", () => {
+    const source: string = `
+      const failureCause = row.health === Down ? row.latestResult?.failureCause : undefined;
+      const fact = {
+        secondary: result.isOnline === false && result.failureCause
+          ? result.failureCause
+          : t.translateTemplate("from {{probe}}", { probe: result.probeName }),
+      };
+      const line = <p title={row.latestResult.failureCause}>{row.latestResult.failureCause}</p>;
+      const message = getProbeFailureCauseText(result.failureCause.trim() ? x : y) || result.failureCause;
+    `;
+
+    expect(
+      readFailureCauses("Old.tsx", source).drawnAsStored.map(
+        (finding: Finding): string => {
+          return finding.text;
+        },
+      ),
+    ).toEqual([
+      "row.latestResult?.failureCause",
+      "result.failureCause",
+      "row.latestResult.failureCause",
+      "row.latestResult.failureCause",
+      "result.failureCause",
+    ]);
+  });
+
+  test("and the overview as it draws it now is not", () => {
+    const source: string = `
+      const failureCause =
+        row.health === Down && row.latestResult?.failureCause
+          ? getProbeFailureCauseText({ translator, failureCause: row.latestResult.failureCause }) || undefined
+          : undefined;
+      const worded = result.isOnline === false
+        ? getProbeFailureCauseText({ translator: t, failureCause: result.failureCause })
+        : "";
+      if (!result.failureCause) {
+        return;
+      }
+      const isText = typeof chosen.failureCause === "string";
+    `;
+    const reads: FailureCauseReads = readFailureCauses("New.tsx", source);
+
+    expect(reads.drawnAsStored).toEqual([]);
+    expect(reads.worded).toBe(2);
   });
 });
 

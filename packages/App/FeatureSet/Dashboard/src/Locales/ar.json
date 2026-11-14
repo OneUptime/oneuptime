@@ -22006,9 +22006,9 @@
   "Last report: none yet": "آخر تقرير: لا يوجد بعد",
   "Last request {{time}}": "آخر طلب {{time}}",
   "Last request: none yet": "آخر طلب: لا يوجد بعد",
-  "Latest: {{median}} ms median across {{count}} probes ({{min}}–{{max}} ms)": "الأحدث: الوسيط {{median}} ms عبر {{count}} من المسابير ({{min}}–{{max}} ms)",
-  "Latest: {{median}} ms median across {{count}} probes ({{min}}–{{max}} ms)_one": "الأحدث: الوسيط {{median}} ms عبر {{count}} مسبار ({{min}}–{{max}} ms)",
-  "Latest: {{median}} ms median across {{responded}} of {{total}} probes ({{min}}–{{max}} ms)": "الأحدث: الوسيط {{median}} ms عبر {{responded}} من {{total}} من المسابير ({{min}}–{{max}} ms)",
+  "Latest: {{median}} ms median across {{count}} probes ({{min}}–{{max}} ms)": "الأحدث: الوسيط {{median}} ملي ث عبر {{count}} من المسابير ({{min}}–{{max}} ملي ث)",
+  "Latest: {{median}} ms median across {{count}} probes ({{min}}–{{max}} ms)_one": "الأحدث: الوسيط {{median}} ملي ث عبر {{count}} مسبار ({{min}}–{{max}} ملي ث)",
+  "Latest: {{median}} ms median across {{responded}} of {{total}} probes ({{min}}–{{max}} ms)": "الأحدث: الوسيط {{median}} ملي ث عبر {{responded}} من {{total}} من المسابير ({{min}}–{{max}} ملي ث)",
   "Layer {{number}}": "الطبقة {{number}}",
   "Left divided by Sessions: the share of the sessions that visited this page and ended on it. Sessions that saw only this page are included, and it is per session, not per visit.": "«المغادرة» مقسومةً على «الجلسات»: نسبة الجلسات التي زارت هذه الصفحة وانتهت عليها. وتدخل فيها الجلسات التي لم تشاهد سوى هذه الصفحة، وهي محسوبة لكل جلسة لا لكل زيارة.",
   "Line {{line}}: {{message}}": "السطر {{line}}: {{message}}",
@@ -52316,5 +52316,7 @@
   "You do not have permission to change this incident, so you cannot start its investigation.": "ليس لديك إذن بتغيير هذه الحادثة، لذا لا يمكنك بدء تحقيقها.",
   "This project's AI credits are used up. A project owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.": "نفدت أرصدة الذكاء الاصطناعي لهذا المشروع. يمكن لمالك المشروع أو لمن لديه صلاحية «Manage Billing» إضافة أرصدة الذكاء الاصطناعي في إعدادات المشروع ← الذكاء الاصطناعي ← أرصدة الذكاء الاصطناعي.",
   "{{count}} CPU cores": "أنوية CPU: {{count}}",
-  "{{count}} CPU cores_one": "{{count}} نواة CPU"
+  "{{count}} CPU cores_one": "{{count}} نواة CPU",
+  "Next check {{next}}": "الفحص التالي {{next}}",
+  "Turned off for this monitor": "معطّل لهذه المراقبة"
 }

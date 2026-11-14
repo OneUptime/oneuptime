@@ -37,7 +37,9 @@ describe("getDefaultRequestBody", () => {
        * server says the probe has to be updated to walk them. Only a probe
        * that declares "snmpWalk" is handed SNMP walks, and the device's
        * credentials with them; only one that declares "dataSecurityScan"
-       * is handed databases to scan for Data Security.
+       * is handed databases to scan for Data Security. One that declares
+       * "retryWhenBusy" is answered 429 by a busy scheduling endpoint,
+       * rather than an empty batch.
        */
       probeCapabilities: [
         "networkDevicePing",
@@ -45,6 +47,7 @@ describe("getDefaultRequestBody", () => {
         "snmpWalk",
         "dataSecurityScan",
         "dataObservabilityCollect",
+        "retryWhenBusy",
       ],
     });
   });

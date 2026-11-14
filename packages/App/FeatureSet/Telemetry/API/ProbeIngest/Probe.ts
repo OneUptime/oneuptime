@@ -27,6 +27,7 @@ import Probe from "Common/Models/DatabaseModels/Probe";
 import User from "Common/Models/DatabaseModels/User";
 import TelemetryQueueService from "../../Services/Queue/TelemetryQueueService";
 import MonitorProbeService from "Common/Server/Services/MonitorProbeService";
+import ProbePendingCount from "Common/Server/Utils/Probe/ProbePendingCount";
 import OneUptimeDate from "Common/Types/Date";
 import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 import ProbeReportIdentity, {
@@ -564,13 +565,21 @@ router.post(
       /*
        * The monitors this probe has left waiting for more than two minutes,
        * by the claim's own rule and up to its cap
-       * (MonitorProbeService.countMonitorProbesDueForProbing).
+       * (MonitorProbeService.countMonitorProbesDueForProbing). Counted under
+       * the probe scheduling limit; while this server is too busy to count
+       * in time, the last such count, never 0 (ProbePendingCount). A busy
+       * server with no last count fails the request, as the count failing
+       * did: the autoscaler keeps the replicas it has.
        */
-      const pendingCount: number =
-        await MonitorProbeService.countMonitorProbesDueForProbing({
-          probeId: probeId,
-          dueAt: OneUptimeDate.getSomeMinutesAgo(2),
-        });
+      const pendingCount: number = await ProbePendingCount.get(
+        `${probeId.toString()}:overdue`,
+        (): Promise<number> => {
+          return MonitorProbeService.countMonitorProbesDueForProbing({
+            probeId: probeId,
+            dueAt: OneUptimeDate.getSomeMinutesAgo(2),
+          });
+        },
+      );
 
       return Response.sendJsonObjectResponse(req, res, {
         queueSize: pendingCount,
