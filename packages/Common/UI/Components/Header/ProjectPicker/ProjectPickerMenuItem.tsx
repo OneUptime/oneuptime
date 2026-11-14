@@ -8,6 +8,15 @@ import { Translator } from "../../../Utils/TranslateTemplate";
 import useTranslator from "../../../Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
+/*
+ * The row the arrow keys are on, while the search box has the focus: the
+ * ground Search's (Ctrl K) row takes under its cursor, so a keyboard user
+ * sees it at a glance. A hover's light gray (bg-gray-50) is all but white
+ * on white, and a row the keyboard is on must stand out from one the
+ * pointer only passes over.
+ */
+export const PROJECT_PICKER_ACTIVE_ROW_CLASS_NAME: string = "bg-indigo-50";
+
 export interface ComponentProps {
   icon: IconProp;
   onProjectSelected: (project: Project) => void;
@@ -52,7 +61,9 @@ const ProjectPickerMenuItem: FunctionComponent<ComponentProps> = (
   return (
     <li
       className={`text-gray-700 relative select-none py-2.5 px-3 mx-2 cursor-pointer hover:bg-gray-50 rounded-lg transition-colors duration-150 ${
-        props.isActive && props.showsActive ? "bg-gray-50" : ""
+        props.isActive && props.showsActive
+          ? PROJECT_PICKER_ACTIVE_ROW_CLASS_NAME
+          : ""
       }`}
       id={props.id}
       role="option"

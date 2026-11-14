@@ -4,6 +4,14 @@ import { Translator } from "../../../Utils/TranslateTemplate";
 import useTranslator from "../../../Utils/UseTranslator";
 import React, { CSSProperties, FunctionComponent, ReactElement } from "react";
 
+/*
+ * The list under the search box scrolls past six and a half rows (16rem of
+ * 40px rows): the half row at its foot says there are more, where a list
+ * cut on a row's edge reads as the whole list.
+ */
+export const PROJECT_PICKER_LIST_CLASS_NAME: string =
+  "max-h-64 overflow-auto pb-2";
+
 export interface ComponentProps {
   children: ReactElement | Array<ReactElement>;
   onFilter: (value: string) => void;
@@ -74,7 +82,7 @@ const ProjectPickerMenu: FunctionComponent<ComponentProps> = (
         id={props.listboxId}
         role="listbox"
         aria-label={translator.translateText("Projects") || "Projects"}
-        className="max-h-60 overflow-auto pb-2"
+        className={PROJECT_PICKER_LIST_CLASS_NAME}
         data-testid="project-picker-list"
       >
         {props.children}

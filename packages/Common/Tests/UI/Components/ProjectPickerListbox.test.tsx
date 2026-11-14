@@ -27,6 +27,12 @@ import ProjectPicker, {
   getProjectPickerIds,
   ProjectPickerIds,
 } from "../../../UI/Components/Header/ProjectPicker/ProjectPicker";
+import { PROJECT_PICKER_ACTIVE_ROW_CLASS_NAME } from "../../../UI/Components/Header/ProjectPicker/ProjectPickerMenuItem";
+import {
+  CREATE_PROJECT_ACTIVE_ROW_CLASS_NAME,
+  CREATE_PROJECT_ROW_CLASS_NAME,
+} from "../../../UI/Components/Header/ProjectPicker/CreateNewProjectButton";
+import { PROJECT_PICKER_LIST_CLASS_NAME } from "../../../UI/Components/Header/ProjectPicker/ProjectPickerMenu";
 import LeaveGuard from "../../../UI/Utils/LeaveGuard";
 import Navigation from "../../../UI/Utils/Navigation";
 
@@ -338,10 +344,91 @@ describe("the list from the keyboard", () => {
     press("ArrowDown");
 
     const staging: HTMLElement = document.getElementById(optionIds()[1]!)!;
-    expect(staging).toHaveClass("bg-gray-50");
+    const production: HTMLElement = document.getElementById(optionIds()[0]!)!;
+    expect(staging).toHaveClass(PROJECT_PICKER_ACTIVE_ROW_CLASS_NAME);
+    expect(production).not.toHaveClass(PROJECT_PICKER_ACTIVE_ROW_CLASS_NAME);
 
     fireEvent.blur(searchBox());
-    expect(staging).not.toHaveClass("bg-gray-50");
+    expect(staging).not.toHaveClass(PROJECT_PICKER_ACTIVE_ROW_CLASS_NAME);
+  });
+
+  test("the keyboard's row takes the ground Search's row takes under its cursor, not a hover's near-white gray", () => {
+    /*
+     * A hover's bg-gray-50 is all but white on the white list: a keyboard
+     * user could not see which row Enter opens. Search (Ctrl K) draws its
+     * cursor row bg-indigo-50, and so does this list.
+     */
+    expect(PROJECT_PICKER_ACTIVE_ROW_CLASS_NAME).toBe("bg-indigo-50");
+
+    render(picker());
+    openWithEnter();
+
+    const first: HTMLElement = document.getElementById(optionIds()[0]!)!;
+    expect(first).toHaveClass("bg-indigo-50");
+    // The pointer's own ground stays the light gray, for a row it passes over.
+    expect(first.className).toContain("hover:bg-gray-50");
+    expect(first.className.split(" ")).not.toContain("bg-gray-50");
+  });
+
+  test("Create New Project under the keyboard takes a deeper ground and a stronger edge than at rest", () => {
+    render(picker());
+    openWithEnter();
+
+    const createRow: HTMLElement = within(listbox())
+      .getByText("Create New Project")
+      .closest('[role="option"]') as HTMLElement;
+
+    // At rest: its own light indigo row.
+    for (const name of CREATE_PROJECT_ROW_CLASS_NAME.split(" ")) {
+      expect(createRow).toHaveClass(name);
+    }
+
+    for (let step: number = 0; step < PROJECTS.length; step++) {
+      press("ArrowDown");
+    }
+    expect(activeOptionId()).toBe(createRow.id);
+
+    for (const name of CREATE_PROJECT_ACTIVE_ROW_CLASS_NAME.split(" ")) {
+      expect(createRow).toHaveClass(name);
+    }
+    /*
+     * The dark theme gives bg-indigo-50 and bg-indigo-100 the one wash
+     * (Theme.css), so the edge must change too, or a keyboard user in the
+     * dark theme could not tell the row is the one Enter opens.
+     */
+    const restingEdge: string | undefined = CREATE_PROJECT_ROW_CLASS_NAME.split(
+      " ",
+    ).find((name: string): boolean => {
+      return name.startsWith("border-");
+    });
+    const activeEdge: string | undefined =
+      CREATE_PROJECT_ACTIVE_ROW_CLASS_NAME.split(" ").find(
+        (name: string): boolean => {
+          return name.startsWith("border-");
+        },
+      );
+    expect(restingEdge).toBeDefined();
+    expect(activeEdge).toBeDefined();
+    expect(activeEdge).not.toBe(restingEdge);
+    expect(createRow).not.toHaveClass(restingEdge!);
+
+    fireEvent.blur(searchBox());
+    expect(createRow).toHaveClass(restingEdge!);
+    expect(createRow).not.toHaveClass(activeEdge!);
+  });
+
+  test("the list scrolls under the search box past six and a half rows, so a cut row says there are more", () => {
+    render(picker());
+    openWithPointer();
+
+    expect(PROJECT_PICKER_LIST_CLASS_NAME).toContain("overflow-auto");
+    // 16rem of 40px rows: never a whole number of rows (15rem was six).
+    expect(PROJECT_PICKER_LIST_CLASS_NAME).toContain("max-h-64");
+    for (const name of PROJECT_PICKER_LIST_CLASS_NAME.split(" ")) {
+      expect(listbox()).toHaveClass(name);
+    }
+    // The search box stays put above the scrolling list, outside it.
+    expect(listbox()).not.toContainElement(searchBox());
   });
 
   test("the pointer over a row makes it the keyboard's row", () => {
