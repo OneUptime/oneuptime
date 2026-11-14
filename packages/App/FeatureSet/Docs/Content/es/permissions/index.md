@@ -173,7 +173,7 @@ Los permisos concedidos a un usuario se suman entre todos sus equipos, pero un b
 
 ### Cambiar un estado
 
-Un incidente, una alerta, un episodio de alertas o de incidentes y un mantenimiento programado cambian de estado, y un monitor cambia de estado, con una fila nueva en su línea de tiempo de estados. **Reconocer**, **Resolver**, **Cambiar estado**, la página **Cronología de estados**, la API y los flujos de trabajo añaden todos una. Añadirla requiere el permiso de creación de esa línea de tiempo, junto con un permiso para leer el registro que cambia:
+Un incidente, una alerta, un episodio de alertas o de incidentes y un evento de mantenimiento cambian de estado, y un monitor cambia de estado, con una fila nueva en su línea de tiempo de estados. **Reconocer**, **Resolver**, **Cambiar estado**, la página **Cronología de estados**, la API y los flujos de trabajo añaden todos una. Añadirla requiere el permiso de creación de esa línea de tiempo, junto con un permiso para leer el registro que cambia:
 
 | Para cambiar el estado de | Se necesita |
 | --- | --- |
@@ -181,7 +181,7 @@ Un incidente, una alerta, un episodio de alertas o de incidentes y un mantenimie
 | Una alerta | **Create Alert State Timeline** |
 | Un episodio de alertas | **Create Alert Episode State Timeline** |
 | Un episodio de incidentes | **Create Incident Episode State Timeline** |
-| Un mantenimiento programado | **Create Scheduled Maintenance State Timeline** |
+| Un evento de mantenimiento | **Create Scheduled Maintenance State Timeline** |
 | Un monitor (su estado) | **Create Monitor Status Timeline** |
 
 Después, el registro recibe el nuevo estado de la propia OneUptime, con lo que lo acompaña, como cuándo se resolvió un episodio o cuándo un mantenimiento vuelve a avisar a sus suscriptores. Así que un cambio no requiere además un permiso para editar el registro: un rol personalizado con **Create Incident State Timeline** pero sin **Edit Incident** cambia el estado de un incidente. Para impedir que un equipo cambie estados, bloquee el permiso de creación de la línea de tiempo; un bloqueo de **Edit Incident** no afecta a los cambios de estado. Las etiquetas, los propietarios y los registros privados acotan el permiso de creación de la línea de tiempo como acotan cualquier otro, a través del registro cuyo estado cambia: consulte las reglas de alcance más abajo.
@@ -214,7 +214,7 @@ Algunos roles son de proyecto completo por definición y no ofrecen alcance algu
 
 ## Propietarios
 
-Un propietario es un usuario o un equipo asociado a un recurso concreto. La mayoría de los recursos que representan algo que usted opera —monitores, incidentes, alertas, mantenimientos programados, políticas de guardia, paneles, servicios, páginas de estado, flujos de trabajo, runbooks y SLO— tienen una pestaña **Propietarios**.
+Un propietario es un usuario o un equipo asociado a un recurso concreto. La mayoría de los recursos que representan algo que usted opera —monitores, incidentes, alertas, eventos de mantenimiento, políticas de guardia, paneles, servicios, páginas de estado, flujos de trabajo, runbooks y SLO— tienen una pestaña **Propietarios**.
 
 Los propietarios cumplen dos funciones:
 

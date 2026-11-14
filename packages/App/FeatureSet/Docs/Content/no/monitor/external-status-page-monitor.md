@@ -172,7 +172,7 @@ Statusen til en komponent er verdien som statusen på siden står for, så krite
 
 En ressurs siden viser som **Ikke overvåket**, sjekkes ikke av noe, så den teller ikke for noen samlet status, slik som på sidens eget banner. Når ingen av komponentene monitoren følger med på, overvåkes, og ingen av dem har en åpen hendelse, er den samlede statusen `unknown`.
 
-Mens en pågående planlagt vedlikeholdshendelse berører en ressurs, fordi den nevner en av monitorene til ressursen eller en monitor i monitorgruppen dens, er komponenten `under_maintenance`, uansett hvilken status monitorene har: en monitor blir ikke kontrollert mens en hendelse holder den. En hendelse som ikke har begynt ennå, eller som er over, endrer ingenting. De aktive hendelsene på siden regnes for ressursene de berører.
+Mens en pågående vedlikeholdshendelse berører en ressurs, fordi den nevner en av monitorene til ressursen eller en monitor i monitorgruppen dens, er komponenten `under_maintenance`, uansett hvilken status monitorene har: en monitor blir ikke kontrollert mens en hendelse holder den. En hendelse som ikke har begynt ennå, eller som er over, endrer ingenting. De aktive hendelsene på siden regnes for ressursene de berører.
 
 [Standardkriteriene](#standardkriterier) tar aldri vedlikehold for et driftsavbrudd: monitoren forblir online under det planlagte arbeidet til det andre prosjektet.
 

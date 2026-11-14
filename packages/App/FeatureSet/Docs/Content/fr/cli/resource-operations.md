@@ -174,7 +174,7 @@ oneuptime incident-state list --query '{"isResolvedState":true}' --sort '{"order
 
 ## Prendre en compte, résoudre et ajouter des notes
 
-Les incidents, les alertes, leurs épisodes et les événements de maintenance planifiée ont des commandes pour ce que font les boutons du tableau de bord sur eux :
+Les incidents, les alertes, leurs épisodes et les événements de maintenance ont des commandes pour ce que font les boutons du tableau de bord sur eux :
 
 | Commande | Ce qu'elle fait | Ressources |
 | --- | --- | --- |

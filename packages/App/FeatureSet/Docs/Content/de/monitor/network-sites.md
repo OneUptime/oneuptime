@@ -186,7 +186,7 @@ Ein Durchschnitt über die untergeordneten gewichtet eine Filiale mit zwei Gerä
 
 ## Geplante Wartung für Netzwerkstandorte
 
-Hängen Sie Standorte an ein geplantes Wartungsereignis unter **Andere betroffene Ressourcen**, im Schritt **Betroffene Ressourcen** des Ereignisses, wie Sie es mit einem Host tun würden. Die eigene Seite **Geplante Wartung** eines Standorts listet die daran gehängten Ereignisse, und ihr **Wartungsereignis erstellen** öffnet das Formular mit dem schon gewählten Standort.
+Hängen Sie Standorte an ein Wartungsereignis unter **Andere betroffene Ressourcen**, im Schritt **Betroffene Ressourcen** des Ereignisses, wie Sie es mit einem Host tun würden. Die eigene Seite **Geplante Wartung** eines Standorts listet die daran gehängten Ereignisse, und ihr **Wartungsereignis erstellen** öffnet das Formular mit dem schon gewählten Standort.
 
 Ein Fenster an einem übergeordneten Standort deckt alles darunter ab: Ein Fenster an einer Region deckt jeden Markt und jede Einheit darin ab, auch Standorte, die nach der Planung des Fensters angelegt wurden, ein regionaler Providerwechsel muss also keine vierhundert Filialen aufzählen.
 

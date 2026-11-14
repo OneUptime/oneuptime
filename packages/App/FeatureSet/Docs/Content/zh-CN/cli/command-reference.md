@@ -221,7 +221,7 @@ oneuptime <resource> resolve <id>
 
 ### `oneuptime <resource> start`
 
-把计划维护事件移到项目的进行中状态。
+把维护事件移到项目的进行中状态。
 
 ```bash
 oneuptime <resource> start <id>
@@ -233,7 +233,7 @@ oneuptime <resource> start <id>
 
 ### `oneuptime <resource> end`
 
-把计划维护事件移到项目的已结束状态。
+把维护事件移到项目的已结束状态。
 
 ```bash
 oneuptime <resource> end <id>
@@ -245,7 +245,7 @@ oneuptime <resource> end <id>
 
 ### `oneuptime <resource> add-note`
 
-为事件、警报、它们的片段或计划维护事件添加备注。
+为事件、警报、它们的片段或维护事件添加备注。
 
 ```bash
 oneuptime <resource> add-note <id> --note <markdown> [--public]

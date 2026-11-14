@@ -1,6 +1,6 @@
 # Scheduled Maintenance Overview
 
-A scheduled maintenance event tells everyone about planned work before it happens: a database upgrade, a network change, a move to new servers. OneUptime starts and ends the event on time, stops checking the monitors it affects while the work runs, and shows it on your status pages, so planned downtime never looks like an outage. This page explains how an event runs, where everything is in the dashboard, and what an event changes in the rest of OneUptime.
+A maintenance event tells everyone about planned work before it happens: a database upgrade, a network change, a move to new servers. OneUptime starts and ends the event on time, stops checking the monitors it affects while the work runs, and shows it on your status pages, so planned downtime never looks like an outage. This page explains how an event runs, where everything is in the dashboard, and what an event changes in the rest of OneUptime.
 
 :::cards
 - [How an event runs](#how-an-event-runs): From scheduled to completed, mostly on its own.
@@ -44,7 +44,7 @@ Announcements are covered on [Subscribers & Announcements](/docs/status-pages/su
 - **The form.** Click **Create Maintenance Event** on the list of events, or on the **Scheduled Maintenance** tab of a host, a cluster, a service, a network site or another resource, which picks that resource for you. See [Creating Maintenance Events](/docs/scheduled-maintenance/creating-events).
 - **A template.** **Create from Template** fills the form in from a template you saved for work you do often. See [Templates & Recurring Events](/docs/scheduled-maintenance/templates).
 - **A schedule.** A recurring template creates a new event on a schedule, such as every week or every month, without anyone opening the form.
-- **A form.** A form whose submissions create maintenance events turns a change request into an event. See [What a Submission Creates](/docs/forms/on-submit#how-a-submission-becomes-a-scheduled-maintenance-event).
+- **A form.** A form whose submissions create maintenance events turns a change request into an event. See [What a Submission Creates](/docs/forms/on-submit#how-a-submission-becomes-a-maintenance-event).
 - **Chat.** `/oneuptime maintenance` in Slack, or `maintenance` typed to the OneUptime bot in Microsoft Teams, opens the form in your chat tool. See [Slack](/docs/workspace-connections/slack#creating-incidents-and-maintenance-from-slack).
 - **Code.** The API at `/api/scheduled-maintenance`, the `oneuptime_scheduled_maintenance_event` Terraform resource, and the **Create One Maintenance Event** step of a workflow.
 
@@ -74,7 +74,7 @@ While an event is in progress, OneUptime treats the outage it plans as expected:
 - **Its other resources stay quiet.** A telemetry monitor that watches many hosts, clusters, databases or services, one series each, raises no incident or alert for a series whose resource the event covers, while the other series keep alerting. The monitors of a cloud resource the event covers, such as its recommended ones, open no incident or alert at all.
 - **Network sites and SLOs hold back.** A network site the event covers stops counting its planned outage against the sites above it, and an SLO's burn rate rules raise nothing while any of its monitors is in maintenance. See [Network Sites](/docs/monitor/network-sites#scheduled-maintenance-for-network-sites) and [Burn Rate Alerts and Incidents](/docs/slo/burn-rate-alerts#scheduled-maintenance).
 - **Your status pages show it.** The event appears on the status pages you picked, as coming up, then in progress, then over, while **Visible on Status Page** is on in its **Settings**, and from its **Publish At** when you picked one. Once it has started, on those pages the uptime history of every resource its monitors are on lists it on each day its window touches, and those resources say "Under maintenance" while it runs; the monitor's uptime history in the dashboard shows it the same way. See [Uptime percentages and history charts](/docs/status-pages/resources-and-groups#uptime-percentages-and-history-charts).
-- **Subscribers hear about it.** By default, the subscribers of those pages are told when it is scheduled, when it starts and when it ends, and reminded before it starts if you set reminders. See [Scheduled maintenance events](/docs/status-pages/subscribers#scheduled-maintenance-events).
+- **Subscribers hear about it.** By default, the subscribers of those pages are told when it is scheduled, when it starts and when it ends, and reminded before it starts if you set reminders. See [Maintenance events](/docs/status-pages/subscribers#maintenance-events).
 - **Your team hears about it.** Its owners are told as their [notification settings](/docs/notifications/notification-settings) say, and the Slack, Microsoft Teams and Mattermost rules under **Workspace** post it to your channels.
 
 ## An event's own pages
@@ -108,7 +108,7 @@ Only the monitors the event names under **Monitors** stop being checked, and onl
 :::
 
 :::details The event is not on my status page
-Check that the event names the page under **Show event on these status pages**, and that **Visible on Status Page** is on in the event's **Settings**. If its header says **Not on status pages yet**, it shows from its **Publish At**: see [Publish it later](/docs/scheduled-maintenance/creating-events#publish-it-later). Then check the status page itself: it must show scheduled maintenance events, and an event that started longer ago than the page's history window, 14 days unless you changed it, is no longer listed.
+Check that the event names the page under **Show event on these status pages**, and that **Visible on Status Page** is on in the event's **Settings**. If its header says **Not on status pages yet**, it shows from its **Publish At**: see [Publish it later](/docs/scheduled-maintenance/creating-events#publish-it-later). Then check the status page itself: it must show maintenance events, and an event that started longer ago than the page's history window, 14 days unless you changed it, is no longer listed.
 :::
 
 ## Next steps

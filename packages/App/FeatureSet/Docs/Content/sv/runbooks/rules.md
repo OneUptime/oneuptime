@@ -35,7 +35,7 @@ När en regel utlöses händer följande för varje runbook som den pekar på:
 1. Runbooket läses in.
 2. Dess steg kopieras som en **ögonblicksbild** till en ny runbook-körning.
 3. Körningen läggs i runbook-workerns kö.
-4. Körningen kopplas till källentiteten: den visas på sidan **Runbooks** för incidenten, larmet eller den schemalagda underhållshändelsen och i runbookets lista **Körningar**.
+4. Körningen kopplas till källentiteten: den visas på sidan **Runbooks** för incidenten, larmet eller underhållshändelsen och i runbookets lista **Körningar**.
 
 Du ser alla körningar, startade av en regel eller inte, under **Runbooks → Körningar**, filtrerade efter status, runbook eller startdatum.
 
@@ -72,12 +72,12 @@ Under **Runbooks** väljer du ett eller flera **Runbooks att starta**. Regelns *
 
 ## Villkor
 
-Varje villkor jämför en sak hos incidenten, larmet eller den schemalagda underhållshändelsen med ett värde som du anger. En runbook-regel erbjuder samma kriterier som produktens andra regler: en runbook-regel för incidenter matchar på samma saker som en sekretess- eller jourregel för incidenter.
+Varje villkor jämför en sak hos incidenten, larmet eller underhållshändelsen med ett värde som du anger. En runbook-regel erbjuder samma kriterier som produktens andra regler: en runbook-regel för incidenter matchar på samma saker som en sekretess- eller jourregel för incidenter.
 
 | Kriterium | Vad det kontrollerar |
 | --- | --- |
-| **Monitorer** | De monitorer som incidenten eller den schemalagda underhållshändelsen påverkar, eller den monitor som utlöste larmet. |
-| **Allvarlighetsgrader för incidenter** / **Allvarlighetsgrader för larm** | Incidentens eller larmets allvarlighetsgrad. Schemalagda underhållshändelser har ingen allvarlighetsgrad, så deras regler erbjuder det inte. |
+| **Monitorer** | De monitorer som incidenten eller underhållshändelsen påverkar, eller den monitor som utlöste larmet. |
+| **Allvarlighetsgrader för incidenter** / **Allvarlighetsgrader för larm** | Incidentens eller larmets allvarlighetsgrad. Underhållshändelser har ingen allvarlighetsgrad, så deras regler erbjuder det inte. |
 | **Incidentetiketter** / **Larmetiketter** / **Händelseetiketter** | Etiketterna på själva incidenten, larmet eller händelsen, inklusive dem som etikettregler lade till när den skapades. |
 | **Övervakningsetiketter** | Etiketterna på dess monitorer. Ge dina monitorer etiketten `production` eller `staging` för att köra ett runbook i bara en miljö. |
 | **Incidenttitel** / **Larmtitel** / **Händelsetitel** | Dess titel. |

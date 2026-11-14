@@ -253,7 +253,7 @@ API 키나 로그인 없이도 클라이언트는 공개 도구를 사용할 수
 - **`oneuptime_describe_resource`**: 리소스의 필드와 필드로 필터링, 정렬, 선택하는 방법
 - **`get_public_status_page_overview`**: 공개 상태 페이지의 개요
 - **`get_public_status_page_incidents`**: 공개 상태 페이지의 인시던트
-- **`get_public_status_page_scheduled_maintenance`**: 그 페이지의 예정된 유지 관리 이벤트
+- **`get_public_status_page_scheduled_maintenance`**: 그 페이지의 유지 관리 이벤트
 - **`get_public_status_page_announcements`**: 그 페이지의 공지
 
 공개 상태 페이지 도구는 상태 페이지의 ID(UUID)나 도메인 이름을 받습니다. 이 도구만 사용하려면 자격 증명 없이 주소만으로 연결합니다:
@@ -414,7 +414,7 @@ curl https://oneuptime.com/mcp/tools
 ```text
 "What's the current status of status.example.com?"
 "Show me recent incidents from the OneUptime status page"
-"Are there any scheduled maintenance events on status.acme.com?"
+"Are there any maintenance events on status.acme.com?"
 "Get the latest announcements from my public status page with ID abc123-..."
 ```
 

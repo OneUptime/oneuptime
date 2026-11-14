@@ -24,7 +24,7 @@ flowchart TB
 ## Avant de commencer
 
 - **Votre rôle.** Créer un événement requiert **Propriétaire du projet**, **Administrateur du projet**, **Membre du projet**, **Administrateur de la maintenance planifiée** ou **Membre de la maintenance planifiée**, ou un rôle personnalisé avec **Create Scheduled Maintenance**.
-- **Vos pages de statut.** Pour informer vos clients, il vous faut une page de statut qui affiche les événements de maintenance planifiée. Voir [Vue d'ensemble des pages de statut](/docs/status-pages/index).
+- **Vos pages de statut.** Pour informer vos clients, il vous faut une page de statut qui affiche les événements de maintenance. Voir [Vue d'ensemble des pages de statut](/docs/status-pages/index).
 
 ## Créer un événement
 
@@ -71,7 +71,7 @@ Rien n'est envoyé tant que vous ne choisissez pas de page de statut : un évén
 Deux choses remplissent le formulaire pour vous en cours de route :
 
 - **Ressources liées.** Quand vous choisissez un moniteur, les hôtes, clusters, services et autres ressources auxquels il est lié sont ajoutés sous **Autres ressources affectées**, et une ligne sous le champ les nomme. Retirez ceux dont vous ne voulez pas. Les ressources cloud sont ajoutées aussi : tant que l'événement est en cours, leurs moniteurs n'ouvrent ni incident ni alerte.
-- **Pages de statut suggérées.** Sous **Afficher l'événement sur ces pages de statut**, les pages qui affichent vos moniteurs sont suggérées : cliquez sur le nom d'une page pour l'ajouter, ou sur **Tout ajouter**. Rien n'est choisi pour vous. Voir [Événements de maintenance planifiée](/docs/status-pages/subscribers#événements-de-maintenance-planifiée).
+- **Pages de statut suggérées.** Sous **Afficher l'événement sur ces pages de statut**, les pages qui affichent vos moniteurs sont suggérées : cliquez sur le nom d'une page pour l'ajouter, ou sur **Tout ajouter**. Rien n'est choisi pour vous. Voir [Événements de maintenance](/docs/status-pages/subscribers#événements-de-maintenance).
 
 ## Partir d'une ressource ou d'un modèle
 
@@ -180,6 +180,6 @@ Un événement est publié pour que vos clients apprennent le travail avant qu'i
 :::cards
 - [États de la maintenance](/docs/scheduled-maintenance/states): Ce qui démarre et termine un événement, et comment le faire avancer à la main.
 - [Modèles et événements récurrents](/docs/scheduled-maintenance/templates): Enregistrer les réponses du formulaire pour la prochaine fois.
-- [Abonnés et annonces](/docs/status-pages/subscribers#événements-de-maintenance-planifiée): Exactement qui est prévenu, et quand.
+- [Abonnés et annonces](/docs/status-pages/subscribers#événements-de-maintenance): Exactement qui est prévenu, et quand.
 - [Règles et paramètres de la maintenance](/docs/scheduled-maintenance/settings): Ajouter propriétaires, étiquettes et rappels automatiquement.
 :::

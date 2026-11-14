@@ -163,7 +163,7 @@ For å koble til Huntress klikker du på triggeren **Huntress Incident Report** 
 
 ## OneUptime-begivenhetstriggere
 
-Nesten alt i OneUptime — monitorer, hendelser, varsler, planlagte vedlikehold, statussider, vaktpolicyer, team — kan starte en arbeidsflyt. Hver tilbyr opptil fire triggere:
+Nesten alt i OneUptime — monitorer, hendelser, varsler, vedlikeholdshendelser, statussider, vaktpolicyer, team — kan starte en arbeidsflyt. Hver tilbyr opptil fire triggere:
 
 - **On Create** — utløses når en ny legges til.
 - **On Update** — utløses når en endres. Å lagre en post med verdiene den allerede har, som et skjema lagret uten endringer eller en bryter sendt slik den allerede står, er ikke en endring og utløser den ikke.

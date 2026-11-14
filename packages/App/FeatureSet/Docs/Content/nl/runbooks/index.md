@@ -1,6 +1,6 @@
 # Runbooks – Overzicht
 
-Een runbook is een herbruikbare responsprocedure: een geordende lijst van handmatige en geautomatiseerde stappen die u uitvoert op een incident, een waarschuwing of een gepland onderhoudsevenement. Het maakt van de thread "wat doen we nu?" een checklist die iedereen met dienst om 3 uur 's nachts kan volgen, met de scripts, API-aanroepen en goedkeuringen al uitgeschreven. Runbooks zijn bedoeld voor de engineers met dienst die op incidenten reageren en voor de platformteams die die respons automatiseren. Om te kiezen tussen een runbook, een workflow, een playbook en een AI-regel, zie [Welke gebruik ik?](/docs/introduction/which-one#workflow-runbook-playbook-of-ai-regel).
+Een runbook is een herbruikbare responsprocedure: een geordende lijst van handmatige en geautomatiseerde stappen die u uitvoert op een incident, een waarschuwing of een onderhoudsgebeurtenis. Het maakt van de thread "wat doen we nu?" een checklist die iedereen met dienst om 3 uur 's nachts kan volgen, met de scripts, API-aanroepen en goedkeuringen al uitgeschreven. Runbooks zijn bedoeld voor de engineers met dienst die op incidenten reageren en voor de platformteams die die respons automatiseren. Om te kiezen tussen een runbook, een workflow, een playbook en een AI-regel, zie [Welke gebruik ik?](/docs/introduction/which-one#workflow-runbook-playbook-of-ai-regel).
 
 :::cards
 - [Een runbook schrijven](/docs/runbooks/authoring): Een runbook maken en de stappen schrijven.
@@ -46,7 +46,7 @@ De woorden die in heel OneUptime worden gebruikt, staan in de [Woordenlijst](/do
 | --- | --- |
 | **Runbook** | Het sjabloon. Een benoemde, herbruikbare procedure met een geordende lijst stappen en een schakelaar **Dit runbook uitvoeren**. |
 | **Stap** | Eén onderdeel van een runbook. Een stap heeft een type (Manual, JavaScript, HTTP request, Bash, SSH, kubectl of AI), een titel, een beschrijving en typespecifieke instellingen. |
-| **Runbook-regel** | Een regel die automatisch een of meer runbooks koppelt aan incidenten, waarschuwingen of geplande onderhoudsevenementen die aan de voorwaarden voldoen: hun monitoren, ernst, labels, monitorlabels, titel of beschrijving. |
+| **Runbook-regel** | Een regel die automatisch een of meer runbooks koppelt aan incidenten, waarschuwingen of onderhoudsgebeurtenissen die aan de voorwaarden voldoen: hun monitoren, ernst, labels, monitorlabels, titel of beschrijving. |
 | **Uitvoering** | Eén run van een runbook. Ontstaat wanneer een regel afgaat, wanneer iemand op een evenement op **Runbook uitvoeren** klikt, of wanneer iemand op het runbook zelf op **Nu uitvoeren** klikt. Bevat een momentopname van de stappen en de status en uitvoer van elke stap. |
 | **Momentopname** | De bevroren kopie van de stappen van het runbook die op elke uitvoering staat. U kunt het runbook later bewerken zonder de geschiedenis van eerdere uitvoeringen te herschrijven. |
 | **Runner** | Een kleine agent die u op een host in uw eigen infrastructuur draait. Hij voert de JavaScript-, Bash-, SSH- en kubectl-stappen uit die hem noemen. Ook wel runbook-agent genoemd. Een globale Runner, een van de Runners die OneUptime voor elk project draait, voert de JavaScript-stappen uit die er geen noemen, tenzij het project een standaard-Runner heeft. |
@@ -74,7 +74,7 @@ Een runbook kan ze allemaal combineren. De kracht van runbooks zit in het afwiss
 | Hoe | Waar | De uitvoering hangt aan |
 | --- | --- | --- |
 | Een runbook-regel | **Incidenten**, **Waarschuwingen** of **Geplande onderhoud** → **Regels** → **Runbook-regels** | Het nieuwe incident, de nieuwe waarschuwing of het nieuwe evenement |
-| **Runbook uitvoeren** | De pagina **Runbooks** van een incident, een waarschuwing of een gepland onderhoudsevenement | Dat evenement |
+| **Runbook uitvoeren** | De pagina **Runbooks** van een incident, een waarschuwing of een onderhoudsgebeurtenis | Dat evenement |
 | **Nu uitvoeren** | De pagina **Overzicht** van het runbook | Niets: een losse uitvoering |
 | Een AI-regel | Zie [AI SRE](/docs/ai/ai-sre) | Het incident of de waarschuwing |
 | Het schema van het runbook | De pagina **Triggers** van het runbook, zie [Runbook-triggers](/docs/runbooks/triggers#uitvoeren-volgens-een-schema) | Niets: een onbewaakte uitvoering |

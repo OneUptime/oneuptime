@@ -24,7 +24,7 @@ flowchart TB
     execution --> worker["OneUptime Worker<br/>runs the steps"]
 ```
 
-A trigger starts a run the way **Run Now** does: the run is an execution of the runbook's current steps, not attached to any incident, alert or scheduled maintenance event. Each run records what started it. The runbook's **Executions** and **Runbooks → Executions** show it under **Triggered by**, with when a scheduled run was due, or the address that called the webhook, and both lists can be filtered by it.
+A trigger starts a run the way **Run Now** does: the run is an execution of the runbook's current steps, not attached to any incident, alert or maintenance event. Each run records what started it. The runbook's **Executions** and **Runbooks → Executions** show it under **Triggered by**, with when a scheduled run was due, or the address that called the webhook, and both lists can be filtered by it.
 
 ## Before you begin
 

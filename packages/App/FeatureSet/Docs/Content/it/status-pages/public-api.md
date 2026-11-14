@@ -1,6 +1,6 @@
 # API pubblica
 
-Ogni pagina di stato risponde a un piccolo insieme di endpoint JSON in sola lettura: la sua panoramica, un riepilogo, la disponibilità, gli incidenti, gli episodi, gli eventi di manutenzione pianificata e gli annunci. Sono gli endpoint che la pagina di stato stessa carica, quindi restituiscono esattamente ciò che vede un visitatore, e una pagina pubblica non richiede alcuna chiave API. Usali per mostrare il tuo stato nella tua app, in un chatbot o su uno schermo a parete.
+Ogni pagina di stato risponde a un piccolo insieme di endpoint JSON in sola lettura: la sua panoramica, un riepilogo, la disponibilità, gli incidenti, gli episodi, gli eventi di manutenzione e gli annunci. Sono gli endpoint che la pagina di stato stessa carica, quindi restituiscono esattamente ciò che vede un visitatore, e una pagina pubblica non richiede alcuna chiave API. Usali per mostrare il tuo stato nella tua app, in un chatbot o su uno schermo a parete.
 
 :::cards
 - [Endpoint](#endpoint): Un endpoint per ogni cosa che mostra la pagina.
@@ -57,8 +57,8 @@ Dove un percorso qui sotto riporta `{statusPageIdOrDomain}`, puoi inviare l'ID d
 | `/incidents/{statusPageIdOrDomain}/{incidentId}` | `POST` | Un incidente. |
 | `/episodes/{statusPageIdOrDomain}` | `POST` | Gli episodi di incidenti che la pagina elenca. |
 | `/episodes/{statusPageIdOrDomain}/{episodeId}` | `POST` | Un episodio. |
-| `/scheduled-maintenance-events/{statusPageIdOrDomain}` | `GET`, `POST` | Gli eventi di manutenzione pianificata che la pagina elenca, con le loro note pubbliche e i cambi di stato. |
-| `/scheduled-maintenance-events/{statusPageIdOrDomain}/{scheduledMaintenanceId}` | `POST` | Un evento di manutenzione pianificata. |
+| `/scheduled-maintenance-events/{statusPageIdOrDomain}` | `GET`, `POST` | Gli eventi di manutenzione che la pagina elenca, con le loro note pubbliche e i cambi di stato. |
+| `/scheduled-maintenance-events/{statusPageIdOrDomain}/{scheduledMaintenanceId}` | `POST` | Un evento di manutenzione. |
 | `/announcements/{statusPageIdOrDomain}` | `GET`, `POST` | Gli annunci che la pagina elenca. |
 | `/announcements/{statusPageIdOrDomain}/{announcementId}` | `POST` | Un annuncio. |
 
@@ -140,13 +140,13 @@ Lo stato complessivo è il peggior stato attuale dei monitor e dei gruppi di mon
 | `activeIncidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates` | Gli incidenti non risolti che la pagina mostra, le loro note pubbliche e i cambi di stato, e gli stati degli incidenti del progetto. |
 | `timelineIncidents` | Gli incidenti nella finestra delle barre di disponibilità, compresi quelli risolti, per i tooltip delle barre. |
 | `activeEpisodes`, `episodePublicNotes`, `episodeStateTimelines` | Lo stesso per gli episodi di incidenti. |
-| `scheduledMaintenanceEvents`, `scheduledMaintenanceEventsPublicNotes`, `scheduledMaintenanceStateTimelines`, `scheduledMaintenanceStates` | Gli eventi di manutenzione pianificata in arrivo o in corso, le loro note pubbliche e i cambi di stato. |
-| `timelineScheduledMaintenanceEvents` | Gli eventi di manutenzione pianificata nella finestra delle barre di disponibilità già iniziati, in corso o conclusi, per i tooltip delle barre e la finestra di dialogo di ogni giorno: quelli che la pagina mostra e che includono uno dei suoi monitor, ciascuno solo con i monitor della pagina. |
+| `scheduledMaintenanceEvents`, `scheduledMaintenanceEventsPublicNotes`, `scheduledMaintenanceStateTimelines`, `scheduledMaintenanceStates` | Gli eventi di manutenzione in arrivo o in corso, le loro note pubbliche e i cambi di stato. |
+| `timelineScheduledMaintenanceEvents` | Gli eventi di manutenzione nella finestra delle barre di disponibilità già iniziati, in corso o conclusi, per i tooltip delle barre e la finestra di dialogo di ogni giorno: quelli che la pagina mostra e che includono uno dei suoi monitor, ciascuno solo con i monitor della pagina. |
 | `activeAnnouncements` | Gli annunci visibili adesso: iniziati e non ancora terminati. |
 
 ## Leggere il riepilogo
 
-Il riepilogo è la panoramica ridotta a ciò che uno strumento di monitoraggio chiede a una pagina: lo stato di ogni risorsa, e se un evento di manutenzione pianificata in corso la riguarda. Resta piccolo per quanta cronologia mostri la pagina, ed è ciò che legge il [monitor di pagina di stato esterna](/docs/monitor/external-status-page-monitor#pagine-di-stato-oneuptime) di un altro OneUptime. Viene dalla stessa cache della panoramica, dopo le stesse regole di accesso.
+Il riepilogo è la panoramica ridotta a ciò che uno strumento di monitoraggio chiede a una pagina: lo stato di ogni risorsa, e se un evento di manutenzione in corso la riguarda. Resta piccolo per quanta cronologia mostri la pagina, ed è ciò che legge il [monitor di pagina di stato esterna](/docs/monitor/external-status-page-monitor#pagine-di-stato-oneuptime) di un altro OneUptime. Viene dalla stessa cache della panoramica, dopo le stesse regole di accesso.
 
 ```bash
 curl https://oneuptime.com/status-page-api/summary/YOUR_STATUS_PAGE_ID
@@ -195,7 +195,7 @@ La risposta:
 | `overallStatus` | Lo stato generale della pagina, come lo mostra il suo banner: `name`, `color` e `isOperational`. `null` quando la pagina mostra tutte le sue risorse come **Non monitorato**. |
 | `resources` | Ogni risorsa che la pagina mostra, nel suo ordine: il suo `name` sulla pagina, il suo `groupName` con i gruppi sopra, il suo `currentStatus`, `isMonitored`, e `isUnderMaintenance`. |
 | `activeIncidents` | Gli incidenti non risolti che la pagina mostra, ciascuno con gli `affectedResourceIds` delle risorse che riguarda. |
-| `ongoingScheduledMaintenance`, `upcomingScheduledMaintenance` | Gli eventi di manutenzione pianificata in corso e ancora in arrivo, ciascuno con i suoi `affectedResourceIds`. |
+| `ongoingScheduledMaintenance`, `upcomingScheduledMaintenance` | Gli eventi di manutenzione in corso e ancora in arrivo, ciascuno con i suoi `affectedResourceIds`. |
 
 Il `currentStatus` di una risorsa è `null` quando la pagina non lo mostra, e quando `isMonitored` è `false`: niente controlla la risorsa, perché il monitoraggio del suo monitor è disattivato o tutti i monitor del suo gruppo di monitor lo hanno disattivato, quindi la pagina la mostra come **Non monitorato**. `isUnderMaintenance` è `true` finché un evento in corso nomina uno dei monitor della risorsa, o un monitor del suo gruppo di monitor, qualunque sia lo stato di quei monitor.
 
@@ -346,7 +346,7 @@ Gli endpoint degli elenchi rispondono a `GET` oltre che a `POST`; quelli del sin
 # The incidents the page lists
 curl https://oneuptime.com/status-page-api/incidents/YOUR_STATUS_PAGE_ID
 
-# One scheduled maintenance event
+# One maintenance event
 curl -X POST https://oneuptime.com/status-page-api/scheduled-maintenance-events/YOUR_STATUS_PAGE_ID/EVENT_ID
 ```
 @tab Node.js
@@ -384,7 +384,7 @@ for incident in incidents:
 | -------- | -------------------- |
 | Incidenti | `incidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates`, `statusPageResources`, `monitorsInGroup` |
 | Episodi | `episodes`, `episodePublicNotes`, `episodeStateTimelines`, `incidentStates`, `statusPageResources`, `monitorsInGroup` |
-| Eventi di manutenzione pianificata | `scheduledMaintenanceEvents`, `scheduledMaintenanceEventsPublicNotes`, `scheduledMaintenanceStateTimelines`, `scheduledMaintenanceStates`, `statusPageResources`, `monitorsInGroup` |
+| Eventi di manutenzione | `scheduledMaintenanceEvents`, `scheduledMaintenanceEventsPublicNotes`, `scheduledMaintenanceStateTimelines`, `scheduledMaintenanceStates`, `statusPageResources`, `monitorsInGroup` |
 | Annunci | `announcements`, `statusPageResources`, `monitorsInGroup` |
 
 Una richiesta per un singolo elemento risponde con le stesse chiavi, che contengono quel solo record.
@@ -406,7 +406,7 @@ Un errore risponde con un codice di stato e un corpo JSON che ne spiega il motiv
 
 ## Altri modi per leggere una pagina di stato
 
-- **RSS.** Ogni pagina di stato serve `/rss`, un feed dei suoi incidenti, annunci ed eventi di manutenzione pianificata, ciascuno datato come lo data la pagina. Vedi [Il badge incorporabile e il feed RSS](/docs/status-pages/index#il-badge-incorporabile-e-il-feed-rss).
+- **RSS.** Ogni pagina di stato serve `/rss`, un feed dei suoi incidenti, annunci ed eventi di manutenzione, ciascuno datato come lo data la pagina. Vedi [Il badge incorporabile e il feed RSS](/docs/status-pages/index#il-badge-incorporabile-e-il-feed-rss).
 - **llms.txt.** Accanto a `/rss`, ogni pagina di stato serve `/llms.txt`, che indirizza gli agenti di IA verso il feed RSS e il JSON della panoramica.
 - **MCP.** Gli agenti di IA possono leggere la pagina tramite il server MCP di OneUptime all'indirizzo `https://oneuptime.com/mcp`, senza chiave API, passando l'ID o il dominio della pagina come `statusPageIdOrDomain`. È attivo per impostazione predefinita; disattivalo con **Abilita server MCP** in **IA → MCP** nel menu laterale della pagina. Vedi [Server MCP](/docs/ai/mcp-server).
 - **L'API REST.** Per creare o modificare pagine di stato, risorse, iscritti e annunci, usa l'[API di OneUptime](/docs/api-reference/api-reference) con una chiave API.

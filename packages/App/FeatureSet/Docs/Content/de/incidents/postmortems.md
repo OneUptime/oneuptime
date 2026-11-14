@@ -175,7 +175,7 @@ Eine Vorfallepisode hat ebenfalls eine Seite **Postmortem**, unter **Untersuchun
 
 Das Postmortem einer Episode ist nur die Notiz: Es hat keine Anhänge, und keine Statusseite zeigt es. OneUptime AI entwirft keines von selbst, wenn eine Episode behoben wird. Das Generieren erfordert die Rolle Project Owner oder Project Admin oder eine benutzerdefinierte Rolle mit der Berechtigung Edit Incident Episode. Es hat auch keinen Status, und die Postmortem-Liste lässt es aus.
 
-Warnungen und geplante Wartungsereignisse haben kein Postmortem.
+Warnungen und Wartungsereignisse haben kein Postmortem.
 
 ## Über die API
 

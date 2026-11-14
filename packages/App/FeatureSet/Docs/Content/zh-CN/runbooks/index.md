@@ -1,6 +1,6 @@
 # Runbook 概览
 
-Runbook 是可重复使用的响应流程：一份由手动步骤和自动步骤组成的有序列表，你可以在事件、警报或计划维护事件上运行它。它把“现在该怎么办？”的讨论变成一份清单，任何值班人员都能在凌晨 3 点照着执行，脚本、API 调用和审批都已事先写好。Runbook 面向处理事件的值班工程师，以及将这种响应自动化的平台团队。如需在 Runbook、工作流、剧本和 AI 规则之间做选择，请参阅 [该用哪一个？](/docs/introduction/which-one#工作流运行手册剧本还是-ai-规则)。
+Runbook 是可重复使用的响应流程：一份由手动步骤和自动步骤组成的有序列表，你可以在事件、警报或维护事件上运行它。它把“现在该怎么办？”的讨论变成一份清单，任何值班人员都能在凌晨 3 点照着执行，脚本、API 调用和审批都已事先写好。Runbook 面向处理事件的值班工程师，以及将这种响应自动化的平台团队。如需在 Runbook、工作流、剧本和 AI 规则之间做选择，请参阅 [该用哪一个？](/docs/introduction/which-one#工作流运行手册剧本还是-ai-规则)。
 
 :::cards
 - [编写 Runbook](/docs/runbooks/authoring): 创建 Runbook 并编写其步骤。
@@ -46,7 +46,7 @@ OneUptime 各处使用的词都收录在 [术语表](/docs/introduction/glossary
 | --- | --- |
 | **运行手册** | 模板。一个有名称、可重复使用的流程，包含有序的步骤列表和 **运行此 Runbook** 开关。 |
 | **步骤** | Runbook 中的一项。它有类型（Manual、JavaScript、HTTP request、Bash、SSH、kubectl 或 AI）、标题、描述和与类型相关的设置。 |
-| **Runbook 规则** | 一条规则，自动将一个或多个 Runbook 关联到符合其条件（监视器、严重性、标签、监视器标签、标题或描述）的事件、警报或计划维护事件。 |
+| **Runbook 规则** | 一条规则，自动将一个或多个 Runbook 关联到符合其条件（监视器、严重性、标签、监视器标签、标题或描述）的事件、警报或维护事件。 |
 | **执行** | Runbook 的一次运行。在规则触发、有人在事件上点击 **运行 Runbook** 或在 Runbook 本身上点击 **立即运行** 时创建。它保存步骤的快照以及每个步骤的状态和输出。 |
 | **快照** | 保存在每次执行中的 Runbook 步骤的冻结副本。之后编辑 Runbook 不会改写过去运行的历史。 |
 | **Runner** | 你在自己基础设施中的主机上运行的小型代理。它运行指定它的 JavaScript、Bash、SSH 和 kubectl 步骤。也称为 Runbook 代理。 全局 Runner 是 OneUptime 为所有项目运行的 Runner，除非项目有默认 Runner，它运行未指定任何 Runner 的 JavaScript 步骤。 |
@@ -74,7 +74,7 @@ OneUptime 各处使用的词都收录在 [术语表](/docs/introduction/glossary
 | 方式 | 位置 | 执行关联到 |
 | --- | --- | --- |
 | Runbook 规则 | **事件** 、 **警报** 或 **计划维护** → **规则** → **Runbook 规则** | 新的事件、警报或计划维护事件 |
-| **运行 Runbook** | 事件、警报或计划维护事件的 **运行手册** 页面 | 该事件、警报或计划维护事件 |
+| **运行 Runbook** | 事件、警报或维护事件的 **运行手册** 页面 | 该事件、警报或维护事件 |
 | **立即运行** | Runbook 的 **概览** 页面 | 无：一次临时运行 |
 | AI 规则 | 参见 [AI SRE](/docs/ai/ai-sre) | 事件或警报 |
 | Runbook 的计划 | Runbook 的 **触发器** 页面，参见 [Runbook 触发器](/docs/runbooks/triggers#按计划运行) | 无：一次无人值守的运行 |

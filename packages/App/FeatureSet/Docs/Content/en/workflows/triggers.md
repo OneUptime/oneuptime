@@ -163,7 +163,7 @@ To connect Huntress, click the **Huntress Incident Report** trigger on the canva
 
 ## OneUptime event triggers
 
-Almost every thing in OneUptime — monitors, incidents, alerts, scheduled maintenance events, status pages, on-call policies, teams — can trigger a workflow. Each offers up to four triggers:
+Almost every thing in OneUptime — monitors, incidents, alerts, maintenance events, status pages, on-call policies, teams — can trigger a workflow. Each offers up to four triggers:
 
 - **On Create** — fires when a new one is added.
 - **On Update** — fires when one is changed. Saving a record with the values it already has, such as a form saved without edits or a switch sent as it already stands, is not a change and does not fire it.

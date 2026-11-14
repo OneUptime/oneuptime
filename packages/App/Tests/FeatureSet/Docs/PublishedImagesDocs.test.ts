@@ -41,15 +41,15 @@ const NAMED_AS: Record<string, string> = {
     "the incident's description while the incident is **Visible on Status Page**",
   "Incident.postmortemNote": "its postmortem once that is published there too",
   "IncidentPublicNote.note":
-    "a public note while its incident, episode or scheduled maintenance event is shown on status pages",
+    "a public note while its incident, episode or maintenance event is shown on status pages",
   "IncidentEpisodePublicNote.note":
-    "a public note while its incident, episode or scheduled maintenance event is shown on status pages",
+    "a public note while its incident, episode or maintenance event is shown on status pages",
   "ScheduledMaintenancePublicNote.note":
-    "a public note while its incident, episode or scheduled maintenance event is shown on status pages",
+    "a public note while its incident, episode or maintenance event is shown on status pages",
   "IncidentEpisode.description":
-    "an episode's or a scheduled maintenance event's description while it is shown on status pages",
+    "an episode's or a maintenance event's description while it is shown on status pages",
   "ScheduledMaintenance.description":
-    "an episode's or a scheduled maintenance event's description while it is shown on status pages",
+    "an episode's or a maintenance event's description while it is shown on status pages",
   "StatusPageAnnouncement.description":
     "an announcement from the time it starts showing",
   "StatusPage.overviewPageDescription":

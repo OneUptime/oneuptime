@@ -39,9 +39,9 @@ Una ejecución nueva está **Programado** hasta que un Worker la toma y la marca
 
 Una ejecución de runbook se crea de cinco maneras:
 
-1. **Automáticamente mediante una regla**: una [regla de runbook](/docs/runbooks/rules) la inicia cuando se crea un incidente, una alerta o un evento de mantenimiento programado que coincide. Una regla de IA también puede iniciar una; consulta [AI SRE](/docs/ai/ai-sre).
-2. **Manualmente desde un evento**: haz clic en **Ejecutar runbook** en un incidente, una alerta o un evento de mantenimiento programado. La ejecución queda unida a ese evento.
-3. **Manualmente desde la página del runbook**: haz clic en **Ejecutar ahora** en la página **Vista general** de un runbook. La ejecución no queda unida a ningún incidente, alerta ni evento de mantenimiento programado.
+1. **Automáticamente mediante una regla**: una [regla de runbook](/docs/runbooks/rules) la inicia cuando se crea un incidente, una alerta o un evento de mantenimiento que coincide. Una regla de IA también puede iniciar una; consulta [AI SRE](/docs/ai/ai-sre).
+2. **Manualmente desde un evento**: haz clic en **Ejecutar runbook** en un incidente, una alerta o un evento de mantenimiento. La ejecución queda unida a ese evento.
+3. **Manualmente desde la página del runbook**: haz clic en **Ejecutar ahora** en la página **Vista general** de un runbook. La ejecución no queda unida a ningún incidente, alerta ni evento de mantenimiento.
 4. **Según una programación**: la programación del runbook la inicia a horas fijas. Consulta [Ejecutar según una programación](/docs/runbooks/triggers#ejecutar-según-una-programación).
 5. **Desde otra herramienta**: un `POST` a la URL de webhook del runbook la inicia, con los valores que envía la llamada. Consulta [Llamar al webhook](/docs/runbooks/triggers#llamar-al-webhook).
 
@@ -49,7 +49,7 @@ Para iniciar una a mano:
 
 :::tabs
 @tab Desde un evento
-1. Abre el incidente, la alerta o el evento de mantenimiento programado y ve a su página **Runbooks**.
+1. Abre el incidente, la alerta o el evento de mantenimiento y ve a su página **Runbooks**.
 2. Haz clic en **Ejecutar runbook**. El diálogo **Ejecutar un runbook** muestra los runbooks del proyecto que están activados.
 3. Haz clic en **Ejecutar** junto al runbook. La ejecución aparece en la lista del evento: haz clic en **Ver** para abrirla.
 @tab Desde el runbook

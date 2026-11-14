@@ -24,7 +24,7 @@ flowchart TB
 ## 开始之前
 
 - **你的角色。** 创建事件需要 **项目所有者** 、 **项目管理员** 、 **项目成员** 、 **计划维护管理员** 或 **计划维护成员** ，或拥有 **Create Scheduled Maintenance** 权限的自定义角色。
-- **你的状态页。** 要通知客户，你需要一个显示计划维护事件的状态页。请参阅 [状态页概览](/docs/status-pages/index)。
+- **你的状态页。** 要通知客户，你需要一个显示维护事件的状态页。请参阅 [状态页概览](/docs/status-pages/index)。
 
 ## 创建事件
 
@@ -71,7 +71,7 @@ flowchart TB
 在你填写时，有两项内容会自动帮你填写表单：
 
 - **关联的资源。** 当你选择一个监视器时，与它关联的主机、集群、服务和其他资源会添加到 **其他受影响的资源** 下，字段下方会有一行列出它们。删除你不需要的即可。云资源也会添加进来：事件进行期间，它们的监视器不会创建事件或警报。
-- **建议的状态页。** 在 **在这些状态页上显示事件** 下，会建议显示你的监视器的页面：点击页面名称即可添加，或点击 **全部添加** 。不会替你自动选择任何页面。请参阅 [计划维护事件](/docs/status-pages/subscribers#计划维护事件)。
+- **建议的状态页。** 在 **在这些状态页上显示事件** 下，会建议显示你的监视器的页面：点击页面名称即可添加，或点击 **全部添加** 。不会替你自动选择任何页面。请参阅 [维护事件](/docs/status-pages/subscribers#维护事件)。
 
 ## 从资源或模板开始
 
@@ -180,6 +180,6 @@ curl -X POST https://oneuptime.com/api/scheduled-maintenance \
 :::cards
 - [维护状态](/docs/scheduled-maintenance/states): 什么会开始和结束事件，以及如何手动推进它。
 - [模板与周期性事件](/docs/scheduled-maintenance/templates): 保存表单的答案以便下次使用。
-- [订阅者与公告](/docs/status-pages/subscribers#计划维护事件): 准确地说明谁会在何时收到通知。
+- [订阅者与公告](/docs/status-pages/subscribers#维护事件): 准确地说明谁会在何时收到通知。
 - [维护规则与设置](/docs/scheduled-maintenance/settings): 自动添加所有者、标签和提醒。
 :::

@@ -24,7 +24,7 @@ flowchart TB
 ## Før du begynder
 
 - **Din rolle.** At oprette en begivenhed kræver **Projektejer**, **Projektadministrator**, **Projektmedlem**, **Vedligeholdelsesadministrator** eller **Vedligeholdelsesmedlem** eller en brugerdefineret rolle med **Create Scheduled Maintenance**.
-- **Dine statussider.** For at informere kunderne skal du have en statusside, der viser planlagte vedligeholdelsesbegivenheder. Se [Statussider – Oversigt](/docs/status-pages/index).
+- **Dine statussider.** For at informere kunderne skal du have en statusside, der viser vedligeholdelseshændelser. Se [Statussider – Oversigt](/docs/status-pages/index).
 
 ## Opret en begivenhed
 
@@ -71,7 +71,7 @@ Intet sendes, før du vælger en statusside: en begivenhed, der ikke vises på n
 To ting udfylder formularen for dig undervejs:
 
 - **Tilknyttede ressourcer.** Når du vælger en monitor, tilføjes de værter, klynger, tjenester og andre ressourcer, den er knyttet til, under **Andre berørte ressourcer**, og en linje under feltet nævner dem. Fjern dem, du ikke vil have. Cloudressourcer tilføjes også: Mens begivenheden er i gang, åbner deres monitorer ingen hændelse eller advarsel.
-- **Foreslåede statussider.** Under **Vis begivenhed på disse statussider** foreslås de sider, der viser dine monitorer: klik på en sides navn for at tilføje den, eller på **Tilføj alle**. Intet vælges for dig. Se [Planlagte vedligeholdelsesbegivenheder](/docs/status-pages/subscribers#planlagte-vedligeholdelsesbegivenheder).
+- **Foreslåede statussider.** Under **Vis begivenhed på disse statussider** foreslås de sider, der viser dine monitorer: klik på en sides navn for at tilføje den, eller på **Tilføj alle**. Intet vælges for dig. Se [Vedligeholdelseshændelser](/docs/status-pages/subscribers#vedligeholdelseshændelser).
 
 ## Start fra en ressource eller en skabelon
 
@@ -180,6 +180,6 @@ En begivenhed offentliggøres, så dine kunder hører om arbejdet, før det begy
 :::cards
 - [Vedligeholdelsestilstande](/docs/scheduled-maintenance/states): Hvad der starter og afslutter en begivenhed, og hvordan du flytter den manuelt.
 - [Skabeloner og tilbagevendende begivenheder](/docs/scheduled-maintenance/templates): Gem formularens svar til næste gang.
-- [Abonnenter og meddelelser](/docs/status-pages/subscribers#planlagte-vedligeholdelsesbegivenheder): Præcis hvem der får besked, og hvornår.
+- [Abonnenter og meddelelser](/docs/status-pages/subscribers#vedligeholdelseshændelser): Præcis hvem der får besked, og hvornår.
 - [Vedligeholdelsesregler og indstillinger](/docs/scheduled-maintenance/settings): Tilføj ejere, etiketter og påmindelser automatisk.
 :::

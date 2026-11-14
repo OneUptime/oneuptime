@@ -24,7 +24,7 @@ flowchart TB
 ## Antes de começar
 
 - **Sua função.** Criar um evento requer **Proprietário do projeto**, **Administrador do projeto**, **Membro do projeto**, **Administrador de manutenção programada** ou **Membro de manutenção programada**, ou uma função personalizada com **Create Scheduled Maintenance**.
-- **Suas páginas de status.** Para avisar os clientes, você precisa de uma página de status que mostre eventos de manutenção programada. Veja [Visão geral das páginas de status](/docs/status-pages/index).
+- **Suas páginas de status.** Para avisar os clientes, você precisa de uma página de status que mostre eventos de manutenção. Veja [Visão geral das páginas de status](/docs/status-pages/index).
 
 ## Criar um evento
 
@@ -71,7 +71,7 @@ Nada é enviado até você escolher uma página de status: um evento que não ap
 Duas coisas preenchem o formulário para você no caminho:
 
 - **Recursos vinculados.** Quando você escolhe um monitor, os hosts, clusters, serviços e outros recursos aos quais ele está vinculado são adicionados em **Outros recursos afetados**, e uma linha abaixo do campo os nomeia. Remova os que você não quiser. Recursos de nuvem também são adicionados: enquanto o evento está em andamento, os monitores deles não abrem incidentes nem alertas.
-- **Páginas de status sugeridas.** Em **Mostrar evento nestas páginas de status**, são sugeridas as páginas que mostram seus monitores: clique no nome de uma página para adicioná-la, ou em **Adicionar todas**. Nada é escolhido por você. Veja [Eventos de manutenção programada](/docs/status-pages/subscribers#eventos-de-manutenção-programada).
+- **Páginas de status sugeridas.** Em **Mostrar evento nestas páginas de status**, são sugeridas as páginas que mostram seus monitores: clique no nome de uma página para adicioná-la, ou em **Adicionar todas**. Nada é escolhido por você. Veja [Eventos de manutenção](/docs/status-pages/subscribers#eventos-de-manutenção).
 
 ## Começar por um recurso ou um modelo
 
@@ -180,6 +180,6 @@ Um evento é publicado para que seus clientes saibam do trabalho antes que ele c
 :::cards
 - [Estados da manutenção](/docs/scheduled-maintenance/states): O que inicia e encerra um evento, e como movê-lo à mão.
 - [Modelos e eventos recorrentes](/docs/scheduled-maintenance/templates): Salve as respostas do formulário para a próxima vez.
-- [Assinantes e comunicados](/docs/status-pages/subscribers#eventos-de-manutenção-programada): Exatamente quem é avisado, e quando.
+- [Assinantes e comunicados](/docs/status-pages/subscribers#eventos-de-manutenção): Exatamente quem é avisado, e quando.
 - [Regras e configurações da manutenção](/docs/scheduled-maintenance/settings): Adicione proprietários, rótulos e lembretes automaticamente.
 :::

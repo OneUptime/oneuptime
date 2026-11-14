@@ -384,7 +384,7 @@ Autres noms : **Tâches**. Voir [Code](/docs/ai/ai-agent).
 
 ### Formulaire
 
-Une page que toute personne disposant de son lien peut remplir, sans compte. Chaque soumission crée un incident, pour un signalement de problème, ou un événement de maintenance planifiée, pour une demande de changement.
+Une page que toute personne disposant de son lien peut remplir, sans compte. Chaque soumission crée un incident, pour un signalement de problème, ou un événement de maintenance, pour une demande de changement.
 
 Voir [Vue d'ensemble des formulaires](/docs/forms/index).
 

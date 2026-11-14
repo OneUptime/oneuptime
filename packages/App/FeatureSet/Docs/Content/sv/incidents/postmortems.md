@@ -175,7 +175,7 @@ En incidentepisod har också en sida **Efteranalys**, under **Utredning**: en ge
 
 En episods efteranalys är bara anteckningen: den har inga bilagor, och ingen statussida visar den. OneUptime AI skriver inget utkast av sig själv när en episod löses. Att generera en kräver rollen Project Owner eller Project Admin, eller en anpassad roll med behörigheten Edit Incident Episode. Den har inte heller någon status, och listan över efteranalyser utelämnar den.
 
-Larm och schemalagda underhållshändelser har ingen efteranalys.
+Larm och underhållshändelser har ingen efteranalys.
 
 ## Via API:et
 

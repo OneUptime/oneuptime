@@ -1,6 +1,6 @@
 # Stati della manutenzione
 
-Ogni evento di manutenzione programmata si trova in un solo **stato**: a che punto è il lavoro, da pianificato ad approvato. Gli stati decidono cosa fa OneUptime con l'evento: quando i suoi monitor smettono di essere controllati, cosa mostrano le vostre pagine di stato, quando si fermano i suoi promemoria. Questa pagina tratta i quattro stati con cui parte ogni progetto, cosa sposta un evento dall'uno all'altro e come aggiungere passi vostri.
+Ogni evento di manutenzione si trova in un solo **stato**: a che punto è il lavoro, da pianificato ad approvato. Gli stati decidono cosa fa OneUptime con l'evento: quando i suoi monitor smettono di essere controllati, cosa mostrano le vostre pagine di stato, quando si fermano i suoi promemoria. Questa pagina tratta i quattro stati con cui parte ogni progetto, cosa sposta un evento dall'uno all'altro e come aggiungere passi vostri.
 
 :::cards
 - [Gli stati iniziali](#gli-stati-iniziali): Programmato, In corso, Terminato e Completato.

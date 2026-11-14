@@ -35,7 +35,7 @@ Wenn eine Regel greift, geschieht für jedes Runbook, das sie nennt, Folgendes:
 1. Das Runbook wird geladen.
 2. Seine Schritte werden als **Momentaufnahme** auf eine neue Runbook-Ausführung kopiert.
 3. Die Ausführung wird in die Warteschlange des Runbook-Workers eingereiht.
-4. Die Ausführung wird mit dem auslösenden Datensatz verknüpft: Sie erscheint auf der Seite **Runbooks** des Vorfalls, der Warnung oder des geplanten Wartungsereignisses und in der Liste **Ausführungen** des Runbooks.
+4. Die Ausführung wird mit dem auslösenden Datensatz verknüpft: Sie erscheint auf der Seite **Runbooks** des Vorfalls, der Warnung oder des Wartungsereignisses und in der Liste **Ausführungen** des Runbooks.
 
 Jeden Lauf, ob von einer Regel ausgelöst oder nicht, sehen Sie unter **Runbooks → Ausführungen**, gefiltert nach Status, Runbook oder Startdatum.
 
@@ -72,12 +72,12 @@ Wählen Sie unter **Runbooks** ein oder mehrere **Zu startende Runbooks**. Der *
 
 ## Bedingungen
 
-Jede Bedingung vergleicht eine Eigenschaft des Vorfalls, der Warnung oder des geplanten Wartungsereignisses mit einem Wert, den Sie angeben. Eine Runbook-Regel bietet dieselben Kriterien wie die anderen Regeln ihres Produkts: Eine Runbook-Regel für Vorfälle gleicht ab, worauf eine Datenschutz- oder Bereitschaftsregel für Vorfälle abgleicht.
+Jede Bedingung vergleicht eine Eigenschaft des Vorfalls, der Warnung oder des Wartungsereignisses mit einem Wert, den Sie angeben. Eine Runbook-Regel bietet dieselben Kriterien wie die anderen Regeln ihres Produkts: Eine Runbook-Regel für Vorfälle gleicht ab, worauf eine Datenschutz- oder Bereitschaftsregel für Vorfälle abgleicht.
 
 | Kriterium | Was es prüft |
 | --- | --- |
-| **Monitore** | Die Monitore, die der Vorfall oder das geplante Wartungsereignis betrifft, oder den Monitor, der die Warnung ausgelöst hat. |
-| **Vorfallsschweregrade** / **Warnungsschweregrade** | Den Schweregrad des Vorfalls oder der Warnung. Geplante Wartungsereignisse haben keinen Schweregrad, deshalb bieten ihre Regeln ihn nicht an. |
+| **Monitore** | Die Monitore, die der Vorfall oder das Wartungsereignis betrifft, oder den Monitor, der die Warnung ausgelöst hat. |
+| **Vorfallsschweregrade** / **Warnungsschweregrade** | Den Schweregrad des Vorfalls oder der Warnung. Wartungsereignisse haben keinen Schweregrad, deshalb bieten ihre Regeln ihn nicht an. |
 | **Vorfall-Beschriftungen** / **Warnungsbeschriftungen** / **Ereignis-Beschriftungen** | Die Beschriftungen des Vorfalls, der Warnung oder des Ereignisses selbst, einschließlich derer, die Beschriftungsregeln beim Erstellen angehängt haben. |
 | **Überwachungs-Beschriftungen** | Die Beschriftungen seiner Monitore. Beschriften Sie Ihre Monitore mit `production` oder `staging`, um ein Runbook nur für eine Umgebung auszuführen. |
 | **Vorfalltitel** / **Warnungstitel** / **Ereignistitel** | Seinen Titel. |

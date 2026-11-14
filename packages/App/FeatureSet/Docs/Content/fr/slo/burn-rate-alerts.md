@@ -255,7 +255,7 @@ Certains changements résolvent toujours ce qu'une règle a d'ouvert, quels que 
 
 ## Maintenance planifiée
 
-Tant qu'un moniteur du SLO est dans un événement de maintenance planifiée en cours, ses règles de taux de consommation ne déclenchent aucune alerte et ne déclarent aucun incident : un travail prévu ne doit alerter personne. Ce que les règles ont déjà d'ouvert est toujours résolu comme d'habitude. Le temps compte quand même dans le budget d'erreur, selon les statuts d'indisponibilité du SLO.
+Tant qu'un moniteur du SLO est dans un événement de maintenance en cours, ses règles de taux de consommation ne déclenchent aucune alerte et ne déclarent aucun incident : un travail prévu ne doit alerter personne. Ce que les règles ont déjà d'ouvert est toujours résolu comme d'habitude. Le temps compte quand même dans le budget d'erreur, selon les statuts d'indisponibilité du SLO.
 
 ## Le fil d'activité du SLO
 
@@ -271,8 +271,8 @@ Une règle ne se déclenche qu'une fois que le SLO a une fenêtre longue complè
 La résolution automatique suit la fenêtre longue : dès que le taux de consommation sur la fenêtre longue repasse sous le seuil, l'alerte est résolue. Donnez à la règle une fenêtre longue plus longue, ou désactivez **Résoudre automatiquement l'alerte** et résolvez l'alerte à la main.
 :::
 
-:::details Rien ne s'est déclenché pendant un événement de maintenance planifiée
-Les règles de taux de consommation restent silencieuses tant que l'un des moniteurs du SLO est dans un événement de maintenance planifiée en cours. L'indisponibilité compte quand même dans le budget.
+:::details Rien ne s'est déclenché pendant un événement de maintenance
+Les règles de taux de consommation restent silencieuses tant que l'un des moniteurs du SLO est dans un événement de maintenance en cours. L'indisponibilité compte quand même dans le budget.
 :::
 
 :::details Existe-t-il un nombre minimal d'échantillons ?

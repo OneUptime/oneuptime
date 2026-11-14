@@ -41,7 +41,7 @@ En **Bases de datos**, elige **Alertas recomendadas** para una base de datos. Ca
 
 Elige las gravedades, las políticas de guardia, los propietarios y las etiquetas al crearlas. A partir de ahí son monitores normales: edítalos, siléncialos o ponlos en una página de estado como cualquier otro.
 
-Una recarga de datos o una migración no debería avisar a nadie. Indica la base de datos en **Data Observability Bases de datos** de un [evento de mantenimiento programado](/docs/scheduled-maintenance/index), o pon en él su servidor de base de datos, y sus alertas de datos permanecen en silencio mientras el evento esté activo.
+Una recarga de datos o una migración no debería avisar a nadie. Indica la base de datos en **Data Observability Bases de datos** de un [evento de mantenimiento](/docs/scheduled-maintenance/index), o pon en él su servidor de base de datos, y sus alertas de datos permanecen en silencio mientras el evento esté activo.
 
 ## Métricas que escribe cada tabla
 

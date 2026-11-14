@@ -28,8 +28,8 @@ const LANGUAGES: Array<string> = ["en", "fa"];
 
 // The section each guide tells it in, by its heading in each language.
 const SCHEDULED_MAINTENANCE_SECTION: Record<string, string> = {
-  en: "### Scheduled maintenance events",
-  fa: "### رویدادهای نگهداری زمان‌بندی‌شده",
+  en: "### Maintenance events",
+  fa: "### رویدادهای تعمیر و نگهداری",
 };
 
 const INCIDENT_SECTION: Record<string, string> = {

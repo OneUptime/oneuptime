@@ -253,7 +253,7 @@ Senza una chiave API né un accesso, un client può usare gli strumenti pubblici
 - **`oneuptime_describe_resource`**: i campi di una risorsa e come filtrare, ordinare e selezionare in base a essi
 - **`get_public_status_page_overview`**: la panoramica di una pagina di stato pubblica
 - **`get_public_status_page_incidents`**: gli incidenti di una pagina di stato pubblica
-- **`get_public_status_page_scheduled_maintenance`**: i suoi eventi di manutenzione programmata
+- **`get_public_status_page_scheduled_maintenance`**: i suoi eventi di manutenzione
 - **`get_public_status_page_announcements`**: i suoi annunci
 
 Gli strumenti delle pagine di stato pubbliche accettano l'ID di una pagina di stato (un UUID) o il suo nome di dominio. Per usare solo questi, collegati con l'indirizzo e senza credenziali:
@@ -414,7 +414,7 @@ Queste funzionano senza credenziali, con i soli strumenti delle pagine di stato 
 ```text
 "What's the current status of status.example.com?"
 "Show me recent incidents from the OneUptime status page"
-"Are there any scheduled maintenance events on status.acme.com?"
+"Are there any maintenance events on status.acme.com?"
 "Get the latest announcements from my public status page with ID abc123-..."
 ```
 

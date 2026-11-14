@@ -1,6 +1,6 @@
 # Schemalagt underhåll – Översikt
 
-En schemalagd underhållshändelse berättar för alla om planerat arbete innan det sker: en databasuppgradering, en nätverksändring, en flytt till nya servrar. OneUptime startar och avslutar händelsen i tid, slutar kontrollera de monitorer den påverkar medan arbetet pågår och visar den på dina statussidor, så att planerat driftstopp aldrig ser ut som ett avbrott. Den här sidan förklarar hur en händelse förlöper, var allt finns i instrumentpanelen och vad en händelse ändrar i resten av OneUptime.
+En underhållshändelse berättar för alla om planerat arbete innan det sker: en databasuppgradering, en nätverksändring, en flytt till nya servrar. OneUptime startar och avslutar händelsen i tid, slutar kontrollera de monitorer den påverkar medan arbetet pågår och visar den på dina statussidor, så att planerat driftstopp aldrig ser ut som ett avbrott. Den här sidan förklarar hur en händelse förlöper, var allt finns i instrumentpanelen och vad en händelse ändrar i resten av OneUptime.
 
 :::cards
 - [Hur en händelse förlöper](#hur-en-händelse-förlöper): Från schemalagd till slutförd, mestadels av sig själv.
@@ -44,7 +44,7 @@ Meddelanden beskrivs på [Prenumeranter och meddelanden](/docs/status-pages/subs
 - **Formuläret.** Klicka på **Skapa underhållshändelse** i listan över händelser, eller på fliken **Schemalagt underhåll** för en värd, ett kluster, en tjänst, en nätverksplats eller en annan resurs, som väljer den resursen åt dig. Se [Skapa underhållshändelser](/docs/scheduled-maintenance/creating-events).
 - **En mall.** **Skapa från mall** fyller i formuläret från en mall du har sparat för arbete du gör ofta. Se [Mallar och återkommande händelser](/docs/scheduled-maintenance/templates).
 - **Ett schema.** En återkommande mall skapar en ny händelse enligt ett schema, till exempel varje vecka eller varje månad, utan att någon öppnar formuläret.
-- **Ett formulär.** Ett formulär vars inlämningar skapar underhållshändelser gör en ändringsbegäran till en händelse. Se [Vad en inlämning skapar](/docs/forms/on-submit#så-blir-en-inlämning-en-schemalagd-underhållshändelse).
+- **Ett formulär.** Ett formulär vars inlämningar skapar underhållshändelser gör en ändringsbegäran till en händelse. Se [Vad en inlämning skapar](/docs/forms/on-submit#så-blir-en-inlämning-en-underhållshändelse).
 - **Chatt.** `/oneuptime maintenance` i Slack, eller `maintenance` skrivet till OneUptime-boten i Microsoft Teams, öppnar formuläret i ditt chattverktyg. Se [Slack](/docs/workspace-connections/slack#skapa-incidenter-och-underhåll-från-slack).
 - **Kod.** API:et på `/api/scheduled-maintenance`, Terraform-resursen `oneuptime_scheduled_maintenance_event` och steget **Create One Maintenance Event** i ett arbetsflöde.
 
@@ -74,7 +74,7 @@ Medan en händelse pågår behandlar OneUptime avbrottet den planerar som vänta
 - **Dess andra resurser förblir tysta.** En telemetrimonitor som bevakar många värdar, kluster, databaser eller tjänster, med en serie var, skapar ingen incident och inget larm för en serie vars resurs händelsen täcker, medan de andra serierna fortsätter att larma. Monitorerna för en molnresurs som händelsen täcker, som dess rekommenderade, skapar ingen incident och inget larm alls.
 - **Nätverksplatser och SLO:er håller igen.** En nätverksplats som händelsen täcker slutar räkna sitt planerade avbrott mot platserna ovanför den, och en SLO:s regler för förbrukningstakt utlöser ingenting så länge någon av dess monitorer är under underhåll. Se [Nätverksplatser](/docs/monitor/network-sites#schemalagt-underhåll-för-nätverksplatser) och [Larm och incidenter för förbrukningstakt](/docs/slo/burn-rate-alerts#planerat-underhåll).
 - **Dina statussidor visar den.** Händelsen visas på de statussidor du har valt, först som kommande, sedan som pågående och sedan som över, så länge **Synlig på statussidan** är påslagen i dess **Inställningar**, och från dess **Publicera den** om du har valt ett. När den har startat visar upptidshistoriken på de sidorna för varje resurs som dess monitorer finns på den på varje dag som dess fönster berör, och de resurserna visar "Under underhåll" medan den pågår; monitorns upptidshistorik i instrumentpanelen visar den på samma sätt. Se [Upptidsprocent och historikdiagram](/docs/status-pages/resources-and-groups#upptidsprocent-och-historikdiagram).
-- **Prenumeranterna får höra om den.** Som standard får prenumeranterna på de sidorna veta när den schemaläggs, när den börjar och när den slutar, och en påminnelse före start om du ställer in påminnelser. Se [Schemalagda underhållshändelser](/docs/status-pages/subscribers#schemalagda-underhållshändelser).
+- **Prenumeranterna får höra om den.** Som standard får prenumeranterna på de sidorna veta när den schemaläggs, när den börjar och när den slutar, och en påminnelse före start om du ställer in påminnelser. Se [Underhållshändelser](/docs/status-pages/subscribers#underhållshändelser).
 - **Ditt team får höra om den.** Dess ägare får veta det som deras [aviseringsinställningar](/docs/notifications/notification-settings) säger, och Slack-, Microsoft Teams- och Mattermost-reglerna under **Arbetsyta** publicerar den i dina kanaler.
 
 ## En händelses egna sidor
@@ -108,7 +108,7 @@ Bara de monitorer som händelsen nämner under **Monitorer** slutar kontrolleras
 :::
 
 :::details Händelsen visas inte på min statussida
-Kontrollera att händelsen nämner sidan under **Visa händelse på dessa statussidor** och att **Synlig på statussidan** är påslagen i händelsens **Inställningar**. Visar dess sidhuvud **Inte på statussidor än**, visas den från dess **Publicera den**: se [Publicera den senare](/docs/scheduled-maintenance/creating-events#publicera-den-senare). Kontrollera sedan själva statussidan: den måste visa schemalagda underhållshändelser, och en händelse som började längre tillbaka än sidans historikfönster, 14 dagar om du inte har ändrat det, visas inte längre.
+Kontrollera att händelsen nämner sidan under **Visa händelse på dessa statussidor** och att **Synlig på statussidan** är påslagen i händelsens **Inställningar**. Visar dess sidhuvud **Inte på statussidor än**, visas den från dess **Publicera den**: se [Publicera den senare](/docs/scheduled-maintenance/creating-events#publicera-den-senare). Kontrollera sedan själva statussidan: den måste visa underhållshändelser, och en händelse som började längre tillbaka än sidans historikfönster, 14 dagar om du inte har ändrat det, visas inte längre.
 :::
 
 ## Nästa steg

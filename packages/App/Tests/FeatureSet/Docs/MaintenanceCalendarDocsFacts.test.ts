@@ -504,7 +504,7 @@ describe("external calendars", () => {
 
   it("lets the roles that create, edit and delete events add, change and remove them, and every reader of the events see them", () => {
     expect(external).toContain(
-      "The roles that create, edit and delete scheduled maintenance events add, change and remove external calendars, and anyone who can read the events sees them on the calendar.",
+      "The roles that create, edit and delete maintenance events add, change and remove external calendars, and anyone who can read the events sees them on the calendar.",
     );
 
     const calendar: ScheduledMaintenanceExternalCalendar =
@@ -665,13 +665,13 @@ describe("the team's calendar link", () => {
 
     // Who may publish is who may create an event; regenerate and disable, edit one.
     expect(PAGE).toContain(
-      "| **Publish link** | Anyone who can also create scheduled maintenance events |",
+      "| **Publish link** | Anyone who can also create maintenance events |",
     );
     expect(sorted(feed.createRecordPermissions)).toEqual(
       sorted(event.createRecordPermissions),
     );
     expect(PAGE).toContain(
-      "| **Regenerate link**, **Disable link** | Anyone who can also edit scheduled maintenance events |",
+      "| **Regenerate link**, **Disable link** | Anyone who can also edit maintenance events |",
     );
     expect(sorted(feed.updateRecordPermissions)).toEqual(
       sorted(event.updateRecordPermissions),

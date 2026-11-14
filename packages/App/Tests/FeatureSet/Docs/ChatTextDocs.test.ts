@@ -44,7 +44,7 @@ describe("Subscribers & Announcements: values in Slack and Teams templates", () 
 
     expect(start).toBeGreaterThan(0);
     for (const phrase of [
-      "an incident's, an incident episode's, a scheduled maintenance event's or an announcement's",
+      "an incident's, an incident episode's, a maintenance event's or an announcement's",
       "the welcome and test messages",
       "the status page's name",
       "the resources affected",

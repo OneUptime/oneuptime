@@ -227,7 +227,7 @@ Ogni pagina che l'incidente raggiunge riceve gli stessi valori: appartengono all
 
 ## In che cosa differisce dalla manutenzione programmata
 
-Anche gli eventi di manutenzione programmata hanno un elenco **Pagine di stato**, ma funziona diversamente:
+Anche gli eventi di manutenzione hanno un elenco **Pagine di stato**, ma funziona diversamente:
 
 - **La manutenzione programmata sostituisce.** L'evento viene mostrato esattamente sulle pagine del suo elenco, che elenchino o no i suoi monitor.
 - **Un incidente restringe.** Il suo elenco sceglie solo tra le pagine che elencano già i suoi monitor. Scegliere una pagina che non ne elenca nessuno non fa nulla, e il modulo lo dice. Mettete prima il monitor su quella pagina.

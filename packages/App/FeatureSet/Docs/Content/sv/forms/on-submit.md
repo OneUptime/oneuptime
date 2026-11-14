@@ -4,7 +4,7 @@ Varje inlämning via ett formulär skapar en post i ditt projekt: en **incident*
 
 :::cards
 - [Så blir en inlämning en incident](#så-blir-en-inlämning-en-incident): Varje fält på den nya incidenten, och var dess värde kommer ifrån.
-- [Så blir en inlämning en schemalagd underhållshändelse](#så-blir-en-inlämning-en-schemalagd-underhållshändelse): Samma sak, för en underhållsbegäran.
+- [Så blir en inlämning en underhållshändelse](#så-blir-en-inlämning-en-underhållshändelse): Samma sak, för en underhållsbegäran.
 - [Inställningarna Vid inlämning](#inställningarna-vid-inlämning): Standardvärden, vad som alltid bifogas, ägare och publicering.
 - [Den privata anteckningen](#den-privata-anteckningen): Vem som skickade den, och de svar som inget fält innehåller.
 :::
@@ -92,7 +92,7 @@ Slå på **Synlig på statussidan** från incidentens sida **Inställningar**.
 Eftersom incidenten deklarerades med **Meddela statussideprenumeranter** avstängt skickar en publicering inte aviseringen "incident skapad". För att meddela prenumeranterna publicerar du en offentlig anteckning med **Meddela statussideprenumeranter** ikryssat — se [Publicera en offentlig anteckning](/docs/incidents/notes-owners-and-feed#publicera-en-offentlig-anteckning).
 :::
 
-## Så blir en inlämning en schemalagd underhållshändelse
+## Så blir en inlämning en underhållshändelse
 
 | Fält | Kommer från |
 | --- | --- |

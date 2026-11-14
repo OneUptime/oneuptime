@@ -1,6 +1,6 @@
 # Runbooks – Oversigt
 
-Et runbook er en genbrugelig responsprocedure: en ordnet liste af manuelle og automatiserede trin, som du kører på en hændelse, en advarsel eller en planlagt vedligeholdelsesbegivenhed. Det gør tråden "hvad gør vi nu?" til en tjekliste, som alle med vagt kan følge klokken 3 om natten, med scripts, API-kald og godkendelser allerede skrevet. Runbooks er til vagthavende ingeniører, der reagerer på hændelser, og til platformteams, der automatiserer den respons. Se [Hvilken skal jeg bruge?](/docs/introduction/which-one#arbejdsgang-runbook-playbook-eller-ai-regel) for at vælge mellem et runbook, et workflow, en playbook og en AI-regel.
+Et runbook er en genbrugelig responsprocedure: en ordnet liste af manuelle og automatiserede trin, som du kører på en hændelse, en advarsel eller en vedligeholdelseshændelse. Det gør tråden "hvad gør vi nu?" til en tjekliste, som alle med vagt kan følge klokken 3 om natten, med scripts, API-kald og godkendelser allerede skrevet. Runbooks er til vagthavende ingeniører, der reagerer på hændelser, og til platformteams, der automatiserer den respons. Se [Hvilken skal jeg bruge?](/docs/introduction/which-one#arbejdsgang-runbook-playbook-eller-ai-regel) for at vælge mellem et runbook, et workflow, en playbook og en AI-regel.
 
 :::cards
 - [Skriv et runbook](/docs/runbooks/authoring): Opret et runbook, og skriv dets trin.
@@ -46,7 +46,7 @@ Se [Ordliste](/docs/introduction/glossary) for de ord, der bruges på tværs af 
 | --- | --- |
 | **Runbook** | Skabelonen. En navngivet, genbrugelig procedure med en ordnet liste af trin og en kontakt **Kør dette runbook**. |
 | **Trin** | Ét punkt i et runbook. Det har en type (Manual, JavaScript, HTTP request, Bash, SSH, kubectl eller AI), en titel, en beskrivelse og typespecifikke indstillinger. |
-| **Runbook-regel** | En regel, der automatisk knytter et eller flere runbooks til hændelser, advarsler eller planlagte vedligeholdelsesbegivenheder, der opfylder dens betingelser: deres monitorer, alvorlighed, etiketter, monitoretiketter, titel eller beskrivelse. |
+| **Runbook-regel** | En regel, der automatisk knytter et eller flere runbooks til hændelser, advarsler eller vedligeholdelseshændelser, der opfylder dens betingelser: deres monitorer, alvorlighed, etiketter, monitoretiketter, titel eller beskrivelse. |
 | **Udførelse** | Én kørsel af et runbook. Oprettes, når en regel udløses, når nogen klikker på **Kør runbook** på en begivenhed, eller når nogen klikker på **Kør nu** på selve runbooket. Den rummer et øjebliksbillede af trinnene og hvert trins status og output. |
 | **Øjebliksbillede** | Den fastfrosne kopi af runbookets trin, der ligger på hver udførelse. Du kan redigere runbooket senere uden at omskrive historikken for tidligere kørsler. |
 | **Runner** | En lille agent, du kører på en vært i din egen infrastruktur. Den kører de JavaScript-, Bash-, SSH- og kubectl-trin, der nævner den. Kaldes også en runbook-agent. En global Runner, en af dem, OneUptime kører for alle projekter, kører de JavaScript-trin, der ikke nævner nogen, medmindre projektet har en standard-Runner. |
@@ -74,7 +74,7 @@ Et runbook kan blande dem alle. Styrken ved runbooks er at flette menneskelige k
 | Hvordan | Hvor | Udførelsen knyttes til |
 | --- | --- | --- |
 | En runbook-regel | **Hændelser**, **Advarsler** eller **Planlagt vedligeholdelse** → **Regler** → **Runbook-regler** | Den nye hændelse, advarsel eller begivenhed |
-| **Kør runbook** | Siden **Runbooks** for en hændelse, en advarsel eller en planlagt vedligeholdelsesbegivenhed | Den begivenhed |
+| **Kør runbook** | Siden **Runbooks** for en hændelse, en advarsel eller en vedligeholdelseshændelse | Den begivenhed |
 | **Kør nu** | Runbookets side **Oversigt** | Intet: en ad hoc-kørsel |
 | En AI-regel | Se [AI SRE](/docs/ai/ai-sre) | Hændelsen eller advarslen |
 | Runbookets tidsplan | Runbookets side **Udløsere**, se [Runbook-udløsere](/docs/runbooks/triggers#kør-efter-en-tidsplan) | Intet: en kørsel uden opsyn |

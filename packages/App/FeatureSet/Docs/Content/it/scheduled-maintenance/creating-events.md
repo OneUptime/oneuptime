@@ -24,7 +24,7 @@ flowchart TB
 ## Prima di iniziare
 
 - **Il vostro ruolo.** Creare un evento richiede **Proprietario del progetto**, **Amministratore del progetto**, **Membro del progetto**, **Amministratore della manutenzione programmata** o **Membro della manutenzione programmata**, oppure un ruolo personalizzato con **Create Scheduled Maintenance**.
-- **Le vostre pagine di stato.** Per avvisare i clienti vi serve una pagina di stato che mostri gli eventi di manutenzione programmata. Vedere [Panoramica delle pagine di stato](/docs/status-pages/index).
+- **Le vostre pagine di stato.** Per avvisare i clienti vi serve una pagina di stato che mostri gli eventi di manutenzione. Vedere [Panoramica delle pagine di stato](/docs/status-pages/index).
 
 ## Creare un evento
 
@@ -71,7 +71,7 @@ Non viene inviato nulla finché non scegliete una pagina di stato: un evento mos
 Due cose compilano il modulo per voi strada facendo:
 
 - **Risorse collegate.** Quando scegliete un monitor, gli host, i cluster, i servizi e le altre risorse a cui è collegato vengono aggiunti in **Altre risorse interessate**, e una riga sotto il campo li nomina. Togliete quelli che non volete. Anche le risorse cloud vengono aggiunte: mentre l'evento è in corso, i loro monitor non aprono incidenti né avvisi.
-- **Pagine di stato suggerite.** In **Mostra evento su queste pagine di stato** vengono suggerite le pagine che mostrano i vostri monitor: fate clic sul nome di una pagina per aggiungerla, oppure su **Aggiungi tutte**. Non viene scelto nulla per voi. Vedere [Eventi di manutenzione programmata](/docs/status-pages/subscribers#eventi-di-manutenzione-programmata).
+- **Pagine di stato suggerite.** In **Mostra evento su queste pagine di stato** vengono suggerite le pagine che mostrano i vostri monitor: fate clic sul nome di una pagina per aggiungerla, oppure su **Aggiungi tutte**. Non viene scelto nulla per voi. Vedere [Eventi di manutenzione](/docs/status-pages/subscribers#eventi-di-manutenzione).
 
 ## Partire da una risorsa o da un modello
 
@@ -180,6 +180,6 @@ Un evento viene pubblicato perché i vostri clienti sappiano del lavoro prima ch
 :::cards
 - [Stati della manutenzione](/docs/scheduled-maintenance/states): Cosa avvia e chiude un evento, e come farlo avanzare a mano.
 - [Modelli ed eventi ricorrenti](/docs/scheduled-maintenance/templates): Salvate le risposte del modulo per la prossima volta.
-- [Iscritti e annunci](/docs/status-pages/subscribers#eventi-di-manutenzione-programmata): Esattamente chi viene avvisato, e quando.
+- [Iscritti e annunci](/docs/status-pages/subscribers#eventi-di-manutenzione): Esattamente chi viene avvisato, e quando.
 - [Regole e impostazioni della manutenzione](/docs/scheduled-maintenance/settings): Aggiungete proprietari, etichette e promemoria automaticamente.
 :::

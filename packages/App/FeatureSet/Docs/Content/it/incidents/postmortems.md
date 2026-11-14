@@ -175,7 +175,7 @@ Anche un episodio di incidenti ha una pagina **Post-mortem**, sotto **Indagine**
 
 Il post-mortem di un episodio è solo la nota: non ha allegati, e nessuna pagina di stato lo mostra. OneUptime AI non ne scrive uno da solo quando un episodio viene risolto. Generarlo richiede il ruolo Project Owner o Project Admin, oppure un ruolo personalizzato con il permesso Edit Incident Episode. Non ha nemmeno uno stato, e l'elenco dei post-mortem non lo include.
 
-Gli avvisi e gli eventi di manutenzione programmata non hanno un post-mortem.
+Gli avvisi e gli eventi di manutenzione non hanno un post-mortem.
 
 ## Tramite l'API
 

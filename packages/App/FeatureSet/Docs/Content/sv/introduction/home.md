@@ -49,7 +49,7 @@ Varje siffra räknar något, säger om det behöver dig och öppnar listan bakom
 | **Aktiva incidenter** | Incidenter som inte är lösta | **Allt är i sin ordning** | **Incidenter → Aktiva incidenter** |
 | **Aktiva larm** | Larm som inte är lösta | **Allt är i sin ordning** | **Larm → Aktiva larm** |
 | **Icke-operativa monitorer** | Monitorer vars status inte är en fungerande status. Arkiverade monitorer, och monitorer med avstängd övervakning, räknas inte. | **Alla fungerar** | **Monitorer → Ej operativ** |
-| **Pågående underhåll** | Schemalagda underhåll som pågår | **Inget pågår** | **Schemalagt underhåll → Pågående underhållshändelser** |
+| **Pågående underhåll** | Underhållshändelser som pågår | **Inget pågår** | **Schemalagt underhåll → Pågående underhållshändelser** |
 | **SLO:er i riskzonen** | Påslagna SLO:er som är i riskzonen eller har förbrukat sin felbudget | **Budgetarna är friska** | **SLOs** |
 
 En siffra över noll visar **Kräver uppmärksamhet**, eller **Pågår** och **Budgeten förbrukas** för underhåll och SLO:er. Så länge en SLO är i riskzonen öppnar **SLO:er i riskzonen** listan **SLOs**, filtrerad på just dem. Ett projekt utan monitorer ser **Inga monitorer ännu**, och ett utan SLO:er ser **Inga SLO:er ännu**: ett tomt projekt är inte detsamma som ett friskt. De två siffrorna öppnar då listorna **Monitorer** och **SLOs**, där du skapar en.
@@ -142,7 +142,7 @@ Ovanför varje sidas rubrik visar ett spår som *Projekt › Docker › Inställ
 - **Kolumner**, i menyn **⋯** på en lista, väljer vilka kolumner listan visar och i vilken ordning, och sparar dem åt dig i den här webbläsaren. En projektägare eller en projektadministratör kan också kryssa i **Visa de här kolumnerna för alla i det här projektet** där: alla som inte har valt egna kolumner för listan ser de här, och **Återställ till projektets standard** sätter tillbaka dina egna till dem.
 - **Kompakta rader**, i samma meny, gör raderna i alla listor lägre, så att en lång lista visar ungefär en femtedel fler av dem. Valet sparas i den här webbläsaren.
 - **På en telefon, eller i ett kort som är för smalt för sina rader, visas en lista som kort, ett per rad.** Bandet ovanför säger vilken ordning de står i, till exempel **Sorterat efter Namn**: tryck på det för att välja kolumnen det sorteras efter, och **Stigande** eller **Fallande**.
-- **En incidents sidor börjar med dess nummer.** Rubriken, dess steg i spåret och webbläsarfliken visar `INC-42 Checkout is down`, och det gör även dialogrutorna som nämner den, så att incidenter med samma titel går att skilja åt. Larm, schemalagda underhållshändelser och episoder gör likadant.
+- **En incidents sidor börjar med dess nummer.** Rubriken, dess steg i spåret och webbläsarfliken visar `INC-42 Checkout is down`, och det gör även dialogrutorna som nämner den, så att incidenter med samma titel går att skilja åt. Larm, underhållshändelser och episoder gör likadant.
 
 ## Sök efter en sida, en inställning eller en åtgärd
 

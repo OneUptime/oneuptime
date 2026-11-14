@@ -1,6 +1,6 @@
 # Onderhoudsstatussen
 
-Elke geplande onderhoudsgebeurtenis staat in één **status**: hoe ver het werk is, van gepland tot goedgekeurd. Statussen bepalen wat OneUptime met de gebeurtenis doet: wanneer haar monitoren niet meer worden gecontroleerd, wat je statuspagina's tonen, wanneer haar herinneringen stoppen. Deze pagina behandelt de vier statussen waarmee elk project begint, wat een gebeurtenis tussen hen verplaatst en hoe je eigen stappen toevoegt.
+Elke onderhoudsgebeurtenis staat in één **status**: hoe ver het werk is, van gepland tot goedgekeurd. Statussen bepalen wat OneUptime met de gebeurtenis doet: wanneer haar monitoren niet meer worden gecontroleerd, wat je statuspagina's tonen, wanneer haar herinneringen stoppen. Deze pagina behandelt de vier statussen waarmee elk project begint, wat een gebeurtenis tussen hen verplaatst en hoe je eigen stappen toevoegt.
 
 :::cards
 - [De standaardstatussen](#de-standaardstatussen): Gepland, Lopend, Beëindigd en Voltooid.

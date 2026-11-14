@@ -47,7 +47,7 @@ function section(markdown: string, heading: string): string {
 }
 
 const SUBSCRIBERS_PAGE: string = "status-pages/subscribers";
-const MAINTENANCE_HEADING: string = "### Scheduled maintenance events";
+const MAINTENANCE_HEADING: string = "### Maintenance events";
 
 function reminder(count: number, interval: EventInterval): Recurring {
   const recurring: Recurring = new Recurring();
@@ -307,7 +307,7 @@ describe("the 14 upgrade notes", () => {
 
   test("say what changes for existing projects", () => {
     expect(text).toContain(
-      "**A scheduled maintenance event's or a monitor's \"updated\" feed entry records only what changed, too.**",
+      "**A maintenance event's or a monitor's \"updated\" feed entry records only what changed, too.**",
     );
     expect(text).toContain(
       "Now each line is written for a value that changed, and nothing for a save that changed nothing; an event's reminder rule is matched again only when its labels change or **Send reminders** is flipped.",

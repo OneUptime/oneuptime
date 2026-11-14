@@ -227,7 +227,7 @@ Toda página que o incidente alcança recebe os mesmos valores: eles pertencem a
 
 ## Como isso difere da manutenção programada
 
-Os eventos de manutenção programada também têm uma lista **Páginas de status**, mas ela funciona de outro jeito:
+Os eventos de manutenção também têm uma lista **Páginas de status**, mas ela funciona de outro jeito:
 
 - **A manutenção programada substitui.** O evento aparece exatamente nas páginas da lista dele, listem elas os monitores dele ou não.
 - **Um incidente restringe.** A lista dele só escolhe entre as páginas que já listam os monitores dele. Escolher uma página que não lista nenhum deles não faz nada, e o formulário diz isso. Coloque o monitor nessa página primeiro.

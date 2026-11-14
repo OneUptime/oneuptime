@@ -221,7 +221,7 @@ oneuptime <resource> resolve <id>
 
 ### `oneuptime <resource> start`
 
-把排定維護事件移到專案的進行中狀態。
+把維護事件移到專案的進行中狀態。
 
 ```bash
 oneuptime <resource> start <id>
@@ -233,7 +233,7 @@ oneuptime <resource> start <id>
 
 ### `oneuptime <resource> end`
 
-把排定維護事件移到專案的已結束狀態。
+把維護事件移到專案的已結束狀態。
 
 ```bash
 oneuptime <resource> end <id>
@@ -245,7 +245,7 @@ oneuptime <resource> end <id>
 
 ### `oneuptime <resource> add-note`
 
-為事件、警示、它們的片段或排定維護事件新增備註。
+為事件、警示、它們的片段或維護事件新增備註。
 
 ```bash
 oneuptime <resource> add-note <id> --note <markdown> [--public]

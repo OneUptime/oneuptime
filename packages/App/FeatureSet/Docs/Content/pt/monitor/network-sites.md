@@ -186,7 +186,7 @@ Uma média sobre os filhos dá à loja com dois dispositivos o mesmo peso de um 
 
 ## Manutenção programada para sites de rede
 
-Ligue sites a um evento de manutenção programada em **Outros recursos afetados**, na etapa **Recursos afetados** do evento, como faria com um host. A página **Manutenção programada** de um site lista os eventos ligados a ele, e o **Criar evento de manutenção** dela abre o formulário com o site já escolhido.
+Ligue sites a um evento de manutenção em **Outros recursos afetados**, na etapa **Recursos afetados** do evento, como faria com um host. A página **Manutenção programada** de um site lista os eventos ligados a ele, e o **Criar evento de manutenção** dela abre o formulário com o site já escolhido.
 
 Uma janela em um pai cobre tudo abaixo dele: uma janela em uma região cobre cada mercado e cada unidade dela, incluindo sites criados depois de a janela ser agendada, então uma troca de operadora regional não precisa listar quatrocentas lojas.
 

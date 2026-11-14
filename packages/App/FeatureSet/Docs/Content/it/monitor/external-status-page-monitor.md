@@ -172,7 +172,7 @@ Lo stato di un componente è il valore che rappresenta il suo stato sulla pagina
 
 Una risorsa che la pagina mostra come **Non monitorato** non è controllata da niente, quindi non conta per nessuno stato complessivo, come sul banner della pagina stessa. Quando nessuno dei componenti che il monitor osserva è monitorato, e nessuno ha un incidente aperto, lo stato complessivo è `unknown`.
 
-Finché un evento di manutenzione pianificata in corso riguarda una risorsa, perché nomina uno dei suoi monitor o un monitor del suo gruppo di monitor, il componente è `under_maintenance`, qualunque sia lo stato dei suoi monitor: un monitor non viene controllato finché un evento lo trattiene. Un evento ancora da venire, o concluso, non cambia nulla. Gli incidenti attivi della pagina contano per le risorse che riguardano.
+Finché un evento di manutenzione in corso riguarda una risorsa, perché nomina uno dei suoi monitor o un monitor del suo gruppo di monitor, il componente è `under_maintenance`, qualunque sia lo stato dei suoi monitor: un monitor non viene controllato finché un evento lo trattiene. Un evento ancora da venire, o concluso, non cambia nulla. Gli incidenti attivi della pagina contano per le risorse che riguardano.
 
 I [criteri predefiniti](#criteri-predefiniti) non scambiano mai una manutenzione per un'interruzione: il monitor resta online durante i lavori pianificati dell'altro progetto.
 

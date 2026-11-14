@@ -175,7 +175,7 @@ Een incidentepisode heeft ook een pagina **Postmortem**, onder **Onderzoek**: é
 
 Het postmortem van een episode is alleen de notitie: het heeft geen bijlagen, en geen statuspagina toont het. OneUptime AI stelt er geen uit zichzelf op wanneer een episode wordt opgelost. Genereren vereist de rol Project Owner of Project Admin, of een aangepaste rol met de machtiging Edit Incident Episode. Het heeft ook geen status, en de lijst met postmortems laat het weg.
 
-Waarschuwingen en geplande onderhoudsgebeurtenissen hebben geen postmortem.
+Waarschuwingen en onderhoudsgebeurtenissen hebben geen postmortem.
 
 ## Via de API
 

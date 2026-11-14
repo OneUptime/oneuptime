@@ -4,7 +4,7 @@ Jede Einreichung über ein Formular erstellt einen Datensatz in Ihrem Projekt: e
 
 :::cards
 - [Wie aus einer Einreichung ein Vorfall wird](#wie-aus-einer-einreichung-ein-vorfall-wird): Jedes Feld des neuen Vorfalls und woher sein Wert kommt.
-- [Wie aus einer Einreichung ein geplantes Wartungsereignis wird](#wie-aus-einer-einreichung-ein-geplantes-wartungsereignis-wird): Dasselbe für eine Wartungsanfrage.
+- [Wie aus einer Einreichung ein Wartungsereignis wird](#wie-aus-einer-einreichung-ein-wartungsereignis-wird): Dasselbe für eine Wartungsanfrage.
 - [Die Einstellungen Beim Absenden](#die-einstellungen-beim-absenden): Standardwerte, was immer angehängt wird, Eigentümer und Veröffentlichung.
 - [Die private Notiz](#die-private-notiz): Wer eingereicht hat, und die Antworten, die kein Feld aufnimmt.
 :::
@@ -92,7 +92,7 @@ Schalten Sie auf der Seite **Einstellungen** des Vorfalls **Auf Statusseite sich
 Weil der Vorfall mit ausgeschaltetem **Statusseiten-Abonnenten benachrichtigen** gemeldet wurde, sendet seine Veröffentlichung nicht die Benachrichtigung "Vorfall erstellt". Um Abonnenten zu informieren, posten Sie eine öffentliche Notiz mit angehaktem **Statusseiten-Abonnenten benachrichtigen** — siehe [Eine öffentliche Notiz posten](/docs/incidents/notes-owners-and-feed#eine-öffentliche-notiz-posten).
 :::
 
-## Wie aus einer Einreichung ein geplantes Wartungsereignis wird
+## Wie aus einer Einreichung ein Wartungsereignis wird
 
 | Feld | Kommt aus |
 | --- | --- |

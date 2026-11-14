@@ -12,7 +12,7 @@ De onderhoudsagenda toont je gepland onderhoud per datum: op een eigen pagina in
 
 ```mermaid title="Eén lijst met gebeurtenissen, drie agenda's"
 flowchart TB
-    events["Geplande<br/>onderhouds-<br/>gebeurtenissen"] --> view["De agendaweergave<br/>in het dashboard"]
+    events["Onderhouds-<br/>gebeurtenissen"] --> view["De agendaweergave<br/>in het dashboard"]
     events --> team["De link van het team<br/>elke gebeurtenis"]
     events --> page["De link van een<br/>statuspagina<br/>wat de pagina toont"]
     team --> apps["Agenda-apps"]
@@ -59,11 +59,11 @@ Kopieer de link uit de deelinstellingen van de agenda zelf: in Google Agenda haa
 
 Elke agenda bewaart haar gebeurtenissen van 90 dagen terug tot een jaar vooruit, tot 2.000 ervan, die het dichtst bij vandaag eerst. Een agenda groter dan 5 MB wordt niet gelezen. Herhalende gebeurtenissen, hun uitzonderingen en hun tijdzones worden gelezen zoals de agenda-app ze schreef, en een gebeurtenis van een hele dag blijft in elke tijdzone op haar datum. Een project kan tot 20 externe agenda's hebben, en één weergave van de agenda tekent tot 500 van hun gebeurtenissen.
 
-De rollen die geplande onderhoudsgebeurtenissen maken, bewerken en verwijderen, voegen externe agenda's toe, wijzigen en verwijderen ze, en iedereen die de gebeurtenissen kan lezen, ziet ze in de agenda. OneUptime leest nooit een adres op zijn eigen server of een cloud-metadata-adres, en OneUptime Cloud weigert adressen op een privénetwerk. Een zelf gehoste server kan een agenda op je eigen netwerk lezen, tenzij `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` `true` is.
+De rollen die onderhoudsgebeurtenissen maken, bewerken en verwijderen, voegen externe agenda's toe, wijzigen en verwijderen ze, en iedereen die de gebeurtenissen kan lezen, ziet ze in de agenda. OneUptime leest nooit een adres op zijn eigen server of een cloud-metadata-adres, en OneUptime Cloud weigert adressen op een privénetwerk. Een zelf gehoste server kan een agenda op je eigen netwerk lezen, tenzij `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` `true` is.
 
 ## De agendalink van het team
 
-**Abonneren op agenda**, onder de agenda, opent de agendalink van het project: één geheime iCalendar-link (`.ics`) die elke geplande onderhoudsgebeurtenis van het project in Google Agenda, Outlook, Apple Agenda of elke app zet die zich via een URL op een agenda abonneert.
+**Abonneren op agenda**, onder de agenda, opent de agendalink van het project: één geheime iCalendar-link (`.ics`) die elke onderhoudsgebeurtenis van het project in Google Agenda, Outlook, Apple Agenda of elke app zet die zich via een URL op een agenda abonneert.
 
 :::steps
 ### Publiceer de link
@@ -86,7 +86,7 @@ https://<your host>/api/scheduled-maintenance-calendar/project/<token>/maintenan
 ```
 
 > [!WARNING]
-> Iedereen met de link ziet elke geplande onderhoudsgebeurtenis van het project, zonder in te loggen. Behandel hem als een wachtwoord en genereer hem opnieuw als hij per ongeluk is gedeeld.
+> Iedereen met de link ziet elke onderhoudsgebeurtenis van het project, zonder in te loggen. Behandel hem als een wachtwoord en genereer hem opnieuw als hij per ongeluk is gedeeld.
 
 ### Wie de link kan zien
 
@@ -94,9 +94,9 @@ De link toont elke gebeurtenis van het project, dus het dialoogvenster toont hem
 
 | Actie | Wie het kan doen |
 | --- | --- |
-| De link kopiëren | Iedereen die elke geplande onderhoudsgebeurtenis van het project mag lezen |
-| **Link publiceren** | Iedereen die ook geplande onderhoudsgebeurtenissen mag aanmaken |
-| **Link opnieuw genereren**, **Link uitschakelen** | Iedereen die ook geplande onderhoudsgebeurtenissen mag bewerken |
+| De link kopiëren | Iedereen die elke onderhoudsgebeurtenis van het project mag lezen |
+| **Link publiceren** | Iedereen die ook onderhoudsgebeurtenissen mag aanmaken |
+| **Link opnieuw genereren**, **Link uitschakelen** | Iedereen die ook onderhoudsgebeurtenissen mag bewerken |
 
 ### De link beheren
 
@@ -158,6 +158,6 @@ De reden staat onder **Werkt niet** in haar **Status**: geen agenda op de link, 
 
 :::cards
 - [Onderhoudsgebeurtenissen maken](/docs/scheduled-maintenance/creating-events): Het formulier, veld voor veld, en wat er daarna gebeurt.
-- [Abonnees en aankondigingen](/docs/status-pages/subscribers#geplande-onderhoudsgebeurtenissen): Wat de abonnees van een statuspagina over onderhoud te horen krijgen.
+- [Abonnees en aankondigingen](/docs/status-pages/subscribers#onderhoudsgebeurtenissen): Wat de abonnees van een statuspagina over onderhoud te horen krijgen.
 - [Agendafeeds](/docs/on-call/calendar-feeds): Hetzelfde soort link, voor diensten.
 :::

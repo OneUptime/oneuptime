@@ -174,7 +174,7 @@ oneuptime incident-state list --query '{"isResolvedState":true}' --sort '{"order
 
 ## Riconoscere, risolvere e aggiungere note
 
-Gli incidenti, gli avvisi, i loro episodi e gli eventi di manutenzione programmata hanno comandi per ciò che i pulsanti della dashboard fanno su di essi:
+Gli incidenti, gli avvisi, i loro episodi e gli eventi di manutenzione hanno comandi per ciò che i pulsanti della dashboard fanno su di essi:
 
 | Comando | Che cosa fa | Risorse |
 | --- | --- | --- |

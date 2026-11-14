@@ -49,7 +49,7 @@ Jede Zahl zählt etwas, sagt, ob das Ihre Aufmerksamkeit braucht, und öffnet di
 | **Aktive Vorfälle** | Vorfälle, die nicht behoben sind | **Alles in Ordnung** | **Vorfälle → Aktive Vorfälle** |
 | **Aktive Warnungen** | Warnungen, die nicht behoben sind | **Alles in Ordnung** | **Warnungen → Aktive Warnungen** |
 | **Nicht betriebsbereite Monitore** | Monitore, deren Status kein betriebsbereiter ist. Archivierte Monitore und Monitore mit ausgeschalteter Überwachung zählen nicht mit. | **Alle betriebsbereit** | **Monitore → Nicht betriebsbereit** |
-| **Laufende Wartung** | Geplante Wartungsereignisse, die gerade laufen | **Keine laufenden** | **Geplante Wartung → Laufende Wartungsereignisse** |
+| **Laufende Wartung** | Wartungsereignisse, die gerade laufen | **Keine laufenden** | **Geplante Wartung → Laufende Wartungsereignisse** |
 | **Gefährdete SLOs** | Eingeschaltete SLOs, die gefährdet sind oder ihr Fehlerbudget aufgebraucht haben | **Budgets in Ordnung** | **SLOs** |
 
 Eine Zahl über null zeigt **Erfordert Aufmerksamkeit**, bei Wartung und SLOs **Läuft gerade** und **Budget wird verbraucht**. Solange ein SLO gefährdet ist, öffnet **Gefährdete SLOs** die Liste **SLOs**, gefiltert auf genau diese SLOs. Ein Projekt ohne Monitore sieht **Noch keine Monitore**, eines ohne SLOs **Noch keine SLOs**: Ein leeres Projekt ist nicht dasselbe wie ein gesundes. Diese beiden öffnen dann die Listen **Monitore** und **SLOs**, in denen Sie einen anlegen.
@@ -142,7 +142,7 @@ Ein Wort mit gepunkteter Linie darunter, etwa **Sonden** im Formular eines neuen
 - Der Eintrag **Spalten** im Menü **⋯** einer Liste legt fest, welche Spalten die Liste zeigt und in welcher Reihenfolge, und merkt sie sich für Sie in diesem Browser. Ein Projektinhaber oder ein Projektadministrator kann dort außerdem **Diese Spalten allen in diesem Projekt anzeigen** ankreuzen: Wer für diese Liste keine eigenen Spalten gewählt hat, sieht diese, und **Auf Projektstandard zurücksetzen** setzt Ihre eigenen wieder auf sie zurück.
 - Der Eintrag **Kompakte Zeilen** im selben Menü zeichnet die Zeilen jeder Liste niedriger, sodass eine lange Liste etwa ein Fünftel mehr davon zeigt. Die Wahl bleibt in diesem Browser gespeichert.
 - **Auf einem Telefon oder in einer Karte, die für ihre Zeilen zu schmal ist, wird eine Liste als Karten gezeigt, eine pro Zeile.** Das Band darüber sagt, wie sie sortiert sind, etwa **Sortiert nach Name**: Drücken Sie darauf, um die Spalte zu wählen, nach der sortiert wird, und **Aufsteigend** oder **Absteigend**.
-- **Die Seiten eines Vorfalls beginnen mit seiner Nummer.** Die Überschrift, sein Schritt im Pfad und der Browser-Tab zeigen `INC-42 Checkout is down`, ebenso die Dialoge, die ihn nennen, sodass sich Vorfälle mit demselben Titel unterscheiden lassen. Warnungen, geplante Wartungsereignisse und Episoden machen es genauso.
+- **Die Seiten eines Vorfalls beginnen mit seiner Nummer.** Die Überschrift, sein Schritt im Pfad und der Browser-Tab zeigen `INC-42 Checkout is down`, ebenso die Dialoge, die ihn nennen, sodass sich Vorfälle mit demselben Titel unterscheiden lassen. Warnungen, Wartungsereignisse und Episoden machen es genauso.
 
 ## Nach einer Seite, einer Einstellung oder einer Aktion suchen
 

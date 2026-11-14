@@ -221,7 +221,7 @@ oneuptime <resource> resolve <id>
 
 ### `oneuptime <resource> start`
 
-Versetzt ein geplantes Wartungsereignis in den Laufend-Status Ihres Projekts.
+Versetzt ein Wartungsereignis in den Laufend-Status Ihres Projekts.
 
 ```bash
 oneuptime <resource> start <id>
@@ -233,7 +233,7 @@ oneuptime <resource> start <id>
 
 ### `oneuptime <resource> end`
 
-Versetzt ein geplantes Wartungsereignis in den Beendet-Status Ihres Projekts.
+Versetzt ein Wartungsereignis in den Beendet-Status Ihres Projekts.
 
 ```bash
 oneuptime <resource> end <id>
@@ -245,7 +245,7 @@ oneuptime <resource> end <id>
 
 ### `oneuptime <resource> add-note`
 
-Fügt einem Vorfall, einer Warnung, einer Episode davon oder einem geplanten Wartungsereignis eine Notiz hinzu.
+Fügt einem Vorfall, einer Warnung, einer Episode davon oder einem Wartungsereignis eine Notiz hinzu.
 
 ```bash
 oneuptime <resource> add-note <id> --note <markdown> [--public]

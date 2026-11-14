@@ -224,7 +224,7 @@ describe("Docs: Slack's and Microsoft Teams' create forms act as the member", ()
       },
     },
   ])(
-    "$name names exactly the roles that may declare an incident or create a scheduled maintenance event",
+    "$name names exactly the roles that may declare an incident or create a maintenance event",
     (row: { text: () => string }) => {
       const line: string = bullet(row.text(), "**Who may use them.**");
 

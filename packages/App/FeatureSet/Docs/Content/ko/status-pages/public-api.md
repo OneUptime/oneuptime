@@ -1,6 +1,6 @@
 # 공용 API
 
-모든 상태 페이지는 읽기 전용 JSON 엔드포인트 몇 개에 응답합니다. 개요, 요약, 가동률, 인시던트, 에피소드, 예정된 유지 보수 이벤트, 공지입니다. 상태 페이지 자체가 불러오는 엔드포인트이므로 방문자가 보는 것과 똑같은 내용을 반환하며, 공개 페이지라면 API 키가 필요 없습니다. 자체 앱, 챗봇, 벽걸이 화면에 상태를 보여 줄 때 쓰세요.
+모든 상태 페이지는 읽기 전용 JSON 엔드포인트 몇 개에 응답합니다. 개요, 요약, 가동률, 인시던트, 에피소드, 유지 관리 이벤트, 공지입니다. 상태 페이지 자체가 불러오는 엔드포인트이므로 방문자가 보는 것과 똑같은 내용을 반환하며, 공개 페이지라면 API 키가 필요 없습니다. 자체 앱, 챗봇, 벽걸이 화면에 상태를 보여 줄 때 쓰세요.
 
 :::cards
 - [엔드포인트](#엔드포인트): 페이지가 보여 주는 항목마다 엔드포인트 하나.
@@ -57,8 +57,8 @@ flowchart TB
 | `/incidents/{statusPageIdOrDomain}/{incidentId}` | `POST` | 인시던트 하나. |
 | `/episodes/{statusPageIdOrDomain}` | `POST` | 페이지가 목록에 올리는 인시던트 에피소드. |
 | `/episodes/{statusPageIdOrDomain}/{episodeId}` | `POST` | 에피소드 하나. |
-| `/scheduled-maintenance-events/{statusPageIdOrDomain}` | `GET`, `POST` | 페이지가 목록에 올리는 예정된 유지 보수 이벤트와 그 공개 메모, 상태 변경. |
-| `/scheduled-maintenance-events/{statusPageIdOrDomain}/{scheduledMaintenanceId}` | `POST` | 예정된 유지 보수 이벤트 하나. |
+| `/scheduled-maintenance-events/{statusPageIdOrDomain}` | `GET`, `POST` | 페이지가 목록에 올리는 유지 관리 이벤트와 그 공개 메모, 상태 변경. |
+| `/scheduled-maintenance-events/{statusPageIdOrDomain}/{scheduledMaintenanceId}` | `POST` | 유지 관리 이벤트 하나. |
 | `/announcements/{statusPageIdOrDomain}` | `GET`, `POST` | 페이지가 목록에 올리는 공지. |
 | `/announcements/{statusPageIdOrDomain}/{announcementId}` | `POST` | 공지 하나. |
 
@@ -140,13 +140,13 @@ print((overview.get("overallStatus") or {}).get("name"))  # Operational
 | `activeIncidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates` | 페이지가 보여 주는 해결되지 않은 인시던트, 그 공개 메모와 상태 변경, 프로젝트의 인시던트 상태. |
 | `timelineIncidents` | 가동률 막대 기간 안의 인시던트(해결된 것 포함). 막대의 툴팁에 쓰입니다. |
 | `activeEpisodes`, `episodePublicNotes`, `episodeStateTimelines` | 인시던트 에피소드에 대한 같은 데이터. |
-| `scheduledMaintenanceEvents`, `scheduledMaintenanceEventsPublicNotes`, `scheduledMaintenanceStateTimelines`, `scheduledMaintenanceStates` | 앞으로 있거나 진행 중인 예정된 유지 보수 이벤트와 그 공개 메모, 상태 변경. |
-| `timelineScheduledMaintenanceEvents` | 가동률 막대 기간 안의, 이미 시작된 예정된 유지 보수 이벤트(진행 중이거나 지난 것). 막대의 툴팁과 각 날짜의 대화 상자에 쓰입니다. 페이지가 보여 주고 페이지의 모니터 중 하나를 포함하는 이벤트만이며, 각각 페이지의 모니터만 붙습니다. |
+| `scheduledMaintenanceEvents`, `scheduledMaintenanceEventsPublicNotes`, `scheduledMaintenanceStateTimelines`, `scheduledMaintenanceStates` | 앞으로 있거나 진행 중인 유지 관리 이벤트와 그 공개 메모, 상태 변경. |
+| `timelineScheduledMaintenanceEvents` | 가동률 막대 기간 안의, 이미 시작된 유지 관리 이벤트(진행 중이거나 지난 것). 막대의 툴팁과 각 날짜의 대화 상자에 쓰입니다. 페이지가 보여 주고 페이지의 모니터 중 하나를 포함하는 이벤트만이며, 각각 페이지의 모니터만 붙습니다. |
 | `activeAnnouncements` | 지금 표시 중인 공지: 시작되었고 아직 끝나지 않은 것. |
 
 ## 요약 읽기
 
-요약은 모니터링 도구가 페이지에 묻는 것만 남긴 개요입니다. 각 리소스의 상태와, 진행 중인 예정된 유지 보수 이벤트가 그 리소스에 영향을 주는지를 담습니다. 페이지가 보여 주는 기록이 아무리 많아도 작게 유지되며, 다른 OneUptime의 [외부 상태 페이지 모니터](/docs/monitor/external-status-page-monitor#oneuptime-상태-페이지)가 읽는 것도 이 요약입니다. 개요와 같은 캐시에서, 같은 접근 규칙을 거친 뒤 반환됩니다.
+요약은 모니터링 도구가 페이지에 묻는 것만 남긴 개요입니다. 각 리소스의 상태와, 진행 중인 유지 관리 이벤트가 그 리소스에 영향을 주는지를 담습니다. 페이지가 보여 주는 기록이 아무리 많아도 작게 유지되며, 다른 OneUptime의 [외부 상태 페이지 모니터](/docs/monitor/external-status-page-monitor#oneuptime-상태-페이지)가 읽는 것도 이 요약입니다. 개요와 같은 캐시에서, 같은 접근 규칙을 거친 뒤 반환됩니다.
 
 ```bash
 curl https://oneuptime.com/status-page-api/summary/YOUR_STATUS_PAGE_ID
@@ -195,7 +195,7 @@ curl https://oneuptime.com/status-page-api/summary/YOUR_STATUS_PAGE_ID
 | `overallStatus` | 배너가 보여 주는 대로의 페이지 전체 상태: `name`, `color`, `isOperational`. 페이지의 모든 리소스가 **모니터링되지 않음**이면 `null`. |
 | `resources` | 페이지가 보여 주는 각 리소스(페이지 순서): 페이지에서의 `name`, 상위 그룹을 포함한 `groupName`, `currentStatus`, `isMonitored`, `isUnderMaintenance`. |
 | `activeIncidents` | 페이지가 보여 주는 해결되지 않은 인시던트. 각각 영향을 주는 리소스의 `affectedResourceIds` 가 붙습니다. |
-| `ongoingScheduledMaintenance`, `upcomingScheduledMaintenance` | 진행 중인 예정된 유지 보수 이벤트와 앞으로 있을 이벤트. 각각 `affectedResourceIds` 가 붙습니다. |
+| `ongoingScheduledMaintenance`, `upcomingScheduledMaintenance` | 진행 중인 유지 관리 이벤트와 앞으로 있을 이벤트. 각각 `affectedResourceIds` 가 붙습니다. |
 
 페이지가 리소스의 `currentStatus` 를 보여 주지 않으면 그 값은 `null` 이며, `isMonitored` 가 `false` 일 때도 마찬가지입니다. 이때는 모니터의 모니터링이 꺼져 있거나 모니터 그룹의 모든 모니터에서 모니터링이 꺼져 있어 아무것도 리소스를 확인하지 않으므로, 페이지는 리소스를 **모니터링되지 않음**으로 표시합니다. `isUnderMaintenance` 는 진행 중인 이벤트가 리소스의 모니터나 그 모니터 그룹의 모니터를 지정하는 동안, 그 모니터들의 상태와 관계없이 `true` 입니다.
 
@@ -346,7 +346,7 @@ for group in uptime["groupUptimes"]:
 # The incidents the page lists
 curl https://oneuptime.com/status-page-api/incidents/YOUR_STATUS_PAGE_ID
 
-# One scheduled maintenance event
+# One maintenance event
 curl -X POST https://oneuptime.com/status-page-api/scheduled-maintenance-events/YOUR_STATUS_PAGE_ID/EVENT_ID
 ```
 @tab Node.js
@@ -384,7 +384,7 @@ for incident in incidents:
 | -------- | -------------------- |
 | 인시던트 | `incidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates`, `statusPageResources`, `monitorsInGroup` |
 | 에피소드 | `episodes`, `episodePublicNotes`, `episodeStateTimelines`, `incidentStates`, `statusPageResources`, `monitorsInGroup` |
-| 예정된 유지 보수 이벤트 | `scheduledMaintenanceEvents`, `scheduledMaintenanceEventsPublicNotes`, `scheduledMaintenanceStateTimelines`, `scheduledMaintenanceStates`, `statusPageResources`, `monitorsInGroup` |
+| 유지 관리 이벤트 | `scheduledMaintenanceEvents`, `scheduledMaintenanceEventsPublicNotes`, `scheduledMaintenanceStateTimelines`, `scheduledMaintenanceStates`, `statusPageResources`, `monitorsInGroup` |
 | 공지 | `announcements`, `statusPageResources`, `monitorsInGroup` |
 
 단일 항목 요청은 같은 키로 응답하며, 그 안에 해당 레코드 하나가 들어 있습니다.
@@ -406,7 +406,7 @@ for incident in incidents:
 
 ## 상태 페이지를 읽는 다른 방법
 
-- **RSS.** 모든 상태 페이지는 인시던트, 공지, 예정된 유지 보수 이벤트의 피드인 `/rss`를 제공하며, 각 항목에는 페이지와 같은 날짜가 붙습니다. [임베드 배지와 RSS 피드](/docs/status-pages/index#임베드-배지와-rss-피드)를 참고하세요.
+- **RSS.** 모든 상태 페이지는 인시던트, 공지, 유지 관리 이벤트의 피드인 `/rss`를 제공하며, 각 항목에는 페이지와 같은 날짜가 붙습니다. [임베드 배지와 RSS 피드](/docs/status-pages/index#임베드-배지와-rss-피드)를 참고하세요.
 - **llms.txt.** 모든 상태 페이지는 `/rss`와 함께 `/llms.txt`도 제공하며, 이 파일은 AI 에이전트에게 RSS 피드와 개요 JSON의 위치를 알려 줍니다.
 - **MCP.** AI 에이전트는 OneUptime의 MCP 서버(`https://oneuptime.com/mcp`)를 통해 API 키 없이 페이지를 읽을 수 있으며, 페이지 ID나 도메인을 `statusPageIdOrDomain`으로 넘깁니다. 기본으로 켜져 있으며, 페이지 사이드 메뉴의 **AI → MCP**에 있는 **MCP 서버 활성화**로 끌 수 있습니다. [MCP 서버](/docs/ai/mcp-server)를 참고하세요.
 - **REST API.** 상태 페이지, 리소스, 구독자, 공지를 만들거나 바꾸려면 API 키와 함께 [OneUptime API](/docs/api-reference/api-reference)를 사용하세요.

@@ -64,7 +64,7 @@ const SECTION: string = sectionOf(ENGLISH, HEADING);
 describe("Subscribers & Announcements: the language subscribers are written in", () => {
   test("every message about a subscription and every notification, on the four channels that have words, and the email report", () => {
     expect(SECTION).toContain(
-      "Each subscriber is written to in their own language: the email or text message that confirms the subscription, the welcome and the link to manage it, every notification about an incident, an incident episode, a scheduled maintenance event or an announcement, by email, SMS, Slack and Microsoft Teams, and the email report.",
+      "Each subscriber is written to in their own language: the email or text message that confirms the subscription, the welcome and the link to manage it, every notification about an incident, an incident episode, a maintenance event or an announcement, by email, SMS, Slack and Microsoft Teams, and the email report.",
     );
 
     // The report's words are looked up in the email's language.

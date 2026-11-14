@@ -227,7 +227,7 @@ Todas las páginas a las que llega el incidente reciben los mismos valores: pert
 
 ## En qué se diferencia del mantenimiento programado
 
-Los eventos de mantenimiento programado también tienen una lista **Páginas de estado**, pero funciona de otra manera:
+Los eventos de mantenimiento también tienen una lista **Páginas de estado**, pero funciona de otra manera:
 
 - **El mantenimiento programado sustituye.** El evento se muestra exactamente en las páginas de su lista, incluyan o no sus monitores.
 - **Un incidente reduce.** Su lista solo elige entre las páginas que ya incluyen sus monitores. Elegir una página que no incluye ninguno de ellos no hace nada, y el formulario lo dice. Pon primero el monitor en esa página.

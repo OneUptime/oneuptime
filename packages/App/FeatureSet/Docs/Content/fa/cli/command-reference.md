@@ -221,7 +221,7 @@ oneuptime <resource> resolve <id>
 
 ### `oneuptime <resource> start`
 
-یک رویداد تعمیر و نگهداری زمان‌بندی‌شده را به وضعیت در جریانِ پروژهٔ شما می‌برد.
+یک رویداد تعمیر و نگهداری را به وضعیت در جریانِ پروژهٔ شما می‌برد.
 
 ```bash
 oneuptime <resource> start <id>
@@ -233,7 +233,7 @@ oneuptime <resource> start <id>
 
 ### `oneuptime <resource> end`
 
-یک رویداد تعمیر و نگهداری زمان‌بندی‌شده را به وضعیت پایان‌یافتهٔ پروژهٔ شما می‌برد.
+یک رویداد تعمیر و نگهداری را به وضعیت پایان‌یافتهٔ پروژهٔ شما می‌برد.
 
 ```bash
 oneuptime <resource> end <id>
@@ -245,7 +245,7 @@ oneuptime <resource> end <id>
 
 ### `oneuptime <resource> add-note`
 
-به یک حادثه، یک هشدار، اپیزودی از یکی از آن‌ها یا یک رویداد تعمیر و نگهداری زمان‌بندی‌شده یادداشتی اضافه می‌کند.
+به یک حادثه، یک هشدار، اپیزودی از یکی از آن‌ها یا یک رویداد تعمیر و نگهداری یادداشتی اضافه می‌کند.
 
 ```bash
 oneuptime <resource> add-note <id> --note <markdown> [--public]

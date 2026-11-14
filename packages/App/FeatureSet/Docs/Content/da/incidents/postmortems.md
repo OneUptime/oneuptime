@@ -175,7 +175,7 @@ En hændelsesepisode har også en side **Postmortem** under **Undersøgelse**: �
 
 En episodes postmortem er kun noten: den har ingen vedhæftninger, og ingen statusside viser den. OneUptime AI skriver ikke et udkast af sig selv, når en episode løses. At generere en kræver rollen Project Owner eller Project Admin, eller en brugerdefineret rolle med tilladelsen Edit Incident Episode. Den har heller ingen status, og listen over postmortems udelader den.
 
-Advarsler og planlagte vedligeholdelsesbegivenheder har ingen postmortem.
+Advarsler og vedligeholdelseshændelser har ingen postmortem.
 
 ## Via API'et
 

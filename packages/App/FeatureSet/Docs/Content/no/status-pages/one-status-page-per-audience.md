@@ -227,7 +227,7 @@ Hver side hendelsen når, får de samme verdiene: de tilhører hendelsen, ikke e
 
 ## Slik skiller det seg fra planlagt vedlikehold
 
-Planlagte vedlikeholdshendelser har også en liste **Statussider**, men den virker annerledes:
+Vedlikeholdshendelser har også en liste **Statussider**, men den virker annerledes:
 
 - **Planlagt vedlikehold erstatter.** Hendelsen vises på akkurat sidene i listen sin, uansett om de viser monitorene dens.
 - **En hendelse snevrer inn.** Listen dens velger bare blant sidene som allerede viser monitorene dens. Å velge en side som ikke viser noen av dem, gjør ingenting, og skjemaet sier det. Sett monitoren på den siden først.

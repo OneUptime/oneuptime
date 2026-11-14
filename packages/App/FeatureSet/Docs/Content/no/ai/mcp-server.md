@@ -253,7 +253,7 @@ Uten en API-nøkkel eller en innlogging kan en klient bruke de offentlige verkt�
 - **`oneuptime_describe_resource`**: feltene til en ressurs og hvordan du filtrerer, sorterer og velger på dem
 - **`get_public_status_page_overview`**: oversikten over en offentlig statusside
 - **`get_public_status_page_incidents`**: hendelsene på en offentlig statusside
-- **`get_public_status_page_scheduled_maintenance`**: de planlagte vedlikeholdshendelsene dens
+- **`get_public_status_page_scheduled_maintenance`**: vedlikeholdshendelsene dens
 - **`get_public_status_page_announcements`**: kunngjøringene dens
 
 Verktøyene for offentlige statussider tar en statussides ID (en UUID) eller domenenavnet dens. For å bruke bare disse kobler du til med adressen og uten påloggingsdetaljer:
@@ -414,7 +414,7 @@ Disse fungerer uten påloggingsdetaljer, med bare verktøyene for offentlige sta
 ```text
 "What's the current status of status.example.com?"
 "Show me recent incidents from the OneUptime status page"
-"Are there any scheduled maintenance events on status.acme.com?"
+"Are there any maintenance events on status.acme.com?"
 "Get the latest announcements from my public status page with ID abc123-..."
 ```
 

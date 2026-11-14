@@ -206,7 +206,7 @@ You do not have permissions to create Incident Internal Note. It is read through
 
 #### 写入所列出或指定的记录
 
-创建或更改所列出的记录——事件的监视器和值班策略、警报的服务、计划维护活动的状态页面、规则的运行手册——在你有读取该类记录的权限时遵循该权限，并且无论如何都遵循对其读取设置的带标签的阻止：超出范围的记录会以同样的 `400` 被拒绝。更改只检查它添加到列表中的记录，因此列表中已有的记录会保留。
+创建或更改所列出的记录——事件的监视器和值班策略、警报的服务、维护事件的状态页面、规则的运行手册——在你有读取该类记录的权限时遵循该权限，并且无论如何都遵循对其读取设置的带标签的阻止：超出范围的记录会以同样的 `400` 被拒绝。更改只检查它添加到列表中的记录，因此列表中已有的记录会保留。
 
 创建或更改在专门字段中指定的那一条记录——警报的监视器、状态页面资源所显示的监视器、成本预算的服务、运行手册运行所关联的事件——无论用它的哪个名称，都遵循同样的规则：超出你读取该类记录权限的记录，或带有读取阻止所移除的标签的记录，会以同样的 `400` 被拒绝。更改只在指定了与字段已有记录不同的记录时才检查它。OneUptime 的全局探针和 AI 代理供每个项目使用，对每个项目保持开放。模板替你填入的记录在填入后、保存任何内容之前也以同样方式检查：事件模板向由它声明的事件添加的监视器、状态页面和值班策略，必须是你可以读取的，就像是你亲自选择的一样。
 
@@ -246,7 +246,7 @@ Conflicting Monitor references were provided. monitorId and monitor are names fo
 
 ### 开关
 
-开或关的字段——`isEnabled`、`isVisibleOnStatusPage`、`isArchived` 以及其他所有 `true` 或 `false` 字段——接受 `true` 或 `false`。数据库会读作其中之一的文本和数字会被当作该值接受，对 API、Terraform 和工作流都一样：`"true"`、`"yes"`、`"on"`、`"1"` 和 `1` 是 `true`，`"false"`、`"no"`、`"off"`、`"0"` 和 `0` 是 `false`，不区分大小写。OneUptime 对该记录所做的一切也都把它当作该值处理：以 `"isVisibleOnStatusPage": "true"` 发送的计划维护活动会在状态页面上显示其图片，而 `"isEnabled": "false"` 会像 `false` 一样在低于套餐时关闭资源。任何其他值，例如 `"maybe"`、`""` 或 `2`，都会被拒绝，并返回一个指明字段的 `400`：
+开或关的字段——`isEnabled`、`isVisibleOnStatusPage`、`isArchived` 以及其他所有 `true` 或 `false` 字段——接受 `true` 或 `false`。数据库会读作其中之一的文本和数字会被当作该值接受，对 API、Terraform 和工作流都一样：`"true"`、`"yes"`、`"on"`、`"1"` 和 `1` 是 `true`，`"false"`、`"no"`、`"off"`、`"0"` 和 `0` 是 `false`，不区分大小写。OneUptime 对该记录所做的一切也都把它当作该值处理：以 `"isVisibleOnStatusPage": "true"` 发送的维护事件会在状态页面上显示其图片，而 `"isEnabled": "false"` 会像 `false` 一样在低于套餐时关闭资源。任何其他值，例如 `"maybe"`、`""` 或 `2`，都会被拒绝，并返回一个指明字段的 `400`：
 
 ```text
 isVisibleOnStatusPage must be true or false.
@@ -276,7 +276,7 @@ API 参考将这些字段标记为只读。请求在其他更改之外为其中�
 
 ### 更改记录的状态
 
-记录的状态通过其状态时间线中的一行来更改——`POST /api/incident-state-timeline`、`/api/alert-state-timeline`、`/api/incident-episode-state-timeline`、`/api/alert-episode-state-timeline` 或 `/api/scheduled-maintenance-state-timeline`——或者通过写入其当前状态（`currentIncidentStateId`、`currentAlertStateId`、`currentScheduledMaintenanceStateId` 或关系）的更新来更改，后者会记录同样的一行。无论哪种方式，都由一条规则约束状态转换，对片段和对事件、警报或计划维护活动都一样：在你项目的顺序中早于记录当前状态的状态，会在保存任何内容之前被拒绝，记录已处于的状态也一样：
+记录的状态通过其状态时间线中的一行来更改——`POST /api/incident-state-timeline`、`/api/alert-state-timeline`、`/api/incident-episode-state-timeline`、`/api/alert-episode-state-timeline` 或 `/api/scheduled-maintenance-state-timeline`——或者通过写入其当前状态（`currentIncidentStateId`、`currentAlertStateId`、`currentScheduledMaintenanceStateId` 或关系）的更新来更改，后者会记录同样的一行。无论哪种方式，都由一条规则约束状态转换，对片段和对事件、警报或维护事件都一样：在你项目的顺序中早于记录当前状态的状态，会在保存任何内容之前被拒绝，记录已处于的状态也一样：
 
 ```text
 Episode cannot transition to Acknowledged state from Resolved state because Acknowledged is before Resolved in the order of incident states.

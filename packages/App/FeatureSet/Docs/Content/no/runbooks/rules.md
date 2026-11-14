@@ -35,7 +35,7 @@ Når en regel utløses, skjer dette for hvert runbook den peker på:
 1. Runbooket lastes inn.
 2. Trinnene kopieres som et **øyeblikksbilde** over på en ny runbook-kjøring.
 3. Kjøringen settes i køen til runbook-workeren.
-4. Kjøringen knyttes til kildeenheten: den vises på siden **Runbooks** for hendelsen, varselet eller den planlagte vedlikeholdshendelsen og i runbookets liste **Kjøringer**.
+4. Kjøringen knyttes til kildeenheten: den vises på siden **Runbooks** for hendelsen, varselet eller vedlikeholdshendelsen og i runbookets liste **Kjøringer**.
 
 Du ser alle kjøringer, startet av en regel eller ikke, under **Runbooks → Kjøringer**, filtrert etter status, runbook eller startdato.
 
@@ -72,12 +72,12 @@ Under **Runbooks** velger du ett eller flere **Runbooks å starte**. Regelens **
 
 ## Betingelser
 
-Hver betingelse sammenligner én ting ved hendelsen, varselet eller den planlagte vedlikeholdshendelsen med en verdi du angir. En runbook-regel tilbyr de samme kriteriene som produktets andre regler: en runbook-regel for hendelser treffer på det samme som en personvern- eller vaktregel for hendelser.
+Hver betingelse sammenligner én ting ved hendelsen, varselet eller vedlikeholdshendelsen med en verdi du angir. En runbook-regel tilbyr de samme kriteriene som produktets andre regler: en runbook-regel for hendelser treffer på det samme som en personvern- eller vaktregel for hendelser.
 
 | Kriterium | Hva det kontrollerer |
 | --- | --- |
-| **Monitorer** | Monitorene hendelsen eller den planlagte vedlikeholdshendelsen berører, eller monitoren som utløste varselet. |
-| **Alvorlighetsgrader for hendelser** / **Alvorlighetsgrader for varsler** | Alvorlighetsgraden til hendelsen eller varselet. Planlagte vedlikeholdshendelser har ingen alvorlighetsgrad, så reglene deres tilbyr det ikke. |
+| **Monitorer** | Monitorene hendelsen eller vedlikeholdshendelsen berører, eller monitoren som utløste varselet. |
+| **Alvorlighetsgrader for hendelser** / **Alvorlighetsgrader for varsler** | Alvorlighetsgraden til hendelsen eller varselet. Vedlikeholdshendelser har ingen alvorlighetsgrad, så reglene deres tilbyr det ikke. |
 | **Hendelsesetiketter** / **Varseletiketter** | Etikettene på selve hendelsen, varselet eller vedlikeholdshendelsen (for planlagt vedlikehold heter kriteriet også **Hendelsesetiketter**), inkludert dem etikettregler la til ved opprettelsen. |
 | **Overvåkingsetiketter** | Etikettene på monitorene. Gi monitorene dine etiketten `production` eller `staging` for å kjøre et runbook bare i ett miljø. |
 | **Hendelsestittel** / **Varseltittel** | Tittelen (også for planlagt vedlikehold, der dashbordet bruker **Hendelsestittel**). |

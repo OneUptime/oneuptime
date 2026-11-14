@@ -112,7 +112,7 @@ For å publisere i en eksisterende kanal skriver du inn navnet slik det står i 
 
 Folk blir med i kanalen til en regel gjennom Mattermost-kontoen de har koblet til, eller ellers gjennom Mattermost-kontoen med e-postadressen deres, når serveren din viser e-postadresser til boten (**System Console** > **Site Configuration** > **Users and Teams** > **Show Email Address**). OneUptime nevner dem den ikke kunne legge til, i én melding i kanalen, med en lenke for å koble til kontoen.
 
-En hendelse, et varsel, en episode eller en planlagt vedlikeholdshendelse med sin egen kanal har **Åpne i Mattermost** øverst på siden sin i OneUptime, ved siden av tilstandsknappene. Den åpner kanalen i en ny fane, på Mattermost-serveren din. En post med to egne kanaler viser begge under knappen. En post som også har kanaler i Slack eller Microsoft Teams, har i stedet én knapp, **Åpne kanal**, som viser alle. De eksisterende kanalene reglene dine publiserer i, tilbys ikke.
+En hendelse, et varsel, en episode eller en vedlikeholdshendelse med sin egen kanal har **Åpne i Mattermost** øverst på siden sin i OneUptime, ved siden av tilstandsknappene. Den åpner kanalen i en ny fane, på Mattermost-serveren din. En post med to egne kanaler viser begge under knappen. En post som også har kanaler i Slack eller Microsoft Teams, har i stedet én knapp, **Åpne kanal**, som viser alle. De eksisterende kanalene reglene dine publiserer i, tilbys ikke.
 
 **Test regel** i en regels rad publiserer en testmelding for den regelen i kanalene den nevner, slik den gjør for Slack.
 
@@ -120,7 +120,7 @@ Meldingene fra OneUptime varsler ingen gjennom det de siterer: et navn eller en 
 
 ## Hvem som er i kanalen til en post
 
-En hendelse, et varsel, en episode eller en planlagt vedlikeholdshendelse med sin egen Mattermost-kanal har kortet **Mattermost-kanal** på siden sin i OneUptime. Kortet viser kanalen, som en lenke som åpner den på Mattermost-serveren din, om den er privat, og hvem som er i den, deg først. Fra kortet, uten en Mattermost-administrator:
+En hendelse, et varsel, en episode eller en vedlikeholdshendelse med sin egen Mattermost-kanal har kortet **Mattermost-kanal** på siden sin i OneUptime. Kortet viser kanalen, som en lenke som åpner den på Mattermost-serveren din, om den er privat, og hvem som er i den, deg først. Fra kortet, uten en Mattermost-administrator:
 
 - **Bli med i kanalen** legger deg til når du ikke er i kanalen.
 - **Legg til personer** åpner en liste over prosjektets personer og team: velg en person for å legge vedkommende til, eller et team for å legge til alle i det.
@@ -145,7 +145,7 @@ Meldingene fra OneUptime har knapper, og en meny **More actions** for det færre
 | **Hendelsesepisode, varselepisode** | **Acknowledge**, **Resolve**, **Add Note**, **Change State**, **Execute On-Call Policy** |
 | **Planlagt vedlikehold** | **Mark as Ongoing**, **Mark as Complete**, **Add Note**, **Change State** |
 
-**Add Note**, **Change State**, **Change Severity** og **Execute On-Call Policy** åpner et skjema i Mattermost. Et notat på en hendelse eller en planlagt vedlikeholdsbegivenhet kan være offentlig, vist på statussiden, eller privat; et notat på en privat hendelse er alltid privat, og på et varsel også alltid privat. Hver melding har også en lenke som åpner posten i OneUptime, for alt annet. Når prosjektets offentlige notater krever godkjenning, venter et offentlig notat fra skjemaet på den, og en melding bare du ser, sier hvem det venter på: se [Godkjenning av offentlige notater](/docs/incidents/notes-owners-and-feed#godkjenning-av-offentlige-notater).
+**Add Note**, **Change State**, **Change Severity** og **Execute On-Call Policy** åpner et skjema i Mattermost. Et notat på en hendelse eller en vedlikeholdshendelse kan være offentlig, vist på statussiden, eller privat; et notat på en privat hendelse er alltid privat, og på et varsel også alltid privat. Hver melding har også en lenke som åpner posten i OneUptime, for alt annet. Når prosjektets offentlige notater krever godkjenning, venter et offentlig notat fra skjemaet på den, og en melding bare du ser, sier hvem det venter på: se [Godkjenning av offentlige notater](/docs/incidents/notes-owners-and-feed#godkjenning-av-offentlige-notater).
 
 Hvis Mattermost-kontoen din ikke er koblet til ennå, sier en knapp fra om det, med en lenke til **Brukerinnstillinger** > **Arbeidsområde** > **Mattermost**. Koble til kontoen din, og trykk deretter på knappen igjen.
 

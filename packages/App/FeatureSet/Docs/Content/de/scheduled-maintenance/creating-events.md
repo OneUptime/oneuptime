@@ -24,7 +24,7 @@ flowchart TB
 ## Bevor Sie beginnen
 
 - **Ihre Rolle.** Um ein Ereignis zu erstellen, brauchen Sie **Projektinhaber**, **Projektadministrator**, **Projektmitglied**, **Wartungs-Administrator** oder **Wartungs-Mitglied** oder eine benutzerdefinierte Rolle mit **Create Scheduled Maintenance**.
-- **Ihre Statusseiten.** Um Kunden zu informieren, brauchen Sie eine Statusseite, die geplante Wartungsereignisse anzeigt. Siehe [Statusseiten – Übersicht](/docs/status-pages/index).
+- **Ihre Statusseiten.** Um Kunden zu informieren, brauchen Sie eine Statusseite, die Wartungsereignisse anzeigt. Siehe [Statusseiten – Übersicht](/docs/status-pages/index).
 
 ## Ein Ereignis erstellen
 
@@ -71,7 +71,7 @@ Nichts wird gesendet, bis Sie eine Statusseite wählen: Ein Ereignis, das auf ke
 Zwei Dinge füllen das Formular unterwegs für Sie aus:
 
 - **Verknüpfte Ressourcen.** Wenn Sie einen Monitor wählen, werden die Hosts, Cluster, Dienste und anderen Ressourcen, mit denen er verknüpft ist, unter **Andere betroffene Ressourcen** hinzugefügt, und eine Zeile unter dem Feld nennt sie. Entfernen Sie alle, die Sie nicht möchten. Cloud-Ressourcen werden ebenfalls hinzugefügt: Solange das Ereignis läuft, eröffnen ihre Monitore keinen Vorfall und keine Warnung.
-- **Vorgeschlagene Statusseiten.** Unter **Ereignis auf diesen Status-Seiten anzeigen** werden die Seiten vorgeschlagen, die Ihre Monitore zeigen: Klicken Sie auf den Namen einer Seite, um sie hinzuzufügen, oder auf **Alle hinzufügen**. Nichts wird für Sie ausgewählt. Siehe [Geplante Wartungsereignisse](/docs/status-pages/subscribers#geplante-wartungsereignisse).
+- **Vorgeschlagene Statusseiten.** Unter **Ereignis auf diesen Status-Seiten anzeigen** werden die Seiten vorgeschlagen, die Ihre Monitore zeigen: Klicken Sie auf den Namen einer Seite, um sie hinzuzufügen, oder auf **Alle hinzufügen**. Nichts wird für Sie ausgewählt. Siehe [Wartungsereignisse](/docs/status-pages/subscribers#wartungsereignisse).
 
 ## Von einer Ressource oder einer Vorlage aus beginnen
 
@@ -180,6 +180,6 @@ Ein Ereignis wird veröffentlicht, damit Ihre Kunden von der Arbeit erfahren, be
 :::cards
 - [Wartungsstatus](/docs/scheduled-maintenance/states): Was ein Ereignis startet und beendet, und wie Sie es von Hand weiterschieben.
 - [Vorlagen & wiederkehrende Ereignisse](/docs/scheduled-maintenance/templates): Die Antworten des Formulars für das nächste Mal speichern.
-- [Abonnenten & Ankündigungen](/docs/status-pages/subscribers#geplante-wartungsereignisse): Genau, wer wann informiert wird.
+- [Abonnenten & Ankündigungen](/docs/status-pages/subscribers#wartungsereignisse): Genau, wer wann informiert wird.
 - [Wartungsregeln & Einstellungen](/docs/scheduled-maintenance/settings): Eigentümer, Beschriftungen und Erinnerungen automatisch hinzufügen.
 :::

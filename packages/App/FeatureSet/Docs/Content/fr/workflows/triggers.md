@@ -163,7 +163,7 @@ Pour connecter Huntress, cliquez sur le déclencheur **Huntress Incident Report*
 
 ## Déclencheurs d'événements OneUptime
 
-Presque tout ce qui existe dans OneUptime — moniteurs, incidents, alertes, événements de maintenance planifiée, pages de statut, politiques d'astreinte, équipes — peut déclencher un workflow. Chacun propose jusqu'à quatre déclencheurs :
+Presque tout ce qui existe dans OneUptime — moniteurs, incidents, alertes, événements de maintenance, pages de statut, politiques d'astreinte, équipes — peut déclencher un workflow. Chacun propose jusqu'à quatre déclencheurs :
 
 - **On Create** — se produit quand un nouvel élément est ajouté.
 - **On Update** — se produit quand un élément est modifié. Enregistrer un enregistrement avec les valeurs qu'il a déjà, comme un formulaire enregistré sans modification ou un interrupteur envoyé dans la position où il est déjà, n'est pas un changement et ne le déclenche pas.

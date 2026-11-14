@@ -112,7 +112,7 @@ Pour publier dans un canal existant, saisissez son nom tel qu'il apparaît dans 
 
 Les personnes rejoignent le canal d'une règle par le compte Mattermost qu'elles ont connecté, ou sinon par le compte Mattermost associé à leur adresse e-mail, quand votre serveur montre les adresses e-mail au bot (**System Console** > **Site Configuration** > **Users and Teams** > **Show Email Address**). OneUptime nomme les personnes qu'il n'a pas pu ajouter dans un seul message dans le canal, avec un lien pour connecter leur compte.
 
-Un incident, une alerte, un épisode ou un événement de maintenance planifiée qui a son propre canal affiche **Ouvrir dans Mattermost** dans l'en-tête de sa page dans OneUptime, à côté de ses boutons d'état. Ce bouton ouvre ce canal dans un nouvel onglet, sur votre serveur Mattermost. Un enregistrement qui a deux canaux à lui les liste tous les deux sous le bouton. Un enregistrement qui a aussi des canaux dans Slack ou Microsoft Teams a à la place un seul bouton **Ouvrir le canal**, qui les liste tous. Les canaux existants où vos règles publient ne sont pas proposés.
+Un incident, une alerte, un épisode ou un événement de maintenance qui a son propre canal affiche **Ouvrir dans Mattermost** dans l'en-tête de sa page dans OneUptime, à côté de ses boutons d'état. Ce bouton ouvre ce canal dans un nouvel onglet, sur votre serveur Mattermost. Un enregistrement qui a deux canaux à lui les liste tous les deux sous le bouton. Un enregistrement qui a aussi des canaux dans Slack ou Microsoft Teams a à la place un seul bouton **Ouvrir le canal**, qui les liste tous. Les canaux existants où vos règles publient ne sont pas proposés.
 
 **Tester la règle** sur la ligne d'une règle publie un message de test pour cette règle dans les canaux qu'elle nomme, comme pour Slack.
 
@@ -120,7 +120,7 @@ Les messages de OneUptime ne notifient personne par ce qu'ils citent : un nom ou
 
 ## Qui est dans le canal d'un enregistrement
 
-Un incident, une alerte, un épisode ou un événement de maintenance planifiée qui a son propre canal Mattermost affiche une carte **Canal Mattermost** sur sa page dans OneUptime. La carte montre le canal, sous la forme d'un lien qui l'ouvre sur votre serveur Mattermost, s'il est privé, et qui s'y trouve, vous en premier. Depuis la carte, sans administrateur Mattermost :
+Un incident, une alerte, un épisode ou un événement de maintenance qui a son propre canal Mattermost affiche une carte **Canal Mattermost** sur sa page dans OneUptime. La carte montre le canal, sous la forme d'un lien qui l'ouvre sur votre serveur Mattermost, s'il est privé, et qui s'y trouve, vous en premier. Depuis la carte, sans administrateur Mattermost :
 
 - **Rejoindre le canal** vous ajoute, quand vous n'êtes pas dans le canal.
 - **Ajouter des personnes** ouvre une liste des personnes et des équipes du projet : choisissez une personne pour l'ajouter, ou une équipe pour ajouter tous ses membres.
@@ -145,7 +145,7 @@ Les messages de OneUptime portent des boutons, et un menu **More actions** pour 
 | **Épisode d'incident, épisode d'alerte** | **Acknowledge**, **Resolve**, **Add Note**, **Change State**, **Execute On-Call Policy** |
 | **Maintenance planifiée** | **Mark as Ongoing**, **Mark as Complete**, **Add Note**, **Change State** |
 
-**Add Note**, **Change State**, **Change Severity** et **Execute On-Call Policy** ouvrent un formulaire dans Mattermost. Une note sur un incident ou sur un événement de maintenance planifiée peut être publique, affichée sur la page de statut, ou privée ; une note sur un incident privé est toujours privée, et sur une alerte toujours privée aussi. Chaque message a aussi un lien qui ouvre son enregistrement dans OneUptime, pour tout le reste. Quand les notes publiques du projet doivent être approuvées, une note publique envoyée depuis le formulaire attend son approbation, et un message que vous seul voyez dit qui elle attend : voir [Approbation des notes publiques](/docs/incidents/notes-owners-and-feed#approbation-des-notes-publiques).
+**Add Note**, **Change State**, **Change Severity** et **Execute On-Call Policy** ouvrent un formulaire dans Mattermost. Une note sur un incident ou sur un événement de maintenance peut être publique, affichée sur la page de statut, ou privée ; une note sur un incident privé est toujours privée, et sur une alerte toujours privée aussi. Chaque message a aussi un lien qui ouvre son enregistrement dans OneUptime, pour tout le reste. Quand les notes publiques du projet doivent être approuvées, une note publique envoyée depuis le formulaire attend son approbation, et un message que vous seul voyez dit qui elle attend : voir [Approbation des notes publiques](/docs/incidents/notes-owners-and-feed#approbation-des-notes-publiques).
 
 Si votre compte Mattermost n'est pas encore connecté, un bouton vous le dit, avec un lien vers **Paramètres utilisateur** > **Espace de travail** > **Mattermost**. Connectez votre compte, puis pressez à nouveau le bouton.
 

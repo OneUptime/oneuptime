@@ -41,7 +41,7 @@ In **Database**, scegli **Avvisi consigliati** per un database. Ogni raccomandaz
 
 Scegli gravità, policy di reperibilità, proprietari ed etichette quando li crei. Da quel momento sono monitor come gli altri: modificali, silenziali o mettili su una pagina di stato come qualsiasi altro.
 
-Un backfill o una migrazione non dovrebbe avvisare nessuno. Indica il database in **Data Observability Database** su un [evento di manutenzione programmata](/docs/scheduled-maintenance/index), oppure inserisci il suo server di database in uno, e i suoi avvisi sui dati restano silenziosi mentre l'evento è attivo.
+Un backfill o una migrazione non dovrebbe avvisare nessuno. Indica il database in **Data Observability Database** su un [evento di manutenzione](/docs/scheduled-maintenance/index), oppure inserisci il suo server di database in uno, e i suoi avvisi sui dati restano silenziosi mentre l'evento è attivo.
 
 ## Metriche che ogni tabella scrive
 

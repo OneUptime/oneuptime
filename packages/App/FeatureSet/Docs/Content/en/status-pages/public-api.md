@@ -1,6 +1,6 @@
 # Public API
 
-Every status page answers a small set of read-only JSON endpoints: its overview, a summary, uptime, incidents, episodes, scheduled maintenance events and announcements. They are the endpoints the status page itself loads, so they return exactly what a visitor sees, and a public page needs no API key. Use them to show your status in your own app, a chat bot or a wall display.
+Every status page answers a small set of read-only JSON endpoints: its overview, a summary, uptime, incidents, episodes, maintenance events and announcements. They are the endpoints the status page itself loads, so they return exactly what a visitor sees, and a public page needs no API key. Use them to show your status in your own app, a chat bot or a wall display.
 
 :::cards
 - [Endpoints](#endpoints): One endpoint for each thing the page shows.
@@ -57,8 +57,8 @@ Wherever a path below says `{statusPageIdOrDomain}`, you can send the page's ID 
 | `/incidents/{statusPageIdOrDomain}/{incidentId}` | `POST` | One incident. |
 | `/episodes/{statusPageIdOrDomain}` | `POST` | The incident episodes the page lists. |
 | `/episodes/{statusPageIdOrDomain}/{episodeId}` | `POST` | One episode. |
-| `/scheduled-maintenance-events/{statusPageIdOrDomain}` | `GET`, `POST` | The scheduled maintenance events the page lists, with their public notes and state changes. |
-| `/scheduled-maintenance-events/{statusPageIdOrDomain}/{scheduledMaintenanceId}` | `POST` | One scheduled maintenance event. |
+| `/scheduled-maintenance-events/{statusPageIdOrDomain}` | `GET`, `POST` | The maintenance events the page lists, with their public notes and state changes. |
+| `/scheduled-maintenance-events/{statusPageIdOrDomain}/{scheduledMaintenanceId}` | `POST` | One maintenance event. |
 | `/announcements/{statusPageIdOrDomain}` | `GET`, `POST` | The announcements the page lists. |
 | `/announcements/{statusPageIdOrDomain}/{announcementId}` | `POST` | One announcement. |
 
@@ -140,13 +140,13 @@ The overall status is the worst current status of the monitors and monitor group
 | `activeIncidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates` | The unresolved incidents the page shows, their public notes and state changes, and the project's incident states. |
 | `timelineIncidents` | The incidents in the uptime bars' window, resolved ones included, for the bars' tooltips. |
 | `activeEpisodes`, `episodePublicNotes`, `episodeStateTimelines` | The same for incident episodes. |
-| `scheduledMaintenanceEvents`, `scheduledMaintenanceEventsPublicNotes`, `scheduledMaintenanceStateTimelines`, `scheduledMaintenanceStates` | The scheduled maintenance events that are still to come or in progress, their public notes and state changes. |
-| `timelineScheduledMaintenanceEvents` | The scheduled maintenance events in the uptime bars' window that have started, in progress or over, for the bars' tooltips and day dialogs: the ones the page shows that hold one of its monitors, each listing only the page's monitors. |
+| `scheduledMaintenanceEvents`, `scheduledMaintenanceEventsPublicNotes`, `scheduledMaintenanceStateTimelines`, `scheduledMaintenanceStates` | The maintenance events that are still to come or in progress, their public notes and state changes. |
+| `timelineScheduledMaintenanceEvents` | The maintenance events in the uptime bars' window that have started, in progress or over, for the bars' tooltips and day dialogs: the ones the page shows that hold one of its monitors, each listing only the page's monitors. |
 | `activeAnnouncements` | The announcements showing now: started, and not ended. |
 
 ## Read the summary
 
-The summary is the overview cut down to what a monitoring tool asks of a page: each resource's status, and whether a scheduled maintenance event in progress affects it. It stays small however much history the page shows, and it is what another OneUptime's [External Status Page monitor](/docs/monitor/external-status-page-monitor#oneuptime-status-pages) reads. It comes from the same cache as the overview, after the same access rules.
+The summary is the overview cut down to what a monitoring tool asks of a page: each resource's status, and whether a maintenance event in progress affects it. It stays small however much history the page shows, and it is what another OneUptime's [External Status Page monitor](/docs/monitor/external-status-page-monitor#oneuptime-status-pages) reads. It comes from the same cache as the overview, after the same access rules.
 
 ```bash
 curl https://oneuptime.com/status-page-api/summary/YOUR_STATUS_PAGE_ID
@@ -195,7 +195,7 @@ The response:
 | `overallStatus` | The page's overall status, as its banner shows it: `name`, `color` and `isOperational`. `null` when every resource on the page is **Not monitored**. |
 | `resources` | Each resource the page shows, in its order: its `name` on the page, its `groupName` with the groups above it, its `currentStatus`, `isMonitored`, and `isUnderMaintenance`. |
 | `activeIncidents` | The unresolved incidents the page shows, each with the `affectedResourceIds` of the resources it affects. |
-| `ongoingScheduledMaintenance`, `upcomingScheduledMaintenance` | The scheduled maintenance events in progress and still to come, each with its `affectedResourceIds`. |
+| `ongoingScheduledMaintenance`, `upcomingScheduledMaintenance` | The maintenance events in progress and still to come, each with its `affectedResourceIds`. |
 
 A resource's `currentStatus` is `null` when the page does not show it, and when `isMonitored` is `false`: nothing checks the resource, because its monitor's monitoring is off or every monitor of its monitor group has it off, so the page shows it as **Not monitored**. `isUnderMaintenance` is `true` while an event in progress names one of the resource's monitors, or a monitor in its monitor group, whatever status those monitors are in.
 
@@ -346,7 +346,7 @@ The list endpoints answer `GET` as well as `POST`; the single-item endpoints and
 # The incidents the page lists
 curl https://oneuptime.com/status-page-api/incidents/YOUR_STATUS_PAGE_ID
 
-# One scheduled maintenance event
+# One maintenance event
 curl -X POST https://oneuptime.com/status-page-api/scheduled-maintenance-events/YOUR_STATUS_PAGE_ID/EVENT_ID
 ```
 @tab Node.js
@@ -384,7 +384,7 @@ for incident in incidents:
 | -------- | -------------------- |
 | Incidents | `incidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates`, `statusPageResources`, `monitorsInGroup` |
 | Episodes | `episodes`, `episodePublicNotes`, `episodeStateTimelines`, `incidentStates`, `statusPageResources`, `monitorsInGroup` |
-| Scheduled maintenance events | `scheduledMaintenanceEvents`, `scheduledMaintenanceEventsPublicNotes`, `scheduledMaintenanceStateTimelines`, `scheduledMaintenanceStates`, `statusPageResources`, `monitorsInGroup` |
+| Maintenance events | `scheduledMaintenanceEvents`, `scheduledMaintenanceEventsPublicNotes`, `scheduledMaintenanceStateTimelines`, `scheduledMaintenanceStates`, `statusPageResources`, `monitorsInGroup` |
 | Announcements | `announcements`, `statusPageResources`, `monitorsInGroup` |
 
 A single-item request answers with the same keys, holding that one record.
@@ -406,7 +406,7 @@ An error answers with a status code and a JSON body that says why:
 
 ## Other ways to read a status page
 
-- **RSS.** Every status page serves `/rss`, a feed of its incidents, announcements and scheduled maintenance events, each dated as the page dates it. See [The embeddable badge and the RSS feed](/docs/status-pages/index#the-embeddable-badge-and-the-rss-feed).
+- **RSS.** Every status page serves `/rss`, a feed of its incidents, announcements and maintenance events, each dated as the page dates it. See [The embeddable badge and the RSS feed](/docs/status-pages/index#the-embeddable-badge-and-the-rss-feed).
 - **llms.txt.** Next to `/rss`, every status page serves `/llms.txt`, which points AI agents at the RSS feed and the overview JSON.
 - **MCP.** AI agents can read the page through OneUptime's MCP server at `https://oneuptime.com/mcp`, with no API key, by passing the page's ID or domain as `statusPageIdOrDomain`. It is on by default; turn it off with **Enable MCP Server** under **AI → MCP** in the page's side menu. See [MCP Server](/docs/ai/mcp-server).
 - **The REST API.** To create or change status pages, resources, subscribers and announcements, use the [OneUptime API](/docs/api-reference/api-reference) with an API key.

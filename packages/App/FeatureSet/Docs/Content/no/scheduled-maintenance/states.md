@@ -1,6 +1,6 @@
 # Vedlikeholdstilstander
 
-Hver planlagte vedlikeholdshendelse er i én **tilstand**: hvor langt arbeidet har kommet, fra planlagt til godkjent. Tilstander bestemmer hva OneUptime gjør med hendelsen: når monitorene dens slutter å bli sjekket, hva statussidene dine viser, når påminnelsene dens stopper. Denne siden går gjennom de fire tilstandene hvert prosjekt starter med, hva som flytter en hendelse mellom dem, og hvordan du legger til egne trinn.
+Hver vedlikeholdshendelse er i én **tilstand**: hvor langt arbeidet har kommet, fra planlagt til godkjent. Tilstander bestemmer hva OneUptime gjør med hendelsen: når monitorene dens slutter å bli sjekket, hva statussidene dine viser, når påminnelsene dens stopper. Denne siden går gjennom de fire tilstandene hvert prosjekt starter med, hva som flytter en hendelse mellom dem, og hvordan du legger til egne trinn.
 
 :::cards
 - [Standardtilstandene](#standardtilstandene): Planlagt, Pågående, Avsluttet og Fullført.

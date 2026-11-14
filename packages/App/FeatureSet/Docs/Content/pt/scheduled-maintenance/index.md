@@ -1,6 +1,6 @@
 # Visão geral da manutenção programada
 
-Um evento de manutenção programada avisa todos sobre um trabalho planejado antes que ele aconteça: uma atualização do banco de dados, uma mudança na rede, uma mudança para novos servidores. O OneUptime inicia e encerra o evento no horário, deixa de verificar os monitores afetados enquanto o trabalho acontece e o mostra nas suas páginas de status, para que uma parada planejada nunca pareça uma queda. Esta página explica como um evento transcorre, onde fica tudo no painel e o que um evento muda no restante do OneUptime.
+Um evento de manutenção avisa todos sobre um trabalho planejado antes que ele aconteça: uma atualização do banco de dados, uma mudança na rede, uma mudança para novos servidores. O OneUptime inicia e encerra o evento no horário, deixa de verificar os monitores afetados enquanto o trabalho acontece e o mostra nas suas páginas de status, para que uma parada planejada nunca pareça uma queda. Esta página explica como um evento transcorre, onde fica tudo no painel e o que um evento muda no restante do OneUptime.
 
 :::cards
 - [Como um evento transcorre](#como-um-evento-transcorre): De agendado a concluído, quase sempre sozinho.
@@ -44,7 +44,7 @@ Os comunicados são tratados em [Assinantes e comunicados](/docs/status-pages/su
 - **O formulário.** Clique em **Criar evento de manutenção** na lista de eventos, ou na aba **Manutenção programada** de um host, um cluster, um serviço, um site de rede ou outro recurso, que seleciona esse recurso para você. Veja [Criar eventos de manutenção](/docs/scheduled-maintenance/creating-events).
 - **Um modelo.** **Criar a partir de modelo** preenche o formulário a partir de um modelo que você salvou para trabalhos frequentes. Veja [Modelos e eventos recorrentes](/docs/scheduled-maintenance/templates).
 - **Um agendamento.** Um modelo recorrente cria um evento novo seguindo um agendamento, por exemplo toda semana ou todo mês, sem que ninguém abra o formulário.
-- **Um formulário.** Um formulário cujos envios criam eventos de manutenção transforma um pedido de mudança em um evento. Veja [O que um envio cria](/docs/forms/on-submit#como-um-envio-se-torna-um-evento-de-manutenção-programada).
+- **Um formulário.** Um formulário cujos envios criam eventos de manutenção transforma um pedido de mudança em um evento. Veja [O que um envio cria](/docs/forms/on-submit#como-um-envio-se-torna-um-evento-de-manutenção).
 - **O chat.** `/oneuptime maintenance` no Slack, ou `maintenance` escrito para o bot do OneUptime no Microsoft Teams, abre o formulário na sua ferramenta de chat. Veja [Slack](/docs/workspace-connections/slack#criar-incidentes-e-manutenções-pelo-slack).
 - **O código.** A API em `/api/scheduled-maintenance`, o recurso do Terraform `oneuptime_scheduled_maintenance_event` e a etapa **Create One Maintenance Event** de um workflow.
 
@@ -74,7 +74,7 @@ Enquanto um evento está em andamento, o OneUptime trata a queda que ele planeja
 - **Seus outros recursos ficam em silêncio.** Um monitor de telemetria que vigia muitos hosts, clusters, bancos de dados ou serviços, uma série cada, não cria incidente nem alerta para uma série cujo recurso o evento cobre, enquanto as outras séries continuam alertando. Os monitores de um recurso de nuvem que o evento cobre, como os recomendados, não criam nenhum incidente nem alerta.
 - **Sites de rede e SLOs se seguram.** Um site de rede que o evento cobre deixa de contar a queda planejada contra os sites acima dele, e as regras de taxa de consumo de um SLO não disparam nada enquanto algum de seus monitores estiver em manutenção. Veja [Sites de rede](/docs/monitor/network-sites#manutenção-programada-para-sites-de-rede) e [Alertas e incidentes de taxa de consumo](/docs/slo/burn-rate-alerts#manutenção-programada).
 - **Suas páginas de status o mostram.** O evento aparece nas páginas de status escolhidas, primeiro como próximo, depois em andamento, depois encerrado, enquanto **Visível na página de status** estiver ativado nas suas **Configurações**, e a partir do seu **Publicar em**, se você escolheu um. Depois que começa, nessas páginas o histórico de tempo de atividade de cada recurso dos seus monitores o mostra em cada dia que sua janela toca, e esses recursos mostram "Em manutenção" enquanto ele dura; o histórico de tempo de atividade do monitor no painel o mostra do mesmo jeito. Veja [Porcentagens de tempo de atividade e gráficos de histórico](/docs/status-pages/resources-and-groups#porcentagens-de-tempo-de-atividade-e-gráficos-de-histórico).
-- **Os assinantes ficam sabendo.** Por padrão, os assinantes dessas páginas são avisados quando ele é agendado, quando começa e quando termina, e recebem um lembrete antes do início se você definir lembretes. Veja [Eventos de manutenção programada](/docs/status-pages/subscribers#eventos-de-manutenção-programada).
+- **Os assinantes ficam sabendo.** Por padrão, os assinantes dessas páginas são avisados quando ele é agendado, quando começa e quando termina, e recebem um lembrete antes do início se você definir lembretes. Veja [Eventos de manutenção](/docs/status-pages/subscribers#eventos-de-manutenção).
 - **Sua equipe fica sabendo.** Seus proprietários são avisados conforme as [configurações de notificação](/docs/notifications/notification-settings) deles, e as regras do Slack, do Microsoft Teams e do Mattermost em **Espaço de trabalho** o publicam nos seus canais.
 
 ## As páginas de um evento
@@ -108,7 +108,7 @@ Só os monitores que o evento indica em **Monitores** deixam de ser verificados,
 :::
 
 :::details O evento não aparece na minha página de status
-Confira se o evento indica a página em **Mostrar evento nestas páginas de status** e se **Visível na página de status** está ativado nas **Configurações** do evento. Se o cabeçalho dele mostra **Ainda não está nas páginas de status**, ele aparece a partir do seu **Publicar em**: veja [Publicar mais tarde](/docs/scheduled-maintenance/creating-events#publicar-mais-tarde). Depois confira a própria página de status: ela precisa mostrar eventos de manutenção programada, e um evento que começou há mais tempo que a janela de histórico da página, 14 dias se você não a mudou, não é mais listado.
+Confira se o evento indica a página em **Mostrar evento nestas páginas de status** e se **Visível na página de status** está ativado nas **Configurações** do evento. Se o cabeçalho dele mostra **Ainda não está nas páginas de status**, ele aparece a partir do seu **Publicar em**: veja [Publicar mais tarde](/docs/scheduled-maintenance/creating-events#publicar-mais-tarde). Depois confira a própria página de status: ela precisa mostrar eventos de manutenção, e um evento que começou há mais tempo que a janela de histórico da página, 14 dias se você não a mudou, não é mais listado.
 :::
 
 ## Próximos passos

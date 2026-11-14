@@ -384,7 +384,7 @@ Otros nombres: **Tareas**. Consulta [Código](/docs/ai/ai-agent).
 
 ### Formulario
 
-Una página que cualquiera con su enlace puede rellenar, sin cuenta. Cada envío crea un incidente, para informar de un problema, o un evento de mantenimiento programado, para solicitar un cambio.
+Una página que cualquiera con su enlace puede rellenar, sin cuenta. Cada envío crea un incidente, para informar de un problema, o un evento de mantenimiento, para solicitar un cambio.
 
 Consulta [Visión general de los formularios](/docs/forms/index).
 

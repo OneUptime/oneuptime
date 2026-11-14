@@ -39,9 +39,9 @@ stateDiagram-v2
 
 Runbook 执行有五种创建方式：
 
-1. **通过规则自动启动**：当匹配的事件、警报或计划维护事件被创建时，[Runbook 规则](/docs/runbooks/rules) 会启动执行。AI 规则也可以启动执行；参见 [AI SRE](/docs/ai/ai-sre)。
-2. **从事件手动启动**：在事件、警报或计划维护事件上点击 **运行 Runbook** 。执行会关联到该事件。
-3. **从 Runbook 页面手动启动**：在 Runbook 的 **概览** 页面上点击 **立即运行** 。这次运行不会关联到任何事件、警报或计划维护事件。
+1. **通过规则自动启动**：当匹配的事件、警报或维护事件被创建时，[Runbook 规则](/docs/runbooks/rules) 会启动执行。AI 规则也可以启动执行；参见 [AI SRE](/docs/ai/ai-sre)。
+2. **从事件手动启动**：在事件、警报或维护事件上点击 **运行 Runbook** 。执行会关联到该事件。
+3. **从 Runbook 页面手动启动**：在 Runbook 的 **概览** 页面上点击 **立即运行** 。这次运行不会关联到任何事件、警报或维护事件。
 4. **按计划**：Runbook 的计划在设定的时间启动它。参见[按计划运行](/docs/runbooks/triggers#按计划运行)。
 5. **从其他工具**：向 Runbook 的 Webhook URL 发送 `POST` 即可启动它，并带上调用发送的值。参见[调用 Webhook](/docs/runbooks/triggers#调用-webhook)。
 
@@ -49,7 +49,7 @@ Runbook 执行有五种创建方式：
 
 :::tabs
 @tab 从事件启动
-1. 打开事件、警报或计划维护事件，进入其 **运行手册** 页面。
+1. 打开事件、警报或维护事件，进入其 **运行手册** 页面。
 2. 点击 **运行 Runbook** 。 **运行 Runbook** 对话框会列出项目中已启用的 Runbook。
 3. 点击 Runbook 旁边的 **运行** 。这次运行会出现在该事件的列表中：点击 **查看** 打开它。
 @tab 从 Runbook 启动

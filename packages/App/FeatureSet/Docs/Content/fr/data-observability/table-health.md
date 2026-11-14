@@ -41,7 +41,7 @@ Dans **Bases de données**, choisissez **Alertes recommandées** pour une base d
 
 Choisissez les gravités, les politiques d'astreinte, les propriétaires et les étiquettes au moment de les créer. Ce sont ensuite des moniteurs ordinaires : modifiez-les, mettez-les en sourdine ou placez-les sur une page de statut comme n'importe quel autre.
 
-Un rattrapage ou une migration ne devrait réveiller personne. Nommez la base de données sous **Bases de données Data Observability** dans un [événement de maintenance planifiée](/docs/scheduled-maintenance/index), ou placez-y son serveur de base de données, et ses alertes de données restent silencieuses tant que l'événement est en cours.
+Un rattrapage ou une migration ne devrait réveiller personne. Nommez la base de données sous **Bases de données Data Observability** dans un [événement de maintenance](/docs/scheduled-maintenance/index), ou placez-y son serveur de base de données, et ses alertes de données restent silencieuses tant que l'événement est en cours.
 
 ## Métriques écrites par chaque table
 

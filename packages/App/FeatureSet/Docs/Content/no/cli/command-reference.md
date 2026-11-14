@@ -221,7 +221,7 @@ oneuptime <resource> resolve <id>
 
 ### `oneuptime <resource> start`
 
-Flytter en planlagt vedlikeholdshendelse til prosjektets pågående tilstand.
+Flytter en vedlikeholdshendelse til prosjektets pågående tilstand.
 
 ```bash
 oneuptime <resource> start <id>
@@ -233,7 +233,7 @@ oneuptime <resource> start <id>
 
 ### `oneuptime <resource> end`
 
-Flytter en planlagt vedlikeholdshendelse til prosjektets avsluttet-tilstand.
+Flytter en vedlikeholdshendelse til prosjektets avsluttet-tilstand.
 
 ```bash
 oneuptime <resource> end <id>
@@ -245,7 +245,7 @@ oneuptime <resource> end <id>
 
 ### `oneuptime <resource> add-note`
 
-Legger til et notat på en hendelse, et varsel, en episode av en av dem eller en planlagt vedlikeholdshendelse.
+Legger til et notat på en hendelse, et varsel, en episode av en av dem eller en vedlikeholdshendelse.
 
 ```bash
 oneuptime <resource> add-note <id> --note <markdown> [--public]

@@ -384,7 +384,7 @@ Ook wel: **Taken**. Zie [Code](/docs/ai/ai-agent).
 
 ### Formulier
 
-Een pagina die iedereen met de link kan invullen, zonder account. Elke inzending maakt een incident aan, voor een probleemmelding, of een geplande onderhoudsgebeurtenis, voor een wijzigingsverzoek.
+Een pagina die iedereen met de link kan invullen, zonder account. Elke inzending maakt een incident aan, voor een probleemmelding, of een onderhoudsgebeurtenis, voor een wijzigingsverzoek.
 
 Zie [Formulieren – overzicht](/docs/forms/index).
 

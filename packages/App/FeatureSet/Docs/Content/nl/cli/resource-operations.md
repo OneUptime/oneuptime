@@ -174,7 +174,7 @@ oneuptime incident-state list --query '{"isResolvedState":true}' --sort '{"order
 
 ## Bevestigen, oplossen en notities toevoegen
 
-Incidenten, waarschuwingen, hun episoden en geplande onderhoudsgebeurtenissen hebben opdrachten voor wat de knoppen van het dashboard ermee doen:
+Incidenten, waarschuwingen, hun episoden en onderhoudsgebeurtenissen hebben opdrachten voor wat de knoppen van het dashboard ermee doen:
 
 | Opdracht | Wat hij doet | Bronnen |
 | --- | --- | --- |

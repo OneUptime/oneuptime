@@ -175,7 +175,7 @@ En hendelsesepisode har også en side **Etteranalyse**, under **Undersøkelse**:
 
 En episodes etteranalyse er bare notatet: den har ingen vedlegg, og ingen statusside viser den. OneUptime AI skriver ikke et utkast av seg selv når en episode løses. Å generere en krever rollen Project Owner eller Project Admin, eller en egendefinert rolle med tillatelsen Edit Incident Episode. Den har heller ingen status, og listen over etteranalyser utelater den.
 
-Varsler og planlagte vedlikeholdshendelser har ingen etteranalyse.
+Varsler og vedlikeholdshendelser har ingen etteranalyse.
 
 ## Via API-et
 

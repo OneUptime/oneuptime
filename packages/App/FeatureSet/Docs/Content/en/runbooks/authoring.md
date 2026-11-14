@@ -198,7 +198,7 @@ Ask AI to analyze, summarize or decide something mid-run. The response becomes t
 | **Prompt** | What the AI should do. For example: "Review the output of the previous steps and say whether it is safe to proceed with remediation." |
 | **LLM provider** | Optional. **Project default** uses the project's default provider. Pin a provider when the step needs a specific model, such as a self-hosted one for data that must not leave your network. See [LLM Providers](/docs/ai/llm-provider). |
 | **Include previous step context** | If on, the AI sees everything about the steps that ran before this one: title, type, status, output and error messages. It gets up to 4,000 characters of each step's output. |
-| **Include trigger context** | If on, the AI sees what started the run: the linked incident, alert or scheduled maintenance event (its description, severity, current state, affected monitors, root cause, state timeline and public notes), or who ran the runbook by hand. |
+| **Include trigger context** | If on, the AI sees what started the run: the linked incident, alert or maintenance event (its description, severity, current state, affected monitors, root cause, state timeline and public notes), or who ran the runbook by hand. |
 
 To keep a person in the loop, turn on **Require approval** on the step after an AI step: the AI analyzes, a responder reads its answer, and the remediation step runs only once they approve it.
 
