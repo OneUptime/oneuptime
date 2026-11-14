@@ -35,6 +35,8 @@ const LabelElement: FunctionComponent<ComponentProps> = (
   const pillProps: PillProps = {
     color: resolveColor,
     text,
+    // A label's name is its owner's, drawn as written in every language.
+    isUserContent: true,
     size: props.size,
     isMinimal: props.isMinimal,
     tooltip: label.description || undefined,

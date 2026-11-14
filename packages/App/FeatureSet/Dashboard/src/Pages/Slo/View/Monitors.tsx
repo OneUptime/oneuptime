@@ -47,6 +47,8 @@ import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
 import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
+import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -604,6 +606,10 @@ const SloMonitors: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   color={item.currentMonitorStatus.color || Black}
                   shouldAnimate={true}
                   text={item.currentMonitorStatus.name || "Unknown"}
+                  isUserContent={isRecordNameAsWritten(
+                    StateListType.MonitorStatus,
+                    item.currentMonitorStatus.name,
+                  )}
                 />
               );
             },

@@ -5,6 +5,12 @@ import useTranslator from "../../Utils/UseTranslator";
 
 export interface ComponentProps {
   text: string;
+  /*
+   * The text is drawn as given, never looked up: a monitor status the
+   * project named itself, or words already in the reader's language. Left
+   * out, it is the product's words, looked up (Pill.isUserContent).
+   */
+  isUserContent?: boolean | undefined;
   color: Color;
   style?: CSSProperties;
   shouldAnimate: boolean;
@@ -27,7 +33,9 @@ const Statusbubble: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
-  const text: string = translator.translateText(props.text) || props.text;
+  const text: string = props.isUserContent
+    ? props.text
+    : translator.translateText(props.text) || props.text;
   const backgroundColor: string = props.color
     ? props.color.toString()
     : "var(--ou-text-subtle, #9ca3af)";

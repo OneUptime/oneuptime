@@ -155,6 +155,13 @@ const FetchIncidentRoleAssignments: FunctionComponent<ComponentProps> = (
                 isMinimal={true}
                 color={role.color || Black}
                 text={role.name || "Unnamed Role"}
+                /*
+                 * Looked up, as before: whether the role every project
+                 * starts with, Incident Commander, reads in the reader's
+                 * language like a default state is still to be decided
+                 * (#7774).
+                 */
+                isUserContent={false}
               />
             ) : (
               <p>

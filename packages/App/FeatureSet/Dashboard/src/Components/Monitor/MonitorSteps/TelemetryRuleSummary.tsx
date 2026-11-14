@@ -9,6 +9,11 @@ import {
 import ObjectID from "Common/Types/ObjectID";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
 import Pill from "Common/UI/Components/Pill/Pill";
+import {
+  isRecordNameAsWritten,
+  translateRecordName,
+} from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -114,7 +119,7 @@ const TelemetryRuleSummary: FunctionComponent<ComponentProps> = (
             backgroundColor: ((status.color as Color) || Black).toString(),
           }}
         ></span>
-        {translator.translateText(name) || name}
+        {translateRecordName(translator, StateListType.MonitorStatus, name)}
       </span>
     );
   };
@@ -124,11 +129,13 @@ const TelemetryRuleSummary: FunctionComponent<ComponentProps> = (
     label: string;
     title: string | undefined;
     severity: AlertSeverity | IncidentSeverity | undefined;
+    severityList: StateListType.AlertSeverity | StateListType.IncidentSeverity;
   }) => ReactElement = (data: {
     testId: string;
     label: string;
     title: string | undefined;
     severity: AlertSeverity | IncidentSeverity | undefined;
+    severityList: StateListType.AlertSeverity | StateListType.IncidentSeverity;
   }): ReactElement => {
     return (
       <div
@@ -146,6 +153,10 @@ const TelemetryRuleSummary: FunctionComponent<ComponentProps> = (
             isMinimal={true}
             color={(data.severity.color as Color) || Black}
             text={data.severity.name || ""}
+            isUserContent={isRecordNameAsWritten(
+              data.severityList,
+              data.severity.name,
+            )}
           />
         ) : (
           <></>
@@ -188,6 +199,7 @@ const TelemetryRuleSummary: FunctionComponent<ComponentProps> = (
                   props.alertSeverityOptions,
                   rule.alert.alertSeverityId,
                 ),
+                severityList: StateListType.AlertSeverity,
               })
             : null}
           {opensIncident(rule.action) && rule.incident
@@ -199,6 +211,7 @@ const TelemetryRuleSummary: FunctionComponent<ComponentProps> = (
                   props.incidentSeverityOptions,
                   rule.incident.incidentSeverityId,
                 ),
+                severityList: StateListType.IncidentSeverity,
               })
             : null}
           {rule.action === TelemetryAlertRuleAction.StatusOnly ? (

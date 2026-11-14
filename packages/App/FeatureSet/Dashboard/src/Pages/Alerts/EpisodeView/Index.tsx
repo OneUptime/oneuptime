@@ -14,6 +14,7 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import Pill from "Common/UI/Components/Pill/Pill";
+import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import BaseAPI from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -716,6 +717,10 @@ const AlertEpisodeView: FunctionComponent<
                       <Pill
                         color={item.currentAlertState.color || Black}
                         text={item.currentAlertState.name || "Unknown"}
+                        isUserContent={isRecordNameAsWritten(
+                          StateListType.AlertState,
+                          item.currentAlertState.name,
+                        )}
                       />
                     );
                   },
@@ -738,6 +743,10 @@ const AlertEpisodeView: FunctionComponent<
                       <Pill
                         color={item.alertSeverity.color || Black}
                         text={item.alertSeverity.name || "Unknown"}
+                        isUserContent={isRecordNameAsWritten(
+                          StateListType.AlertSeverity,
+                          item.alertSeverity.name,
+                        )}
                       />
                     );
                   },

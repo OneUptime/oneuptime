@@ -70,6 +70,7 @@ import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import Typeof from "../../../Types/Typeof";
+import { isRecordNameAsWritten } from "../../../Utils/DefaultRecordNames";
 import { compareNaturally } from "../../../Utils/NaturalOrder";
 import React, { MutableRefObject, ReactElement, useRef, useState } from "react";
 import {
@@ -1215,13 +1216,21 @@ const ModelForm: <TBaseModel extends BaseModel>(
                           (label.getColumnValue("color") as Color) || Black
                         }
                         text={(label.getColumnValue("name") as string) || ""}
+                        // A label's name is its owner's, drawn as written.
+                        isUserContent={true}
                       />
                     </span>
                   ),
                 });
               }
 
-              // now populate options.
+              /*
+               * now populate options: each a record, named by whoever made
+               * it, so drawn as written - a monitor named "Network" is
+               * "Network" on a Spanish page, never "Red" - unless it is one
+               * of OneUptime's default names, looked up as the record's
+               * dropdown option is (DropdownUtil, Utils/DefaultRecordNames).
+               */
               const options: Array<CategoryCheckboxOption> = [];
 
               for (const item of listResult.data) {
@@ -1230,27 +1239,31 @@ const ModelForm: <TBaseModel extends BaseModel>(
                   ((item as any)[
                     accessControlColumn
                   ] as Array<AccessControlModel>) || [];
+                const value: string = item.getColumnValue(
+                  field.dropdownModal.valueField,
+                ) as string;
+                const name: string = item.getColumnValue(
+                  field.dropdownModal.labelField,
+                ) as string;
+                const isUserContent: boolean = isRecordNameAsWritten(
+                  item.tableName,
+                  name,
+                );
 
                 if (labels.length > 0) {
                   for (const label of labels) {
                     options.push({
-                      value: item.getColumnValue(
-                        field.dropdownModal.valueField,
-                      ) as string,
-                      label: item.getColumnValue(
-                        field.dropdownModal.labelField,
-                      ) as string,
+                      value: value,
+                      label: name,
+                      isUserContent: isUserContent,
                       categoryId: label._id?.toString() || "",
                     });
                   }
                 } else {
                   options.push({
-                    value: item.getColumnValue(
-                      field.dropdownModal.valueField,
-                    ) as string,
-                    label: item.getColumnValue(
-                      field.dropdownModal.labelField,
-                    ) as string,
+                    value: value,
+                    label: name,
+                    isUserContent: isUserContent,
                     categoryId: "",
                   });
                 }

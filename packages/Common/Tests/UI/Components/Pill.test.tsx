@@ -18,6 +18,8 @@ import { Black, Gray500, Green, Red } from "../../../Types/BrandColors";
 import IconProp from "../../../Types/Icon/IconProp";
 import * as React from "react";
 import { describe, expect, test } from "@jest/globals";
+import { createInstance, i18n } from "i18next";
+import { I18nextProvider } from "react-i18next";
 
 /*
  * The pill is a soft badge: a dot in the caller's colour, a pale wash of it,
@@ -651,5 +653,72 @@ describe("<Pill />", () => {
       expect(getWords()).toHaveClass("truncate");
       expect(getPill()).toHaveAttribute("data-table-shrinks", "true");
     });
+  });
+});
+
+/*
+ * A NAME IS DRAWN AS WRITTEN (#7780). A pill looks its text up in the
+ * reader's language - the product's words, "Active" - and drew a name the
+ * same way: a label named "Network" read "Red" on a Spanish page. A pill
+ * told its text is a name (isUserContent) draws it as given.
+ */
+describe("<Pill /> on a Spanish page", () => {
+  const spanish: i18n = createInstance();
+
+  spanish.init({
+    lng: "es",
+    resources: {
+      es: {
+        translation: {
+          Network: "Red",
+          Active: "Activo",
+          Arabic: "árabe",
+        },
+      },
+    },
+    interpolation: { escapeValue: false },
+    keySeparator: false,
+    nsSeparator: false,
+    initImmediate: false,
+  });
+
+  function renderInSpanish(element: React.ReactElement): void {
+    render(<I18nextProvider i18n={spanish}>{element}</I18nextProvider>);
+  }
+
+  test("looks the product's words up, as it always has", () => {
+    renderInSpanish(<Pill text="Active" color={Green} />);
+
+    expect(getPill().textContent).toBe("Activo");
+  });
+
+  test("draws a name as written", () => {
+    renderInSpanish(<Pill text="Network" color={Green} isUserContent={true} />);
+
+    expect(getPill().textContent).toBe("Network");
+  });
+
+  test("and looked a name up when nothing said it was one", () => {
+    renderInSpanish(<Pill text="Network" color={Green} />);
+
+    expect(getPill().textContent).toBe("Red");
+  });
+
+  test("a name cut short shows itself whole under the pointer, as written", () => {
+    renderInSpanish(<Pill text="Network" color={Green} isUserContent={true} />);
+
+    const words: HTMLElement = within(getPill()).getByTestId("pill-text");
+
+    Object.defineProperty(words, "scrollWidth", {
+      configurable: true,
+      value: 200,
+    });
+    Object.defineProperty(words, "clientWidth", {
+      configurable: true,
+      value: 50,
+    });
+    fireEvent.mouseEnter(words);
+
+    expect(words).toHaveAttribute("title", "Network");
   });
 });

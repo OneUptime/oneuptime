@@ -41,6 +41,8 @@ import Button, {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
+import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -655,6 +657,10 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
             {device.currentMonitorStatus?.name ? (
               <Pill
                 text={device.currentMonitorStatus.name}
+                isUserContent={isRecordNameAsWritten(
+                  StateListType.MonitorStatus,
+                  device.currentMonitorStatus.name,
+                )}
                 color={device.currentMonitorStatus.color || Gray500}
                 size={PillSize.Normal}
               />

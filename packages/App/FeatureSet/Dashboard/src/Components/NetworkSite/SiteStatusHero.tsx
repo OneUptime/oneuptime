@@ -21,6 +21,8 @@ import NetworkEndpoint from "Common/Models/DatabaseModels/NetworkEndpoint";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import NetworkSiteStatusTimeline from "Common/Models/DatabaseModels/NetworkSiteStatusTimeline";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
+import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -337,6 +339,10 @@ const SiteStatusHero: FunctionComponent<ComponentProps> = (
             {data.site?.currentMonitorStatus?.name ? (
               <Pill
                 text={data.site.currentMonitorStatus.name}
+                isUserContent={isRecordNameAsWritten(
+                  StateListType.MonitorStatus,
+                  data.site.currentMonitorStatus.name,
+                )}
                 color={data.site.currentMonitorStatus.color || Gray500}
                 size={PillSize.Normal}
               />

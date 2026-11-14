@@ -1247,8 +1247,9 @@ describe("Session Replay: the session list's filters", () => {
     expect(table).toMatch(
       /const isUserContent: boolean =\s+badge\.isRowTextUserContent\?\.\(row\) \?\? false;/,
     );
-    expect(source("moreMenuItem")).toContain(
-      "{translateString(props.text) ?? props.text}",
+    // An item no one marked as a name (isUserContent) is looked up.
+    expect(source("moreMenuItem")).toMatch(
+      /\{props\.isUserContent\s*\?\s*props\.text\s*:\s*translateString\(props\.text\) \?\? props\.text\}/,
     );
   });
 

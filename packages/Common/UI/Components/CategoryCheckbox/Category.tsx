@@ -68,6 +68,7 @@ const Category: FunctionComponent<CategoryProps> = (
         <div>
           <CheckboxElement
             title={props.category.title}
+            isTitleUserContent={props.category.isUserContent}
             dataTestId={props.dataTestId}
             value={categoryCheckboxState === CategoryCheckboxValueState.Checked}
             isIndeterminate={

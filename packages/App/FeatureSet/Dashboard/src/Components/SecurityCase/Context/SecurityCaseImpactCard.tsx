@@ -97,6 +97,8 @@ import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoade
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
+import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import TableEmptyState, {
   TableEmptyStateKind,
 } from "Common/UI/Components/Table/TableEmptyState";
@@ -377,6 +379,10 @@ const ImpactRecord: FunctionComponent<{
                           {monitor.stateName ? (
                             <Pill
                               text={monitor.stateName}
+                              isUserContent={isRecordNameAsWritten(
+                                StateListType.MonitorStatus,
+                                monitor.stateName,
+                              )}
                               color={
                                 monitor.stateColor
                                   ? new Color(monitor.stateColor)

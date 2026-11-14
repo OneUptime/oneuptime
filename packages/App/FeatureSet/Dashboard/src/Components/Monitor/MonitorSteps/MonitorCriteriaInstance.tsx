@@ -9,6 +9,8 @@ import MonitorType from "Common/Types/Monitor/MonitorType";
 import HorizontalRule from "Common/UI/Components/HorizontalRule/HorizontalRule";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
+import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
@@ -56,6 +58,14 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
     MonitorCriteriaInstance.isOpenForEveryEmail({
       monitorType: props.monitorType,
       criteriaInstance: props.monitorCriteriaInstance,
+    });
+  // The status the criteria changes the monitor to.
+  const monitorStatus: MonitorStatus | undefined =
+    props.monitorStatusOptions.find((option: MonitorStatus) => {
+      return (
+        option.id?.toString() ===
+        props.monitorCriteriaInstance.data?.monitorStatusId?.toString()
+      );
     });
 
   return (
@@ -135,27 +145,13 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
               />
               <div className="mt-3">
                 <Statusbubble
-                  color={
-                    (props.monitorStatusOptions.find(
-                      (option: IncidentSeverity) => {
-                        return (
-                          option.id?.toString() ===
-                          props.monitorCriteriaInstance.data?.monitorStatusId?.toString()
-                        );
-                      },
-                    )?.color as Color) || Black
-                  }
+                  color={(monitorStatus?.color as Color) || Black}
                   shouldAnimate={false}
-                  text={
-                    (props.monitorStatusOptions.find(
-                      (option: IncidentSeverity) => {
-                        return (
-                          option.id?.toString() ===
-                          props.monitorCriteriaInstance.data?.monitorStatusId?.toString()
-                        );
-                      },
-                    )?.name as string) || ""
-                  }
+                  text={(monitorStatus?.name as string) || ""}
+                  isUserContent={isRecordNameAsWritten(
+                    StateListType.MonitorStatus,
+                    monitorStatus?.name,
+                  )}
                 />
               </div>
             </div>
