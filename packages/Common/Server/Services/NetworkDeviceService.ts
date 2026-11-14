@@ -71,6 +71,7 @@ import { SubscriptionStatusUtil } from "../../Types/Billing/SubscriptionStatus";
 import {
   SET_ASIDE_FOR_MINUTES,
   SET_ASIDE_PER_CLAIM,
+  SET_ASIDE_ROUNDS_PER_CLAIM,
   SET_ASIDE_SPREAD_IN_MINUTES,
 } from "../Utils/Probe/ClaimSetAside";
 import {
@@ -3373,10 +3374,17 @@ export class Service extends ProjectReferencesService<Model> {
      * tries again.
      */
     try {
-      await this.setAsideUnpollable({
-        probeId: data.probeId,
-        currentDate: currentDate,
-      });
+      // Another round while a round moved a full batch (Utils/Probe/ClaimSetAside).
+      for (let round: number = 0; round < SET_ASIDE_ROUNDS_PER_CLAIM; round++) {
+        const setAside: number = await this.setAsideUnpollable({
+          probeId: data.probeId,
+          currentDate: currentDate,
+        });
+
+        if (setAside < SET_ASIDE_PER_CLAIM) {
+          break;
+        }
+      }
     } catch (err) {
       logger.error(
         `claimDevicesForPolling: could not set aside the due network devices of probe ${data.probeId.toString()} that nothing may poll now; the next claim tries again.`,

@@ -36,8 +36,17 @@ export const SET_ASIDE_FOR_MINUTES: number = 15;
 export const SET_ASIDE_SPREAD_IN_MINUTES: number = 5;
 
 /*
- * The most rows one claim sets aside. Bounds the statement; a backlog of
- * them - everything that stopped being claimable before set-aside existed,
- * on a probe's first claims after an upgrade - drains over a few claims.
+ * The most rows one set-aside statement moves, and how many such statements
+ * one claim runs while each moves a full batch - so a claim sets aside at
+ * most SET_ASIDE_PER_CLAIM x SET_ASIDE_ROUNDS_PER_CLAIM rows.
+ *
+ * Bounds each statement, and the work a claim does before it answers. A
+ * backlog - everything that stopped being claimable before set-aside
+ * existed, on a probe's first claims after an upgrade - drains over a few
+ * claims. And it keeps the head clean in steady state: rows set aside come
+ * due again every SET_ASIDE_FOR_MINUTES plus the spread, and a probe whose
+ * workers claim three times a minute can set aside 6,000 a minute, enough
+ * for every probe short of one with ~100,000 rows nothing may claim.
  */
 export const SET_ASIDE_PER_CLAIM: number = 500;
+export const SET_ASIDE_ROUNDS_PER_CLAIM: number = 4;

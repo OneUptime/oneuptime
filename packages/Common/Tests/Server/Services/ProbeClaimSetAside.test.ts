@@ -10,6 +10,7 @@ import { Service as NetworkDeviceServiceType } from "../../../Server/Services/Ne
 import {
   SET_ASIDE_FOR_MINUTES,
   SET_ASIDE_PER_CLAIM,
+  SET_ASIDE_ROUNDS_PER_CLAIM,
   SET_ASIDE_SPREAD_IN_MINUTES,
 } from "../../../Server/Utils/Probe/ClaimSetAside";
 import logger from "../../../Server/Utils/Logger";
@@ -438,6 +439,50 @@ describe("the monitor claim reads only what it hands out", () => {
         return String(call[0]).includes("could not set aside");
       }),
     ).toBe(true);
+  });
+
+  test("runs another set-aside round while a round moves a full batch, up to the cap", async () => {
+    const { statements } = await claim([], (statement: CapturedStatement) => {
+      return normalizeSql(statement.sql).includes('"unprobeable" AS (')
+        ? [{ setAside: SET_ASIDE_PER_CLAIM, madeDue: 0 }]
+        : undefined;
+    });
+
+    // The read, then every round the cap allows: no claim statement.
+    expect(statements).toHaveLength(1 + SET_ASIDE_ROUNDS_PER_CLAIM);
+    expect(SET_ASIDE_ROUNDS_PER_CLAIM).toBeGreaterThan(1);
+  });
+
+  test("stops at the first round that moves less than a full batch", async () => {
+    let round: number = 0;
+
+    const { statements } = await claim([], (statement: CapturedStatement) => {
+      if (!normalizeSql(statement.sql).includes('"unprobeable" AS (')) {
+        return undefined;
+      }
+
+      round++;
+
+      return [{ setAside: round === 1 ? SET_ASIDE_PER_CLAIM : 3, madeDue: 0 }];
+    });
+
+    expect(statements).toHaveLength(3);
+  });
+
+  test("a full batch of legacy rows made due is a reason for another round too", async () => {
+    let round: number = 0;
+
+    const { statements } = await claim([], (statement: CapturedStatement) => {
+      if (!normalizeSql(statement.sql).includes('"unprobeable" AS (')) {
+        return undefined;
+      }
+
+      round++;
+
+      return [{ setAside: 0, madeDue: round === 1 ? SET_ASIDE_PER_CLAIM : 0 }];
+    });
+
+    expect(statements).toHaveLength(3);
   });
 
   test("answers how many rows it set aside and made due", async () => {
@@ -938,6 +983,27 @@ describe("the network device claim sets aside what nothing may poll", () => {
         },
       ),
     ).toBe(true);
+  });
+
+  test("runs another set-aside round while a round moves a full batch, up to the cap", async () => {
+    const { statements } = await claim([], (statement: CapturedStatement) => {
+      return normalizeSql(statement.sql).includes('"unpollable" AS (')
+        ? [{ setAside: SET_ASIDE_PER_CLAIM }]
+        : undefined;
+    });
+
+    // The claim, then every round the cap allows.
+    expect(statements).toHaveLength(1 + SET_ASIDE_ROUNDS_PER_CLAIM);
+  });
+
+  test("stops at the first round that moves less than a full batch", async () => {
+    const { statements } = await claim([], (statement: CapturedStatement) => {
+      return normalizeSql(statement.sql).includes('"unpollable" AS (')
+        ? [{ setAside: 7 }]
+        : undefined;
+    });
+
+    expect(statements).toHaveLength(2);
   });
 
   test("answers how many devices it set aside", async () => {

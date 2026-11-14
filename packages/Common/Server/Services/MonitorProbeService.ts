@@ -26,6 +26,7 @@ import MonitoringIntervalValidator from "../Utils/Monitor/MonitoringIntervalVali
 import {
   SET_ASIDE_FOR_MINUTES,
   SET_ASIDE_PER_CLAIM,
+  SET_ASIDE_ROUNDS_PER_CLAIM,
   SET_ASIDE_SPREAD_IN_MINUTES,
 } from "../Utils/Probe/ClaimSetAside";
 
@@ -511,7 +512,21 @@ export class Service extends ProjectReferencesService<MonitorProbe> {
     dueBefore: Date;
   }): Promise<void> {
     try {
-      await this.setAsideUnprobeable(data);
+      /*
+       * Another round while a round moved a full batch: there may be more
+       * behind it. At most SET_ASIDE_ROUNDS_PER_CLAIM (Utils/Probe/ClaimSetAside).
+       */
+      for (let round: number = 0; round < SET_ASIDE_ROUNDS_PER_CLAIM; round++) {
+        const moved: { setAside: number; madeDue: number } =
+          await this.setAsideUnprobeable(data);
+
+        if (
+          moved.setAside < SET_ASIDE_PER_CLAIM &&
+          moved.madeDue < SET_ASIDE_PER_CLAIM
+        ) {
+          break;
+        }
+      }
     } catch (err) {
       logger.error(
         `claimMonitorProbesForProbing: could not set aside the due monitor probes of probe ${data.probeId.toString()} that nothing may probe now; the next claim tries again.`,
