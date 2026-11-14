@@ -30,11 +30,11 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * moves its row to a page that keeps the room free, so the tables settle
  * into it as they are updated.
  */
-export class SetMonitorProbeAndNetworkDeviceFillfactor1809150600000
+export class SetMonitorProbeAndNetworkDeviceFillfactor1809151200000
   implements MigrationInterface
 {
   public name: string =
-    "SetMonitorProbeAndNetworkDeviceFillfactor1809150600000";
+    "SetMonitorProbeAndNetworkDeviceFillfactor1809151200000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`ALTER TABLE "MonitorProbe" SET (fillfactor = 90)`);

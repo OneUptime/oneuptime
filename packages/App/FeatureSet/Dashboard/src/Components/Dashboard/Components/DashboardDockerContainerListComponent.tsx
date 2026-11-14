@@ -92,7 +92,7 @@ function getContainerStateInfo(state: string | undefined): {
   );
 }
 
-function formatBytes(bytes: number | null | undefined): string {
+export function formatBytes(bytes: number | null | undefined): string {
   if (bytes === null || bytes === undefined) {
     return "—";
   }
@@ -103,7 +103,9 @@ function formatBytes(bytes: number | null | undefined): string {
     value /= 1024;
     unitIdx++;
   }
-  const precision: number = value >= 100 ? 0 : value >= 10 ? 1 : 2;
+  // Plain bytes are whole: "512 B", never "512.00 B" (issue #7417).
+  const precision: number =
+    unitIdx === 0 || value >= 100 ? 0 : value >= 10 ? 1 : 2;
   return `${value.toFixed(precision)} ${units[unitIdx]}`;
 }
 

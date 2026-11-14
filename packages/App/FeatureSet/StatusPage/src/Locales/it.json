@@ -86,8 +86,8 @@
     "incidentsOnThisDay": "{{total}} incidenti segnalati in questo giorno",
     "scheduledMaintenance": "Manutenzione pianificata",
     "dayLabelWithMaintenance": "{{label}}, {{maintenance}}",
-    "oneMaintenanceEvent": "1 manutenzione pianificata",
-    "maintenanceEvents": "{{total}} manutenzioni pianificate",
+    "oneMaintenanceEvent": "1 evento di manutenzione",
+    "maintenanceEvents": "{{total}} eventi di manutenzione",
     "moreMaintenance": "+{{total}} altre"
   },
   "liveStatus": {
@@ -448,6 +448,17 @@
   "Loading": "Caricamento",
   "{{field}} is not valid JSON. {{parserMessage}}": "{{field}} non è un JSON valido. {{parserMessage}}",
   "{{field}} is not valid YAML. {{parserMessage}}": "{{field}} non è un YAML valido. {{parserMessage}}",
+  "Click to reveal": "Fai clic per mostrare",
+  "Click to copy": "Fai clic per copiare",
+  "Main navigation": "Navigazione principale",
+  "Navigate to": "Vai a",
+  "Navigation": "Navigazione",
+  "Breadcrumb": "Percorso di navigazione",
+  "Skip to main content": "Vai al contenuto principale",
+  "Copy": "Copia",
+  "Copied!": "Copiato!",
+  "Copy failed": "Copia non riuscita",
+  "Hide": "Nascondi",
   "markdownCallouts": {
     "caution": "Attenzione",
     "danger": "Pericolo",

@@ -2,7 +2,7 @@ import NetworkDevice from "../../../../Models/DatabaseModels/NetworkDevice";
 import OnlineDdl, {
   OnlineIndex,
 } from "../../../../Server/Infrastructure/Postgres/OnlineDdl";
-import { DropNetworkDeviceLastSeenAtAndProjectIdIndexes1809150500000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809150500000-DropNetworkDeviceLastSeenAtAndProjectIdIndexes";
+import { DropNetworkDeviceLastSeenAtAndProjectIdIndexes1809151100000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809151100000-DropNetworkDeviceLastSeenAtAndProjectIdIndexes";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import {
   DefaultNamingStrategy,
@@ -77,7 +77,7 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe("DropNetworkDeviceLastSeenAtAndProjectIdIndexes1809150500000", () => {
+describe("DropNetworkDeviceLastSeenAtAndProjectIdIndexes1809151100000", () => {
   test("the indexes are named as TypeORM names them", () => {
     expect(STATUS_INDEX).toBe("IDX_2eb97a5af768174a679a32b011");
     expect(STATUS_WITH_LAST_SEEN_INDEX).toBe("IDX_87566f1ca6cc63ee3afd3aeaff");
@@ -85,8 +85,8 @@ describe("DropNetworkDeviceLastSeenAtAndProjectIdIndexes1809150500000", () => {
   });
 
   test("builds the new Status index before dropping the old one, all online, outside a transaction", async () => {
-    const migration: DropNetworkDeviceLastSeenAtAndProjectIdIndexes1809150500000 =
-      new DropNetworkDeviceLastSeenAtAndProjectIdIndexes1809150500000();
+    const migration: DropNetworkDeviceLastSeenAtAndProjectIdIndexes1809151100000 =
+      new DropNetworkDeviceLastSeenAtAndProjectIdIndexes1809151100000();
 
     expect(migration.transaction).toBe(false);
     expect(
@@ -125,7 +125,7 @@ describe("DropNetworkDeviceLastSeenAtAndProjectIdIndexes1809150500000", () => {
     expect(
       await statementsOf(
         (runner: QueryRunner) => {
-          return new DropNetworkDeviceLastSeenAtAndProjectIdIndexes1809150500000().down(
+          return new DropNetworkDeviceLastSeenAtAndProjectIdIndexes1809151100000().down(
             runner,
           );
         },
@@ -148,20 +148,20 @@ describe("DropNetworkDeviceLastSeenAtAndProjectIdIndexes1809150500000", () => {
       registered.filter((candidate: unknown): boolean => {
         return (
           candidate ===
-          DropNetworkDeviceLastSeenAtAndProjectIdIndexes1809150500000
+          DropNetworkDeviceLastSeenAtAndProjectIdIndexes1809151100000
         );
       }),
     ).toHaveLength(1);
     expect(
       names.indexOf(
-        "DropNetworkDeviceLastSeenAtAndProjectIdIndexes1809150500000",
+        "DropNetworkDeviceLastSeenAtAndProjectIdIndexes1809151100000",
       ),
     ).toBeGreaterThan(
-      names.indexOf("DropRedundantMonitorProbeIndexes1809150400000"),
+      names.indexOf("DropRedundantMonitorProbeIndexes1809151000000"),
     );
     expect(
-      new DropNetworkDeviceLastSeenAtAndProjectIdIndexes1809150500000().name,
-    ).toBe("DropNetworkDeviceLastSeenAtAndProjectIdIndexes1809150500000");
+      new DropNetworkDeviceLastSeenAtAndProjectIdIndexes1809151100000().name,
+    ).toBe("DropNetworkDeviceLastSeenAtAndProjectIdIndexes1809151100000");
   });
 });
 

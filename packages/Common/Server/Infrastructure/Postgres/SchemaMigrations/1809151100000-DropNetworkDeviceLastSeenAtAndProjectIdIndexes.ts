@@ -21,11 +21,11 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * time. The new index is built before the old one goes, so the Status
  * reads always have one. Safe to run again after a stop part way.
  */
-export class DropNetworkDeviceLastSeenAtAndProjectIdIndexes1809150500000
+export class DropNetworkDeviceLastSeenAtAndProjectIdIndexes1809151100000
   implements MigrationInterface
 {
   public name: string =
-    "DropNetworkDeviceLastSeenAtAndProjectIdIndexes1809150500000";
+    "DropNetworkDeviceLastSeenAtAndProjectIdIndexes1809151100000";
 
   // CREATE / DROP INDEX CONCURRENTLY run outside a transaction.
   public transaction: boolean = false;

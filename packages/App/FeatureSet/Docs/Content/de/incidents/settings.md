@@ -537,7 +537,7 @@ Rollen sind nur Definitionen. Personen weisen Sie ihnen pro Vorfall zu – der M
 
 ### Eine Rolle archivieren
 
-Archivieren Sie eine Rolle, die Ihr Team nicht mehr verwendet, über das Menü **⋯** ihrer Zeile, statt sie zu löschen. Wer sie bei einem Vorfall innehat, behält sie, aber niemand kann sie erneut erhalten: Die Rollenauswahlen lassen sie weg oder zeigen sie nur mit den Personen, die sie innehaben, und die API lehnt sie ab. Die primäre Rolle und jede Rolle, die sich nicht löschen lässt, lassen sich nicht archivieren. Archivierte Rollen werden getrennt aufgeführt, im eingeklappten Abschnitt **Archivierte Vorfallsrollen**, wo **Aus Archiv entfernen** eine wiederherstellt.
+Archivieren Sie eine Rolle, die Ihr Team nicht mehr verwendet, über das Menü **⋯** ihrer Zeile, statt sie zu löschen. Wer sie bei einem Vorfall innehat, behält sie, aber niemand kann sie erneut erhalten: Die Rollenauswahlen lassen sie weg oder zeigen sie nur mit den Personen, die sie innehaben, und die API lehnt sie ab. Die primäre Rolle und jede Rolle, die sich nicht löschen lässt, lassen sich nicht archivieren. Archivierte Rollen werden getrennt aufgeführt, im eingeklappten Abschnitt **Archivierte Vorfallsrollen**, wo **Aus dem Archiv holen** eine wiederherstellt.
 
 ## Nummernpräfixe
 

@@ -1,6 +1,6 @@
 # Hurtigstart
 
-Denne guiden tar deg fra en ny konto til et oppsett som virker, på omtrent femten minutter: en monitor som sjekker nettstedet ditt hvert femte minutt, en vaktpolicy som varsler deg når nettstedet går ned, og en statusside som informerer kundene dine. Den følger sjekklisten **Velkommen til OneUptime 👋** på prosjektets startside.
+Denne guiden tar deg fra en ny konto til et oppsett som virker, på omtrent femten minutter: en monitor som sjekker nettstedet ditt hvert femte minutt, en vaktpolicy som varsler deg når nettstedet går ned, og en statusside som informerer kundene dine. Den følger sjekklisten **Velkommen til OneUptime 👋** på prosjektets startside, og de veiledede oppsettene som stegene i den åpner.
 
 Kommer du fra et annet verktøy? [Importer oppsettet ditt](/docs/introduction/getting-started#hvis-du-kommer-fra-et-annet-verktøy) først: monitorene, vaktplanene og statussidene dine blir med.
 
@@ -42,69 +42,87 @@ Klikk på **Opprett prosjekt**. Prosjektets startside åpnes, med sjekklisten **
 ## Overvåk nettstedet ditt
 
 :::steps
-### Åpne opprettelse av monitor
+### Åpne oppsettet for nettstedet
 
-Klikk på **Opprett din første overvåker** i sjekklisten. Du kan også åpne **Monitorer** fra menyen **Produkter** og klikke på **Opprett monitor**.
-
-### Velg Nettsted
-
-Under **Monitortype** velger du **Nettsted**. Skriv inn et **Navn**, for eksempel `Website`, og klikk på **Neste**.
+Klikk på **Opprett din første overvåker** i sjekklisten. Det åpner det veiledede oppsettet **Vite når nettstedet eller API-et mitt er nede**, som sjekker nettstedet ditt, velger hvem som får beskjed og sender en test, på én side. Den som ikke har lov til å opprette monitorer, får i stedet listen **Monitorer**.
 
 ### Skriv inn adressen
 
-Skriv inn hele adressen til nettstedet ditt i **Nettsted-URL**, for eksempel `https://example.com`. OneUptime legger til kriteriene for deg: monitoren blir **Frakoblet** og erklærer en hendelse når nettstedet ikke svarer, eller svarer med en feil. Klikk på **Neste**.
+![Steget «Hva skal vi sjekke?», med «Start sjekkingen» uthevet](screen:website-down-address)
 
-### Opprett monitoren
+Under **Hva skal vi sjekke?** skriver du hele adressen til nettstedet ditt i **Adresse til nettsted eller API**, for eksempel `https://example.com`, og klikker på **Start sjekkingen**. Sondene sjekker det med en gang, og deretter hvert 5. minutt: Når nettstedet ikke svarer, eller svarer med en feil, går monitoren til **Frakoblet** og erklærer en hendelse. Klikk på **Fortsett**.
 
-Behold de valgte **Sonder** og **Overvåkingsintervall** **Hvert 5. minutt**, og klikk på **Opprett monitor**. Monitorens side åpnes, og sondene begynner å sjekke nettstedet ditt.
+På Free-planen i OneUptime Cloud faktureres monitorer etter bruk, så prosjektet trenger en betalingsmåte før det kan sjekke nettstedet ditt: uten en ber steget deg om å [legge til en betalingsmåte](/docs/configuration/billing#betalingsmetoder).
+
+### Velg hvem som får beskjed
+
+Under **Hvem skal få beskjed?** står du allerede i **Hvem som tilkalles**. Klikk på **Lagre og fortsett**: Det oppretter `Default on-call policy`, som tilkaller deg ved hver nye hendelse og hvert nye varsel i prosjektet, til å begynne med på e-post. For også å tilkalle teammedlemmer som allerede er i prosjektet, klikker du først på **Legg til teammedlemmer**.
+
+### Send deg selv en test
+
+Under **Send en test** klikker du på **Send meg et testoppkall**, velger en **Alvorlighetsgrad** og klikker på **Send testoppkall**. Åpne lenken i e-posten, der det står TEST, og bekreft oppkallet der. Klikk deretter på **Ferdig** i dialogen, og på **Fortsett**: Oppsettet slutter med en oppsummering av hva det har satt opp.
 :::
 
-For å prøve sjekken før du lagrer, klikker du på **Test monitor** i det andre steget. Alle andre monitortyper er beskrevet i [Opprett en monitor](/docs/monitor/create-monitor).
+For å stille inn hvert valg selv, eller for å sjekke noe annet enn et nettsted, åpner du **Monitorer** fra menyen **Produkter** og klikker på **Opprett monitor**. [Opprett en monitor](/docs/monitor/create-monitor) beskriver skjemaet og alle monitortyper.
 
-For også å sjekke et API, velge hvem som får beskjed, og sende et testoppkall som beviser at meldingen når frem til deg, følger du [Få beskjed når nettstedet eller API-et ditt går ned](/docs/guides/website-down).
+For også å sjekke et API, og se hva du gjør når den første sjekken aldri kommer tilbake, følger du [Få beskjed når nettstedet eller API-et ditt går ned](/docs/guides/website-down).
 
 ## Bli varslet når det går ned
 
-Slik det er nå, sendes en hendelse uten eiere på e-post til prosjektets eiere, og det inkluderer deg. For å bli varslet til noen svarer, oppretter du en vaktpolicy: den første i et prosjekt utløses ved hver nye hendelse og hvert nye varsel.
+Oppsettet for nettstedet har allerede opprettet `Default on-call policy`, som tilkaller deg på e-post ved hver nye hendelse og hvert nye varsel, så sjekklisten krysser av **Sett opp en vaktpolicy** som gjort. Det veiledede oppsettet for det legger likevel til telefonen din, personene som tilkalles sammen med deg, og hva som skjer når ingen svarer.
 
 :::steps
-### Opprett en vaktpolicy
+### Åpne vaktoppsettet
 
-Klikk på **Sett opp en vaktpolicy** i sjekklisten, eller åpne **Vakt** fra menyen **Produkter**. Klikk på **Opprett Vaktpolicy**, og skriv inn et **Navn**. Under **Hvem varsles først?** klikker du på **Legg til mottaker** og velger deg selv. La **Utløs den ved hver nye hendelse og hvert nye varsel** være slått på, og klikk på **Opprett Vaktpolicy**.
-
-### Se regelen som utløser den
-
-Bryteren la til en vaktregel for hendelser og en for varsler. For å se din åpner du **Hendelser** fra menyen **Produkter**, utvider **Regler** i sidemenyen og velger **Vaktregler**: den treffer **Alle hendelser**. Vil du bare utløse policyen for noen hendelser, for eksempel kritiske, redigerer du regelen der, eller klikker på **Opprett Incident On-Call Rule** for å legge til en egen.
+Trykk på `Ctrl+K` (`Cmd+K` på en Mac), skriv `get paged` og velg **Varsle rett person når noe går ned**. Så lenge sjekklisten ikke har krysset av **Sett opp en vaktpolicy**, åpner det steget det samme veiledede oppsettet.
 
 ### Velg hvordan du nås
 
-E-posten du logger inn med, er allerede en måte å nå deg på. For også å få SMS eller anrop åpner du **Brukerinnstillinger** i linjen under topplinjen, går til **Varselmetoder** og legger på fanen **Direkte kontakt** til nummeret ditt under **Telefonnumre for SMS-varsler** eller **Telefonnumre for anropsvarsler**. Klikk på **Verifiser**, og skriv inn koden OneUptime sender deg. Et verifisert nummer brukes til vaktvarsler med en gang.
+![Steget «Hvordan skal vi nå deg?», med «Slå på SMS og anrop» uthevet](screen:paging-reach-you)
+
+Under **Hvordan skal vi nå deg?** står e-posten du logger inn med, allerede. For push-varsler installerer du appen OneUptime On-Call fra App Store eller Google Play, logger inn og klikker på **Kontroller på nytt**. For også å få SMS og anrop klikker du på **Slå på SMS og anrop**, skriver nummeret ditt i **Telefonnummeret ditt** og klikker på **Send meg en kode på SMS**: På OneUptime Cloud betales SMS og anrop fra prosjektets saldo, så steget ber deg først fylle på. Klikk på **Fortsett**.
+
+### Velg hvem andre som tilkalles
+
+Under **Hvem andre har vakt?** beholder du `Default on-call policy` under **Vaktpolicy**. For å tilkalle teammedlemmer sammen med deg legger du dem til under **Legg til i den første eskaleringsregelen**. Klikk på **Lagre og fortsett**.
+
+### Bestem hva som skjer hvis ingen svarer
+
+Under **Hva om ingen svarer?** velger du **Tilkall de samme personene igjen** så lenge du er den eneste personen i prosjektet. Når det er kommet teammedlemmer, tilkaller **Tilkall noen andre** personen du velger under **Tilkalles deretter**. I OneUptime Cloud tilbyr bare de betalte planene det valget. Klikk på **Lagre og fortsett**.
+
+### Send et testoppkall
+
+Under **Send et testoppkall** klikker du på **Test denne policyen**, velger en **Alvorlighetsgrad** og klikker på **Send testoppkall**. Bekreft oppkallet fra e-posten, SMS-en eller anropet, og klikk deretter på **Ferdig** i dialogen, og på **Fortsett**. Oppsettet slutter på **Tilkalling er satt opp**.
 :::
 
 > [!NOTE]
 > SMS og telefonanrop er slått av i et nytt prosjekt. En prosjekteier, en Billing Admin eller noen med Manage Billing slår dem på i kortet **Varslingskanaler** under **Prosjektinnstillinger → Varsler → Varslingskanaler**.
 
-Se [Eskaleringsregler](/docs/on-call/escalation-rules) og [Vaktplaner](/docs/on-call/schedules) for flere nivåer, rotasjoner og hvor lenge hvert nivå venter.
+To vaktregler utløser policyen: én ved hver nye hendelse og én ved hvert nye varsel. For å se den første åpner du **Hendelser** fra menyen **Produkter**, folder ut **Regler** i sidemenyen og velger **Vaktregler**: Den treffer **Alle hendelser**. For å utløse policyen bare ved noen hendelser, for eksempel kritiske, redigerer du regelen der, eller klikker på **Opprett Incident On-Call Rule** for å legge til din egen.
 
-For å bli varslet med SMS, anrop og push, der den neste personen varsles når ingen svarer, og med et testoppkall som beviser det, følger du [Bli varslet via telefon, SMS eller push](/docs/guides/paging).
+For i stedet å bygge en policy felt for felt åpner du **Vakt** fra menyen **Produkter** og klikker på **Opprett Vaktpolicy**. Se [Eskaleringsregler](/docs/on-call/escalation-rules) og [Vaktplaner](/docs/on-call/schedules) for flere nivåer, rotasjoner og hvor lenge hvert nivå venter.
+
+For hvert skjermbilde i oppsettet, og hva du gjør når et oppkall ikke kommer frem, følger du [Bli varslet via telefon, SMS eller push](/docs/guides/paging).
 
 ## Publiser en statusside
 
 :::steps
-### Opprett statussiden
+### Åpne oppsettet for statussiden
 
-Klikk på **Publiser en statusside** i sjekklisten, eller åpne **Statussider** fra menyen **Produkter**. Klikk på **Opprett statusside**, skriv inn et **Navn**, for eksempel `Acme Status`, og klikk på **Opprett statusside**. Den nye siden åpnes på sin **Oversikt**.
+Klikk på **Publiser en statusside** i sjekklisten. Det åpner det veiledede oppsettet **Publiser en statusside**, som gir siden et navn, setter monitoren din på den og viser hva kundene dine ser. Den som ikke har lov til å opprette statussider, får i stedet listen **Statussider**. Oppsummeringen i oppsettet for nettstedet åpner det samme oppsettet, som **Vis den på en statusside**.
 
-### Legg til monitoren din
+### Gi den et navn og velg monitoren din
 
-Klikk på **Legg til monitorer** på **Oversikt**, eller velg **Monitorer** under **Ressurser** i sidemenyen til siden; i prosjekter med monitorgrupper slått på heter punktet **Ressurser**. Klikk på **Legg til monitor**, velg nettstedsmonitoren din, og klikk på **Legg til monitor**. Raden viser monitorens navn til besøkende; endre det under **Visningsnavn** om du vil.
+![Steget «Gi den et navn og velg hva den viser», med «Opprett statussiden» uthevet](screen:status-page-pick)
+
+Under **Gi den et navn og velg hva den viser** beholder du **Navn på statussiden** som foreslås, eller skriver ditt eget. Under **Hva den viser** krysser du av for nettstedsmonitoren din, og klikker på **Opprett statussiden**. Fra dette øyeblikket er siden offentlig på lenken sin: Alle med adressen kan åpne den.
 
 ### Åpne siden
 
-Velg **Oversikt** i sidemenyen. Kortet **Lenke til statussiden** lenker til statussiden din: åpne den, og nettstedet ditt vises som i drift.
+Under **Dette ser kundene dine** åpner du adressen under **Offentlig lenke**: Nettstedet ditt vises som i drift. Tilbake i oppsettet klikker du på **Ser bra ut**. Oppsettet slutter med en oppsummering av hva du kan gjøre videre.
 :::
 
-En ny statusside er offentlig: alle med adressen kan åpne den. Se [Statusside – merkevare og domener](/docs/status-pages/branding-and-domains) for å gi den ditt eget domene, logo og farger.
+For i stedet å lage en side for hånd åpner du **Statussider** fra menyen **Produkter** og klikker på **Opprett statusside**, og legger deretter til monitoren din med **Legg til monitorer** på sidens **Oversikt**. Se [Statusside – merkevare og domener](/docs/status-pages/branding-and-domains) for å gi siden din egen logo og dine egne farger.
 
 For å legge statussiden på ditt eget domene, over HTTPS, følger du [Publiser en statusside](/docs/guides/status-page).
 

@@ -252,6 +252,8 @@ export default class InvestigationThreadService {
     props: DatabaseCommonInteractionProps;
     content: string;
     permissionMode?: string | undefined;
+    // The asker's Dashboard language (ChatTurnRequest.language).
+    language?: string | undefined;
   }): Promise<InvestigationThreadSendResult> {
     const content: string = (data.content || "").trim();
 
@@ -386,6 +388,7 @@ export default class InvestigationThreadService {
         llmProviderId: conversation.llmProviderId,
         permissionMode,
         props: data.props,
+        language: data.language,
       },
       subject: data.subject,
     }).catch((error: unknown) => {
@@ -413,6 +416,8 @@ export default class InvestigationThreadService {
     assistantMessageId: ObjectID;
     decisions?: JSONArray | undefined;
     approved?: boolean | undefined;
+    // The decider's Dashboard language: what approved actions write in.
+    language?: string | undefined;
   }): Promise<{ aiRunId: ObjectID }> {
     const conversation: AIConversation | null =
       await InvestigationThread.findThread(data);
@@ -486,6 +491,7 @@ export default class InvestigationThreadService {
         // Only an Ask-for-approval turn ever pauses.
         permissionMode: AIChatPermissionMode.AskForApproval,
         props: data.props,
+        language: data.language,
       },
       subject: data.subject,
       decisions,

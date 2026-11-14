@@ -25,6 +25,7 @@ import MetricQueryFallbackUtil, {
 import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigData";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
+import DashboardWidgetError from "./DashboardWidgetError";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import OneUptimeDate from "Common/Types/Date";
 import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEndDateTime";
@@ -574,18 +575,7 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
   }
 
   if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center w-full h-full gap-2">
-        <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center">
-          <div className="h-5 w-5 text-gray-300">
-            <Icon icon={IconProp.ChartBar} />
-          </div>
-        </div>
-        <p className="text-xs text-gray-400 text-center max-w-48">
-          {translator.translateText(error) || error}
-        </p>
-      </div>
-    );
+    return <DashboardWidgetError icon={IconProp.ChartBar} error={error} />;
   }
 
   return (

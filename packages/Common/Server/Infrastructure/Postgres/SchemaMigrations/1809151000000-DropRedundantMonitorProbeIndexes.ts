@@ -17,10 +17,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * INDEX would queue every one of them behind it. Safe to run again after a
  * stop part way: an index already gone is left gone.
  */
-export class DropRedundantMonitorProbeIndexes1809150400000
+export class DropRedundantMonitorProbeIndexes1809151000000
   implements MigrationInterface
 {
-  public name: string = "DropRedundantMonitorProbeIndexes1809150400000";
+  public name: string = "DropRedundantMonitorProbeIndexes1809151000000";
 
   // DROP INDEX CONCURRENTLY runs outside a transaction.
   public transaction: boolean = false;

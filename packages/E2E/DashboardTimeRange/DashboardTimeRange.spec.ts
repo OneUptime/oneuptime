@@ -890,7 +890,9 @@ test.describe("the dashboard inside OneUptime", () => {
       if (picker === DEFAULT_AUTO_REFRESH_PICKER) {
         // German throughout: no English "Refresh every" left among them.
         await expect(menu).not.toContainText("Refresh every");
-        await expect(menu).toContainText("Alle 5s aktualisieren");
+        // Its interval in German too: "5 Sek.", not "5s" (#7303).
+        await expect(menu).toContainText("Alle 5 Sek. aktualisieren");
+        await expect(menu).not.toContainText("5s");
         await shoot(page, testInfo, "app-editing-row-menu-de");
       }
 
@@ -1473,6 +1475,118 @@ test.describe("the dashboard inside OneUptime at any width", () => {
 
     await shoot(page, testInfo, "app-board-600-legend");
   });
+});
+
+/*
+ * The toolbar's menus on a phone, in a long language and a right-to-left
+ * one. Once the intervals were written in the reader's language (#7303),
+ * a German or Persian board's auto-refresh button ("1 Min.", "۱ دقیقه")
+ * wrapped to the start of a line of its own, and its menu, hung from that
+ * button's end, ran off the screen with "Alle 5 Sek. aktualisieren" cut in
+ * half; the editing row's menus ran off the other edge and scrolled the
+ * page sideways. Each now moves back onto the screen, the page's 16px
+ * gutter kept at both edges.
+ */
+test.describe("the dashboard's toolbar menus on a phone", () => {
+  const GUTTER: number = 16;
+
+  const LANGUAGES: Array<{
+    lang: string;
+    range: string;
+    autoRefresh: string;
+    edit: { options: string; edit: string };
+  }> = [
+    {
+      lang: "de",
+      range: "Letzter Tag",
+      autoRefresh: "Einstellungen für automatische Aktualisierung",
+      edit: {
+        options: "Weitere Dashboard-Optionen",
+        edit: "Dashboard bearbeiten",
+      },
+    },
+    {
+      lang: "fa",
+      range: "۱ روز گذشته",
+      autoRefresh: "تنظیمات تازه‌سازی خودکار",
+      edit: PERSIAN_EDIT_WORDS,
+    },
+  ];
+
+  // The menu whole on the screen, once it has moved there.
+  const expectMenuOnScreen: (
+    page: Page,
+    menu: Locator,
+  ) => Promise<void> = async (page: Page, menu: Locator): Promise<void> => {
+    const screenWidth: number = page.viewportSize()!.width;
+
+    await expect(menu).toBeVisible();
+    await expect
+      .poll(async (): Promise<Array<boolean>> => {
+        const box: { x: number; width: number } | null =
+          await menu.boundingBox();
+
+        return [
+          Boolean(box && box.x >= GUTTER - 0.5),
+          Boolean(box && box.x + box.width <= screenWidth - GUTTER + 0.5),
+        ];
+      })
+      .toEqual([true, true]);
+    await expectNoSidewaysScroll(page);
+  };
+
+  for (const language of LANGUAGES) {
+    test(`in ${language.lang}, the auto-refresh menu and the editing row's menus stay on the screen`, async ({
+      page,
+    }: {
+      page: Page;
+    }, testInfo: TestInfo) => {
+      test.skip(!test.info().project.use.isMobile, "A phone's width.");
+
+      await openApp(page, "wall", language.range, `?lang=${language.lang}`);
+
+      // While viewing: the auto-refresh menu, every choice whole.
+      await press(page.getByTitle(language.autoRefresh));
+
+      const menu: Locator = page.getByRole("menu", {
+        name: language.autoRefresh,
+      });
+
+      await expectMenuOnScreen(page, menu);
+      await shoot(
+        page,
+        testInfo,
+        `app-auto-refresh-menu-phone-${language.lang}`,
+      );
+      await page.keyboard.press("Escape");
+      await expect(menu).toHaveCount(0);
+
+      // While editing: the Default time range and Default auto-refresh.
+      await enterEditMode(page, language.edit);
+
+      for (const picker of [
+        DEFAULT_TIME_RANGE_PICKER,
+        DEFAULT_AUTO_REFRESH_PICKER,
+      ]) {
+        await press(page.getByTestId(picker));
+
+        const pickerMenu: Locator = page.getByTestId(`${picker}-menu`);
+
+        await expectMenuOnScreen(page, pickerMenu);
+
+        if (picker === DEFAULT_AUTO_REFRESH_PICKER) {
+          await shoot(
+            page,
+            testInfo,
+            `app-editing-row-menu-phone-${language.lang}`,
+          );
+        }
+
+        await page.keyboard.press("Escape");
+        await expect(pickerMenu).toHaveCount(0);
+      }
+    });
+  }
 });
 
 test.describe("the public dashboard", () => {

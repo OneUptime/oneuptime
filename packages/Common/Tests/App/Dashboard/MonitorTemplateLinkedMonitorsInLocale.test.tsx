@@ -815,7 +815,7 @@ describe("a sync's summary, in the reader's language (#7710)", () => {
 
     expect(summaries).toEqual({
       en: "Synced criteria onto 3 monitors (5 linked to this template). 2 linked monitors still use the previous configuration — usually because your permissions do not cover them. Run the sync again as a user who can update every linked monitor.",
-      ja: "条件 を 3 個のモニターに同期しました（このテンプレートにリンクされているのは 5 個）。リンクされた 2 個のモニターは、まだ以前の設定を使っています — 通常は、あなたの権限がそれらに及ばないことが原因です。リンクされたすべてのモニターを更新できるユーザーとして、もう一度同期を実行してください。",
+      ja: "条件を 3 個のモニターに同期しました（このテンプレートにリンクされているのは 5 個）。リンクされた 2 個のモニターは、まだ以前の設定を使っています — 通常は、あなたの権限がそれらに及ばないことが原因です。リンクされたすべてのモニターを更新できるユーザーとして、もう一度同期を実行してください。",
       "zh-CN":
         "已将条件同步到 3 个监视器（共 5 个关联到此模板）。2 个已关联的监视器仍在使用之前的配置，通常是因为你的权限不覆盖它们。请以能够更新每个已关联监视器的用户身份重新运行同步。",
       "zh-TW":

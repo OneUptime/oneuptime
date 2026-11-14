@@ -37,7 +37,7 @@ Stappen lopen **op volgorde**. Sleep een stap aan de greep links in de kop om de
 
 ### De stappen opslaan
 
-Klik op **Stappen opslaan**. Tot u dat doet, toont de editor **Niet-opgeslagen wijzigingen**. Na het opslaan ziet u **Opgeslagen**, en is het runbook klaar om te [uitvoeren](/docs/runbooks/running).
+Klik op **Stappen opslaan**. Tot u dat doet, toont de editor **Niet-opgeslagen wijzigingen**. Na het opslaan ziet u **Opgeslagen**, en is het runbook klaar om te [uitvoeren](/docs/runbooks/running). Wie de stappen verlaat voordat ze zijn opgeslagen, krijgt eerst een vraag. Een link in het zijmenu, het kruimelpad of de bovenste balk, of de knoppen Terug en Vooruit van uw browser, openen **Verlaten zonder op te slaan?** met twee keuzes: **Doorgaan met bewerken** blijft bij de stappen met uw wijzigingen, en **Wijzigingen verwerpen** gaat door naar de pagina die u opende. Het tabblad sluiten of opnieuw laden vraagt het via het eigen dialoogvenster van uw browser.
 :::
 
 ## Opbouw van een stap

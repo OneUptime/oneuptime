@@ -86,8 +86,8 @@
     "incidentsOnThisDay": "この日に {{total}} 件のインシデントが報告されました",
     "scheduledMaintenance": "予定されたメンテナンス",
     "dayLabelWithMaintenance": "{{label}}、{{maintenance}}",
-    "oneMaintenanceEvent": "予定されたメンテナンス 1 件",
-    "maintenanceEvents": "予定されたメンテナンス {{total}} 件",
+    "oneMaintenanceEvent": "メンテナンスイベント 1 件",
+    "maintenanceEvents": "メンテナンスイベント {{total}} 件",
     "moreMaintenance": "他 {{total}} 件"
   },
   "liveStatus": {
@@ -448,6 +448,17 @@
   "Loading": "読み込み中",
   "{{field}} is not valid JSON. {{parserMessage}}": "{{field}} は有効な JSON ではありません。{{parserMessage}}",
   "{{field}} is not valid YAML. {{parserMessage}}": "{{field}} は有効な YAML ではありません。{{parserMessage}}",
+  "Click to reveal": "クリックして表示",
+  "Click to copy": "クリックしてコピー",
+  "Main navigation": "メインナビゲーション",
+  "Navigate to": "移動先",
+  "Navigation": "ナビゲーション",
+  "Breadcrumb": "ブレッドクラム",
+  "Skip to main content": "メインコンテンツにスキップ",
+  "Copy": "コピー",
+  "Copied!": "コピーしました",
+  "Copy failed": "コピーに失敗しました",
+  "Hide": "非表示",
   "markdownCallouts": {
     "caution": "注意",
     "danger": "危険",

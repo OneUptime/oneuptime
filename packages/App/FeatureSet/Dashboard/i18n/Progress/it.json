@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 51818,
-    "untranslated": 9458
+    "keys": 52232,
+    "untranslated": 9325
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -45,7 +45,6 @@
     "Bare Metal",
     "Blade",
     "Branding",
-    "Breadcrumb",
     "Browser",
     "Browser · OpenTelemetry Web SDK",
     "Brute force detected",
@@ -252,6 +251,7 @@
     "Pull request {{label}}",
     "Push",
     "Query",
+    "Query {{number}}",
     "Quota",
     "RabbitMQ",
     "Radio",
@@ -466,7 +466,6 @@
     "vSphere Client",
     "vertical pod autoscaler",
     "volume",
-    "workflow",
     "writesets",
     "x86",
     "z",

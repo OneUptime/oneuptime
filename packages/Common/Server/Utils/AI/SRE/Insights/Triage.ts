@@ -19,7 +19,11 @@ import {
 } from "../../../../../Types/AI/TelemetryAi";
 import TelemetryAiRules from "../../TelemetryAi/TelemetryAiRules";
 import AIRun from "../../../../../Models/DatabaseModels/AIRun";
-import BadDataException from "../../../../../Types/Exception/BadDataException";
+import AiRunRefusalException from "../../../../../Types/Exception/AiRunRefusalException";
+import {
+  AiRunRefusalCode,
+  getAiRunRefusalMessage,
+} from "../../../../../Types/AI/AiRunRefusal";
 
 /*
  * Per-insight LLM triage enqueue: a budgeted, read-only Investigation AIRun
@@ -64,32 +68,37 @@ export enum InsightTriageNotEnqueuedReason {
 
 /*
  * What the person who pressed Try again reads when no triage could start,
- * by reason (InsightTriage.tryAgain). English: the dashboard shows the
- * server's words as it shows every refusal.
+ * by reason (InsightTriage.tryAgain), as the refusal's code
+ * (Types/AI/AiRunRefusal): the server answers its English sentence with
+ * the code beside it, and the Dashboard words the code in the reader's
+ * language (#7359).
  */
+export const INSIGHT_TRIAGE_NOT_ENQUEUED_REFUSALS: Record<
+  InsightTriageNotEnqueuedReason,
+  AiRunRefusalCode
+> = {
+  [InsightTriageNotEnqueuedReason.NotFound]: AiRunRefusalCode.InsightNotFound,
+  [InsightTriageNotEnqueuedReason.AiOff]: AiRunRefusalCode.AiOff,
+  [InsightTriageNotEnqueuedReason.SwitchOff]: AiRunRefusalCode.InsightsOff,
+  [InsightTriageNotEnqueuedReason.NoProvider]:
+    AiRunRefusalCode.NoProviderToTriage,
+  [InsightTriageNotEnqueuedReason.AlreadyRunning]:
+    AiRunRefusalCode.InsightTriageRunning,
+  [InsightTriageNotEnqueuedReason.NotQueued]: AiRunRefusalCode.TriageNotQueued,
+  [InsightTriageNotEnqueuedReason.Failed]: AiRunRefusalCode.TriageNotStarted,
+};
+
+// The same, as the English sentences the API answers with.
 export const INSIGHT_TRIAGE_NOT_ENQUEUED_MESSAGES: Record<
   InsightTriageNotEnqueuedReason,
   string
-> = {
-  [InsightTriageNotEnqueuedReason.NotFound]:
-    "This AI insight no longer exists.",
-  [InsightTriageNotEnqueuedReason.AiOff]:
-    "OneUptime AI is switched off for this project. A project owner or someone with Manage Billing can turn it on in Project Settings > AI > AI Features.",
-  /*
-   * Only AI Insights' own switch is left to be off: a telemetry product's
-   * AI that works on the insight's kind is on (getLaneWorkingOn).
-   */
-  [InsightTriageNotEnqueuedReason.SwitchOff]:
-    "AI Insights is switched off for this project, so no insight is triaged. A project owner or admin can turn on Watch telemetry for problems in AI → Insights → Settings.",
-  [InsightTriageNotEnqueuedReason.NoProvider]:
-    "This project has no LLM provider to triage with. Add one in Project Settings > AI > LLM Providers, then try again.",
-  [InsightTriageNotEnqueuedReason.AlreadyRunning]:
-    "This insight is being triaged already.",
-  [InsightTriageNotEnqueuedReason.NotQueued]:
-    "The triage could not start: the project may have reached its daily AI limit, which resets at midnight UTC. Try again later.",
-  [InsightTriageNotEnqueuedReason.Failed]:
-    "The triage could not start. Try again in a moment.",
-};
+> = Object.fromEntries(
+  Object.entries(INSIGHT_TRIAGE_NOT_ENQUEUED_REFUSALS).map(
+    ([reason, refusal]: [string, AiRunRefusalCode]): [string, string] => {
+      return [reason, getAiRunRefusalMessage(refusal)];
+    },
+  ),
+) as Record<InsightTriageNotEnqueuedReason, string>;
 
 export interface InsightTriageResult {
   // Set when a triage run was enqueued for the insight.
@@ -259,8 +268,8 @@ export default class InsightTriage {
    * insight links to the new run, and its card shows it from the next read.
    *
    * The caller checked that the person may act on the insight (the AI
-   * insight routes' read check: Project Owner, Admin or Member). Throws a
-   * BadDataException that says why when no triage could start.
+   * insight routes' read check: Project Owner, Admin or Member). Throws an
+   * AiRunRefusalException that says why when no triage could start.
    */
   @CaptureSpan()
   public static async tryAgain(data: {
@@ -278,8 +287,8 @@ export default class InsightTriage {
     });
 
     if (!insight || !insight.id) {
-      throw new BadDataException(
-        INSIGHT_TRIAGE_NOT_ENQUEUED_MESSAGES[
+      throw new AiRunRefusalException(
+        INSIGHT_TRIAGE_NOT_ENQUEUED_REFUSALS[
           InsightTriageNotEnqueuedReason.NotFound
         ],
       );
@@ -294,17 +303,15 @@ export default class InsightTriage {
       : null;
 
     if (lastRun && !AIRunStatusHelper.isTerminalStatus(lastRun.status!)) {
-      throw new BadDataException(
-        INSIGHT_TRIAGE_NOT_ENQUEUED_MESSAGES[
+      throw new AiRunRefusalException(
+        INSIGHT_TRIAGE_NOT_ENQUEUED_REFUSALS[
           InsightTriageNotEnqueuedReason.AlreadyRunning
         ],
       );
     }
 
     if (!lastRun || !AIRunStatusHelper.didNotFinish(lastRun.status)) {
-      throw new BadDataException(
-        "Only a triage that did not finish can be tried again.",
-      );
+      throw new AiRunRefusalException(AiRunRefusalCode.TriageFinished);
     }
 
     const result: InsightTriageResult = await this.enqueueInsightTriage({
@@ -313,8 +320,8 @@ export default class InsightTriage {
     });
 
     if (!result.triageAiRunId) {
-      throw new BadDataException(
-        INSIGHT_TRIAGE_NOT_ENQUEUED_MESSAGES[
+      throw new AiRunRefusalException(
+        INSIGHT_TRIAGE_NOT_ENQUEUED_REFUSALS[
           result.notEnqueuedReason || InsightTriageNotEnqueuedReason.NotQueued
         ],
       );

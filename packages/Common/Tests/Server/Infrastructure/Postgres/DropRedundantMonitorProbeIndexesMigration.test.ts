@@ -1,6 +1,6 @@
 import MonitorProbe from "../../../../Models/DatabaseModels/MonitorProbe";
 import OnlineDdl from "../../../../Server/Infrastructure/Postgres/OnlineDdl";
-import { DropRedundantMonitorProbeIndexes1809150400000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809150400000-DropRedundantMonitorProbeIndexes";
+import { DropRedundantMonitorProbeIndexes1809151000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809151000000-DropRedundantMonitorProbeIndexes";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import {
   DefaultNamingStrategy,
@@ -69,15 +69,15 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe("DropRedundantMonitorProbeIndexes1809150400000", () => {
+describe("DropRedundantMonitorProbeIndexes1809151000000", () => {
   test("the indexes it drops are the ones TypeORM named for the bare columns", () => {
     expect(PROBE_ID_INDEX).toBe("IDX_2d50a0e0e624369e7f90a62e8d");
     expect(MONITOR_ID_INDEX).toBe("IDX_a540272f483ef1de68f7e64748");
   });
 
   test("drops both online, outside a transaction - and nothing else", async () => {
-    const migration: DropRedundantMonitorProbeIndexes1809150400000 =
-      new DropRedundantMonitorProbeIndexes1809150400000();
+    const migration: DropRedundantMonitorProbeIndexes1809151000000 =
+      new DropRedundantMonitorProbeIndexes1809151000000();
 
     expect(migration.transaction).toBe(false);
     expect(
@@ -97,7 +97,7 @@ describe("DropRedundantMonitorProbeIndexes1809150400000", () => {
     expect(
       await statementsOf(
         (runner: QueryRunner) => {
-          return new DropRedundantMonitorProbeIndexes1809150400000().down(
+          return new DropRedundantMonitorProbeIndexes1809151000000().down(
             runner,
           );
         },
@@ -117,16 +117,16 @@ describe("DropRedundantMonitorProbeIndexes1809150400000", () => {
 
     expect(
       registered.filter((candidate: unknown): boolean => {
-        return candidate === DropRedundantMonitorProbeIndexes1809150400000;
+        return candidate === DropRedundantMonitorProbeIndexes1809151000000;
       }),
     ).toHaveLength(1);
     expect(
-      names.indexOf("DropRedundantMonitorProbeIndexes1809150400000"),
+      names.indexOf("DropRedundantMonitorProbeIndexes1809151000000"),
     ).toBeGreaterThan(
-      names.indexOf("AddNotifySubscribersOfNewIncidentsByDefault1809150300000"),
+      names.indexOf("AddProbeCollectionClaimIndexes1809150400000"),
     );
-    expect(new DropRedundantMonitorProbeIndexes1809150400000().name).toBe(
-      "DropRedundantMonitorProbeIndexes1809150400000",
+    expect(new DropRedundantMonitorProbeIndexes1809151000000().name).toBe(
+      "DropRedundantMonitorProbeIndexes1809151000000",
     );
   });
 });

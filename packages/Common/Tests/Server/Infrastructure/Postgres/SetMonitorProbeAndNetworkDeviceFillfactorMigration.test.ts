@@ -1,4 +1,4 @@
-import { SetMonitorProbeAndNetworkDeviceFillfactor1809150600000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809150600000-SetMonitorProbeAndNetworkDeviceFillfactor";
+import { SetMonitorProbeAndNetworkDeviceFillfactor1809151200000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809151200000-SetMonitorProbeAndNetworkDeviceFillfactor";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import { QueryRunner } from "typeorm";
 import { describe, expect, test } from "@jest/globals";
@@ -42,11 +42,11 @@ async function statementsOf(
 const STORAGE_PARAMETER_ONLY: RegExp =
   /^ALTER TABLE "(MonitorProbe|NetworkDevice)" (SET \(fillfactor = \d+\)|RESET \(fillfactor\))$/;
 
-describe("SetMonitorProbeAndNetworkDeviceFillfactor1809150600000", () => {
+describe("SetMonitorProbeAndNetworkDeviceFillfactor1809151200000", () => {
   test("keeps room on every page of both tables - and does nothing else", async () => {
     expect(
       await statementsOf((runner: QueryRunner) => {
-        return new SetMonitorProbeAndNetworkDeviceFillfactor1809150600000().up(
+        return new SetMonitorProbeAndNetworkDeviceFillfactor1809151200000().up(
           runner,
         );
       }),
@@ -59,7 +59,7 @@ describe("SetMonitorProbeAndNetworkDeviceFillfactor1809150600000", () => {
   test("down() gives both tables the default back", async () => {
     expect(
       await statementsOf((runner: QueryRunner) => {
-        return new SetMonitorProbeAndNetworkDeviceFillfactor1809150600000().down(
+        return new SetMonitorProbeAndNetworkDeviceFillfactor1809151200000().down(
           runner,
         );
       }),
@@ -70,8 +70,8 @@ describe("SetMonitorProbeAndNetworkDeviceFillfactor1809150600000", () => {
   });
 
   test("every statement only sets a storage parameter: SHARE UPDATE EXCLUSIVE, no rewrite", async () => {
-    const migration: SetMonitorProbeAndNetworkDeviceFillfactor1809150600000 =
-      new SetMonitorProbeAndNetworkDeviceFillfactor1809150600000();
+    const migration: SetMonitorProbeAndNetworkDeviceFillfactor1809151200000 =
+      new SetMonitorProbeAndNetworkDeviceFillfactor1809151200000();
     const statements: Array<string> = [
       ...(await statementsOf((runner: QueryRunner) => {
         return migration.up(runner);
@@ -98,7 +98,7 @@ describe("SetMonitorProbeAndNetworkDeviceFillfactor1809150600000", () => {
   test("runs in a transaction: nothing in it needs to run outside one", () => {
     expect(
       (
-        new SetMonitorProbeAndNetworkDeviceFillfactor1809150600000() as {
+        new SetMonitorProbeAndNetworkDeviceFillfactor1809151200000() as {
           transaction?: boolean;
         }
       ).transaction,
@@ -114,19 +114,19 @@ describe("SetMonitorProbeAndNetworkDeviceFillfactor1809150600000", () => {
     expect(
       registered.filter((candidate: unknown): boolean => {
         return (
-          candidate === SetMonitorProbeAndNetworkDeviceFillfactor1809150600000
+          candidate === SetMonitorProbeAndNetworkDeviceFillfactor1809151200000
         );
       }),
     ).toHaveLength(1);
     expect(
-      names.indexOf("SetMonitorProbeAndNetworkDeviceFillfactor1809150600000"),
+      names.indexOf("SetMonitorProbeAndNetworkDeviceFillfactor1809151200000"),
     ).toBeGreaterThan(
       names.indexOf(
-        "DropNetworkDeviceLastSeenAtAndProjectIdIndexes1809150500000",
+        "DropNetworkDeviceLastSeenAtAndProjectIdIndexes1809151100000",
       ),
     );
     expect(
-      new SetMonitorProbeAndNetworkDeviceFillfactor1809150600000().name,
-    ).toBe("SetMonitorProbeAndNetworkDeviceFillfactor1809150600000");
+      new SetMonitorProbeAndNetworkDeviceFillfactor1809151200000().name,
+    ).toBe("SetMonitorProbeAndNetworkDeviceFillfactor1809151200000");
   });
 });

@@ -1082,7 +1082,7 @@ describe("every text the monitor overview writes is looked up", () => {
      * stops reaching one is noticed.
      */
     for (const key of [
-      "Manual monitor: OneUptime runs no checks. The status changes when someone sets it, or when an incident or scheduled maintenance event changes it.",
+      "Manual monitor: OneUptime runs no checks. The status changes when someone sets it, or when an incident or maintenance event changes it.",
       "Monitoring is off because it is archived",
       "No result for {{duration}}, but this monitor checks {{interval}}. A probe may be overloaded or offline.",
       "{{count}} probes check this {{interval}}. The first result usually arrives within a few minutes.",

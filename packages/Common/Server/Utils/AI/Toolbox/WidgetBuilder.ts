@@ -15,8 +15,29 @@ import { getFactsNotInHeading } from "../../../../Types/AI/ResourceCardFacts";
 import {
   AIActionCardFact,
   AIActionCardWords,
+  AIActionTableCell,
+  AIActionTableWords,
   describeAIActionCardWords,
+  describeAIActionTableCell,
+  describeAIActionTableWords,
 } from "../../../../Types/AI/AIActionWords";
+
+/*
+ * What a table says over its rows: its title and the line under it, in
+ * English as written - or as words (Types/AI/AIActionWords), which the
+ * chat says in the reader's language (issue #7394).
+ */
+export type TableWidgetHeading =
+  | {
+      title: string;
+      description?: string | undefined;
+      words?: undefined;
+    }
+  | {
+      words: AIActionTableWords;
+      title?: undefined;
+      description?: undefined;
+    };
 
 /*
  * Builds the inline widgets a tool attaches to its result. Widgets are built
@@ -28,22 +49,64 @@ import {
  * up with the server-minted citations.
  */
 export default class WidgetBuilder {
-  public static table(params: {
-    title: string;
-    description?: string | undefined;
-    columns: Array<AIChatWidgetColumn>;
-    rows: Array<JSONObject>;
-    link?: AIChatCitationTarget | undefined;
-  }): AIChatWidget {
+  /*
+   * A table of what a tool read. With words (issue #7394), the title, the
+   * line under it and each worded cell it stores are those words in
+   * English - what the exports print, what the model reads in a turn's
+   * history, and what a Dashboard that cannot read the words draws - so
+   * the two never say different things; the chat says the words in the
+   * reader's language. A cell the words do not name is data, as given.
+   */
+  public static table(
+    params: TableWidgetHeading & {
+      columns: Array<AIChatWidgetColumn>;
+      rows: Array<JSONObject>;
+      link?: AIChatCitationTarget | undefined;
+    },
+  ): AIChatWidget {
+    if (!params.words) {
+      return {
+        id: "",
+        type: AIChatWidgetType.Table,
+        title: params.title,
+        description: params.description,
+        data: {
+          columns: params.columns,
+          rows: params.rows,
+          link: params.link,
+        },
+      };
+    }
+
+    const words: AIActionTableWords = params.words;
+    const english: { title: string; description?: string | undefined } =
+      describeAIActionTableWords(words);
+
     return {
       id: "",
       type: AIChatWidgetType.Table,
-      title: params.title,
-      description: params.description,
+      title: english.title,
+      description: english.description,
       data: {
         columns: params.columns,
-        rows: params.rows,
+        rows: params.rows.map((row: JSONObject, index: number): JSONObject => {
+          const cells: Record<string, AIActionTableCell> | undefined =
+            words.cells?.[index];
+
+          if (!cells || Object.keys(cells).length === 0) {
+            return row;
+          }
+
+          const stored: JSONObject = { ...row };
+
+          for (const key of Object.keys(cells)) {
+            stored[key] = describeAIActionTableCell(cells[key]!);
+          }
+
+          return stored;
+        }),
         link: params.link,
+        tableWords: words,
       },
     };
   }

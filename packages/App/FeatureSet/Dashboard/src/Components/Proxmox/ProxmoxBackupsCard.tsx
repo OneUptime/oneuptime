@@ -5,7 +5,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Card from "Common/UI/Components/Card/Card";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
-import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";
 import { getRouteToPageAnchor } from "Common/UI/Utils/PageAnchor";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -154,9 +154,16 @@ const ProxmoxBackupsCard: FunctionComponent<ComponentProps> = (
                   data-key={stat.key}
                   className="min-w-0 rounded-lg border border-gray-200 p-3"
                 >
-                  <dt className="flex items-center gap-1 text-xs font-medium text-gray-500">
-                    <span>{tx(stat.label)}</span>
-                    <InfoTooltip label={stat.label} text={stat.description} />
+                  {/*
+                   * The (i) after the label's last word, on the line it
+                   * ends on (issue #7348).
+                   */}
+                  <dt className="text-xs font-medium text-gray-500">
+                    <WordsWithInfoTooltip
+                      text={tx(stat.label)}
+                      label={stat.label}
+                      description={stat.description}
+                    />
                   </dt>
                   <dd
                     className={`mt-1 text-xl font-semibold tabular-nums ${STAT_TONE_CLASS_NAMES[stat.tone]}`}

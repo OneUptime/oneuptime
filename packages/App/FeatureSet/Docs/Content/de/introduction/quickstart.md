@@ -1,6 +1,6 @@
 # Schnellstart
 
-Diese Anleitung bringt Sie in etwa fünfzehn Minuten von einem neuen Konto zu einer funktionierenden Einrichtung: einem Monitor, der Ihre Website alle fünf Minuten prüft, einer Bereitschaftsrichtlinie, die Sie alarmiert, wenn die Website ausfällt, und einer Statusseite, die Ihre Kunden informiert. Sie folgt der Checkliste **Willkommen bei OneUptime 👋** auf der Startseite Ihres Projekts.
+Diese Anleitung bringt Sie in etwa fünfzehn Minuten von einem neuen Konto zu einer funktionierenden Einrichtung: einem Monitor, der Ihre Website alle fünf Minuten prüft, einer Bereitschaftsrichtlinie, die Sie alarmiert, wenn die Website ausfällt, und einer Statusseite, die Ihre Kunden informiert. Sie folgt der Checkliste **Willkommen bei OneUptime 👋** auf der Startseite Ihres Projekts und den geführten Einrichtungen, die ihre Schritte öffnen.
 
 Sie kommen von einem anderen Werkzeug? [Importieren Sie zuerst Ihre Einrichtung](/docs/introduction/getting-started#von-einem-anderen-werkzeug-kommend): Ihre Monitore, Bereitschaftspläne und Statusseiten kommen mit.
 
@@ -42,69 +42,87 @@ Klicken Sie auf **Projekt erstellen**. Die Startseite Ihres Projekts öffnet sic
 ## Ihre Website überwachen
 
 :::steps
-### Monitor erstellen öffnen
+### Die Website-Einrichtung öffnen
 
-Klicken Sie in der Checkliste auf **Ersten Monitor erstellen**. Sie können auch **Monitore** im Menü **Produkte** öffnen und auf **Monitor erstellen** klicken.
-
-### Website wählen
-
-Wählen Sie unter **Monitortyp** den Typ **Website**. Geben Sie einen **Name** ein, etwa `Website`, und klicken Sie auf **Weiter**.
+Klicken Sie in der Checkliste auf **Ersten Monitor erstellen**. Damit öffnet sich die geführte Einrichtung **Wissen, wenn meine Website oder API ausfällt**, die Ihre Website prüft, festlegt, wer informiert wird, und einen Test sendet, alles auf einer Seite. Wer keine Monitore erstellen darf, erhält stattdessen die Liste **Monitore**.
 
 ### Die Adresse eingeben
 
-Geben Sie die vollständige Adresse Ihrer Website unter **Website-URL** ein, etwa `https://example.com`. OneUptime legt die Kriterien für Sie an: Der Monitor wechselt zu **Offline** und meldet einen Vorfall, wenn die Website nicht antwortet oder mit einem Fehler antwortet. Klicken Sie auf **Weiter**.
+![Der Schritt „Was sollen wir prüfen?“, „Prüfung starten“ ist markiert](screen:website-down-address)
 
-### Den Monitor anlegen
+Geben Sie unter **Was sollen wir prüfen?** die vollständige Adresse Ihrer Website in **Adresse der Website oder API** ein, etwa `https://example.com`, und klicken Sie auf **Prüfung starten**. Die Sonden prüfen sie sofort und danach alle 5 Minuten: Antwortet die Website nicht oder mit einem Fehler, wechselt der Monitor zu **Offline** und meldet einen Vorfall. Klicken Sie auf **Weiter**.
 
-Behalten Sie die ausgewählten **Sonden** und das **Überwachungsintervall** **Alle 5 Minuten** bei, und klicken Sie auf **Monitor erstellen**. Die Seite des Monitors öffnet sich, und die Sonden beginnen, Ihre Website zu prüfen.
+Im Free-Tarif von OneUptime Cloud werden Monitore nach Nutzung abgerechnet, daher braucht das Projekt eine Zahlungsmethode, bevor es Ihre Website prüfen kann: Ohne sie bittet der Schritt Sie, [eine Zahlungsmethode hinzuzufügen](/docs/configuration/billing#zahlungsmethoden).
+
+### Festlegen, wer informiert wird
+
+Unter **Wer soll informiert werden?** stehen Sie bereits in **Wer alarmiert wird**. Klicken Sie auf **Speichern und weiter**: Dabei wird die Richtlinie `Default on-call policy` angelegt, die Sie bei jedem neuen Vorfall und jeder neuen Warnung im Projekt alarmiert, zunächst per E-Mail. Um auch Teammitglieder zu alarmieren, die schon im Projekt sind, klicken Sie vorher auf **Teammitglieder hinzufügen**.
+
+### Sich selbst einen Test senden
+
+Klicken Sie unter **Test senden** auf **Mir eine Test-Alarmierung senden**, wählen Sie einen **Schweregrad** und klicken Sie auf **Test-Alarmierung senden**. Öffnen Sie den Link in der E-Mail, in der TEST steht, und bestätigen Sie die Alarmierung dort. Klicken Sie dann im Dialog auf **Fertig** und auf **Weiter**: Die Einrichtung endet mit einer Zusammenfassung dessen, was sie eingerichtet hat.
 :::
 
-Um die Prüfung vor dem Speichern auszuprobieren, klicken Sie im zweiten Schritt auf **Monitor testen**. Alle anderen Monitortypen beschreibt [Einen Monitor erstellen](/docs/monitor/create-monitor).
+Um jede Option selbst festzulegen oder etwas anderes als eine Website zu prüfen, öffnen Sie **Monitore** im Menü **Produkte** und klicken auf **Monitor erstellen**. [Einen Monitor erstellen](/docs/monitor/create-monitor) beschreibt das Formular und jeden Monitortyp.
 
-Um auch eine API zu prüfen, festzulegen, wer informiert wird, und eine Test-Alarmierung zu senden, die beweist, dass die Nachricht Sie erreicht, folgen Sie der Anleitung [Erfahren, wenn Ihre Website oder API ausfällt](/docs/guides/website-down).
+Um auch eine API zu prüfen und zu erfahren, was zu tun ist, wenn die erste Prüfung nie zurückkommt, folgen Sie der Anleitung [Erfahren, wenn Ihre Website oder API ausfällt](/docs/guides/website-down).
 
 ## Bei einem Ausfall alarmiert werden
 
-So wie es ist, wird ein Vorfall ohne Eigentümer per E-Mail an die Eigentümer des Projekts gemeldet, und dazu gehören Sie. Damit Sie alarmiert werden, bis jemand reagiert, legen Sie eine Bereitschaftsrichtlinie an: Die erste eines Projekts wird bei jedem neuen Vorfall und jeder neuen Warnung ausgelöst.
+Die Website-Einrichtung hat bereits die Richtlinie `Default on-call policy` angelegt, die Sie bei jedem neuen Vorfall und jeder neuen Warnung per E-Mail alarmiert, deshalb hakt die Checkliste **Bereitschaftsrichtlinie einrichten** als erledigt ab. Deren geführte Einrichtung fügt trotzdem Ihr Telefon hinzu, die Personen, die mit Ihnen alarmiert werden, und was passiert, wenn niemand antwortet.
 
 :::steps
-### Eine Bereitschaftsrichtlinie anlegen
+### Die Bereitschafts-Einrichtung öffnen
 
-Klicken Sie in der Checkliste auf **Bereitschaftsrichtlinie einrichten**, oder öffnen Sie **Bereitschaft** im Menü **Produkte**. Klicken Sie auf **Bereitschaftsrichtlinie erstellen** und geben Sie einen **Name** ein. Klicken Sie unter **Wer wird zuerst alarmiert?** auf **Empfänger hinzufügen** und wählen Sie sich selbst. Lassen Sie **Bei jedem neuen Vorfall und jeder neuen Warnung auslösen** eingeschaltet, und klicken Sie auf **Bereitschaftsrichtlinie erstellen**.
-
-### Die Regel ansehen, die sie auslöst
-
-Der Schalter hat eine Bereitschaftsregel für Vorfälle und eine für Warnungen angelegt. Um Ihre zu sehen, öffnen Sie **Vorfälle** im Menü **Produkte**, klappen **Regeln** im Seitenmenü auf und wählen **Bereitschaftsregeln**: Sie trifft auf **Alle Vorfälle** zu. Damit die Richtlinie nur bei manchen Vorfällen ausgelöst wird, etwa bei kritischen, bearbeiten Sie die Regel dort, oder klicken Sie auf **Bereitschaftsregel für Vorfälle erstellen**, um eine eigene anzulegen.
+Drücken Sie `Ctrl+K` (`Cmd+K` auf einem Mac), geben Sie `get paged` ein und wählen Sie **Die richtige Person alarmieren, wenn etwas ausfällt**. Solange die Checkliste **Bereitschaftsrichtlinie einrichten** nicht abgehakt hat, öffnet dieser Schritt dieselbe geführte Einrichtung.
 
 ### Festlegen, wie Sie erreicht werden
 
-Ihre Anmelde-E-Mail ist bereits ein Weg, Sie zu erreichen. Damit Sie auch per SMS oder Anruf benachrichtigt werden, öffnen Sie **Benutzereinstellungen** in der Leiste unter der oberen Leiste, gehen zu **Benachrichtigungsmethoden** und fügen auf dem Tab **Direkter Kontakt** Ihre Nummer unter **Telefonnummern für SMS-Benachrichtigungen** oder **Telefonnummern für Anrufbenachrichtigungen** hinzu. Klicken Sie auf **Verifizieren** und geben Sie den Code ein, den OneUptime Ihnen sendet. Eine verifizierte Nummer wird sofort für Bereitschaftsalarme genutzt.
+![Der Schritt „Wie sollen wir dich erreichen?“, „SMS und Anrufe einschalten“ ist markiert](screen:paging-reach-you)
+
+Unter **Wie sollen wir dich erreichen?** ist Ihre Anmelde-E-Mail bereits aufgeführt. Für Push-Benachrichtigungen installieren Sie die App OneUptime On-Call aus dem App Store oder von Google Play, melden sich an und klicken auf **Erneut prüfen**. Um auch per SMS und Anruf erreicht zu werden, klicken Sie auf **SMS und Anrufe einschalten**, geben Ihre Nummer in **Deine Telefonnummer** ein und klicken auf **Code per SMS senden**: Auf OneUptime Cloud werden SMS und Anrufe aus dem Guthaben des Projekts bezahlt, deshalb bittet der Schritt Sie zuerst, Guthaben aufzuladen. Klicken Sie auf **Weiter**.
+
+### Festlegen, wer sonst alarmiert wird
+
+Behalten Sie unter **Wer hat sonst Bereitschaft?** die Richtlinie `Default on-call policy` unter **Bereitschaftsrichtlinie** bei. Um Teammitglieder mit Ihnen zu alarmieren, nehmen Sie sie unter **Zur ersten Eskalationsregel hinzufügen** auf. Klicken Sie auf **Speichern und weiter**.
+
+### Festlegen, was passiert, wenn niemand antwortet
+
+Wählen Sie unter **Was, wenn niemand antwortet?** die Option **Dieselben Personen erneut alarmieren**, solange Sie die einzige Person im Projekt sind. Sobald Teammitglieder dabei sind, alarmiert **Jemand anderen alarmieren** die Person, die Sie unter **Als Nächstes alarmiert** wählen. In OneUptime Cloud bieten nur die kostenpflichtigen Tarife diese Option. Klicken Sie auf **Speichern und weiter**.
+
+### Eine Test-Alarmierung senden
+
+Klicken Sie unter **Test-Alarmierung senden** auf **Diese Richtlinie testen**, wählen Sie einen **Schweregrad** und klicken Sie auf **Test-Alarmierung senden**. Bestätigen Sie die Alarmierung aus der E-Mail, der SMS oder dem Anruf heraus, klicken Sie dann im Dialog auf **Fertig** und auf **Weiter**. Die Einrichtung endet mit **Die Alarmierung ist eingerichtet**.
 :::
 
 > [!NOTE]
 > SMS und Telefonanrufe sind in einem neuen Projekt ausgeschaltet. Ein Projekteigentümer, ein Billing Admin oder jemand mit Manage Billing schaltet sie in der Karte **Benachrichtigungskanäle** unter **Projekteinstellungen → Benachrichtigungen → Benachrichtigungskanäle** ein.
 
-Für weitere Stufen, Rotationen und wie lange jede Stufe wartet, siehe [Eskalationsregeln](/docs/on-call/escalation-rules) und [Bereitschaftspläne](/docs/on-call/schedules).
+Zwei Bereitschaftsregeln lösen die Richtlinie aus: eine bei jedem neuen Vorfall und eine bei jeder neuen Warnung. Um die erste zu sehen, öffnen Sie **Vorfälle** im Menü **Produkte**, klappen **Regeln** im Seitenmenü auf und wählen **Bereitschaftsregeln**: Sie trifft auf **Alle Vorfälle** zu. Damit die Richtlinie nur bei manchen Vorfällen ausgelöst wird, etwa bei kritischen, bearbeiten Sie die Regel dort, oder klicken Sie auf **Bereitschaftsregel für Vorfälle erstellen**, um eine eigene anzulegen.
 
-Damit Sie per SMS, Anruf und Push alarmiert werden, die nächste Person alarmiert wird, wenn niemand antwortet, und eine Test-Alarmierung beweist, dass es funktioniert, folgen Sie der Anleitung [Per Anruf, SMS oder Push alarmiert werden](/docs/guides/paging).
+Um eine Richtlinie stattdessen Feld für Feld anzulegen, öffnen Sie **Bereitschaft** im Menü **Produkte** und klicken auf **Bereitschaftsrichtlinie erstellen**. Für weitere Stufen, Rotationen und wie lange jede Stufe wartet, siehe [Eskalationsregeln](/docs/on-call/escalation-rules) und [Bereitschaftspläne](/docs/on-call/schedules).
+
+Für jeden Bildschirm der Einrichtung und was zu tun ist, wenn eine Alarmierung nicht ankommt, folgen Sie der Anleitung [Per Anruf, SMS oder Push alarmiert werden](/docs/guides/paging).
 
 ## Eine Statusseite veröffentlichen
 
 :::steps
-### Die Statusseite anlegen
+### Die Statusseiten-Einrichtung öffnen
 
-Klicken Sie in der Checkliste auf **Statusseite veröffentlichen**, oder öffnen Sie **Statusseiten** im Menü **Produkte**. Klicken Sie auf **Statusseite erstellen**, geben Sie einen **Name** ein, etwa `Acme Status`, und klicken Sie auf **Statusseite erstellen**. Die neue Seite öffnet sich auf ihrer **Übersicht**.
+Klicken Sie in der Checkliste auf **Statusseite veröffentlichen**. Damit öffnet sich die geführte Einrichtung **Statusseite veröffentlichen**, die die Seite benennt, Ihren Monitor darauf setzt und zeigt, was Ihre Kunden sehen. Wer keine Statusseiten erstellen darf, erhält stattdessen die Liste **Statusseiten**. Die Zusammenfassung der Website-Einrichtung öffnet dieselbe Einrichtung, als **Auf einer Statusseite anzeigen**.
 
-### Ihren Monitor hinzufügen
+### Die Seite benennen und Ihren Monitor wählen
 
-Klicken Sie in der **Übersicht** auf **Monitore hinzufügen**, oder wählen Sie im Seitenmenü der Seite unter **Ressourcen** den Eintrag **Monitore**; in Projekten mit eingeschalteten Monitorgruppen heißt er **Ressourcen**. Klicken Sie auf **Monitor hinzufügen**, wählen Sie Ihren Website-Monitor und klicken Sie auf **Monitor hinzufügen**. Die Zeile zeigt Besuchern den Namen des Monitors; ändern Sie ihn bei Bedarf unter **Anzeigename**.
+![Der Schritt „Benennen Sie sie und wählen Sie aus, was sie zeigt“, „Statusseite erstellen“ ist markiert](screen:status-page-pick)
+
+Behalten Sie unter **Benennen Sie sie und wählen Sie aus, was sie zeigt** im Feld **Name der Statusseite** den Vorschlag bei oder geben Sie einen eigenen Namen ein. Haken Sie unter **Was sie zeigt** Ihren Website-Monitor an und klicken Sie auf **Statusseite erstellen**. Ab diesem Moment ist die Seite unter ihrem Link öffentlich: Jeder mit ihrer Adresse kann sie öffnen.
 
 ### Die Seite öffnen
 
-Wählen Sie **Übersicht** im Seitenmenü. Die Karte **Link zur Statusseite** verlinkt auf Ihre Statusseite: Öffnen Sie sie, und Ihre Website wird als betriebsbereit angezeigt.
+Öffnen Sie unter **Das sehen Ihre Kunden** die Adresse unter **Öffentlicher Link**: Ihre Website wird als betriebsbereit angezeigt. Zurück in der Einrichtung klicken Sie auf **Sieht gut aus**. Die Einrichtung endet mit einer Zusammenfassung, die zeigt, was als Nächstes zu tun ist.
 :::
 
-Eine neue Statusseite ist öffentlich: Jeder mit ihrer Adresse kann sie öffnen. Wie Sie ihr Ihre eigene Domain, Ihr Logo und Ihre Farben geben, steht unter [Statusseiten – Branding & Domains](/docs/status-pages/branding-and-domains).
+Um eine Seite stattdessen von Hand anzulegen, öffnen Sie **Statusseiten** im Menü **Produkte** und klicken auf **Statusseite erstellen**; fügen Sie dann Ihren Monitor mit **Monitore hinzufügen** auf ihrer **Übersicht** hinzu. Wie Sie der Seite Ihr eigenes Logo und Ihre Farben geben, steht unter [Statusseiten – Branding & Domains](/docs/status-pages/branding-and-domains).
 
 Um die Statusseite über HTTPS auf Ihre eigene Domain zu bringen, folgen Sie der Anleitung [Eine Statusseite veröffentlichen](/docs/guides/status-page).
 

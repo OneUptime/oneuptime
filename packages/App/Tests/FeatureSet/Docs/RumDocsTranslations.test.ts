@@ -1195,11 +1195,15 @@ describe("the helpers, on these pages' shapes", () => {
     expect(drawnMenuGroup("nl", "Resources")).not.toBe(
       drawnDashboardLabel("nl", "Resources"),
     );
-    // The Russian menu names Services "Сервисы"; a Services label reads "Службы".
-    expect(drawnPathSegment("ru", ["Products", "Services"], 1)).toBe(
-      drawnMenuItem("ru", "Services"),
+    // The Russian menu names Logs "Логи"; a Logs label reads "Журналы".
+    expect(drawnPathSegment("ru", ["Products", "Logs"], 1)).toBe(
+      drawnMenuItem("ru", "Logs"),
     );
-    expect(drawnMenuItem("ru", "Services")).not.toBe(
+    expect(drawnMenuItem("ru", "Logs")).not.toBe(
+      drawnDashboardLabel("ru", "Logs"),
+    );
+    // Services read "Сервисы" in the menu and as a label alike (#7387).
+    expect(drawnMenuItem("ru", "Services")).toBe(
       drawnDashboardLabel("ru", "Services"),
     );
     expect(drawnPath("fa", segments)).toBe(

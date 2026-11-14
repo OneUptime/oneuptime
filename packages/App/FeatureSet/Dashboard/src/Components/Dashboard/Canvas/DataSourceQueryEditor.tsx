@@ -36,6 +36,10 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { getUnnamedText } from "../Components/DashboardWidgetFallbackWords";
 
+// Each query card's header: its label, and its Remove at the other end.
+export const DATA_SOURCE_QUERY_CARD_HEADER_TEST_ID: string =
+  "data-source-query-card-header";
+
 export interface ComponentProps {
   component: DashboardBaseComponent;
   onChange: (component: DashboardBaseComponent) => void;
@@ -204,8 +208,17 @@ const DataSourceQueryEditor: FunctionComponent<ComponentProps> = (
         key={config.id || index}
         className="rounded-md border border-gray-200 p-3 mb-3 bg-gray-50/50"
       >
-        <div className="flex items-center justify-between mb-2">
-          <p className="text-xs font-medium text-gray-600">
+        {/*
+         * The card's label, and a small way to remove the query at its other
+         * end, a gap apart at every width: on a phone the shared Button took
+         * the header's whole width from the label on, and read as the card's
+         * main action (issue #7331).
+         */}
+        <div
+          className="flex items-center justify-between gap-3 mb-2"
+          data-testid={DATA_SOURCE_QUERY_CARD_HEADER_TEST_ID}
+        >
+          <p className="min-w-0 text-xs font-medium text-gray-600">
             {isChart
               ? translator.translateTemplate("Query {{number}}", {
                   number: index + 1,
@@ -216,6 +229,7 @@ const DataSourceQueryEditor: FunctionComponent<ComponentProps> = (
             title="Remove"
             buttonStyle={ButtonStyleType.DANGER_OUTLINE}
             buttonSize={ButtonSize.Small}
+            isFullWidthOnPhone={false}
             icon={IconProp.Trash}
             onClick={() => {
               const next: Array<DataSourceQueryConfig> = queryConfigs.filter(

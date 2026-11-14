@@ -2,9 +2,21 @@
 
 ORIGINAL_PROVISION_SSL="$PROVISION_SSL"
 
+# The primary domain, which names the primary's certificate files
+# (envsubst-on-templates.sh): HOST without its port, in lower case, as the
+# app names the certificate it orders for HOST (CoreSSL). The port is taken
+# off as envsubst-on-templates.sh takes it off for the server name: a
+# bracketed IPv6 address keeps its brackets ("[2001:db8::1]:8080" is
+# "[2001:db8::1]"), one without brackets has no port, and a name or an IPv4
+# address loses what follows its one ":".
 PRIMARY_DOMAIN=""
 if [ -n "$HOST" ]; then
-  PRIMARY_DOMAIN=$(printf '%s' "$HOST" | cut -d: -f1 | tr '[:upper:]' '[:lower:]')
+  case "$HOST" in
+    \[*\]*) PRIMARY_DOMAIN="${HOST%%]*}]" ;;
+    *:*:*) PRIMARY_DOMAIN="$HOST" ;;
+    *) PRIMARY_DOMAIN="${HOST%:*}" ;;
+  esac
+  PRIMARY_DOMAIN=$(printf '%s' "$PRIMARY_DOMAIN" | tr '[:upper:]' '[:lower:]')
 fi
 
 if [ -n "$PRIMARY_DOMAIN" ]; then
