@@ -2847,6 +2847,49 @@ export default class Project extends TenantModel {
   public limitAlertsToOneEpisode?: boolean = undefined;
 
   /*
+   * Whether "Notify Status Page Subscribers" starts ticked when someone
+   * declares an incident (Incidents -> Settings -> Subscriber Notifications,
+   * issue #7606; Common/Types/StatusPage/NewIncidentSubscriberNotificationDefault).
+   * On for every project, existing and new, as the box always started, so
+   * nothing changes until an owner or admin turns it off. It moves only
+   * where the Declare New Incident box starts: the incident records what the
+   * person declaring leaves it at. Incidents people declare where no box
+   * asks - from Slack or Microsoft Teams, or through OneUptime AI - follow
+   * it as the box would have started; incidents created by monitors, the
+   * API or workflows keep their own value.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Notify Status Page Subscribers of New Incidents by Default",
+    description:
+      "Whether the Notify Status Page Subscribers box starts ticked when someone declares an incident in the dashboard. When enabled, status page subscribers are notified of a new incident unless the person declaring it unticks the box. When disabled, the box starts unticked and subscribers are notified only if it is ticked. Incidents declared from Slack or Microsoft Teams, or by OneUptime AI, follow it too: while it is disabled they are declared without notifying. Incidents created by monitors, the API and workflows are not affected: each keeps its own Notify Status Page Subscribers value. On by default.",
+    defaultValue: true,
+    example: false,
+  })
+  @Column({
+    nullable: false,
+    default: true,
+    type: ColumnType.Boolean,
+  })
+  public notifyStatusPageSubscribersOfNewIncidentsByDefault?: boolean =
+    undefined;
+
+  /*
    * The layout every network topology map in the project opens on (issue
    * #5378): one of the ids in Types/NetworkDevice/NetworkTopologyLayout. A
    * Project Owner or Admin sets it from the map itself (Map options ->
