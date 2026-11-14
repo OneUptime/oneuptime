@@ -91,6 +91,30 @@ describe("someone is leaving", () => {
     ).toHaveTextContent("Discard Changes");
   });
 
+  test("a screen reader hears what is lost with the question", async () => {
+    await draw(prompt(true));
+
+    expect(question()).toHaveAccessibleDescription(RUNBOOK_SENTENCE);
+  });
+
+  test("the close button and Escape keep editing, as Keep Editing does", async () => {
+    const answers: Answers = prompt(true);
+    await draw(answers);
+
+    await act(async () => {
+      fireEvent.click(within(question()).getByTestId("close-button"));
+    });
+
+    expect(answers.stay).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      fireEvent.keyDown(document, { key: "Escape" });
+    });
+
+    expect(answers.stay).toHaveBeenCalledTimes(2);
+    expect(answers.leave).not.toHaveBeenCalled();
+  });
+
   test("Keep Editing stays, and only stays", async () => {
     const answers: Answers = prompt(true);
     await draw(answers);
