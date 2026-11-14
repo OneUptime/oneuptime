@@ -92,6 +92,17 @@ import OldestKeyMap from "../../../Utils/OldestKeyMap";
 const RETENTION_FILTER: string = " AND retentionDate >= now()";
 
 /*
+ * The path of the route a hash router keeps in a stored URL's fragment
+ * ("https://shop.example.com/#!/orders/42" -> "/orders/42"), or '' when
+ * the URL has none. The scrubber keeps no other fragment, and no query
+ * inside this one (UrlScrubber.scrubHashRoute). `url` is a column or a
+ * lambda argument this file names, never a value from a request.
+ */
+function toHashRoutePathSql(url: string): string {
+  return `if(startsWith(fragment(${url}), '!/'), substring(fragment(${url}), 2), fragment(${url}))`;
+}
+
+/*
  * Wall-clock cap. 'throw' rather than 'break': see (2) above. 30s is well
  * inside the App pool's 58s request_timeout, so a query that blows the
  * budget surfaces as an error the player can retry rather than as a
@@ -4264,21 +4275,33 @@ export default class SessionReplayReadService {
        * first arm, a path prefix on the second. ClickHouse's path() returns
        * the path component without host or query, which is exactly the
        * shape the recorder's route list is scrubbed down to.
+       *
+       * A hash router's page is the route in the fragment, which path()
+       * stops before: "https://shop.example.com/#/orders/42" has the path
+       * "/". The third arm matches the route's path, which is the page
+       * User Flows keys such a URL by, so `url:/orders` and a User Flows
+       * row's "show sessions" both find it.
        */
       const prefixParameter: { type: TableColumnType; value: string } = {
         type: TableColumnType.Text,
         value: filters.urlPrefix,
       };
 
-      statement.append(" AND (arrayExists(r -> startsWith(r, ");
-      statement.append(SQL`${prefixParameter}`);
-      statement.append(") OR startsWith(path(r), ");
-      statement.append(SQL`${prefixParameter}`);
-      statement.append("), aggRoutes) OR startsWith(aggEntryUrl, ");
-      statement.append(SQL`${prefixParameter}`);
-      statement.append(") OR startsWith(path(aggEntryUrl), ");
-      statement.append(SQL`${prefixParameter}`);
-      statement.append("))");
+      const appendUrlArms: (url: string) => void = (url: string): void => {
+        statement.append(`startsWith(${url}, `);
+        statement.append(SQL`${prefixParameter}`);
+        statement.append(`) OR startsWith(path(${url}), `);
+        statement.append(SQL`${prefixParameter}`);
+        statement.append(`) OR startsWith(${toHashRoutePathSql(url)}, `);
+        statement.append(SQL`${prefixParameter}`);
+        statement.append(")");
+      };
+
+      statement.append(" AND (arrayExists(r -> ");
+      appendUrlArms("r");
+      statement.append(", aggRoutes) OR ");
+      appendUrlArms("aggEntryUrl");
+      statement.append(")");
     }
 
     if (filters.search) {

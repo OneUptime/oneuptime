@@ -203,6 +203,43 @@ describe("page keys", () => {
     ).toBe("/orders/:id");
   });
 
+  /*
+   * #7878: the scrubber keeps "#/" and "#!/" routes, so the stored URLs of
+   * a hash-routed app are one page each, read either way, and the query a
+   * route carries inside the fragment is no part of the page.
+   */
+  test("read a hashbang route as the path, and leave a route's query out", () => {
+    const key: (url: string) => string = (url: string): string => {
+      return toUserFlowPageKey(url, {
+        groupDynamicSegments: true,
+        includeHost: false,
+      });
+    };
+
+    expect(key("https://x.example/#!/orders")).toBe("/orders");
+    expect(key("https://x.example/#/orders?tab=open")).toBe("/orders");
+    expect(key("https://x.example/#!/orders/42?tab=open")).toBe("/orders/:id");
+    expect(key("https://x.example/app/#/")).toBe("/");
+    // An anchor is not a route: the page is the path.
+    expect(key("https://x.example/pricing#faq")).toBe("/pricing");
+    expect(key("https://x.example/pricing#!faq")).toBe("/pricing");
+  });
+
+  test("a hash-routed session is a journey through its routes", () => {
+    const journeys: Array<UserFlowJourney> = journeysOf([
+      {
+        id: "1",
+        pages: [
+          "https://x.example/#/orders",
+          "https://x.example/#/orders/42",
+          "https://x.example/#!/settings",
+        ],
+      },
+    ]);
+
+    expect(journeys[0]?.pages).toEqual(["/orders", "/orders/:id", "/settings"]);
+  });
+
   test("group id-shaped segments, and only those", () => {
     const grouped: (url: string) => string = (url: string): string => {
       return toUserFlowPageKey(`https://a.example.com${url}`, {

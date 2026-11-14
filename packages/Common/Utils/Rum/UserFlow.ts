@@ -3,6 +3,7 @@ import {
   UserFlowSessionDto,
 } from "../../Types/Rum/UserFlow";
 import { setPathApartInSentence } from "./PathInSentence";
+import UrlScrubber from "./UrlScrubber";
 
 /*
  * The User Flows engine: recorded session journeys in, everything the page
@@ -339,17 +340,18 @@ function parsePageUrl(rawUrl: string): ParsedPageUrl {
       parsed.origin === RELATIVE_BASE && !trimmed.startsWith(RELATIVE_BASE);
 
     /*
-     * A hash router keeps its route in the fragment ("/#/orders"). The
-     * recorder stores such URLs with the fragment when it can; treat
-     * "#/..." as the path so those apps do not collapse onto "/".
+     * A hash router keeps its route in the fragment ("/#/orders",
+     * "/#!/orders"), and the scrubber keeps that route in every URL it
+     * stores. The route is the page, so those apps do not collapse onto
+     * "/"; the query a route can carry inside the fragment is left out,
+     * as a path's query is.
      */
-    let path: string = parsed.pathname || "/";
+    const hashRoute: string | null = UrlScrubber.getHashRoute(parsed.hash);
 
-    if (parsed.hash.startsWith("#/")) {
-      path = parsed.hash.slice(1);
-    }
-
-    return { host: isRelative ? "" : parsed.host, path: path };
+    return {
+      host: isRelative ? "" : parsed.host,
+      path: hashRoute === null ? parsed.pathname || "/" : hashRoute,
+    };
   } catch {
     return { host: "", path: trimmed };
   }

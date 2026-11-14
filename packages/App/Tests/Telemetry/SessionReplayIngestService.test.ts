@@ -2503,6 +2503,90 @@ describe("SessionReplayIngestService.processFromQueue", () => {
       expect(stored).not.toContain("550e8400");
       expect(chunk["url"]).toBe("https://shop.example.com/account");
     });
+
+    /*
+     * #7878. A hash router keeps its route in the fragment, and the
+     * recorder keeps it. The server's re-scrub dropped the fragment
+     * whole, so both routes below were stored as ".../" - one route, one
+     * page per session, one page on User Flows.
+     */
+    test("a hash router's routes are stored, in order", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            {
+              chunkIndex: 0,
+              url: "https://shop.example.com/#/orders/42",
+              routes: [
+                "https://shop.example.com/#/orders",
+                "https://shop.example.com/#/orders/42",
+              ],
+              meta: {
+                entryUrl: "https://shop.example.com/#/orders",
+                browserName: "Chrome",
+                browserVersion: "141",
+                osName: "macOS",
+                deviceType: "desktop",
+                viewportWidth: 1440,
+                viewportHeight: 900,
+              },
+            },
+          ]),
+        ),
+      );
+
+      const chunk: JSONObject = getSubmittedRows("RumSessionChunkV1")[0]!;
+
+      expect(chunk["routes"]).toEqual([
+        "https://shop.example.com/#/orders",
+        "https://shop.example.com/#/orders/42",
+      ]);
+      expect(chunk["url"]).toBe("https://shop.example.com/#/orders/42");
+
+      const header: JSONObject = getSubmittedRows("RumSessionV1")[0]!;
+
+      expect(header["routes"]).toEqual([
+        "https://shop.example.com/#/orders",
+        "https://shop.example.com/#/orders/42",
+      ]);
+      expect(header["entryUrl"]).toBe("https://shop.example.com/#/orders");
+      expect(header["exitUrl"]).toBe("https://shop.example.com/#/orders/42");
+    });
+
+    /*
+     * What an older or hand-made client sends is scrubbed the same way: a
+     * route's query and ids go, and every other fragment is dropped.
+     */
+    test("a route's query and every other fragment are still dropped server side", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            {
+              chunkIndex: 0,
+              url: "https://shop.example.com/callback#access_token=s3cr3t-a",
+              routes: [
+                "https://shop.example.com/#/reset?token=s3cr3t-b",
+                "https://shop.example.com/#!/users/550e8400-e29b-41d4-a716-446655440000",
+                "https://shop.example.com/pricing#faq",
+              ],
+            },
+          ]),
+        ),
+      );
+
+      const chunk: JSONObject = getSubmittedRows("RumSessionChunkV1")[0]!;
+      const stored: string = JSON.stringify([chunk["url"], chunk["routes"]]);
+
+      expect(stored).not.toContain("s3cr3t");
+      expect(stored).not.toContain("token");
+      expect(stored).not.toContain("550e8400");
+      expect(chunk["routes"]).toEqual([
+        "https://shop.example.com/#/reset",
+        "https://shop.example.com/#!/users/[redacted]",
+        "https://shop.example.com/pricing",
+        "https://shop.example.com/callback",
+      ]);
+    });
   });
 
   /*

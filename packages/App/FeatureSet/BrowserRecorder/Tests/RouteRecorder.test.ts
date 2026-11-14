@@ -158,9 +158,10 @@ describe("RouteRecorder", (): void => {
   });
 
   /*
-   * Hash routers keep the whole route in the fragment, which UrlScrubber
-   * drops - so `#/orders` -> `#/orders/42` used to scrub to identical
-   * strings and every hash-routed app reported one page per session.
+   * Hash routers keep the whole route in the fragment. Compared without
+   * it, `#/orders` -> `#/orders/42` used to scrub to identical strings and
+   * every hash-routed app reported one page per session; UrlScrubber now
+   * keeps the route.
    */
   describe("hash routing", (): void => {
     it("records a hashchange between hash routes, scrubbed like a path", (): void => {
@@ -211,6 +212,39 @@ describe("RouteRecorder", (): void => {
       expect(routes).toHaveLength(0);
       expect(recorder.getCurrentUrl()).toBe(
         "https://shop.example.com/checkout",
+      );
+    });
+
+    /*
+     * #7878: the ingest scrubs every URL again with UrlScrubber.scrub, so a
+     * route has to come through that unchanged, or the server stores
+     * something other than what the recorder compared.
+     */
+    it("records what the ingest's own scrub keeps", (): void => {
+      window.history.pushState(
+        {},
+        "",
+        "/app#/orders/507f1f77bcf86cd799439011?token=s3cr3t",
+      );
+      window.history.pushState({}, "", "/app#!/settings");
+
+      const stored: Array<string> = routes.map(
+        (route: RecordedRoute): string => {
+          return route.to;
+        },
+      );
+
+      expect(stored).toEqual([
+        "https://shop.example.com/app#/orders/[redacted]",
+        "https://shop.example.com/app#!/settings",
+      ]);
+
+      for (const url of stored) {
+        expect(UrlScrubber.scrub(url, [])).toBe(url);
+      }
+
+      expect(recorder.getCurrentUrl()).toBe(
+        UrlScrubber.scrub(window.location.href),
       );
     });
 

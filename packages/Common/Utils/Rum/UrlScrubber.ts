@@ -47,6 +47,14 @@ const OPAQUE_TOKEN_SEGMENT: RegExp = /^[A-Za-z0-9_-]{32,}$/;
 
 const REDACTED: string = "[redacted]";
 
+/*
+ * A fragment that is a route rather than an in-page anchor. Hash routers
+ * (Angular's HashLocationStrategy, React's HashRouter, Vue's hash mode,
+ * every "#/"-routed admin tool) keep the whole route there:
+ * "https://shop.example.com/#/orders/42", or "#!/orders/42".
+ */
+const HASH_ROUTE_PATTERN: RegExp = /^#!?\//;
+
 export default class UrlScrubber {
   /*
    * Reduce a URL to origin + scrubbed path. Query and fragment are
@@ -54,6 +62,16 @@ export default class UrlScrubber {
    * which case its *name* is kept and its value is redacted — enough to
    * tell "this page was loaded with a coupon code" from "it wasn't",
    * without recording which code.
+   *
+   * The one fragment kept is a hash router's route (scrubHashRoute): it
+   * is the page, as much as the path is. Without it every page of a
+   * hash-routed app was stored as "https://shop.example.com/", and the
+   * app reported one page per session. Any other fragment - an anchor
+   * ("#pricing"), a token ("#access_token=...") - is still dropped.
+   *
+   * The browser recorder and the ingest both run this, the ingest again
+   * over whatever the recorder sent, so it has to keep what it keeps
+   * when it runs over its own output.
    *
    * Never throws: a URL that will not parse is reduced to a constant
    * rather than propagating an exception into the recorder's hot path or
@@ -96,7 +114,40 @@ export default class UrlScrubber {
       ? scrubbedPath
       : `${parsed.origin}${scrubbedPath}`;
 
-    return query ? `${base}?${query}` : base;
+    const hashRoute: string = UrlScrubber.scrubHashRoute(parsed.hash);
+
+    return `${query ? `${base}?${query}` : base}${hashRoute}`;
+  }
+
+  /*
+   * A hash router's route, scrubbed as a path is: "#/orders/42?token=x" ->
+   * "#/orders/42", "#!/u/someone@example.com" -> "#!/u/[redacted]". Empty
+   * for any other fragment, which is dropped.
+   */
+  public static scrubHashRoute(hash: string): string {
+    const route: string | null = UrlScrubber.getHashRoute(hash);
+
+    if (route === null) {
+      return "";
+    }
+
+    return `${hash.slice(0, hash.indexOf("/"))}${UrlScrubber.scrubPath(route)}`;
+  }
+
+  /*
+   * The path of a hash router's route, without the query a route can
+   * carry inside the fragment: "#/orders/42?tab=open" and "#!/orders/42"
+   * are "/orders/42". Null when the fragment is not a route.
+   */
+  public static getHashRoute(hash: string): string | null {
+    if (!HASH_ROUTE_PATTERN.test(hash)) {
+      return null;
+    }
+
+    const route: string = hash.slice(hash.indexOf("/"));
+    const queryIndex: number = route.indexOf("?");
+
+    return queryIndex === -1 ? route : route.slice(0, queryIndex);
   }
 
   /* Replace identifier-shaped segments, preserving route structure. */

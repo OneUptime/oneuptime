@@ -14,6 +14,92 @@ describe("UrlScrubber", () => {
       ).toBe("https://app.example.com/settings");
     });
 
+    /*
+     * #7878: a hash router keeps the whole route in the fragment. The
+     * recorder kept it and the ingest's own scrub dropped it again, so a
+     * hash-routed app was stored as one page per session.
+     */
+    describe("a hash router's route", () => {
+      it("keeps the route, scrubbed as a path is, without its query", () => {
+        expect(
+          UrlScrubber.scrub(
+            "https://x.example/#/orders/123456789012?token=abc",
+          ),
+        ).toBe("https://x.example/#/orders/[redacted]");
+        expect(
+          UrlScrubber.scrub("https://x.example/app/#/u/someone@example.com"),
+        ).toBe("https://x.example/app/#/u/[redacted]");
+      });
+
+      it("keeps the hashbang form as written", () => {
+        expect(UrlScrubber.scrub("https://x.example/#!/a")).toBe(
+          "https://x.example/#!/a",
+        );
+        expect(UrlScrubber.scrub("https://x.example/#!/a/b?c=d")).toBe(
+          "https://x.example/#!/a/b",
+        );
+      });
+
+      it("still drops an anchor and a token in the fragment", () => {
+        expect(UrlScrubber.scrub("https://x.example/pricing#pricing")).toBe(
+          "https://x.example/pricing",
+        );
+        expect(
+          UrlScrubber.scrub("https://x.example/callback#access_token=abc"),
+        ).toBe("https://x.example/callback");
+        expect(UrlScrubber.scrub("https://x.example/a#!b")).toBe(
+          "https://x.example/a",
+        );
+        expect(UrlScrubber.scrub("https://x.example/a#")).toBe(
+          "https://x.example/a",
+        );
+      });
+
+      it("puts the route after a kept query and in a relative URL", () => {
+        expect(
+          UrlScrubber.scrub("https://x.example/?plan=pro#/pricing?x=1", [
+            "plan",
+          ]),
+        ).toBe("https://x.example/?plan=[redacted]#/pricing");
+        expect(UrlScrubber.scrub("/app?x=1#/orders/42")).toBe(
+          "/app#/orders/42",
+        );
+      });
+
+      /*
+       * The ingest scrubs what the recorder already scrubbed: running it
+       * again must keep the route it kept, or the server undoes it.
+       */
+      it("keeps what it keeps when it runs over its own output", () => {
+        for (const url of [
+          "https://x.example/#/orders/123456789012?token=abc",
+          "https://x.example/#!/u/someone@example.com/edit",
+          "https://x.example/app/#/caf%C3%A9",
+          "https://x.example/#/",
+        ]) {
+          const once: string = UrlScrubber.scrub(url);
+
+          expect(once).toContain("#");
+          expect(UrlScrubber.scrub(once)).toBe(once);
+        }
+      });
+
+      it("reads a route's path without its query, and nothing else as a route", () => {
+        expect(UrlScrubber.getHashRoute("#/orders/42?tab=open")).toBe(
+          "/orders/42",
+        );
+        expect(UrlScrubber.getHashRoute("#!/orders")).toBe("/orders");
+        expect(UrlScrubber.getHashRoute("#/")).toBe("/");
+        expect(UrlScrubber.getHashRoute("#pricing")).toBeNull();
+        expect(UrlScrubber.getHashRoute("#!pricing")).toBeNull();
+        expect(UrlScrubber.getHashRoute("")).toBeNull();
+        expect(UrlScrubber.scrubHashRoute("#pricing")).toBe("");
+        expect(UrlScrubber.scrubHashRoute("#!/a/123456789012?b=c")).toBe(
+          "#!/a/[redacted]",
+        );
+      });
+    });
+
     it("redacts a password reset token carried in the query string", () => {
       /*
        * The motivating case: this URL in a session list would hand a
