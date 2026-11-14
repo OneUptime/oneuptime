@@ -52248,7 +52248,7 @@
   "Monitors ({{count}})": "Monitorer ({{count}})",
   "Monitors in status \"{{status}}\" ({{count}})": "Monitorer med status \"{{status}}\" ({{count}})",
   "Monitors with problems ({{count}})": "Monitorer med problemer ({{count}})",
-  "Non-operational first, Disabled last": "Ikke operationelle først, Deaktiveret sidst",
+  "Non-operational first, Disabled last": "Ikke-operationelle først, Deaktiveret sidst",
   "Non-operational monitors first": "Ikke-operationelle monitorer først",
   "Non-operational monitors only": "Kun ikke-operationelle monitorer"
 }

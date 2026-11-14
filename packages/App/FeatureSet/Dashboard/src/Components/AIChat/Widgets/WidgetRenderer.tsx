@@ -11,7 +11,11 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 import { navigateToCitationTarget } from "../CitationTargetNav";
 import { formatEvidenceLabel } from "../../../Utils/InvestigationEvidenceFormat";
-import { DrawnWidgetHeading, getDrawnWidgetHeading } from "../TableWords";
+import {
+  DrawnWidgetHeading,
+  getDrawnWidgetHeading,
+  WORDED_HEADING_LINE_CLASS_NAME,
+} from "../TableWords";
 import ToolActionSentence from "../ToolActionSentence";
 import ChartWidget from "./ChartWidget";
 import DataTableWidget from "./DataTableWidget";
@@ -91,9 +95,17 @@ const WidgetCard: FunctionComponent<{ widget: AIChatWidget }> = ({
             className="h-3.5 w-3.5 flex-shrink-0 text-gray-500"
           />
           <div className="min-w-0">
+            {/*
+              A worded title and its line wrap, never cut, their lines
+              balanced (TableWords' WORDED_HEADING_LINE_CLASS_NAME). A
+              title as its tool wrote it keeps its one line, as it always
+              did.
+            */}
             <div
               data-testid="ai-chat-widget-title"
-              className="truncate text-xs font-semibold text-gray-900"
+              className={`${
+                heading.title ? WORDED_HEADING_LINE_CLASS_NAME : "truncate"
+              } text-xs font-semibold text-gray-900`}
             >
               {heading.title ? (
                 <ToolActionSentence sentence={heading.title} />
@@ -110,8 +122,7 @@ const WidgetCard: FunctionComponent<{ widget: AIChatWidget }> = ({
             {heading.description ? (
               <div
                 data-testid="ai-chat-widget-description"
-                className="truncate text-[10px] text-gray-400"
-                title={heading.description.text}
+                className={`${WORDED_HEADING_LINE_CLASS_NAME} text-[10px] text-gray-400`}
               >
                 <ToolActionSentence sentence={heading.description} />
               </div>

@@ -4323,10 +4323,11 @@ test.describe("monitors looked up, and the monitors table", () => {
    * while the card above said the same monitor's type and Disabled in the
    * reader's language. The table says them in the reader's language now -
    * its count the reader's way - and a monitor's name and the status the
-   * project named are data, as written.
+   * project named are data, as written. Its title and line wrap, never cut:
+   * German's order line is wider than a 360 pixel phone leaves it.
    */
   for (const language of ["de", "fa"]) {
-    test(`the monitors table, in ${language === "de" ? "German" : "Persian"} at 1280 and 390 pixels, light and dark: its title, its line, each type and Disabled in the reader's words, as the cards say them`, async ({
+    test(`the monitors table, in ${language === "de" ? "German" : "Persian"} at 1280, 390 and 360 pixels, light and dark: its title, its line, each type and Disabled in the reader's words, as the cards say them`, async ({
       page,
     }: {
       page: Page;
@@ -4335,8 +4336,8 @@ test.describe("monitors looked up, and the monitors table", () => {
 
       for (const [width, theme] of [
         [1280, "light"],
-        [390, "light"],
-        [1280, "dark"],
+        [390, "dark"],
+        [360, "light"],
       ] as Array<[number, string]>) {
         await page.setViewportSize({ width, height: 844 });
         await load(
@@ -4441,6 +4442,20 @@ test.describe("monitors looked up, and the monitors table", () => {
           expect(fits.scroll, `${language} ${width}`).toBeLessThanOrEqual(
             fits.client,
           );
+        }
+
+        // Wrapped where it must be, beside Open and never under it.
+        const [titleBox, descriptionBox, openBox] = await boxesInOneFrame([
+          title,
+          description,
+          widget.getByRole("button", { name: filled(words, "Open") }),
+        ]);
+        for (const box of [titleBox!, descriptionBox!]) {
+          expect(
+            box.x + box.width <= openBox!.x ||
+              openBox!.x + openBox!.width <= box.x,
+            `${language} ${width}: the heading clear of Open`,
+          ).toBe(true);
         }
 
         await expectNothingScrollsSideways(page);

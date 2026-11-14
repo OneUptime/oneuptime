@@ -49,6 +49,16 @@ export function getKnownTableWords(
     : null;
 }
 
+/*
+ * How a worded title and the line under it are laid out: whole, wrapped
+ * where they must be, their lines balanced. In the reader's language they
+ * run longer than the English, and a status the project named sits inside
+ * the title: cut on one line, a phone lost the title's count ("Monitore
+ * mit Status „Partial Outage …") and Russian's order line at 390 pixels.
+ * Balanced, a count never stands alone on the last line.
+ */
+export const WORDED_HEADING_LINE_CLASS_NAME: string = "break-words text-balance";
+
 export interface DrawnWidgetHeading {
   /*
    * The title in the reader's language, read its language's way; null

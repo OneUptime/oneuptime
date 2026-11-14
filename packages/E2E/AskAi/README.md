@@ -132,9 +132,9 @@ fails on any uncaught page error:
   a dot in its own colour before the line that names it (red for Offline, gray for monitoring
   off), in light and dark, and at the line's right on a Persian phone; the monitors table keeping
   "Operational" whole on a 360 pixel phone while a monitor's URL wraps inside the table, after
-  its slashes and before its host's dots, at every width; and, in German and Persian at 1280 and
-  390 pixels, light and dark, the table's title, the line under it, each type and Disabled in the
-  reader's words - the count the reader's way - as the cards above it say them, its title and
-  line whole.
+  its slashes and before its host's dots, at every width; and, in German and Persian at 1280,
+  390 and 360 pixels, light and dark, the table's title, the line under it, each type and
+  Disabled in the reader's words - the count the reader's way - as the cards above it say them,
+  its title and line whole, wrapped where they must be, and clear of Open.
 
 Screenshots of each state land in `output/playwright/ask-ai-ui/`.

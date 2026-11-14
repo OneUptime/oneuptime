@@ -16,6 +16,7 @@ import {
   getDrawnTableCell,
   getDrawnWidgetHeading,
   getKnownTableWords,
+  WORDED_HEADING_LINE_CLASS_NAME,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/TableWords";
 import WidgetBuilder from "../../../Server/Utils/AI/Toolbox/WidgetBuilder";
 import { getMonitorsTable } from "../../../Server/Utils/AI/Toolbox/MonitorsTableWords";
@@ -295,6 +296,80 @@ describe("the monitors table in the reader's language", () => {
         .getByTestId("ai-chat-widget-description")
         .querySelector("bdi"),
     ).toHaveAttribute("dir", "rtl");
+  });
+});
+
+/*
+ * In the reader's language the title and its line run longer than the
+ * English, and a status the project named sits inside the title: cut on
+ * one line, a 360 pixel phone lost the count ("Monitore mit Status
+ * „Partial Outage …") and Russian's order line was cut at 390 pixels. A
+ * worded title and line wrap, whole, their lines balanced so a count never
+ * stands alone; a heading as its tool wrote it keeps its one line.
+ */
+describe("the title and its line are whole, wrapped where they must be", () => {
+  test.each(
+    LANGUAGES.map((language: string): [string] => {
+      return [language];
+    }),
+  )(
+    "%s: a status-filtered title and its line wrap, balanced, never cut",
+    async (language: string) => {
+      await inLanguage(language);
+      render(
+        <WidgetRenderer
+          widgets={[
+            {
+              ...getMonitorsTable({
+                problemsOnly: false,
+                statusName: "Partial Outage - EU West",
+                rows: monitorRows(),
+              }),
+              id: "W3",
+            },
+          ]}
+        />,
+      );
+
+      const title: HTMLElement = within(tableWidget()).getByTestId(
+        "ai-chat-widget-title",
+      );
+      const description: HTMLElement = within(tableWidget()).getByTestId(
+        "ai-chat-widget-description",
+      );
+
+      expect(textOf(title)).toContain("Partial Outage - EU West");
+      for (const heading of [title, description]) {
+        expect(heading).toHaveClass("break-words", "text-balance");
+        expect(heading).not.toHaveClass("truncate");
+        // Whole on screen: no tooltip repeats it.
+        expect(heading).not.toHaveAttribute("title");
+      }
+      expect(WORDED_HEADING_LINE_CLASS_NAME.split(" ").sort()).toEqual([
+        "break-words",
+        "text-balance",
+      ]);
+    },
+  );
+
+  test("a table saved before it had words keeps its one line, its whole line as the tooltip", async () => {
+    await inLanguage("de");
+    render(<WidgetRenderer widgets={[savedBeforeWords()]} />);
+
+    const title: HTMLElement = within(tableWidget()).getByTestId(
+      "ai-chat-widget-title",
+    );
+    const description: HTMLElement = within(tableWidget()).getByTestId(
+      "ai-chat-widget-description",
+    );
+
+    expect(title).toHaveClass("truncate");
+    expect(title).not.toHaveClass("text-balance");
+    expect(description).toHaveClass("truncate");
+    expect(description).toHaveAttribute(
+      "title",
+      "Non-operational first, Disabled last",
+    );
   });
 });
 
