@@ -382,7 +382,7 @@ const PAGES: Array<PageUnderTest> = [
     pickers: [
       {
         nothingSelectedMessage:
-          "No monitors affected by this scheduled maintenance event.",
+          "No monitors affected by this maintenance event.",
         mustOffer: ["monitors"],
         mustNotOffer: [
           "hosts",
@@ -395,7 +395,7 @@ const PAGES: Array<PageUnderTest> = [
       },
       {
         nothingSelectedMessage:
-          "No other resources affected by this scheduled maintenance event.",
+          "No other resources affected by this maintenance event.",
         mustOffer: [
           "hosts",
           "podmanHosts",

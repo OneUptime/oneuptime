@@ -48,8 +48,8 @@ const GERMAN: Record<string, string> = {
   // Inventory/LinkedResource
   "maintenance windows": "Wartungsfenster",
   "Kubernetes Pod": "Kubernetes-Pod",
-  "{{signal}} are raised against services, hosts and Kubernetes clusters. A {{type}} does not carry its own — look at the service or host it belongs to, which you can find under Connections.":
-    "{{signal}} werden für Dienste, Hosts und Kubernetes-Cluster erfasst. Ein {{type}} hat keine eigenen — sehen Sie sich den Dienst oder Host an, zu dem er gehört; Sie finden ihn unter Verbindungen.",
+  "{{signal}} are raised against services, hosts and Kubernetes clusters. This {{type}} does not carry its own — look at the service or host it belongs to, which you can find under Connections.":
+    "{{signal}} werden für Dienste, Hosts und Kubernetes-Cluster erfasst. Dieser {{type}} hat keine eigenen — sehen Sie sich den Dienst oder Host an, zu dem er gehört; Sie finden ihn unter Verbindungen.",
   // Inventory/InventoryLiveness
   "{{count}}h ago": "vor {{count}} Std.",
   "just now": "gerade eben",
@@ -110,11 +110,15 @@ describe("before i18next is set up, the helpers answer in English, word for word
     ).toEqual(["Grouping: Manual episode"]);
   });
 
+  /*
+   * The item's type is a noun in the middle of the sentence, after "This"
+   * (#7862): never a label's "A Kubernetes Pod".
+   */
   test("an inventory item's empty state starts with the signal, capitalised", () => {
     expect(
       describeMissingLink(EntityType.KubernetesPod, "maintenance windows"),
     ).toBe(
-      "Maintenance windows are raised against services, hosts and Kubernetes clusters. A Kubernetes Pod does not carry its own — look at the service or host it belongs to, which you can find under Connections.",
+      "Maintenance windows are raised against services, hosts and Kubernetes clusters. This Kubernetes pod does not carry its own — look at the service or host it belongs to, which you can find under Connections.",
     );
   });
 
@@ -166,6 +170,7 @@ describe("handed the reader's translator, the helpers answer in German", () => {
     ).toEqual(["Grouping", "Last alert added"]);
   });
 
+  // German nouns keep their capital in the middle of a sentence.
   test("the empty state is one German sentence with the signal and the type in it", () => {
     expect(
       describeMissingLink(
@@ -174,7 +179,7 @@ describe("handed the reader's translator, the helpers answer in German", () => {
         germanTranslator,
       ),
     ).toBe(
-      "Wartungsfenster werden für Dienste, Hosts und Kubernetes-Cluster erfasst. Ein Kubernetes-Pod hat keine eigenen — sehen Sie sich den Dienst oder Host an, zu dem er gehört; Sie finden ihn unter Verbindungen.",
+      "Wartungsfenster werden für Dienste, Hosts und Kubernetes-Cluster erfasst. Dieser Kubernetes-Pod hat keine eigenen — sehen Sie sich den Dienst oder Host an, zu dem er gehört; Sie finden ihn unter Verbindungen.",
     );
   });
 

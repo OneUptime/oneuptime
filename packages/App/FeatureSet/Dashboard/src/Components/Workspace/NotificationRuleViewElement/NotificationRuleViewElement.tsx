@@ -384,9 +384,15 @@ export function getNotificationRuleCardColumns(
 
   /*
    * Which updates the rule posts (its Updates step), for the rules that
-   * choose them, on the cards of those that leave some out.
+   * choose them, on the cards of those that leave some out. Where a new
+   * rule does not start on every update - an on-call policy rule starts on
+   * Key updates only (#7549) - on every card: a rule saved before, which
+   * still posts every update, says so beside the new ones.
    */
   const eventType: NotificationRuleEventType = data.eventType;
+
+  const newRulesPostEveryUpdate: boolean =
+    NotificationRuleUpdates.getNewRuleUpdatesToPost(eventType) === undefined;
 
   if (isUpdatesEventType(eventType)) {
     columns.push({
@@ -400,6 +406,7 @@ export function getNotificationRuleCardColumns(
       disableSort: true,
       showInListIf: (item: WorkspaceNotificationRule): boolean => {
         return (
+          !newRulesPostEveryUpdate ||
           NotificationRuleUpdates.getChoice({
             rule: ruleOf(item),
             eventType: eventType,

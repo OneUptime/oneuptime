@@ -703,7 +703,8 @@ describe("the titles every resource repeats, worded alike", () => {
     ["Deleted At", "زمان حذف"],
     ["Executed At", "زمان اجرا"],
     ["Last Active At", "زمان آخرین فعالیت"],
-    ["Enterprise License Expires At", "تاریخ انقضای مجوز سازمانی"],
+    // A license is پروانه, never مجوز (#7340).
+    ["Enterprise License Expires At", "تاریخ انقضای پروانهٔ سازمانی"],
     ["Schedule First Event At", "زمان اولین رویداد زمان‌بندی‌شده"],
     // The titles that were Persian before #7089 read the same way.
     ["Created At", "تاریخ ساخت"],
@@ -1229,6 +1230,95 @@ describe("a cloud's zones and recordsets, in Persian words", () => {
       ),
     ).toEqual([]);
   });
+
+  /*
+   * A time zone is منطقه زمانی, with no ezafe mark (U+0654) on منطقه, as
+   * the glossary writes it (#7866). The Persian docs wrote it with the mark
+   * 31 times on 14 pages, three of them both ways, and so did one Dashboard
+   * text: the description of a product analytics event's daily chart.
+   */
+  const TIME_ZONE_IN_PERSIAN: string = "منطقه زمانی";
+  // A time zone's ezafe written with a hamza: the spelling the glossary does not use.
+  const TIME_ZONE_WITH_HAMZA: string = `منطقه${ch(0x654)} زمانی`;
+
+  const saysTimeZoneWithHamza: (text: string) => boolean = (
+    text: string,
+  ): boolean => {
+    return text.includes(TIME_ZONE_WITH_HAMZA);
+  };
+
+  // The numbers of a docs page's lines, outside fenced code, whose text `isSaid`.
+  const linesOn: (
+    markdown: string,
+    isSaid: (text: string) => boolean,
+  ) => Array<number> = (
+    markdown: string,
+    isSaid: (text: string) => boolean,
+  ): Array<number> => {
+    return proseLinesOf(markdown)
+      .filter(([, text]: [number, string]): boolean => {
+        return isSaid(text);
+      })
+      .map(([line]: [number, string]): number => {
+        return line;
+      });
+  };
+
+  // Every docs line, outside fenced code, whose text `isSaid`: page:line.
+  const docsLinesWhere: (isSaid: (text: string) => boolean) => Array<string> = (
+    isSaid: (text: string) => boolean,
+  ): Array<string> => {
+    return DOCS_PAGES.flatMap(
+      ([page, markdown]: [string, string]): Array<string> => {
+        return linesOn(markdown, isSaid).map((line: number): string => {
+          return `${page}:${line}`;
+        });
+      },
+    );
+  };
+
+  test("a time zone is منطقه زمانی, with no ezafe mark, in every Dashboard text and every Persian docs page", () => {
+    // Many say it, in both: a scan that reads nothing would pass.
+    expect(
+      WORDED.filter(([, , persian]: [string, string, string]): boolean => {
+        return persian.includes(TIME_ZONE_IN_PERSIAN);
+      }).length,
+    ).toBeGreaterThan(40);
+    expect(
+      docsLinesWhere((text: string): boolean => {
+        return text.includes(TIME_ZONE_IN_PERSIAN);
+      }).length,
+    ).toBeGreaterThan(50);
+
+    expect({
+      texts: findWrong((_english: string, persian: string): boolean => {
+        return saysTimeZoneWithHamza(persian);
+      }),
+      docs: docsLinesWhere(saysTimeZoneWithHamza),
+    }).toEqual({ texts: [], docs: [] });
+  });
+
+  test("the time zone check finds the ezafe mark in a text and on a docs page, and leaves fenced code alone (control)", () => {
+    expect(
+      saysTimeZoneWithHamza(`روزها در ${TIME_ZONE_WITH_HAMZA} شما هستند.`),
+    ).toBe(true);
+    expect(
+      saysTimeZoneWithHamza(`روزها در ${TIME_ZONE_IN_PERSIAN} شما هستند.`),
+    ).toBe(false);
+    expect(
+      linesOn(
+        [
+          `روزها در ${TIME_ZONE_WITH_HAMZA} شما هستند.`,
+          `روزها در ${TIME_ZONE_IN_PERSIAN} شما هستند.`,
+          "```text",
+          TIME_ZONE_WITH_HAMZA,
+          "```",
+          `**${TIME_ZONE_IN_PERSIAN}** و ${TIME_ZONE_WITH_HAMZA}`,
+        ].join("\n"),
+        saysTimeZoneWithHamza,
+      ),
+    ).toEqual([1, 6]);
+  });
 });
 
 /*
@@ -1618,6 +1708,83 @@ describe("OpenStack's load balancers, floating IPs, pools and shares, in Persian
         return page;
       }),
     ).not.toContain(copy);
+  });
+
+  /*
+   * The Persian docs spell a load balancer as the Dashboard does (#7866).
+   * They wrote it with the ezafe mark (U+0654) 21 times on 14 pages, and
+   * once, on the self-hosting guide, as a distributor of load: the word
+   * #7679 took out of the Dashboard. Every page is read, not only
+   * PERSIAN_PAGES: a page still in English has no Persian to find, and a
+   * page translated later is read at once.
+   */
+  const DISTRIBUTOR: string = `توزیع${ZERO_WIDTH_NON_JOINER}کننده`;
+  // A load balancer spelt as the glossary does not: with the ezafe mark, or as a distributor.
+  const LOAD_BALANCER_SPELT_OTHERWISE: RegExp = new RegExp(
+    `${LOAD_BALANCER_WITH_HAMZA}|${DISTRIBUTOR}`,
+    "g",
+  );
+
+  // What a docs page says for a load balancer outside fenced code that the glossary does not, each with its line's number.
+  const loadBalancersSpeltOtherwiseOn: (markdown: string) => Array<string> = (
+    markdown: string,
+  ): Array<string> => {
+    return proseLinesOf(markdown).flatMap(
+      ([line, text]: [number, string]): Array<string> => {
+        return (text.match(LOAD_BALANCER_SPELT_OTHERWISE) || []).map(
+          (spelling: string): string => {
+            return `${line}: ${spelling}`;
+          },
+        );
+      },
+    );
+  };
+
+  test("the Persian docs spell a load balancer as the Dashboard does: never with the ezafe mark, never as a distributor", () => {
+    const found: Array<string> = DOCS_PAGES.flatMap(
+      ([page, markdown]: [string, string]): Array<string> => {
+        return loadBalancersSpeltOtherwiseOn(markdown).map(
+          (at: string): string => {
+            return `${page}:${at}`;
+          },
+        );
+      },
+    );
+    const lines: Array<[number, string]> = DOCS_PAGES.flatMap(
+      ([, markdown]: [string, string]): Array<[number, string]> => {
+        return proseLinesOf(markdown);
+      },
+    );
+
+    // Every page, and many lines that say one: a scan that reads none would pass.
+    expect(DOCS_PAGES.length).toBeGreaterThan(300);
+    expect(
+      lines.filter(([, text]: [number, string]): boolean => {
+        return text.includes(LOAD_BALANCER);
+      }).length,
+    ).toBeGreaterThan(30);
+    expect(found).toEqual([]);
+
+    // The pages #7866 named say it as the Dashboard does.
+    expect(persianPage("installation/self-hosting-guide.md")).toContain(
+      LOAD_BALANCER,
+    );
+    expect(persianPage("monitor/ip-monitor.md")).toContain(LOAD_BALANCER);
+  });
+
+  test("the docs check finds a load balancer with the ezafe mark or as a distributor, and leaves fenced code alone (control)", () => {
+    expect(
+      loadBalancersSpeltOtherwiseOn(
+        [
+          `یک ${LOAD_BALANCER_WITH_HAMZA} بیرونی`,
+          `یک ${LOAD_BALANCER} یا ${LOAD_BALANCERS}`,
+          "```text",
+          LOAD_BALANCER_WITH_HAMZA,
+          "```",
+          `پراکسی یا یک ${DISTRIBUTOR}${ch(0x654)} بار`,
+        ].join("\n"),
+      ),
+    ).toEqual([`1: ${LOAD_BALANCER_WITH_HAMZA}`, `6: ${DISTRIBUTOR}`]);
   });
 });
 

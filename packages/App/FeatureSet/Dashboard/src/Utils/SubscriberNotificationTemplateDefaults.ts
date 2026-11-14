@@ -85,7 +85,7 @@ const subscriptionConfirmationDefaults: EventDefaults = {
     subject: "{{statusPageName}} - Please confirm your subscription",
     body: `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif; width: 100%; max-width: 600px; box-sizing: border-box; margin: 0 auto; padding: 32px 24px; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff; color: #475569; overflow-wrap: anywhere; word-break: break-word;">
   <h1 style="color: #0f172a; font-size: 28px; line-height: 36px; letter-spacing: -0.6px; font-weight: 700; margin: 0 0 16px 0;">{{statusPageName}} - Please confirm your subscription</h1>
-  <p style="color: #475569; font-size: 15px; line-height: 24px; margin: 0 0 16px 0;">You will be the first to hear from us when there are any incidents, announcements or scheduled maintenance events.</p>
+  <p style="color: #475569; font-size: 15px; line-height: 24px; margin: 0 0 16px 0;">You will be the first to hear from us when there are any incidents, announcements or maintenance events.</p>
   <p style="margin: 0 0 24px 0;">
     <a href="{{confirmationUrl}}" style="display: inline-block; max-width: 100%; box-sizing: border-box; text-align: center; line-height: 22px; background-color: #111111; color: #ffffff; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 600;">Confirm Subscription</a>
   </p>
@@ -104,7 +104,7 @@ const subscribedDefaults: EventDefaults = {
     subject: "You have been subscribed to {{statusPageName}}",
     body: `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif; width: 100%; max-width: 600px; box-sizing: border-box; margin: 0 auto; padding: 32px 24px; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff; color: #475569; overflow-wrap: anywhere; word-break: break-word;">
   <h1 style="color: #0f172a; font-size: 28px; line-height: 36px; letter-spacing: -0.6px; font-weight: 700; margin: 0 0 16px 0;">You have been subscribed to status page - {{statusPageName}}</h1>
-  <p style="color: #475569; font-size: 15px; line-height: 24px; margin: 0 0 16px 0;">You will be the first to hear from us when there are any incidents, announcements or scheduled maintenance events.</p>
+  <p style="color: #475569; font-size: 15px; line-height: 24px; margin: 0 0 16px 0;">You will be the first to hear from us when there are any incidents, announcements or maintenance events.</p>
   <p style="margin: 0 0 24px 0;">
     <a href="{{statusPageUrl}}" style="display: inline-block; max-width: 100%; box-sizing: border-box; text-align: center; line-height: 22px; background-color: #111111; color: #ffffff; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 600;">Go to Status Page</a>
   </p>
@@ -535,7 +535,7 @@ const scheduledMaintenanceCreatedDefaults: EventDefaults = {
     body: buildEmailHtml({
       title: "Scheduled Maintenance: {{scheduledMaintenanceTitle}}",
       intro:
-        "A scheduled maintenance event has been announced for services you're subscribed to.",
+        "A maintenance event has been announced for services you're subscribed to.",
       fields: [
         {
           label: "Maintenance Event",

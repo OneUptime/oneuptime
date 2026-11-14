@@ -736,7 +736,7 @@ Las reglas que trae la propia página merecen interiorizarse:
 - El conjunto de políticas que se ejecuta de verdad es la unión de las políticas de cada regla que coincide más cualquier política adjunta al incidente a mano o por una plantilla, sin duplicados, para que cada política se ejecute como mucho una vez. Cuando dos reglas que coinciden activan la misma política, avisa en cuanto cualquiera de ellas lo permite: de inmediato gana al horario laboral.
 
 > [!NOTE]
-> La gravedad es un criterio de coincidencia aquí y en ningún otro sitio. Una gravedad de incidente no tiene ningún campo de guardia: elegir «Critical Incident» no avisa, por sí solo, a nadie. Si quieres que la gravedad dirija los avisos, escribe una regla de guardia que coincida con ella.
+> La gravedad es un criterio de coincidencia aquí y en ningún otro sitio. Una gravedad de incidente no tiene ningún campo de guardia: elegir «Incidente crítico» no avisa, por sí solo, a nadie. Si quieres que la gravedad dirija los avisos, escribe una regla de guardia que coincida con ella.
 
 ## Adjuntar políticas de guardia directamente
 

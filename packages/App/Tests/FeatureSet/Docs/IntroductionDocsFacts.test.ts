@@ -42,7 +42,6 @@ import {
 import MonitorType, {
   MonitorTypeHelper,
 } from "Common/Types/Monitor/MonitorType";
-import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
 import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
 import {
   CheckOn,
@@ -66,6 +65,24 @@ import {
   isPlanFree,
 } from "Common/Types/Billing/SubscriptionPlanPricing";
 import User from "Common/Models/DatabaseModels/User";
+import {
+  GUIDED_SETUP_MONITORING_INTERVAL,
+  WebsiteAddress,
+  buildWebsiteMonitor,
+  parseWebsiteAddress,
+} from "Common/Utils/GuidedSetup/WebsiteMonitorRecords";
+import {
+  FirstOnCallPolicyCreate,
+  GUIDED_SETUP_POLICY_NAME,
+  buildFirstOnCallPolicy,
+} from "Common/Utils/GuidedSetup/OnCallPolicyRecords";
+import { PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_KEY } from "Common/Types/OnCallDutyPolicy/EveryNewEventRules";
+import {
+  WelcomeOutcomeFacts,
+  WelcomeStep,
+  isWelcomeStepDone,
+} from "Common/Types/WelcomeChecklist/WelcomeChecklist";
+import ActivationMilestone from "Common/Types/Analytics/ActivationMilestone";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -507,35 +524,423 @@ describe("Quickstart", () => {
     expect(QUICKSTART).not.toContain("the next step asks you to pick a plan");
   });
 
-  it("starts a monitor on the interval the create form starts on", () => {
+  /*
+   * The three jobs after the project (#7332): each checklist step opens a
+   * guided setup, so each section walks that setup - where the step leads,
+   * the setup's own steps by the titles its frame draws, the words it
+   * draws - and only then names the create form, as the other way in.
+   */
+  describe("walks the guided setup each checklist step opens", () => {
+    it("says it follows the guided setups, from its first lines", () => {
+      expect(QUICKSTART.split("\n")[2]).toContain(
+        "It follows the **Welcome to OneUptime 👋** checklist on your project's Home page, and the guided setups its steps open.",
+      );
+      expect(
+        QUICKSTART_GUIDED_SECTIONS.map((entry: QuickstartGuidedSection) => {
+          return entry.heading;
+        }),
+      ).toEqual(
+        QUICKSTART.split("\n")
+          .filter((line: string): boolean => {
+            return line.startsWith("## ");
+          })
+          .slice(2, 5),
+      );
+    });
+
+    it("opens the website setup from Create your first monitor, and says who gets the Monitors list instead", () => {
+      const task: ChecklistTask = checklistTaskOf("Monitor");
+      const where: StepDestinations = stepDestinations(task);
+      const first: QuickstartStep = quickstartStepsOf(
+        "## Monitor your website",
+      )[0] as QuickstartStep;
+
+      expect(where).toEqual({
+        mayCreate: "MONITOR_GUIDED_SETUP",
+        mayNotCreate: "MONITORS",
+      });
+      expect(first.heading).toBe("Open the website setup");
+      expect(first.body).toContain(
+        `In the checklist, click **${task.title}**. It opens the guided setup **${routedGuidedSetup(where.mayCreate).title}**,`,
+      );
+      expect(first.body).toContain(
+        `Someone who may not create ${pluralNameOf(task.gateModel as string)} gets the **${plainPageName(where.mayNotCreate as string)}** list instead.`,
+      );
+    });
+
+    it("opens the status page setup from Publish a status page, from the website setup's summary too, and says who gets the Status Pages list instead", () => {
+      const task: ChecklistTask = checklistTaskOf("StatusPage");
+      const where: StepDestinations = stepDestinations(task);
+      const first: QuickstartStep = quickstartStepsOf(
+        "## Publish a status page",
+      )[0] as QuickstartStep;
+      const websiteSetup: string = fs.readFileSync(
+        routedGuidedSetup("MONITOR_GUIDED_SETUP").setupFile,
+        "utf8",
+      );
+      const summaryLink: string = oneLine(
+        blockFrom(
+          websiteSetup,
+          "to={routeOf(PageMap.STATUS_PAGES_GUIDED_SETUP)}",
+          "</AppLink>",
+        ),
+      );
+
+      expect(where).toEqual({
+        mayCreate: "STATUS_PAGES_GUIDED_SETUP",
+        mayNotCreate: "STATUS_PAGES",
+      });
+      expect(first.heading).toBe("Open the status page setup");
+      expect(first.body).toContain(
+        `In the checklist, click **${task.title}**. It opens the guided setup **${routedGuidedSetup(where.mayCreate).title}**,`,
+      );
+      expect(first.body).toContain(
+        `Someone who may not create ${pluralNameOf(task.gateModel as string)} gets the **${plainPageName(where.mayNotCreate as string)}** list instead.`,
+      );
+
+      // The website setup's summary links the same setup, by these words.
+      expect(summaryLink).toContain("WEBSITE_DOWN_COPY.nextStatusPage");
+      expect(setupWord(QUICKSTART_SETUP_COPIES.website, "nextStatusPage")).toBe(
+        "Show it on a status page",
+      );
+      expect(first.body).toContain(
+        "The website setup's summary opens the same setup, as **Show it on a status page**.",
+      );
+    });
+
+    /*
+     * By the on-call section, the website setup's own policy pages the reader
+     * and its test page was acknowledged: either ticks the on-call step, and
+     * a ticked step is no longer a button. So the section opens the setup
+     * from Search, and says the step opens it only while it is not ticked.
+     */
+    it("opens the on-call setup from Search, because the website setup has ticked its checklist step", () => {
+      const task: ChecklistTask = checklistTaskOf("OnCall");
+      const where: StepDestinations = stepDestinations(task);
+      const setup: RoutedGuidedSetup = routedGuidedSetup(where.mayCreate);
+      const section: string = sectionOf(
+        QUICKSTART,
+        "## Get paged when it goes down",
+      );
+      const first: QuickstartStep = quickstartStepsOf(
+        "## Get paged when it goes down",
+      )[0] as QuickstartStep;
+      const search: string = dashboard(
+        "Components/CommandPalette/PageSearchIndex.ts",
+      );
+      const entry: string = search.slice(
+        search.indexOf(`page: PageMap.${where.mayCreate},`),
+        search.indexOf(
+          "],",
+          search.indexOf(`page: PageMap.${where.mayCreate},`),
+        ),
+      );
+      const facts: (data: {
+        reached: Array<ActivationMilestone>;
+        hasRuleThatPagesSomeone: boolean;
+      }) => WelcomeOutcomeFacts = (data: {
+        reached: Array<ActivationMilestone>;
+        hasRuleThatPagesSomeone: boolean;
+      }): WelcomeOutcomeFacts => {
+        return {
+          reached: data.reached,
+          hasRuleThatPagesSomeone: data.hasRuleThatPagesSomeone,
+          hasFinishedImport: false,
+          serverCanSendEmail: true,
+        };
+      };
+      const doneStep: string = oneLine(
+        blockFrom(
+          CHECKLIST_SOURCE,
+          "if (isComplete) {",
+          "A step to do is a button",
+        ),
+      );
+
+      // The step opens the setup for everyone: no model gates it.
+      expect(where).toEqual({
+        mayCreate: "ON_CALL_DUTY_GUIDED_SETUP",
+        mayNotCreate: null,
+      });
+
+      // Ticked by the policy's rule, or by an acknowledged test page.
+      expect(
+        isWelcomeStepDone(
+          WelcomeStep.OnCall,
+          facts({ reached: [], hasRuleThatPagesSomeone: true }),
+        ),
+      ).toBe(true);
+      expect(
+        isWelcomeStepDone(
+          WelcomeStep.OnCall,
+          facts({
+            reached: [ActivationMilestone.FirstTestPageAcknowledged],
+            hasRuleThatPagesSomeone: false,
+          }),
+        ),
+      ).toBe(true);
+      expect(
+        isWelcomeStepDone(
+          WelcomeStep.OnCall,
+          facts({ reached: [], hasRuleThatPagesSomeone: false }),
+        ),
+      ).toBe(false);
+
+      // A ticked step is a record, not a button.
+      expect(doneStep).toContain("<div");
+      expect(doneStep).not.toContain("<button");
+      expect(doneStep).not.toContain("onClick");
+
+      // Search finds the setup by its title and the words the page gives.
+      expect(entry).toContain(`title: "${setup.title}",`);
+      expect(entry).toContain('"get paged",');
+
+      expect(section).toContain(
+        `so the checklist ticks **${task.title}** as done.`,
+      );
+      expect(first.heading).toBe("Open the on-call setup");
+      expect(first.body).toBe(
+        `Press \`Ctrl+K\` (\`Cmd+K\` on a Mac), type \`get paged\` and choose **${setup.title}**. While the checklist has not ticked **${task.title}**, that step opens the same guided setup.`,
+      );
+    });
+
+    it("walks each setup's steps in the order its frame draws them, each under the title it draws", () => {
+      for (const entry of QUICKSTART_GUIDED_SECTIONS) {
+        const task: ChecklistTask = checklistTaskOf(entry.step);
+        const setup: RoutedGuidedSetup = routedGuidedSetup(
+          task.guidedSetupPage as string,
+        );
+        const titles: Array<string> = frameStepTitles(setup);
+        const steps: Array<QuickstartStep> = quickstartStepsOf(entry.heading);
+
+        expect({ section: entry.heading, steps: titles.length }).toEqual({
+          section: entry.heading,
+          steps: entry.frameSteps,
+        });
+        // The first step opens the setup; each after it is one of its steps.
+        expect({
+          section: entry.heading,
+          leads: steps.slice(1).map((step: QuickstartStep): string => {
+            return step.body.slice(0, step.body.indexOf("**,") + 3);
+          }),
+        }).toEqual({
+          section: entry.heading,
+          leads: titles.map((title: string): string => {
+            return `Under **${title}**,`;
+          }),
+        });
+      }
+    });
+
+    it("names, inside each section's steps, only words the setup, its test page dialog or the checklist draws", () => {
+      const drawn: Set<string> = new Set([
+        ...setupWords(QUICKSTART_SETUP_COPIES.website),
+        ...setupWords(QUICKSTART_SETUP_COPIES.onCall),
+        ...setupWords(QUICKSTART_SETUP_COPIES.statusPage),
+        ...TEST_PAGE_DIALOG_WORDS,
+        ...checklistTasks().map((task: ChecklistTask): string => {
+          return task.title;
+        }),
+        // The lists someone who may not create gets instead.
+        plainPageName("MONITORS"),
+        plainPageName("STATUS_PAGES"),
+        // The monitor's status when the site is down (a new project's seed).
+        seeded("downStatus"),
+      ]);
+      const onCallSetup: string = fs.readFileSync(
+        routedGuidedSetup("ON_CALL_DUTY_GUIDED_SETUP").setupFile,
+        "utf8",
+      );
+
+      // The reach step's own button, written in its frame.
+      expect(onCallSetup).toContain('title="Recheck"');
+      drawn.add("Recheck");
+
+      for (const entry of QUICKSTART_GUIDED_SECTIONS) {
+        const steps: string = stepsBlockOf(
+          sectionOf(QUICKSTART, entry.heading),
+        );
+
+        expect({
+          section: entry.heading,
+          notDrawnThere: boldSpans(steps).filter((span: string): boolean => {
+            return !drawn.has(span);
+          }),
+        }).toEqual({ section: entry.heading, notDrawnThere: [] });
+      }
+    });
+
+    it("takes the test page dialog's words from the dialog", () => {
+      const button: string = dashboard(
+        "Components/OnCallTestPage/SendTestPageButton.tsx",
+      );
+      const dialog: string = dashboard(
+        "Components/OnCallTestPage/SendTestPageModal.tsx",
+      );
+
+      expect(button).toContain('return "Send me a test page";');
+      expect(button).toContain('return "Test this policy";');
+      expect(dialog).toContain('translator.translateText("Send test page")');
+      expect(dialog).toContain('translator.translateText("Severity")');
+      expect(dialog).toContain('closeButtonText="Done"');
+      expect(TEST_PAGE_DIALOG_WORDS).toEqual([
+        "Send me a test page",
+        "Test this policy",
+        "Send test page",
+        "Severity",
+        "Done",
+      ]);
+      // The website setup tests the person; the on-call setup the policy.
+      expect(
+        fs.readFileSync(
+          routedGuidedSetup("MONITOR_GUIDED_SETUP").setupFile,
+          "utf8",
+        ),
+      ).toContain('target={{ kind: "self" }}');
+      expect(
+        oneLine(
+          fs.readFileSync(
+            routedGuidedSetup("ON_CALL_DUTY_GUIDED_SETUP").setupFile,
+            "utf8",
+          ),
+        ),
+      ).toContain('<SendTestPageButton target={{ kind: "policy",');
+      expect(quickstartStepsOf("## Monitor your website")[3]?.body).toContain(
+        "click **Send me a test page**, pick a **Severity** and click **Send test page**",
+      );
+      expect(
+        quickstartStepsOf("## Get paged when it goes down")[4]?.body,
+      ).toContain(
+        "click **Test this policy**, pick a **Severity** and click **Send test page**",
+      );
+    });
+
+    it("names the create forms only after the setup's steps, as the other way in", () => {
+      const ways: Array<[string, string]> = [
+        ["## Monitor your website", createButton(new Monitor())],
+        [
+          "## Get paged when it goes down",
+          createButton(new OnCallDutyPolicy()),
+        ],
+        ["## Publish a status page", createButton(new StatusPage())],
+      ];
+
+      for (const [heading, button] of ways) {
+        const section: string = sectionOf(QUICKSTART, heading);
+        const steps: string = stepsBlockOf(section);
+        const after: string = section.slice(
+          section.indexOf(steps) + steps.length,
+        );
+
+        expect({ heading, inSteps: steps.includes(`**${button}**`) }).toEqual({
+          heading,
+          inSteps: false,
+        });
+        expect({ heading, after: after.includes(`**${button}**`) }).toEqual({
+          heading,
+          after: true,
+        });
+      }
+
+      expect(QUICKSTART).toContain(
+        "open **Monitors** from the **Products** menu and click **Create Monitor**. [Creating a Monitor](/docs/monitor/create-monitor) describes the form and every monitor type.",
+      );
+      expect(QUICKSTART).toContain(
+        "To build a policy field by field instead, open **On-Call** from the **Products** menu and click **Create On-Call Policy**.",
+      );
+      expect(QUICKSTART).toContain(
+        "To make a page by hand instead, open **Status Pages** from the **Products** menu and click **Create Status Page**",
+      );
+    });
+
+    it("no longer walks the create forms the checklist steps used to open", () => {
+      const guided: string = QUICKSTART_GUIDED_SECTIONS.map(
+        (entry: QuickstartGuidedSection): string => {
+          return stepsBlockOf(sectionOf(QUICKSTART, entry.heading));
+        },
+      ).join("\n");
+
+      for (const retired of [
+        "### Open Create Monitor",
+        "### Pick Website",
+        "### Create the monitor",
+        "### Create an on-call policy",
+        "### See the rule that pages it",
+        "### Create the status page",
+        "### Add your monitor",
+        "**Monitor Type**",
+        "**Website URL**",
+        "**Test Monitor**",
+        "**Monitoring Interval**",
+        "**Probes**",
+        "**Who gets paged first?**",
+        "**Add responder**",
+        "**Page this policy for every new incident and alert**",
+        "**User Settings**",
+        "**Direct Contact**",
+        "**Phone Numbers for SMS Notifications**",
+        "**Status Page Link**",
+        "**Display Name**",
+        "**Add Monitor**",
+        "**Name**",
+      ]) {
+        expect({ retired, found: guided.includes(retired) }).toEqual({
+          retired,
+          found: false,
+        });
+      }
+    });
+  });
+
+  it("checks the website every five minutes, as the website setup's monitor is", () => {
+    const setupSource: string = oneLine(
+      readSource(
+        DASHBOARD_DIR,
+        "Components/GuidedSetup/WebsiteDown/WebsiteDownSetup.ts",
+      ),
+    );
+
     expect(getMonitoringIntervalLabel(DEFAULT_MONITORING_INTERVAL)).toBe(
       "Every 5 Minutes",
     );
     expect(
       MonitorTypeHelper.doesMonitorTypeHaveInterval(MonitorType.Website),
     ).toBe(true);
-    expect(QUICKSTART).toContain(
-      "the **Monitoring Interval** of **Every 5 Minutes**",
+    expect(GUIDED_SETUP_MONITORING_INTERVAL).toBe(DEFAULT_MONITORING_INTERVAL);
+    expect(setupSource).toContain(
+      "monitoringInterval: DEFAULT_MONITORING_INTERVAL,",
+    );
+    expect(setupWord(QUICKSTART_SETUP_COPIES.website, "checkHelp")).toContain(
+      "OneUptime checks it every 5 minutes",
     );
     expect(QUICKSTART).toContain("checks your website every five minutes");
+    expect(QUICKSTART).toContain(
+      "The probes check it at once, then every 5 minutes",
+    );
   });
 
-  it("says what the website monitor's own criteria do: offline, and an incident, when the site does not answer or answers with an error", () => {
+  it("says what the website setup's monitor does: offline, and an incident, when the site does not answer or answers with an error", () => {
     const offline: ObjectID = ObjectID.generate();
-    const criteria: MonitorCriteria = MonitorCriteria.getDefaultMonitorCriteria(
-      {
-        monitorType: MonitorType.Website,
-        monitorName: "Website",
-        onlineMonitorStatusId: ObjectID.generate(),
-        offlineMonitorStatusId: offline,
-        defaultIncidentSeverityId: ObjectID.generate(),
-        defaultAlertSeverityId: ObjectID.generate(),
-      },
+    const address: WebsiteAddress | null = parseWebsiteAddress(
+      "https://example.com",
     );
-    const first: MonitorCriteriaInstance = criteria.data!
+    const monitor: Monitor = buildWebsiteMonitor({
+      address: address as WebsiteAddress,
+      isApi: false,
+      seeds: {
+        operationalStatusId: ObjectID.generate(),
+        offlineStatusId: offline,
+        incidentSeverityId: ObjectID.generate(),
+        alertSeverityId: ObjectID.generate(),
+      },
+      monitoringInterval: GUIDED_SETUP_MONITORING_INTERVAL,
+    });
+    const first: MonitorCriteriaInstance = monitor.monitorSteps!.data!
+      .monitorStepsInstanceArray[0]!.data!.monitorCriteria!.data!
       .monitorCriteriaInstanceArray[0] as MonitorCriteriaInstance;
     const filters: Array<CriteriaFilter> = first.data!.filters;
 
+    expect(monitor.monitorType).toBe(MonitorType.Website);
     expect(first.data!.monitorStatusId?.toString()).toBe(offline.toString());
     expect(first.data!.changeMonitorStatus).toBe(true);
     expect(first.data!.createIncidents).toBe(true);
@@ -556,9 +961,190 @@ describe("Quickstart", () => {
       }),
     );
     expect(QUICKSTART).toContain(
-      "the monitor goes **Offline** and declares an incident when the site does not answer, or answers with an error",
+      "when the site does not answer, or answers with an error, the monitor goes **Offline** and declares an incident",
     );
     expect(seeded("downStatus")).toBe("Offline");
+  });
+
+  it("makes Default on-call policy in the website setup, paging the reader for every new incident and alert, by email first", () => {
+    const create: FirstOnCallPolicyCreate = buildFirstOnCallPolicy({
+      userIds: [ObjectID.generate().toString()],
+      teamIds: [],
+    });
+
+    expect(GUIDED_SETUP_POLICY_NAME).toBe("Default on-call policy");
+    expect(create.policy.name).toBe(GUIDED_SETUP_POLICY_NAME);
+    expect(
+      create.miscDataProps[PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_KEY],
+    ).toBe(true);
+    expect(
+      setupWord(QUICKSTART_SETUP_COPIES.website, "whoCreatePolicyNote"),
+    ).toContain(
+      "which pages them for every new incident and alert in this project",
+    );
+    expect(
+      setupWord(QUICKSTART_SETUP_COPIES.website, "whoCreateHelp"),
+    ).toContain("It starts with you, by email.");
+    expect(QUICKSTART).toContain(
+      `Click **Save and continue**: this makes \`${GUIDED_SETUP_POLICY_NAME}\`, which pages you for every new incident and alert in the project, by email to start with.`,
+    );
+    expect(QUICKSTART).toContain(
+      `The website setup already made \`${GUIDED_SETUP_POLICY_NAME}\`, which pages you by email for every new incident and alert`,
+    );
+  });
+
+  it("keeps that policy in the on-call setup, which adds nobody unless someone is picked", () => {
+    const onCallSetup: string = fs.readFileSync(
+      routedGuidedSetup("ON_CALL_DUTY_GUIDED_SETUP").setupFile,
+      "utf8",
+    );
+    const save: string = oneLine(
+      blockFrom(onCallSetup, "const savePeople", "const continueFromPeople"),
+    );
+
+    // A project with a policy picks it; nobody picked is no error then.
+    expect(save).toContain(
+      "if (!isExistingMode && userIds.length + teamIds.length === 0) {",
+    );
+    expect(setupWord(QUICKSTART_SETUP_COPIES.onCall, "whoPolicyLabel")).toBe(
+      "On-call policy",
+    );
+    expect(setupWord(QUICKSTART_SETUP_COPIES.onCall, "whoAddToLevel")).toBe(
+      "Add to the first escalation rule",
+    );
+    expect(QUICKSTART).toContain(
+      `keep \`${GUIDED_SETUP_POLICY_NAME}\` under **On-call policy**. To page teammates with you, add them under **Add to the first escalation rule**. Click **Save and continue**.`,
+    );
+  });
+
+  it("offers paging the same people again always, and someone else only where a second escalation rule may be added", () => {
+    const onCallSetup: string = oneLine(
+      fs.readFileSync(
+        routedGuidedSetup("ON_CALL_DUTY_GUIDED_SETUP").setupFile,
+        "utf8",
+      ),
+    );
+
+    expect(onCallSetup).toContain(
+      "if (maySecondLevel) { noAnswerOptions.push({ title: translator.translateText(ON_CALL_SETUP_COPY.noAnswerEscalate)",
+    );
+    expect(onCallSetup).toContain(
+      "noAnswerOptions.push( { title: translator.translateText(ON_CALL_SETUP_COPY.noAnswerRepeat)",
+    );
+    expect(QUICKSTART).toContain(
+      `pick **${setupWord(QUICKSTART_SETUP_COPIES.onCall, "noAnswerRepeat")}** while you are the only person in the project. Once teammates are in, **${setupWord(QUICKSTART_SETUP_COPIES.onCall, "noAnswerEscalate")}** pages the person you pick under **${setupWord(QUICKSTART_SETUP_COPIES.onCall, "noAnswerSecondLevelLabel")}**.`,
+    );
+  });
+
+  /*
+   * A new Cloud project starts on the Free plan, where a second escalation
+   * rule is not offered: the step shows only the repeat, and says why. The
+   * Quickstart says so, rather than promise a choice most readers never see.
+   */
+  it("says Page someone else is offered on Cloud's paid plans only, as the step decides", () => {
+    const setupApi: string = oneLine(
+      dashboard("Components/GuidedSetup/OnCall/OnCallSetupApi.ts"),
+    );
+    const noAnswer: string = (
+      quickstartStepsOf("## Get paged when it goes down")[3] as QuickstartStep
+    ).body;
+
+    expect(setupApi).toContain(
+      "export const maySecondEscalationLevel: () => boolean = (): boolean => { if (!BILLING_ENABLED) { return true; } return ProjectUtil.getCurrentPlan() !== PlanType.Free; };",
+    );
+    expect(
+      setupWord(QUICKSTART_SETUP_COPIES.onCall, "noAnswerFreePlan"),
+    ).toContain("which needs a paid plan");
+    expect(noAnswer).toContain(
+      `under **${setupWord(QUICKSTART_SETUP_COPIES.onCall, "noAnswerSecondLevelLabel")}**. On OneUptime Cloud, only paid plans offer that choice. Click **Save and continue**.`,
+    );
+  });
+
+  /*
+   * On Cloud, a Free plan project with no card on file may not make a monitor
+   * that runs checks: the server refuses the website setup's create with the
+   * payment-required message. The Quickstart says so where the reader first
+   * meets it, with where to add one.
+   */
+  it("says a Free plan project on Cloud needs a payment method before the website setup can check, as the server requires", () => {
+    const monitorService: string = oneLine(
+      readSource(COMMON_DIR, "Server/Services/MonitorService.ts"),
+    );
+    const payAsYouGo: string = oneLine(
+      readSource(COMMON_DIR, "Server/Services/PayAsYouGoBillingService.ts"),
+    );
+    const address: QuickstartStep = quickstartStepsOf(
+      "## Monitor your website",
+    )[1] as QuickstartStep;
+    const billing: string = readPage("en", "configuration/billing");
+
+    // Every monitor but a Manual one asks for pay-as-you-go on create.
+    expect(monitorService).toContain(
+      "if (IsBillingEnabled && createBy.props.tenantId) { if (createBy.data.monitorType !== MonitorType.Manual) { await PayAsYouGoBillingService.requirePayAsYouGo( createBy.props.tenantId, ); }",
+    );
+    // Which a paid plan has, and the Free plan has only with a card on file.
+    expect(payAsYouGo).toContain(
+      'if (plan.getName() !== PlanType.Free) { return "paid-plan"; }',
+    );
+    expect(payAsYouGo).toContain(
+      'if ( await BillingService.hasPaymentMethods(project.paymentProviderCustomerId) ) { return "payment-method"; }',
+    );
+    expect(payAsYouGo).toContain(
+      '"Add a payment method in Project Settings > Billing and Invoices > Billing before using paid monitoring or telemetry. These features have usage charges even on the Free plan.',
+    );
+    // The website setup makes a Website or an API monitor, never a Manual one.
+    expect(
+      buildWebsiteMonitor({
+        address: parseWebsiteAddress("https://example.com") as WebsiteAddress,
+        isApi: true,
+        seeds: {
+          operationalStatusId: ObjectID.generate(),
+          offlineStatusId: ObjectID.generate(),
+          incidentSeverityId: ObjectID.generate(),
+          alertSeverityId: ObjectID.generate(),
+        },
+        monitoringInterval: GUIDED_SETUP_MONITORING_INTERVAL,
+      }).monitorType,
+    ).not.toBe(MonitorType.Manual);
+
+    expect(address.body).toContain(
+      "On OneUptime Cloud's Free plan, monitors are billed as they are used, so the project needs a payment method before it can check your site: without one, the step asks you to [add a payment method](/docs/configuration/billing#payment-methods).",
+    );
+    // The link lands on the billing page's section that adds one.
+    expect(billing.split("\n")).toContain("## Payment methods");
+    expect(billing).toContain("adding one turns on pay-as-you-go usage");
+  });
+
+  it("says the reach step lists the sign-in email, finds the app with Recheck, and asks for balance before a number on Cloud", () => {
+    const reach: string = (
+      quickstartStepsOf("## Get paged when it goes down")[1] as QuickstartStep
+    ).body;
+
+    expect(setupWord(QUICKSTART_SETUP_COPIES.onCall, "emailRow")).toBe("Email");
+    expect(setupWord(QUICKSTART_SETUP_COPIES.onCall, "phoneBalance")).toContain(
+      "Texts and calls are paid from this project's balance",
+    );
+    expect(reach).toContain("your sign-in email is listed already");
+    expect(reach).toContain(
+      "install the OneUptime On-Call app from the App Store or Google Play, sign in, and click **Recheck**",
+    );
+    expect(reach).toContain(
+      `click **${setupWord(QUICKSTART_SETUP_COPIES.onCall, "turnOnSmsAndCalls")}**, type your number in **${setupWord(QUICKSTART_SETUP_COPIES.onCall, "phoneLabel")}** and click **${setupWord(QUICKSTART_SETUP_COPIES.onCall, "sendSmsCode")}**: on OneUptime Cloud, texts and calls are paid from the project's balance, so the step asks you to add some first.`,
+    );
+  });
+
+  it("ends each setup where its frame does", () => {
+    const steps: (heading: string) => Array<QuickstartStep> = quickstartStepsOf;
+
+    expect(steps("## Monitor your website")[3]?.body).toContain(
+      `and **${setupWord(QUICKSTART_SETUP_COPIES.website, "continueButton")}**: the setup ends on a summary of what it set up.`,
+    );
+    expect(steps("## Get paged when it goes down")[4]?.body).toContain(
+      `The setup ends on **${setupWord(QUICKSTART_SETUP_COPIES.onCall, "summaryTitle")}**.`,
+    );
+    expect(steps("## Publish a status page")[2]?.body).toContain(
+      `click **${setupWord(QUICKSTART_SETUP_COPIES.statusPage, "reviewButton")}**. The setup ends on a summary with what to do next.`,
+    );
   });
 
   it("names each Create button as the dashboard draws it from its model", () => {
@@ -579,18 +1165,6 @@ describe("Quickstart", () => {
     );
   });
 
-  it("asks who gets paged first, with the responder button the policy form has", () => {
-    expect(
-      dashboard("Components/OnCallPolicy/OnCallPolicyCreateForm.ts"),
-    ).toContain('title: "Who gets paged first?"');
-    expect(
-      dashboard("Components/OnCallPolicy/EscalationRule/EscalationRuleForm.ts"),
-    ).toContain('translationKey("Add responder")');
-    expect(QUICKSTART).toContain(
-      "Under **Who gets paged first?**, click **Add responder**",
-    );
-  });
-
   it("finds the incident on-call rules under the folded Rules section of Incidents", () => {
     const rules: MenuSection = menuSection(
       dashboard("Pages/Incidents/SideMenu.tsx"),
@@ -601,21 +1175,6 @@ describe("Quickstart", () => {
     expect(isCollapsedByDefault("Rules")).toBe(true);
     expect(QUICKSTART).toContain(
       "expand **Rules** in the side menu and choose **On-Call Rules**",
-    );
-  });
-
-  it("adds phone numbers where Direct Contact keeps them", () => {
-    expect(
-      dashboard("Components/NotificationMethods/NotificationMethodTabs.tsx"),
-    ).toContain('translationKey("Direct Contact")');
-    expect(dashboard("Components/NotificationMethods/SMS.tsx")).toContain(
-      'title: "Phone Numbers for SMS Notifications"',
-    );
-    expect(dashboard("Components/NotificationMethods/Call.tsx")).toContain(
-      'title: "Phone Numbers for Call Notifications"',
-    );
-    expect(dashboard("Components/NotificationMethods/Call.tsx")).toContain(
-      'title: "Verify"',
     );
   });
 
@@ -647,44 +1206,33 @@ describe("Quickstart", () => {
     );
   });
 
-  it("publishes a status page that starts public, with its monitors and preview link where the page keeps them", () => {
+  it("publishes a status page that is public from its first save, and makes one by hand on its Overview", () => {
     expect(
       new StatusPage().getTableColumnMetadata("isPublicStatusPage")
         .defaultValue,
     ).toBe(true);
-    expect(QUICKSTART).toContain("A new status page is public");
-
-    const statusPageMenu: string = dashboard(
-      "Pages/StatusPages/View/SideMenu.tsx",
+    expect(
+      setupWord(QUICKSTART_SETUP_COPIES.statusPage, "publicNotice"),
+    ).toContain("The page is public as soon as you create it");
+    expect(QUICKSTART).toContain(
+      "The page is public at its link from this moment: anyone with its address can open it.",
     );
 
-    expect(oneLine(statusPageMenu)).toContain(
-      'title: project?.isFeatureFlagMonitorGroupsEnabled ? "Resources" : "Monitors"',
+    // The setup's first step creates it with the monitors picked.
+    expect(setupWord(QUICKSTART_SETUP_COPIES.statusPage, "createButton")).toBe(
+      "Create the status page",
     );
     expect(QUICKSTART).toContain(
-      "under **Resources**, choose **Monitors**; it reads **Resources** in projects with monitor groups turned on",
+      "Under **What it shows**, tick your website monitor, and click **Create the status page**.",
     );
-    expect(
-      dashboard("Components/StatusPage/StatusPageResourcePanel.tsx"),
-    ).toContain('submitButtonText="Add Monitor"');
-    expect(
-      dashboard("Components/StatusPage/StatusPageResourceFormFields.ts"),
-    ).toContain('title: "Display Name"');
-    // The new page opens on its Overview, whose first step is Add Monitors.
+
+    // By hand: the new page opens on its Overview, whose first step is Add Monitors.
     expect(dashboard("Pages/StatusPages/StatusPages.tsx")).toContain(
       "RouteMap[PageMap.STATUS_PAGE_VIEW]",
     );
     expect(StatusPageOverviewCopy.firstStepButton).toBe("Add Monitors");
     expect(QUICKSTART).toContain(
-      "and click **Create Status Page**. The new page opens on its **Overview**.",
-    );
-    expect(QUICKSTART).toContain("Click **Add Monitors** on the **Overview**");
-    expect(
-      dashboard("Pages/StatusPages/View/StatusPagePreviewLink.tsx"),
-    ).toContain("title={StatusPageOverviewCopy.linkCardTitle}");
-    expect(StatusPageOverviewCopy.linkCardTitle).toBe("Status Page Link");
-    expect(QUICKSTART).toContain(
-      "The **Status Page Link** card links to your status page",
+      "then add your monitor with **Add Monitors** on its **Overview**.",
     );
   });
 
@@ -721,6 +1269,55 @@ describe("Quickstart", () => {
     expect(QUICKSTART).toContain(
       "choose **On-Call Executions** in its side menu",
     );
+  });
+});
+
+/*
+ * The helpers above, on made-up pages: a step block and its steps are read
+ * as the docs draw them, so a section the reader sees as three steps is
+ * three steps here.
+ */
+describe("the Quickstart's step readers", () => {
+  const PAGE: string = [
+    "## A section",
+    "",
+    "Before the steps.",
+    "",
+    ":::steps",
+    "### First",
+    "",
+    "One line.",
+    "",
+    "### Second",
+    "",
+    "![A picture](screen:some-shot)",
+    "",
+    "Under **Title**, a line.",
+    ":::",
+    "",
+    "After the steps.",
+  ].join("\n");
+
+  it("reads the steps block from :::steps to the line that closes it", () => {
+    const block: string = stepsBlockOf(PAGE);
+
+    expect(block.split("\n")[0]).toBe(":::steps");
+    expect(block.split("\n").pop()).toBe(":::");
+    expect(block).not.toContain("Before the steps.");
+    expect(block).not.toContain("After the steps.");
+  });
+
+  it("reads each step's heading and its words, leaving pictures out", () => {
+    expect(stepsOfBlock(stepsBlockOf(PAGE))).toEqual([
+      { heading: "First", body: "One line." },
+      { heading: "Second", body: "Under **Title**, a line." },
+    ]);
+  });
+
+  it("finds no steps where a page has no steps block", () => {
+    expect(() => {
+      return stepsBlockOf("## A section\n\nNo steps here.");
+    }).toThrow();
   });
 });
 
@@ -1416,6 +2013,251 @@ function numberConstant(source: string, name: string): number {
     (source.match(NUMBER_CONSTANT(name)) as RegExpMatchArray)[1] as string,
   );
 }
+
+// ---- the Quickstart's guided setups (#7332) ---------------------------------
+
+/*
+ * The three sections of the Quickstart that walk a guided setup: each is
+ * the job of a checklist step, and walks the setup that step opens, whose
+ * frame draws this many steps.
+ */
+interface QuickstartGuidedSection {
+  heading: string;
+  // The checklist step, as WelcomeStep names it.
+  step: string;
+  frameSteps: number;
+}
+
+const QUICKSTART_GUIDED_SECTIONS: ReadonlyArray<QuickstartGuidedSection> = [
+  { heading: "## Monitor your website", step: "Monitor", frameSteps: 3 },
+  { heading: "## Get paged when it goes down", step: "OnCall", frameSteps: 4 },
+  { heading: "## Publish a status page", step: "StatusPage", frameSteps: 2 },
+];
+
+// A step of a :::steps block: its heading's words, and its lines of words.
+interface QuickstartStep {
+  heading: string;
+  body: string;
+}
+
+const STEPS_OPENING: string = ":::steps";
+const STEPS_CLOSING: string = ":::";
+const STEP_HEADING_PREFIX: string = "### ";
+const PICTURE_LINE_PREFIX: string = "![";
+
+// The :::steps block of some markdown, from its opening line to its closing one.
+function stepsBlockOf(markdown: string): string {
+  const lines: Array<string> = markdown.split("\n");
+  const start: number = lines.indexOf(STEPS_OPENING);
+  const end: number = lines.indexOf(STEPS_CLOSING, start + 1);
+
+  if (start < 0 || end < 0) {
+    throw new Error("No :::steps block");
+  }
+
+  return lines.slice(start, end + 1).join("\n");
+}
+
+/*
+ * The steps of a :::steps block, each with the words under its heading:
+ * blank lines and pictures left out, as a reader reads the instructions.
+ */
+function stepsOfBlock(block: string): Array<QuickstartStep> {
+  const steps: Array<{ heading: string; lines: Array<string> }> = [];
+
+  for (const line of block.split("\n")) {
+    if (line.startsWith(STEP_HEADING_PREFIX)) {
+      steps.push({
+        heading: line.slice(STEP_HEADING_PREFIX.length),
+        lines: [],
+      });
+      continue;
+    }
+
+    if (
+      !line.trim() ||
+      line === STEPS_OPENING ||
+      line === STEPS_CLOSING ||
+      line.startsWith(PICTURE_LINE_PREFIX)
+    ) {
+      continue;
+    }
+
+    steps[steps.length - 1]?.lines.push(line);
+  }
+
+  return steps.map(
+    (step: { heading: string; lines: Array<string> }): QuickstartStep => {
+      return { heading: step.heading, body: step.lines.join("\n") };
+    },
+  );
+}
+
+function quickstartStepsOf(heading: string): Array<QuickstartStep> {
+  return stepsOfBlock(stepsBlockOf(sectionOf(QUICKSTART, heading)));
+}
+
+function checklistTaskOf(step: string): ChecklistTask {
+  const task: ChecklistTask | undefined = checklistTasks().find(
+    (candidate: ChecklistTask): boolean => {
+      return candidate.step === step;
+    },
+  );
+
+  expect({ step: step, found: Boolean(task) }).toEqual({
+    step: step,
+    found: true,
+  });
+
+  return task as ChecklistTask;
+}
+
+/*
+ * A guided setup's words: the copy object its file exports, React-free so
+ * it is read as source (the Dashboard's copy files load the browser's
+ * config on import).
+ */
+interface SetupCopy {
+  object: string;
+  file: string;
+}
+
+const QUICKSTART_SETUP_COPIES: {
+  website: SetupCopy;
+  onCall: SetupCopy;
+  statusPage: SetupCopy;
+} = {
+  website: {
+    object: "WEBSITE_DOWN_COPY",
+    file: "Components/GuidedSetup/WebsiteDown/WebsiteDownSetup.ts",
+  },
+  onCall: {
+    object: "ON_CALL_SETUP_COPY",
+    file: "Components/GuidedSetup/OnCall/OnCallSetup.ts",
+  },
+  statusPage: {
+    object: "STATUS_PAGE_SETUP_COPY",
+    file: "Components/GuidedSetup/StatusPage/StatusPageSetup.ts",
+  },
+};
+
+const COPY_PROPERTY_LINE: RegExp = /^ {2}(\w+): /gm;
+
+// The values half of a copy object ("} = { ... };"), on one line.
+function copyValuesOf(copy: SetupCopy): string {
+  const block: string = blockFrom(
+    dashboard(copy.file),
+    `export const ${copy.object}: {`,
+    "\n};",
+  );
+
+  return block.slice(block.indexOf("} = {"));
+}
+
+function copyOfObject(object: string): SetupCopy {
+  const copy: SetupCopy | undefined = Object.values(
+    QUICKSTART_SETUP_COPIES,
+  ).find((candidate: SetupCopy): boolean => {
+    return candidate.object === object;
+  });
+
+  expect({ object: object, known: Boolean(copy) }).toEqual({
+    object: object,
+    known: true,
+  });
+
+  return copy as SetupCopy;
+}
+
+/*
+ * The English a copy object's property holds: its translationKey("..."), a
+ * plain "..." string, or another setup's word it reuses
+ * (continueButton: WEBSITE_DOWN_COPY.continueButton).
+ */
+function setupWord(copy: SetupCopy, property: string): string {
+  const values: string = oneLine(copyValuesOf(copy));
+  const named: string = escapeRegExp(property);
+  const key: RegExpMatchArray | null = values.match(
+    new RegExp(
+      `\\b${named}: translationKey\\( ?"((?:[^"\\\\]|\\\\.)*)",? ?\\)`,
+    ),
+  );
+
+  if (key) {
+    return JSON.parse(`"${key[1] as string}"`) as string;
+  }
+
+  // Words that quote something are kept in single quotes: '"{{name}}" is live'.
+  const quotingKey: RegExpMatchArray | null = values.match(
+    new RegExp(`\\b${named}: translationKey\\( ?'([^'\\\\]*)',? ?\\)`),
+  );
+
+  if (quotingKey) {
+    return quotingKey[1] as string;
+  }
+
+  const plain: RegExpMatchArray | null = values.match(
+    new RegExp(`\\b${named}: "((?:[^"\\\\]|\\\\.)*)",`),
+  );
+
+  if (plain) {
+    return JSON.parse(`"${plain[1] as string}"`) as string;
+  }
+
+  const reused: RegExpMatchArray | null = values.match(
+    new RegExp(`\\b${named}: (\\w+_COPY)\\.(\\w+),`),
+  );
+
+  expect({
+    copy: copy.object,
+    property: property,
+    read: Boolean(reused),
+  }).toEqual({ copy: copy.object, property: property, read: true });
+
+  return setupWord(
+    copyOfObject((reused as RegExpMatchArray)[1] as string),
+    (reused as RegExpMatchArray)[2] as string,
+  );
+}
+
+// Every word a setup's copy object holds.
+function setupWords(copy: SetupCopy): Array<string> {
+  return Array.from(copyValuesOf(copy).matchAll(COPY_PROPERTY_LINE)).map(
+    (match: RegExpMatchArray): string => {
+      return setupWord(copy, match[1] as string);
+    },
+  );
+}
+
+const FRAME_STEP_TITLE: RegExp = /^ +title: (\w+_COPY)\.(\w+Title),$/gm;
+
+// The titles of a guided setup's steps, in the order its frame draws them.
+function frameStepTitles(setup: RoutedGuidedSetup): Array<string> {
+  const frameSteps: string = blockFrom(
+    fs.readFileSync(setup.setupFile, "utf8"),
+    "const steps: Array<GuidedSetupFrameStep> = [",
+    "\n  ];",
+  );
+
+  return Array.from(frameSteps.matchAll(FRAME_STEP_TITLE)).map(
+    (match: RegExpMatchArray): string => {
+      return setupWord(copyOfObject(match[1] as string), match[2] as string);
+    },
+  );
+}
+
+/*
+ * The test page dialog both setups open (Components/OnCallTestPage): its
+ * button for the person themselves and for a policy, its send button, its
+ * severity field and the button that closes it.
+ */
+const TEST_PAGE_DIALOG_WORDS: ReadonlyArray<string> = [
+  "Send me a test page",
+  "Test this policy",
+  "Send test page",
+  "Severity",
+  "Done",
+];
 
 describe("Home Page & Shortcuts", () => {
   const whatHomeShows: string = sectionOf(HOME, "## What Home shows");

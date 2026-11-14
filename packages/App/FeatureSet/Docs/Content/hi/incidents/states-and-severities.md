@@ -37,7 +37,7 @@ flowchart TB
 
 `IncidentState` मॉडल में `name`, `description`, `color` और `order` होते हैं, साथ में तीन बूलियन: `isCreatedState`, `isAcknowledgedState` और `isResolvedState`। उत्पाद स्थितियों के साथ जो कुछ भी करता है, वह इन बूलियन और `order` पर आधारित है — कभी स्थिति के नाम पर नहीं। इसीलिए आप **सुलझाया गया** का नाम बदलकर "Closed" कर सकते हैं और कुछ नहीं टूटता: फ़्लैग पंक्ति के साथ चलता है।
 
-`IncidentSeverity` मॉडल में `name`, `description`, `color` और `order` होते हैं, और कुछ नहीं। कोई फ़्लैग नहीं है। OneUptime में कुछ भी अपने आप **Critical Incident** के साथ **Minor Incident** से अलग बर्ताव नहीं करता — गंभीरता केवल वहीं मायने रखती है जहाँ आप किसी चीज़ को उसकी ओर इंगित करते हैं, जैसे किसी ऑन-कॉल नियम पर **घटना गंभीरता** मिलान मानदंड।
+`IncidentSeverity` मॉडल में `name`, `description`, `color` और `order` होते हैं, और कुछ नहीं। कोई फ़्लैग नहीं है। OneUptime में कुछ भी अपने आप **गंभीर घटना** के साथ **छोटी घटना** से अलग बर्ताव नहीं करता — गंभीरता केवल वहीं मायने रखती है जहाँ आप किसी चीज़ को उसकी ओर इंगित करते हैं, जैसे किसी ऑन-कॉल नियम पर **घटना गंभीरता** मिलान मानदंड।
 
 कुछ आसान नियम:
 
@@ -138,9 +138,9 @@ API और Terraform में क्रम `order` कॉलम है: छो�
 
 | गंभीरता               | `order` | रंग       | पहले से भरा विवरण                                                                                                                                                                         |
 | --------------------- | ------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Critical Incident** | `1`     | `#b70400` | Issues causing very high impact to customers. Immediate response is required. Examples include a full outage, or a data breach.                                                          |
-| **Major Incident**    | `2`     | `#fd625e` | Issues causing significant impact. Immediate response is usually required. We might have some workarounds that mitigate the impact on customers. Examples include an important sub-system failing. |
-| **Minor Incident**    | `3`     | `#ffbf53` | Issues with low impact, which can usually be handled within working hours. Most customers are unlikely to notice any problems. Examples include a slight drop in application performance. |
+| **गंभीर घटना** | `1`     | `#b70400` | Issues causing very high impact to customers. Immediate response is required. Examples include a full outage, or a data breach.                                                          |
+| **प्रमुख घटना**    | `2`     | `#fd625e` | Issues causing significant impact. Immediate response is usually required. We might have some workarounds that mitigate the impact on customers. Examples include an important sub-system failing. |
+| **छोटी घटना**    | `3`     | `#ffbf53` | Issues with low impact, which can usually be handled within working hours. Most customers are unlikely to notice any problems. Examples include a slight drop in application performance. |
 
 घटना घोषित करते समय गंभीरता आवश्यक है, और मॉनिटर के मानदंड में हर घटना विवरण पर भी आवश्यक है, इसलिए हर घटना — हाथ से या अपने आप — एक गंभीरता के साथ आती है। घोषणा के तरीके के लिए [घटना घोषित करना](/docs/incidents/declaring-incidents) और मॉनिटर वाले रास्ते के लिए [घटना और अलर्ट टेम्पलेट](/docs/monitor/incident-alert-templating) देखें।
 
@@ -155,7 +155,7 @@ API और Terraform में क्रम `order` कॉलम है: छो�
 - **हटाने पर कोई रोक नहीं है।** कोई भी गंभीरता हटाई जा सकती है, पहले से बनी तीनों सहित।
 - **विरासत में लेने के लिए कोई फ़्लैग नहीं, और कोई "माना जाता है" नहीं।** नई गंभीरता बिल्कुल पहले से बनी गंभीरताओं जैसा बर्ताव करती है — वह रंग और दर्जे वाला एक लेबल है।
 
-जहाँ गंभीरता वर्णन से ज़्यादा करती है: **घटनाएं → नियम → ऑन-कॉल नियम** पर, नियम का **घटना गंभीरता** फ़ील्ड एक मिलान मानदंड है। वहाँ **Critical Incident** सूचीबद्ध करना ही "किसी भी गंभीर मामले के लिए डेटाबेस टीम को पेज करो" को व्यक्त करने का तरीका है — ऑन-कॉल नीति नियम पर रहती है, गंभीरता पर नहीं।
+जहाँ गंभीरता वर्णन से ज़्यादा करती है: **घटनाएं → नियम → ऑन-कॉल नियम** पर, नियम का **घटना गंभीरता** फ़ील्ड एक मिलान मानदंड है। वहाँ **गंभीर घटना** सूचीबद्ध करना ही "किसी भी गंभीर मामले के लिए डेटाबेस टीम को पेज करो" को व्यक्त करने का तरीका है — ऑन-कॉल नीति नियम पर रहती है, गंभीरता पर नहीं।
 
 **किसी घटना की गंभीरता बदलना** — घटना के **घटना विवरण** कार्ड पर **संपादित करें** के नीचे, API या Terraform (`incidentSeverityId`) से, किसी वर्कफ़्लो से या AI टूल से — चाहे जिस तरह भेजा जाए, वही चार काम करता है: घटना फ़ीड में नई गंभीरता का नाम बताने वाली **Incident updated** प्रविष्टि आती है, घटना की SLA समय-सीमाएँ फिर से निकाली जाती हैं, उसका रिमाइंडर नियम फिर से मिलाया जाता है, और घटना मेट्रिक्स एक गंभीरता बदलाव गिनते हैं। घटना की मौजूदा गंभीरता को ही सहेजना इनमें से कुछ नहीं करता, इसलिए किसी घटना का केवल शीर्षक संपादित करने से उसकी SLA समय-सीमाएँ, रिमाइंडर और गंभीरता बदलाव की गिनती जैसी थीं वैसी रहती हैं। अलर्ट की गंभीरता भी अपनी फ़ीड प्रविष्टि और अपने रिमाइंडर के लिए इसी तरह काम करती है।
 

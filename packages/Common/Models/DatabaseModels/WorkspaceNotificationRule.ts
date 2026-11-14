@@ -287,16 +287,16 @@ class WorkspaceNotificationRule extends BaseModel {
      * rule form's steps draw their own words (hideColumnDescription).
      */
     description:
-      "The rule, as JSON: the events it is for (filters, filterCondition), where it posts, and for incident, alert, incident episode, alert episode and scheduled maintenance rules, updatesToPost: the updates it posts after the record's first message, any of ResolvedAndReopened, StateChanges, SeverityChanges, PublicNotes, PrivateNotes, Owners, Paging, EpisodeMembers, Postmortem, AI, Edits and Other, as its kind of rule allows. Left out, the rule posts every update. The first message, and a video call's Join button, are posted whatever it lists. Owner and On-Call Policy conditions in filters name people, teams and policies of this project by ID.",
+      "The rule, as JSON: the events it is for (filters, filterCondition), where it posts, and for incident, alert, incident episode, alert episode, scheduled maintenance and on-call policy rules, updatesToPost: the updates it posts after the record's first message, any of ResolvedAndReopened, StateChanges, SeverityChanges, PublicNotes, PrivateNotes, Owners, Paging, EpisodeMembers, Postmortem, AI, Edits and Other - for an on-call policy rule, any of OnCallNow, OnCallNext, NobodyOnCall, Overrides, PolicyChanges and Owners - as its kind of rule allows. Left out, the rule posts every update. The first message, and a video call's Join button, are posted whatever it lists. Owner and On-Call Policy conditions in filters name people, teams and policies of this project by ID.",
     required: true,
     unique: false,
     type: TableColumnType.JSON,
     canReadOnRelationQuery: true,
     /*
      * An incident rule that posts to an existing channel and, there, only
-     * the key updates. updatesToPost is for incident, alert, episode and
-     * scheduled maintenance rules: left out, the rule posts every update
-     * (NotificationRuleUpdates).
+     * the key updates. updatesToPost is for incident, alert, episode,
+     * scheduled maintenance and on-call policy rules: left out, the rule
+     * posts every update (NotificationRuleUpdates).
      */
     example: {
       _type: "IncidentNotificationRule",
