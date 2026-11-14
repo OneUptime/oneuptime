@@ -397,7 +397,7 @@ export default class BaseAPI<
 
     if (!Number.isSafeInteger(countUpTo) || countUpTo < 1) {
       throw new BadRequestException(
-        "countUpTo should be a whole number of at least 1.",
+        "The list's countUpTo must be a whole number of at least 1. Send one, such as 10000, or leave it out to count every record.",
       );
     }
 
