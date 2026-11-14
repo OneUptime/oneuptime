@@ -989,6 +989,7 @@ import { SetMonitorProbeAndNetworkDeviceFillfactor1809151200000 } from "./180915
 import { AddMonitorNetworkDevice1809163000000 } from "./1809163000000-AddMonitorNetworkDevice";
 import { BackfillMonitorNetworkDevice1809163100000 } from "./1809163100000-BackfillMonitorNetworkDevice";
 import { SetNetworkInterfaceFillfactor1809164000000 } from "./1809164000000-SetNetworkInterfaceFillfactor";
+import { AddInventoryItemMirrorKeysetIndex1809164100000 } from "./1809164100000-AddInventoryItemMirrorKeysetIndex";
 
 export default [
   InitialMigration,
@@ -1982,4 +1983,5 @@ export default [
   AddMonitorNetworkDevice1809163000000,
   BackfillMonitorNetworkDevice1809163100000,
   SetNetworkInterfaceFillfactor1809164000000,
+  AddInventoryItemMirrorKeysetIndex1809164100000,
 ];

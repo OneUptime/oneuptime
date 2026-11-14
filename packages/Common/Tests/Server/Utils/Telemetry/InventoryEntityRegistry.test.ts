@@ -826,7 +826,7 @@ async function mirrorQueryFor(
   const seen: Array<JSONObject> = await captureServiceQueries({
     resourceType: source.resourceType,
     run: async (): Promise<void> => {
-      await source.fetchPage({ skip: 0, limit: 1 });
+      await source.fetchPage({ limit: 1 });
     },
   });
 

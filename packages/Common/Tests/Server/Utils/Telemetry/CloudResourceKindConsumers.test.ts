@@ -149,10 +149,9 @@ describe("the inventory mirror of a Cloud Resource", () => {
     jest
       .spyOn(CloudResourceService, "findBy")
       .mockResolvedValue([row] as never);
-    const page: Array<InventoryRowProjection> = await cloudSource().fetchPage({
-      skip: 0,
-      limit: 10,
-    });
+    const page: Array<InventoryRowProjection> = (
+      await cloudSource().fetchPage({ limit: 10 })
+    ).rows;
     expect(page).toHaveLength(1);
     return page[0]!;
   }
