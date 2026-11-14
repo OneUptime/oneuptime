@@ -146,6 +146,16 @@ function executedSql(query: jest.Mock): Array<string> {
   });
 }
 
+/*
+ * Monitor's single-column index on monitorType became ("monitorType",
+ * "_id") in MatchMonitorIndexesToTheirReads1809165000000: the heartbeat
+ * sweeps page through one type by id. An index that leads with the column
+ * serves the same scans.
+ */
+const LEADING_COLUMN_INDEX_PAIRS: ReadonlyArray<string> = [
+  "Monitor.monitorType",
+];
+
 describe("AddHotQueryIndexes: entity @Index() decorators", () => {
   test.each(
     HOT_INDEX_PAIRS.map(
@@ -154,12 +164,13 @@ describe("AddHotQueryIndexes: entity @Index() decorators", () => {
       },
     ),
   )(
-    "%s.%s has a single-column index decorator",
-    (_table: string, column: string, model: ModelClass) => {
-      const singleColumnIndexes: Array<string> = getMetadataArgsStorage()
-        .indices.filter((index: IndexMetadataArgs) => {
+    "%s.%s has an index decorator that leads with it",
+    (table: string, column: string, model: ModelClass) => {
+      const indexes: Array<IndexMetadataArgs> =
+        getMetadataArgsStorage().indices.filter((index: IndexMetadataArgs) => {
           return index.target === model;
-        })
+        });
+      const singleColumnIndexes: Array<string> = indexes
         .map((index: IndexMetadataArgs) => {
           return resolveIndexColumns(index.columns);
         })
@@ -170,7 +181,24 @@ describe("AddHotQueryIndexes: entity @Index() decorators", () => {
           return columns[0] as string;
         });
 
-      expect(singleColumnIndexes).toContain(column);
+      if (!LEADING_COLUMN_INDEX_PAIRS.includes(`${table}.${column}`)) {
+        expect(singleColumnIndexes).toContain(column);
+        return;
+      }
+
+      expect(singleColumnIndexes).not.toContain(column);
+      expect(
+        indexes
+          .filter((index: IndexMetadataArgs) => {
+            return !index.where;
+          })
+          .map((index: IndexMetadataArgs) => {
+            return resolveIndexColumns(index.columns);
+          })
+          .some((columns: Array<string>) => {
+            return columns.length > 1 && columns[0] === column;
+          }),
+      ).toBe(true);
     },
   );
 });

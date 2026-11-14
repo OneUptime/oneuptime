@@ -283,6 +283,10 @@ describe.each(ARCHIVABLE_MODELS)(
         ).toBe("archivedByUserId");
       });
 
+      /*
+       * The pair leads a full index; a column after it, such as the list's
+       * default order (Monitor's createdAt), serves the pair as well.
+       */
       test("(projectId, isArchived) is indexed: every list filters on the pair", () => {
         const index: IndexMetadataArgs | undefined =
           getMetadataArgsStorage().indices.find(
@@ -290,9 +294,9 @@ describe.each(ARCHIVABLE_MODELS)(
               return (
                 candidate.target === archivable.modelType &&
                 Array.isArray(candidate.columns) &&
-                candidate.columns.length === 2 &&
-                (candidate.columns as Array<string>).includes("projectId") &&
-                (candidate.columns as Array<string>).includes("isArchived")
+                (candidate.columns as Array<string>)[0] === "projectId" &&
+                (candidate.columns as Array<string>)[1] === "isArchived" &&
+                !candidate.where
               );
             },
           );

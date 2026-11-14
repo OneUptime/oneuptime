@@ -127,11 +127,58 @@ import NotificationRuleWorkspaceChannel from "../../Types/Workspace/Notification
   },
 )
 /*
- * Every list of this resource pins `isArchived` inside a project (the
- * main list hides archived rows, the Archived page shows only them), so
- * the pair is indexed together, like every other archivable resource.
+ * INDEXES. Heartbeats, telemetry sweeps, server reports and status changes
+ * rewrite rows here all the time, and an update can only be HOT (no index
+ * entry at all) when it changes no column an index names, in its key or its
+ * WHERE. So an index is here because a read needs it, and a column that a
+ * frequent write moves is named by none: telemetryMonitorLastMonitorAt and
+ * NextMonitorAt (every minute), the incoming request and email heartbeat
+ * stamps (every 30 seconds), serverMonitorRequestReceivedAt (every report).
+ * Their sweeps find their monitors by type, below. A partial index holds,
+ * and costs a write, only for the rows its WHERE matches.
+ *
+ * Every list of this resource pins `isArchived` inside a project (the main
+ * list hides archived rows, the Archived page shows only them), so the pair
+ * leads, like every other archivable resource. createdAt follows: a list
+ * nobody sorted comes newest first (DatabaseService.getReadSort), and this
+ * hands it the first page without sorting the whole project. It also serves
+ * every other read by project, and the project's foreign key.
  */
-@Index(["projectId", "isArchived"])
+@Index(["projectId", "isArchived", "createdAt"])
+/*
+ * The monitors made for a network device: the device's pages, the alert
+ * policy engine, and the device delete - its count of them and its foreign
+ * key (ON DELETE RESTRICT), which looks for them with no deletedAt and no
+ * template. The unique index above requires a template, which none of these
+ * imply. (A device poll and trap find their monitors through
+ * MonitorNetworkDevice.)
+ */
+@Index(["autoProvisionedNetworkDeviceId"], {
+  where: '"autoProvisionedNetworkDeviceId" IS NOT NULL',
+})
+/*
+ * A type's monitors in id order: the heartbeat and server sweeps
+ * (Workers/Utils/MonitorSweep) page through one type by id, and the
+ * telemetry sweep reads its types.
+ */
+@Index(["monitorType", "_id"])
+/*
+ * The Monitors menu's Probe Disconnected, Probe Disabled and Disabled
+ * counts (Pages/Monitor/SideMenu.tsx), counted again on every change to a
+ * monitor, and their pages: each holds only the monitors it counts.
+ */
+@Index(["projectId"], {
+  where:
+    '"isAllProbesDisconnectedFromThisMonitor" = true AND "isArchived" = false AND "deletedAt" IS NULL',
+})
+@Index(["projectId"], {
+  where:
+    '"isNoProbeEnabledOnThisMonitor" = true AND "isArchived" = false AND "deletedAt" IS NULL',
+})
+@Index(["projectId"], {
+  where:
+    '"disableActiveMonitoring" = true AND "isArchived" = false AND "deletedAt" IS NULL',
+})
 @Entity({
   name: "Monitor",
 })
@@ -207,7 +254,6 @@ export default class Monitor extends BaseModel {
     ],
     update: [],
   })
-  @Index()
   @TableColumn({
     type: TableColumnType.ObjectID,
     required: true,
@@ -309,7 +355,6 @@ export default class Monitor extends BaseModel {
   })
   public description?: string = undefined;
 
-  @Index()
   @ColumnAccessControl({
     create: [],
     read: [
@@ -1837,7 +1882,6 @@ export default class Monitor extends BaseModel {
     example: "API",
     canReadOnRelationQuery: true,
   })
-  @Index()
   @Column({
     nullable: false,
     type: ColumnType.ShortText,
@@ -2009,7 +2053,6 @@ export default class Monitor extends BaseModel {
       Permission.EditProjectMonitor,
     ],
   })
-  @Index()
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
@@ -2130,7 +2173,6 @@ export default class Monitor extends BaseModel {
       Permission.EditProjectMonitor,
     ],
   })
-  @Index()
   @TableColumn({
     type: TableColumnType.Boolean,
     required: true,
@@ -2229,7 +2271,6 @@ export default class Monitor extends BaseModel {
     ],
     update: [],
   })
-  @Index()
   @TableColumn({
     type: TableColumnType.Date,
     required: false,
@@ -2266,7 +2307,6 @@ export default class Monitor extends BaseModel {
     ],
     update: [],
   })
-  @Index()
   @TableColumn({
     type: TableColumnType.Date,
     required: false,
@@ -2302,7 +2342,6 @@ export default class Monitor extends BaseModel {
     ],
     update: [],
   })
-  @Index()
   @TableColumn({
     type: TableColumnType.Date,
     required: false,
@@ -2331,7 +2370,6 @@ export default class Monitor extends BaseModel {
     ],
     update: [],
   })
-  @Index()
   @TableColumn({
     type: TableColumnType.Boolean,
     required: true,
@@ -2362,7 +2400,6 @@ export default class Monitor extends BaseModel {
     ],
     update: [],
   })
-  @Index()
   @TableColumn({
     type: TableColumnType.Boolean,
     required: true,
@@ -2400,7 +2437,6 @@ export default class Monitor extends BaseModel {
     ],
     update: [],
   })
-  @Index()
   @TableColumn({
     type: TableColumnType.Date,
     required: false,
@@ -2701,7 +2737,6 @@ export default class Monitor extends BaseModel {
     ],
     update: [],
   })
-  @Index()
   @TableColumn({
     type: TableColumnType.Date,
     required: false,
@@ -2757,7 +2792,6 @@ export default class Monitor extends BaseModel {
     ],
     update: [],
   })
-  @Index()
   @TableColumn({
     type: TableColumnType.Date,
     required: false,
