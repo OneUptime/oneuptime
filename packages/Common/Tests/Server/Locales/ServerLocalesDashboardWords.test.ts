@@ -166,8 +166,14 @@ describe("the sentences the server and the Dashboard both write", () => {
     }
   });
 
+  /*
+   * Red after a Dashboard change to one of these sentences (a new wording,
+   * a translation): run npm run i18n:server-sync from the repository's
+   * root, which copies the Dashboard's wording here. Never word the
+   * server's copy by hand.
+   */
   test.each(TRANSLATED_LANGUAGES)(
-    "%s words each of them exactly as the Dashboard's file of that language does",
+    "%s words each of them exactly as the Dashboard's file of that language does (npm run i18n:server-sync copies it)",
     (language: string) => {
       const locale: LocaleDictionary = readLocale(language);
       const dashboard: LocaleDictionary = readDashboardLocale(language);
