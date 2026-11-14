@@ -45,6 +45,12 @@ await OnlineDdl.addForeignKey(
 
 `createIndex` builds the index `CONCURRENTLY`, and `addForeignKey` adds the key `NOT VALID` and validates it separately. Neither blocks reads or writes, and the names and definitions stay the generated ones, so the drift check still matches. A table created in the same migration is empty and needs none of this. [`SchemaMigrationsOnlineDdl`](../../packages/Common/Tests/Server/Infrastructure/Postgres/SchemaMigrationsOnlineDdl.test.ts) fails a new migration that skips it.
 
+An index dropped from an existing table goes the same way: ``OnlineDdl.dropIndex(queryRunner, `DROP INDEX "public"."IDX_..."`)`` drops it `CONCURRENTLY`, so the table's readers and writers don't queue behind it. TypeORM reverts a migration inside a transaction whatever its `transaction` says, and no index can be built online there, so a `down()` that builds the index again keeps the generated `CREATE INDEX`. Check its columns: for an index of several, the generator writes them in the table's column order, not the index's ([`1809150500000-DropNetworkDeviceLastSeenAtAndProjectIdIndexes`](../../packages/Common/Server/Infrastructure/Postgres/SchemaMigrations/1809150500000-DropNetworkDeviceLastSeenAtAndProjectIdIndexes.ts) puts them back in order).
+
+### Storage parameters
+
+TypeORM doesn't model a table's storage parameters (`fillfactor`, the `autovacuum_*` settings), so a migration that sets them is written by hand, and the drift check can't catch a change to it: pin its statements in a test. `ALTER TABLE ... SET (...)` of these takes SHARE UPDATE EXCLUSIVE, which no read or write waits for, and rewrites nothing, so it runs in an ordinary migration ([`1809150600000-SetMonitorProbeAndNetworkDeviceFillfactor`](../../packages/Common/Server/Infrastructure/Postgres/SchemaMigrations/1809150600000-SetMonitorProbeAndNetworkDeviceFillfactor.ts)).
+
 ### Tests
 
 Migration tests live in [`packages/Common/Tests/Server/Infrastructure/Postgres`](../../packages/Common/Tests/Server/Infrastructure/Postgres). A `<Name>Migration.test.ts` checks a migration's statements against the model and its place in `Index.ts`. A `<Name>Postgres.test.ts` runs it against a real Postgres; its header names the environment variable that opts in.

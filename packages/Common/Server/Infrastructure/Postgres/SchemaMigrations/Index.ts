@@ -984,6 +984,7 @@ import { GlobalConfigCredentialsEncryptedColumns1809126000000 } from "./18091260
 import { AddNotifySubscribersOfNewIncidentsByDefault1809150300000 } from "./1809150300000-AddNotifySubscribersOfNewIncidentsByDefault";
 import { DropRedundantMonitorProbeIndexes1809150400000 } from "./1809150400000-DropRedundantMonitorProbeIndexes";
 import { DropNetworkDeviceLastSeenAtAndProjectIdIndexes1809150500000 } from "./1809150500000-DropNetworkDeviceLastSeenAtAndProjectIdIndexes";
+import { SetMonitorProbeAndNetworkDeviceFillfactor1809150600000 } from "./1809150600000-SetMonitorProbeAndNetworkDeviceFillfactor";
 
 export default [
   InitialMigration,
@@ -1972,4 +1973,5 @@ export default [
   AddNotifySubscribersOfNewIncidentsByDefault1809150300000,
   DropRedundantMonitorProbeIndexes1809150400000,
   DropNetworkDeviceLastSeenAtAndProjectIdIndexes1809150500000,
+  SetMonitorProbeAndNetworkDeviceFillfactor1809150600000,
 ];
