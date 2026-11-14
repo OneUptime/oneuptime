@@ -986,9 +986,8 @@ const TARGET_PAGE_NAMES: { [key in AIChatCitationTargetType]: string } = {
   [AIChatCitationTargetType.ScheduledMaintenanceEvents]: translationKey(
     "Scheduled maintenance",
   ),
-  [AIChatCitationTargetType.ScheduledMaintenanceView]: translationKey(
-    "Scheduled maintenance event",
-  ),
+  [AIChatCitationTargetType.ScheduledMaintenanceView]:
+    translationKey("Maintenance event"),
   [AIChatCitationTargetType.OnCallPolicies]: translationKey("On-call policies"),
   [AIChatCitationTargetType.OnCallPolicyView]: translationKey("On-call policy"),
   [AIChatCitationTargetType.StatusPages]: translationKey("Status pages"),

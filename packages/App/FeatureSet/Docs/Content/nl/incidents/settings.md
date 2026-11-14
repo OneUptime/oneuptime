@@ -736,7 +736,7 @@ De regels die de pagina zelf meebrengt, zijn het waard om je eigen te maken:
 - Het beleid dat daadwerkelijk wordt uitgevoerd, is de vereniging van het beleid van elke overeenkomende regel plus elk beleid dat met de hand of door een sjabloon aan het incident is gehangen, ontdubbeld zodat elk beleid hoogstens één keer draait. Roepen twee overeenkomende regels hetzelfde beleid op, dan roept het op zodra een van beide het toelaat: direct wint van werktijden.
 
 > [!NOTE]
-> Ernst is hier een criterium en nergens anders. Een incidenternst heeft geen bereikbaarheidsveld — "Critical Incident" kiezen roept op zichzelf niemand op. Wil je dat de ernst het oproepen stuurt, schrijf dan een bereikbaarheidsregel die erop filtert.
+> Ernst is hier een criterium en nergens anders. Een incidenternst heeft geen bereikbaarheidsveld — "Kritiek incident" kiezen roept op zichzelf niemand op. Wil je dat de ernst het oproepen stuurt, schrijf dan een bereikbaarheidsregel die erop filtert.
 
 ## Bereikbaarheidsbeleid rechtstreeks koppelen
 

@@ -736,7 +736,7 @@ Die Regeln, die die Seite selbst mitbringt, sollten Sie verinnerlichen:
 - Die Menge der tatsächlich ausgeführten Richtlinien ist die Vereinigung der Richtlinien jeder passenden Regel plus aller Richtlinien, die dem Vorfall von Hand oder durch eine Vorlage angehängt wurden, dedupliziert, sodass jede Richtlinie höchstens einmal läuft. Lösen zwei passende Regeln dieselbe Richtlinie aus, alarmiert sie, sobald eine von beiden es zulässt: Sofort hat Vorrang vor den Arbeitszeiten.
 
 > [!NOTE]
-> Der Schweregrad ist hier ein Übereinstimmungskriterium und nirgends sonst. Ein Vorfallsschweregrad hat kein Bereitschaftsfeld – „Critical Incident“ zu wählen alarmiert für sich allein niemanden. Soll der Schweregrad die Alarmierung steuern, schreiben Sie eine Bereitschaftsregel, die darauf abgleicht.
+> Der Schweregrad ist hier ein Übereinstimmungskriterium und nirgends sonst. Ein Vorfallsschweregrad hat kein Bereitschaftsfeld – „Kritischer Vorfall“ zu wählen alarmiert für sich allein niemanden. Soll der Schweregrad die Alarmierung steuern, schreiben Sie eine Bereitschaftsregel, die darauf abgleicht.
 
 ## Bereitschaftsrichtlinien direkt anhängen
 

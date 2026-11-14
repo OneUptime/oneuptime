@@ -101,7 +101,7 @@ export const getMonitoringOffNotice: (
       reason: MonitoringOffReason.ScheduledMaintenance,
       title: PAUSED_TITLE,
       message: translationKey(
-        "We are not monitoring this monitor since it is disabled because of an ongoing scheduled maintenance event. To enable active monitoring, please resolve the scheduled maintenance event.",
+        "We are not monitoring this monitor since it is disabled because of an ongoing maintenance event. To enable active monitoring, please end the maintenance event.",
       ),
     };
   }

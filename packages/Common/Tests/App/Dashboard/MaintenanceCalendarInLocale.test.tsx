@@ -82,7 +82,7 @@ const PAGE_SENTENCES: Record<string, Array<string>> = {
   ],
   "Pages/ScheduledMaintenanceEvents/Calendar.tsx": [
     "Maintenance Calendar",
-    "Every scheduled maintenance event by month, week or day, in your own time zone.",
+    "Every maintenance event by month, week or day, in your own time zone.",
   ],
   "Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceCalendarSettings.tsx":
     [

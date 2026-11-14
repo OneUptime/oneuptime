@@ -1768,7 +1768,7 @@ describe("Name the channel a rule creates", () => {
 
     expect(
       within(dialog()).getByText(
-        "Each new channel is named after its scheduled maintenance event. Anything you write here replaces the event's number prefix.",
+        "Each new channel is named after its maintenance event. Anything you write here replaces the event's number prefix.",
       ),
     ).toBeVisible();
     expect(preview()).toBe("#sm-42");
@@ -1777,7 +1777,7 @@ describe("Name the channel a rule creates", () => {
 
     // maint- takes the place of SM-: maint-42, as such rules always named it.
     expect(preview()).toBe("#maint-42");
-    expect(previewNotes()).toBe("For scheduled maintenance event SM-42.");
+    expect(previewNotes()).toBe("For maintenance event SM-42.");
   });
 
   test("creates the rule without a prefix: no channel name is required any more", async () => {
@@ -1933,7 +1933,7 @@ describe("Name the channel a rule creates", () => {
     [
       NotificationRuleEventType.ScheduledMaintenance,
       "#sm-42",
-      "For scheduled maintenance event SM-42.",
+      "For maintenance event SM-42.",
     ],
     [NotificationRuleEventType.Monitor, "#website", "For the monitor Website."],
   ])(
