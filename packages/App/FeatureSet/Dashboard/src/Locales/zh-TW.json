@@ -52233,6 +52233,8 @@
   "The Azure namespace: the first part of <namespace>.servicebus.windows.net. Leave empty only for the emulator or a custom domain.": "Azure 命名空間：<namespace>.servicebus.windows.net 的第一部分。僅在使用模擬器或自訂網域時留空。",
   "The queue, topic or subscription name your applications and broker use. A URL, ARN or resource path is reduced to its name.": "您的應用程式和 Broker 使用的佇列、主題或訂閱名稱。URL、ARN 或資源路徑會縮減為該名稱。",
   "This email was sent without a subject.": "此電子郵件寄出時沒有主旨。",
+  "Exclusion rule": "排除規則",
+  "Import rule": "匯入規則",
   "Changes to the policy": "策略變更",
   "One line at each hand-off: who is on call, and until when.": "每次交接一行：誰在待命，待命到何時。",
   "User overrides": "使用者覆寫",

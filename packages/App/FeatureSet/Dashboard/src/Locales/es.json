@@ -52233,6 +52233,8 @@
   "The Azure namespace: the first part of <namespace>.servicebus.windows.net. Leave empty only for the emulator or a custom domain.": "El espacio de nombres de Azure: la primera parte de <namespace>.servicebus.windows.net. Déjalo vacío solo para el emulador o un dominio personalizado.",
   "The queue, topic or subscription name your applications and broker use. A URL, ARN or resource path is reduced to its name.": "El nombre de la cola, el tema o la suscripción que usan tus aplicaciones y tu broker. Una URL, un ARN o una ruta de recurso se reduce a su nombre.",
   "This email was sent without a subject.": "Este correo electrónico se envió sin asunto.",
+  "Exclusion rule": "Regla de exclusión",
+  "Import rule": "Regla de importación",
   "Changes to the policy": "Cambios en la política",
   "One line at each hand-off: who is on call, and until when.": "Una línea en cada relevo: quién está de guardia y hasta cuándo.",
   "User overrides": "Sustituciones de usuarios",

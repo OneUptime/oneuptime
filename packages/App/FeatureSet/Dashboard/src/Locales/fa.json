@@ -52233,6 +52233,8 @@
   "The Azure namespace: the first part of <namespace>.servicebus.windows.net. Leave empty only for the emulator or a custom domain.": "بخش اول <namespace>.servicebus.windows.net، یعنی namespace شما در Azure. فقط برای شبیه‌ساز یا یک دامنه سفارشی آن را خالی بگذارید.",
   "The queue, topic or subscription name your applications and broker use. A URL, ARN or resource path is reduced to its name.": "نام صف، موضوع یا اشتراکی که برنامه‌ها و کارگزار شما استفاده می‌کنند. یک URL، ARN یا مسیر منبع به نام آن کوتاه می‌شود.",
   "This email was sent without a subject.": "این ایمیل بدون موضوع ارسال شده است.",
+  "Exclusion rule": "قاعده مستثنی‌سازی",
+  "Import rule": "قاعده درون‌ریزی",
   "Changes to the policy": "تغییرات سیاست",
   "One line at each hand-off: who is on call, and until when.": "یک خط در هر تحویل شیفت: چه کسی آنکال است، و تا کی.",
   "User overrides": "جایگزینی‌های کاربر",

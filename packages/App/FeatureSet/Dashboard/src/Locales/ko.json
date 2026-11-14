@@ -52233,6 +52233,8 @@
   "The Azure namespace: the first part of <namespace>.servicebus.windows.net. Leave empty only for the emulator or a custom domain.": "Azure 네임스페이스로, <namespace>.servicebus.windows.net의 첫 부분입니다. 에뮬레이터나 사용자 지정 도메인을 쓸 때만 비워 두세요.",
   "The queue, topic or subscription name your applications and broker use. A URL, ARN or resource path is reduced to its name.": "애플리케이션과 브로커가 사용하는 큐, 토픽 또는 구독 이름입니다. URL, ARN 또는 리소스 경로는 그 이름으로 줄어듭니다.",
   "This email was sent without a subject.": "이 이메일은 제목 없이 전송되었습니다.",
+  "Exclusion rule": "제외 규칙",
+  "Import rule": "가져오기 규칙",
   "Changes to the policy": "정책 변경",
   "One line at each hand-off: who is on call, and until when.": "인계 때마다 한 줄: 누가 온콜이고 언제까지인지.",
   "User overrides": "사용자 재정의",
