@@ -18,6 +18,9 @@ import {
   UPDATE_TRIGGER,
 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809163000000-AddMonitorNetworkDevice";
 import { BackfillMonitorNetworkDevice1809163100000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809163100000-BackfillMonitorNetworkDevice";
+import MonitorNetworkDeviceService, {
+  RowOfGoneDevice,
+} from "../../../../Server/Services/MonitorNetworkDeviceService";
 import NetworkDeviceWalkUtil from "../../../../Server/Utils/Monitor/NetworkDeviceWalkUtil";
 import logger from "../../../../Server/Utils/Logger";
 import MonitorStep from "../../../../Types/Monitor/MonitorStep";
@@ -62,6 +65,12 @@ const describePostgres: typeof describe.skip =
   process.env["RUN_POSTGRES_MONITOR_NETWORK_DEVICE_TESTS"] === "true"
     ? describe
     : describe.skip;
+
+/*
+ * Cloning four migrated tables and initializing a DataSource over every
+ * model can outlast Jest's default on a busy machine.
+ */
+jest.setTimeout(300_000);
 
 const TABLES: Array<string> = [
   "Project",
@@ -580,6 +589,81 @@ describePostgres("MonitorNetworkDevice and its triggers, on Postgres", () => {
         return Boolean(node["Index Name"]);
       }),
     ).toBe(true);
+  });
+
+  test("the stale poll check finds the rows of devices that are gone, or in another project, and none of devices that exist", async () => {
+    const present: string = ObjectID.generate().toString();
+    const elsewhere: string = ObjectID.generate().toString();
+    const gone: string = ObjectID.generate().toString();
+
+    await database.query(
+      `INSERT INTO "NetworkDevice" ("_id", "projectId", "name", "slug", "hostname", "version")
+       VALUES ($1, $2, 'present', $3, '10.0.0.1', 1), ($4, $5, 'elsewhere', $6, '10.0.0.2', 1)`,
+      [
+        present,
+        projectId.toString(),
+        `present-${present}`,
+        elsewhere,
+        otherProjectId.toString(),
+        `elsewhere-${elsewhere}`,
+      ],
+    );
+
+    const onPresent: string = await insertMonitor({
+      steps: stepsNaming(present),
+    });
+    const onElsewhere: string = await insertMonitor({
+      steps: stepsNaming(elsewhere),
+    });
+    const onGone: string = await insertMonitor({ steps: stepsNaming(gone) });
+
+    const rows: Array<RowOfGoneDevice> = [];
+    let afterId: ObjectID | undefined = undefined;
+
+    /*
+     * In pages of 1,000, the stale poll check's: the 3,000 monitors written
+     * above name devices that do not exist either, so the cursor walks
+     * several pages.
+     */
+    for (;;) {
+      const page: Array<RowOfGoneDevice> =
+        await MonitorNetworkDeviceService.findRowsOfGoneDevices({
+          afterId: afterId,
+          limit: 1000,
+        });
+
+      rows.push(...page);
+
+      if (page.length < 1000) {
+        break;
+      }
+
+      afterId = page[page.length - 1]!.id;
+    }
+
+    const monitorsWithGoneDevices: Array<string> = rows.map(
+      (row: RowOfGoneDevice): string => {
+        return row.monitorId.toString();
+      },
+    );
+
+    expect(monitorsWithGoneDevices).toContain(onElsewhere);
+    expect(monitorsWithGoneDevices).toContain(onGone);
+    expect(monitorsWithGoneDevices).not.toContain(onPresent);
+
+    const goneRow: RowOfGoneDevice | undefined = rows.find(
+      (row: RowOfGoneDevice): boolean => {
+        return row.monitorId.toString() === onGone;
+      },
+    );
+    expect(goneRow?.networkDeviceId.toString()).toBe(gone);
+    expect(goneRow?.projectId.toString()).toBe(projectId.toString());
+
+    // In row id order, so a cursor walks them all.
+    const ids: Array<string> = rows.map((row: RowOfGoneDevice): string => {
+      return row.id.toString();
+    });
+    expect(ids).toEqual([...ids].sort());
   });
 
   test("down() removes the triggers, the functions and the table, and monitors still save", async () => {
