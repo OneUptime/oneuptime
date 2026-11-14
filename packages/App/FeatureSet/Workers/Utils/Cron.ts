@@ -67,7 +67,11 @@ export function buildCronJobFunction(data: {
 
     if (!deadline) {
       ownTimeLimit = setTimeout(() => {
-        runDeadline.end(new TimeoutException("Job Timeout"));
+        runDeadline.end(
+          new TimeoutException(
+            `${data.jobName} ran out of its time limit and stopped. Its next run carries on with what is left.`,
+          ),
+        );
       }, timeoutInMs);
       ownTimeLimit.unref?.();
     }
