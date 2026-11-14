@@ -80,7 +80,9 @@ const PAGE_NAME: string = "Global LLM Providers";
 /*
  * Each language's word for an LLM provider, as its Global LLM Providers
  * page has it (lower case; Persian without the optional hamza): every one
- * of the step's three words says it.
+ * of the step's three words says it. Japanese spells it プロバイダー, with
+ * its long vowel, on the page as on the button that opens it and in the
+ * docs (the page said プロバイダ until #7356's UI review).
  */
 const LLM_PROVIDER_WORD: Readonly<Record<string, string>> = {
   ar: "موفّر",
@@ -91,7 +93,7 @@ const LLM_PROVIDER_WORD: Readonly<Record<string, string>> = {
   fr: "fournisseur",
   hi: "llm प्रदाता",
   it: "provider llm",
-  ja: "llm プロバイダ",
+  ja: "llm プロバイダー",
   ko: "llm 공급자",
   nl: "llm-provider",
   no: "llm-leverandør",
