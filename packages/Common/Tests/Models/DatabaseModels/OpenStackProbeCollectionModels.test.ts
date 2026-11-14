@@ -460,13 +460,31 @@ describe("what the hand-written SQL names", () => {
       }),
     ).toHaveLength(1);
 
-    const named: Array<string> = statements.flatMap(
-      (statement: string): Array<string> => {
+    /*
+     * And the rule it keeps clouds by, a list of its own (getCollectableSql),
+     * which the claim and the set-aside of the clouds it stepped over both
+     * read (Utils/Probe/ClaimSetAside, OneUptime issue #7919).
+     */
+    const source: string = sourceOf("OpenStackProbeCollectionStore.ts");
+    const ruleStart: number = source.indexOf(
+      "public static getCollectableSql(",
+    );
+
+    expect(ruleStart).toBeGreaterThan(-1);
+
+    const rule: string = source.slice(
+      ruleStart,
+      source.indexOf("].join(", ruleStart),
+    );
+
+    const named: Array<string> = [
+      ...statements.flatMap((statement: string): Array<string> => {
         return statement.includes('"OpenStackCloud"')
           ? namesIn(statement, /\bc\."(\w+)"/g)
           : [];
-      },
-    );
+      }),
+      ...namesIn(rule, /\bc\."(\w+)"/g),
+    ];
 
     // Not vacuous: these are what the claim turns on.
     for (const column of [
