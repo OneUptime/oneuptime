@@ -309,7 +309,7 @@ O OneUptime não conseguiu colocar a reunião no calendário do organizador dela
 :::
 
 :::details A OneUptime AI não conseguiu ler uma transcrição
-O card diz o motivo: a IA está desativada para o projeto, o projeto atingiu um limite diário de IA, ou o provedor de IA recusou. Depois de resolver isso, **Tentar novamente** no card a lê de novo.
+O card diz o motivo: a IA está desativada para o projeto, o projeto atingiu um limite diário de IA, ou o [provedor de LLM](/docs/ai/llm-provider) do projeto recusou. Depois de resolver isso, **Tentar novamente** no card a lê de novo.
 :::
 
 ## Próximos passos

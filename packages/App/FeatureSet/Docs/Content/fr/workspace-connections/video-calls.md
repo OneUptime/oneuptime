@@ -309,7 +309,7 @@ OneUptime n'a pas pu placer la réunion dans le calendrier de son organisateur :
 :::
 
 :::details L'IA de OneUptime n'a pas pu lire une transcription
-La carte indique pourquoi : l'IA est désactivée pour le projet, le projet a atteint une limite quotidienne d'IA, ou le fournisseur d'IA a refusé. Une fois le problème réglé, **Réessayer** sur la carte la relit.
+La carte indique pourquoi : l'IA est désactivée pour le projet, le projet a atteint une limite quotidienne d'IA, ou le [fournisseur LLM](/docs/ai/llm-provider) du projet a refusé. Une fois le problème réglé, **Réessayer** sur la carte la relit.
 :::
 
 ## Étapes suivantes
