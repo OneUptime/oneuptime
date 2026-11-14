@@ -130,7 +130,7 @@ Elke rij toont wat de uitvoering startte, wanneer, de **Status** ervan en wie ha
 Archiveren neemt een beleid uit dienst en bewaart alles: open de **Instellingen** van het beleid en klik op **Archiveren** op de archiefkaart ervan, of selecteer beleid in de lijst en kies **Archiveren**.
 
 - Een gearchiveerd beleid roept niemand op. Incidenten en waarschuwingen die het gebruiken slaan het over, en een uitvoering die nog escaleert, stopt bij haar volgende stap.
-- Het verdwijnt uit de lijst **Bereikbaarheidsbeleid** naar **Bereikbaarheid → Geavanceerd → Gearchiveerde beleidsregels**, waar **Uit archief halen** het weer in dienst neemt.
+- Het verdwijnt uit de lijst **Bereikbaarheidsbeleid** naar **Bereikbaarheid → Geavanceerd → Gearchiveerde beleidsregels**, waar **Uit het archief halen** het weer in dienst neemt.
 
 **Beleid verwijderen**, onder **Geavanceerd**, verwijdert het beleid samen met de escalatieregels en gebruikersoverschrijvingen ervan. Verwijderen vanuit de lijst vraagt eerst om bevestiging en stelt voor om in plaats daarvan te archiveren.
 

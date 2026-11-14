@@ -73,6 +73,10 @@ import {
   getWidgetSortSettingColumns,
 } from "./WidgetSortOptions";
 
+// Each added metric query's header: "Query 2", and its Remove.
+export const METRIC_QUERY_ROW_HEADER_TEST_ID: string =
+  "metric-query-row-header";
+
 export interface ComponentProps {
   // eslint-disable-next-line react/no-unused-prop-types
   metrics: {
@@ -747,8 +751,17 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                   key={index}
                   className="mb-4 p-3 border border-gray-200 rounded-lg bg-gray-50"
                 >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                  {/*
+                   * The query's label, and its Remove at the other end, a
+                   * gap apart and its own size at every width: on a phone
+                   * the shared Button took the row's whole width from the
+                   * label on (issue #7331).
+                   */}
+                  <div
+                    className="flex items-center justify-between gap-3 mb-2"
+                    data-testid={METRIC_QUERY_ROW_HEADER_TEST_ID}
+                  >
+                    <span className="min-w-0 text-xs font-medium text-gray-500 uppercase tracking-wide">
                       {translator.translateTemplate("Query {{number}}", {
                         number: index + 2,
                       })}
@@ -757,6 +770,7 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                       title="Remove"
                       buttonSize={ButtonSize.Small}
                       buttonStyle={ButtonStyleType.DANGER_OUTLINE}
+                      isFullWidthOnPhone={false}
                       icon={IconProp.Trash}
                       onClick={() => {
                         const updated: Array<MetricQueryConfigData> = [

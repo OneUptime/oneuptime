@@ -5487,6 +5487,8 @@ test.describe("one AI card: the investigation and the conversation", () => {
         content:
           "What is the most likely root cause of this incident? Investigate it and cite the evidence.",
         permissionMode: "AutoRun",
+        // The language the Dashboard is read in (#7247).
+        language: "en",
       });
 
       // While it is written: a status line, Stop instead of Send.
@@ -16154,9 +16156,9 @@ test.describe("screenshots", () => {
  */
 
 const LINKED_LINE: string =
-  "Read 2 open or recent alerts on Host checkout-api-7f9c, Docker host checkout-api-7f9c, Kubernetes cluster prod-eks-eu-west-1 and 2 more";
+  "Read 2 open or recent alerts on host checkout-api-7f9c, Docker host checkout-api-7f9c, Kubernetes cluster prod-eks-eu-west-1 and 2 more";
 const FOLLOW_UP_ACTIVITY_LINE: string =
-  "Checking again: alert #318 opened on Host checkout-api-7f9c after the first analysis";
+  "Checking again: alert #318 opened on host checkout-api-7f9c after the first analysis";
 const FOLLOW_UP_LEAD_TEXT: string =
   "Checked again after alert #318 opened on Host checkout-api-7f9c, 3 minutes after this incident was declared: High CPU on checkout-api-7f9c.";
 const FOLLOW_UP_FEED_LEAD: string =
@@ -16299,7 +16301,7 @@ test.describe("the linked infrastructure, and the follow-up check (?linked=)", (
   }) => {
     await open(page, INCIDENT_PATH, "ai=running&linked=more");
     await expect(liveInvestigation(page)).toContainText(
-      "Read the 10 newest open or recent alerts on Host checkout-api-7f9c, Docker host checkout-api-7f9c, Kubernetes cluster prod-eks-eu-west-1 and 2 more",
+      "Read the 10 newest open or recent alerts on host checkout-api-7f9c, Docker host checkout-api-7f9c, Kubernetes cluster prod-eks-eu-west-1 and 2 more",
       { timeout: 30000 },
     );
   });
@@ -16311,7 +16313,7 @@ test.describe("the linked infrastructure, and the follow-up check (?linked=)", (
   }) => {
     await open(page, ALERT_PATH, "ai=running&linked=alerts");
     await expect(liveInvestigation(page)).toContainText(
-      "No open or recent alerts on Host payments-web-2",
+      "No open or recent alerts on host payments-web-2",
       { timeout: 30000 },
     );
     // An alert is never checked again.
@@ -16335,7 +16337,7 @@ test.describe("the linked infrastructure, and the follow-up check (?linked=)", (
     expect((await stepTexts(page)).slice(0, 3)).toEqual([
       "Starting investigation",
       FOLLOW_UP_ACTIVITY_LINE,
-      "Read 3 open or recent alerts on Host checkout-api-7f9c, Docker host checkout-api-7f9c, Kubernetes cluster prod-eks-eu-west-1 and 2 more",
+      "Read 3 open or recent alerts on host checkout-api-7f9c, Docker host checkout-api-7f9c, Kubernetes cluster prod-eks-eu-west-1 and 2 more",
     ]);
     expect(await stepTexts(page)).toContain(
       "Checking the host's containers · 4 rows · 0.6s",
@@ -17056,6 +17058,146 @@ test.describe("an incident call's transcript (?calls=)", () => {
     await expect(card.getByTestId("call-transcript-read")).toBeVisible({
       timeout: 30000,
     });
+  });
+
+  /*
+   * A file extension in a Persian or Arabic sentence of the Add transcript
+   * dialog keeps its dot before its letters (issue #7419): ".vtt", never
+   * "vtt.". Laid out as the locale file holds the sentence, the dot - a
+   * sign with no direction of its own - is drawn after the letters on a
+   * page read from the right; the Dashboard's i18next sets each extension
+   * apart as code (Common/UI/Utils/CodeReadsAsWritten). Measured on the
+   * drawn text itself: the dot's box is left of its letters' box.
+   */
+  interface DrawnExtension {
+    extension: string;
+    dotRight: number;
+    lettersLeft: number;
+  }
+
+  async function drawnExtensions(
+    line: Locator,
+    extensions: ReadonlyArray<string>,
+  ): Promise<Array<DrawnExtension>> {
+    return line.evaluate((element: Element, written: ReadonlyArray<string>) => {
+      const found: Array<DrawnExtension> = [];
+      const walker: TreeWalker = document.createTreeWalker(
+        element,
+        NodeFilter.SHOW_TEXT,
+      );
+
+      for (
+        let node: Node | null = walker.nextNode();
+        node;
+        node = walker.nextNode()
+      ) {
+        const text: string = node.textContent || "";
+
+        for (const extension of written) {
+          const at: number = text.indexOf(extension);
+
+          if (at < 0) {
+            continue;
+          }
+
+          const dot: Range = document.createRange();
+          dot.setStart(node, at);
+          dot.setEnd(node, at + 1);
+          const letters: Range = document.createRange();
+          letters.setStart(node, at + 1);
+          letters.setEnd(node, at + extension.length);
+
+          found.push({
+            extension,
+            dotRight: dot.getBoundingClientRect().right,
+            lettersLeft: letters.getBoundingClientRect().left,
+          });
+        }
+      }
+
+      return found;
+    }, extensions);
+  }
+
+  function expectDotsFirst(drawn: Array<DrawnExtension>): void {
+    for (const extension of drawn) {
+      expect([
+        extension.extension,
+        extension.dotRight <= extension.lettersLeft + 0.5,
+      ]).toEqual([extension.extension, true]);
+    }
+  }
+
+  async function openAddTranscript(
+    page: Page,
+    query: string,
+  ): Promise<Locator> {
+    await open(page, INCIDENT_PATH, query);
+    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+    const add: Locator = callsCard(page).getByTestId("call-transcript-add");
+    await expect(add).toBeVisible({ timeout: 30000 });
+    await add.click();
+    const dialog: Locator = page.getByTestId("add-call-transcript");
+    await expect(dialog).toBeVisible();
+    return dialog;
+  }
+
+  test("on a Persian page, the Add transcript dialog draws .vtt, .srt and .txt with their dots first (?calls=teams&lang=fa&dir=auto)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const dialog: Locator = await openAddTranscript(
+      page,
+      "calls=teams&lang=fa&dir=auto",
+    );
+
+    const dropZone: Locator = dialog
+      .getByTestId("add-call-transcript-choose-file")
+      .locator("span")
+      .last();
+    const hint: Locator = dialog.getByTestId("add-call-transcript-hint");
+
+    const inDropZone: Array<DrawnExtension> = await drawnExtensions(dropZone, [
+      ".vtt",
+      ".srt",
+      ".txt",
+    ]);
+    const inHint: Array<DrawnExtension> = await drawnExtensions(hint, [".vtt"]);
+
+    expect(
+      inDropZone.map((drawn: DrawnExtension): string => {
+        return drawn.extension;
+      }),
+    ).toEqual([".vtt", ".srt", ".txt"]);
+    expect(inHint).toHaveLength(1);
+    expectDotsFirst([...inDropZone, ...inHint]);
+    // The limit, a value of the sentence, in Persian digits.
+    await expect(dropZone).toContainText("۵ MB");
+
+    await screenshotElement(dialog, "add-call-transcript-fa");
+  });
+
+  test("on an Arabic page, Zoom's line draws (.vtt) with its dot first, at 390px (?calls=zoom&lang=ar&dir=auto)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const dialog: Locator = await openAddTranscript(
+      page,
+      "calls=zoom&lang=ar&dir=auto",
+    );
+
+    const inHint: Array<DrawnExtension> = await drawnExtensions(
+      dialog.getByTestId("add-call-transcript-hint"),
+      [".vtt"],
+    );
+
+    expect(inHint).toHaveLength(1);
+    expectDotsFirst(inHint);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await screenshotElement(dialog, "add-call-transcript-ar-390");
   });
 
   test("the suggested root cause: marked Not confirmed, resting on the call's lines in the order they were said", async ({
@@ -24320,7 +24462,7 @@ test("an App Platforms environment is named as one in the run's activity, beside
     })
     .toEqual([
       "Starting investigation",
-      "Read 2 open or recent alerts on Cloud environment checkout-web (Production), Cloud resource checkout-api and Service checkout-api",
+      "Read 2 open or recent alerts on cloud environment checkout-web (Production), cloud resource checkout-api and service checkout-api",
     ]);
   await expectNoSidewaysScroll(page, { tolerance: 1 });
 });

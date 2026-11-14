@@ -199,13 +199,13 @@ Siden **Indstillinger** samler, hvordan et SLO måler, med ét kort til hver tin
 | **Overholdelsesperiode** | **Vinduestype**, **Vindue (dage)** og **Tidszone**, med **Rediger periode**. | Forbrugsrateregler beholder deres tærskler, når vinduet ændres, så gennemgå dem bagefter. |
 | **Beregning af nedetid** | **Tilstand for flere monitorer** og **Nedetidsovervågningsstatusser**, med **Rediger beregning af nedetid**. | Uden statusser tæller alle ikke-operationelle statusser, også dem, der tilføjes senere. |
 | **Evaluering** | Kontakten **Evaluer dette SLO**, der gemmer, så snart du slår den om. | At slå den fra beder om bekræftelse, fordi det også løser SLO'ets åbne forbrugsrateadvarsler og -hændelser. |
-| **Arkivér SLO** | **Arkiver** eller **Fjern fra arkiv**. | Se [Arkivér et SLO](#arkivér-et-slo). |
+| **Arkiver SLO** | **Arkiver** eller **Fjern fra arkivet**. | Se [Arkiver et SLO](#arkiver-et-slo). |
 
 Efter en ændring af målet, perioden eller beregningen af nedetid evaluerer OneUptime SLO'et igen ved næste kørsel.
 
-## Arkivér et SLO
+## Arkiver et SLO
 
-Arkivér et SLO, du ikke længere måler, men vil beholde, som en udfaset tjeneste eller sidste års mål. Arkivér det fra **Indstillinger** → **Arkivér SLO**, eller vælg SLO'er på listen og vælg **Arkiver**.
+Arkiver et SLO, du ikke længere måler, men vil beholde, som en udfaset tjeneste eller sidste års mål. Arkiver det fra **Indstillinger** → **Arkiver SLO**, eller vælg SLO'er på listen og vælg **Arkiver**.
 
 Et arkiveret SLO:
 
@@ -214,14 +214,14 @@ Et arkiveret SLO:
 - får sine åbne forbrugsrateadvarsler og -hændelser løst;
 - beholder sine indstillinger, sin historik, sine regler og sine ejere. Dets monitorregler holder dets monitorliste opdateret, så det fortsætter med de rigtige monitorer.
 
-Arkiverede SLO'er står på siden **Arkiveret**, under **Avanceret** i SLO-listens sidemenu. Vælg dem der, og vælg **Fjern fra arkiv** for at hente dem tilbage: de evalueres igen ved næste kørsel, med SLI og budget genberegnet ud fra deres monitorers historik.
+Arkiverede SLO'er står på siden **Arkiveret**, under **Avanceret** i SLO-listens sidemenu. Vælg dem der, og vælg **Fjern fra arkivet** for at hente dem tilbage: de evalueres igen ved næste kørsel, med SLI og budget genberegnet ud fra deres monitorers historik.
 
 Arkivering og evaluering er to separate kontakter. Et SLO, der var deaktiveret, før det blev arkiveret, forbliver deaktiveret, når du fjerner det fra arkivet: slå det til igen med **Slå evaluering til** i dets banner, eller med **Evaluer dette SLO** under **Indstillinger** → **Evaluering**.
 
 | Du vil | Gør dette |
 | --- | --- |
 | Holde pause med at måle og beholde det på listen | Slå evalueringen fra |
-| Udfase det, men beholde dets historik og indstillinger | Arkivér det |
+| Udfase det, men beholde dets historik og indstillinger | Arkiver det |
 | Fjerne det for altid | Slet det |
 
 ## SLO'er på advarsler, hændelser og monitorer

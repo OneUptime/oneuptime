@@ -44,7 +44,11 @@ import {
   getDashboardSpanLabeller,
   getDashboardSpanLabels,
 } from "../Utils/DashboardDateTime";
-import { DASHBOARD_WIDGET_SETUP_LINE_TEST_ID } from "./DashboardWidgetSetupCopy";
+import {
+  DASHBOARD_WIDGET_ERROR_LINE_TEST_ID,
+  DASHBOARD_WIDGET_SETUP_LINE_TEST_ID,
+} from "./DashboardWidgetSetupCopy";
+import { getErrorInSentenceText } from "Common/UI/Utils/ErrorInSentence";
 
 /*
  * The big-number widget's PRESENTATION, with no opinion about where its
@@ -1120,6 +1124,19 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
   }
 
   if (props.error) {
+    /*
+     * The error in the reader's language (issue #7330): a sentence the
+     * widget set, looked up, and one nobody explained said as why and
+     * what to do next, with its reference - as text, as the line is cut
+     * to the lines the tile has room for and whole under the pointer.
+     * English from a server or a connector keeps its own reading
+     * direction on an Arabic or Persian board (DashboardWidgetLine).
+     */
+    const errorText: string = getErrorInSentenceText({
+      message: props.error,
+      translator: translator,
+    });
+
     return (
       <div
         data-testid={VALUE_WIDGET_TEST_ID}
@@ -1128,17 +1145,18 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
       >
         {showStateIcon && (
           <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center shrink-0">
-            <div className="h-5 w-5 text-gray-300">
+            <div className="h-5 w-5 text-gray-400">
               <Icon icon={IconProp.ChartBar} />
             </div>
           </div>
         )}
-        <p
-          className={`text-xs text-gray-500 text-center max-w-full ${getStateMessageClampClass(false)} px-1`}
-          title={props.error}
-        >
-          {props.error}
-        </p>
+        <DashboardWidgetLine
+          as="p"
+          text={errorText}
+          className={`text-xs text-gray-500 text-center break-words max-w-full ${getStateMessageClampClass(false)} px-1`}
+          title={errorText}
+          dataTestId={DASHBOARD_WIDGET_ERROR_LINE_TEST_ID}
+        />
       </div>
     );
   }

@@ -50,11 +50,19 @@ const SCREENSHOTS: string = path.resolve(
   "../../../output/playwright/custom-field-files-ui",
 );
 
-// The words the pickers say, as the product writes them (CustomFieldFormFields).
+/*
+ * The words the pickers say, as the product writes them (CustomFieldFormFields,
+ * FilePickerLayout). A picker of several says its own most files - its
+ * {{count}} - in the words for that count: FILES_HINT_ONE and FULL_NOTE_ONE
+ * for one file (issue #7421).
+ */
 const FILES_HINT: string =
-  "Up to 10 files of {{size}} each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.";
+  "Up to {{count}} files of {{size}} each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.";
+const FILES_HINT_ONE: string = `${FILES_HINT}_one`;
 const FILE_HINT: string =
   "PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP, up to {{size}}.";
+const FULL_NOTE_KEY: string =
+  "This field holds up to {{count}} files. Remove one to add another.";
 const FULL_NOTE: string =
   "This field holds up to 10 files. Remove one to add another.";
 
@@ -109,13 +117,21 @@ const PERSIAN: Record<string, string> = dashboardLocale("fa");
 const PERSIAN_SIZE: string = "\u06F1\u06F0 MB";
 const PERSIAN_LIMIT: string = `\u2068${PERSIAN_SIZE}\u2069`;
 
-function hintWith(template: string, size: string): string {
+function hintWith(
+  template: string,
+  size: string,
+  count: string = "10",
+): string {
   if (!template.includes("{{size}}")) {
     throw new Error(`A hint without its {{size}}: ${template}`);
   }
 
-  return template.replace("{{size}}", size);
+  return template.replace("{{size}}", size).replace("{{count}}", count);
 }
+
+// Persian's 10 and 3, set apart as the page sets a count apart.
+const PERSIAN_TEN: string = "\u2068\u06F1\u06F0\u2069";
+const PERSIAN_THREE: string = "\u2068\u06F3\u2069";
 
 interface DrawnLimit {
   numberRight: number;
@@ -1026,7 +1042,7 @@ test.describe("a record's file custom fields: Edit", () => {
     await openDialog(page, PERSIAN["Edit Fields"] as string);
     // The limit in Persian digits, number first, in the Persian sentence.
     await expect(picker(page, FILES_FIELD)).toContainText(
-      hintWith(PERSIAN[FILES_HINT] as string, PERSIAN_LIMIT),
+      hintWith(PERSIAN[FILES_HINT] as string, PERSIAN_LIMIT, PERSIAN_TEN),
     );
     await expectLimitNumberFirst(picker(page, FILES_FIELD), PERSIAN_SIZE);
     await expectNoSidewaysScroll(page, { tolerance: 1 });
@@ -1277,6 +1293,131 @@ test.describe("a public form's file questions", () => {
     await screenshot(page, "form-390");
   });
 
+  /*
+   * A question that takes fewer files than a question can says its own
+   * most, never the 10 a question can take (issue #7421), and holds no
+   * more: four chosen, three kept, and the note says three. A question of
+   * one file says one file, in the words for one.
+   */
+  test("a question that takes three files says three, and holds three", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openForm(page, "?evidence=3");
+
+    await expect(formPicker(page, "evidence")).toContainText(
+      hintWith(FILES_HINT, "10 MB", "3"),
+    );
+    await expect(formPicker(page, "evidence")).not.toContainText(
+      "Up to 10 files",
+    );
+    // The File question says what it said.
+    await expect(formPicker(page, "screenshot")).toContainText(
+      hintWith(FILE_HINT, "10 MB"),
+    );
+    await screenshot(page, "form-three-1280");
+
+    await formInput(page, "evidence").setInputFiles([
+      csv("log-1.csv"),
+      csv("log-2.csv"),
+      csv("log-3.csv"),
+      csv("log-4.csv"),
+    ]);
+
+    await expect(formPicker(page, "evidence")).toContainText(
+      "This field holds up to 3 files. Remove one to add another.",
+    );
+    for (const name of ["log-1.csv", "log-2.csv", "log-3.csv"]) {
+      await expect(
+        formPicker(page, "evidence").locator("xpath=..").getByText(name),
+      ).toBeVisible();
+    }
+    await expect(
+      formPicker(page, "evidence").locator("xpath=..").getByText("log-4.csv"),
+    ).toHaveCount(0);
+    await screenshot(page, "form-three-full-1280");
+  });
+
+  test("a question that takes one file says one file, and holds one", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openForm(page, "?evidence=1");
+
+    await expect(formPicker(page, "evidence")).toContainText(
+      hintWith(accountsText("en", FILES_HINT_ONE), "10 MB"),
+    );
+    expect(accountsText("en", FILES_HINT_ONE)).toBe(
+      "One file of up to {{size}}: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.",
+    );
+    // Every line of its prompt asks for one file, as its hint says one file.
+    await expect(formPicker(page, "evidence")).toContainText("Upload a file");
+    await expect(formPicker(page, "evidence")).toContainText(
+      "Click to choose a file or drag & drop.",
+    );
+    await expect(formPicker(page, "evidence")).not.toContainText(
+      "Upload files",
+    );
+    await screenshot(page, "form-one-1280");
+
+    await formInput(page, "evidence").setInputFiles(csv("only.csv"));
+
+    await expect(formPicker(page, "evidence")).toHaveText(
+      "This field holds one file. Remove it to add another.",
+    );
+    // Its one file sits under the field, with no "Chosen files" over one file.
+    const field: Locator = formPicker(page, "evidence").locator("xpath=..");
+    await expect(field.getByText("only.csv")).toBeVisible();
+    await expect(field.getByText("Chosen files")).toHaveCount(0);
+    await screenshot(page, "form-one-full-1280");
+  });
+
+  test("German and Persian: a question that takes three says three in the reader's words and digits", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openForm(page, "?evidence=3", "de");
+
+    await expect(formPicker(page, "evidence")).toContainText(
+      hintWith(accountsText("de", FILES_HINT), "10 MB", "3"),
+    );
+    expect(hintWith(accountsText("de", FILES_HINT), "10 MB", "3")).toContain(
+      "Bis zu 3 Dateien",
+    );
+    await screenshot(page, "form-three-de-1280");
+
+    await openForm(page, "?evidence=3", "fa");
+
+    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+    await expect(formPicker(page, "evidence")).toContainText(
+      hintWith(accountsText("fa", FILES_HINT), PERSIAN_LIMIT, PERSIAN_THREE),
+    );
+    // No Latin digit in the Persian sentence: its count and limit are Persian's.
+    expect(
+      (
+        (await formPicker(page, "evidence")
+          .getByText(/PCAP/)
+          .first()
+          .textContent()) || ""
+      ).replace(/[\u2066-\u2069]/g, ""),
+    ).not.toMatch(/[0-9]/);
+    await expectLimitNumberFirst(formPicker(page, "evidence"), PERSIAN_SIZE);
+    await screenshot(page, "form-three-fa-1280");
+
+    await formInput(page, "evidence").setInputFiles([
+      csv("a.csv"),
+      csv("b.csv"),
+      csv("c.csv"),
+    ]);
+    // Full, it says its three in Persian's digit, in a sentence of its own words.
+    await expect(formPicker(page, "evidence")).toContainText(
+      accountsText("fa", FULL_NOTE_KEY).replace("{{count}}", "\u06F3"),
+    );
+  });
+
   test("German: the pickers in the form page's own words", async ({
     page,
   }: {
@@ -1307,7 +1448,7 @@ test.describe("a public form's file questions", () => {
 
     await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
     await expect(formPicker(page, "evidence")).toContainText(
-      hintWith(accountsText("fa", FILES_HINT), PERSIAN_LIMIT),
+      hintWith(accountsText("fa", FILES_HINT), PERSIAN_LIMIT, PERSIAN_TEN),
     );
     await expect(formPicker(page, "screenshot")).toContainText(
       hintWith(accountsText("fa", FILE_HINT), PERSIAN_LIMIT),

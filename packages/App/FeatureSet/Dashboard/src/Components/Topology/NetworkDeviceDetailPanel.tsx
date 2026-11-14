@@ -9,9 +9,13 @@ import IconProp from "Common/Types/Icon/IconProp";
 import {
   NetworkTopologyEdge,
   NetworkTopologyEdgeEndpoint,
+  NetworkTopologyMonitorNotChecked,
   NetworkTopologyNode,
 } from "Common/Types/Monitor/SnmpMonitor/NetworkTopology";
+import MonitorNotCheckedReason from "Common/Types/Monitor/MonitorNotCheckedReason";
+import { Gray500 } from "Common/Types/BrandColors";
 import ObjectID from "Common/Types/ObjectID";
+import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
 import Route from "Common/Types/API/Route";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
@@ -25,7 +29,13 @@ import {
   edgeKeyForEdge,
   isolationReasonForNode,
   linkStateForEdge,
+  monitorNotCheckedForNode,
 } from "./NetworkTopologyMeta";
+import {
+  MonitorNotCheckedQualifier,
+  getMonitorNotCheckedQualifier,
+} from "../NetworkDevice/DeviceStatusUtil";
+import { DeviceMonitorNotCheckedActions } from "../NetworkDevice/DeviceStatusHero";
 import {
   isUnclassifiedNode,
   roleLabelForNode,
@@ -79,7 +89,23 @@ export interface ComponentProps {
    * latency trend under the same heading is read-only and shows regardless.
    */
   canRunDiagnostics?: boolean | undefined;
+  /*
+   * Reads the map again, once the drawer's "Turn monitoring on" has turned a
+   * device's bound monitor back on: the save stamps the device with the
+   * monitor's status before it answers, so the next read draws it in that
+   * status. Optional: without it the next scheduled refresh does.
+   */
+  readMapAgain?: (() => Promise<void>) | undefined;
 }
+
+/*
+ * The test ids of the line under a device's status that says its bound
+ * monitor is not checked (issue #7346), and of its caption.
+ */
+export const MONITOR_NOT_CHECKED_TEST_ID: string =
+  "network-topology-monitor-not-checked";
+export const MONITOR_NOT_CHECKED_CAPTION_TEST_ID: string =
+  "network-topology-monitor-not-checked-caption";
 
 /*
  * What the drawer's subtitle says: the kind of node, and its IP address
@@ -142,6 +168,22 @@ const NetworkDeviceDetailPanel: FunctionComponent<ComponentProps> = (
   }, [node, attachedEdges, props.nodeById]);
 
   const isEndpoint: boolean = node.kind === "endpoint";
+
+  /*
+   * A monitor-backed device drawn "unknown" because nothing checks its bound
+   * monitor (issue #7346): the device pages' gray "Monitoring off" or
+   * "Monitor archived" pill beside the status, with its tooltip, and under
+   * it what that means for the status and the ways out - "Turn monitoring
+   * on" and "Open monitor", as the device's own hero offers them.
+   */
+  const monitorNotChecked: NetworkTopologyMonitorNotChecked | undefined =
+    monitorNotCheckedForNode(node);
+  const notCheckedQualifier: MonitorNotCheckedQualifier | null =
+    monitorNotChecked
+      ? getMonitorNotCheckedQualifier(monitorNotChecked.reason)
+      : null;
+  const isBoundMonitorArchived: boolean =
+    monitorNotChecked?.reason === MonitorNotCheckedReason.MonitorArchived;
 
   const detailRows: Array<{ label: string; value: string }> = [];
   /*
@@ -240,50 +282,112 @@ const NetworkDeviceDetailPanel: FunctionComponent<ComponentProps> = (
       onClose={props.onClose}
       size={SideOverSize.Small}
     >
-      <div className="space-y-6">
-        <div className="flex items-center gap-2">
-          <span
-            className="inline-block h-2.5 w-2.5 rounded-full"
-            style={{
-              backgroundColor:
-                STATUS_COLORS[node.status] || STATUS_COLORS["unknown"],
-            }}
-          />
-          <span
-            className="text-sm font-medium text-gray-900"
-            data-testid="network-topology-device-status"
-          >
-            {translateString(
-              STATUS_LABELS[node.status] || STATUS_LABELS["unknown"],
-            )}
-          </span>
-          {isEndpoint ? (
-            <span className="inline-flex items-center rounded-full border border-violet-300 bg-violet-50 px-2.5 py-0.5 text-xs font-medium text-violet-700">
-              {translateString("Endpoint")}
-            </span>
-          ) : !node.isManaged ? (
-            <span className="inline-flex items-center rounded-full border border-gray-300 px-2.5 py-0.5 text-xs font-medium text-gray-600">
-              {translateString("Unmanaged")}
-            </span>
-          ) : (
-            <></>
-          )}
+      {/*
+       * The drawer brings its own top spacing from sm up, where the
+       * side-over leaves it to its content: without it the status row - and
+       * a "Monitoring off" pill beside it - sat on the header's edge.
+       */}
+      <div className="space-y-6 sm:pt-6">
+        <div>
           {/*
-           * Taking a node off the map. Deliberately here at the top rather
-           * than buried: the operator arrives at this drawer having clicked
-           * a node they did not want to see, and this is the answer to that.
+           * Wraps on a narrow drawer: a qualifier in a long language (German
+           * "Überwachung aus") beside "Hide from map" is wider than a phone.
            */}
-          {props.onHideNode ? (
-            <button
-              type="button"
-              className="ms-auto text-xs font-medium text-gray-500 underline hover:text-gray-700"
-              data-testid="network-topology-hide-node"
-              onClick={() => {
-                props.onHideNode?.(node);
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span
+              className="inline-block h-2.5 w-2.5 rounded-full"
+              style={{
+                backgroundColor:
+                  STATUS_COLORS[node.status] || STATUS_COLORS["unknown"],
               }}
+            />
+            <span
+              className="text-sm font-medium text-gray-900"
+              data-testid="network-topology-device-status"
             >
-              {translateString("Hide from map")}
-            </button>
+              {translateString(
+                STATUS_LABELS[node.status] || STATUS_LABELS["unknown"],
+              )}
+            </span>
+            {notCheckedQualifier ? (
+              <Pill
+                text={notCheckedQualifier.text}
+                color={Gray500}
+                size={PillSize.Normal}
+                tooltip={notCheckedQualifier.tooltip}
+              />
+            ) : (
+              <></>
+            )}
+            {isEndpoint ? (
+              <span className="inline-flex items-center rounded-full border border-violet-300 bg-violet-50 px-2.5 py-0.5 text-xs font-medium text-violet-700">
+                {translateString("Endpoint")}
+              </span>
+            ) : !node.isManaged ? (
+              <span className="inline-flex items-center rounded-full border border-gray-300 px-2.5 py-0.5 text-xs font-medium text-gray-600">
+                {translateString("Unmanaged")}
+              </span>
+            ) : (
+              <></>
+            )}
+            {/*
+             * Taking a node off the map. Deliberately here at the top rather
+             * than buried: the operator arrives at this drawer having clicked
+             * a node they did not want to see, and this is the answer to that.
+             */}
+            {props.onHideNode ? (
+              <button
+                type="button"
+                className="ms-auto text-xs font-medium text-gray-500 underline hover:text-gray-700"
+                data-testid="network-topology-hide-node"
+                onClick={() => {
+                  props.onHideNode?.(node);
+                }}
+              >
+                {translateString("Hide from map")}
+              </button>
+            ) : (
+              <></>
+            )}
+          </div>
+
+          {monitorNotChecked && notCheckedQualifier ? (
+            <div className="mt-1.5" data-testid={MONITOR_NOT_CHECKED_TEST_ID}>
+              {/*
+               * What it means for the status - it stays as it is until then -
+               * in the hero's words for the same device.
+               */}
+              <p
+                className="text-xs text-gray-500"
+                data-testid={MONITOR_NOT_CHECKED_CAPTION_TEST_ID}
+              >
+                {translateString(
+                  isBoundMonitorArchived
+                    ? "Not checked until its monitor is unarchived"
+                    : "Not checked until monitoring is back on",
+                )}
+              </p>
+              {/*
+               * Keyed per node and monitor: the drawer is re-rendered, not
+               * remounted, for the next node, and a press in flight belongs
+               * to the device it was made for.
+               */}
+              <DeviceMonitorNotCheckedActions
+                key={`${node.id}:${monitorNotChecked.monitorId}`}
+                monitorId={new ObjectID(monitorNotChecked.monitorId)}
+                isArchived={isBoundMonitorArchived}
+                monitorRoute={RouteUtil.populateRouteParams(
+                  RouteMap[PageMap.MONITOR_VIEW] as Route,
+                  { modelId: new ObjectID(monitorNotChecked.monitorId) },
+                )}
+                readDeviceAgain={(): Promise<void> => {
+                  return props.readMapAgain
+                    ? props.readMapAgain()
+                    : Promise.resolve();
+                }}
+                className="mt-1"
+              />
+            </div>
           ) : (
             <></>
           )}

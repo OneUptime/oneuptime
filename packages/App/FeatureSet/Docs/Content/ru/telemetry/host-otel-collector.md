@@ -35,7 +35,7 @@ flowchart TB
 | **Процессы** | Сборщик `process` приёмника `hostmetrics`: один набор рядов на процесс. |
 | **Журналы** | Приёмники `filelog`, `journald` и `windowseventlog`. |
 | **Юниты systemd** (Linux) | Приёмник `systemd`. |
-| **Службы** (Windows) | Приёмник `windows_service`. |
+| **Сервисы** (Windows) | Приёмник `windows_service`. |
 | Элемент инвентаря | Процессор `resourcedetection`, а также [атрибуты, которые вы проставляете](#атрибуты-инвентаря-ip-mac-серийный-номер-производитель-модель-прошивка). |
 | **Версия агента** | `oneuptime.agent.version` в процессоре `resource`. |
 
@@ -561,7 +561,7 @@ receivers:
 
 ### Службы Linux (юниты systemd, метрики)
 
-Страница хоста **Юниты systemd** показывает каждый юнит и его состояние на основе [`systemdreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/systemdreceiver) (тип в конфигурации `systemd`) — это аналог страницы **Службы** в Windows для Linux. Конфигурация для Linux выше включает его:
+Страница хоста **Юниты systemd** показывает каждый юнит и его состояние на основе [`systemdreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/systemdreceiver) (тип в конфигурации `systemd`) — это аналог страницы **Сервисы** в Windows для Linux. Конфигурация для Linux выше включает его:
 
 ```yaml
 receivers:
@@ -648,7 +648,7 @@ windowseventlog/iis:
 
 ### Службы Windows (метрики)
 
-Страница хоста **Службы** показывает каждую службу Windows с её состоянием и типом запуска на основе [`windowsservicereceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver) (тип в конфигурации `windows_service`). Он входит в `otelcol-contrib` начиная с v0.155.0: в более ранних выпусках добавление `windows_service` приводит к ошибке при запуске `'receivers' unknown type: "windows_service"`. Конфигурация для Windows выше включает его:
+Страница хоста **Сервисы** показывает каждую службу Windows с её состоянием и типом запуска на основе [`windowsservicereceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver) (тип в конфигурации `windows_service`). Он входит в `otelcol-contrib` начиная с v0.155.0: в более ранних выпусках добавление `windows_service` приводит к ошибке при запуске `'receivers' unknown type: "windows_service"`. Конфигурация для Windows выше включает его:
 
 ```yaml
 receivers:
@@ -669,7 +669,7 @@ service:
 
 Он отправляет по одному показателю `windows.service.status` на службу — состояние службы Win32 (`4` — работает, `1` — остановлена) — с атрибутами `name` и `startup_mode`. Коллектор читает все службы от имени `LocalSystem` и пропускает те, которые не может открыть. Приёмник находится в стадии alpha и работает только в Windows; если ошибка опроса или `access denied` на одной службе влияет на остальные, ограничьте его с помощью `include_services`.
 
-`include_services` может только сузить набор. Если вы перечислили службы, но по-прежнему видите все, изменённая конфигурация не дошла до работающего коллектора: перезапустите службу, проверьте, что `include_services` — заполненный список с тем же отступом, что и `collection_interval`, и подождите несколько минут, пока службы, о которых сообщалось до изменения, не уйдут из скользящего окна страницы **Службы**. Имена — это точные имена ключей служб с учётом регистра (`Spooler`, `W3SVC`), которые выводит `Get-Service | Select-Object Name`.
+`include_services` может только сузить набор. Если вы перечислили службы, но по-прежнему видите все, изменённая конфигурация не дошла до работающего коллектора: перезапустите службу, проверьте, что `include_services` — заполненный список с тем же отступом, что и `collection_interval`, и подождите несколько минут, пока службы, о которых сообщалось до изменения, не уйдут из скользящего окна страницы **Сервисы**. Имена — это точные имена ключей служб с учётом регистра (`Spooler`, `W3SVC`), которые выводит `Get-Service | Select-Object Name`.
 
 ### Метки
 

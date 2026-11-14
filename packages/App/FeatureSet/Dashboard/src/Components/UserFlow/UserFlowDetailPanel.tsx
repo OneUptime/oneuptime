@@ -8,7 +8,7 @@ import Button, {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import Icon from "Common/UI/Components/Icon/Icon";
-import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";
 import {
   getUserFlowPageText,
   OTHER_PAGES_KEY,
@@ -85,10 +85,14 @@ function Stat(props: {
 
   return (
     <div className="rounded-lg bg-gray-50 px-3 py-2" data-testid={props.testId}>
-      <div className="flex items-center gap-1">
-        <p className="min-w-0 text-xs font-medium text-gray-500">{label}</p>
-        <InfoTooltip label={label} text={props.tooltip} />
-      </div>
+      {/* The (i) after the label's last word (issue #7348). */}
+      <p className="text-xs font-medium text-gray-500">
+        <WordsWithInfoTooltip
+          text={label}
+          label={label}
+          description={props.tooltip}
+        />
+      </p>
       <p className={`text-lg font-semibold ${toneClass}`}>{props.value}</p>
       {props.hint ? (
         <p className="text-xs text-gray-500">{props.hint}</p>
@@ -160,17 +164,14 @@ function NeighbourList(props: {
        * The (i) sits in the title row, never inside the rows below: each
        * of those is a button that re-anchors the map.
        */}
-      <div className="mb-1.5 flex items-center gap-1">
-        <p className="min-w-0 text-xs font-semibold uppercase tracking-wide text-gray-500">
-          {title}
-        </p>
-        <InfoTooltip
+      <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500">
+        <WordsWithInfoTooltip
+          text={title}
           label={title}
-          text={props.tooltip}
-          className="font-normal normal-case"
-          dataTestId={`${props.testId}-info`}
+          description={props.tooltip}
+          infoDataTestId={`${props.testId}-info`}
         />
-      </div>
+      </p>
       {props.items.length === 0 ? (
         <p className="text-sm text-gray-400">
           {translator.translateText("None in this range.")}
