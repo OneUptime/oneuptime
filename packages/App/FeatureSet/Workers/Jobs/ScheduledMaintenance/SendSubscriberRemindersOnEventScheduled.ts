@@ -169,7 +169,7 @@ RunCron(
         ? mdText`🗓️ **No Reminder Notification Sent to Subscribers for [Scheduled Maintenance ${scheduledMaintenanceNumber}](${scheduledMaintenanceLink})**`.toString()
         : mdText`🗓️ **Reminder Notification Sent to Subscribers for [Scheduled Maintenance ${scheduledMaintenanceNumber}](${scheduledMaintenanceLink})**:
             
-Reminder notification sent to status page subscribers for this scheduled maintenance event.`.toString();
+Reminder notification sent to status page subscribers for this maintenance event.`.toString();
 
       await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem({
         scheduledMaintenanceId: event.id!,

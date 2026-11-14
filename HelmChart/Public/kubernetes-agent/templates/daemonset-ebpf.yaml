@@ -80,7 +80,7 @@ spec:
             # k8s.cluster.name OBI puts on every pod's spans and metrics
             # (since v0.14 it outranks OTEL_RESOURCE_ATTRIBUTES below).
             - name: OTEL_EBPF_KUBE_CLUSTER_NAME
-              value: {{ .Values.clusterName | quote }}
+              value: {{ include "kubernetes-agent.clusterName" . | quote }}
             - name: OTEL_EBPF_LOG_LEVEL
               value: {{ .Values.ebpf.logLevel | quote }}
             {{- if .Values.ebpf.printTraces }}
@@ -175,8 +175,24 @@ spec:
             # container's own OTEL_RESOURCE_ATTRIBUTES win over it.
             # Per-service service.name is set by OBI from pod / workload
             # metadata, so we do NOT override it here.
+            #
+            # OBI reads this variable as a list of key=value pairs split at
+            # every comma, cuts each pair at its first '=', trims it, and
+            # decodes nothing (no percent-decoding, in v0.14 as in v1.0). So
+            # the name is written as it is, and OBI reads it back whole, with
+            # its spaces, quotes and any '='. A name with a comma cannot be
+            # written here in a form OBI reads back: as it is, it splits into
+            # a shorter name and a stray piece; percent-encoded (prod%2Ceu),
+            # it reaches OneUptime as written, and the cluster collector,
+            # which only fills in a missing cluster name, keeps it. So for
+            # such a name the variable is left out: OBI takes the name from
+            # OTEL_EBPF_KUBE_CLUSTER_NAME for every pod, and the cluster
+            # collector's resource processor stamps it on anything else.
+            {{- $obiClusterName := include "kubernetes-agent.clusterName" . }}
+            {{- if not (contains "," $obiClusterName) }}
             - name: OTEL_RESOURCE_ATTRIBUTES
-              value: "k8s.cluster.name={{ .Values.clusterName }}"
+              value: {{ printf "k8s.cluster.name=%s" $obiClusterName | quote }}
+            {{- end }}
             # Namespace rules with the `ebpfDiscovery` scope are in the config
             # file too, as k8s_namespace selectors.
           resources:

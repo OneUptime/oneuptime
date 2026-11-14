@@ -180,7 +180,7 @@ data:
               debug: ["none"]
           - type: add
             field: resource["k8s.cluster.name"]
-            value: {{ .Values.clusterName | quote }}
+            value: {{ include "kubernetes-agent.clusterName" . | quote }}
           - type: add
             field: resource["service.name"]
             value: "kubernetes-audit"
@@ -584,7 +584,7 @@ data:
             value: {{ include "kubernetes-agent.clusterName" . | quote }}
             action: upsert
           - key: service.name
-            value: "kubernetes-agent-{{ .Values.clusterName }}"
+            value: {{ printf "kubernetes-agent-%s" (include "kubernetes-agent.clusterName" .) | quote }}
             action: upsert
           # Node identity. Every receiver in this collector reads
           # node-local data — /proc and /sys for hostmetrics, this node's

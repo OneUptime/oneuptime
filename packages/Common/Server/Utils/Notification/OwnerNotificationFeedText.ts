@@ -7,7 +7,7 @@ import FeedMarkdown, {
 /*
  * THE FEED ENTRY THAT SAYS A RECORD'S OWNERS WERE TOLD SOMETHING.
  *
- * When an incident, alert, episode or scheduled maintenance event is
+ * When an incident, alert, episode or maintenance event is
  * created, changes state, gets a note or stays open too long, its owners are
  * notified by email, SMS, call or push, and the record's feed says so. Those
  * entries used to read like a log - "🔔 Owners Notified because private note
@@ -40,7 +40,7 @@ export type OwnerNotificationRecordNoun =
   | "alert"
   | "incident episode"
   | "alert episode"
-  | "scheduled maintenance event";
+  | "maintenance event";
 
 /*
  * Who was told: the record's own owners, or the project's owners standing in

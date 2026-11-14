@@ -4104,7 +4104,7 @@ describe("submitting the maintenance form: start and end are read in the zone th
     ).toEqual([
       [
         "POST",
-        `✅ Scheduled maintenance created successfully.\n\n**Starts:** ${dayAsRead}, 14:00 (${SENDER_TIMEZONE})\n\n**Ends:** ${dayAsRead}, 16:00 (${SENDER_TIMEZONE})\n\n[View scheduled maintenance](${dashboardLink(`/scheduled-maintenance-events/${CREATED_MAINTENANCE_ID.toString()}`)})`,
+        `✅ Maintenance event created successfully.\n\n**Starts:** ${dayAsRead}, 14:00 (${SENDER_TIMEZONE})\n\n**Ends:** ${dayAsRead}, 16:00 (${SENDER_TIMEZONE})\n\n[View maintenance event](${dashboardLink(`/scheduled-maintenance-events/${CREATED_MAINTENANCE_ID.toString()}`)})`,
         200,
       ],
       ["DELETE", "msg-maintenance-form", 200],
@@ -4166,7 +4166,7 @@ describe("submitting the maintenance form: start and end are read in the zone th
      */
     expect(view.httpStatuses).toEqual([200]);
     expect(labelsOf(view.bubbles)).toEqual([
-      `✅ Scheduled maintenance created successfully.\n\n**Starts:** ${dayAsRead}, 14:00 (UTC+05:30)\n\n**Ends:** ${dayAsRead}, 16:00 (UTC+05:30)\n\nMicrosoft Teams did not say which time zone you are in, so these times were read at your current offset, UTC+05:30. If daylight saving time changes before then, check them in OneUptime.\n\n[View scheduled maintenance](${dashboardLink(`/scheduled-maintenance-events/${CREATED_MAINTENANCE_ID.toString()}`)})`,
+      `✅ Maintenance event created successfully.\n\n**Starts:** ${dayAsRead}, 14:00 (UTC+05:30)\n\n**Ends:** ${dayAsRead}, 16:00 (UTC+05:30)\n\nMicrosoft Teams did not say which time zone you are in, so these times were read at your current offset, UTC+05:30. If daylight saving time changes before then, check them in OneUptime.\n\n[View maintenance event](${dashboardLink(`/scheduled-maintenance-events/${CREATED_MAINTENANCE_ID.toString()}`)})`,
     ]);
 
     // 14:00 at UTC+05:30 is 08:30 UTC.
@@ -4216,7 +4216,7 @@ describe("submitting the maintenance form: start and end are read in the zone th
       [
         "POST",
         GROUP_CONVERSATION_ID,
-        `✅ Scheduled maintenance created successfully.\n\n**Starts:** ${dayAsRead}, 14:00 (${SENDER_TIMEZONE})\n\n**Ends:** ${dayAsRead}, 16:00 (${SENDER_TIMEZONE})\n\n[View scheduled maintenance](${dashboardLink(`/scheduled-maintenance-events/${CREATED_MAINTENANCE_ID.toString()}`)})`,
+        `✅ Maintenance event created successfully.\n\n**Starts:** ${dayAsRead}, 14:00 (${SENDER_TIMEZONE})\n\n**Ends:** ${dayAsRead}, 16:00 (${SENDER_TIMEZONE})\n\n[View maintenance event](${dashboardLink(`/scheduled-maintenance-events/${CREATED_MAINTENANCE_ID.toString()}`)})`,
       ],
       ["DELETE", GROUP_CONVERSATION_ID, "msg-maintenance-form-group"],
     ]);
@@ -4258,14 +4258,14 @@ describe("submitting the maintenance form: start and end are read in the zone th
       description: "4:59 ago: the event is created, starting now",
       arrivesAt: "14:04:59",
       endTime: "16:00",
-      reply: `✅ Scheduled maintenance created successfully.\n\n**Starts:** Oct 6, 2026, 14:04 (${SENDER_TIMEZONE})\n\n**Ends:** Oct 6, 2026, 16:00 (${SENDER_TIMEZONE})\n\n[View scheduled maintenance](`,
+      reply: `✅ Maintenance event created successfully.\n\n**Starts:** Oct 6, 2026, 14:04 (${SENDER_TIMEZONE})\n\n**Ends:** Oct 6, 2026, 16:00 (${SENDER_TIMEZONE})\n\n[View maintenance event](`,
       startsAt: "2026-10-06T18:04:59.000Z",
     },
     {
       description: "exactly 5:00 ago: still created, starting now",
       arrivesAt: "14:05:00",
       endTime: "16:00",
-      reply: `✅ Scheduled maintenance created successfully.\n\n**Starts:** Oct 6, 2026, 14:05 (${SENDER_TIMEZONE})\n\n**Ends:** Oct 6, 2026, 16:00 (${SENDER_TIMEZONE})\n\n[View scheduled maintenance](`,
+      reply: `✅ Maintenance event created successfully.\n\n**Starts:** Oct 6, 2026, 14:05 (${SENDER_TIMEZONE})\n\n**Ends:** Oct 6, 2026, 16:00 (${SENDER_TIMEZONE})\n\n[View maintenance event](`,
       startsAt: "2026-10-06T18:05:00.000Z",
     },
     {
@@ -4400,7 +4400,7 @@ describe("submitting the maintenance form: start and end are read in the zone th
     stubMaintenanceCreate();
     // What ScheduledMaintenanceService.onBeforeCreate throws in that case.
     const refusal: BadDataException = new BadDataException(
-      "Scheduled state not found for this project. Please add an scheduled event state from settings.",
+      "This project has no scheduled state, so a new maintenance event has no state to start in. See Scheduled Maintenance > Settings > Maintenance State.",
     );
     jest
       .spyOn(ScheduledMaintenanceService, "create")

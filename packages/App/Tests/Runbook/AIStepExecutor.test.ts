@@ -582,7 +582,7 @@ describe("buildTriggerContext", () => {
       makeCtx({ scheduledMaintenanceId: new ObjectID("sm1") }),
     );
 
-    expect(context).toContain("linked to a scheduled maintenance event");
+    expect(context).toContain("linked to a maintenance event");
     expect(context).toContain("MAINTENANCE DOSSIER");
   });
 
