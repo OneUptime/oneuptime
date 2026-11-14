@@ -1,3 +1,4 @@
+import BreakableName from "Common/UI/Components/BreakableName/BreakableName";
 import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
 import { getProbeFailureCauseText } from "Common/Utils/Monitor/ProbeFailureReading";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -19,7 +20,10 @@ import React, { FunctionComponent, ReactElement } from "react";
  * direction is drawn exactly as before.
  *
  * It breaks between words, never inside one, unless one word (an address,
- * a path) is longer than the line.
+ * a path) is longer than the line: then after the word's own dots and
+ * slashes first (BreakableName), as every other value of a summary does -
+ * "getaddrinfo ENOTFOUND status." / "internal.example.com", not at
+ * whatever letter fills the line.
  */
 export const PROBE_MESSAGE_LINE_CLASS_NAME: string = "block break-words";
 
@@ -47,7 +51,9 @@ const ProbeMessageLine: FunctionComponent<ComponentProps> = (
       className={PROBE_MESSAGE_LINE_CLASS_NAME}
       text={text}
       dataTestId={props.dataTestId || PROBE_MESSAGE_LINE_TEST_ID}
-    />
+    >
+      <BreakableName text={text} />
+    </IsolatedLine>
   );
 };
 

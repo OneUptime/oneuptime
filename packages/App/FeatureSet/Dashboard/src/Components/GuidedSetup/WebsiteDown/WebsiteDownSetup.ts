@@ -533,6 +533,14 @@ export const describeFirstCheck: (data: {
               });
             }),
           },
+          /*
+           * Drawn on the page and nothing else (the step's line and its
+           * done line), so each value is set apart: a reason left in
+           * English ("connect ECONNREFUSED 203.0.113.7:443.") keeps its
+           * full stop and its brackets at its own end in an Arabic or
+           * Persian sentence.
+           */
+          { setsValuesApart: true },
         )
       : translator.translatePlural(
           {

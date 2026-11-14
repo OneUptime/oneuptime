@@ -1,17 +1,27 @@
 import "@testing-library/jest-dom";
-import { afterEach, beforeAll, describe, expect, test } from "@jest/globals";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  test,
+} from "@jest/globals";
 import {
   cleanup,
   fireEvent,
   render,
   RenderResult,
 } from "@testing-library/react";
-import { createInstance, i18n } from "i18next";
+import i18next, { createInstance, i18n } from "i18next";
 import * as React from "react";
 import { I18nextProvider } from "react-i18next";
 import EventEvaluationDetails from "../../../../App/FeatureSet/Dashboard/src/Components/EventView/EventEvaluationDetails";
 import { describeFirstCheck } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/WebsiteDown/WebsiteDownSetup";
-import CustomMonitorSummaryView from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/SummaryView/CustomMonitorSummaryView";
+import CustomMonitorSummaryView, {
+  CUSTOM_MONITOR_ATTEMPT_ERROR_TEST_ID,
+  CUSTOM_MONITOR_SCRIPT_ERROR_DETAIL_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/SummaryView/CustomMonitorSummaryView";
 import DatabaseMonitorView from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/SummaryView/DatabaseMonitorView";
 import DnsMonitorView from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/SummaryView/DnsMonitorView";
 import DnssecMonitorView from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/SummaryView/DnssecMonitorView";
@@ -54,10 +64,13 @@ import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import { RequestFailedPhase } from "../../../Types/Probe/RequestFailedDetails";
 import { writeProbeTimeoutFailureCause } from "../../../Utils/Monitor/ProbeFailureReading";
 import {
+  DASHBOARD_LANGUAGES,
   dashboardTranslator,
+  isWordedInDashboardLocale,
+  placeholdersOf,
   readDashboardLocale,
 } from "../../Helpers/DashboardLocales";
-import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
+import { isolated, withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 
 /*
  * A FAILED CHECK'S ERROR, IN THE READER'S LANGUAGE (#7422, #7424).
@@ -671,7 +684,7 @@ describe("the website-down setup's first check", () => {
         answers: [{ isOnline: false, failureCause: TIMEOUT }],
       }).text;
 
-      expect(text).toContain(reason);
+      expect(withoutIsolateMarks(text)).toContain(reason);
 
       if (language !== "en") {
         expect(text).not.toContain("Request was tried");
@@ -927,7 +940,7 @@ describe("a custom code script's error", () => {
       fireEvent.click(getByRole("button"));
 
       const failures: Array<HTMLElement> = getAllByTestId(
-        "custom-monitor-attempt-error",
+        CUSTOM_MONITOR_ATTEMPT_ERROR_TEST_ID,
       );
 
       expect(failures).toHaveLength(2);
@@ -945,4 +958,326 @@ describe("a custom code script's error", () => {
       }
     },
   );
+});
+
+/*
+ * THE UI REVIEW'S PASS (#7422, #7424): what a reader saw on the summaries
+ * this change draws, in German, Arabic and Persian, at 1280 and 390.
+ */
+
+describe("a probe's message breaks after its own dots and slashes", () => {
+  const LONG_HOST_ERROR: string =
+    "getaddrinfo ENOTFOUND status.internal-services.example.com";
+
+  test.each(LANGUAGES)(
+    "in %s: a long host breaks after its dots, the text as written",
+    (language: Language) => {
+      const { getByTestId } = renderIn(
+        language,
+        <WebsiteMonitorView
+          probeMonitorResponse={probeResponse({
+            failureCause: LONG_HOST_ERROR,
+          })}
+        />,
+      );
+      const line: HTMLElement = getByTestId(SUMMARY_ERROR_TEST_ID);
+
+      // As every other value of a summary breaks (BreakableName).
+      expect(line.querySelectorAll("wbr").length).toBeGreaterThan(0);
+      expect(textOf(line)).toBe(LONG_HOST_ERROR);
+      expect(line.getAttribute("dir")).toBe(expectedDirection(language));
+    },
+  );
+
+  test("an address's dots before digits, and a short message, take no break", () => {
+    const { getByTestId } = renderIn(
+      "en",
+      <WebsiteMonitorView
+        probeMonitorResponse={probeResponse({ failureCause: NETWORK_ERROR })}
+      />,
+    );
+
+    expect(
+      getByTestId(SUMMARY_ERROR_TEST_ID).querySelectorAll("wbr"),
+    ).toHaveLength(0);
+  });
+});
+
+describe("a custom code script's error under Show More Details", () => {
+  const SCRIPT_ERROR: string =
+    "TypeError: Cannot read properties of undefined (reading 'status').";
+
+  const run: CustomCodeMonitorResponse = {
+    result: undefined,
+    logMessages: [],
+    capturedMetrics: [],
+    executionTimeInMS: 412,
+    scriptError: SCRIPT_ERROR,
+    totalAttempts: 2,
+    retryAttempts: [
+      { attemptNumber: 1, executionTimeInMS: 400, scriptError: SCRIPT_ERROR },
+      { attemptNumber: 2, executionTimeInMS: 412, scriptError: SCRIPT_ERROR },
+    ],
+  };
+
+  test.each(LANGUAGES)(
+    "in %s: the Script Error reads in its own direction, as the Error fact does",
+    (language: Language) => {
+      const { getByRole, getByTestId } = renderIn(
+        language,
+        <CustomMonitorSummaryView
+          customCodeMonitorResponse={run}
+          monitoredAt={MONITORED_AT}
+          probeName="US West"
+        />,
+      );
+
+      fireEvent.click(getByRole("button"));
+
+      const detail: HTMLElement = getByTestId(
+        CUSTOM_MONITOR_SCRIPT_ERROR_DETAIL_TEST_ID,
+      );
+
+      expect(textOf(detail)).toBe(SCRIPT_ERROR);
+      expect(detail.getAttribute("dir")).toBe(expectedDirection(language));
+      expect(detail.className.split(" ")).toEqual(
+        expect.arrayContaining(["block", "break-words"]),
+      );
+    },
+  );
+
+  test("each failed attempt's error is red, as a probe's failed attempt is", () => {
+    const { getAllByTestId, getByRole } = renderIn(
+      "de",
+      <CustomMonitorSummaryView
+        customCodeMonitorResponse={run}
+        monitoredAt={MONITORED_AT}
+        probeName="US West"
+      />,
+    );
+
+    fireEvent.click(getByRole("button"));
+
+    for (const failure of getAllByTestId(
+      CUSTOM_MONITOR_ATTEMPT_ERROR_TEST_ID,
+    )) {
+      const holder: Array<string> = (
+        failure.parentElement?.className || ""
+      ).split(" ");
+
+      expect(holder).toContain("text-red-700");
+      expect(holder).not.toContain("text-gray-500");
+    }
+  });
+
+  test.each([
+    [
+      "de",
+      "Für diese Prüfung waren 2 Versuche nötig, und sie ist am Ende fehlgeschlagen.",
+    ],
+    ["fa", "این بررسی برای تکمیل به ۲ تلاش نیاز داشت و در نهایت ناموفق بود."],
+  ] as Array<[Language, string]>)(
+    "in %s: the retried run's banner reads in the reader's language",
+    (language: Language, banner: string) => {
+      const { getByTestId } = renderIn(
+        language,
+        <CustomMonitorSummaryView
+          customCodeMonitorResponse={run}
+          monitoredAt={MONITORED_AT}
+          probeName="US West"
+        />,
+      );
+      const summary: string = textOf(
+        getByTestId("custom-code-monitor-summary"),
+      );
+
+      expect(summary).toContain(banner);
+      expect(summary).not.toContain("This check required");
+    },
+  );
+});
+
+describe("the website-down setup's first check, a reason left as written", () => {
+  const REASON: string = "Connection refused by 203.0.113.7:443 (firewall).";
+
+  const sentenceIn: (language: Language) => string = (
+    language: Language,
+  ): string => {
+    return describeFirstCheck({
+      translator: dashboardTranslator(language),
+      host: "example.com",
+      locationCount: 1,
+      answers: [{ isOnline: false, failureCause: REASON }],
+    }).text;
+  };
+
+  test("in English: the sentence as before, with no isolate marks", () => {
+    expect(sentenceIn("en")).toBe(
+      `example.com did not answer from 1 location: ${REASON}`,
+    );
+  });
+
+  test.each(["ar", "fa"] as Array<Language>)(
+    "in %s: the English reason is set apart whole, its full stop and brackets with it",
+    (language: Language) => {
+      const text: string = sentenceIn(language);
+
+      expect(text).toContain(isolated(REASON));
+      expect(withoutIsolateMarks(text)).toContain(REASON);
+      expect(withoutIsolateMarks(text)).not.toContain("did not answer");
+    },
+  );
+});
+
+/*
+ * An SSL check's summary named what was wrong with the certificate under a
+ * title and a status left in English in most languages: "Certificate
+ * Problem", "Not Valid - CERT_HAS_EXPIRED", "Self Signed".
+ */
+const SSL_STATUS_KEYS: Array<string> = [
+  "Certificate Problem",
+  "Not Valid",
+  "Not Valid - Self Signed",
+  "Not Valid - {{code}}",
+  "Signed by a CA",
+  "Self Signed",
+];
+
+const RETRIED_RUN_KEYS: Array<string> = [
+  "This check required {{attempts}} to complete.",
+  "This check required {{attempts}} to complete and ultimately failed.",
+];
+
+describe("an SSL check's status and problem, in the reader's language", () => {
+  const expired: ProbeMonitorResponse = sslResponse(CERTIFICATE_EXPIRED, {
+    certificateValidationError: CERTIFICATE_EXPIRED,
+    certificateValidationErrorCode: "CERT_HAS_EXPIRED",
+  });
+
+  /*
+   * The status is worded outside React (sslStatusLabel), through the
+   * Dashboard's one i18next instance, which the page's provider is too.
+   */
+  beforeAll(async () => {
+    await i18next.init({
+      lng: "en",
+      fallbackLng: "en",
+      resources: Object.fromEntries(
+        LANGUAGES.map((language: Language) => {
+          return [language, { translation: readDashboardLocale(language) }];
+        }),
+      ),
+      interpolation: { escapeValue: false },
+      keySeparator: false,
+      nsSeparator: false,
+    });
+  });
+
+  afterAll(async () => {
+    await i18next.changeLanguage("en");
+  });
+
+  test.each([
+    ["en", "Not Valid - CERT_HAS_EXPIRED"],
+    ["de", "Ungültig - CERT_HAS_EXPIRED"],
+    ["ar", "غير صالحة - CERT_HAS_EXPIRED"],
+    ["fa", "نامعتبر - CERT_HAS_EXPIRED"],
+  ] as Array<[Language, string]>)(
+    "in %s: SSL Status reads %s",
+    async (language: Language, status: string) => {
+      await i18next.changeLanguage(language);
+
+      const { container } = renderIn(
+        language,
+        <SSLCertificateMonitorView probeMonitorResponse={expired} />,
+      );
+
+      expect(factValue(container, language, "SSL Status")).toBe(status);
+      expect(factTitles(container)).toContain(
+        wordOf(language, "Certificate Problem"),
+      );
+    },
+  );
+
+  test("in German: a self-signed certificate is named in German", async () => {
+    await i18next.changeLanguage("de");
+
+    const { container } = renderIn(
+      "de",
+      <SSLCertificateMonitorView
+        probeMonitorResponse={sslResponse("self-signed certificate", {
+          isSelfSigned: true,
+          certificateValidationError: "self-signed certificate",
+        })}
+      />,
+    );
+
+    expect(factValue(container, "de", "SSL Status")).toBe(
+      "Ungültig - selbstsigniert",
+    );
+  });
+});
+
+describe("every Dashboard language words the SSL status and a retried run's banner", () => {
+  const KEYS: Array<string> = [...SSL_STATUS_KEYS, ...RETRIED_RUN_KEYS];
+
+  // The keys a language leaves as the English, or empty.
+  const unworded: (words: Record<string, string>) => Array<string> = (
+    words: Record<string, string>,
+  ): Array<string> => {
+    const english: Record<string, string> = readDashboardLocale("en");
+
+    return KEYS.filter((key: string): boolean => {
+      const value: string | undefined = words[key];
+
+      return !value || !value.trim() || value === english[key];
+    });
+  };
+
+  test.each(["de", "fr", "ru", "zh-CN", "ar", "fa"])(
+    "%s words each key, keeping its placeholders",
+    (language: string) => {
+      const words: Record<string, string> = readDashboardLocale(language);
+
+      expect(unworded(words)).toEqual([]);
+
+      for (const key of KEYS) {
+        expect({
+          key: key,
+          placeholders: placeholdersOf(words[key] || ""),
+        }).toEqual({
+          key: key,
+          placeholders: placeholdersOf(key),
+        });
+      }
+    },
+  );
+
+  test("every Dashboard language words each key its own way", () => {
+    const missing: Array<string> = [];
+
+    for (const language of DASHBOARD_LANGUAGES) {
+      for (const key of KEYS) {
+        if (!isWordedInDashboardLocale(key, language)) {
+          missing.push(`${language}: ${key}`);
+        }
+      }
+    }
+
+    expect(missing).toEqual([]);
+  });
+
+  test("negative control: a language that left one in English is caught", () => {
+    const german: Record<string, string> = readDashboardLocale("de");
+
+    expect(unworded({ ...german, "Not Valid": "Not Valid" })).toEqual([
+      "Not Valid",
+    ]);
+    expect(
+      unworded({
+        ...german,
+        "This check required {{attempts}} to complete.": "",
+      }),
+    ).toEqual(["This check required {{attempts}} to complete."]);
+  });
 });

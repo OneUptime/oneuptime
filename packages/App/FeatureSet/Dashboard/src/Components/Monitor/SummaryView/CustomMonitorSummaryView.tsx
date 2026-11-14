@@ -16,6 +16,12 @@ import { SummaryFact, SummaryFacts, SummaryView } from "./SummaryFacts";
 import AttemptLine from "./AttemptLine";
 import ProbeMessageLine from "./ProbeMessageLine";
 
+export const CUSTOM_MONITOR_SCRIPT_ERROR_DETAIL_TEST_ID: string =
+  "custom-monitor-script-error-detail";
+
+export const CUSTOM_MONITOR_ATTEMPT_ERROR_TEST_ID: string =
+  "custom-monitor-attempt-error";
+
 export interface ComponentProps {
   customCodeMonitorResponse: CustomCodeMonitorResponse;
   moreDetailElement?: ReactElement | undefined;
@@ -63,12 +69,26 @@ const CustomMonitorRunSummary: FunctionComponent<ComponentProps> = (
     });
   }
 
+  /*
+   * The script's error once more under Show More Details, beside its result
+   * and its logs, drawn as the Error fact draws it: in a line of its own
+   * direction, so on an Arabic or Persian page an English error reads left
+   * to right from its own start, not ragged at it.
+   */
   if (customCodeMonitorResponse.scriptError) {
     fields.push({
       key: "scriptError",
       title: "Script Error",
       description: "Error message from script execution.",
-      fieldType: FieldType.Text,
+      fieldType: FieldType.Element,
+      getElement: (item: CustomCodeMonitorResponse): ReactElement => {
+        return (
+          <ProbeMessageLine
+            message={item.scriptError || ""}
+            dataTestId={CUSTOM_MONITOR_SCRIPT_ERROR_DETAIL_TEST_ID}
+          />
+        );
+      },
     });
   }
 
@@ -205,13 +225,14 @@ const CustomMonitorRunSummary: FunctionComponent<ComponentProps> = (
                         {/*
                          * The script's own error, in a line of its own
                          * direction, indented from where the page's lines
-                         * start (as a probe's attempt is).
+                         * start and red, as a probe's failed attempt is
+                         * (ProbeAttemptsView).
                          */}
                         {failed && attempt.scriptError && (
-                          <div className="ms-4 mt-1 text-xs text-gray-500">
+                          <div className="ms-4 mt-1 text-xs text-red-700">
                             <ProbeMessageLine
                               message={attempt.scriptError}
-                              dataTestId="custom-monitor-attempt-error"
+                              dataTestId={CUSTOM_MONITOR_ATTEMPT_ERROR_TEST_ID}
                             />
                           </div>
                         )}
