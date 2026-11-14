@@ -263,7 +263,8 @@ function stepTitles(): Array<string> {
     document.querySelectorAll<HTMLInputElement>('input[id$="-title"]'),
   )
     .filter((input: HTMLInputElement): boolean => {
-      return /^runbook-step-\d+-title$/.test(input.id);
+      const stepTitleId: RegExp = /^runbook-step-\d+-title$/;
+      return stepTitleId.test(input.id);
     })
     .map((input: HTMLInputElement): string => {
       return input.value;
