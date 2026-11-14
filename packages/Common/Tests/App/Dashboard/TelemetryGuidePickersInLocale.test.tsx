@@ -173,9 +173,13 @@ describe("the telemetry guide's picker labels", () => {
       // The logs guide offers several ways to send logs, so both pickers show.
       renderGuide("logs");
 
-      // The ways to send come first in the logs guide, then the languages.
+      /*
+       * The ways to send come first in the logs guide, then the tools a team
+       * may already run (#6797), then the languages.
+       */
       expect(pickerCaptions()).toEqual([
         locale["Integration Method"],
+        locale["Already using another tool?"],
         locale["Select Language"],
       ]);
     },
@@ -184,7 +188,11 @@ describe("the telemetry guide's picker labels", () => {
   test("are English for an English reader", () => {
     renderGuide("logs");
 
-    expect(pickerCaptions()).toEqual(["Integration Method", "Select Language"]);
+    expect(pickerCaptions()).toEqual([
+      "Integration Method",
+      "Already using another tool?",
+      "Select Language",
+    ]);
   });
 
   test("name their buttons as a group, so a screen reader says which choice it is", async () => {

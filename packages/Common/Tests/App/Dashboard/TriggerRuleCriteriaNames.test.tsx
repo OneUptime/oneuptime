@@ -73,7 +73,7 @@ describe("runbook rule criteria", () => {
     [RunbookRuleTriggerEntity.Alert, "alert", "Alert"],
     [
       RunbookRuleTriggerEntity.ScheduledMaintenance,
-      "scheduled maintenance event",
+      "maintenance event",
       "Event",
     ],
   ])(

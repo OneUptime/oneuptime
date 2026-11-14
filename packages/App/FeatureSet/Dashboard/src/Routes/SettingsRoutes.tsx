@@ -70,6 +70,7 @@ import MovedRunnerPageRedirect from "../Components/Runner/MovedRunnerPageRedirec
 import SettingsAIFeatures from "../Pages/Settings/AIFeatures";
 import SettingsAICredits from "../Pages/Settings/AICredits";
 
+import SettingsAIResults from "../Pages/Settings/AIResults";
 import SettingsAILogs from "../Pages/Settings/AILogs";
 
 import SettingsMcpServer from "../Pages/Settings/McpServer";
@@ -296,6 +297,16 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
             <SettingsAICredits
               {...props}
               pageRoute={RouteMap[PageMap.SETTINGS_AI_CREDITS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_AI_RESULTS)}
+          element={
+            <SettingsAIResults
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_AI_RESULTS] as Route}
             />
           }
         />

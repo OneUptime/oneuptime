@@ -31,7 +31,7 @@ const StorageArrayScheduledMaintenance: FunctionComponent<
         query={query}
         createFrom={{ kind: CreateFromRecordKind.StorageArray, id: modelId }}
         viewPageRoute={RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS] as Route}
-        noItemsMessage="No scheduled maintenance events for this storage array."
+        noItemsMessage="No maintenance events for this storage array."
       />
     </Fragment>
   );

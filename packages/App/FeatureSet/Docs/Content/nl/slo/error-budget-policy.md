@@ -158,6 +158,7 @@ Het bericht beschrijft de wijziging in de woorden van de **Feed** van de SLO: he
 | **SLO-labels** | De labels van de SLO: een van de labels die u kiest, ze allemaal, of geen ervan. |
 | **SLO-naam** | De naam van de SLO: wel of niet gelijk aan uw tekst, wel of niet met die tekst erin, of beginnend of eindigend met die tekst. |
 | **Wijziging in foutbudgetbeleid** | Wat er veranderde: **Strenger niveau binnengegaan**, **Hersteld naar een minder streng niveau**, **Alle niveaus verlaten**, **Implementaties bevroren** of **Implementaties weer toegestaan**. |
+| **Eigenaar van SLO** | De mensen en teams die als eigenaren van de SLO zijn vastgelegd: een van degenen die u kiest, of geen ervan. Lid zijn van een team dat eigenaar is van de SLO telt niet. |
 
 Een niveauwijziging die implementaties bevroor, of weer toestond, is één bericht dat voor beide wijzigingen telt. Een regel voor **Implementaties bevroren** plaatst dus ook de wijziging waarmee de SLO een niveau binnenging dat ze bevriest: een releasekanaal hoort van elke bevriezing.
 

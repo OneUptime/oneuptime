@@ -1491,8 +1491,16 @@ describe("when a criteria's incidents and alerts open and close", () => {
   });
 
   it("does not check a monitor while a maintenance event it is on is in progress", () => {
+    /*
+     * The probes' claim hands out only the monitor probes its one rule
+     * (MonitorProbeService.getProbeableSql) says may be probed, and the
+     * maintenance pause flag is in it.
+     */
     expect(MONITOR_PROBE_SERVICE).toContain(
-      'AND m."disableActiveMonitoringBecauseOfScheduledMaintenanceEvent" = false',
+      '          AND ${Service.getProbeableSql("$4")}\n        ORDER BY mp."nextPingAt" ASC',
+    );
+    expect(MONITOR_PROBE_SERVICE).toContain(
+      '`m."disableActiveMonitoringBecauseOfScheduledMaintenanceEvent" = false`,',
     );
     expect(MONITOR_RESOURCE).toContain(
       "if (monitor.disableActiveMonitoringBecauseOfScheduledMaintenanceEvent) {",

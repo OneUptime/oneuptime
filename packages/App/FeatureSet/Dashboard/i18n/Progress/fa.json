@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 51223,
-    "untranslated": 1414
+    "keys": 51818,
+    "untranslated": 1410
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -194,6 +194,7 @@
     "Postmark",
     "Powered by OneUptime",
     "Project view",
+    "PromQL",
     "Provision State",
     "Provisioning Status",
     "RTT",
@@ -348,6 +349,7 @@
     "sensor-001",
     "storage-01 · RegionOne",
     "storefront-web",
+    "sum by (job) (rate(http_requests_total[5m]))",
     "support@example.com",
     "svc-backup",
     "swarm-production",

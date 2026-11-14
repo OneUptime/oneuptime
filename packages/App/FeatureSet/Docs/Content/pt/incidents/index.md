@@ -16,7 +16,7 @@ Um incidente é o registro a partir do qual sua equipe trabalha quando algo queb
 
 - **Um produto próprio** — abra **Incidentes** no menu **Produtos** da barra superior; a lista fica em `/dashboard/{projectId}/incidents`.
 - **Três estados iniciais** — **Identificado**, **Confirmado** e **Resolvido** são criados para todo projeto novo. Você pode adicionar os seus; os três iniciais podem ser renomeados e recoloridos, mas nunca excluídos.
-- **Três severidades iniciais** — **Critical Incident**, **Major Incident** e **Minor Incident**. Uma severidade é um rótulo com uma cor e uma ordem — ela não tem comportamento próprio.
+- **Três severidades iniciais** — **Incidente crítico**, **Incidente grave** e **Incidente menor**. Uma severidade é um rótulo com uma cor e uma ordem — ela não tem comportamento próprio.
 - **Cinco caminhos de entrada** — o assistente **Declarar incidente**, **Criar a partir de modelo**, uma regra de critérios de monitor, `POST /api/incident`, ou um [formulário](/docs/forms/index) que qualquer pessoa com o link pode preencher.
 - **Numerados por projeto** — cada incidente recebe um número de incidente de um contador do projeto, exibido com o prefixo do seu projeto: `INC-42` em um projeto novo, ou `#42` sem prefixo. O número vem antes do título do incidente nas suas páginas, na aba do navegador, na pesquisa e nas caixas de diálogo sobre ele, para que incidentes com o mesmo título se distingam.
 - **Dois tipos de notas** — notas privadas (notas internas) para sua equipe, notas públicas para os assinantes da página de status.
@@ -143,11 +143,11 @@ Todo projeto novo também recebe três severidades:
 
 | Severidade            | Ordem | Cor                   | O que significa                                            |
 | --------------------- | ----- | --------------------- | ---------------------------------------------------------- |
-| **Critical Incident** | 1     | Bordô (`#b70400`)     | Impacto muito alto nos clientes, exigindo resposta imediata. |
-| **Major Incident**    | 2     | Vermelho (`#fd625e`)  | Impacto significativo, que geralmente exige resposta imediata. |
-| **Minor Incident**    | 3     | Amarelo (`#ffbf53`)   | Impacto baixo, geralmente tratado no horário de trabalho.  |
+| **Incidente crítico** | 1     | Bordô (`#b70400`)     | Impacto muito alto nos clientes, exigindo resposta imediata. |
+| **Incidente grave**    | 2     | Vermelho (`#fd625e`)  | Impacto significativo, que geralmente exige resposta imediata. |
+| **Incidente menor**    | 3     | Amarelo (`#ffbf53`)   | Impacto baixo, geralmente tratado no horário de trabalho.  |
 
-As severidades têm `name`, `description`, `color` e `order`, e nada mais. Não há indicadores, e nenhum trecho de código trata «Critical Incident» de forma diferente de qualquer outra linha. A severidade é como as pessoas fazem a triagem, e está disponível como critério de correspondência quando você escreve regras de plantão — mas escolher uma severidade não aciona, por si só, ninguém.
+As severidades têm `name`, `description`, `color` e `order`, e nada mais. Não há indicadores, e nenhum trecho de código trata «Incidente crítico» de forma diferente de qualquer outra linha. A severidade é como as pessoas fazem a triagem, e está disponível como critério de correspondência quando você escreve regras de plantão — mas escolher uma severidade não aciona, por si só, ninguém.
 
 Edite ou adicione severidades em **Incidentes → Configurações → Severidade do incidente**. As descrições iniciais completas estão em [Estados e severidades de incidentes](/docs/incidents/states-and-severities).
 
@@ -162,7 +162,7 @@ Abra **Incidentes** no menu **Produtos** da barra superior. Seu menu lateral é 
 | **IA**                    | **Insights**, **Registros**, **Configurações**: o que o OneUptime AI aprendeu com seus incidentes e tudo o que fez por eles, e o que pode fazer por conta própria — com as regras sobre quais incidentes investiga e corrige. Veja [AI SRE](/docs/ai/ai-sre). |
 | **Espaço de trabalho**    | Os espaços de chat que este projeto conectou: **Slack**, **Microsoft Teams** e **Mattermost**, cada um com suas regras de notificação para incidentes. Se nenhum estiver conectado, contém **Conectar um espaço de trabalho**, uma página que mostra os três e como conectá-los. |
 | **Regras**                | Os mecanismos de regras: **Regras de agrupamento**, **Regras de Plantão**, **Regras de proprietário**, **Regras de runbook**, **Regras de privacidade**, **Regras de Rótulos**, **Regras de SLA**, **Regras de lembrete**. |
-| **Configurações**         | **Estado do incidente**, **Severidade do incidente**, **Modelos de incidentes**, **Modelos de notas**, **Aprovação de notas públicas**, **Modelos de post-mortem**, **Status de post-mortem**, **Campos personalizados**, **Funções de incidente**, **Medições**, **Alertas vinculados**, **Participação em episódios**, **Numeração**, **Retenção de dados**. |
+| **Configurações**         | **Estado do incidente**, **Severidade do incidente**, **Modelos de incidentes**, **Modelos de notas**, **Aprovação de notas públicas**, **Notificações aos assinantes**, **Modelos de post-mortem**, **Status de post-mortem**, **Campos personalizados**, **Funções de incidente**, **Medições**, **Alertas vinculados**, **Participação em episódios**, **Numeração**, **Retenção de dados**. |
 
 **Visão geral** e **Episódios** ficam abertas; **IA**, **Espaço de trabalho**, **Regras**, **Configurações** e **Desenvolvedores** ficam recolhidas por padrão, para que o menu abra nas listas que você usa todos os dias. Clique no título de uma seção para expandi-la e encontrar as páginas a que o resto desta documentação se refere; uma seção também se abre sozinha sempre que você está em uma de suas páginas. A configuração de incidentes não fica nas configurações do projeto; ela vive toda aqui.
 

@@ -1,6 +1,6 @@
 {
     "name": "@oneuptime/root",
-    "version": "14.0.110",
+    "version": "14.0.111",
     "private": true,
     "description": "One Complete Observability platform.",
     "main": "ts",
@@ -82,6 +82,7 @@
         "generate-postgres-migration": "sh ./Scripts/Install/WithConfig.sh node --require ts-node/register ./node_modules/typeorm/cli.js migration:generate ./packages/Common/Server/Infrastructure/Postgres/SchemaMigrations/MigrationName -d ./packages/Common/Server/Infrastructure/Postgres/LocalMigrationGenerationDataSource.ts",
         "check-postgres-schema-drift": "bash ./Scripts/Postgres/CheckSchemaDrift.sh",
         "ai-eval": "sh ./Scripts/Install/WithConfig.sh sh -c 'exec env DATABASE_HOST=localhost DATABASE_PORT=\"${DATABASE_PUBLISHED_PORT:-5400}\" RUN_DATABASE_MIGRATIONS_ON_BOOT=false DATABASE_MIGRATION_WAIT_TIMEOUT_MS=0 node --require ts-node/register ./Scripts/AI/RunInvestigationEval.ts \"$@\"' ai-eval",
+        "ai-benchmark": "sh ./Scripts/Install/WithConfig.sh node --require ts-node/register ./Scripts/AI/RunInvestigationBenchmark.ts",
         "generate-openapi-spec": "sh ./Scripts/Install/WithConfig.sh node --require ts-node/register ./Scripts/OpenAPI/GenerateSpec.ts ./openapi.json",
         "generate-terraform-provider": "sh ./Scripts/Install/WithConfig.sh node --require ts-node/register ./Scripts/TerraformProvider/GenerateProvider.ts",
         "test-terraform-provider-generator": "cd Scripts/TerraformProvider && npm test",

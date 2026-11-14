@@ -94,6 +94,42 @@ export interface ComponentProps {
 }
 
 /*
+ * A field drawn to be read, not changed: a read-only text field, or one
+ * marked aria-readonly. It can take the focus - to be read out, or copied -
+ * but a dialog does not start there: a caret and a focus ring on a field
+ * that takes nothing say "type here" to someone who cannot.
+ */
+export const isReadOnlyField: (element: HTMLElement) => boolean = (
+  element: HTMLElement,
+): boolean => {
+  if (
+    (element instanceof HTMLInputElement ||
+      element instanceof HTMLTextAreaElement) &&
+    element.readOnly
+  ) {
+    return true;
+  }
+
+  return element.getAttribute("aria-readonly") === "true";
+};
+
+/*
+ * The first of `elements` that can be changed, else the first of them: a
+ * read-only field only when there is nothing else.
+ */
+const findFirstChangeable: (
+  elements: Array<HTMLElement>,
+) => HTMLElement | undefined = (
+  elements: Array<HTMLElement>,
+): HTMLElement | undefined => {
+  return (
+    elements.find((element: HTMLElement): boolean => {
+      return !isReadOnlyField(element);
+    }) || elements[0]
+  );
+};
+
+/*
  * Where focus starts when a dialog opens.
  *
  * A field in the body comes first, so a form can be typed into straight away.
@@ -106,7 +142,10 @@ export interface ComponentProps {
  * deletes anything. The header's X is never the starting point, and nor is
  * anything else in the header: a control there (rightElement) is an aside -
  * a way to the help, say - and starting on it would take the focus away from
- * the field the dialog is for.
+ * the field the dialog is for. Nor is a field shown only to be read - an edit
+ * dialog's start time once it has started, drawn read-only so it can still
+ * be read (isReadOnlyField): the first field that can be changed comes
+ * before it, and Tab still reaches it.
  */
 export const pickInitialFocusElement: (data: {
   focusableElements: Array<HTMLElement>;
@@ -131,10 +170,10 @@ export const pickInitialFocusElement: (data: {
 
   const footer: HTMLElement | null = data.footer;
 
-  const firstOutsideTheFooter: HTMLElement | undefined = candidates.find(
-    (element: HTMLElement) => {
+  const firstOutsideTheFooter: HTMLElement | undefined = findFirstChangeable(
+    candidates.filter((element: HTMLElement) => {
       return !footer || !footer.contains(element);
-    },
+    }),
   );
 
   if (firstOutsideTheFooter || !footer) {
@@ -372,8 +411,18 @@ const Modal: FunctionComponent<ComponentProps> = (
             typeof element.checkVisibility !== "function" ||
             element.checkVisibility();
 
+          /*
+           * A control in a disabled fieldset carries no disabled attribute
+           * of its own, but it is disabled all the same: the browser neither
+           * focuses it nor tabs to it. A workflow step's settings on a view
+           * are held still that way (WorkflowViewOnlyFieldset), and a
+           * dropdown there - a react-select input, tabindex 0 - was picked
+           * as the field to start on: its focus() did nothing, and the focus
+           * stayed outside the dialog.
+           */
           return (
             !element.hasAttribute("disabled") &&
+            !element.matches(":disabled") &&
             element.getAttribute("aria-hidden") !== "true" &&
             isRendered
           );
@@ -469,13 +518,17 @@ const Modal: FunctionComponent<ComponentProps> = (
           return;
         }
 
-        // The first control of a form in the body.
-        const lateField: HTMLElement | undefined = getFocusableElements().find(
-          (element: HTMLElement): boolean => {
+        /*
+         * The first control of a form in the body that can be changed - a
+         * read-only one only when there is nothing else - as where a dialog
+         * drawn at once starts (pickInitialFocusElement).
+         */
+        const lateField: HTMLElement | undefined = findFirstChangeable(
+          getFocusableElements().filter((element: HTMLElement): boolean => {
             const form: Element | null = element.closest(DIALOG_FORM_SELECTOR);
 
             return Boolean(form && content.contains(form));
-          },
+          }),
         );
 
         if (!lateField) {

@@ -408,11 +408,11 @@ export default class MonitorResourceUtil {
 
     if (monitor.disableActiveMonitoringBecauseOfScheduledMaintenanceEvent) {
       logger.debug(
-        `${dataToProcess.monitorId.toString()} Monitor is disabled because one of the scheduled maintenance event this monitor is attached to has not ended. Please end the scheduled maintenance event to start monitoring again.`,
+        `${dataToProcess.monitorId.toString()} Monitor is disabled because one of the maintenance events this monitor is attached to has not ended. Please end that maintenance event to start monitoring again.`,
       );
 
       throw new BadDataException(
-        "Monitor is disabled because one of the scheduled maintenance event this monitor is attached to has not ended. Please end the scheduled maintenance event to start monitoring again.",
+        "Monitor is disabled because one of the maintenance events this monitor is attached to has not ended. Please end that maintenance event to start monitoring again.",
       );
     }
 

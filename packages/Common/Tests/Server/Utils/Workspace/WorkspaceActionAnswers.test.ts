@@ -4,6 +4,7 @@ import AlertService from "../../../../Server/Services/AlertService";
 import AlertStateService from "../../../../Server/Services/AlertStateService";
 import AlertStateTimelineService from "../../../../Server/Services/AlertStateTimelineService";
 import IncidentEpisodeService from "../../../../Server/Services/IncidentEpisodeService";
+import IncidentEpisodeStateTimelineService from "../../../../Server/Services/IncidentEpisodeStateTimelineService";
 import IncidentService from "../../../../Server/Services/IncidentService";
 import IncidentStateService from "../../../../Server/Services/IncidentStateService";
 import IncidentStateTimelineService from "../../../../Server/Services/IncidentStateTimelineService";
@@ -1206,6 +1207,42 @@ describe("a late Acknowledge that answered the presser's own page", () => {
     ).toBe(
       `✅ You acknowledged the page for **[Incident INC-2](${INCIDENT_LINK})**, so paging stopped.`,
     );
+  });
+
+  /*
+   * A policy a person started by hand for an episode goes on until somebody
+   * it paged answers it (OnCallPolicyStartedByHand, #7596), so a late
+   * Acknowledge on an episode answers the presser's page too: the answer
+   * names the episode, not an incident.
+   */
+  test("on an incident episode, it says who acknowledged the episode", async () => {
+    jest
+      .spyOn(IncidentEpisodeService, "getEpisodeLinkInDashboard")
+      .mockResolvedValue(URL.fromString("https://oneuptime.test/ep"));
+    const findBy: jest.SpyInstance = jest
+      .spyOn(IncidentEpisodeStateTimelineService, "findBy")
+      .mockResolvedValue([
+        incidentRow(ACKNOWLEDGED, "2026-10-08T18:07:00.000Z", SIMON),
+      ] as never);
+
+    expect(
+      await WorkspaceActionAnswers.getAlreadyAnswer({
+        event: {
+          ...incident(ACKNOWLEDGED),
+          type: WorkspaceEventType.IncidentEpisode,
+          number: 3,
+          numberWithPrefix: null,
+        },
+        press: WorkspaceLatePress.Acknowledge,
+        answeredPageCount: 1,
+      }),
+    ).toEqual({
+      markdown: `✅ You acknowledged the page for **[Incident Episode #3](https://oneuptime.test/ep)**, so paging stopped. **Simon Lee** acknowledged the incident episode at {{TIME(2026-10-08T18:07:00Z)}}.`,
+      text: "You acknowledged the page for Incident Episode #3, so paging stopped",
+    });
+    expect(findBy.mock.calls[0]![0]).toMatchObject({
+      query: { incidentEpisodeId: INCIDENT_ID, projectId: PROJECT_ID },
+    });
   });
 
   test("no page answered: who got there first, as ever", async () => {

@@ -14,7 +14,7 @@ import { EventNoteKind, EventNotesTemplatesConfig } from "../EventNoteKind";
 import { getNoteGenerator } from "../GenerateNoteWithAI";
 
 /*
- * A scheduled maintenance event's public and private notes, as its Public
+ * A maintenance event's public and private notes, as its Public
  * Notes and Private Notes pages and the Scheduled Maintenance Feed's
  * "Add Public Note" / "Add Private Note" all write them.
  */
@@ -44,7 +44,7 @@ export function getScheduledMaintenancePublicNoteKind(data: {
   return {
     modelType: ScheduledMaintenancePublicNote,
     visibility: "public",
-    eventNoun: "scheduled maintenance event",
+    eventNoun: "maintenance event",
     parentIdField: "scheduledMaintenanceId",
     parentId: scheduledMaintenanceId,
     attachmentApiPath: "/scheduled-maintenance-public-note/attachment",
@@ -83,7 +83,7 @@ export function getScheduledMaintenancePrivateNoteKind(data: {
   return {
     modelType: ScheduledMaintenanceInternalNote,
     visibility: "private",
-    eventNoun: "scheduled maintenance event",
+    eventNoun: "maintenance event",
     parentIdField: "scheduledMaintenanceId",
     parentId: scheduledMaintenanceId,
     attachmentApiPath: "/scheduled-maintenance-internal-note/attachment",

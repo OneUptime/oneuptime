@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 51296,
-    "untranslated": 9513
+    "keys": 51818,
+    "untranslated": 9458
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -244,6 +244,7 @@
     "Powered by OneUptime",
     "Principal",
     "Privacy",
+    "PromQL",
     "Prompt",
     "Provider",
     "Pull request",
@@ -450,6 +451,7 @@
     "storage-01 · RegionOne",
     "storefront-web",
     "subnet",
+    "sum by (job) (rate(http_requests_total[5m]))",
     "svc-backup",
     "syslog",
     "tag",

@@ -568,7 +568,8 @@ then `npm run i18n:validate` from the root.
   On a page read from the right the arrow is "←", the first value is drawn at the right, and each
   value is set apart so the arrow stays the line's. A line that reads one way on every page, like
   the names of the user flow map's bands (drawn from the left everywhere), takes
-  `joinWithArrowsInDirection`. Enforced by
+  `joinWithArrowsInDirection`, and its box takes that way too (`getOneWayLineDirection`), whatever
+  letters its values are in. Enforced by
   [ComponentArrowsInRightToLeftPages](../../packages/Common/Tests/App/ComponentArrowsInRightToLeftPages.test.ts)
   and
   [DirectionArrowsInReadersLanguage](../../packages/Common/Tests/App/Dashboard/DirectionArrowsInReadersLanguage.test.tsx).
@@ -600,6 +601,16 @@ then `npm run i18n:validate` from the root.
   that belongs to the English, as written, stays next to its word: a field a search is typed with
   ("user:"), or a setting in a vendor's console. Enforced by
   [DashboardFrenchPunctuation](../../packages/App/Tests/Dashboard/DashboardFrenchPunctuation.test.ts).
+- **An option reads the same in a filter's menu and in its chip.** An option's label is either the
+  product's words, a key looked up in the reader's language wherever the option is drawn, or a name
+  marked `isUserContent` and drawn as written: a record's ("Network"), a value read from data, a
+  product's own ("Google Cloud", "Resend"). A Spanish Health filter read "Con problemas" in its menu
+  and "Unhealthy" in its chip; a monitor named "Network" read "Red" in a menu over rows that said
+  "Network"; the email provider Resend read "Reenviar". Draw an option through
+  `getDropdownOptionText`. Enforced by
+  [FilterOptionLabelsGuard](../../packages/Common/Tests/App/Dashboard/FilterOptionLabelsGuard.test.ts)
+  and
+  [FilterChipAndMenuInSpanish](../../packages/Common/Tests/App/Dashboard/FilterChipAndMenuInSpanish.test.tsx).
 - **Pick words that translate as you mean them.** "About" read "Regarding" in 13 languages, so the
   button says "How it works"; "Uptime" read "runtime", so a share of time up says "Availability". Not
   enforced: use judgement.

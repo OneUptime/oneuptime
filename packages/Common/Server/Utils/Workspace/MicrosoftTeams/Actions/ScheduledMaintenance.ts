@@ -38,7 +38,9 @@ import {
   WorkspaceLatePress,
 } from "../../WorkspaceActionAnswers";
 import WorkspaceHeldPublicNote from "../../WorkspaceHeldPublicNote";
-import WorkspaceNoteForm from "../../WorkspaceNoteForm";
+import WorkspaceNoteForm, {
+  SCHEDULED_MAINTENANCE_NOTE_NOUN,
+} from "../../WorkspaceNoteForm";
 import MicrosoftTeamsTimezone, {
   MicrosoftTeamsUserTimezone,
 } from "../MicrosoftTeamsTimezone";
@@ -712,7 +714,9 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
               value: "public",
             },
             {
-              title: "Private Note (Only visible to team members)",
+              title: WorkspaceNoteForm.getPrivateOption(
+                SCHEDULED_MAINTENANCE_NOTE_NOUN,
+              ),
               value: "private",
             },
           ],
@@ -790,10 +794,11 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
   }
 
   /*
-   * The confirmation: the event by its number, as Slack's names it - "✅
-   * Scheduled maintenance SM-3 created successfully." - when it starts and
-   * ends in the user's time zone (so a wrong zone shows at once), and a
-   * link to it when one can be built.
+   * The confirmation: the event by its number, in the words Slack's
+   * confirmation uses - "✅ Maintenance Event SM-3 created successfully." -
+   * when it starts and ends in the user's time zone (so a wrong zone shows
+   * at once), and a link to it, "View maintenance event", when one can be
+   * built.
    */
   public static async getScheduledMaintenanceCreatedMessage(data: {
     scheduledMaintenance: ScheduledMaintenance;
@@ -811,8 +816,8 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
 
     const paragraphs: Array<MarkdownText> = [
       eventNumber
-        ? mdText`✅ **Scheduled maintenance ${eventNumber}** created successfully.`
-        : mdText`✅ Scheduled maintenance created successfully.`,
+        ? mdText`✅ **Maintenance Event ${eventNumber}** created successfully.`
+        : mdText`✅ Maintenance event created successfully.`,
       mdText`**Starts:** ${MicrosoftTeamsTimezone.format(
         data.startsAt,
         data.timezone,
@@ -839,7 +844,7 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
 
         // Words that link, not the address itself: it ran past a phone's screen.
         paragraphs.push(
-          mdText`[View scheduled maintenance](${maintenanceLink.toString()})`,
+          mdText`[View maintenance event](${maintenanceLink.toString()})`,
         );
       } catch (error) {
         logger.debug("Could not build the link to a new maintenance event");

@@ -37,6 +37,12 @@ import { JSONObject } from "../../../../Types/JSON";
  * The Markdown editor was the one control that drew a placeholder as it
  * was given, so it now looks it up as the others do, and no page hands it
  * one it has looked up already.
+ *
+ * A placeholder that cannot go over in English - a sentence built around a
+ * value, a front end's own keyed text - is put in the reader's words by
+ * the page, which says so (isPlaceholderTranslated, #7682): every kind of
+ * field and every control then draws it as given, "Red", never looking the
+ * translation up again into "Rojo".
  */
 
 jest.mock("../../../../UI/Utils/ModelAPI/ModelAPI", () => {
@@ -68,7 +74,9 @@ import FormFieldSchemaType from "../../../../UI/Components/Forms/Types/FormField
 import FormValues from "../../../../UI/Components/Forms/Types/FormValues";
 import Input from "../../../../UI/Components/Input/Input";
 import MarkdownEditor from "../../../../UI/Components/Markdown.tsx/MarkdownEditor";
+import NavBarMenuModal from "../../../../UI/Components/Navbar/NavBarMenuModal";
 import TextArea from "../../../../UI/Components/TextArea/TextArea";
+import ValueTextField from "../../../../UI/Components/Workflow/ValuePicker/ValueTextField";
 import { readDashboardLocale } from "../../../Helpers/DashboardLocales";
 
 // A placeholder whose translation is itself an English key.
@@ -204,6 +212,7 @@ const FIELD_KINDS: Array<[string, Partial<Field<TestEntity>>]> = [
         return (
           <Input
             placeholder={customProps.placeholder}
+            isPlaceholderTranslated={customProps.isPlaceholderTranslated}
             onChange={customProps.onChange}
           />
         );
@@ -265,6 +274,88 @@ const CONTROLS: Array<[string, () => ReactElement]> = [
           placeholder={PLACEHOLDER}
           onChange={(): void => {}}
           ariaLabel="Name"
+        />
+      );
+    },
+  ],
+];
+
+/*
+ * Each control a page hands a placeholder it has put in the reader's words,
+ * and said so.
+ */
+const CONTROLS_GIVEN_TRANSLATED: Array<[string, () => ReactElement]> = [
+  [
+    "Input",
+    (): ReactElement => {
+      return <Input placeholder={ONCE} isPlaceholderTranslated={true} />;
+    },
+  ],
+  [
+    "TextArea",
+    (): ReactElement => {
+      return <TextArea placeholder={ONCE} isPlaceholderTranslated={true} />;
+    },
+  ],
+  [
+    "Dropdown",
+    (): ReactElement => {
+      return (
+        <Dropdown
+          placeholder={ONCE}
+          isPlaceholderTranslated={true}
+          options={[{ label: "One", value: "one" }]}
+          ariaLabel="Name"
+        />
+      );
+    },
+  ],
+  [
+    "MarkdownEditor",
+    (): ReactElement => {
+      return (
+        <MarkdownEditor placeholder={ONCE} isPlaceholderTranslated={true} />
+      );
+    },
+  ],
+  [
+    "ColorPicker, compact",
+    (): ReactElement => {
+      return (
+        <ColorPicker
+          layout="compact"
+          placeholder={ONCE}
+          isPlaceholderTranslated={true}
+          onChange={(): void => {}}
+          ariaLabel="Name"
+        />
+      );
+    },
+  ],
+  [
+    "ValueTextField (a workflow step's value)",
+    (): ReactElement => {
+      return (
+        <ValueTextField
+          value=""
+          onChange={(): void => {}}
+          multiline={false}
+          placeholder={ONCE}
+          isPlaceholderTranslated={true}
+          ariaLabel="Value"
+        />
+      );
+    },
+  ],
+  [
+    "NavBarMenuModal's search (the products menu)",
+    (): ReactElement => {
+      return (
+        <NavBarMenuModal
+          items={[]}
+          onClose={(): void => {}}
+          searchPlaceholder={ONCE}
+          isSearchPlaceholderTranslated={true}
         />
       );
     },
@@ -486,6 +577,38 @@ describe("a control on its own, outside a form, in Spanish", () => {
       expect(drawn).toContain(ONCE);
       expect(drawn).not.toContain(TWICE);
       expect(drawn).not.toContain(PLACEHOLDER);
+    },
+  );
+});
+
+describe("a placeholder in the reader's words already, said so (#7682)", () => {
+  test.each(FIELD_KINDS)(
+    "%s draws it as given",
+    async (_kind: string, overrides: Partial<Field<TestEntity>>) => {
+      const drawn: Array<string> = drawnTexts(
+        await renderField({
+          ...overrides,
+          placeholder: ONCE,
+          isPlaceholderTranslated: true,
+        }),
+      );
+
+      expect(drawn).toContain(ONCE);
+      expect(drawn).not.toContain(TWICE);
+    },
+  );
+
+  test.each(CONTROLS_GIVEN_TRANSLATED)(
+    "%s, on its own, draws it as given",
+    async (_name: string, control: () => ReactElement) => {
+      render(control());
+
+      await settle();
+
+      const drawn: Array<string> = drawnTexts(document.body);
+
+      expect(drawn).toContain(ONCE);
+      expect(drawn).not.toContain(TWICE);
     },
   );
 });

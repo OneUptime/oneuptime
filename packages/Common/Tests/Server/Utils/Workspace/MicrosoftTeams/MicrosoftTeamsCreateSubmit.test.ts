@@ -168,7 +168,7 @@ const INCIDENT_UNEXPECTED_FAILURE_WITHOUT_LINK: string =
   "❌ Could not create the incident because of an unexpected error. Please try again, or create it in OneUptime.";
 
 const MAINTENANCE_CREATED: string =
-  "✅ Scheduled maintenance created successfully.";
+  "✅ Maintenance event created successfully.";
 const MAINTENANCE_MISSING_FIELDS: string =
   "Unable to create scheduled maintenance: missing required fields (title, description, start date/time, or end date/time).";
 const MAINTENANCE_UNREADABLE_TIME: string =
@@ -1141,7 +1141,7 @@ describe("Microsoft Teams: submitting the Create New Scheduled Maintenance form"
       ? `\n\nMicrosoft Teams did not say which time zone you are in, so these times were read at your current offset, ${data.offsetLabel}. If daylight saving time changes before then, check them in OneUptime.`
       : "";
     const link: string = data.link
-      ? `\n\n[View scheduled maintenance](${data.link.toString()})`
+      ? `\n\n[View maintenance event](${data.link.toString()})`
       : "";
 
     return `${MAINTENANCE_CREATED}\n\n**Starts:** ${data.starts}\n\n**Ends:** ${data.ends}${offsetNote}${link}`;

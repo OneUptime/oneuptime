@@ -74,6 +74,22 @@ const HELPERS = "HelmChart/Public/oneuptime/templates/_helpers.tpl";
 // which quotes what it joins).
 const DECLARATION = /^\$\w+\s*:?=/;
 const TEMPLATE_FILE = /\.(ya?ml|tpl)$/;
+// Every template action of a value, with the text before and after it.
+const ACTION = /\{\{-?\s*((?:(?!\}\}).)*?)\s*-?\}\}/g;
+// An action that writes nothing itself: a branch, the end of one, a comment,
+// or a variable declared for later.
+const CONTROL_ACTION =
+  /^(?:(?:if|else|end|with|range|define|block|template)\b|\/\*|\$\w+\s*:?=)/;
+// An action that reads a setting from the values.
+const READS_SETTING = /\.Values\b/;
+/*
+ * The settings a Service's address is built from, which are written as they
+ * are: the cluster's DNS domain and the ports. A DNS name and a port number
+ * hold none of YAML's syntax.
+ */
+const ADDRESS_SETTING =
+  /^\$?\.Values\.(?:global\.clusterDomain|(?:\w+\.)+ports\.\w+)$/;
+const WHITESPACE_ONLY = /^\s*$/;
 
 const WORKLOAD_KINDS = ["Deployment", "StatefulSet", "Job", "DaemonSet"];
 
@@ -131,6 +147,151 @@ function unquotedValues(source, seen = { actions: 0, quoted: 0 }) {
 
   return found;
 }
+
+/*
+ * The values of a template's text that are built from several pieces and
+ * splice a setting in where YAML reads it by its own rules, as "<line
+ * number>: <line>". A piece that reads a setting is fine when it is part of a
+ * Service's address (the cluster's DNS domain or a port), or when it is a
+ * whole value of its own: quoted, with no text of the value before or after
+ * it, as each branch of `{{ if x }}{{ $.Values.a | quote }}{{ else }}""{{ end
+ * }}` is. Anything else is the shape #7336 found:
+ * `value: "kubernetes-agent-{{ .Values.clusterName }}"` ends its string early
+ * at a '"' in the setting and reads a '\' as an escape, and the same piece
+ * without the literal quotes meets ': ' and ' #' as an unquoted one does.
+ * Counts the setting pieces it read in `seen`.
+ */
+function splicedSettings(source, seen = { pieces: 0 }) {
+  const found = [];
+
+  source.split("\n").forEach((line, index) => {
+    const value = VALUE_LINE.exec(line);
+
+    if (!value || !value[1].includes("{{") || ONE_ACTION.test(value[1])) {
+      return;
+    }
+
+    const text = value[1];
+    const actions = [...text.matchAll(ACTION)];
+    // Every piece is read (no short cut at the first refusal), so `seen`
+    // counts them all.
+    const refused = actions.filter((action, position) => {
+      const body = action[1];
+
+      if (CONTROL_ACTION.test(body) || !READS_SETTING.test(body)) {
+        return false;
+      }
+
+      seen.pieces += 1;
+
+      if (ADDRESS_SETTING.test(body)) {
+        return false;
+      }
+
+      const previous = actions[position - 1];
+      const next = actions[position + 1];
+      const before = text.slice(
+        previous ? previous.index + previous[0].length : 0,
+        action.index,
+      );
+      const after = text.slice(
+        action.index + action[0].length,
+        next ? next.index : text.length,
+      );
+
+      return !(
+        QUOTED.test(body) &&
+        WHITESPACE_ONLY.test(before) &&
+        WHITESPACE_ONLY.test(after)
+      );
+    });
+
+    if (refused.length > 0) {
+      found.push(`${index + 1}: ${line.trim()}`);
+    }
+  });
+
+  return found;
+}
+
+describe("the scan of values built from several pieces finds a setting spliced in", () => {
+  const sample = [
+    "  - name: A",
+    '    value: "kubernetes-agent-{{ .Values.clusterName }}"',
+    "  - name: B",
+    '    value: "k8s.cluster.name={{ .Values.clusterName }}"',
+    "  - name: C",
+    "    value: kubernetes-agent-{{ .Values.clusterName }}",
+    "  - name: D",
+    '    value: "kubernetes-agent-{{ .Values.clusterName | quote }}"',
+    "  - name: E",
+    "    value: prefix-{{ $.Values.a | quote }}",
+    "  - name: F",
+    "    value: {{ $.Values.a | quote }}-suffix",
+    "  - name: G",
+    '    value: "{{ $.Values.a }}{{ $.Values.b }}"',
+    "  - name: H",
+    "    value: {{ $.Release.Name }}-app.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}",
+    "  - name: I",
+    "    value: http://{{ $.Release.Name }}-vllm.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}:{{ $.Values.vllm.ports.http }}/v1",
+    "  - name: J",
+    '    value: "http://{{ include "kubernetes-agent.fullname" . }}-otlp.{{ .Release.Namespace }}.svc.cluster.local:4318"',
+    "  - name: K",
+    '    value: "app.kubernetes.io/instance={{ .Release.Name }}"',
+    "  - name: L",
+    "    value: {{ if $.Values.a }}{{ $.Values.a | quote }}{{ else }}{{ $.Values.b | quote }}{{ end }}",
+    "  - name: M",
+    '    value: {{ if kindIs "bool" ($.Values.c).d }}{{ ternary "true" "false" ($.Values.c).d | quote }}{{ else }}""{{ end }}',
+    "  - name: N",
+    '    value: {{ if kindIs "invalid" $enabled }}"true"{{ else }}{{ ternary "true" "false" $enabled | quote }}{{ end }}',
+    "  - name: O",
+    '    value: {{ printf "kubernetes-agent-%s" (include "kubernetes-agent.clusterName" .) | quote }}',
+    "  - name: P",
+    "    value: http://{{ $.Release.Name }}:{{ $.Values.app.port }}",
+    "  - name: Q",
+    "    value: {{ if $.Values.a }}x-{{ $.Values.a | quote }}{{ end }}",
+  ].join("\n");
+
+  test("refuses a setting inside literal quotes, or joined to other text of the value", () => {
+    expect(splicedSettings(sample)).toEqual([
+      '2: value: "kubernetes-agent-{{ .Values.clusterName }}"',
+      '4: value: "k8s.cluster.name={{ .Values.clusterName }}"',
+      "6: value: kubernetes-agent-{{ .Values.clusterName }}",
+      '8: value: "kubernetes-agent-{{ .Values.clusterName | quote }}"',
+      "10: value: prefix-{{ $.Values.a | quote }}",
+      "12: value: {{ $.Values.a | quote }}-suffix",
+      '14: value: "{{ $.Values.a }}{{ $.Values.b }}"',
+      // A port named `port` rather than under `ports` is not an address
+      // setting it knows, so it is refused rather than guessed at.
+      "32: value: http://{{ $.Release.Name }}:{{ $.Values.app.port }}",
+      "34: value: {{ if $.Values.a }}x-{{ $.Values.a | quote }}{{ end }}",
+    ]);
+  });
+
+  test("keeps a Service's address, the release's own names, and a quoted setting that is a whole branch", () => {
+    const kept = splicedSettings(sample);
+
+    for (const name of ["H", "I", "J", "K", "L", "M", "N", "O"]) {
+      const line = sample.split("\n").indexOf(`  - name: ${name}`) + 2;
+
+      expect({
+        name,
+        refused: kept.some((entry) => {
+          return entry.startsWith(`${line}: `);
+        }),
+      }).toEqual({ name, refused: false });
+    }
+  });
+
+  test("counts the setting pieces it read", () => {
+    const seen = { pieces: 0 };
+
+    splicedSettings(sample, seen);
+
+    // A, B, C, D, E, F, G twice, H, I twice, L twice, M, P and Q.
+    expect(seen.pieces).toBe(16);
+  });
+});
 
 describe("the scan of env values reads the lines it is meant to", () => {
   const sample = [
@@ -235,6 +396,23 @@ describe("every env value a chart template writes as one action is quoted", () =
     expect(seen.quoted).toBeGreaterThan(300);
   });
 
+  test("no template splices a setting into a value built from several pieces", () => {
+    const seen = { pieces: 0 };
+    const spliced = files.flatMap((file) => {
+      return splicedSettings(
+        fs.readFileSync(path.join(REPO_ROOT, file), "utf8"),
+        seen,
+      ).map((line) => {
+        return `${file}:${line}`;
+      });
+    });
+
+    expect(spliced).toEqual([]);
+    // The Service addresses of the oneuptime chart read the cluster domain
+    // and ports this way; none would mean the scan stopped reading them.
+    expect(seen.pieces).toBeGreaterThan(10);
+  });
+
   test("the exporter's settings are quoted wherever a template hands them over", () => {
     const lines = files.flatMap((file) => {
       return fs
@@ -337,6 +515,33 @@ const SETTINGS = {
   "vapid.publicKey": "VAPID_PUBLIC_KEY",
   "vapid.subject": "VAPID_SUBJECT",
   "vapid.privateKey": "VAPID_PRIVATE_KEY",
+  // The server's Twilio account, rendered once accountSid is set (#7515).
+  "twilio.accountSid": "GLOBAL_TWILIO_ACCOUNT_SID",
+  "twilio.authToken": "GLOBAL_TWILIO_AUTH_TOKEN",
+  "twilio.primaryPhoneNumber": "GLOBAL_TWILIO_PRIMARY_PHONE_NUMBER",
+  "twilio.secondaryPhoneNumbers": "GLOBAL_TWILIO_SECONDARY_PHONE_NUMBERS",
+  "twilio.smsPhoneNumbers": "GLOBAL_TWILIO_SMS_PHONE_NUMBERS",
+  // The server's email settings, rendered once email.serverType is set
+  // (#7738): EMAIL_ON sets it, since it is one of the names the app knows.
+  "email.fromEmail": "GLOBAL_EMAIL_FROM_EMAIL",
+  "email.fromName": "GLOBAL_EMAIL_FROM_NAME",
+  "email.smtp.host": "GLOBAL_EMAIL_SMTP_HOST",
+  "email.smtp.port": "GLOBAL_EMAIL_SMTP_PORT",
+  "email.smtp.username": "GLOBAL_EMAIL_SMTP_USERNAME",
+  "email.smtp.password": "GLOBAL_EMAIL_SMTP_PASSWORD",
+  "email.smtp.oauth.clientId": "GLOBAL_EMAIL_SMTP_OAUTH_CLIENT_ID",
+  "email.smtp.oauth.clientSecret": "GLOBAL_EMAIL_SMTP_OAUTH_CLIENT_SECRET",
+  "email.smtp.oauth.tokenUrl": "GLOBAL_EMAIL_SMTP_OAUTH_TOKEN_URL",
+  "email.smtp.oauth.scope": "GLOBAL_EMAIL_SMTP_OAUTH_SCOPE",
+  "email.sendgrid.apiKey": "GLOBAL_EMAIL_SENDGRID_API_KEY",
+  "email.amazonSes.accessKeyId": "GLOBAL_EMAIL_AMAZON_SES_ACCESS_KEY_ID",
+  "email.amazonSes.secretAccessKey":
+    "GLOBAL_EMAIL_AMAZON_SES_SECRET_ACCESS_KEY",
+  "email.amazonSes.region": "GLOBAL_EMAIL_AMAZON_SES_REGION",
+  "email.mailgun.apiKey": "GLOBAL_EMAIL_MAILGUN_API_KEY",
+  "email.mailgun.domain": "GLOBAL_EMAIL_MAILGUN_DOMAIN",
+  "email.postmark.serverToken": "GLOBAL_EMAIL_POSTMARK_SERVER_TOKEN",
+  "email.resend.apiKey": "GLOBAL_EMAIL_RESEND_API_KEY",
   oneuptimeSecret: "ONEUPTIME_SECRET",
   registerProbeKey: "REGISTER_PROBE_KEY",
   encryptionSecret: "ENCRYPTION_SECRET",
@@ -359,6 +564,12 @@ const SETTINGS = {
   "probes.one.description": "PROBE_DESCRIPTION",
   "probes.one.key": "PROBE_KEY",
 };
+
+// The email settings in SETTINGS are handed to the pods only with a server
+// type, which the schema takes from the names the app knows, so it is set
+// here rather than to a value full of syntax: an SMTP server, signed in to
+// with the username and password SETTINGS sets.
+const EMAIL_ON = { email: { serverType: "custom-smtp" } };
 
 // The database settings, which only one database layout reads.
 const BUILT_IN_DATABASE_SETTINGS = {
@@ -462,7 +673,9 @@ if (HELM_MISSING && !process.env.CI) {
 
 const testWithHelm = HELM_MISSING && !process.env.CI ? test.skip : test;
 
-function render(values) {
+// `args` adds helm template flags, such as --is-upgrade for the upgrade
+// branch of templates/secrets.yaml.
+function render(values, args = []) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "helm-env-quoted-"));
   const file = path.join(dir, "values.json");
 
@@ -479,6 +692,7 @@ function render(values) {
         "oneuptime",
         "--values",
         file,
+        ...args,
       ],
       { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 },
     );
@@ -584,7 +798,7 @@ describe("the oneuptime chart hands every credential and free-text setting to it
     () => {
       const settings = { ...SETTINGS, ...BUILT_IN_DATABASE_SETTINGS };
       const values = assign(settings, syntaxValue);
-      const documents = render(deepMerge(ALL_ON, nest(values)));
+      const documents = render(deepMerge(ALL_ON, EMAIL_ON, nest(values)));
 
       expect(misread(documents, byEnvName(settings, values))).toEqual([]);
     },
@@ -603,7 +817,7 @@ describe("the oneuptime chart hands every credential and free-text setting to it
           },
           offset,
         );
-        const documents = render(deepMerge(ALL_ON, nest(values)));
+        const documents = render(deepMerge(ALL_ON, EMAIL_ON, nest(values)));
 
         expect({
           offset,
@@ -642,8 +856,8 @@ describe("the oneuptime chart hands every credential and free-text setting to it
    * read from a file with its final newline reached the pods without it. The
    * helper keeps it so: an ENCRYPTION_SECRET that gained a newline would
    * leave every value encrypted with the old one unreadable. The built-in
-   * ClickHouse's own StatefulSet takes its user as written, as it always did,
-   * so it is left out here; the render above holds it to the app's.
+   * ClickHouse's own StatefulSet is held to it too: it creates the user the
+   * app connects as, so it gets the user the app gets (#7337).
    */
   testWithHelm(
     "a value wrapped in whitespace and a final newline reaches every env entry without them, as it always did",
@@ -653,7 +867,7 @@ describe("the oneuptime chart hands every credential and free-text setting to it
       };
 
       for (const [settings, layout] of [
-        [{ ...SETTINGS, ...BUILT_IN_DATABASE_SETTINGS }, {}],
+        [{ ...SETTINGS, ...BUILT_IN_DATABASE_SETTINGS }, EMAIL_ON],
         [EXTERNAL_DATABASE_SETTINGS, EXTERNAL_DATABASES],
       ]) {
         const values = assign(settings, syntaxValue, 7);
@@ -663,13 +877,8 @@ describe("the oneuptime chart hands every credential and free-text setting to it
           }),
         );
         const documents = render(deepMerge(ALL_ON, layout, nest(wrapped)));
-        const datastore = (workload) => {
-          return workload.startsWith("StatefulSet/");
-        };
 
-        expect(
-          misread(documents, byEnvName(settings, values), datastore),
-        ).toEqual([]);
+        expect(misread(documents, byEnvName(settings, values))).toEqual([]);
       }
     },
   );
@@ -733,6 +942,368 @@ describe("the oneuptime chart hands every credential and free-text setting to it
       }
 
       expect([...holders].sort()).toEqual(EXPORTER_WORKLOADS);
+    },
+  );
+});
+
+/*
+ * The copies of a setting the chart keeps beside the pods' env: the keys
+ * templates/secrets.yaml stores, the cluster key KEDA presents, the global
+ * Runner's key, vLLM's Secret, and the user and database the built-in and
+ * operator-run databases create. Each must be the value the pods use, or the
+ * two sides disagree: KEDA's TriggerAuthentication presented "key\n" to an
+ * app that compared it with "key", and taking an inline key out of the values
+ * later switched the pods to the Secret's copy, newline and all (#7337).
+ */
+
+// A value as a file leaves it: whitespace around it and a final newline.
+function fromAFile(value) {
+  return ` \t ${value} \r\n`;
+}
+
+// { key: value } of the Secret of that name in a render, data decoded.
+function secretValues(documents, name) {
+  const secret = documents.find((document) => {
+    return document.kind === "Secret" && document.metadata.name === name;
+  });
+
+  if (!secret) {
+    return null;
+  }
+
+  const values = { ...(secret.stringData || {}) };
+
+  for (const [key, encoded] of Object.entries(secret.data || {})) {
+    values[key] = Buffer.from(encoded, "base64").toString("utf8");
+  }
+
+  return values;
+}
+
+// What a pod reads from an env entry: its value, or the Secret key it names.
+function podValue(documents, entry) {
+  if (!entry.valueFrom) {
+    return entry.value;
+  }
+
+  const ref = entry.valueFrom.secretKeyRef;
+  const values = ref ? secretValues(documents, ref.name) : null;
+
+  if (!values || !(ref.key in values)) {
+    return `<${JSON.stringify(entry.valueFrom)}, not in the render>`;
+  }
+
+  return values[ref.key];
+}
+
+/*
+ * Each env entry named in `expected` whose pod would not read the expected
+ * value, as "<workload> <name>: <what it reads>", and the names no workload
+ * has, as "<name>: in no workload".
+ */
+function podsMisread(documents, expected) {
+  const wrong = [];
+  const seen = new Set();
+
+  for (const [workload, entry] of envEntries(documents)) {
+    if (!(entry.name in expected)) {
+      continue;
+    }
+
+    seen.add(entry.name);
+
+    const read = podValue(documents, entry);
+
+    if (read !== expected[entry.name]) {
+      wrong.push(`${workload} ${entry.name}: ${JSON.stringify(read)}`);
+    }
+  }
+
+  for (const name of Object.keys(expected)) {
+    if (!seen.has(name)) {
+      wrong.push(`${name}: in no workload`);
+    }
+  }
+
+  return wrong.sort();
+}
+
+function documentOf(documents, kind, name) {
+  return documents.find((document) => {
+    return document.kind === kind && document.metadata.name === name;
+  });
+}
+
+// The four keys templates/secrets.yaml stores when set inline, by setting:
+// the release Secret's key and the env entry the pods read it as.
+const STORED_KEYS = {
+  oneuptimeSecret: ["oneuptime-secret", "ONEUPTIME_SECRET"],
+  encryptionSecret: ["encryption-secret", "ENCRYPTION_SECRET"],
+  registerProbeKey: ["register-probe-key", "REGISTER_PROBE_KEY"],
+  "probes.one.key": ["probe-one", "PROBE_KEY"],
+};
+
+const KEDA = {
+  keda: { enabled: true },
+  app: { keda: { enabled: true } },
+};
+
+describe("every copy of a setting the chart keeps beside the pods' env holds what the pods use", () => {
+  for (const [branch, args] of [
+    ["install", []],
+    ["upgrade", ["--is-upgrade"]],
+  ]) {
+    testWithHelm(
+      `on ${branch}, the release Secret stores each inline key as every pod gets it`,
+      () => {
+        const values = assign(STORED_KEYS, syntaxValue, 3);
+        const wrapped = Object.fromEntries(
+          Object.entries(values).map(([setting, value]) => {
+            return [setting, fromAFile(value)];
+          }),
+        );
+        const documents = render(deepMerge(ALL_ON, nest(wrapped)), args);
+        const stored = secretValues(documents, "oneuptime-secrets");
+
+        expect(
+          Object.fromEntries(
+            Object.entries(STORED_KEYS).map(([, [key]]) => {
+              return [key, stored[key]];
+            }),
+          ),
+        ).toEqual(
+          Object.fromEntries(
+            Object.entries(STORED_KEYS).map(([setting, [key]]) => {
+              return [key, values[setting]];
+            }),
+          ),
+        );
+        expect(
+          podsMisread(
+            documents,
+            Object.fromEntries(
+              Object.entries(STORED_KEYS).map(([setting, [, env]]) => {
+                return [env, values[setting]];
+              }),
+            ),
+          ),
+        ).toEqual([]);
+      },
+    );
+  }
+
+  testWithHelm(
+    "without an inline key, every pod reads the key the release Secret keeps",
+    () => {
+      const documents = render(ALL_ON, ["--is-upgrade"]);
+      const stored = secretValues(documents, "oneuptime-secrets");
+
+      expect(
+        podsMisread(
+          documents,
+          Object.fromEntries(
+            Object.values(STORED_KEYS).map(([key, env]) => {
+              return [env, stored[key]];
+            }),
+          ),
+        ),
+      ).toEqual([]);
+    },
+  );
+
+  /*
+   * KEDA presents the cluster key it reads to the app, which compares it with
+   * its own ONEUPTIME_SECRET; an inline key wins over a Secret of the user's
+   * for the app, and so for KEDA.
+   */
+  for (const [layout, values] of [
+    [
+      "an inline key read from a file",
+      { oneuptimeSecret: fromAFile("k: v #1") },
+    ],
+    [
+      "an inline key beside a Secret of the user's",
+      {
+        oneuptimeSecret: fromAFile("k: v #1"),
+        externalSecrets: {
+          oneuptimeSecret: {
+            existingSecret: { name: "my-keys", passwordKey: "cluster-key" },
+          },
+        },
+      },
+    ],
+    [
+      "a Secret of the user's",
+      {
+        externalSecrets: {
+          oneuptimeSecret: {
+            existingSecret: { name: "my-keys", passwordKey: "cluster-key" },
+          },
+        },
+      },
+    ],
+    ["the generated key", {}],
+  ]) {
+    testWithHelm(
+      `with ${layout}, KEDA presents the cluster key the app compares`,
+      () => {
+        const documents = render(deepMerge(KEDA, values));
+        const app = envEntries(documents).find(([workload, entry]) => {
+          return (
+            workload === "Deployment/oneuptime-app" &&
+            entry.name === "ONEUPTIME_SECRET"
+          );
+        })[1];
+        const auth = documentOf(
+          documents,
+          "TriggerAuthentication",
+          "oneuptime-app-trigger-auth",
+        );
+        const [ref] = auth.spec.secretTargetRef;
+
+        expect(ref.parameter).toBe("clusterkey");
+
+        if (app.valueFrom) {
+          // The app reads a Secret too: the same one, by the same key.
+          expect({ name: ref.name, key: ref.key }).toEqual(
+            app.valueFrom.secretKeyRef,
+          );
+        } else {
+          expect(secretValues(documents, ref.name)[ref.key]).toBe(app.value);
+          expect(app.value).toBe("k: v #1");
+        }
+      },
+    );
+  }
+
+  testWithHelm(
+    "the global Runner presents the key the server keeps its row from",
+    () => {
+      const documents = render(
+        deepMerge(ALL_ON, { globalRunner: { key: fromAFile("runner #key") } }),
+      );
+
+      expect(
+        podsMisread(documents, {
+          GLOBAL_RUNNER_KEY: "runner #key",
+          ONEUPTIME_RUNNER_KEY: "runner #key",
+        }),
+      ).toEqual([]);
+    },
+  );
+
+  testWithHelm(
+    "vLLM and the server read the API key vLLM's Secret stores, without the whitespace around it",
+    () => {
+      const documents = render(
+        deepMerge(ALL_ON, {
+          vllm: {
+            apiKey: fromAFile("vllm-api-key"),
+            huggingFace: { token: fromAFile("hf_token") },
+          },
+        }),
+      );
+
+      expect(secretValues(documents, "oneuptime-vllm")).toEqual({
+        "api-key": "vllm-api-key",
+        "hf-token": "hf_token",
+      });
+      expect(
+        podsMisread(documents, {
+          VLLM_API_KEY: "vllm-api-key",
+          GLOBAL_LLM_PROVIDER_API_KEY: "vllm-api-key",
+          HF_TOKEN: "hf_token",
+        }),
+      ).toEqual([]);
+    },
+  );
+
+  testWithHelm(
+    "the built-in databases create the user and the database the app connects as and to",
+    () => {
+      const documents = render(
+        deepMerge(ALL_ON, {
+          clickhouse: { auth: { username: fromAFile("oneuptime-user") } },
+          postgresql: { auth: { database: fromAFile("oneuptime-db") } },
+        }),
+      );
+      const postgres = documentOf(
+        documents,
+        "StatefulSet",
+        "oneuptime-postgresql",
+      ).spec.template.spec.containers[0];
+
+      expect(
+        podsMisread(documents, {
+          CLICKHOUSE_USER: "oneuptime-user",
+          POSTGRES_DB: "oneuptime-db",
+          DATABASE_NAME: "oneuptime-db",
+        }),
+      ).toEqual([]);
+      expect([
+        postgres.livenessProbe.exec.command[2],
+        postgres.readinessProbe.exec.command[2],
+      ]).toEqual([
+        'exec pg_isready -U "postgres" -d "dbname=oneuptime-db" -h 127.0.0.1 -p 5432',
+        'exec pg_isready -U "postgres" -d "dbname=oneuptime-db" -h 127.0.0.1 -p 5432',
+      ]);
+    },
+  );
+
+  testWithHelm("CloudNativePG creates the database the app connects to", () => {
+    const documents = render(
+      deepMerge(ALL_ON, {
+        postgresOperator: {
+          cnpg: { enabled: true, database: fromAFile("oneuptime-db") },
+        },
+      }),
+    );
+
+    expect(
+      documentOf(documents, "Cluster", "oneuptime-postgresql-cnpg").spec
+        .bootstrap.initdb.database,
+    ).toBe("oneuptime-db");
+    expect(podsMisread(documents, { DATABASE_NAME: "oneuptime-db" })).toEqual(
+      [],
+    );
+  });
+
+  testWithHelm(
+    "the Altinity installation creates the user the app connects as",
+    () => {
+      const documents = render(
+        deepMerge(ALL_ON, {
+          clickhouseOperator: {
+            altinity: {
+              enabled: true,
+              auth: { username: fromAFile("oneuptime-user") },
+            },
+          },
+        }),
+      );
+      const users = Object.keys(
+        documentOf(
+          documents,
+          "ClickHouseInstallation",
+          "oneuptime-clickhouse-altinity",
+        ).spec.configuration.users,
+      );
+
+      expect(users).toEqual(
+        expect.arrayContaining([
+          "oneuptime-user/password",
+          "oneuptime-user/networks/ip",
+          "oneuptime-user/access_management",
+        ]),
+      );
+      expect(
+        users.filter((user) => {
+          return !user.startsWith("oneuptime-user/");
+        }),
+      ).toEqual([]);
+      expect(
+        podsMisread(documents, { CLICKHOUSE_USER: "oneuptime-user" }),
+      ).toEqual([]);
     },
   );
 });

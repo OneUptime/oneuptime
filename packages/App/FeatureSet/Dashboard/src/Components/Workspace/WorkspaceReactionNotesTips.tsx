@@ -4,6 +4,7 @@ import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer
 import {
   translatableTerm,
   TranslatableTerm,
+  translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -13,8 +14,41 @@ export interface ComponentProps {
   workspaceType: WorkspaceType;
   // Singular, lower case: "incident", "alert episode".
   resourceName: string;
-  // Only incidents and scheduled maintenance events have public notes.
+  // Only incidents and maintenance events have public notes.
   supportsPublicNotes: boolean;
+}
+
+/*
+ * What a pin saves, and who can read it: a private note is read through its
+ * record, so only the people who can see the record can read it. It used to
+ * say "visible only to your team", which read as one of OneUptime's Teams -
+ * or, on the Microsoft Teams page, as the team in Microsoft Teams (#7595).
+ * One whole line for each record, as the record pages name them, the
+ * episodes of both kinds alike; an incident's for a record not listed.
+ */
+export const REACTION_PRIVATE_NOTE_LINES: Record<string, string> = {
+  incident: translationKey(
+    "- 📌 **Pin** (📌, 📍) - React with a pin to save the message as a **private note** (only people who can see the incident can read it).",
+  ),
+  "incident episode": translationKey(
+    "- 📌 **Pin** (📌, 📍) - React with a pin to save the message as a **private note** (only people who can see the episode can read it).",
+  ),
+  alert: translationKey(
+    "- 📌 **Pin** (📌, 📍) - React with a pin to save the message as a **private note** (only people who can see the alert can read it).",
+  ),
+  "alert episode": translationKey(
+    "- 📌 **Pin** (📌, 📍) - React with a pin to save the message as a **private note** (only people who can see the episode can read it).",
+  ),
+  "maintenance event": translationKey(
+    "- 📌 **Pin** (📌, 📍) - React with a pin to save the message as a **private note** (only people who can see the maintenance event can read it).",
+  ),
+};
+
+export function getReactionPrivateNoteLine(resourceName: string): string {
+  return (
+    REACTION_PRIVATE_NOTE_LINES[resourceName] ||
+    REACTION_PRIVATE_NOTE_LINES["incident"]!
+  );
 }
 
 /*
@@ -48,7 +82,7 @@ const WorkspaceReactionNotesTips: FunctionComponent<ComponentProps> = (
 
   const items: Array<string> = [
     translator.translateTemplate(
-      "- 📌 **Pin** (📌, 📍) - React with a pin to save the message as a **private note** (visible only to your team).",
+      getReactionPrivateNoteLine(props.resourceName),
     ),
   ];
 

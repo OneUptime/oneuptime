@@ -66,7 +66,7 @@ Editar um modelo altera apenas o modelo. Para copiar uma alteração para os mon
 | Botão | Copia para cada monitor vinculado | Deixa como está |
 | --- | --- | --- |
 | **Sincronizar Critérios com Monitores Vinculados** | Os critérios e as configurações da etapa, como destinos e opções de requisição, exceto os campos protegidos | O intervalo de monitoramento, a concordância mínima de sondas, o nome, a descrição, os rótulos e os valores dos campos personalizados |
-| **Intervalo de Sincronização com Monitores Vinculados** | O intervalo de monitoramento e a concordância mínima de sondas | Os critérios, o nome, a descrição, os rótulos e os valores dos campos personalizados |
+| **Sincronizar Intervalo com Monitores Vinculados** | O intervalo de monitoramento e a concordância mínima de sondas | Os critérios, o nome, a descrição, os rótulos e os valores dos campos personalizados |
 | **Sincronizar Rótulos com Monitores Vinculados** | Os rótulos, e nada mais | Todo o resto |
 | **Sincronizar campos personalizados com os monitores vinculados** | Os campos personalizados para os quais o modelo tem um padrão, substituindo o que cada monitor tinha | Os campos personalizados que o modelo deixa em branco, e todo o resto |
 

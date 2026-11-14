@@ -6,7 +6,11 @@ import {
   FormMappingRow,
   getFormMappingRows,
 } from "./FormMappingRows";
-import { FormReferenceData, loadFormReferenceData } from "./FormOnSubmitData";
+import {
+  FormReferenceData,
+  loadFormReferenceData,
+  NamedRecord,
+} from "./FormOnSubmitData";
 import {
   getFormSettingsFields,
   getFormSettingsInitialValues,
@@ -32,13 +36,17 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import DirectionArrow from "Common/UI/Components/DirectionArrow/DirectionArrow";
 import Icon from "Common/UI/Components/Icon/Icon";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
+import IsolatedTextList from "Common/UI/Components/IsolatedText/IsolatedTextList";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate, {
   ModelAction,
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import useAsyncEffect from "use-async-effect";
@@ -55,6 +63,19 @@ import { useCardRuledBodyClassName } from "Common/UI/Components/Card/CardSurface
  * the owners and, for maintenance events, publishing - and saves them in one
  * request; the server checks every record they name is the project's own.
  */
+
+/*
+ * Where a value comes from when a question's answer gives it: "Answer to
+ * the question: “What happened?”". One sentence, so each language puts the
+ * question in the quotes it writes - „…“ in German, 「…」 in Japanese, «…»
+ * in Persian - where English curly quotes were drawn on every page. The
+ * question reads the way it is written (IsolatedText): one typed in
+ * Persian keeps its full stop at its own end on a German page, as one
+ * typed in English keeps its "?" on a Persian page.
+ */
+export const ANSWER_TO_THE_QUESTION: string = translationKey(
+  "Answer to the question: “{{question}}”",
+);
 
 export interface ComponentProps {
   formId: ObjectID;
@@ -182,6 +203,47 @@ const FormMappingCard: FunctionComponent<ComponentProps> = (
   ): ReactElement => {
     const text: string = line.isCopy ? tx(line.text) : line.text;
 
+    /*
+     * What applies - a default title, a severity, the labels always added,
+     * the owners - read the way it is written: each name an isolate of its
+     * own, and a line of records separated the reader's way ("، " in Arabic
+     * and Persian, "、" in Japanese and Chinese). Drawn as part of an Arabic
+     * or Persian line, "Checkout down." read ".Checkout down", and one
+     * name's full stop landed beside the next name. A record deleted since
+     * is the reader's word for it, in its place: the page's own words, never
+     * a name (#7857). A record called "Deleted" is still drawn as written.
+     */
+    const renderValue: (className?: string) => ReactElement = (
+      className?: string,
+    ): ReactElement => {
+      return line.names && line.names.length > 0 ? (
+        <IsolatedTextList
+          texts={line.names.map(
+            (record: NamedRecord): string | ReactElement => {
+              return record.isDeleted ? (
+                <span>{tx(FormsCopy.deletedRecord)}</span>
+              ) : (
+                record.name
+              );
+            },
+          )}
+          className={className}
+        />
+      ) : (
+        <IsolatedText text={text} className={className} />
+      );
+    };
+
+    // "Answer to the question: “Title”", the question in the reader's quotes.
+    const answerToTheQuestion: ReactElement = (
+      <TranslatedSentence
+        template={ANSWER_TO_THE_QUESTION}
+        slots={{
+          question: <IsolatedText text={text} className="font-medium" />,
+        }}
+      />
+    );
+
     switch (line.kind) {
       case FormMappingLineKind.Answer:
         return (
@@ -194,18 +256,19 @@ const FormMappingCard: FunctionComponent<ComponentProps> = (
               icon={IconProp.ChatBubbleLeft}
               className="mt-0.5 h-4 w-4 shrink-0 text-indigo-500"
             />
-            <span>
-              {tx(FormsCopy.fromAnswer)}{" "}
-              <span className="font-medium">&ldquo;{text}&rdquo;</span>
-            </span>
+            <span>{answerToTheQuestion}</span>
           </div>
         );
 
       case FormMappingLineKind.Fallback:
         return (
-          <p key={index} className="pl-5 text-xs text-gray-500">
+          <p
+            key={index}
+            className="pl-5 text-xs text-gray-500"
+            data-testid="form-mapping-fallback"
+          >
             {tx(FormsCopy.ifLeftEmpty)}{" "}
-            <span className="font-medium text-gray-700">{text}</span>
+            {renderValue("font-medium text-gray-700")}
           </p>
         );
 
@@ -221,8 +284,7 @@ const FormMappingCard: FunctionComponent<ComponentProps> = (
               className="mt-0.5 h-4 w-4 shrink-0 text-gray-400"
             />
             <span>
-              {tx(FormsCopy.alwaysAdded)}{" "}
-              <span className="font-medium">{text}</span>
+              {tx(FormsCopy.alwaysAdded)} {renderValue("font-medium")}
             </span>
           </div>
         );
@@ -252,15 +314,19 @@ const FormMappingCard: FunctionComponent<ComponentProps> = (
               isDecorative={true}
               className="text-gray-400"
             />{" "}
-            {tx(FormsCopy.fromAnswer)}{" "}
-            <span className="font-medium">&ldquo;{text}&rdquo;</span>
+            {answerToTheQuestion}
           </p>
         );
 
       default:
+        // One of the card's own sentences ("Not set"), or a value as written.
         return (
-          <p key={index} className="text-sm text-gray-700">
-            {text}
+          <p
+            key={index}
+            className="text-sm text-gray-700"
+            data-testid="form-mapping-value"
+          >
+            {line.isCopy ? text : renderValue()}
           </p>
         );
     }

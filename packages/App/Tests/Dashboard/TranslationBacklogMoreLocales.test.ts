@@ -381,7 +381,7 @@ describe("model names", () => {
 const AREAS: Record<string, ReadonlyArray<string>> = {
   "incident notes": [
     "Private notes",
-    "Only your team can see this",
+    "Only people who can see this incident can read this",
     "Add note",
     "Search notes",
   ],

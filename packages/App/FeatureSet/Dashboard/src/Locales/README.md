@@ -40,6 +40,13 @@ a language, and the rules the guard test enforces.
   along with the sentence and cased for mid-sentence use in the reader's
   language: "No incidents yet." in English, "Noch keine Vorfälle." in German,
   whose nouns keep their capital. Acronyms and brand names keep their casing.
+  Where the reader's sentence starts with it, it takes a capital there
+  ("Overvågning kan ikke indlæses."), so a locale words such a key for the
+  middle of a sentence: "le collecteur OneUptime", never "Le collecteur".
+  A full stop ends a sentence, except an abbreviation's ("z.B.") and that of
+  a word shortened before a value ("pr. {{signal}}", "kl. {{time}}"). A
+  locale that shortens another word before a value adds it to
+  `SHORTENED_BEFORE_A_VALUE` in `Common/Types/Translator.ts`.
 - **Values built from translated pieces.** Clauses joined into one sentence,
   or names joined with "or", go into a sentence as
   `composedValue((translator) => ...)`, built with the `translator` they are
@@ -388,19 +395,21 @@ as `fa.json` draws it.
   (Minutes). It is the only `وقفه` in `fa.json`.
 - **Zone**, a DNS zone or a cloud's, is `زُن`: `زُن DNS` for DNS zone,
   `زُن دسترس‌پذیری` for Availability zone. Never `ناحیه`, an area of a
-  page, or `منطقه`, a region: a time zone is `منطقه زمانی`, and a settings
-  page's Danger Zone `منطقه خطر`. The Persian docs write it `زُن` too,
-  outside code.
+  page, or `منطقه`, a region: a time zone is `منطقه زمانی`, with no `ٔ`,
+  and a settings page's Danger Zone `منطقه خطر`. The Persian docs write a
+  zone `زُن` too, outside code, and a time zone `منطقه زمانی`.
 - **Recordset** is `مجموعه‌رکورد`: `مجموعه‌رکورد DNS` for DNS recordset,
   in the docs too.
 - **Load balancer** is `متعادل‌کننده بار`, with no `ٔ`, and load balancers
-  `متعادل‌کننده‌های بار`.
+  `متعادل‌کننده‌های بار`, in the docs too. Never `توزیع‌کننده بار`, a
+  distributor.
 - **Floating IP** is `IP شناور`, and floating IPs `IPهای شناور`.
 - **Pool**, whatever it pools, is `استخر`: a Ceph or an Octavia pool,
   `استخر ذخیره‌سازی` for a storage pool, `استخر ساب‌نت` for a subnet
-  pool, `استخر منابع` for a vSphere resource pool, `استخر نخ` for a
-  thread pool, `استخر بافر` for InnoDB's buffer pool. Never `مخزن`, which
-  is a repository, or `پول`, which is money.
+  pool, `استخر آدرس` for an address pool, `استخر اتصال` for a
+  connection pool, `استخر منابع` for a vSphere resource pool, `استخر نخ`
+  for a thread pool, `استخر بافر` for InnoDB's buffer pool. Never `مخزن`,
+  which is a repository, or `پول`, which is money.
 - **Share**, a file share such as Manila's, is `اشتراک فایل`, and shares
   `اشتراک‌های فایل`. `اشتراک` alone is a subscription, and the Share
   button is `اشتراک‌گذاری`.
@@ -408,9 +417,13 @@ as `fa.json` draws it.
   virtual machine a load balancer runs in, as Arabic and most languages
   keep it. It is on `i18n/Progress/fa.json`'s same-as-English list for
   that reason, and so is `amphora`.
-- A name the page draws in English stays as written: an alert template's
-  (**Pool Near Full**), a console's menu item (**Share snapshot** in the
-  RDS console), a CLI command (`openstack share message list`).
+- The Persian docs say these four the same way, outside code. A name a
+  page draws in English stays as written: an alert template's (**Pool
+  Near Full**), a cloud's product name (Application Load Balancer), a
+  console's or an app's menu item (**Share snapshot** in the RDS console,
+  **Share link** in the mobile app), a metric label's name (the pool
+  label, `label مربوط به pool`), a CLI command
+  (`openstack share message list`).
 
 ## What "untranslated" means
 

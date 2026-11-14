@@ -81,6 +81,17 @@ Los minutos se cuentan desde cada reconocimiento, y una política vuelve a avisa
 
 Quien recibe el nuevo aviso lo reconoce desde su mensaje, o con **Reconocer de nuevo** en la página del incidente o de la alerta, y los minutos empiezan de nuevo; **Escalar** lo pasa al siguiente nivel. Resolver o eliminar el incidente o la alerta, archivar o eliminar la política, o elegir **No volver a avisar** lo detiene. La fila **Después de un reconocimiento** de la tarjeta dice qué hace la política, y **Más ajustes** muestra los minutos mientras está plegado. **La política de un vistazo** en la **Vista general** y el **Resumen del escalado** dicen lo mismo con palabras.
 
+## Cuando avisan varias políticas
+
+Un incidente, una alerta o un episodio ejecuta cada una de sus políticas por separado, al mismo tiempo.
+
+- Quien está de guardia en dos de ellas recibe avisos de ambas, uno de cada una: OneUptime no junta los avisos de políticas distintas. Dentro de una política, alguien a quien un nivel nombra dos veces, en persona y a través de un equipo o una programación, recibe un solo aviso.
+- Reconocer el incidente o la alerta detiene en menos de un minuto todas las políticas que se ejecutan por él, se reconozca donde se reconozca: desde cualquier aviso sobre él, en su propia página, en la aplicación móvil o en Slack o Microsoft Teams. No se avisa a ningún nivel siguiente, y no se envía ninguna llamada ni ningún SMS que aún estuviera pendiente. Las notificaciones ya enviadas siguen enviadas.
+
+Algunos avisos siguen después del reconocimiento, hasta que responde alguien a quien avisaron o se resuelve: un nuevo aviso, un aviso a observadores, un aviso que alguien envió a personas desde Slack o Microsoft Teams y una política iniciada a mano.
+
+Una política iniciada a mano es la que se inicia con **Ejecutar política de guardia**, o con un aviso desde Slack o Microsoft Teams que la nombra. Avisa nivel por nivel como cualquier ejecución, con llamadas y notificaciones push repetidas incluidas, y que otra persona reconozca el incidente no la detiene: así se avisa a otro equipo para un incidente del que ya se ocupa alguien. Quien recibió su aviso responde desde el mensaje del aviso, una llamada o un SMS, o reconociendo el incidente en persona; cuando el incidente ya está reconocido, su página le ofrece **Reconocer de nuevo**. **Escalar** la pasa al siguiente nivel. En un incidente, una alerta o un episodio resuelto no se inicia nada, y se te explica por qué.
+
 ## Registros de ejecución
 
 Cada vez que una política se ejecuta, escribe un registro de ejecución, y el registro pasa por sus estados a medida que avanza la ejecución:
@@ -162,6 +173,14 @@ El nivel anterior no tenía a nadie a quien avisar: ningún destinatario, nadie 
 
 :::details Un incidente muestra una política que no avisó a nadie
 La política está archivada: una política archivada sigue en los incidentes y las alertas que la usan, no avisa a nadie, y su registro de ejecución dice que no se ejecutó. Desarchívala en **Guardia → Avanzado → Políticas archivadas**.
+:::
+
+:::details Alguien recibió dos avisos por un mismo incidente
+Está de guardia en dos de las políticas que ejecuta el incidente, y cada política avisa a su propia gente. Reconocer el incidente desde cualquiera de los dos avisos detiene ambas. Para que reciba un solo aviso, pon los dos equipos o programaciones en un mismo nivel de una política.
+:::
+
+:::details Una política siguió avisando después de que se reconociera el incidente
+Se inició a mano, o es un nuevo aviso: sigue hasta que responde alguien a quien avisó o se resuelve el incidente. Consulta [Cuando avisan varias políticas](#cuando-avisan-varias-políticas).
 :::
 
 ## Próximos pasos

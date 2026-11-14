@@ -23,7 +23,7 @@ export const MAINTENANCE_CALENDAR_TITLE: string = translationKey(
 );
 
 export const MAINTENANCE_CALENDAR_DESCRIPTION: string = translationKey(
-  "Every scheduled maintenance event by month, week or day, in your own time zone.",
+  "Every maintenance event by month, week or day, in your own time zone.",
 );
 
 const ScheduledMaintenanceCalendarPage: FunctionComponent<

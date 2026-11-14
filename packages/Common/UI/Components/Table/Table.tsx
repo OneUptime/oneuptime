@@ -15,6 +15,7 @@ import TableEmptyState, {
 } from "./TableEmptyState";
 import { EmptyMessageParts, getEmptyTableTitle } from "./EmptyTableMessage";
 import {
+  TABLE_RETRY_BUTTON_TEST_ID,
   getFilteredEmptyStateProps,
   getLoadErrorStateProps,
   getMessageEmptyStateParts,
@@ -343,6 +344,16 @@ const Table: TableFunction = <T extends GenericObject>(
   // The box the rows scroll sideways in, when they are wider than it.
   const scrollBoxRef: React.RefObject<HTMLDivElement> =
     useRef<HTMLDivElement>(null);
+  // The whole table, and the failed load's block with its Try again.
+  const regionRef: React.RefObject<HTMLDivElement> =
+    useRef<HTMLDivElement>(null);
+  const loadErrorRef: React.RefObject<HTMLDivElement> =
+    useRef<HTMLDivElement>(null);
+  /*
+   * Whether the table holds the focus for Try again (tryAgain): only then
+   * is it focusable, and drawn without a ring.
+   */
+  const [isHoldingFocus, setIsHoldingFocus] = useState<boolean>(false);
   const [dragColumnWidths, setDragColumnWidths] =
     useState<Array<number> | null>(null);
   /*
@@ -840,6 +851,74 @@ const Table: TableFunction = <T extends GenericObject>(
   const isLoadError: boolean = !props.isLoading && Boolean(props.error);
 
   /*
+   * Try again gives way to the loading rows, which hold nothing to focus: a
+   * focus left on it fell to the page, and the next Tab started again from
+   * the top of the page. The table holds it instead while the rows load
+   * again - once they are drawn, the next Tab reaches the first control in
+   * the table - and hands it back to Try again if they fail once more
+   * (below). A focus that was not on the failed load's block is left where
+   * it is. Not moved into view: the table is where the reader already is.
+   *
+   * The table is focusable only while it holds the focus (isHoldingFocus).
+   * Focusable for good, it would take every click on its rows' words, and
+   * in Chromium the next Tab would then start over at its top rather than
+   * after what was clicked.
+   */
+  const tryAgain: () => void = (): void => {
+    const region: HTMLDivElement | null = regionRef.current;
+    const failure: HTMLDivElement | null = loadErrorRef.current;
+
+    if (region && failure && failure.contains(document.activeElement)) {
+      // Focusable at once: the focus moves before Try again is taken away.
+      region.tabIndex = -1;
+      region.focus({ preventScroll: true });
+      setIsHoldingFocus(true);
+    }
+
+    props.onRefreshClick?.();
+  };
+
+  /*
+   * The focus moved on from the table, which is not focusable again until
+   * the next Try again. A window that loses the focus keeps the table as
+   * its focused element, to give the focus back to when it is in front
+   * again: the table stays focusable then.
+   */
+  const onRegionBlur: (event: React.FocusEvent<HTMLDivElement>) => void = (
+    event: React.FocusEvent<HTMLDivElement>,
+  ): void => {
+    const region: HTMLDivElement = event.currentTarget;
+
+    if (event.target === region && document.activeElement !== region) {
+      setIsHoldingFocus(false);
+    }
+  };
+
+  /*
+   * The rows failed to load once more while the table held the focus: it
+   * goes back to Try again - not to the copy button of the reference the
+   * explanation above it may hold - so trying once more is one key away. A
+   * layout effect, so it runs as the failure is drawn: a passive one can
+   * wait for the next task on a busy page, and run only after the next
+   * press of Try again has given the focus to the table - then it would
+   * put the focus on the Try again that press was taking away, and the
+   * focus would fall to the page.
+   */
+  useLayoutEffect(() => {
+    const region: HTMLDivElement | null = regionRef.current;
+
+    if (!isLoadError || !region || document.activeElement !== region) {
+      return;
+    }
+
+    loadErrorRef.current
+      ?.querySelector<HTMLElement>(
+        `[data-testid="${TABLE_RETRY_BUTTON_TEST_ID}"]`,
+      )
+      ?.focus();
+  }, [isLoadError]);
+
+  /*
    * Nothing to page through: the empty state already says there is nothing,
    * and a footer reading "No monitors" under it said it twice. A page past
    * the first keeps its footer, as the way back.
@@ -963,6 +1042,7 @@ const Table: TableFunction = <T extends GenericObject>(
   const getLoadErrorElement: GetReactElementFunction = (): ReactElement => {
     return (
       <div
+        ref={loadErrorRef}
         className={stateBlockClassName}
         data-testid={`${props.id}-load-error`}
       >
@@ -970,7 +1050,7 @@ const Table: TableFunction = <T extends GenericObject>(
           {...getLoadErrorStateProps({
             pluralLabel: props.pluralLabel,
             error: props.error,
-            onRetry: props.onRefreshClick,
+            onRetry: props.onRefreshClick ? tryAgain : undefined,
             translate: translate,
             translator: translator,
           })}
@@ -1176,7 +1256,21 @@ const Table: TableFunction = <T extends GenericObject>(
   };
 
   return (
-    <div className={props.className}>
+    /*
+     * While it holds the focus for Try again (tryAgain), focusable and
+     * without a ring - Chromium would draw its own round the whole table.
+     * Its class is the page's own the rest of the time.
+     */
+    <div
+      ref={regionRef}
+      className={
+        isHoldingFocus
+          ? [props.className, "focus:outline-none"].filter(Boolean).join(" ")
+          : props.className
+      }
+      tabIndex={isHoldingFocus ? -1 : undefined}
+      onBlur={onRegionBlur}
+    >
       <FilterViewer
         id={`${props.id}-filter`}
         showFilterModal={props.showFilterModal || false}

@@ -38,10 +38,11 @@ export const STORE_ENVIRONMENT_OPTIONS: Array<DropdownOption> = [
   { label: "Unknown", value: DataStoreEnvironment.Unknown },
 ];
 
+// The clouds by their own names, as written in every language (DropdownOption.isUserContent).
 export const STORE_PROVIDER_OPTIONS: Array<DropdownOption> = [
-  { label: "AWS", value: DataStoreProvider.Aws },
-  { label: "Azure", value: DataStoreProvider.Azure },
-  { label: "Google Cloud", value: DataStoreProvider.Gcp },
+  { label: "AWS", value: DataStoreProvider.Aws, isUserContent: true },
+  { label: "Azure", value: DataStoreProvider.Azure, isUserContent: true },
+  { label: "Google Cloud", value: DataStoreProvider.Gcp, isUserContent: true },
   { label: "Run by you", value: DataStoreProvider.SelfManaged },
   { label: "OneUptime telemetry", value: DataStoreProvider.OneUptime },
 ];

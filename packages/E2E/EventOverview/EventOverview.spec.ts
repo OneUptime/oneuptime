@@ -12262,6 +12262,8 @@ test.describe("episode overviews", () => {
 interface FeedNoteCase {
   eventPage: EventPage;
   action: "Add Public Note" | "Add Private Note";
+  // Who reads it: a private note names its event (#7595).
+  audienceHint: string;
   modelName: string;
   parentIdField: string;
   feedModelName: string;
@@ -12272,6 +12274,7 @@ const FEED_NOTES: ReadonlyArray<FeedNoteCase> = [
   {
     eventPage: INCIDENT_PAGE,
     action: "Add Public Note",
+    audienceHint: "Visible on your status page",
     modelName: "IncidentPublicNote",
     parentIdField: "incidentId",
     feedModelName: "IncidentFeed",
@@ -12280,6 +12283,7 @@ const FEED_NOTES: ReadonlyArray<FeedNoteCase> = [
   {
     eventPage: INCIDENT_PAGE,
     action: "Add Private Note",
+    audienceHint: "Only people who can see this incident can read this",
     modelName: "IncidentInternalNote",
     parentIdField: "incidentId",
     feedModelName: "IncidentFeed",
@@ -12288,6 +12292,7 @@ const FEED_NOTES: ReadonlyArray<FeedNoteCase> = [
   {
     eventPage: ALERT_PAGE,
     action: "Add Private Note",
+    audienceHint: "Only people who can see this alert can read this",
     modelName: "AlertInternalNote",
     parentIdField: "alertId",
     feedModelName: "AlertFeed",
@@ -12296,6 +12301,7 @@ const FEED_NOTES: ReadonlyArray<FeedNoteCase> = [
   {
     eventPage: SCHEDULED_MAINTENANCE_PAGE,
     action: "Add Public Note",
+    audienceHint: "Visible on your status page",
     modelName: "ScheduledMaintenancePublicNote",
     parentIdField: "scheduledMaintenanceId",
     feedModelName: "ScheduledMaintenanceFeed",
@@ -12304,6 +12310,7 @@ const FEED_NOTES: ReadonlyArray<FeedNoteCase> = [
   {
     eventPage: INCIDENT_EPISODE_PAGE,
     action: "Add Public Note",
+    audienceHint: "Visible on your status page",
     modelName: "IncidentEpisodePublicNote",
     parentIdField: "incidentEpisodeId",
     feedModelName: "IncidentEpisodeFeed",
@@ -12312,6 +12319,7 @@ const FEED_NOTES: ReadonlyArray<FeedNoteCase> = [
   {
     eventPage: ALERT_EPISODE_PAGE,
     action: "Add Private Note",
+    audienceHint: "Only people who can see this episode can read this",
     modelName: "AlertEpisodeInternalNote",
     parentIdField: "alertEpisodeId",
     feedModelName: "AlertEpisodeFeed",
@@ -12368,10 +12376,8 @@ test.describe("notes from the feed", () => {
       const submit: Locator = dialog.getByTestId("modal-footer-submit-button");
 
       await expect(composer).toBeVisible();
-      await expect(dialog.getByTestId("note-audience")).toContainText(
-        noteCase.action === "Add Public Note"
-          ? "Visible on your status page"
-          : "Only your team can see this",
+      await expect(dialog.getByTestId("note-audience-hint")).toHaveText(
+        noteCase.audienceHint,
       );
       // No wizard, no Summary page, no Posted At up front.
       await expect(
@@ -16148,9 +16154,9 @@ test.describe("screenshots", () => {
  */
 
 const LINKED_LINE: string =
-  "Read 2 open or recent alerts on Host checkout-api-7f9c, Docker host checkout-api-7f9c, Kubernetes cluster prod-eks-eu-west-1 and 2 more";
+  "Read 2 open or recent alerts on host checkout-api-7f9c, Docker host checkout-api-7f9c, Kubernetes cluster prod-eks-eu-west-1 and 2 more";
 const FOLLOW_UP_ACTIVITY_LINE: string =
-  "Checking again: alert #318 opened on Host checkout-api-7f9c after the first analysis";
+  "Checking again: alert #318 opened on host checkout-api-7f9c after the first analysis";
 const FOLLOW_UP_LEAD_TEXT: string =
   "Checked again after alert #318 opened on Host checkout-api-7f9c, 3 minutes after this incident was declared: High CPU on checkout-api-7f9c.";
 const FOLLOW_UP_FEED_LEAD: string =
@@ -16293,7 +16299,7 @@ test.describe("the linked infrastructure, and the follow-up check (?linked=)", (
   }) => {
     await open(page, INCIDENT_PATH, "ai=running&linked=more");
     await expect(liveInvestigation(page)).toContainText(
-      "Read the 10 newest open or recent alerts on Host checkout-api-7f9c, Docker host checkout-api-7f9c, Kubernetes cluster prod-eks-eu-west-1 and 2 more",
+      "Read the 10 newest open or recent alerts on host checkout-api-7f9c, Docker host checkout-api-7f9c, Kubernetes cluster prod-eks-eu-west-1 and 2 more",
       { timeout: 30000 },
     );
   });
@@ -16305,7 +16311,7 @@ test.describe("the linked infrastructure, and the follow-up check (?linked=)", (
   }) => {
     await open(page, ALERT_PATH, "ai=running&linked=alerts");
     await expect(liveInvestigation(page)).toContainText(
-      "No open or recent alerts on Host payments-web-2",
+      "No open or recent alerts on host payments-web-2",
       { timeout: 30000 },
     );
     // An alert is never checked again.
@@ -16329,7 +16335,7 @@ test.describe("the linked infrastructure, and the follow-up check (?linked=)", (
     expect((await stepTexts(page)).slice(0, 3)).toEqual([
       "Starting investigation",
       FOLLOW_UP_ACTIVITY_LINE,
-      "Read 3 open or recent alerts on Host checkout-api-7f9c, Docker host checkout-api-7f9c, Kubernetes cluster prod-eks-eu-west-1 and 2 more",
+      "Read 3 open or recent alerts on host checkout-api-7f9c, Docker host checkout-api-7f9c, Kubernetes cluster prod-eks-eu-west-1 and 2 more",
     ]);
     expect(await stepTexts(page)).toContain(
       "Checking the host's containers · 4 rows · 0.6s",
@@ -16695,7 +16701,7 @@ test.describe("a private incident or episode (?private=1)", () => {
     });
     await expect(dialog).toBeVisible();
     await expect(dialog.getByTestId("note-audience")).toContainText(
-      "Only your team can see this",
+      "Only people who can see this incident can read this",
     );
     expect(
       (await fixture(page)).creates.filter((write: RecordedWrite): boolean => {
@@ -24314,7 +24320,7 @@ test("an App Platforms environment is named as one in the run's activity, beside
     })
     .toEqual([
       "Starting investigation",
-      "Read 2 open or recent alerts on Cloud environment checkout-web (Production), Cloud resource checkout-api and Service checkout-api",
+      "Read 2 open or recent alerts on cloud environment checkout-web (Production), cloud resource checkout-api and service checkout-api",
     ]);
   await expectNoSidewaysScroll(page, { tolerance: 1 });
 });

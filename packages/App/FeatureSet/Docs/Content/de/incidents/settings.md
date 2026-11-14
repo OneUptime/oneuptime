@@ -20,6 +20,7 @@ Die Vorfallkonfiguration liegt in **Vorfälle**, nicht in den **Projekteinstellu
 | **Vorfall-Vorlagen**          | Einen ganzen Vorfall vorausfüllen – Titel, Beschreibung, Ressourcen, Bereitschaftsrichtlinien, Eigentümer, Beschriftungen. |
 | **Notiz-Vorlagen**            | Wiederverwendbarer Text für öffentliche und private Notizen.                                       |
 | **Genehmigung öffentlicher Notizen** | Öffentliche Notizen vor der Veröffentlichung genehmigen lassen und festlegen, wer sie genehmigt. |
+| **Abonnentenbenachrichtigungen** | Wählen, ob **Statusseiten-Abonnenten benachrichtigen** angehakt beginnt, wenn jemand einen Vorfall meldet. Standardmäßig an. |
 | **Postmortem-Vorlagen**       | Wiederverwendbare Postmortem-Strukturen.                                                           |
 | **Postmortem-Status** | Die Status, die ein Postmortem durchläuft, von Nicht gestartet bis Abgeschlossen. |
 | **Benutzerdefinierte Felder** | Zusätzliche Felder definieren, die an jedem Vorfall erscheinen.                                    |
@@ -183,6 +184,14 @@ Die meisten Projekte brauchen einen Schritt. Fügen Sie einen weiteren hinzu, we
 - **Niemand genehmigt die eigene Notiz oder zwei Schritte einer Notiz.** Wer eine Notiz zur Genehmigung gesendet hat, kann sie weder genehmigen noch ablehnen, und wer einen ihrer Schritte genehmigt hat, kann keinen weiteren genehmigen.
 
 Nur Projektinhaber und -administratoren können diese Einstellungen ändern, und alle, die die Notizen lesen, sehen, wer sie genehmigt. **Geplante Wartung → Einstellungen → Genehmigung öffentlicher Notizen** ist dieselbe Seite für geplante Wartungsereignisse, mit eigenem Schalter und eigenen Schritten. Was eine Notiz tut, während sie wartet, und wie Genehmigende entscheiden, steht unter [Genehmigung öffentlicher Notizen](/docs/incidents/notes-owners-and-feed#genehmigung-öffentlicher-notizen).
+
+## Abonnentenbenachrichtigungen
+
+Wenn jemand einen Vorfall meldet, beginnt **Statusseiten-Abonnenten benachrichtigen** angehakt, sodass die Abonnenten der Statusseite von dem Vorfall erfahren, es sei denn, die meldende Person entfernt den Haken. Wenn Ihr Team an einem Vorfall arbeitet, bevor jemand außerhalb davon erfährt, lassen Sie das Kästchen stattdessen ohne Haken beginnen: Gehen Sie zu **Vorfälle → Einstellungen → Abonnentenbenachrichtigungen** (`/dashboard/{projectId}/incidents/settings/subscriber-notifications`) und schalten Sie **Statusseiten-Abonnenten standardmäßig benachrichtigen** aus. Der Schalter ist in jedem Projekt an, bis Sie ihn ausschalten, und speichert beim Umlegen sofort. Nur Project Owners und Project Admins können ihn ändern; für alle anderen ist der Schalter gesperrt und nennt die nötige Berechtigung.
+
+Solange er aus ist, beginnt das Kästchen auf **Neuen Vorfall melden** ohne Haken, ob der Vorfall aus der Vorfallsliste, aus einer Vorlage, aus einer Warnung oder von einem Monitor gemeldet wird, und seine Beschreibung sagt, dass es in diesem Projekt standardmäßig nicht aktiviert ist. Abonnenten werden nur benachrichtigt, wenn die meldende Person es anhakt. Auf der Zusammenfassung vor dem Absenden steht neben seinem **Nein** **Auf Ja ändern**: Das hakt das Kästchen an, ohne dass Sie zu **Betroffene Ressourcen** zurückkehren. Für einen privaten Vorfall, den keine Statusseite zeigt, gibt es das nicht. Der Schalter ändert nur, wie das Kästchen beginnt: Der Vorfall speichert, wie das Kästchen belassen wurde, und einer, der ohne Benachrichtigung gemeldet wurde, bleibt still, wie [Einen Vorfall melden](/docs/incidents/declaring-incidents) beschreibt.
+
+Ein Vorfall, der aus Slack oder Microsoft Teams gemeldet wird oder den Sie von OneUptime AI melden lassen, folgt dem Schalter ebenfalls: Dort fragt nichts nach den Abonnenten, daher wird er, solange der Schalter aus ist, ohne Benachrichtigung gemeldet, und Sie können die Abonnenten später mit einer öffentlichen Notiz informieren. Vorfälle, die auf anderem Weg entstehen – durch Monitore oder über die API, Terraform oder Workflows –, behalten ihr eigenes `shouldStatusPageSubscribersBeNotifiedOnIncidentCreated`, das Abonnenten benachrichtigt, solange es nicht `false` ist. Über die API ist der Schalter das Feld `notifyStatusPageSubscribersOfNewIncidentsByDefault` des Projekts.
 
 ## Postmortem-Vorlagen
 
@@ -727,7 +736,7 @@ Die Regeln, die die Seite selbst mitbringt, sollten Sie verinnerlichen:
 - Die Menge der tatsächlich ausgeführten Richtlinien ist die Vereinigung der Richtlinien jeder passenden Regel plus aller Richtlinien, die dem Vorfall von Hand oder durch eine Vorlage angehängt wurden, dedupliziert, sodass jede Richtlinie höchstens einmal läuft. Lösen zwei passende Regeln dieselbe Richtlinie aus, alarmiert sie, sobald eine von beiden es zulässt: Sofort hat Vorrang vor den Arbeitszeiten.
 
 > [!NOTE]
-> Der Schweregrad ist hier ein Übereinstimmungskriterium und nirgends sonst. Ein Vorfallsschweregrad hat kein Bereitschaftsfeld – „Critical Incident“ zu wählen alarmiert für sich allein niemanden. Soll der Schweregrad die Alarmierung steuern, schreiben Sie eine Bereitschaftsregel, die darauf abgleicht.
+> Der Schweregrad ist hier ein Übereinstimmungskriterium und nirgends sonst. Ein Vorfallsschweregrad hat kein Bereitschaftsfeld – „Kritischer Vorfall“ zu wählen alarmiert für sich allein niemanden. Soll der Schweregrad die Alarmierung steuern, schreiben Sie eine Bereitschaftsregel, die darauf abgleicht.
 
 ## Bereitschaftsrichtlinien direkt anhängen
 

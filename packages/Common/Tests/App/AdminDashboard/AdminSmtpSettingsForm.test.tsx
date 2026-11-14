@@ -635,6 +635,105 @@ describe("Admin > Settings > Email > Host Settings", () => {
     expect(mockCreateOrUpdate).not.toHaveBeenCalled();
   });
 
+  /*
+   * Over SMTP, OAuth signs in as a mailbox, and the mail service refuses
+   * every email without one (#7833): the form says so before saving, not
+   * the server's log after. Signing in with a password, a blank username is
+   * saved as before - the instance then sends without signing in.
+   */
+  test("signing in with OAuth over SMTP, a blank Username says Username is required, and saves once the mailbox is typed (#7833)", async () => {
+    stored = {
+      ...SMTP_INSTANCE,
+      smtpPort: 587,
+      smtpUsername: null,
+      smtpPassword: null,
+      smtpAuthType: SMTPAuthenticationType.OAuth,
+      smtpOAuthProviderType: OAuthProviderType.ClientCredentials,
+      smtpClientId: "0f0e0d0c-0b0a-4000-8000-000000000001",
+      smtpClientSecret: "smtp-client-secret",
+      smtpTokenUrl:
+        "https://login.microsoftonline.com/tenant-id/oauth2/v2.0/token",
+      smtpScope: "https://outlook.office365.com/.default",
+    };
+
+    await renderPage();
+
+    const dialog: HTMLElement = await openEditDialog();
+    const username: HTMLInputElement = await waitForField(
+      dialog,
+      "emailuser@company.com",
+    );
+
+    expect(username.value).toBe("");
+
+    await act(async () => {
+      fireEvent.click(within(dialog).getByTestId("modal-footer-next-button"));
+    });
+    await settle();
+
+    expect(within(dialog).getByText("Username is required.")).toBeVisible();
+    expect(
+      within(dialog).queryByTestId("modal-footer-submit-button"),
+    ).toBeNull();
+    expect(mockCreateOrUpdate).not.toHaveBeenCalled();
+
+    await act(async () => {
+      fireEvent.change(username, { target: { value: "alerts@example.com" } });
+    });
+    await settle();
+
+    await act(async () => {
+      fireEvent.click(within(dialog).getByTestId("modal-footer-next-button"));
+    });
+    await settle();
+
+    expect(within(dialog).queryByText("Username is required.")).toBeNull();
+
+    await act(async () => {
+      fireEvent.click(within(dialog).getByTestId("modal-footer-submit-button"));
+    });
+    await waitFor(
+      () => {
+        expect(mockCreateOrUpdate).toHaveBeenCalledTimes(1);
+      },
+      { timeout: WAIT_FOR_TIMEOUT },
+    );
+
+    expect({
+      smtpAuthType: savedValues()["smtpAuthType"],
+      smtpUsername: savedValues()["smtpUsername"],
+    }).toEqual({
+      smtpAuthType: SMTPAuthenticationType.OAuth,
+      smtpUsername: "alerts@example.com",
+    });
+  });
+
+  test("signing in with a password, a blank Username still goes on: the instance sends without signing in", async () => {
+    stored = {
+      ...SMTP_INSTANCE,
+      smtpPort: 25,
+      smtpUsername: null,
+      smtpPassword: null,
+      isSMTPSecure: false,
+    };
+
+    await renderPage();
+
+    const dialog: HTMLElement = await openEditDialog();
+
+    await waitForField(dialog, "emailuser@company.com");
+
+    await act(async () => {
+      fireEvent.click(within(dialog).getByTestId("modal-footer-next-button"));
+    });
+    await settle();
+
+    expect(within(dialog).queryByText("Username is required.")).toBeNull();
+    expect(
+      within(dialog).getByTestId("modal-footer-submit-button"),
+    ).toBeVisible();
+  });
+
   test("a relay with no sign-in is summed up as one, as the mail service sends to it", async () => {
     stored = {
       ...SMTP_INSTANCE,

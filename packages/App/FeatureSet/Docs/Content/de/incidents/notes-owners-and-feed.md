@@ -99,7 +99,7 @@ Jede Notiz zeigt, wer sie geschrieben hat, ihren Zeitpunkt, das gerenderte Markd
 
 ## Eine private Notiz posten
 
-**Notizen → Private Notizen** ist bewusst schlichter. Es ist dasselbe Eingabefeld mit dem Hinweis **Private · Only your team can see this**, mit der Notiz, **Vorlagen**, **Mit KI entwerfen** und **Anhängen** für Dateien, die für das Reaktionsteam bestimmt sind. **Private Notiz hinzufügen** im Menü **Aktionen** des Vorfall-Feeds öffnet es in einem Dialog. Über die API sind private Notizen `/api/incident-internal-note`.
+**Notizen → Private Notizen** ist bewusst schlichter. Es ist dasselbe Eingabefeld mit dem Hinweis **Privat · Nur wer diesen Vorfall sehen kann, kann das lesen**, mit der Notiz, **Vorlagen**, **Mit KI entwerfen** und **Anhängen** für Dateien, die nur öffnen kann, wer die Notiz lesen kann. **Private Notiz hinzufügen** im Menü **Aktionen** des Vorfall-Feeds öffnet es in einem Dialog. Über die API sind private Notizen `/api/incident-internal-note`.
 
 Kein Zeitpunkt des Postens, kein Abonnenten-Kontrollkästchen – die Notiz wird beim Anlegen gestempelt.
 
@@ -164,7 +164,7 @@ Sie verwalten sie unter **Vorfälle → Einstellungen → Notiz-Vorlagen** – d
 
 ## Notizen aus Slack oder Microsoft Teams posten
 
-Haben Sie einen Arbeitsbereich verbunden, müssen Responder den Kanal nie verlassen. Slack und Microsoft Teams bieten beide eine Aktion zum Hinzufügen einer Notiz, die einen Dialog mit einem Dropdown **Note Type** – **Public Note** (auf der Statusseite gepostet) oder **Private Note** (nur für Teammitglieder sichtbar) – und einem Textfeld **Note** öffnet und das Ergebnis direkt an den Vorfall schreibt. Bei einem privaten Vorfall fragt er nach keinem **Note Type** und fügt eine private Notiz hinzu: siehe [Private Vorfälle erhalten nur private Notizen](#private-vorfälle-erhalten-nur-private-notizen).
+Haben Sie einen Arbeitsbereich verbunden, müssen Responder den Kanal nie verlassen. Slack und Microsoft Teams bieten beide eine Aktion zum Hinzufügen einer Notiz, die einen Dialog mit einem Dropdown **Note Type** – **Public Note** (auf der Statusseite gepostet) oder **Private Note** (nur wer den Vorfall sehen kann, kann sie lesen) – und einem Textfeld **Note** öffnet und das Ergebnis direkt an den Vorfall schreibt. Bei einem privaten Vorfall fragt er nach keinem **Note Type** und fügt eine private Notiz hinzu: siehe [Private Vorfälle erhalten nur private Notizen](#private-vorfälle-erhalten-nur-private-notizen).
 
 Drei Details sind wissenswert:
 

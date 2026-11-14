@@ -38,6 +38,7 @@ import {
   withPrivateRecordGateOptions,
 } from "../../Utils/PrivateRecordScope";
 import { HeldPermissions } from "../../../Types/HeldPermissions";
+import { isDefaultStatusName } from "../../../Types/StatusPage/DefaultStatusNames";
 import ProjectUtil from "../../Utils/Project";
 import User from "../../Utils/User";
 import ActionButtonSchema, {
@@ -932,6 +933,72 @@ export const SEARCH_RESULT_COUNT_ON_PAGE: PluralTemplate = {
 
 // No row just brought in by a live read: one set, so a list at rest never redraws for it.
 const NO_ARRIVED_ROWS: ReadonlySet<string> = new Set<string>();
+
+/*
+ * The records a new project starts with that OneUptime names itself
+ * (ProjectService): the states, severities and statuses of incidents,
+ * alerts, monitors and scheduled maintenance. Their default names -
+ * "Resolved", "Operational", an alert's "High" and "Low" - are its words.
+ */
+const TABLES_NAMED_BY_ONEUPTIME: ReadonlyArray<string> = [
+  "IncidentState",
+  "IncidentSeverity",
+  "AlertState",
+  "AlertSeverity",
+  "MonitorStatus",
+  "ScheduledMaintenanceState",
+];
+
+const DEFAULT_ALERT_SEVERITY_NAMES: ReadonlyArray<string> = [
+  translationKey("High"),
+  translationKey("Low"),
+];
+
+// Whether a filter lists records whose default names are OneUptime's words.
+const isNamedByOneUptime: (entityType: unknown) => boolean = (
+  entityType: unknown,
+): boolean => {
+  if (
+    typeof entityType !== "function" ||
+    !(entityType.prototype instanceof BaseModel)
+  ) {
+    return false;
+  }
+
+  const tableName: string | null = new (entityType as DatabaseBaseModelType)()
+    .tableName;
+
+  return Boolean(tableName && TABLES_NAMED_BY_ONEUPTIME.includes(tableName));
+};
+
+/*
+ * An entity filter's option: a record, named by whoever made it - a monitor,
+ * a team, a label - so its name is drawn as written in the filter's menu and
+ * its chip, as the record's row draws it (DropdownOption.isUserContent). It
+ * was looked up: a monitor named "Network" read "Red" in a Spanish menu
+ * (#7690). A default name of a state, a severity or a status
+ * (TABLES_NAMED_BY_ONEUPTIME) is OneUptime's word, read in the reader's
+ * language as its badge reads it; a name the project gave one is its own.
+ * An option the filter's own fetchFilterDropdownOptions marked keeps its
+ * mark.
+ */
+const toRecordFilterOption: (
+  option: DropdownOption,
+  isOfRecordsNamedByOneUptime: boolean,
+) => DropdownOption = (
+  option: DropdownOption,
+  isOfRecordsNamedByOneUptime: boolean,
+): DropdownOption => {
+  const isDefaultName: boolean =
+    isOfRecordsNamedByOneUptime &&
+    (isDefaultStatusName(option.label) ||
+      DEFAULT_ALERT_SEVERITY_NAMES.includes(option.label));
+
+  return {
+    ...option,
+    isUserContent: option.isUserContent ?? !isDefaultName,
+  };
+};
 
 const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   props: ComponentProps<TBaseModel>,
@@ -2325,10 +2392,17 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             continue;
           }
 
+          const isOfRecordsNamedByOneUptime: boolean = isNamedByOneUptime(
+            filter.filterEntityType,
+          );
+
           if (filter.fetchFilterDropdownOptions) {
-            // fetch filter dropdown options.
-            filter.filterDropdownOptions =
-              await filter.fetchFilterDropdownOptions();
+            // fetch filter dropdown options: records too, named as written.
+            filter.filterDropdownOptions = (
+              await filter.fetchFilterDropdownOptions()
+            )?.map((option: DropdownOption): DropdownOption => {
+              return toRecordFilterOption(option, isOfRecordsNamedByOneUptime);
+            });
             continue;
           }
 
@@ -2391,14 +2465,17 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           filter.filterDropdownOptions = [];
 
           for (const item of listResult.data) {
-            const option: DropdownOption = {
-              value: item.getColumnValue(
-                filter.filterDropdownField.value,
-              ) as string,
-              label: item.getColumnValue(
-                filter.filterDropdownField.label,
-              ) as string,
-            };
+            const option: DropdownOption = toRecordFilterOption(
+              {
+                value: item.getColumnValue(
+                  filter.filterDropdownField.value,
+                ) as string,
+                label: item.getColumnValue(
+                  filter.filterDropdownField.label,
+                ) as string,
+              },
+              isOfRecordsNamedByOneUptime,
+            );
 
             // The filter's dropdown draws the Archived tag beside it.
             if (

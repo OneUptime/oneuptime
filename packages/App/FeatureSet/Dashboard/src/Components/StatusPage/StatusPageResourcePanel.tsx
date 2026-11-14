@@ -707,6 +707,8 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
                   axis: gridAxisNameInSentence(rowLabel),
                 })
               : "Define rows on the group first",
+          // A sentence around the axis's own name is worded here (#7682).
+          isPlaceholderTranslated: rowValues.length > 0,
         },
         {
           field: {
@@ -729,6 +731,8 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
                   axis: gridAxisNameInSentence(columnLabel),
                 })
               : "Define columns on the group first",
+          // A sentence around the axis's own name is worded here (#7682).
+          isPlaceholderTranslated: columnValues.length > 0,
         },
       ];
     }, [
@@ -1438,6 +1442,7 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
             placeholder={translator.translateTemplate("Search in {{name}}...", {
               name: title,
             })}
+            isPlaceholderTranslated={true}
             value={searchText}
             dataTestId="status-page-resource-panel-search"
             outerDivClassName="relative w-full"

@@ -19,6 +19,7 @@ import { PeoplePickerKind } from "../../../UI/Components/PeoplePicker/PeoplePick
 import FormsCopy from "../../../../App/FeatureSet/Dashboard/src/Components/FormBuilder/FormsCopy";
 import {
   FormReferenceData,
+  nameRecord,
   nameRecords,
   toDropdownOptions,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/FormBuilder/OnSubmit/FormOnSubmitData";
@@ -278,6 +279,34 @@ describe("getFormMappingRows: how a submission becomes an incident", () => {
       linesOf(rowsOf({ settings: { labelIds: [LABEL_ID] } }).labels),
     ).toEqual(["Always:customer-report"]);
     expect(linesOf(rowsOf({}).labels)).toEqual([`Value:${FormsCopy.notSet}`]);
+  });
+
+  /*
+   * #7857: the page draws a line's records one by one, so the rows mark a
+   * deleted one there for the page to word in the reader's language, and
+   * never put an English word in place of its name.
+   */
+  test("a record deleted since is marked in the line's records, in its place", () => {
+    expect(
+      rowsOf({ settings: { monitorIds: [MONITOR_ID, GONE_ID] } }).monitors
+        ?.lines[0]?.names,
+    ).toEqual([
+      { name: "API", isDeleted: false },
+      { name: "", isDeleted: true },
+    ]);
+    expect(
+      rowsOf({
+        settings: { ownerUserIds: [GONE_ID, USER_ID], ownerTeamIds: [TEAM_ID] },
+      }).owners?.lines[0]?.names,
+    ).toEqual([
+      { name: "", isDeleted: true },
+      { name: "Ada", isDeleted: false },
+      { name: "SRE", isDeleted: false },
+    ]);
+    expect(
+      rowsOf({ settings: { onCallDutyPolicyIds: [GONE_ID] } }).onCallPolicies
+        ?.lines[0]?.names,
+    ).toEqual([{ name: "", isDeleted: true }]);
   });
 
   test("the template, on-call policies and owners, by name, or not set", () => {
@@ -611,23 +640,71 @@ describe("the On Submit settings dialog", () => {
 });
 
 describe("naming records", () => {
-  test("by name, a deleted one by the label given", () => {
+  /*
+   * #7857: a deleted record was named by an English word passed in, which
+   * the page drew as written, in English, on every page. It is marked now,
+   * and the page words it.
+   */
+  test("by name, in the settings' order, a deleted one marked, not named", () => {
     expect(
       nameRecords({
         lists: REFERENCE.lists,
         model: FormTargetSettingReferenceModel.Monitor,
         ids: [MONITOR_ID.toUpperCase(), GONE_ID],
-        deletedLabel: "Deleted",
       }),
-    ).toEqual(["API", "Deleted"]);
+    ).toEqual([
+      { name: "API", isDeleted: false },
+      { name: "", isDeleted: true },
+    ]);
     expect(
       nameRecords({
         lists: {},
         model: FormTargetSettingReferenceModel.Team,
         ids: undefined,
-        deletedLabel: "",
       }),
     ).toEqual([]);
+  });
+
+  test('a record called "Deleted" is named, not taken for one deleted since', () => {
+    expect(
+      nameRecords({
+        lists: {
+          [FormTargetSettingReferenceModel.Label]: records([
+            LABEL_ID,
+            "Deleted",
+          ]),
+        },
+        model: FormTargetSettingReferenceModel.Label,
+        ids: [LABEL_ID, GONE_ID],
+      }),
+    ).toEqual([
+      { name: "Deleted", isDeleted: false },
+      { name: "", isDeleted: true },
+    ]);
+  });
+
+  test("one record by name, or none when it is not set or deleted since", () => {
+    expect(
+      nameRecord({
+        lists: REFERENCE.lists,
+        model: FormTargetSettingReferenceModel.IncidentTemplate,
+        id: TEMPLATE_ID.toUpperCase(),
+      }),
+    ).toBe("Customer Report");
+    expect(
+      nameRecord({
+        lists: REFERENCE.lists,
+        model: FormTargetSettingReferenceModel.IncidentTemplate,
+        id: GONE_ID,
+      }),
+    ).toBeUndefined();
+    expect(
+      nameRecord({
+        lists: REFERENCE.lists,
+        model: FormTargetSettingReferenceModel.IncidentTemplate,
+        id: undefined,
+      }),
+    ).toBeUndefined();
   });
 
   test("as dropdown options", () => {

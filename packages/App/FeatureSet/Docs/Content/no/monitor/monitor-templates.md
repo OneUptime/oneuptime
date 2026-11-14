@@ -66,7 +66,7 @@ Verdier som er satt under **Standardverdier for egendefinerte felt**, skrives ti
 | Knapp | Kopierer til hver tilkoblede monitor | Lar være |
 | --- | --- | --- |
 | **Synkroniser kriterier til koblede overvåkere** | Kriteriene og trinninnstillingene, som mål og forespørselsalternativer, unntatt beskyttede felt | Overvåkingsintervallet, minimum sondeenighet, navnet, beskrivelsen, etikettene og verdiene i egendefinerte felt |
-| **Synkroniseringsintervall til koblede overvåkere** | Overvåkingsintervallet og minimum sondeenighet | Kriteriene, navnet, beskrivelsen, etikettene og verdiene i egendefinerte felt |
+| **Synkroniser intervall til koblede overvåkere** | Overvåkingsintervallet og minimum sondeenighet | Kriteriene, navnet, beskrivelsen, etikettene og verdiene i egendefinerte felt |
 | **Synkroniser etiketter til koblede overvåkere** | Etikettene, og ingenting annet | Alt annet |
 | **Synkroniser egendefinerte felt til tilknyttede monitorer** | De egendefinerte feltene malen har en standardverdi for, i stedet for det hver monitor hadde | Egendefinerte felt som malen lar stå tomme, og alt annet |
 

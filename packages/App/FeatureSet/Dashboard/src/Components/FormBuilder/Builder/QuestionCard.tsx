@@ -294,7 +294,7 @@ const QuestionCard: FunctionComponent<ComponentProps> = (
             isMultiSelect={true}
             options={options}
             ariaLabelledby={`${editorId}-choices`}
-            placeholder={tx(FormsCopy.choicesOfferedPlaceholder)}
+            placeholder={FormsCopy.choicesOfferedPlaceholder}
             dataTestId={`form-question-choices-${field.id}`}
             value={options.filter((option: DropdownOption): boolean => {
               return allowed.includes(option.value.toString());
@@ -333,7 +333,7 @@ const QuestionCard: FunctionComponent<ComponentProps> = (
           <Input
             id={`${editorId}-label`}
             value={field.label}
-            placeholder={tx(FormsCopy.questionLabelPlaceholder)}
+            placeholder={FormsCopy.questionLabelPlaceholder}
             dataTestId={`form-question-label-${field.id}`}
             onChange={(value: string) => {
               props.onChange({
@@ -356,7 +356,7 @@ const QuestionCard: FunctionComponent<ComponentProps> = (
             autoGrow={true}
             maxRows={6}
             value={field.helpText || ""}
-            placeholder={tx(FormsCopy.helpTextPlaceholder)}
+            placeholder={FormsCopy.helpTextPlaceholder}
             dataTestId={`form-question-help-${field.id}`}
             onChange={(value: string) => {
               props.onChange({

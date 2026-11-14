@@ -920,7 +920,7 @@ function incidentNoteCards() {
   };
   const noteWords = {
     kind: aiActionTerm(AI_ACTION_CARD_KINDS.incident),
-    line: [aiActionSentence(AI_ACTION_CARD_LINES.privateNoteAdded)],
+    line: [aiActionSentence(AI_ACTION_CARD_LINES.privateNoteAddedToIncident)],
     facts: [aiActionCardFact(AI_ACTION_CARD_FACTS.note, INTERNAL_NOTE)],
   };
 

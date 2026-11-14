@@ -556,6 +556,8 @@ export const buildCustomFieldFacets: BuildCustomFieldFacetsFunction = (
           kind === "options"
             ? translateTemplate("Search {{name}}...", { name: definition.name })
             : translateTemplate("Enter {{name}}", { name: definition.name }),
+        // Around the field's own name, so worded here (#7682).
+        isSearchPlaceholderTranslated: true,
         supportedOperators: getCustomFieldFacetOperators(definition),
         queryField: CUSTOM_FIELD_QUERY_FIELD,
         /*
