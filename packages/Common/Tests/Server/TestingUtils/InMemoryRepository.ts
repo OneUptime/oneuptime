@@ -257,7 +257,8 @@ export function rowMatchesWhere(row: StoredRow, where: unknown): boolean {
   return true;
 }
 
-function sortRows(
+// Rows in a find's order: each column in turn, ASC or DESC.
+export function sortRows(
   rows: Array<StoredRow>,
   order: Record<string, string> | undefined,
 ): Array<StoredRow> {
