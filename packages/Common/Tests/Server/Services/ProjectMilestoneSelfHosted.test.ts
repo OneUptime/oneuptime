@@ -48,6 +48,7 @@ jest.mock("../../../Utils/API", () => {
 });
 
 import ProjectMilestoneService from "../../../Server/Services/ProjectMilestoneService";
+import ProjectService from "../../../Server/Services/ProjectService";
 import PostgresAppInstance from "../../../Server/Infrastructure/PostgresDatabase";
 import * as EnvironmentConfig from "../../../Server/EnvironmentConfig";
 import ActivationMilestone, {
@@ -82,6 +83,12 @@ describe("activation milestones on a server without product analytics", () => {
     ProjectMilestoneService.forgetKnownMilestones();
 
     jest.spyOn(PostgresAppInstance, "isConnected").mockReturnValue(true);
+    /*
+     * Before it keeps a milestone, the service asks whether the project is a
+     * sample (#6808), which reaches none (ProjectMilestoneService.test.ts
+     * pins that). This project is a real one.
+     */
+    jest.spyOn(ProjectService, "isSampleProject").mockResolvedValue(false);
     jest.spyOn(ProjectMilestoneService, "getRepository").mockReturnValue({
       manager: {
         query: async (sql: string): Promise<unknown> => {

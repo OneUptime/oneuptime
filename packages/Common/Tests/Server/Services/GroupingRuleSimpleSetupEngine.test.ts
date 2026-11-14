@@ -16,6 +16,11 @@ import IncidentEpisodeMemberService from "../../../Server/Services/IncidentEpiso
 import IncidentEpisodeService from "../../../Server/Services/IncidentEpisodeService";
 import IncidentGroupingEngineService from "../../../Server/Services/IncidentGroupingEngineService";
 import MonitorService from "../../../Server/Services/MonitorService";
+import ConnectedServices, {
+  CONNECTED_SERVICES_KEY_PART,
+  NO_SERVICE_KEY_PART,
+  RecordServices,
+} from "../../../Server/Utils/Topology/ConnectedServices";
 import FilterCondition from "../../../Types/Filter/FilterCondition";
 import ObjectID from "../../../Types/ObjectID";
 import RuleCriteria, {
@@ -55,18 +60,21 @@ import type { SpyInstance } from "jest-mock";
  * an existing rule opened and saved - and hold them to two things:
  *
  *   - they group exactly as a rule with the same switches set by hand
- *     always has, for every combination of the five switches;
+ *     always has, for every combination of the six switches;
  *   - what the pages tell people is what the engines do: "Numbers in titles
  *     are ignored", one shared episode for Everything Together, the time
  *     window a template promises (and the hour a window with no minutes
- *     falls back to), and a rule with no conditions matching every new
- *     incident whichever way it was saved.
+ *     falls back to), a rule with no conditions matching every new
+ *     incident whichever way it was saved, and Connected Services keying a
+ *     record on a service with every other one (which episode it joins is
+ *     the services' to decide) and one on no service by its monitor.
  */
 
 interface IncidentEngineInternals {
   buildGroupingKey: (
     incident: Incident,
     rule: IncidentGroupingRule,
+    services?: RecordServices | null,
   ) => Promise<string>;
   doesIncidentMatchRule: (
     incident: Incident,
@@ -86,7 +94,11 @@ interface IncidentEngineInternals {
 }
 
 interface AlertEngineInternals {
-  buildGroupingKey: (alert: Alert, rule: AlertGroupingRule) => Promise<string>;
+  buildGroupingKey: (
+    alert: Alert,
+    rule: AlertGroupingRule,
+    services?: RecordServices | null,
+  ) => Promise<string>;
   doesAlertMatchRule: (
     alert: Alert,
     rule: AlertGroupingRule,
@@ -193,10 +205,11 @@ function everySwitchCombination(
     names.title,
     names.labels,
     names.monitorLabels,
+    names.connectedServices,
   ];
   const combinations: Array<Record<string, boolean>> = [];
 
-  for (let mask: number = 0; mask < 32; mask++) {
+  for (let mask: number = 0; mask < 64; mask++) {
     const values: Record<string, boolean> = {};
     fields.forEach((field: string, index: number): void => {
       values[field] = (mask & (1 << index)) !== 0;
@@ -291,6 +304,8 @@ describe("incident grouping keys", () => {
         [GroupingMode.Severity]: `severity:${SEVERITY_ID.toString()}`,
         [GroupingMode.Title]: "title:disk X% full",
         [GroupingMode.Everything]: "default",
+        // Read with no services: on none, it is grouped by its monitor.
+        [GroupingMode.ConnectedServices]: `monitor:${MONITOR_ID.toString()}`,
       };
 
       expect(key).toBe(expected[template.mode]);
@@ -409,6 +424,8 @@ describe("alert grouping keys", () => {
         [GroupingMode.Severity]: `severity:${SEVERITY_ID.toString()}`,
         [GroupingMode.Title]: "title:disk X% full",
         [GroupingMode.Everything]: "default",
+        // Read with no services: on none, it is grouped by its monitor.
+        [GroupingMode.ConnectedServices]: `monitor:${MONITOR_ID.toString()}`,
       };
 
       expect(key).toBe(expected[template.mode]);
@@ -416,10 +433,118 @@ describe("alert grouping keys", () => {
   );
 });
 
+describe("the Connected Services card's promise", () => {
+  const onService: RecordServices = {
+    serviceIds: new Set<string>(["0193c0de-0000-4000-8000-00000000aaaa"]),
+    connectedServiceIds: new Set<string>([
+      "0193c0de-0000-4000-8000-00000000aaaa",
+      "0193c0de-0000-4000-8000-00000000bbbb",
+    ]),
+  };
+  const onNoService: RecordServices = {
+    serviceIds: new Set<string>(),
+    connectedServiceIds: new Set<string>(),
+  };
+
+  test("an incident on a service shares its key with every other one; the services decide the episode", async () => {
+    const rule: IncidentGroupingRule = incidentRule({
+      groupByConnectedServices: true,
+    });
+
+    expect(
+      await incidentEngine.buildGroupingKey(
+        incidentNamed("A"),
+        rule,
+        onService,
+      ),
+    ).toBe(CONNECTED_SERVICES_KEY_PART);
+    expect(
+      await incidentEngine.buildGroupingKey(
+        incidentNamed("Something else entirely"),
+        rule,
+        onService,
+      ),
+    ).toBe(CONNECTED_SERVICES_KEY_PART);
+  });
+
+  test("an incident on no service is grouped by its first monitor", async () => {
+    expect(
+      await incidentEngine.buildGroupingKey(
+        incidentNamed("A"),
+        incidentRule({ groupByConnectedServices: true }),
+        onNoService,
+      ),
+    ).toBe(`monitor:${MONITOR_ID.toString()}`);
+  });
+
+  test("an incident on no service and with no monitor shares the no-service key", async () => {
+    const incident: Incident = incidentNamed("Declared by hand");
+    incident.monitors = [];
+
+    expect(
+      await incidentEngine.buildGroupingKey(
+        incident,
+        incidentRule({ groupByConnectedServices: true }),
+        onNoService,
+      ),
+    ).toBe(NO_SERVICE_KEY_PART);
+  });
+
+  test("with group by monitor on too, the monitor is not named twice", async () => {
+    expect(
+      await incidentEngine.buildGroupingKey(
+        incidentNamed("A"),
+        incidentRule({ groupByMonitor: true, groupByConnectedServices: true }),
+        onNoService,
+      ),
+    ).toBe(`monitor:${MONITOR_ID.toString()}|${NO_SERVICE_KEY_PART}`);
+    expect(
+      await incidentEngine.buildGroupingKey(
+        incidentNamed("A"),
+        incidentRule({ groupByMonitor: true, groupByConnectedServices: true }),
+        onService,
+      ),
+    ).toBe(`monitor:${MONITOR_ID.toString()}|${CONNECTED_SERVICES_KEY_PART}`);
+  });
+
+  test("alerts: on a service the key is shared; on none the monitor's", async () => {
+    const rule: AlertGroupingRule = alertRule({
+      groupByConnectedServices: true,
+    });
+
+    expect(
+      await alertEngine.buildGroupingKey(alertNamed("A"), rule, onService),
+    ).toBe(CONNECTED_SERVICES_KEY_PART);
+    expect(
+      await alertEngine.buildGroupingKey(alertNamed("A"), rule, onNoService),
+    ).toBe(`monitor:${MONITOR_ID.toString()}`);
+  });
+
+  test("a rule that does not group by connected services never reads services", async () => {
+    const readForIncident: SpyInstance<
+      typeof ConnectedServices.readForIncident
+    > = jest.spyOn(ConnectedServices, "readForIncident");
+
+    expect(
+      await incidentEngine.buildGroupingKey(
+        incidentNamed("A"),
+        incidentRule({ groupByMonitor: true }),
+        onService,
+      ),
+    ).toBe(`monitor:${MONITOR_ID.toString()}`);
+    expect(readForIncident).not.toHaveBeenCalled();
+  });
+});
+
 describe("the time window an episode is looked for in", () => {
   function stubIncidentGrouping(): SpyInstance<
     IncidentEngineInternals["findMatchingActiveEpisode"]
   > {
+    // On no service: a Connected Services rule groups it by its monitor.
+    jest.spyOn(ConnectedServices, "readForIncident").mockResolvedValue({
+      serviceIds: new Set<string>(),
+      connectedServiceIds: new Set<string>(),
+    });
     jest
       .spyOn(Semaphore, "lock")
       .mockResolvedValue({} as unknown as SemaphoreMutex);
@@ -446,6 +571,10 @@ describe("the time window an episode is looked for in", () => {
   function stubAlertGrouping(): SpyInstance<
     AlertEngineInternals["findMatchingActiveEpisode"]
   > {
+    jest.spyOn(ConnectedServices, "readForAlert").mockResolvedValue({
+      serviceIds: new Set<string>(),
+      connectedServiceIds: new Set<string>(),
+    });
     jest
       .spyOn(Semaphore, "lock")
       .mockResolvedValue({} as unknown as SemaphoreMutex);

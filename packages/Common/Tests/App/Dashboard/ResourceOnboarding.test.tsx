@@ -38,6 +38,9 @@ import { MemoryRouter } from "react-router-dom";
  * that one's first data. A vCenter connected through a probe opens on its
  * page instead.
  *
+ * A telemetry guide's last step watches the key its snippets carry too: its
+ * first data finishes the step for telemetry that names no service.
+ *
  * Only the data boundary (ModelAPI) is replaced, by a project kept here.
  */
 
@@ -68,10 +71,12 @@ import MessageQueueAddedModal from "../../../../App/FeatureSet/Dashboard/src/Pag
 import RumApplicationAddedModal from "../../../../App/FeatureSet/Dashboard/src/Components/Rum/RumApplicationAddedModal";
 import ServiceAddedModal from "../../../../App/FeatureSet/Dashboard/src/Components/Service/ServiceAddedModal";
 import { SERVICE_NAME_HELP } from "../../../../App/FeatureSet/Dashboard/src/Components/Service/ServiceListCopy";
-import {
+import TelemetryDocumentation, {
   canCarryServiceName,
   withServiceName,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/Documentation";
+import ResourceConnectionWatch from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceOnboarding/ResourceConnectionWatch";
+import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseServer from "../../../Models/DatabaseModels/DatabaseServer";
 import DatabaseServerEndpoint from "../../../Models/DatabaseModels/DatabaseServerEndpoint";
@@ -1201,6 +1206,247 @@ describe("the guide that opens once Create Service has saved a service", () => {
     expect(screen.getByText(SERVICE_NAME_HELP)).toBeInTheDocument();
     expect(pageText()).not.toContain("Every snippet below already carries");
     expect(pageText()).toContain("serviceName: 'my-service'");
+  });
+});
+
+/*
+ * Telemetry that names no service registers none (#7754): FluentBit's logs
+ * as the guide configures them, OTLP without service.name (Fluentd's go to
+ * the server's own "Fluentd" service).
+ * So a telemetry guide's last step watches the key its snippets carry too,
+ * and the key's first data finishes it, with a link to the explorer. A key
+ * that was sending already cannot say whether the new shipper sent
+ * anything - ingest's stamp moves on its own - so that step waits for a
+ * service.
+ */
+describe("a telemetry guide's last step, for data that names no service", () => {
+  const PRODUCTION_KEY_ID: string = "40000000-0000-4000-8000-000000000001";
+  const STAGING_KEY_ID: string = "40000000-0000-4000-8000-000000000002";
+
+  function keyRow(id: string): Row {
+    return rowsOf(TelemetryIngestionKey).find((row: Row): boolean => {
+      return String(row["_id"]) === id;
+    })!;
+  }
+
+  // Ingest admitting a batch sent with the key stamps it (markUsed).
+  function sendWithKey(id: string): void {
+    keyRow(id)["lastUsedAt"] = new Date();
+  }
+
+  function keyChecks(): number {
+    return reads.filter(
+      (read: { table: string; query: Record<string, unknown> }): boolean => {
+        return (
+          read.table === "TelemetryIngestionKey" &&
+          read.query["_id"] !== undefined
+        );
+      },
+    ).length;
+  }
+
+  function serviceChecks(): number {
+    return reads.filter(
+      (read: { table: string; query: Record<string, unknown> }): boolean => {
+        return read.table === "Service";
+      },
+    ).length;
+  }
+
+  // Logs > Setup Guide, FluentBit picked: its file carries the picked key.
+  async function openLogsGuideForFluentBit(): Promise<HTMLElement> {
+    await show(<TelemetryDocumentation telemetryType="logs" />);
+    await act(async () => {
+      fireEvent.click(screen.getByText("FluentBit", { selector: "div" }));
+    });
+    await settle();
+
+    expect(pageText()).toContain("# fluent-bit.conf");
+    expect(pageText()).toContain(`x-oneuptime-token ${SERVER_KEY}`);
+
+    return screen.getByTestId("telemetry-documentation-first-data");
+  }
+
+  test("the Logs Setup Guide: FluentBit's first logs finish it, though they name no service, with a link to the explorer", async () => {
+    const step: HTMLElement = await openLogsGuideForFluentBit();
+
+    expect(
+      within(step).getByTestId("resource-connection-waiting"),
+    ).toHaveTextContent(
+      "Waiting for the first data. This step updates by itself.",
+    );
+
+    // FluentBit's first batch: the key is stamped, and no service registers.
+    sendWithKey(PRODUCTION_KEY_ID);
+    await advance(RESOURCE_CONNECTION_POLL_INTERVAL_MS);
+
+    const done: HTMLElement = within(step).getByTestId(
+      "resource-connection-data-arrived",
+    );
+
+    expect(done).toHaveTextContent(
+      "The first data arrived with the key Production. It shows up within a minute or two.",
+    );
+    expect(
+      within(done).getByRole("link", { name: "View logs" }),
+    ).toHaveAttribute("href", `/dashboard/${PROJECT_ID.toString()}/logs`);
+    expect(rowsOf(Service)).toHaveLength(0);
+  });
+
+  test("a key that was sending already: its stamp moving on is not the new shipper's data, and a new service still finishes it", async () => {
+    // Stamped before the guide opened: something already sends with it.
+    keyRow(PRODUCTION_KEY_ID)["lastUsedAt"] = new Date();
+    await openLogsGuideForFluentBit();
+    await advance(RESOURCE_CONNECTION_POLL_INTERVAL_MS);
+
+    // Stamped again, for whatever sends with it.
+    sendWithKey(PRODUCTION_KEY_ID);
+    await advance(RESOURCE_CONNECTION_POLL_INTERVAL_MS);
+
+    expect(
+      screen.getByTestId("resource-connection-waiting"),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId("resource-connection-data-arrived")).toBeNull();
+
+    arrive({
+      modelType: Service,
+      id: 20,
+      name: "checkout-api",
+      nameField: "name",
+    });
+    await advance(RESOURCE_CONNECTION_POLL_INTERVAL_MS);
+
+    expect(
+      screen.getByTestId("resource-connection-connected"),
+    ).toHaveTextContent(
+      "checkout-api is connected. Its data arrives within a minute or two.",
+    );
+  });
+
+  test("a service that registers after the key's first data takes over, with its own link", async () => {
+    await openLogsGuideForFluentBit();
+    sendWithKey(PRODUCTION_KEY_ID);
+    await advance(RESOURCE_CONNECTION_POLL_INTERVAL_MS);
+
+    expect(
+      screen.getByTestId("resource-connection-data-arrived"),
+    ).toBeInTheDocument();
+
+    // OTLP that names its service: the service registers a moment later.
+    arrive({
+      modelType: Service,
+      id: 21,
+      name: "checkout-api",
+      nameField: "name",
+    });
+    await advance(RESOURCE_CONNECTION_POLL_INTERVAL_MS);
+
+    const done: HTMLElement = screen.getByTestId(
+      "resource-connection-connected",
+    );
+
+    expect(done).toHaveTextContent(
+      "checkout-api is connected. Its data arrives within a minute or two.",
+    );
+    expect(
+      within(done).getByRole("link", { name: "View logs" }),
+    ).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID.toString()}/service/${idOf(21)}/logs`,
+    );
+    expect(screen.queryByTestId("resource-connection-data-arrived")).toBeNull();
+  });
+
+  test("stops asking about the key once its first data is in, and about services once one connects", async () => {
+    await openLogsGuideForFluentBit();
+    sendWithKey(PRODUCTION_KEY_ID);
+    await advance(RESOURCE_CONNECTION_POLL_INTERVAL_MS);
+
+    const keyChecksThen: number = keyChecks();
+    const serviceChecksThen: number = serviceChecks();
+    await advance(RESOURCE_CONNECTION_POLL_INTERVAL_MS * 3);
+
+    expect(keyChecks()).toBe(keyChecksThen);
+    expect(serviceChecks()).toBe(serviceChecksThen + 3);
+
+    arrive({
+      modelType: Service,
+      id: 22,
+      name: "checkout-api",
+      nameField: "name",
+    });
+    await advance(RESOURCE_CONNECTION_POLL_INTERVAL_MS);
+
+    const readsThen: number = reads.length;
+    await advance(RESOURCE_CONNECTION_POLL_INTERVAL_MS * 3);
+
+    expect(reads.length).toBe(readsThen);
+  });
+
+  /*
+   * The reader can pick another key while the step waits. Each key's first
+   * look is its own: one that was sending already is not its first data,
+   * and going back to one keeps what it had sent when first looked at.
+   */
+  test("each key's first look is its own", async () => {
+    rowsOf(TelemetryIngestionKey).push({
+      _id: STAGING_KEY_ID,
+      name: "Staging",
+      secretKey: "acme-staging-key-0123456789",
+      keyType: TelemetryIngestionKeyType.Server,
+      lastUsedAt: new Date(),
+    });
+
+    const watch: (keyId: string) => ReactElement = (
+      keyId: string,
+    ): ReactElement => {
+      return (
+        <MemoryRouter>
+          <ResourceConnectionWatch
+            modelType={Service}
+            viewPage={PageMap.SERVICE_VIEW_LOGS}
+            viewText="View logs"
+            dataPage={PageMap.LOGS}
+            ingestionKey={Object.assign(
+              new TelemetryIngestionKey(),
+              keyRow(keyId),
+            )}
+          />
+        </MemoryRouter>
+      );
+    };
+
+    let rerender: (element: ReactElement) => void = (): void => {
+      return undefined;
+    };
+    await act(async () => {
+      rerender = render(watch(PRODUCTION_KEY_ID)).rerender;
+    });
+    await settle();
+
+    // Staging is picked: something already sends with it.
+    await act(async () => {
+      rerender(watch(STAGING_KEY_ID));
+    });
+    await settle();
+    sendWithKey(STAGING_KEY_ID);
+    // Meanwhile the shipper set up with Production sends its first data.
+    sendWithKey(PRODUCTION_KEY_ID);
+    await advance(RESOURCE_CONNECTION_POLL_INTERVAL_MS);
+
+    expect(
+      screen.getByTestId("resource-connection-waiting"),
+    ).toBeInTheDocument();
+
+    // Back to Production: it had sent nothing when the step first looked.
+    await act(async () => {
+      rerender(watch(PRODUCTION_KEY_ID));
+    });
+    await settle();
+
+    expect(
+      screen.getByTestId("resource-connection-data-arrived"),
+    ).toHaveTextContent("The first data arrived with the key Production.");
   });
 });
 

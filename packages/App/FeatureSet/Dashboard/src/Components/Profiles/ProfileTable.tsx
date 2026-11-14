@@ -695,11 +695,13 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
                 primaryEntityId: true,
               },
               type: FieldType.MultiSelectDropdown,
+              // A service's name, drawn as written (DropdownOption.isUserContent).
               filterDropdownOptions: telemetryServices.map(
                 (service: Service) => {
                   return {
                     label: service.name!,
                     value: service.id!.toString(),
+                    isUserContent: true,
                   };
                 },
               ),

@@ -15,7 +15,8 @@ import {
   getNewLayerName,
 } from "../../../Types/OnCallDutyPolicy/ScheduleLayerDefaults";
 import PositiveNumber from "../../../Types/PositiveNumber";
-import { describe, expect, test } from "@jest/globals";
+import OneUptimeDate from "../../../Types/Date";
+import { afterEach, describe, expect, jest, test } from "@jest/globals";
 
 /*
  * A NEW LAYER OF AN ON-CALL SCHEDULE, AS IT STARTS.
@@ -282,7 +283,7 @@ describe("a new layer", () => {
     expect(layer.handOffTime?.toISOString()).toBe("2026-11-05T19:30:00.000Z");
   });
 
-  test("starts now unless told otherwise", () => {
+  test("starts now unless told otherwise: the minute now is in, already begun", () => {
     const before: number = Date.now();
 
     const layer: OnCallDutyPolicyScheduleLayer = buildNewScheduleLayer({
@@ -294,8 +295,14 @@ describe("a new layer", () => {
     const after: number = Date.now();
     const startsAt: number = layer.startsAt!.getTime();
 
-    expect(startsAt).toBeGreaterThanOrEqual(before);
+    /*
+     * Rotation starts at shows 11:15, not 11:15:52 (#7593): the start is
+     * the minute it was added in - never later than now, so the first
+     * person is on call at once - with no seconds left over.
+     */
     expect(startsAt).toBeLessThanOrEqual(after);
+    expect(startsAt).toBeGreaterThan(before - 60 * 1000);
+    expect(startsAt % (60 * 1000)).toBe(0);
 
     // A week later, give or take an hour for a daylight saving change.
     const handOffIn: number = layer.handOffTime!.getTime() - startsAt;
@@ -303,6 +310,7 @@ describe("a new layer", () => {
     expect(Math.abs(handOffIn - 7 * 24 * 3600 * 1000)).toBeLessThanOrEqual(
       3600 * 1000,
     );
+    expect(layer.handOffTime!.getTime() % (60 * 1000)).toBe(0);
   });
 
   test("leaves the order to the layer service unless one is given", () => {
@@ -312,5 +320,107 @@ describe("a new layer", () => {
 
   test("gets restriction times of its own", () => {
     expect(build().restrictionTimes).not.toBe(build().restrictionTimes);
+  });
+});
+
+/*
+ * Issue #7593: a layer added at 11:15:52 started at 11:15:52, so Rotation
+ * starts at showed the seconds, the picker asked for them, and every
+ * hand-off fell 52 seconds after the minute the summaries print. A new
+ * layer starts at the minute it is added in; a start that is given (an
+ * import's own) is kept as it is, seconds and all.
+ */
+describe("a new layer's start, to the minute", () => {
+  const NOW_WITH_SECONDS: Date = new Date("2026-11-13T11:15:52.345Z");
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function buildNow(
+    extra: Partial<Parameters<typeof buildNewScheduleLayer>[0]> = {},
+  ): OnCallDutyPolicyScheduleLayer {
+    jest
+      .spyOn(OneUptimeDate, "getCurrentDate")
+      .mockReturnValue(new Date(NOW_WITH_SECONDS));
+
+    return buildNewScheduleLayer({
+      onCallDutyPolicyScheduleId: SCHEDULE_ID,
+      projectId: PROJECT_ID,
+      name: "Layer 1",
+      timezone: "UTC",
+      ...extra,
+    });
+  }
+
+  test("starts at the minute it was added in, not the second", () => {
+    expect(buildNow().startsAt?.toISOString()).toBe("2026-11-13T11:15:00.000Z");
+  });
+
+  test("so its hand-offs fall on that minute too: a week later at 11:15:00", () => {
+    expect(buildNow().handOffTime?.toISOString()).toBe(
+      "2026-11-20T11:15:00.000Z",
+    );
+  });
+
+  test("on any rotation: a day, two weeks, a month", () => {
+    expect(
+      buildNow({
+        rotation: rotationOf(EventInterval.Day, 1),
+      }).handOffTime?.toISOString(),
+    ).toBe("2026-11-14T11:15:00.000Z");
+    expect(
+      buildNow({
+        rotation: rotationOf(EventInterval.Week, 2),
+      }).handOffTime?.toISOString(),
+    ).toBe("2026-11-27T11:15:00.000Z");
+    expect(
+      buildNow({
+        rotation: rotationOf(EventInterval.Month, 1),
+      }).handOffTime?.toISOString(),
+    ).toBe("2026-12-13T11:15:00.000Z");
+  });
+
+  test("in a schedule's own time zone, across its clock change", () => {
+    // New York leaves daylight saving on 2026-11-01: 07:15 there is 11:15 or 12:15 UTC.
+    jest
+      .spyOn(OneUptimeDate, "getCurrentDate")
+      .mockReturnValue(new Date("2026-10-29T11:15:52.345Z"));
+
+    const layer: OnCallDutyPolicyScheduleLayer = buildNewScheduleLayer({
+      onCallDutyPolicyScheduleId: SCHEDULE_ID,
+      projectId: PROJECT_ID,
+      name: "Layer 1",
+      timezone: "America/New_York",
+    });
+
+    expect(layer.startsAt?.toISOString()).toBe("2026-10-29T11:15:00.000Z");
+    expect(layer.handOffTime?.toISOString()).toBe("2026-11-05T12:15:00.000Z");
+  });
+
+  test("has not begun after now: the first person is on call at once", () => {
+    const startsAt: Date = buildNow().startsAt!;
+
+    expect(startsAt.getTime()).toBeLessThanOrEqual(NOW_WITH_SECONDS.getTime());
+    expect(NOW_WITH_SECONDS.getTime() - startsAt.getTime()).toBeLessThan(
+      60 * 1000,
+    );
+  });
+
+  test("a start that is given keeps its seconds: an imported rotation starts when it did", () => {
+    const layer: OnCallDutyPolicyScheduleLayer = buildNow({
+      startsAt: new Date("2026-11-11T08:00:17.000Z"),
+    });
+
+    expect(layer.startsAt?.toISOString()).toBe("2026-11-11T08:00:17.000Z");
+    expect(layer.handOffTime?.toISOString()).toBe("2026-11-18T08:00:17.000Z");
+  });
+
+  test("a start on the minute is kept as it is", () => {
+    const layer: OnCallDutyPolicyScheduleLayer = buildNow({
+      startsAt: new Date("2026-11-11T08:00:00.000Z"),
+    });
+
+    expect(layer.startsAt?.toISOString()).toBe("2026-11-11T08:00:00.000Z");
   });
 });

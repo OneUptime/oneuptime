@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { pageRoutesIn, routeMapPath, routesAt } from "../Helpers/PageRoutes";
 
 /*
  * The Data Observability product is a lazy-loaded route group: a product
@@ -81,9 +82,18 @@ describe("Data Observability product wiring", () => {
     const app: string = squash(readSource("App.tsx"));
 
     expect(app).toContain('return import("./Routes/DataObservabilityRoutes");');
-    expect(app).toContain(
-      'path={RouteMap[PageMap.DATA_OBSERVABILITY_ROOT]?.toString() || ""} element={<DataObservabilityRoutes {...commonPageProps} />}',
-    );
+
+    // One route mounts the product's root, and it draws the product's routes.
+    const rootPath: string = routeMapPath("DATA_OBSERVABILITY_ROOT");
+
+    expect(
+      routesAt(pageRoutesIn(path.join(DASHBOARD_SRC, "App.tsx")), rootPath),
+    ).toEqual([
+      {
+        path: rootPath,
+        element: "<DataObservabilityRoutes {...commonPageProps} />",
+      },
+    ]);
     expect(readSource("Routes", "AllRoutes.tsx")).toContain(
       'export { default as DataObservabilityRoutes } from "./DataObservabilityRoutes";',
     );

@@ -100,6 +100,8 @@ Creare una regola passa per quattro passaggi:
 | **Destinazione** | Dove pubblica: un canale esistente di un team che scegli, le chat che scegli, un canale per ogni incidente (o avviso, episodio, evento, monitor o policy di reperibilità) creato in un team che scegli, o più di questi insieme. Sotto il passaggio, **Cosa fa questa regola** lo dice a frasi, come la scheda della regola. |
 | **Video Call** | Solo incidenti e avvisi: avvia una chiamata per ciascuno. Vedi [Videochiamate](/docs/workspace-connections/video-calls). |
 
+Ogni condizione si legge come una frase: il campo, come si confronta e il valore. I valori da scegliere vengono dagli elenchi del progetto, come i suoi stati, le gravità, le etichette e i monitor. Una regola di reperibilità sceglie le sue policy in **Policy di reperibilità**, che continua a corrispondere a una policy anche dopo che è stata rinominata, mentre **Nome del criterio di reperibilità** cerca parole nel nome di una policy. Ogni tipo di evento che ha proprietari ha una condizione sul proprietario, come **Proprietario dell'incidente**: scegli persone e team, e corrisponde alle persone e ai team registrati come proprietari dell'evento. Far parte di un team proprietario dell'evento non conta. Un proprietario aggiunto in seguito fa corrispondere la regola da quell'aggiornamento in poi, e una regola che crea canali crea il canale in quel momento. Un valore archiviato, come una gravità o una policy di reperibilità, non viene proposto per una nuova condizione. Una regola che ne ha già uno lo mantiene, contrassegnato come **Archiviato**, e continua a corrispondere agli eventi che lo hanno. Una persona, un team o una policy che il progetto non ha più resta nella condizione, e la scheda della regola lo segnala.
+
 Una regola degli SLO pubblica le modifiche della policy del budget di errore di uno SLO: quando lo SLO entra in un livello, torna a uno meno grave o esce da tutti i livelli, e quando le sue distribuzioni vengono congelate o di nuovo consentite. Pubblica solo in canali e chat esistenti, perché uno SLO non ha un canale tutto suo. Vedi [Pubblicare in Slack, Microsoft Teams e Mattermost](/docs/slo/error-budget-policy#pubblicare-in-slack-microsoft-teams-e-mattermost).
 
 Un canale creato dalla regola prende il nome dal suo record: l'incidente INC-42 riceve `inc-42`, l'avviso ALT-7 riceve `alt-7` e, in un progetto senza prefissi di numero, l'incidente 42 riceve `incident-42`. Il testo in **Prefisso del nome del canale** va davanti, quindi `prod-` dà `prod-inc-42`, e il modulo mostra il nome mentre scrivi. Per un evento di manutenzione pianificata, il prefisso prende il posto del suo prefisso di numero: SM-5 riceve `sm-5` e `maint-` dà `maint-5`. OneUptime mantiene lettere, numeri, spazi, `-` e `_`, fino ai 50 caratteri che Microsoft Teams accetta. Se il team ha già un canale con quel nome, come quello di un altro progetto o uno eliminato negli ultimi 30 giorni, OneUptime aggiunge `-2`, `-3` e così via.
@@ -158,7 +160,7 @@ Reagisci a un messaggio, o a una risposta, nel canale che OneUptime ha creato pe
 
 | Reazione | Salvato come |
 | --- | --- |
-| 📌 o 📍 | Una nota privata, visibile solo al tuo team |
+| 📌 o 📍 | Una nota privata, che può leggere solo chi può vedere il record |
 | 📣 o 📢 | Una nota pubblica, mostrata sulla pagina di stato. Solo incidenti ed eventi di manutenzione programmata. Su un incidente privato, una nota privata, e la conferma dice perché. Quando le note pubbliche del progetto richiedono un'approvazione, viene mostrata solo una volta approvata, e la conferma dice chi attende: vedete [Approvazione delle note pubbliche](/docs/incidents/notes-owners-and-feed#approvazione-delle-note-pubbliche). |
 
 La nota riprende il messaggio così come Microsoft Teams lo mostrava: la formattazione, i link e il codice, le persone che menziona con il loro nome, e i file e le immagini come link. Una nota pubblica lascia fuori i file e le immagini, perché si aprono solo per il tuo team.
@@ -253,7 +255,7 @@ La scheda di un incidente ha quattro pulsanti, **Acknowledge Incident**, **Resol
 | **Change Severity** | Imposta la gravità dell'incidente. |
 | **Change Incident State** | Porta l'incidente a uno stato successivo. |
 | **Assign Role** | Dà a qualcuno un ruolo nell'incidente, come **Incident Commander**. Un ruolo per una sola persona passa a lei. |
-| **Page Someone** | Chiama persone, un team, chi è reperibile in una pianificazione, o una policy di reperibilità per l'incidente, con un messaggio facoltativo. Le persone vengono chiamate finché una di loro non risponde; una policy chiama finché qualcuno non conferma l'incidente. |
+| **Page Someone** | Chiama persone, un team, chi è reperibile in una pianificazione, o una policy di reperibilità per l'incidente, con un messaggio facoltativo. Tutte le persone che chiama, anche quelle di una policy, vengono chiamate finché una di loro non risponde o l'incidente non viene risolto. |
 | **Edit Custom Fields** | Imposta i campi personalizzati dell'incidente, ognuno compilato con ciò che l'incidente contiene. Un campo lasciato vuoto viene svuotato. |
 
 `incident 42`, scritto al bot, risponde con l'incidente 42, questi pulsanti e il suo menu. Scrivi il numero come lo mostra OneUptime: `42`, `#42` o `INC-42`. Nel canale proprio di un incidente, `incident` da solo mostra quell'incidente.

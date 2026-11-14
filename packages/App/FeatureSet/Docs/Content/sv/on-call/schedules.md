@@ -69,7 +69,18 @@ flowchart TB
 | **Tid för första överlämning** | Den första överlämningen till nästa person, vid eller efter starten. Senare överlämningar följer varje rotationsintervall. |
 | **Begränsningar** | De tider lagret har jour: **Inga begränsningar**, **Specifika tider på dygnet** eller **Specifika tider i veckan**, i schemats tidszon. Utanför dem tar lägre lager över. |
 
-För att ändra vilket lager som kommer först använder du **Flytta lager uppåt (högre prioritet)** eller **Flytta lager nedåt (lägre prioritet)** i ett lagers meny.
+För att ändra vilket lager som kommer först använder du pilarna på ett lagers kort: **Flytta lager uppåt (högre prioritet)** eller **Flytta lager nedåt (lägre prioritet)**.
+
+Ändringar i vem som turas om väntar tills du sparar dem, så att du kan göra flera och kontrollera dem innan någons pass flyttas. Dra personer i en ny ordning, lägg till eller ta bort personer, flytta ett lager uppåt eller nedåt eller radera ett, så visar sidan varje ändring innan den sparas:
+
+- Den du lade till är märkt **Ny** och den du drog till en ny plats **Flyttad**. Personerna du tog bort listas under **Tas bort när du sparar**, var och en med **Ångra**.
+- Ett lager du raderar visar att det raderas när du sparar, med **Ångra**.
+- Varje lager och det slutliga schemat visar rotationen som den blir. Det slutliga schemat är märkt **Innehåller osparade ändringar**.
+- En list längst ned på sidan räknar upp ändringarna, med **Spara ändringar** och **Kasta**.
+
+**Spara ändringar** sparar alla ändringar på en gång. Vem som har jour räknas sedan ut en gång, för lagren som de sparades: den som går på eller av jour, eller är näst på tur, får veta det en gång, inte en gång per ändring. **Kasta** återställer lagren till hur de senast sparades. Om du lämnar sidan innan du sparar får du en fråga först: **Fortsätt redigera** stannar kvar på sidan, **Kasta ändringar** lämnar den utan att spara.
+
+Om någon annan ändrade lagren efter att du öppnade sidan sparas inte dina ändringar över deras. Listen säger det, och **Läs in lager igen** visar lagren som de är nu, så att du kan göra dina ändringar igen. **Lägg till lager** lägger till lagret direkt, och ett lagers inställningar sparas med lagrets egen knapp **Spara lager**.
 
 Varje person behåller en färg överallt, så att du kan följa personen med en blick: i varje lager, i det slutliga schemat och dess åsidosättningar och på **Tidslinje för jourscheman**.
 

@@ -7,6 +7,7 @@ import StatusPageHistoryChartBarColorRuleService from "../../../Server/Services/
 import StatusPageResourceService from "../../../Server/Services/StatusPageResourceService";
 import StatusPageService from "../../../Server/Services/StatusPageService";
 import StatusPageOverviewCache from "../../../Server/Utils/StatusPage/StatusPageOverviewCache";
+import SampleProjectStatusPages from "../../../Server/Utils/StatusPage/SampleProjectStatusPages";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -114,6 +115,15 @@ function mockOverviewServices(): OverviewSpies {
   jest
     .spyOn(StatusPageService, "getProjectIdOfStatusPage")
     .mockResolvedValue(OVERVIEW_PROJECT_ID as never);
+
+  /*
+   * An ordinary project's page. The read check asks on every request whether
+   * the page is a sample project's (issue #6808), through the page's project
+   * as kept per process; these tests count the overview's own reads of it.
+   */
+  jest
+    .spyOn(SampleProjectStatusPages, "getReadAccess")
+    .mockResolvedValue(null as never);
 
   // Per-request auth gate: a PUBLIC page grants access to anonymous viewers.
   const authFindOneByIdSpy: jest.SpyInstance = (

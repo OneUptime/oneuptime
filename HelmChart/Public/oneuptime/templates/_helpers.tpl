@@ -631,11 +631,15 @@ the next boot removes the row, so no project lists a global Runner nobody runs.
 Where the bundled global Runner's key comes from, as an env var's value: the
 literal globalRunner.key, a Secret the user manages
 (globalRunner.existingSecret), or the release Secret's global-runner-key,
-which templates/secrets.yaml generates once and keeps.
+which templates/secrets.yaml generates once and keeps. The literal key goes
+through oneuptime.envValue, without the whitespace around it: the server trims
+GLOBAL_RUNNER_KEY before it keeps the Runner's row, so a key read from a file
+with its final newline left the Runner presenting a key the server refused
+(#7337).
 */}}
 {{- define "oneuptime.globalRunnerKeyValue" }}
 {{- if $.Values.globalRunner.key }}
-value: {{ $.Values.globalRunner.key | quote }}
+value: {{ include "oneuptime.envValue" $.Values.globalRunner.key }}
 {{- else if (($.Values.globalRunner.existingSecret).name) }}
 valueFrom:
   secretKeyRef:
@@ -764,6 +768,325 @@ that is empty.
 {{- trim (toString (default "" ($vapid.existingSecret).privateKeyKey)) | default "privateKey" -}}
 {{- end }}
 
+{{/*
+The server's own Twilio account, set by twilio in the values (#7515): handed
+to every workload that runs the server's env helper as the GLOBAL_TWILIO_
+variables, which packages/Common/Types/CallAndSMS/ServerTwilioEnvironment.ts
+reads. Once GLOBAL_TWILIO_ACCOUNT_SID is set, the account is the one they
+describe, and the one saved in the Admin Dashboard is not used.
+
+They are rendered only when twilio.accountSid is set: an install that leaves
+the block empty renders exactly as before, and hides no GLOBAL_TWILIO_
+variable an operator sets with extraEnv. The auth token comes from
+twilio.authToken, or from the Secret twilio.existingSecret names, under
+authToken unless authTokenKey names another key.
+
+Refused rather than rendered, each saying what to change:
+  - another twilio value without accountSid, which nothing would read;
+  - accountSid with neither authToken nor existingSecret.name: Twilio refuses
+    the account without its auth token;
+  - authToken and existingSecret.name together, as vapid.privateKey and
+    vapid.existingSecret are: the Secret is there to keep the token out of
+    the values Helm stores with every revision.
+Whether the numbers are phone numbers, and are the ones what the account is
+used for needs, the app says - in its log, in Admin Dashboard > Settings >
+Call and SMS and in the server's sending status - and the account sends
+nothing until they are. Values are read through parentheses and defaults, so
+values from before twilio existed (helm upgrade --reuse-values) still render.
+*/}}
+{{- define "oneuptime.env.twilio" }}
+{{- $twilio := .Values.twilio | default dict }}
+{{- $existing := $twilio.existingSecret | default dict }}
+{{- $accountSid := trim (toString (default "" $twilio.accountSid)) }}
+{{- $authToken := trim (toString (default "" $twilio.authToken)) }}
+{{- $secretName := trim (toString (default "" $existing.name)) }}
+{{- $secretKey := trim (toString (default "" $existing.authTokenKey)) | default "authToken" }}
+{{- if not $accountSid }}
+{{- $unread := list }}
+{{- range $key := list "authToken" "usedFor" "primaryPhoneNumber" "secondaryPhoneNumbers" "smsPhoneNumbers" }}
+{{- if trim (toString (default "" (index $twilio $key))) }}
+{{- $unread = append $unread (printf "twilio.%s" $key) }}
+{{- end }}
+{{- end }}
+{{- if $secretName }}
+{{- $unread = append $unread "twilio.existingSecret.name" }}
+{{- end }}
+{{- if $unread }}
+{{- fail (printf "twilio.accountSid is empty, so OneUptime reads none of the other twilio values, and these are set: %s. Set twilio.accountSid to send through that Twilio account, or clear them to set the account up in the Admin Dashboard." (join ", " $unread)) }}
+{{- end }}
+{{- else }}
+{{- if and (not $authToken) (not $secretName) }}
+{{- fail "twilio.accountSid is set, but twilio.authToken and twilio.existingSecret.name are empty: Twilio refuses the account without its auth token. Set twilio.authToken, or name the Secret that holds it in twilio.existingSecret.name." }}
+{{- end }}
+{{- if and $authToken $secretName }}
+{{- fail (printf "twilio.authToken and twilio.existingSecret.name are both set. Set one of them: to read the Twilio auth token from the Secret %s, clear authToken (--set twilio.authToken=\"\")." $secretName) }}
+{{- end }}
+
+- name: GLOBAL_TWILIO_ACCOUNT_SID
+  value: {{ include "oneuptime.envValue" $twilio.accountSid }}
+
+- name: GLOBAL_TWILIO_AUTH_TOKEN
+  {{- if $secretName }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ $secretName | quote }}
+      key: {{ $secretKey | quote }}
+  {{- else }}
+  value: {{ include "oneuptime.envValue" $twilio.authToken }}
+  {{- end }}
+
+- name: GLOBAL_TWILIO_USED_FOR
+  value: {{ include "oneuptime.envValue" $twilio.usedFor }}
+
+- name: GLOBAL_TWILIO_PRIMARY_PHONE_NUMBER
+  value: {{ include "oneuptime.envValue" $twilio.primaryPhoneNumber }}
+
+- name: GLOBAL_TWILIO_SECONDARY_PHONE_NUMBERS
+  value: {{ include "oneuptime.envValue" $twilio.secondaryPhoneNumbers }}
+
+- name: GLOBAL_TWILIO_SMS_PHONE_NUMBERS
+  value: {{ include "oneuptime.envValue" $twilio.smsPhoneNumbers }}
+{{- end }}
+{{- end }}
+
+{{/*
+The server's own email settings, set by email in the values (#7738): handed
+to every workload that runs the server's env helper as the GLOBAL_EMAIL_
+variables, which packages/Common/Types/Email/ServerEmailEnvironment.ts reads.
+Once GLOBAL_EMAIL_SERVER_TYPE is set, the settings are the ones they
+describe, and the ones saved in the Admin Dashboard are not used.
+
+They are rendered only when email.serverType is set: an install that leaves
+the block empty renders exactly as before, and hides no GLOBAL_EMAIL_
+variable an operator sets with extraEnv. The settings read at most one
+password or key: the SMTP password (with a username), the OAuth client
+secret (oauth, or microsoft-graph), or the provider's API key, server token
+or secret access key (not with the server's IAM role). It comes from its
+value, or from the Secret email.existingSecret names, under
+email.existingSecret.key, or else under the name of its value
+(oneuptime.env.emailSecretRead).
+
+Refused rather than rendered, each saying what to change:
+  - another email value without serverType, which nothing would read;
+  - settings without the password or key they read, in neither its value
+    nor existingSecret.name;
+  - a password or key and existingSecret.name together, as twilio.authToken
+    and twilio.existingSecret are: the Secret is there to keep it out of the
+    values Helm stores with every revision;
+  - existingSecret.name with settings that read no password or key.
+Whether the rest is right - an address, a port, a Region - the app says, in
+its log, in Admin Dashboard > Settings > Emails and in the server's sending
+status, and sends no email until it is. Values are read through parentheses
+and defaults, so values from before email existed (helm upgrade
+--reuse-values) still render.
+*/}}
+{{- define "oneuptime.env.email" }}
+{{- $email := .Values.email | default dict }}
+{{- $smtp := $email.smtp | default dict }}
+{{- $oauth := $smtp.oauth | default dict }}
+{{- $sendgrid := $email.sendgrid | default dict }}
+{{- $ses := $email.amazonSes | default dict }}
+{{- $mailgun := $email.mailgun | default dict }}
+{{- $postmark := $email.postmark | default dict }}
+{{- $resend := $email.resend | default dict }}
+{{- $existing := $email.existingSecret | default dict }}
+{{- $serverType := trim (toString (default "" $email.serverType)) }}
+{{- $secretName := trim (toString (default "" $existing.name)) }}
+{{- /* Each value, by the path an operator sets it at. */}}
+{{- $settings := list }}
+{{- $settings = append $settings (list "email.fromEmail" $email.fromEmail) }}
+{{- $settings = append $settings (list "email.fromName" $email.fromName) }}
+{{- $settings = append $settings (list "email.smtp.transport" $smtp.transport) }}
+{{- $settings = append $settings (list "email.smtp.host" $smtp.host) }}
+{{- $settings = append $settings (list "email.smtp.port" $smtp.port) }}
+{{- $settings = append $settings (list "email.smtp.requireTls" $smtp.requireTls) }}
+{{- $settings = append $settings (list "email.smtp.authType" $smtp.authType) }}
+{{- $settings = append $settings (list "email.smtp.username" $smtp.username) }}
+{{- $settings = append $settings (list "email.smtp.password" $smtp.password) }}
+{{- $settings = append $settings (list "email.smtp.oauth.providerType" $oauth.providerType) }}
+{{- $settings = append $settings (list "email.smtp.oauth.clientId" $oauth.clientId) }}
+{{- $settings = append $settings (list "email.smtp.oauth.clientSecret" $oauth.clientSecret) }}
+{{- $settings = append $settings (list "email.smtp.oauth.tokenUrl" $oauth.tokenUrl) }}
+{{- $settings = append $settings (list "email.smtp.oauth.scope" $oauth.scope) }}
+{{- $settings = append $settings (list "email.sendgrid.apiKey" $sendgrid.apiKey) }}
+{{- $settings = append $settings (list "email.amazonSes.authenticationType" $ses.authenticationType) }}
+{{- $settings = append $settings (list "email.amazonSes.accessKeyId" $ses.accessKeyId) }}
+{{- $settings = append $settings (list "email.amazonSes.secretAccessKey" $ses.secretAccessKey) }}
+{{- $settings = append $settings (list "email.amazonSes.region" $ses.region) }}
+{{- $settings = append $settings (list "email.mailgun.apiKey" $mailgun.apiKey) }}
+{{- $settings = append $settings (list "email.mailgun.domain" $mailgun.domain) }}
+{{- $settings = append $settings (list "email.mailgun.region" $mailgun.region) }}
+{{- $settings = append $settings (list "email.postmark.serverToken" $postmark.serverToken) }}
+{{- $settings = append $settings (list "email.resend.apiKey" $resend.apiKey) }}
+{{- if not $serverType }}
+{{- $unread := list }}
+{{- range $setting := $settings }}
+{{- if trim (toString (default "" (index $setting 1))) }}
+{{- $unread = append $unread (index $setting 0) }}
+{{- end }}
+{{- end }}
+{{- if $secretName }}
+{{- $unread = append $unread "email.existingSecret.name" }}
+{{- end }}
+{{- if $unread }}
+{{- fail (printf "email.serverType is empty, so OneUptime reads none of the other email values, and these are set: %s. Set email.serverType to send the server's email with them, or clear them to set email up in the Admin Dashboard." (join ", " $unread)) }}
+{{- end }}
+{{- else }}
+{{- $read := include "oneuptime.env.emailSecretRead" . | fromYaml }}
+{{- $readPath := toString (default "" $read.path) }}
+{{- /* The passwords and keys, by path, each with its variable. */}}
+{{- $secrets := list }}
+{{- $secrets = append $secrets (list "email.smtp.password" "GLOBAL_EMAIL_SMTP_PASSWORD" $smtp.password) }}
+{{- $secrets = append $secrets (list "email.smtp.oauth.clientSecret" "GLOBAL_EMAIL_SMTP_OAUTH_CLIENT_SECRET" $oauth.clientSecret) }}
+{{- $secrets = append $secrets (list "email.sendgrid.apiKey" "GLOBAL_EMAIL_SENDGRID_API_KEY" $sendgrid.apiKey) }}
+{{- $secrets = append $secrets (list "email.amazonSes.secretAccessKey" "GLOBAL_EMAIL_AMAZON_SES_SECRET_ACCESS_KEY" $ses.secretAccessKey) }}
+{{- $secrets = append $secrets (list "email.mailgun.apiKey" "GLOBAL_EMAIL_MAILGUN_API_KEY" $mailgun.apiKey) }}
+{{- $secrets = append $secrets (list "email.postmark.serverToken" "GLOBAL_EMAIL_POSTMARK_SERVER_TOKEN" $postmark.serverToken) }}
+{{- $secrets = append $secrets (list "email.resend.apiKey" "GLOBAL_EMAIL_RESEND_API_KEY" $resend.apiKey) }}
+{{- if $secretName }}
+{{- range $secret := $secrets }}
+{{- if trim (toString (default "" (index $secret 2))) }}
+{{- fail (printf "%s and email.existingSecret.name are both set. Set one of them: to read the password or key from the Secret %s, clear %s (--set %s=\"\")." (index $secret 0) $secretName (index $secret 0) (index $secret 0)) }}
+{{- end }}
+{{- end }}
+{{- if not $readPath }}
+{{- fail (printf "email.existingSecret.name is set, but the email settings these values describe read no password or key, so nothing would read the Secret %s. Clear email.existingSecret.name.%s" $secretName (toString (default "" $read.unread))) }}
+{{- end }}
+{{- else if $readPath }}
+{{- range $secret := $secrets }}
+{{- if and (eq (index $secret 0) $readPath) (not (trim (toString (default "" (index $secret 2))))) }}
+{{- fail (printf "%s is empty, and so is email.existingSecret.name: %s Set %s, or name the Secret that holds it in email.existingSecret.name." $readPath $read.why $readPath) }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- $secretKey := trim (toString (default "" $existing.key)) | default (toString (default "" $read.key)) }}
+
+- name: GLOBAL_EMAIL_SERVER_TYPE
+  value: {{ include "oneuptime.envValue" $email.serverType }}
+
+- name: GLOBAL_EMAIL_FROM_EMAIL
+  value: {{ include "oneuptime.envValue" $email.fromEmail }}
+
+- name: GLOBAL_EMAIL_FROM_NAME
+  value: {{ include "oneuptime.envValue" $email.fromName }}
+
+- name: GLOBAL_EMAIL_SMTP_TRANSPORT
+  value: {{ include "oneuptime.envValue" $smtp.transport }}
+
+- name: GLOBAL_EMAIL_SMTP_HOST
+  value: {{ include "oneuptime.envValue" $smtp.host }}
+
+- name: GLOBAL_EMAIL_SMTP_PORT
+  value: {{ include "oneuptime.envValue" $smtp.port }}
+
+- name: GLOBAL_EMAIL_SMTP_REQUIRE_TLS
+  value: {{ include "oneuptime.envValue" $smtp.requireTls }}
+
+- name: GLOBAL_EMAIL_SMTP_AUTH_TYPE
+  value: {{ include "oneuptime.envValue" $smtp.authType }}
+
+- name: GLOBAL_EMAIL_SMTP_USERNAME
+  value: {{ include "oneuptime.envValue" $smtp.username }}
+
+- name: GLOBAL_EMAIL_SMTP_OAUTH_PROVIDER_TYPE
+  value: {{ include "oneuptime.envValue" $oauth.providerType }}
+
+- name: GLOBAL_EMAIL_SMTP_OAUTH_CLIENT_ID
+  value: {{ include "oneuptime.envValue" $oauth.clientId }}
+
+- name: GLOBAL_EMAIL_SMTP_OAUTH_TOKEN_URL
+  value: {{ include "oneuptime.envValue" $oauth.tokenUrl }}
+
+- name: GLOBAL_EMAIL_SMTP_OAUTH_SCOPE
+  value: {{ include "oneuptime.envValue" $oauth.scope }}
+
+- name: GLOBAL_EMAIL_AMAZON_SES_AUTHENTICATION_TYPE
+  value: {{ include "oneuptime.envValue" $ses.authenticationType }}
+
+- name: GLOBAL_EMAIL_AMAZON_SES_ACCESS_KEY_ID
+  value: {{ include "oneuptime.envValue" $ses.accessKeyId }}
+
+- name: GLOBAL_EMAIL_AMAZON_SES_REGION
+  value: {{ include "oneuptime.envValue" $ses.region }}
+
+- name: GLOBAL_EMAIL_MAILGUN_DOMAIN
+  value: {{ include "oneuptime.envValue" $mailgun.domain }}
+
+- name: GLOBAL_EMAIL_MAILGUN_REGION
+  value: {{ include "oneuptime.envValue" $mailgun.region }}
+{{- range $secret := $secrets }}
+
+- name: {{ index $secret 1 }}
+  {{- if and $secretName (eq (index $secret 0) $readPath) }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ $secretName | quote }}
+      key: {{ $secretKey | quote }}
+  {{- else }}
+  value: {{ include "oneuptime.envValue" (index $secret 2) }}
+  {{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/*
+The password or key the email settings in the values read, as YAML: its
+path, the key it is read under from email.existingSecret by default, and why
+the settings need it. All empty when they read none: an SMTP server signed
+in to with no username, or without signing in; Amazon SES signed in as the
+server's IAM role. As the app reads them (ServerEmailEnvironment.read). For
+an SMTP server with no username, unread says how to sign in with the
+password a Secret holds: the username left out is the likelier mistake.
+*/}}
+{{- define "oneuptime.env.emailSecretRead" -}}
+{{- $email := .Values.email | default dict }}
+{{- $smtp := $email.smtp | default dict }}
+{{- $ses := $email.amazonSes | default dict }}
+{{- $serverType := trim (toString (default "" $email.serverType)) }}
+{{- $transport := trim (toString (default "" $smtp.transport)) }}
+{{- $authType := trim (toString (default "" $smtp.authType)) }}
+{{- $username := trim (toString (default "" $smtp.username)) }}
+{{- $sesAuthentication := trim (toString (default "" $ses.authenticationType)) }}
+{{- if and (eq $serverType "custom-smtp") (or (eq $transport "microsoft-graph") (eq $authType "oauth")) }}
+path: email.smtp.oauth.clientSecret
+key: smtpOAuthClientSecret
+why: "the OAuth app signs in with its client secret (for jwt-bearer, its private key)."
+{{- else if and (eq $serverType "custom-smtp") (ne $authType "none") $username }}
+path: email.smtp.password
+key: smtpPassword
+why: "the mail server is signed in to with email.smtp.username and a password. To send without signing in, set email.smtp.authType to none."
+{{- else if eq $serverType "sendgrid" }}
+path: email.sendgrid.apiKey
+key: sendgridApiKey
+why: "SendGrid sends nothing without it."
+{{- else if and (eq $serverType "amazon-ses") (ne $sesAuthentication "server-iam-role") }}
+path: email.amazonSes.secretAccessKey
+key: amazonSesSecretAccessKey
+why: "Amazon SES is signed in to with an access key, unless email.amazonSes.authenticationType is server-iam-role."
+{{- else if eq $serverType "mailgun" }}
+path: email.mailgun.apiKey
+key: mailgunApiKey
+why: "Mailgun sends nothing without it."
+{{- else if eq $serverType "postmark" }}
+path: email.postmark.serverToken
+key: postmarkServerToken
+why: "Postmark sends nothing without it."
+{{- else if eq $serverType "resend" }}
+path: email.resend.apiKey
+key: resendApiKey
+why: "Resend sends nothing without it."
+{{- else if and (eq $serverType "custom-smtp") (ne $authType "none") }}
+path: ""
+key: ""
+why: ""
+unread: " To sign in to the mail server with the password the Secret holds, set email.smtp.username too."
+{{- else }}
+path: ""
+key: ""
+why: ""
+{{- end }}
+{{- end }}
+
 {{- define "oneuptime.env.runtime" }}
 {{- $vapidPrivateKeySecret := include "oneuptime.vapid.existingSecretName" $ }}
 
@@ -790,6 +1113,8 @@ to `default`, and would render as unset - a relay again where billing is on.
 */}}
 - name: PUSH_NOTIFICATION_RELAY_SERVER_ENABLED
   value: {{ if kindIs "bool" ($.Values.pushNotification).relayServerEnabled }}{{ ternary "true" "false" ($.Values.pushNotification).relayServerEnabled | quote }}{{ else }}""{{ end }}
+{{- include "oneuptime.env.twilio" $ }}
+{{- include "oneuptime.env.email" $ }}
 
 - name: SLACK_APP_CLIENT_SECRET
   {{- if $.Values.slackApp.existingSecret }}
@@ -2124,8 +2449,14 @@ metadata:
     meta.helm.sh/release-name: {{ .Release.Name }}
     meta.helm.sh/release-namespace: {{ .Release.Namespace }}
 spec:
+  {{- /*
+    The cluster key the app compares (its ONEUPTIME_SECRET), from where the app
+    gets it: an inline oneuptimeSecret wins over a Secret of the user's, as in
+    oneuptime.env.oneuptimeSecret, and templates/secrets.yaml stores it in the
+    release Secret exactly as the pods get it (#7337).
+  */}}
   secretTargetRef:
-    {{- if (((.Values.externalSecrets).oneuptimeSecret).existingSecret).name }}
+    {{- if and (not .Values.oneuptimeSecret) (((.Values.externalSecrets).oneuptimeSecret).existingSecret).name }}
     - parameter: clusterkey
       name: {{ (((.Values.externalSecrets).oneuptimeSecret).existingSecret).name }}
       key: {{ (((.Values.externalSecrets).oneuptimeSecret).existingSecret).passwordKey }}

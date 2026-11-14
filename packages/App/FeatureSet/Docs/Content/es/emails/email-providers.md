@@ -8,6 +8,7 @@ Envía el correo de OneUptime a través de la API HTTPS de un proveedor de corre
 - [Mailgun](#mailgun): Una clave de API, el dominio de envío y su región.
 - [Postmark](#postmark): El token de API del servidor.
 - [Resend](#resend): Una clave de API con acceso de envío.
+- [Variables de entorno](#definir-el-correo-del-servidor-con-variables-de-entorno): Define el correo de un servidor autoalojado desde los values de Helm o `config.env`.
 - [Solución de problemas](#solución-de-problemas): Qué significa el rechazo de cada proveedor.
 :::
 
@@ -17,7 +18,7 @@ Envía el correo de OneUptime a través de la API HTTPS de un proveedor de corre
 @tab Proyecto
 En **Ajustes del proyecto > Notificaciones > Canales de notificación**, abre **Más ajustes** y haz clic en **Crear Configuración SMTP** en la tarjeta **Configuraciones de SMTP personalizado**. En el paso **Proveedor**, introduce un **Nombre** y elige el proveedor. El paso siguiente pide los ajustes de ese proveedor, y el paso **Remitente**, el **Correo del remitente** y el **Nombre de origen**. Una vez guardada la configuración, **Enviar correo de prueba** en su fila comprueba que funciona.
 @tab Instancia autoalojada
-En el Admin Dashboard, abre **Ajustes** y luego **Notificaciones > Correos**. En la tarjeta **Ajustes del servidor de correo**, haz clic en **Editar servidor** y elige el proveedor como **Tipo de servidor de correo electrónico**. Debajo aparece la tarjeta del proveedor, como **Ajustes de Amazon SES**: haz clic en su botón de edición, como **Editar Amazon SES**, y rellena los ajustes del proveedor y el paso **Remitente**. Mientras le falte algo, la tarjeta dice qué falta, y cada correo se rechaza indicando el ajuste que hay que rellenar.
+En el Admin Dashboard, abre **Ajustes** y luego **Notificaciones > Correos**. En la tarjeta **Ajustes del servidor de correo**, haz clic en **Editar servidor** y elige el proveedor como **Tipo de servidor de correo electrónico**. Debajo aparece la tarjeta del proveedor, como **Ajustes de Amazon SES**: haz clic en su botón de edición, como **Editar Amazon SES**, y rellena los ajustes del proveedor y el paso **Remitente**. Mientras le falte algo, la tarjeta dice qué falta, y cada correo se rechaza indicando el ajuste que hay que rellenar. Un servidor que se despliega desde código puede definirlos con variables de entorno: consulta [Definir el correo del servidor con variables de entorno](#definir-el-correo-del-servidor-con-variables-de-entorno).
 :::
 
 | Proveedor | Qué pide | Adónde envía OneUptime |
@@ -108,6 +109,67 @@ En Postmark, abre el servidor que envía, luego su pestaña **API Tokens**, y co
 ## Resend
 
 En Resend, añade y verifica tu dominio en **Domains**, y luego crea en **API Keys** una clave de API con acceso de envío. Introdúcela como **Clave de API** en el paso **Resend**, con un **Correo del remitente** de tu dominio verificado. El dominio de prueba propio de Resend solo envía a tu propia dirección.
+
+## Definir el correo del servidor con variables de entorno
+
+Un servidor autoalojado que se despliega desde código puede arrancar enviando correos, sin nada que configurar a mano: define sus ajustes de correo con variables de entorno, desde Terraform o desde lo que despliegue OneUptime. En cuanto `GLOBAL_EMAIL_SERVER_TYPE` está definida, el servidor envía sus propios correos como describen las variables. Los ajustes guardados en el Admin Dashboard en **Ajustes** y luego **Notificaciones > Correos** no se usan, y esa página muestra estos en modo de solo lectura, cada campo con la variable que lo define. Deja `GLOBAL_EMAIL_SERVER_TYPE` vacía para configurar el correo en el Admin Dashboard. Las configuraciones SMTP de los proyectos no se ven afectadas.
+
+| Variable | Valor de Helm | Qué contiene |
+| --- | --- | --- |
+| `GLOBAL_EMAIL_SERVER_TYPE` | `email.serverType` | `custom-smtp`, `sendgrid`, `amazon-ses`, `mailgun`, `postmark` o `resend`. Solo cuando está definida, OneUptime lee las demás variables |
+| `GLOBAL_EMAIL_FROM_EMAIL` | `email.fromEmail` | La dirección de la que sale cada correo |
+| `GLOBAL_EMAIL_FROM_NAME` | `email.fromName` | El nombre con el que sale cada correo. Obligatorio para `custom-smtp` y `sendgrid` |
+| `GLOBAL_EMAIL_SMTP_TRANSPORT` | `email.smtp.transport` | `smtp` (también si está vacía), o `microsoft-graph` para enviar por Microsoft Graph con la aplicación OAuth |
+| `GLOBAL_EMAIL_SMTP_HOST` | `email.smtp.host` | El servidor de correo, como `smtp.example.com` |
+| `GLOBAL_EMAIL_SMTP_PORT` | `email.smtp.port` | Su puerto, como `587` |
+| `GLOBAL_EMAIL_SMTP_REQUIRE_TLS` | `email.smtp.requireTls` | `true` para enviar solo por una conexión cifrada con un certificado válido, o `false` (también si está vacía) |
+| `GLOBAL_EMAIL_SMTP_AUTH_TYPE` | `email.smtp.authType` | `username-and-password` (también si está vacía), `oauth` o `none` |
+| `GLOBAL_EMAIL_SMTP_USERNAME` | `email.smtp.username` | El buzón con el que se inicia sesión, también para `oauth`. Déjalo vacío junto con la contraseña para enviar sin iniciar sesión |
+| `GLOBAL_EMAIL_SMTP_PASSWORD` | `email.smtp.password`, o un Secret indicado en `email.existingSecret.name` | Su contraseña |
+| `GLOBAL_EMAIL_SMTP_OAUTH_PROVIDER_TYPE` | `email.smtp.oauth.providerType` | `client-credentials` (también si está vacía) o `jwt-bearer` |
+| `GLOBAL_EMAIL_SMTP_OAUTH_CLIENT_ID` | `email.smtp.oauth.clientId` | El ID de cliente de la aplicación OAuth |
+| `GLOBAL_EMAIL_SMTP_OAUTH_CLIENT_SECRET` | `email.smtp.oauth.clientSecret`, o un Secret indicado en `email.existingSecret.name` | Su secreto de cliente; para `jwt-bearer`, su clave privada en formato PEM |
+| `GLOBAL_EMAIL_SMTP_OAUTH_TOKEN_URL` | `email.smtp.oauth.tokenUrl` | Su URL de token |
+| `GLOBAL_EMAIL_SMTP_OAUTH_SCOPE` | `email.smtp.oauth.scope` | Su scope |
+| `GLOBAL_EMAIL_SENDGRID_API_KEY` | `email.sendgrid.apiKey`, o un Secret indicado en `email.existingSecret.name` | La clave de API de SendGrid |
+| `GLOBAL_EMAIL_AMAZON_SES_AUTHENTICATION_TYPE` | `email.amazonSes.authenticationType` | `access-key` (también si está vacía), o `server-iam-role` para iniciar sesión con el rol de IAM del servidor |
+| `GLOBAL_EMAIL_AMAZON_SES_ACCESS_KEY_ID` | `email.amazonSes.accessKeyId` | El ID de la clave de acceso |
+| `GLOBAL_EMAIL_AMAZON_SES_SECRET_ACCESS_KEY` | `email.amazonSes.secretAccessKey`, o un Secret indicado en `email.existingSecret.name` | Su clave de acceso secreta |
+| `GLOBAL_EMAIL_AMAZON_SES_REGION` | `email.amazonSes.region` | La región en la que está verificado tu remitente, como `us-east-1` |
+| `GLOBAL_EMAIL_MAILGUN_API_KEY` | `email.mailgun.apiKey`, o un Secret indicado en `email.existingSecret.name` | La clave de API de Mailgun |
+| `GLOBAL_EMAIL_MAILGUN_DOMAIN` | `email.mailgun.domain` | El dominio de envío, como `mg.example.com` |
+| `GLOBAL_EMAIL_MAILGUN_REGION` | `email.mailgun.region` | `us` (también si está vacía) o `eu` |
+| `GLOBAL_EMAIL_POSTMARK_SERVER_TOKEN` | `email.postmark.serverToken`, o un Secret indicado en `email.existingSecret.name` | El token de API del servidor de Postmark |
+| `GLOBAL_EMAIL_RESEND_API_KEY` | `email.resend.apiKey`, o un Secret indicado en `email.existingSecret.name` | La clave de API de Resend |
+
+Solo se usan las variables que lee el tipo de servidor: las `GLOBAL_EMAIL_SMTP_` para `custom-smtp`, y las propias de un proveedor para ese proveedor. El log del servidor y el Admin Dashboard nombran cualquier otra que esté definida, como no usada.
+
+Con Helm, defínelas en `email` dentro de tus values. Para que la contraseña o la clave no quede en los values que Helm guarda con cada release, ponla en un Secret propio e indica ese Secret en `email.existingSecret.name`. El chart la lee de la clave indicada en `email.existingSecret.key` o, si no, de la clave que lleva su nombre: `smtpPassword`, `smtpOAuthClientSecret`, `sendgridApiKey`, `amazonSesSecretAccessKey`, `mailgunApiKey`, `postmarkServerToken` o `resendApiKey`.
+
+```bash
+kubectl create secret generic oneuptime-email --namespace oneuptime \
+  --from-literal=smtpPassword=YOUR_SMTP_PASSWORD
+```
+
+```yaml
+email:
+  serverType: custom-smtp
+  fromEmail: alerts@example.com
+  fromName: OneUptime
+  smtp:
+    host: smtp.example.com
+    port: 587
+    requireTls: true
+    username: alerts@example.com
+  existingSecret:
+    name: oneuptime-email
+```
+
+El chart rechaza otros valores de `email` sin `email.serverType`, unos ajustes sin la contraseña o la clave que leen, una contraseña o clave indicada a la vez en los values y en un Secret, y un Secret del que los ajustes no leen nada. Con Terraform, define los mismos valores en un `helm_release`, con la contraseña o la clave como valor sensible.
+
+Con Docker Compose, define los ajustes `GLOBAL_EMAIL_` en `config.env` y después ejecuta `npm run start` para volver a crear los contenedores.
+
+OneUptime lee las variables al arrancar. Si alguna es incorrecta, como un puerto que no es un número o una contraseña que falta, el servidor no envía correos hasta que se corrija; el log del servidor, los ajustes de correo del Admin Dashboard y la lista de comprobación de `/admin/setup` nombran la variable. Las contraseñas y las claves nunca se muestran. Para cambiar los ajustes, cambia las variables y reinicia OneUptime: el Admin Dashboard no los modifica.
 
 ## Solución de problemas
 

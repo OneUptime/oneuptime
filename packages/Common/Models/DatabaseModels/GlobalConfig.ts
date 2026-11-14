@@ -337,17 +337,24 @@ export default class GlobalConfig extends GlobalConfigModel {
     read: [],
     update: [],
   })
+  /*
+   * Stored encrypted, as every credential column of this row is (#7739):
+   * DatabaseService encrypts it on write and decrypts it on read, so every
+   * reader gets the password as it was written. Not unique, as none of
+   * them is: each write stores a different ciphertext, and the
+   * EncryptGlobalConfigCredentials data migration encrypts a value stored
+   * before. Tests/Models/DatabaseModels/GlobalConfigCredentialColumns
+   * holds the full list, and the columns left as they are with why.
+   */
   @TableColumn({
-    secret: true,
-    type: TableColumnType.ShortText,
+    type: TableColumnType.VeryLongText,
+    encrypted: true,
     title: "SMTP Password",
     description: "Password for your SMTP Server",
   })
   @Column({
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
+    type: ColumnType.VeryLongText,
     nullable: true,
-    unique: true,
   })
   public smtpPassword?: string = undefined;
 
@@ -500,8 +507,8 @@ export default class GlobalConfig extends GlobalConfigModel {
     update: [],
   })
   @TableColumn({
-    secret: true,
     type: TableColumnType.VeryLongText,
+    encrypted: true,
     title: "SMTP OAuth Client Secret",
     description:
       "The Client Secret from your OAuth application registration. Required for OAuth authentication. For Google service accounts, this is the private key from the JSON key file.",
@@ -592,16 +599,14 @@ export default class GlobalConfig extends GlobalConfigModel {
     update: [],
   })
   @TableColumn({
-    secret: true,
-    type: TableColumnType.ShortText,
+    type: TableColumnType.VeryLongText,
+    encrypted: true,
     title: "Twilio Auth Token",
     description: "Auth Token for your Twilio Account",
   })
   @Column({
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
+    type: ColumnType.VeryLongText,
     nullable: true,
-    unique: true,
   })
   public twilioAuthToken?: string = undefined;
 
@@ -765,17 +770,15 @@ export default class GlobalConfig extends GlobalConfigModel {
     update: [],
   })
   @TableColumn({
-    secret: true,
-    type: TableColumnType.ShortText,
+    type: TableColumnType.VeryLongText,
+    encrypted: true,
     title: "Gateway Signing Secret",
     description:
       "The secret each request to your gateway is signed with, in the X-OneUptime-Signature header.",
   })
   @Column({
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
+    type: ColumnType.VeryLongText,
     nullable: true,
-    unique: false,
   })
   public callAndSmsGatewaySecret?: string = undefined;
 
@@ -785,8 +788,8 @@ export default class GlobalConfig extends GlobalConfigModel {
     update: [],
   })
   @TableColumn({
-    secret: true,
     type: TableColumnType.VeryLongText,
+    encrypted: true,
     title: "Meta WhatsApp Access Token",
     description:
       "Access token generated from Meta for sending WhatsApp messages.",
@@ -794,7 +797,6 @@ export default class GlobalConfig extends GlobalConfigModel {
   @Column({
     type: ColumnType.VeryLongText,
     nullable: true,
-    unique: true,
   })
   public metaWhatsAppAccessToken?: string = undefined;
 
@@ -859,15 +861,14 @@ export default class GlobalConfig extends GlobalConfigModel {
     update: [],
   })
   @TableColumn({
-    secret: true,
     type: TableColumnType.VeryLongText,
+    encrypted: true,
     title: "Meta WhatsApp App Secret",
     description: "Facebook App Secret for the WhatsApp Business Platform.",
   })
   @Column({
     type: ColumnType.VeryLongText,
     nullable: true,
-    unique: true,
   })
   public metaWhatsAppAppSecret?: string = undefined;
 
@@ -877,17 +878,15 @@ export default class GlobalConfig extends GlobalConfigModel {
     update: [],
   })
   @TableColumn({
-    secret: true,
-    type: TableColumnType.ShortText,
+    type: TableColumnType.VeryLongText,
+    encrypted: true,
     title: "Meta WhatsApp Webhook Verify Token",
     description:
       "Verify token configured in Meta to validate webhook subscriptions.",
   })
   @Column({
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
+    type: ColumnType.VeryLongText,
     nullable: true,
-    unique: true,
   })
   public metaWhatsAppWebhookVerifyToken?: string = undefined;
 
@@ -897,8 +896,8 @@ export default class GlobalConfig extends GlobalConfigModel {
     update: [],
   })
   @TableColumn({
-    secret: true,
     type: TableColumnType.VeryLongText,
+    encrypted: true,
     title: "Telegram Bot Token",
     description:
       "Bot token issued by @BotFather for sending Telegram messages.",
@@ -906,7 +905,6 @@ export default class GlobalConfig extends GlobalConfigModel {
   @Column({
     type: ColumnType.VeryLongText,
     nullable: true,
-    unique: true,
   })
   public telegramBotToken?: string = undefined;
 
@@ -935,17 +933,15 @@ export default class GlobalConfig extends GlobalConfigModel {
     update: [],
   })
   @TableColumn({
-    secret: true,
-    type: TableColumnType.ShortText,
+    type: TableColumnType.VeryLongText,
+    encrypted: true,
     title: "Telegram Webhook Secret Token",
     description:
       "Secret token passed to Telegram setWebhook. Telegram sends it back in the X-Telegram-Bot-Api-Secret-Token header.",
   })
   @Column({
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
+    type: ColumnType.VeryLongText,
     nullable: true,
-    unique: true,
   })
   public telegramWebhookSecretToken?: string = undefined;
 
@@ -993,15 +989,14 @@ export default class GlobalConfig extends GlobalConfigModel {
     update: [],
   })
   @TableColumn({
-    secret: true,
-    type: TableColumnType.ShortText,
+    type: TableColumnType.VeryLongText,
+    encrypted: true,
     title: "Sendgrid API Key",
     description: "Sendgrid API Key",
   })
   @Column({
-    type: ColumnType.ShortText,
+    type: ColumnType.VeryLongText,
     nullable: true,
-    unique: true,
   })
   public sendgridApiKey?: string = undefined;
 
@@ -1385,6 +1380,13 @@ export default class GlobalConfig extends GlobalConfigModel {
     read: [],
     update: [],
   })
+  /*
+   * Stored as it is, not encrypted as the credentials above are: a request
+   * names the key, and ProjectAuthorization.isMasterApiKey finds the row
+   * by it (WHERE "masterApiKey" = the key). An encrypted value differs on
+   * every write, so no lookup by value could match it. It is a uuid
+   * column, too, which holds no ciphertext.
+   */
   @TableColumn({
     secret: true,
     type: TableColumnType.ObjectID,
@@ -1446,16 +1448,14 @@ export default class GlobalConfig extends GlobalConfigModel {
     update: [],
   })
   @TableColumn({
-    secret: true,
-    type: TableColumnType.ShortText,
+    type: TableColumnType.VeryLongText,
+    encrypted: true,
     title: "Enterprise License Key",
     description: "Enterprise license key stored after successful validation.",
   })
   @Column({
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
+    type: ColumnType.VeryLongText,
     nullable: true,
-    unique: true,
   })
   public enterpriseLicenseKey?: string = undefined;
 
@@ -1482,15 +1482,14 @@ export default class GlobalConfig extends GlobalConfigModel {
     update: [],
   })
   @TableColumn({
-    secret: true,
     type: TableColumnType.VeryLongText,
+    encrypted: true,
     title: "Enterprise License Token",
     description: "Signed JWT returned from license validation.",
   })
   @Column({
     type: ColumnType.VeryLongText,
     nullable: true,
-    unique: true,
   })
   public enterpriseLicenseToken?: string = undefined;
 

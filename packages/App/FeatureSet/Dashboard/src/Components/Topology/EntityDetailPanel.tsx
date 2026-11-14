@@ -1,4 +1,5 @@
 import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
+import DirectionArrow from "Common/UI/Components/DirectionArrow/DirectionArrow";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -928,7 +929,7 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
             )}
             onClick={open}
           >
-            {sentence} <span aria-hidden={true}>→</span>
+            {sentence} <DirectionArrow isDecorative={true} />
           </button>
         ) : (
           <p className="text-sm text-gray-900">{sentence}</p>
