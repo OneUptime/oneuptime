@@ -1,7 +1,10 @@
 import { GuidedSetupStepProgress } from "../GuidedSetupProgress";
 import PageMap from "../../../Utils/PageMap";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
-import { STATUS_PAGE_NAME_MIN_LENGTH as GUIDED_STATUS_PAGE_NAME_MIN_LENGTH } from "Common/Utils/GuidedSetup/StatusPageRecords";
+import {
+  getDefaultStatusPageName as getGuidedStatusPageName,
+  STATUS_PAGE_NAME_MIN_LENGTH as GUIDED_STATUS_PAGE_NAME_MIN_LENGTH,
+} from "Common/Utils/GuidedSetup/StatusPageRecords";
 import {
   SentenceOptions,
   Translator,
@@ -181,7 +184,8 @@ export const STATUS_PAGE_SETUP_COPY: {
 
 /*
  * THE NAME: the project's, to start with, so a new project's owner can
- * keep it and type nothing ("Acme Status").
+ * keep it and type nothing ("Acme Status"), in the reader's language. The
+ * one copy Ask AI names a page with too (#7247): Common/Utils/GuidedSetup.
  */
 export const getDefaultStatusPageName: (data: {
   translator: Translator;
@@ -190,14 +194,9 @@ export const getDefaultStatusPageName: (data: {
   translator: Translator;
   projectName: string | undefined;
 }): string => {
-  const projectName: string = (data.projectName || "").trim();
-
-  if (!projectName) {
-    return "";
-  }
-
-  return data.translator.translateTemplate("{{project}} Status", {
-    project: projectName,
+  return getGuidedStatusPageName({
+    translator: data.translator,
+    projectName: data.projectName,
   });
 };
 

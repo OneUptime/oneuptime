@@ -11,8 +11,8 @@ a language of their own:
 - the messages about a subscription: the link to confirm it, the welcome,
   and the link to manage it;
 - the status page's uptime report (`StatusPageService.sendEmailReport`),
-  its figures written in the language too (`Common/Utils/StatusPage/
-  ReportText.ts`);
+  its figures written in the language too
+  (`Common/Utils/StatusPage/ReportText.ts`);
 - a person's on-call pages, in the language on their account
   (`Common/Types/UserLanguage`, read by
   `Common/Server/Utils/Notification/UserLanguage.ts`): email, text message,
@@ -20,6 +20,15 @@ a language of their own:
   Mattermost messages - a first page, a page again, a page a person sent
   and an observer's page (`Common/Types/OnCallDutyPolicy/OnCallPageWords.ts`
   and the files beside it). Calls and WhatsApp stay English.
+- the words of a record the server makes for a person, which become the
+  project's own text once saved: a new monitor's default criteria - each
+  criteria's name and description, and the incident and alert it opens -
+  when Ask AI sets up a website monitor (`set_up_website_monitoring`), and
+  the name a status page starts with ("Acme Status") when Ask AI publishes
+  one the person did not name (`publish_status_page`), in the language the
+  person reads the Dashboard in, as the guided setups name them
+  (`ServerTranslation.getRecordWordsTranslator`). These sentences are the
+  Dashboard's: see "Sentences the Dashboard words" below.
 
 Everything else the server writes - the other emails, texts, calls and
 pushes to a project's own team, every API answer, feed items - is still
@@ -90,12 +99,28 @@ test report.
    template: `{{t "..."}}`, `title=(tt "New Incident: {{title}}" title=incidentTitle)`.
 2. From the repository's root: `npm run i18n:server-sync`. It writes `en.json`
    from the sources and gives every other file the new sentence in English.
-3. Translate it in all 16 files (`de fr es it pt nl da no sv ru ja ko zh-CN
-   zh-TW hi fa`): keep every `{{placeholder}}`, keep what the English ends
+3. Translate it in all 16 files
+   (`de fr es it pt nl da no sv ru ja ko zh-CN zh-TW hi fa`): keep every
+   `{{placeholder}}`, keep what the English ends
    with, use the words the file already uses, and the register the status
    page uses (German `Sie`, Spanish `usted`). A word that really reads the same
    in a language (`Status` in German) goes in `SameAsEnglish.json` under that
    language.
+
+## Sentences the Dashboard words
+
+A sentence the Dashboard writes too, for a record a person makes (a new
+monitor's default criteria, `Common/Types/Monitor/MonitorCriteriaInstance.ts`,
+and a new status page's name, `Common/Utils/GuidedSetup/StatusPageRecords.ts`),
+must read the same whichever way the record was made, so it is never
+worded here by hand. The files `DASHBOARD_SHARED_TEXT_SOURCES` lists
+(`Common/Scripts/I18n/ServerLocales.ts`) are worded in the Dashboard's locale
+files (`App/FeatureSet/Dashboard/src/Locales`), and `npm run i18n:server-sync`
+copies each language's wording of their sentences from there - the English
+while the Dashboard has none yet. After changing or translating such a
+sentence in the Dashboard, run `npm run i18n:server-sync` too. They are put
+together as the Dashboard puts them: their values are never set apart with
+isolate marks, which a record would keep.
 
 `packages/Common/Tests/Server/Locales/ServerLocales.test.ts` holds the files to
 all of this. `npm run i18n:validate` checks them with every frontend's.
