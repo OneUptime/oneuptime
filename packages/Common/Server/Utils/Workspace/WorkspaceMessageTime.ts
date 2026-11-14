@@ -23,8 +23,9 @@ import FeedMarkdown, {
  * shows as it is. Slack's text gets the Slack form once its Markdown is
  * converted (toSlack, in SlackUtil.getMarkdownBlocks) - the conversion would
  * escape the "<" of a Slack date written any earlier. Where a moment cannot
- * be shown in its reader's zone - a notification log - it reads as the time
- * in UTC (toPlainText).
+ * be shown in its reader's zone - a notification log, a Mattermost post
+ * (MattermostUtil.getMessageText) - it reads as the time in UTC
+ * (toPlainText).
  */
 
 // The Teams form, as time() writes it: whole seconds, in UTC.
@@ -106,7 +107,7 @@ export default class WorkspaceMessageTime {
 
   /*
    * The text with each moment as its time in UTC ("17:28 UTC"): for where
-   * no workspace shows it - a notification log.
+   * nothing shows it in the reader's zone - a notification log, Mattermost.
    */
   public static toPlainText(text: string): string {
     if (

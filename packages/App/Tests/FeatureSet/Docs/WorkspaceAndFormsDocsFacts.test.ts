@@ -630,8 +630,8 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
 
     /*
      * The Updates step is offered for exactly the rules that choose their
-     * updates (#7581): incidents, alerts, both kinds of episode and
-     * scheduled maintenance, which the row names.
+     * updates (#7581): incidents, alerts, both kinds of episode, scheduled
+     * maintenance and on-call policies (#7549), which the row names.
      */
     expect(table).toContain("...(isUpdatesEventType(props.eventType)");
     expect(
@@ -649,6 +649,7 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
         NotificationRuleEventType.IncidentEpisode,
         NotificationRuleEventType.AlertEpisode,
         NotificationRuleEventType.ScheduledMaintenance,
+        NotificationRuleEventType.OnCallDutyPolicy,
       ]),
     );
 
@@ -694,7 +695,7 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
       const updates: string = rows[3]?.[1] || "";
 
       expect(updates).toMatch(
-        /^Incidents, alerts, episodes and scheduled maintenance only: /,
+        /^Incidents, alerts, episodes, scheduled maintenance and on-call policies only: /,
       );
       expect(boldSpans(updates)).toEqual([
         EVERY_UPDATE_TITLE,
@@ -712,7 +713,40 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
         NotificationRuleUpdateKind.Postmortem,
       ]);
       expect(updates).toContain(
-        "for an incident, its resolution or reopening, severity changes, public notes and the postmortem.",
+        "for an incident, its resolution or reopening, severity changes, public notes and the postmortem;",
+      );
+
+      /*
+       * An on-call policy's key updates, which a new on-call policy rule
+       * starts with, where every other new rule starts on every update.
+       */
+      expect(
+        NotificationRuleUpdates.getKeyKinds(
+          NotificationRuleEventType.OnCallDutyPolicy,
+        ),
+      ).toEqual([
+        NotificationRuleUpdateKind.OnCallNow,
+        NotificationRuleUpdateKind.NobodyOnCall,
+      ]);
+      expect(
+        NotificationRuleUpdates.getNewRuleUpdatesToPost(
+          NotificationRuleEventType.OnCallDutyPolicy,
+        ),
+      ).toEqual(
+        NotificationRuleUpdates.getKeyKinds(
+          NotificationRuleEventType.OnCallDutyPolicy,
+        ),
+      );
+      expect(
+        NotificationRuleUpdates.getNewRuleUpdatesToPost(
+          NotificationRuleEventType.Incident,
+        ),
+      ).toBeUndefined();
+      expect(updates).toContain(
+        "a new rule starts with it, except an on-call policy's.",
+      );
+      expect(updates).toContain(
+        "for an on-call policy, who is on call now and when nobody is, which a new on-call policy rule starts with.",
       );
 
       // What every rule posts, whatever it picks.
