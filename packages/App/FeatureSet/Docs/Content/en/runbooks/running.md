@@ -39,9 +39,9 @@ A new run is **Scheduled** until a Worker picks it up and marks it **Running**. 
 
 There are five ways a runbook execution gets created:
 
-1. **Automatically via a rule**: a [runbook rule](/docs/runbooks/rules) starts it when a matching incident, alert or scheduled maintenance event is created. An AI rule can start one too; see [AI SRE](/docs/ai/ai-sre).
-2. **Manually from an event**: click **Run Runbook** on an incident, alert or scheduled maintenance event. The execution is attached to that event.
-3. **Manually from the runbook page**: click **Run Now** on a runbook's **Overview** page. The run is not attached to any incident, alert or scheduled maintenance event.
+1. **Automatically via a rule**: a [runbook rule](/docs/runbooks/rules) starts it when a matching incident, alert or maintenance event is created. An AI rule can start one too; see [AI SRE](/docs/ai/ai-sre).
+2. **Manually from an event**: click **Run Runbook** on an incident, alert or maintenance event. The execution is attached to that event.
+3. **Manually from the runbook page**: click **Run Now** on a runbook's **Overview** page. The run is not attached to any incident, alert or maintenance event.
 4. **On a schedule**: the runbook's schedule starts it at set times. See [Run on a schedule](/docs/runbooks/triggers#run-on-a-schedule).
 5. **From another tool**: a `POST` to the runbook's webhook URL starts it, with the values the call sends. See [Call the webhook](/docs/runbooks/triggers#call-the-webhook).
 
@@ -49,7 +49,7 @@ To start one by hand:
 
 :::tabs
 @tab From an event
-1. Open the incident, alert or scheduled maintenance event, and go to its **Runbooks** page.
+1. Open the incident, alert or maintenance event, and go to its **Runbooks** page.
 2. Click **Run Runbook**. The **Run a Runbook** dialog lists the project's runbooks that are switched on.
 3. Click **Run** next to the runbook. The run appears in the event's list: click **View** to open it.
 @tab From the runbook

@@ -35,7 +35,7 @@ When a rule fires, for each runbook it names:
 1. The runbook is loaded.
 2. Its steps are **snapshotted** onto a new runbook execution.
 3. The execution is enqueued to the Runbook queue worker.
-4. The execution is linked to the source entity: it shows up on the incident's, alert's or scheduled maintenance event's **Runbooks** page and on the runbook's **Executions** list.
+4. The execution is linked to the source entity: it shows up on the incident's, alert's or maintenance event's **Runbooks** page and on the runbook's **Executions** list.
 
 You can see every run, rule-triggered or not, under **Runbooks → Executions**, filtered by status, runbook or start date.
 
@@ -72,12 +72,12 @@ On **Runbooks**, choose one or more **Runbooks to Start**. The rule's **Name** f
 
 ## Conditions
 
-Each condition compares one thing about the incident, alert or scheduled maintenance event with a value you give. A runbook rule offers the same criteria as the other rules of its product: an incident runbook rule matches on what an incident privacy or on-call rule matches on.
+Each condition compares one thing about the incident, alert or maintenance event with a value you give. A runbook rule offers the same criteria as the other rules of its product: an incident runbook rule matches on what an incident privacy or on-call rule matches on.
 
 | Criterion | What it checks |
 | --- | --- |
-| **Monitors** | The monitors the incident or the scheduled maintenance event affects, or the monitor that raised the alert. |
-| **Incident Severities** / **Alert Severities** | The incident's or the alert's severity. Scheduled maintenance events have no severity, so their rules don't offer it. |
+| **Monitors** | The monitors the incident or the maintenance event affects, or the monitor that raised the alert. |
+| **Incident Severities** / **Alert Severities** | The incident's or the alert's severity. Maintenance events have no severity, so their rules don't offer it. |
 | **Incident Labels** / **Alert Labels** / **Event Labels** | The labels on the incident, alert or event itself, including the ones label rules attached when it was created. |
 | **Monitor Labels** | The labels on its monitors. Label your monitors `production` or `staging` to run a runbook for one environment only. |
 | **Incident Title** / **Alert Title** / **Event Title** | Its title. |

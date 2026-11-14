@@ -49,7 +49,7 @@ Each number counts something, says whether that needs you, and opens the list be
 | **Active incidents** | Incidents that are not resolved | **All clear** | **Incidents → Active Incidents** |
 | **Active alerts** | Alerts that are not resolved | **All clear** | **Alerts → Active Alerts** |
 | **Not operational monitors** | Monitors whose status is not an operational one. Archived monitors, and monitors with monitoring turned off, are left out. | **All operational** | **Monitors → Not Operational** |
-| **Ongoing maintenance** | Scheduled maintenance events in progress | **None ongoing** | **Scheduled Maintenance → Ongoing Maintenance Events** |
+| **Ongoing maintenance** | Maintenance events in progress | **None ongoing** | **Scheduled Maintenance → Ongoing Maintenance Events** |
 | **SLOs at risk** | Turned-on SLOs that are at risk or have used up their error budget | **Budgets healthy** | **SLOs** |
 
 A count above zero reads **Needs attention**, or **In progress** and **Budget burning** for maintenance and SLOs. While any SLO is at risk, **SLOs at risk** opens the **SLOs** list filtered to those SLOs. A project with no monitors yet sees **No monitors yet**, and one with no SLOs sees **No SLOs yet**: an empty project is not the same as a healthy one. Those two then open the **Monitors** and **SLOs** lists, where you create one.
@@ -142,7 +142,7 @@ Over every page's title, a trail such as *Project › Docker › Settings › Ow
 - **Columns**, in a list's **⋯** menu, picks the columns the list shows and their order, and keeps them for you in this browser. A Project Owner or a Project Admin can tick **Show these columns to everyone in this project** there too: anyone who hasn't picked their own columns for that list sees them, and **Reset to project default** takes your own back to them.
 - **Compact rows**, in the same menu, draws every list's rows shorter, so a long list shows about a fifth more of them. It is kept in this browser.
 - **On a phone, or in a card too narrow for its rows, a list is drawn as cards, one per row.** The band over them says the order they are in, such as **Sorted by Name**: press it to pick the column to sort by, and **Ascending** or **Descending**.
-- **An incident's pages lead with its number.** Its heading, its step in the trail and the browser tab read `INC-42 Checkout is down`, and so do the dialogs that name it, so incidents that share a title are told apart. Alerts, scheduled maintenance events and episodes do the same.
+- **An incident's pages lead with its number.** Its heading, its step in the trail and the browser tab read `INC-42 Checkout is down`, and so do the dialogs that name it, so incidents that share a title are told apart. Alerts, maintenance events and episodes do the same.
 
 ## Searching for a page, a setting or an action
 

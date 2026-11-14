@@ -6576,7 +6576,7 @@ const products: Dictionary<Product> = {
             oneuptimeColumn: "tick",
           },
           {
-            title: "Scheduled maintenance events",
+            title: "Scheduled maintenance",
             description: "Publish planned maintenance windows.",
             productColumn: "tick",
             oneuptimeColumn: "tick",
@@ -11720,7 +11720,7 @@ const products: Dictionary<Product> = {
             oneuptimeColumn: "tick",
           },
           {
-            title: "Scheduled maintenance events",
+            title: "Scheduled maintenance",
             description: "Publish planned maintenance windows.",
             productColumn: "",
             oneuptimeColumn: "tick",
@@ -14302,7 +14302,7 @@ const products: Dictionary<Product> = {
             oneuptimeColumn: "tick",
           },
           {
-            title: "Scheduled maintenance events",
+            title: "Scheduled maintenance",
             description: "Announce planned maintenance windows.",
             productColumn: "",
             oneuptimeColumn: "tick",

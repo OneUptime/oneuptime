@@ -202,7 +202,7 @@ describe("Pages and lists says an event's pages lead with its number", () => {
       "Its heading, its step in the trail and the browser tab read `INC-42 Checkout is down`",
     );
     expect(SECTION).toContain(
-      "Alerts, scheduled maintenance events and episodes do the same.",
+      "Alerts, maintenance events and episodes do the same.",
     );
   });
 

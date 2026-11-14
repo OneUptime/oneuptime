@@ -166,10 +166,7 @@ describe("the English guides", () => {
     "## Telling status page subscribers about a state change",
   );
   const subscribers: string = readGuide("en", SUBSCRIBERS_PAGE);
-  const maintenance: string = sectionOf(
-    subscribers,
-    "### Scheduled maintenance events",
-  );
+  const maintenance: string = sectionOf(subscribers, "### Maintenance events");
   const noteTemplates: string = sectionOf(
     subscribers,
     "### The state in note templates",

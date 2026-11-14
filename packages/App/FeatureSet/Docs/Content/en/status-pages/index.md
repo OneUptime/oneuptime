@@ -32,7 +32,7 @@ flowchart TB
 
 Status pages live under **Status Pages** in the **Products** menu of the top bar, among the essentials. Everything on this page is per-status-page: a project can run as many of them as it likes — a public one for customers, a private one for an internal audience, a per-region one for a specific market.
 
-The page shows the monitors you put on it as its resources, and incidents reach it through those monitors. [Scheduled maintenance events](/docs/scheduled-maintenance/index) and announcements reach it directly: each one names the status pages it is shown on. Visitors read the page, and subscribers are told about each change on the channels they picked.
+The page shows the monitors you put on it as its resources, and incidents reach it through those monitors. [Maintenance events](/docs/scheduled-maintenance/index) and announcements reach it directly: each one names the status pages it is shown on. Visitors read the page, and subscribers are told about each change on the channels they picked.
 
 ## At a glance
 
@@ -226,11 +226,11 @@ Three ways to surface status somewhere other than the page itself.
 
 **Embedded status badge.** On **Status Pages → your page → Advanced → Embedded Status**, turn on **Enable Embedded Status Badge** (`enableEmbeddedOverallStatus`, off by default). The first time you turn it on, the badge gets its token (`embeddedOverallStatusToken`), and the **Embed the Badge** card shows the badge, served from `/api/status-page/badge/<status-page-id>?token=<token>`, with its **HTML** and **Markdown, linked to the status page** to copy, so you can drop the current overall status into your docs, your app's footer or a marketing page. The Markdown links to the page's first live custom domain, one with a certificate you uploaded included, or to its address on OneUptime while none is live. The token waits on the **Security Token** card under **More settings**, with **Regenerate Token** for when the link was shared too widely.
 
-**RSS feed.** Every status page serves `/rss` — a feed titled "{page title} Updates", with the page's **Page Title** from **Branding**, or its name when it has none, and whose items are prefixed `Incident: `, `Announcement: ` and `Scheduled Maintenance: `. Each item is dated as the page dates it: an incident by when it was declared, an announcement by when it went up, and a scheduled maintenance event by when it starts, its description opening with its window. Handy for people who would rather pipe your updates into a reader or a chat bot than subscribe by email.
+**RSS feed.** Every status page serves `/rss` — a feed titled "{page title} Updates", with the page's **Page Title** from **Branding**, or its name when it has none, and whose items are prefixed `Incident: `, `Announcement: ` and `Scheduled Maintenance: `. Each item is dated as the page dates it: an incident by when it was declared, an announcement by when it went up, and a maintenance event by when it starts, its description opening with its window. Handy for people who would rather pipe your updates into a reader or a chat bot than subscribe by email.
 
 **Maintenance calendar.** Every status page also serves `/maintenance.ics`: the scheduled maintenance it shows, as a calendar that Google Calendar, Apple Calendar or Outlook can subscribe to. Visitors add it with **Subscribe to calendar** on the page's **Scheduled Maintenance** page, and a single event with **Add to calendar** on the event's own page. A private page's calendar is empty, since a calendar app cannot sign in. See [Maintenance Calendar](/docs/scheduled-maintenance/calendar#a-status-pages-calendar).
 
-If you'd rather pull the data yourself, the status page is backed by public read endpoints for the overview, incidents, scheduled maintenance events, announcements and episodes — see [Public API](/docs/status-pages/public-api).
+If you'd rather pull the data yourself, the status page is backed by public read endpoints for the overview, incidents, maintenance events, announcements and episodes — see [Public API](/docs/status-pages/public-api).
 
 ## Archiving a status page
 

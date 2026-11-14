@@ -41,7 +41,7 @@ On **Databases**, choose **Recommended Alerts** for a database. Each recommendat
 
 Pick severities, on-call policies, owners and labels when you create them. From then on they are ordinary monitors: edit them, mute them, or put them on a status page like any other.
 
-A backfill or a migration should page nobody. Name the database under **Data Observability Databases** on a [scheduled maintenance event](/docs/scheduled-maintenance/index), or put its database server in one, and its data alerts stay quiet while the event is on.
+A backfill or a migration should page nobody. Name the database under **Data Observability Databases** on a [maintenance event](/docs/scheduled-maintenance/index), or put its database server in one, and its data alerts stay quiet while the event is on.
 
 ## Metrics every table writes
 

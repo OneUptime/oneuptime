@@ -59,11 +59,11 @@ Copy the link from the calendar's own sharing settings: in Google Calendar, its 
 
 Each calendar keeps its events from 90 days back to a year ahead, up to 2,000 of them, the nearest today first. A calendar larger than 5 MB is not read. Repeating events, their exceptions and their time zones are read as the calendar app wrote them, and an event that lasts all day stays on its date in every time zone. A project can have up to 20 external calendars, and one view of the calendar draws up to 500 of their events.
 
-The roles that create, edit and delete scheduled maintenance events add, change and remove external calendars, and anyone who can read the events sees them on the calendar. OneUptime never reads an address on its own server or a cloud metadata address, and OneUptime Cloud refuses addresses on a private network. A self-hosted server can read a calendar on your own network, unless `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` is `true`.
+The roles that create, edit and delete maintenance events add, change and remove external calendars, and anyone who can read the events sees them on the calendar. OneUptime never reads an address on its own server or a cloud metadata address, and OneUptime Cloud refuses addresses on a private network. A self-hosted server can read a calendar on your own network, unless `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` is `true`.
 
 ## The team's calendar link
 
-**Subscribe to calendar**, under the calendar, opens the project's calendar link: one secret iCalendar (`.ics`) link that puts every scheduled maintenance event of the project in Google Calendar, Outlook, Apple Calendar or any app that subscribes to a calendar by URL.
+**Subscribe to calendar**, under the calendar, opens the project's calendar link: one secret iCalendar (`.ics`) link that puts every maintenance event of the project in Google Calendar, Outlook, Apple Calendar or any app that subscribes to a calendar by URL.
 
 :::steps
 ### Publish the link
@@ -86,7 +86,7 @@ https://<your host>/api/scheduled-maintenance-calendar/project/<token>/maintenan
 ```
 
 > [!WARNING]
-> Anyone with the link sees every scheduled maintenance event of the project, without signing in. Treat it like a password, and regenerate it if it is shared by mistake.
+> Anyone with the link sees every maintenance event of the project, without signing in. Treat it like a password, and regenerate it if it is shared by mistake.
 
 ### Who can see the link
 
@@ -94,9 +94,9 @@ The link shows every event of the project, so the dialog shows it only to people
 
 | Action | Who can do it |
 | --- | --- |
-| Copy the link | Anyone who can read every scheduled maintenance event of the project |
-| **Publish link** | Anyone who can also create scheduled maintenance events |
-| **Regenerate link**, **Disable link** | Anyone who can also edit scheduled maintenance events |
+| Copy the link | Anyone who can read every maintenance event of the project |
+| **Publish link** | Anyone who can also create maintenance events |
+| **Regenerate link**, **Disable link** | Anyone who can also edit maintenance events |
 
 ### Manage the link
 
@@ -158,6 +158,6 @@ The reason is under **Not working** in its **Status**: no calendar at the link, 
 
 :::cards
 - [Creating Maintenance Events](/docs/scheduled-maintenance/creating-events): The form, field by field, and what happens next.
-- [Subscribers & Announcements](/docs/status-pages/subscribers#scheduled-maintenance-events): What a status page's subscribers are told about maintenance.
+- [Subscribers & Announcements](/docs/status-pages/subscribers#maintenance-events): What a status page's subscribers are told about maintenance.
 - [Calendar Feeds](/docs/on-call/calendar-feeds): The same kind of link, for on-call shifts.
 :::

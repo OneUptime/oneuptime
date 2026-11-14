@@ -255,7 +255,7 @@ Some changes always resolve what a rule has open, whatever its auto-resolve sett
 
 ## Scheduled maintenance
 
-While any monitor of the SLO is in an ongoing scheduled maintenance event, its burn rate rules raise no alert and declare no incident: planned work should not page anyone. What the rules already have open still resolves as usual. The time still counts toward the error budget, according to the SLO's downtime statuses.
+While any monitor of the SLO is in an ongoing maintenance event, its burn rate rules raise no alert and declare no incident: planned work should not page anyone. What the rules already have open still resolves as usual. The time still counts toward the error budget, according to the SLO's downtime statuses.
 
 ## The SLO feed
 
@@ -271,8 +271,8 @@ A rule fires only once the SLO has a full long window of monitoring history: an 
 Auto-resolve follows the long window: once the long-window burn rate drops below the threshold, the alert resolves. Give the rule a longer long window, or turn off **Auto Resolve Alert** and resolve the alert by hand.
 :::
 
-:::details Nothing fired during a scheduled maintenance event
-Burn rate rules stay quiet while any of the SLO's monitors is in an ongoing scheduled maintenance event. The downtime still counts toward the budget.
+:::details Nothing fired during a maintenance event
+Burn rate rules stay quiet while any of the SLO's monitors is in an ongoing maintenance event. The downtime still counts toward the budget.
 :::
 
 :::details Is there a minimum sample count?
