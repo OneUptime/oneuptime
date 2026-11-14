@@ -60,6 +60,10 @@ import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import {
+  AI_RUN_REFUSALS,
+  AiRunRefusalCode,
+} from "../../../Types/AI/AiRunRefusal";
+import {
   getRecordAiTokenLimitMessage,
   getRecordAiTokenLimitRunError,
   RECORD_AI_TOKEN_LIMIT_KINDS,
@@ -76,17 +80,25 @@ import {
 } from "../../Helpers/DashboardLocales";
 
 /*
- * A REFUSAL IN THE READER'S LANGUAGE (#7157's UI review).
+ * A REFUSAL IN THE READER'S LANGUAGE (#7157's UI review, #7359).
  *
- * When an incident's or alert's own daily AI token limit stops a run, the
- * AI card says so in the reader's language. Pressing Try again (or
- * Investigate now) while the limit still stops it is refused by the
- * server in the very sentence the card says - "The Daily Incident AI Token
- * Limit is set to 0, ..." - which the Dashboard words in every language.
- * The refusal reads in the reader's language too, never English under a
- * German or an Arabic notice (describeAiRunRefusal). A refusal the
- * Dashboard does not word stays in the server's English, laid out by its
- * own first letter.
+ * Pressing Try again or Investigate now on an AI card can be refused: AI
+ * is off, there is no LLM provider, the investigation is running already,
+ * a limit stops it. The server answers with its English sentence and the
+ * refusal's code beside it (Types/AI/AiRunRefusal), and the card says the
+ * code's sentence in the reader's language - never English under a
+ * German or an Arabic notice (describeAiRunRefusal). Every code is worded
+ * in every language. A refusal without a code (a 403, an older server) is
+ * worded by its sentence when the Dashboard words it - a record's own
+ * daily AI token limit says the same sentence on the card as in the
+ * refusal - and one the Dashboard does not word stays in the server's
+ * English.
+ *
+ * A worded refusal reads as the page does, even when it starts with a
+ * name in Latin letters: Arabic and Persian say "OneUptime AI ..." first,
+ * and laid out by that first letter (dir="auto") the sentence ran from the
+ * left on a page read from the right, its words out of order. Only an
+ * English refusal on such a page reads from the left (dir="ltr").
  */
 
 const EN: Record<string, string> = readDashboardLocale("en");
@@ -112,13 +124,81 @@ const RECORD_LIMIT_REFUSALS: ReadonlyArray<{
 
 // A refusal no Dashboard key words: the server's English, as it came.
 const UNWORDED_REFUSAL: string =
-  "This incident's investigation is queued or running already.";
+  "The investigation could not start: the moon is full tonight.";
+
+const REFUSAL_CODES: ReadonlyArray<AiRunRefusalCode> =
+  Object.values(AiRunRefusalCode);
 
 const OTHER_LANGUAGES: ReadonlyArray<string> = DASHBOARD_LANGUAGES.filter(
   (language: string): boolean => {
     return language !== "en";
   },
 );
+
+describe("describeAiRunRefusal by the refusal's code (#7359)", () => {
+  test("every refusal code's sentence is a key of the Dashboard's English", () => {
+    for (const code of REFUSAL_CODES) {
+      expect({ code, english: EN[AI_RUN_REFUSALS[code]] }).toEqual({
+        code,
+        english: AI_RUN_REFUSALS[code],
+      });
+    }
+  });
+
+  test.each(OTHER_LANGUAGES)(
+    "%s: every refusal code is worded, and the card says its words",
+    (language: string) => {
+      const translator: Translator = dashboardTranslator(language);
+      const words: Record<string, string> = readDashboardLocale(language);
+
+      for (const code of REFUSAL_CODES) {
+        const sentence: string = AI_RUN_REFUSALS[code];
+
+        expect({
+          code,
+          worded: isWordedInDashboardLocale(sentence, language),
+        }).toEqual({ code, worded: true });
+        expect({
+          code,
+          said: describeAiRunRefusal(sentence, translator, code),
+        }).toEqual({ code, said: words[sentence] });
+      }
+    },
+  );
+
+  test("English says each code's sentence as the server wrote it", () => {
+    const translator: Translator = dashboardTranslator("en");
+
+    for (const code of REFUSAL_CODES) {
+      expect(
+        describeAiRunRefusal(AI_RUN_REFUSALS[code], translator, code),
+      ).toBe(AI_RUN_REFUSALS[code]);
+    }
+  });
+
+  test("the code says which sentence, whatever English came beside it (an older server's words)", () => {
+    const words: Record<string, string> = readDashboardLocale("de");
+
+    expect(
+      describeAiRunRefusal(
+        "AI is turned off for this project (Project Settings → AI → AI Features).",
+        dashboardTranslator("de"),
+        AiRunRefusalCode.AiOff,
+      ),
+    ).toBe(words[AI_RUN_REFUSALS[AiRunRefusalCode.AiOff]]);
+  });
+
+  test("without a code, a sentence the Dashboard words - a 403's - is worded by its text", () => {
+    const sentence: string =
+      AI_RUN_REFUSALS[AiRunRefusalCode.IncidentTryAgainNotAllowed];
+
+    for (const language of OTHER_LANGUAGES) {
+      expect(
+        describeAiRunRefusal(sentence, dashboardTranslator(language)),
+      ).toBe(readDashboardLocale(language)[sentence]);
+    }
+  });
+});
 
 describe("describeAiRunRefusal", () => {
   test("every refusal a record's limit gives is a key of the Dashboard's English", () => {
@@ -181,8 +261,13 @@ describe("on the AI card, in German and in Arabic", () => {
   );
   const DE: Record<string, string> = readDashboardLocale("de");
   const AR: Record<string, string> = readDashboardLocale("ar");
+  const FA: Record<string, string> = readDashboardLocale("fa");
 
   function wordsOf(language: string): Record<string, string> {
+    if (language === "fa") {
+      return FA;
+    }
+
     return language === "de" ? DE : AR;
   }
 
@@ -190,7 +275,11 @@ describe("on the AI card, in German and in Arabic", () => {
     await i18next.use(initReactI18next).init({
       lng: "de",
       fallbackLng: "en",
-      resources: { de: { translation: DE }, ar: { translation: AR } },
+      resources: {
+        de: { translation: DE },
+        ar: { translation: AR },
+        fa: { translation: FA },
+      },
       interpolation: { escapeValue: false },
       keySeparator: false,
       nsSeparator: false,
@@ -222,7 +311,9 @@ describe("on the AI card, in German and in Arabic", () => {
     });
   }
 
-  async function pressTryAgain(refusal: string): Promise<HTMLElement> {
+  async function pressTryAgain(
+    refusal: string | JSONObject,
+  ): Promise<HTMLElement> {
     render(
       <AiRunFailureNotice
         title="The investigation stopped before it could report."
@@ -232,7 +323,11 @@ describe("on the AI card, in German and in Arabic", () => {
           usedTokensToday: 0,
         })}
         onTryAgain={async (): Promise<void> => {
-          throw new HTTPErrorResponse(400, { message: refusal }, {});
+          throw new HTTPErrorResponse(
+            400,
+            typeof refusal === "string" ? { message: refusal } : refusal,
+            {},
+          );
         }}
         testId="investigation-error"
       />,
@@ -265,19 +360,139 @@ describe("on the AI card, in German and in Arabic", () => {
         wordsOf(data.language)[data.refusal.message]!,
       );
       expect(said.textContent).not.toContain("Token Limit");
-      expect(said).toHaveAttribute("dir", "auto");
+      // The reader's own words read as the page does.
+      expect(said).not.toHaveAttribute("dir");
+    },
+  );
+
+  /*
+   * #7359: the server's answer carries the code beside its English: the
+   * card says the code's sentence, in German and in Arabic.
+   */
+  test.each([
+    { language: "de", code: AiRunRefusalCode.NoProviderToInvestigate },
+    { language: "de", code: AiRunRefusalCode.IncidentInvestigationRunning },
+    { language: "ar", code: AiRunRefusalCode.NoProviderToInvestigate },
+    { language: "ar", code: AiRunRefusalCode.IncidentInvestigationRunning },
+  ])(
+    "$language: Try again refused with $code says it in the reader's language",
+    async (data: { language: string; code: AiRunRefusalCode }) => {
+      await inLanguage(data.language);
+
+      const english: string = AI_RUN_REFUSALS[data.code];
+      const said: HTMLElement = await pressTryAgain({
+        message: english,
+        refusalCode: data.code,
+      });
+
+      expect(said).toHaveAttribute("role", "alert");
+      expect(said).toHaveTextContent(wordsOf(data.language)[english]!);
+      expect(said.textContent).not.toContain(english);
+      expect(said.textContent).not.toMatch(/\b(?:project|investigation)\b/);
+      expect(said).not.toHaveAttribute("dir");
+    },
+  );
+
+  /*
+   * The card reads the code, not only the English: a server whose
+   * sentence was reworded since (here Investigate now's words before
+   * #7359) is still said in the reader's language, by the code beside it.
+   */
+  test.each([
+    {
+      language: "de",
+      code: AiRunRefusalCode.NoProviderToInvestigate,
+      english:
+        "This project has no LLM provider OneUptime AI can use (Project Settings → AI → LLM Providers).",
+    },
+    {
+      language: "ar",
+      code: AiRunRefusalCode.AiOff,
+      english:
+        "AI is turned off for this project (Project Settings → AI → AI Features).",
+    },
+  ])(
+    "$language: Try again says the code's words whatever English came beside it",
+    async (data: {
+      language: string;
+      code: AiRunRefusalCode;
+      english: string;
+    }) => {
+      await inLanguage(data.language);
+
+      // Not a sentence the Dashboard words by its text.
+      expect(EN[data.english]).toBeUndefined();
+
+      const said: HTMLElement = await pressTryAgain({
+        message: data.english,
+        refusalCode: data.code,
+      });
+
+      expect(said).toHaveTextContent(
+        wordsOf(data.language)[AI_RUN_REFUSALS[data.code]]!,
+      );
+      expect(said.textContent).not.toContain(data.english);
     },
   );
 
   test.each(["de", "ar"])(
-    "%s: a refusal the Dashboard does not word stays in the server's English, laid out by its own first letter",
+    "%s: a code this Dashboard does not know (a newer server's) says the server's English",
     async (language: string) => {
       await inLanguage(language);
 
-      const said: HTMLElement = await pressTryAgain(UNWORDED_REFUSAL);
+      const said: HTMLElement = await pressTryAgain({
+        message: UNWORDED_REFUSAL,
+        refusalCode: "moon_is_full",
+      });
 
       expect(said).toHaveTextContent(UNWORDED_REFUSAL);
-      expect(said).toHaveAttribute("dir", "auto");
+    },
+  );
+
+  test("de: a refusal the Dashboard does not word stays in the server's English, read as the page reads", async () => {
+    await inLanguage("de");
+
+    const said: HTMLElement = await pressTryAgain(UNWORDED_REFUSAL);
+
+    expect(said).toHaveTextContent(UNWORDED_REFUSAL);
+    expect(said).not.toHaveAttribute("dir");
+  });
+
+  test("ar: a refusal the Dashboard does not word stays in the server's English, read from the left so its full stop stays at its end", async () => {
+    await inLanguage("ar");
+
+    const said: HTMLElement = await pressTryAgain(UNWORDED_REFUSAL);
+
+    expect(said).toHaveTextContent(UNWORDED_REFUSAL);
+    expect(said).toHaveAttribute("dir", "ltr");
+  });
+
+  /*
+   * Arabic and Persian say "OneUptime AI ..." first: laid out by that
+   * first letter (dir="auto"), the whole sentence ran from the left on a
+   * page read from the right. Each reads as the page does.
+   */
+  test.each([
+    { language: "ar", code: AiRunRefusalCode.AiOff },
+    { language: "fa", code: AiRunRefusalCode.AiOff },
+    { language: "fa", code: AiRunRefusalCode.AlreadyInvestigated },
+  ])(
+    "$language: Try again refused with $code, a sentence that starts with OneUptime AI, reads from the right",
+    async (data: { language: string; code: AiRunRefusalCode }) => {
+      await inLanguage(data.language);
+
+      const english: string = AI_RUN_REFUSALS[data.code];
+      const words: string = wordsOf(data.language)[english]!;
+      // The case dir="auto" got wrong: a Latin first letter.
+      expect(words.startsWith("OneUptime AI ")).toBe(true);
+
+      const said: HTMLElement = await pressTryAgain({
+        message: english,
+        refusalCode: data.code,
+      });
+
+      expect(said).toHaveTextContent(words);
+      expect(said).not.toHaveAttribute("dir");
     },
   );
 
@@ -306,13 +521,17 @@ describe("on the AI card, in German and in Arabic", () => {
 
   async function pressInvestigateNow(
     language: string,
-    refusal: string,
+    refusal: string | JSONObject,
   ): Promise<HTMLElement> {
     postMock.mockImplementation(async (request: any) => {
       if (
         request.url.toString().endsWith("/ai-investigation/investigate-now")
       ) {
-        return new HTTPErrorResponse(400, { message: refusal }, {});
+        return new HTTPErrorResponse(
+          400,
+          typeof refusal === "string" ? { message: refusal } : refusal,
+          {},
+        );
       }
 
       return waitingResponse();
@@ -355,12 +574,101 @@ describe("on the AI card, in German and in Arabic", () => {
     },
   );
 
-  test("ar: an Investigate now refusal the Dashboard does not word stays English, laid out by its own first letter", async () => {
+  test.each([
+    { language: "de", code: AiRunRefusalCode.NoProviderToInvestigate },
+    { language: "de", code: AiRunRefusalCode.AlreadyInvestigated },
+    { language: "ar", code: AiRunRefusalCode.NoProviderToInvestigate },
+    { language: "ar", code: AiRunRefusalCode.AlreadyInvestigated },
+  ])(
+    "$language: Investigate now refused with $code says it in the reader's language",
+    async (data: { language: string; code: AiRunRefusalCode }) => {
+      await inLanguage(data.language);
+
+      const english: string = AI_RUN_REFUSALS[data.code];
+      const said: HTMLElement = await pressInvestigateNow(data.language, {
+        message: english,
+        refusalCode: data.code,
+      });
+
+      expect(said).toHaveAttribute("role", "alert");
+      expect(said).toHaveTextContent(wordsOf(data.language)[english]!);
+      expect(said.textContent).not.toContain(english);
+    },
+  );
+
+  test.each([
+    {
+      language: "de",
+      code: AiRunRefusalCode.ProjectDailyLimitReached,
+      english:
+        "This project has reached its own daily AI limit. It resets at midnight UTC.",
+    },
+    {
+      language: "ar",
+      code: AiRunRefusalCode.NoProviderToInvestigate,
+      english:
+        "This project has no LLM provider OneUptime AI can use (Project Settings → AI → LLM Providers).",
+    },
+  ])(
+    "$language: Investigate now says the code's words whatever English came beside it",
+    async (data: {
+      language: string;
+      code: AiRunRefusalCode;
+      english: string;
+    }) => {
+      await inLanguage(data.language);
+
+      expect(EN[data.english]).toBeUndefined();
+
+      const said: HTMLElement = await pressInvestigateNow(data.language, {
+        message: data.english,
+        refusalCode: data.code,
+      });
+
+      expect(said).toHaveTextContent(
+        wordsOf(data.language)[AI_RUN_REFUSALS[data.code]]!,
+      );
+      expect(said.textContent).not.toContain(data.english);
+    },
+  );
+
+  test("ar: an Investigate now refusal the Dashboard does not word stays English, read from the left so its full stop stays at its end", async () => {
     await inLanguage("ar");
 
     const said: HTMLElement = await pressInvestigateNow("ar", UNWORDED_REFUSAL);
 
     expect(said).toHaveTextContent(UNWORDED_REFUSAL);
-    expect(said).toHaveAttribute("dir", "auto");
+    expect(said).toHaveAttribute("dir", "ltr");
   });
+
+  test("de: an Investigate now refusal the Dashboard does not word stays English, read as the page reads", async () => {
+    await inLanguage("de");
+
+    const said: HTMLElement = await pressInvestigateNow("de", UNWORDED_REFUSAL);
+
+    expect(said).toHaveTextContent(UNWORDED_REFUSAL);
+    expect(said).not.toHaveAttribute("dir");
+  });
+
+  test.each([
+    { language: "de", code: AiRunRefusalCode.ProjectDailyLimitReached },
+    { language: "ar", code: AiRunRefusalCode.ProjectDailyLimitReached },
+    { language: "ar", code: AiRunRefusalCode.AiOff },
+    { language: "fa", code: AiRunRefusalCode.AiOff },
+    { language: "fa", code: AiRunRefusalCode.AlreadyInvestigated },
+  ])(
+    "$language: Investigate now refused with $code reads as the page does, whatever its first letter",
+    async (data: { language: string; code: AiRunRefusalCode }) => {
+      await inLanguage(data.language);
+
+      const english: string = AI_RUN_REFUSALS[data.code];
+      const said: HTMLElement = await pressInvestigateNow(data.language, {
+        message: english,
+        refusalCode: data.code,
+      });
+
+      expect(said).toHaveTextContent(wordsOf(data.language)[english]!);
+      expect(said).not.toHaveAttribute("dir");
+    },
+  );
 });

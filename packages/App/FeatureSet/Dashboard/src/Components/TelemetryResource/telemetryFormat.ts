@@ -45,10 +45,13 @@ export const formatDurationMs: (ms: number | null) => string = (
 
 /*
  * A size as formatBytes writes it, in its pieces: the number in the unit it
- * is written in (B, KiB, MiB, GiB, TiB) and how many decimals it keeps, one
- * under ten and none from ten up. A page that writes its sizes in the
- * reader's digits (OpenStack's, issue #7191) writes the same figure in the
- * same unit from it.
+ * is written in (B, KiB, MiB, GiB, TiB) and how many decimals it keeps. A
+ * count of bytes is a whole number, so plain bytes keep none: an empty
+ * volume is "0 B" and a 5-byte object "5 B", never "0.0 B" (issue #7417).
+ * From KiB up a size keeps one decimal under ten and none from ten up
+ * ("1.5 KiB", "12 GiB"). A page that writes its sizes in the reader's
+ * digits (OpenStack's, issue #7191) writes the same figure in the same
+ * unit from it.
  */
 export interface BytesReading {
   value: number;
@@ -66,7 +69,11 @@ export const getBytesReading: (bytes: number) => BytesReading = (
     v /= 1024;
     i++;
   }
-  return { value: v, unit: units[i] || "B", decimals: v < 10 ? 1 : 0 };
+  return {
+    value: v,
+    unit: units[i] || "B",
+    decimals: i > 0 && v < 10 ? 1 : 0,
+  };
 };
 
 export const formatBytes: (bytes: number | null) => string = (

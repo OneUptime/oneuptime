@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52218,
-    "untranslated": 9341
+    "keys": 52232,
+    "untranslated": 9325
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -251,6 +251,7 @@
     "Pull request {{label}}",
     "Push",
     "Query",
+    "Query {{number}}",
     "Quota",
     "RabbitMQ",
     "Radio",

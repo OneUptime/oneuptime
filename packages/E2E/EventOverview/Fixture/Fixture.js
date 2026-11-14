@@ -573,6 +573,13 @@ import UserUtil from "Common/UI/Utils/User";
 import PermissionUtil from "Common/UI/Utils/Permission";
 import { setPageLanguage } from "Common/UI/Utils/PageLanguage";
 import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
+import { setCodeApartInSentence } from "Common/Types/CodeInSentence";
+import {
+  CODE_READS_AS_WRITTEN_POST_PROCESSOR,
+  codeReadsAsWrittenPostProcessor,
+  leaveIsolatesOutOfCopiedText,
+  setCodeApartWith,
+} from "Common/UI/Utils/CodeReadsAsWritten";
 
 /*
  * ---------------------------------------------------------------------------
@@ -9338,13 +9345,19 @@ async function handleApi(method, options) {
   /*
    * Investigate now on a waiting record (issue #5074): started, as
    * InvestigationRuleWait.startNow answers, or refused with the server's
-   * words - the project's daily AI limit, for ?fail=investigate-now.
+   * words and their code beside them (#7359) - the project's daily AI
+   * limit, for ?fail=investigate-now.
    */
   if (url.endsWith("/ai-investigation/investigate-now")) {
     if (failures.has("investigate-now")) {
-      throw fail(
+      throw new HTTPErrorResponse(
         400,
-        "This project has reached its own daily AI limit. It resets at midnight UTC.",
+        {
+          message:
+            "The project reached its daily AI limit. OneUptime AI starts again at midnight UTC. A project owner or someone with Manage Billing can raise or remove the limit in Project Settings → AI → AI Features → More settings.",
+          refusalCode: "project_daily_limit_reached",
+        },
+        {},
       );
     }
     const investigation =
@@ -9368,15 +9381,21 @@ async function handleApi(method, options) {
   /*
    * Try again on an investigation that did not finish (issue #6438): a new
    * run, queued, as InvestigationTryAgain starts one - the record's next
-   * read answers it - or refused with the server's words: OneUptime AI
-   * switched off, for ?fail=investigation-try-again, and a run that is not
-   * one to try again (queued or running already, or someone else's to start).
+   * read answers it - or refused with the server's words and their code
+   * beside them (#7359, Types/AI/AiRunRefusal): OneUptime AI switched off,
+   * for ?fail=investigation-try-again, and a run that is not one to try
+   * again (queued or running already, or someone else's to start).
    */
   if (method === "POST" && url.endsWith("/ai-investigation/try-again")) {
     if (failures.has("investigation-try-again")) {
-      throw fail(
+      throw new HTTPErrorResponse(
         400,
-        "OneUptime AI is switched off for this project. A project owner or someone with Manage Billing can turn it on in Project Settings > AI > AI Features.",
+        {
+          message:
+            "OneUptime AI is switched off for this project. A project owner or someone with Manage Billing can turn it on in Project Settings > AI > AI Features.",
+          refusalCode: "ai_off",
+        },
+        {},
       );
     }
     const isAlert = body.subjectType === "alert";
@@ -9388,9 +9407,15 @@ async function handleApi(method, options) {
       String(body.subjectId) !== String(investigation.subjectId) ||
       triedAgain.has(String(investigation.subjectId))
     ) {
-      throw fail(
+      throw new HTTPErrorResponse(
         400,
-        `This ${isAlert ? "alert" : "incident"}'s investigation is queued or running already.`,
+        {
+          message: `This ${isAlert ? "alert" : "incident"}'s investigation is queued or running already.`,
+          refusalCode: isAlert
+            ? "alert_investigation_running"
+            : "incident_investigation_running",
+        },
+        {},
       );
     }
     const newRunId = ID.aiRun(100 + triedAgain.size + 1);
@@ -9964,14 +9989,33 @@ async function loadTranslation(lang) {
  */
 followLanguageForDates(i18next);
 
-await i18next.use(initReactI18next).init({
-  lng: language,
-  fallbackLng: language,
-  resources: { [language]: { translation: await loadTranslation(language) } },
-  interpolation: { escapeValue: false },
-  keySeparator: false,
-  nsSeparator: false,
-});
+/*
+ * Code in an Arabic or Persian sentence - a file's extension, ".vtt" - is
+ * drawn as it is written, as the Dashboard's own setup draws it
+ * (Dashboard/src/Utils/i18n, Common/UI/Utils/CodeReadsAsWritten): set
+ * apart as the sentence is handed to the page, and copied without the
+ * marks that set it apart. Without it the page drew the Add transcript
+ * dialog's ".vtt" as "vtt." on a Persian page, as the Dashboard never does
+ * (issue #7419). The rules are handed over rather than fetched, as a page
+ * that bundles them does.
+ */
+setCodeApartWith(setCodeApartInSentence);
+leaveIsolatesOutOfCopiedText();
+
+await i18next
+  .use(initReactI18next)
+  .use(codeReadsAsWrittenPostProcessor)
+  .init({
+    lng: language,
+    fallbackLng: language,
+    resources: {
+      [language]: { translation: await loadTranslation(language) },
+    },
+    postProcess: [CODE_READS_AS_WRITTEN_POST_PROCESSOR],
+    interpolation: { escapeValue: false },
+    keySeparator: false,
+    nsSeparator: false,
+  });
 if (params.get("dir") === "auto") {
   // As the Dashboard does: <html lang> and its reading direction.
   setPageLanguage(language);

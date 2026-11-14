@@ -92,6 +92,10 @@ import {
 } from "../../../Types/AI/AIRunAttempt";
 import AIRunEventType from "../../../Types/AI/AIRunEventType";
 import AIRunStatus from "../../../Types/AI/AIRunStatus";
+import {
+  AI_RUN_REFUSALS,
+  AiRunRefusalCode,
+} from "../../../Types/AI/AiRunRefusal";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import OneUptimeDate from "../../../Types/Date";
@@ -131,11 +135,15 @@ const INSIGHT_TITLE: string = "Worker job count increased";
 const EVIDENCE: string = "The worker queue grew to 13,191,243 jobs.";
 const PROVIDER_ERROR: string =
   "OpenAICompatible API request failed: The LLM provider did not respond within 120 seconds.";
-// The server's refusals of Try again, in its own words: English.
+/*
+ * The server's refusals of Try again that the Dashboard does not word (a
+ * newer server's, with no code it knows): English. Every refusal with a
+ * code reads in Arabic (#7359).
+ */
 const TRIAGE_REFUSAL: string =
-  "Only a triage that did not finish can be tried again.";
+  "The triage could not start: the moon is full tonight.";
 const INVESTIGATION_REFUSAL: string =
-  "This incident's investigation is queued or running already.";
+  "The investigation could not start: the moon is full tonight.";
 
 const AR: Record<string, string> = readDashboardLocale("ar");
 const EN: Record<string, string> = readDashboardLocale("en");
@@ -166,18 +174,40 @@ function word(key: string): string {
 }
 
 /*
- * Try again refused: by the server, in its own words - English, whatever
- * the reader's language - or by a request that got no answer, in the
- * button's own words, Arabic.
+ * Try again refused: by the server, with its refusal's code - in Arabic -
+ * or in words the Dashboard does not word - English, whatever the
+ * reader's language - or by a request that got no answer, in the button's
+ * own words, Arabic. Arabic words read as the page does (no dir of their
+ * own); English ones read from the left (dir="ltr").
  */
 type TryAgainRefusal = [
   string,
   () => Promise<unknown>,
   () => string, // what the card says, read in the test
+  string | null, // the line's own dir
 ];
 
-function tryAgainRefusals(serverWords: string): Array<TryAgainRefusal> {
+function tryAgainRefusals(
+  serverWords: string,
+  refusalCode: AiRunRefusalCode,
+): Array<TryAgainRefusal> {
   return [
+    [
+      "the server's refusal with its code, in Arabic",
+      (): Promise<unknown> => {
+        return Promise.resolve(
+          new HTTPErrorResponse(
+            400,
+            { message: AI_RUN_REFUSALS[refusalCode], refusalCode },
+            {},
+          ),
+        );
+      },
+      (): string => {
+        return word(AI_RUN_REFUSALS[refusalCode]);
+      },
+      null,
+    ],
     [
       "the server's refusal, in its own English words",
       (): Promise<unknown> => {
@@ -188,6 +218,7 @@ function tryAgainRefusals(serverWords: string): Array<TryAgainRefusal> {
       (): string => {
         return serverWords;
       },
+      "ltr",
     ],
     [
       "a request that got no answer, in the button's own Arabic words",
@@ -197,6 +228,7 @@ function tryAgainRefusals(serverWords: string): Array<TryAgainRefusal> {
       (): string => {
         return word("The run could not start again. Try again in a moment.");
       },
+      null,
     ],
   ];
 }
@@ -821,9 +853,10 @@ describe("the insight's AI Triage, in Arabic, right to left", () => {
    * The provider's error, and a refusal of Try again the Dashboard does
    * not word, are English whatever the reader's language: laid out right
    * to left, as the page is, an English line has its full stop at its
-   * start. Each is laid out by its own first letter (dir="auto"), and the
-   * button's own Arabic words still read right to left. (A refusal the
-   * Dashboard words reads in Arabic: AiRunRefusalInReaderLanguage.)
+   * start. The provider's error is laid out by its own first letter
+   * (dir="auto"), an English refusal from the left (dir="ltr"), and a
+   * refusal in Arabic - the code's words, or the button's own - reads
+   * right to left, as the page does, whatever its first letter.
    */
   test("the provider's error under Details is laid out by its own first letter", async () => {
     const panel: HTMLElement = await renderInsightPage();
@@ -833,12 +866,13 @@ describe("the insight's AI Triage, in Arabic, right to left", () => {
     ).toHaveAttribute("dir", "auto");
   });
 
-  test.each(tryAgainRefusals(TRIAGE_REFUSAL))(
-    "Try again refused - %s - is laid out by its own first letter",
+  test.each(tryAgainRefusals(TRIAGE_REFUSAL, AiRunRefusalCode.TriageFinished))(
+    "Try again refused - %s - reads in its own words' direction",
     async (
       _refusal: string,
       answer: () => Promise<unknown>,
       said: () => string,
+      dir: string | null,
     ) => {
       server.tryAgain = answer;
       const panel: HTMLElement = await renderInsightPage();
@@ -854,7 +888,7 @@ describe("the insight's AI Triage, in Arabic, right to left", () => {
       );
       expect(refusal).toHaveAttribute("role", "alert");
       expect(refusal).toHaveTextContent(said());
-      expect(refusal).toHaveAttribute("dir", "auto");
+      expect(refusal.getAttribute("dir")).toBe(dir);
       // Around it, the card is still Arabic.
       expect(
         englishOn(panel, [
@@ -985,9 +1019,10 @@ describe("the AI investigation card, in Arabic", () => {
    * The provider's error, and a refusal of Try again the Dashboard does
    * not word, are English whatever the reader's language: laid out right
    * to left, as the page is, an English line has its full stop at its
-   * start. Each is laid out by its own first letter (dir="auto"), and the
-   * button's own Arabic words still read right to left. (A refusal the
-   * Dashboard words reads in Arabic: AiRunRefusalInReaderLanguage.)
+   * start. The provider's error is laid out by its own first letter
+   * (dir="auto"), an English refusal from the left (dir="ltr"), and a
+   * refusal in Arabic - the code's words, or the button's own - reads
+   * right to left, as the page does, whatever its first letter.
    */
   test("the provider's error under Details is laid out by its own first letter", async () => {
     await renderInvestigationCard();
@@ -998,12 +1033,18 @@ describe("the AI investigation card, in Arabic", () => {
     );
   });
 
-  test.each(tryAgainRefusals(INVESTIGATION_REFUSAL))(
-    "Try again refused - %s - is laid out by its own first letter",
+  test.each(
+    tryAgainRefusals(
+      INVESTIGATION_REFUSAL,
+      AiRunRefusalCode.IncidentInvestigationRunning,
+    ),
+  )(
+    "Try again refused - %s - reads in its own words' direction",
     async (
       _refusal: string,
       answer: () => Promise<unknown>,
       said: () => string,
+      dir: string | null,
     ) => {
       server.tryAgain = answer;
       const card: HTMLElement = await renderInvestigationCard();
@@ -1017,7 +1058,7 @@ describe("the AI investigation card, in Arabic", () => {
       );
       expect(refusal).toHaveAttribute("role", "alert");
       expect(refusal).toHaveTextContent(said());
-      expect(refusal).toHaveAttribute("dir", "auto");
+      expect(refusal.getAttribute("dir")).toBe(dir);
       // Around it, the card is still Arabic.
       expect(
         englishOn(card, [

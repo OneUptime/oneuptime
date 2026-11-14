@@ -138,7 +138,7 @@ Att läsa en anteckning via API:t, Terraform eller ett arbetsflöde visar bara b
 
 ## Generera en anteckning med AI
 
-Redigeraren har en knapp **Utkast med AI**, på båda anteckningssidorna och i flödets dialoger **Lägg till offentlig anteckning** och **Lägg till privat anteckning**. Den skickar incidenten till ditt projekts AI-leverantör och lägger in den genererade Markdown-texten i anteckningen, där du redigerar den innan du publicerar — inget publiceras automatiskt.
+Redigeraren har en knapp **Utkast med AI**, på båda anteckningssidorna och i flödets dialoger **Lägg till offentlig anteckning** och **Lägg till privat anteckning**. Den skickar incidenten till ditt projekts [LLM-leverantör](/docs/ai/llm-provider) och lägger in den genererade Markdown-texten i anteckningen, där du redigerar den innan du publicerar — inget publiceras automatiskt.
 
 | Dialog                             | Vad den skriver                                                      | Mallar                                                            |
 | ---------------------------------- | -------------------------------------------------------------------- | ----------------------------------------------------------------- |

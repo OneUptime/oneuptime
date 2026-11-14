@@ -31,6 +31,7 @@ import {
 import {
   HOST_CPU_BUSY_PERCENT,
   HOST_LOAD_QUEUING_PERCENT,
+  formatHostBytes,
   getHostUsageTone,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Host/Utils/HostFacts";
 
@@ -431,12 +432,20 @@ describe("denominators, units and caps", () => {
     expect(getMountBarClassName(95.1)).toBe("bg-red-500");
   });
 
+  /*
+   * The Overview writes its sizes with the host pages' one formatter
+   * (formatHostBytes, issue #7417), which counts in 1024s as the tooltip
+   * says: 1,024 MiB is "1.0 GiB".
+   */
   test("sizes are called out as 1024-based, as formatMemoryBytes renders them", () => {
     expect(D.filesystemUsedTotal).toContain("1024-based");
     expect(D.filesystemUsedTotal).toContain("1 GiB is 1,024 MiB");
     expect(readPage("Overview.tsx")).toContain(
-      'const units: Array<string> = ["B", "KiB", "MiB", "GiB", "TiB"];',
+      "const formatMemoryBytes: (bytes: number | null | undefined) => string =\n  formatHostBytes;",
     );
+    expect(formatHostBytes(1024 * 1024 ** 2)).toBe("1.0 GiB");
+    expect(formatHostBytes(1023 * 1024 ** 2)).toBe("1023 MiB");
+    expect(formatHostBytes(1536)).toBe("1.5 KiB");
   });
 
   test("process memory is compared with the host's total RAM", () => {

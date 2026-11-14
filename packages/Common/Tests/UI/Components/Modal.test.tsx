@@ -959,6 +959,31 @@ describe("Modal initial focus", () => {
     expect(getByLabelText("Reason")).toHaveFocus();
   });
 
+  /*
+   * A control in a disabled fieldset - a workflow step's dropdown on a view -
+   * has no disabled attribute, and a react-select input carries tabindex 0,
+   * but a browser focuses neither: starting there left the focus outside the
+   * dialog. jsdom lets such a control take the focus, so this fails here too.
+   */
+  it("never starts on a control its disabled fieldset holds still", () => {
+    const { getByLabelText } = render(
+      <Modal
+        title="Step settings"
+        onClose={getJestMockFunction()}
+        onSubmit={getJestMockFunction()}
+        submitButtonText="Save"
+      >
+        <fieldset disabled={true}>
+          <input aria-label="Operator" tabIndex={0} />
+        </fieldset>
+        <input aria-label="Message" />
+      </Modal>,
+    );
+
+    expect(getByLabelText("Message")).toHaveFocus();
+    expect(getByLabelText("Operator")).not.toHaveFocus();
+  });
+
   it("starts a notice on its only button, never on the header's X", () => {
     const { getByTestId } = render(
       <Modal

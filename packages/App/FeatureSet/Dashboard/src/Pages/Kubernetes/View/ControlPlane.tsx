@@ -17,11 +17,14 @@ import React, {
   useState,
 } from "react";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import KubernetesResourceUtils from "../Utils/KubernetesResourceUtils";
+import { chartWordsInReadersLanguage } from "../Utils/KubernetesChartWords";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
@@ -86,11 +89,19 @@ function buildQuery(
  * ──────────────────────────────────────────────────────────────────────────────
  */
 
-function getSectionTitle(icon: IconProp, title: string): ReactElement {
+function getSectionTitle(
+  icon: IconProp,
+  title: string,
+  translator: Translator,
+): ReactElement {
+  /*
+   * A card translates a title it is handed as words, not one inside an
+   * element: the words are looked up here.
+   */
   return (
     <div className="flex items-center gap-2">
       <Icon icon={icon} className="h-5 w-5 text-gray-500" />
-      <span>{title}</span>
+      <span>{translator.translateText(title) || title}</span>
     </div>
   );
 }
@@ -736,6 +747,7 @@ const KubernetesClusterControlPlane: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+  const translator: Translator = useTranslator();
 
   const [cluster, setCluster] = useState<KubernetesCluster | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -865,7 +877,7 @@ const KubernetesClusterControlPlane: FunctionComponent<
               group: EmbeddedMetricCardGroupEmptyStateProps,
             ): ReactElement => {
               return renderSetupHint({
-                title: getSectionTitle(tab.icon, tab.name),
+                title: getSectionTitle(tab.icon, tab.name, translator),
                 description: tab.description,
                 source: tab.source,
                 group: group,
@@ -873,9 +885,12 @@ const KubernetesClusterControlPlane: FunctionComponent<
             }}
           >
             <EmbeddedMetricCard
-              title={getSectionTitle(tab.icon, tab.name)}
+              title={getSectionTitle(tab.icon, tab.name, translator)}
               description={tab.description}
-              queryConfigs={tab.getQueries(clusterIdentifier)}
+              queryConfigs={chartWordsInReadersLanguage(
+                tab.getQueries(clusterIdentifier),
+                translator,
+              )}
               timeRange={timeRange}
               onTimeRangeChange={handleTimeRangeChange}
               startAndEndDate={startAndEndDate}
