@@ -22,6 +22,8 @@ import DashboardVariable, {
 } from "../../../../Types/Dashboard/DashboardVariable";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import ObjectID from "../../../../Types/ObjectID";
+import Timezone from "../../../../Types/Timezone";
+import { INVALID_TIMEZONE_MESSAGE } from "../../../../Server/Types/AnalyticsDatabase/AggregateBy";
 import { describe, expect, it } from "@jest/globals";
 
 /*
@@ -467,6 +469,77 @@ describe("PublicDashboardSloHistoryPolicy", () => {
         build({ requestedAggregateBy: aggregateBy({ limit: -5, skip: 900 }) })
           .limit,
       ).toBe(LIMIT_PER_PROJECT);
+    });
+
+    /*
+     * The zone the viewer reads the chart in (issue #7277): it moves where
+     * each day of the history starts, and nothing else, so it is the one
+     * more thing a caller may send - as a name from the Timezone list.
+     */
+    it("keeps the reader's zone, for where each day of the history starts", () => {
+      for (const timezone of [
+        Timezone.AmericaNew_York,
+        Timezone.AsiaKolkata,
+        Timezone.UTC,
+        Timezone.AsiaCalcutta,
+      ]) {
+        const result: PublicDashboardSloHistoryPolicyResult = build({
+          requestedAggregateBy: aggregateBy({ timezone: timezone }),
+        });
+
+        expect(result.timezone).toBe(timezone);
+        expect(Object.keys(result).sort()).toEqual([
+          "aggregationInterval",
+          "endDate",
+          "limit",
+          "metricName",
+          "startDate",
+          "target",
+          "timezone",
+        ]);
+      }
+    });
+
+    it("reads a missing or null zone as none: the result is the one it always was", () => {
+      for (const requested of [
+        aggregateBy(),
+        aggregateBy({ timezone: null }),
+      ]) {
+        const result: PublicDashboardSloHistoryPolicyResult = build({
+          requestedAggregateBy: requested,
+        });
+
+        expect("timezone" in result).toBe(false);
+      }
+    });
+
+    it("refuses anything else as a zone with a 400 that does not repeat it", () => {
+      for (const notAZone of [
+        "",
+        "america/new_york",
+        "Mars/Olympus_Mons",
+        "UTC'), 'UTC') AS bucketStart FROM system.one --",
+        330,
+        true,
+        { name: "UTC" },
+        ["UTC"],
+      ]) {
+        expect(() => {
+          build({ requestedAggregateBy: aggregateBy({ timezone: notAZone }) });
+        }).toThrow(new BadDataException(INVALID_TIMEZONE_MESSAGE));
+      }
+    });
+
+    it("never reads a zone the request does not hold as its own", () => {
+      // What JSONFunctions.deserialize leaves of a "__proto__" member.
+      const requested: Record<string, unknown> = Object.assign(
+        Object.create({ timezone: "UTC') --" }) as Record<string, unknown>,
+        aggregateBy(),
+      );
+
+      expect("timezone" in build({ requestedAggregateBy: requested })).toBe(
+        false,
+      );
     });
   });
 

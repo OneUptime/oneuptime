@@ -1375,4 +1375,98 @@ describe("pickInitialFocusElement", () => {
       }),
     ).toBe(parts.bodyLink);
   });
+
+  /*
+   * An edit dialog shows some fields only to be read - a user override's
+   * start once it has started, drawn read-only. A caret and a focus ring
+   * there said "type here" on a field that takes nothing: the first field
+   * that can be changed comes first.
+   */
+  describe("a field shown only to be read", () => {
+    type MakeInputFunction = (data: {
+      readOnly?: boolean;
+      ariaReadOnly?: boolean;
+      tag?: "input" | "textarea";
+    }) => HTMLElement;
+
+    const makeInput: MakeInputFunction = (data: {
+      readOnly?: boolean;
+      ariaReadOnly?: boolean;
+      tag?: "input" | "textarea";
+    }): HTMLElement => {
+      const element: HTMLInputElement | HTMLTextAreaElement =
+        document.createElement(data.tag || "input");
+
+      element.readOnly = Boolean(data.readOnly);
+
+      if (data.ariaReadOnly) {
+        element.setAttribute("aria-readonly", "true");
+      }
+
+      return element;
+    };
+
+    it("is passed over for the first field that can be changed", () => {
+      const parts: DialogParts = makeDialog();
+      const starts: HTMLElement = makeInput({ readOnly: true });
+      const ends: HTMLElement = makeInput({});
+
+      expect(
+        pickInitialFocusElement({
+          focusableElements: [starts, ends, parts.cancel, parts.submit],
+          footer: parts.footer,
+          isSubmitDestructive: false,
+        }),
+      ).toBe(ends);
+    });
+
+    it("counts a read-only text area, and a field marked aria-readonly, as read-only too", () => {
+      const parts: DialogParts = makeDialog();
+      const notes: HTMLElement = makeInput({ readOnly: true, tag: "textarea" });
+      const marked: HTMLElement = makeInput({ ariaReadOnly: true });
+      const name: HTMLElement = makeInput({});
+
+      expect(
+        pickInitialFocusElement({
+          focusableElements: [notes, marked, name, parts.submit],
+          footer: parts.footer,
+          isSubmitDestructive: false,
+        }),
+      ).toBe(name);
+    });
+
+    it("still takes the focus when the body has nothing else: it can be read and copied", () => {
+      const parts: DialogParts = makeDialog();
+      const token: HTMLElement = makeInput({ readOnly: true });
+
+      expect(
+        pickInitialFocusElement({
+          focusableElements: [token, parts.cancel, parts.submit],
+          footer: parts.footer,
+          isSubmitDestructive: false,
+        }),
+      ).toBe(token);
+
+      expect(
+        pickInitialFocusElement({
+          focusableElements: [token],
+          footer: null,
+          isSubmitDestructive: false,
+        }),
+      ).toBe(token);
+    });
+
+    it("never sends the focus into the footer while a read-only field is in the body", () => {
+      const parts: DialogParts = makeDialog();
+      const starts: HTMLElement = makeInput({ readOnly: true });
+
+      expect(
+        pickInitialFocusElement({
+          focusableElements: [starts, parts.cancel, parts.submit],
+          footer: parts.footer,
+          isSubmitDestructive: false,
+        }),
+      ).not.toBe(parts.submit);
+    });
+  });
 });

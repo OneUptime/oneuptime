@@ -59,6 +59,12 @@ import {
   getCompatibleIngestSnippets,
   isCompatibleIngestMethod,
 } from "./CompatibleIngestGuide";
+import {
+  getFluentBitConfig,
+  getFluentBitDockerCompose,
+  getFluentdConfig,
+  getFluentdDockerCompose,
+} from "./LogShipperSnippets";
 
 /*
  * The Kubernetes agent's own eBPF profiler (kubernetes-agent values
@@ -78,8 +84,10 @@ export type TelemetryType =
 /*
  * THE SETUP GUIDE TAB'S LAST STEP (issue #6806): the wait the first-run
  * dialog has (TelemetryFirstRunShowcase), so a Setup Guide tab notices the
- * first data too, and links to it on the service that sent it. Profiles
- * listen for their first profile in the guide itself, so they have none.
+ * first data too, and links to it on the service that sent it - or, for
+ * data that names no service (FluentBit's logs), the picked key's first
+ * data and the product's explorer (#7754). Profiles listen for their first
+ * profile in the guide itself, so they have none.
  */
 export const SETUP_GUIDE_FIRST_DATA_TITLE: string = translationKey(
   "Wait for the first data",
@@ -87,20 +95,27 @@ export const SETUP_GUIDE_FIRST_DATA_TITLE: string = translationKey(
 
 export const SETUP_GUIDE_FIRST_DATA_VIEWS: Record<
   Exclude<TelemetryType, "profiles">,
-  { page: PageMap; text: string }
+  { page: PageMap; text: string; dataPage: PageMap }
 > = {
-  logs: { page: PageMap.SERVICE_VIEW_LOGS, text: translationKey("View logs") },
+  logs: {
+    page: PageMap.SERVICE_VIEW_LOGS,
+    text: translationKey("View logs"),
+    dataPage: PageMap.LOGS,
+  },
   metrics: {
     page: PageMap.SERVICE_VIEW_METRICS,
     text: translationKey("View metrics"),
+    dataPage: PageMap.METRICS,
   },
   traces: {
     page: PageMap.SERVICE_VIEW_TRACES,
     text: translationKey("View traces"),
+    dataPage: PageMap.TRACES,
   },
   exceptions: {
     page: PageMap.SERVICE_VIEW_EXCEPTIONS,
     text: translationKey("View exceptions"),
+    dataPage: PageMap.EXCEPTIONS,
   },
 };
 
@@ -114,6 +129,13 @@ export interface ComponentProps {
   serviceName?: string | undefined;
   // Only the guide, in a dialog that has its own title.
   isBare?: boolean | undefined;
+  /*
+   * The key the snippets carry, as it is picked: a dialog that draws its
+   * own last step (TelemetrySetupModal) watches it for the first data.
+   */
+  onSelectedKeyChange?:
+    | ((key: TelemetryIngestionKey | null) => void)
+    | undefined;
 }
 
 /*
@@ -1212,89 +1234,6 @@ services:
       - /etc/alloy/config.alloy`;
 }
 
-// --- FluentBit snippets ---
-
-function getFluentBitSnippet(): string {
-  return `# fluent-bit.conf
-[SERVICE]
-    Flush        5
-    Log_Level    info
-    Parsers_File parsers.conf
-
-[INPUT]
-    Name         tail
-    Path         /var/log/*.log
-    Tag          app.logs
-
-[OUTPUT]
-    Name         opentelemetry
-    Match        *
-    Host         <YOUR_ONEUPTIME_OTLP_HOST>
-    Port         443
-    Tls          On
-    Header       x-oneuptime-token <YOUR_ONEUPTIME_TOKEN>
-    Logs_uri     /v1/logs`;
-}
-
-function getFluentBitDockerSnippet(): string {
-  return `# docker-compose.yml
-services:
-  fluent-bit:
-    image: fluent/fluent-bit:latest
-    volumes:
-      - ./fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf
-      - /var/log:/var/log:ro
-    environment:
-      - FLB_ES_HOST=<YOUR_ONEUPTIME_OTLP_HOST>`;
-}
-
-// --- Fluentd snippets ---
-
-function getFluentdSnippet(): string {
-  return `# fluentd.conf
-<source>
-  @type forward
-  port 24224
-  bind 0.0.0.0
-</source>
-
-<source>
-  @type tail
-  path /var/log/*.log
-  pos_file /var/log/fluentd.pos
-  tag app.logs
-  <parse>
-    @type json
-  </parse>
-</source>
-
-<match **>
-  @type http
-  endpoint https://<YOUR_ONEUPTIME_OTLP_HOST>/v1/logs
-  headers {"x-oneuptime-token":"<YOUR_ONEUPTIME_TOKEN>"}
-  json_array true
-  <format>
-    @type json
-  </format>
-  <buffer>
-    @type memory
-    flush_interval 5s
-  </buffer>
-</match>`;
-}
-
-function getFluentdDockerSnippet(): string {
-  return `# docker-compose.yml
-services:
-  fluentd:
-    image: fluent/fluentd:latest
-    volumes:
-      - ./fluentd.conf:/fluentd/etc/fluentd.conf
-      - /var/log:/var/log:ro
-    ports:
-      - "24224:24224"`;
-}
-
 // --- Main Component ---
 
 const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
@@ -1469,7 +1408,10 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
   const otlpUrlValue: string = otlpUrl;
   const otlpHostValue: string = otlpHost;
 
-  // Where another tool's agent or SDK is pointed, with the picked key.
+  /*
+   * Where another tool's agent or SDK is pointed, with the picked key. The
+   * log shippers' files (LogShipperSnippets) are built from it too.
+   */
   const compatibleEndpoint: CompatibleIngestEndpoint = {
     protocol: httpProtocol,
     host: HOST ? HOST : "<YOUR_ONEUPTIME_HOST>",
@@ -1688,7 +1630,10 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
             : TelemetryIngestionKeyType.Server
         }
         newKeyName={NEW_KEY_NAME_FOR_TYPE[telemetryType]}
-        onSelectedKeyChange={setSelectedKey}
+        onSelectedKeyChange={(key: TelemetryIngestionKey | null): void => {
+          setSelectedKey(key);
+          props.onSelectedKeyChange?.(key);
+        }}
       />
     );
   };
@@ -2346,13 +2291,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
             ),
             <CodeBlock
               code={withServiceName(
-                replacePlaceholders(
-                  getFluentBitSnippet(),
-                  otlpUrlValue,
-                  otlpHostValue,
-                  tokenValue,
-                  pyroscopeUrl,
-                ),
+                getFluentBitConfig(compatibleEndpoint),
                 props.serviceName,
               )}
               language="yaml"
@@ -2381,13 +2320,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
                   content: (
                     <CodeBlock
                       code={withServiceName(
-                        replacePlaceholders(
-                          getFluentBitDockerSnippet(),
-                          otlpUrlValue,
-                          otlpHostValue,
-                          tokenValue,
-                          pyroscopeUrl,
-                        ),
+                        getFluentBitDockerCompose(),
                         props.serviceName,
                       )}
                       language="yaml"
@@ -2425,13 +2358,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
             ),
             <CodeBlock
               code={withServiceName(
-                replacePlaceholders(
-                  getFluentdSnippet(),
-                  otlpUrlValue,
-                  otlpHostValue,
-                  tokenValue,
-                  pyroscopeUrl,
-                ),
+                getFluentdConfig(compatibleEndpoint),
                 props.serviceName,
               )}
               language="yaml"
@@ -2457,13 +2384,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
                   content: (
                     <CodeBlock
                       code={withServiceName(
-                        replacePlaceholders(
-                          getFluentdDockerSnippet(),
-                          otlpUrlValue,
-                          otlpHostValue,
-                          tokenValue,
-                          pyroscopeUrl,
-                        ),
+                        getFluentdDockerCompose(),
                         props.serviceName,
                       )}
                       language="yaml"
@@ -2719,6 +2640,8 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
                 modelType={Service}
                 viewPage={SETUP_GUIDE_FIRST_DATA_VIEWS[telemetryType].page}
                 viewText={SETUP_GUIDE_FIRST_DATA_VIEWS[telemetryType].text}
+                ingestionKey={selectedKey}
+                dataPage={SETUP_GUIDE_FIRST_DATA_VIEWS[telemetryType].dataPage}
               />
             </div>
           )}

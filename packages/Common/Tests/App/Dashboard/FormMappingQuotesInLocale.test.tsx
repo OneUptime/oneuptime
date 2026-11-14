@@ -649,3 +649,110 @@ describe("what applies reads the way it is written (#7819)", () => {
     );
   });
 });
+
+/*
+ * A record the settings name that has been deleted since (#7857). The card
+ * listed it as "Deleted", in English on every page: the rows put FormsCopy's
+ * English word where its name goes, and a name is drawn as written. The rows
+ * mark it now, and the card words it the reader's way, in its place in the
+ * list: the page's own words, not a value set apart. A record's own name is
+ * never translated: a label called "Deleted" reads "Deleted" on a German
+ * page too.
+ */
+describe("a record deleted since is worded the reader's way (#7857)", () => {
+  const GONE_LABEL_ID: string = "c0000000-0000-4000-8000-0000000000ff";
+  const GONE_OWNER_ID: string = "e0000000-0000-4000-8000-0000000000ff";
+  const LABEL_NAMED_DELETED_ID: string = "c0000000-0000-4000-8000-000000000003";
+
+  // A label and an owner deleted since, each after one that is still there.
+  const SETTINGS_NAMING_DELETED: JSONObject = {
+    ...SETTINGS_NAMING_RECORDS,
+    labelIds: [OPS_LABEL_ID, GONE_LABEL_ID],
+    ownerUserIds: [OWNER_USER_ID, GONE_OWNER_ID],
+  };
+
+  // What each page calls a record deleted since.
+  const DELETED: Record<string, string> = {
+    de: "Gelöscht",
+    fa: "حذف‌شده",
+  };
+
+  // What each page puts between two names.
+  const SEPARATORS: Record<string, string> = {
+    de: ", ",
+    fa: ARABIC_LIST_SEPARATOR,
+  };
+
+  test.each(Object.keys(DELETED))(
+    "%s page: a deleted label and a deleted owner are worded in the page's language, in their places",
+    async (language: string) => {
+      await renderCardIn(language, TITLE_QUESTION, {
+        targetSettings: SETTINGS_NAMING_DELETED,
+      });
+
+      const deleted: string = wordIn(language, FormsCopy.deletedRecord);
+      const separator: string = SEPARATORS[language] as string;
+
+      expect(deleted).toBe(DELETED[language]);
+
+      const labels: HTMLElement = lineOf("labels", "form-mapping-always");
+      const owners: HTMLElement = lineOf("owners", "form-mapping-value");
+
+      expect(withoutIsolateMarks(labels.textContent || "")).toBe(
+        `${wordIn(language, FormsCopy.alwaysAdded)} ${["Ops (EU)", deleted].join(separator)}`,
+      );
+      expect(withoutIsolateMarks(owners.textContent || "")).toBe(
+        ["Ada", deleted, "SRE (EU)"].join(separator),
+      );
+
+      // The names are set apart, as written; the word is the page's own.
+      expect(isolatesOf(labels)).toEqual([["Ops (EU)", "ltr"]]);
+      expect(isolatesOf(owners)).toEqual([
+        ["Ada", "ltr"],
+        ["SRE (EU)", "ltr"],
+      ]);
+    },
+  );
+
+  test('German page: a label called "Deleted" keeps its name, beside one deleted since', async () => {
+    loadReferenceMock.mockImplementation(async (): Promise<unknown> => {
+      return {
+        ...REFERENCE,
+        lists: {
+          ...REFERENCE.lists,
+          [FormTargetSettingReferenceModel.Label]: [
+            ...(REFERENCE.lists[FormTargetSettingReferenceModel.Label] || []),
+            { id: LABEL_NAMED_DELETED_ID, name: "Deleted" },
+          ],
+        },
+      };
+    });
+
+    await renderCardIn("de", TITLE_QUESTION, {
+      targetSettings: {
+        ...SETTINGS_NAMING_RECORDS,
+        labelIds: [LABEL_NAMED_DELETED_ID, GONE_LABEL_ID],
+      },
+    });
+
+    const labels: HTMLElement = lineOf("labels", "form-mapping-always");
+
+    expect(withoutIsolateMarks(labels.textContent || "")).toBe(
+      `${wordIn("de", FormsCopy.alwaysAdded)} Deleted, ${DELETED["de"]}`,
+    );
+    expect(isolatesOf(labels)).toEqual([["Deleted", "ltr"]]);
+  });
+
+  test("English page: reads as before, word for word", async () => {
+    await renderCardIn("en", TITLE_QUESTION, {
+      targetSettings: SETTINGS_NAMING_DELETED,
+    });
+
+    expect(lineOf("labels", "form-mapping-always").textContent).toBe(
+      "Always added: Ops (EU), Deleted",
+    );
+    expect(lineOf("owners", "form-mapping-value").textContent).toBe(
+      "Ada, Deleted, SRE (EU)",
+    );
+  });
+});

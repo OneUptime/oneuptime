@@ -23,6 +23,12 @@ import CronTab from "../Utils/CronTab";
 import logger, { EXTERNAL_FAULT, LogAttributes } from "../Utils/Logger";
 import { SubscriptionStatusUtil } from "../../Types/Billing/SubscriptionStatus";
 import MonitoringIntervalValidator from "../Utils/Monitor/MonitoringIntervalValidator";
+import {
+  SET_ASIDE_FOR_MINUTES,
+  SET_ASIDE_PER_CLAIM,
+  SET_ASIDE_ROUNDS_PER_CLAIM,
+  SET_ASIDE_SPREAD_IN_MINUTES,
+} from "../Utils/Probe/ClaimSetAside";
 
 /*
  * How many due rows claimMonitorProbesForProbing reads for each one it may
@@ -31,6 +37,16 @@ import MonitoringIntervalValidator from "../Utils/Monitor/MonitoringIntervalVali
  * first, and the rest still fill the batch.
  */
 export const CLAIM_CANDIDATES_PER_MONITOR_PROBE: number = 2;
+
+/*
+ * The most a probe's pending count reports (countMonitorProbesDueForProbing).
+ * It feeds KEDA's probe autoscaling, which only needs to know "more than a
+ * full fleet's worth": the chart scales a probe on 10 pending monitors per
+ * replica, up to 100 replicas, so anything past 1,000 changes nothing. The
+ * count used to visit every due row, so the further a probe fell behind,
+ * the more every scaling poll cost.
+ */
+export const PENDING_MONITOR_PROBE_COUNT_CAP: number = 10000;
 
 export class Service extends ProjectReferencesService<MonitorProbe> {
   public constructor() {
@@ -251,6 +267,23 @@ export class Service extends ProjectReferencesService<MonitorProbe> {
    * all until it is unblocked, as ProjectService's
    * getActiveProjectStatusQuery says for every other monitoring path.
    *
+   * The read is a range scan of the (probeId, isEnabled, nextPingAt) index
+   * that stops once it has its candidates: `nextPingAt <= now`, oldest
+   * first, in the index's own order. It used to read
+   * `(nextPingAt IS NULL OR nextPingAt <= now)` ordered `ASC NULLS FIRST`,
+   * which no ASC NULLS LAST btree can serve, so every claim read EVERY due
+   * row of the probe, joined each to its monitor and project, sorted them
+   * all and kept the first few - measured on a seeded probe with 60,000
+   * monitor probes, 24,000 of them paused or in a suspended project: 372 ms
+   * and 39,774 buffers to hand out 200, from cache, with parallel workers.
+   * A NULL nextPingAt was only ever a legacy row (a new one is due at
+   * creation); setAsideUnprobeable makes any it finds due now.
+   *
+   * After the claim, the rows the read had to step over - due, but nothing
+   * may probe them - are set aside (setAsideUnprobeable), so the next claim
+   * does not step over them again. The same probe with its paused monitors
+   * set aside: 163 buffers.
+   *
    * Returns the ids of the MonitorProbe rows it claimed.
    */
   public async claimMonitorProbesForProbing(data: {
@@ -262,27 +295,15 @@ export class Service extends ProjectReferencesService<MonitorProbe> {
       SubscriptionStatusUtil.getActiveSubscriptionStatuses();
 
     const candidateQuery: string = `
-        SELECT mp."_id", m."monitoringInterval"
+        SELECT mp."_id", mp."nextPingAt", m."monitoringInterval"
         FROM "MonitorProbe" mp
         INNER JOIN "Monitor" m ON mp."monitorId" = m."_id"
         INNER JOIN "Project" p ON mp."projectId" = p."_id"
         WHERE mp."probeId" = $1
           AND mp."isEnabled" = true
-          AND mp."deletedAt" IS NULL
-          AND (mp."nextPingAt" IS NULL OR mp."nextPingAt" <= $2)
-          AND m."isArchived" = false
-          AND m."disableActiveMonitoring" = false
-          AND m."disableActiveMonitoringBecauseOfManualIncident" = false
-          AND m."disableActiveMonitoringBecauseOfScheduledMaintenanceEvent" = false
-          AND m."deletedAt" IS NULL
-          AND p."deletedAt" IS NULL
-          AND p."isBlocked" = false
-          AND p."isSampleProject" = false
-          AND (p."paymentProviderSubscriptionStatus" IS NULL
-               OR p."paymentProviderSubscriptionStatus" = ANY($4::text[]))
-          AND (p."paymentProviderMeteredSubscriptionStatus" IS NULL
-               OR p."paymentProviderMeteredSubscriptionStatus" = ANY($4::text[]))
-        ORDER BY mp."nextPingAt" ASC NULLS FIRST
+          AND mp."nextPingAt" <= $2
+          AND ${Service.getProbeableSql("$4")}
+        ORDER BY mp."nextPingAt" ASC
         LIMIT $3
       `;
 
@@ -298,12 +319,56 @@ export class Service extends ProjectReferencesService<MonitorProbe> {
 
     const candidates: Array<{
       _id: string;
+      nextPingAt?: Date | string | null;
       monitoringInterval: string | null;
     }> = Array.isArray(candidateRows) ? candidateRows : [];
 
-    if (candidates.length === 0) {
-      return [];
-    }
+    const claimed: Array<ObjectID> =
+      candidates.length > 0
+        ? await this.claimCandidates({
+            probeId: data.probeId,
+            limit: data.limit,
+            currentDate: currentDate,
+            candidates: candidates,
+          })
+        : [];
+
+    /*
+     * Everything due before the first candidate was stepped over by the
+     * read, so nothing may probe it right now. With no candidate at all,
+     * everything due was: "before" a millisecond past now is everything
+     * due, the statement asks for `<= now` as well.
+     */
+    const firstCandidateDueAt: Date | null = Service.toDate(
+      candidates[0]?.nextPingAt,
+    );
+
+    await this.setAsideUnprobeableSafely({
+      probeId: data.probeId,
+      currentDate: currentDate,
+      dueBefore: firstCandidateDueAt || new Date(currentDate.getTime() + 1),
+    });
+
+    return claimed;
+  }
+
+  /*
+   * The second half of claimMonitorProbesForProbing: each candidate's next
+   * run worked out in Node, then one statement that claims those still due
+   * that nobody else holds and writes their schedule. Returns what it
+   * claimed.
+   */
+  private async claimCandidates(data: {
+    probeId: ObjectID;
+    limit: number;
+    currentDate: Date;
+    candidates: Array<{ _id: string; monitoringInterval: string | null }>;
+  }): Promise<Array<ObjectID>> {
+    const currentDate: Date = data.currentDate;
+    const candidates: Array<{
+      _id: string;
+      monitoringInterval: string | null;
+    }> = data.candidates;
 
     const defaultNextPing: Date = OneUptimeDate.addRemoveMinutes(
       currentDate,
@@ -433,6 +498,299 @@ export class Service extends ProjectReferencesService<MonitorProbe> {
     return claimedRows.map((row: { _id: string }) => {
       return new ObjectID(row._id);
     });
+  }
+
+  /*
+   * setAsideUnprobeable, for the claim: housekeeping that must never cost
+   * a probe the monitors it was just handed, so a failure is logged and
+   * the claim answers as usual. The rows stay due and the next claim tries
+   * again.
+   */
+  private async setAsideUnprobeableSafely(data: {
+    probeId: ObjectID;
+    currentDate: Date;
+    dueBefore: Date;
+  }): Promise<void> {
+    try {
+      /*
+       * Another round while a round moved a full batch: there may be more
+       * behind it. At most SET_ASIDE_ROUNDS_PER_CLAIM (Utils/Probe/ClaimSetAside).
+       */
+      for (let round: number = 0; round < SET_ASIDE_ROUNDS_PER_CLAIM; round++) {
+        const moved: { setAside: number; madeDue: number } =
+          await this.setAsideUnprobeable(data);
+
+        if (
+          moved.setAside < SET_ASIDE_PER_CLAIM &&
+          moved.madeDue < SET_ASIDE_PER_CLAIM
+        ) {
+          break;
+        }
+      }
+    } catch (err) {
+      logger.error(
+        `claimMonitorProbesForProbing: could not set aside the due monitor probes of probe ${data.probeId.toString()} that nothing may probe now; the next claim tries again.`,
+      );
+      logger.error(err);
+    }
+  }
+
+  /*
+   * Sets aside the probe's due rows that nothing may probe now, and makes
+   * due any it has with no nextPingAt at all.
+   *
+   * Looks only at rows due before `dueBefore` - the first row the claim's
+   * read could hand out, so exactly the rows that read stepped over - and
+   * at no more than SET_ASIDE_PER_CLAIM of them, oldest first: on a probe
+   * with nothing to set aside, the range is empty and the statement costs
+   * an index probe. Each row is judged again here, in this statement
+   * (getProbeableSql, IS NOT TRUE), and only one that still may not be
+   * probed is moved: SET_ASIDE_FOR_MINUTES on, plus up to
+   * SET_ASIDE_SPREAD_IN_MINUTES. A monitor turned back on between the
+   * claim's read and this statement is therefore left due, and one turned
+   * on after it is made due by MonitorService (makeDueNowForMonitors),
+   * which waits for this statement's row locks and writes over it.
+   *
+   * Locks only the rows it moves, FOR NO KEY UPDATE SKIP LOCKED, for this
+   * one self-committing statement (OneUptime issue #7194): a row another
+   * claim or a result being stored holds is left for the next claim.
+   * lastPingAt is left alone - it still says when the row was last handed
+   * out.
+   *
+   * Returns how many rows it set aside, and how many it made due.
+   */
+  public async setAsideUnprobeable(data: {
+    probeId: ObjectID;
+    currentDate: Date;
+    dueBefore: Date;
+  }): Promise<{ setAside: number; madeDue: number }> {
+    const setAsideQuery: string = `
+        WITH "steppedOver" AS (
+          SELECT mp."_id"
+          FROM "MonitorProbe" mp
+          WHERE mp."probeId" = $1
+            AND mp."isEnabled" = true
+            AND mp."nextPingAt" <= $2
+            AND mp."nextPingAt" < $3
+          ORDER BY mp."nextPingAt" ASC
+          LIMIT $4
+        ),
+        "unprobeable" AS (
+          SELECT mp."_id"
+          FROM "MonitorProbe" mp
+          LEFT JOIN "Monitor" m ON mp."monitorId" = m."_id"
+          LEFT JOIN "Project" p ON mp."projectId" = p."_id"
+          WHERE mp."_id" IN (SELECT "_id" FROM "steppedOver")
+            AND mp."probeId" = $1
+            AND mp."isEnabled" = true
+            AND mp."nextPingAt" <= $2
+            AND (
+              ${Service.getProbeableSql("$5")}
+            ) IS NOT TRUE
+          FOR NO KEY UPDATE OF mp SKIP LOCKED
+        ),
+        "setAside" AS (
+          UPDATE "MonitorProbe" AS mp
+          SET "nextPingAt" = $2::timestamptz
+            + ($6::double precision + random() * $7::double precision)
+              * INTERVAL '1 minute'
+          FROM "unprobeable"
+          WHERE mp."_id" = "unprobeable"."_id"
+          RETURNING mp."_id"
+        ),
+        "unscheduled" AS (
+          SELECT mp."_id"
+          FROM "MonitorProbe" mp
+          WHERE mp."probeId" = $1
+            AND mp."isEnabled" = true
+            AND mp."nextPingAt" IS NULL
+          LIMIT $4
+          FOR NO KEY UPDATE OF mp SKIP LOCKED
+        ),
+        "madeDue" AS (
+          UPDATE "MonitorProbe" AS mp
+          SET "nextPingAt" = $2::timestamptz
+          FROM "unscheduled"
+          WHERE mp."_id" = "unscheduled"."_id"
+          RETURNING mp."_id"
+        )
+        SELECT
+          (SELECT COUNT(*) FROM "setAside")::int AS "setAside",
+          (SELECT COUNT(*) FROM "madeDue")::int AS "madeDue"
+      `;
+
+    const rows: unknown = await this.getRepository().manager.query(
+      setAsideQuery,
+      [
+        data.probeId.toString(),
+        data.currentDate,
+        data.dueBefore,
+        SET_ASIDE_PER_CLAIM,
+        SubscriptionStatusUtil.getActiveSubscriptionStatuses(),
+        SET_ASIDE_FOR_MINUTES,
+        SET_ASIDE_SPREAD_IN_MINUTES,
+      ],
+    );
+
+    const counts: { setAside?: unknown; madeDue?: unknown } | undefined =
+      Array.isArray(rows) ? rows[0] : undefined;
+
+    const result: { setAside: number; madeDue: number } = {
+      setAside: Number(counts?.setAside) || 0,
+      madeDue: Number(counts?.madeDue) || 0,
+    };
+
+    if (result.setAside > 0 || result.madeDue > 0) {
+      logger.debug(
+        `claimMonitorProbesForProbing: probe ${data.probeId.toString()} set aside ${result.setAside} due monitor probe(s) nothing may probe now, and made due ${result.madeDue} that had no next check.`,
+      );
+    }
+
+    return result;
+  }
+
+  /*
+   * How many of this probe's monitor probes are due by `dueAt` and may be
+   * handed to it - the claim's own rule (getProbeableSql), counted up to
+   * PENDING_MONITOR_PROBE_COUNT_CAP. What a probe's KEDA autoscaler reads.
+   *
+   * The same index range as the claim's read, stopped at the cap. It was a
+   * countBy over a join of all three tables, which visited every due row
+   * on every scaling poll - the most when the probe was furthest behind.
+   */
+  public async countMonitorProbesDueForProbing(data: {
+    probeId: ObjectID;
+    dueAt: Date;
+  }): Promise<number> {
+    const countQuery: string = `
+        SELECT COUNT(*)::int AS "count"
+        FROM (
+          SELECT 1
+          FROM "MonitorProbe" mp
+          INNER JOIN "Monitor" m ON mp."monitorId" = m."_id"
+          INNER JOIN "Project" p ON mp."projectId" = p."_id"
+          WHERE mp."probeId" = $1
+            AND mp."isEnabled" = true
+            AND mp."nextPingAt" <= $2
+            AND ${Service.getProbeableSql("$4")}
+          LIMIT $3
+        ) AS "pending"
+      `;
+
+    const rows: unknown = await this.getRepository().manager.query(countQuery, [
+      data.probeId.toString(),
+      data.dueAt,
+      PENDING_MONITOR_PROBE_COUNT_CAP,
+      SubscriptionStatusUtil.getActiveSubscriptionStatuses(),
+    ]);
+
+    const count: unknown = Array.isArray(rows)
+      ? (rows[0] as { count?: unknown } | undefined)?.count
+      : undefined;
+
+    return Number(count) || 0;
+  }
+
+  /*
+   * Makes every probe of these monitors due now, unless it is due already.
+   * For a monitor that may be probed again - turned back on, unarchived,
+   * out of its maintenance window, its manual incident resolved - whose
+   * probes the claim may have set aside for up to SET_ASIDE_FOR_MINUTES
+   * (setAsideUnprobeable): its next check is the next claim, as it was
+   * before set-aside existed. A probe switched off on the monitor is made
+   * due too, so it is due the moment it is switched back on.
+   */
+  public async makeDueNowForMonitors(data: {
+    monitorIds: Array<ObjectID>;
+  }): Promise<void> {
+    await this.makeDueNow({ column: "monitorId", ids: data.monitorIds });
+  }
+
+  /*
+   * The same for monitor probes by their own id: one switched back on
+   * (onUpdateSuccess) may have been set aside before it was switched off.
+   */
+  public async makeDueNowForMonitorProbes(data: {
+    monitorProbeIds: Array<ObjectID>;
+  }): Promise<void> {
+    await this.makeDueNow({ column: "_id", ids: data.monitorProbeIds });
+  }
+
+  /*
+   * Matches every row it names, not only those with a nextPingAt in the
+   * future, and moves each with LEAST: a row a claim is setting aside at
+   * this very moment is matched as it was before that claim, waited for,
+   * and moved back as that claim left it. Filtered on the future instead,
+   * it would be read before the claim's write, left alone, and stay set
+   * aside.
+   */
+  private async makeDueNow(data: {
+    column: "monitorId" | "_id";
+    ids: Array<ObjectID>;
+  }): Promise<void> {
+    const ids: Array<string> = data.ids
+      .map((id: ObjectID): string => {
+        return id.toString();
+      })
+      .filter((id: string): boolean => {
+        return ObjectID.isValidUUID(id);
+      });
+
+    if (ids.length === 0) {
+      return;
+    }
+
+    await this.getRepository().manager.query(
+      `
+        UPDATE "MonitorProbe"
+        SET "nextPingAt" = LEAST(COALESCE("nextPingAt", $2::timestamptz), $2::timestamptz)
+        WHERE "${data.column}" = ANY($1::uuid[])
+          AND "deletedAt" IS NULL
+      `,
+      [ids, OneUptimeDate.getCurrentDate()],
+    );
+  }
+
+  /*
+   * Whether a monitor probe may be handed to its probe now, as SQL over the
+   * aliases the claim's statements use - `mp` (the MonitorProbe), `m` (its
+   * Monitor) and `p` (its Project) - with the served subscription statuses
+   * bound as `statusesParameter`. The claim's read keeps the rows it is
+   * true for, the set-aside moves the rows it is not true for, and the
+   * pending count counts the first kind: one definition, so a row the
+   * claim would hand out is never one the set-aside moves.
+   *
+   * The monitor's four pause flags (MonitorPauseState: archived, switched
+   * off, held by a manual incident, in a maintenance window), and the
+   * project's getActiveProjectStatusQuery: not deleted, blocked or a
+   * sample, and its subscriptions not inactive. Read through LEFT JOINs a
+   * missing monitor or project is NULL here, never true.
+   */
+  private static getProbeableSql(statusesParameter: string): string {
+    return [
+      `mp."deletedAt" IS NULL`,
+      `m."isArchived" = false`,
+      `m."disableActiveMonitoring" = false`,
+      `m."disableActiveMonitoringBecauseOfManualIncident" = false`,
+      `m."disableActiveMonitoringBecauseOfScheduledMaintenanceEvent" = false`,
+      `m."deletedAt" IS NULL`,
+      `p."deletedAt" IS NULL`,
+      `p."isBlocked" = false`,
+      `p."isSampleProject" = false`,
+      `(p."paymentProviderSubscriptionStatus" IS NULL OR p."paymentProviderSubscriptionStatus" = ANY(${statusesParameter}::text[]))`,
+      `(p."paymentProviderMeteredSubscriptionStatus" IS NULL OR p."paymentProviderMeteredSubscriptionStatus" = ANY(${statusesParameter}::text[]))`,
+    ].join("\n          AND ");
+  }
+
+  // A timestamptz as node-postgres hands it back, or null.
+  private static toDate(value: Date | string | null | undefined): Date | null {
+    if (!value) {
+      return null;
+    }
+
+    const date: Date = value instanceof Date ? value : new Date(value);
+
+    return isNaN(date.getTime()) ? null : date;
   }
 
   /*
@@ -707,6 +1065,21 @@ export class Service extends ProjectReferencesService<MonitorProbe> {
     onUpdate: OnUpdate<MonitorProbe>,
     updatedItemIds: ObjectID[],
   ): Promise<OnUpdate<MonitorProbe>> {
+    /*
+     * Switched back on: due now, as it would be had it never been set aside
+     * (setAsideUnprobeable) before it was switched off. Its own try, like
+     * the status refresh below: the row is saved already.
+     */
+    if (onUpdate.updateBy.data.isEnabled === true) {
+      try {
+        await this.makeDueNowForMonitorProbes({
+          monitorProbeIds: updatedItemIds,
+        });
+      } catch (err) {
+        logger.error(err);
+      }
+    }
+
     // if isEnabled is updated, refresh the status of the affected monitors.
     if (onUpdate.updateBy.data.isEnabled !== undefined) {
       const monitorProbes: Array<MonitorProbe> = await this.findBy({

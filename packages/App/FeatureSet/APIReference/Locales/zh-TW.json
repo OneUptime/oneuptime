@@ -262,7 +262,7 @@
       "countRequestTitle": "計數請求",
       "aggregateHeading": "彙總",
       "aggregateIntro": "此端點會對您的 {{title}} 執行伺服器端彙總（總和、平均值、計數和百分位數），並將結果按時間分桶分組。它為圖表和儀表板提供資料。",
-      "aggregateByDescription": "要執行的彙總。指定 aggregationType（Count、Sum、Avg、Min、Max、P50、P90、P95、P99）、aggregateColumnName、aggregationTimestampColumnName、startTimestamp、endTimestamp，以及選用的 query 和 groupBy。",
+      "aggregateByDescription": "要執行的彙總。指定 aggregationType（Count、Sum、Avg、Min、Max、P50、P90、P95、P99）、aggregateColumnName、aggregationTimestampColumnName、startTimestamp、endTimestamp，以及選用的 query 和 groupBy。預設情況下，時間分桶的大小由時間範圍決定；設定選用的 aggregationInterval 即可固定分桶大小（Minute、Hour、Day、Week、Month、Year），例如在一週的範圍內按 Day 分桶；設為 Total 則不按時間分桶，在整個範圍內為每個群組傳回一個彙總值。Day、Week、Month 和 Year 分桶從 UTC 午夜開始，每週從星期一開始；將選用的 timezone 設為時區名稱（例如 America/New_York），即可改為從該時區的午夜開始。不是已知時區的名稱會遭到拒絕。",
       "aggregateRequestTitle": "彙總請求",
       "createHeading": "建立 {{title}}",
       "createIntro": "此端點允許您建立一個新物件。",

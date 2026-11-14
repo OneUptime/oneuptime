@@ -99,6 +99,7 @@ import IncidentSettingsMeasurements from "../Pages/Incidents/Settings/IncidentMe
 
 import IncidentSettingsLinkedAlerts from "../Pages/Incidents/Settings/IncidentLinkedAlertsSettings";
 import IncidentSettingsPublicNoteApproval from "../Pages/Incidents/Settings/IncidentPublicNoteApproval";
+import IncidentSettingsSubscriberNotifications from "../Pages/Incidents/Settings/IncidentSubscriberNotificationsSettings";
 
 import IncidentSettingsEpisodeMembership from "../Pages/Incidents/Settings/IncidentEpisodeMembershipSettings";
 
@@ -783,6 +784,24 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[
                   PageMap.INCIDENTS_SETTINGS_PUBLIC_NOTE_APPROVAL
+                ] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            IncidentsRoutePath[
+              PageMap.INCIDENTS_SETTINGS_SUBSCRIBER_NOTIFICATIONS
+            ] || ""
+          }
+          element={
+            <IncidentSettingsSubscriberNotifications
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.INCIDENTS_SETTINGS_SUBSCRIBER_NOTIFICATIONS
                 ] as Route
               }
             />
