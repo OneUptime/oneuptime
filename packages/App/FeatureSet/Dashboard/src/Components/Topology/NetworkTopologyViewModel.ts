@@ -1,6 +1,7 @@
 import {
   NetworkTopologyDeviceRole,
   NetworkTopologyEdge,
+  NetworkTopologyMonitorNotChecked,
   NetworkTopologyNode,
 } from "Common/Types/Monitor/SnmpMonitor/NetworkTopology";
 import {
@@ -31,7 +32,6 @@ import {
   MonitorNotCheckedQualifier,
   getMonitorNotCheckedQualifier,
 } from "../NetworkDevice/DeviceStatusUtil";
-import { NetworkTopologyMonitorNotChecked } from "Common/Types/Monitor/SnmpMonitor/NetworkTopology";
 import {
   TopologyNodeFootprint,
   footprintForNode,

@@ -22,6 +22,7 @@ import fs from "fs";
 import path from "path";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
+import type { Mock } from "jest-mock";
 
 /*
  * THE NETWORK MAP'S DEVICE DRAWER SAYS WHY A DEVICE READS "UNKNOWN"
@@ -141,7 +142,7 @@ function deviceNode(
     name: "branch-ap-01",
     isManaged: true,
     kind: "device",
-    role: "access_point",
+    role: "wirelessAccessPoint",
     status: "unknown",
     ...overrides,
   };
@@ -359,7 +360,7 @@ describe("the Network Map's device drawer, for a device whose bound monitor noth
 describe("Turn monitoring on, in the drawer", () => {
   test("a press turns the device's monitor on and reads the map again, busy until the read is in", async () => {
     let finishRead: () => void = (): void => {};
-    const readMapAgain: jest.Mock<() => Promise<void>> = jest.fn(
+    const readMapAgain: Mock<() => Promise<void>> = jest.fn(
       (): Promise<void> => {
         return new Promise<void>((resolve: () => void) => {
           finishRead = resolve;
@@ -400,7 +401,7 @@ describe("Turn monitoring on, in the drawer", () => {
         new Error("You do not have permission to update this Monitor."),
       );
     };
-    const readMapAgain: jest.Mock<() => Promise<void>> = jest.fn(
+    const readMapAgain: Mock<() => Promise<void>> = jest.fn(
       (): Promise<void> => {
         return Promise.resolve();
       },
