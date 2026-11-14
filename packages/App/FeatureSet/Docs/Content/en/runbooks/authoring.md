@@ -37,7 +37,7 @@ Steps run **in order**. To change the order, drag a step by the grip at the left
 
 ### Save the steps
 
-Click **Save Steps**. Until you do, the editor says **Unsaved changes**. Once saved, you see **Saved**, and the runbook is ready to [run](/docs/runbooks/running).
+Click **Save Steps**. Until you do, the editor says **Unsaved changes**. Once saved, you see **Saved**, and the runbook is ready to [run](/docs/runbooks/running). Leaving the steps before you save asks first. A link in the side menu, the breadcrumbs or the top bar, or your browser's back and forward buttons, open **Leave without saving?** with two choices: **Keep Editing** stays on the steps with your changes, and **Discard Changes** goes on to the page you were opening. Closing or reloading the tab asks with your browser's own dialog.
 :::
 
 ## Anatomy of a step

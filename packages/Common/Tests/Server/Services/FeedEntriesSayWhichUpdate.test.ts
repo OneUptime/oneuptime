@@ -2,6 +2,7 @@ import { AlertEpisodeFeedEventType } from "../../../Models/DatabaseModels/AlertE
 import { AlertFeedEventType } from "../../../Models/DatabaseModels/AlertFeed";
 import { IncidentEpisodeFeedEventType } from "../../../Models/DatabaseModels/IncidentEpisodeFeed";
 import { IncidentFeedEventType } from "../../../Models/DatabaseModels/IncidentFeed";
+import { OnCallDutyPolicyFeedEventType } from "../../../Models/DatabaseModels/OnCallDutyPolicyFeed";
 import { ScheduledMaintenanceFeedEventType } from "../../../Models/DatabaseModels/ScheduledMaintenanceFeed";
 import AlertEpisodeFeedService from "../../../Server/Services/AlertEpisodeFeedService";
 import AlertFeedService from "../../../Server/Services/AlertFeedService";
@@ -16,6 +17,7 @@ import {
   ALERT_FEED_UPDATE_KINDS,
   INCIDENT_EPISODE_FEED_UPDATE_KINDS,
   INCIDENT_FEED_UPDATE_KINDS,
+  ON_CALL_DUTY_POLICY_FEED_UPDATE_KINDS,
   SCHEDULED_MAINTENANCE_FEED_UPDATE_KINDS,
 } from "../../../Server/Utils/Feed/FeedUpdateKinds";
 import ObjectID from "../../../Types/ObjectID";
@@ -43,8 +45,11 @@ jest.mock("../../../Server/Utils/Logger");
  *     type of every record whose rules choose their updates;
  *   - a writer that knows more names it, and that wins: a state change that
  *     resolves the incident, an edit that changes its severity;
- *   - a monitor's and an on-call policy's entries say nothing: their rules
- *     post every update, as before.
+ *   - an on-call policy's entries are its own updates (#7549): a handoff,
+ *     nobody on call, an override, a change to the policy, an owner - and
+ *     the channels hear the entry's short line where its writer gave one;
+ *   - a monitor's entries say nothing: its rules post every update, as
+ *     before.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -120,6 +125,14 @@ const CHOOSING_FEEDS: Array<FeedKind> = [
     recordIdKey: "scheduledMaintenanceId",
     eventTypeKey: "scheduledMaintenanceFeedEventType",
     table: SCHEDULED_MAINTENANCE_FEED_UPDATE_KINDS,
+  },
+  {
+    label: "on-call policies",
+    service: OnCallDutyPolicyFeedService,
+    method: "createOnCallDutyPolicyFeedItem",
+    recordIdKey: "onCallDutyPolicyId",
+    eventTypeKey: "onCallDutyPolicyFeedEventType",
+    table: ON_CALL_DUTY_POLICY_FEED_UPDATE_KINDS,
   },
 ];
 
@@ -305,6 +318,50 @@ describe("the updates the customer's channels are told of", () => {
   });
 });
 
+describe("an on-call policy's entry in its channels (#7549)", () => {
+  async function postEntry(data: {
+    chatInfoInMarkdown?: string | undefined;
+  }): Promise<Send> {
+    mockFeed(OnCallDutyPolicyFeedService);
+    sends = [];
+
+    await OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem({
+      onCallDutyPolicyId: RECORD_ID,
+      projectId: PROJECT_ID,
+      onCallDutyPolicyFeedEventType: OnCallDutyPolicyFeedEventType.UserAdded,
+      feedInfoInMarkdown:
+        "👨🏻‍💻 Added **Ana** to the [On-Call Policy Payments](x) escalation rule **First line** with order **1**.",
+      ...(data.chatInfoInMarkdown
+        ? { chatInfoInMarkdown: data.chatInfoInMarkdown }
+        : {}),
+      workspaceNotification: { sendWorkspaceNotification: true },
+    });
+
+    expect(sends).toHaveLength(1);
+
+    return sends[0]!;
+  }
+
+  test("the channels hear the short line its writer gave, not the escalation rule and its order", async () => {
+    const send: Send = await postEntry({
+      chatInfoInMarkdown: "👨🏻‍💻 Added **Ana** to on-call policy [Payments](x).",
+    });
+
+    expect(send.feedInfoInMarkdown).toBe(
+      "👨🏻‍💻 Added **Ana** to on-call policy [Payments](x).",
+    );
+    expect(send.workspaceNotification.updateKinds).toEqual([
+      NotificationRuleUpdateKind.PolicyChanges,
+    ]);
+  });
+
+  test("without one, the entry as the feed has it", async () => {
+    const send: Send = await postEntry({});
+
+    expect(send.feedInfoInMarkdown).toContain("escalation rule **First line**");
+  });
+});
+
 describe("the feeds whose rules post every update", () => {
   test.each([
     {
@@ -313,13 +370,6 @@ describe("the feeds whose rules post every update", () => {
       method: "createMonitorFeedItem",
       recordIdKey: "monitorId",
       eventTypeKey: "monitorFeedEventType",
-    },
-    {
-      label: "an on-call policy's",
-      service: OnCallDutyPolicyFeedService as unknown,
-      method: "createOnCallDutyPolicyFeedItem",
-      recordIdKey: "onCallDutyPolicyId",
-      eventTypeKey: "onCallDutyPolicyFeedEventType",
     },
   ])(
     "$label entry says nothing of which update it is",

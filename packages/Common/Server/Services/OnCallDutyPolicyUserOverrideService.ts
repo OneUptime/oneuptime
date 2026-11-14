@@ -23,6 +23,8 @@ import FeedMarkdown, {
   mdText,
   MarkdownText,
 } from "../../Utils/Markdown/FeedMarkdown";
+import OnCallChatText from "../Utils/OnCall/OnCallChatText";
+import WorkspaceMessageTime from "../Utils/Workspace/WorkspaceMessageTime";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import Permission from "../../Types/Permission";
@@ -581,17 +583,20 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
         )
       ).toString();
 
+      const routeAlertsToUserMarkdown: MarkdownText | undefined =
+        routeAlertsToUserId
+          ? await UserService.getUserMarkdownString({
+              userId: routeAlertsToUserId,
+              projectId: projectId!,
+            })
+          : undefined;
+
       /*
        * With a cover, who gets the alerts. Without one - a skip - what
        * happens to the person's turns instead.
        */
-      const what: MarkdownText = routeAlertsToUserId
-        ? mdText`All alerts will be routed to **${await UserService.getUserMarkdownString(
-            {
-              userId: routeAlertsToUserId,
-              projectId: projectId!,
-            },
-          )}** from **${from}**  to **${until}**. `
+      const what: MarkdownText = routeAlertsToUserMarkdown
+        ? mdText`All alerts will be routed to **${routeAlertsToUserMarkdown}** from **${from}**  to **${until}**. `
         : mdText`Nobody is named to cover, so from **${from}** to **${until}** each of their turns goes to the next person in the rotation, and they are not paged.`;
 
       await OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem({
@@ -602,6 +607,27 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
         displayColor: Gray500,
         feedInfoInMarkdown:
           mdText`🔁 Added a User Override Rule for user **${overrideUserMarkdown}** for the [On-Call Policy ${onCallPolicyName}](${policyLink}). ${what}`.toString(),
+        /*
+         * The channels hear it in a line, each moment in its reader's own
+         * zone - not in the time zones of both people, line after line
+         * (issue #7549).
+         */
+        chatInfoInMarkdown:
+          createdItem.startsAt && createdItem.endsAt
+            ? OnCallChatText.overrideAdded({
+                policy: OnCallChatText.policy({
+                  name: onCallPolicyName || "",
+                  link: policyLink,
+                }),
+                person: overrideUserMarkdown,
+                cover: routeAlertsToUserMarkdown,
+                from: createdItem.startsAt,
+                until: createdItem.endsAt,
+                moment: (date: Date): MarkdownText => {
+                  return WorkspaceMessageTime.dateAndTime(date);
+                },
+              }).toString()
+            : undefined,
 
         userId: createdItem.createdByUserId! || undefined,
         workspaceNotification: {
@@ -1279,9 +1305,18 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
       const from: string = inTimezones(afterStartsAt);
       const until: string = inTimezones(afterEndsAt);
 
+      const overrideUserMarkdown: MarkdownText = await personMarkdown(
+        overrideUserId.toString(),
+      );
+
+      // Who covers now; none when their turns pass to the next person.
+      const coverMarkdown: MarkdownText | undefined = afterCoverId
+        ? await personMarkdown(afterCoverId)
+        : undefined;
+
       // What it is now, as the add says it.
-      const what: MarkdownText = afterCoverId
-        ? mdText`All alerts will be routed to **${await personMarkdown(afterCoverId)}** from **${from}** to **${until}**.`
+      const what: MarkdownText = coverMarkdown
+        ? mdText`All alerts will be routed to **${coverMarkdown}** from **${from}** to **${until}**.`
         : mdText`Nobody is named to cover, so from **${from}** to **${until}** each of their turns goes to the next person in the rotation, and they are not paged.`;
 
       // And what it was.
@@ -1321,7 +1356,25 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
           OnCallDutyPolicyFeedEventType.UserOverrideChanged,
         displayColor: Gray500,
         feedInfoInMarkdown:
-          mdText`✏️ Changed a User Override Rule for user **${await personMarkdown(overrideUserId.toString())}** for the [On-Call Policy ${onCallPolicyName}](${policyLink}). ${what} Changed: ${FeedMarkdown.join(changes, "; ")}.`.toString(),
+          mdText`✏️ Changed a User Override Rule for user **${overrideUserMarkdown}** for the [On-Call Policy ${onCallPolicyName}](${policyLink}). ${what} Changed: ${FeedMarkdown.join(changes, "; ")}.`.toString(),
+        /*
+         * The channels hear the override as it is now, in a line, each
+         * moment in its reader's own zone, as they hear one added (issue
+         * #7549). What it was stays in the policy's feed.
+         */
+        chatInfoInMarkdown: OnCallChatText.overrideChanged({
+          policy: OnCallChatText.policy({
+            name: onCallPolicyName || "",
+            link: policyLink,
+          }),
+          person: overrideUserMarkdown,
+          cover: coverMarkdown,
+          from: afterStartsAt,
+          until: afterEndsAt,
+          moment: (date: Date): MarkdownText => {
+            return WorkspaceMessageTime.dateAndTime(date);
+          },
+        }).toString(),
         userId: data.userId || undefined,
         workspaceNotification: {
           sendWorkspaceNotification: true,
@@ -1439,6 +1492,19 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
         const deleteByUserId: ObjectID | undefined | null =
           deleteBy.props.userId;
 
+        const overrideUserMarkdown: MarkdownText =
+          await UserService.getUserMarkdownString({
+            userId: overrideUserId,
+            projectId: projectId!,
+          });
+
+        const policyLink: string = (
+          await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
+            projectId!,
+            onCallDutyPolicyId!,
+          )
+        ).toString();
+
         await OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem({
           onCallDutyPolicyId: onCallDutyPolicyId,
           projectId: projectId!,
@@ -1446,17 +1512,14 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
             OnCallDutyPolicyFeedEventType.UserOverrideRemoved,
           displayColor: Gray500,
           feedInfoInMarkdown:
-            mdText`❌ Removed a User Override Rule for user **${await UserService.getUserMarkdownString(
-              {
-                userId: overrideUserId,
-                projectId: projectId!,
-              },
-            )}** for the [On-Call Policy ${onCallPolicyName}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}). All alerts will be routed back to **${await UserService.getUserMarkdownString(
-              {
-                userId: overrideUserId,
-                projectId: projectId!,
-              },
-            )}**`.toString(),
+            mdText`❌ Removed a User Override Rule for user **${overrideUserMarkdown}** for the [On-Call Policy ${onCallPolicyName}](${policyLink}). All alerts will be routed back to **${overrideUserMarkdown}**`.toString(),
+          chatInfoInMarkdown: OnCallChatText.overrideRemoved({
+            policy: OnCallChatText.policy({
+              name: onCallPolicyName || "",
+              link: policyLink,
+            }),
+            person: overrideUserMarkdown,
+          }).toString(),
           userId: deleteByUserId || undefined,
           workspaceNotification: {
             sendWorkspaceNotification: true,
