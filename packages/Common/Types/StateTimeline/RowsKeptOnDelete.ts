@@ -100,7 +100,7 @@ export const ROWS_KEPT_ON_DELETE_BY_QUERY: Readonly<
   ScheduledMaintenanceStateTimeline: {
     parentColumn: "scheduledMaintenanceId",
     keepsHistoryInEffect: false,
-    whatStays: "each scheduled maintenance event's current state",
+    whatStays: "each maintenance event's current state",
     why: "so status pages always show it",
     oneRowByIdCanGo: true,
   },

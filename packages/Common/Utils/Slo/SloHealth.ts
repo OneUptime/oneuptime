@@ -274,7 +274,7 @@ export const getSloNotice: GetSloNoticeFunction = (
     return {
       type: SloNoticeType.Info,
       title: "Measurement is paused",
-      body: "Every monitor attached to this SLO has active monitoring disabled — by hand, by a manual incident, or by a scheduled maintenance event — so there is no signal to measure. The SLO resumes automatically when a monitor starts reporting again.",
+      body: "Every monitor attached to this SLO has active monitoring disabled — by hand, by a manual incident, or by a maintenance event — so there is no signal to measure. The SLO resumes automatically when a monitor starts reporting again.",
       action: {
         label: "View monitors",
         target: SloNoticeActionTarget.Monitors,

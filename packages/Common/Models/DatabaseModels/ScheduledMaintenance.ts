@@ -2367,7 +2367,7 @@ export default class ScheduledMaintenance extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Send Reminders?",
     description:
-      "Should reminder notifications be sent to owners while this scheduled maintenance event is still not complete? Reminders are sent based on the reminder rules configured for this project.",
+      "Should reminder notifications be sent to owners while this maintenance event is still not complete? Reminders are sent based on the reminder rules configured for this project.",
     defaultValue: true,
   })
   @Column({
@@ -2398,7 +2398,7 @@ export default class ScheduledMaintenance extends BaseModel {
     isDefaultValueColumn: false,
     title: "Next Reminder Notification At",
     description:
-      "When will the next reminder notification be sent to owners of this scheduled maintenance event? This is set automatically based on the reminder rules configured for this project.",
+      "When will the next reminder notification be sent to owners of this maintenance event? This is set automatically based on the reminder rules configured for this project.",
   })
   @Column({
     type: ColumnType.Date,
@@ -2426,7 +2426,7 @@ export default class ScheduledMaintenance extends BaseModel {
     isDefaultValueColumn: false,
     title: "Reminder Notifications Sent Count",
     description:
-      "How many reminder notifications have been sent to owners of this scheduled maintenance event so far.",
+      "How many reminder notifications have been sent to owners of this maintenance event so far.",
   })
   @Column({
     type: ColumnType.Number,

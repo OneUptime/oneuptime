@@ -86,8 +86,8 @@
     "incidentsOnThisDay": "이 날짜에 {{total}}건의 인시던트가 보고되었습니다",
     "scheduledMaintenance": "예정된 유지보수",
     "dayLabelWithMaintenance": "{{label}}, {{maintenance}}",
-    "oneMaintenanceEvent": "예정된 유지보수 1건",
-    "maintenanceEvents": "예정된 유지보수 {{total}}건",
+    "oneMaintenanceEvent": "유지 관리 이벤트 1건",
+    "maintenanceEvents": "유지 관리 이벤트 {{total}}건",
     "moreMaintenance": "외 {{total}}건"
   },
   "liveStatus": {

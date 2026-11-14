@@ -1983,7 +1983,7 @@ test.describe("scheduled maintenance on the uptime strip", () => {
 
     await expect(bars.nth(87)).toHaveAttribute(
       "aria-label",
-      /1 scheduled maintenance event$/,
+      /1 maintenance event$/,
     );
 
     await expect(

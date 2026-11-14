@@ -3558,9 +3558,9 @@ const OWNER_ADD_REFUSALS = {
   [tableName(AlertEpisodeOwnerTeam)]:
     "This team is already an owner of this alert episode.",
   [tableName(ScheduledMaintenanceOwnerUser)]:
-    "This user is already an owner of this scheduled maintenance event.",
+    "This user is already an owner of this maintenance event.",
   [tableName(ScheduledMaintenanceOwnerTeam)]:
-    "This team is already an owner of this scheduled maintenance event.",
+    "This team is already an owner of this maintenance event.",
 };
 
 // What the server says when it refuses a role (?fail=role-assign).

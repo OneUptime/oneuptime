@@ -1002,7 +1002,7 @@ describe("validateFormTemplateAnswers - the settings the server lets a template 
       expect(
         checkMaintenance("Hidden", FormTargetType.ScheduledMaintenance),
       ).toBe(
-        'Template 1 ("Night Work"): Starts At cannot be hidden: a scheduled maintenance event cannot be created without it.',
+        'Template 1 ("Night Work"): Starts At cannot be hidden: a maintenance event cannot be created without it.',
       );
     });
 
@@ -1010,7 +1010,7 @@ describe("validateFormTemplateAnswers - the settings the server lets a template 
       expect(
         checkMaintenance("Optional", FormTargetType.ScheduledMaintenance),
       ).toBe(
-        'Template 1 ("Night Work"): Starts At cannot be optional: a scheduled maintenance event cannot be created without it.',
+        'Template 1 ("Night Work"): Starts At cannot be optional: a maintenance event cannot be created without it.',
       );
     });
 

@@ -86,8 +86,8 @@
     "incidentsOnThisDay": "{{total}} حادثه در این روز گزارش شده است",
     "scheduledMaintenance": "تعمیر و نگهداری زمان‌بندی‌شده",
     "dayLabelWithMaintenance": "{{label}}، {{maintenance}}",
-    "oneMaintenanceEvent": "۱ تعمیر و نگهداری زمان‌بندی‌شده",
-    "maintenanceEvents": "{{total}} تعمیر و نگهداری زمان‌بندی‌شده",
+    "oneMaintenanceEvent": "۱ رویداد تعمیر و نگهداری",
+    "maintenanceEvents": "{{total}} رویداد تعمیر و نگهداری",
     "moreMaintenance": "+{{total}} مورد دیگر"
   },
   "liveStatus": {

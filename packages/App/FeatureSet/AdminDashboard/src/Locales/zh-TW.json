@@ -2651,7 +2651,7 @@
   "Deleting a monitor also deletes its status history and takes it off status pages, monitor groups and SLOs. Its incidents and alerts stay.": "刪除監測器也會刪除其狀態歷史，並將其從狀態頁面、監測器群組和 SLO 中移除。它的事件和警示會保留。",
   "Deleting an incident also deletes its notes and state timeline, and takes it off status pages. Linked alerts stay.": "刪除事件也會刪除其備註和狀態時間軸，並將其從狀態頁面中移除。連結的警示會保留。",
   "Deleting an alert also deletes its notes and state timeline. Linked incidents stay.": "刪除警示也會刪除其備註和狀態時間軸。連結的事件會保留。",
-  "Deleting a scheduled maintenance event also deletes its notes and state timeline, and takes it off status pages.": "刪除排定維護事件也會刪除其備註和狀態時間軸，並將其從狀態頁面中移除。",
+  "Deleting a maintenance event also deletes its notes and state timeline, and takes it off status pages.": "刪除維護事件也會刪除其備註和狀態時間軸，並將其從狀態頁面中移除。",
   "Deleting an incident episode also deletes its notes and state timeline. Its incidents stay.": "刪除事件片段也會刪除其備註和狀態時間軸。其中的事件會保留。",
   "Deleting an alert episode also deletes its notes and state timeline. Its alerts stay.": "刪除警示片段也會刪除其備註和狀態時間軸。其中的警示會保留。",
   "Deleting a monitor group takes it off status pages. Its monitors stay.": "刪除監測器群組會將其從狀態頁面中移除。群組內的監測器會保留。",

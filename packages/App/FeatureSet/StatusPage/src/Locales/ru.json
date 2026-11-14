@@ -86,8 +86,8 @@
     "incidentsOnThisDay": "В этот день зафиксировано инцидентов: {{total}}",
     "scheduledMaintenance": "Запланированное обслуживание",
     "dayLabelWithMaintenance": "{{label}}, {{maintenance}}",
-    "oneMaintenanceEvent": "1 запланированное обслуживание",
-    "maintenanceEvents": "запланированных работ по обслуживанию: {{total}}",
+    "oneMaintenanceEvent": "1 событие обслуживания",
+    "maintenanceEvents": "событий обслуживания: {{total}}",
     "moreMaintenance": "Ещё {{total}}"
   },
   "liveStatus": {

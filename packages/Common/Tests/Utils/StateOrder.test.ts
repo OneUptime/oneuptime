@@ -936,7 +936,7 @@ describe("the messages", () => {
     );
   });
 
-  test("a maintenance one talks about scheduled maintenance events", () => {
+  test("a maintenance one talks about maintenance events", () => {
     const violation: StateListOrderViolation = getStateListOrderViolation(
       MAINTENANCE,
       [
@@ -946,7 +946,7 @@ describe("the messages", () => {
     )!;
 
     expect(getStateListOrderViolationMessage(MAINTENANCE, violation)).toBe(
-      'Scheduled maintenance events only ever move down this list, so the ongoing state ("Ongoing") has to stay below the scheduled state ("Scheduled").',
+      'Maintenance events only ever move down this list, so the ongoing state ("Ongoing") has to stay below the scheduled state ("Scheduled").',
     );
   });
 
