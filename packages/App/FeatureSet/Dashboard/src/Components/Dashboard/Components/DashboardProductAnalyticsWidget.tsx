@@ -10,7 +10,6 @@ import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
-import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -28,6 +27,7 @@ import AppLink from "../../AppLink/AppLink";
 import DashboardResourceList from "../Utils/DashboardResourceList";
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import WidgetPlaceholder from "./WidgetPlaceholder";
+import DashboardWidgetError from "./DashboardWidgetError";
 import DashboardWidgetLine from "./DashboardWidgetLine";
 import { useIsDashboardWidgetPreview } from "./DashboardWidgetPreview";
 import {
@@ -389,7 +389,10 @@ export function ProductAnalyticsWidgetFrame<
       );
       break;
     case ProductAnalyticsWidgetState.Error:
-      body = <ErrorMessage message={props.saved.error} />;
+      // Every widget's error line (issue #7330), under the widget's title.
+      body = (
+        <DashboardWidgetError icon={words.icon} error={props.saved.error} />
+      );
       break;
     case ProductAnalyticsWidgetState.Loading:
       body = (

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52219,
-    "untranslated": 9350
+    "keys": 52236,
+    "untranslated": 9299
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -252,6 +252,7 @@
     "Pull request {{label}}",
     "Push",
     "Query",
+    "Query {{number}}",
     "Quota",
     "RTT",
     "RabbitMQ",
@@ -467,7 +468,6 @@
     "vSphere Client",
     "vertical pod autoscaler",
     "volume",
-    "workflow",
     "writesets",
     "x86",
     "z",

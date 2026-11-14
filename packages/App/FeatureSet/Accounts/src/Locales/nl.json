@@ -610,7 +610,8 @@
   "Click to choose a file or drag & drop.": "Klik om een bestand te kiezen of sleep het hierheen.",
   "Click to add more or drag & drop.": "Klik om meer toe te voegen of sleep ze hierheen.",
   "PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP, up to {{size}}.": "PDF-, Office- en OpenDocument-bestanden, afbeeldingen, tekst, CSV, JSON, ZIP of PCAP, tot {{size}}.",
-  "Up to 10 files of {{size}} each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.": "Tot 10 bestanden van elk {{size}}: PDF-, Office- en OpenDocument-bestanden, afbeeldingen, tekst, CSV, JSON, ZIP of PCAP.",
+  "Up to {{count}} files of {{size}} each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.": "Tot {{count}} bestanden van elk {{size}}: PDF-, Office- en OpenDocument-bestanden, afbeeldingen, tekst, CSV, JSON, ZIP of PCAP.",
+  "Up to {{count}} files of {{size}} each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP._one": "Eén bestand van maximaal {{size}}: PDF-, Office- en OpenDocument-bestanden, afbeeldingen, tekst, CSV, JSON, ZIP of PCAP.",
   "Chosen files": "Gekozen bestanden",
   "Remove": "Verwijderen",
   "Replace": "Vervangen",
@@ -621,6 +622,7 @@
   "These files are not a type this field takes: {{fileNames}}.": "Deze bestanden hebben een type dat dit veld niet accepteert: {{fileNames}}.",
   "Add one file at a time.": "Voeg één bestand tegelijk toe.",
   "This field holds up to {{count}} files. Remove one to add another.": "Dit veld bevat maximaal {{count}} bestanden. Verwijder er een om een ander toe te voegen.",
+  "This field holds up to {{count}} files. Remove one to add another._one": "Dit veld bevat één bestand. Verwijder het om een ander toe te voegen.",
   "markdownCallouts": {
     "caution": "Let op",
     "danger": "Gevaar",

@@ -573,6 +573,13 @@ import UserUtil from "Common/UI/Utils/User";
 import PermissionUtil from "Common/UI/Utils/Permission";
 import { setPageLanguage } from "Common/UI/Utils/PageLanguage";
 import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
+import { setCodeApartInSentence } from "Common/Types/CodeInSentence";
+import {
+  CODE_READS_AS_WRITTEN_POST_PROCESSOR,
+  codeReadsAsWrittenPostProcessor,
+  leaveIsolatesOutOfCopiedText,
+  setCodeApartWith,
+} from "Common/UI/Utils/CodeReadsAsWritten";
 
 /*
  * ---------------------------------------------------------------------------
@@ -9964,14 +9971,33 @@ async function loadTranslation(lang) {
  */
 followLanguageForDates(i18next);
 
-await i18next.use(initReactI18next).init({
-  lng: language,
-  fallbackLng: language,
-  resources: { [language]: { translation: await loadTranslation(language) } },
-  interpolation: { escapeValue: false },
-  keySeparator: false,
-  nsSeparator: false,
-});
+/*
+ * Code in an Arabic or Persian sentence - a file's extension, ".vtt" - is
+ * drawn as it is written, as the Dashboard's own setup draws it
+ * (Dashboard/src/Utils/i18n, Common/UI/Utils/CodeReadsAsWritten): set
+ * apart as the sentence is handed to the page, and copied without the
+ * marks that set it apart. Without it the page drew the Add transcript
+ * dialog's ".vtt" as "vtt." on a Persian page, as the Dashboard never does
+ * (issue #7419). The rules are handed over rather than fetched, as a page
+ * that bundles them does.
+ */
+setCodeApartWith(setCodeApartInSentence);
+leaveIsolatesOutOfCopiedText();
+
+await i18next
+  .use(initReactI18next)
+  .use(codeReadsAsWrittenPostProcessor)
+  .init({
+    lng: language,
+    fallbackLng: language,
+    resources: {
+      [language]: { translation: await loadTranslation(language) },
+    },
+    postProcess: [CODE_READS_AS_WRITTEN_POST_PROCESSOR],
+    interpolation: { escapeValue: false },
+    keySeparator: false,
+    nsSeparator: false,
+  });
 if (params.get("dir") === "auto") {
   // As the Dashboard does: <html lang> and its reading direction.
   setPageLanguage(language);

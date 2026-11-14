@@ -114,6 +114,7 @@ import {
 import {
   HOST_CPU_BUSY_PERCENT,
   HOST_LOAD_QUEUING_PERCENT,
+  formatHostBytes,
   getHostUptimeSeconds,
   isHostStarting,
 } from "../Utils/HostFacts";
@@ -205,21 +206,9 @@ const formatInt: (value: number | null) => string = (
   return formatReaderFigure(Math.round(value), { decimals: 0 });
 };
 
-const formatMemoryBytes: (bytes: number | null | undefined) => string = (
-  bytes: number | null | undefined,
-): string => {
-  if (bytes === null || bytes === undefined || !Number.isFinite(bytes)) {
-    return "—";
-  }
-  const units: Array<string> = ["B", "KiB", "MiB", "GiB", "TiB"];
-  let v: number = bytes;
-  let i: number = 0;
-  while (v >= 1024 && i < units.length - 1) {
-    v /= 1024;
-    i++;
-  }
-  return `${formatReaderFigure(v, { decimals: v < 10 ? 1 : 0 })} ${units[i]}`;
-};
+// Sizes as every host page writes them: "64 GiB", plain bytes whole (HostFacts).
+const formatMemoryBytes: (bytes: number | null | undefined) => string =
+  formatHostBytes;
 
 /*
  * Tile values use a short recent-window mean regardless of how wide

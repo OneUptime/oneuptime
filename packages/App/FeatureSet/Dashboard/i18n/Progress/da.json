@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52219,
-    "untranslated": 9361
+    "keys": 52236,
+    "untranslated": 9310
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -507,8 +507,6 @@
     "vCenter",
     "vSphere Client",
     "vertical pod autoscaler",
-    "workflow",
-    "workflows",
     "writesets",
     "x86",
     "z",

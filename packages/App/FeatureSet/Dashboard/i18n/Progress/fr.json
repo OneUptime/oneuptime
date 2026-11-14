@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52219,
-    "untranslated": 5160
+    "keys": 52236,
+    "untranslated": 5115
   },
   "sameAsEnglish": [
     " incidents",
@@ -684,8 +684,6 @@
     "vertical pod autoscaler",
     "volume",
     "volumes",
-    "workflow",
-    "workflows",
     "writesets",
     "x86",
     "z",

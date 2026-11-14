@@ -26,13 +26,17 @@ import {
   CUSTOM_FIELD_FILES_HINT,
 } from "../../../UI/Components/CustomFields/CustomFieldFormFields";
 import FilePicker from "../../../UI/Components/FilePicker/FilePicker";
-import { FILE_PICKER_FILE_NAME_CLASS_NAME } from "../../../UI/Components/FilePicker/FilePickerLayout";
+import {
+  FILE_PICKER_FILE_NAME_CLASS_NAME,
+  FILE_PICKER_FULL_NOTE,
+} from "../../../UI/Components/FilePicker/FilePickerLayout";
 import fs from "fs";
 import path from "path";
 import { readDashboardLocale } from "../../Helpers/DashboardLocales";
 import { isolated, withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 import {
   ACCOUNTS_LANGUAGES,
+  ADMIN_DASHBOARD_LANGUAGES,
   DASHBOARD_LANGUAGES,
 } from "../../Helpers/TranslatedLanguages";
 
@@ -67,7 +71,7 @@ const SIZE_IN_BYTES: number = 48213;
 const instances: Record<string, i18n> = {};
 
 beforeAll(async () => {
-  for (const language of ["en", "ar", "fa"]) {
+  for (const language of ["en", "de", "ru", "ar", "fa"]) {
     const instance: i18n = createInstance();
 
     await instance.init({
@@ -450,20 +454,32 @@ describe("a file custom field's hint", () => {
   };
 
   // The sentence in `language`, its {{size}} filled with `size` as the page sets it.
-  const sentenceIn: (language: string, key: string, size: string) => string = (
+  const sentenceIn: (
     language: string,
     key: string,
     size: string,
+    count?: string,
+  ) => string = (
+    language: string,
+    key: string,
+    size: string,
+    count?: string,
   ): string => {
     const words: string = readDashboardLocale(language)[key] || key;
 
-    return words.replace("{{size}}", size);
+    return words
+      .replace("{{size}}", size)
+      .replace("{{count}}", count === undefined ? "{{count}}" : count);
   };
 
   test("en: as English wrote it, with nothing set apart", () => {
     draw(
       "en",
-      <FilePicker isMultiFilePicker={true} hint={CUSTOM_FIELD_FILES_HINT} />,
+      <FilePicker
+        isMultiFilePicker={true}
+        maxFiles={10}
+        hint={CUSTOM_FIELD_FILES_HINT}
+      />,
     );
 
     expect(hintOf().textContent).toBe(
@@ -472,18 +488,27 @@ describe("a file custom field's hint", () => {
   });
 
   test.each([
-    ["ar", "10 MB"],
-    ["fa", "۱۰ MB"],
+    ["ar", "10 MB", "10"],
+    ["fa", "۱۰ MB", "۱۰"],
   ])(
-    "%s: the limit is the reader's, set apart from the words",
-    (language: string, size: string) => {
+    "%s: the limit and the count are the reader's, set apart from the words",
+    (language: string, size: string, count: string) => {
       draw(
         language,
-        <FilePicker isMultiFilePicker={true} hint={CUSTOM_FIELD_FILES_HINT} />,
+        <FilePicker
+          isMultiFilePicker={true}
+          maxFiles={10}
+          hint={CUSTOM_FIELD_FILES_HINT}
+        />,
       );
 
       expect(hintOf().textContent).toBe(
-        sentenceIn(language, CUSTOM_FIELD_FILES_HINT, isolated(size)),
+        sentenceIn(
+          language,
+          CUSTOM_FIELD_FILES_HINT.other,
+          isolated(size),
+          isolated(count),
+        ),
       );
     },
   );
@@ -495,14 +520,180 @@ describe("a file custom field's hint", () => {
     );
     cleanup();
 
-    draw(
-      "fa",
-      <FilePicker isMultiFilePicker={true} hint={CUSTOM_FIELD_FILES_HINT} />,
-    );
-    expect(withoutIsolateMarks(hintOf().textContent || "")).not.toMatch(
-      LATIN_DIGIT,
-    );
+    for (const maxFiles of [1, 3, 10]) {
+      draw(
+        "fa",
+        <FilePicker
+          isMultiFilePicker={true}
+          maxFiles={maxFiles}
+          hint={CUSTOM_FIELD_FILES_HINT}
+        />,
+      );
+      expect(withoutIsolateMarks(hintOf().textContent || "")).not.toMatch(
+        LATIN_DIGIT,
+      );
+      cleanup();
+    }
   });
+
+  /*
+   * The count is the picker's own most files (issue #7421): a public
+   * form's question that takes three says three, never the 10 a Multiple
+   * files field holds - in the reader's digits, and in the words the
+   * reader's language has for that count: one file in the words for one;
+   * Russian's 21 (a count it calls "one") and Arabic's 2 and 11 in a
+   * sentence that reads right for any count.
+   */
+  test.each([
+    [
+      "en",
+      3,
+      "Up to 3 files of 10 MB each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.",
+    ],
+    [
+      "en",
+      1,
+      "One file of up to 10 MB: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.",
+    ],
+    [
+      "de",
+      3,
+      "Bis zu 3 Dateien mit je 10 MB: PDF-, Office- und OpenDocument-Dateien, Bilder, Text, CSV, JSON, ZIP oder PCAP.",
+    ],
+    [
+      "de",
+      1,
+      "Eine Datei mit bis zu 10 MB: PDF-, Office- und OpenDocument-Dateien, Bilder, Text, CSV, JSON, ZIP oder PCAP.",
+    ],
+    [
+      "ru",
+      3,
+      "Максимум файлов: 3, каждый до 10 MB: файлы PDF, Office и OpenDocument, изображения, текст, CSV, JSON, ZIP или PCAP.",
+    ],
+    [
+      "ru",
+      5,
+      "Максимум файлов: 5, каждый до 10 MB: файлы PDF, Office и OpenDocument, изображения, текст, CSV, JSON, ZIP или PCAP.",
+    ],
+    [
+      "ru",
+      21,
+      "Максимум файлов: 21, каждый до 10 MB: файлы PDF, Office и OpenDocument, изображения, текст, CSV, JSON, ZIP или PCAP.",
+    ],
+    [
+      "ru",
+      1,
+      "Один файл до 10 MB: файлы PDF, Office и OpenDocument, изображения, текст, CSV, JSON, ZIP или PCAP.",
+    ],
+    [
+      "ar",
+      2,
+      "الحد الأقصى للملفات: 2، حتى 10 MB لكل ملف: ملفات PDF وOffice وOpenDocument والصور والنصوص وCSV وJSON وZIP أو PCAP.",
+    ],
+    [
+      "ar",
+      3,
+      "الحد الأقصى للملفات: 3، حتى 10 MB لكل ملف: ملفات PDF وOffice وOpenDocument والصور والنصوص وCSV وJSON وZIP أو PCAP.",
+    ],
+    [
+      "ar",
+      11,
+      "الحد الأقصى للملفات: 11، حتى 10 MB لكل ملف: ملفات PDF وOffice وOpenDocument والصور والنصوص وCSV وJSON وZIP أو PCAP.",
+    ],
+    [
+      "ar",
+      1,
+      "ملف واحد حتى 10 MB: ملفات PDF وOffice وOpenDocument والصور والنصوص وCSV وJSON وZIP أو PCAP.",
+    ],
+    [
+      "fa",
+      3,
+      "حداکثر ۳ فایل، هر کدام تا ۱۰ MB: فایل‌های PDF، Office و OpenDocument، تصویر، متن، CSV، JSON، ZIP یا PCAP.",
+    ],
+    [
+      "fa",
+      1,
+      "یک فایل تا ۱۰ MB: فایل‌های PDF، Office و OpenDocument، تصویر، متن، CSV، JSON، ZIP یا PCAP.",
+    ],
+  ] as Array<[string, number, string]>)(
+    "%s: a picker of at most %p files says it",
+    (language: string, maxFiles: number, words: string) => {
+      draw(
+        language,
+        <FilePicker
+          isMultiFilePicker={true}
+          maxFiles={maxFiles}
+          hint={CUSTOM_FIELD_FILES_HINT}
+        />,
+      );
+
+      expect(withoutIsolateMarks(hintOf().textContent || "")).toBe(words);
+    },
+  );
+
+  // Full, a picker says how many it holds, in the same words for the count.
+  test.each([
+    ["en", 3, "This field holds up to 3 files. Remove one to add another."],
+    ["en", 1, "This field holds one file. Remove it to add another."],
+    [
+      "de",
+      1,
+      "Dieses Feld fasst eine Datei. Entfernen Sie sie, um eine andere hinzuzufügen.",
+    ],
+    [
+      "ru",
+      21,
+      "Максимум файлов в этом поле: 21. Удалите один, чтобы добавить другой.",
+    ],
+    [
+      "ru",
+      1,
+      "В этом поле может быть только один файл. Удалите его, чтобы добавить другой.",
+    ],
+    ["ar", 1, "يحمل هذا الحقل ملفًا واحدًا. أزله لإضافة آخر."],
+    [
+      "fa",
+      3,
+      "این فیلد حداکثر ۳ فایل می‌پذیرد. برای افزودن فایل دیگر، یکی را حذف کنید.",
+    ],
+    [
+      "fa",
+      1,
+      "این فیلد یک فایل می‌پذیرد. برای افزودن فایل دیگر، آن را حذف کنید.",
+    ],
+  ] as Array<[string, number, string]>)(
+    "%s: full at %p files, it says so",
+    (language: string, maxFiles: number, words: string) => {
+      const held: Array<FileModel> = [];
+
+      for (let index: number = 0; index < maxFiles; index++) {
+        const file: FileModel = new FileModel(
+          new ObjectID(
+            `aaaaaaaa-0000-4000-8000-0000000001${String(index).padStart(2, "0")}`,
+          ),
+        );
+        file.name = `scan-${index}.pdf`;
+        file.fileType = MimeType.pdf;
+        held.push(file);
+      }
+
+      draw(
+        language,
+        <FilePicker
+          isMultiFilePicker={true}
+          maxFiles={maxFiles}
+          initialValue={held}
+          hint={CUSTOM_FIELD_FILES_HINT}
+        />,
+      );
+
+      expect(
+        withoutIsolateMarks(
+          screen.getByTestId("file-picker-full").textContent || "",
+        ),
+      ).toBe(words);
+    },
+  );
 
   test("a picker with a limit of its own, as a form question may have, says that limit", () => {
     draw(
@@ -562,12 +753,109 @@ describe("a file custom field's hint", () => {
           ? readDashboardLocale(language)
           : accountsWords(language);
 
-      for (const key of [CUSTOM_FIELD_FILE_HINT, CUSTOM_FIELD_FILES_HINT]) {
+      for (const key of [
+        CUSTOM_FIELD_FILE_HINT,
+        CUSTOM_FIELD_FILES_HINT.other,
+        `${CUSTOM_FIELD_FILES_HINT.other}_one`,
+      ]) {
         const sentence: string | undefined = words[key];
 
         expect(sentence).toBeDefined();
         expect(sentence!.split("{{size}}")).toHaveLength(2);
         expect(sentence).not.toMatch(/[0-9۰-۹]\s?(MB|Mo|МБ)/);
+      }
+    },
+  );
+
+  /*
+   * The sentence for several leaves its count to the picker too (issue
+   * #7421): one {{count}}, and no number of its own - "10", "۱۰" - in
+   * every app that draws a file picker. Its one form, for exactly one
+   * file, names no count, and a full picker's note has one in every
+   * language too.
+   */
+  const ADMIN_LOCALES: string = path.resolve(
+    __dirname,
+    "../../../../App/FeatureSet/AdminDashboard/src/Locales",
+  );
+
+  const adminWords: (language: string) => Record<string, string> = (
+    language: string,
+  ): Record<string, string> => {
+    return JSON.parse(
+      fs.readFileSync(path.join(ADMIN_LOCALES, `${language}.json`), "utf8"),
+    ) as Record<string, string>;
+  };
+
+  test.each([
+    ...["en", ...DASHBOARD_LANGUAGES].map(
+      (language: string): [string, string] => {
+        return ["Dashboard", language];
+      },
+    ),
+    ...["en", ...ACCOUNTS_LANGUAGES].map(
+      (language: string): [string, string] => {
+        return ["Accounts", language];
+      },
+    ),
+    ...["en", ...ADMIN_DASHBOARD_LANGUAGES].map(
+      (language: string): [string, string] => {
+        return ["AdminDashboard", language];
+      },
+    ),
+  ])(
+    "%s %s: the count of files is the picker's, in both forms",
+    (app: string, language: string) => {
+      const words: Record<string, string> =
+        app === "Dashboard"
+          ? readDashboardLocale(language)
+          : app === "Accounts"
+            ? accountsWords(language)
+            : adminWords(language);
+
+      for (const plural of [CUSTOM_FIELD_FILES_HINT, FILE_PICKER_FULL_NOTE]) {
+        const other: string | undefined = words[plural.other];
+        const one: string | undefined = words[`${plural.other}_one`];
+
+        expect(other).toBeDefined();
+        expect(one).toBeDefined();
+        expect(other!.split("{{count}}")).toHaveLength(2);
+        /*
+         * No number of its own: the hint has none at all; the full note
+         * may ask to remove "1 つ" (Japanese), never say a most of its own.
+         */
+        expect(other).not.toMatch(
+          plural === CUSTOM_FIELD_FILES_HINT ? /[0-9۰-۹]/ : /[0-9۰-۹]{2}/,
+        );
+        expect(one).not.toContain("{{count}}");
+
+        if (language === "en") {
+          expect(other).toBe(plural.other);
+          expect(one).toBe(plural.one);
+        }
+      }
+
+      // No sentence keeps the old one's "10" written into its words.
+      expect(
+        Object.keys(words).filter((key: string): boolean => {
+          return key.startsWith("Up to 10 files of {{size}} each");
+        }),
+      ).toEqual([]);
+    },
+  );
+
+  /*
+   * Russian and Arabic say their general sentence for most counts (2, 5,
+   * 21; 2, 3, 11, 100): it names its count as a label's value, so no noun
+   * has to agree with a count it cannot see (Locales/ARABIC.md).
+   */
+  test.each(["ru", "ar"])(
+    "%s: the sentence for several reads right for any count",
+    (language: string) => {
+      for (const plural of [CUSTOM_FIELD_FILES_HINT, FILE_PICKER_FULL_NOTE]) {
+        expect(readDashboardLocale(language)[plural.other]).toMatch(
+          /: \{\{count\}\}[.,،]/,
+        );
       }
     },
   );

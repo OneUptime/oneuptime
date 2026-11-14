@@ -21,7 +21,8 @@ sign-in.
 
 The query string steers them: `data=empty|full|long`, `upload=slow|fail`,
 `save=fail`, `lang=de|fa` and `theme=dark` on the Dashboard page, and
-`submit=slow|busy` on the form (the form's language is the one its switcher
+`submit=slow|busy` and `evidence=<n>` (its Multiple Files question takes
+at most n files) on the form (the form's language is the one its switcher
 keeps in the browser, `oneuptimeLang`). Every upload, save and submission is
 recorded on `window.__fixture` and `window.__formFixture`, and every request
 neither models is recorded as unmodelled; the suite fails on any.
