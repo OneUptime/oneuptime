@@ -23,7 +23,14 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * rows need a quarter of the page: a fifth, and the room their dead versions
  * leave, is enough.
  *
- * Measured in NetworkEndpointWritesPostgres: see the numbers there.
+ * Measured (NetworkEndpointWritesPostgres: 16 switches of 48 endpoints, two
+ * hours of five-minute polls, a VACUUM after each): of the walks' refreshes,
+ * 99.9% were HOT in the second hour at 80 (96.6% in the first, as the table
+ * settled into its room), 99.7% at 90 (85.1%) and 93.6% at the default of
+ * 100 (67.4%). The indexes did not grow, and an hour wrote 0.8 MiB of WAL.
+ * As the walk wrote them before - every endpoint of a switch every other
+ * poll, with lastSeenAt indexed, at 100 - none was, the indexes grew by 91%
+ * in the hour, and it wrote 4.6 MiB.
  *
  * SET (fillfactor) takes SHARE UPDATE EXCLUSIVE, which no read or write
  * waits for, and rewrites nothing: an update that does not fit on its page
