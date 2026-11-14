@@ -2533,7 +2533,6 @@
   "External caller dials your dedicated incoming call number": "تماس‌گیرنده بیرونی شماره اختصاصی تماس ورودی شما را می‌گیرد",
   "Face ID unlock and encrypted delivery.": "باز کردن با Face ID و تحویل رمزگذاری‌شده.",
   "Failed": "ناموفق",
-  "Failed At": "تاریخ شکست",
   "Failed Jobs History Limit": "حد تاریخچه کارهای ناموفق",
   "Failed Proposals": "پیشنهادهای ناموفق",
   "Failed to create processor. Please try again.": "ساخت پردازشگر ناموفق بود. لطفاً دوباره تلاش کنید.",
@@ -52257,6 +52256,15 @@
   "Non-operational first, Disabled last": "خارج از سرویس‌ها اول، غیرفعال‌ها آخر",
   "Non-operational monitors first": "مانیتورهای خارج از سرویس اول",
   "Non-operational monitors only": "فقط مانیتورهای خارج از سرویس",
+  "Certificate Error": "خطای گواهی",
+  "DNS Resolution": "تفکیک نام DNS",
+  "Network Error": "خطای شبکه",
+  "Request Aborted": "درخواست لغو شد",
+  "Request was tried {{count}} times and it timed out.": "درخواست {{count}} بار امتحان شد و مهلت آن تمام شد.",
+  "Request was tried {{count}} times and it timed out._one": "درخواست یک بار امتحان شد و مهلت آن تمام شد.",
+  "Server Response": "پاسخ سرور",
+  "TCP Connection": "اتصال TCP",
+  "Target Resolution": "تفکیک نام هدف",
   "{{count}} CPU cores": "{{count}} هستهٔ پردازنده",
   "{{count}} CPU cores_one": "{{count}} هستهٔ پردازنده"
 }

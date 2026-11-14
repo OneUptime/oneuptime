@@ -581,6 +581,12 @@ describe("InvestigationConversation — asking", () => {
         "content"
       ],
     ).toBe("Which pods use the most memory?");
+    // The language the Dashboard is read in goes with it (#7247).
+    expect(
+      requests("/ai-investigation/conversation/send-message")[0]!.data[
+        "language"
+      ],
+    ).toBe("en");
     expect(composer().value).toBe("");
     expect(screen.getByText("Which pods use the most memory?")).toBeVisible();
     expect(screen.getByText("You")).toBeVisible();
@@ -1182,6 +1188,8 @@ describe("InvestigationConversation — approvals", () => {
     expect(decision.data["decisions"]).toEqual([
       { toolCallId: "call-1", approved: true },
     ]);
+    // An approved setup is made by this turn, in this language (#7247).
+    expect(decision.data["language"]).toBe("en");
   });
 });
 
@@ -3184,6 +3192,73 @@ describe("InvestigationConversation — in the reader's language", () => {
     expect(
       screen.getByTestId("investigation-conversation-actions"),
     ).toHaveTextContent(`${GERMAN_TITLE} · ${GERMAN["Done"]}`);
+  });
+
+  /*
+   * A monitor the thread sets up names its criteria in the language the
+   * Dashboard is read in (#7247): the question carries it, and so does
+   * the approval - the turn that makes an approved setup.
+   */
+  test("a question carries the language the Dashboard is read in", async () => {
+    routeResponses({
+      thread: () => {
+        return EMPTY;
+      },
+      send: () => {
+        return { data: { assistantMessageId: ANSWER_ID, aiRunId: RUN_ID } };
+      },
+    });
+
+    renderConversation();
+    await flush();
+
+    fireEvent.change(composer(), {
+      target: { value: "Monitor https://acme.example" },
+    });
+    fireEvent.keyDown(composer(), { key: "Enter" });
+    await flush();
+
+    const sent: PostRequest = requests(
+      "/ai-investigation/conversation/send-message",
+    )[0]!;
+    expect(sent.data["content"]).toBe("Monitor https://acme.example");
+    expect(sent.data["language"]).toBe("de");
+  });
+
+  test("an approval carries the language the Dashboard is read in", async () => {
+    routeResponses({
+      thread: () => {
+        return threadResponse({
+          isBusy: true,
+          messages: [
+            answer({
+              status: AIChatMessageStatus.WaitingForApproval,
+              userId: PRIYA,
+              name: "Priya Shah",
+              toolActions: [acknowledgeAction(AIChatToolActionStatus.Pending)],
+            }),
+          ],
+        });
+      },
+    });
+
+    renderConversation();
+    await flush();
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: GERMAN["Run {{count}} actions_one"]!.replace("{{count}}", "1"),
+      }),
+    );
+    await flush();
+
+    const decision: PostRequest = requests(
+      "/ai-investigation/conversation/respond-to-approval",
+    )[0]!;
+    expect(decision.data["decisions"]).toEqual([
+      { toolCallId: "call-1", approved: true },
+    ]);
+    expect(decision.data["language"]).toBe("de");
   });
 
   test("an action saved before its words reads the English it stores", async () => {

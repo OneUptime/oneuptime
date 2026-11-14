@@ -2533,7 +2533,6 @@
   "External caller dials your dedicated incoming call number": "外部の発信者が専用の着信番号にダイヤルします",
   "Face ID unlock and encrypted delivery.": "Face ID によるロック解除と暗号化された配信。",
   "Failed": "失敗",
-  "Failed At": "失敗日時",
   "Failed Jobs History Limit": "失敗したジョブの履歴上限",
   "Failed Proposals": "失敗した提案",
   "Failed to create processor. Please try again.": "プロセッサの作成に失敗しました。もう一度お試しください。",
@@ -52257,6 +52256,15 @@
   "Non-operational first, Disabled last": "非稼働を先頭に、無効を最後に",
   "Non-operational monitors first": "非稼働のモニターを先頭に",
   "Non-operational monitors only": "非稼働のモニターのみ",
+  "Certificate Error": "証明書エラー",
+  "DNS Resolution": "DNS 名前解決",
+  "Network Error": "ネットワークエラー",
+  "Request Aborted": "リクエストの中止",
+  "Request was tried {{count}} times and it timed out.": "リクエストを {{count}} 回試行しましたが、タイムアウトしました。",
+  "Request was tried {{count}} times and it timed out._one": "リクエストを 1 回試行しましたが、タイムアウトしました。",
+  "Server Response": "サーバーの応答",
+  "TCP Connection": "TCP 接続",
+  "Target Resolution": "ターゲットの名前解決",
   "{{count}} CPU cores": "{{count}} CPU コア",
   "{{count}} CPU cores_one": "{{count}} CPU コア"
 }
