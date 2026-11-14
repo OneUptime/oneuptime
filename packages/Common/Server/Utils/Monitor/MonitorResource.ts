@@ -380,6 +380,12 @@ export default class MonitorResourceUtil {
      * other flags say, and a result that still reaches it (a probe that
      * claimed it just before it was archived, an incoming request, an email)
      * must open nothing and change nothing.
+     *
+     * Each of the four refusals below is an ExceptionMessages entry, never
+     * words written here: the telemetry worker completes a job refused for a
+     * monitor that is not being monitored instead of failing and retrying it,
+     * and it knows these refusals by those entries
+     * (isNonActionableIngestError).
      */
     if (monitor.isArchived) {
       logger.debug(
@@ -402,7 +408,7 @@ export default class MonitorResourceUtil {
       );
 
       throw new BadDataException(
-        "Monitor is disabled because an incident which is created manually is not resolved. Please resolve the incident to start monitoring again.",
+        ExceptionMessages.MonitorDisabledBecauseOfManualIncident,
       );
     }
 
@@ -412,7 +418,7 @@ export default class MonitorResourceUtil {
       );
 
       throw new BadDataException(
-        "Monitor is disabled because one of the maintenance events this monitor is attached to has not ended. Please end that maintenance event to start monitoring again.",
+        ExceptionMessages.MonitorDisabledBecauseOfScheduledMaintenanceEvent,
       );
     }
 

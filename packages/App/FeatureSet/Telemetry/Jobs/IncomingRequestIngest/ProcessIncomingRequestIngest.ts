@@ -66,7 +66,9 @@ export async function processIncomingRequestJobFromQueue(
     /*
      * A failure the worker retries leaves the request stored, so the retry
      * evaluates it - or anything newer - again. One it completes the job on
-     * (an unknown, disabled or archived monitor) is final, so clear it.
+     * (an unknown monitor, or one that is archived, disabled, or paused by a
+     * manually created incident or a maintenance event) is final, so clear
+     * it.
      */
     if (isNonActionableIngestError(err)) {
       await IncomingRequestLatestPayloadStore.clearIfUnchanged({

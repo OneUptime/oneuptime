@@ -135,8 +135,12 @@ describe("a result for an archived monitor", () => {
     ).rejects.toThrow(ExceptionMessages.MonitorDisabled);
   });
 
-  // A record of Scheduled Maintenance is a maintenance event (#6817).
-  test("a monitor a maintenance event paused is told which, in a sentence", async () => {
+  /*
+   * A paused monitor's refusal is its ExceptionMessages entry, the one the
+   * telemetry worker knows it by: it completes the job instead of failing
+   * and retrying it (isNonActionableIngestError).
+   */
+  test("a monitor a maintenance event paused is told which, and nothing is evaluated or locked", async () => {
     findOneById.mockResolvedValue(
       monitor({
         isArchived: false,
@@ -148,11 +152,42 @@ describe("a result for an archived monitor", () => {
       MonitorResourceUtil.monitorResource(probeResult()),
     ).rejects.toThrow(
       new BadDataException(
-        "Monitor is disabled because one of the maintenance events this monitor is attached to has not ended. Please end that maintenance event to start monitoring again.",
+        ExceptionMessages.MonitorDisabledBecauseOfScheduledMaintenanceEvent,
       ),
     );
     expect(lock).not.toHaveBeenCalled();
     expect(processMonitorStep).not.toHaveBeenCalled();
+  });
+
+  test("a monitor a manually created incident paused is told which, and nothing is evaluated or locked", async () => {
+    findOneById.mockResolvedValue(
+      monitor({
+        isArchived: false,
+        disableActiveMonitoringBecauseOfManualIncident: true,
+      }) as never,
+    );
+
+    await expect(
+      MonitorResourceUtil.monitorResource(probeResult()),
+    ).rejects.toThrow(
+      new BadDataException(
+        ExceptionMessages.MonitorDisabledBecauseOfManualIncident,
+      ),
+    );
+    expect(lock).not.toHaveBeenCalled();
+    expect(processMonitorStep).not.toHaveBeenCalled();
+  });
+
+  // A record of Scheduled Maintenance is a maintenance event (#6817).
+  test("the paused refusals say why, in a sentence", () => {
+    expect(
+      ExceptionMessages.MonitorDisabledBecauseOfScheduledMaintenanceEvent,
+    ).toBe(
+      "Monitor is disabled because one of the maintenance events this monitor is attached to has not ended. Please end that maintenance event to start monitoring again.",
+    );
+    expect(ExceptionMessages.MonitorDisabledBecauseOfManualIncident).toBe(
+      "Monitor is disabled because an incident which is created manually is not resolved. Please resolve the incident to start monitoring again.",
+    );
   });
 
   test("the monitor is read with all four pause flags", async () => {

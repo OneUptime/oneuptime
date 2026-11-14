@@ -367,14 +367,18 @@ describe("processIncomingRequestJobFromQueue", () => {
     });
 
     /*
-     * An unknown, disabled or archived monitor fails in a way the telemetry
-     * worker completes the job on. That is final, so the request is cleared,
-     * and the error still reaches the worker so it is handled as before.
+     * An unknown monitor, or one that is archived, disabled, or paused by a
+     * manually created incident or a maintenance event, fails in a way the
+     * telemetry worker completes the job on. That is final, so the request
+     * is cleared, and the error still reaches the worker so it is handled as
+     * before.
      */
     test.each([
       ExceptionMessages.MonitorNotFound,
       ExceptionMessages.MonitorDisabled,
       ExceptionMessages.MonitorArchived,
+      ExceptionMessages.MonitorDisabledBecauseOfManualIncident,
+      ExceptionMessages.MonitorDisabledBecauseOfScheduledMaintenanceEvent,
     ])(
       "clears the request and passes the error on when the monitor fails with '%s'",
       async (message: string) => {

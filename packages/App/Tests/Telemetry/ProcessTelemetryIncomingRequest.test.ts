@@ -135,6 +135,8 @@ describe("ProcessTelemetry worker — Incoming Request jobs", () => {
     ExceptionMessages.MonitorNotFound,
     ExceptionMessages.MonitorDisabled,
     ExceptionMessages.MonitorArchived,
+    ExceptionMessages.MonitorDisabledBecauseOfManualIncident,
+    ExceptionMessages.MonitorDisabledBecauseOfScheduledMaintenanceEvent,
   ])(
     "completes the job when the monitor fails with '%s'",
     async (message: string) => {
@@ -164,10 +166,18 @@ describe("ProcessTelemetry worker — Incoming Request jobs", () => {
 });
 
 describe("isNonActionableIngestError", () => {
+  /*
+   * An unknown monitor, and every refusal MonitorResource gives for a monitor
+   * that is not being monitored: archived, disabled, or paused while a
+   * manually created incident is unresolved or a maintenance event it is
+   * attached to has not ended.
+   */
   test.each([
     ExceptionMessages.MonitorNotFound,
     ExceptionMessages.MonitorDisabled,
     ExceptionMessages.MonitorArchived,
+    ExceptionMessages.MonitorDisabledBecauseOfManualIncident,
+    ExceptionMessages.MonitorDisabledBecauseOfScheduledMaintenanceEvent,
   ])("is true for a BadDataException '%s'", (message: string) => {
     expect(isNonActionableIngestError(new BadDataException(message))).toBe(
       true,
