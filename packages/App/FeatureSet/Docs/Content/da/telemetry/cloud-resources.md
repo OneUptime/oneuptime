@@ -39,7 +39,7 @@ Cloud-ressourcer er ét af flere steder, hvor din cloud dukker op:
 | Virtuelle maskiner med en OpenTelemetry Collector på | **Værter** | Værtens egne metrikker og logs. Se [OpenTelemetry-collector på værten](/docs/telemetry/host-otel-collector) |
 | Køer og topics, som dine applikationer bruger | **Køer** | Spans og de samme cloudmetrikker. Se [Køer](/docs/telemetry/queues) |
 
-En ressource kan vises mere end ét sted. En virtuel maskine med collectoren på er en **Vært**, og dens platformmetrikker (CPU-kreditter, disk og netværk, som hypervisoren ser dem) gør den også til en **Cloud-ressource**. En SQS-kø er en **Queue** og en **Cloud-ressource**. Hver visning viser, hvad dens kilde ved.
+En ressource kan vises mere end ét sted. En virtuel maskine med collectoren på er en **Vært**, og dens platformmetrikker (CPU-kreditter, disk og netværk, som hypervisoren ser dem) gør den også til en **Cloud-ressource**. En SQS-kø er en **Kø** og en **Cloud-ressource**. Hver visning viser, hvad dens kilde ved.
 
 ## Før du begynder
 
@@ -615,7 +615,7 @@ stateDiagram-v2
 
 - **Rapporterer** betyder, at udbyderen har sendt en metrik om ressourcen inden for den seneste time; efter en time uden står der **Rapporterer ikke**. Nogle ressourcer er stille af natur, f.eks. en Key Vault, som ingen kaldte, eller en bucket, hvis lagringsmetrikker CloudWatch udgiver én gang om dagen, og de kommer tilbage med deres næste datapunkt.
 - En ressource, der **ingen metrik sender i 7 dage**, arkiveres automatisk: en instans, som en Auto Scaling-gruppe har erstattet, et slettet volume, en bucket, der er væk. Den beholder sine etiketter, ejere og sin historik under **Cloud → Avanceret → Arkiveret** og gendannes af sig selv, så snart den rapporterer igen. En ressource, du selv arkiverer, forbliver arkiveret; en, du gendanner, mens den er stille, bliver på listen, indtil den rapporterer.
-- Det holder ikke at slette en ressource, som udbyderen stadig rapporterer: den opdages igen ud fra sine næste metrikker. Arkivér den i stedet.
+- Det holder ikke at slette en ressource, som udbyderen stadig rapporterer: den opdages igen ud fra sine næste metrikker. Arkiver den i stedet.
 - Opdagelsen holder op med at oprette ressourcer, når et projekt har **5.000** levende (ikke arkiverede), og logger en advarsel; arkiverede ressourcer tæller ikke med.
 
 Selvhostede installationer kan ændre dette med miljøvariabler på appen:
@@ -663,7 +663,7 @@ Et Service Bus-navneområde rapporterer sine metrikker én gang pr. kø og emne,
 
 ### Den samme ressource vises to gange
 
-En AWS-ressource, der læses én gang med sit konto-ID og én gang uden, er to ressourcer: polling-receiveren rapporterer kun kontoen, når den må kalde `sts:GetCallerIdentity`. Giv hver collector den tilladelse, og arkivér kopien uden konto.
+En AWS-ressource, der læses én gang med sit konto-ID og én gang uden, er to ressourcer: polling-receiveren rapporterer kun kontoen, når den må kalde `sts:GetCallerIdentity`. Giv hver collector den tilladelse, og arkiver kopien uden konto.
 
 ### Min clouds metrikker vises under en vært
 

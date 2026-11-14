@@ -199,7 +199,7 @@ Siden **Innstillinger** samler hvordan et SLO måler, med ett kort for hver ting
 | **Samsvarsperiode** | **Vindustype**, **Vindu (dager)** og **Tidssone**, med **Rediger periode**. | Forbruksrateregler beholder tersklene sine når vinduet endres, så gå gjennom dem etterpå. |
 | **Beregning av nedetid** | **Modus for flere monitorer** og **Overvåkerstatuser for nedetid**, med **Rediger beregning av nedetid**. | Uten statuser teller alle ikke-operative statuser, også dem som legges til senere. |
 | **Evaluering** | Bryteren **Evaluer dette SLO-et**, som lagrer så snart du slår den om. | Å slå den av ber om bekreftelse, fordi det også løser de åpne forbruksratevarslene og -hendelsene til SLO-et. |
-| **Arkiver SLO** | **Arkiver** eller **Fjern fra arkiv**. | Se [Arkivere et SLO](#arkivere-et-slo). |
+| **Arkiver SLO** | **Arkiver** eller **Fjern fra arkivet**. | Se [Arkivere et SLO](#arkivere-et-slo). |
 
 Etter en endring av målet, perioden eller nedetidsberegningen evaluerer OneUptime SLO-et på nytt ved neste kjøring.
 
@@ -214,7 +214,7 @@ Et arkivert SLO:
 - får de åpne forbruksratevarslene og -hendelsene sine løst;
 - beholder innstillingene, historikken, reglene og eierne. Monitorreglene holder monitorlisten oppdatert, så det fortsetter med de riktige monitorene.
 
-Arkiverte SLO-er står på siden **Arkivert**, under **Avansert** i sidemenyen til SLO-listen. Velg dem der og velg **Fjern fra arkiv** for å hente dem tilbake: de evalueres igjen ved neste kjøring, med SLI og budsjett beregnet på nytt ut fra historikken til monitorene.
+Arkiverte SLO-er står på siden **Arkivert**, under **Avansert** i sidemenyen til SLO-listen. Velg dem der og velg **Fjern fra arkivet** for å hente dem tilbake: de evalueres igjen ved neste kjøring, med SLI og budsjett beregnet på nytt ut fra historikken til monitorene.
 
 Arkivering og evaluering er to separate brytere. Et SLO som var deaktivert før det ble arkivert, forblir deaktivert når du fjerner det fra arkivet: slå det på igjen med **Slå på evaluering** i banneret, eller med **Evaluer dette SLO-et** under **Innstillinger** → **Evaluering**.
 
