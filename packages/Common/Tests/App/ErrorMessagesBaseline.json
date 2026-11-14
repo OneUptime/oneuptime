@@ -151,7 +151,7 @@
   "packages/App/FeatureSet/Telemetry/API/ServerMonitorIngest/ServerMonitor.ts": 2,
   "packages/App/FeatureSet/Telemetry/Jobs/IncomingRequestIngest/ProcessIncomingRequestIngest.ts": 2,
   "packages/App/FeatureSet/Telemetry/Jobs/ProbeIngest/ProcessProbeIngest.ts": 12,
-  "packages/App/FeatureSet/Telemetry/Jobs/ServerMonitorIngest/ProcessServerMonitorIngest.ts": 3,
+  "packages/App/FeatureSet/Telemetry/Jobs/ServerMonitorIngest/ProcessServerMonitorIngest.ts": 2,
   "packages/App/FeatureSet/Telemetry/Middleware/ProbeAuthorization.ts": 2,
   "packages/App/FeatureSet/Telemetry/Services/IncomingEmailWorkflowDelivery.ts": 1,
   "packages/App/FeatureSet/Telemetry/Services/SourceMapIngestService.ts": 6,

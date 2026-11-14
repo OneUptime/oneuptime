@@ -152,12 +152,15 @@ const DASHES: RegExp = /-/g;
  * result while they are open 9, the one that resolves them 14.
  */
 const MOST_STATEMENTS: Readonly<Record<string, number>> = {
-  healthy: 3,
-  statusChange: 6,
-  opening: 10,
-  whileOpen: 6,
-  resolving: 9,
+  healthy: 2,
+  statusChange: 5,
+  opening: 9,
+  whileOpen: 5,
+  resolving: 8,
 };
+
+// A statement that reads the Monitor row (its table schema-qualified here).
+const READS_MONITOR: RegExp = /\bFROM\s+(?:"[^"]+"\.)?"Monitor"(?!\w)/;
 
 // A statement of incidents, alerts or their states.
 const READS_RECORDS_OR_STATES: RegExp =
@@ -946,6 +949,13 @@ describePostgres("statements one monitor result costs (Postgres)", () => {
       expect(statements.length).toBeLessThanOrEqual(
         MOST_STATEMENTS["healthy"]!,
       );
+
+      // The monitor is read once, under its lock: no second read of its status.
+      expect(
+        statements.filter((statement: string) => {
+          return READS_MONITOR.test(statement);
+        }),
+      ).toHaveLength(1);
 
       /*
        * Nothing of the monitor's incidents or alerts, or of the project's

@@ -275,9 +275,6 @@ describe("MonitorResourceUtil.monitorResource and the monitor's probe rows", () 
 
     // Past agreement: the status change and records are not what this is about.
     jest
-      .spyOn(MonitorResourceUtil, "refreshCurrentMonitorStatus")
-      .mockResolvedValue(undefined);
-    jest
       .spyOn(MonitorStatusTimelineUtil, "updateMonitorStatusTimeline")
       .mockResolvedValue(null as never);
     jest
