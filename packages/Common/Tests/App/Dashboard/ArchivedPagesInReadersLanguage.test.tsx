@@ -71,7 +71,7 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 jest.mock("../../../UI/Utils/API/API", () => {
   const actual: Record<string, unknown> = jest.requireActual(
     "../../../UI/Utils/API/API",
-  );
+  ) as Record<string, unknown>;
 
   return {
     ...actual,

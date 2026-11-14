@@ -63,6 +63,12 @@ function linesIn(language: string): Array<DocsLine> {
  */
 const ANOTHER_PRODUCTS_CHANNEL: RegExp = /Slack|Mattermost|Microsoft Teams/;
 
+// A bold span that ends a sentence, rather than a label.
+const ENDS_A_SENTENCE: RegExp = /[.:!?।]$/;
+
+// The Danish verb with the accent the docs once wrote on it.
+const DANISH_ACCENTED_VERB: RegExp = /arkivér/i;
+
 interface OwnVerb {
   language: string;
   // The verb as the language's Dashboard says it, in any of its forms.
@@ -183,7 +189,7 @@ describe("the five languages whose Unarchive button said another verb", () => {
           return (
             ownVerb.verb.test(quote) &&
             quote.split(/\s+/).length <= 5 &&
-            !/[.:!?।]$/.test(quote)
+            !ENDS_A_SENTENCE.test(quote)
           );
         });
 
@@ -203,7 +209,7 @@ describe("the Danish Archive verb, spelled one way", () => {
 
     const accented: Array<string> = linesIn("da")
       .filter((docsLine: DocsLine): boolean => {
-        return /arkivér/i.test(docsLine.line);
+        return DANISH_ACCENTED_VERB.test(docsLine.line);
       })
       .map((docsLine: DocsLine): string => {
         return docsLine.page;
@@ -304,6 +310,9 @@ describe("the Archived workflows page's When Unarchived column", () => {
  */
 const QUOTED_AS_SLUZHBY: RegExp = /(^|: |→ )Служб[ыа]([\s,]|$)/;
 
+// A bold quote that names the Services menu as the Dashboard draws it.
+const QUOTES_SERVISY_MENU: RegExp = /(^|→ )Сервисы(\s|$)/;
+
 describe("a service's noun in Russian", () => {
   it("the Dashboard says сервис, and no Russian page quotes the menu as службы", () => {
     expect(drawnDashboardLabel("ru", "Services")).toBe("Сервисы");
@@ -322,7 +331,10 @@ describe("a service's noun in Russian", () => {
   });
 
   it("the AI insights page's card is quoted as the Russian Dashboard draws it", () => {
-    const card: string = drawnDashboardLabel("ru", "Services that keep failing");
+    const card: string = drawnDashboardLabel(
+      "ru",
+      "Services that keep failing",
+    );
     const page: string = fs.readFileSync(
       path.join(CONTENT_DIR, "ru/ai/ai-sre.md"),
       "utf8",
@@ -337,7 +349,7 @@ describe("a service's noun in Russian", () => {
       linesIn("ru")
         .filter((docsLine: DocsLine): boolean => {
           return boldSpans(docsLine.line).some((quote: string): boolean => {
-            return /(^|→ )Сервисы(\s|$)/.test(quote);
+            return QUOTES_SERVISY_MENU.test(quote);
           });
         })
         .map((docsLine: DocsLine): string => {

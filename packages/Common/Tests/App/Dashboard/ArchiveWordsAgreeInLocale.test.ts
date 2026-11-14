@@ -66,6 +66,25 @@ const MODELS_DIR: string = path.resolve(
   "../../../Models/DatabaseModels",
 );
 
+// A key that speaks of unarchiving.
+const SAYS_UNARCHIVE: RegExp = /unarchiv/i;
+
+// A .ts or .tsx source file.
+const TYPESCRIPT_FILE: RegExp = /\.tsx?$/;
+
+// A useBulkArchiveActions call that names its list itself.
+const PASSES_PLURAL_NAME: RegExp = /pluralName:/;
+
+// The Danish verb with the accent it once carried.
+const DANISH_ACCENTED_VERB: RegExp = /arkivér/i;
+
+// The Russian nouns for a service: the one the Dashboard says, the one it no longer says.
+const RU_SERVIS: RegExp = /сервис/i;
+const RU_SLUZHBA: RegExp = /служб/i;
+
+// A word that is only a number.
+const ONLY_DIGITS: RegExp = /^\d+$/;
+
 /*
  * The one way each language says "unarchive": the button's verb, which the
  * card's and the dialogs' titles, the banner and every sentence about
@@ -135,7 +154,7 @@ const UNARCHIVE_KEYS: ReadonlyArray<string> = Array.from(
         return Object.values(copy);
       }),
     ].filter((key: string): boolean => {
-      return /unarchiv/i.test(key);
+      return SAYS_UNARCHIVE.test(key);
     }),
   ),
 );
@@ -154,7 +173,7 @@ const OTHER_PRODUCTS_ACTIONS: ReadonlyArray<string> = [
 function everyUnarchiveKey(): Array<string> {
   return Object.keys(readDashboardLocale("en")).filter(
     (key: string): boolean => {
-      return /unarchiv/i.test(key) && !OTHER_PRODUCTS_ACTIONS.includes(key);
+      return SAYS_UNARCHIVE.test(key) && !OTHER_PRODUCTS_ACTIONS.includes(key);
     },
   );
 }
@@ -179,7 +198,7 @@ function sourceFiles(directory: string): Array<string> {
 
     if (entry.isDirectory()) {
       files.push(...sourceFiles(entryPath));
-    } else if (/\.tsx?$/.test(entry.name)) {
+    } else if (TYPESCRIPT_FILE.test(entry.name)) {
       files.push(entryPath);
     }
   }
@@ -236,7 +255,7 @@ function bulkArchiveListNames(): Array<ListNames> {
       const model: string = match[1]!;
       const options: string = match[2]!;
 
-      if (!/pluralName:/.test(options) && !byModel.has(model)) {
+      if (!PASSES_PLURAL_NAME.test(options) && !byModel.has(model)) {
         byModel.set(model, modelNames(model));
       }
 
@@ -424,7 +443,7 @@ describe("Danish spells Archive one way", () => {
       (key: string): boolean => {
         const value: unknown = words[key];
 
-        return typeof value === "string" && /arkivér/i.test(value);
+        return typeof value === "string" && DANISH_ACCENTED_VERB.test(value);
       },
     );
 
@@ -497,8 +516,10 @@ describe.each(["ru", "nl"])(
 
       for (const names of LIST_NAMES) {
         for (const inSentence of [false, true]) {
-          const one: string = translator.translateText(names.singularName);
-          const many: string = translator.translateText(names.pluralName);
+          const one: string =
+            translator.translateText(names.singularName) || names.singularName;
+          const many: string =
+            translator.translateText(names.pluralName) || names.pluralName;
           const pair: { one: string; many: string } = {
             one: inSentence ? one.toLowerCase() : one,
             many: inSentence ? many.toLowerCase() : many,
@@ -536,7 +557,9 @@ describe("a service's noun", () => {
     const words: Record<string, string> = readDashboardLocale("ru");
     const other: Array<{ key: string; worded: string }> = SERVICE_LABELS.filter(
       (key: string): boolean => {
-        return !/сервис/i.test(words[key] || "") || /служб/i.test(words[key]!);
+        return (
+          !RU_SERVIS.test(words[key] || "") || RU_SLUZHBA.test(words[key]!)
+        );
       },
     ).map((key: string): { key: string; worded: string } => {
       return { key: key, worded: words[key] || "" };
@@ -592,7 +615,9 @@ describe("a service's noun", () => {
     const words: Record<string, string> = readDashboardLocale("ru");
     const other: Array<{ key: string; worded: string }> =
       RU_SERVICE_SENTENCES.filter((key: string): boolean => {
-        return !/сервис/i.test(words[key] || "") || /служб/i.test(words[key]!);
+        return (
+          !RU_SERVIS.test(words[key] || "") || RU_SLUZHBA.test(words[key]!)
+        );
       }).map((key: string): { key: string; worded: string } => {
         return { key: key, worded: words[key] || "" };
       });
@@ -611,8 +636,10 @@ describe("a service's noun", () => {
       ),
     ) as Record<string, unknown>;
 
-    expect([admin["All services"], admin["Only services that match conditions"]])
-      .toEqual(["Все сервисы", "Только сервисы, соответствующие условиям"]);
+    expect([
+      admin["All services"],
+      admin["Only services that match conditions"],
+    ]).toEqual(["Все сервисы", "Только сервисы, соответствующие условиям"]);
   });
 
   test("is service in Dutch, one and many", () => {
@@ -692,7 +719,7 @@ function wordsOf(title: string): Array<string> {
     .toLowerCase()
     .split(/[\s()«»"“”„،:?？؟¿]+/u)
     .filter((word: string): boolean => {
-      return word.length > 3 && !/^\d+$/.test(word);
+      return word.length > 3 && !ONLY_DIGITS.test(word);
     });
 }
 
