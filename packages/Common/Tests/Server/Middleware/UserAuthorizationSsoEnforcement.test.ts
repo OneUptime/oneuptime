@@ -10,7 +10,10 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import SsoAuthorizationException from "../../../Types/Exception/SsoAuthorizationException";
 import TenantNotFoundException from "../../../Types/Exception/TenantNotFoundException";
 import ObjectID from "../../../Types/ObjectID";
-import { UserTenantAccessPermission } from "../../../Types/Permission";
+import {
+  UserGlobalAccessPermission,
+  UserTenantAccessPermission,
+} from "../../../Types/Permission";
 import FakeEnterpriseModule, {
   createEditionStateCases,
   createLicenseSnapshot,
@@ -21,6 +24,7 @@ import FakeEnterpriseModule, {
 } from "../Enterprise/FakeEnterpriseModule";
 import { setTestBillingEnabled } from "../Enterprise/TestBillingFlag";
 import { getJestSpyOn } from "../../Spy";
+import { answerMultiTenantReadsProjectByProject } from "../TestingUtils/MultiTenantReads";
 import {
   afterEach,
   beforeEach,
@@ -178,6 +182,8 @@ describe("UserMiddleware enforces SSO requirements in every edition", () => {
       AccessTokenService,
       "getUserTenantAccessPermission",
     ).mockResolvedValue(tenantPermission);
+    // The multi-tenant path's reads, answered through the lookup above.
+    answerMultiTenantReadsProjectByProject();
     // No SSO token on the request unless a test says otherwise.
     ssoSatisfied = getJestSpyOn(
       UserMiddleware,

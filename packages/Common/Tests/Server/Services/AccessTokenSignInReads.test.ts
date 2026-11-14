@@ -426,21 +426,21 @@ const seedProject: SeedProjectFunction = (): SeededProject => {
   grant({
     projectId: project.projectId,
     teamId: project.customRoleTeamId,
-    permission: Permission.ReadMonitor,
+    permission: Permission.ReadProjectMonitor,
     scope: PermissionScope.Labels,
     labelIds: [labelA, labelB],
   });
   grant({
     projectId: project.projectId,
     teamId: project.customRoleTeamId,
-    permission: Permission.EditMonitor,
+    permission: Permission.EditProjectMonitor,
     scope: PermissionScope.Labels,
     labelIds: [labelB],
   });
   grant({
     projectId: project.projectId,
     teamId: project.customRoleTeamId,
-    permission: Permission.DeleteMonitor,
+    permission: Permission.DeleteProjectMonitor,
     isBlockPermission: true,
   });
   grant({
@@ -774,9 +774,9 @@ describe("every set a sign-in writes is the set the per-project path builds", ()
     ).toEqual([
       Permission.CurrentUser,
       Permission.UnAuthorizedSsoUser,
-      Permission.DeleteMonitor,
-      Permission.EditMonitor,
-      Permission.ReadMonitor,
+      Permission.DeleteProjectMonitor,
+      Permission.EditProjectMonitor,
+      Permission.ReadProjectMonitor,
       Permission.ProjectUser,
     ]);
 
