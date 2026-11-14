@@ -88,12 +88,41 @@ export default abstract class GlobalCache {
     return json;
   }
 
+  /*
+   * getJSONObject for several keys of one namespace, in a single round trip
+   * (MGET). The result is positional: one entry per requested key, null
+   * where the key holds nothing or what it holds does not parse, as
+   * getJSONObject answers for each. A key that holds a JSON array throws, as
+   * it does there.
+   */
+  public static async getJSONObjects(
+    namespace: string,
+    keys: Array<string>,
+  ): Promise<Array<JSONObject | null>> {
+    const values: Array<string | null> = await this.getStrings(namespace, keys);
+
+    return values.map((value: string | null): JSONObject | null => {
+      const json: JSONArray | JSONObject | null =
+        this.parseJSONArrayOrObject(value);
+
+      if (json && Array.isArray(json)) {
+        throw new BadDataException("Expected JSONObject, but got JSONArray");
+      }
+
+      return json;
+    });
+  }
+
   private static async getJSONArrayOrObject(
     namespace: string,
     key: string,
   ): Promise<JSONObject | JSONArray | null> {
-    const value: string | null = await this.getString(namespace, key);
+    return this.parseJSONArrayOrObject(await this.getString(namespace, key));
+  }
 
+  private static parseJSONArrayOrObject(
+    value: string | null,
+  ): JSONObject | JSONArray | null {
     if (!value) {
       return null;
     }
