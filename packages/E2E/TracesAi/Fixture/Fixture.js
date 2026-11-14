@@ -160,13 +160,19 @@ async function handleApi(method, options) {
   /*
    * Try again on a triage that did not finish (issue #6438): a new run,
    * queued - the card's next read answers it - or refused in the server's
-   * words, for ?fail=triage-try-again.
+   * words with their code beside them (#7359, Types/AI/AiRunRefusal), for
+   * ?fail=triage-try-again.
    */
   if (url.includes("/ai-insight/triage-try-again")) {
     if (failures.has("triage-try-again")) {
-      fail(
+      throw new HTTPErrorResponse(
         400,
-        "OneUptime AI is switched off for this project. A project owner or someone with Manage Billing can turn it on in Project Settings > AI > AI Features.",
+        {
+          message:
+            "OneUptime AI is switched off for this project. A project owner or someone with Manage Billing can turn it on in Project Settings > AI > AI Features.",
+          refusalCode: "ai_off",
+        },
+        {},
       );
     }
     triedAgainInsightIds.add(String(body.insightId));

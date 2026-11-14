@@ -9374,15 +9374,21 @@ async function handleApi(method, options) {
   /*
    * Try again on an investigation that did not finish (issue #6438): a new
    * run, queued, as InvestigationTryAgain starts one - the record's next
-   * read answers it - or refused with the server's words: OneUptime AI
-   * switched off, for ?fail=investigation-try-again, and a run that is not
-   * one to try again (queued or running already, or someone else's to start).
+   * read answers it - or refused with the server's words and their code
+   * beside them (#7359, Types/AI/AiRunRefusal): OneUptime AI switched off,
+   * for ?fail=investigation-try-again, and a run that is not one to try
+   * again (queued or running already, or someone else's to start).
    */
   if (method === "POST" && url.endsWith("/ai-investigation/try-again")) {
     if (failures.has("investigation-try-again")) {
-      throw fail(
+      throw new HTTPErrorResponse(
         400,
-        "OneUptime AI is switched off for this project. A project owner or someone with Manage Billing can turn it on in Project Settings > AI > AI Features.",
+        {
+          message:
+            "OneUptime AI is switched off for this project. A project owner or someone with Manage Billing can turn it on in Project Settings > AI > AI Features.",
+          refusalCode: "ai_off",
+        },
+        {},
       );
     }
     const isAlert = body.subjectType === "alert";
@@ -9394,9 +9400,15 @@ async function handleApi(method, options) {
       String(body.subjectId) !== String(investigation.subjectId) ||
       triedAgain.has(String(investigation.subjectId))
     ) {
-      throw fail(
+      throw new HTTPErrorResponse(
         400,
-        `This ${isAlert ? "alert" : "incident"}'s investigation is queued or running already.`,
+        {
+          message: `This ${isAlert ? "alert" : "incident"}'s investigation is queued or running already.`,
+          refusalCode: isAlert
+            ? "alert_investigation_running"
+            : "incident_investigation_running",
+        },
+        {},
       );
     }
     const newRunId = ID.aiRun(100 + triedAgain.size + 1);
