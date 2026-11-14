@@ -35,6 +35,7 @@ import {
 } from "../../../Types/Cloud/CloudRightSizing";
 import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
+import Timezone from "../../../Types/Timezone";
 import { createTranslator, Translator } from "../../../Types/Translator";
 import AnalyticsModelAPI from "../../../UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
@@ -898,6 +899,8 @@ describe("the reads", () => {
     const read: AggregateBy<CloudCost> = aggregates[0]!.aggregateBy;
     expect(aggregates[0]!.modelType).toBe(CloudCost);
     expect(read.aggregationInterval).toBe(AggregationInterval.Day);
+    // A bill's UTC day, whatever zone the reader is in (#7277).
+    expect(read.timezone).toBe(Timezone.UTC);
     expect(read.query["resourceId" as keyof CloudCost] as unknown).toBe(ARN);
     expect(read.query["currency" as keyof CloudCost] as unknown).toBe("USD");
     expect(read.startTimestamp).toEqual(new Date("2026-10-22T00:00:00.000Z"));

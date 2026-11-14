@@ -232,6 +232,7 @@ import MessageQueues, {
 import MessageQueueArchived from "../../../../App/FeatureSet/Dashboard/src/Pages/MessageQueue/Archived";
 import {
   MESSAGE_QUEUE_NAMESPACE_DESCRIPTION,
+  MESSAGE_QUEUE_OTHER_SYSTEM_DESCRIPTION,
   MESSAGE_QUEUE_OTHER_SYSTEM_FIELD,
   MESSAGE_QUEUE_OTHER_SYSTEM_LABEL,
   MESSAGE_QUEUE_OTHER_SYSTEM_VALUE,
@@ -262,6 +263,13 @@ import ObjectID from "../../../Types/ObjectID";
 import Field from "../../../UI/Components/Forms/Types/Field";
 import FormValues from "../../../UI/Components/Forms/Types/FormValues";
 import Validation from "../../../UI/Components/Forms/Validation";
+import { Translator } from "../../../Types/Translator";
+import {
+  DASHBOARD_LANGUAGES,
+  dashboardTranslator,
+  isWordedInDashboardLocale,
+  readDashboardLocale,
+} from "../../Helpers/DashboardLocales";
 
 const QUEUE_ID: string = "68fc0503-1d2e-4f3a-9b4c-5d6e7f8a9b0c";
 
@@ -1267,5 +1275,116 @@ describe("the Archived list", () => {
       `/dashboard/${PROJECT_ID}/queues/${new ObjectID(QUEUE_ID).toString()}`,
     );
     expect(name).toHaveTextContent("orders");
+  });
+});
+
+/*
+ * The create form's "Other messaging system..." option, the field it opens
+ * and the System field's help that tells a reader to choose it (#7288). The
+ * label and the field's help were plain constants, no keys the extractor
+ * saw, so they read in English in every language - while the System
+ * field's help, a key, told a German reader to choose an option by a name
+ * the list did not show. Both are keys now, worded in each language, and
+ * each language's help quotes the option as its list words it.
+ */
+describe("the Other option, in the reader's language", () => {
+  beforeEach(async () => {
+    countMock.mockResolvedValue(2);
+    await renderList();
+  });
+
+  function otherOption(): { label: string; value: string } {
+    return field("Messaging System").dropdownOptions!.find(
+      (option: { label: string; value: string }): boolean => {
+        return option.value === MESSAGE_QUEUE_OTHER_SYSTEM_VALUE;
+      },
+    )!;
+  }
+
+  // The option's words without the dots that say it opens a field.
+  function optionWords(label: string): string {
+    return label.replace(/(\.\.\.|…)$/, "").trim();
+  }
+
+  // Every word the option, its field and the System field draw.
+  function drawnWords(): Array<string> {
+    const system: CapturedField = field("Messaging System");
+    const other: CapturedField = field("messaging.system Value");
+    return [
+      otherOption().label,
+      system.description || "",
+      other.title || "",
+      other.description || "",
+    ];
+  }
+
+  test("the option and its field's help are the module's keys, and keys of the English file", () => {
+    const english: Record<string, string> = readDashboardLocale("en");
+
+    expect(otherOption().label).toBe(MESSAGE_QUEUE_OTHER_SYSTEM_LABEL);
+    expect(field("messaging.system Value").description).toBe(
+      MESSAGE_QUEUE_OTHER_SYSTEM_DESCRIPTION,
+    );
+    for (const words of drawnWords()) {
+      expect(words.length).toBeGreaterThan(0);
+      expect(english[words]).toBe(words);
+    }
+    // In English, the help quotes the option too.
+    expect(field("Messaging System").description).toContain(
+      `Choose ${optionWords(MESSAGE_QUEUE_OTHER_SYSTEM_LABEL)} and`,
+    );
+  });
+
+  test.each(DASHBOARD_LANGUAGES)(
+    "%s words the option, its field and the System field's help",
+    (language: string) => {
+      expect(
+        drawnWords().filter((words: string): boolean => {
+          return !isWordedInDashboardLocale(words, language);
+        }),
+      ).toEqual([]);
+    },
+  );
+
+  test.each(DASHBOARD_LANGUAGES)(
+    "%s's help quotes the option as its list words it",
+    (language: string) => {
+      const translator: Translator = dashboardTranslator(language);
+      const option: string =
+        translator.translateText(otherOption().label) || "";
+      const help: string =
+        translator.translateText(field("Messaging System").description || "") ||
+        "";
+
+      expect(option).not.toBe(MESSAGE_QUEUE_OTHER_SYSTEM_LABEL);
+      expect(optionWords(option).length).toBeGreaterThan(0);
+      expect(help).toContain(optionWords(option));
+    },
+  );
+
+  test.each([
+    ["de", "Anderes Messaging-System...", "„Anderes Messaging-System“"],
+    ["fa", "سیستم پیام‌رسانی دیگر...", "«سیستم پیام‌رسانی دیگر»"],
+  ])(
+    "in %s the option reads %s, and the help says to choose %s",
+    (language: string, option: string, quoted: string) => {
+      const translator: Translator = dashboardTranslator(language);
+
+      expect(translator.translateText(otherOption().label)).toBe(option);
+      expect(
+        translator.translateText(field("Messaging System").description || ""),
+      ).toContain(quoted);
+      expect(
+        translator.translateText(
+          field("messaging.system Value").description || "",
+        ),
+      ).not.toBe(MESSAGE_QUEUE_OTHER_SYSTEM_DESCRIPTION);
+    },
+  );
+
+  test("the quote check sees a help that names an option the list does not show (control)", () => {
+    expect(
+      "Wählen Sie „Anderes Messaging-System“ und geben Sie den Wert ein.",
+    ).not.toContain(optionWords("Other messaging system..."));
   });
 });
