@@ -472,6 +472,82 @@ test.describe("the header on a phone", () => {
       ).toHaveAttribute("id", rowIds[1]!);
     });
   }
+
+  test("in the dark theme the row the keyboard is on stands out from the rest, Create New Project too", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    /*
+     * The keyboard's row takes Search's cursor ground, and Create New
+     * Project a stronger edge as well as a deeper ground: the dark theme
+     * gives bg-indigo-50 and bg-indigo-100 the one wash (Theme.css), so a
+     * ground alone did not tell the row Enter opens from the row at rest.
+     */
+    const TRANSPARENT: string = "rgba(0, 0, 0, 0)";
+    const words: HeaderWords = wordsOf("en");
+    await open(page, 1280, { theme: "dark" });
+
+    // Enter on the picker: the list opens with the focus in its search box.
+    await picker(page).focus();
+    await page.keyboard.press("Enter");
+
+    const menu: Locator = page.getByTestId("project-picker-menu");
+    const search: Locator = menu.getByRole("combobox", {
+      name: words.searchProjects,
+      exact: true,
+    });
+    await expect(search).toBeFocused();
+
+    const projectRow: Locator = menu
+      .getByRole("option")
+      .filter({ hasText: PROJECT_NAME });
+    const createRow: Locator = menu
+      .getByRole("option")
+      .filter({ hasText: words.createProject });
+    /*
+     * A row's colour once its transitions have run (the rows ease their
+     * ground and edge in over 150ms).
+     */
+    const settled: (row: Locator, property: string) => Promise<string> = (
+      row: Locator,
+      property: string,
+    ): Promise<string> => {
+      return row.evaluate(async (element: Element, name: string) => {
+        await Promise.all(
+          element.getAnimations().map((animation: Animation) => {
+            return animation.finished;
+          }),
+        );
+        return window.getComputedStyle(element).getPropertyValue(name);
+      }, property);
+    };
+    const panelGround: string = await settled(menu, "background-color");
+
+    // The project's row is the keyboard's: a ground of its own on the list.
+    await expect(projectRow).toHaveAttribute("aria-selected", "true");
+    const activeGround: string = await settled(
+      projectRow,
+      "background-color",
+    );
+    expect(activeGround).not.toBe(TRANSPARENT);
+    expect(activeGround).not.toBe(panelGround);
+    const restingEdge: string = await settled(createRow, "border-top-color");
+
+    await search.press("ArrowDown");
+    await expect(createRow).toHaveAttribute("aria-selected", "true");
+    // The project's row is back on the list's ground; Create's edge changes.
+    await expect
+      .poll(() => {
+        return settled(projectRow, "background-color");
+      })
+      .toBe(TRANSPARENT);
+    await expect
+      .poll(() => {
+        return settled(createRow, "border-top-color");
+      })
+      .not.toBe(restingEdge);
+  });
 });
 
 test.describe("the header on a phone's own screen", () => {
