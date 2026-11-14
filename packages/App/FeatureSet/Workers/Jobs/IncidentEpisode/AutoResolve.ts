@@ -1,21 +1,162 @@
 import RunCron from "../../Utils/Cron";
-import OneUptimeDate from "Common/Types/Date";
+import runEpisodeAutoResolve, {
+  AutoResolveEpisode,
+  AutoResolveRule,
+  AutoResolveState,
+  EpisodeAutoResolveKind,
+  EpisodeAutoResolveResult,
+} from "../../Utils/EpisodeAutoResolve";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import IncidentEpisodeService from "Common/Server/Services/IncidentEpisodeService";
 import IncidentEpisodeMemberService from "Common/Server/Services/IncidentEpisodeMemberService";
 import IncidentStateService from "Common/Server/Services/IncidentStateService";
 import IncidentGroupingRuleService from "Common/Server/Services/IncidentGroupingRuleService";
-import IncidentService from "Common/Server/Services/IncidentService";
+import JobDeadline from "Common/Server/Utils/JobDeadline";
 import logger from "Common/Server/Utils/Logger";
 import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
 import IncidentGroupingRule from "Common/Models/DatabaseModels/IncidentGroupingRule";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
-import Incident from "Common/Models/DatabaseModels/Incident";
 import ObjectID from "Common/Types/ObjectID";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
-import ResolvedStateUtil from "Common/Utils/ResolvedState";
 import { StateListType } from "Common/Utils/StateOrder";
+
+/*
+ * Open incident episodes resolve themselves once every incident in them is
+ * resolved, after their grouping rule's resolve delay (EpisodeAutoResolve,
+ * which AlertEpisode:AutoResolve shares). Every open episode, a page at
+ * a time.
+ */
+export const INCIDENT_EPISODE_AUTO_RESOLVE: EpisodeAutoResolveKind = {
+  jobName: "IncidentEpisode:AutoResolve",
+  stateList: StateListType.IncidentState,
+  tables: {
+    memberTable: "IncidentEpisodeMember",
+    memberEpisodeColumn: "incidentEpisodeId",
+    memberRecordColumn: "incidentId",
+    recordTable: "Incident",
+    recordStateColumn: "currentIncidentStateId",
+    stateTable: "IncidentState",
+  },
+  readOpenEpisodes: async (data: {
+    afterId: ObjectID | null;
+    limit: number;
+  }): Promise<Array<AutoResolveEpisode>> => {
+    const episodes: Array<IncidentEpisode> = await IncidentEpisodeService.findBy({
+      query: {
+        resolvedAt: QueryHelper.isNull(),
+        ...(data.afterId ? { _id: QueryHelper.greaterThan(data.afterId) } : {}),
+      },
+      select: {
+        _id: true,
+        projectId: true,
+        incidentGroupingRuleId: true,
+        allIncidentsResolvedAt: true,
+      },
+      sort: {
+        _id: SortOrder.Ascending,
+      },
+      props: {
+        isRoot: true,
+      },
+      limit: data.limit,
+      skip: 0,
+    });
+
+    return episodes.map((episode: IncidentEpisode): AutoResolveEpisode => {
+      return {
+        id: episode.id || null,
+        projectId: episode.projectId || null,
+        groupingRuleId: episode.incidentGroupingRuleId || null,
+        allMembersResolvedAt: episode.allIncidentsResolvedAt || null,
+      };
+    });
+  },
+  readRules: async (
+    ruleIds: Array<ObjectID>,
+  ): Promise<Map<string, AutoResolveRule>> => {
+    const rules: Array<IncidentGroupingRule> =
+      await IncidentGroupingRuleService.findBy({
+        query: {
+          _id: QueryHelper.any(ruleIds),
+        },
+        select: {
+          _id: true,
+          enableResolveDelay: true,
+          resolveDelayMinutes: true,
+        },
+        props: {
+          isRoot: true,
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+      });
+
+    const rulesById: Map<string, AutoResolveRule> = new Map();
+
+    for (const rule of rules) {
+      if (rule.id) {
+        rulesById.set(rule.id.toString(), {
+          enableResolveDelay: rule.enableResolveDelay || false,
+          resolveDelayMinutes: rule.resolveDelayMinutes || 0,
+        });
+      }
+    }
+
+    return rulesById;
+  },
+  readStates: async (
+    projectIds: Array<ObjectID>,
+  ): Promise<Array<AutoResolveState>> => {
+    return (await IncidentStateService.findBy({
+      query: {
+        projectId: QueryHelper.any(projectIds),
+      },
+      select: {
+        _id: true,
+        order: true,
+        projectId: true,
+        isResolvedState: true,
+      },
+      props: {
+        isRoot: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+    })) as Array<IncidentState> as Array<AutoResolveState>;
+  },
+  query: async (
+    sql: string,
+    params: Array<unknown>,
+  ): Promise<Array<unknown>> => {
+    return await IncidentEpisodeMemberService.getRepository().manager.query(
+      sql,
+      params,
+    );
+  },
+  setAllMembersResolvedAt: async (data: {
+    episodeId: ObjectID;
+    at: Date | null;
+  }): Promise<void> => {
+    await IncidentEpisodeService.updateOneById({
+      id: data.episodeId,
+      data: {
+        allIncidentsResolvedAt: data.at,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+  },
+  resolveEpisode: async (episodeId: ObjectID): Promise<void> => {
+    await IncidentEpisodeService.resolveEpisode(
+      episodeId,
+      undefined, // No user - auto-resolved by system
+      false, // Don't cascade to incidents - they're already resolved
+    );
+  },
+};
 
 RunCron(
   "IncidentEpisode:AutoResolve",
@@ -23,349 +164,20 @@ RunCron(
     schedule: EVERY_MINUTE,
     runOnStartup: false,
   },
-  async () => {
-    /*
-     * Find active episodes that might be eligible for auto-resolve
-     * Active = not in resolved state
-     */
-
+  async (deadline: JobDeadline = JobDeadline.none()): Promise<void> => {
     try {
-      // Get all active episodes
-      const activeEpisodes: Array<IncidentEpisode> =
-        await IncidentEpisodeService.findBy({
-          query: {
-            resolvedAt: QueryHelper.isNull(),
-          },
-          select: {
-            _id: true,
-            projectId: true,
-            incidentGroupingRuleId: true,
-            lastIncidentAddedAt: true,
-            allIncidentsResolvedAt: true,
-          },
-          props: {
-            isRoot: true,
-          },
-          limit: 1000,
-          skip: 0,
-        });
+      const result: EpisodeAutoResolveResult = await runEpisodeAutoResolve({
+        kind: INCIDENT_EPISODE_AUTO_RESOLVE,
+        deadline: deadline,
+      });
 
       logger.debug(
-        `IncidentEpisode:AutoResolve - Found ${activeEpisodes.length} active episodes`,
+        `IncidentEpisode:AutoResolve - Checked ${result.episodesChecked} open episodes in ${result.pages} pages, resolved ${result.episodesResolved}${
+          result.stoppedAtDeadline ? ", stopped at the job's deadline" : ""
+        }`,
       );
-
-      if (activeEpisodes.length === 0) {
-        return;
-      }
-
-      /*
-       * Episodes cluster by grouping rule and project, so fetch each distinct
-       * rule and resolved-state once per tick instead of once per episode.
-       */
-      const rulesById: Map<string, IncidentGroupingRule> =
-        await fetchGroupingRules(activeEpisodes);
-      const resolvedStateByProjectId: Map<string, IncidentState> =
-        await fetchResolvedStates(activeEpisodes);
-
-      const promises: Array<Promise<void>> = [];
-
-      for (const episode of activeEpisodes) {
-        promises.push(
-          checkAndResolveEpisode(episode, rulesById, resolvedStateByProjectId),
-        );
-      }
-
-      await Promise.allSettled(promises);
     } catch (error) {
       logger.error(`IncidentEpisode:AutoResolve - Error: ${error}`);
     }
   },
 );
-
-type FetchGroupingRulesFunction = (
-  episodes: Array<IncidentEpisode>,
-) => Promise<Map<string, IncidentGroupingRule>>;
-
-const fetchGroupingRules: FetchGroupingRulesFunction = async (
-  episodes: Array<IncidentEpisode>,
-): Promise<Map<string, IncidentGroupingRule>> => {
-  const rulesById: Map<string, IncidentGroupingRule> = new Map();
-
-  const distinctRuleIds: Map<string, ObjectID> = new Map();
-  for (const episode of episodes) {
-    if (episode.incidentGroupingRuleId) {
-      distinctRuleIds.set(
-        episode.incidentGroupingRuleId.toString(),
-        episode.incidentGroupingRuleId,
-      );
-    }
-  }
-
-  if (distinctRuleIds.size === 0) {
-    return rulesById;
-  }
-
-  const rules: Array<IncidentGroupingRule> =
-    await IncidentGroupingRuleService.findBy({
-      query: {
-        _id: QueryHelper.any([...distinctRuleIds.values()]),
-      },
-      select: {
-        _id: true,
-        enableResolveDelay: true,
-        resolveDelayMinutes: true,
-      },
-      props: {
-        isRoot: true,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-    });
-
-  for (const rule of rules) {
-    if (rule.id) {
-      rulesById.set(rule.id.toString(), rule);
-    }
-  }
-
-  return rulesById;
-};
-
-type FetchResolvedStatesFunction = (
-  episodes: Array<IncidentEpisode>,
-) => Promise<Map<string, IncidentState>>;
-
-const fetchResolvedStates: FetchResolvedStatesFunction = async (
-  episodes: Array<IncidentEpisode>,
-): Promise<Map<string, IncidentState>> => {
-  const resolvedStateByProjectId: Map<string, IncidentState> = new Map();
-
-  const distinctProjectIds: Map<string, ObjectID> = new Map();
-  for (const episode of episodes) {
-    if (episode.projectId) {
-      distinctProjectIds.set(episode.projectId.toString(), episode.projectId);
-    }
-  }
-
-  if (distinctProjectIds.size === 0) {
-    return resolvedStateByProjectId;
-  }
-
-  /*
-   * Every state of those projects, and of each its resolved state: the
-   * first from the top flagged resolved (Common/Utils/ResolvedState). A
-   * member at or below it - in the resolved state, or one placed after it -
-   * is resolved.
-   */
-  const states: Array<IncidentState> = await IncidentStateService.findBy({
-    query: {
-      projectId: QueryHelper.any([...distinctProjectIds.values()]),
-    },
-    select: {
-      _id: true,
-      order: true,
-      projectId: true,
-      isResolvedState: true,
-    },
-    props: {
-      isRoot: true,
-    },
-    limit: LIMIT_MAX,
-    skip: 0,
-  });
-
-  const statesByProjectId: Map<string, Array<IncidentState>> = new Map();
-
-  for (const state of states) {
-    const projectKey: string | undefined = state.projectId?.toString();
-
-    if (!projectKey) {
-      continue;
-    }
-
-    const projectStates: Array<IncidentState> =
-      statesByProjectId.get(projectKey) || [];
-    projectStates.push(state);
-    statesByProjectId.set(projectKey, projectStates);
-  }
-
-  for (const [projectKey, projectStates] of statesByProjectId) {
-    const resolvedState: IncidentState | null =
-      ResolvedStateUtil.getResolvedState({
-        list: StateListType.IncidentState,
-        states: projectStates,
-      });
-
-    if (resolvedState) {
-      resolvedStateByProjectId.set(projectKey, resolvedState);
-    }
-  }
-
-  return resolvedStateByProjectId;
-};
-
-type CheckAndResolveEpisodeFunction = (
-  episode: IncidentEpisode,
-  rulesById: Map<string, IncidentGroupingRule>,
-  resolvedStateByProjectId: Map<string, IncidentState>,
-) => Promise<void>;
-
-const checkAndResolveEpisode: CheckAndResolveEpisodeFunction = async (
-  episode: IncidentEpisode,
-  rulesById: Map<string, IncidentGroupingRule>,
-  resolvedStateByProjectId: Map<string, IncidentState>,
-): Promise<void> => {
-  try {
-    if (!episode.id || !episode.projectId) {
-      return;
-    }
-
-    // Get resolve delay from the grouping rule if exists and enabled
-    let resolveDelayMinutes: number = 0;
-    let enableResolveDelay: boolean = false;
-
-    if (episode.incidentGroupingRuleId) {
-      const rule: IncidentGroupingRule | undefined = rulesById.get(
-        episode.incidentGroupingRuleId.toString(),
-      );
-
-      if (rule) {
-        enableResolveDelay = rule.enableResolveDelay || false;
-        if (enableResolveDelay && rule.resolveDelayMinutes) {
-          resolveDelayMinutes = rule.resolveDelayMinutes;
-        }
-      }
-    }
-
-    // Get all incidents in this episode
-    const incidentIds: ObjectID[] =
-      await IncidentEpisodeMemberService.getIncidentsInEpisode(episode.id);
-
-    if (incidentIds.length === 0) {
-      // No incidents in episode, check if it should be resolved due to being empty
-      logger.debug(
-        `IncidentEpisode:AutoResolve - Episode ${episode.id} has no incidents`,
-      );
-      return;
-    }
-
-    // Check if all incidents are resolved
-    const resolvedState: IncidentState | null =
-      resolvedStateByProjectId.get(episode.projectId.toString()) || null;
-
-    if (!resolvedState || !resolvedState.order) {
-      logger.debug(
-        `IncidentEpisode:AutoResolve - No resolved state found for project ${episode.projectId}`,
-      );
-      return;
-    }
-
-    /*
-     * Check if all incidents are in resolved state or higher. One batched
-     * query for the whole episode; incidents that no longer exist simply
-     * don't come back, matching the old per-id skip behavior.
-     */
-    const incidents: Array<Incident> = await IncidentService.findBy({
-      query: {
-        _id: QueryHelper.any(incidentIds),
-      },
-      select: {
-        _id: true,
-        currentIncidentState: {
-          order: true,
-        },
-      },
-      props: {
-        isRoot: true,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-    });
-
-    let allResolved: boolean = true;
-
-    for (const incident of incidents) {
-      const incidentOrder: number = incident.currentIncidentState?.order || 0;
-
-      if (incidentOrder < resolvedState.order) {
-        allResolved = false;
-        break;
-      }
-    }
-
-    if (!allResolved) {
-      // If any incident is unresolved, clear allIncidentsResolvedAt
-      if (episode.allIncidentsResolvedAt) {
-        await IncidentEpisodeService.updateOneById({
-          id: episode.id,
-          data: {
-            allIncidentsResolvedAt: null,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-      }
-
-      logger.debug(
-        `IncidentEpisode:AutoResolve - Episode ${episode.id} has unresolved incidents`,
-      );
-      return;
-    }
-
-    // All incidents are resolved. Set allIncidentsResolvedAt if not already set.
-    if (!episode.allIncidentsResolvedAt) {
-      await IncidentEpisodeService.updateOneById({
-        id: episode.id,
-        data: {
-          allIncidentsResolvedAt: OneUptimeDate.getCurrentDate(),
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-      // If resolve delay is enabled, return and wait for the delay
-      if (enableResolveDelay && resolveDelayMinutes > 0) {
-        logger.debug(
-          `IncidentEpisode:AutoResolve - Episode ${episode.id} all incidents resolved, starting resolve delay (${resolveDelayMinutes} minutes)`,
-        );
-        return;
-      }
-    }
-
-    // Check if resolve delay has passed (only if enabled)
-    if (
-      enableResolveDelay &&
-      resolveDelayMinutes > 0 &&
-      episode.allIncidentsResolvedAt
-    ) {
-      const timeSinceAllResolved: number = OneUptimeDate.getDifferenceInMinutes(
-        episode.allIncidentsResolvedAt,
-        OneUptimeDate.getCurrentDate(),
-      );
-
-      if (timeSinceAllResolved < resolveDelayMinutes) {
-        logger.debug(
-          `IncidentEpisode:AutoResolve - Episode ${episode.id} waiting for resolve delay (${resolveDelayMinutes} minutes)`,
-        );
-        return;
-      }
-    }
-
-    // Resolve the episode
-    logger.info(
-      `IncidentEpisode:AutoResolve - Resolving episode ${episode.id} as all incidents are resolved`,
-    );
-
-    await IncidentEpisodeService.resolveEpisode(
-      episode.id,
-      undefined, // No user - auto-resolved by system
-      false, // Don't cascade to incidents - they're already resolved
-    );
-  } catch (error) {
-    logger.error(
-      `IncidentEpisode:AutoResolve - Error processing episode ${episode.id}: ${error}`,
-    );
-  }
-};
