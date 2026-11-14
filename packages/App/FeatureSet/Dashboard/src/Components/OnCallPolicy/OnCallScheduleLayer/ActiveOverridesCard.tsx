@@ -1,15 +1,35 @@
 import HandOffTimes from "./HandOffTimes";
 import { SECTION_LABEL_CLASS_NAME } from "./FinalScheduleSummary";
+import { formatHandOffInstant } from "./LayerSummary";
 import { getUserAvatarStyle, getUserInitials } from "./LayerUserColors";
 import {
   OverrideScopeKind,
   OverrideSummaryRow,
   OverrideUserDisplayInfo,
+  getUserDisplayName,
 } from "./OverridePresentation";
+import { notifyScheduleUserOverridesChanged } from "./ScheduleOverrides";
+import { getGlobalUserOverrideLock } from "../UserOverrides/GlobalUserOverrideLock";
+import UserOverrideFormModal, {
+  UserOverrideEditTarget,
+} from "../UserOverrides/UserOverrideFormModal";
+import UserOverrideOverlapsMark, {
+  getUserOverrideOverlapsText,
+} from "../UserOverrides/UserOverrideOverlapsMark";
+import OnCallDutyPolicyUserOverride from "Common/Models/DatabaseModels/OnCallDutyPolicyUserOverride";
+import OneUptimeDate from "Common/Types/Date";
 import Dictionary from "Common/Types/Dictionary";
 import IconProp from "Common/Types/Icon/IconProp";
+import Button, {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
 import Icon from "Common/UI/Components/Icon/Icon";
-import React, { FunctionComponent, ReactElement } from "react";
+import PermissionGate, {
+  ModelAction,
+  PermissionGateResult,
+} from "Common/UI/Utils/PermissionGate";
+import React, { FunctionComponent, ReactElement, useState } from "react";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
@@ -30,7 +50,16 @@ import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparato
  * with the rotation's icon where a person's initials would be.
  *
  * Rows come from OverridePresentation.buildOverrideSummaryRows, so this
- * component holds no wording of its own and stays a pure render of props.
+ * component holds no wording of its own about the substitutions.
+ *
+ * Each row has an Edit (issue #7631): the override's own dialog
+ * (UserOverrideFormModal), the one its User Overrides page opens - who
+ * covers, and the times as far as they may still change. Saved, every
+ * schedule on the page reads its overrides again
+ * (notifyScheduleUserOverridesChanged). A global override's Edit is locked
+ * for a reader whose permission covers only some policies, saying why
+ * (GlobalUserOverrideLock). Two overrides saved before overlaps were
+ * refused are marked "Overlaps", saying which is used (issue #7630).
  */
 
 export interface ComponentProps {
@@ -63,9 +92,105 @@ const ActiveOverridesCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement | null => {
   const translator: Translator = useTranslator();
+
+  // The override whose Edit is open, if any.
+  const [editing, setEditing] = useState<UserOverrideEditTarget | null>(null);
+
   if (props.rows.length === 0) {
     return null;
   }
+
+  /*
+   * Edit, as a policy's User Overrides page gates it: shown locked, naming
+   * the permission, to a reader who may not edit overrides; hidden while
+   * the permissions are not known.
+   */
+  const editGate: PermissionGateResult = PermissionGate.check(
+    new OnCallDutyPolicyUserOverride(),
+    ModelAction.Update,
+  );
+
+  const getEditLock: (row: OverrideSummaryRow) => string | null = (
+    row: OverrideSummaryRow,
+  ): string | null => {
+    if (!editGate.isAllowed) {
+      return editGate.disabledReason || null;
+    }
+
+    return row.onCallDutyPolicyId
+      ? null
+      : getGlobalUserOverrideLock(ModelAction.Update);
+  };
+
+  const getEditButton: (row: OverrideSummaryRow) => ReactElement = (
+    row: OverrideSummaryRow,
+  ): ReactElement => {
+    if (!row.overrideId || (!editGate.isAllowed && !editGate.disabledReason)) {
+      return <></>;
+    }
+
+    const lock: string | null = getEditLock(row);
+
+    return (
+      <Button
+        dataTestId="active-override-edit"
+        title="Edit"
+        ariaLabel={translator.translateTemplate(
+          "Edit the override for {{name}}",
+          { name: row.originalName },
+        )}
+        buttonStyle={ButtonStyleType.LINK}
+        buttonSize={ButtonSize.ExtraSmall}
+        className="ml-auto"
+        disabled={Boolean(lock)}
+        tooltip={lock || undefined}
+        onClick={() => {
+          setEditing({
+            id: row.overrideId,
+            onCallDutyPolicyId: row.onCallDutyPolicyId || null,
+            startsAt: row.startsAt,
+            endsAt: row.endsAt,
+          });
+        }}
+      />
+    );
+  };
+
+  // "Overlaps", on an override saved before overlaps were refused.
+  const getOverlapsMark: (row: OverrideSummaryRow) => ReactElement = (
+    row: OverrideSummaryRow,
+  ): ReactElement => {
+    if (!row.overlapNote) {
+      return <></>;
+    }
+
+    const otherCoverId: string =
+      row.overlapNote.other.routeAlertsToUserId || "";
+
+    return (
+      <UserOverrideOverlapsMark
+        text={getUserOverrideOverlapsText({
+          translator: translator,
+          note: row.overlapNote,
+          awayName: row.originalName,
+          otherCoverName: otherCoverId
+            ? getUserDisplayName(props.userById[otherCoverId])
+            : "",
+          // As each row writes its own times (HandOffTimes).
+          from: formatHandOffInstant(
+            new Date(row.overlapNote.other.startsAt),
+            props.timezone,
+            OneUptimeDate.getCurrentDate(),
+          ),
+          until: formatHandOffInstant(
+            new Date(row.overlapNote.other.endsAt),
+            props.timezone,
+            OneUptimeDate.getCurrentDate(),
+          ),
+        })}
+      />
+    );
+  };
 
   const shownRows: Array<OverrideSummaryRow> = props.rows.slice(
     0,
@@ -209,6 +334,8 @@ const ActiveOverridesCard: FunctionComponent<ComponentProps> = (
             />
             {row.scope.label}
           </span>
+          {getOverlapsMark(row)}
+          {getEditButton(row)}
         </div>
       </li>
     );
@@ -258,6 +385,25 @@ const ActiveOverridesCard: FunctionComponent<ComponentProps> = (
             hiddenCount,
           )}
         </div>
+      )}
+
+      {editing ? (
+        <UserOverrideFormModal
+          key={editing.id}
+          overrideToEdit={editing}
+          onClose={() => {
+            setEditing(null);
+          }}
+          onSaved={() => {
+            setEditing(null);
+            notifyScheduleUserOverridesChanged();
+          }}
+          onEditOverride={(target: UserOverrideEditTarget) => {
+            setEditing(target);
+          }}
+        />
+      ) : (
+        <></>
       )}
     </div>
   );
