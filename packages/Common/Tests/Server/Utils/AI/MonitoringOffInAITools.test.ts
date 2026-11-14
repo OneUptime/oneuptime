@@ -400,12 +400,24 @@ describe("query_monitors lists a monitor whose monitoring is off as such", () =>
 });
 
 describe("no status filter matches a monitor whose monitoring is off", () => {
-  test("problemsOnly is the Not Operational rule, unchanged", async () => {
+  /*
+   * Asked in the run's project: the status is asked of that project too,
+   * which lets Postgres read only the monitors holding one of its statuses
+   * that are not operational (issue #8096).
+   */
+  test("problemsOnly is the Not Operational rule, asked in the run's project", async () => {
     const { findBy } = await list([], { problemsOnly: true });
 
     expect(firstCallArg(findBy)["query"]).toEqual(
-      NotOperationalMonitorQuery.getQuery(),
+      NotOperationalMonitorQuery.getQuery(ctx.projectId),
     );
+    expect(
+      (
+        (firstCallArg(findBy)["query"] as JSONObject)[
+          "currentMonitorStatus"
+        ] as JSONObject
+      )["projectId"],
+    ).toEqual(ctx.projectId);
   });
 
   test("monitorStatusName matches only monitors whose monitoring is on", async () => {
@@ -440,6 +452,7 @@ describe("no status filter matches a monitor whose monitoring is off", () => {
     expect(query["isArchived"]).toBe(false);
     expect(query["currentMonitorStatus"]).toEqual({
       isOperationalState: false,
+      projectId: ctx.projectId,
     });
   });
 
