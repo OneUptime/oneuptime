@@ -826,7 +826,7 @@ describe("the sentences that say what a rule does", () => {
       [NotificationRuleEventType.IncidentEpisode]: "All incident episodes",
       [NotificationRuleEventType.AlertEpisode]: "All alert episodes",
       [NotificationRuleEventType.ScheduledMaintenance]:
-        "All scheduled maintenance events",
+        "All maintenance events",
       [NotificationRuleEventType.Monitor]: "All monitors",
       [NotificationRuleEventType.OnCallDutyPolicy]: "All on-call policies",
       [NotificationRuleEventType.SecurityCase]: "All security cases",

@@ -344,8 +344,8 @@ const PromQLQueryView: FunctionComponent<ComponentProps> = (
                 <div className="w-64 max-w-full">
                   <Dropdown
                     options={metricOptions}
-                    placeholder={translator.translateText("Add a metric name")}
-                    ariaLabel={translator.translateText("Add a metric name")}
+                    placeholder={translationKey("Add a metric name")}
+                    ariaLabel={translationKey("Add a metric name")}
                     onChange={onMetricPicked}
                     value={undefined}
                   />

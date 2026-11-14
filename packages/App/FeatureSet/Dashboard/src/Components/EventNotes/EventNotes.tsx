@@ -390,27 +390,66 @@ function EventNotes<TNote extends BaseModel>(
   };
 
   /*
+   * The feed's body and the banner take the focus from script alone, for a
+   * moment - while notes are read, or once Load more has failed - and are
+   * focusable only while they hold it, as a list's box is (Table). The
+   * feed's body was focusable for good: it took every click on a note's
+   * words, and in Chromium the next Tab then started over at its top rather
+   * than after what was clicked. Focusable at once, before what had the
+   * focus is disabled or taken away.
+   */
+  const holdFocus: (element: HTMLElement, options?: FocusOptions) => void = (
+    element: HTMLElement,
+    options?: FocusOptions,
+  ): void => {
+    element.tabIndex = -1;
+    element.focus(options);
+  };
+
+  /*
+   * The focus moved on from the feed's body or the banner, which is not
+   * focusable again until it next holds the focus. A window that loses the
+   * focus keeps its focused element, to give the focus back to when it is
+   * in front again: the element stays focusable then.
+   */
+  const letGoOfFocus: (event: React.FocusEvent<HTMLDivElement>) => void = (
+    event: React.FocusEvent<HTMLDivElement>,
+  ): void => {
+    const element: HTMLDivElement = event.currentTarget;
+
+    if (event.target === element && document.activeElement !== element) {
+      element.removeAttribute("tabindex");
+    }
+  };
+
+  /*
    * The banner goes away - dismissed, or ended by a read that answered -
    * and a focus left on it fell to the page: a keyboard or screen reader
    * user started over from its top. It goes back to where the reader was
    * instead: to Load more after Load more failed, so trying again is one
    * key away, and after the others to the feed's body, just before the
-   * notes (the refresh button, when no feed is drawn). A focus that was not
-   * on the banner is left where it is.
+   * notes (the refresh button, when no feed is drawn). While Load more
+   * reads once more, the feed's body holds it until the read is over
+   * (below). A focus that was not on the banner is left where it is.
    */
   const moveFocusOffBanner: (action: NotesAction) => void = (
     action: NotesAction,
   ): void => {
     const banner: HTMLDivElement | null = actionErrorRef.current;
 
-    if (banner && banner.contains(document.activeElement)) {
-      const loadMore: HTMLButtonElement | null = loadMoreButtonRef.current;
-      const target: HTMLElement | null =
-        action === "more" && loadMore && !loadMore.disabled
-          ? loadMore
-          : feedBodyRef.current || refreshButtonRef.current;
+    if (!banner || !banner.contains(document.activeElement)) {
+      return;
+    }
 
-      target?.focus();
+    const loadMore: HTMLButtonElement | null = loadMoreButtonRef.current;
+    const body: HTMLDivElement | null = feedBodyRef.current;
+
+    if (action === "more" && loadMore && !loadMore.disabled) {
+      loadMore.focus();
+    } else if (body) {
+      holdFocus(body);
+    } else {
+      refreshButtonRef.current?.focus();
     }
   };
 
@@ -568,10 +607,30 @@ function EventNotes<TNote extends BaseModel>(
     const body: HTMLDivElement | null = feedBodyRef.current;
 
     if (body && body.contains(document.activeElement)) {
-      body.focus();
+      holdFocus(body);
     }
 
     fetchNotes({ mode: "initial" });
+  };
+
+  /*
+   * Load more is disabled while it reads, and a focus on it fell to the
+   * page - in Firefox as soon as it was disabled, and in every browser once
+   * the last page took Load more away - and the next Tab started over at
+   * the top of the page. The feed's body holds the focus while the next
+   * page is read, with the page left where it is (the reader is at the
+   * feed's foot), and hands it on as the read ends (below). A focus that was
+   * not on Load more is left where it is.
+   */
+  const loadMoreNotes: () => void = (): void => {
+    const button: HTMLButtonElement | null = loadMoreButtonRef.current;
+    const body: HTMLDivElement | null = feedBodyRef.current;
+
+    if (button && body && document.activeElement === button) {
+      holdFocus(body, { preventScroll: true });
+    }
+
+    fetchNotes({ mode: "more" });
   };
 
   /*
@@ -593,6 +652,33 @@ function EventNotes<TNote extends BaseModel>(
 
     tryAgainButtonRef.current?.focus();
   }, [isLoading, loadError]);
+
+  /*
+   * Load more's read is over with the focus on the feed's body, where Load
+   * more (loadMoreNotes) or a Dismiss meanwhile put it: it goes to the
+   * banner if the read failed, which comes into view to say what failed
+   * and why (its Dismiss puts the focus back on Load more); back to Load
+   * more when more notes are left, so the next page is one key away, with
+   * the page left on the notes that came; and it stays on the feed's body,
+   * just before the notes, once the last page has taken Load more away. A
+   * layout effect, so it moves as the notes or the failure are drawn.
+   */
+  useLayoutEffect(() => {
+    const body: HTMLDivElement | null = feedBodyRef.current;
+
+    if (isLoadingMore || !body || document.activeElement !== body) {
+      return;
+    }
+
+    const banner: HTMLDivElement | null = actionErrorRef.current;
+    const loadMore: HTMLButtonElement | null = loadMoreButtonRef.current;
+
+    if (banner && actionError?.action === "more") {
+      holdFocus(banner);
+    } else if (loadMore && !loadMore.disabled) {
+      loadMore.focus({ preventScroll: true });
+    }
+  }, [isLoadingMore]);
 
   // Dismiss takes the banner away, moving a focus on it first.
   const dismissActionError: () => void = (): void => {
@@ -1089,7 +1175,7 @@ function EventNotes<TNote extends BaseModel>(
               data-testid="notes-load-more"
               disabled={isLoadingMore}
               onClick={() => {
-                fetchNotes({ mode: "more" });
+                loadMoreNotes();
               }}
               className={`inline-flex h-9 items-center gap-2 rounded-md border border-gray-300 bg-white px-3.5 text-sm font-medium text-gray-700 shadow-sm transition ${getHandDrawnButtonStateClassName(
                 { isBusy: isLoadingMore, hoverClassName: "hover:bg-gray-50" },
@@ -1233,12 +1319,17 @@ function EventNotes<TNote extends BaseModel>(
         }}
       />
 
+      {/*
+       * Focusable from script alone, without a ring, and only while it holds
+       * the focus a failed Load more gives it (holdFocus).
+       */}
       {actionError && (
         <div
           ref={actionErrorRef}
           role="alert"
-          className="flex items-start justify-between gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-800"
+          className="flex items-start justify-between gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-800 focus:outline-none"
           data-testid="notes-action-error"
+          onBlur={letGoOfFocus}
         >
           {/*
            * What failed, then the error's words as the load failure's read
@@ -1344,15 +1435,16 @@ function EventNotes<TNote extends BaseModel>(
             </div>
           )}
           {/*
-           * Focusable from script alone, without a ring: it holds the focus
-           * while Try again reads the notes again (tryAgain), and takes it
+           * Focusable from script alone, without a ring, and only while it
+           * holds the focus (holdFocus): while Try again reads the notes
+           * again (tryAgain) and Load more the next page (loadMoreNotes), and
            * from a banner Dismiss takes away (dismissActionError).
            */}
           <div
             ref={feedBodyRef}
-            tabIndex={-1}
             className="px-4 py-5 focus:outline-none sm:px-5"
             data-testid="notes-feed-body"
+            onBlur={letGoOfFocus}
           >
             {getFeedBody()}
           </div>

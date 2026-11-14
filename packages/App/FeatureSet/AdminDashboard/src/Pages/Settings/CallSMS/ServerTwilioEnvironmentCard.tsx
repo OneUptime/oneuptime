@@ -129,7 +129,16 @@ const ProblemList: FunctionComponent<{ problems: Array<string> }> = (props: {
   return (
     <ul className="mt-1 list-disc ps-5">
       {props.problems.map((problem: string, index: number) => {
-        return <li key={index}>{problem}</li>;
+        /*
+         * The server's line, in English, by the variables' names: in a
+         * right-to-left language it keeps its own direction, its full stop
+         * at its end - not drawn first, before GLOBAL_TWILIO_ (#7804).
+         */
+        return (
+          <li key={index}>
+            <bdi>{problem}</bdi>
+          </li>
+        );
       })}
     </ul>
   );
@@ -225,7 +234,6 @@ const ServerTwilioEnvironmentCard: FunctionComponent<ComponentProps> = (
           <Detail<EnvironmentAccountItem>
             id="server-twilio-environment-detail"
             item={item}
-            showRecordLine={false}
             fields={[
               {
                 key: "usedFor",
@@ -247,6 +255,13 @@ const ServerTwilioEnvironmentCard: FunctionComponent<ComponentProps> = (
                 key: "accountSid",
                 title: "Twilio Account SID",
                 description: ServerTwilioEnvironmentVariable.AccountSid,
+                /*
+                 * As written in the variable, so Detail isolates it
+                 * (IsolatedText) and it keeps its own direction in a
+                 * right-to-left page, as the phone numbers keep theirs
+                 * (PhoneNumberText). Used For and the auth token's Set are
+                 * the page's own words, in the page's direction.
+                 */
                 placeholder: t("common.none"),
               },
               {

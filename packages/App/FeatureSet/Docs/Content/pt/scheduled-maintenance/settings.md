@@ -69,7 +69,7 @@ As **Regras de runbook** iniciam um runbook quando um evento novo corresponde, c
 :::steps
 ### Escolher sobre quais eventos lembrar
 
-Clique em **Criar: Scheduled Maintenance Reminder Rule**. Em **Corresponder**, deixe **Todos os eventos de manutenção programada** selecionado para lembrar de todos os eventos, ou escolha **Somente os eventos de manutenção programada que atendem às condições** e depois os **Rótulos** a que ela se aplica.
+Clique em **Criar: Scheduled Maintenance Reminder Rule**. Em **Corresponder**, deixe **Todos os eventos de manutenção** selecionado para lembrar de todos os eventos, ou escolha **Somente os eventos de manutenção que atendem às condições** e depois os **Rótulos** a que ela se aplica.
 
 ### Definir o intervalo
 

@@ -431,8 +431,9 @@ const writeCases: Array<WriteCase> = [
     },
   },
   {
-    name: "mark a scheduled maintenance event as ongoing",
-    refusal: "mark this scheduled maintenance event as ongoing",
+    // A maintenance event, as the model has named it since #6817.
+    name: "mark a maintenance event as ongoing",
+    refusal: "mark this maintenance event as ongoing",
     mutation: (): AnySpy => {
       return jest.spyOn(
         ScheduledMaintenanceStateTimelineService,
@@ -447,7 +448,7 @@ const writeCases: Array<WriteCase> = [
   },
   {
     name: "post a public scheduled maintenance note",
-    refusal: "add a public note to this scheduled maintenance event",
+    refusal: "add a public note to this maintenance event",
     mutation: (): AnySpy => {
       return jest.spyOn(
         ScheduledMaintenancePublicNoteService,
@@ -464,8 +465,8 @@ const writeCases: Array<WriteCase> = [
     },
   },
   {
-    name: "create a scheduled maintenance event",
-    refusal: "create a scheduled maintenance event",
+    name: "create a maintenance event",
+    refusal: "create a maintenance event",
     mutation: (): AnySpy => {
       return jest.spyOn(ScheduledMaintenanceService, "create") as AnySpy;
     },

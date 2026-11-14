@@ -89,6 +89,31 @@ twilio:
 
 OneUptime 在启动时读取这些变量。如果其中有错误，例如 OneUptime 无法识别的电话号码或缺少 auth token，在修正之前该账户不会发送短信，也不会拨打电话；服务器日志、**Admin Dashboard > 设置 > 通话和短信** 和 `/admin/setup` 上的检查清单会指出是哪个变量。auth token 永远不会显示。要更改账户，请修改这些变量并重启 OneUptime：Admin Dashboard 不会更改它。
 
+### 使用 Terraform 管理项目配置
+
+项目配置也是 [Terraform 提供程序](/docs/terraform/index) 的 `oneuptime_call_and_sms_config` 资源，同名的数据源可以读取它。Auth Token 是敏感值，因此计划、日志和输出中从不显示它。请通过敏感变量传入：
+
+```hcl
+variable "twilio_auth_token" {
+  type      = string
+  sensitive = true
+}
+
+resource "oneuptime_call_and_sms_config" "production" {
+  name                        = "Production Twilio"
+  used_for                    = "Calls and SMS"
+  twilio_account_sid          = "ACXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+  twilio_auth_token           = var.twilio_auth_token
+  twilio_primary_phone_number = "+14155550100"
+  is_project_default          = true
+}
+```
+
+- **项目默认配置。** 只有设置 `is_project_default = true`，Terraform 才会把配置设为项目默认配置。省略时 Terraform 会发送 `false`，因此与控制台中不同，项目的第一个配置不会成为默认配置。每种消息只在一个配置上设置它：如果 `used_for` 相同的两个配置都设置了它，它们会在每次 apply 时互相夺走默认配置。`is_project_default_for_sms` 和 `is_project_default_for_calls` 由 OneUptime 设置，Terraform 只读取它们。
+- **电话号码。** 每个号码都要写上 `+` 和国家代码。数字之间可以有空格、连字符、句点或括号：OneUptime 会把 `+1 415 555 0100` 存为 `+14155550100`，而 Terraform 会将其视为您写的号码，因此 plan 不会显示任何更改。
+- **API 密钥。** Terraform 使用的密钥除了能创建和编辑配置外，还必须能读取 Auth Token：**项目所有者**、**项目管理员**，或自定义角色中的 **Read Call and SMS**。如果密钥不能读取，读取配置会失败，错误会说明谁可以读取该令牌。
+- **引用。** 状态页的 `call_sms_config_id` 和来电策略的 `project_call_sms_config_id` 取配置的 `id`。
+
 ### 为通话和短信使用不同号码
 
 Twilio 号码可以同时拨打电话和发送短信，也可以只支持其中一种；在某些国家，没有一个号码能同时支持两者：国内号码可能仅支持语音，而短信需要手机号码。无论是项目的配置还是整个安装的配置，都可以在 **更多字段** 中列出用于短信的号码：

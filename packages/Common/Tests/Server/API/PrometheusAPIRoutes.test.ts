@@ -179,28 +179,34 @@ describe("Prometheus API routes", () => {
       .mockResolvedValue([{ name: "http_requests" } as MetricType] as never);
     jest
       .spyOn(MetricService, "executeQuery")
-      .mockImplementation(async (statement: Statement): Promise<never> => {
-        statements.push(statement);
-        const rows: Array<JSONObject> = [];
+      .mockImplementation(
+        async (statement: Statement | string): Promise<never> => {
+          /*
+           * The service takes a bare string too; the routes bind every
+           * read's values in a Statement, which the tests below read.
+           */
+          statements.push(statement as Statement);
+          const rows: Array<JSONObject> = [];
 
-        // A counter that grows by 60 a minute: one per second.
-        for (let minute: number = 1; minute <= 10; minute++) {
-          rows.push({
-            name: "http_requests",
-            metricPointType: "Sum",
-            aggregationTemporality: "Cumulative",
-            attributes: { "resource.service.name": "checkout" },
-            timestampMs: String(minute * 60000),
-            value: minute * 60,
-          });
-        }
+          // A counter that grows by 60 a minute: one per second.
+          for (let minute: number = 1; minute <= 10; minute++) {
+            rows.push({
+              name: "http_requests",
+              metricPointType: "Sum",
+              aggregationTemporality: "Cumulative",
+              attributes: { "resource.service.name": "checkout" },
+              timestampMs: String(minute * 60000),
+              value: minute * 60,
+            });
+          }
 
-        return {
-          json: async (): Promise<{ data: Array<JSONObject> }> => {
-            return { data: rows };
-          },
-        } as never;
-      });
+          return {
+            json: async (): Promise<{ data: Array<JSONObject> }> => {
+              return { data: rows };
+            },
+          } as never;
+        },
+      );
   });
 
   afterEach(() => {

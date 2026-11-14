@@ -3,7 +3,10 @@ import {
   PromQLLabelMatcher,
   PromQLMatchType,
 } from "./PromQLAst";
+import PromQLError, { PromQLErrorType } from "./PromQLError";
 import { compilePromQLRegex } from "./PromQLRegex";
+import LinearRegExp from "../LinearRegExp/LinearRegExp";
+import { PatternWorkLimitError } from "../LinearRegExp/PatternProblem";
 
 /*
  * A series' labels: its metric name under `__name__`, and every other label.
@@ -13,6 +16,19 @@ import { compilePromQLRegex } from "./PromQLRegex";
 export type PromQLLabels = Record<string, string>;
 
 const SEPARATOR: string = "\xff";
+
+/*
+ * A label's value, "" for a label the series does not have: never what
+ * every object inherits, since a label may be named constructor or toString.
+ */
+export const promQLLabelValue: (
+  labels: PromQLLabels,
+  name: string,
+) => string = (labels: PromQLLabels, name: string): string => {
+  return Object.prototype.hasOwnProperty.call(labels, name)
+    ? labels[name] || ""
+    : "";
+};
 
 // One string per label set, the same for the same labels in any order.
 export const promQLLabelsKey: (labels: PromQLLabels) => string = (
@@ -76,44 +92,95 @@ export const promQLMatchSignature: (
   return promQLLabelsKey(kept);
 };
 
-const regexCache: Map<string, RegExp> = new Map<string, RegExp>();
+// Whether a series' labels satisfy a selector's matchers.
+export type PromQLLabelsTest = (labels: PromQLLabels) => boolean;
 
-const cachedRegex: (pattern: string) => RegExp = (pattern: string): RegExp => {
-  let regex: RegExp | undefined = regexCache.get(pattern);
-
-  if (!regex) {
-    regex = compilePromQLRegex(pattern).regex;
-
-    // A long-running server meets many patterns; keep the newest.
-    if (regexCache.size > 500) {
-      regexCache.clear();
+/*
+ * Whether a matcher's pattern matches a value. A question the linear-time
+ * matcher stops at its work limit has no answer, and a query does not
+ * answer without it: it is refused, with a sentence that names the pattern.
+ */
+const testMatcherPattern: (
+  regex: LinearRegExp,
+  matcher: PromQLLabelMatcher,
+  value: string,
+) => boolean = (
+  regex: LinearRegExp,
+  matcher: PromQLLabelMatcher,
+  value: string,
+): boolean => {
+  try {
+    return regex.test(value);
+  } catch (error: unknown) {
+    if (error instanceof PatternWorkLimitError) {
+      throw new PromQLError(
+        `The pattern "${matcher.value}" for the label "${matcher.name}" needed more work to match one of the label's values than the value's length allows. Write a simpler pattern.`,
+        PromQLErrorType.Execution,
+      );
     }
 
-    regexCache.set(pattern, regex);
+    throw error;
   }
-
-  return regex;
 };
 
-export const matchesPromQLMatcher: (
-  labels: PromQLLabels,
+// One matcher, its pattern compiled once (PromQLRegex).
+const compilePromQLMatcher: (
   matcher: PromQLLabelMatcher,
-) => boolean = (labels: PromQLLabels, matcher: PromQLLabelMatcher): boolean => {
-  const value: string = labels[matcher.name] || "";
-
+) => PromQLLabelsTest = (matcher: PromQLLabelMatcher): PromQLLabelsTest => {
   switch (matcher.type) {
     case PromQLMatchType.Equal:
-      return value === matcher.value;
+      return (labels: PromQLLabels): boolean => {
+        return promQLLabelValue(labels, matcher.name) === matcher.value;
+      };
     case PromQLMatchType.NotEqual:
-      return value !== matcher.value;
+      return (labels: PromQLLabels): boolean => {
+        return promQLLabelValue(labels, matcher.name) !== matcher.value;
+      };
     case PromQLMatchType.RegexMatch:
-      return cachedRegex(matcher.value).test(value);
-    case PromQLMatchType.RegexNoMatch:
-      return !cachedRegex(matcher.value).test(value);
+    case PromQLMatchType.RegexNoMatch: {
+      const regex: LinearRegExp = compilePromQLRegex(matcher.value).regex;
+      const wanted: boolean = matcher.type === PromQLMatchType.RegexMatch;
+
+      return (labels: PromQLLabels): boolean => {
+        return (
+          testMatcherPattern(
+            regex,
+            matcher,
+            promQLLabelValue(labels, matcher.name),
+          ) === wanted
+        );
+      };
+    }
   }
 };
 
-// Whether a series' labels satisfy every matcher of a selector.
+/*
+ * A selector's matchers, compiled once for the series one query reads: a
+ * pattern is compiled here, not once per series. The parser has checked
+ * every pattern (PromQLParser), so each compiles.
+ */
+export const compilePromQLMatchers: (
+  matchers: Array<PromQLLabelMatcher>,
+) => PromQLLabelsTest = (
+  matchers: Array<PromQLLabelMatcher>,
+): PromQLLabelsTest => {
+  const tests: Array<PromQLLabelsTest> = matchers.map(compilePromQLMatcher);
+
+  return (labels: PromQLLabels): boolean => {
+    for (const test of tests) {
+      if (!test(labels)) {
+        return false;
+      }
+    }
+
+    return true;
+  };
+};
+
+/*
+ * Whether one series' labels satisfy every matcher of a selector. A read of
+ * many series compiles the matchers once instead (compilePromQLMatchers).
+ */
 export const matchesPromQLMatchers: (
   labels: PromQLLabels,
   matchers: Array<PromQLLabelMatcher>,
@@ -121,13 +188,7 @@ export const matchesPromQLMatchers: (
   labels: PromQLLabels,
   matchers: Array<PromQLLabelMatcher>,
 ): boolean => {
-  for (const matcher of matchers) {
-    if (!matchesPromQLMatcher(labels, matcher)) {
-      return false;
-    }
-  }
-
-  return true;
+  return compilePromQLMatchers(matchers)(labels);
 };
 
 /*

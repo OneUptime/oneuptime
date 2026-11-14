@@ -971,7 +971,7 @@ describe("ScheduledMaintenanceService.onUpdateSuccess: editing the monitors of a
     );
     expect(statusCall[3]).toBe(true);
     expect(statusCall[4]).toBe(
-      "Changed because of scheduled maintenance event: " + EVENT_ID,
+      "Changed because of maintenance event: " + EVENT_ID,
     );
     expect(statusCall[6]).toEqual({ isRoot: true });
 
@@ -1263,7 +1263,7 @@ describe("ScheduledMaintenanceService.onUpdateSuccess: editing the monitors of a
     expect(monitorUpdateOneById).toHaveBeenCalledTimes(1);
     expect(changeMonitorStatus).toHaveBeenCalledTimes(1);
     expect(changeMonitorStatus.mock.calls[0]![4]).toBe(
-      "Changed because of scheduled maintenance event: " + EVENT_ID,
+      "Changed because of maintenance event: " + EVENT_ID,
     );
 
     // Each event records its own edit.

@@ -2147,7 +2147,8 @@ describe("'create incident' (#4111): one form Teams accepts, one answer, HTTP 20
     },
     {
       command: "create maintenance",
-      what: "a scheduled maintenance event",
+      // A maintenance event, as the model has named it since #6817.
+      what: "a maintenance event",
       createRoute: "/scheduled-maintenance-events/create",
       hasDashboardUrl: true,
     },
@@ -2263,7 +2264,7 @@ describe("'create incident' (#4111): one form Teams accepts, one answer, HTTP 20
     },
     {
       command: "create maintenance",
-      purpose: "create a scheduled maintenance event",
+      purpose: "create a maintenance event",
       again: "maintenance",
     },
     {
@@ -2273,7 +2274,7 @@ describe("'create incident' (#4111): one form Teams accepts, one answer, HTTP 20
     },
     {
       command: "Maintenance Database upgrade",
-      purpose: "create a scheduled maintenance event",
+      purpose: "create a maintenance event",
       again: "maintenance",
     },
   ])(
@@ -2542,7 +2543,7 @@ describe("who is checked before the form (#4111 review): the sender of a persona
         .spyOn(WorkspaceActionAuthorization, "assertCanCreate")
         .mockRejectedValue(
           new NotAuthorizedException(
-            "You do not have permission to create a scheduled maintenance event.",
+            "You do not have permission to create a maintenance event.",
           ),
         );
       const activityId: string = nextActivityId("shared-chat-form");
@@ -2568,7 +2569,7 @@ describe("who is checked before the form (#4111 review): the sender of a persona
       expect(answerOf(view.bubbles[0]!)).toBe(
         sharedChat.command === "create incident"
           ? "🔗 **Connect your Microsoft Teams account to declare an incident.** It takes one click. Then type **incident** again."
-          : "🔗 **Connect your Microsoft Teams account to create a scheduled maintenance event.** It takes one click. Then type **maintenance** again.",
+          : "🔗 **Connect your Microsoft Teams account to create a maintenance event.** It takes one click. Then type **maintenance** again.",
       );
       expectOneClickConnect(view.bubbles[0]);
       expect(
@@ -2646,7 +2647,7 @@ describe("who is checked before the form (#4111 review): the sender of a persona
     expect(view.httpStatuses).toEqual([200]);
     // The same refusal a submit would get (see the maintenance submit tests).
     expect(answersOf(view.bubbles)).toEqual([
-      "You do not have permission to create a scheduled maintenance event. You do not have permissions to create Maintenance Event. You need one of these permissions: Project Owner, Project Admin, Project Member, Scheduled Maintenance Admin, Scheduled Maintenance Member, Create Scheduled Maintenance",
+      "You do not have permission to create a maintenance event. You do not have permissions to create Maintenance Event. You need one of these permissions: Project Owner, Project Admin, Project Member, Scheduled Maintenance Admin, Scheduled Maintenance Member, Create Scheduled Maintenance",
     ]);
     expect(WorkspaceActionAuthorization.assertCanCreate).toHaveBeenCalledTimes(
       1,
@@ -2654,7 +2655,7 @@ describe("who is checked before the form (#4111 review): the sender of a persona
     expect(WorkspaceActionAuthorization.assertCanCreate).toHaveBeenCalledWith(
       expect.objectContaining({
         modelType: ScheduledMaintenance,
-        action: "create a scheduled maintenance event",
+        action: "create a maintenance event",
       }),
     );
     expect(MonitorService.findBy).not.toHaveBeenCalled();
@@ -4103,7 +4104,7 @@ describe("submitting the maintenance form: start and end are read in the zone th
     ).toEqual([
       [
         "POST",
-        `✅ Scheduled maintenance created successfully.\n\n**Starts:** ${dayAsRead}, 14:00 (${SENDER_TIMEZONE})\n\n**Ends:** ${dayAsRead}, 16:00 (${SENDER_TIMEZONE})\n\n[View scheduled maintenance](${dashboardLink(`/scheduled-maintenance-events/${CREATED_MAINTENANCE_ID.toString()}`)})`,
+        `✅ Maintenance event created successfully.\n\n**Starts:** ${dayAsRead}, 14:00 (${SENDER_TIMEZONE})\n\n**Ends:** ${dayAsRead}, 16:00 (${SENDER_TIMEZONE})\n\n[View maintenance event](${dashboardLink(`/scheduled-maintenance-events/${CREATED_MAINTENANCE_ID.toString()}`)})`,
         200,
       ],
       ["DELETE", "msg-maintenance-form", 200],
@@ -4165,7 +4166,7 @@ describe("submitting the maintenance form: start and end are read in the zone th
      */
     expect(view.httpStatuses).toEqual([200]);
     expect(labelsOf(view.bubbles)).toEqual([
-      `✅ Scheduled maintenance created successfully.\n\n**Starts:** ${dayAsRead}, 14:00 (UTC+05:30)\n\n**Ends:** ${dayAsRead}, 16:00 (UTC+05:30)\n\nMicrosoft Teams did not say which time zone you are in, so these times were read at your current offset, UTC+05:30. If daylight saving time changes before then, check them in OneUptime.\n\n[View scheduled maintenance](${dashboardLink(`/scheduled-maintenance-events/${CREATED_MAINTENANCE_ID.toString()}`)})`,
+      `✅ Maintenance event created successfully.\n\n**Starts:** ${dayAsRead}, 14:00 (UTC+05:30)\n\n**Ends:** ${dayAsRead}, 16:00 (UTC+05:30)\n\nMicrosoft Teams did not say which time zone you are in, so these times were read at your current offset, UTC+05:30. If daylight saving time changes before then, check them in OneUptime.\n\n[View maintenance event](${dashboardLink(`/scheduled-maintenance-events/${CREATED_MAINTENANCE_ID.toString()}`)})`,
     ]);
 
     // 14:00 at UTC+05:30 is 08:30 UTC.
@@ -4215,7 +4216,7 @@ describe("submitting the maintenance form: start and end are read in the zone th
       [
         "POST",
         GROUP_CONVERSATION_ID,
-        `✅ Scheduled maintenance created successfully.\n\n**Starts:** ${dayAsRead}, 14:00 (${SENDER_TIMEZONE})\n\n**Ends:** ${dayAsRead}, 16:00 (${SENDER_TIMEZONE})\n\n[View scheduled maintenance](${dashboardLink(`/scheduled-maintenance-events/${CREATED_MAINTENANCE_ID.toString()}`)})`,
+        `✅ Maintenance event created successfully.\n\n**Starts:** ${dayAsRead}, 14:00 (${SENDER_TIMEZONE})\n\n**Ends:** ${dayAsRead}, 16:00 (${SENDER_TIMEZONE})\n\n[View maintenance event](${dashboardLink(`/scheduled-maintenance-events/${CREATED_MAINTENANCE_ID.toString()}`)})`,
       ],
       ["DELETE", GROUP_CONVERSATION_ID, "msg-maintenance-form-group"],
     ]);
@@ -4257,14 +4258,14 @@ describe("submitting the maintenance form: start and end are read in the zone th
       description: "4:59 ago: the event is created, starting now",
       arrivesAt: "14:04:59",
       endTime: "16:00",
-      reply: `✅ Scheduled maintenance created successfully.\n\n**Starts:** Oct 6, 2026, 14:04 (${SENDER_TIMEZONE})\n\n**Ends:** Oct 6, 2026, 16:00 (${SENDER_TIMEZONE})\n\n[View scheduled maintenance](`,
+      reply: `✅ Maintenance event created successfully.\n\n**Starts:** Oct 6, 2026, 14:04 (${SENDER_TIMEZONE})\n\n**Ends:** Oct 6, 2026, 16:00 (${SENDER_TIMEZONE})\n\n[View maintenance event](`,
       startsAt: "2026-10-06T18:04:59.000Z",
     },
     {
       description: "exactly 5:00 ago: still created, starting now",
       arrivesAt: "14:05:00",
       endTime: "16:00",
-      reply: `✅ Scheduled maintenance created successfully.\n\n**Starts:** Oct 6, 2026, 14:05 (${SENDER_TIMEZONE})\n\n**Ends:** Oct 6, 2026, 16:00 (${SENDER_TIMEZONE})\n\n[View scheduled maintenance](`,
+      reply: `✅ Maintenance event created successfully.\n\n**Starts:** Oct 6, 2026, 14:05 (${SENDER_TIMEZONE})\n\n**Ends:** Oct 6, 2026, 16:00 (${SENDER_TIMEZONE})\n\n[View maintenance event](`,
       startsAt: "2026-10-06T18:05:00.000Z",
     },
     {
@@ -4337,7 +4338,7 @@ describe("submitting the maintenance form: start and end are read in the zone th
 
   test("a submit that picks a label deleted since the form was sent: the create's own reference check refuses it, and the one '❌' reply says so in fixed words; nothing is created, HTTP 200", async () => {
     const deletedLabelId: string = ObjectID.generate().toString();
-    const reason: string = `This scheduled maintenance event references records that are not in this project: Label "${deletedLabelId}". Please pick values from this project and try again.`;
+    const reason: string = `This maintenance event references records that are not in this project: Label "${deletedLabelId}". Please pick values from this project and try again.`;
     // What the create, made as the member, answers a label the project no longer has.
     jest
       .spyOn(ScheduledMaintenanceService, "create")
@@ -4371,7 +4372,7 @@ describe("submitting the maintenance form: start and end are read in the zone th
     ).toEqual([
       [
         "POST",
-        `❌ Could not create the scheduled maintenance event: ${MICROSOFT_TEAMS_UNAVAILABLE_REFERENCE_MESSAGE}`,
+        `❌ Could not create the maintenance event: ${MICROSOFT_TEAMS_UNAVAILABLE_REFERENCE_MESSAGE}`,
         200,
       ],
     ]);
@@ -4386,7 +4387,7 @@ describe("submitting the maintenance form: start and end are read in the zone th
       }),
     ).toEqual([deletedLabelId]);
     expect(loggedErrors).toEqual([
-      `Could not create a scheduled maintenance event from Microsoft Teams: ProjectScopedReferenceException: ${reason}`,
+      `Could not create a maintenance event from Microsoft Teams: ProjectScopedReferenceException: ${reason}`,
       `Error: ${reason}`,
     ]);
     expect(loggedErrorCalls[1]?.message).toBeInstanceOf(
@@ -4399,7 +4400,7 @@ describe("submitting the maintenance form: start and end are read in the zone th
     stubMaintenanceCreate();
     // What ScheduledMaintenanceService.onBeforeCreate throws in that case.
     const refusal: BadDataException = new BadDataException(
-      "Scheduled state not found for this project. Please add an scheduled event state from settings.",
+      "This project has no scheduled state, so a new maintenance event has no state to start in. See Scheduled Maintenance > Settings > Maintenance State.",
     );
     jest
       .spyOn(ScheduledMaintenanceService, "create")
@@ -4421,12 +4422,12 @@ describe("submitting the maintenance form: start and end are read in the zone th
 
     expect(view.httpStatuses).toEqual([200]);
     expect(labelsOf(view.bubbles)).toEqual([
-      `❌ Could not create the scheduled maintenance event: ${refusal.message}`,
+      `❌ Could not create the maintenance event: ${refusal.message}`,
     ]);
     expect(view.deletes).toEqual([]);
     // The class it was refused as, from the constructor: its name is Error's.
     expect(loggedErrors).toEqual([
-      `Could not create a scheduled maintenance event from Microsoft Teams: BadDataException: ${refusal.message}`,
+      `Could not create a maintenance event from Microsoft Teams: BadDataException: ${refusal.message}`,
       `Error: ${refusal.message}`,
     ]);
     expectFailureLogged({
@@ -4460,11 +4461,11 @@ describe("submitting the maintenance form: start and end are read in the zone th
 
     expect(view.httpStatuses).toEqual([200]);
     expect(labelsOf(view.bubbles)).toEqual([
-      `❌ Could not create the scheduled maintenance event because of an unexpected error. Please try again, or create it in OneUptime: ${dashboardLink("/scheduled-maintenance-events/create")}`,
+      `❌ Could not create the maintenance event because of an unexpected error. Please try again, or create it in OneUptime: ${dashboardLink("/scheduled-maintenance-events/create")}`,
     ]);
     expect(view.deletes).toEqual([]);
     expect(loggedErrors).toEqual([
-      "Could not create a scheduled maintenance event from Microsoft Teams: Error: simulated database failure",
+      "Could not create a maintenance event from Microsoft Teams: Error: simulated database failure",
       "Error: simulated database failure",
     ]);
     expectFailureLogged({
@@ -4495,7 +4496,7 @@ describe("submitting the maintenance form: start and end are read in the zone th
 
     expect(view.httpStatuses).toEqual([200]);
     expect(labelsOf(view.bubbles)).toEqual([
-      "You do not have permission to create a scheduled maintenance event. You do not have permissions to create Maintenance Event. You need one of these permissions: Project Owner, Project Admin, Project Member, Scheduled Maintenance Admin, Scheduled Maintenance Member, Create Scheduled Maintenance",
+      "You do not have permission to create a maintenance event. You do not have permissions to create Maintenance Event. You need one of these permissions: Project Owner, Project Admin, Project Member, Scheduled Maintenance Admin, Scheduled Maintenance Member, Create Scheduled Maintenance",
     ]);
     expect(WorkspaceActionAuthorization.assertCanCreate).toHaveBeenCalledTimes(
       1,
@@ -5602,7 +5603,8 @@ describe("Add Note while public notes need approval: the answer says it waits, a
         value: "public",
       },
       {
-        title: "Private Note (Only visible to team members)",
+        title:
+          "Private Note (Only people who can see the incident can read it)",
         value: "private",
       },
     ]);

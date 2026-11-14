@@ -260,9 +260,18 @@ const EXPO_PUSH_RECEIPT_ID_PATTERN: RegExp = /^[A-Za-z0-9-]{1,128}$/;
 /*
  * An Expo push token, wherever one appears in a message: either bracketed
  * form, and the bare UUID form Expo.isExpoPushToken also accepts.
+ *
+ * It reads text from outside this server - Expo's messages, and what the
+ * push relay answers - so it takes time in line with the text (issue
+ * #7291): what is inside the brackets stops at the next opening bracket as
+ * well as at the closing one. Were it to run on over an opening bracket, a
+ * text of many "ExpoPushToken[" and no "]" would be read from each of them
+ * to its end - 224,000 characters took six seconds. A token never holds a
+ * bracket; an opening bracket left unclosed is no token, and stays as it
+ * is, the token after it hidden on its own. The UUID form is bounded.
  */
 const ANY_EXPO_PUSH_TOKEN_PATTERN: RegExp =
-  /(?:ExponentPushToken|ExpoPushToken)\[[^\]]*\]|\b[a-z\d]{8}-[a-z\d]{4}-[a-z\d]{4}-[a-z\d]{4}-[a-z\d]{12}\b/gi;
+  /(?:ExponentPushToken|ExpoPushToken)\[[^[\]]*\]|\b[a-z\d]{8}-[a-z\d]{4}-[a-z\d]{4}-[a-z\d]{4}-[a-z\d]{12}\b/gi;
 
 // The relay's send address ends in /send; its receipts are at /receipts.
 const RELAY_SEND_PATH_PATTERN: RegExp = /\/send\/?$/;

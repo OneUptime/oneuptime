@@ -83,6 +83,7 @@ jest.mock(
   },
 );
 
+import AdminI18n from "../../../../App/FeatureSet/AdminDashboard/src/Utils/i18n";
 import CallSmsSettings from "../../../../App/FeatureSet/AdminDashboard/src/Pages/Settings/CallSMS/Index";
 import {
   SERVER_TWILIO_ENVIRONMENT_CARD_TEST_ID,
@@ -104,6 +105,13 @@ import ObjectID from "../../../Types/ObjectID";
 import { APP_API_URL } from "../../../UI/Config";
 import API from "../../../UI/Utils/API/API";
 import UserUtil from "../../../UI/Utils/User";
+import { withoutIsolates } from "../../../UI/Utils/CodeReadsAsWritten";
+import {
+  DrawnLine,
+  drawLine,
+  getDrawnText,
+  isDrawnAsWritten,
+} from "../../Helpers/BidiLayout";
 
 const WAIT_FOR_TIMEOUT: number = 20000;
 
@@ -406,6 +414,16 @@ describe("set by environment variables", () => {
       ),
     ).toBeVisible();
     expect(within(card).getByText(CALL_SMS["authTokenNotSet"]!)).toBeVisible();
+    /*
+     * English, by the variables' names: isolated, so in Persian or Arabic
+     * each line still reads left to right, its full stop at its end (#7804).
+     */
+    for (const problem of [
+      "GLOBAL_TWILIO_AUTH_TOKEN is not set: Twilio refuses the account without its auth token.",
+      'GLOBAL_TWILIO_PRIMARY_PHONE_NUMBER: "call me" is not a phone number. Write it with its country code, like +14155550100.',
+    ]) {
+      expect(within(card).getByText(problem).tagName).toBe("BDI");
+    }
     // Still no Edit button: the account is fixed where the variables are set.
     expect(screen.queryByRole("button", { name: EDIT_BUTTON })).toBeNull();
   });
@@ -444,11 +462,13 @@ describe("not set by environment variables", () => {
     expect(
       within(warning).getByText(CALL_SMS["environmentUnusedTitle"]!),
     ).toBeVisible();
-    expect(
-      within(warning).getByText(
-        "GLOBAL_TWILIO_AUTH_TOKEN and GLOBAL_TWILIO_PRIMARY_PHONE_NUMBER are set, but GLOBAL_TWILIO_ACCOUNT_SID is not, so nothing reads them: the Twilio account saved in the Admin Dashboard is used. Set GLOBAL_TWILIO_ACCOUNT_SID too, or remove them.",
-      ),
-    ).toBeVisible();
+    const line: HTMLElement = within(warning).getByText(
+      "GLOBAL_TWILIO_AUTH_TOKEN and GLOBAL_TWILIO_PRIMARY_PHONE_NUMBER are set, but GLOBAL_TWILIO_ACCOUNT_SID is not, so nothing reads them: the Twilio account saved in the Admin Dashboard is used. Set GLOBAL_TWILIO_ACCOUNT_SID too, or remove them.",
+    );
+
+    expect(line).toBeVisible();
+    // The server's English line keeps its own direction in Persian or Arabic.
+    expect(line.tagName).toBe("BDI");
     expect(document.body.textContent).not.toContain(TOKEN);
   });
 
@@ -515,5 +535,189 @@ describe("the field values", () => {
       CALL_SMS["authTokenSet"],
     );
     expect(fieldValue(card, "Twilio Auth Token")).not.toContain(TOKEN);
+  });
+
+  /*
+   * A value as written in its variable keeps its own direction in a
+   * right-to-left page (#7804): Detail isolates the SID, a text value
+   * (IsolatedText). A word for a value is the page's own, and reads in the
+   * page's direction - a <bdi> would turn a translated phrase around.
+   */
+  test("the account SID as written is isolated; Used For and the token's Set are the page's words", async () => {
+    environmentAnswer = answerFor(environmentAccount());
+
+    await renderPage();
+
+    const card: HTMLElement = await environmentCard();
+
+    expect(within(card).getByText(ENV_SID).tagName).toBe("BDI");
+    expect(within(card).getByText("Calls and SMS").tagName).not.toBe("BDI");
+    expect(within(card).getByText(CALL_SMS["authTokenSet"]!).tagName).not.toBe(
+      "BDI",
+    );
+  });
+});
+
+describe("in a right-to-left language", () => {
+  /*
+   * Between a Latin word and Persian or Arabic text, GLOBAL_TWILIO_'s last
+   * underscore takes the line's direction: laid out as the locale file
+   * words the description, it is drawn before the word, "_GLOBAL_TWILIO"
+   * (#7804). The Admin Dashboard's i18next sets the code of an Arabic or
+   * Persian sentence apart as it hands it to the page, and leaves those
+   * marks out of what is copied (src/Utils/i18n.ts,
+   * Common/UI/Utils/CodeReadsAsWritten). So the locale files put no mark
+   * of their own after it: copying keeps such a mark, and the prefix
+   * pasted into config.env would hold an invisible character
+   * (CodeInRightToLeftSentences).
+   */
+  const PREFIX: string = "GLOBAL_TWILIO_";
+
+  // The Admin Dashboard's i18next, in a language, as its language menu sets it.
+  const readIn: (code: string) => Promise<void> = async (
+    code: string,
+  ): Promise<void> => {
+    await act(async () => {
+      await AdminI18n.changeLanguage(code);
+    });
+
+    expect(AdminI18n.resolvedLanguage).toBe(code);
+  };
+
+  // The card's description as a language's locale file words it.
+  const descriptionIn: (language: string) => string = (
+    language: string,
+  ): string => {
+    const locale: Locale = JSON.parse(
+      fs.readFileSync(path.join(LOCALES_DIR, `${language}.json`), "utf8"),
+    ) as Locale;
+
+    return (
+      ((locale["pages"] as Locale)["settings"] as Locale)["callSms"] as Record<
+        string,
+        string
+      >
+    )["environmentCardDescription"]!;
+  };
+
+  // What copying an element's text from the page puts on the clipboard.
+  const copyFromPage: (element: HTMLElement) => string = (
+    element: HTMLElement,
+  ): string => {
+    const range: Range = document.createRange();
+
+    range.selectNodeContents(element);
+    window.getSelection()?.removeAllRanges();
+    window.getSelection()?.addRange(range);
+
+    const copied: Record<string, string> = {};
+    const event: Event = new Event("copy", { bubbles: true, cancelable: true });
+
+    Object.defineProperty(event, "clipboardData", {
+      value: {
+        setData: (type: string, data: string): void => {
+          copied[type] = data;
+        },
+      },
+    });
+    element.dispatchEvent(event);
+
+    // A copy no handler takes is the browser's: the selection as it is.
+    return event.defaultPrevented
+      ? (copied["text/plain"] as string)
+      : (window.getSelection()?.toString() as string);
+  };
+
+  afterEach(async () => {
+    window.getSelection()?.removeAllRanges();
+    await readIn("en");
+  });
+
+  test.each(["fa", "ar"])(
+    "%s: the card's description draws GLOBAL_TWILIO_ as it is written, and copies it as it is written",
+    async (language: string) => {
+      environmentAnswer = answerFor(environmentAccount());
+
+      // The page through the Admin Dashboard's own i18next (src/Utils/i18n.ts).
+      await readIn(language);
+      render(
+        <I18nextProvider i18n={AdminI18n}>
+          <CallSmsSettings />
+        </I18nextProvider>,
+      );
+      await settle();
+
+      const card: HTMLElement = await environmentCard();
+      const written: string = descriptionIn(language);
+
+      expect(written.split(PREFIX).length - 1).toBe(1);
+
+      // The description as the page shows it: the sentence, its code set apart.
+      const description: HTMLElement = within(card).getByText(
+        (content: string): boolean => {
+          return withoutIsolates(content) === written;
+        },
+      );
+      const shown: string = description.textContent as string;
+      const line: DrawnLine = drawLine(shown, "rtl");
+      const at: number = shown.indexOf(PREFIX);
+
+      expect({
+        drawn: getDrawnText(line),
+        isDrawnAsWritten: isDrawnAsWritten(line, at, at + PREFIX.length),
+      }).toEqual({ drawn: getDrawnText(line), isDrawnAsWritten: true });
+
+      // Copied from the page: the prefix with nothing after it, in the locale file's sentence.
+      const copied: string = copyFromPage(description);
+
+      expect(
+        copied.split(/\s+/u).filter((word: string): boolean => {
+          return word.includes(PREFIX);
+        }),
+      ).toEqual([PREFIX]);
+      expect(copied).toBe(written);
+
+      // The negative control: as the locale file words it, the underscore is drawn first.
+      expect(getDrawnText(drawLine(written, "rtl"))).toContain(
+        "_GLOBAL_TWILIO",
+      );
+    },
+  );
+
+  // English reads from the left: GLOBAL_TWILIO_ is drawn as written as it is.
+  test("English keeps no mark", () => {
+    expect(CALL_SMS["environmentCardDescription"]).not.toContain(
+      String.fromCharCode(0x200e),
+    );
+  });
+});
+
+/*
+ * The variables are server settings, not a record: there is no ID or
+ * creation time to put on a line under the fields, so Detail draws none, and
+ * the card needs no switch to turn it off (#7775: showRecordLine={false} is
+ * the custom fields card's alone, by RecordIdLineGuard).
+ */
+describe("not a record", () => {
+  test("its fields, with no ID or Created line under them", async () => {
+    environmentAnswer = answerFor(
+      environmentAccount({
+        [ServerTwilioEnvironmentVariable.SmsPhoneNumbers]: "+6581234567",
+        [ServerTwilioEnvironmentVariable.SecondaryPhoneNumbers]: "+14155550101",
+      }),
+    );
+
+    await renderPage();
+
+    const card: HTMLElement = await environmentCard();
+
+    // The fields are drawn, down to the last one...
+    expect(
+      within(card).getByText("GLOBAL_TWILIO_SECONDARY_PHONE_NUMBERS"),
+    ).toBeVisible();
+    // ...and nothing under them.
+    expect(within(card).queryByTestId("detail-record-line")).toBeNull();
+    expect(within(card).queryByTestId("detail-id-line")).toBeNull();
+    expect(within(card).queryByTestId("detail-created-at")).toBeNull();
   });
 });

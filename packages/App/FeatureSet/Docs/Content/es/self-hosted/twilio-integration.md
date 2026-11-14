@@ -89,6 +89,31 @@ Con Docker Compose, define los ajustes `GLOBAL_TWILIO_` en `config.env` y despu�
 
 OneUptime lee las variables al arrancar. Si alguna es incorrecta, como un número de teléfono que OneUptime no puede leer o un auth token que falta, la cuenta no envía SMS ni hace llamadas hasta que se corrija; el log del servidor, **Admin Dashboard > Ajustes > Llamadas y SMS** y la lista de comprobación de `/admin/setup` nombran la variable. El auth token nunca se muestra. Para cambiar la cuenta, cambia las variables y reinicia OneUptime: el Admin Dashboard no la modifica.
 
+### Gestionar las configuraciones de proyecto con Terraform
+
+Una configuración de proyecto es también el recurso `oneuptime_call_and_sms_config` del [proveedor de Terraform](/docs/terraform/index), y una fuente de datos con el mismo nombre lee una. El Auth Token es sensible, así que los planes, los registros y las salidas nunca lo muestran. Pásalo en una variable sensible:
+
+```hcl
+variable "twilio_auth_token" {
+  type      = string
+  sensitive = true
+}
+
+resource "oneuptime_call_and_sms_config" "production" {
+  name                        = "Production Twilio"
+  used_for                    = "Calls and SMS"
+  twilio_account_sid          = "ACXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+  twilio_auth_token           = var.twilio_auth_token
+  twilio_primary_phone_number = "+14155550100"
+  is_project_default          = true
+}
+```
+
+- **Configuración predeterminada.** Terraform convierte una configuración en la predeterminada del proyecto solo con `is_project_default = true`. Si se omite, Terraform envía `false`, así que la primera configuración de un proyecto no pasa a ser la predeterminada como ocurre en el panel. Defínelo en una sola configuración por cada tipo de mensaje: dos con el mismo `used_for` que lo definen ambas se quitan la predeterminada la una a la otra en cada apply. OneUptime define `is_project_default_for_sms` y `is_project_default_for_calls`, que Terraform solo lee.
+- **Números de teléfono.** Escribe cada número con `+` y el código de país. Puedes separar los dígitos con espacios, guiones, puntos o paréntesis: OneUptime guarda `+1 415 555 0100` como `+14155550100`, y Terraform lo reconoce como el número que escribiste, así que un plan no muestra cambios.
+- **Clave de API.** La clave que usa Terraform debe poder leer el Auth Token: **Propietario del proyecto**, **Administrador del proyecto**, o **Read Call and SMS** en un rol personalizado, además de crear y editar configuraciones. Con una clave que no puede, la lectura de la configuración falla y el error dice quién puede leer el token.
+- **Referencias.** El `call_sms_config_id` de una página de estado y el `project_call_sms_config_id` de una política de llamadas entrantes toman el `id` de la configuración.
+
 ### Números distintos para llamadas y SMS
 
 Un número de Twilio puede hacer llamadas y enviar SMS, o solo una de las dos cosas, y en algunos países ningún número hace ambas: los números nacionales pueden ser solo de voz, mientras que los SMS necesitan un número móvil. Una configuración, la de un proyecto o la de la instalación, puede indicar números para SMS en **Más campos**:

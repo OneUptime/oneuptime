@@ -7,7 +7,7 @@ carried over from a release's stored aiAccess values.
 {{- $aiAgent := include "kubernetes-agent.aiAgent.settings" . | fromJson -}}
 OneUptime Kubernetes Agent has been installed.
 
-Cluster Name: {{ .Values.clusterName }}
+Cluster Name: {{ include "kubernetes-agent.clusterName" . }}
 OneUptime URL: {{ .Values.oneuptime.url }}
 {{- /*
 The release went in without complaint, but OpenShift admits pods later, one

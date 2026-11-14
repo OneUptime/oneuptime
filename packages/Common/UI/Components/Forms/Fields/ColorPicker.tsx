@@ -101,6 +101,8 @@ export interface ComponentProps {
   swatches?: ReadonlyArray<ColorSwatchOption> | undefined;
   // What the compact button says while no color is picked.
   placeholder?: string | undefined;
+  // In the reader's words already: said as given (Field's, #7682).
+  isPlaceholderTranslated?: boolean | undefined;
   readOnly?: boolean | undefined;
   disabled?: boolean | undefined;
   error?: string | undefined;
@@ -469,7 +471,9 @@ const ColorPicker: FunctionComponent<ComponentProps> = (
   const valueText: string = pickedSwatch
     ? swatchName(pickedSwatch)
     : value ||
-      translator.translateText(props.placeholder || NO_COLOR_LABEL) ||
+      (props.placeholder && props.isPlaceholderTranslated
+        ? props.placeholder
+        : translator.translateText(props.placeholder || NO_COLOR_LABEL)) ||
       NO_COLOR_LABEL;
 
   return (

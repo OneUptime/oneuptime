@@ -88,6 +88,8 @@ export interface ComponentProps {
   initialValue?: undefined | string;
   // In English: the editor looks it up in the reader's language.
   placeholder?: undefined | string;
+  // In the reader's words already: drawn as given (Field's, #7682).
+  isPlaceholderTranslated?: boolean | undefined;
   className?: undefined | string;
   onChange?: undefined | ((value: string) => void);
   onFocus?: (() => void) | undefined;
@@ -488,9 +490,9 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
    * stayed English on every page.
    */
   const { translateString } = useTranslateValue();
-  const givenPlaceholder: string | undefined = translateString(
-    props.placeholder,
-  );
+  const givenPlaceholder: string | undefined = props.isPlaceholderTranslated
+    ? props.placeholder
+    : translateString(props.placeholder);
   const visualPlaceholder: string =
     givenPlaceholder ||
     (translateString("Type your content here...") ??

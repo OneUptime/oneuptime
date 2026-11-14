@@ -2,6 +2,12 @@ import {
   UserFlowJourneysResponseDto,
   UserFlowSessionDto,
 } from "../../Types/Rum/UserFlow";
+import { LEFT_TO_RIGHT_ISOLATE } from "../../Types/CodeInSentence";
+import {
+  isSetApartInSentence,
+  LEFT_TO_RIGHT,
+  POP_DIRECTIONAL_ISOLATE,
+} from "../../Types/ReadingDirection";
 
 /*
  * The User Flows engine: recorded session journeys in, everything the page
@@ -18,7 +24,9 @@ import {
  *  - page: a flow-map key. The scrubbed URL without origin, query or
  *    trailing slash ("/cart"), optionally with id-shaped segments grouped
  *    ("/product/:id"), and with the host kept only when the application
- *    spans more than one ("shop.example.com/cart").
+ *    spans more than one ("shop.example.com/cart"). Escaped as the URL
+ *    parser escapes it ("/caf%C3%A9"); getUserFlowPageText is what a
+ *    person reads ("/café").
  *  - journey: one session's pages in order, after grouping and hiding,
  *    with back-to-back repeats collapsed.
  *  - step: a column of the flow map. Step 0 is the session's first page,
@@ -440,8 +448,170 @@ export function toSessionListUrlPrefix(page: string): string {
   return path;
 }
 
-export function getUserFlowPageLabel(page: string): string {
-  return page === OTHER_PAGES_KEY ? OTHER_PAGES_LABEL : page;
+/* ------------------------------------------------------------------ */
+/* A page as a person reads it                                         */
+/* ------------------------------------------------------------------ */
+
+// One escaped byte: "%D8".
+const ESCAPED_BYTE_REGEX: RegExp = /^%[0-9A-Fa-f]{2}$/;
+
+// A letter, a mark (an accent, a vowel sign) or a digit, of any script.
+const WORD_CHARACTER_REGEX: RegExp = /^[\p{L}\p{M}\p{N}]$/u;
+
+// Drawn with no width at all: a filler that looks like nothing, a selector.
+const NO_WIDTH_CHARACTER_REGEX: RegExp = /^\p{Default_Ignorable_Code_Point}$/u;
+
+/*
+ * ZERO WIDTH NON-JOINER and ZERO WIDTH JOINER have no width either, but
+ * they are part of a word: Persian keeps the parts of one word apart
+ * with the first, and Hindi parts and joins its letters with both.
+ */
+const WORD_JOINERS: ReadonlyArray<string> = [
+  String.fromCharCode(0x200c),
+  String.fromCharCode(0x200d),
+];
+
+/*
+ * How many bytes the character led by `byte` takes in UTF-8: 2 to 4, or 0
+ * for an ASCII byte, a byte in the middle of a character and a lead UTF-8
+ * never writes ("%C0%AF" is "/" written too long, which no decoder takes).
+ */
+function getUtf8Length(byte: number): number {
+  if (byte >= 0xc2 && byte <= 0xdf) {
+    return 2;
+  }
+
+  if (byte >= 0xe0 && byte <= 0xef) {
+    return 3;
+  }
+
+  if (byte >= 0xf0 && byte <= 0xf4) {
+    return 4;
+  }
+
+  return 0;
+}
+
+/*
+ * The character `escapes` spell, when it is one a person reads as part of
+ * a word; null for anything else, and for bytes that are not UTF-8: a
+ * sequence cut short, one written too long, a surrogate
+ * (decodeURIComponent refuses each).
+ */
+function decodeWordCharacter(escapes: string): string | null {
+  for (let at: number = 0; at < escapes.length; at += 3) {
+    if (!ESCAPED_BYTE_REGEX.test(escapes.slice(at, at + 3))) {
+      return null;
+    }
+  }
+
+  let character: string;
+
+  try {
+    character = decodeURIComponent(escapes);
+  } catch {
+    return null;
+  }
+
+  if (WORD_JOINERS.includes(character)) {
+    return character;
+  }
+
+  return WORD_CHARACTER_REGEX.test(character) &&
+    !NO_WIDTH_CHARACTER_REGEX.test(character)
+    ? character
+    : null;
+}
+
+// `path` with each escape of a word's letter decoded (getUserFlowPageText).
+function decodeWordEscapes(path: string): string {
+  if (!path.includes("%")) {
+    return path;
+  }
+
+  let decoded: string = "";
+  let index: number = 0;
+
+  while (index < path.length) {
+    const escape: string = path.slice(index, index + 3);
+
+    if (!ESCAPED_BYTE_REGEX.test(escape)) {
+      decoded += path.charAt(index);
+      index += 1;
+      continue;
+    }
+
+    const length: number = getUtf8Length(parseInt(escape.slice(1), 16)) * 3;
+    const character: string | null =
+      length > 0
+        ? decodeWordCharacter(path.slice(index, index + length))
+        : null;
+
+    if (character === null) {
+      decoded += escape;
+      index += 3;
+      continue;
+    }
+
+    decoded += character;
+    index += length;
+  }
+
+  return decoded;
+}
+
+/*
+ * A PAGE AS A PERSON READS IT: what the map, its tooltips, the panel, the
+ * tables, the journeys and every sentence about a page draw for its key.
+ *
+ * A key is the path as the URL parser left it, and the parser escapes
+ * every letter outside ASCII: "/الرئيسية" is "/%D8%A7%D9%84...", "/café"
+ * is "/caf%C3%A9". The key stays so. The session list matches it against
+ * the stored URLs, which the browser escaped the same way
+ * (toSessionListUrlPrefix); the anchor, the hidden pages and the link to
+ * this page hold it. Only the words drawn for it are decoded.
+ *
+ * Only an escape of a letter, a mark or a digit beyond ASCII is decoded:
+ * the words of a path in Arabic, Persian, Chinese or with accents, and the
+ * joiners inside a Persian or Hindi word. None of them is a separator, so
+ * decoding one never changes which page a key names. Two keys are drawn
+ * alike only when they write the same words two ways - in lower-case
+ * escapes ("%c3%a9", as WordPress writes them) and upper-case ones
+ * ("%C3%A9"), or with an accent composed and decomposed - and they stay
+ * two rows, as they were. The rest is drawn as written:
+ *  - an escaped "/", "?", "#" or "%", which would read as a separator, a
+ *    query, a fragment or another escape: "/a%2Fb" is one page, and not
+ *    "/a/b", which may be another;
+ *  - any other escape of an ASCII character, which a key can hold
+ *    unescaped too: "%20" stays "%20";
+ *  - punctuation and symbols, among them the signs drawn like a slash
+ *    ("∕", "／"); spaces, controls and the marks that turn text round,
+ *    which would move the words drawn round the path; and characters with
+ *    no width, which would hide part of it;
+ *  - bytes that are not UTF-8: a lone "%", "%E0%A4" cut short.
+ *
+ * A path reads from the left on every page, its "/" first, and the Arabic
+ * or Persian words in it still read from the right (RFC 3987's
+ * bidirectional IRIs, as a browser's address bar draws them). Read the
+ * way its letters do, "/الرئيسية" would be drawn "الرئيسية/". So a path
+ * with a letter of a script read from the right is set apart, left to
+ * right (LRI ... PDI), and reads so wherever it is drawn: in a box of its
+ * own, in a sentence, on either side of a transition's arrow, in an
+ * option. A path in letters read from the left needs nothing, and comes
+ * back exactly as before. The fold comes back as its English name, which
+ * the Dashboard words in the reader's language.
+ */
+export function getUserFlowPageText(page: string): string {
+  if (page === OTHER_PAGES_KEY) {
+    return OTHER_PAGES_LABEL;
+  }
+
+  const text: string = decodeWordEscapes(page);
+
+  // A line read from the left sets a value apart for its right-to-left letters.
+  return isSetApartInSentence(text, LEFT_TO_RIGHT)
+    ? `${LEFT_TO_RIGHT_ISOLATE}${text}${POP_DIRECTIONAL_ISOLATE}`
+    : text;
 }
 
 /* ------------------------------------------------------------------ */
@@ -799,7 +969,7 @@ export function buildUserFlowGraph(
         id: id,
         step: step,
         page: key,
-        label: getUserFlowPageLabel(key),
+        label: getUserFlowPageText(key),
         isOther: isOther,
         otherPages: [],
         sessions: 0,
@@ -1359,7 +1529,8 @@ function sessionsNoun(count: number): string {
 /*
  * At most one finding per kind, each over the sample floor, ordered by how
  * much they should worry someone. Every number in the copy is one the page
- * also shows, so a finding can always be checked against the map.
+ * also shows, so a finding can always be checked against the map, and each
+ * page is named as the map names it (getUserFlowPageText).
  */
 export function buildUserFlowInsights(
   journeys: Array<UserFlowJourney>,
@@ -1416,18 +1587,19 @@ export function buildUserFlowInsights(
 
     const count: number = pick(page);
     const share: number = ratio(count, page.sessions);
+    const name: string = getUserFlowPageText(page.page);
 
     insights.push({
       kind: kind,
       tone: kind === "error-hotspot" ? "danger" : "warning",
       title:
         kind === "error-hotspot"
-          ? `Errors concentrate on ${page.page}`
-          : `Frustration concentrates on ${page.page}`,
+          ? `Errors concentrate on ${name}`
+          : `Frustration concentrates on ${name}`,
       detail:
         kind === "error-hotspot"
-          ? `${formatShare(share)} of the sessions that visited ${page.page} hit an error there (${sessionsNoun(count)}).`
-          : `${formatShare(share)} of the sessions that visited ${page.page} rage-clicked, dead-clicked or reloaded in frustration there (${sessionsNoun(count)}).`,
+          ? `${formatShare(share)} of the sessions that visited ${name} hit an error there (${sessionsNoun(count)}).`
+          : `${formatShare(share)} of the sessions that visited ${name} rage-clicked, dead-clicked or reloaded in frustration there (${sessionsNoun(count)}).`,
       page: page.page,
       focusDirection: "forward",
       sessions: count,
@@ -1476,12 +1648,13 @@ export function buildUserFlowInsights(
       leftAfterNavigating,
       dropOff.sessions - dropOff.bounces,
     );
+    const name: string = getUserFlowPageText(dropOff.page);
 
     insights.push({
       kind: "drop-off",
       tone: share >= 0.5 ? "danger" : "warning",
-      title: `Journeys end on ${dropOff.page}`,
-      detail: `${formatShare(share)} of the sessions that navigated to ${dropOff.page} left the application there (${sessionsNoun(leftAfterNavigating)}).`,
+      title: `Journeys end on ${name}`,
+      detail: `${formatShare(share)} of the sessions that navigated to ${name} left the application there (${sessionsNoun(leftAfterNavigating)}).`,
       page: dropOff.page,
       focusDirection: "backward",
       sessions: leftAfterNavigating,
@@ -1499,7 +1672,9 @@ export function buildUserFlowInsights(
     insights.push({
       kind: "loop",
       tone: "warning",
-      title: `Visitors go back and forth between ${loop.pageA} and ${loop.pageB}`,
+      title: `Visitors go back and forth between ${getUserFlowPageText(
+        loop.pageA,
+      )} and ${getUserFlowPageText(loop.pageB)}`,
       detail: `${formatShare(loop.share)} of sessions (${sessionsNoun(loop.sessions)}) left one of these pages for the other and came straight back - often a sign that what they needed was not where they looked first.`,
       page: loop.pageA,
       secondaryPage: loop.pageB,
@@ -1528,12 +1703,13 @@ export function buildUserFlowInsights(
     byEntries[1]?.entries !== entry.entries
   ) {
     const share: number = ratio(entry.entries, total);
+    const name: string = getUserFlowPageText(entry.page);
 
     insights.push({
       kind: "top-entry",
       tone: "neutral",
-      title: `Most sessions start on ${entry.page}`,
-      detail: `${formatShare(share)} of sessions (${sessionsNoun(entry.entries)}) landed on ${entry.page}; ${formatShare(ratio(entry.bounces, entry.entries))} of them saw no other page.`,
+      title: `Most sessions start on ${name}`,
+      detail: `${formatShare(share)} of sessions (${sessionsNoun(entry.entries)}) landed on ${name}; ${formatShare(ratio(entry.bounces, entry.entries))} of them saw no other page.`,
       page: entry.page,
       focusDirection: "forward",
       sessions: entry.entries,

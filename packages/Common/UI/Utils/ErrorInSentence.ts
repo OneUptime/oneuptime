@@ -1,4 +1,4 @@
-import { joinSentences } from "../Components/DeleteConfirmation/DeleteConsequences";
+import { joinSentences } from "./SentenceSeparator";
 import {
   composedValue,
   ComposedValue,

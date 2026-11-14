@@ -36,7 +36,7 @@ Vælg typen efter, hvor nøglen skal ligge. Typen kan ikke ændres, efter at nø
 | | **Server** | **Browser** |
 | --- | --- | --- |
 | Til | Applikationer, collectors og agenter på maskiner, du driver | Websider, og React Native Session Replay |
-| Sender | Alle slags telemetri, til alle endpoints | Spor, protokoller, metrikker og Session Replays |
+| Sender | Alle slags telemetri, til alle endpoints | Spor, protokoller, metrikker, Session Replays og [Sentry-hændelser](/docs/telemetry/compatible-endpoints#sentry-sdker) |
 | En hemmelighed | Ja: hold den på dine servere | Nej: alle, der ser siden, kan læse den |
 | Origins | Kontrolleres ikke | Kun de angivne origins accepteres |
 | Anmodninger pr. minut | Ingen grænse, medmindre du angiver en | 6.000, medmindre du angiver en anden grænse |

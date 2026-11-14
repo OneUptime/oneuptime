@@ -158,6 +158,7 @@ Beskeden beskriver skiftet med ordene fra SLO'ets **Feed**: det niveau, SLO'et f
 | **SLO-etiketter** | SLO'ets etiketter: en hvilken som helst af dem, du vælger, dem alle eller ingen af dem. |
 | **SLO-navn** | SLO'ets navn: lig med din tekst eller ej, indeholder den eller ej, begynder eller slutter med den. |
 | **Ændring i fejlbudgetpolitik** | Hvad der ændrede sig: **Gik ind i et mere alvorligt niveau**, **Kom tilbage til et mindre alvorligt niveau**, **Forlod alle niveauer**, **Udrulninger frosset** eller **Udrulninger tilladt igen**. |
+| **Ejer af SLO** | De personer og teams, der er registreret som SLO'ets ejere: en hvilken som helst af dem, du vælger, eller ingen af dem. At være med i et team, der ejer SLO'et, tæller ikke. |
 
 Et skift af niveau, der frøs udrulninger eller tillod dem igen, er én besked, der tæller som begge skift. En regel for **Udrulninger frosset** slår altså også et skift op, når SLO'et går ind i et niveau, der fryser dem: En udgivelseskanal hører om hver frysning.
 

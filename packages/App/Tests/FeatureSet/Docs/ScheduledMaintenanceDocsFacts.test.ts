@@ -3520,7 +3520,7 @@ describe("reminder rules", () => {
       "Create Scheduled Maintenance Reminder Rule",
     );
     expect(reminders).toContain(
-      "Click **Create Scheduled Maintenance Reminder Rule**. On **Match**, leave **All scheduled maintenance events** picked",
+      "Click **Create Scheduled Maintenance Reminder Rule**. On **Match**, leave **All maintenance events** picked",
     );
     expect(reminders).toContain(
       'pick when to remind them under **Remind Owners**. Its **Name** follows both, such as "Remind every 30 minutes while it is in progress"',

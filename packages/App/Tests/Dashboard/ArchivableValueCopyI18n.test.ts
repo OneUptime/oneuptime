@@ -139,9 +139,10 @@ const STRINGS: Array<string> = [
 ];
 
 /*
- * The "one" sentence of every plural these pages say ("On-call rules of
- * {{count}} person"), under "<other sentence>_one". Japanese, Korean and
- * Chinese never read it (no "one" form), so it may stay English there.
+ * The "one" sentence of every plural these pages say ("{{count}} person's
+ * rules in How to Reach Me"), under "<other sentence>_one". Japanese,
+ * Korean and Chinese never read it (no "one" form), so it may stay English
+ * there.
  */
 const PLURALS: Array<PluralTemplate> = getArchivableValuePluralStrings();
 const NO_ONE_FORM: Array<string> = [

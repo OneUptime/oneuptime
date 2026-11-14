@@ -38,7 +38,9 @@ import {
   WorkspaceLatePress,
 } from "../../WorkspaceActionAnswers";
 import WorkspaceHeldPublicNote from "../../WorkspaceHeldPublicNote";
-import WorkspaceNoteForm from "../../WorkspaceNoteForm";
+import WorkspaceNoteForm, {
+  SCHEDULED_MAINTENANCE_NOTE_NOUN,
+} from "../../WorkspaceNoteForm";
 import MicrosoftTeamsTimezone, {
   MicrosoftTeamsUserTimezone,
 } from "../MicrosoftTeamsTimezone";
@@ -76,18 +78,18 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
   public static getEventAction(actionType: string): string {
     switch (actionType) {
       case MicrosoftTeamsScheduledMaintenanceActionType.MarkAsOngoing:
-        return "mark this scheduled maintenance event as ongoing";
+        return "mark this maintenance event as ongoing";
       case MicrosoftTeamsScheduledMaintenanceActionType.MarkAsComplete:
-        return "mark this scheduled maintenance event as complete";
+        return "mark this maintenance event as complete";
       case MicrosoftTeamsScheduledMaintenanceActionType.AddScheduledMaintenanceNote:
       case MicrosoftTeamsScheduledMaintenanceActionType.ViewAddScheduledMaintenanceNote:
       case MicrosoftTeamsScheduledMaintenanceActionType.SubmitScheduledMaintenanceNote:
-        return "add a note to this scheduled maintenance event";
+        return "add a note to this maintenance event";
       case MicrosoftTeamsScheduledMaintenanceActionType.ViewChangeScheduledMaintenanceState:
       case MicrosoftTeamsScheduledMaintenanceActionType.SubmitChangeScheduledMaintenanceState:
-        return "change the state of this scheduled maintenance event";
+        return "change the state of this maintenance event";
       default:
-        return "see this scheduled maintenance event";
+        return "see this maintenance event";
     }
   }
 
@@ -182,7 +184,7 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
         await WorkspaceActionAuthorization.assertCanCreate({
           props: databaseProps,
           modelType: ScheduledMaintenance,
-          action: "create a scheduled maintenance event",
+          action: "create a maintenance event",
         });
 
         /*
@@ -269,7 +271,7 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
             });
         } catch (error) {
           MicrosoftTeamsReplies.logFailure(
-            "Could not create a scheduled maintenance event from Microsoft Teams",
+            "Could not create a maintenance event from Microsoft Teams",
             error,
             {
               projectId: request.projectId.toString(),
@@ -289,8 +291,8 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
           await MicrosoftTeamsReplies.sendBestEffort(
             turnContext,
             reason
-              ? mdText`❌ Could not create the scheduled maintenance event: ${reason}`.toString()
-              : mdText`❌ Could not create the scheduled maintenance event because of an unexpected error. Please try again, or create it in OneUptime${
+              ? mdText`❌ Could not create the maintenance event: ${reason}`.toString()
+              : mdText`❌ Could not create the maintenance event because of an unexpected error. Please try again, or create it in OneUptime${
                   createInOneUptimeUrl ? mdText`: ${createInOneUptimeUrl}` : "."
                 }`.toString(),
           );
@@ -387,7 +389,7 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
           await WorkspaceActionAuthorization.assertCanCreate({
             props: databaseProps,
             modelType: ScheduledMaintenanceStateTimeline,
-            action: "mark this scheduled maintenance event as ongoing",
+            action: "mark this maintenance event as ongoing",
           });
 
           // Started already - ongoing, or over: who and when.
@@ -418,7 +420,7 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
           await WorkspaceActionAuthorization.assertCanCreate({
             props: databaseProps,
             modelType: ScheduledMaintenanceStateTimeline,
-            action: "mark this scheduled maintenance event as complete",
+            action: "mark this maintenance event as complete",
           });
 
           // Complete already: who and when.
@@ -486,8 +488,8 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
               ? ScheduledMaintenancePublicNote
               : ScheduledMaintenanceInternalNote,
             action: isPublic
-              ? "add a public note to this scheduled maintenance event"
-              : "add a private note to this scheduled maintenance event",
+              ? "add a public note to this maintenance event"
+              : "add a private note to this maintenance event",
           });
 
           // Posted by the member, as the dashboard posts it for them.
@@ -560,7 +562,7 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
             await WorkspaceMemberActions.authorize({
               props: databaseProps,
               modelType: ScheduledMaintenanceStateTimeline,
-              action: "change the state of this scheduled maintenance event",
+              action: "change the state of this maintenance event",
               event: {
                 type: WorkspaceEventType.ScheduledMaintenance,
                 id: scheduledMaintenanceId,
@@ -614,7 +616,7 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
           await WorkspaceActionAuthorization.assertCanCreate({
             props: databaseProps,
             modelType: ScheduledMaintenanceStateTimeline,
-            action: "change the state of this scheduled maintenance event",
+            action: "change the state of this maintenance event",
           });
 
           /*
@@ -712,7 +714,9 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
               value: "public",
             },
             {
-              title: "Private Note (Only visible to team members)",
+              title: WorkspaceNoteForm.getPrivateOption(
+                SCHEDULED_MAINTENANCE_NOTE_NOUN,
+              ),
               value: "private",
             },
           ],
@@ -790,10 +794,11 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
   }
 
   /*
-   * The confirmation: the event by its number, as Slack's names it - "✅
-   * Scheduled maintenance SM-3 created successfully." - when it starts and
-   * ends in the user's time zone (so a wrong zone shows at once), and a
-   * link to it when one can be built.
+   * The confirmation: the event by its number, in the words Slack's
+   * confirmation uses - "✅ Maintenance Event SM-3 created successfully." -
+   * when it starts and ends in the user's time zone (so a wrong zone shows
+   * at once), and a link to it, "View maintenance event", when one can be
+   * built.
    */
   public static async getScheduledMaintenanceCreatedMessage(data: {
     scheduledMaintenance: ScheduledMaintenance;
@@ -811,8 +816,8 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
 
     const paragraphs: Array<MarkdownText> = [
       eventNumber
-        ? mdText`✅ **Scheduled maintenance ${eventNumber}** created successfully.`
-        : mdText`✅ Scheduled maintenance created successfully.`,
+        ? mdText`✅ **Maintenance Event ${eventNumber}** created successfully.`
+        : mdText`✅ Maintenance event created successfully.`,
       mdText`**Starts:** ${MicrosoftTeamsTimezone.format(
         data.startsAt,
         data.timezone,
@@ -839,12 +844,10 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
 
         // Words that link, not the address itself: it ran past a phone's screen.
         paragraphs.push(
-          mdText`[View scheduled maintenance](${maintenanceLink.toString()})`,
+          mdText`[View maintenance event](${maintenanceLink.toString()})`,
         );
       } catch (error) {
-        logger.debug(
-          "Could not build the link to a new scheduled maintenance event",
-        );
+        logger.debug("Could not build the link to a new maintenance event");
         logger.debug(error);
       }
     }

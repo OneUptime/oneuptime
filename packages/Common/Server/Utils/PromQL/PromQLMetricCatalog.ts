@@ -74,7 +74,13 @@ export const readHistogramPointTypes: (
   const pointTypes: Map<string, string> = new Map();
 
   try {
-    const statement: Statement = SQL`SELECT name, any(metricPointType) AS metricPointType FROM ${AnalyticsTableName.Metric} WHERE projectId = ${{
+    /*
+     * The point type is read as pointType, not by its column's name: the
+     * WHERE below reads metricPointType too, and ClickHouse reads a name an
+     * alias spells as the alias, so the WHERE would hold an aggregate and
+     * every read would fail (ILLEGAL_AGGREGATION), naming no histogram.
+     */
+    const statement: Statement = SQL`SELECT name, any(metricPointType) AS pointType FROM ${AnalyticsTableName.Metric} WHERE projectId = ${{
       type: TableColumnType.ObjectID,
       value: projectId,
     }} AND time >= ${{
@@ -102,7 +108,7 @@ export const readHistogramPointTypes: (
 
     for (const row of rows) {
       const name: unknown = row["name"];
-      const pointType: unknown = row["metricPointType"];
+      const pointType: unknown = row["pointType"];
 
       if (typeof name === "string" && typeof pointType === "string") {
         pointTypes.set(name, pointType);

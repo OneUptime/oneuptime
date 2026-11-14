@@ -4,9 +4,13 @@ import Incident from "../../../../Models/DatabaseModels/Incident";
 import IncidentEpisode from "../../../../Models/DatabaseModels/IncidentEpisode";
 import IncidentEpisodeRoleMember from "../../../../Models/DatabaseModels/IncidentEpisodeRoleMember";
 import IncidentMember from "../../../../Models/DatabaseModels/IncidentMember";
+import IncidentOwnerTeam from "../../../../Models/DatabaseModels/IncidentOwnerTeam";
+import IncidentOwnerUser from "../../../../Models/DatabaseModels/IncidentOwnerUser";
 import IncidentRole from "../../../../Models/DatabaseModels/IncidentRole";
 import IncidentSeverity from "../../../../Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "../../../../Models/DatabaseModels/IncidentState";
+import ScheduledMaintenance from "../../../../Models/DatabaseModels/ScheduledMaintenance";
+import ScheduledMaintenanceState from "../../../../Models/DatabaseModels/ScheduledMaintenanceState";
 import User from "../../../../Models/DatabaseModels/User";
 import UserOnCallLog from "../../../../Models/DatabaseModels/UserOnCallLog";
 import WorkspaceNotificationLog from "../../../../Models/DatabaseModels/WorkspaceNotificationLog";
@@ -20,10 +24,13 @@ import IncidentEpisodeRoleMemberService from "../../../../Server/Services/Incide
 import IncidentEpisodeService from "../../../../Server/Services/IncidentEpisodeService";
 import IncidentFeedService from "../../../../Server/Services/IncidentFeedService";
 import IncidentMemberService from "../../../../Server/Services/IncidentMemberService";
+import IncidentOwnerTeamService from "../../../../Server/Services/IncidentOwnerTeamService";
+import IncidentOwnerUserService from "../../../../Server/Services/IncidentOwnerUserService";
 import IncidentRoleService from "../../../../Server/Services/IncidentRoleService";
 import IncidentService from "../../../../Server/Services/IncidentService";
 import IncidentStateService from "../../../../Server/Services/IncidentStateService";
 import MonitorService from "../../../../Server/Services/MonitorService";
+import ScheduledMaintenanceService from "../../../../Server/Services/ScheduledMaintenanceService";
 import TeamMemberService from "../../../../Server/Services/TeamMemberService";
 import UserNotificationRuleService from "../../../../Server/Services/UserNotificationRuleService";
 import UserOnCallLogService from "../../../../Server/Services/UserOnCallLogService";
@@ -59,8 +66,9 @@ import { jest } from "@jest/globals";
 
 /*
  * A PROJECT WITH SLACK (AND MICROSOFT TEAMS) CONNECTED, ITS NOTIFICATION
- * RULES, AND AN INCIDENT, AN ALERT AND AN INCIDENT EPISODE - DRIVEN THROUGH
- * THE REAL RULE MATCHING, CHANNEL CREATION, INVITES AND MESSAGES.
+ * RULES, AND AN INCIDENT, AN ALERT, AN INCIDENT EPISODE AND A MAINTENANCE
+ * EVENT - DRIVEN THROUGH THE REAL RULE MATCHING, CHANNEL CREATION, INVITES
+ * AND MESSAGES.
  *
  * Everything between a record changing in OneUptime and an HTTP request to
  * Slack's Web API or Microsoft Graph is the real code:
@@ -84,6 +92,9 @@ export const ALERT_ID: ObjectID = new ObjectID(
 export const INCIDENT_EPISODE_ID: ObjectID = new ObjectID(
   "e7000000-0000-4000-8000-000000000004",
 );
+export const SCHEDULED_MAINTENANCE_ID: ObjectID = new ObjectID(
+  "e7000000-0000-4000-8000-000000000005",
+);
 
 export const RULE_ID: ObjectID = new ObjectID(
   "e7000000-0000-4000-8000-000000000011",
@@ -101,6 +112,14 @@ export const ACKNOWLEDGED_STATE_ID: ObjectID = new ObjectID(
 );
 export const RESOLVED_STATE_ID: ObjectID = new ObjectID(
   "e7000000-0000-4000-8000-000000000023",
+);
+
+// The maintenance event's states, in the project's order.
+export const MAINTENANCE_SCHEDULED_STATE_ID: ObjectID = new ObjectID(
+  "e7000000-0000-4000-8000-000000000024",
+);
+export const MAINTENANCE_ONGOING_STATE_ID: ObjectID = new ObjectID(
+  "e7000000-0000-4000-8000-000000000025",
 );
 
 export const CRITICAL_SEVERITY_ID: ObjectID = new ObjectID(
@@ -167,6 +186,10 @@ export const TEAMS_TEAM_ID: string = "team-ops";
 
 export const INCIDENT_LINK: URL = URL.fromString(
   "https://oneuptime.test/dashboard/incidents/42",
+);
+
+export const SCHEDULED_MAINTENANCE_LINK: URL = URL.fromString(
+  "https://oneuptime.test/dashboard/scheduled-maintenance-events/5",
 );
 
 export interface RuleOptions {
@@ -275,9 +298,24 @@ export default class WorkspaceRuleWorld {
     channels: Array<NotificationRuleWorkspaceChannel> | null;
   } = { stateId: CREATED_STATE_ID, channels: null };
 
+  // SM-5, a maintenance event created in its Scheduled state.
+  public scheduledMaintenance: {
+    stateId: ObjectID;
+    isCompleted: boolean;
+    channels: Array<NotificationRuleWorkspaceChannel> | null;
+    createdAt: Date;
+  } = {
+    stateId: MAINTENANCE_SCHEDULED_STATE_ID,
+    isCompleted: false,
+    channels: null,
+    createdAt: new Date(),
+  };
+
   // The people on the records.
   public incidentOwnerUsers: Array<ObjectID> = [];
   public incidentOwnerTeams: Array<ObjectID> = [];
+  // How often the incident's owner tables were read (WorkspaceRecordOwners).
+  public ownerTableReads: number = 0;
   public incidentMembers: Array<ObjectID> = [];
   public episodeRoleMembers: Array<ObjectID> = [];
   public pages: Array<UserOnCallLog> = [];
@@ -498,6 +536,74 @@ export default class WorkspaceRuleWorld {
     );
 
     await this.settle();
+  }
+
+  /*
+   * SM-5 is created: its rules' channels are opened, as
+   * ScheduledMaintenanceService sets them up.
+   */
+  public async createScheduledMaintenanceChannels(): Promise<void> {
+    await WorkspaceNotificationRuleService.createChannelsAndInviteUsersToChannelsBasedOnRules(
+      {
+        projectId: PROJECT_ID,
+        notificationRuleEventType:
+          NotificationRuleEventType.ScheduledMaintenance,
+        notificationFor: { scheduledMaintenanceId: SCHEDULED_MAINTENANCE_ID },
+        channelNameParts: WorkspaceChannelName.forNumberedRecord({
+          eventType: NotificationRuleEventType.ScheduledMaintenance,
+          number: 5,
+          numberWithPrefix: "SM-5",
+        }),
+      },
+    );
+
+    await this.settle();
+  }
+
+  /*
+   * Something about SM-5 is posted, as its feed posts it: a state change,
+   * a note.
+   */
+  public async postAboutScheduledMaintenance(markdown: string): Promise<void> {
+    await WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification({
+      projectId: PROJECT_ID,
+      notificationFor: { scheduledMaintenanceId: SCHEDULED_MAINTENANCE_ID },
+      feedInfoInMarkdown: markdown,
+      workspaceNotification: {
+        sendWorkspaceNotification: true,
+      },
+    });
+
+    await this.settle();
+  }
+
+  // SM-5 as the database holds it now.
+  public scheduledMaintenanceModel(): ScheduledMaintenance {
+    const event: ScheduledMaintenance = new ScheduledMaintenance();
+    event.id = SCHEDULED_MAINTENANCE_ID;
+    event._id = SCHEDULED_MAINTENANCE_ID.toString();
+    event.projectId = PROJECT_ID;
+    event.title = "Database upgrade";
+    event.description = "The primary database is upgraded.";
+    event.scheduledMaintenanceNumber = 5;
+    event.scheduledMaintenanceNumberWithPrefix = "SM-5";
+    event.createdAt = this.scheduledMaintenance.createdAt;
+    event.currentScheduledMaintenanceStateId =
+      this.scheduledMaintenance.stateId;
+
+    const state: ScheduledMaintenanceState = new ScheduledMaintenanceState();
+    state._id = this.scheduledMaintenance.stateId.toString();
+    state.id = this.scheduledMaintenance.stateId;
+    event.currentScheduledMaintenanceState = state;
+
+    event.labels = [];
+    event.monitors = [];
+
+    if (this.scheduledMaintenance.channels !== null) {
+      event.postUpdatesToWorkspaceChannels = this.scheduledMaintenance.channels;
+    }
+
+    return event;
   }
 
   // The incident as the database holds it now.
@@ -792,6 +898,38 @@ export default class WorkspaceRuleWorld {
           });
       });
 
+    /*
+     * Its owners as their tables hold them, one row a person or a team:
+     * what a rule's Incident Owner condition reads (WorkspaceRecordOwners).
+     */
+    jest
+      .spyOn(IncidentOwnerUserService, "findAllBy")
+      .mockImplementation((async (): Promise<Array<IncidentOwnerUser>> => {
+        this.ownerTableReads++;
+        return this.incidentOwnerUsers.map(
+          (userId: ObjectID): IncidentOwnerUser => {
+            const row: IncidentOwnerUser = new IncidentOwnerUser();
+            row.incidentId = INCIDENT_ID;
+            row.userId = userId;
+            return row;
+          },
+        );
+      }) as never);
+
+    jest
+      .spyOn(IncidentOwnerTeamService, "findAllBy")
+      .mockImplementation((async (): Promise<Array<IncidentOwnerTeam>> => {
+        this.ownerTableReads++;
+        return this.incidentOwnerTeams.map(
+          (teamId: ObjectID): IncidentOwnerTeam => {
+            const row: IncidentOwnerTeam = new IncidentOwnerTeam();
+            row.incidentId = INCIDENT_ID;
+            row.teamId = teamId;
+            return row;
+          },
+        );
+      }) as never);
+
     // The people given a role on it.
     jest
       .spyOn(IncidentMemberService, "findBy")
@@ -958,6 +1096,44 @@ export default class WorkspaceRuleWorld {
         }
         return episode;
       }) as never);
+
+    // SM-5, as it is now, whatever is selected; its channels are stored on it.
+    jest
+      .spyOn(ScheduledMaintenanceService, "findOneById")
+      .mockImplementation((async (): Promise<ScheduledMaintenance> => {
+        return this.scheduledMaintenanceModel();
+      }) as never);
+    jest
+      .spyOn(ScheduledMaintenanceService, "updateOneById")
+      .mockImplementation((async (data: {
+        data: { postUpdatesToWorkspaceChannels?: unknown };
+      }): Promise<void> => {
+        if ("postUpdatesToWorkspaceChannels" in data.data) {
+          this.scheduledMaintenance.channels = [
+            ...((data.data
+              .postUpdatesToWorkspaceChannels as Array<NotificationRuleWorkspaceChannel>) ||
+              []),
+          ];
+          this.events.push(
+            `store:scheduled-maintenance:${this.scheduledMaintenance.channels
+              .map((channel: NotificationRuleWorkspaceChannel): string => {
+                return channel.name;
+              })
+              .join(",")}`,
+          );
+        }
+      }) as never);
+    jest
+      .spyOn(ScheduledMaintenanceService, "isScheduledMaintenanceCompleted")
+      .mockImplementation(async (): Promise<boolean> => {
+        return this.scheduledMaintenance.isCompleted;
+      });
+    jest
+      .spyOn(
+        ScheduledMaintenanceService,
+        "getScheduledMaintenanceLinkInDashboard",
+      )
+      .mockResolvedValue(SCHEDULED_MAINTENANCE_LINK);
 
     jest
       .spyOn(MonitorService, "getLabelsForMonitors")

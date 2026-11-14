@@ -330,7 +330,7 @@ curl https://oneuptime.com/mcp/tools
 
 - **`acknowledge_incident`** / **`resolve_incident`**: перевести инцидент в состояние проекта Acknowledged или Resolved, как это делает кнопка в панели управления
 - **`acknowledge_alert`** / **`resolve_alert`**: то же самое для оповещений
-- **`add_incident_note`**: добавить к инциденту заметку с `visibility: "internal"` (только для команды, по умолчанию) или `visibility: "public"` (публикуется на странице статуса). Поддерживается Markdown
+- **`add_incident_note`**: добавить к инциденту заметку с `visibility: "internal"` (только для тех, кто видит инцидент, по умолчанию) или `visibility: "public"` (публикуется на странице статуса). Поддерживается Markdown
 - **`add_alert_note`**: добавить к оповещению внутреннюю заметку
 
 Типичный цикл: `list_incidents` → `acknowledge_incident` → расследование с `list_logs` → `add_incident_note` (публичная) → `resolve_incident`.

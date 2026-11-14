@@ -106,6 +106,8 @@ export interface EntityDropdownProps {
   onFocus?: (() => void) | undefined;
   onBlur?: (() => void) | undefined;
   placeholder?: string | undefined;
+  // In the reader's words already: drawn as given (Field's, #7682).
+  isPlaceholderTranslated?: boolean | undefined;
   className?: string | undefined;
   isMultiSelect?: boolean | undefined;
   tabIndex?: number | undefined;
@@ -1415,7 +1417,9 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
    * popover is open the input takes over for typing.
    */
   const placeholderText: string =
-    translator.translateText(props.placeholder || "Select...") || "";
+    props.isPlaceholderTranslated && props.placeholder
+      ? props.placeholder
+      : translator.translateText(props.placeholder || "Select...") || "";
   const showSingleSelectedText: boolean =
     !isMulti && !isOpen && selectedOptions.length > 0;
 

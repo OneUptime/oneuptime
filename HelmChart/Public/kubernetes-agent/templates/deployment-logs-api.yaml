@@ -48,7 +48,7 @@ spec:
                   name: {{ include "kubernetes-agent.apiKeySecretName" . }}
                   key: api-key
             - name: CLUSTER_NAME
-              value: {{ .Values.clusterName | quote }}
+              value: {{ include "kubernetes-agent.clusterName" . | quote }}
             # OneUptime project labels — comma-separated key=value pairs.
             # The tailer stamps each as an `oneuptime.label.<key>=<value>`
             # resource attribute on outgoing OTLP log records; the

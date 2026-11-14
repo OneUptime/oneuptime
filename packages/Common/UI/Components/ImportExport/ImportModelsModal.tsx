@@ -277,6 +277,8 @@ const ImportModelsModal: <TBaseModel extends BaseModel>(
                 itemName: translatableTerm(singularName, { inSentence: true }),
               },
             )}
+            // A sentence around the item's name, in the reader's words here.
+            isPlaceholderTranslated={true}
           />
         </div>
       </div>

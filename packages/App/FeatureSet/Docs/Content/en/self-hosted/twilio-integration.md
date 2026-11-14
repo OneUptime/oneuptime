@@ -89,6 +89,31 @@ With Docker Compose, set the `GLOBAL_TWILIO_` settings in `config.env`, then run
 
 OneUptime reads the variables when it starts. If one is wrong, such as a phone number OneUptime cannot read or a missing auth token, the account sends no SMS and makes no calls until it is fixed; the server's log, **Admin Dashboard > Settings > Call and SMS** and the checklist at `/admin/setup` name the variable. The auth token is never shown. To change the account, change the variables and restart OneUptime: the Admin Dashboard does not change it.
 
+### Manage project configurations with Terraform
+
+A project configuration is also the `oneuptime_call_and_sms_config` resource of the [Terraform provider](/docs/terraform/index), and a data source of the same name reads one. The Auth Token is sensitive, so plans, logs and outputs never print it. Pass it in a sensitive variable:
+
+```hcl
+variable "twilio_auth_token" {
+  type      = string
+  sensitive = true
+}
+
+resource "oneuptime_call_and_sms_config" "production" {
+  name                        = "Production Twilio"
+  used_for                    = "Calls and SMS"
+  twilio_account_sid          = "ACXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+  twilio_auth_token           = var.twilio_auth_token
+  twilio_primary_phone_number = "+14155550100"
+  is_project_default          = true
+}
+```
+
+- **Project default.** Terraform makes a configuration the project default only with `is_project_default = true`. When it is left out, Terraform sends `false`, so a project's first configuration does not become the default as it does in the dashboard. Set it on one configuration for each kind of message: two with the same `used_for` that both set it take the default from each other on every apply. OneUptime sets `is_project_default_for_sms` and `is_project_default_for_calls`, which Terraform only reads.
+- **Phone numbers.** Write each number with `+` and its country code. Spaces, dashes, dots and brackets between the digits are fine: OneUptime keeps `+1 415 555 0100` as `+14155550100`, and Terraform reads that as the number you wrote, so a plan shows no change.
+- **API key.** The key Terraform uses must be able to read the Auth Token: **Project Owner**, **Project Admin**, or **Read Call and SMS** in a custom role, besides creating and editing configurations. With a key that cannot, reading the configuration fails, and the error says who may read the token.
+- **References.** A status page's `call_sms_config_id` and an incoming call policy's `project_call_sms_config_id` take the configuration's `id`.
+
 ### Separate numbers for calls and SMS
 
 A Twilio number can make calls and send SMS, or only one of the two, and in some countries no one number does both: national numbers can be voice-only, while SMS need a mobile number. A configuration, a project's or the installation's, can list numbers for SMS under **More fields**:
