@@ -85,8 +85,10 @@ const EVERY_PART: ReadonlyArray<Part> = [
   ...AFTER_A_CLICK,
 ];
 
-// Every app's forms hold the reveal button and the ID pill (BasicForm >
-// FormSummary > Detail); the dashboards and the Status Page the rest too.
+/*
+ * Every app's forms hold the reveal button and the ID pill (BasicForm >
+ * FormSummary > Detail); the dashboards and the Status Page the rest too.
+ */
 const FORM_PARTS: ReadonlyArray<Part> = [
   "Click to reveal",
   "Click to copy",
@@ -336,8 +338,9 @@ const drawPart: (instance: i18n, part: Part) => Promise<string> = async (
       fireEvent.click(screen.getByRole("hidden-text"));
 
       return (
-        screen.getByTestId("copy-to-clipboard-icon").getAttribute("aria-label") ||
-        ""
+        screen
+          .getByTestId("copy-to-clipboard-icon")
+          .getAttribute("aria-label") || ""
       );
     }
     case "Hide": {
