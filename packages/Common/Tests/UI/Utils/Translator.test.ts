@@ -8,6 +8,7 @@ import {
   isOneFormOnlyForOne,
   isTranslatableTerm,
   PluralTemplate,
+  SAME_AS_ENGLISH_MARK,
   TextLookup,
   toLabelTerm,
   toSentenceTerm,
@@ -725,6 +726,128 @@ describe("translatePlural", () => {
       expect(italianWithMany.translatePlural(HOSTS, 1000000)).toBe(
         "1.000.000 host",
       );
+    });
+  });
+
+  /*
+   * A one form a language words exactly as English does, on purpose, beside
+   * a general form of its own: French "{{count}} signal" beside "{{count}}
+   * signaux", Russian "{{count}} CPU" beside "CPU: {{count}}". Read alone
+   * it is an English one form left in the locale, so the locale marks it as
+   * its own: the "_one" key plus SAME_AS_ENGLISH_MARK, holding the same
+   * text (the Dashboard's bundle adds one for each such form on its
+   * same-as-English lists). Unmarked, French at 0 and Russian at 21 read
+   * English's "0 signals", "21 CPUs" (#7788).
+   */
+  describe("a one form a language words as English does on purpose", () => {
+    const SIGNALS: PluralTemplate = {
+      one: "{{count}} signal",
+      other: "{{count}} signals",
+    };
+    const CPUS: PluralTemplate = {
+      one: "{{count}} CPU",
+      other: "{{count}} CPUs",
+    };
+
+    const markOf: (template: PluralTemplate) => string = (
+      template: PluralTemplate,
+    ): string => {
+      return `${template.other}_one${SAME_AS_ENGLISH_MARK}`;
+    };
+
+    const english: Dictionary = {
+      ...ENGLISH,
+      [SIGNALS.other]: SIGNALS.other,
+      [`${SIGNALS.other}_one`]: SIGNALS.one,
+      [CPUS.other]: CPUS.other,
+      [`${CPUS.other}_one`]: CPUS.one,
+    };
+
+    const french: Dictionary = {
+      [SIGNALS.other]: "{{count}} signaux",
+      [`${SIGNALS.other}_one`]: SIGNALS.one,
+    };
+    const russian: Dictionary = {
+      [CPUS.other]: "CPU: {{count}}",
+      [`${CPUS.other}_one`]: CPUS.one,
+    };
+
+    test("French says 0 signal, and 1 signal, where the form is marked", () => {
+      const marked: Translator = createTranslator(
+        lookupFrom({ ...french, [markOf(SIGNALS)]: SIGNALS.one }, english),
+        "fr",
+      );
+
+      expect(getPluralCategory("fr", 0)).toBe("one");
+      expect(marked.translatePlural(SIGNALS, 0)).toBe("0 signal");
+      expect(marked.translatePlural(SIGNALS, 1)).toBe("1 signal");
+      expect(marked.translatePlural(SIGNALS, 3)).toBe("3 signaux");
+    });
+
+    test("Russian says 21 CPU, and 1 CPU, where the form is marked", () => {
+      const marked: Translator = createTranslator(
+        lookupFrom({ ...russian, [markOf(CPUS)]: CPUS.one }, english),
+        "ru",
+      );
+
+      expect(getPluralCategory("ru", 21)).toBe("one");
+      expect(marked.translatePlural(CPUS, 21)).toBe("21 CPU");
+      expect(marked.translatePlural(CPUS, 1)).toBe("1 CPU");
+      expect(marked.translatePlural(CPUS, 5)).toBe("CPU: 5");
+    });
+
+    test("the same form unmarked is English left in the locale: 0 signals, 21 CPUs", () => {
+      const frenchUnmarked: Translator = createTranslator(
+        lookupFrom(french, english),
+        "fr",
+      );
+      const russianUnmarked: Translator = createTranslator(
+        lookupFrom(russian, english),
+        "ru",
+      );
+
+      expect(frenchUnmarked.translatePlural(SIGNALS, 0)).toBe("0 signals");
+      expect(frenchUnmarked.translatePlural(SIGNALS, 1)).toBe("1 signal");
+      expect(russianUnmarked.translatePlural(CPUS, 21)).toBe("21 CPUs");
+      expect(russianUnmarked.translatePlural(CPUS, 1)).toBe("1 CPU");
+    });
+
+    // A mark vouches for the text it holds, and for no other.
+    test("a mark holding other text leaves the form English's", () => {
+      const russianRowsMarkedElsewhere: Translator = createTranslator(
+        lookupFrom(
+          {
+            [ROWS.other]: "{{count}} строк",
+            [`${ROWS.other}_one`]: ROWS.one,
+            [`${ROWS.other}_one${SAME_AS_ENGLISH_MARK}`]: "{{count}} строка",
+          },
+          ENGLISH,
+        ),
+        "ru",
+      );
+
+      expect(russianRowsMarkedElsewhere.translatePlural(ROWS, 21)).toBe(
+        "21 rows",
+      );
+    });
+
+    // The mark of one plural says nothing of another's one form.
+    test("a mark is read for its own plural only", () => {
+      const frenchSignalsMarked: Translator = createTranslator(
+        lookupFrom(
+          {
+            ...french,
+            [markOf(SIGNALS)]: SIGNALS.one,
+            [ROWS.other]: "{{count}} lignes",
+            [`${ROWS.other}_one`]: ROWS.one,
+          },
+          english,
+        ),
+        "fr",
+      );
+
+      expect(frenchSignalsMarked.translatePlural(SIGNALS, 0)).toBe("0 signal");
+      expect(frenchSignalsMarked.translatePlural(ROWS, 0)).toBe("0 rows");
     });
   });
 

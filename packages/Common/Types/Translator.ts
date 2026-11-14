@@ -118,6 +118,21 @@ interface StoredPluralForm {
 }
 
 /*
+ * A plural's one form that a language words exactly as English does, on
+ * purpose - French "{{count}} signal" beside its "{{count}} signaux",
+ * Portuguese "{{count}} monitor" - is marked as the language's own by one
+ * more entry: the "_one" key plus this suffix, holding the same text.
+ * Unmarked, a one form that reads as English's is English left in the
+ * locale (isEnglishPlaceholder in createTranslator), and French at 0 or
+ * Russian at 21 read English's "0 signals". No locale file holds a mark:
+ * the language's same-as-English list says which forms are its own, and
+ * the lookup answers with them - the Dashboard's bundle carries them
+ * (UI/esbuild-locales.js), the server's translator reads its own list
+ * (Server/Utils/ServerTranslation).
+ */
+export const SAME_AS_ENGLISH_MARK: string = "_sameAsEnglish";
+
+/*
  * Looks a fixed string up by its English text and answers with the reader's
  * wording, or with the text itself when there is none - useTranslateValue()'s
  * translateString, or i18next's t() with keySeparator and nsSeparator off.
@@ -1205,7 +1220,8 @@ export const createTranslator: (
    *   same: the language then words the sentence alike for every count, and
    *   the form is its own - French's "0 VM". A general form left English is
    *   never that witness: the lookup gives nothing for a key that maps to
-   *   itself.
+   *   itself. Or unless the locale marks the form as its own
+   *   (SAME_AS_ENGLISH_MARK): French says "0 signal" beside its "3 signaux".
    * - Every other form - the general one, and a "_few", "_many", "_two" or
    *   "_zero" one, which en.json has none of - is English left in the
    *   locale when it reads as English's other form, what English writes for
@@ -1223,7 +1239,11 @@ export const createTranslator: (
       return form.text === template.other;
     }
 
-    return form.text === template.one && find(template.other) !== form.text;
+    return (
+      form.text === template.one &&
+      find(template.other) !== form.text &&
+      find(`${template.other}_one${SAME_AS_ENGLISH_MARK}`) !== form.text
+    );
   };
 
   const translatePlural: (

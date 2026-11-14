@@ -35,6 +35,13 @@ a language, and the rules the guard test enforces.
   `"Мониторов: {{count}}"`. Japanese, Korean and Chinese have no "one" form, so
   their `_one` key is never shown and may stay English. Locale files hold
   exactly `en.json`'s keys. Never add `_few`, `_many` or other suffixes.
+  A `_one` form that reads exactly as English's is English left in the file,
+  and reads as English: French at 0 would say "0 monitors". When your
+  language words its one form as English does on purpose (French
+  `"{{count}} signal"` beside `"{{count}} signaux"`), put the English text on
+  the locale's same-as-English list (`i18n/Progress/<code>.json`). The build
+  then ships the form with a mark that tells the lookup it is your
+  language's own, and French says "0 signal".
 - **Model names in sentences.** A model's `singularName`/`pluralName` goes into
   a sentence as `translatableTerm(name, { inSentence: true })`. It is translated
   along with the sentence and cased for mid-sentence use in the reader's
@@ -97,7 +104,11 @@ OneUptimeDate.fromNow(date) })`), or draw a time component in a
   same-as-English strings: i18next falls back to English, which the entry
   chunk always holds. A language with a "one" form also ships every `_one`
   form, translated or still English, since `en.json` no longer carries them;
-  Japanese, Korean and Chinese never read one. So `en.json` adds about 10 KB
+  Japanese, Korean and Chinese never read one. A `_one` form that reads as
+  English's and whose English is on the language's same-as-English lists
+  ships with its mark: one more entry, its key plus `_sameAsEnglish`, holding
+  the same text (`SAME_AS_ENGLISH_MARK` in `Common/Types/Translator.ts`). The
+  page never reads the lists themselves. So `en.json` adds about 10 KB
   to the entry chunk instead of 1.8 MB, however many plurals there are, and a
   locale's chunk holds its translations and the `_one` forms it reads. Read
   strings through the lookups above only, and a `_one` key only as the plural
@@ -321,8 +332,12 @@ Translation guidelines:
 - Keep what `en.json` ends with: a sentence's full stop, a question mark, a
   colon, `…`.
 - Plural keys: translate the general key so it reads right for any count, and
-  translate `<key>_one` for your "one" form. In ja/ko/zh-CN/zh-TW, `_one` is
-  never shown, so translate it the same as the general form or leave it.
+  translate `<key>_one` for your "one" form. Check it at every count your
+  language reads it at (`Intl.PluralRules`): 0 and 1 in French, Portuguese,
+  Hindi and Persian, 1, 21, 31 and 101 in Russian. If it reads exactly as
+  English's on purpose, list its English as same-as-English (see Plurals
+  above). In ja/ko/zh-CN/zh-TW, `_one` is never shown, so translate it the
+  same as the general form or leave it.
 
 ### Code in a sentence read from the right (ar, fa)
 
@@ -470,6 +485,10 @@ fails when any of these breaks:
   refuses to record a higher one without `--force`.
 - The same-as-English lists are sorted, have no repeats, and name only English
   that `en.json` has.
+- A plural's `_one` form is worded wherever its general form is: it differs
+  from the English, reads as the language's general form, has no letters, or
+  is on the language's same-as-English lists. Checked in every language with
+  a "one" form.
 - Every nested key a `t("a.b")` call reads in the Dashboard's code or
   `Common/UI` is in `en.json`. i18next shows a missing nested key as the key
   itself. Give the call its English (`t("a.b", "English")`) and run
@@ -483,7 +502,8 @@ What ships is tested apart from the files.
 with the Dashboard's `esbuild.config.js`. It checks that each language ships
 exactly what the plugin keeps, that only English is in the entry chunk, that
 the `_one` forms ship with the languages that read them and not with English,
-and that `en.json`'s share of the entry stays under 32 KB.
+that the forms a language words as English does ship with their marks, and
+that `en.json`'s share of the entry stays under 32 KB.
 `packages/Common/Tests/App/Dashboard/DashboardRuntimeLocales.test.tsx` checks
 that every string in all eighteen languages reads the same from the shipped
 copies as from these files, every plural at counts that pick each form, and

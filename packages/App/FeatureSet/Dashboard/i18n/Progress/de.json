@@ -803,6 +803,7 @@
     "{{count}} KB",
     "{{count}} Kubernetes",
     "{{count}} MB",
+    "{{count}} Minute",
     "{{count}} OSD",
     "{{count}} OSDs",
     "{{count}} SLO",

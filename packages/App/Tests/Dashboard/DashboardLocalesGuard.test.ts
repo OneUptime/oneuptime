@@ -8,9 +8,12 @@ import {
 import {
   ENGLISH,
   getLocalePath,
+  getPluralBases,
+  getPluralCategories,
   getValueAt,
   LocaleTree,
   parseLocaleText,
+  PLURAL_ONE_SUFFIX,
   REPOSITORY_ROOT,
   TRACKING_DIRECTORY,
   TRANSLATED_LOCALES,
@@ -321,6 +324,86 @@ describe("the same-as-English lists", () => {
           return !englishValues.has(value);
         }),
       ).toEqual([]);
+    },
+  );
+});
+
+/*
+ * A plural's one form is worded wherever its general form is. A language
+ * that words "{{reporting}} of {{count}} services" and leaves its one form
+ * English writes "1 of 1 service" in English beside its own words; French
+ * at 0 and Russian at 21 - counts they read the one form at - fell back to
+ * English's plural besides (#7789).
+ *
+ * A form is worded when it differs from the English, has no letters of its
+ * own, or is on the language's same-as-English lists - English's text kept
+ * on purpose, which the bundle marks as the language's own (Common/UI/
+ * esbuild-locales.js). A one form that reads as the language's general form
+ * is worded too: the language words the sentence alike for every count.
+ */
+describe("a plural's one form", () => {
+  const pluralBases: Array<string> = getPluralBases(english);
+  const LETTER: RegExp = /\p{L}/u;
+
+  const hasNoLetters: (text: string) => boolean = (text: string): boolean => {
+    return !LETTER.test(text.replace(/\{\{[^{}]*\}\}/g, ""));
+  };
+
+  const readsOneForm: Array<string> = TRANSLATED_LOCALES.filter(
+    (code: string): boolean => {
+      return getPluralCategories(code).includes("one");
+    },
+  );
+
+  test("the plurals and the languages that read one forms are there", () => {
+    expect(pluralBases.length).toBeGreaterThan(1000);
+    expect(readsOneForm).toEqual(
+      expect.arrayContaining(["de", "fr", "pt", "ru", "hi", "fa", "ar"]),
+    );
+    expect(readsOneForm).not.toContain("ja");
+  });
+
+  test.each(readsOneForm)(
+    "%s words its one form wherever it words the general form",
+    (code: string) => {
+      const locale: LocaleTree = parseLocaleText(readText(code));
+      const kept: Set<string> = new Set<string>([
+        ...globalSameAsEnglish,
+        ...(checkFor(code).progress?.sameAsEnglish || []),
+      ]);
+
+      const isWorded: (value: unknown, englishText: string) => boolean = (
+        value: unknown,
+        englishText: string,
+      ): boolean => {
+        return (
+          typeof value === "string" &&
+          (value !== englishText ||
+            hasNoLetters(englishText) ||
+            kept.has(englishText))
+        );
+      };
+
+      const leftInEnglish: Array<string> = pluralBases
+        .map((base: string): string => {
+          return `${base}${PLURAL_ONE_SUFFIX}`;
+        })
+        .filter((oneKey: string): boolean => {
+          const base: string = oneKey.slice(0, -PLURAL_ONE_SUFFIX.length);
+          const general: unknown = locale[base];
+          const one: unknown = locale[oneKey];
+
+          if (!isWorded(general, english[base] as string)) {
+            return false;
+          }
+
+          return !isWorded(one, english[oneKey] as string) && one !== general;
+        });
+
+      expect({ locale: code, leftInEnglish: leftInEnglish }).toEqual({
+        locale: code,
+        leftInEnglish: [],
+      });
     },
   );
 });

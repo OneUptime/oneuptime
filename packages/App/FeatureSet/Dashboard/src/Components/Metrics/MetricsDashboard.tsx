@@ -930,11 +930,14 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
           value={reportingServices}
           subtext={
             scopedServiceCount > 0
-              ? translator.translateTemplate(
-                  "{{reporting}} of {{count}} services",
+              ? translator.translatePlural(
+                  {
+                    one: "{{reporting}} of {{count}} service",
+                    other: "{{reporting}} of {{count}} services",
+                  },
+                  scopedServiceCount,
                   {
                     reporting: translator.formatNumber(reportingServices),
-                    count: translator.formatNumber(scopedServiceCount),
                   },
                 )
               : translator.translateTemplate("actively sending data")

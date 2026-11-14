@@ -105,7 +105,11 @@ test report.
    with, use the words the file already uses, and the register the status
    page uses (German `Sie`, Spanish `usted`). A word that really reads the same
    in a language (`Status` in German) goes in `SameAsEnglish.json` under that
-   language.
+   language. So does a plural's `_one` key that a language words as English
+   does (`"{{count}} minutes_one"` in French). The translator then reads that
+   form as the language's own, so French says "0 minute". Unlisted, a `_one`
+   form equal to English's is read as English left in the file, and French
+   would say "0 minutes".
 
 ## Sentences the Dashboard words
 
