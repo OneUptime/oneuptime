@@ -1,19 +1,19 @@
 /*
- * The probe-result hot path in MonitorResource.ts now pre-fetches every
- * MonitorProbe row for the monitor ONCE (with the heavy lastMonitoringLog
- * jsonb) and threads the rows into checkProbeAgreement via the new optional
- * `monitorProbes` input. Before this optimization checkProbeAgreement
- * re-queried MonitorProbeService.findBy on every single probe result — the
- * second-largest read on the hottest Postgres path.
+ * The probe-result hot path in MonitorResource.ts reads every MonitorProbe
+ * row for the monitor ONCE, with the statement that stores its result
+ * (MonitorProbeLastResults), and threads the rows into checkProbeAgreement
+ * via the optional `monitorProbes` input. Before that, checkProbeAgreement
+ * re-queried every row's whole lastMonitoringLog on every single probe
+ * result — the second-largest read on the hottest Postgres path.
  *
  * This suite pins the contract of that reuse:
- *   - when `monitorProbes` is PROVIDED, findBy must never run and the
- *     agreement result must be computed purely from the provided rows
- *     (including the provided-but-empty-array case: [] is truthy, so it
- *     must NOT fall back to querying);
- *   - when `monitorProbes` is ABSENT, the original single findBy with the
- *     original query/select must still run (the fallback for callers that
- *     did not pre-fetch, e.g. the incoming-request path);
+ *   - when `monitorProbes` is PROVIDED, nothing is read and the agreement
+ *     result must be computed purely from the provided rows (including the
+ *     provided-but-empty-array case: [] is truthy, so it must NOT fall back
+ *     to querying);
+ *   - when `monitorProbes` is ABSENT, the monitor's probes are read once,
+ *     with no more of lastMonitoringLog than the step judged (the fallback
+ *     for callers that did not pre-fetch);
  *   - the agreement semantics themselves (active-probe filtering, the
  *     minimumProbeAgreement threshold, missing-step-log skipping, and the
  *     no-active-probes pass-through) are unchanged by the reuse.
@@ -47,11 +47,12 @@ jest.mock("../../../Server/Utils/Monitor/MonitorCriteriaEvaluator", () => {
   };
 });
 
-jest.mock("../../../Server/Services/MonitorProbeService", () => {
+jest.mock("../../../Server/Utils/Monitor/MonitorProbeLastResults", () => {
   return {
     __esModule: true,
     default: {
-      findBy: jest.fn(),
+      storeResultAndReadProbes: jest.fn(),
+      readProbes: jest.fn(),
     },
   };
 });
@@ -71,7 +72,9 @@ jest.mock("../../../Server/Utils/Logger", () => {
 
 import MonitorResourceUtil from "../../../Server/Utils/Monitor/MonitorResource";
 import MonitorCriteriaEvaluator from "../../../Server/Utils/Monitor/MonitorCriteriaEvaluator";
-import MonitorProbeService from "../../../Server/Services/MonitorProbeService";
+import MonitorProbeLastResults, {
+  MonitorProbeOfResult,
+} from "../../../Server/Utils/Monitor/MonitorProbeLastResults";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorProbe, {
   MonitorStepProbeResponse,
@@ -84,7 +87,6 @@ import ObjectID from "../../../Types/ObjectID";
 import ProbeApiIngestResponse from "../../../Types/Probe/ProbeApiIngestResponse";
 import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import DataToProcess from "../../../Server/Utils/Monitor/DataToProcess";
-import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import { describe, expect, test, beforeEach } from "@jest/globals";
 
 interface ProbeAgreementResult {
@@ -101,7 +103,7 @@ const processMonitorStepMock: jest.Mock =
   MonitorCriteriaEvaluator.processMonitorStep as unknown as jest.Mock;
 
 const findByMock: jest.Mock =
-  MonitorProbeService.findBy as unknown as jest.Mock;
+  MonitorProbeLastResults.readProbes as unknown as jest.Mock;
 
 type CheckProbeAgreementFunction = (input: {
   monitor: Monitor;
@@ -201,7 +203,7 @@ describe("MonitorResourceUtil.checkProbeAgreement pre-fetched row reuse", () => 
   });
 
   describe("monitorProbes provided (hot path)", () => {
-    test("never queries MonitorProbeService.findBy and computes agreement from the provided rows", async () => {
+    test("never reads the probes and computes agreement from the provided rows", async () => {
       const monitor: Monitor = makeMonitor();
 
       const probeA: MonitorProbe = makeMonitorProbe({
@@ -449,17 +451,17 @@ describe("MonitorResourceUtil.checkProbeAgreement pre-fetched row reuse", () => 
   });
 
   describe("monitorProbes absent (fallback path)", () => {
-    test("falls back to exactly one findBy with the original query and select", async () => {
+    test("falls back to exactly one read of the probes, for the step judged alone", async () => {
       const monitor: Monitor = makeMonitor();
 
-      const probeA: MonitorProbe = makeMonitorProbe({
-        probeName: "Probe A",
+      const probeA: MonitorProbeOfResult = {
+        monitorProbeId: ObjectID.generate(),
+        probeId: ObjectID.generate(),
         isEnabled: true,
-        connectionStatus: ProbeConnectionStatus.Connected,
-        lastMonitoringLog: {
-          [stepId]: makeProbeResponse("criteria-c", "root cause C"),
-        },
-      });
+        probeName: "Probe A",
+        probeConnectionStatus: ProbeConnectionStatus.Connected,
+        resultForJudgedStep: makeProbeResponse("criteria-c", "root cause C"),
+      };
 
       findByMock.mockResolvedValue([probeA]);
 
@@ -472,23 +474,8 @@ describe("MonitorResourceUtil.checkProbeAgreement pre-fetched row reuse", () => 
 
       expect(findByMock).toHaveBeenCalledTimes(1);
       expect(findByMock).toHaveBeenCalledWith({
-        query: {
-          monitorId: monitor.id!,
-        },
-        select: {
-          probeId: true,
-          isEnabled: true,
-          lastMonitoringLog: true,
-          probe: {
-            connectionStatus: true,
-            name: true,
-          },
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
+        monitorId: monitor.id!,
+        judgedStepId: stepId,
       });
 
       // And the queried rows drive the result.

@@ -18,7 +18,7 @@ import MonitorMaintenanceSuppression from "../../../../Server/Utils/Monitor/Moni
 import MonitorDependencySuppression from "../../../../Server/Utils/Monitor/MonitorDependencySuppression";
 import GlobalConfigService from "../../../../Server/Services/GlobalConfigService";
 import MetricService from "../../../../Server/Services/MetricService";
-import MonitorProbeService from "../../../../Server/Services/MonitorProbeService";
+import MonitorProbeRowsInMemory from "../../TestingUtils/MonitorProbeRowsInMemory";
 import MonitorService from "../../../../Server/Services/MonitorService";
 import MonitorStatusService from "../../../../Server/Services/MonitorStatusService";
 import MonitorStatusTimelineService from "../../../../Server/Services/MonitorStatusTimelineService";
@@ -234,12 +234,10 @@ describe("MonitorResourceUtil.monitorResource: a Response Body check that waits 
     jest
       .spyOn(MonitorService, "updateColumnsByIdWithoutHooks")
       .mockResolvedValue(undefined as never);
-    jest.spyOn(MonitorProbeService, "findBy").mockImplementation(() => {
-      return Promise.resolve(probes) as never;
-    });
-    jest
-      .spyOn(MonitorProbeService, "updateColumnsByIdWithoutHooks")
-      .mockResolvedValue(undefined as never);
+    // The probes' rows; each result is stored under its probe's row.
+    const probeRows: MonitorProbeRowsInMemory = new MonitorProbeRowsInMemory();
+    probeRows.rows = probes;
+    probeRows.install();
     jest
       .spyOn(MonitorStatusService, "findOneBy")
       .mockResolvedValue(null as never);

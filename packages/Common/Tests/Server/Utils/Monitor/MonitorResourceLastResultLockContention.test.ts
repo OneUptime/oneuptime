@@ -42,12 +42,12 @@ jest.mock("../../../../Server/Services/MonitorService", () => {
   };
 });
 
-jest.mock("../../../../Server/Services/MonitorProbeService", () => {
+jest.mock("../../../../Server/Utils/Monitor/MonitorProbeLastResults", () => {
   return {
     __esModule: true,
     default: {
-      findBy: jest.fn(),
-      updateColumnsByIdWithoutHooks: jest.fn(),
+      storeResultAndReadProbes: jest.fn(),
+      readProbes: jest.fn(),
     },
   };
 });
@@ -97,7 +97,8 @@ import MonitorResourceUtil from "../../../../Server/Utils/Monitor/MonitorResourc
 import MonitorCriteriaEvaluator from "../../../../Server/Utils/Monitor/MonitorCriteriaEvaluator";
 import MonitorMetricUtil from "../../../../Server/Utils/Monitor/MonitorMetricUtil";
 import MonitorService from "../../../../Server/Services/MonitorService";
-import MonitorProbeService from "../../../../Server/Services/MonitorProbeService";
+import MonitorProbeLastResults from "../../../../Server/Utils/Monitor/MonitorProbeLastResults";
+import MonitorProbeRowsInMemory from "../../TestingUtils/MonitorProbeRowsInMemory";
 import ProjectService from "../../../../Server/Services/ProjectService";
 import Semaphore from "../../../../Server/Infrastructure/Semaphore";
 import logger from "../../../../Server/Utils/Logger";
@@ -123,11 +124,11 @@ const findMonitorMock: jest.Mock =
 const updateMonitorColumnsMock: jest.Mock =
   MonitorService.updateColumnsByIdWithoutHooks as unknown as jest.Mock;
 
-const findMonitorProbesMock: jest.Mock =
-  MonitorProbeService.findBy as unknown as jest.Mock;
+// The monitor's probe rows, and the results stored under them.
+let probeRows: MonitorProbeRowsInMemory = new MonitorProbeRowsInMemory();
 
-const updateMonitorProbeColumnsMock: jest.Mock =
-  MonitorProbeService.updateColumnsByIdWithoutHooks as unknown as jest.Mock;
+const storeAndReadProbesMock: jest.Mock =
+  MonitorProbeLastResults.storeResultAndReadProbes as unknown as jest.Mock;
 
 const saveMetricsMock: jest.Mock =
   MonitorMetricUtil.saveMonitorMetrics as unknown as jest.Mock;
@@ -239,7 +240,8 @@ describe("MonitorResourceUtil.monitorResource when the probe's last result canno
     jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
 
     lockMock.mockResolvedValue({});
-    updateMonitorProbeColumnsMock.mockResolvedValue(undefined);
+    probeRows = new MonitorProbeRowsInMemory();
+    probeRows.install();
     updateMonitorColumnsMock.mockResolvedValue(undefined);
     saveMetricsMock.mockResolvedValue(undefined);
 
@@ -275,7 +277,7 @@ describe("MonitorResourceUtil.monitorResource when the probe's last result canno
     monitor = makeMonitor(step);
     monitorProbe = makeMonitorProbe();
     findMonitorMock.mockResolvedValue(monitor);
-    findMonitorProbesMock.mockResolvedValue([monitorProbe]);
+    probeRows.set([monitorProbe]);
   });
 
   afterEach(() => {
@@ -299,8 +301,10 @@ describe("MonitorResourceUtil.monitorResource when the probe's last result canno
       shape: "pg" | "typeorm" | "driverErrorOnly",
       code: string,
     ) => {
-      updateMonitorProbeColumnsMock.mockRejectedValueOnce(
-        failure("canceling statement due to lock timeout", code, shape),
+      probeRows.storeError = failure(
+        "canceling statement due to lock timeout",
+        code,
+        shape,
       );
 
       await expect(
@@ -309,7 +313,17 @@ describe("MonitorResourceUtil.monitorResource when the probe's last result canno
         }),
       ).resolves.toBeDefined();
 
-      expect(updateMonitorProbeColumnsMock).toHaveBeenCalledTimes(1);
+      // Tried once with the result, then the probes are read without it.
+      expect(storeAndReadProbesMock).toHaveBeenCalledTimes(2);
+      expect(
+        (storeAndReadProbesMock.mock.calls[0]![0] as { result: unknown })
+          .result,
+      ).toBeDefined();
+      expect(
+        (storeAndReadProbesMock.mock.calls[1]![0] as { result: unknown })
+          .result,
+      ).toBeUndefined();
+      expect(probeRows.stored).toHaveLength(0);
       expect(processMonitorStepMock).toHaveBeenCalledTimes(1);
       expect(saveMetricsMock).toHaveBeenCalledTimes(1);
 
@@ -330,16 +344,27 @@ describe("MonitorResourceUtil.monitorResource when the probe's last result canno
    * would have had the write landed.
    */
   test("the result the write could not store is still the one the evaluation reads back", async () => {
-    updateMonitorProbeColumnsMock.mockRejectedValueOnce(
-      failure("canceling statement due to lock timeout", "55P03", "typeorm"),
+    probeRows.storeError = failure(
+      "canceling statement due to lock timeout",
+      "55P03",
+      "typeorm",
+    );
+
+    const agreement: jest.SpyInstance = jest.spyOn(
+      MonitorResourceUtil as any,
+      "checkProbeAgreement",
     );
 
     await MonitorResourceUtil.monitorResource(makeResult(monitor, step), {
       reportingProbeId: PROBE_ID,
     });
 
+    const probesAgreementRead: Array<MonitorProbe> = (
+      agreement.mock.calls[0]![0] as { monitorProbes: Array<MonitorProbe> }
+    ).monitorProbes;
+
     const stored: unknown = (
-      monitorProbe.lastMonitoringLog as Record<string, unknown>
+      probesAgreementRead[0]!.lastMonitoringLog as Record<string, unknown>
     )[step.id.toString()];
 
     expect(stored).toBeDefined();
@@ -358,7 +383,7 @@ describe("MonitorResourceUtil.monitorResource when the probe's last result canno
   ] as Array<[string, Error]>)(
     "%s is still thrown, as before",
     async (_label: string, error: Error) => {
-      updateMonitorProbeColumnsMock.mockRejectedValueOnce(error);
+      probeRows.storeError = error;
 
       await expect(
         MonitorResourceUtil.monitorResource(makeResult(monitor, step), {
@@ -381,7 +406,8 @@ describe("MonitorResourceUtil.monitorResource when the probe's last result canno
       reportingProbeId: PROBE_ID,
     });
 
-    expect(updateMonitorProbeColumnsMock).toHaveBeenCalledTimes(1);
+    expect(probeRows.stored).toHaveLength(1);
+    expect(storeAndReadProbesMock).toHaveBeenCalledTimes(1);
     expect(
       warnings().some((line: string) => {
         return line.includes("not stored as its last result");

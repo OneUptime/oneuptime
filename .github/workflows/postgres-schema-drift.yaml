@@ -563,6 +563,26 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Infrastructure/Postgres/ProbeTablesHotUpdatesPostgres.test.ts --forceExit
 
+      # The monitor result path against the migrated tables, cloned into
+      # isolated schemas: a probe result's one statement that stores it as
+      # the probe's last for its step and reads the other probes' result of
+      # the step judged (MonitorProbeLastResults), and how many statements
+      # each kind of result costs - healthy, a status change, one that opens
+      # an incident and an alert, the one that resolves them - pinned.
+      - name: Test the monitor result path's statements against Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_MONITOR_RESULT_PATH_TESTS: "true"
+          MONITOR_RESULT_PATH_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          MONITOR_RESULT_PATH_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          MONITOR_RESULT_PATH_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/Monitor/MonitorProbeLastResultsPostgres.test.ts
+          Tests/Server/Utils/Monitor/MonitorResultStatementsPostgres.test.ts
+          --forceExit
+
       # Clones the migrated Workflow table (its unique key included) into an
       # isolated schema: the incoming email key's compare-and-set must write
       # once and let exactly one racing save win, no workflow may take

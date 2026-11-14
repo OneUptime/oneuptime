@@ -19,9 +19,10 @@
  *
  * Everything heavy is mocked BEFORE importing MonitorResource, as in
  * MonitorResourceStorablePayload.test.ts: the criteria evaluator (native
- * isolated-vm), the monitor and monitor probe services (Postgres), the
- * per-monitor semaphore (Redis), the metric and log utils (ClickHouse) and
- * the logger.
+ * isolated-vm), the monitor service and the monitor's probe rows (Postgres;
+ * MonitorProbeRowsInMemory answers as MonitorProbeLastResults' statement
+ * does), the per-monitor semaphore (Redis), the metric and log utils
+ * (ClickHouse) and the logger.
  */
 
 jest.mock("isolated-vm", () => {
@@ -47,12 +48,12 @@ jest.mock("../../../../Server/Services/MonitorService", () => {
   };
 });
 
-jest.mock("../../../../Server/Services/MonitorProbeService", () => {
+jest.mock("../../../../Server/Utils/Monitor/MonitorProbeLastResults", () => {
   return {
     __esModule: true,
     default: {
-      findBy: jest.fn(),
-      updateColumnsByIdWithoutHooks: jest.fn(),
+      storeResultAndReadProbes: jest.fn(),
+      readProbes: jest.fn(),
     },
   };
 });
@@ -103,7 +104,8 @@ import MonitorCriteriaEvaluator from "../../../../Server/Utils/Monitor/MonitorCr
 import MonitorLogUtil from "../../../../Server/Utils/Monitor/MonitorLogUtil";
 import MonitorMetricUtil from "../../../../Server/Utils/Monitor/MonitorMetricUtil";
 import MonitorService from "../../../../Server/Services/MonitorService";
-import MonitorProbeService from "../../../../Server/Services/MonitorProbeService";
+import MonitorProbeLastResults from "../../../../Server/Utils/Monitor/MonitorProbeLastResults";
+import MonitorProbeRowsInMemory from "../../TestingUtils/MonitorProbeRowsInMemory";
 import ProjectService from "../../../../Server/Services/ProjectService";
 import Semaphore from "../../../../Server/Infrastructure/Semaphore";
 import { PROBE_REPORTS_ONLY_ITS_OWN_RESULTS_MESSAGE } from "../../../../Server/Utils/Probe/ProbeReportIdentity";
@@ -138,11 +140,11 @@ const findMonitorMock: jest.Mock =
 const updateMonitorColumnsMock: jest.Mock =
   MonitorService.updateColumnsByIdWithoutHooks as unknown as jest.Mock;
 
-const findMonitorProbesMock: jest.Mock =
-  MonitorProbeService.findBy as unknown as jest.Mock;
+// The monitor's probe rows, and the results stored under them.
+let probeRows: MonitorProbeRowsInMemory = new MonitorProbeRowsInMemory();
 
-const updateMonitorProbeColumnsMock: jest.Mock =
-  MonitorProbeService.updateColumnsByIdWithoutHooks as unknown as jest.Mock;
+const storeAndReadProbesMock: jest.Mock =
+  MonitorProbeLastResults.storeResultAndReadProbes as unknown as jest.Mock;
 
 const saveMetricsMock: jest.Mock =
   MonitorMetricUtil.saveMonitorMetrics as unknown as jest.Mock;
@@ -228,23 +230,17 @@ function makeResult(input: {
 
 // What monitorResource wrote to MonitorProbe.lastMonitoringLog, and where.
 function storedProbeLog(): { rowId: string; log: MonitorStepProbeResponse } {
-  expect(updateMonitorProbeColumnsMock).toHaveBeenCalledTimes(1);
-
-  const write: { id: ObjectID; data: { lastMonitoringLog: unknown } } =
-    updateMonitorProbeColumnsMock.mock.calls[0]![0] as {
-      id: ObjectID;
-      data: { lastMonitoringLog: unknown };
-    };
+  expect(probeRows.stored).toHaveLength(1);
 
   return {
-    rowId: write.id.toString(),
-    log: write.data.lastMonitoringLog as MonitorStepProbeResponse,
+    rowId: probeRows.stored[0]!.rowId,
+    log: probeRows.stored[0]!.lastMonitoringLog,
   };
 }
 
 // Nothing a refused result could have changed was touched.
 function expectNothingTouched(): void {
-  expect(updateMonitorProbeColumnsMock).not.toHaveBeenCalled();
+  expect(probeRows.stored).toHaveLength(0);
   expect(updateMonitorColumnsMock).not.toHaveBeenCalled();
   expect(saveMetricsMock).not.toHaveBeenCalled();
   expect(saveLogMock).not.toHaveBeenCalled();
@@ -264,7 +260,8 @@ describe("MonitorResourceUtil.monitorResource with the probe that reported the r
     jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
 
     lockMock.mockResolvedValue({});
-    updateMonitorProbeColumnsMock.mockResolvedValue(undefined);
+    probeRows = new MonitorProbeRowsInMemory();
+    probeRows.install();
     updateMonitorColumnsMock.mockResolvedValue(undefined);
     saveMetricsMock.mockResolvedValue(undefined);
 
@@ -307,10 +304,7 @@ describe("MonitorResourceUtil.monitorResource with the probe that reported the r
 
   test("a result from a probe assigned to the monitor is stored under that probe's own row", async () => {
     const senderRow: MonitorProbe = makeMonitorProbe(SENDER);
-    findMonitorProbesMock.mockResolvedValue([
-      makeMonitorProbe(GLOBAL_PROBE),
-      senderRow,
-    ]);
+    probeRows.set([makeMonitorProbe(GLOBAL_PROBE), senderRow]);
 
     await MonitorResourceUtil.monitorResource(
       makeResult({ monitor, step, probeId: SENDER }),
@@ -331,10 +325,7 @@ describe("MonitorResourceUtil.monitorResource with the probe that reported the r
 
   test("a result that names no probe is the reporting probe's", async () => {
     const senderRow: MonitorProbe = makeMonitorProbe(SENDER);
-    findMonitorProbesMock.mockResolvedValue([
-      makeMonitorProbe(GLOBAL_PROBE),
-      senderRow,
-    ]);
+    probeRows.set([makeMonitorProbe(GLOBAL_PROBE), senderRow]);
 
     const result: ProbeMonitorResponse = makeResult({ monitor, step });
 
@@ -347,10 +338,7 @@ describe("MonitorResourceUtil.monitorResource with the probe that reported the r
   });
 
   test("a result that names another probe is refused before anything is read", async () => {
-    findMonitorProbesMock.mockResolvedValue([
-      makeMonitorProbe(GLOBAL_PROBE),
-      makeMonitorProbe(SENDER),
-    ]);
+    probeRows.set([makeMonitorProbe(GLOBAL_PROBE), makeMonitorProbe(SENDER)]);
 
     await expect(
       MonitorResourceUtil.monitorResource(
@@ -367,7 +355,7 @@ describe("MonitorResourceUtil.monitorResource with the probe that reported the r
   });
 
   test("a result from a probe the monitor is not assigned to changes nothing", async () => {
-    findMonitorProbesMock.mockResolvedValue([
+    probeRows.set([
       makeMonitorProbe(GLOBAL_PROBE),
       makeMonitorProbe(OTHER_PROJECT_PROBE),
     ]);
@@ -387,7 +375,7 @@ describe("MonitorResourceUtil.monitorResource with the probe that reported the r
   });
 
   test("a monitor with no probes at all takes no probe's result", async () => {
-    findMonitorProbesMock.mockResolvedValue([]);
+    probeRows.set([]);
 
     await expect(
       MonitorResourceUtil.monitorResource(makeResult({ monitor, step }), {
@@ -400,7 +388,7 @@ describe("MonitorResourceUtil.monitorResource with the probe that reported the r
 
   test("the probe is matched whatever case its id arrived in", async () => {
     const senderRow: MonitorProbe = makeMonitorProbe(SENDER);
-    findMonitorProbesMock.mockResolvedValue([senderRow]);
+    probeRows.set([senderRow]);
 
     const shouted: ObjectID = new ObjectID(SENDER.toString().toUpperCase());
 
@@ -425,17 +413,19 @@ describe("MonitorResourceUtil.monitorResource with the probe that reported the r
     for (const monitorType of probedTypes) {
       jest.clearAllMocks();
       lockMock.mockResolvedValue({});
+      probeRows = new MonitorProbeRowsInMemory();
+      probeRows.install();
 
       const typedMonitor: Monitor = makeMonitor(monitorType, step);
       findMonitorMock.mockResolvedValue(typedMonitor);
-      findMonitorProbesMock.mockResolvedValue([makeMonitorProbe(SENDER)]);
+      probeRows.set([makeMonitorProbe(SENDER)]);
 
       await MonitorResourceUtil.monitorResource(
         makeResult({ monitor: typedMonitor, step, probeId: SENDER }),
         { reportingProbeId: SENDER },
       );
 
-      expect(updateMonitorProbeColumnsMock).toHaveBeenCalledTimes(1);
+      expect(probeRows.stored).toHaveLength(1);
     }
   });
 
@@ -456,7 +446,7 @@ describe("MonitorResourceUtil.monitorResource with the probe that reported the r
       const typedMonitor: Monitor = makeMonitor(monitorType, step);
       findMonitorMock.mockResolvedValue(typedMonitor);
       // Even a probe row someone made through the API for it is not enough.
-      findMonitorProbesMock.mockResolvedValue([makeMonitorProbe(SENDER)]);
+      probeRows.set([makeMonitorProbe(SENDER)]);
 
       const result: DataToProcess = {
         ...makeResult({ monitor: typedMonitor, step, probeId: SENDER }),
@@ -485,7 +475,8 @@ describe("MonitorResourceUtil.monitorResource with results OneUptime builds itse
     jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
 
     lockMock.mockResolvedValue({});
-    updateMonitorProbeColumnsMock.mockResolvedValue(undefined);
+    probeRows = new MonitorProbeRowsInMemory();
+    probeRows.install();
     updateMonitorColumnsMock.mockResolvedValue(undefined);
     saveMetricsMock.mockResolvedValue(undefined);
 
@@ -520,8 +511,8 @@ describe("MonitorResourceUtil.monitorResource with results OneUptime builds itse
     expect(processMonitorStepMock).toHaveBeenCalledTimes(1);
     expect(saveMetricsMock).toHaveBeenCalledTimes(1);
     // Network Device monitors have no probe rows to read or write.
-    expect(findMonitorProbesMock).not.toHaveBeenCalled();
-    expect(updateMonitorProbeColumnsMock).not.toHaveBeenCalled();
+    expect(storeAndReadProbesMock).not.toHaveBeenCalled();
+    expect(probeRows.stored).toHaveLength(0);
   });
 
   test("an incoming request is stored as the monitor's last request, as before", async () => {
@@ -552,7 +543,7 @@ describe("MonitorResourceUtil.monitorResource with results OneUptime builds itse
   test("a probe result passed on without a reporting probe keeps the old check: the named probe must be assigned", async () => {
     const monitor: Monitor = makeMonitor(MonitorType.Website, step);
     findMonitorMock.mockResolvedValue(monitor);
-    findMonitorProbesMock.mockResolvedValue([makeMonitorProbe(GLOBAL_PROBE)]);
+    probeRows.set([makeMonitorProbe(GLOBAL_PROBE)]);
 
     await expect(
       MonitorResourceUtil.monitorResource(
@@ -560,6 +551,6 @@ describe("MonitorResourceUtil.monitorResource with results OneUptime builds itse
       ),
     ).rejects.toThrow(NOT_ASSIGNED);
 
-    expect(updateMonitorProbeColumnsMock).not.toHaveBeenCalled();
+    expect(probeRows.stored).toHaveLength(0);
   });
 });
