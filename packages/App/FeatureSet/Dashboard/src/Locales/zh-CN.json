@@ -52234,5 +52234,19 @@
   "The queue, topic or subscription name your applications and broker use. A URL, ARN or resource path is reduced to its name.": "您的应用和 Broker 使用的队列、主题或订阅名称。URL、ARN 或资源路径会缩减为该名称。",
   "This email was sent without a subject.": "此邮件发送时没有主题。",
   "Exclusion rule": "排除规则",
-  "Import rule": "导入规则"
+  "Import rule": "导入规则",
+  "Changes to the policy": "策略变更",
+  "One line at each hand-off: who is on call, and until when.": "每次交接一行：谁在值班，值到何时。",
+  "User overrides": "用户覆盖",
+  "Overrides added, changed and taken back: who is away, and who covers.": "添加、更改和撤销的覆盖：谁不在岗，谁代班。",
+  "Schedules, people and teams added to its escalation rules or taken out.": "添加到其升级规则或从中移除的计划、人员和团队。",
+  "The rule always posts when an on-call policy is created. Pick the updates it posts after that.": "创建值班策略时，规则总会发布。请选择之后要发布的更新。",
+  "When a schedule is left with nobody on call, so alerts that reach it page no one.": "计划中无人值班，到达它的警报不会呼叫任何人时。",
+  "Who is on call next": "下一位值班人员",
+  "Who is on call now": "当前值班人员",
+  "Who is on call now and next, nobody on call, overrides, and changes to the policy and its owners.": "当前和下一位值班人员、无人值班、覆盖，以及策略及其所有者的变更。",
+  "Who is on call now, and when nobody is.": "当前值班人员，以及何时无人值班。",
+  "Who takes over at the next hand-off, and when.": "下次交接时由谁接班，以及何时接班。",
+  "With none ticked, the rule posts only when an on-call policy is created.": "如果未勾选任何项，规则只会在创建值班策略时发布。",
+  "Only when an on-call policy is created": "仅在创建值班策略时"
 }

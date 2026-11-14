@@ -52234,5 +52234,19 @@
   "The queue, topic or subscription name your applications and broker use. A URL, ARN or resource path is reduced to its name.": "The queue, topic or subscription name your applications and broker use. A URL, ARN or resource path is reduced to its name.",
   "This email was sent without a subject.": "This email was sent without a subject.",
   "Exclusion rule": "Exclusion rule",
-  "Import rule": "Import rule"
+  "Import rule": "Import rule",
+  "Changes to the policy": "Changes to the policy",
+  "One line at each hand-off: who is on call, and until when.": "One line at each hand-off: who is on call, and until when.",
+  "User overrides": "User overrides",
+  "Overrides added, changed and taken back: who is away, and who covers.": "Overrides added, changed and taken back: who is away, and who covers.",
+  "Schedules, people and teams added to its escalation rules or taken out.": "Schedules, people and teams added to its escalation rules or taken out.",
+  "The rule always posts when an on-call policy is created. Pick the updates it posts after that.": "The rule always posts when an on-call policy is created. Pick the updates it posts after that.",
+  "When a schedule is left with nobody on call, so alerts that reach it page no one.": "When a schedule is left with nobody on call, so alerts that reach it page no one.",
+  "Who is on call next": "Who is on call next",
+  "Who is on call now": "Who is on call now",
+  "Who is on call now and next, nobody on call, overrides, and changes to the policy and its owners.": "Who is on call now and next, nobody on call, overrides, and changes to the policy and its owners.",
+  "Who is on call now, and when nobody is.": "Who is on call now, and when nobody is.",
+  "Who takes over at the next hand-off, and when.": "Who takes over at the next hand-off, and when.",
+  "With none ticked, the rule posts only when an on-call policy is created.": "With none ticked, the rule posts only when an on-call policy is created.",
+  "Only when an on-call policy is created": "Only when an on-call policy is created"
 }

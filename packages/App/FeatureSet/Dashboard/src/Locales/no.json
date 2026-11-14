@@ -52234,5 +52234,19 @@
   "The queue, topic or subscription name your applications and broker use. A URL, ARN or resource path is reduced to its name.": "Navnet på køen, emnet eller abonnementet som applikasjonene og brokeren din bruker. En URL, en ARN eller en ressurssti forkortes til navnet.",
   "This email was sent without a subject.": "Denne e-posten ble sendt uten emne.",
   "Exclusion rule": "Ekskluderingsregel",
-  "Import rule": "Importregel"
+  "Import rule": "Importregel",
+  "Changes to the policy": "Endringer i policyen",
+  "One line at each hand-off: who is on call, and until when.": "Én linje ved hvert vaktskifte: hvem som har vakt, og til når.",
+  "User overrides": "Brukeroverstyringer",
+  "Overrides added, changed and taken back: who is away, and who covers.": "Overstyringer lagt til, endret og trukket tilbake: hvem som er borte, og hvem som dekker.",
+  "Schedules, people and teams added to its escalation rules or taken out.": "Tidsplaner, personer og team som er lagt til i eskaleringsreglene eller tatt ut.",
+  "The rule always posts when an on-call policy is created. Pick the updates it posts after that.": "Regelen poster alltid når en vaktpolicy opprettes. Velg oppdateringene den poster etter det.",
+  "When a schedule is left with nobody on call, so alerts that reach it page no one.": "Når en tidsplan står uten noen på vakt, slik at varsler som når den, ikke tilkaller noen.",
+  "Who is on call next": "Hvem som har vakt neste gang",
+  "Who is on call now": "Hvem som har vakt nå",
+  "Who is on call now and next, nobody on call, overrides, and changes to the policy and its owners.": "Hvem som har vakt nå og neste gang, ingen har vakt, overstyringer, og endringer i policyen og eierne.",
+  "Who is on call now, and when nobody is.": "Hvem som har vakt nå, og når ingen har det.",
+  "Who takes over at the next hand-off, and when.": "Hvem som tar over ved neste vaktskifte, og når.",
+  "With none ticked, the rule posts only when an on-call policy is created.": "Er ingen krysset av, poster regelen bare når en vaktpolicy opprettes.",
+  "Only when an on-call policy is created": "Bare når en vaktpolicy opprettes"
 }

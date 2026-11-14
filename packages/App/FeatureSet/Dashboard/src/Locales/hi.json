@@ -52234,5 +52234,19 @@
   "The queue, topic or subscription name your applications and broker use. A URL, ARN or resource path is reduced to its name.": "आपके एप्लिकेशन और ब्रोकर जिस क्यू, टॉपिक या सब्सक्रिप्शन के नाम का उपयोग करते हैं। URL, ARN या रिसोर्स पाथ को उसके नाम तक छोटा कर दिया जाता है।",
   "This email was sent without a subject.": "यह ईमेल बिना विषय के भेजा गया था।",
   "Exclusion rule": "बहिष्करण नियम",
-  "Import rule": "आयात नियम"
+  "Import rule": "आयात नियम",
+  "Changes to the policy": "नीति में बदलाव",
+  "One line at each hand-off: who is on call, and until when.": "हर हैंडऑफ़ पर एक पंक्ति: कौन ऑन-कॉल है, और कब तक।",
+  "User overrides": "उपयोगकर्ता ओवरराइड",
+  "Overrides added, changed and taken back: who is away, and who covers.": "जोड़े, बदले और वापस लिए गए ओवरराइड: कौन अनुपस्थित है, और कौन कवर करेगा।",
+  "Schedules, people and teams added to its escalation rules or taken out.": "इसके एस्केलेशन नियमों में जोड़ी गई या उनसे हटाई गई अनुसूचियाँ, लोग और टीमें।",
+  "The rule always posts when an on-call policy is created. Pick the updates it posts after that.": "जब कोई ऑन-कॉल नीति बनाई जाती है, तो नियम हमेशा पोस्ट करता है। उसके बाद नियम कौन-से अपडेट पोस्ट करे, यह चुनें।",
+  "When a schedule is left with nobody on call, so alerts that reach it page no one.": "जब किसी अनुसूची में कोई ऑन-कॉल नहीं रहता, इसलिए उस तक पहुँचने वाले अलर्ट किसी को पेज नहीं करते।",
+  "Who is on call next": "अगला ऑन-कॉल कौन है",
+  "Who is on call now": "अभी ऑन-कॉल कौन है",
+  "Who is on call now and next, nobody on call, overrides, and changes to the policy and its owners.": "अभी और अगला ऑन-कॉल कौन है, कोई ऑन-कॉल नहीं, ओवरराइड, और नीति व उसके मालिकों में बदलाव।",
+  "Who is on call now, and when nobody is.": "अभी ऑन-कॉल कौन है, और कब कोई नहीं है।",
+  "Who takes over at the next hand-off, and when.": "अगले हैंडऑफ़ पर कौन संभालेगा, और कब।",
+  "With none ticked, the rule posts only when an on-call policy is created.": "कुछ भी न चुनने पर, नियम केवल ऑन-कॉल नीति बनने पर पोस्ट करता है।",
+  "Only when an on-call policy is created": "केवल ऑन-कॉल नीति बनने पर"
 }
