@@ -37,7 +37,7 @@ flowchart TB
 
 `IncidentState` 모델은 `name`, `description`, `color`, `order`와 세 가지 불리언 `isCreatedState`, `isAcknowledgedState`, `isResolvedState`를 가집니다. 제품이 상태로 하는 모든 일은 이 불리언들과 `order`를 기준으로 하며, 상태의 이름을 기준으로 하는 일은 없습니다. 그래서 **해결됨**의 이름을 "Closed"로 바꿔도 아무것도 깨지지 않습니다. 플래그는 행과 함께 움직입니다.
 
-`IncidentSeverity` 모델은 `name`, `description`, `color`, `order`만 가집니다. 플래그는 없습니다. OneUptime의 어떤 것도 그 자체로 **Critical Incident**를 **Minor Incident**와 다르게 다루지 않습니다. 심각도가 의미를 갖는 것은 온콜 규칙의 일치 기준 **인시던트 심각도**처럼 무언가를 심각도에 연결했을 때뿐입니다.
+`IncidentSeverity` 모델은 `name`, `description`, `color`, `order`만 가집니다. 플래그는 없습니다. OneUptime의 어떤 것도 그 자체로 **심각한 인시던트**를 **경미한 인시던트**와 다르게 다루지 않습니다. 심각도가 의미를 갖는 것은 온콜 규칙의 일치 기준 **인시던트 심각도**처럼 무언가를 심각도에 연결했을 때뿐입니다.
 
 몇 가지 간단한 규칙:
 
@@ -138,9 +138,9 @@ API와 Terraform에서 순서는 `order` 열입니다. 작은 번호가 먼저 �
 
 | 심각도                | `order` | 색상      | 기본 설명                                                                                                                                                                                 |
 | --------------------- | ------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Critical Incident** | `1`     | `#b70400` | Issues causing very high impact to customers. Immediate response is required. Examples include a full outage, or a data breach.                                                          |
-| **Major Incident**    | `2`     | `#fd625e` | Issues causing significant impact. Immediate response is usually required. We might have some workarounds that mitigate the impact on customers. Examples include an important sub-system failing. |
-| **Minor Incident**    | `3`     | `#ffbf53` | Issues with low impact, which can usually be handled within working hours. Most customers are unlikely to notice any problems. Examples include a slight drop in application performance. |
+| **심각한 인시던트** | `1`     | `#b70400` | Issues causing very high impact to customers. Immediate response is required. Examples include a full outage, or a data breach.                                                          |
+| **주요 인시던트**    | `2`     | `#fd625e` | Issues causing significant impact. Immediate response is usually required. We might have some workarounds that mitigate the impact on customers. Examples include an important sub-system failing. |
+| **경미한 인시던트**    | `3`     | `#ffbf53` | Issues with low impact, which can usually be handled within working hours. Most customers are unlikely to notice any problems. Examples include a slight drop in application performance. |
 
 심각도는 인시던트를 선언할 때 필수이고, 모니터 기준의 각 인시던트 명세에서도 필수이므로, 수동이든 자동이든 모든 인시던트는 심각도를 갖고 들어옵니다. 선언 흐름은 [인시던트 선언](/docs/incidents/declaring-incidents)을, 모니터에서 만들어지는 경로는 [인시던트 및 알림 템플릿](/docs/monitor/incident-alert-templating)을 참고하세요.
 
@@ -155,7 +155,7 @@ API와 Terraform에서 순서는 `order` 열입니다. 작은 번호가 먼저 �
 - **삭제 보호가 없습니다.** 기본 제공 세 가지를 포함해 어떤 심각도든 삭제할 수 있습니다.
 - **물려받을 플래그도, "간주"도 없습니다.** 새 심각도는 기본 제공 심각도와 똑같이 동작합니다. 색상과 순위를 가진 레이블입니다.
 
-심각도가 설명 이상의 일을 하는 곳: **인시던트 → 규칙 → 온콜 규칙**에서 규칙의 **인시던트 심각도** 항목은 일치 기준입니다. 그곳에 **Critical Incident**를 지정하는 것이 "심각한 것은 모두 데이터베이스 팀을 호출하라"를 표현하는 방법입니다. 온콜 정책은 심각도가 아니라 규칙에 있습니다.
+심각도가 설명 이상의 일을 하는 곳: **인시던트 → 규칙 → 온콜 규칙**에서 규칙의 **인시던트 심각도** 항목은 일치 기준입니다. 그곳에 **심각한 인시던트**를 지정하는 것이 "심각한 것은 모두 데이터베이스 팀을 호출하라"를 표현하는 방법입니다. 온콜 정책은 심각도가 아니라 규칙에 있습니다.
 
 **인시던트의 심각도 변경**(인시던트 **인시던트 세부 정보** 카드의 **편집**, API나 Terraform의 `incidentSeverityId`, 워크플로우, AI 도구)은 어떤 방법으로 보내든 같은 네 가지 일을 합니다. 인시던트 피드에 새 심각도를 밝히는 **Incident updated** 항목이 추가되고, 인시던트의 SLA 기한이 다시 계산되고, 리마인더 규칙이 다시 대조되며, 인시던트 지표가 심각도 변경 한 번을 셉니다. 인시던트가 이미 가진 심각도를 저장하면 아무것도 하지 않으므로, 인시던트의 제목만 편집해도 SLA 기한, 리마인더, 심각도 변경 횟수는 그대로입니다. 알림의 심각도도 피드 항목과 리마인더에 대해 같은 방식으로 동작합니다.
 

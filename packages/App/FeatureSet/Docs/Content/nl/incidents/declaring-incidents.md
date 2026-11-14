@@ -55,7 +55,7 @@ Het middel wordt opgezocht met je eigen machtigingen: kun je het niet lezen, of 
 ### Stap 1 — Incidentdetails
 
 - **Titel** — verplicht. De samenvatting van één regel die iedereen ziet in de lijst, in Slack en (als het incident zichtbaar is) op je statuspagina. Voorbeeldtekst: `Incident Title`.
-- **Ernst van incident** — verplicht. Een van de ernstniveaus die voor je project zijn ingesteld; nieuwe projecten krijgen vooraf **Critical Incident**, **Major Incident** en **Minor Incident**.
+- **Ernst van incident** — verplicht. Een van de ernstniveaus die voor je project zijn ingesteld; nieuwe projecten krijgen vooraf **Kritiek incident**, **Belangrijk incident** en **Klein incident**.
 - **Beschrijving** — optioneel, geschreven in Markdown. Dit is het veld dat op de statuspagina wordt weergegeven, dus schrijf het voor klanten en niet voor je team. Een afbeelding die je erin zet, is voor iedereen te zien zolang het incident zichtbaar is op statuspagina's, en alleen voor de leden van je project zolang het verborgen is. Je kunt het later bewerken via **Beschrijving** in het zijmenu van het incident.
 
 Onder **Meer velden**:

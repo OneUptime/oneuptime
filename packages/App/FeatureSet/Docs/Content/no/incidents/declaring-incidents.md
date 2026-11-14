@@ -55,7 +55,7 @@ Ressursen slås opp med dine egne tillatelser: kan du ikke lese den, eller er de
 ### Trinn 1 — Hendelsesdetaljer
 
 - **Tittel** — påkrevd. Sammendraget på én linje som alle ser i listen, i Slack og (hvis hendelsen er synlig) på statussiden din. Plassholder: `Incident Title`.
-- **Hendelsesalvor** — påkrevd. En av alvorlighetsgradene som er satt opp for prosjektet ditt; nye prosjekter får **Critical Incident**, **Major Incident** og **Minor Incident** på forhånd.
+- **Hendelsesalvor** — påkrevd. En av alvorlighetsgradene som er satt opp for prosjektet ditt; nye prosjekter får **Kritisk hendelse**, **Større hendelse** og **Mindre hendelse** på forhånd.
 - **Beskrivelse** — valgfritt, skrevet i Markdown. Det er dette feltet som vises på statussiden, så skriv det for kundene og ikke for teamet ditt. Et bilde du legger inn i det, vises for alle mens hendelsen er synlig på statussider, og bare for medlemmene av prosjektet ditt mens den er skjult. Du kan redigere det senere fra **Beskrivelse** i hendelsens sidemeny.
 
 Under **Flere felt**:

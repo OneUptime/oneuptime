@@ -55,7 +55,7 @@ O recurso é buscado com as suas próprias permissões: se você não puder lê-
 ### Etapa 1 — Detalhes do incidente
 
 - **Título** — obrigatório. O resumo de uma linha que todos verão na lista, no Slack e (se o incidente estiver visível) na sua página de status. Texto de exemplo: `Incident Title`.
-- **Severidade do incidente** — obrigatória. Uma das severidades configuradas para o seu projeto; projetos novos são criados com **Critical Incident**, **Major Incident** e **Minor Incident**.
+- **Severidade do incidente** — obrigatória. Uma das severidades configuradas para o seu projeto; projetos novos são criados com **Incidente crítico**, **Incidente grave** e **Incidente menor**.
 - **Descrição** — opcional, escrita em Markdown. É o campo que aparece na página de status, então escreva-o para os clientes, e não para a sua equipe. Uma imagem que você colocar nele é mostrada a todos enquanto o incidente estiver visível nas páginas de status, e só aos membros do seu projeto enquanto estiver oculto. Você pode editá-la depois em **Descrição** no menu lateral do incidente.
 
 Em **Mais campos**:

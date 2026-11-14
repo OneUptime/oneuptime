@@ -16,7 +16,7 @@ Un incident est l'enregistrement à partir duquel votre équipe travaille quand 
 
 - **Un produit à part entière** — ouvrez **Incidents** depuis le menu **Produits** de la barre supérieure ; la liste se trouve à `/dashboard/{projectId}/incidents`.
 - **Trois états créés d'office** — **Identifié**, **Pris en compte** et **Résolu** sont créés pour chaque nouveau projet. Vous pouvez ajouter les vôtres ; les trois états créés d'office peuvent être renommés et recolorés, mais jamais supprimés.
-- **Trois gravités créées d'office** — **Critical Incident**, **Major Incident** et **Minor Incident**. Une gravité est une étiquette avec une couleur et un ordre — elle n'a aucun comportement propre.
+- **Trois gravités créées d'office** — **Incident critique**, **Incident majeur** et **Incident mineur**. Une gravité est une étiquette avec une couleur et un ordre — elle n'a aucun comportement propre.
 - **Cinq portes d'entrée** — l'assistant **Déclarer un incident**, **Créer à partir d'un modèle**, une règle de critères de moniteur, `POST /api/incident`, ou un [formulaire](/docs/forms/index) que toute personne disposant de son lien peut remplir.
 - **Numérotés par projet** — chaque incident reçoit un numéro d'incident tiré d'un compteur propre au projet, affiché avec le préfixe de votre projet : `INC-42` dans un nouveau projet, ou `#42` sans préfixe. Le numéro précède le titre de l'incident sur ses pages, dans l'onglet du navigateur, dans la recherche et dans les boîtes de dialogue qui le concernent, si bien que les incidents qui partagent un titre se distinguent.
 - **Deux sortes de notes** — les notes privées (notes internes) pour votre équipe, les notes publiques pour les abonnés de la page de statut.
@@ -143,11 +143,11 @@ Chaque nouveau projet reçoit aussi trois gravités :
 
 | Gravité               | Ordre | Couleur              | Ce que cela veut dire                                          |
 | --------------------- | ----- | -------------------- | -------------------------------------------------------------- |
-| **Critical Incident** | 1     | Bordeaux (`#b70400`) | Impact client très élevé, qui exige une intervention immédiate. |
-| **Major Incident**    | 2     | Rouge (`#fd625e`)    | Impact important, qui exige généralement une intervention immédiate. |
-| **Minor Incident**    | 3     | Jaune (`#ffbf53`)    | Faible impact, généralement traité pendant les heures ouvrées. |
+| **Incident critique** | 1     | Bordeaux (`#b70400`) | Impact client très élevé, qui exige une intervention immédiate. |
+| **Incident majeur**    | 2     | Rouge (`#fd625e`)    | Impact important, qui exige généralement une intervention immédiate. |
+| **Incident mineur**    | 3     | Jaune (`#ffbf53`)    | Faible impact, généralement traité pendant les heures ouvrées. |
 
-Les gravités ont un `name`, une `description`, une `color` et un `order`, et rien d'autre. Il n'y a pas d'indicateurs, et aucun chemin de code ne traite « Critical Incident » différemment d'une autre ligne. La gravité sert aux humains à trier, et elle est disponible comme critère de correspondance quand vous écrivez des règles d'astreinte — mais choisir une gravité n'alerte, à elle seule, personne.
+Les gravités ont un `name`, une `description`, une `color` et un `order`, et rien d'autre. Il n'y a pas d'indicateurs, et aucun chemin de code ne traite « Incident critique » différemment d'une autre ligne. La gravité sert aux humains à trier, et elle est disponible comme critère de correspondance quand vous écrivez des règles d'astreinte — mais choisir une gravité n'alerte, à elle seule, personne.
 
 Modifiez ou ajoutez des gravités dans **Incidents → Paramètres → Gravité de l'incident**. Les descriptions complètes créées d'office se trouvent dans [États et sévérités des incidents](/docs/incidents/states-and-severities).
 
