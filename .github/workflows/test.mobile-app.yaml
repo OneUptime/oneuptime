@@ -71,7 +71,7 @@ jobs:
     # (Tests/Ops/PlaywrightImage).
     timeout-minutes: 105
     container:
-      image: mcr.microsoft.com/playwright:v1.63.0-noble
+      image: mcr.microsoft.com/playwright:v1.64.1-noble
       options: --user 1001 --ipc=host
     # In a container a run step with no shell of its own gets sh, not the
     # bash -e {0} a runner gives it; the steps here are written for the
