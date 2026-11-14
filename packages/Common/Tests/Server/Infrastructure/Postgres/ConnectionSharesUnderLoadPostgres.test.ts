@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
-import { DataSource } from "typeorm";
+import { DataSource, EntityManager } from "typeorm";
 import QueueJobConnections from "../../../../Server/Infrastructure/Postgres/QueueJobConnections";
 import {
   ConnectionShares,
@@ -34,6 +34,11 @@ import {
  * the failure the shares exist to stop, shown so this test can tell the
  * two apart. (Measured on a laptop: 1-87 ms a sign-in with the shares,
  * about 1.6 s without.)
+ *
+ * And because the checkout it counts is TypeORM's own, a queue job's
+ * transaction holds one slot for exactly as long as it holds its
+ * connection: committed, rolled back by the job or failed on the database,
+ * it gives the slot back.
  *
  * Needs only a bare Postgres - CI's Common test job sets the flag for the
  * one test-setup.sh starts. It creates nothing. Locally:
@@ -90,6 +95,27 @@ function pause(ms: number): Promise<void> {
   return new Promise<void>((resolve: () => void): void => {
     setTimeout(resolve, ms);
   });
+}
+
+async function eventually(condition: () => boolean): Promise<void> {
+  const deadline: number = Date.now() + 10_000;
+  while (!condition()) {
+    if (Date.now() > deadline) {
+      throw new Error("The condition did not come true within 10 s.");
+    }
+    await pause(10);
+  }
+}
+
+// A promise the test settles, and the function that settles it.
+function gate(): { opened: Promise<void>; open: () => void } {
+  let open: () => void = (): void => {
+    return undefined;
+  };
+  const opened: Promise<void> = new Promise<void>((resolve: () => void) => {
+    open = resolve;
+  });
+  return { opened, open };
 }
 
 interface BackgroundLoad {
@@ -261,6 +287,118 @@ describePostgres(
         }),
       );
       expect(slowest).toBeLessThan(SIGN_IN_BOUND_MS);
+    });
+
+    /*
+     * The checkout counted is TypeORM's, so a job's transaction - one query
+     * runner, one connection, from START TRANSACTION to COMMIT or ROLLBACK -
+     * holds one slot for as long as it holds the connection, and gives it
+     * back however it ends.
+     */
+    test("a queue job's transaction holds one slot from its start to its end, and gives it back however it ends", async () => {
+      dataSource = await openPool();
+      const source: DataSource = dataSource;
+      const jobConnections: ReturnType<typeof QueueJobConnections.install> =
+        QueueJobConnections.install(source, {
+          maxConnections: 2,
+          maxWaitMs: ACQUIRE_TIMEOUT_MS,
+        });
+
+      // Committed.
+      await QueueJobConnections.runAsQueueJob(
+        "worker",
+        async (): Promise<void> => {
+          await source.transaction(
+            async (manager: EntityManager): Promise<void> => {
+              expect(jobConnections.runningCount("worker")).toBe(1);
+              await manager.query("SELECT 1");
+              await manager.query("SELECT pg_sleep(0.05)");
+              expect(jobConnections.runningCount("worker")).toBe(1);
+            },
+          );
+        },
+      );
+      expect(jobConnections.runningCount()).toBe(0);
+
+      // Rolled back by the job.
+      await expect(
+        QueueJobConnections.runAsQueueJob("worker", async (): Promise<void> => {
+          await source.transaction(
+            async (manager: EntityManager): Promise<void> => {
+              await manager.query("SELECT 1");
+              throw new Error("the job changed its mind");
+            },
+          );
+        }),
+      ).rejects.toThrow("the job changed its mind");
+      expect(jobConnections.runningCount()).toBe(0);
+
+      // Failed on the database.
+      await expect(
+        QueueJobConnections.runAsQueueJob("worker", async (): Promise<void> => {
+          await source.transaction(
+            async (manager: EntityManager): Promise<void> => {
+              await manager.query(
+                "SELECT * FROM connection_share_test_no_such_table",
+              );
+            },
+          );
+        }),
+      ).rejects.toThrow();
+      expect(jobConnections.runningCount()).toBe(0);
+
+      /*
+       * Two open transactions hold both slots: another job's statement waits
+       * for one of them to end, and a request's does not wait at all.
+       */
+      const first: { opened: Promise<void>; open: () => void } = gate();
+      const second: { opened: Promise<void>; open: () => void } = gate();
+      const transaction: (hold: Promise<void>) => Promise<void> = (
+        hold: Promise<void>,
+      ): Promise<void> => {
+        return QueueJobConnections.runAsQueueJob(
+          "telemetry",
+          async (): Promise<void> => {
+            await source.transaction(
+              async (manager: EntityManager): Promise<void> => {
+                await manager.query("SELECT 1");
+                await hold;
+              },
+            );
+          },
+        );
+      };
+      const firstTransaction: Promise<void> = transaction(first.opened);
+      const secondTransaction: Promise<void> = transaction(second.opened);
+      await eventually((): boolean => {
+        return jobConnections.runningCount() === 2;
+      });
+
+      let anotherJobDone: boolean = false;
+      const anotherJob: Promise<void> = QueueJobConnections.runAsQueueJob(
+        "worker",
+        async (): Promise<void> => {
+          await source.query("SELECT 1");
+          anotherJobDone = true;
+        },
+      );
+      await pause(300);
+      expect(anotherJobDone).toBe(false);
+      expect(jobConnections.waitingCount()).toBe(1);
+
+      const request: SignIn = await signIn(source);
+      expect(request.error).toBeNull();
+      expect(request.elapsedMs).toBeLessThan(SIGN_IN_BOUND_MS);
+
+      first.open();
+      await firstTransaction;
+      await anotherJob;
+      expect(anotherJobDone).toBe(true);
+
+      second.open();
+      await secondTransaction;
+      expect(jobConnections.runningCount()).toBe(0);
+      expect(jobConnections.waitingCount()).toBe(0);
     });
 
     test("without them, the same sign-in waits behind the background work, up to the acquire timeout", async () => {
