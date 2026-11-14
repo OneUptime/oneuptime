@@ -74,6 +74,7 @@ import CreatedNotificationHold, {
   OwnersAddedBy,
 } from "../Notification/CreatedNotificationHold";
 import CreateBy from "../../Types/Database/CreateBy";
+import MonitorOpenRecords from "./MonitorOpenRecords";
 
 export default class MonitorIncident {
   @CaptureSpan()
@@ -1182,6 +1183,16 @@ export default class MonitorIncident {
                 return IncidentService.create(createBy);
               },
             );
+
+            /*
+             * An open incident this monitor's criteria raised: what was known
+             * of its open incidents no longer counts, so the next result reads
+             * them - and resolves this one when it recovers
+             * (MonitorOpenRecords). IncidentService's own update hook says the same
+             * once the incident's state is set; this says it before anything
+             * else can go wrong.
+             */
+            await MonitorOpenRecords.forgetMonitors([input.monitor.id]);
 
             await OpenStackScopedRules.finishIncident({
               projectId: input.monitor.projectId!,

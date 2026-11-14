@@ -3,6 +3,10 @@ import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";
 import DatabaseService from "./DatabaseService";
+import QueryHelper from "../Types/Database/QueryHelper";
+import ProjectStateListCache from "../Utils/Database/ProjectStateListCache";
+import MonitorOpenRecords from "../Utils/Monitor/MonitorOpenRecords";
+import logger from "../Utils/Logger";
 import StateOrderGuard from "../Utils/Database/StateOrderGuard";
 import ArchivableValueGuard from "../Utils/Database/ArchivableValueGuard";
 import {
@@ -21,7 +25,37 @@ import AcknowledgedStateUtil from "../../Utils/AcknowledgedState";
 import IncidentState from "../../Models/DatabaseModels/IncidentState";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
+/*
+ * What getAllIncidentStates reads of each state: every caller of the list needs
+ * no more.
+ */
+const STATE_COLUMNS: Array<string> = [
+  "_id",
+  "isResolvedState",
+  "isAcknowledgedState",
+  "isCreatedState",
+  "order",
+  "name",
+];
+
 export class Service extends DatabaseService<IncidentState> {
+  /*
+   * Each project's states as OneUptime reads them (isRoot), kept in this
+   * process until any of them changes (ProjectStateListCache): every monitor
+   * result that meets a criteria asks which states are open, and every
+   * auto-resolve which state is Resolved - two reads of the whole list a
+   * result, for a list that changes a handful of times in a project's life.
+   * The hooks below start a new generation of the project's list on every
+   * create, update and delete of a state.
+   */
+  public readonly statesAsOneUptime: ProjectStateListCache<IncidentState> =
+    new ProjectStateListCache<IncidentState>({
+      namespace: "incident-state-list",
+      description: "projects' incident states",
+      modelType: IncidentState,
+      columns: STATE_COLUMNS,
+    });
+
   public constructor() {
     super(IncidentState);
   }
@@ -102,8 +136,156 @@ export class Service extends DatabaseService<IncidentState> {
     return { updateBy, carryForward: null };
   }
 
+  /*
+   * A state created, changed or deleted: the project's list kept in every
+   * process is read again (statesAsOneUptime), and what its monitors knew of
+   * their open incidents no longer counts - a state moved past Resolved, or made
+   * the resolved one, changes which incidents are open (MonitorOpenRecords).
+   */
+  @CaptureSpan()
+  protected override async onCreateSuccess(
+    _onCreate: OnCreate<IncidentState>,
+    createdItem: IncidentState,
+  ): Promise<IncidentState> {
+    await this.forgetProjects([createdItem.projectId]);
+    return createdItem;
+  }
+
+  @CaptureSpan()
+  protected override async onUpdateSuccess(
+    onUpdate: OnUpdate<IncidentState>,
+    updatedItemIds: Array<ObjectID>,
+  ): Promise<OnUpdate<IncidentState>> {
+    await this.forgetProjectsOf(updatedItemIds);
+    return onUpdate;
+  }
+
+  @CaptureSpan()
+  protected override async onDeleteSuccess(
+    onDelete: OnDelete<IncidentState>,
+    itemIdsBeforeDelete: Array<ObjectID>,
+  ): Promise<OnDelete<IncidentState>> {
+    await this.forgetProjectsOf(itemIdsBeforeDelete);
+    return onDelete;
+  }
+
+  // The projects of these states, deleted ones included. Never throws.
+  private async forgetProjectsOf(stateIds: Array<ObjectID>): Promise<void> {
+    if (stateIds.length === 0) {
+      return;
+    }
+
+    try {
+      const states: Array<IncidentState> = await this.findByWithDeleted({
+        query: {
+          _id: QueryHelper.any(stateIds),
+        },
+        select: {
+          projectId: true,
+        },
+        skip: 0,
+        limit: LIMIT_MAX,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      await this.forgetProjects(
+        states.map((state: IncidentState) => {
+          return state.projectId;
+        }),
+      );
+    } catch (err) {
+      /*
+       * The projects could not be read: each process reads its lists
+       * again within ProjectStateListCache.ENTRY_TTL_MS, and no monitor goes
+       * by what it knew of its open incidents.
+       */
+      logger.error(err);
+      await MonitorOpenRecords.forgetAll();
+    }
+  }
+
+  private async forgetProjects(
+    projectIds: Array<ObjectID | undefined>,
+  ): Promise<void> {
+    await this.statesAsOneUptime.forgetProjects(projectIds);
+
+    await Promise.all(
+      Array.from(
+        new Set<string>(
+          projectIds
+            .filter((projectId: ObjectID | undefined) => {
+              return Boolean(projectId);
+            })
+            .map((projectId: ObjectID | undefined) => {
+              return projectId!.toString();
+            }),
+        ),
+      ).map(async (projectId: string): Promise<void> => {
+        await MonitorOpenRecords.forgetProject(projectId);
+      }),
+    );
+  }
+
+  /*
+   * The project's states, in order. Read as OneUptime (isRoot), from what this
+   * process keeps of them (statesAsOneUptime); read for someone, from the
+   * database as they may read it.
+   */
   @CaptureSpan()
   public async getAllIncidentStates(data: {
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Array<IncidentState>> {
+    if (data.props.isRoot === true) {
+      return await this.statesAsOneUptime.getStates(
+        data.projectId,
+        (): Promise<Array<IncidentState>> => {
+          return this.readAllIncidentStates(data);
+        },
+      );
+    }
+
+    return await this.readAllIncidentStates(data);
+  }
+
+  /*
+   * The project's states as they are in the database now, past what this
+   * process keeps: for an answer about a state the kept list does not have -
+   * one created a moment ago, in another process - before saying it is not
+   * the project's.
+   */
+  private async getAllIncidentStatesHaving(data: {
+    projectId: ObjectID;
+    stateId: ObjectID;
+  }): Promise<Array<IncidentState>> {
+    const states: Array<IncidentState> = await this.getAllIncidentStates({
+      projectId: data.projectId,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const stateId: string = data.stateId.toString();
+
+    if (
+      states.some((state: IncidentState) => {
+        return state.id?.toString() === stateId;
+      })
+    ) {
+      return states;
+    }
+
+    return await this.readAllIncidentStates({
+      projectId: data.projectId,
+      props: {
+        isRoot: true,
+      },
+    });
+  }
+
+  private async readAllIncidentStates(data: {
     projectId: ObjectID;
     props: DatabaseCommonInteractionProps;
   }): Promise<Array<IncidentState>> {
@@ -201,11 +383,9 @@ export class Service extends DatabaseService<IncidentState> {
   }): Promise<boolean> {
     return ResolvedStateUtil.isResolved({
       list: StateListType.IncidentState,
-      states: await this.getAllIncidentStates({
+      states: await this.getAllIncidentStatesHaving({
         projectId: data.projectId,
-        props: {
-          isRoot: true,
-        },
+        stateId: data.incidentStateId,
       }),
       stateId: data.incidentStateId,
     });
@@ -298,11 +478,9 @@ export class Service extends DatabaseService<IncidentState> {
   }): Promise<boolean> {
     return AcknowledgedStateUtil.isAcknowledged({
       list: StateListType.IncidentState,
-      states: await this.getAllIncidentStates({
+      states: await this.getAllIncidentStatesHaving({
         projectId: data.projectId,
-        props: {
-          isRoot: true,
-        },
+        stateId: data.incidentStateId,
       }),
       stateId: data.incidentStateId,
     });
@@ -377,11 +555,9 @@ export class Service extends DatabaseService<IncidentState> {
     incidentStateId: ObjectID;
   }): Promise<StartingState | null> {
     const incidentStates: Array<IncidentState> =
-      await this.getAllIncidentStates({
+      await this.getAllIncidentStatesHaving({
         projectId: data.projectId,
-        props: {
-          isRoot: true,
-        },
+        stateId: data.incidentStateId,
       });
 
     return StartingStageUtil.getStartingState({
