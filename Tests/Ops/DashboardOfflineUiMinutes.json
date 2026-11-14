@@ -75,7 +75,7 @@
     "test-monitor-overview-ui 1/2": 10.0,
     "test-monitor-overview-ui 2/2": 11.0,
     "test-multi-device-snmp-walk-ui": 1.7,
-    "test-navigation-search-ui": 5.0,
+    "test-navigation-search-ui": 5.2,
     "test-network-first-run-ui": 1.4,
     "test-network-traffic-names-ui": 2.5,
     "test-new-version-ui": 1.9,
