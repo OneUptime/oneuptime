@@ -85,6 +85,21 @@ jest.mock("Common/Server/Infrastructure/Semaphore", () => {
   };
 });
 
+// This process is connected to Valkey (CronLock takes no lock without it).
+jest.mock("Common/Server/Infrastructure/Redis", () => {
+  return {
+    __esModule: true,
+    default: {
+      getClient: jest.fn(() => {
+        return { status: "ready" };
+      }),
+      getRedisOptions: jest.fn(() => {
+        return {};
+      }),
+    },
+  };
+});
+
 jest.mock("Common/Server/Infrastructure/Queue", () => {
   return {
     __esModule: true,
