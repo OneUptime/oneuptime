@@ -37,7 +37,7 @@ flowchart TB
 
 Het model `IncidentState` heeft `name`, `description`, `color` en `order`, plus drie booleans: `isCreatedState`, `isAcknowledgedState` en `isResolvedState`. Alles wat het product met statussen doet, gaat uit van die booleans en van `order` — nooit van de naam van de status. Daarom kun je **Opgelost** hernoemen naar "Closed" zonder dat er iets breekt: de vlag reist mee met de rij.
 
-Het model `IncidentSeverity` heeft `name`, `description`, `color` en `order`, en verder niets. Er zijn geen vlaggen. Niets in OneUptime behandelt **Critical Incident** uit zichzelf anders dan **Minor Incident** — ernst doet er alleen toe waar je er iets op richt, zoals het criterium **Ernstniveaus van incidenten** van een bereikbaarheidsregel.
+Het model `IncidentSeverity` heeft `name`, `description`, `color` en `order`, en verder niets. Er zijn geen vlaggen. Niets in OneUptime behandelt **Kritiek incident** uit zichzelf anders dan **Klein incident** — ernst doet er alleen toe waar je er iets op richt, zoals het criterium **Ernstniveaus van incidenten** van een bereikbaarheidsregel.
 
 Een paar korte regels:
 
@@ -138,9 +138,9 @@ Er worden met het project drie ernstniveaus aangemaakt, in deze volgorde, het er
 
 | Ernst                 | `order` | Kleur     | Vooraf ingevulde beschrijving                                                                                                                                                             |
 | --------------------- | ------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Critical Incident** | `1`     | `#b70400` | Issues causing very high impact to customers. Immediate response is required. Examples include a full outage, or a data breach.                                                          |
-| **Major Incident**    | `2`     | `#fd625e` | Issues causing significant impact. Immediate response is usually required. We might have some workarounds that mitigate the impact on customers. Examples include an important sub-system failing. |
-| **Minor Incident**    | `3`     | `#ffbf53` | Issues with low impact, which can usually be handled within working hours. Most customers are unlikely to notice any problems. Examples include a slight drop in application performance. |
+| **Kritiek incident** | `1`     | `#b70400` | Issues causing very high impact to customers. Immediate response is required. Examples include a full outage, or a data breach.                                                          |
+| **Belangrijk incident**    | `2`     | `#fd625e` | Issues causing significant impact. Immediate response is usually required. We might have some workarounds that mitigate the impact on customers. Examples include an important sub-system failing. |
+| **Klein incident**    | `3`     | `#ffbf53` | Issues with low impact, which can usually be handled within working hours. Most customers are unlikely to notice any problems. Examples include a slight drop in application performance. |
 
 Ernst is verplicht als je een incident meldt, en is verplicht in elke incidentspecificatie in de criteria van een monitor, dus elk incident — met de hand of automatisch — komt er met een binnen. Zie [Een incident melden](/docs/incidents/declaring-incidents) voor het meldproces en [Incident- en waarschuwingstemplates](/docs/monitor/incident-alert-templating) voor de route via monitoren.
 
@@ -155,7 +155,7 @@ Twee verschillen met statussen:
 - **Er is geen beveiliging tegen verwijderen.** Elke ernst kan worden verwijderd, ook de drie vooraf aangemaakte.
 - **Er zijn geen vlaggen om over te nemen, en er is geen "Telt als".** Een nieuwe ernst gedraagt zich precies als de vooraf aangemaakte — het is een label met een kleur en een rang.
 
-Waar ernst meer doet dan beschrijven: onder **Incidenten → Regels → Bereikbaarheidsregels** is het veld **Ernstniveaus van incidenten** van een regel een criterium. **Critical Incident** daar opnemen is hoe "roep het databaseteam op voor alles wat kritiek is" wordt uitgedrukt — het bereikbaarheidsbeleid zit op de regel, niet op de ernst.
+Waar ernst meer doet dan beschrijven: onder **Incidenten → Regels → Bereikbaarheidsregels** is het veld **Ernstniveaus van incidenten** van een regel een criterium. **Kritiek incident** daar opnemen is hoe "roep het databaseteam op voor alles wat kritiek is" wordt uitgedrukt — het bereikbaarheidsbeleid zit op de regel, niet op de ernst.
 
 **De ernst van een incident wijzigen** — onder **Bewerken** op de kaart **Incidentdetails** van het incident, via de API of Terraform (`incidentSeverityId`), met een workflow of met de AI-tools — doet dezelfde vier dingen, hoe het ook wordt verstuurd: de incidentfeed krijgt een item **Incident updated** dat de nieuwe ernst noemt, de SLA-deadlines van het incident worden opnieuw berekend, zijn herinneringsregel wordt opnieuw gezocht, en de incidentstatistieken tellen één ernstwijziging. De ernst opslaan die het incident al heeft, doet geen van deze dingen, dus alleen de titel van een incident bewerken laat zijn SLA-deadlines, herinneringen en aantal ernstwijzigingen zoals ze waren. De ernst van een waarschuwing werkt op dezelfde manier voor haar feeditem en haar herinneringen.
 

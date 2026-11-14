@@ -16,7 +16,7 @@ Um incidente é o registro a partir do qual sua equipe trabalha quando algo queb
 
 - **Um produto próprio** — abra **Incidentes** no menu **Produtos** da barra superior; a lista fica em `/dashboard/{projectId}/incidents`.
 - **Três estados iniciais** — **Identificado**, **Confirmado** e **Resolvido** são criados para todo projeto novo. Você pode adicionar os seus; os três iniciais podem ser renomeados e recoloridos, mas nunca excluídos.
-- **Três severidades iniciais** — **Critical Incident**, **Major Incident** e **Minor Incident**. Uma severidade é um rótulo com uma cor e uma ordem — ela não tem comportamento próprio.
+- **Três severidades iniciais** — **Incidente crítico**, **Incidente grave** e **Incidente menor**. Uma severidade é um rótulo com uma cor e uma ordem — ela não tem comportamento próprio.
 - **Cinco caminhos de entrada** — o assistente **Declarar incidente**, **Criar a partir de modelo**, uma regra de critérios de monitor, `POST /api/incident`, ou um [formulário](/docs/forms/index) que qualquer pessoa com o link pode preencher.
 - **Numerados por projeto** — cada incidente recebe um número de incidente de um contador do projeto, exibido com o prefixo do seu projeto: `INC-42` em um projeto novo, ou `#42` sem prefixo. O número vem antes do título do incidente nas suas páginas, na aba do navegador, na pesquisa e nas caixas de diálogo sobre ele, para que incidentes com o mesmo título se distingam.
 - **Dois tipos de notas** — notas privadas (notas internas) para sua equipe, notas públicas para os assinantes da página de status.
@@ -143,11 +143,11 @@ Todo projeto novo também recebe três severidades:
 
 | Severidade            | Ordem | Cor                   | O que significa                                            |
 | --------------------- | ----- | --------------------- | ---------------------------------------------------------- |
-| **Critical Incident** | 1     | Bordô (`#b70400`)     | Impacto muito alto nos clientes, exigindo resposta imediata. |
-| **Major Incident**    | 2     | Vermelho (`#fd625e`)  | Impacto significativo, que geralmente exige resposta imediata. |
-| **Minor Incident**    | 3     | Amarelo (`#ffbf53`)   | Impacto baixo, geralmente tratado no horário de trabalho.  |
+| **Incidente crítico** | 1     | Bordô (`#b70400`)     | Impacto muito alto nos clientes, exigindo resposta imediata. |
+| **Incidente grave**    | 2     | Vermelho (`#fd625e`)  | Impacto significativo, que geralmente exige resposta imediata. |
+| **Incidente menor**    | 3     | Amarelo (`#ffbf53`)   | Impacto baixo, geralmente tratado no horário de trabalho.  |
 
-As severidades têm `name`, `description`, `color` e `order`, e nada mais. Não há indicadores, e nenhum trecho de código trata «Critical Incident» de forma diferente de qualquer outra linha. A severidade é como as pessoas fazem a triagem, e está disponível como critério de correspondência quando você escreve regras de plantão — mas escolher uma severidade não aciona, por si só, ninguém.
+As severidades têm `name`, `description`, `color` e `order`, e nada mais. Não há indicadores, e nenhum trecho de código trata «Incidente crítico» de forma diferente de qualquer outra linha. A severidade é como as pessoas fazem a triagem, e está disponível como critério de correspondência quando você escreve regras de plantão — mas escolher uma severidade não aciona, por si só, ninguém.
 
 Edite ou adicione severidades em **Incidentes → Configurações → Severidade do incidente**. As descrições iniciais completas estão em [Estados e severidades de incidentes](/docs/incidents/states-and-severities).
 

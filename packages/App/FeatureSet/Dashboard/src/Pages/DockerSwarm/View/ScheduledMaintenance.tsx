@@ -34,7 +34,7 @@ const DockerSwarmClusterScheduledMaintenance: FunctionComponent<
           id: modelId,
         }}
         viewPageRoute={RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS] as Route}
-        noItemsMessage="No scheduled maintenance events for this cluster."
+        noItemsMessage="No maintenance events for this cluster."
       />
     </Fragment>
   );

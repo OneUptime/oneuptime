@@ -37,7 +37,7 @@ flowchart TB
 ## پیش از شروع
 
 - **یک خوشهٔ Kubernetes** روی ابر همان مارکت‌پلیس، با دست‌کم 3 گره که هر کدام 4 vCPU و 16 GiB حافظه دارند، یک StorageClass پیش‌فرض، و پشتیبانی از سرویس‌های `LoadBalancer`. OneUptime خودش PostgreSQL، ClickHouse و Valkey را درون خوشه اجرا می‌کند؛ برای اندازه‌گذاری آن‌ها، [تعیین اندازه و برنامه‌ریزی ظرفیت](/docs/installation/sizing) را ببینید.
-- **یک نام دامنه** برای OneUptime، مانند `oneuptime.example.com`، که بتوانید آن را به متعادل‌کنندهٔ بار خوشه اشاره دهید.
+- **یک نام دامنه** برای OneUptime، مانند `oneuptime.example.com`، که بتوانید آن را به متعادل‌کننده بار خوشه اشاره دهید.
 - **HTTPS خروجی** از خوشه به مارکت‌پلیس، تا OneUptime بتواند کاربرانش را گزارش دهد: `metering.marketplace.<region>.amazonaws.com` و `sts.<region>.amazonaws.com` در AWS، `marketplaceapi.microsoft.com` در Azure، و `servicecontrol.googleapis.com` و `oauth2.googleapis.com` در Google Cloud.
 
 ## نصب OneUptime
@@ -96,7 +96,7 @@ serviceAccount:
 
 ## باز کردن OneUptime
 
-‏OneUptime کار را با اجرای مهاجرت‌های پایگاه داده‌اش شروع می‌کند، که روی یک نصب تازه چند دقیقه طول می‌کشد. سپس نام دامنهٔ خود را به متعادل‌کنندهٔ بار آن اشاره دهید:
+‏OneUptime کار را با اجرای مهاجرت‌های پایگاه داده‌اش شروع می‌کند، که روی یک نصب تازه چند دقیقه طول می‌کشد. سپس نام دامنهٔ خود را به متعادل‌کننده بار آن اشاره دهید:
 
 ```bash
 kubectl get service --namespace <namespace>
