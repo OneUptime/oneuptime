@@ -18,6 +18,7 @@ import NetworkTopology, {
 } from "../../../Types/Monitor/SnmpMonitor/NetworkTopology";
 import MonitorNotCheckedReason from "../../../Types/Monitor/MonitorNotCheckedReason";
 import NetworkDeviceGraph from "../../../../App/FeatureSet/Dashboard/src/Components/Topology/NetworkDeviceGraph";
+import { accessibleLabelForNode } from "../../../../App/FeatureSet/Dashboard/src/Components/Topology/NetworkTopologyMeta";
 import {
   MONITOR_ARCHIVED_QUALIFIER,
   MONITORING_OFF_QUALIFIER,
@@ -171,4 +172,64 @@ describe("a Network Map node's tooltip", () => {
       );
     },
   );
+});
+
+/*
+ * A screen reader hears the node's label, not its tooltip: it says the
+ * reason too, after what the label always said, so the reason is heard
+ * without opening the drawer.
+ */
+describe("a Network Map node's spoken label", () => {
+  function spokenLabel(nodeId: string): string {
+    return (
+      screen
+        .getByTestId(`network-topology-node-${nodeId}`)
+        .getAttribute("aria-label") || ""
+    );
+  }
+
+  function nodeById(nodeId: string): NetworkTopologyNode {
+    return NODES.find((node: NetworkTopologyNode): boolean => {
+      return node.id === nodeId;
+    })!;
+  }
+
+  test("monitoring off and archived: the label, then the reason", () => {
+    render(<NetworkDeviceGraph topology={TOPOLOGY} />);
+
+    expect(spokenLabel("ap-off")).toBe(
+      [
+        accessibleLabelForNode(nodeById("ap-off")),
+        MONITORING_OFF_QUALIFIER.pendingTooltip,
+      ].join(". "),
+    );
+    expect(spokenLabel("ap-archived")).toBe(
+      [
+        accessibleLabelForNode(nodeById("ap-archived")),
+        MONITOR_ARCHIVED_QUALIFIER.pendingTooltip,
+      ].join(". "),
+    );
+  });
+
+  test("a checked device, and an unknown one with no reason, keep the label they had", () => {
+    render(<NetworkDeviceGraph topology={TOPOLOGY} />);
+
+    expect(spokenLabel("ap-checked")).toBe(
+      accessibleLabelForNode(nodeById("ap-checked")),
+    );
+    expect(spokenLabel("ap-never-polled")).toBe(
+      accessibleLabelForNode(nodeById("ap-never-polled")),
+    );
+  });
+
+  test("German: the reason in the locale's words", async () => {
+    await i18next.changeLanguage("de");
+    render(<NetworkDeviceGraph topology={TOPOLOGY} />);
+
+    const sentence: string | undefined =
+      DE[MONITORING_OFF_QUALIFIER.pendingTooltip];
+    expect(sentence).toBeTruthy();
+    expect(sentence).not.toBe(MONITORING_OFF_QUALIFIER.pendingTooltip);
+    expect(spokenLabel("ap-off").endsWith(`. ${sentence}`)).toBe(true);
+  });
 });
