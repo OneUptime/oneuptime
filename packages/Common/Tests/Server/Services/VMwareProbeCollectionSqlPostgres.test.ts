@@ -405,11 +405,7 @@ describePostgres("VMware probe collection SQL against Postgres", () => {
       });
 
       // Left as they are: not due, still running, or another probe's.
-      const untouched: Array<ObjectID> = [
-        notDue,
-        running,
-        anotherProbes,
-      ];
+      const untouched: Array<ObjectID> = [notDue, running, anotherProbes];
       // Due on this probe, but nothing may collect them: set aside.
       const uncollectable: Array<ObjectID> = [
         agent,
@@ -468,7 +464,9 @@ describePostgres("VMware probe collection SQL against Postgres", () => {
 
       // Set aside a quarter of an hour on, plus the spread (ClaimSetAside).
       for (const id of uncollectable) {
-        const next: number = (await readVCenter(id)).nextCollectionAt!.getTime();
+        const next: number = (
+          await readVCenter(id)
+        ).nextCollectionAt!.getTime();
 
         expect(next).toBeGreaterThanOrEqual(
           claimedAt + SET_ASIDE_FOR_MINUTES * 60_000,

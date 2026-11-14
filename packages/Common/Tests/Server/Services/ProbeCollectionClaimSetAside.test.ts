@@ -548,9 +548,10 @@ const CLAIMS: Array<ClaimUnderTest> = [
         laterRows,
       );
 
-      const claimed: Array<{ _id: string }> = await claimDueDataStoresForProbe(
-        { probeId: PROBE_ID, limit: LIMIT },
-      );
+      const claimed: Array<{ _id: string }> = await claimDueDataStoresForProbe({
+        probeId: PROBE_ID,
+        limit: LIMIT,
+      });
 
       return {
         statements: statements,
@@ -686,7 +687,9 @@ describe.each(CLAIMS)("the $name claim", (claim: ClaimUnderTest) => {
 
       expect(read).not.toContain("NULLS FIRST");
       expect(read).not.toContain(`${due} IS NULL OR`);
-      expect(read).toContain(`ORDER BY ${due} ASC LIMIT ${claim.limitParameter}`);
+      expect(read).toContain(
+        `ORDER BY ${due} ASC LIMIT ${claim.limitParameter}`,
+      );
       expect(read).toContain(`FOR NO KEY UPDATE OF ${claim.alias} SKIP LOCKED`);
       expect(read).not.toMatch(/FOR UPDATE/);
       // Answered in claim order, oldest first: never NULL now.
@@ -701,9 +704,9 @@ describe.each(CLAIMS)("the $name claim", (claim: ClaimUnderTest) => {
         expect(read).toContain(`${range} AND `);
       }
 
-      expect(allBetween(read, `AND ${claim.dueCondition} AND `, " ORDER BY")).toHaveLength(
-        claim.probeRanges.length,
-      );
+      expect(
+        allBetween(read, `AND ${claim.dueCondition} AND `, " ORDER BY"),
+      ).toHaveLength(claim.probeRanges.length);
     });
 
     test("binds every placeholder it names", async () => {
@@ -779,9 +782,9 @@ describe.each(CLAIMS)("the $name claim", (claim: ClaimUnderTest) => {
       const { statements } = await claim.run();
       const setAside: CapturedStatement = statements[1]!;
 
-      expect(setAside.parameters.slice(SET_ASIDE_FIRST_RULE_PARAMETER - 1)).toEqual(
-        claim.ruleParameters,
-      );
+      expect(
+        setAside.parameters.slice(SET_ASIDE_FIRST_RULE_PARAMETER - 1),
+      ).toEqual(claim.ruleParameters);
       expectPlaceholdersMatchParameters(setAside);
       expect(setAside.parameters[0]).toBe(PROBE_ID.toString());
     });
@@ -818,9 +821,13 @@ describe.each(CLAIMS)("the $name claim", (claim: ClaimUnderTest) => {
 
       expect(unclaimable).not.toContain("INNER JOIN");
       expect(unclaimable).toContain(") IS NOT TRUE");
-      // Judged again as the probe's, and still due, when it is locked.
+      /*
+       * Looked up by id, so it costs what the stepped-over rows are, never
+       * a scan of the table; judged again as the probe's, and still due,
+       * when it is locked.
+       */
       expect(unclaimable).toContain(
-        `WHERE ${claim.alias}."_id" IN (SELECT "_id" FROM "oldestDue") AND ${claim.isProbesRow} AND ${due} <= $2 AND (`,
+        `WHERE ${claim.alias}."_id" = ANY(ARRAY(SELECT "_id" FROM "oldestDue")) AND ${claim.isProbesRow} AND ${due} <= $2 AND (`,
       );
     });
 
@@ -843,7 +850,9 @@ describe.each(CLAIMS)("the $name claim", (claim: ClaimUnderTest) => {
       const { statements } = await claim.run();
       const sql: string = normalizeSql(statements[1]!.sql);
 
-      expect(sql.split(`FOR NO KEY UPDATE OF ${claim.alias} SKIP LOCKED`).length - 1).toBe(2);
+      expect(
+        sql.split(`FOR NO KEY UPDATE OF ${claim.alias} SKIP LOCKED`).length - 1,
+      ).toBe(2);
       expect(sql).not.toMatch(/FOR UPDATE/);
     });
 
@@ -911,7 +920,9 @@ describe.each(CLAIMS)("the $name claim", (claim: ClaimUnderTest) => {
 
         round++;
 
-        return [{ setAside: round === 1 ? SET_ASIDE_PER_CLAIM : 3, madeDue: 0 }];
+        return [
+          { setAside: round === 1 ? SET_ASIDE_PER_CLAIM : 3, madeDue: 0 },
+        ];
       });
 
       expect(statements).toHaveLength(3);
@@ -927,16 +938,18 @@ describe.each(CLAIMS)("the $name claim", (claim: ClaimUnderTest) => {
 
         round++;
 
-        return [{ setAside: 0, madeDue: round === 1 ? SET_ASIDE_PER_CLAIM : 0 }];
+        return [
+          { setAside: 0, madeDue: round === 1 ? SET_ASIDE_PER_CLAIM : 0 },
+        ];
       });
 
       expect(statements).toHaveLength(3);
     });
 
     test("answers how many rows it set aside and made due", async () => {
-      await expect(claim.setAside([{ setAside: 3, madeDue: 1 }])).resolves.toEqual(
-        { setAside: 3, madeDue: 1 },
-      );
+      await expect(
+        claim.setAside([{ setAside: 3, madeDue: 1 }]),
+      ).resolves.toEqual({ setAside: 3, madeDue: 1 });
       await expect(claim.setAside([])).resolves.toEqual({
         setAside: 0,
         madeDue: 0,
@@ -965,7 +978,9 @@ describe("the OpenStack check claim no longer reads every check of every project
       // Its own probe: a range of the (probeId, due) index.
       expect(
         between(read, 'WITH "ownProbeDue" AS (', '"cloudProbeDue" AS ('),
-      ).toContain('FROM "OpenStackCloudCheck" ck INNER JOIN "OpenStackCloud" c');
+      ).toContain(
+        'FROM "OpenStackCloudCheck" ck INNER JOIN "OpenStackCloud" c',
+      );
 
       // Its cloud's probe: through the clouds this probe collects.
       expect(between(read, '"cloudProbeDue" AS (', '"due" AS (')).toContain(
@@ -1400,11 +1415,14 @@ describe("a write that can make a probe store claimable makes it due now", () =>
       { isTableHealthEnabled: true, isContentScanEnabled: true },
       [...PROBE_STORE_DUE_COLUMNS],
     ],
-  ])("%j makes due %j", (data: Record<string, unknown>, columns: Array<string>) => {
-    expect(DataStoreServiceType.getDueColumnsMadeClaimable(data)).toEqual(
-      columns,
-    );
-  });
+  ])(
+    "%j makes due %j",
+    (data: Record<string, unknown>, columns: Array<string>) => {
+      expect(DataStoreServiceType.getDueColumnsMadeClaimable(data)).toEqual(
+        columns,
+      );
+    },
+  );
 
   test.each([
     [{ isTableHealthEnabled: false }],
