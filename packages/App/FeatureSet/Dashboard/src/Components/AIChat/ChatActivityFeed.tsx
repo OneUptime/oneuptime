@@ -30,6 +30,7 @@ import {
   composedValue,
   getGlobalTranslator,
   TemplateValue,
+  translatableTerm,
   translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
@@ -656,26 +657,31 @@ export const LINKED_RESOURCE_KIND_NOUNS: { [kind: string]: string } = {
 // How many linked resources a line names before "and N more".
 const NAMED_LINKED_RESOURCES: number = 3;
 
-// "Host web-1", in the reader's language.
+/*
+ * "host web-1", in the reader's language. Always said inside a sentence -
+ * "alerts on {{resources}}", "opened on {{resource}}" - so the kind is a
+ * term cased for the middle of one, the reader's way: "host web-1 and
+ * Docker host web-2", never a label's "Host web-1" beside "Docker host
+ * web-2" (#7862); German keeps its nouns' capital ("Host web-1").
+ */
 function describeLinkedResource(
   resource: { kind: string; name: string },
   translator: Translator,
 ): string {
-  const noun: string = translator.translateText(
-    LINKED_RESOURCE_KIND_NOUNS[resource.kind] || translationKey("Resource"),
-  ) as string;
+  const noun: string =
+    LINKED_RESOURCE_KIND_NOUNS[resource.kind] || translationKey("Resource");
 
   return resource.name
     ? translator.translateTemplate("{{kind}} {{name}}", {
-        kind: noun,
+        kind: translatableTerm(noun, { inSentence: true }),
         name: resource.name,
       })
-    : noun;
+    : translator.translateTerm(noun, { inSentence: true });
 }
 
 /*
  * The linked resources a line names, in the language of the sentence they go
- * into: "Host web-1 and Docker host web-1", "Host a, Docker host b and
+ * into: "host web-1 and Docker host web-1", "host a, Docker host b and
  * Kubernetes cluster c", or the first NAMED_LINKED_RESOURCES and "and 2
  * more". A composed value, so a sentence that is still English names them in
  * English too.

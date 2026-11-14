@@ -86,8 +86,8 @@
     "incidentsOnThisDay": "当天报告了 {{total}} 起事件",
     "scheduledMaintenance": "计划维护",
     "dayLabelWithMaintenance": "{{label}}，{{maintenance}}",
-    "oneMaintenanceEvent": "1 次计划维护",
-    "maintenanceEvents": "{{total}} 次计划维护",
+    "oneMaintenanceEvent": "1 个维护事件",
+    "maintenanceEvents": "{{total}} 个维护事件",
     "moreMaintenance": "还有 {{total}} 个"
   },
   "liveStatus": {
@@ -448,6 +448,17 @@
   "Loading": "加载中",
   "{{field}} is not valid JSON. {{parserMessage}}": "{{field}} 不是有效的 JSON。{{parserMessage}}",
   "{{field}} is not valid YAML. {{parserMessage}}": "{{field}} 不是有效的 YAML。{{parserMessage}}",
+  "Click to reveal": "点击以显示",
+  "Click to copy": "点击以复制",
+  "Main navigation": "主导航",
+  "Navigate to": "导航到",
+  "Navigation": "导航",
+  "Breadcrumb": "面包屑",
+  "Skip to main content": "跳到主要内容",
+  "Copy": "复制",
+  "Copied!": "已复制！",
+  "Copy failed": "复制失败",
+  "Hide": "隐藏",
   "markdownCallouts": {
     "caution": "小心",
     "danger": "危险",

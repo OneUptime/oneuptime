@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 51296,
-    "untranslated": 9287
+    "keys": 52236,
+    "untranslated": 9077
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -36,6 +36,7 @@
     "DES",
     "DHCP",
     "DNS:",
+    "Datadog URL",
     "Deployment",
     "DeploymentConfigs",
     "Docker Compose",
@@ -56,6 +57,7 @@
     "HAProxy",
     "HEC URL",
     "HH",
+    "HTTP Event Collector URL",
     "HTTP {{status}}",
     "Hello world",
     "INP 120 ms",
@@ -103,7 +105,9 @@
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
     "Powered by OneUptime",
     "Project view",
+    "PromQL",
     "Proxmox ID",
+    "RTT",
     "RabbitMQ",
     "Re-encrypt",
     "Red Hat OpenShift",
@@ -198,6 +202,7 @@
     "security-alerts",
     "storage-01 · RegionOne",
     "storefront-web",
+    "sum by (job) (rate(http_requests_total[5m]))",
     "svc-backup",
     "syslog",
     "timeout|connection refused",

@@ -27,8 +27,13 @@ import {
 import {
   createTranslator,
   DEFAULT_LANGUAGE,
+  translatableTerm,
   Translator,
 } from "../../../Types/Translator";
+import {
+  getMonitorTypeMismatchRefusal,
+  MONITOR_TYPE_MISMATCH_REFUSAL,
+} from "../../../Utils/Monitor/MonitorTemplateLinkRefusal";
 import {
   dashboardTranslator,
   readDashboardLocale,
@@ -142,6 +147,77 @@ describe("a message somebody put into words is the message", () => {
     expect(wordsOf(undefined)).toEqual({ isUnexplained: false, text: "" });
     expect(wordsOf(null)).toEqual({ isUnexplained: false, text: "" });
     expect(wordsOf("")).toEqual({ isUnexplained: false, text: "" });
+  });
+});
+
+describe("a refusal of the server's with values in it is said in the reader's language, with its values (#7678)", () => {
+  const MISMATCH: string = getMonitorTypeMismatchRefusal({
+    monitorType: "Incoming Request",
+    templateType: "SSL Certificate",
+  });
+
+  /*
+   * The language's sentence, with its own words for the two types: filled
+   * through the Dashboard's Translator, the types terms as the refusal names
+   * them, so a Japanese sentence keeps no space where a type and its words
+   * meet in their own script, "種類は受信リクエスト、" (#7864).
+   */
+  const mismatchIn: (language: string) => string = (
+    language: string,
+  ): string => {
+    return dashboardTranslator(language).translateTemplate(
+      MONITOR_TYPE_MISMATCH_REFUSAL.template,
+      {
+        monitorType: translatableTerm("Incoming Request"),
+        templateType: translatableTerm("SSL Certificate"),
+      },
+    );
+  };
+
+  test("in English, as the server wrote it", () => {
+    expect(wordsOf(MISMATCH)).toEqual({ isUnexplained: false, text: MISMATCH });
+  });
+
+  test("in German, the types in German too", () => {
+    expect(
+      getErrorInSentenceText({
+        message: MISMATCH,
+        translator: dashboardTranslator("de"),
+      }),
+    ).toBe(
+      "Dieser Monitor hat den Typ Eingehende Anfrage, diese Vorlage den Typ SSL-Zertifikat. Nur Monitore vom Typ der Vorlage können mit ihr verknüpft werden.",
+    );
+  });
+
+  test.each(["fa", "ja", "ar", "hi"])(
+    "in %s, the types in that language too",
+    (language: string) => {
+      const said: string = getErrorInSentenceText({
+        message: MISMATCH,
+        translator: dashboardTranslator(language),
+      });
+
+      expect(said).toBe(mismatchIn(language));
+      expect(said).not.toContain("Incoming Request");
+    },
+  );
+
+  test("in a language with no wording of the sentence, in English", () => {
+    const withoutTheSentence: Translator = createTranslator(
+      (text: string): string | undefined => {
+        return text === MONITOR_TYPE_MISMATCH_REFUSAL.template
+          ? undefined
+          : readDashboardLocale("de")[text];
+      },
+      "de",
+    );
+
+    expect(
+      getErrorInSentenceText({
+        message: MISMATCH,
+        translator: withoutTheSentence,
+      }),
+    ).toBe(MISMATCH);
   });
 });
 
@@ -459,25 +535,50 @@ describe("getErrorReader: the page's reader", () => {
   });
 
   test("ErrorInSentence reads no page config: the Dashboard's React-free modules load in plain Node", () => {
-    const source: string = fs.readFileSync(
-      path.resolve(__dirname, "../../../UI/Utils/ErrorInSentence.ts"),
-      "utf8",
-    );
-    // `from "x"`, a bare `import "x"`, `import("x")` and `require("x")`.
-    const imported: Array<string> = Array.from(
-      source.matchAll(
-        /(?:\bfrom\s+|\bimport\s*\(?\s*|\brequire\(\s*)"([^"]+)"/g,
-      ),
-    ).map((match: RegExpMatchArray): string => {
-      return match[1]!;
-    });
+    // What a module imports: `from "x"`, a bare `import "x"`, `import("x")` and `require("x")`.
+    const importsOf: (file: string) => Array<string> = (
+      file: string,
+    ): Array<string> => {
+      const source: string = fs.readFileSync(
+        path.resolve(__dirname, "../../..", file),
+        "utf8",
+      );
 
-    expect(imported.sort()).toEqual(
+      return Array.from(
+        source.matchAll(
+          /(?:\bfrom\s+|\bimport\s*\(?\s*|\brequire\(\s*)"([^"]+)"/g,
+        ),
+      )
+        .map((match: RegExpMatchArray): string => {
+          return match[1]!;
+        })
+        .sort();
+    };
+
+    expect(importsOf("UI/Utils/ErrorInSentence.ts")).toEqual(
       [
+        "../../Types/Exception/RefusalWithValues",
         "../../Types/Exception/UnexplainedError",
         "../../Types/Translator",
-        "../Components/DeleteConfirmation/DeleteConsequences",
+        "../../Utils/Monitor/MonitorTemplateLinkRefusal",
+        "./SentenceSeparator",
       ].sort(),
     );
+
+    /*
+     * Sentences are joined with a module that imports nothing, rather than
+     * through DeleteConsequences, whose table of sentences would come along
+     * into every page's first load (first-load-budgets.js).
+     */
+    expect(importsOf("UI/Utils/SentenceSeparator.ts")).toEqual([]);
+
+    // The refusals it reads back (#7678) bring nothing of the page's either.
+    expect(importsOf("Types/Exception/RefusalWithValues.ts")).toEqual([
+      "../Translator",
+    ]);
+    expect(importsOf("Utils/Monitor/MonitorTemplateLinkRefusal.ts")).toEqual([
+      "../../Types/Exception/RefusalWithValues",
+      "../../Types/Translator",
+    ]);
   });
 });

@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/crossplane-provider-generator",
-  "version": "14.0.109",
+  "version": "14.0.111",
   "description": "Generates the OneUptime Crossplane provider from the Terraform provider",
   "private": true,
   "repository": {

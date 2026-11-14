@@ -1,6 +1,7 @@
 import { QueueJob, QueueName } from "./Queue";
+import QueueJobConnections from "./Postgres/QueueJobConnections";
 import TimeoutException from "../../Types/Exception/TimeoutException";
-import { PromiseVoidFunction } from "../../Types/FunctionTypes";
+import JobDeadline from "../Utils/JobDeadline";
 import { Worker } from "bullmq";
 import { Link, ROOT_CONTEXT, context } from "@opentelemetry/api";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -109,7 +110,18 @@ export default class QueueWorker {
               },
               fn: async (span: Span): Promise<void> => {
                 try {
-                  await onJobInQueue(job, token);
+                  /*
+                   * As a job of this queue: the Postgres connections it
+                   * borrows count against the queue jobs' share of the
+                   * pool, so requests always have the rest
+                   * (Postgres/QueueJobConnections).
+                   */
+                  await QueueJobConnections.runAsQueueJob(
+                    queueName,
+                    (): Promise<void> => {
+                      return onJobInQueue(job, token);
+                    },
+                  );
                   span.setStatus({ code: SpanStatusCode.OK });
                 } catch (err) {
                   if (QueueWorker.isMovedBackToQueue(err)) {
@@ -306,29 +318,46 @@ export default class QueueWorker {
     return reportable;
   }
 
+  /*
+   * Runs a job with a time limit. Once the limit runs out the job is failed
+   * with a TimeoutException AND its deadline passes: the job is handed that
+   * deadline (JobDeadline), so its own loops stop at their next check
+   * instead of going on beside the job's next run. Nothing cuts off work
+   * already in flight - a job that never checks its deadline runs on as
+   * before, only failed.
+   */
   @CaptureSpan()
   public static async runJobWithTimeout(
     timeoutInMS: number,
-    jobCallback: PromiseVoidFunction,
+    jobCallback: (deadline: JobDeadline) => Promise<void>,
   ): Promise<void> {
     let timeout: ReturnType<typeof setTimeout> | undefined;
+
+    const deadline: JobDeadline = new JobDeadline({
+      endsAt: new Date(Date.now() + Math.max(0, timeoutInMS)),
+    });
 
     try {
       const timeoutPromise: Promise<void> = new Promise<void>(
         (_resolve: () => void, reject: (reason: Error) => void) => {
           timeout = setTimeout(() => {
-            reject(new TimeoutException("Job Timeout"));
+            const timedOut: TimeoutException = new TimeoutException(
+              "Job Timeout",
+            );
+
+            deadline.end(timedOut);
+            reject(timedOut);
           }, timeoutInMS);
         },
       );
 
-      await Promise.race([timeoutPromise, jobCallback()]);
+      await Promise.race([timeoutPromise, jobCallback(deadline)]);
     } finally {
       /*
        * A settled job no longer needs its deadline. Leaving this timer alive
        * retains its async context until the timeout and schedules needless
        * callbacks for every completed job. This also covers synchronous throws
-       * from jobCallback. A timeout still does not cancel the underlying job.
+       * from jobCallback.
        */
       if (timeout !== undefined) {
         clearTimeout(timeout);

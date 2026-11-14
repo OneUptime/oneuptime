@@ -29,7 +29,7 @@ Dai quattro timestamp la sonda calcola lo **scostamento dell'orologio**, ((T2 �
 > [!NOTE]
 > Lo scostamento è misurato rispetto all'orologio della sonda stessa. Le sonde di OneUptime Cloud mantengono i loro orologi sincronizzati. Su una [sonda personalizzata](/docs/probe/custom-probe), mantieni sincronizzato anche l'orologio dell'host, con chrony o systemd-timesyncd, altrimenti un avviso di scostamento potrebbe riguardare la sonda e non il server.
 
-A un server che risponde non viene chiesto di nuovo, anche quando risponde senza un'ora affidabile. Il silenzio, una porta rifiutata e una ricerca DNS non riuscita vengono ritentati con una nuova richiesta. Quando il server non risponde affatto, la sonda traccia anche il percorso fino a esso e allega ciò che ha trovato come **Network Path at Time of Failure**. Una sonda che ha perso la propria connessione di rete non riporta alcun risultato, quindi non può segnare il tuo server come offline.
+A un server che risponde non viene chiesto di nuovo, anche quando risponde senza un'ora affidabile. Il silenzio, una porta rifiutata e una ricerca DNS non riuscita vengono ritentati con una nuova richiesta. Quando il server non risponde affatto, la sonda traccia anche il percorso fino a esso e allega ciò che ha trovato come **Percorso di rete al momento dell'errore**. Una sonda che ha perso la propria connessione di rete non riporta alcun risultato, quindi non può segnare il tuo server come offline.
 
 ## Prima di iniziare
 
@@ -133,7 +133,7 @@ I criteri vengono verificati dall'alto verso il basso, e il primo che corrispond
 ## Risoluzione dei problemi
 
 :::details Il server funziona, ma il monitor dice che non ha risposto
-La richiesta o la risposta è andata persa lungo il percorso. Un firewall che consente TCP ma non UDP, una regola `restrict` di ntpd o `allow` di chrony che esclude l'indirizzo della sonda, o un server che ascolta solo su un'interfaccia interna producono tutti questo sintomo. **Network Path at Time of Failure** mostra fin dove è arrivato il percorso. Lascia passare la sonda, oppure controlla il server da una [sonda personalizzata](/docs/probe/custom-probe) all'interno della rete.
+La richiesta o la risposta è andata persa lungo il percorso. Un firewall che consente TCP ma non UDP, una regola `restrict` di ntpd o `allow` di chrony che esclude l'indirizzo della sonda, o un server che ascolta solo su un'interfaccia interna producono tutti questo sintomo. **Percorso di rete al momento dell'errore** mostra fin dove è arrivato il percorso. Lascia passare la sonda, oppure controlla il server da una [sonda personalizzata](/docs/probe/custom-probe) all'interno della rete.
 :::
 
 :::details Il monitor dice che il server ha rifiutato la richiesta

@@ -158,6 +158,7 @@ A mensagem descreve a mudança com as palavras do **Feed** do SLO: o nível que 
 | **Rótulos do SLO** | Os rótulos do SLO: qualquer um dos que você escolher, todos eles ou nenhum deles. |
 | **Nome do SLO** | O nome do SLO: igual ao seu texto ou não, contendo-o ou não, começando ou terminando com ele. |
 | **Mudança na política de orçamento de erros** | O que mudou: **Entrou em um nível mais grave**, **Recuperou-se para um nível menos grave**, **Saiu de todos os níveis**, **Implantações congeladas** ou **Implantações permitidas novamente**. |
+| **Proprietário do SLO** | As pessoas e equipes registradas como proprietárias do SLO: qualquer uma das que você escolher, ou nenhuma delas. Fazer parte de uma equipe proprietária do SLO não conta. |
 
 Uma mudança de nível que congelou as implantações, ou voltou a permiti-las, é uma única mensagem que conta como as duas mudanças. Assim, uma regra para **Implantações congeladas** também publica a entrada em um nível que as congela: um canal de lançamentos fica sabendo de cada congelamento.
 

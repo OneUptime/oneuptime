@@ -49,6 +49,16 @@ enum ProbeCapability {
    * this.
    */
   DataObservabilityCollect = "dataObservabilityCollect",
+  /*
+   * The probe reads a 429 from a scheduling endpoint (/monitor/list,
+   * /monitor-test/list, /probe/network-device/list) as "this server is busy
+   * handing out work: ask again at the next tick" - nothing it would have
+   * been handed is lost, it stays due - rather than as an error. The server
+   * answers a busy request from a probe that declares this with a 429, and
+   * one from an older probe with an empty batch, which it reads the same way
+   * without a word (issue #7920).
+   */
+  RetryWhenBusy = "retryWhenBusy",
 }
 
 // The first probe release that walks SNMP tables.

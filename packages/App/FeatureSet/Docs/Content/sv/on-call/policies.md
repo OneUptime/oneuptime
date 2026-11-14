@@ -51,7 +51,7 @@ En policy som flera regler lägger till körs en gång. En allvarlighetsgrad kö
 
 **Grundläggande** är öppet; de andra avsnitten börjar ihopfällda tills du klickar på dem.
 
-- **Översikt** visar **Detaljer för jourpolicy** och sedan **Policyn i korthet**: hur många nivåer och mottagare policyn har, hur lång tid det dröjer till dess sista nivå och hur ofta den upprepas. **Mottagarnas beredskap** säger om alla som den kan larma kan nås nu, och **Jourpolicyns flöde** visar vad som har ändrats: personer, team och scheman som lagts till eller tagits bort, åsidosättningar och överlämningar.
+- **Översikt** visar **Detaljer för jourpolicy** och sedan **Policyn i korthet**: hur många nivåer och mottagare policyn har, hur lång tid det dröjer till dess sista nivå och hur ofta den upprepas. **Mottagarnas beredskap** säger om alla som den kan larma kan nås nu, och **Jourpolicyns flöde** visar vad som har ändrats: personer, team och scheman som lagts till eller tagits bort, åsidosättningar och överlämningar. Dess regler för Slack, Microsoft Teams och Mattermost publicerar dem i dina kanaler, en överlämning på en rad: se [Jourmeddelanden](/docs/workspace-connections/slack#jourmeddelanden).
 - **Ägare** är personerna och teamen som ansvarar för policyn. När en utlarmning från den inte hittar någon regel för någon, eller inte kan levereras, får de ett e-postmeddelande; en policy utan ägare skickar i stället e-post till projektets ägare.
 - **Aviseringsloggar** visar varje meddelande som policyn har skickat, med en flik per kanal.
 - **Användaråsidosättningar** täcker upp för personer bara i den här policyn. Se [Användaråsidosättningar](/docs/on-call/user-overrides).
@@ -80,6 +80,17 @@ En bekräftelse stoppar en policys larm för gott, även om ingen löser inciden
 Minuterna räknas från varje bekräftelse, och en policy larmar igen högst 5 gånger om samma incident, larm eller episod. Ett nytt larm börjar på den nivå som larmade när det bekräftades, larmar den som har jour där nu och fortsätter genom nivåerna som den första körningen. Incidenten eller larmet förblir bekräftat: det nya larmet är en egen körning, i flödet och i policyns exekveringsloggar, där dess **Status** säger "Larmad igen (1 av 5)".
 
 Den som larmas igen bekräftar från meddelandet eller med **Bekräfta igen** på incidentens eller larmets sida, och minuterna börjar om; **Eskalera** skickar larmet vidare till nästa nivå. Att lösa eller ta bort incidenten eller larmet, arkivera eller ta bort policyn eller välja **Larma inte igen** stoppar det. Kortets rad **Efter en bekräftelse** säger vad policyn gör, och **Fler inställningar** visar minuterna medan det är hopfällt. **Policyn i korthet** på **Översikt** och **Översikt över eskalering** säger samma sak i ord.
+
+## När flera policyer larmar
+
+En incident, ett larm eller en episod kör var och en av sina policyer för sig, samtidigt.
+
+- Den som har jour i två av dem larmas av båda, en gång av var och en: OneUptime slår inte ihop larm från olika policyer. Inom en policy larmas den som en nivå nämner två gånger, personligen och via ett team eller ett schema, bara en gång.
+- En bekräftelse av incidenten eller larmet stoppar inom en minut alla policyer som körs för den, var den än bekräftas: från vilket larm om den som helst, på dess egen sida, i mobilappen eller i Slack eller Microsoft Teams. Ingen nästa nivå larmas, och inga samtal eller sms som fortfarande väntar går ut. Aviseringar som redan har skickats förblir skickade.
+
+Vissa larm fortsätter efter bekräftelsen, tills någon de har larmat svarar eller den är löst: ett nytt larm, ett larm till observatörer, ett larm som någon har skickat till personer från Slack eller Microsoft Teams, och en policy som har startats manuellt.
+
+En policy som har startats manuellt är en som startats med **Kör jourpolicy**, eller av ett larm från Slack eller Microsoft Teams som nämner den. Den larmar nivå för nivå som varje körning, med samtal och upprepade push-aviseringar, och att någon annan bekräftar incidenten stoppar den inte: så larmar du ytterligare ett team till en incident som någon redan arbetar med. Den som den har larmat svarar från meddelandet i sitt larm, ett samtal eller ett sms, eller genom att själv bekräfta incidenten; när incidenten är bekräftad erbjuder incidentens sida personen **Bekräfta igen**. **Eskalera** skickar den vidare till nästa nivå. På en incident, ett larm eller en episod som är löst startas ingenting, och du får veta varför.
 
 ## Exekveringsloggar
 
@@ -162,6 +173,14 @@ Nivån före hade ingen att larma: inga mottagare, ingen med jour i dess scheman
 
 :::details En incident visar en policy som inte larmade någon
 Policyn är arkiverad: en arkiverad policy finns kvar på incidenterna och larmen som använder den, larmar ingen, och dess exekveringslogg säger att den inte kördes. Avarkivera den under **Jour → Avancerad → Arkiverade policyer**.
+:::
+
+:::details Någon larmades två gånger om en incident
+Personen har jour i två av de policyer som incidenten kör, och varje policy larmar sina egna personer. En bekräftelse av incidenten från något av de två larmen stoppar båda. Lägg båda teamen eller schemana i samma nivå i en policy, så larmas personen bara en gång.
+:::
+
+:::details En policy fortsatte att larma efter att incidenten bekräftats
+Den startades manuellt, eller så är det ett nytt larm: den fortsätter tills någon den har larmat svarar, eller incidenten är löst. Se [När flera policyer larmar](#när-flera-policyer-larmar).
 :::
 
 ## Nästa steg

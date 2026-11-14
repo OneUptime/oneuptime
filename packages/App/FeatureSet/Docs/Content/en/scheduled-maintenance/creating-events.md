@@ -124,7 +124,7 @@ Everything on the form can be changed on the event's own pages, except the three
 ## Post notes as the work goes on
 
 - **Public Notes** are updates for your customers: they are shown on the event's status pages, and each one can notify their subscribers with **Notify status page subscribers**.
-- **Private Notes** are for your team only.
+- **Private Notes** can be read only by the people who can see the event.
 
 Write one on the event's **Public Notes** or **Private Notes** page, or from the **Actions** menu of the **Scheduled Maintenance Feed** with **Add Public Note** or **Add Private Note**. The same menu runs a runbook with **Execute Runbook**. A note template fills in text your team writes often: see [Maintenance Rules & Settings](/docs/scheduled-maintenance/settings#note-templates).
 

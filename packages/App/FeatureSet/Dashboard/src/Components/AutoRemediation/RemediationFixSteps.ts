@@ -27,10 +27,8 @@ import {
   getRiskierRemediationCommands,
   isSameApprover,
 } from "Common/Types/AutoRemediation/RemediationApprovals";
-import {
-  AI_RESOURCE_TYPE_INFO,
-  isAiResourceType,
-} from "Common/Types/ResourceAiAgent/AiResourceType";
+import { isAiResourceType } from "Common/Types/ResourceAiAgent/AiResourceType";
+import { getResourceSentenceName } from "Common/Types/AI/ResourceAiAccessPermissions";
 import {
   composedValue,
   formatList,
@@ -154,8 +152,11 @@ const CHANGES_NOT_SHOWN: string = translationKey(
 
 /*
  * Where a command runs, as the card's command row names it: the cluster of
- * a kubectl step, the resource of a resource command ("Docker host web-1"),
- * the Runner of a Bash or SSH step.
+ * a kubectl step ("cluster prod-east"), the resource of a resource command
+ * ("host web-1", "Docker host web-1"), the Runner of a Bash or SSH step.
+ * The plan's sentence lists the same ("Planned 2 commands on host web-1"),
+ * so the kind of resource is its name for the middle of a sentence, cased
+ * and worded the reader's way (#7862).
  */
 export function getCommandTargetLabel(
   command: Pick<
@@ -177,12 +178,13 @@ export function getCommandTargetLabel(
   }
 
   if (command.stepType === RunbookStepType.ResourceCommand) {
-    // The kind of resource, then its name: "Docker host web-1".
-    const kind: string = translator.translateText(
+    // The kind of resource, then its name: "host web-1", "Docker host web-1".
+    const kind: string = translator.translateTerm(
       isAiResourceType(command.resourceType)
-        ? AI_RESOURCE_TYPE_INFO[command.resourceType].displayName
-        : "resource",
-    ) as string;
+        ? getResourceSentenceName(command.resourceType)
+        : translationKey("resource"),
+      { inSentence: true },
+    );
 
     return `${kind} ${command.resourceNameSnapshot || unknownName}`;
   }

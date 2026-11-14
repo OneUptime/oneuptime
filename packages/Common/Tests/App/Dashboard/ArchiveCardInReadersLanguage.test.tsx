@@ -172,6 +172,8 @@ import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/Database
 import Dashboard from "../../../Models/DatabaseModels/Dashboard";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
+import Host from "../../../Models/DatabaseModels/Host";
+import InventoryItem from "../../../Models/DatabaseModels/InventoryItem";
 import Service from "../../../Models/DatabaseModels/Service";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import Workflow from "../../../Models/DatabaseModels/Workflow";
@@ -559,6 +561,46 @@ describe("the German card, as a German reader reads it", () => {
     expect(drawn.title).toBe("SLO aus dem Archiv holen");
     expect(drawn.description).toMatch(/^Dieses SLO ist archiviert: /);
   });
+
+  /*
+   * #7387: the card's button said "Aus dem Archiv holen" under a title that
+   * said "Arbeitsablauf aus Archiv entfernen". Pinned together, as one verb.
+   */
+  test("an archived workflow's card: its title, its button and its dialog say one verb", async () => {
+    await renderCard(OWN_COPY_CASES[0]!, true);
+    const drawn: DrawnCard = readCard();
+
+    expect({
+      title: drawn.title,
+      button: drawn.button,
+      dialogTitle: drawn.dialogTitle,
+      dialogSubmit: drawn.dialogSubmit,
+    }).toEqual({
+      title: "Arbeitsablauf aus dem Archiv holen",
+      button: "Aus dem Archiv holen",
+      dialogTitle: "Arbeitsablauf aus dem Archiv holen",
+      dialogSubmit: "Aus dem Archiv holen",
+    });
+    expect(drawn.description).toContain("aus dem Archiv");
+    expect(drawn.dialogBody).toMatch(
+      /^Diesen Arbeitsablauf aus dem Archiv holen\? /,
+    );
+
+    for (const said of Object.values(drawn)) {
+      expect(said).not.toMatch(/aus Archiv entfernen|Archivierung aufheben/i);
+    }
+  });
+
+  test("an archived service's card: its title and its button say one verb", async () => {
+    await renderCard(SERVICE_CASE, true);
+    const drawn: DrawnCard = readCard();
+
+    expect([drawn.title, drawn.button, drawn.dialogSubmit]).toEqual([
+      "Dienst aus dem Archiv holen",
+      "Aus dem Archiv holen",
+      "Aus dem Archiv holen",
+    ]);
+  });
 });
 
 describe("the Persian card, as a Persian reader reads it", () => {
@@ -767,3 +809,154 @@ describe("the SLO list's bulk dialogs in English, as before", () => {
     });
   });
 });
+
+/*
+ * A list that names itself through its model's own names ("Services",
+ * "Inventory Items"): the bulk dialog's title says them as the middle of a
+ * sentence does, in the reader's language (#7387). It said the label as
+ * written, "Archive 3 Services?", so French put it in brackets after a word
+ * of its own ("Archiver 3 éléments (Éléments d'inventaire) ?") and Arabic
+ * after من, where its nominative plural read wrong.
+ */
+function renderModelNamedActions<T extends BaseModel>(modelType: {
+  new (): T;
+}): BulkArchiveActionsResult<T> {
+  return renderHook(() => {
+    return useBulkArchiveActions<T>({ modelType: modelType });
+  }).result.current;
+}
+
+function itemsOf<T extends BaseModel>(
+  modelType: { new (id: ObjectID): T },
+  count: number,
+): Array<T> {
+  const items: Array<T> = [];
+
+  for (let index: number = 0; index < count; index++) {
+    items.push(new modelType(ObjectID.generate()));
+  }
+
+  return items;
+}
+
+// The title of the dialog an action opens for these rows, drawn alone.
+function bulkTitleOf<T extends BaseModel>(
+  action: BulkActionButtonSchema<T>,
+  items: Array<T>,
+): string {
+  cleanup();
+  const title: string = readBulkDialog(action, items).title;
+  cleanup();
+
+  return title;
+}
+
+interface ModelNamedTitles {
+  language: string;
+  archiveServices: string;
+  unarchiveService: string;
+  archiveInventoryItems: string;
+  archiveHosts: string;
+}
+
+const MODEL_NAMED_TITLES: ReadonlyArray<ModelNamedTitles> = [
+  {
+    language: "en",
+    archiveServices: "Archive 3 services?",
+    unarchiveService: "Unarchive 1 service?",
+    archiveInventoryItems: "Archive 3 inventory items?",
+    archiveHosts: "Archive 21 hosts?",
+  },
+  {
+    language: "de",
+    archiveServices: "3 Dienste archivieren?",
+    unarchiveService: "1 Dienst aus dem Archiv holen?",
+    archiveInventoryItems: "3 Inventarelemente archivieren?",
+    archiveHosts: "21 Hosts archivieren?",
+  },
+  {
+    language: "fr",
+    archiveServices: "Archiver 3 services ?",
+    unarchiveService: "Désarchiver 1 service ?",
+    archiveInventoryItems: "Archiver 3 éléments d'inventaire ?",
+    archiveHosts: "Archiver 21 hôtes ?",
+  },
+  {
+    language: "nl",
+    archiveServices: "3 services archiveren?",
+    unarchiveService: "1 service uit het archief halen?",
+    archiveInventoryItems: "3 inventarisitems archiveren?",
+    archiveHosts: "21 hosts archiveren?",
+  },
+  {
+    language: "ru",
+    archiveServices: "Архивировать объекты (сервисы): 3?",
+    unarchiveService: "Извлечь из архива объект (сервис): 1?",
+    archiveInventoryItems: "Архивировать объекты (элементы инвентаря): 3?",
+    // Russian counts 21 as one: "21 хост".
+    archiveHosts: "Архивировать объект (хост): 21?",
+  },
+  {
+    language: "ar",
+    archiveServices: "الخدمات: أرشفة 3؟",
+    unarchiveService: "الخدمة: إلغاء أرشفة 1؟",
+    archiveInventoryItems: "عناصر الجرد: أرشفة 3؟",
+    archiveHosts: "المضيفون: أرشفة 21؟",
+  },
+];
+
+describe.each(MODEL_NAMED_TITLES)(
+  "a list named by its model: the bulk dialog's title in $language",
+  (titles: ModelNamedTitles) => {
+    beforeAll(async () => {
+      if (titles.language !== "en") {
+        i18next.addResourceBundle(
+          titles.language,
+          "translation",
+          readDashboardLocale(titles.language),
+          true,
+          true,
+        );
+      }
+
+      await inLanguage(titles.language);
+    });
+
+    afterAll(async () => {
+      await inLanguage("en");
+    });
+
+    test("names the list as the middle of a sentence does", () => {
+      const services: BulkArchiveActionsResult<Service> =
+        renderModelNamedActions(Service);
+      const inventory: BulkArchiveActionsResult<InventoryItem> =
+        renderModelNamedActions(InventoryItem);
+      const hosts: BulkArchiveActionsResult<Host> =
+        renderModelNamedActions(Host);
+
+      expect({
+        archiveServices: bulkTitleOf(
+          onlyAction(services.archiveBulkActions),
+          itemsOf(Service, 3),
+        ),
+        unarchiveService: bulkTitleOf(
+          onlyAction(services.unarchiveBulkActions),
+          itemsOf(Service, 1),
+        ),
+        archiveInventoryItems: bulkTitleOf(
+          onlyAction(inventory.archiveBulkActions),
+          itemsOf(InventoryItem, 3),
+        ),
+        archiveHosts: bulkTitleOf(
+          onlyAction(hosts.archiveBulkActions),
+          itemsOf(Host, 21),
+        ),
+      }).toEqual({
+        archiveServices: titles.archiveServices,
+        unarchiveService: titles.unarchiveService,
+        archiveInventoryItems: titles.archiveInventoryItems,
+        archiveHosts: titles.archiveHosts,
+      });
+    });
+  },
+);

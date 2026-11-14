@@ -23,9 +23,9 @@ import {
   healthForErrorRate,
   metaForEntityType,
 } from "./TopologyMeta";
-import { nounForType } from "./ServiceMapViewModel";
+import { countOfType, formatCountLine } from "./TopologyCounts";
 import { workloadNameForReplica } from "./WorkloadNaming";
-import { getReaderNumberLocale } from "Common/Types/DateLanguage";
+import { Translator } from "Common/Types/Translator";
 
 /*
  * The Infrastructure view model: "what runs where", as a tree a person can
@@ -896,33 +896,50 @@ export function collectionNameTerms(
   });
 }
 
-/** "Kubernetes Pod", "12 pods", "3 namespaces · 48 pods", "40,000 IoT devices". */
-export function describeInfrastructureNode(node: InfrastructureNode): string {
+/*
+ * "Kubernetes Pod", "12 pods", "3 namespaces · 48 pods", "40,000 IoT
+ * devices": in the reader's language with their translator (TopologyCounts);
+ * without one in English words and the page's digits, as the search index
+ * and the map's cards read them.
+ */
+export function describeInfrastructureNode(
+  node: InfrastructureNode,
+  translator?: Translator,
+): string {
   if (node.kind === "resource") {
-    return metaForEntityType(node.entityType || undefined).label;
+    const label: string = metaForEntityType(node.entityType || undefined).label;
+    return translator?.translateText(label) || label;
   }
   if (node.kind === "group") {
-    return `${node.childIds.length.toLocaleString(getReaderNumberLocale())} ${nounForType(node.entityType || "", node.childIds.length)}`;
+    return countOfType(node.entityType || "", node.childIds.length, translator);
   }
   if (node.kind === "collection") {
-    return `${node.resourceCount.toLocaleString(getReaderNumberLocale())} ${nounForType(node.entityType || "", node.resourceCount)}`;
+    return countOfType(node.entityType || "", node.resourceCount, translator);
   }
-  return summarizeCounts(node.countsByType) || "Empty";
+  return (
+    summarizeCounts(node.countsByType, undefined, translator) ||
+    translator?.translateText("Empty") ||
+    "Empty"
+  );
 }
 
+// The most numerous types first, at most `limit` of them: "3 namespaces · 48 pods".
 export function summarizeCounts(
   counts: Map<string, number>,
   limit: number = 3,
+  translator?: Translator,
 ): string {
-  return Array.from(counts.entries())
-    .sort((a: [string, number], b: [string, number]): number => {
-      return b[1] - a[1] || a[0].localeCompare(b[0]);
-    })
-    .slice(0, limit)
-    .map(([type, count]: [string, number]): string => {
-      return `${count.toLocaleString(getReaderNumberLocale())} ${nounForType(type, count)}`;
-    })
-    .join(" · ");
+  return formatCountLine(
+    Array.from(counts.entries())
+      .sort((a: [string, number], b: [string, number]): number => {
+        return b[1] - a[1] || a[0].localeCompare(b[0]);
+      })
+      .slice(0, limit)
+      .map(([type, count]: [string, number]): string => {
+        return countOfType(type, count, translator);
+      }),
+    translator,
+  );
 }
 
 /*

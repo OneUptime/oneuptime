@@ -18,6 +18,7 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Link from "Common/UI/Components/Link/Link";
 import ProviderLogoImage from "Common/UI/Components/ProviderLogo/ProviderLogoImage";
 import useTranslateValue from "Common/UI/Utils/Translation";
+import { getArrowOn } from "Common/Types/DirectionArrow";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
@@ -43,7 +44,7 @@ export interface WorkspaceTileProps {
 export const WorkspaceConnectionTile: FunctionComponent<WorkspaceTileProps> = (
   props: WorkspaceTileProps,
 ): ReactElement => {
-  const { translateString } = useTranslateValue();
+  const { translateString, language } = useTranslateValue();
   const copy: WorkspaceConnectionCopy =
     WORKSPACE_CONNECTION_COPY[props.workspaceType];
 
@@ -88,7 +89,7 @@ export const WorkspaceConnectionTile: FunctionComponent<WorkspaceTileProps> = (
           to={RouteUtil.populateRouteParams(RouteMap[actionPage] as Route)}
           className="mt-2 inline-flex items-center text-sm font-medium text-indigo-600 hover:text-indigo-700"
         >
-          {`${translateString(actionTitle)} →`}
+          {`${translateString(actionTitle)} ${getArrowOn(language)}`}
         </Link>
       </div>
     </li>

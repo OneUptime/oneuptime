@@ -181,7 +181,7 @@ beforeEach(() => {
   NetworkFlowDeviceMatcher.clearCaches();
 
   probeDevices = jest
-    .spyOn(NetworkDeviceHydrationUtil, "findDevicesByProbeAndSource")
+    .spyOn(NetworkDeviceHydrationUtil, "lookupDevicesByProbeAndSource")
     .mockResolvedValue([] as never) as unknown as MockFunction;
 
   projectDevices = jest

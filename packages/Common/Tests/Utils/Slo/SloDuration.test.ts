@@ -1,8 +1,12 @@
 import {
   formatDurationCompact,
+  formatDurationCompactInLanguage,
   formatErrorBudgetRemaining,
   formatErrorBudgetRemainingOfTotal,
 } from "../../../Utils/Slo/SloDuration";
+
+const DAY: number = 86400;
+const HOUR: number = 3600;
 
 describe("SloDuration", () => {
   describe("formatDurationCompact", () => {
@@ -62,6 +66,70 @@ describe("SloDuration", () => {
 
     it("renders the magnitude of a negative input (sign is the caller's job)", () => {
       expect(formatDurationCompact(-2592)).toBe("43m 12s");
+    });
+  });
+
+  /*
+   * adjacentUnitsOnly (issue #7306): the largest unit and the one right
+   * below it only, for an age read at a glance - a host's "Up 41d" read
+   * "Up 41d 1s" a second after a whole day.
+   */
+  describe("formatDurationCompact with adjacentUnitsOnly", () => {
+    const adjacent: { adjacentUnitsOnly: boolean } = {
+      adjacentUnitsOnly: true,
+    };
+
+    it("never names days with seconds or minutes beside them", () => {
+      expect(formatDurationCompact(41 * DAY + 1, adjacent)).toBe("41d");
+      expect(formatDurationCompact(41 * DAY + 5 * 60, adjacent)).toBe("41d");
+      expect(formatDurationCompact(2 * DAY + 30, adjacent)).toBe("2d");
+    });
+
+    it("never names hours with seconds beside them", () => {
+      expect(formatDurationCompact(3 * HOUR + 5, adjacent)).toBe("3h");
+    });
+
+    it("keeps the next unit down when it is not zero", () => {
+      expect(formatDurationCompact(41 * DAY + 3 * HOUR, adjacent)).toBe(
+        "41d 3h",
+      );
+      expect(formatDurationCompact(12 * DAY + 4 * HOUR + 59, adjacent)).toBe(
+        "12d 4h",
+      );
+      expect(formatDurationCompact(3 * HOUR + 7 * 60 + 5, adjacent)).toBe(
+        "3h 7m",
+      );
+      expect(formatDurationCompact(6 * 60 + 5, adjacent)).toBe("6m 5s");
+    });
+
+    it("reads what it always read under a minute, and at nothing", () => {
+      expect(formatDurationCompact(59, adjacent)).toBe("59s");
+      expect(formatDurationCompact(0, adjacent)).toBe("0s");
+      expect(formatDurationCompact(0.4, adjacent)).toBe("0s");
+    });
+
+    it("leaves the default alone: an error budget still names its 30 seconds", () => {
+      expect(formatDurationCompact(2 * DAY + 30)).toBe("2d 30s");
+      expect(formatDurationCompact(2 * DAY + 30, {})).toBe("2d 30s");
+      expect(
+        formatDurationCompact(2 * DAY + 30, { adjacentUnitsOnly: false }),
+      ).toBe("2d 30s");
+    });
+
+    it("in the reader's language too, English exactly as above", () => {
+      expect(
+        formatDurationCompactInLanguage(41 * DAY + 1, "en", adjacent),
+      ).toBe("41d");
+      expect(
+        formatDurationCompactInLanguage(41 * DAY + 1, "de", adjacent),
+      ).toBe(formatDurationCompactInLanguage(41 * DAY, "de"));
+      expect(
+        formatDurationCompactInLanguage(41 * DAY + 1, "fa", adjacent),
+      ).toBe(formatDurationCompactInLanguage(41 * DAY, "fa"));
+      // The default keeps the seconds, in German as in English.
+      expect(formatDurationCompactInLanguage(41 * DAY + 1, "de")).not.toBe(
+        formatDurationCompactInLanguage(41 * DAY, "de"),
+      );
     });
   });
 

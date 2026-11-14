@@ -35,7 +35,7 @@ flowchart LR
 | **Arbejdsområde** | **Slack**, **Microsoft Teams**, **Mattermost**, **Videoopkald** | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Mattermost](/docs/workspace-connections/mattermost), [Videoopkald](/docs/workspace-connections/video-calls) |
 | **Telemetri og APM** | **Indtagelsesnøgler**, **Dataopbevaring**, **Forbrug** | [Indtagelsesnøgler](/docs/telemetry/ingestion-keys), [Dataopbevaring](/docs/telemetry/data-retention), [Telemetriforbrug](/docs/telemetry/usage) |
 | **Notifikationer** | **Notifikationskanaler**, **Notifikationslogs**, **Mobilapps** | [Notifikationer](#notifikationer) |
-| **AI** | **AI-funktioner**, **LLM-udbydere**, **Eksterne MCP-servere**, **AI-kreditter**, **AI-logs**, **MCP-server** | [LLM-udbydere](/docs/ai/llm-provider), [Eksterne MCP-servere](/docs/ai/external-mcp-servers), [MCP-server](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#omkostningsstyring) |
+| **AI** | **AI-funktioner**, **LLM-udbydere**, **Eksterne MCP-servere**, **AI-kreditter**, **AI-resultater**, **AI-logs**, **MCP-server** | [LLM-udbydere](/docs/ai/llm-provider), [Eksterne MCP-servere](/docs/ai/external-mcp-servers), [MCP-server](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#omkostningsstyring) |
 | **Avanceret** | **Domæner**, **API-nøgler**, **Funktionsflag**, **Importér fra et andet værktøj** | [Egne domæner](/docs/status-pages/branding-and-domains#brugerdefinerede-domæner), [API-nøgler](/docs/permissions/index#api-nøgler), [Funktionsflag](#funktionsflag), [Skift fra Opsgenie](/docs/moving-to-oneuptime/opsgenie) og de andre flyttevejledninger |
 | **Sikkerhed** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **Fakturering og fakturaer** | **Fakturering**, **Fakturaer** | [Fakturering og forbrug](/docs/configuration/billing) |
@@ -88,9 +88,9 @@ I OneUptime Cloud kræver det Growth-planen at oprette og ændre etiketter. Se [
 
 I en liste vises en posts etiketter under hinanden; er der flere end fire, vises de første tre med et link til resten. Overalt hvor etiketter står opført (i lister, på en posts side og i hver etiketvælger), står de i naturlig rækkefølge: etiketter, hvis navn begynder med et tal, kommer først, i rækkefølge efter tallet (`2. Team` før `10. Owner`), derefter de øvrige alfabetisk, uanset store og små bogstaver. Vil du bestemme rækkefølgen af dine etiketter, så begynd deres navne med et tal, som `1. Category` og `2. Subcategory`.
 
-### Arkivér en etiket
+### Arkiver en etiket
 
-For at udfase en etiket skal du arkivere den fra rækkens menu **⋯** i stedet for at slette den. Alt, der har etiketten, beholder den, og du kan stadig filtrere efter den, men ingen kan tilføje den til noget igen: Hver etiketvælger udelader den, og API'et, Terraform og MCP afviser den. Dialogen viser de regler og tilladelser, der er sat op til at bruge etiketten, og som bliver ved med at bruge den, indtil du ændrer dem. Arkiverede etiketter vises for sig, i den sammenfoldede sektion **Arkiverede etiketter**, hvor **Fjern fra arkiv** sætter en tilbage. **Slet** viser først alt, som etiketten ville blive fjernet fra, og tilbyder **Arkivér i stedet**.
+For at udfase en etiket skal du arkivere den fra rækkens menu **⋯** i stedet for at slette den. Alt, der har etiketten, beholder den, og du kan stadig filtrere efter den, men ingen kan tilføje den til noget igen: Hver etiketvælger udelader den, og API'et, Terraform og MCP afviser den. Dialogen viser de regler og tilladelser, der er sat op til at bruge etiketten, og som bliver ved med at bruge den, indtil du ændrer dem. Arkiverede etiketter vises for sig, i den sammenfoldede sektion **Arkiverede etiketter**, hvor **Fjern fra arkivet** sætter en tilbage. **Slet** viser først alt, som etiketten ville blive fjernet fra, og tilbyder **Arkiver i stedet**.
 
 ## Notifikationer
 

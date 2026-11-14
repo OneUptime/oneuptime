@@ -91,14 +91,17 @@ Uma regra de notificação diz quais eventos são publicados no Microsoft Teams,
 | **Plantão** | Uma lista de regras |
 | **SLOs** | Uma lista de regras |
 
-Criar uma regra passa por quatro etapas:
+Criar uma regra passa por até cinco etapas:
 
 | Etapa | O que você define |
 | --- | --- |
 | **Básico** | **Nome da regra** e **Descrição da regra**. |
 | **Condições** | A quais eventos a regra se aplica, por exemplo por gravidade, estado, rótulo, monitor ou palavras no título. Elas são verificadas quando um evento é criado e novamente a cada atualização que o OneUptime publica sobre ele, então uma regra para incidentes confirmados age quando um incidente é confirmado. Uma regra nova vale para todo evento, por exemplo **Todos os incidentes**. Para restringi-la, escolha **Somente os incidentes que atendem às condições** e adicione as condições. Com duas ou mais, **Condição de correspondência** diz se todas precisam corresponder ou se basta uma. |
 | **Destino** | Onde ela publica: um canal existente de uma equipe que você escolher, os chats que você escolher, um canal para cada incidente (ou alerta, episódio, evento, monitor ou política de plantão) criado em uma equipe que você escolher, ou vários deles juntos. Abaixo da etapa, **O que esta regra faz** diz isso em frases, como o cartão da regra. |
+| **Atualizações** | Somente incidentes, alertas, episódios, manutenções agendadas e políticas de plantão: quais atualizações a regra publica depois da primeira mensagem do registro. **Todas as atualizações** publica todas elas, e uma regra nova começa com ela, exceto a de uma política de plantão. **Somente atualizações importantes** publica as que mais importam, que a etapa lista para cada tipo de registro: para um incidente, a resolução ou reabertura dele, as mudanças de gravidade, as notas públicas e o post-mortem; para uma política de plantão, quem está de plantão agora e quando não há ninguém, com que uma regra nova de política de plantão começa. **Escolher atualizações** permite que você as marque uma a uma. Seja qual for a sua escolha, a regra publica a primeira mensagem do registro, e uma videochamada quando ela começa. Veja [Mensagens de plantão](#mensagens-de-plantão). |
 | **Video Call** | Somente incidentes e alertas: inicia uma chamada para cada um. Consulte [Videochamadas](/docs/workspace-connections/video-calls). |
+
+Cada condição se lê como uma frase: o campo, como ele é comparado e o valor. Os valores para escolher vêm das listas do próprio projeto, como seus estados, gravidades, rótulos e monitores. Uma regra de plantão escolhe suas políticas em **Política de plantão**, que continua correspondendo a uma política depois que ela é renomeada, enquanto **Nome da política de Plantão** procura palavras no nome de uma política. Cada tipo de evento que tem proprietários tem uma condição de proprietário, como **Proprietário do incidente**: escolha pessoas e equipes, e ela corresponde às pessoas e equipes registradas como proprietárias do evento. Fazer parte de uma equipe proprietária do evento não conta. Um proprietário adicionado depois faz a regra corresponder a partir dessa atualização, e uma regra que cria canais cria o canal nesse momento. Um valor arquivado, como uma gravidade ou uma política de plantão, não é oferecido para uma condição nova. Uma regra que já tem um o mantém, marcado como **Arquivado**, e continua correspondendo aos eventos que o têm. Uma pessoa, equipe ou política que o projeto não tem mais continua na condição, e o cartão da regra avisa isso.
 
 Uma regra de SLOs publica as mudanças na política de orçamento de erros de um SLO: quando ele entra em um nível, volta para um menos grave ou sai de todos os níveis, e quando as implantações dele são congeladas ou voltam a ser permitidas. Ela só publica em canais e chats existentes, já que um SLO não recebe um canal próprio. Consulte [Publique no Slack, no Microsoft Teams e no Mattermost](/docs/slo/error-budget-policy#publique-no-slack-no-microsoft-teams-e-no-mattermost).
 
@@ -108,7 +111,7 @@ Uma regra cria o seu canal na primeira vez que um evento corresponde a ela: quan
 
 Para envolver quem está de plantão, escolha os agendamentos de plantão dessas pessoas em **Mencionar quem está de plantão**. Quando o canal é criado, o OneUptime publica nele, logo depois da primeira mensagem do registro, uma mensagem que menciona com @ quem está de plantão nesses agendamentos, para que o Microsoft Teams avise essas pessoas. Ninguém é acionado. O OneUptime encontra cada pessoa na equipe pela conta do Microsoft Teams que ela conectou ao OneUptime, ou então pelo endereço de e-mail dela. Quem não está na equipe não pode abrir os canais dela, então, em vez disso, a mensagem traz o nome dessa pessoa e o motivo. Em um canal privado, só os membros dele podem abri-lo, então adicione as pessoas de plantão a ele no Microsoft Teams.
 
-Toda atualização posterior do registro — uma mudança de estado, uma nota, um novo proprietário — é publicada nos seus canais, e nos canais e chats existentes que as suas regras indicam enquanto as condições delas corresponderem. O OneUptime não consegue arquivar um canal do Microsoft Teams, então o canal de uma regra fica quando o registro dele termina; arquive-o ou exclua-o no Microsoft Teams.
+Toda atualização posterior do registro — uma mudança de estado, uma nota, um novo proprietário — é publicada nos seus canais, e nos canais e chats existentes que as suas regras indicam enquanto as condições delas corresponderem, quando uma regra que publica ali a escolhe na sua etapa **Atualizações**. O OneUptime não consegue arquivar um canal do Microsoft Teams, então o canal de uma regra fica quando o registro dele termina; arquive-o ou exclua-o no Microsoft Teams.
 
 Um incidente, alerta, episódio ou evento de manutenção agendada com um canal próprio tem **Abrir no Microsoft Teams** no cabeçalho da sua página no OneUptime, ao lado dos botões de estado. Ele abre esse canal em uma nova aba, no aplicativo do Microsoft Teams ou no navegador. Um registro com dois canais próprios lista os dois sob o botão. Um registro com canais tanto no Slack quanto no Microsoft Teams tem, em vez disso, um único botão **Abrir canal**, que lista todos eles. Os canais e chats existentes em que as suas regras publicam não são oferecidos.
 
@@ -119,6 +122,14 @@ Canais e chats continuam legíveis: cada evento é publicado uma vez, e o primei
 **Configurações do projeto** > **Espaço de trabalho** > **Microsoft Teams** lista os canais que o OneUptime vê nas suas equipes, e os chats aos quais ele foi adicionado, com **Enviar teste** ao lado de cada um. Um chat aparece assim que o app do OneUptime é adicionado a ele no Microsoft Teams; **Refresh Chats** traz os novos chats e os nomes atuais deles.
 
 Uma regra de notificação pode pertencer a equipes. **Equipes responsáveis**, sob **Mais campos**, reserva a regra às equipes que você escolher: só os membros delas e os administradores do projeto podem editá-la ou excluí-la, e todos os outros que veem as regras a veem como somente leitura. Veja [Regras que pertencem a equipes](/docs/permissions/index#regras-que-pertencem-a-equipes).
+
+### Mensagens de plantão
+
+A cada passagem de turno, os canais e chats de uma política de plantão ficam sabendo quem está de plantão, em uma linha:
+
+> 📞 @Ana Lee is now on call for Payments until Sat, Nov 14, 2026 at 5:50 PM, then @Bob Diaz.
+
+Payments leva à política no OneUptime. Uma pessoa é nomeada pelo nome no Microsoft Teams depois de conectar a conta do Microsoft Teams ao OneUptime, e pelo nome no OneUptime até lá. Os horários aparecem no fuso horário de cada leitor. A etapa **Atualizações** de uma regra escolhe quais mensagens de plantão ela publica, como no Slack, e uma regra nova começa com quem está de plantão agora e quando não há ninguém: veja [Mensagens de plantão](/docs/workspace-connections/slack#mensagens-de-plantão).
 
 ## Testar uma regra
 
@@ -158,7 +169,7 @@ Reaja a uma mensagem, ou a uma resposta, no canal que o OneUptime criou para um 
 
 | Reação | Salva como |
 | --- | --- |
-| 📌 ou 📍 | Uma nota privada, vista só pela sua equipe |
+| 📌 ou 📍 | Uma nota privada, que só quem pode ver o registro pode ler |
 | 📣 ou 📢 | Uma nota pública, mostrada na página de status. Somente incidentes e eventos de manutenção programada. Num incidente privado, uma nota privada, e a confirmação diz por quê. Quando as notas públicas do projeto precisam de aprovação, ela só é mostrada depois de aprovada, e a confirmação diz quem ela aguarda: veja [Aprovação de notas públicas](/docs/incidents/notes-owners-and-feed#aprovação-de-notas-públicas). |
 
 A nota mantém a mensagem como o Microsoft Teams a mostrava: a formatação, os links e o código, as pessoas que ela menciona pelo nome, e os arquivos e as imagens como links para eles. Uma nota pública deixa os arquivos e as imagens de fora, já que eles só abrem para a sua equipe.
@@ -253,7 +264,7 @@ O cartão de um incidente tem quatro botões, **Acknowledge Incident**, **Resolv
 | **Change Severity** | Define a severidade do incidente. |
 | **Change Incident State** | Leva o incidente a um estado posterior. |
 | **Assign Role** | Dá a alguém uma função no incidente, como **Incident Commander**. Uma função de uma só pessoa passa para ela. |
-| **Page Someone** | Aciona pessoas, uma equipe, quem estiver de plantão em um agendamento, ou uma política de plantão sobre o incidente, com uma mensagem opcional. As pessoas são acionadas até que uma delas responda; uma política aciona até que alguém confirme o incidente. |
+| **Page Someone** | Aciona pessoas, uma equipe, quem estiver de plantão em um agendamento, ou uma política de plantão sobre o incidente, com uma mensagem opcional. Todas as pessoas que ele aciona, inclusive as de uma política, são acionadas até que uma delas responda ou o incidente seja resolvido. |
 | **Edit Custom Fields** | Define os campos personalizados do incidente, cada um preenchido com o que o incidente tem. Um campo deixado vazio é limpo. |
 
 `incident 42`, digitado para o bot, responde com o incidente 42, esses botões e o menu dele. Digite o número como o OneUptime o mostra: `42`, `#42` ou `INC-42`. No canal próprio de um incidente, `incident` sozinho mostra esse incidente.

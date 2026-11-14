@@ -1,6 +1,7 @@
 import { beforeAll, describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import nodePath from "path";
+import { pageRoutesIn, routeMapPath, routesAt } from "../Helpers/PageRoutes";
 
 /*
  * Instance Health > Diagnostics > Telemetry is reached through independent
@@ -229,9 +230,17 @@ describe("Health > Telemetry page registration", () => {
   });
 
   test("App.tsx registers a route that renders it", () => {
-    expect(appSource).toMatch(
-      /RouteMap\[PageMap\.HEALTH_TELEMETRY\][\s\S]{0,120}element=\{<HealthTelemetry \/>\}/,
-    );
+    expect(
+      routesAt(
+        pageRoutesIn(nodePath.join(ADMIN_DASHBOARD_SRC, "App.tsx")),
+        routeMapPath("HEALTH_TELEMETRY"),
+      ),
+    ).toEqual([
+      {
+        path: routeMapPath("HEALTH_TELEMETRY"),
+        element: "<HealthTelemetry />",
+      },
+    ]);
   });
 
   test("the health side menu links to it", () => {

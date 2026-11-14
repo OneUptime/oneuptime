@@ -35,7 +35,7 @@ flowchart LR
 | **Werkruimte** | **Slack**, **Microsoft Teams**, **Mattermost**, **Videogesprekken** | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Mattermost](/docs/workspace-connections/mattermost), [Videogesprekken](/docs/workspace-connections/video-calls) |
 | **Telemetrie & APM** | **Ingestiesleutels**, **Gegevensbewaring**, **Gebruik** | [Ingestiesleutels](/docs/telemetry/ingestion-keys), [Gegevensbewaring](/docs/telemetry/data-retention), [Telemetriegebruik](/docs/telemetry/usage) |
 | **Meldingen** | **Meldingskanalen**, **Meldingslogboeken**, **Mobiele apps** | [Meldingen](#meldingen) |
-| **AI** | **AI-functies**, **LLM-providers**, **Externe MCP-servers**, **AI-tegoeden**, **AI-logboeken**, **MCP-server** | [LLM-providers](/docs/ai/llm-provider), [Externe MCP-servers](/docs/ai/external-mcp-servers), [MCP-server](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#kostenbeheersing) |
+| **AI** | **AI-functies**, **LLM-providers**, **Externe MCP-servers**, **AI-tegoeden**, **AI-resultaten**, **AI-logboeken**, **MCP-server** | [LLM-providers](/docs/ai/llm-provider), [Externe MCP-servers](/docs/ai/external-mcp-servers), [MCP-server](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#kostenbeheersing) |
 | **Geavanceerd** | **Domeinen**, **API-sleutels**, **Functievlaggen**, **Importeren uit een andere tool** | [Eigen domeinen](/docs/status-pages/branding-and-domains#aangepaste-domeinen), [API-sleutels](/docs/permissions/index#api-sleutels), [Functievlaggen](#functievlaggen), [Overstappen van Opsgenie](/docs/moving-to-oneuptime/opsgenie) en de andere overstapgidsen |
 | **Beveiliging** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **Facturering en facturen** | **Facturering**, **Facturen** | [Facturering en gebruik](/docs/configuration/billing) |
@@ -90,7 +90,7 @@ In een lijst worden de labels van een record onder elkaar getoond; zijn het er m
 
 ### Een label archiveren
 
-Om een label uit te faseren, archiveert u het via het menu **⋯** van de rij in plaats van het te verwijderen. Alles wat het label heeft, behoudt het, en u kunt er nog steeds op filteren, maar niemand kan het nog ergens aan toevoegen: elke labelkiezer laat het weg, en de API, Terraform en MCP weigeren het. Het dialoogvenster toont de regels en machtigingen die zijn ingesteld om het label te gebruiken; die blijven het gebruiken tot u ze wijzigt. Gearchiveerde labels staan apart, in de ingeklapte sectie **Gearchiveerde labels**, waar **Uit archief halen** er een terugzet. **Verwijderen** toont eerst alles waar het label vanaf zou gaan, en biedt **In plaats daarvan archiveren** aan.
+Om een label uit te faseren, archiveert u het via het menu **⋯** van de rij in plaats van het te verwijderen. Alles wat het label heeft, behoudt het, en u kunt er nog steeds op filteren, maar niemand kan het nog ergens aan toevoegen: elke labelkiezer laat het weg, en de API, Terraform en MCP weigeren het. Het dialoogvenster toont de regels en machtigingen die zijn ingesteld om het label te gebruiken; die blijven het gebruiken tot u ze wijzigt. Gearchiveerde labels staan apart, in de ingeklapte sectie **Gearchiveerde labels**, waar **Uit het archief halen** er een terugzet. **Verwijderen** toont eerst alles waar het label vanaf zou gaan, en biedt **In plaats daarvan archiveren** aan.
 
 ## Meldingen
 

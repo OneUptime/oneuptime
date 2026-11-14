@@ -3,6 +3,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import {
+  getUserFlowPageText,
   UserFlowDirection,
   UserFlowInsight,
   UserFlowSummary,
@@ -11,6 +12,7 @@ import {
   formatUserFlowCount,
   formatUserFlowSessionsHint,
   formatUserFlowShare,
+  getUserFlowPathLineDirection,
   truncateUserFlowLabel,
 } from "./UserFlowFormat";
 import { UserFlowScope } from "./UserFlowScope";
@@ -19,7 +21,6 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { getNumberLocale } from "Common/Types/DateLanguage";
 import {
-  getLineDirection,
   getTranslatedLineDirection,
   LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME,
 } from "Common/UI/Utils/LineDirection";
@@ -65,14 +66,20 @@ function Tile(props: {
   testId: string;
   /* What the number means, in an (i) beside the label. */
   tooltip: string;
-  /* A page path: monospace, and cut from the front so the name survives. */
+  /*
+   * A page's key: shown as a person reads it ("/café", not "/caf%C3%A9"),
+   * in monospace, and cut from the front so the name survives.
+   */
   isPage?: boolean | undefined;
 }): ReactElement {
   const translator: Translator = useTranslator();
   const label: string = translator.translateText(props.label) || props.label;
+  const value: string = props.isPage
+    ? getUserFlowPageText(props.value)
+    : props.value;
   /* A page's path reads from the left on any page: "/checkout". */
   const valueDirection: ReadingDirection | undefined = props.isPage
-    ? getLineDirection(props.value, translator.language)
+    ? getUserFlowPathLineDirection(props.value, translator.language)
     : undefined;
 
   /*
@@ -107,11 +114,11 @@ function Tile(props: {
             : "mt-1 truncate text-2xl font-semibold text-gray-900"
         } ${valueDirection ? LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME : ""}`}
         dir={valueDirection}
-        title={props.value}
+        title={value}
         data-testid={`${props.testId}-value`}
         data-value={props.value}
       >
-        {props.isPage ? truncateUserFlowLabel(props.value, 22) : props.value}
+        {props.isPage ? truncateUserFlowLabel(value, 22) : value}
       </p>
       <p
         className={USER_FLOW_TILE_HINT_CLASS_NAME}
@@ -258,15 +265,22 @@ const UserFlowOverview: FunctionComponent<ComponentProps> = (
                   data-testid="user-flow-insight"
                   data-kind={insight.kind}
                   data-focus-direction={insight.focusDirection}
+                  /*
+                   * Only drawn: the page is set apart from the words
+                   * around it (setsValuesApart), so an Arabic or Persian
+                   * title names "/cart", not "cart/".
+                   */
                   title={
                     insight.focusDirection === "backward"
                       ? translator.translateTemplate(
                           "Show how sessions reached {{page}}",
-                          { page: insight.page },
+                          { page: getUserFlowPageText(insight.page) },
+                          { setsValuesApart: true },
                         )
                       : translator.translateTemplate(
                           "Show paths from {{page}}",
-                          { page: insight.page },
+                          { page: getUserFlowPageText(insight.page) },
+                          { setsValuesApart: true },
                         )
                   }
                   onClick={(): void => {

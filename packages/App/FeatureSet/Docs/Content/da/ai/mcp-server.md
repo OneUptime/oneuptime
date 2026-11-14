@@ -330,7 +330,7 @@ Ud over værktøjerne for hver slags post har serveren værktøjer lavet til at 
 
 - **`acknowledge_incident`** / **`resolve_incident`**: flyt en hændelse til projektets tilstand Acknowledged eller Resolved, ligesom dashboardets knap gør
 - **`acknowledge_alert`** / **`resolve_alert`**: det samme for advarsler
-- **`add_incident_note`**: tilføj en note til en hændelse med `visibility: "internal"` (kun teamet, standarden) eller `visibility: "public"` (slået op på statussiden). Markdown understøttes
+- **`add_incident_note`**: tilføj en note til en hændelse med `visibility: "internal"` (kun dem, der kan se hændelsen, standarden) eller `visibility: "public"` (slået op på statussiden). Markdown understøttes
 - **`add_alert_note`**: tilføj en intern note til en advarsel
 
 Et typisk forløb: `list_incidents` → `acknowledge_incident` → undersøg med `list_logs` → `add_incident_note` (offentlig) → `resolve_incident`.

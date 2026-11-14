@@ -170,7 +170,7 @@ Alt i snippet-et sendes til de besøkende, så hvem som helst kan kopiere tokene
 | **Utløper** | Etter denne datoen godtas ikke nøkkelen lenger. |
 | **Aktivert** | Slå den av for å stoppe en lekket nøkkel med en gang. |
 
-En Browser-nøkkel skriver OTLP-spor, -logger og -målinger, og i tillegg øktavspillinger; alle andre inntaksveier avviser den. Du endrer disse innstillingene på nøkkelens egen side. Nøkkeltypen kan ikke endres etter at nøkkelen er opprettet.
+En Browser-nøkkel skriver OTLP-spor, -logger og -målinger, øktavspillinger og hendelser fra et [Sentry-SDK i nettleseren](/docs/telemetry/compatible-endpoints#sentry-sdk-er); alle andre inntaksveier avviser den. Du endrer disse innstillingene på nøkkelens egen side. Nøkkeltypen kan ikke endres etter at nøkkelen er opprettet.
 
 > [!WARNING]
 > Legg aldri en **Server**-nøkkel i en side. En Server-nøkkel skriver alle slags telemetri fra hvor som helst, uten opprinnelseskontroll, så alle som leser siden din, kan skrive inn i prosjektet ditt.

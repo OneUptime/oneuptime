@@ -572,8 +572,10 @@ export default class AIIncidentInvestigationRunner {
 
       /*
        * Recurrence memory: pull in past resolved incidents that share this
-       * incident's monitors/labels so AI can recognise "I've seen this
-       * before" and reference the prior fix.
+       * incident's monitors, services or labels, or whose words say the
+       * same thing happened, so AI can recognise "I've seen this before"
+       * and reference the prior fix - and what it has learned about the
+       * incident's services (AIMemory, ServiceKnowledge).
        */
       const priorCasesContext: string =
         await AIMemory.getPriorSimilarIncidentsContext({
@@ -589,6 +591,8 @@ export default class AIIncidentInvestigationRunner {
               return l.name || "";
             })
             .filter(Boolean),
+          title: contextData.incident.title,
+          description: contextData.incident.description,
         });
 
       contextSummary =
@@ -1020,6 +1024,8 @@ export default class AIIncidentInvestigationRunner {
         persistAnalysisTldr: true,
         // Who and what it hurts, in numbers, for the folded step.
         recordImpactNumbers: true,
+        // What it saw, kept for a replay after a prompt or model change.
+        recordForReplay: true,
         // Says when the logs stood in the way, with a way forward.
         logStallSubject: {
           subjectType: "incident",

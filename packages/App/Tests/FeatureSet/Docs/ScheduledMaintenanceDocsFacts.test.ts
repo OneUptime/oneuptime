@@ -1376,7 +1376,7 @@ describe("what moves an event", () => {
     );
 
     expect(stateKinds).toContain(
-      '"Select the state to change scheduled maintenance events to. Events already at or past the selected state will be skipped.",',
+      '"Select the state to change maintenance events to. Events already at or past the selected state will be skipped.",',
     );
     expect(stateKinds).toContain(
       '"Post a public note about this state change to the status page. The same note is added to every event you selected.",',
@@ -1984,7 +1984,7 @@ describe("an event's state timeline", () => {
     expect(
       ONLY_STATE_DELETE_MESSAGES[StateTimelineRecord.ScheduledMaintenance],
     ).toBe(
-      "The event's only state can't be deleted: a scheduled maintenance event always has a state. To change it, add a new state.",
+      "The event's only state can't be deleted: a maintenance event always has a state. To change it, add a new state.",
     );
     expect(timeline).toContain(
       "In the dashboard, rows can be added and deleted, but not edited, and an event always keeps at least one.",
@@ -3520,7 +3520,7 @@ describe("reminder rules", () => {
       "Create Scheduled Maintenance Reminder Rule",
     );
     expect(reminders).toContain(
-      "Click **Create Scheduled Maintenance Reminder Rule**. On **Match**, leave **All scheduled maintenance events** picked",
+      "Click **Create Scheduled Maintenance Reminder Rule**. On **Match**, leave **All maintenance events** picked",
     );
     expect(reminders).toContain(
       'pick when to remind them under **Remind Owners**. Its **Name** follows both, such as "Remind every 30 minutes while it is in progress"',
@@ -3655,7 +3655,7 @@ describe("the Settings section's pages", () => {
       '"Public or Private Note Templates for Maintenance Events",',
     );
     expect(NOTE_TEMPLATES_PAGE).toContain(
-      "Pick one when writing a public or private note on a scheduled maintenance event, or when changing its state, and edit it before posting.",
+      "Pick one when writing a public or private note on a maintenance event, or when changing its state, and edit it before posting.",
     );
     expect(
       `Create ${new ScheduledMaintenanceNoteTemplate().singularName}`,
@@ -4015,7 +4015,7 @@ describe("who can change maintenance", () => {
     };
 
     expect(description(Permission.ScheduledMaintenanceMember)).toContain(
-      "Creates, changes and deletes scheduled maintenance events with their notes, state timelines and owners, and scheduled maintenance and note templates.",
+      "Creates, changes and deletes maintenance events with their notes, state timelines and owners, and scheduled maintenance and note templates.",
     );
     expect(description(Permission.ScheduledMaintenanceAdmin)).toContain(
       "Does everything Scheduled Maintenance Member does, and also creates, changes and deletes maintenance states.",

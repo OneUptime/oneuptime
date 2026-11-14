@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 51296,
-    "untranslated": 2833
+    "keys": 52236,
+    "untranslated": 2706
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -115,7 +115,6 @@
     "Branch",
     "Branches",
     "Branding",
-    "Breadcrumb",
     "Broker",
     "Browser",
     "Browser · OpenTelemetry Web SDK",
@@ -477,6 +476,7 @@
     "Postmortem",
     "Powered by OneUptime",
     "Problem",
+    "PromQL",
     "Prompt",
     "Puerto Rico",
     "Pull Requests",
@@ -768,6 +768,7 @@
     "storage-01 · RegionOne",
     "storefront-web",
     "subscriber@company.com",
+    "sum by (job) (rate(http_requests_total[5m]))",
     "support-.*",
     "svc-backup",
     "swarm-production",
@@ -814,6 +815,7 @@
     "{{count}} s",
     "{{count}} vCPU",
     "{{count}} vCPUs",
+    "{{exceptionType}} in {{serviceName}}",
     "{{gigabytes}} GB",
     "{{in}} in",
     "{{size}} in {{duration}}",

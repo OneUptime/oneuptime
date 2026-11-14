@@ -20,6 +20,7 @@ import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePrior
 import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
+import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import VideoCallConnection from "Common/Models/DatabaseModels/VideoCallConnection";
 import {
   MattermostConnectionTeam,
@@ -41,6 +42,11 @@ import {
   SlackRuleWorkspaces,
 } from "../NotificationRuleForm/NotificationRuleCopy";
 import VideoCallRuleSummary from "./VideoCallRuleSummary";
+import UpdatesRuleSummary from "./UpdatesRuleSummary";
+import NotificationRuleUpdates, {
+  NotificationRuleUpdatesChoice,
+} from "Common/Types/Workspace/NotificationRules/NotificationRuleUpdates";
+import { isUpdatesEventType } from "../NotificationRuleForm/NotificationRuleUpdatesCopy";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -50,12 +56,15 @@ import IconProp from "Common/Types/Icon/IconProp";
  * A WORKSPACE NOTIFICATION RULE'S CARD: WHICH RECORDS, THEN WHAT.
  *
  *   Rule Name        Acknowledged incidents
- *   Which incidents  Incident State  Contains Any  (Acknowledged)
+ *   Which incidents  Incident State  is any of  (Acknowledged)
  *   Then             - Creates a channel like #ack-inc-42 for each incident.
  *                    - Invites on-call responders as they are paged, the
  *                      Incident Commander and other incident roles as they
  *                      are assigned and owners as they are added.
  *                    - Archives the channel when the incident is resolved.
+ *   Updates          Key updates only
+ *                    Resolved and reopened · Severity changes · Public
+ *                    notes · Postmortem
  *   Video Call       Starts a Zoom call with Zoom (Ops)
  *
  * "Which incidents" and "Then" are the rule form's own words: the
@@ -65,7 +74,9 @@ import IconProp from "Common/Types/Icon/IconProp";
  * Each is a row of the rule's card of its own (a column of the rules list),
  * so the rows line up and the list's Customize Columns names every one. A
  * rule without a description, or without a video call, leaves that row off
- * its card instead of drawing a label over nothing.
+ * its card instead of drawing a label over nothing - and so does a rule
+ * that posts every update, as rules always did: the Updates row is for
+ * the rules that leave some out.
  *
  * The card listed every switch the rule holds, Yes or No, a dozen rows a
  * rule. Then When and Then were a card inside a row with no name - the
@@ -90,6 +101,11 @@ export interface NotificationRuleWhenProps {
   securityCaseStatuses?: Array<SecurityCaseStatus> | undefined;
   // An SLO rule's: the project's SLOs, to name the ones it picks.
   serviceLevelObjectives?: Array<ServiceLevelObjective> | undefined;
+  // An on-call rule's: the project's policies, to name the ones it picks.
+  onCallDutyPolicies?: Array<OnCallDutyPolicy> | undefined;
+  // The project's people and teams, to name the owners a condition picks.
+  users?: Array<User> | undefined;
+  teams?: Array<Team> | undefined;
   monitorStatus: Array<MonitorStatus>;
 }
 
@@ -121,6 +137,9 @@ export const NotificationRuleWhen: FunctionComponent<
       securityCasePriorities={props.securityCasePriorities}
       securityCaseStatuses={props.securityCaseStatuses}
       serviceLevelObjectives={props.serviceLevelObjectives}
+      onCallDutyPolicies={props.onCallDutyPolicies}
+      users={props.users}
+      teams={props.teams}
       monitorStatus={props.monitorStatus}
       filterCondition={props.rule.filterCondition}
       criteriaFilters={props.rule.filters}
@@ -251,7 +270,7 @@ export const NotificationRuleThen: FunctionComponent<
 
 // Everything a rule's card refers to by id, loaded once for the whole list.
 export interface NotificationRuleCardData
-  extends Omit<NotificationRuleWhenProps, "rule">,
+  extends Omit<NotificationRuleWhenProps, "rule" | "users" | "teams">,
     Omit<NotificationRuleThenProps, "rule" | "eventType"> {
   // Incident and alert rules can start a video call; the others cannot.
   canStartVideoCall: boolean;
@@ -266,10 +285,12 @@ export interface NotificationRuleCardData
 export const NOTIFICATION_RULE_CARD_COLUMN_IDS: {
   readonly when: string;
   readonly then: string;
+  readonly updates: string;
   readonly videoCall: string;
 } = {
   when: "when",
   then: "then",
+  updates: "updates",
   videoCall: "videoCall",
 };
 
@@ -322,6 +343,9 @@ export function getNotificationRuleCardColumns(
             securityCasePriorities={data.securityCasePriorities}
             securityCaseStatuses={data.securityCaseStatuses}
             serviceLevelObjectives={data.serviceLevelObjectives}
+            onCallDutyPolicies={data.onCallDutyPolicies}
+            users={data.users}
+            teams={data.teams}
             monitorStatus={data.monitorStatus}
           />
         );
@@ -357,6 +381,43 @@ export function getNotificationRuleCardColumns(
       },
     },
   ];
+
+  /*
+   * Which updates the rule posts (its Updates step), for the rules that
+   * choose them, on the cards of those that leave some out. Where a new
+   * rule does not start on every update - an on-call policy rule starts on
+   * Key updates only (#7549) - on every card: a rule saved before, which
+   * still posts every update, says so beside the new ones.
+   */
+  const eventType: NotificationRuleEventType = data.eventType;
+
+  const newRulesPostEveryUpdate: boolean =
+    NotificationRuleUpdates.getNewRuleUpdatesToPost(eventType) === undefined;
+
+  if (isUpdatesEventType(eventType)) {
+    columns.push({
+      field: {
+        notificationRule: true,
+      },
+      id: NOTIFICATION_RULE_CARD_COLUMN_IDS.updates,
+      // The rule form's step of the same name: the card translates it.
+      title: "Updates",
+      type: FieldType.Element,
+      disableSort: true,
+      showInListIf: (item: WorkspaceNotificationRule): boolean => {
+        return (
+          !newRulesPostEveryUpdate ||
+          NotificationRuleUpdates.getChoice({
+            rule: ruleOf(item),
+            eventType: eventType,
+          }) !== NotificationRuleUpdatesChoice.EveryUpdate
+        );
+      },
+      getElement: (item: WorkspaceNotificationRule): ReactElement => {
+        return <UpdatesRuleSummary rule={ruleOf(item)} eventType={eventType} />;
+      },
+    });
+  }
 
   if (data.canStartVideoCall) {
     columns.push({

@@ -1,8 +1,8 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
-import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import ErrorMessageText from "Common/UI/Components/ErrorMessage/ErrorMessageText";
+import { DASHBOARD_WIDGET_ERROR_LINE_CLASS_NAME } from "./DashboardWidgetSetupCopy";
 
 export interface ComponentProps {
   // What the widget would draw: its data's kind (logs, traces, a table...).
@@ -23,15 +23,16 @@ export const WIDGET_PLACEHOLDER_TEST_ID: string =
  * external data source, and says so where each would be - and what a list
  * whose read failed shows. One look for all of them on a board, quiet
  * (a visitor can do nothing about it), and readable: its words keep 4.5:1
- * against the widget, in both themes. On a phone the board gives a widget
- * a public dashboard cannot draw only the room this needs
- * (DashboardBoardLayout's isPlaceholder).
+ * against the widget, in both themes, in the line every widget says why it
+ * draws nothing in (DASHBOARD_WIDGET_ERROR_LINE_CLASS_NAME, issue #7330),
+ * and in the reader's language - a failure nobody explained says why and
+ * what to do next, as every widget's error does (ErrorMessageText). On a
+ * phone the board gives a widget a public dashboard cannot draw only the
+ * room this needs (DashboardBoardLayout's isPlaceholder).
  */
 const WidgetPlaceholder: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const translator: Translator = useTranslator();
-
   return (
     <div
       className="flex h-full w-full flex-col items-center justify-center gap-2 px-2"
@@ -43,10 +44,14 @@ const WidgetPlaceholder: FunctionComponent<ComponentProps> = (
         </div>
       </div>
       <p
-        className="max-w-56 text-center text-xs text-gray-500"
+        className={DASHBOARD_WIDGET_ERROR_LINE_CLASS_NAME}
         data-testid={props.messageTestId}
       >
-        {translator.translateText(props.message)}
+        <ErrorMessageText
+          message={props.message}
+          hideWhatFailed={true}
+          isCentered={true}
+        />
       </p>
     </div>
   );

@@ -43,7 +43,7 @@ import { seededRandom, SeededRandom } from "../../Helpers/SeededRandom";
  *   - a probe once a global probe reports; backups once the last backup
  *     the server made succeeded, or an admin confirmed one; update checks
  *     while on and not failing;
- *   - browser push, an AI provider and single sign-on: optional.
+ *   - browser push, an LLM provider and single sign-on: optional.
  *
  * The card counts required checks only, and "Hide" lasts until a required
  * check opens that was not open then. What is stored and what a browser
@@ -887,7 +887,7 @@ describe("probes, backups and update checks", () => {
 });
 
 describe("optional checks", () => {
-  test("browser push, an AI provider and single sign-on: done from what the server has, never skipped", () => {
+  test("browser push, an LLM provider and single sign-on: done from what the server has, never skipped", () => {
     for (const [id, field] of [
       [ServerSetupCheckId.BrowserPush, "isBrowserPushSetUp"],
       [ServerSetupCheckId.AiProvider, "hasAiProvider"],

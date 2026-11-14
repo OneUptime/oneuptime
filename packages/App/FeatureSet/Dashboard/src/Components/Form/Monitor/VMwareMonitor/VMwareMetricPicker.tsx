@@ -12,7 +12,7 @@ import {
 } from "Common/Types/Monitor/VMwareMetricCatalog";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
-import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import MetricPickerDescription from "../MetricPickerDescription";
 
 export interface ComponentProps {
   selectedMetricId?: string | undefined;
@@ -93,23 +93,10 @@ const VMwareMetricPicker: FunctionComponent<ComponentProps> = (
       />
 
       {selectedMetric && (
-        <p className="mt-2 text-xs text-gray-500">
-          <TranslatedSentence
-            template="{{description}} — Metric: {{metric}}"
-            values={{
-              description: translator.translateText(
-                selectedMetric.description,
-              ) as string,
-            }}
-            slots={{
-              metric: (
-                <code className="bg-gray-100 px-1 rounded text-xs">
-                  {selectedMetric.metricName}
-                </code>
-              ),
-            }}
-          />
-        </p>
+        <MetricPickerDescription
+          description={selectedMetric.description}
+          metricName={selectedMetric.metricName}
+        />
       )}
     </div>
   );

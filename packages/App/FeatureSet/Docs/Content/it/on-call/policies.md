@@ -51,7 +51,7 @@ Aprite una policy dall'elenco. Il suo menu laterale contiene tutto ciò che la r
 
 **Base** è aperta; le altre sezioni partono chiuse finché non ci fate clic.
 
-- **Panoramica** mostra i **Dettagli del criterio di reperibilità**, poi **La policy in breve**: quanti livelli e destinatari ha la policy, quanto manca al suo ultimo livello e quante volte si ripete. **Prontezza dei destinatari** dice se ogni persona che può avvisare è raggiungibile adesso, e **Feed della policy di reperibilità** elenca che cosa è cambiato: persone, team e pianificazioni aggiunti o rimossi, sostituzioni e passaggi di consegne.
+- **Panoramica** mostra i **Dettagli del criterio di reperibilità**, poi **La policy in breve**: quanti livelli e destinatari ha la policy, quanto manca al suo ultimo livello e quante volte si ripete. **Prontezza dei destinatari** dice se ogni persona che può avvisare è raggiungibile adesso, e **Feed della policy di reperibilità** elenca che cosa è cambiato: persone, team e pianificazioni aggiunti o rimossi, sostituzioni e passaggi di consegne. Le sue regole per Slack, Microsoft Teams e Mattermost li pubblicano nei tuoi canali, un cambio turno in una riga: vedi [Messaggi di reperibilità](/docs/workspace-connections/slack#messaggi-di-reperibilità).
 - I **Proprietari** sono le persone e i team responsabili della policy. Quando un avviso che invia non trova una regola per qualcuno, o non può essere consegnato, ricevono un'e-mail; una policy senza proprietari scrive invece ai proprietari del progetto.
 - **Registri di notifica** elenca ogni messaggio che la policy ha inviato, con una scheda per canale.
 - **Sostituzioni utente** sostituisce persone solo in questa policy. Vedi [Sostituzioni utente](/docs/on-call/user-overrides).
@@ -80,6 +80,17 @@ Il riconoscimento interrompe definitivamente gli avvisi di una policy, anche se 
 I minuti si contano da ogni riconoscimento, e una policy avvisa di nuovo al massimo 5 volte per uno stesso incidente, avviso o episodio. Un nuovo avviso parte dal livello che stava avvisando al momento del riconoscimento, avvisa chi è reperibile ora a quel livello e prosegue per i livelli come la prima esecuzione. L'incidente o l'avviso resta riconosciuto: il nuovo avviso è un'esecuzione a sé, nel suo feed e nei registri di esecuzione della policy, dove il suo **Stato** dice «Avvisato di nuovo (1 di 5)».
 
 Chi viene avvisato di nuovo lo riconosce dal suo messaggio, o con **Riconosci di nuovo** nella pagina dell'incidente o dell'avviso, e i minuti ripartono; **Escala** lo passa al livello successivo. Risolvere o eliminare l'incidente o l'avviso, archiviare o eliminare la policy, o scegliere **Non avvisare di nuovo** lo ferma. La riga **Dopo un riconoscimento** della scheda dice che cosa fa la policy, e **Altre impostazioni** mostra i minuti mentre è chiusa. **La policy in breve** nella **Panoramica** ed **Riepilogo dell'escalation** dicono la stessa cosa a parole.
+
+## Quando avvisano più policy
+
+Un incidente, un avviso o un episodio esegue ognuna delle sue policy per conto suo, nello stesso momento.
+
+- Chi è reperibile in due di esse viene avvisato da entrambe, una volta da ciascuna: OneUptime non unisce gli avvisi di policy diverse. All'interno di una policy, chi viene nominato due volte da un livello, di persona e tramite un team o una pianificazione, viene avvisato una volta sola.
+- Riconoscere l'incidente o l'avviso ferma entro un minuto tutte le policy in esecuzione per esso, ovunque venga riconosciuto: da qualsiasi avviso che lo riguarda, nella sua pagina, nell'app mobile, o in Slack o Microsoft Teams. Nessun livello successivo viene avvisato, e nessuna chiamata o SMS ancora in attesa viene inviato. Le notifiche già inviate restano inviate.
+
+Alcuni avvisi continuano dopo il riconoscimento, finché non risponde qualcuno che hanno avvisato o finché non viene risolto: un nuovo avviso, un avviso agli osservatori, un avviso che qualcuno ha mandato a delle persone da Slack o Microsoft Teams, e una policy avviata a mano.
+
+Una policy avviata a mano è una policy avviata con **Esegui criterio di reperibilità**, o da un avviso da Slack o Microsoft Teams che la nomina. Avvisa livello per livello come qualsiasi esecuzione, chiamate e notifiche push ripetute comprese, e il riconoscimento dell'incidente da parte di qualcun altro non la ferma: è così che si avvisa un altro team per un incidente di cui qualcuno si sta già occupando. Chi ha ricevuto il suo avviso risponde dal messaggio dell'avviso, con una chiamata o un SMS, o riconoscendo personalmente l'incidente; una volta riconosciuto l'incidente, la sua pagina gli offre **Riconosci di nuovo**. **Escala** la passa al livello successivo. Su un incidente, un avviso o un episodio risolto non viene avviato nulla, e vi viene detto perché.
 
 ## Registri di esecuzione
 
@@ -162,6 +173,14 @@ Il livello precedente non aveva nessuno da avvisare: nessun destinatario, nessun
 
 :::details Un incidente mostra una policy che non ha avvisato nessuno
 La policy è archiviata: una policy archiviata resta sugli incidenti e sugli avvisi che la usano, non avvisa nessuno, e il suo registro di esecuzione dice che non è stata eseguita. Ripristinatela in **Reperibilità → Avanzato → Policy archiviate**.
+:::
+
+:::details Qualcuno è stato avvisato due volte per lo stesso incidente
+È reperibile in due delle policy che l'incidente esegue, e ogni policy avvisa le proprie persone. Riconoscere l'incidente da uno dei due avvisi le ferma entrambe. Perché venga avvisato una volta sola, metti entrambi i team o le pianificazioni nello stesso livello di una policy.
+:::
+
+:::details Una policy ha continuato ad avvisare dopo il riconoscimento dell'incidente
+È stata avviata a mano, oppure è un nuovo avviso: continua finché non risponde qualcuno che ha avvisato, o finché l'incidente non viene risolto. Vedi [Quando avvisano più policy](#quando-avvisano-più-policy).
 :::
 
 ## Passi successivi

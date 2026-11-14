@@ -123,9 +123,15 @@ const FormField: <T extends GenericObject>(
 ): ReactElement => {
   const { translateString, translateValue } = useTranslateValue();
   const translator: Translator = useTranslator();
-  const translatedPlaceholder: string | undefined = translateString(
-    props.field.placeholder,
-  );
+  /*
+   * The field's placeholder as written, in English. The control that draws
+   * it looks it up in the reader's language, once, as it does a placeholder
+   * it is given anywhere else. Looked up here too, it was looked up twice,
+   * and a translation that is itself an English key was translated again:
+   * Spanish read "Network" as "Red" and then "Rojo", German an OpenStack
+   * domain's "Default" as "Standard" and then "Normal" (#7663).
+   */
+  const fieldPlaceholder: string | undefined = props.field.placeholder;
 
   /*
    * Unique, stable id used to programmatically associate the field's <label>
@@ -649,7 +655,8 @@ const FormField: <T extends GenericObject>(
                 (props.field.defaultValue as any) ||
                 undefined
               }
-              placeholder={translatedPlaceholder || undefined}
+              placeholder={fieldPlaceholder || undefined}
+              isPlaceholderTranslated={props.field.isPlaceholderTranslated}
             />
           )}
 
@@ -670,7 +677,8 @@ const FormField: <T extends GenericObject>(
                */
               isClearable={!required}
               disabled={props.isDisabled || props.field.disabled}
-              placeholder={translatedPlaceholder || ""}
+              placeholder={fieldPlaceholder || ""}
+              isPlaceholderTranslated={props.field.isPlaceholderTranslated}
               // The form holds the value; the field shows exactly that.
               value={
                 (props.currentValues &&
@@ -692,7 +700,8 @@ const FormField: <T extends GenericObject>(
                 props.setFieldTouched(props.fieldName, true);
               }}
               tabIndex={0}
-              placeholder={translatedPlaceholder || ""}
+              placeholder={fieldPlaceholder || ""}
+              isPlaceholderTranslated={props.field.isPlaceholderTranslated}
               initialValue={
                 props.currentValues &&
                 (props.currentValues as any)[props.fieldName]
@@ -760,7 +769,8 @@ const FormField: <T extends GenericObject>(
                 emptyListText={props.field.dropdownModal.emptyListText}
                 onLabelsBulkAdded={props.field.onLabelsBulkAdded}
                 options={props.field.dropdownOptions || []}
-                placeholder={translatedPlaceholder || ""}
+                placeholder={fieldPlaceholder || ""}
+                isPlaceholderTranslated={props.field.isPlaceholderTranslated}
                 value={
                   props.currentValues &&
                   (props.currentValues as any)[props.fieldName]
@@ -818,7 +828,8 @@ const FormField: <T extends GenericObject>(
                  */
                 isClearable={!required}
                 options={props.field.dropdownOptions || []}
-                placeholder={translatedPlaceholder || ""}
+                placeholder={fieldPlaceholder || ""}
+                isPlaceholderTranslated={props.field.isPlaceholderTranslated}
                 /*
                  * What the form holds, 0 included: an option whose value is
                  * 0 ("Don't repeat", "Immediately") is a choice, and a
@@ -1002,7 +1013,8 @@ const FormField: <T extends GenericObject>(
                     ? (props.currentValues as any)[props.fieldName]
                     : ""
                 }
-                placeholder={translatedPlaceholder || ""}
+                placeholder={fieldPlaceholder || ""}
+                isPlaceholderTranslated={props.field.isPlaceholderTranslated}
               />,
             )}
 
@@ -1042,7 +1054,8 @@ const FormField: <T extends GenericObject>(
                     ? (props.currentValues as any)[props.fieldName]
                     : ""
                 }
-                placeholder={translatedPlaceholder || ""}
+                placeholder={fieldPlaceholder || ""}
+                isPlaceholderTranslated={props.field.isPlaceholderTranslated}
               />,
             )}
 
@@ -1073,7 +1086,8 @@ const FormField: <T extends GenericObject>(
                   ? (props.currentValues as any)[props.fieldName]
                   : ""
               }
-              placeholder={translatedPlaceholder || ""}
+              placeholder={fieldPlaceholder || ""}
+              isPlaceholderTranslated={props.field.isPlaceholderTranslated}
             />
           )}
 
@@ -1104,7 +1118,8 @@ const FormField: <T extends GenericObject>(
                   ? (props.currentValues as any)[props.fieldName]
                   : ""
               }
-              placeholder={translatedPlaceholder || ""}
+              placeholder={fieldPlaceholder || ""}
+              isPlaceholderTranslated={props.field.isPlaceholderTranslated}
             />
           )}
 
@@ -1127,7 +1142,8 @@ const FormField: <T extends GenericObject>(
                   ? (props.currentValues as any)[props.fieldName]
                   : "",
 
-              placeholder: translatedPlaceholder || "",
+              placeholder: fieldPlaceholder || "",
+              isPlaceholderTranslated: props.field.isPlaceholderTranslated,
 
               ariaLabelledby: customElementDrawsOwnLabel
                 ? undefined
@@ -1187,6 +1203,7 @@ const FormField: <T extends GenericObject>(
                   props.currentValues,
                 )}
                 whenNobodyPicked={props.field.peoplePicker.whenNobodyPicked}
+                readOnly={props.field.peoplePicker.isReadOnly}
                 disabled={props.field.disabled}
                 error={props.touched && props.error ? props.error : undefined}
                 ariaLabelledby={fieldLabelId}
@@ -1222,7 +1239,8 @@ const FormField: <T extends GenericObject>(
                     ? (props.currentValues as any)[props.fieldName]
                     : ""
                 }
-                placeholder={translatedPlaceholder || ""}
+                placeholder={fieldPlaceholder || ""}
+                isPlaceholderTranslated={props.field.isPlaceholderTranslated}
               />,
             )}
 
@@ -1290,7 +1308,8 @@ const FormField: <T extends GenericObject>(
                     ? []
                     : undefined
               }
-              placeholder={translatedPlaceholder || ""}
+              placeholder={fieldPlaceholder || ""}
+              isPlaceholderTranslated={props.field.isPlaceholderTranslated}
             />
           )}
 
@@ -1441,15 +1460,12 @@ const FormField: <T extends GenericObject>(
                     ? inputInitialValue
                     : String(inputInitialValue ?? "")
                 }
+                placeholder={fieldPlaceholder || ""}
+                isPlaceholderTranslated={props.field.isPlaceholderTranslated}
                 /*
                  * An identifier (a claim's name) reads as written in every
-                 * language: looked up neither here nor in Input.
+                 * language: Input does not look it up.
                  */
-                placeholder={
-                  props.field.isPlaceholderIdentifier
-                    ? props.field.placeholder || ""
-                    : translatedPlaceholder || ""
-                }
                 isPlaceholderIdentifier={props.field.isPlaceholderIdentifier}
               />,
             )}

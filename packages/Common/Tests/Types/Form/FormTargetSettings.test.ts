@@ -167,7 +167,7 @@ describe("validateFormTargetSettings: what the API accepts", () => {
     expect(
       validate({ incidentSeverityId: A }, FormTargetType.ScheduledMaintenance),
     ).toBe(
-      '"incidentSeverityId" is not a setting of forms that create a scheduled maintenance event. Settings: defaultTitle, monitorIds, statusPageIds, labelIds, ownerUserIds, ownerTeamIds, showOnStatusPages, notifySubscribers.',
+      '"incidentSeverityId" is not a setting of forms that create a maintenance event. Settings: defaultTitle, monitorIds, statusPageIds, labelIds, ownerUserIds, ownerTeamIds, showOnStatusPages, notifySubscribers.',
     );
   });
 

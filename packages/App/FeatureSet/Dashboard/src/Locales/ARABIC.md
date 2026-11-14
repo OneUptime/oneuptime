@@ -73,6 +73,9 @@ as a dot.
   Arabic; between two steps left in Latin letters, which are drawn from the
   left, it stays `→` (`Services ← خدمتك ← Configuration → Configure service`).
   `›` stays `›`.
+- A link that leads on ends with `←` (`كل المقاييس ←` for `All metrics →`),
+  and one that leads back starts with `→` (`→ رجوع` for `← Back`), as in
+  Persian.
 
 ## Direction
 
@@ -263,7 +266,9 @@ writes (`Dashboard/src/Utils/Milliseconds`), is the exception: it reads
 Intl's short unit, `{{value}} ملي ث`, as the durations `DateLanguage`
 writes do, so a page read from the right never reads "ms 411". The
 network path's DNS sentence (`... خلال {{time}} ملي ث`) uses the same
-unit as the traceroute hops listed under it.
+unit as the traceroute hops listed under it, and the Response time card's
+`Latest: ...` sentence (`الأحدث: الوسيط {{median}} ملي ث ...`) the same
+unit as the probe durations listed beside it.
 The Dashboard's list of texts Arabic writes as English on purpose is
 `sameAsEnglish` in `../../i18n/Progress/ar.json`.
 

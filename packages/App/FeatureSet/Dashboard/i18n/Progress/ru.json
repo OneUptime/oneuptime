@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 51296,
-    "untranslated": 9488
+    "keys": 52236,
+    "untranslated": 9274
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -94,7 +94,9 @@
     "PostgreSQL",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
     "Powered by OneUptime",
+    "PromQL",
     "Push",
+    "RTT",
     "RabbitMQ",
     "Re-encrypt",
     "Red Hat OpenShift",
@@ -181,6 +183,7 @@
     "security-alerts",
     "storage-01 · RegionOne",
     "storefront-web",
+    "sum by (job) (rate(http_requests_total[5m]))",
     "svc-backup",
     "syslog",
     "timeout|connection refused",

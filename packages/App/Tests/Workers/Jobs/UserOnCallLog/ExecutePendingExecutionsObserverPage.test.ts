@@ -63,7 +63,11 @@ type PendingLog = Parameters<typeof executePendingNotificationLog>[0];
 
 // A person's page of a run, ten minutes in: a rule that calls after five is due.
 function pendingLog(run: {
-  startedBy: "person" | "workflow" | "policy started by a person";
+  startedBy:
+    | "person"
+    | "workflow"
+    | "policy started by a person"
+    | "policy OneUptime started";
   acknowledgedAt?: Date | undefined;
   isObserverPage?: boolean | undefined;
 }): PendingLog {
@@ -74,7 +78,10 @@ function pendingLog(run: {
     executionLog.isObserverPage = run.isObserverPage;
   }
 
-  if (run.startedBy !== "workflow") {
+  if (
+    run.startedBy !== "workflow" &&
+    run.startedBy !== "policy OneUptime started"
+  ) {
     executionLog.triggeredByUserId = JANE;
   }
 
@@ -82,7 +89,10 @@ function pendingLog(run: {
     executionLog.triggeredByWorkflowId = WORKFLOW;
   }
 
-  if (run.startedBy === "policy started by a person") {
+  if (
+    run.startedBy === "policy started by a person" ||
+    run.startedBy === "policy OneUptime started"
+  ) {
     executionLog.onCallDutyPolicyId = POLICY;
   }
 
@@ -240,7 +250,7 @@ describe("a responder's page beside it", () => {
   test("is ended by the incident's acknowledgement, as it always was", async () => {
     await executePendingNotificationLog(
       pendingLog({
-        startedBy: "policy started by a person",
+        startedBy: "policy OneUptime started",
         isObserverPage: false,
       }),
       MEMBER,
@@ -254,6 +264,20 @@ describe("a responder's page beside it", () => {
       },
     ]);
     expect(isAcknowledgedAsked).toBe(1);
+  });
+
+  test("of a policy a person started by hand goes on until answered, as the observers' does (OnCallPolicyStartedByHand)", async () => {
+    await executePendingNotificationLog(
+      pendingLog({
+        startedBy: "policy started by a person",
+        isObserverPage: false,
+      }),
+      MEMBER,
+    );
+
+    expect(executedRules).toEqual([RULE_ID.toString()]);
+    expect(updates).toEqual([]);
+    expect(isAcknowledgedAsked).toBe(0);
   });
 });
 

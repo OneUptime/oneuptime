@@ -29,7 +29,7 @@ Ud fra de fire tidsstempler beregner sonden **urafvigelsen**, ((T2 − T1) + (T3
 > [!NOTE]
 > Afvigelsen måles i forhold til sondens eget ur. OneUptime Clouds sonder holder deres ure synkroniseret. På en [brugerdefineret sonde](/docs/probe/custom-probe) skal værtens ur også holdes synkroniseret, med chrony eller systemd-timesyncd, ellers kan en afvigelsesadvarsel handle om sonden og ikke om serveren.
 
-En server, der svarer, bliver ikke spurgt igen, heller ikke når den svarer uden pålidelig tid. Stilhed, en afvist port og et mislykket DNS-opslag forsøges igen med en ny anmodning. Når serveren slet ikke svarer, sporer sonden også ruten dertil og vedhæfter det, den fandt, som **Network Path at Time of Failure**. En sonde, der har mistet sin egen netværksforbindelse, rapporterer intet resultat, så den kan ikke markere din server som offline.
+En server, der svarer, bliver ikke spurgt igen, heller ikke når den svarer uden pålidelig tid. Stilhed, en afvist port og et mislykket DNS-opslag forsøges igen med en ny anmodning. Når serveren slet ikke svarer, sporer sonden også ruten dertil og vedhæfter det, den fandt, som **Netværkssti på fejltidspunktet**. En sonde, der har mistet sin egen netværksforbindelse, rapporterer intet resultat, så den kan ikke markere din server som offline.
 
 ## Før du starter
 
@@ -133,7 +133,7 @@ Kriterierne kontrolleres oppefra og ned, og det første, der matcher, afgør, hv
 ## Fejlfinding
 
 :::details Serveren kører, men monitoren siger, at den ikke svarede
-Anmodningen eller svaret gik tabt undervejs. En firewall, der tillader TCP men ikke UDP, en ntpd-regel `restrict` eller chrony-regel `allow`, der udelader sondens adresse, eller en server, der kun lytter på en intern grænseflade, ser alle sådan ud. **Network Path at Time of Failure** viser, hvor langt ruten nåede. Luk sonden igennem, eller kontrollér serveren fra en [brugerdefineret sonde](/docs/probe/custom-probe) inde i netværket.
+Anmodningen eller svaret gik tabt undervejs. En firewall, der tillader TCP men ikke UDP, en ntpd-regel `restrict` eller chrony-regel `allow`, der udelader sondens adresse, eller en server, der kun lytter på en intern grænseflade, ser alle sådan ud. **Netværkssti på fejltidspunktet** viser, hvor langt ruten nåede. Luk sonden igennem, eller kontrollér serveren fra en [brugerdefineret sonde](/docs/probe/custom-probe) inde i netværket.
 :::
 
 :::details Monitoren siger, at serveren afviste anmodningen

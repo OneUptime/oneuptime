@@ -6,7 +6,7 @@ En vagtpolitik afgør, hvem der tilkaldes om en hændelse eller advarsel, og hve
 - [Opret en politik](#opret-en-politik): Et navn, og hvem der tilkaldes først.
 - [Hvad der kører en politik](#hvad-der-kører-en-politik): Regler, skabeloner, overvågninger, chat og dig selv.
 - [Udførelseslogs](#udførelseslogs): Hver kørsel, regel for regel, og hvorfor den stoppede.
-- [Arkivér eller slet en politik](#arkivér-eller-slet-en-politik): Tag en politik ud af drift.
+- [Arkiver eller slet en politik](#arkiver-eller-slet-en-politik): Tag en politik ud af drift.
 :::
 
 ## Opret en politik
@@ -51,7 +51,7 @@ En politik, som flere regler tilføjer, kører én gang. En alvorlighed kører a
 
 **Grundlæggende** er åben; de andre sektioner starter foldet sammen, indtil du klikker på dem.
 
-- **Oversigt** viser **Detaljer om vagtpolitik** og derefter **Politikken i overblik**: hvor mange niveauer og modtagere politikken har, hvor lang tid der går til dens sidste niveau, og hvor ofte den gentages. **Modtagernes parathed** siger, om alle, den kan tilkalde, kan nås nu, og **Vagtpolitikkens feed** viser, hvad der er ændret: personer, teams og vagtplaner, der er tilføjet eller fjernet, tilsidesættelser og overdragelser.
+- **Oversigt** viser **Detaljer om vagtpolitik** og derefter **Politikken i overblik**: hvor mange niveauer og modtagere politikken har, hvor lang tid der går til dens sidste niveau, og hvor ofte den gentages. **Modtagernes parathed** siger, om alle, den kan tilkalde, kan nås nu, og **Vagtpolitikkens feed** viser, hvad der er ændret: personer, teams og vagtplaner, der er tilføjet eller fjernet, tilsidesættelser og overdragelser. Dens regler for Slack, Microsoft Teams og Mattermost slår dem op i dine kanaler, et vagtskifte i én linje: se [Vagtbeskeder](/docs/workspace-connections/slack#vagtbeskeder).
 - **Ejere** er de personer og teams, der er ansvarlige for politikken. Når et tilkald fra den ikke finder en regel for nogen eller ikke kan leveres, får de en e-mail; en politik uden ejere sender i stedet en e-mail til projektets ejere.
 - **Notifikationslogs** viser hver besked, politikken har sendt, med en fane pr. kanal.
 - **Brugertilsidesættelser** dækker kun for folk i denne politik. Se [Brugertilsidesættelser](/docs/on-call/user-overrides).
@@ -80,6 +80,17 @@ En bekræftelse stopper en politiks tilkald for altid, også selv om ingen løse
 Minutterne tælles fra hver bekræftelse, og en politik tilkalder højst 5 gange igen om den samme hændelse, advarsel eller episode. Et nyt tilkald starter på det niveau, der tilkaldte, da der blev bekræftet, tilkalder den, der har vagt der nu, og fortsætter gennem niveauerne som den første kørsel. Hændelsen eller advarslen forbliver bekræftet: det nye tilkald er en kørsel for sig, i dens feed og i politikkens udførelseslogs, hvor dens **Status** siger "Tilkaldt igen (1 af 5)".
 
 Den, der tilkaldes igen, bekræfter fra beskeden eller med **Bekræft igen** på hændelsens eller advarslens side, og minutterne starter forfra; **Eskalér** sender tilkaldet videre til næste niveau. Hvis hændelsen eller advarslen løses eller slettes, politikken arkiveres eller slettes, eller nogen vælger **Tilkald ikke igen**, stopper det. Kortets række **Efter en bekræftelse** siger, hvad politikken gør, og **Yderligere indstillinger** viser minutterne, mens det er foldet sammen. **Politikken i overblik** på **Oversigt** og **Oversigt over eskalering** siger det samme med ord.
+
+## Når flere politikker tilkalder
+
+En hændelse, advarsel eller episode kører hver af sine politikker for sig, på samme tid.
+
+- Den, der har vagt i to af dem, tilkaldes af begge, én gang af hver: OneUptime slår ikke tilkald fra forskellige politikker sammen. Inden for én politik tilkaldes en person, som et niveau nævner to gange, personligt og gennem et team eller en vagtplan, kun én gang.
+- En bekræftelse af hændelsen eller advarslen stopper inden for et minut alle politikker, der kører for den, uanset hvor den bekræftes: fra et hvilket som helst tilkald om den, på dens egen side, i mobilappen eller i Slack eller Microsoft Teams. Intet næste niveau tilkaldes, og intet opkald eller sms, der stadig venter, sendes. Notifikationer, der allerede er sendt, forbliver sendt.
+
+Nogle tilkald fortsætter, efter den er bekræftet, indtil nogen, de har tilkaldt, svarer, eller den er løst: et nyt tilkald, et tilkald til observatører, et tilkald, som nogen har sendt til personer fra Slack eller Microsoft Teams, og en politik, der er startet manuelt.
+
+En politik, der er startet manuelt, er en, der er startet med **Udfør vagtpolitik** eller af et tilkald fra Slack eller Microsoft Teams, der nævner den. Den tilkalder niveau for niveau som enhver kørsel, med opkald og gentagne push-notifikationer, og at en anden bekræfter hændelsen, stopper den ikke: sådan tilkalder du endnu et team til en hændelse, som nogen allerede arbejder på. Den, den har tilkaldt, svarer fra sit tilkalds besked, et opkald eller en sms, eller ved selv at bekræfte hændelsen; når hændelsen er bekræftet, tilbyder hændelsens side vedkommende **Bekræft igen**. **Eskalér** sender den videre til næste niveau. På en hændelse, advarsel eller episode, der er løst, startes intet, og du får at vide hvorfor.
 
 ## Udførelseslogs
 
@@ -114,12 +125,12 @@ Du finder udførelseslogs tre steder:
 
 Hver række viser, hvad der startede kørslen, hvornår, dens **Status** og hvem der kvitterede. **Vis tidslinje** åbner dens **Tidslinje for udførelsen**: hver eskaleringsregel, hvem den tilkaldte, via hvilken vagtplan, og hvordan hvert tilkald endte. **Notificeret via** viser, hvordan hvert tilkald nåede frem til personen: telefonopkald, SMS, e-mail, push-notifikation og så videre. En vagtplan, hvor ingen har vagt, viser **Ingen havde vagt** i stedet for en person. Et niveau, der ikke tilkaldte nogen, siger hvorfor, med **Gik videre med det samme** nedenunder: politikken ventede ikke på det. I OneUptime Cloud kræver udførelseslogs abonnementet **Growth**.
 
-## Arkivér eller slet en politik
+## Arkiver eller slet en politik
 
 Arkivering tager en politik ud af drift og beholder alt: åbn politikkens **Indstillinger**, og klik på **Arkiver** på dens arkiveringskort, eller vælg politikker i listen, og vælg **Arkiver**.
 
 - En arkiveret politik tilkalder ingen. Hændelser og advarsler, der bruger den, springer den over, og en kørsel, der stadig eskalerer, stopper ved sit næste skridt.
-- Den forlader listen **Vagtpolitikker** og flytter til **Vagt → Avanceret → Arkiverede politikker**, hvor **Fjern fra arkiv** sætter den i drift igen.
+- Den forlader listen **Vagtpolitikker** og flytter til **Vagt → Avanceret → Arkiverede politikker**, hvor **Fjern fra arkivet** sætter den i drift igen.
 
 **Slet politik**, under **Avanceret**, sletter politikken med dens eskaleringsregler og brugertilsidesættelser. Sletning fra listen spørger først og foreslår at arkivere i stedet.
 
@@ -162,6 +173,14 @@ Niveauet før havde ingen at tilkalde: ingen modtagere, ingen med vagt i dets va
 
 :::details En hændelse viser en politik, der ikke tilkaldte nogen
 Politikken er arkiveret: en arkiveret politik bliver stående på de hændelser og advarsler, der bruger den, tilkalder ingen, og dens udførelseslog siger, at den ikke blev udført. Fjern den fra arkivet under **Vagt → Avanceret → Arkiverede politikker**.
+:::
+
+:::details Nogen blev tilkaldt to gange om én hændelse
+Vedkommende har vagt i to af de politikker, hændelsen kører, og hver politik tilkalder sine egne personer. En bekræftelse af hændelsen fra et af de to tilkald stopper begge. Læg begge teams eller vagtplaner i samme niveau i én politik, så tilkaldes vedkommende kun én gang.
+:::
+
+:::details En politik blev ved med at tilkalde, efter hændelsen var bekræftet
+Den blev startet manuelt, eller det er et nyt tilkald: den fortsætter, indtil nogen, den har tilkaldt, svarer, eller hændelsen er løst. Se [Når flere politikker tilkalder](#når-flere-politikker-tilkalder).
 :::
 
 ## Næste trin

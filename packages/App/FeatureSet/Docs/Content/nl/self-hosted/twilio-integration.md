@@ -1,9 +1,9 @@
 # Twilio-integratie
 
-Een zelf gehoste OneUptime verstuurt sms- en spraakmeldingen via uw eigen Twilio-account, en u betaalt Twilio rechtstreeks. U slaat de Twilio-inloggegevens op in het dashboard van OneUptime, niet in omgevingsvariabelen: de bezorging van meldingen leest de opgeslagen configuratie, en de Helm-chart heeft geen waarden voor Twilio-inloggegevens.
+Een zelf gehoste OneUptime verstuurt sms- en spraakmeldingen via uw eigen Twilio-account, en u betaalt Twilio rechtstreeks. U slaat de Twilio-inloggegevens op in het dashboard van OneUptime, voor één project of voor de hele installatie. Een installatie die vanuit code wordt uitgerold, kan het account voor de hele installatie in plaats daarvan instellen met omgevingsvariabelen, die de Helm-chart en Docker Compose doorgeven: zie [Het account voor de hele installatie instellen met omgevingsvariabelen](#het-account-voor-de-hele-installatie-instellen-met-omgevingsvariabelen).
 
 > [!NOTE]
-> Een oude migratie importeerde `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` en `TWILIO_PHONE_NUMBER`; die variabelen wijzigen is niet de manier om de inloggegevens van een bestaande installatie bij te werken.
+> Een oude migratie importeerde eenmalig `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` en `TWILIO_PHONE_NUMBER`; die variabelen wijzigen werkt de inloggegevens van een bestaande installatie niet bij. De `GLOBAL_TWILIO_`-variabelen hieronder wel.
 
 :::cards
 - [Bereid uw Twilio-account voor](#1-bereid-uw-twilio-account-voor): Inloggegevens, een telefoonnummer en de limieten van het account.
@@ -53,6 +53,66 @@ Zo voegt u een projectconfiguratie toe:
 :::
 
 Voor een standaard voor de hele installatie kan een beheerder in plaats daarvan **Admin Dashboard > Instellingen > Oproep en sms** openen, kiezen wat het account verstuurt, de Twilio-inloggegevens en telefoonnummers bewerken en opslaan. Meldingen aan leden gebruiken deze globale configuratie wanneer hun project geen standaard heeft. Houd het Auth Token geheim.
+
+### Het account voor de hele installatie instellen met omgevingsvariabelen
+
+Een nieuwe installatie kan starten met werkende sms en oproepen, zonder iets met de hand in te stellen: stel het account voor de hele installatie in met omgevingsvariabelen, vanuit Terraform of waarmee u OneUptime verder uitrolt. Zodra `GLOBAL_TWILIO_ACCOUNT_SID` is ingesteld, is het account het account dat de variabelen beschrijven. Het account dat in **Admin Dashboard > Instellingen > Oproep en sms** is opgeslagen, wordt niet gebruikt, en die pagina toont dit account alleen-lezen, elk veld met de variabele die het instelt. Laat `GLOBAL_TWILIO_ACCOUNT_SID` leeg om het account in plaats daarvan in het Admin Dashboard in te stellen. Projectconfiguraties veranderen niet.
+
+| Variabele | Helm-waarde | Wat erin staat |
+| --- | --- | --- |
+| `GLOBAL_TWILIO_ACCOUNT_SID` | `twilio.accountSid` | De Account SID. Pas als die is ingesteld, leest OneUptime de andere variabelen |
+| `GLOBAL_TWILIO_AUTH_TOKEN` | `twilio.authToken`, of een Secret die in `twilio.existingSecret.name` is genoemd | Het Auth Token |
+| `GLOBAL_TWILIO_USED_FOR` | `twilio.usedFor` | `calls-and-sms` (ook als die leeg is), `sms-only` of `calls-only` |
+| `GLOBAL_TWILIO_PRIMARY_PHONE_NUMBER` | `twilio.primaryPhoneNumber` | Het nummer waarvandaan oproepen vertrekken, met landcode. Niet nodig voor `sms-only` |
+| `GLOBAL_TWILIO_SECONDARY_PHONE_NUMBERS` | `twilio.secondaryPhoneNumbers` | Optioneel, gescheiden door komma's: nummers die voor ontvangers in hun land worden gebruikt in plaats van het primaire nummer |
+| `GLOBAL_TWILIO_SMS_PHONE_NUMBERS` | `twilio.smsPhoneNumbers` | Door komma's gescheiden nummers waarvandaan elke sms vertrekt. Verplicht voor `sms-only` |
+
+Met Helm stelt u ze in onder `twilio` in uw values. Om het auth token buiten de values te houden die Helm bij elke release opslaat, zet u het in een eigen Secret en noemt u die Secret in `twilio.existingSecret.name`:
+
+```bash
+kubectl create secret generic oneuptime-twilio --namespace oneuptime \
+  --from-literal=authToken=YOUR_TWILIO_AUTH_TOKEN
+```
+
+```yaml
+twilio:
+  accountSid: ACXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+  usedFor: calls-and-sms
+  primaryPhoneNumber: "+14155550100"
+  existingSecret:
+    name: oneuptime-twilio
+```
+
+Zet telefoonnummers tussen aanhalingstekens in een values-bestand, en geef ze door met `--set-string` in plaats van `--set`: zonder aanhalingstekens is `+14155550100` een getal, dat de chart weigert. De chart weigert ook andere `twilio`-waarden zonder `twilio.accountSid`, een Account SID zonder auth token en een auth token dat zowel in `twilio.authToken` als in een Secret staat. Met Terraform stelt u dezelfde waarden in op een `helm_release`, het auth token als gevoelige waarde.
+
+Met Docker Compose stelt u de `GLOBAL_TWILIO_`-instellingen in `config.env` in en voert u daarna `npm run start` uit om de containers opnieuw te maken.
+
+OneUptime leest de variabelen bij het opstarten. Is er een onjuist, zoals een telefoonnummer dat OneUptime niet kan lezen of een ontbrekend auth token, dan verstuurt het account geen sms en belt het niet totdat dat is opgelost; het log van de server, **Admin Dashboard > Instellingen > Oproep en sms** en de checklist op `/admin/setup` noemen de variabele. Het auth token wordt nooit getoond. Wijzig de variabelen en herstart OneUptime om het account te wijzigen: het Admin Dashboard wijzigt het niet.
+
+### Projectconfiguraties beheren met Terraform
+
+Een projectconfiguratie is ook de resource `oneuptime_call_and_sms_config` van de [Terraform-provider](/docs/terraform/index), en een datasource met dezelfde naam leest er een. Het Auth Token is gevoelig, dus plannen, logs en uitvoer tonen het nooit. Geef het door in een gevoelige variabele:
+
+```hcl
+variable "twilio_auth_token" {
+  type      = string
+  sensitive = true
+}
+
+resource "oneuptime_call_and_sms_config" "production" {
+  name                        = "Production Twilio"
+  used_for                    = "Calls and SMS"
+  twilio_account_sid          = "ACXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+  twilio_auth_token           = var.twilio_auth_token
+  twilio_primary_phone_number = "+14155550100"
+  is_project_default          = true
+}
+```
+
+- **Projectstandaard.** Terraform maakt een configuratie alleen met `is_project_default = true` de projectstandaard. Laat je het weg, dan stuurt Terraform `false`, dus de eerste configuratie van een project wordt niet de standaard zoals in het dashboard. Zet het op één configuratie per soort bericht: twee met dezelfde `used_for` die het allebei zetten, nemen elkaar bij elke apply de standaard af. OneUptime zet `is_project_default_for_sms` en `is_project_default_for_calls`, die Terraform alleen leest.
+- **Telefoonnummers.** Schrijf elk nummer met `+` en de landcode. Spaties, streepjes, punten en haakjes tussen de cijfers zijn geen probleem: OneUptime slaat `+1 415 555 0100` op als `+14155550100`, en Terraform herkent daarin het nummer dat u schreef, dus een plan toont geen wijzigingen.
+- **API-sleutel.** De sleutel die Terraform gebruikt, moet het Auth Token kunnen lezen: **Projecteigenaar**, **Projectbeheerder**, of **Read Call and SMS** in een aangepaste rol, naast het maken en bewerken van configuraties. Met een sleutel die dat niet kan, mislukt het lezen van de configuratie, en de fout zegt wie het token mag lezen.
+- **Verwijzingen.** `call_sms_config_id` van een statuspagina en `project_call_sms_config_id` van een beleid voor inkomende gesprekken nemen de `id` van de configuratie.
 
 ### Aparte nummers voor oproepen en sms
 

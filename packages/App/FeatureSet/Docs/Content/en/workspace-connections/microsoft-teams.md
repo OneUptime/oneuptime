@@ -91,14 +91,17 @@ A notification rule says which events post to Microsoft Teams, and where. Each p
 | **On-Call** | One list of rules |
 | **SLOs** | One list of rules |
 
-Creating a rule walks four steps:
+Creating a rule walks up to five steps:
 
 | Step | What you set |
 | --- | --- |
 | **Basic** | **Rule Name** and **Rule Description**. |
 | **Conditions** | Which events the rule is for, by severity, state, label, monitor or words in the title, for example. They are checked when an event is created and again with each update OneUptime posts about it, so a rule for acknowledged incidents acts when an incident is acknowledged. A new rule is for every event, such as **All incidents**. To narrow it down, pick **Only incidents that match conditions** and add the conditions. With two or more, **Match Condition** says whether all of them must match, or any one. |
 | **Destination** | Where it posts: an existing channel of a team you pick, the chats you pick, a channel for each incident (or alert, episode, event, monitor or on-call policy) created in a team you pick, or any of these together. Under the step, **What this rule does** says it in sentences, as the rule's card does. |
+| **Updates** | Incidents, alerts, episodes, scheduled maintenance and on-call policies only: which updates the rule posts after the record's first message. **Every update** posts them all, and a new rule starts with it, except an on-call policy's. **Key updates only** posts the ones that matter most, which the step lists for each kind of record: for an incident, its resolution or reopening, severity changes, public notes and the postmortem; for an on-call policy, who is on call now and when nobody is, which a new on-call policy rule starts with. **Choose updates** lets you tick them one by one. Whatever you pick, the rule posts the record's first message, and a video call when one starts. See [On-call messages](#on-call-messages). |
 | **Video Call** | Incidents and alerts only: start a call for each one. See [Video Calls](/docs/workspace-connections/video-calls). |
+
+Each condition reads as a sentence: the field, how it compares and the value. Values to pick come from the project's own lists, such as its states, severities, labels and monitors. An on-call rule picks its policies under **On-Call Policy**, which keeps matching a policy after it is renamed, while **On-Call Policy Name** matches words in a policy's name. Every kind of event that has owners has an owner condition, such as **Incident Owner**: pick people and teams, and it matches the people and teams recorded as the event's owners. Being in a team that owns the event does not count. An owner added later makes the rule match from that update on, and a rule that creates channels creates the channel then. An archived value, such as a severity or an on-call policy, is not offered for a new condition. A rule that already has one keeps it, marked **Archived**, and still matches the events that have it. A person, team or policy the project no longer has stays in the condition, and the rule's card says so.
 
 An SLO's rule posts the changes of its error budget policy: when the SLO enters a tier, recovers to a less severe one or leaves every tier, and when its deployments are frozen or allowed again. It posts only to existing channels and chats, as an SLO gets no channel of its own. See [Post to Slack, Microsoft Teams and Mattermost](/docs/slo/error-budget-policy#post-to-slack-microsoft-teams-and-mattermost).
 
@@ -108,7 +111,7 @@ A rule creates its channel the first time an event matches it: when the event is
 
 To bring in whoever is on call, pick their on-call schedules under **Mention who is on call**. When the channel is created, OneUptime posts a message in it, just after the record's first one, that @mentions whoever is on call in those schedules, so Microsoft Teams notifies them. Nobody is paged. OneUptime finds each person in the team by the Microsoft Teams account they connected to OneUptime, or else by their email address. Someone who is not in the team can't open its channels, so they are named in the message instead, with why. In a private channel, only its members can open it, so add the people on call to it in Microsoft Teams.
 
-Every later update of the record — a state change, a note, a new owner — is posted to its channels, and to the existing channels and chats its rules name while their conditions match. OneUptime cannot archive a Microsoft Teams channel, so a rule's channel stays when its record is over; archive or delete it in Microsoft Teams.
+Every later update of the record — a state change, a note, a new owner — is posted to its channels, and to the existing channels and chats its rules name while their conditions match, when a rule that posts there chooses it in its **Updates** step. OneUptime cannot archive a Microsoft Teams channel, so a rule's channel stays when its record is over; archive or delete it in Microsoft Teams.
 
 An incident, alert, episode or scheduled maintenance event with a channel of its own has **Open in Microsoft Teams** in the header of its page in OneUptime, beside its state buttons. It opens that channel in a new tab, in the Microsoft Teams app or in the browser. A record with two channels of its own lists both under the button. A record with channels in both Slack and Microsoft Teams has one **Open channel** button instead, which lists them all. The existing channels and chats your rules post to are not offered.
 
@@ -119,6 +122,14 @@ Channels and chats stay readable: each event is posted once, and a record's firs
 **Project Settings** > **Workspace** > **Microsoft Teams** lists the channels OneUptime can see in your teams, and the chats it was added to, with **Send Test** beside each one. A chat appears once the OneUptime app is added to it in Microsoft Teams; **Refresh Chats** picks up new chats and their current names.
 
 A notification rule can belong to teams. **Owning Teams**, under **More fields**, keeps it to the teams you pick: only their members and project admins can edit or delete it, and everyone else who can see the rules sees it read-only. See [Rules owned by teams](/docs/permissions/index#rules-owned-by-teams).
+
+### On-call messages
+
+At each hand-off, an on-call policy's channels and chats hear who is on call, in one line:
+
+> 📞 @Ana Lee is now on call for Payments until Sat, Nov 14, 2026 at 5:50 PM, then @Bob Diaz.
+
+Payments links to the policy in OneUptime. A person is named by their Microsoft Teams name once they have connected their Microsoft Teams account to OneUptime, and by their OneUptime name until then. Times show in each reader's own time zone. A rule's **Updates** step chooses which on-call messages it posts, as in Slack, and a new rule starts on who is on call now and when nobody is: see [On-call messages](/docs/workspace-connections/slack#on-call-messages).
 
 ## Testing a rule
 
@@ -158,7 +169,7 @@ React to a message, or a reply, in the channel OneUptime created for an incident
 
 | Reaction | Saved as |
 | --- | --- |
-| 📌 or 📍 | A private note, seen only by your team |
+| 📌 or 📍 | A private note, read only by the people who can see the record |
 | 📣 or 📢 | A public note, shown on the status page. Incidents and scheduled maintenance events only. On a private incident, a private note, and the confirmation says why. When the project's public notes need approval, it is shown once approved, and the confirmation says who it waits for: see [Public note approval](/docs/incidents/notes-owners-and-feed#public-note-approval). |
 
 The note keeps the message as Microsoft Teams showed it: its formatting, links and code, the people it mentions by name, and its files and images as links to them. A public note leaves the files and images out, since they open only for your team.
@@ -253,7 +264,7 @@ An incident's card has four buttons, **Acknowledge Incident**, **Resolve Inciden
 | **Change Severity** | Sets the incident's severity. |
 | **Change Incident State** | Moves the incident to a later state. |
 | **Assign Role** | Gives somebody a role on the incident, such as **Incident Commander**. A role that takes one person moves to them. |
-| **Page Someone** | Pages people, a team, whoever is on call in a schedule, or an on-call policy about the incident, with an optional message. People are paged until one of them answers; a policy pages until somebody acknowledges the incident. |
+| **Page Someone** | Pages people, a team, whoever is on call in a schedule, or an on-call policy about the incident, with an optional message. Whoever it pages, a policy's people too, is paged until one of them answers or the incident is resolved. |
 | **Edit Custom Fields** | Sets the incident's custom fields, each filled in with what the incident holds. A field left empty is cleared. |
 
 `incident 42`, typed to the bot, answers with incident 42, these buttons and its menu. Type the number as OneUptime shows it: `42`, `#42` or `INC-42`. In an incident's own channel, `incident` alone shows that incident.

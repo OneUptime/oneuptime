@@ -3402,7 +3402,9 @@ test.describe("an action's arguments and the cards it leaves", () => {
     ).toHaveText("Status update posted, subscribers notified");
     await expect(
       cards.nth(1).getByTestId("ai-chat-resource-card-line"),
-    ).toHaveText("Private note added, for your team only");
+    ).toHaveText(
+      "Private note added, only for people who can see the incident",
+    );
     // Each action is its card: no Executed row under them.
     await expect(page.getByTestId("tool-approval-history")).toHaveCount(0);
     await settle(page);
@@ -4310,6 +4312,157 @@ test.describe("monitors looked up, and the monitors table", () => {
 
         await expectNothingScrollsSideways(page);
         await screenshot(page, `monitor-cards-${width}-${language}-words`);
+      }
+    });
+  }
+
+  /*
+   * Issue #7394: under those cards, the table of the monitors
+   * query_monitors listed still said "Monitors (4)", "Non-operational
+   * first, Disabled last", "Incoming Request" and "Disabled" in English,
+   * while the card above said the same monitor's type and Disabled in the
+   * reader's language. The table says them in the reader's language now -
+   * its count the reader's way - and a monitor's name and the status the
+   * project named are data, as written. Its title and line wrap, never cut:
+   * German's order line is wider than a 360 pixel phone leaves it.
+   */
+  for (const language of ["de", "fa"]) {
+    test(`the monitors table, in ${language === "de" ? "German" : "Persian"} at 1280, 390 and 360 pixels, light and dark: its title, its line, each type and Disabled in the reader's words, as the cards say them`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      const words: Record<string, string> = dashboardWords(language);
+
+      for (const [width, theme] of [
+        [1280, "light"],
+        [390, "dark"],
+        [360, "light"],
+      ] as Array<[number, string]>) {
+        await page.setViewportSize({ width, height: 844 });
+        await load(
+          page,
+          `${theme === "dark" ? "theme=dark&" : ""}lang=${language}&thread=monitors`,
+        );
+        await expect(askAi(page)).toBeVisible();
+        await settle(page);
+
+        const widget: Locator = page.getByTestId("ai-chat-widget").filter({
+          has: page.locator("table"),
+        });
+        await expect(widget).toHaveCount(1);
+        await widget.scrollIntoViewIfNeeded();
+        await settle(page);
+
+        const title: Locator = widget.getByTestId("ai-chat-widget-title");
+        const description: Locator = widget.getByTestId(
+          "ai-chat-widget-description",
+        );
+
+        expect(await wordsOf(title)).toBe(
+          filled(words, "Monitors ({{count}})", {
+            count: language === "fa" ? "۴" : "4",
+          }),
+        );
+        expect(await wordsOf(description)).toBe(
+          filled(words, "Non-operational first, Disabled last"),
+        );
+        // Each read its language's way.
+        await expect(title.locator("bdi")).toHaveAttribute(
+          "dir",
+          language === "fa" ? "rtl" : "ltr",
+        );
+
+        const rows: Locator = widget.locator("tbody tr");
+        await expect(rows).toHaveCount(4);
+        const table: Array<Array<string>> = [];
+        for (const row of await rows.all()) {
+          const cells: Array<string> = [];
+          for (const cell of await row
+            .getByTestId("ai-chat-table-cell")
+            .all()) {
+            cells.push(await wordsOf(cell));
+          }
+          table.push(cells);
+        }
+        expect(table).toEqual([
+          ["Checkout API", filled(words, "Website"), "Offline"],
+          [
+            "https://payments.example.com/api/v2/health/checkout",
+            filled(words, "Website"),
+            "Operational",
+          ],
+          ["legacy-payments-api", filled(words, "API"), "Operational"],
+          [
+            "Backup Job",
+            filled(words, "Incoming Request"),
+            filled(words, "Disabled"),
+          ],
+        ]);
+
+        // The card and its row say the same words of the same monitor.
+        const cards: Locator = page.getByTestId("ai-chat-resource-card");
+        await expect(cards).toHaveCount(2);
+        expect(
+          await wordsOf(cards.nth(1).getByTestId("ai-chat-resource-card-line")),
+        ).toBe(table[3]![2]);
+        expect(
+          await wordsOf(
+            cards.nth(1).getByTestId("ai-chat-resource-card-fact-value").nth(0),
+          ),
+        ).toBe(table[3]![1]);
+        expect(
+          await wordsOf(
+            cards.nth(0).getByTestId("ai-chat-resource-card-fact-value").nth(0),
+          ),
+        ).toBe(table[0]![1]);
+
+        // None of OneUptime's words left in English.
+        const text: string = await wordsOf(widget);
+        for (const english of [
+          "Monitors",
+          "Non-operational",
+          "Disabled",
+          "Incoming Request",
+        ]) {
+          expect(text, `${language} ${width}: ${text}`).not.toContain(english);
+        }
+
+        // The title and its line whole beside Open, never cut.
+        for (const heading of [title, description]) {
+          const fits: { scroll: number; client: number } =
+            await heading.evaluate(
+              (element: Element): { scroll: number; client: number } => {
+                return {
+                  scroll: element.scrollWidth,
+                  client: element.clientWidth,
+                };
+              },
+            );
+          expect(fits.scroll, `${language} ${width}`).toBeLessThanOrEqual(
+            fits.client,
+          );
+        }
+
+        // Wrapped where it must be, beside Open and never under it.
+        const [titleBox, descriptionBox, openBox] = await boxesInOneFrame([
+          title,
+          description,
+          widget.getByRole("button", { name: filled(words, "Open") }),
+        ]);
+        for (const box of [titleBox!, descriptionBox!]) {
+          expect(
+            box.x + box.width <= openBox!.x ||
+              openBox!.x + openBox!.width <= box.x,
+            `${language} ${width}: the heading clear of Open`,
+          ).toBe(true);
+        }
+
+        await expectNothingScrollsSideways(page);
+        await screenshot(
+          page,
+          `monitors-table-${width}-${language}-words${theme === "dark" ? "-dark" : ""}`,
+        );
       }
     });
   }

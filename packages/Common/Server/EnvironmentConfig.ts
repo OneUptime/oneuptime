@@ -9,6 +9,10 @@ import {
 } from "../ServiceRoute";
 import BillingConfig from "./BillingConfig";
 import { getDistributedDdlTaskTimeoutSeconds } from "./Utils/AnalyticsDatabase/ClusterConfig";
+import {
+  ConnectionShares,
+  computeConnectionShares,
+} from "./Utils/Database/ConnectionShares";
 import Protocol from "../Types/API/Protocol";
 import URL from "../Types/API/URL";
 import Route from "../Types/API/Route";
@@ -306,6 +310,8 @@ export const ShouldDatabaseSslEnable: boolean = Boolean(
  * multiplied by the number of running Node processes, stays under the
  * Postgres server's `max_connections` (100 on a stock PostgreSQL cluster; the
  * OneUptime Helm chart ships 500, or front the DB with the chart's pgbouncer).
+ * Queue jobs and probe scheduling get bounded shares of it, so requests
+ * always have the rest (DatabaseConnectionShares below).
  */
 export const MaxPostgresConnections: number = parseInt(
   process.env["DATABASE_MAX_OPEN_CONNECTIONS"] || "50",
@@ -926,6 +932,47 @@ export const DisableQueueWorkers: boolean =
  */
 export const ReceivesIngressTraffic: boolean =
   process.env["RECEIVES_INGRESS_TRAFFIC"] !== "false";
+
+/*
+ * How this process shares its Postgres pool between queue jobs, probe
+ * scheduling and requests, so background work can never take every
+ * connection a sign-in needs (Utils/Database/ConnectionShares, #7920):
+ *
+ *   - PROBE_SCHEDULING_MAX_CONCURRENT_REQUESTS: probe scheduling requests
+ *     (monitor, monitor test and network device lists, pending counts)
+ *     running at once. Default: a fifth of DATABASE_MAX_OPEN_CONNECTIONS.
+ *   - DATABASE_MAX_QUEUE_JOB_CONNECTIONS: Postgres connections the queue jobs
+ *     of this process hold at once. Default: the pool less a fifth kept for
+ *     requests and less probe scheduling's share - 30 of 50 - or the whole
+ *     pool where RECEIVES_INGRESS_TRAFFIC=false (the Helm chart's worker
+ *     pods). Set it to DATABASE_MAX_OPEN_CONNECTIONS for no cap.
+ *
+ * A value that is not a whole number above 0 falls back to its default.
+ */
+const parseOptionalPositiveIntegerFromEnv: (
+  envKey: string,
+) => number | undefined = (envKey: string): number | undefined => {
+  const value: number = parsePositiveIntegerFromEnv(envKey, 0);
+  return value > 0 ? value : undefined;
+};
+
+export const DatabaseConnectionShares: ConnectionShares =
+  computeConnectionShares({
+    poolSize: MaxPostgresConnections,
+    receivesIngressTraffic: ReceivesIngressTraffic,
+    probeSchedulingMaxConcurrentRequests: parseOptionalPositiveIntegerFromEnv(
+      "PROBE_SCHEDULING_MAX_CONCURRENT_REQUESTS",
+    ),
+    maxQueueJobConnections: parseOptionalPositiveIntegerFromEnv(
+      "DATABASE_MAX_QUEUE_JOB_CONNECTIONS",
+    ),
+  });
+
+export const ProbeSchedulingMaxConcurrentRequests: number =
+  DatabaseConnectionShares.probeSchedulingMaxConcurrentRequests;
+
+export const DatabaseMaxQueueJobConnections: number =
+  DatabaseConnectionShares.maxQueueJobConnections;
 
 /*
  * When "false", this process does NOT run schema or data migrations on boot.

@@ -29,8 +29,11 @@ export const Moment: typeof moment = moment;
 /*
  * The custom shapes (getDateAsCustomFormattedStringInTimezone) a date's words
  * are written in the reader's language for, as Intl asks for them. A shape
- * with no words in it ("YYYY", "HH:mm:ss.SSS") reads the same in every
- * language; one that is not listed is written by moment, in English.
+ * with no words in it still takes the reader's digits: "HH:mm" here
+ * ("۲۲:۲۷" on a Persian page), and READER_DIGIT_CUSTOM_DATE_FORMATS, whose
+ * shapes keep moment's marks. A shape in neither list is moment's, in
+ * English and in Latin digits ("YYYY-MM-DD", which callers compare rather
+ * than show), so a shape a page shows belongs in one of them.
  *
  * English's "hh" keeps a 12-hour time's zero ("05:01 PM"), as moment writes
  * it; no other language writes one there ("오후 5:01", "5:01 م"), so the
@@ -52,6 +55,20 @@ const LOCALIZED_CUSTOM_DATE_FORMATS: Readonly<
   // A 24-hour time of day, in the reader's digits: "۲۲:۲۷" on a Persian page.
   "HH:mm": { hour: "2-digit", minute: "2-digit", hourCycle: "h23" },
 };
+
+/*
+ * The custom shapes with no words in them that are written as moment writes
+ * them, in the reader's digits (inReaderDigits) - the digits "HH:mm" takes:
+ * Persian's own, and the Latin ones of every other language of the
+ * product, Arabic too. Only the digits change, so the shape is the same in
+ * every language; Intl would put a comma before the milliseconds in German
+ * ("11:55:59,120") and dots between the hours, minutes and seconds in
+ * Danish ("11.55.59,120").
+ */
+const READER_DIGIT_CUSTOM_DATE_FORMATS: ReadonlyArray<string> = [
+  // An exception breadcrumb's Clock time: "۱۱:۵۵:۵۹.۱۲۰" on a Persian page.
+  "HH:mm:ss.SSS",
+];
 
 // A whole number of nanoseconds, as fromUnixNano reads one exactly.
 const UNIX_NANO_INTEGER_PATTERN: RegExp = /^[+-]?\d+$/;
@@ -148,6 +165,27 @@ const clickhouseDateTimeMemoTexts: Array<string> = new Array<string>(
  * See getStartOfCalendarUnit / addRemoveCalendarUnits below.
  */
 export type CalendarUnit = "hour" | "day" | "week" | "month" | "year";
+
+// How secondsToFormattedFriendlyTimeString writes a duration.
+export interface FriendlyTimeOptions {
+  /*
+   * At most this many units, the largest first: 2 keeps "29 days 23 hours"
+   * of "29 days 23 hours 52 mins 12 secs". Cut before the duration is
+   * written, so every language keeps each number with its unit - "29 日23
+   * 時間" in Japanese, which writes no space between a unit and the next
+   * number and so cannot be cut by its words. Left out, every unit that is
+   * not zero.
+   */
+  maxUnits?: number | undefined;
+  /*
+   * A duration of nothing reads "0 secs" ("0 秒", "0 Sek.") instead of
+   * nothing at all: right where a blank would read as "unknown".
+   */
+  writesZero?: boolean | undefined;
+}
+
+// What a duration of nothing reads in English, with writesZero.
+export const ZERO_FRIENDLY_TIME_TEXT: string = "0 secs";
 
 export default class OneUptimeDate {
   // get date time from unix timestamp
@@ -1119,7 +1157,9 @@ export default class OneUptimeDate {
       LOCALIZED_CUSTOM_DATE_FORMATS[data.format];
 
     if (!options) {
-      return english();
+      return READER_DIGIT_CUSTOM_DATE_FORMATS.includes(data.format)
+        ? this.inReaderDigits(english)
+        : english();
     }
 
     return writeInDateDisplayLanguage(
@@ -1754,10 +1794,31 @@ export default class OneUptimeDate {
 
   /**
    * Render an instant as the value of an `<input type="datetime-local">` — a
-   * bare wall-clock with no offset — read in the current timezone.
+   * bare wall-clock with no offset — read in the current timezone, to the
+   * second ("2026-11-13T11:15:52").
+   *
+   * A field people schedule with shows toDateTimeLocalMinuteString instead:
+   * a value with seconds makes the browser's picker show and ask for them
+   * too. Only a field that compares with event timestamps (a telemetry time
+   * range) keeps the seconds, by opting in (Input's showSecondsForDateTime).
    */
   public static toDateTimeLocalString(date: Date): string {
     return this.inCurrentTimezone(date).format("YYYY-MM-DDTHH:mm:ss");
+  }
+
+  /**
+   * The value an `<input type="datetime-local">` shows a person who picks a
+   * time to schedule or record something: the wall clock in the current
+   * timezone, to the minute ("2026-11-13T11:15"). Without seconds in its
+   * value, the browser's picker shows hours and minutes and no seconds
+   * column, and what is picked comes back to the minute.
+   *
+   * The seconds of an instant stored with them are not shown, and not lost:
+   * a field left as it was keeps the value it was given (Input changes its
+   * value only when the person changes the field).
+   */
+  public static toDateTimeLocalMinuteString(date: Date): string {
+    return this.inCurrentTimezone(date).format("YYYY-MM-DDTHH:mm");
   }
 
   /**
@@ -2053,10 +2114,36 @@ export default class OneUptimeDate {
   /*
    * "1 year 2 months 3 days 4 hours 5 mins 6 secs", each unit that is not
    * zero, counted on the calendar from the epoch - and in the reader's
-   * language when a frontend set one ("1 J. 2 Mon. 3 Tg.").
+   * language when a frontend set one ("1 J. 2 Mon. 3 Tg."). `options` keeps
+   * only the largest units, and writes a duration of nothing.
    */
-  public static secondsToFormattedFriendlyTimeString(seconds: number): string {
-    const parts: Array<DurationTextPart> = this.getFriendlyTimeParts(seconds);
+  public static secondsToFormattedFriendlyTimeString(
+    seconds: number,
+    options?: FriendlyTimeOptions | undefined,
+  ): string {
+    const maxUnits: number | undefined = options?.maxUnits;
+    const allParts: Array<DurationTextPart> =
+      this.getFriendlyTimeParts(seconds);
+    const parts: Array<DurationTextPart> =
+      maxUnits !== undefined && maxUnits >= 1
+        ? allParts.slice(0, Math.floor(maxUnits))
+        : allParts;
+
+    if (parts.length === 0 && options?.writesZero) {
+      return writeInDateDisplayLanguage(
+        (): string => {
+          return ZERO_FRIENDLY_TIME_TEXT;
+        },
+        (_language: string, locale: string): string | null => {
+          return this.formatLocalizedDuration(
+            [{ count: 0, unit: "second" }],
+            locale,
+            "short",
+            "narrow",
+          );
+        },
+      );
+    }
 
     return writeInDateDisplayLanguage(
       (): string => {
@@ -2207,6 +2294,26 @@ export default class OneUptimeDate {
       return moment.tz(date, timezone).endOf("day").toDate();
     }
     return moment(date).endOf("day").toDate();
+  }
+
+  /*
+   * The start of the minute `date` falls in: its seconds and milliseconds
+   * dropped, as a new Date (the one given is left as it was). The same
+   * instant in every timezone, since every zone's offset today is a whole
+   * number of minutes.
+   *
+   * What "now" is in a field people schedule with: an override, a rotation
+   * or an announcement that starts now starts at the minute the field shows
+   * (11:15, never 11:15:52), which has already begun - never a minute late.
+   */
+  public static getStartOfMinute(date: Date | string): Date {
+    const instant: Date = this.fromString(date);
+    const millisecondsInAMinute: number = 60 * 1000;
+
+    return new Date(
+      Math.floor(instant.getTime() / millisecondsInAMinute) *
+        millisecondsInAMinute,
+    );
   }
 
   /*

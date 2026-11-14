@@ -1,6 +1,7 @@
 import { beforeAll, describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import nodePath from "path";
+import { pageRoutesIn, routeMapPath, routesAt } from "../Helpers/PageRoutes";
 
 /*
  * Admin Dashboard > User > Authentication is the page a master admin uses to
@@ -332,9 +333,17 @@ describe("User > Authentication page registration", () => {
   });
 
   test("App.tsx registers a route that renders it", () => {
-    expect(appSource).toMatch(
-      /RouteMap\[PageMap\.USER_AUTHENTICATION\][\s\S]{0,120}element=\{<UserAuthentication \/>\}/,
-    );
+    expect(
+      routesAt(
+        pageRoutesIn(nodePath.join(ADMIN_DASHBOARD_SRC, "App.tsx")),
+        routeMapPath("USER_AUTHENTICATION"),
+      ),
+    ).toEqual([
+      {
+        path: routeMapPath("USER_AUTHENTICATION"),
+        element: "<UserAuthentication />",
+      },
+    ]);
   });
 
   test("the user's side menu links to it", () => {

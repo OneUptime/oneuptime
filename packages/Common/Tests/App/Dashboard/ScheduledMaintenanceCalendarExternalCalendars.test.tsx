@@ -285,7 +285,7 @@ function props(overrides?: Partial<ComponentProps>): ComponentProps {
     } as Query<ScheduledMaintenance>,
     states: [SCHEDULED],
     title: "Maintenance Calendar",
-    description: "Every scheduled maintenance event.",
+    description: "Every maintenance event.",
     buttons: [],
     canCreate: false,
     getEventRoute: (maintenanceId: string) => {
@@ -613,7 +613,7 @@ describe("the external calendars on the calendar", () => {
       "toolbar",
     );
     expect(screen.getByTestId("card-description")).toHaveTextContent(
-      "Every scheduled maintenance event.",
+      "Every maintenance event.",
     );
   });
 

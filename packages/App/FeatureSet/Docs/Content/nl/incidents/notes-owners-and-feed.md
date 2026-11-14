@@ -99,7 +99,7 @@ Elke notitie toont wie haar schreef, haar plaatsingstijd, de weergegeven Markdow
 
 ## Een privénotitie plaatsen
 
-**Notities → Privénotities** is bewust eenvoudiger. Het is dezelfde editor, met **Private · Only your team can see this**, met de notitie, **Sjablonen**, **Concept met AI** en **Bijvoegen** voor bestanden die bedoeld zijn voor het team dat op het incident reageert. **Privénotitie toevoegen** in het menu **Acties** van de incidentfeed opent hem in een dialoogvenster. Via de API zijn privénotities `/api/incident-internal-note`.
+**Notities → Privénotities** is bewust eenvoudiger. Het is dezelfde editor, met **Privé · Alleen wie dit incident kan zien, kan dit lezen**, met de notitie, **Sjablonen**, **Concept met AI** en **Bijvoegen** voor bestanden, die alleen kunnen worden geopend door wie de notitie kan lezen. **Privénotitie toevoegen** in het menu **Acties** van de incidentfeed opent hem in een dialoogvenster. Via de API zijn privénotities `/api/incident-internal-note`.
 
 Geen plaatsingstijd, geen selectievakje voor abonnees — de notitie wordt gestempeld wanneer ze wordt aangemaakt.
 
@@ -138,7 +138,7 @@ Een notitie lezen via de API, Terraform of een workflow toont alleen de bijlagen
 
 ## Een notitie met AI genereren
 
-De editor heeft een knop **Concept met AI**, op beide notitiepagina's en in de dialoogvensters **Openbare notitie toevoegen** en **Privénotitie toevoegen** van de feed. Hij stuurt het incident naar de AI-provider van je project en zet de gegenereerde Markdown in de notitie, waar je die bewerkt voordat je plaatst — er wordt niets automatisch gepubliceerd.
+De editor heeft een knop **Concept met AI**, op beide notitiepagina's en in de dialoogvensters **Openbare notitie toevoegen** en **Privénotitie toevoegen** van de feed. Hij stuurt het incident naar de [LLM-provider](/docs/ai/llm-provider) van je project en zet de gegenereerde Markdown in de notitie, waar je die bewerkt voordat je plaatst — er wordt niets automatisch gepubliceerd.
 
 | Dialoogvenster                     | Wat het schrijft                                                     | Sjablonen                                                         |
 | ---------------------------------- | -------------------------------------------------------------------- | ----------------------------------------------------------------- |
@@ -164,7 +164,7 @@ Je beheert ze onder **Incidenten → Instellingen → Notitie-sjablonen** — de
 
 ## Notities plaatsen vanuit Slack of Microsoft Teams
 
-Heb je een werkruimte gekoppeld, dan hoeven responders het kanaal nooit te verlaten. Zowel Slack als Microsoft Teams biedt een actie om een notitie toe te voegen die een dialoogvenster opent met een vervolgkeuzelijst **Note Type** — **Public Note** (geplaatst op de statuspagina) of **Private Note** (alleen zichtbaar voor teamleden) — en een tekstvak **Note**, en die het resultaat rechtstreeks op het incident schrijft. Bij een privé-incident vraagt het niet om een **Note Type** en voegt het een privénotitie toe: zie [Privé-incidenten krijgen alleen privénotities](#privé-incidenten-krijgen-alleen-privénotities).
+Heb je een werkruimte gekoppeld, dan hoeven responders het kanaal nooit te verlaten. Zowel Slack als Microsoft Teams biedt een actie om een notitie toe te voegen die een dialoogvenster opent met een vervolgkeuzelijst **Note Type** — **Public Note** (geplaatst op de statuspagina) of **Private Note** (alleen wie het incident kan zien, kan deze lezen) — en een tekstvak **Note**, en die het resultaat rechtstreeks op het incident schrijft. Bij een privé-incident vraagt het niet om een **Note Type** en voegt het een privénotitie toe: zie [Privé-incidenten krijgen alleen privénotities](#privé-incidenten-krijgen-alleen-privénotities).
 
 Drie details die het weten waard zijn:
 

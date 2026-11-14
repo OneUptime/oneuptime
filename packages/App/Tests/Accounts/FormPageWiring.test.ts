@@ -2,6 +2,7 @@ import FormMessage from "../../FeatureSet/Accounts/src/Utils/FormMessage";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import nodePath from "path";
+import { RouteAttributes, pageRoutesIn, routesAt } from "../Helpers/PageRoutes";
 
 /*
  * ---------------------------------------------------------------------------
@@ -116,20 +117,25 @@ const fieldBuilderSource: string = readCode(
 );
 
 describe("the routes", () => {
-  const ROUTE: string = 'path="/accounts/form/:shareKey"';
-  const OLD_ROUTE: string = 'path="/accounts/incident-form/:shareKey"';
+  // The Accounts app mounts react-router's <Route> by its own name.
+  const routes: Array<RouteAttributes> = pageRoutesIn(
+    nodePath.join(ACCOUNTS_SRC, "App.tsx"),
+    "Route",
+  );
+  const ROUTE: string = '"/accounts/form/:shareKey"';
+  const OLD_ROUTE: string = '"/accounts/incident-form/:shareKey"';
 
   test("the form's page is registered once, lazily like every Accounts page", () => {
-    expect(countOccurrences(appSource, ROUTE)).toBe(1);
-    expect(appSource).toContain(`${ROUTE} element={<FormPage />}`);
+    expect(routesAt(routes, ROUTE)).toEqual([
+      { path: ROUTE, element: "<FormPage />" },
+    ]);
     expect(appSource).toContain('return import("./Pages/Form");');
   });
 
   test("an incident form link from before Forms forwards to the same form, replacing the old address", () => {
-    expect(countOccurrences(appSource, OLD_ROUTE)).toBe(1);
-    expect(appSource).toContain(
-      `${OLD_ROUTE} element={<LegacyIncidentFormRedirect />}`,
-    );
+    expect(routesAt(routes, OLD_ROUTE)).toEqual([
+      { path: OLD_ROUTE, element: "<LegacyIncidentFormRedirect />" },
+    ]);
 
     const redirect: string = sliceBetween(
       appSource,
@@ -150,17 +156,22 @@ describe("the routes", () => {
   });
 
   test("both come before the catch-all, which would otherwise answer every link", () => {
-    const catchAll: number = appSource.indexOf('path="*"');
+    const paths: Array<string | undefined> = routes.map(
+      (route: RouteAttributes): string | undefined => {
+        return route["path"];
+      },
+    );
+    const catchAll: number = paths.indexOf('"*"');
 
     for (const route of [ROUTE, OLD_ROUTE]) {
-      expect(appSource.indexOf(route)).toBeGreaterThan(-1);
-      expect(catchAll).toBeGreaterThan(appSource.indexOf(route));
+      expect(paths.indexOf(route)).toBeGreaterThan(-1);
+      expect(catchAll).toBeGreaterThan(paths.indexOf(route));
     }
   });
 
   test("have no key-less twin: the key never leaves the path", () => {
-    expect(appSource).not.toContain('path="/accounts/form"');
-    expect(appSource).not.toContain('path="/accounts/incident-form"');
+    expect(routesAt(routes, '"/accounts/form"')).toEqual([]);
+    expect(routesAt(routes, '"/accounts/incident-form"')).toEqual([]);
   });
 
   test("are not token routes, so the bootstrap never strips the key", () => {
@@ -511,7 +522,8 @@ const FILE_PICKER_SENTENCES: Array<string> = [
   "Click to choose a file or drag & drop.",
   "Click to add more or drag & drop.",
   "PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP, up to {{size}}.",
-  "Up to 10 files of {{size}} each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.",
+  "Up to {{count}} files of {{size}} each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.",
+  "Up to {{count}} files of {{size}} each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP._one",
   "Chosen files",
   "Remove",
   "Replace",
@@ -522,7 +534,26 @@ const FILE_PICKER_SENTENCES: Array<string> = [
   "These files are not a type this field takes: {{fileNames}}.",
   "Add one file at a time.",
   "This field holds up to {{count}} files. Remove one to add another.",
+  "This field holds up to {{count}} files. Remove one to add another._one",
 ];
+
+/*
+ * The picker's count-dependent sentences (issue #7421): the question's own
+ * most files, said in the words for that count. The "_one" key holds the
+ * sentence for exactly one file, which English words its own way - with no
+ * {{count}} - so each is checked against that sentence, not its key.
+ */
+const PLURAL_ONE_FORMS: Record<string, string> = {
+  "Up to {{count}} files of {{size}} each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP._one":
+    "One file of up to {{size}}: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.",
+  "This field holds up to {{count}} files. Remove one to add another._one":
+    "This field holds one file. Remove it to add another.",
+};
+
+// What English says for a flat key: the key itself, or a plural's one form.
+function englishOf(key: string): string {
+  return PLURAL_ONE_FORMS[key] || key;
+}
 
 /*
  * What a screen reader calls each callout (MarkdownQuote's
@@ -740,7 +771,19 @@ describe("the sentences the page looks up whole", () => {
     const en: Record<string, unknown> = readLocale("en");
 
     for (const sentence of FLAT_SENTENCES) {
-      expect(en[sentence]).toBe(sentence);
+      expect(en[sentence]).toBe(englishOf(sentence));
+    }
+  });
+
+  test("a count-dependent sentence's one form names no count, and follows its key", () => {
+    for (const key of Object.keys(PLURAL_ONE_FORMS)) {
+      const general: string = key.replace(/_one$/, "");
+
+      expect(FLAT_SENTENCES.indexOf(key)).toBe(
+        FLAT_SENTENCES.indexOf(general) + 1,
+      );
+      expect(general).toContain("{{count}}");
+      expect(englishOf(key)).not.toContain("{{count}}");
     }
   });
 
@@ -755,10 +798,12 @@ describe("the sentences the page looks up whole", () => {
 
         expect(typeof value).toBe("string");
         expect((value as string).trim().length).toBeGreaterThan(0);
-        expect(placeholders(value as string)).toEqual(placeholders(sentence));
+        expect(placeholders(value as string)).toEqual(
+          placeholders(englishOf(sentence)),
+        );
 
         if (!sameAsEnglish.includes(sentence)) {
-          expect(value).not.toBe(sentence);
+          expect(value).not.toBe(englishOf(sentence));
         }
       }
     },

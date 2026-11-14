@@ -51,7 +51,7 @@ En retningslinje som flere regler legger til, kjører én gang. En alvorlighetsg
 
 **Grunnleggende** er åpen; de andre seksjonene starter sammenslått til du klikker på dem.
 
-- **Oversikt** viser **Detaljer for vaktretningslinje**, deretter **Policyen i korte trekk**: hvor mange nivåer og mottakere retningslinjen har, hvor lang tid det går til det siste nivået, og hvor ofte den gjentas. **Mottakernes beredskap** sier om alle den kan tilkalle, kan nås nå, og **Vaktpolicyens feed** viser hva som er endret: personer, team og vaktplaner som er lagt til eller fjernet, overstyringer og overleveringer.
+- **Oversikt** viser **Detaljer for vaktretningslinje**, deretter **Policyen i korte trekk**: hvor mange nivåer og mottakere retningslinjen har, hvor lang tid det går til det siste nivået, og hvor ofte den gjentas. **Mottakernes beredskap** sier om alle den kan tilkalle, kan nås nå, og **Vaktpolicyens feed** viser hva som er endret: personer, team og vaktplaner som er lagt til eller fjernet, overstyringer og overleveringer. Reglene for Slack, Microsoft Teams og Mattermost publiserer dem i kanalene dine, et vaktskifte i én linje: se [Vaktmeldinger](/docs/workspace-connections/slack#vaktmeldinger).
 - **Eiere** er personene og teamene som er ansvarlige for retningslinjen. Når en tilkalling fra den ikke finner noen regel for noen, eller ikke kan leveres, får de en e-post; en retningslinje uten eiere sender i stedet e-post til prosjektets eiere.
 - **Varsellogger** viser hver melding retningslinjen har sendt, med en fane per kanal.
 - **Brukeroverstyringer** dekker for folk bare i denne retningslinjen. Se [Brukeroverstyringer](/docs/on-call/user-overrides).
@@ -80,6 +80,17 @@ En bekreftelse stopper en retningslinjes varsling for godt, også om ingen løse
 Minuttene telles fra hver bekreftelse, og en retningslinje varsler høyst 5 ganger igjen om den samme hendelsen, det samme varselet eller den samme episoden. En ny varsling starter på nivået som varslet da det ble bekreftet, varsler den som har vakt der nå, og går videre gjennom nivåene som den første kjøringen. Hendelsen eller varselet forblir bekreftet: den nye varslingen er en egen kjøring, i feeden og i utførelsesloggene til retningslinjen, der **Status** sier "Varslet igjen (1 av 5)".
 
 Den som varsles igjen, bekrefter fra meldingen eller med **Bekreft igjen** på siden til hendelsen eller varselet, og minuttene starter på nytt; **Eskaler** sender varslingen videre til neste nivå. Å løse eller slette hendelsen eller varselet, arkivere eller slette retningslinjen, eller velge **Ikke varsle igjen** stopper den. Kortets rad **Etter en bekreftelse** sier hva retningslinjen gjør, og **Flere innstillinger** viser minuttene mens den er lukket. **Policyen i korte trekk** på **Oversikt** og **Oversikt over eskalering** sier det samme med ord.
+
+## Når flere retningslinjer tilkaller
+
+En hendelse, et varsel eller en episode kjører hver av retningslinjene sine for seg, samtidig.
+
+- Den som har vakt i to av dem, tilkalles av begge, én gang av hver: OneUptime slår ikke sammen tilkallinger fra ulike retningslinjer. Innenfor én retningslinje tilkalles en person som et nivå nevner to ganger, personlig og gjennom et team eller en vaktplan, bare én gang.
+- En bekreftelse av hendelsen eller varselet stopper innen ett minutt alle retningslinjer som kjører for den, uansett hvor den bekreftes: fra en hvilken som helst tilkalling om den, på dens egen side, i mobilappen eller i Slack eller Microsoft Teams. Ingen neste nivå tilkalles, og ingen samtale eller SMS som fortsatt venter, sendes. Meldinger som allerede er sendt, forblir sendt.
+
+Noen tilkallinger fortsetter etter at den er bekreftet, til noen de har tilkalt, svarer, eller den er løst: en ny varsling, en tilkalling til observatører, en tilkalling som noen har sendt til personer fra Slack eller Microsoft Teams, og en retningslinje som er startet manuelt.
+
+En retningslinje som er startet manuelt, er en som er startet med **Kjør vakttjenesteretningslinje**, eller av en tilkalling fra Slack eller Microsoft Teams som nevner den. Den tilkaller nivå for nivå som enhver kjøring, med samtaler og gjentatte push-varsler, og at noen andre bekrefter hendelsen, stopper den ikke: slik tilkaller du et annet team til en hendelse som noen allerede jobber med. Den den har tilkalt, svarer fra meldingen i tilkallingen sin, en samtale eller en SMS, eller ved selv å bekrefte hendelsen; når hendelsen er bekreftet, tilbyr siden til hendelsen vedkommende **Bekreft igjen**. **Eskaler** sender den videre til neste nivå. På en hendelse, et varsel eller en episode som er løst, startes ingenting, og du får vite hvorfor.
 
 ## Utførelseslogger
 
@@ -119,7 +130,7 @@ Hver rad viser hva som startet kjøringen, når, **Status** og hvem som bekrefte
 Arkivering tar en retningslinje ut av drift og beholder alt: åpne **Innstillinger** for retningslinjen og klikk på **Arkiver** på arkivkortet, eller velg retningslinjer i listen og velg **Arkiver**.
 
 - En arkivert retningslinje tilkaller ingen. Hendelser og varsler som bruker den, hopper over den, og en kjøring som fortsatt eskalerer, stopper ved neste steg.
-- Den forlater listen **Vaktretningslinjer** og flyttes til **Vakt → Avansert → Arkiverte retningslinjer**, der **Fjern fra arkiv** setter den i drift igjen.
+- Den forlater listen **Vaktretningslinjer** og flyttes til **Vakt → Avansert → Arkiverte retningslinjer**, der **Fjern fra arkivet** setter den i drift igjen.
 
 **Slett retningslinjer**, under **Avansert**, sletter retningslinjen sammen med eskaleringsreglene og brukeroverstyringene. Sletting fra listen spør først og foreslår å arkivere i stedet.
 
@@ -162,6 +173,14 @@ Nivået før hadde ingen å tilkalle: ingen mottakere, ingen med vakt i vaktplan
 
 :::details En hendelse viser en retningslinje som ikke tilkalte noen
 Retningslinjen er arkivert: en arkivert retningslinje blir stående på hendelsene og varslene som bruker den, tilkaller ingen, og utførelsesloggen sier at den ikke ble utført. Fjern den fra arkivet under **Vakt → Avansert → Arkiverte retningslinjer**.
+:::
+
+:::details Noen ble tilkalt to ganger om én hendelse
+Vedkommende har vakt i to av retningslinjene hendelsen kjører, og hver retningslinje tilkaller sine egne personer. En bekreftelse av hendelsen fra en av de to tilkallingene stopper begge. Legg begge teamene eller vaktplanene i samme nivå i én retningslinje, så tilkalles vedkommende bare én gang.
+:::
+
+:::details En retningslinje fortsatte å tilkalle etter at hendelsen var bekreftet
+Den ble startet manuelt, eller det er en ny varsling: den fortsetter til noen den har tilkalt, svarer, eller hendelsen er løst. Se [Når flere retningslinjer tilkaller](#når-flere-retningslinjer-tilkaller).
 :::
 
 ## Neste steg

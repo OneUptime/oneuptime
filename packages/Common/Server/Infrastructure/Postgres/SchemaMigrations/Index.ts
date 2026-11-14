@@ -978,6 +978,14 @@ import { AddServerProducts1809123600000 } from "./1809123600000-AddServerProduct
 import { AddDashboardRecordingSwitches1809123700000 } from "./1809123700000-AddDashboardRecordingSwitches";
 import { AddNetworkDeviceLastPollReceivedAt1809123800000 } from "./1809123800000-AddNetworkDeviceLastPollReceivedAt";
 import { AddProxmoxClusterAgentLastSeenAt1809123900000 } from "./1809123900000-AddProxmoxClusterAgentLastSeenAt";
+import { AddGroupByConnectedServicesToGroupingRules1809124000000 } from "./1809124000000-AddGroupByConnectedServicesToGroupingRules";
+import { AddAIRunRecording1809125000000 } from "./1809125000000-AddAIRunRecording";
+import { GlobalConfigCredentialsEncryptedColumns1809126000000 } from "./1809126000000-GlobalConfigCredentialsEncryptedColumns";
+import { AddNotifySubscribersOfNewIncidentsByDefault1809150300000 } from "./1809150300000-AddNotifySubscribersOfNewIncidentsByDefault";
+import { AddProbeCollectionClaimIndexes1809150400000 } from "./1809150400000-AddProbeCollectionClaimIndexes";
+import { DropRedundantMonitorProbeIndexes1809151000000 } from "./1809151000000-DropRedundantMonitorProbeIndexes";
+import { DropNetworkDeviceLastSeenAtAndProjectIdIndexes1809151100000 } from "./1809151100000-DropNetworkDeviceLastSeenAtAndProjectIdIndexes";
+import { SetMonitorProbeAndNetworkDeviceFillfactor1809151200000 } from "./1809151200000-SetMonitorProbeAndNetworkDeviceFillfactor";
 
 export default [
   InitialMigration,
@@ -1960,4 +1968,12 @@ export default [
   AddDashboardRecordingSwitches1809123700000,
   AddNetworkDeviceLastPollReceivedAt1809123800000,
   AddProxmoxClusterAgentLastSeenAt1809123900000,
+  AddGroupByConnectedServicesToGroupingRules1809124000000,
+  AddAIRunRecording1809125000000,
+  GlobalConfigCredentialsEncryptedColumns1809126000000,
+  AddNotifySubscribersOfNewIncidentsByDefault1809150300000,
+  AddProbeCollectionClaimIndexes1809150400000,
+  DropRedundantMonitorProbeIndexes1809151000000,
+  DropNetworkDeviceLastSeenAtAndProjectIdIndexes1809151100000,
+  SetMonitorProbeAndNetworkDeviceFillfactor1809151200000,
 ];

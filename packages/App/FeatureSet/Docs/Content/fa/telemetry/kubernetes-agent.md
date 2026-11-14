@@ -695,7 +695,7 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 | `spanMetrics` | روشن | شمار فراخوانی و مدت اسپن (`traces.span.metrics.*`) |
 | `serviceGraph` | روشن | متریک‌های لبه از فراخواننده به فراخوانده، که نقشه سرویس را می‌کشند |
 | `networkMetrics` | روشن | شمارنده‌های جریان TCP و UDP میان پادها |
-| `networkInterZoneMetrics` | خاموش | گونه میان‌ناحیه‌ای متریک‌های شبکه (کاردینالیتی آن‌ها را دو برابر می‌کند) |
+| `networkInterZoneMetrics` | خاموش | گونه میان‌زُنی متریک‌های شبکه (کاردینالیتی آن‌ها را دو برابر می‌کند) |
 | `tcpStats` | روشن | زمان رفت‌وبرگشت TCP، اتصال‌های ناموفق و شمارنده‌های ارسال دوباره در سطح گره |
 
 انتشار زمینه ترِیس میان سرویس‌ها، که در آن OBI یک `traceparent` از نوع W3C تزریق می‌کند تا درخواستی که از پاد A به پاد B می‌رود بدون هیچ SDK یک ترِیس دیده شود، به‌طور پیش‌فرض روشن است. آن را با `--set ebpf.contextPropagation=false` خاموش کنید. به هسته‌ای فراتر از آنچه بقیه عامل نیاز دارد نیاز ندارد، و هیچ نسخه هسته‌ای آن را بی‌اثر نمی‌کند.
@@ -865,7 +865,7 @@ kubectl delete namespace oneuptime-agent
 | ترِیس‌های eBPF و متریک‌های اسپن | یک ترِیس برای هر درخواست از هر فرایند ابزارگذاری‌شده | `sampling.traces.percentage`، `ebpf.enabled`، `ebpf.features.*`، `ebpf.autoTargetExe`، `ebpf.excludeExePaths` |
 | نقطه‌های داده متریک | بسامد برداشت عامل، ضرب در پادها و کانتینرها | `collectionInterval`، `hostMetrics.collectionInterval`، `cadvisor.scrapeInterval` |
 | کاردینالیتی متریک | شمار سری‌های متمایز (برای هر کانتینر، برای هر PVC، …) | `filters.metrics.exclude`، `namespaceFilters.rules` با دامنه `metrics`، `cadvisor.metricsAllowlist`، `kubeletstats.volumeMetrics` |
-| افزوده‌های اختیاری | پروفایل‌گیری، لاگ‌های ممیزی، control plane، متریک‌های میان‌ناحیه‌ای | خاموش گذاشتنشان، همان‌طور که به‌طور پیش‌فرض هستند |
+| افزوده‌های اختیاری | پروفایل‌گیری، لاگ‌های ممیزی، control plane، متریک‌های میان‌زُنی | خاموش گذاشتنشان، همان‌طور که به‌طور پیش‌فرض هستند |
 
 سه راه برای کم کردن حجم هست، و ارزش دارد بدانید کدام را به کار می‌برید:
 

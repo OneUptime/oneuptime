@@ -1,7 +1,9 @@
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "Common/Types/Date";
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import ObjectID from "Common/Types/ObjectID";
+import { FindOperator } from "typeorm";
 
 /*
  * Regression tests for the telemetry-monitor scheduler's write path
@@ -24,7 +26,12 @@ import ObjectID from "Common/Types/ObjectID";
  *      monitors;
  *   3. the sweep reads no monitor's steps (their JSON, every due monitor,
  *      every minute): every due monitor is queued, and the evaluation job
- *      skips one without steps before it evaluates anything (2026-10-27).
+ *      skips one without steps before it evaluates anything (2026-10-27);
+ *   4. it goes a page at a time (2026-11-14): due monitors are read in _id
+ *      order, each page after the last, and a page is stamped with ONE
+ *      UPDATE per next-due time - not one per monitor, all at once - and its
+ *      jobs queued a few at a time, before the next page is read. It stops
+ *      between pages at its deadline.
  */
 
 // Keep the heavy worker module from touching Redis at import time.
@@ -64,15 +71,21 @@ jest.mock("Common/Server/Utils/Logger", () => {
  * pipeline, the assertion would flag it instead of the mock throwing
  * "not a function".
  */
+const mockQuery: jest.Mock = jest.fn();
+
 jest.mock("Common/Server/Services/MonitorService", () => {
   return {
     __esModule: true,
     default: {
       findAllBy: jest.fn(),
+      findBy: jest.fn(),
       findOneById: jest.fn(),
       updateColumnsByIdWithoutHooks: jest.fn(),
       updateOneById: jest.fn(),
       getEnabledMonitorQuery: jest.fn(),
+      getRepository: jest.fn(() => {
+        return { manager: { query: mockQuery } };
+      }),
     },
   };
 });
@@ -89,16 +102,20 @@ jest.mock(
 
 import MonitorService from "Common/Server/Services/MonitorService";
 import CronTab from "Common/Server/Utils/CronTab";
+import JobDeadline from "Common/Server/Utils/JobDeadline";
 import logger from "Common/Server/Utils/Logger";
 import ReceivingCoverage from "Common/Server/Utils/Telemetry/ReceivingCoverage";
 import TelemetryQueueService from "../../../../FeatureSet/Telemetry/Services/Queue/TelemetryQueueService";
 import {
+  TELEMETRY_SCHEDULE_ENQUEUE_CONCURRENCY,
+  TELEMETRY_SCHEDULE_PAGE_SIZE,
   enqueueDueTelemetryMonitorEvaluationJobs,
   processTelemetryMonitorEvaluationFromQueue,
 } from "../../../../FeatureSet/Workers/Jobs/TelemetryMonitor/MonitorTelemetryMonitor";
 
 interface MonitorServiceMock {
   findAllBy: jest.Mock;
+  findBy: jest.Mock;
   findOneById: jest.Mock;
   updateColumnsByIdWithoutHooks: jest.Mock;
   updateOneById: jest.Mock;
@@ -166,12 +183,43 @@ interface UpdateCallArgs {
   data: Record<string, unknown>;
 }
 
+// The scheduler's UPDATE statements: one per page and next-due time.
+interface StampStatement {
+  sql: string;
+  lastMonitorAt: Date;
+  nextMonitorAt: Date;
+  ids: Array<string>;
+}
+
+function stampStatements(): Array<StampStatement> {
+  return mockQuery.mock.calls.map((args: Array<unknown>): StampStatement => {
+    const params: Array<unknown> = args[1] as Array<unknown>;
+    return {
+      sql: args[0] as string,
+      lastMonitorAt: params[0] as Date,
+      nextMonitorAt: params[1] as Date,
+      ids: params[2] as Array<string>,
+    };
+  });
+}
+
+// Each monitor's stamp, as the columns it was given.
 function stampCalls(): Array<UpdateCallArgs> {
-  return monitorService.updateColumnsByIdWithoutHooks.mock.calls.map(
-    (args: Array<unknown>) => {
-      return args[0] as UpdateCallArgs;
-    },
-  );
+  const stamps: Array<UpdateCallArgs> = [];
+
+  for (const statement of stampStatements()) {
+    for (const id of statement.ids) {
+      stamps.push({
+        id: new ObjectID(id),
+        data: {
+          telemetryMonitorLastMonitorAt: statement.lastMonitorAt,
+          telemetryMonitorNextMonitorAt: statement.nextMonitorAt,
+        },
+      });
+    }
+  }
+
+  return stamps;
 }
 
 function stampFor(monitorId: ObjectID): UpdateCallArgs {
@@ -183,6 +231,54 @@ function stampFor(monitorId: ObjectID): UpdateCallArgs {
 
   expect(matches).toHaveLength(1);
   return matches[0]!;
+}
+
+// The id a keyset read starts after: none for the first page.
+function cursorOf(query: Record<string, unknown>): string | undefined {
+  const cursor: FindOperator<ObjectID> | undefined = query["_id"] as
+    | FindOperator<ObjectID>
+    | undefined;
+
+  if (!cursor) {
+    return undefined;
+  }
+
+  expect(cursor.getSql!("_id")).toMatch(/_id > :/);
+  return String(Object.values(cursor.objectLiteralParameters!)[0]);
+}
+
+// The due monitors the database holds, served a keyset page at a time.
+function serveDueMonitors(monitors: Array<Monitor>): void {
+  const sorted: Array<Monitor> = [...monitors].sort(
+    (a: Monitor, b: Monitor) => {
+      return a.id!.toString() < b.id!.toString() ? -1 : 1;
+    },
+  );
+
+  monitorService.findBy.mockImplementation(
+    async (args: {
+      query: { _id?: unknown };
+      limit: number;
+    }): Promise<Array<Monitor>> => {
+      const after: string | undefined = cursorOf(args.query);
+
+      return sorted
+        .filter((monitor: Monitor) => {
+          return after === undefined || monitor.id!.toString() > after;
+        })
+        .slice(0, args.limit);
+    },
+  );
+}
+
+function manyMonitors(count: number): Array<Monitor> {
+  return Array.from({ length: count }, (_value: unknown, index: number) => {
+    return makeMonitor({
+      id: new ObjectID(
+        `00000000-0000-4000-8000-${String(index).padStart(12, "0")}`,
+      ),
+    });
+  });
 }
 
 describe("TelemetryMonitor scheduler (enqueueDueTelemetryMonitorEvaluationJobs)", () => {
@@ -197,7 +293,9 @@ describe("TelemetryMonitor scheduler (enqueueDueTelemetryMonitorEvaluationJobs)"
       return new Date(NOW);
     });
 
-    monitorService.findAllBy.mockResolvedValue([]);
+    serveDueMonitors([]);
+    mockQuery.mockReset();
+    mockQuery.mockResolvedValue([]);
     monitorService.updateColumnsByIdWithoutHooks.mockResolvedValue(undefined);
     monitorService.updateOneById.mockResolvedValue(undefined);
     monitorService.getEnabledMonitorQuery.mockReturnValue({
@@ -210,10 +308,10 @@ describe("TelemetryMonitor scheduler (enqueueDueTelemetryMonitorEvaluationJobs)"
     await enqueueDueTelemetryMonitorEvaluationJobs();
 
     expect(monitorService.getEnabledMonitorQuery).toHaveBeenCalled();
-    expect(monitorService.findAllBy).toHaveBeenCalledTimes(1);
+    expect(monitorService.findBy).toHaveBeenCalledTimes(1);
 
     const query: Record<string, unknown> = (
-      monitorService.findAllBy.mock.calls[0]![0] as {
+      monitorService.findBy.mock.calls[0]![0] as {
         query: Record<string, unknown>;
       }
     ).query;
@@ -222,7 +320,7 @@ describe("TelemetryMonitor scheduler (enqueueDueTelemetryMonitorEvaluationJobs)"
     expect(query["isArchived"]).toBe(false);
   });
 
-  test("stamps every due monitor exactly once through the hookless fast path with BOTH scheduler columns", async () => {
+  test("stamps every due monitor exactly once, hookless, with BOTH scheduler columns", async () => {
     jest.spyOn(CronTab, "getNextExecutionTime").mockReturnValue(CRON_NEXT);
 
     const withInterval: Monitor = makeMonitor({
@@ -233,24 +331,21 @@ describe("TelemetryMonitor scheduler (enqueueDueTelemetryMonitorEvaluationJobs)"
     // stamped even though it has no steps: the bump is scheduler bookkeeping.
     const withoutSteps: Monitor = makeMonitor({ id: MONITOR_B_ID });
 
-    monitorService.findAllBy.mockResolvedValue([withInterval, withoutSteps]);
+    serveDueMonitors([withInterval, withoutSteps]);
 
     await enqueueDueTelemetryMonitorEvaluationJobs();
 
-    expect(monitorService.findAllBy).toHaveBeenCalledTimes(1);
+    expect(monitorService.findBy).toHaveBeenCalledTimes(1);
 
     const stamps: Array<UpdateCallArgs> = stampCalls();
     expect(stamps).toHaveLength(2);
 
-    for (const stamp of stamps) {
-      // EXACTLY the two bookkeeping columns - nothing else rides along.
-      expect(Object.keys(stamp.data).sort()).toEqual([
-        "telemetryMonitorLastMonitorAt",
-        "telemetryMonitorNextMonitorAt",
-      ]);
-      expect(
-        (stamp.data["telemetryMonitorLastMonitorAt"] as Date).getTime(),
-      ).toBe(NOW.getTime());
+    for (const statement of stampStatements()) {
+      // EXACTLY the two bookkeeping columns (and updatedAt, as before).
+      expect(statement.sql).toBe(
+        'UPDATE "Monitor" SET "telemetryMonitorLastMonitorAt" = $1, "telemetryMonitorNextMonitorAt" = $2, "updatedAt" = CURRENT_TIMESTAMP WHERE "_id" = ANY($3::uuid[])',
+      );
+      expect(statement.lastMonitorAt.getTime()).toBe(NOW.getTime());
     }
 
     // the cron interval drives nextMonitorAt through CronTab...
@@ -268,13 +363,14 @@ describe("TelemetryMonitor scheduler (enqueueDueTelemetryMonitorEvaluationJobs)"
       ).getTime(),
     ).toBe(NOW.getTime() + ONE_MINUTE_MS);
 
-    // THE regression this change removed: the full hooked pipeline per tick.
+    // THE regressions removed: the hooked pipeline, and a statement per monitor.
     expect(monitorService.updateOneById).not.toHaveBeenCalled();
+    expect(monitorService.updateColumnsByIdWithoutHooks).not.toHaveBeenCalled();
   });
 
   test("an invalid monitoringInterval is logged, falls back to now+1min, and the monitor is still enqueued", async () => {
     // no CronTab spy: the real parser rejects the string, the job catches.
-    monitorService.findAllBy.mockResolvedValue([
+    serveDueMonitors([
       makeMonitor({
         id: MONITOR_A_ID,
         monitorSteps: NON_EMPTY_STEPS,
@@ -300,7 +396,7 @@ describe("TelemetryMonitor scheduler (enqueueDueTelemetryMonitorEvaluationJobs)"
     await enqueueDueTelemetryMonitorEvaluationJobs();
 
     const select: Record<string, unknown> = (
-      monitorService.findAllBy.mock.calls[0]![0] as {
+      monitorService.findBy.mock.calls[0]![0] as {
         select: Record<string, unknown>;
       }
     ).select;
@@ -316,7 +412,7 @@ describe("TelemetryMonitor scheduler (enqueueDueTelemetryMonitorEvaluationJobs)"
   });
 
   test("every due monitor is stamped and enqueued with monitorId + projectId, steps or not: the evaluation job reads the steps", async () => {
-    monitorService.findAllBy.mockResolvedValue([
+    serveDueMonitors([
       makeMonitor({ id: MONITOR_A_ID, monitorSteps: NON_EMPTY_STEPS }),
       makeMonitor({ id: MONITOR_B_ID }),
     ]);
@@ -372,12 +468,12 @@ describe("TelemetryMonitor scheduler (enqueueDueTelemetryMonitorEvaluationJobs)"
     ).toHaveProperty("monitorSteps", true);
     // ...and went no further: no window planned, nothing stamped or queued.
     expect(plan).not.toHaveBeenCalled();
-    expect(monitorService.updateColumnsByIdWithoutHooks).not.toHaveBeenCalled();
+    expect(mockQuery).not.toHaveBeenCalled();
     expect(enqueueJobMock).not.toHaveBeenCalled();
   });
 
   test("one rejected enqueue is logged and neither rejects the sweep nor starves the other monitors", async () => {
-    monitorService.findAllBy.mockResolvedValue([
+    serveDueMonitors([
       makeMonitor({ id: MONITOR_A_ID, monitorSteps: NON_EMPTY_STEPS }),
       makeMonitor({ id: MONITOR_B_ID, monitorSteps: NON_EMPTY_STEPS }),
     ]);
@@ -394,12 +490,184 @@ describe("TelemetryMonitor scheduler (enqueueDueTelemetryMonitorEvaluationJobs)"
   });
 
   test("a tick with no due monitors writes nothing and enqueues nothing", async () => {
-    monitorService.findAllBy.mockResolvedValue([]);
+    serveDueMonitors([]);
 
     await enqueueDueTelemetryMonitorEvaluationJobs();
 
+    expect(mockQuery).not.toHaveBeenCalled();
     expect(monitorService.updateColumnsByIdWithoutHooks).not.toHaveBeenCalled();
     expect(monitorService.updateOneById).not.toHaveBeenCalled();
+    expect(enqueueJobMock).not.toHaveBeenCalled();
+  });
+
+  test("reads due monitors a keyset page at a time, in _id order, each page after the last", async () => {
+    const monitors: Array<Monitor> = manyMonitors(
+      TELEMETRY_SCHEDULE_PAGE_SIZE * 2 + 201,
+    );
+    serveDueMonitors(monitors);
+
+    await enqueueDueTelemetryMonitorEvaluationJobs();
+
+    // Two full pages and a short one: three reads, never an OFFSET.
+    expect(monitorService.findBy).toHaveBeenCalledTimes(3);
+    expect(monitorService.findAllBy).not.toHaveBeenCalled();
+
+    const reads: Array<{
+      query: Record<string, unknown>;
+      sort: Record<string, unknown>;
+      skip: number;
+      limit: number;
+    }> = monitorService.findBy.mock.calls.map((args: Array<unknown>) => {
+      return args[0] as {
+        query: Record<string, unknown>;
+        sort: Record<string, unknown>;
+        skip: number;
+        limit: number;
+      };
+    });
+
+    for (const read of reads) {
+      expect(read.sort).toEqual({ _id: SortOrder.Ascending });
+      expect(read.skip).toBe(0);
+      expect(read.limit).toBe(TELEMETRY_SCHEDULE_PAGE_SIZE);
+    }
+
+    expect(cursorOf(reads[0]!.query)).toBeUndefined();
+    expect(cursorOf(reads[1]!.query)).toBe(
+      monitors[TELEMETRY_SCHEDULE_PAGE_SIZE - 1]!.id!.toString(),
+    );
+    expect(cursorOf(reads[2]!.query)).toBe(
+      monitors[TELEMETRY_SCHEDULE_PAGE_SIZE * 2 - 1]!.id!.toString(),
+    );
+
+    // Every monitor stamped and queued exactly once.
+    expect(stampCalls()).toHaveLength(monitors.length);
+    expect(
+      new Set(
+        stampCalls().map((stamp: UpdateCallArgs) => {
+          return stamp.id.toString();
+        }),
+      ).size,
+    ).toBe(monitors.length);
+    expect(enqueueJobMock).toHaveBeenCalledTimes(monitors.length);
+  });
+
+  test("stamps a page with ONE UPDATE per next-due time, never one per monitor", async () => {
+    // A page of 1,201 every-minute monitors: one statement per page.
+    serveDueMonitors(manyMonitors(TELEMETRY_SCHEDULE_PAGE_SIZE * 2 + 201));
+
+    await enqueueDueTelemetryMonitorEvaluationJobs();
+
+    expect(stampStatements()).toHaveLength(3);
+    expect(
+      stampStatements().map((statement: StampStatement) => {
+        return statement.ids.length;
+      }),
+    ).toEqual([
+      TELEMETRY_SCHEDULE_PAGE_SIZE,
+      TELEMETRY_SCHEDULE_PAGE_SIZE,
+      201,
+    ]);
+
+    // Two cadences on one page: two statements for it.
+    mockQuery.mockClear();
+    jest.spyOn(CronTab, "getNextExecutionTime").mockReturnValue(CRON_NEXT);
+    serveDueMonitors([
+      makeMonitor({ id: MONITOR_A_ID, monitoringInterval: "*/5 * * * *" }),
+      makeMonitor({ id: MONITOR_B_ID }),
+    ]);
+
+    await enqueueDueTelemetryMonitorEvaluationJobs();
+
+    expect(stampStatements()).toHaveLength(2);
+    expect(
+      stampStatements()
+        .map((statement: StampStatement) => {
+          return statement.nextMonitorAt.getTime();
+        })
+        .sort(),
+    ).toEqual([NOW.getTime() + ONE_MINUTE_MS, CRON_NEXT.getTime()].sort());
+  });
+
+  test("stamps a page before it queues the page's jobs, and reads the next page after both", async () => {
+    const events: Array<string> = [];
+
+    serveDueMonitors(manyMonitors(TELEMETRY_SCHEDULE_PAGE_SIZE + 1));
+    const read: jest.Mock = monitorService.findBy;
+    const serve: (...args: Array<unknown>) => unknown =
+      read.getMockImplementation()!;
+    read.mockImplementation(async (...args: Array<unknown>) => {
+      events.push("read");
+      return serve(...args);
+    });
+    mockQuery.mockImplementation(async () => {
+      events.push("stamp");
+      return [];
+    });
+    enqueueJobMock.mockImplementation(async () => {
+      if (events[events.length - 1] !== "queue") {
+        events.push("queue");
+      }
+    });
+
+    await enqueueDueTelemetryMonitorEvaluationJobs();
+
+    expect(events).toEqual([
+      "read",
+      "stamp",
+      "queue",
+      "read",
+      "stamp",
+      "queue",
+    ]);
+  });
+
+  test("queues never more than its limit of a page's jobs at once", async () => {
+    serveDueMonitors(manyMonitors(TELEMETRY_SCHEDULE_PAGE_SIZE));
+
+    let inFlight: number = 0;
+    let mostInFlight: number = 0;
+
+    enqueueJobMock.mockImplementation(async () => {
+      inFlight++;
+      mostInFlight = Math.max(mostInFlight, inFlight);
+      await new Promise<void>((resolve: () => void) => {
+        setImmediate(resolve);
+      });
+      inFlight--;
+    });
+
+    await enqueueDueTelemetryMonitorEvaluationJobs();
+
+    expect(enqueueJobMock).toHaveBeenCalledTimes(TELEMETRY_SCHEDULE_PAGE_SIZE);
+    expect(mostInFlight).toBe(TELEMETRY_SCHEDULE_ENQUEUE_CONCURRENCY);
+  });
+
+  test("stops between pages once its deadline passes, leaving the rest due for the next run", async () => {
+    serveDueMonitors(manyMonitors(TELEMETRY_SCHEDULE_PAGE_SIZE * 3));
+    const deadline: JobDeadline = new JobDeadline();
+
+    // The time limit runs out while the first page is being stamped.
+    mockQuery.mockImplementation(async () => {
+      deadline.end();
+      return [];
+    });
+
+    await enqueueDueTelemetryMonitorEvaluationJobs(deadline);
+
+    expect(monitorService.findBy).toHaveBeenCalledTimes(1);
+    expect(stampStatements()).toHaveLength(1);
+  });
+
+  test("a page whose UPDATE fails fails the run before its jobs are queued", async () => {
+    serveDueMonitors([makeMonitor({ id: MONITOR_A_ID })]);
+    mockQuery.mockRejectedValue(
+      new Error("canceling statement due to statement timeout"),
+    );
+
+    await expect(enqueueDueTelemetryMonitorEvaluationJobs()).rejects.toThrow(
+      "statement timeout",
+    );
     expect(enqueueJobMock).not.toHaveBeenCalled();
   });
 });

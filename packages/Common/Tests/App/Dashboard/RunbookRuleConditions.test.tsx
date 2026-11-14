@@ -311,9 +311,9 @@ const TRIGGERS: Array<TriggerCase> = [
   },
   {
     trigger: RunbookRuleTriggerEntity.ScheduledMaintenance,
-    entityLabel: "scheduled maintenance event",
-    all: "All scheduled maintenance events",
-    matching: "Only scheduled maintenance events that match conditions",
+    entityLabel: "maintenance event",
+    all: "All maintenance events",
+    matching: "Only maintenance events that match conditions",
     criteria: [
       "Monitors",
       "Event Labels",
@@ -928,7 +928,7 @@ describe("the runbook rule help", () => {
     expect(
       getRunbookRuleDocumentation({
         triggerEntityType: RunbookRuleTriggerEntity.ScheduledMaintenance,
-        entityLabel: "scheduled maintenance event",
+        entityLabel: "maintenance event",
       }),
     ).not.toContain("Severities");
     expect(

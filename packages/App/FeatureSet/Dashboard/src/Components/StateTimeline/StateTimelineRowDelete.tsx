@@ -86,7 +86,7 @@ export const STATE_TIMELINE_DELETE_WORDS: Readonly<
   },
   [StateTimelineRecord.ScheduledMaintenance]: {
     onlyStateReason: translationKey(
-      "The event's only state can't be deleted: a scheduled maintenance event always has a state. To change it, add a new state.",
+      "The event's only state can't be deleted: a maintenance event always has a state. To change it, add a new state.",
     ),
     previousIsCurrentAgain: translationKey(
       "{{state}}, the state before it, becomes the event's current state again.",

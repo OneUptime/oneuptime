@@ -23,7 +23,7 @@ flowchart TB
     trace --> criteria
 ```
 
-Quando un controllo fallisce, la sonda traccia anche il percorso verso l'indirizzo, e allega quanto trovato al risultato come **Network Path at Time of Failure**, così potete vedere dove il percorso si è interrotto.
+Quando un controllo fallisce, la sonda traccia anche il percorso verso l'indirizzo, e allega quanto trovato al risultato come **Percorso di rete al momento dell'errore**, così potete vedere dove il percorso si è interrotto.
 
 Quale usare:
 
@@ -139,7 +139,7 @@ Scegliete una finestra più lunga dell'intervallo di monitoraggio, così che con
 ## Risoluzione dei problemi
 
 :::details L'indirizzo è attivo, ma il monitor lo dà offline
-L'indirizzo, o un firewall davanti a esso, non risponde alle richieste di eco ICMP della sonda. Consentite le richieste di eco ICMP dalle sonde, oppure sorvegliate invece un servizio su quell'indirizzo con un [monitor porta](/docs/monitor/port-monitor). **Network Path at Time of Failure**, sul controllo fallito, mostra fin dove è arrivato il percorso.
+L'indirizzo, o un firewall davanti a esso, non risponde alle richieste di eco ICMP della sonda. Consentite le richieste di eco ICMP dalle sonde, oppure sorvegliate invece un servizio su quell'indirizzo con un [monitor porta](/docs/monitor/port-monitor). **Percorso di rete al momento dell'errore**, sul controllo fallito, mostra fin dove è arrivato il percorso.
 :::
 
 :::details Un indirizzo IPv6 fallisce sempre

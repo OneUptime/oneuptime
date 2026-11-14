@@ -42,6 +42,13 @@
     "errorOnSignUp": "Fuldfør captcha-udfordringen, før du tilmelder dig."
   },
   "login": {
+    "title": "Log ind på din konto",
+    "subtitle": "Brug din adgangskode, din organisations SSO eller en adgangsnøgle.",
+    "sessionEnded": {
+      "lengthReached": "Du blev logget ud, fordi din session nåede sin tidsgrænse. Log ind igen for at fortsætte, hvor du slap.",
+      "inactive": "Du blev logget ud efter en periode uden aktivitet. Log ind igen for at fortsætte, hvor du slap."
+    },
+    "submitButton": "Log ind",
     "passkey": {
       "signIn": "Log ind med en adgangsnøgle",
       "inProgress": "Fuldfør eller annuller login med adgangsnøgle, før du bruger din adgangskode.",
@@ -57,13 +64,6 @@
       "insecure": "Adgangsnøgler kræver en sikker forbindelse (HTTPS). Du kan stadig logge ind med din adgangskode eller SSO.",
       "tryAgain": "Prøv adgangsnøglen igen"
     },
-    "title": "Log ind på din konto",
-    "subtitle": "Brug din adgangskode, din organisations SSO eller en adgangsnøgle.",
-    "sessionEnded": {
-      "lengthReached": "Du blev logget ud, fordi din session nåede sin tidsgrænse. Log ind igen for at fortsætte, hvor du slap.",
-      "inactive": "Du blev logget ud efter en periode uden aktivitet. Log ind igen for at fortsætte, hvor du slap."
-    },
-    "submitButton": "Log ind",
     "forgotPassword": "Glemt adgangskode?",
     "signInWithSso": "Log ind med SSO",
     "signInWithMicrosoft": "Log ind med Microsoft",
@@ -397,6 +397,9 @@
   "Copy": "Kopiér",
   "Copied!": "Kopieret!",
   "Copy failed": "Kopiering mislykkedes",
+  "Hide": "Skjul",
+  "Click to reveal": "Klik for at vise",
+  "Click to copy": "Klik for at kopiere",
   "SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.": "SCIM-provisionering stopper, auditlogningen holder op med at registrere, enterprise-konfigurationen bliver skrivebeskyttet, og enterprise-admin-dashboards bliver låst. Alt genoptages, så snart en licens aktiveres, og kerneovervågningen påvirkes aldrig.",
   "Without a valid license (after the {{days}}-day trial), SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.": "Uden en gyldig licens (efter prøveperioden på {{days}} dage) stopper SCIM-provisionering, auditlogningen holder op med at registrere, enterprise-konfigurationen bliver skrivebeskyttet, og enterprise-admin-dashboards bliver låst. Alt genoptages, så snart en licens aktiveres, og kerneovervågningen påvirkes aldrig.",
   "Without a valid license (after the {{days}}-day grace period), SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.": "Uden en gyldig licens (efter henstandsperioden på {{days}} dage) stopper SCIM-provisionering, auditlogningen holder op med at registrere, enterprise-konfigurationen bliver skrivebeskyttet, og enterprise-admin-dashboards bliver låst. Alt genoptages, så snart en licens aktiveres, og kerneovervågningen påvirkes aldrig.",
@@ -607,7 +610,8 @@
   "Click to choose a file or drag & drop.": "Klik for at vælge en fil, eller træk og slip.",
   "Click to add more or drag & drop.": "Klik for at tilføje flere, eller træk og slip.",
   "PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP, up to {{size}}.": "PDF-, Office- og OpenDocument-filer, billeder, tekst, CSV, JSON, ZIP eller PCAP, op til {{size}}.",
-  "Up to 10 files of {{size}} each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.": "Op til 10 filer på hver {{size}}: PDF-, Office- og OpenDocument-filer, billeder, tekst, CSV, JSON, ZIP eller PCAP.",
+  "Up to {{count}} files of {{size}} each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.": "Op til {{count}} filer på hver {{size}}: PDF-, Office- og OpenDocument-filer, billeder, tekst, CSV, JSON, ZIP eller PCAP.",
+  "Up to {{count}} files of {{size}} each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP._one": "Én fil på op til {{size}}: PDF-, Office- og OpenDocument-filer, billeder, tekst, CSV, JSON, ZIP eller PCAP.",
   "Chosen files": "Valgte filer",
   "Remove": "Fjern",
   "Replace": "Erstat",
@@ -618,6 +622,7 @@
   "These files are not a type this field takes: {{fileNames}}.": "Disse filer har en type, som dette felt ikke accepterer: {{fileNames}}.",
   "Add one file at a time.": "Tilføj én fil ad gangen.",
   "This field holds up to {{count}} files. Remove one to add another.": "Dette felt kan indeholde op til {{count}} filer. Fjern en for at tilføje en anden.",
+  "This field holds up to {{count}} files. Remove one to add another._one": "Dette felt kan indeholde én fil. Fjern den for at tilføje en anden.",
   "markdownCallouts": {
     "caution": "Forsigtig",
     "danger": "Fare",

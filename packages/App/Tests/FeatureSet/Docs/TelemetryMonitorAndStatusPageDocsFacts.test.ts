@@ -675,8 +675,12 @@ describe("how often a telemetry monitor is checked", () => {
       }).toEqual({ monitorType: entry.typeKey, picked: true });
     }
 
+    // Next due a minute after it was scheduled, unless it has an interval.
     expect(TELEMETRY_JOB).toContain(
-      "let nextPing: Date = OneUptimeDate.addRemoveMinutes( OneUptimeDate.getCurrentDate(), 1, );",
+      "const oneMinuteLater: Date = OneUptimeDate.addRemoveMinutes(data.now, 1);",
+    );
+    expect(TELEMETRY_JOB).toContain(
+      "if (!data.monitor.monitoringInterval) { return oneMinuteLater; }",
     );
   });
 

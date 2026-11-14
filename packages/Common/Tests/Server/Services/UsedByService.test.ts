@@ -207,92 +207,95 @@ function toModel(service: AnyService, row: Record<string, unknown>): BaseModel {
   return model;
 }
 
+// Fakes a service's reads with the tables the test set up.
+function installFakesOf(service: AnyService): void {
+  jest
+    .spyOn(service, "countBy")
+    .mockImplementation(async (args: any): Promise<PositiveNumber> => {
+      const table: string = tableOf(service);
+      reads.push({
+        table,
+        method: "countBy",
+        isRoot: Boolean(args.props.isRoot),
+        query: args.query,
+      });
+      const found: Fake = fakes.get(table) || {
+        total: 0,
+        reader: 0,
+        rows: [],
+      };
+
+      if (args.props.isRoot) {
+        return new PositiveNumber(found.total);
+      }
+
+      if (found.reader === "refuse") {
+        throw new NotAuthorizedException(
+          "You do not have permission to read these. Ask a project admin for access.",
+        );
+      }
+
+      return new PositiveNumber(found.reader);
+    });
+
+  jest
+    .spyOn(service, "findBy")
+    .mockImplementation(async (args: any): Promise<Array<BaseModel>> => {
+      const table: string = tableOf(service);
+      reads.push({
+        table,
+        method: "findBy",
+        isRoot: Boolean(args.props.isRoot),
+        query: args.query,
+        select: args.select,
+        sort: args.sort,
+        skip: Number(args.skip),
+        limit: Number(args.limit),
+      });
+      const found: Fake = fakes.get(table) || {
+        total: 0,
+        reader: 0,
+        rows: [],
+      };
+
+      if (!args.props.isRoot && found.reader === "refuse") {
+        throw new NotAuthorizedException(
+          "You do not have permission to read these. Ask a project admin for access.",
+        );
+      }
+
+      return found.rows
+        .slice(Number(args.skip) || 0)
+        .slice(0, Number(args.limit))
+        .map((row: Record<string, unknown>): BaseModel => {
+          return toModel(service, row);
+        });
+    });
+
+  jest
+    .spyOn(service, "findOneBy")
+    .mockImplementation(async (args: any): Promise<BaseModel | null> => {
+      const table: string = tableOf(service);
+      reads.push({
+        table,
+        method: "findOneBy",
+        isRoot: Boolean(args.props.isRoot),
+        query: args.query,
+      });
+
+      if (recordRefusal) {
+        throw recordRefusal;
+      }
+
+      return isRecordReadable
+        ? toModel(service, { _id: String(args.query._id) })
+        : null;
+    });
+}
+
 function installFakes(): void {
   for (const each of SERVICES) {
-    const service: AnyService = each.service;
-
-    jest
-      .spyOn(service, "countBy")
-      .mockImplementation(async (args: any): Promise<PositiveNumber> => {
-        const table: string = tableOf(service);
-        reads.push({
-          table,
-          method: "countBy",
-          isRoot: Boolean(args.props.isRoot),
-          query: args.query,
-        });
-        const found: Fake = fakes.get(table) || {
-          total: 0,
-          reader: 0,
-          rows: [],
-        };
-
-        if (args.props.isRoot) {
-          return new PositiveNumber(found.total);
-        }
-
-        if (found.reader === "refuse") {
-          throw new NotAuthorizedException(
-            "You do not have permission to read these. Ask a project admin for access.",
-          );
-        }
-
-        return new PositiveNumber(found.reader);
-      });
-
-    jest
-      .spyOn(service, "findBy")
-      .mockImplementation(async (args: any): Promise<Array<BaseModel>> => {
-        const table: string = tableOf(service);
-        reads.push({
-          table,
-          method: "findBy",
-          isRoot: Boolean(args.props.isRoot),
-          query: args.query,
-          select: args.select,
-          sort: args.sort,
-          skip: Number(args.skip),
-          limit: Number(args.limit),
-        });
-        const found: Fake = fakes.get(table) || {
-          total: 0,
-          reader: 0,
-          rows: [],
-        };
-
-        if (!args.props.isRoot && found.reader === "refuse") {
-          throw new NotAuthorizedException(
-            "You do not have permission to read these. Ask a project admin for access.",
-          );
-        }
-
-        return found.rows
-          .slice(Number(args.skip) || 0)
-          .slice(0, Number(args.limit))
-          .map((row: Record<string, unknown>): BaseModel => {
-            return toModel(service, row);
-          });
-      });
-
-    jest
-      .spyOn(service, "findOneBy")
-      .mockImplementation(async (args: any): Promise<BaseModel | null> => {
-        const table: string = tableOf(service);
-        reads.push({
-          table,
-          method: "findOneBy",
-          isRoot: Boolean(args.props.isRoot),
-          query: args.query,
-        });
-
-        if (recordRefusal) {
-          throw recordRefusal;
-        }
-
-        return isRecordReadable
-          ? toModel(service, { _id: String(args.query._id) })
-          : null;
-      });
+    installFakesOf(each.service);
   }
 
   jest

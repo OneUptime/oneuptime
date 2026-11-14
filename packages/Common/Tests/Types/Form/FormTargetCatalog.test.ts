@@ -89,8 +89,8 @@ describe("FormTargetType", () => {
     });
     expect(FORM_TARGET_TYPE_TEXT[FormTargetType.ScheduledMaintenance]).toEqual({
       title: "Scheduled Maintenance",
-      noun: "scheduled maintenance event",
-      nounWithArticle: "a scheduled maintenance event",
+      noun: "maintenance event",
+      nounWithArticle: "a maintenance event",
       description:
         "Each submission schedules a maintenance event. Use it for change and maintenance requests.",
     });

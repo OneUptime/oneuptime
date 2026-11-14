@@ -7,7 +7,6 @@ import {
   StatusTimelineSummaryItem,
 } from "./StatusTimelineLayout";
 import { MONITORING_OFF_TEXT } from "../StateTimeline/MonitoringOffIndicator";
-import { formatDurationInSeconds } from "../../Utils/UseLiveDuration";
 import { getInlineSeparator, Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import IsolatedText from "../IsolatedText/IsolatedText";
@@ -106,7 +105,7 @@ const StatusTimelineLegend: FunctionComponent<ComponentProps> = (
       {props.summary.items.map(
         (item: StatusTimelineSummaryItem): ReactElement => {
           const duration: string = formatStatusTimelineCompactDuration(
-            formatDurationInSeconds(Math.floor(item.durationMs / 1000)),
+            item.durationMs / 1000,
           );
 
           /*
@@ -172,9 +171,7 @@ const StatusTimelineLegend: FunctionComponent<ComponentProps> = (
           </span>
           <span className="tabular-nums text-gray-500">
             {formatStatusTimelineCompactDuration(
-              formatDurationInSeconds(
-                Math.floor(props.summary.monitoringOffMs / 1000),
-              ),
+              props.summary.monitoringOffMs / 1000,
             )}
           </span>
         </li>

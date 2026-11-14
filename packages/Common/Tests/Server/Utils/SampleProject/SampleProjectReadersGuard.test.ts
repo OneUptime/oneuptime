@@ -254,6 +254,19 @@ const USER_COUNTERS: ReadonlyArray<string> = [
   "ee/Server/Marketplace/MarketplaceUsageRun.ts",
 ];
 
+// A Route to one of the Notification service's send endpoints.
+const NOTIFICATION_SEND_ROUTE: RegExp =
+  /new Route\(\s*"\/api\/notification\/[a-z-]+\/(send|make-call)"/;
+// A sender asking whether the project may be notified.
+const GET_REFUSAL_CALL: RegExp = /BlockedProjectNotifications\.getRefusal\(/;
+// A probe's query leaving a blocked project out.
+const BLOCKED_PROJECT_LEFT_OUT: RegExp = /p\."isBlocked" = false/;
+// The end of a claim's rule list: its entries joined with AND.
+const RULE_LIST_JOINED_WITH_AND: RegExp = /^\s*\]\.join\("\\n\s*AND "\);/;
+// A count of people that leaves a sample's people out.
+const SAMPLE_PEOPLE_LEFT_OUT: RegExp =
+  /sampleProjectId:\s*QueryHelper\.isNull\(\)/;
+
 describe("SampleProjectReadersGuard", () => {
   test.each(READERS)("$file reads the flag: $keeps", (reader: Reader) => {
     const code: string = stripComments(read(path.join(REPO_ROOT, reader.file)));
@@ -267,9 +280,8 @@ describe("SampleProjectReadersGuard", () => {
     ).filter((file: string): boolean => {
       const code: string = stripComments(read(file));
       return (
-        /new Route\(\s*"\/api\/notification\/[a-z-]+\/(send|make-call)"/.test(
-          code,
-        ) || path.basename(file) === "PushNotificationService.ts"
+        NOTIFICATION_SEND_ROUTE.test(code) ||
+        path.basename(file) === "PushNotificationService.ts"
       );
     });
 
@@ -279,9 +291,7 @@ describe("SampleProjectReadersGuard", () => {
     for (const sender of senders) {
       expect({
         sender: path.relative(REPO_ROOT, sender),
-        refuses: /BlockedProjectNotifications\.getRefusal\(/.test(
-          stripComments(read(sender)),
-        ),
+        refuses: GET_REFUSAL_CALL.test(stripComments(read(sender))),
       }).toEqual({ sender: path.relative(REPO_ROOT, sender), refuses: true });
     }
   });
@@ -311,23 +321,43 @@ describe("SampleProjectReadersGuard", () => {
     for (const file of files) {
       const lines: Array<string> = read(file).split("\n");
 
-      lines.forEach((line: string, index: number) => {
-        if (!/p\."isBlocked" = false/.test(line)) {
-          return;
+      for (let index: number = 0; index < lines.length; index++) {
+        if (!BLOCKED_PROJECT_LEFT_OUT.test(lines[index]!)) {
+          continue;
         }
 
         claims++;
+
+        /*
+         * A claim writes its conditions inline in its SQL
+         * (`AND p."isBlocked" = false`), or as entries of the one list its
+         * rule joins with AND (MonitorProbeService.getProbeableSql,
+         * NetworkDeviceService.getPollableSql), which the claim and the
+         * statements that set its other rows aside both read. Either way
+         * the very next condition leaves a sample out.
+         */
+        const isRuleListEntry: boolean = lines[index]!.trim().startsWith("`");
+        const listEnd: string = isRuleListEntry
+          ? lines.slice(index).find((line: string): boolean => {
+              return line.includes("].join(");
+            }) || ""
+          : "";
 
         expect({
           file: path.relative(REPO_ROOT, file),
           line: index + 1,
           next: (lines[index + 1] || "").trim(),
+          joinedWithAnd:
+            !isRuleListEntry || RULE_LIST_JOINED_WITH_AND.test(listEnd),
         }).toEqual({
           file: path.relative(REPO_ROOT, file),
           line: index + 1,
-          next: 'AND p."isSampleProject" = false',
+          next: isRuleListEntry
+            ? '`p."isSampleProject" = false`,'
+            : 'AND p."isSampleProject" = false',
+          joinedWithAnd: true,
         });
-      });
+      }
     }
 
     // MonitorProbeService, network devices, VMware, OpenStack twice, data observability and security.
@@ -392,10 +422,9 @@ describe("SampleProjectReadersGuard", () => {
 
       expect({
         counter: counter,
-        leavesOutSamplePeople:
-          /sampleProjectId:\s*QueryHelper\.isNull\(\)/.test(
-            stripComments(read(file)),
-          ),
+        leavesOutSamplePeople: SAMPLE_PEOPLE_LEFT_OUT.test(
+          stripComments(read(file)),
+        ),
       }).toEqual({ counter: counter, leavesOutSamplePeople: true });
     }
   });

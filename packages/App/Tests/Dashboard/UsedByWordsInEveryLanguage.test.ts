@@ -33,10 +33,13 @@ import path from "path";
 const USED_BY_DIRECTORY: string =
   "packages/App/FeatureSet/Dashboard/src/Components/UsedBy";
 
+// A TypeScript source file of the folder.
+const SOURCE_FILE: RegExp = /\.tsx?$/u;
+
 const USED_BY_ROOTS: Array<SourceRoot> = fs
   .readdirSync(path.join(__dirname, "../../../..", USED_BY_DIRECTORY))
   .filter((file: string): boolean => {
-    return /\.tsx?$/u.test(file);
+    return SOURCE_FILE.test(file);
   })
   .sort()
   .map((file: string): SourceRoot => {

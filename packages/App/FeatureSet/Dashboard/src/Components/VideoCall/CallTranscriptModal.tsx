@@ -185,7 +185,7 @@ const CallTranscriptModal: FunctionComponent<ComponentProps> = (
           id="call-transcript-search"
           dataTestId="call-transcript-search"
           value={query}
-          placeholder={translator.translateText("Find in the transcript")}
+          placeholder="Find in the transcript"
           onChange={(value: string) => {
             setQuery(value);
             setShown(TRANSCRIPT_ROWS_SHOWN_AT_ONCE);

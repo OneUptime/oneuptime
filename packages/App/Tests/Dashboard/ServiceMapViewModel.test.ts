@@ -17,10 +17,10 @@ import {
   detailLabelForEntity,
   kindForEntityType,
   layoutServiceMap,
-  nounForType,
   resolveServiceMapVisibility,
   summarizeRunsOn,
 } from "../../FeatureSet/Dashboard/src/Components/Topology/ServiceMapViewModel";
+import { countOfType } from "../../FeatureSet/Dashboard/src/Components/Topology/TopologyCounts";
 import {
   TopologyEntity,
   TopologyRelationship,
@@ -820,10 +820,21 @@ describe("helpers", () => {
     ).toBeNull();
   });
 
-  test("nounForType pluralizes short nouns and falls back to type labels", () => {
-    expect(nounForType(EntityType.KubernetesPod, 1)).toBe("pod");
-    expect(nounForType(EntityType.KubernetesDeployment, 3)).toBe("deployments");
-    expect(nounForType(EntityType.CephCluster, 2)).toBe("ceph clusters");
+  test("countOfType words each type's count, and never pluralizes a label", () => {
+    expect(countOfType(EntityType.KubernetesPod, 1)).toBe("1 pod");
+    expect(countOfType(EntityType.KubernetesDeployment, 3)).toBe(
+      "3 deployments",
+    );
+    // Its label is "Ceph Cluster": once read "ceph clusters".
+    expect(countOfType(EntityType.CephCluster, 2)).toBe("2 Ceph clusters");
+    // A type this version does not know: its label and its count.
+    expect(countOfType("something.new", 2)).toBe("Other: 2");
+  });
+
+  test("a target without a type reads as one of another kind", () => {
+    expect(summarizeRunsOn([{ entityType: "unknown", count: 1 }])).toBe(
+      "Other: 1",
+    );
   });
 
   test("kindForEntityType maps manual and inferred dependency types", () => {

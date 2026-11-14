@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 51296,
-    "untranslated": 5278
+    "keys": 52236,
+    "untranslated": 5115
   },
   "sameAsEnglish": [
     " incidents",
@@ -436,6 +436,7 @@
     "Powered by OneUptime",
     "Principal",
     "Production",
+    "PromQL",
     "Prompt",
     "Public",
     "Pull request",
@@ -445,6 +446,7 @@
     "Questions",
     "Quota",
     "Quotas",
+    "RTT",
     "RabbitMQ",
     "Radio",
     "Re-encrypt",
@@ -664,6 +666,7 @@
     "stacks",
     "storage-01 · RegionOne",
     "storefront-web",
+    "sum by (job) (rate(http_requests_total[5m]))",
     "svc-backup",
     "syslog",
     "threads",
@@ -681,8 +684,6 @@
     "vertical pod autoscaler",
     "volume",
     "volumes",
-    "workflow",
-    "workflows",
     "writesets",
     "x86",
     "z",

@@ -426,20 +426,18 @@ const EVENT_LIBRARY: Record<
   [NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_CREATED_OWNER_NOTIFICATION]:
     {
       label: "Maintenance event created",
-      description:
-        "A new scheduled maintenance event is created on a resource you own.",
+      description: "A new maintenance event is created on a resource you own.",
     },
   [NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_STATE_CHANGED_OWNER_NOTIFICATION]:
     {
       label: "Maintenance state changed",
-      description:
-        "The state of a scheduled maintenance event you own changes.",
+      description: "The state of a maintenance event you own changes.",
     },
   [NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_REMINDER_OWNER_NOTIFICATION]:
     {
       label: "Maintenance reminder",
       description:
-        "Periodic reminder that a scheduled maintenance event you own has not yet finished, based on the project's reminder rules.",
+        "Periodic reminder that a maintenance event you own has not yet finished, based on the project's reminder rules.",
     },
   [NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_NOTE_POSTED_OWNER_NOTIFICATION]:
     {
@@ -1342,7 +1340,7 @@ const statusPages: Array<SectionDef> = [
 const scheduledMaintenance: Array<SectionDef> = [
   buildSection(
     translationKey("Scheduled Maintenance"),
-    translationKey("Notify me about scheduled maintenance events I own."),
+    translationKey("Notify me about maintenance events I own."),
     [
       NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_CREATED_OWNER_NOTIFICATION,
       NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_STATE_CHANGED_OWNER_NOTIFICATION,

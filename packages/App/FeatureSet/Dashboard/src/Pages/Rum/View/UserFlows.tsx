@@ -9,6 +9,7 @@ import RangeStartAndEndDateTime, {
 import { UserFlowJourneysResponseDto } from "Common/Types/Rum/UserFlow";
 import {
   analyzeUserFlow,
+  getUserFlowPageText,
   USER_FLOW_MAX_PAGES_PER_STEP,
   USER_FLOW_MAX_STEPS,
   USER_FLOW_MIN_PAGES_PER_STEP,
@@ -78,7 +79,10 @@ import {
   readUserFlowStateFromSearch,
   UserFlowUrlState,
 } from "../../../Components/UserFlow/UserFlowUrlState";
-import { formatUserFlowCount } from "../../../Components/UserFlow/UserFlowFormat";
+import {
+  formatUserFlowCount,
+  getUserFlowPathLineDirection,
+} from "../../../Components/UserFlow/UserFlowFormat";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
@@ -418,20 +422,39 @@ const RumApplicationUserFlows: FunctionComponent<
                 updateOptions({ anchorPage: event.target.value || null });
               }}
             >
+              {/*
+               * A page nobody visited in the range, named in a sentence
+               * that is only drawn: the page is set apart from its words
+               * (setsValuesApart), so an Arabic or Persian option names
+               * "/2024", not "2024/".
+               */}
               {anchorMissing && options.anchorPage ? (
                 <option value={options.anchorPage}>
                   {translator.translateTemplate(
                     "{{page}} (not visited in this range)",
-                    { page: options.anchorPage },
+                    { page: getUserFlowPageText(options.anchorPage) },
+                    { setsValuesApart: true },
                   )}
                 </option>
               ) : (
                 <></>
               )}
+              {/*
+               * Each page as a person reads it, from the left: "/café
+               * (12)", not "/caf%C3%A9 (12)". Its value stays its key.
+               */}
               {pageOptions.map((page: UserFlowPageCount): ReactElement => {
                 return (
-                  <option key={page.page} value={page.page}>
-                    {page.page} ({formatUserFlowCount(page.sessions)})
+                  <option
+                    key={page.page}
+                    value={page.page}
+                    dir={getUserFlowPathLineDirection(
+                      page.page,
+                      translator.language,
+                    )}
+                  >
+                    {getUserFlowPageText(page.page)} (
+                    {formatUserFlowCount(page.sessions, translator)})
                   </option>
                 );
               })}
@@ -579,14 +602,20 @@ const RumApplicationUserFlows: FunctionComponent<
               <span
                 key={page}
                 className="inline-flex items-center gap-1 rounded-full bg-gray-100 py-0.5 pl-2.5 pr-1 font-mono text-xs text-gray-700"
+                data-testid="user-flow-hidden-page"
+                data-page={page}
               >
-                {page}
+                <span
+                  dir={getUserFlowPathLineDirection(page, translator.language)}
+                >
+                  {getUserFlowPageText(page)}
+                </span>
                 <button
                   type="button"
                   className="rounded-full p-0.5 text-gray-400 hover:bg-gray-200 hover:text-gray-700"
                   aria-label={translator.translateTemplate(
                     "Show {{page}} again",
-                    { page: page },
+                    { page: getUserFlowPageText(page) },
                   )}
                   onClick={(): void => {
                     updateOptions({
@@ -735,7 +764,11 @@ const RumApplicationUserFlows: FunctionComponent<
                 <TranslatedSentence
                   template="No session visited {{page}} in this range with the current filters. Pick another page, or {{startLink}}."
                   slots={{
-                    page: <code>{options.anchorPage}</code>,
+                    page: (
+                      <code>
+                        {getUserFlowPageText(options.anchorPage || "")}
+                      </code>
+                    ),
                     startLink: (
                       <button
                         type="button"

@@ -4,6 +4,7 @@ import {
   DocsVocabulary,
   DocsVocabularyMatch,
   foldDocsSearchWord,
+  getDocsSearchQuestionWords,
   getDocsSearchSynonyms,
   getTypoAllowance,
 } from "./DocsSearchWords";
@@ -108,9 +109,9 @@ const HEADING_LINE: RegExp = /^(#{2,3})\s+(.+?)\s*#*\s*$/;
 const DOCS_PAGE: RegExp = /^[a-z0-9-]+(\/[a-z0-9-]+)*$/;
 
 /*
- * Words a question is phrased with rather than about. Only English: in
- * other languages such words are in most pages and weigh next to nothing
- * anyway.
+ * Words a question is phrased with rather than about, in English: left out
+ * of every page and every question, whatever its language. Another
+ * language's are left out of a question only (DOCS_SEARCH_QUESTION_WORDS).
  */
 const QUESTION_WORDS: ReadonlySet<string> = new Set<string>([
   "a",
@@ -254,11 +255,13 @@ const joinedWords: (parts: Array<string>) => Array<string> = (
 };
 
 /*
- * A newcomer's words for what the docs say otherwise, read into a question
- * only, never into a page: "a text when my site is down" is an SMS, "2fa"
- * is two-factor authentication (DOCS_SEARCH_SYNONYMS, the list docs search
- * reads too). A synonym that is a word's start ("vagt*") needs the docs'
- * words to be read, so it is left to rank.
+ * A question's words, without the ones it is phrased with in its language
+ * (DOCS_SEARCH_QUESTION_WORDS, which the docs search box leaves out too),
+ * and with a newcomer's words for what the docs say otherwise, read into a
+ * question only, never into a page: "a text when my site is down" is an
+ * SMS, "2fa" is two-factor authentication (DOCS_SEARCH_SYNONYMS, the list
+ * docs search reads too). A synonym that is a word's start ("vagt*") needs
+ * the docs' words to be read, so it is left to rank.
  */
 export const tokenizeQueryForDocs: (
   query: string,
@@ -267,10 +270,18 @@ export const tokenizeQueryForDocs: (
   query: string,
   language?: string | undefined,
 ): Array<string> => {
+  const resolved: string = language || DEFAULT_DOCS_LANGUAGE;
   const synonyms: Map<string, Array<DocsSearchSynonym>> = getDocsSearchSynonyms(
-    language || DEFAULT_DOCS_LANGUAGE,
+    resolved,
   );
-  const otherWords: Array<string> = splitDocsWords(query).flatMap(
+  const questionWords: ReadonlySet<string> =
+    getDocsSearchQuestionWords(resolved);
+  const words: Array<string> = splitDocsWords(query).filter(
+    (word: string): boolean => {
+      return !questionWords.has(foldDocsSearchWord(word));
+    },
+  );
+  const otherWords: Array<string> = words.flatMap(
     (word: string): Array<string> => {
       return (synonyms.get(foldDocsSearchWord(word)) || [])
         .filter((synonym: DocsSearchSynonym): boolean => {
@@ -284,7 +295,7 @@ export const tokenizeQueryForDocs: (
 
   return Array.from(
     new Set<string>([
-      ...tokenizeForDocs(query),
+      ...tokenizeForDocs(words.join(" ")),
       ...tokenizeForDocs(otherWords.join(" ")),
     ]),
   );
@@ -809,20 +820,23 @@ export default class DocsAIReader implements AIDocsReader {
     const scored: Array<{ hit: AIDocsSearchHit; score: number }> = [];
 
     for (const page of index.pages) {
+      // The question's words in the page's name (its titleTerms), and in the rest of it.
+      let nameScore: number = 0;
       let score: number = 0;
       let matched: number = 0;
 
       for (const term of queryTerms) {
         const bodyCount: number = page.bodyTerms.get(term) || 0;
+        const nameTermScore: number = page.titleTerms.has(term) ? 6 : 0;
         const termScore: number =
-          (page.titleTerms.has(term) ? 6 : 0) +
           (page.headingTerms.has(term) ? 3 : 0) +
           (page.summaryTerms.has(term) ? 2 : 0) +
           (page.groupTerms.has(term) ? 2 : 0) +
           bodyWeight(bodyCount, page.bodyLength);
 
-        if (termScore > 0) {
+        if (nameTermScore + termScore > 0) {
           matched++;
+          nameScore += weight(term) * nameTermScore;
           score += weight(term) * termScore;
         }
       }
@@ -831,8 +845,16 @@ export default class DocsAIReader implements AIDocsReader {
         continue;
       }
 
-      // A page that holds more of the question's words beats one that repeats one of them.
-      score *= 0.25 + 0.75 * (matched / queryTerms.length);
+      /*
+       * A page that holds more of the question's words beats one that
+       * repeats one of them, but its name is not cut for the words it
+       * lacks: a page named for what the question asks about
+       * ("Bereitschaftspläne" for "Wie richte ich einen Bereitschaftsplan
+       * ein?") is that thing's page, even where it never says the
+       * question's other words ("richte"), and pages that hold them all in
+       * passing do not pass it (#7799).
+       */
+      score = nameScore + score * (0.25 + 0.75 * (matched / queryTerms.length));
 
       let bestSection: AIDocsIndexedSection | undefined = undefined;
       let bestSectionScore: number = 0;

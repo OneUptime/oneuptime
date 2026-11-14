@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 51296,
-    "untranslated": 9524
+    "keys": 52236,
+    "untranslated": 9310
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -142,6 +142,7 @@
     "Hello world",
     "Hertz",
     "Histogram",
+    "Hop",
     "Hunt",
     "Hunts",
     "Hypervisor",
@@ -259,12 +260,14 @@
     "Powered by OneUptime",
     "Principal",
     "Problem",
+    "PromQL",
     "Prompt",
     "Pull request",
     "Pull request #{{number}}",
     "Pull request {{label}}",
     "Pull requests",
     "Push",
+    "RTT",
     "RabbitMQ",
     "Radio",
     "Re-encrypt",
@@ -492,6 +495,7 @@
     "storage-01 · RegionOne",
     "storefront-web",
     "subnet",
+    "sum by (job) (rate(http_requests_total[5m]))",
     "svc-backup",
     "syslog",
     "team",
@@ -503,8 +507,6 @@
     "vCenter",
     "vSphere Client",
     "vertical pod autoscaler",
-    "workflow",
-    "workflows",
     "writesets",
     "x86",
     "z",

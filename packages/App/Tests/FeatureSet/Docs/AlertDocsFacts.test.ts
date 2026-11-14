@@ -2062,7 +2062,7 @@ describe("alert episodes and grouping rules", () => {
   );
   const KIND: GroupingRuleKind = GroupingRuleKind.Alert;
 
-  it("lists the four templates with their names and time windows, in the order they are offered", () => {
+  it("lists the five templates with their names and time windows, in the order they are offered", () => {
     const rows: Array<Array<string>> = tableRows(
       section(page, "### Start from a template"),
     ).map(tableCells);
@@ -2133,7 +2133,7 @@ describe("alert episodes and grouping rules", () => {
     );
   });
 
-  it("names the Custom step's five switches as the form draws them, and the step after it", () => {
+  it("names the Custom step's six switches as the form draws them, and the step after it", () => {
     const own: string = section(page, "### Create your own");
     const switches: Array<string> = [
       "Group By Monitor",
@@ -2141,6 +2141,7 @@ describe("alert episodes and grouping rules", () => {
       "Group By Alert Title",
       "Group By Alert Labels",
       "Group By Monitor Labels",
+      "Group By Connected Services",
     ];
 
     expect(rulesPage).toContain(
@@ -2152,7 +2153,7 @@ describe("alert episodes and grouping rules", () => {
     }
 
     expect(own).toContain(
-      `adds a **Group By** step with five switches: ${switches
+      `adds a **Group By** step with six switches: ${switches
         .slice(0, -1)
         .map((title: string): string => {
           return `**${title}**`;
@@ -2407,12 +2408,18 @@ describe("alert episodes and grouping rules", () => {
       "App/FeatureSet/Workers/Jobs/AlertEpisode/AutoResolve.ts",
     );
 
+    // The rule's wait, as the episode jobs share it (EpisodeAutoResolve).
+    const engine: string = readPackageFile(
+      "App/FeatureSet/Workers/Utils/EpisodeAutoResolve.ts",
+    );
+
     expect(autoResolve).toContain("schedule: EVERY_MINUTE,");
     expect(autoResolve).toContain(
       "false, // Don't cascade to alerts - they're already resolved",
     );
-    expect(autoResolve).toContain(
-      "enableResolveDelay && resolveDelayMinutes > 0",
+    expect(autoResolve).toContain("kind: ALERT_EPISODE_AUTO_RESOLVE,");
+    expect(engine).toContain(
+      "data.rule?.enableResolveDelay && data.rule.resolveDelayMinutes > 0",
     );
     expect(page).toContain(
       "**It resolves itself** once every alert in it is resolved. **Wait before resolving an episode** holds it open for that many minutes first",

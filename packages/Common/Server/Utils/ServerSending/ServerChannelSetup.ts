@@ -1,5 +1,15 @@
 import Select from "../../Types/Database/Select";
-import { toServerTwilioConfig } from "../ServerTwilioConfig";
+import {
+  getServerTwilioEnvironment,
+  toServerTwilioConfig,
+} from "../ServerTwilioConfig";
+import { ServerTwilioEnvironmentReading } from "../../../Types/CallAndSMS/ServerTwilioEnvironment";
+import {
+  getServerEmailEnvironment,
+  getServerEmailEnvironmentProblem,
+  toServerEmailSettings,
+} from "../ServerEmailSettings";
+import { ServerEmailEnvironmentReading } from "../../../Types/Email/ServerEmailEnvironment";
 import {
   GLOBAL_CALL_AND_SMS_GATEWAY_SELECT,
   GLOBAL_TWILIO_CONFIG_SELECT,
@@ -36,9 +46,16 @@ import { TwilioMessageKind } from "../../../Utils/Project/TwilioAccount";
  * never a value, a password or a key.
  */
 
-// Every column the four answers read, and nothing else.
+/*
+ * Every column the four answers read, and the fingerprints of the settings
+ * each channel sends with (ServerSendingSettings), and nothing else. Email's
+ * fingerprint reads every column of its Email Server Type: one left out
+ * here would go unseen, and settings that differ only in it would read as
+ * the same.
+ */
 export const SERVER_CHANNEL_SETUP_SELECT: Select<GlobalConfig> = {
   emailServerType: true,
+  isSMTPSecure: true,
   smtpTransportType: true,
   smtpAuthType: true,
   smtpHost: true,
@@ -51,6 +68,7 @@ export const SERVER_CHANNEL_SETUP_SELECT: Select<GlobalConfig> = {
   smtpClientSecret: true,
   smtpTokenUrl: true,
   smtpScope: true,
+  smtpOAuthProviderType: true,
   sendgridApiKey: true,
   sendgridFromEmail: true,
   sendgridFromName: true,
@@ -59,13 +77,18 @@ export const SERVER_CHANNEL_SETUP_SELECT: Select<GlobalConfig> = {
   amazonSesSecretAccessKey: true,
   amazonSesRegion: true,
   amazonSesFromEmail: true,
+  amazonSesFromName: true,
   mailgunApiKey: true,
   mailgunDomain: true,
+  mailgunRegion: true,
   mailgunFromEmail: true,
+  mailgunFromName: true,
   postmarkServerToken: true,
   postmarkFromEmail: true,
+  postmarkFromName: true,
   resendApiKey: true,
   resendFromEmail: true,
+  resendFromName: true,
   ...GLOBAL_TWILIO_CONFIG_SELECT,
   ...GLOBAL_CALL_AND_SMS_GATEWAY_SELECT,
   disablePushNotifications: true,
@@ -151,6 +174,10 @@ export const SMS_NOT_SET_UP_PROBLEM: string =
 export const CALL_NOT_SET_UP_PROBLEM: string =
   "No Twilio account or call gateway is set up under Settings > Call and SMS.";
 
+// Before what is wrong with the GLOBAL_TWILIO_ environment variables.
+export const SERVER_TWILIO_ENVIRONMENT_PROBLEM: string =
+  "The Twilio account set by environment variables cannot send:";
+
 export const PUSH_TURNED_OFF_PROBLEM: string =
   "Push notifications are turned off under Settings > Push Notifications.";
 
@@ -228,8 +255,28 @@ export default class ServerChannelSetup {
    * picked.
    */
   public static getEmailSetUpProblem(
-    config: ServerChannelSetupSettings | null | undefined,
+    row: ServerChannelSetupSettings | null | undefined,
   ): string | null {
+    /*
+     * Settings the GLOBAL_EMAIL_ environment variables set (#7738) are fixed
+     * where they are set, not under Settings > Emails: say what is wrong
+     * with them, by the variable's name. With nothing wrong, they are what
+     * an email is sent with, and are checked as the saved row would be.
+     */
+    const environment: ServerEmailEnvironmentReading =
+      getServerEmailEnvironment();
+    const environmentProblem: string | null =
+      getServerEmailEnvironmentProblem(environment);
+
+    if (environmentProblem) {
+      return environmentProblem;
+    }
+
+    const config: ServerChannelSetupSettings | null = toServerEmailSettings(
+      row,
+      environment,
+    );
+
     if (!config) {
       return EMAIL_NOT_SET_UP_PROBLEM;
     }
@@ -411,6 +458,15 @@ export default class ServerChannelSetup {
     }
 
     if (authType === SMTPAuthenticationType.OAuth) {
+      /*
+       * Over SMTP, OAuth signs in as a mailbox, which the sender refuses
+       * every email without (#7833). Microsoft Graph sends as the From
+       * Email, and needs none.
+       */
+      if (!isMicrosoftGraph && !isPresent(config.smtpUsername)) {
+        return notSet(provider, "Username");
+      }
+
       if (!isPresent(config.smtpClientId)) {
         return notSet(provider, "OAuth Client ID");
       }
@@ -452,6 +508,18 @@ export default class ServerChannelSetup {
 
     if (CallAndSmsProviders.getGateway(config)) {
       return null;
+    }
+
+    /*
+     * An account the GLOBAL_TWILIO_ environment variables set (#7515) is
+     * fixed where they are set, not under Settings > Call and SMS: say what
+     * is wrong with them, by the variable's name.
+     */
+    const environment: ServerTwilioEnvironmentReading =
+      getServerTwilioEnvironment();
+
+    if (environment.isSet && environment.problems.length > 0) {
+      return `${SERVER_TWILIO_ENVIRONMENT_PROBLEM} ${environment.problems.join(" ")}`;
     }
 
     let twilioConfig: TwilioConfig | null = null;

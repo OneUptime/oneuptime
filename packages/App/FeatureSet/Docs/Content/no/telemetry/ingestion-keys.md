@@ -36,7 +36,7 @@ Velg typen etter hvor nøkkelen skal ligge. Typen kan ikke endres etter at nøkk
 | | **Server** | **Nettleser** |
 | --- | --- | --- |
 | For | Applikasjoner, collectors og agenter på maskiner du drifter | Nettsider, og React Native Session Replay |
-| Sender | All slags telemetri, til alle endepunkter | Spor, logger, målinger og Session Replays |
+| Sender | All slags telemetri, til alle endepunkter | Spor, logger, målinger, Session Replays og [Sentry-hendelser](/docs/telemetry/compatible-endpoints#sentry-sdk-er) |
 | En hemmelighet | Ja: hold den på serverne dine | Nei: alle som ser siden, kan lese den |
 | Origins | Kontrolleres ikke | Bare de oppførte origins godtas |
 | Forespørsler per minutt | Ingen grense, med mindre du setter en | 6 000, med mindre du setter en annen grense |
@@ -108,7 +108,7 @@ En origin er et skjema, en vert og en valgfri port: `https://app.example.com` de
 
 ## Bytt ut, slå av eller slett en nøkkel
 
-En nøkkels side viser **Status**, **Hemmelig nøkkel** bak **Click to reveal**, og **Last Used At**: siste gang OneUptime godtok data som ble sendt med den.
+En nøkkels side viser **Status**, **Hemmelig nøkkel** bak **Klikk for å vise**, og **Last Used At**: siste gang OneUptime godtok data som ble sendt med den.
 
 | For å | Gjør dette | Hva avsendere ser |
 | --- | --- | --- |

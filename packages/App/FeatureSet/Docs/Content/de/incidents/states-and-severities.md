@@ -37,7 +37,7 @@ flowchart TB
 
 Das Modell `IncidentState` hat `name`, `description`, `color` und `order`, dazu drei boolesche Werte: `isCreatedState`, `isAcknowledgedState` und `isResolvedState`. Alles, was das Produkt mit Status tut, hängt an diesen Werten und an `order` – nie am Namen des Status. Deshalb können Sie **Behoben** in „Closed“ umbenennen, ohne dass etwas kaputtgeht: Das Flag bleibt an der Zeile.
 
-Das Modell `IncidentSeverity` hat `name`, `description`, `color` und `order` – und sonst nichts. Es gibt keine Flags. Nichts in OneUptime behandelt **Critical Incident** von sich aus anders als **Minor Incident** – der Schweregrad zählt nur dort, wo Sie etwas darauf ausrichten, etwa beim Kriterium **Vorfallsschweregrade** einer Bereitschaftsregel.
+Das Modell `IncidentSeverity` hat `name`, `description`, `color` und `order` – und sonst nichts. Es gibt keine Flags. Nichts in OneUptime behandelt **Kritischer Vorfall** von sich aus anders als **Geringfügiger Vorfall** – der Schweregrad zählt nur dort, wo Sie etwas darauf ausrichten, etwa beim Kriterium **Vorfallsschweregrade** einer Bereitschaftsregel.
 
 Ein paar schnelle Regeln:
 
@@ -138,9 +138,9 @@ Drei Schweregrade werden mit dem Projekt angelegt, in dieser Reihenfolge, der sc
 
 | Schweregrad           | `order` | Farbe     | Vorangelegte Beschreibung |
 | --------------------- | ------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Critical Incident** | `1`     | `#b70400` | Probleme mit sehr hoher Auswirkung auf Kunden. Eine sofortige Reaktion ist erforderlich. Beispiele sind ein vollständiger Ausfall oder ein Datenleck. |
-| **Major Incident**    | `2`     | `#fd625e` | Probleme mit erheblicher Auswirkung. Eine sofortige Reaktion ist meist erforderlich. Möglicherweise gibt es Umgehungen, die die Auswirkung auf Kunden mildern. Beispiel ist der Ausfall eines wichtigen Teilsystems. |
-| **Minor Incident**    | `3`     | `#ffbf53` | Probleme mit geringer Auswirkung, die meist innerhalb der Arbeitszeit erledigt werden können. Die meisten Kunden bemerken wahrscheinlich nichts. Beispiel ist ein leichter Rückgang der Anwendungsleistung. |
+| **Kritischer Vorfall** | `1`     | `#b70400` | Probleme mit sehr hoher Auswirkung auf Kunden. Eine sofortige Reaktion ist erforderlich. Beispiele sind ein vollständiger Ausfall oder ein Datenleck. |
+| **Schwerwiegender Vorfall**    | `2`     | `#fd625e` | Probleme mit erheblicher Auswirkung. Eine sofortige Reaktion ist meist erforderlich. Möglicherweise gibt es Umgehungen, die die Auswirkung auf Kunden mildern. Beispiel ist der Ausfall eines wichtigen Teilsystems. |
+| **Geringfügiger Vorfall**    | `3`     | `#ffbf53` | Probleme mit geringer Auswirkung, die meist innerhalb der Arbeitszeit erledigt werden können. Die meisten Kunden bemerken wahrscheinlich nichts. Beispiel ist ein leichter Rückgang der Anwendungsleistung. |
 
 Der Schweregrad ist beim Melden eines Vorfalls Pflicht und ebenso bei jeder Vorfallangabe in den Kriterien eines Monitors, sodass jeder Vorfall – manuell oder automatisch – mit einem eintrifft. Den Meldeablauf finden Sie unter [Einen Vorfall melden](/docs/incidents/declaring-incidents), den Weg über Monitore unter [Vorfall- & Warnmeldungsvorlagen](/docs/monitor/incident-alert-templating).
 
@@ -155,7 +155,7 @@ Zwei Unterschiede zu Status:
 - **Es gibt keinen Löschschutz.** Jeder Schweregrad kann gelöscht werden, auch die drei vorangelegten.
 - **Keine Flags zum Erben und kein „Zählt als“.** Ein neuer Schweregrad verhält sich genau wie die vorangelegten – eine Beschriftung mit Farbe und Rang.
 
-Wo der Schweregrad mehr tut als beschreiben: Unter **Vorfälle → Regeln → Bereitschaftsregeln** ist das Feld **Vorfallsschweregrade** einer Regel ein Kriterium. **Critical Incident** dort aufzuführen ist die Art, „bei allem Kritischen das Datenbankteam alarmieren“ auszudrücken – die Bereitschaftsrichtlinie liegt an der Regel, nicht am Schweregrad.
+Wo der Schweregrad mehr tut als beschreiben: Unter **Vorfälle → Regeln → Bereitschaftsregeln** ist das Feld **Vorfallsschweregrade** einer Regel ein Kriterium. **Kritischer Vorfall** dort aufzuführen ist die Art, „bei allem Kritischen das Datenbankteam alarmieren“ auszudrücken – die Bereitschaftsrichtlinie liegt an der Regel, nicht am Schweregrad.
 
 **Den Schweregrad eines Vorfalls ändern** – über **Bearbeiten** auf der Karte **Vorfalldetails** des Vorfalls, über die API oder Terraform (`incidentSeverityId`), mit einem Workflow oder mit den KI-Werkzeugen – bewirkt auf jedem Weg dieselben vier Dinge: Der Vorfall-Feed erhält einen Eintrag **Incident updated**, der den neuen Schweregrad nennt, die SLA-Fristen des Vorfalls werden neu berechnet, seine Erinnerungsregel wird neu zugeordnet, und die Vorfallsmetriken zählen eine Schweregradänderung. Den Schweregrad zu speichern, den der Vorfall schon hat, bewirkt nichts davon; nur den Titel eines Vorfalls zu bearbeiten lässt also seine SLA-Fristen, Erinnerungen und den Zähler der Schweregradänderungen unverändert. Der Schweregrad einer Warnung funktioniert für ihren Feed-Eintrag und ihre Erinnerungen genauso.
 
@@ -167,7 +167,7 @@ Archivieren Sie einen Status oder Schweregrad, den Ihr Team nicht mehr verwenden
 - **Die eigenen Bereitschaftsregeln der Personen bleiben.** Bei einem Schweregrad sagt der Dialog außerdem, wie viele Personen Bereitschaftsregeln dafür haben. Diese Regeln bleiben, wie sie sind, sodass Vorfälle mit diesem Schweregrad diese Personen weiterhin alarmieren. Auf der Seite **Wie ich erreichbar bin** jeder Person steht der archivierte Schweregrad zuletzt, markiert mit **Archiviert**: Seine Regeln lassen sich ändern oder entfernen, aber es lassen sich keine neuen hinzufügen.
 - **Niemand kann ihn erneut auswählen.** Das Meldeformular, **Status ändern**, die Kopfzeile des Vorfalls, Slack, Microsoft Teams, Regeln, Vorlagen und Monitorkriterien lassen ihn weg. Die API, Terraform und MCP lehnen ihn ab und nennen den Wert und den Ort, an dem er sich wieder aus dem Archiv holen lässt.
 - **Vorfälle behalten ihn.** Ein Vorfall, der ihn hat, behält ihn bei jeder späteren Bearbeitung, seine Statuszeitachse zeigt ihn weiterhin, und Sie können weiterhin danach filtern.
-- **Archivierte Werte werden getrennt aufgeführt**, im eingeklappten Abschnitt **Archivierte Vorfallsstatus** oder **Archivierte Vorfallsschweregrade** unter der Tabelle, mit Angabe, wer jeden archiviert hat und wann. **Aus Archiv entfernen** stellt einen so wieder her, wie er war.
+- **Archivierte Werte werden getrennt aufgeführt**, im eingeklappten Abschnitt **Archivierte Vorfallsstatus** oder **Archivierte Vorfallsschweregrade** unter der Tabelle, mit Angabe, wer jeden archiviert hat und wann. **Aus dem Archiv holen** stellt einen so wieder her, wie er war.
 - **Manche lassen sich nicht archivieren.** Der Erstellungs-, der bestätigte und der behobene Status sowie der letzte nicht archivierte Schweregrad des Projekts. Ihr **Archivieren** ist gesperrt, mit Begründung.
 
 **Löschen** sagt zuerst, was es bewirken würde. Solange Vorfälle oder Episoden den Wert haben, wird das Löschen abgelehnt, und der Dialog listet sie auf. Andernfalls listet er auf, was das Löschen ändern würde, und bietet **Stattdessen archivieren** an. Um mehrere auf einmal zu löschen, wählen Sie sie aus und wählen Sie **Löschen** unter **Massenaktionen**: Der Dialog sagt zuerst dasselbe für alle, die nicht löschbaren bleiben, wie sie sind, und die übrigen werden gelöscht.

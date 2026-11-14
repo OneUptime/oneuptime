@@ -3,7 +3,9 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import Link from "Common/UI/Components/Link/Link";
-import ProductLogo from "Common/UI/Components/ProductLogo/ProductLogo";
+import ProductLogo, {
+  getProductMarkSource,
+} from "Common/UI/Components/ProductLogo/ProductLogo";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -82,7 +84,7 @@ const Logo: FunctionComponent<ComponentProps> = (
         <ProductLogo
           className={HEADER_LOGO_CLASS_NAME}
           nameClassName={HEADER_PRODUCT_NAME_CLASS_NAME}
-          markOnSmallScreens={true}
+          markOnSmallScreens={getProductMarkSource}
         />
       </Link>
     </div>

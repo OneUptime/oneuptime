@@ -29,7 +29,7 @@ Ut fra de fire tidsstemplene regner sonden ut **klokkeavviket**, ((T2 − T1) + 
 > [!NOTE]
 > Avviket måles mot sondens egen klokke. OneUptime Clouds sonder holder klokkene sine synkronisert. På en [egendefinert sonde](/docs/probe/custom-probe) må vertens klokke også holdes synkronisert, med chrony eller systemd-timesyncd, ellers kan et avviksvarsel handle om sonden og ikke om serveren.
 
-En server som svarer, blir ikke spurt igjen, heller ikke når den svarer uten pålitelig tid. Stillhet, en avvist port og et mislykket DNS-oppslag prøves på nytt med en ny forespørsel. Når serveren ikke svarer i det hele tatt, sporer sonden også ruten dit og legger ved det den fant som **Network Path at Time of Failure**. En sonde som har mistet sin egen nettverksforbindelse, rapporterer ikke noe resultat, så den kan ikke markere serveren din som frakoblet.
+En server som svarer, blir ikke spurt igjen, heller ikke når den svarer uten pålitelig tid. Stillhet, en avvist port og et mislykket DNS-oppslag prøves på nytt med en ny forespørsel. Når serveren ikke svarer i det hele tatt, sporer sonden også ruten dit og legger ved det den fant som **Nettverksbane på feiltidspunktet**. En sonde som har mistet sin egen nettverksforbindelse, rapporterer ikke noe resultat, så den kan ikke markere serveren din som frakoblet.
 
 ## Før du begynner
 
@@ -133,7 +133,7 @@ Kriteriene kontrolleres ovenfra og ned, og det første som samsvarer, avgjør hv
 ## Feilsøking
 
 :::details Serveren kjører, men monitoren sier at den ikke svarte
-Forespørselen eller svaret gikk tapt underveis. En brannmur som tillater TCP men ikke UDP, en ntpd-regel `restrict` eller chrony-regel `allow` som utelater sondens adresse, eller en server som bare lytter på et internt grensesnitt, ser alle slik ut. **Network Path at Time of Failure** viser hvor langt ruten kom. Slipp sonden gjennom, eller kontroller serveren fra en [egendefinert sonde](/docs/probe/custom-probe) inne i nettverket.
+Forespørselen eller svaret gikk tapt underveis. En brannmur som tillater TCP men ikke UDP, en ntpd-regel `restrict` eller chrony-regel `allow` som utelater sondens adresse, eller en server som bare lytter på et internt grensesnitt, ser alle slik ut. **Nettverksbane på feiltidspunktet** viser hvor langt ruten kom. Slipp sonden gjennom, eller kontroller serveren fra en [egendefinert sonde](/docs/probe/custom-probe) inne i nettverket.
 :::
 
 :::details Monitoren sier at serveren avviste forespørselen

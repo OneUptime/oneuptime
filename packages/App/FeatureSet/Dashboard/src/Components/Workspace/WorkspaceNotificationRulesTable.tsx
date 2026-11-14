@@ -82,10 +82,17 @@ import {
 import VideoCallConnection from "Common/Models/DatabaseModels/VideoCallConnection";
 import { getVideoCallValidationError } from "Common/Types/Workspace/NotificationRules/VideoCallNotificationRule";
 import NotificationRuleVideoCallForm from "./NotificationRuleForm/NotificationRuleVideoCallForm";
+import NotificationRuleUpdatesForm from "./NotificationRuleForm/NotificationRuleUpdatesForm";
+import {
+  isUpdatesEventType,
+  UPDATES_COPY,
+  UPDATES_SECTION_TITLE,
+} from "./NotificationRuleForm/NotificationRuleUpdatesCopy";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import OnCallDutyPolicySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
 import { WorkspaceChannelNumberPrefixes } from "Common/Utils/Workspace/WorkspaceChannelName";
 import NotificationRuleInvites from "Common/Types/Workspace/NotificationRules/NotificationRuleInvites";
+import NotificationRuleUpdates from "Common/Types/Workspace/NotificationRules/NotificationRuleUpdates";
 import {
   getNotificationRuleDestinationDescription,
   NOTIFICATION_RULE_CONDITIONS_TITLES,
@@ -132,6 +139,13 @@ const STEP_HEADING: {
  */
 export const NOTIFICATION_RULE_VIDEO_CALL_FIELD_KEY: string =
   "notificationRuleVideoCall";
+
+/*
+ * The form key the Updates step is registered under: it edits the rule's
+ * notificationRule column too, so it is form-only, as the Video Call step is.
+ */
+export const NOTIFICATION_RULE_UPDATES_FIELD_KEY: string =
+  "notificationRuleUpdates";
 
 // The table of the rules that post what hunts find (Security Events' Workspace pages).
 export const SECURITY_HUNT_RULES_TABLE_ID: string =
@@ -234,6 +248,9 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
   const [numberPrefixes, setNumberPrefixes] = React.useState<
     WorkspaceChannelNumberPrefixes | undefined
   >(undefined);
+  const [onCallDutyPolicies, setOnCallDutyPolicies] = React.useState<
+    Array<OnCallDutyPolicy>
+  >([]);
   const [onCallPolicyName, setOnCallPolicyName] = React.useState<
     string | undefined
   >(undefined);
@@ -314,6 +331,11 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
       setIsLoading(true);
       setError(undefined);
 
+      /*
+       * Each list of values a condition picks from is read with whether each
+       * value is archived: a picker leaves an archived one out for a new
+       * pick, and marks one a rule holds already (#7582).
+       */
       const monitors: ListResult<Monitor> = await ModelAPI.getList({
         modelType: Monitor,
         query: {
@@ -322,6 +344,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
         select: {
           name: true,
           _id: true,
+          isArchived: true,
         },
         skip: 0,
         limit: LIMIT_PER_PROJECT,
@@ -341,6 +364,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
           name: true,
           _id: true,
           color: true,
+          isArchived: true,
         },
         skip: 0,
         limit: LIMIT_PER_PROJECT,
@@ -361,6 +385,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
           _id: true,
           color: true,
           order: true,
+          isArchived: true,
         },
         skip: 0,
         limit: LIMIT_PER_PROJECT,
@@ -382,6 +407,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
             _id: true,
             color: true,
             order: true,
+            isArchived: true,
           },
           skip: 0,
           limit: LIMIT_PER_PROJECT,
@@ -404,6 +430,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
             _id: true,
             color: true,
             order: true,
+            isArchived: true,
           },
           skip: 0,
           limit: LIMIT_PER_PROJECT,
@@ -424,6 +451,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
           _id: true,
           color: true,
           order: true,
+          isArchived: true,
         },
         skip: 0,
         limit: LIMIT_PER_PROJECT,
@@ -445,6 +473,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
             _id: true,
             color: true,
             order: true,
+            isArchived: true,
           },
           skip: 0,
           limit: LIMIT_PER_PROJECT,
@@ -482,6 +511,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
               select: {
                 _id: true,
                 name: true,
+                isArchived: true,
               },
               skip: 0,
               limit: LIMIT_PER_PROJECT,
@@ -506,6 +536,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
           _id: true,
           color: true,
           priority: true,
+          isArchived: true,
         },
         skip: 0,
         limit: LIMIT_PER_PROJECT,
@@ -545,6 +576,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
             name: true,
             email: true,
             _id: true,
+            profilePictureId: true,
           },
         },
         skip: 0,
@@ -631,6 +663,13 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
       }
 
       if (props.eventType === NotificationRuleEventType.OnCallDutyPolicy) {
+        /*
+         * An on-call rule's policies, to pick the ones it is for by name
+         * (#7554) - archived ones too, so a rule that holds one shows it
+         * marked - and one of them names the channel in its preview. A
+         * member who may not read them still edits the rule's other
+         * conditions.
+         */
         try {
           const policies: ListResult<OnCallDutyPolicy> = await ModelAPI.getList(
             {
@@ -641,17 +680,26 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
               select: {
                 _id: true,
                 name: true,
+                isArchived: true,
               },
               skip: 0,
-              limit: 1,
+              limit: LIMIT_PER_PROJECT,
               sort: {
                 name: SortOrder.Ascending,
               },
             },
           );
 
-          setOnCallPolicyName(policies.data[0]?.name || undefined);
+          setOnCallDutyPolicies(policies.data);
+          setOnCallPolicyName(
+            (
+              policies.data.find((policy: OnCallDutyPolicy): boolean => {
+                return !policy.isArchived;
+              }) || policies.data[0]
+            )?.name || undefined,
+          );
         } catch {
+          setOnCallDutyPolicies([]);
           setOnCallPolicyName(undefined);
         }
       }
@@ -849,6 +897,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
         securityCasePriorities={securityCasePriorities}
         securityCaseStatuses={securityCaseStatuses}
         serviceLevelObjectives={serviceLevelObjectives}
+        onCallDutyPolicies={onCallDutyPolicies}
         monitorStatus={monitorStatus}
         workspaceType={props.workspaceType}
         teams={teams}
@@ -968,6 +1017,11 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
          * channel) starts posting to channels the project has, the one
          * destination every such rule needs: its step opens on the channels
          * to name.
+         *
+         * A new on-call policy rule starts on Key updates only - who is on
+         * call now, and when nobody is - not on every handoff, override and
+         * change to the policy (NotificationRuleUpdates
+         * .getNewRuleUpdates, issue #7549).
          */
         createInitialValues={{
           notificationRule: {
@@ -977,6 +1031,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
             ...(canRuleCreateChannel(props.eventType)
               ? {}
               : { shouldPostToExistingChannel: true }),
+            ...NotificationRuleUpdates.getNewRuleUpdates(props.eventType),
           },
         }}
         isCreateable={true}
@@ -1059,6 +1114,11 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
             title: NOTIFICATION_RULE_CONDITIONS_TITLES[props.eventType],
             sectionTitle: NOTIFICATION_RULE_CONDITIONS_TITLES[props.eventType],
             ...STEP_HEADING,
+            /*
+             * The step draws its own heading, and no help under it: the
+             * column's description is the API's, about the rule's JSON.
+             */
+            hideColumnDescription: true,
             fieldType: FormFieldSchemaType.CustomComponent,
             /*
              * No conditions is a rule that fires for every event, so the
@@ -1153,6 +1213,69 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
             },
           },
           /*
+           * Which updates the rule posts where it posts (issue #7581), on a
+           * step of its own for the rules that choose them - incidents,
+           * alerts, their episodes, scheduled maintenance and on-call
+           * policies. It opens on Every update, as rules always posted; Key
+           * updates only is one click. A new on-call policy rule opens on
+           * Key updates only (issue #7549). The same notificationRule
+           * column, registered under a key of its own as the Destination
+           * step is.
+           */
+          ...(isUpdatesEventType(props.eventType)
+            ? [
+                {
+                  overrideField: {
+                    notificationRule: true,
+                  },
+                  overrideFieldKey: NOTIFICATION_RULE_UPDATES_FIELD_KEY,
+                  formOnly: true,
+                  title: UPDATES_SECTION_TITLE,
+                  sectionTitle: UPDATES_SECTION_TITLE,
+                  sectionDescription:
+                    UPDATES_COPY[props.eventType].sectionDescription,
+                  ...STEP_HEADING,
+                  fieldType: FormFieldSchemaType.CustomComponent,
+                  required: false,
+                  stepId: "updates",
+                  getDefaultValue: (): boolean => {
+                    return true;
+                  },
+                  onChange: (
+                    value: IncidentNotificationRule,
+                    currentValues: FormValues<WorkspaceNotificationRule>,
+                    setNewFormValues: (
+                      values: FormValues<WorkspaceNotificationRule>,
+                    ) => void,
+                  ): void => {
+                    setNewFormValues({
+                      ...currentValues,
+                      notificationRule: value,
+                    } as FormValues<WorkspaceNotificationRule>);
+                  },
+                  getCustomElement: (
+                    values: FormValues<WorkspaceNotificationRule>,
+                    elementProps: CustomElementProps,
+                  ): ReactElement => {
+                    return isUpdatesEventType(props.eventType) ? (
+                      <NotificationRuleUpdatesForm
+                        value={
+                          values.notificationRule as IncidentNotificationRule
+                        }
+                        onChange={(value: IncidentNotificationRule) => {
+                          elementProps.onChange?.(value);
+                        }}
+                        eventType={props.eventType}
+                        error={elementProps.error}
+                      />
+                    ) : (
+                      <></>
+                    );
+                  },
+                } as Field<WorkspaceNotificationRule>,
+              ]
+            : []),
+          /*
            * The rule's video call, on a step of its own for the rules that
            * can start one: the same notificationRule column, registered
            * under a key of its own as the Destination step is.
@@ -1236,6 +1359,15 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
             title: "Destination",
             id: "destination",
           },
+          // What it posts there: every update, key updates or those chosen.
+          ...(isUpdatesEventType(props.eventType)
+            ? [
+                {
+                  title: "Updates",
+                  id: "updates",
+                },
+              ]
+            : []),
           ...(canRuleStartVideoCall(props.eventType)
             ? [
                 {
@@ -1282,6 +1414,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
             securityCasePriorities: securityCasePriorities,
             securityCaseStatuses: securityCaseStatuses,
             serviceLevelObjectives: serviceLevelObjectives,
+            onCallDutyPolicies: onCallDutyPolicies,
             monitorStatus: monitorStatus,
             teams: teams,
             users: users,

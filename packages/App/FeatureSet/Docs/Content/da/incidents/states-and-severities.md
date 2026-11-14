@@ -37,7 +37,7 @@ flowchart TB
 
 Modellen `IncidentState` har `name`, `description`, `color` og `order`, plus tre booleans: `isCreatedState`, `isAcknowledgedState` og `isResolvedState`. Alt, hvad produktet gør med tilstande, tager udgangspunkt i de booleans og i `order` — aldrig i tilstandens navn. Derfor kan du omdøbe **Løst** til "Closed", uden at noget går i stykker: flaget følger med rækken.
 
-Modellen `IncidentSeverity` har `name`, `description`, `color` og `order` og intet andet. Der er ingen flag. Intet i OneUptime behandler af sig selv **Critical Incident** anderledes end **Minor Incident** — alvorsgraden betyder kun noget, hvor du peger noget på den, som matchkriteriet **Alvorlighedsgrader for hændelser** i en vagtregel.
+Modellen `IncidentSeverity` har `name`, `description`, `color` og `order` og intet andet. Der er ingen flag. Intet i OneUptime behandler af sig selv **Kritisk hændelse** anderledes end **Mindre hændelse** — alvorsgraden betyder kun noget, hvor du peger noget på den, som matchkriteriet **Alvorlighedsgrader for hændelser** i en vagtregel.
 
 Et par hurtige regler:
 
@@ -138,9 +138,9 @@ Tre alvorsgrader oprettes med projektet, i denne rækkefølge, den mest alvorlig
 
 | Alvorsgrad            | `order` | Farve     | Forudoprettet beskrivelse                                                                                                                                                                 |
 | --------------------- | ------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Critical Incident** | `1`     | `#b70400` | Issues causing very high impact to customers. Immediate response is required. Examples include a full outage, or a data breach.                                                          |
-| **Major Incident**    | `2`     | `#fd625e` | Issues causing significant impact. Immediate response is usually required. We might have some workarounds that mitigate the impact on customers. Examples include an important sub-system failing. |
-| **Minor Incident**    | `3`     | `#ffbf53` | Issues with low impact, which can usually be handled within working hours. Most customers are unlikely to notice any problems. Examples include a slight drop in application performance. |
+| **Kritisk hændelse** | `1`     | `#b70400` | Issues causing very high impact to customers. Immediate response is required. Examples include a full outage, or a data breach.                                                          |
+| **Større hændelse**    | `2`     | `#fd625e` | Issues causing significant impact. Immediate response is usually required. We might have some workarounds that mitigate the impact on customers. Examples include an important sub-system failing. |
+| **Mindre hændelse**    | `3`     | `#ffbf53` | Issues with low impact, which can usually be handled within working hours. Most customers are unlikely to notice any problems. Examples include a slight drop in application performance. |
 
 Alvorsgraden er påkrævet, når du erklærer en hændelse, og den er påkrævet i hver hændelsesspecifikation i en monitors kriterier, så hver hændelse — manuel eller automatisk — kommer med en. Se [Opret en hændelse](/docs/incidents/declaring-incidents) for erklæringsforløbet og [Hændelse- og advarselsskabeloner](/docs/monitor/incident-alert-templating) for vejen via monitorer.
 
@@ -155,22 +155,22 @@ To forskelle fra tilstande:
 - **Der er ingen sletningsbeskyttelse.** Enhver alvorsgrad kan slettes, også de tre forudoprettede.
 - **Der er ingen flag at arve og intet "Tæller som".** En ny alvorsgrad opfører sig præcis som de forudoprettede — den er en etiket med en farve og en rang.
 
-Hvor alvorsgraden gør mere end at beskrive: under **Hændelser → Regler → Vagtregler** er en regels felt **Alvorlighedsgrader for hændelser** et matchkriterium. At angive **Critical Incident** dér er, hvordan "tilkald databaseteamet ved alt kritisk" udtrykkes — vagtpolitikken sidder på reglen, ikke på alvorsgraden.
+Hvor alvorsgraden gør mere end at beskrive: under **Hændelser → Regler → Vagtregler** er en regels felt **Alvorlighedsgrader for hændelser** et matchkriterium. At angive **Kritisk hændelse** dér er, hvordan "tilkald databaseteamet ved alt kritisk" udtrykkes — vagtpolitikken sidder på reglen, ikke på alvorsgraden.
 
 **At ændre en hændelses alvorsgrad** — under **Rediger** på hændelsens kort **Hændelsesdetaljer**, via API'et eller Terraform (`incidentSeverityId`), med et workflow eller med AI-værktøjerne — gør de samme fire ting, uanset hvordan det sendes: hændelsens feed får en post **Incident updated**, der nævner den nye alvorsgrad, hændelsens SLA-frister beregnes igen, dens påmindelsesregel matches igen, og hændelsesmetrikkerne tæller én ændring af alvorsgrad. At gemme den alvorsgrad, hændelsen allerede har, gør ingen af dem, så redigerer du kun titlen på en hændelse, forbliver dens SLA-frister, påmindelser og antal ændringer af alvorsgrad, som de var. En advarsels alvorsgrad virker på samme måde for dens feedpost og dens påmindelser.
 
-## Arkivér en status eller alvorsgrad
+## Arkiver en status eller alvorsgrad
 
-Arkivér en status eller alvorsgrad, som dit team ikke længere skal bruge, i stedet for at slette den. Arkivering ændrer ingen hændelse. Sletning af en status fjerner dens rækker fra hver hændelses historik, og en alvorsgrad kan ikke slettes, så længe hændelser har den.
+Arkiver en status eller alvorsgrad, som dit team ikke længere skal bruge, i stedet for at slette den. Arkivering ændrer ingen hændelse. Sletning af en status fjerner dens rækker fra hver hændelses historik, og en alvorsgrad kan ikke slettes, så længe hændelser har den.
 
 - **Arkiver** findes i rækkens menu **⋯**. Den spørger først og viser de regler, skabeloner, målinger, monitorkriterier og arbejdsgange, der er sat op til at bruge værdien: De bliver ved med at bruge den, indtil du ændrer dem.
 - **Personernes egne vagtregler bliver.** For en alvorlighed siger dialogen også, hvor mange personer der har vagtregler for den. De regler forbliver, som de er, så hændelser med den tilkalder stadig de personer. På hver persons side **Sådan når man mig** kommer den arkiverede alvorlighed sidst, markeret med **Arkiveret**: Dens regler kan ændres eller fjernes, men der kan ikke tilføjes nye.
 - **Ingen kan vælge den igen.** Meldeformularen, **Skift tilstand**, hændelsens overskrift, Slack, Microsoft Teams, regler, skabeloner og monitorkriterier udelader den. API'et, Terraform og MCP afviser den og nævner værdien og hvor den kan fjernes fra arkivet.
 - **Hændelser beholder den.** En hændelse, der har den, beholder den ved enhver senere redigering, dens tidslinje over statusser viser den stadig, og du kan stadig filtrere efter den.
-- **Arkiverede værdier vises for sig**, i den sammenfoldede sektion **Arkiverede hændelsesstatusser** eller **Arkiverede hændelsesalvorsgrader** under tabellen, med hvem der arkiverede hver enkelt og hvornår. **Fjern fra arkiv** sætter en tilbage, som den var.
+- **Arkiverede værdier vises for sig**, i den sammenfoldede sektion **Arkiverede hændelsesstatusser** eller **Arkiverede hændelsesalvorsgrader** under tabellen, med hvem der arkiverede hver enkelt og hvornår. **Fjern fra arkivet** sætter en tilbage, som den var.
 - **Nogle kan ikke arkiveres.** Den oprettede, den kvitterede og den løste status samt projektets sidste alvorsgrad, der ikke er arkiveret. Deres **Arkiver** er låst, med begrundelsen.
 
-**Slet** fortæller først, hvad den ville gøre. Så længe hændelser eller episoder har værdien, afvises sletningen, og dialogen viser dem. Ellers viser den, hvad sletningen ville ændre, og tilbyder **Arkivér i stedet**. For at slette flere på én gang skal du vælge dem og vælge **Slet** under **Massehandlinger**: Dialogen siger først det samme for dem alle, dem, der ikke kan slettes, forbliver, som de er, og resten slettes.
+**Slet** fortæller først, hvad den ville gøre. Så længe hændelser eller episoder har værdien, afvises sletningen, og dialogen viser dem. Ellers viser den, hvad sletningen ville ændre, og tilbyder **Arkiver i stedet**. For at slette flere på én gang skal du vælge dem og vælge **Slet** under **Massehandlinger**: Dialogen siger først det samme for dem alle, dem, der ikke kan slettes, forbliver, som de er, og resten slettes.
 
 ## Flyt en hændelse gennem dens tilstande
 

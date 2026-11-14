@@ -29,7 +29,13 @@ jest.mock("Common/Server/Infrastructure/Queue", () => {
 jest.mock("Common/Server/Services/TelemetryIngestionKeyService", () => {
   return {
     __esModule: true,
-    default: { getPolicyFromSecretKey: jest.fn() },
+    default: {
+      getPolicyFromSecretKey: jest.fn(),
+      // An accepted export stamps its key as used (issue #7887).
+      markUsed: (): Promise<void> => {
+        return Promise.resolve();
+      },
+    },
   };
 });
 

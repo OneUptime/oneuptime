@@ -15,6 +15,7 @@ import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import AggregateBy from "Common/Types/BaseDatabase/AggregateBy";
+import AggregationIntervalUtil from "Common/Types/BaseDatabase/AggregationIntervalUtil";
 import MetricViewData from "Common/Types/Metrics/MetricViewData";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import OneUptimeDate from "Common/Types/Date";
@@ -203,11 +204,18 @@ async function fetchPublicAggregate(
   aggregateBy: AggregateBy<Metric>,
   context: PublicDashboardContext,
 ): Promise<AggregatedResult> {
+  /*
+   * In the viewer's zone, as AnalyticsModelAPI.aggregate sends every other
+   * aggregate: a public dashboard's day chart files each day's total under
+   * its own day too (issue #7277).
+   */
   const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
     await context.postJSON(
       `/metrics-aggregate/${context.dashboardId.toString()}`,
       {
-        aggregateBy: JSONFunctions.serialize(aggregateBy as any) as JSONObject,
+        aggregateBy: JSONFunctions.serialize(
+          AggregationIntervalUtil.withReaderTimezone(aggregateBy) as any,
+        ) as JSONObject,
       },
     );
 

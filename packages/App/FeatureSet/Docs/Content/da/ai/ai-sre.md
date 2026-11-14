@@ -482,6 +482,16 @@ Afsnittet **AI** i sidemenuerne for Hændelser og Advarsler åbner på to sider,
 
 AI-indstillingerne og AI-reglerne lå tidligere på `…/settings/ai` og `…/settings/auto-remediation-rules`, og reglerne derefter på `…/ai/auto-remediation-rules`; de adresser virker stadig og åbner **AI → Indstillinger**, hvor reglerne er nu, under **Yderligere indstillinger**.
 
+## Hvor godt OneUptime AI klarer sig
+
+**AI-resultater** (**Projektindstillinger → AI → AI-resultater**) viser uge for uge, hvad der kom ud af OneUptime AI's arbejde i de sidste 12 uger, så du kan se, om den bliver bedre, for eksempel efter at du har skiftet dens model. Siden ændrer intet og tæller kun de hændelser, advarsler, vagtkald og rettelser, du må se.
+
+- **Undgåede tilkald**: af de tilkald, der blev holdt tilbage, mens OneUptime AI arbejdede (se [OneUptime AI reagerer først](#oneuptime-ai-reagerer-først)), hvor mange der endte med AI's rettelse, før nogen blev tilkaldt, og hvordan de andre endte: hændelsen eller advarslen kom sig af sig selv, en person håndterede den under tilbageholdelsen, eller der blev tilkaldt, fordi AI gav den videre til en person, tilbageholdelsestiden udløb, eller nogen trykkede på **Tilkald nu**.
+- **Verificerede rettelser**: af de rettelser, OneUptime AI kørte, og de pull requests med rettelser, den åbnede, hvor mange der virkede, da de blev holdt op mod det, der skete bagefter. Rettelser, der stadig bliver tjekket, og dem, der ikke kunne tjekkes, vises ved siden af, men tælles ikke med.
+- **Bekræftede grundårsager**: af de undersøgelser, OneUptime AI afsluttede, hvor mange der fandt den rigtige grundårsag: vurderet af en ansvarlig, der bekræftede eller afviste undersøgelsen på dens AI-kort, eller, når ingen gjorde det, holdt op mod den grundårsag, der blev skrevet, da hændelsen blev løst. Undersøgelser, som ingen har vurderet endnu, tælles ikke med.
+
+Hvert kort stiller sine seneste 4 uger ved siden af de 4 uger før dem. En uge tæller det arbejde, OneUptime AI startede den uge, uanset hvor lang tid kontrollen tog. Når et projekt havde mere end 5.000 af én slags i de 12 uger, tælles de nyeste 5.000, og siden siger det.
+
 ## Omkostningsstyring
 
 Alle grænser nedenfor er valgfrie, og ingen af dem gælder, før du sætter dem: med automatisk undersøgelse slået til bliver hver ny hændelse og advarsel undersøgt, uanset alvorlighed, og intet begrænser, hvor mange undersøgelser eller rettelsesopgaver der kører. Mængden af advarsler kan være langt større end mængden af hændelser, så det er disse kontroller, du skal gribe til, når du vil have et loft.
@@ -542,7 +552,7 @@ På OneUptime Cloud betales OneUptime AI på den globale udbyder af projektets A
 
 - **Altid skrivebeskyttet.** Autonome undersøgelser kører med et udvalgt sæt skrivebeskyttede værktøjer (forespørgsler på metrikker, logs, traces, undtagelser og ændringer, inklusive `baseline_anomaly`, der vurderer en metrik op imod dens indlærte normalområde for hver time i ugen). AI kan ikke kvittere for, løse, tilkalde eller ændre noget fra en undersøgelse.
 - **Kildehenvisninger dannes på serveren** ud fra værktøjskald, der faktisk blev udført: modellen kan ikke opdigte en kildehenvisning til data, den aldrig har læst.
-- **Fuldt revisionsspor.** Hver undersøgelse registreres som en AI-kørsel med et ordnet hændelsesspor (hvert LLM-kald og hvert værktøjskald), og hvert LLM-kald måles på siden AI-logs (**Projektindstillinger → AI → AI-logs**) med antal tokens og omkostning.
+- **Fuldt revisionsspor.** Hver undersøgelse registreres som en AI-kørsel med et ordnet hændelsesspor (hvert LLM-kald og hvert værktøjskald), og hvert LLM-kald måles på siden AI-logs (**Projektindstillinger → AI → AI-logs**) med antal tokens og omkostning. Det, værktøjerne returnerede til undersøgelsen af en hændelse eller advarsel, gemmes sammen med dens kørsel i 30 dage og kan kun læses af serveren, så en ny model eller prompt kan afprøves på de data, undersøgelsen så; det slettes sammen med kørslen.
 - **Hemmeligheder sløres** i værktøjsresultater, før noget sendes til LLM'en (tokens, loginoplysninger, nøglemønstre).
 - **Billeder holdes uden for det, modellen læser.** Et billede, der er indlejret i en hændelses eller advarsels tekst - en syntetisk monitors skærmbillede i beskrivelsen, et billede indsat i en note - er hundredvis af kilobyte base64, som modellen ikke kan læse, og som ville blive faktureret ved hvert kald. Det erstattes af en kort note, såsom `[image omitted: JPEG, 340 KB]`, og undersøgelsens aktivitet siger, hvad der blev udeladt. En beskrivelse, grundårsag eller note på mere end 4.000 tegn afkortes på samme måde og slutter med en note om, hvor meget der mangler (16.000 tegn i et udkast til en postmortem eller note). Mennesker ser stadig alle billeder: kun det, modellen læser, ændres.
 - **Selvhostet = ingen data til tredjeparter.** Med din egen LLM-udbyder (inklusive en lokal Ollama) forlader telemetrien aldrig din infrastruktur.
@@ -579,7 +589,7 @@ Alle tre indstillinger er **slået til som standard for nye projekter** (et proj
 
 1. **Overvåg telemetri for problemer**: slår overvågningsløkken, indbakken og triagen til.
 2. **Åbn en pull request med en rettelse, når en indsigt peger på din kode**: slår oprettelse af rettelsesopgaver til for kvalificerede indsigter. Det kræver den samme opsætning som det manuelle forløb "Fix with AI": et forbundet repository og en LLM-udbyder.
-3. **Arkivér forventede undtagelser**: grupper af undtagelser, som triagen klassificerer som forventede afvisninger (afviste logins, plangrænser, scannere, der udløser bevidst validering), arkiveres, så de ikke længere vises som uløste. Brugerfejl og infrastrukturtilstande bliver det aldrig, og du kan hente en arkiveret gruppe tilbage fra fanen **Arkiveret**.
+3. **Arkiver forventede undtagelser**: grupper af undtagelser, som triagen klassificerer som forventede afvisninger (afviste logins, plangrænser, scannere, der udløser bevidst validering), arkiveres, så de ikke længere vises som uløste. Brugerfejl og infrastrukturtilstande bliver det aldrig, og du kan hente en arkiveret gruppe tilbage fra fanen **Arkiveret**.
 
 Med **Aktivér AI** slået fra findes indsigter stadig (detektorerne bruger ingen AI), men ingen får triage, arkiveres eller rettes; siden med indstillinger siger det øverst. Uden en LLM-udbyder, som OneUptime AI kan bruge, siger den, at indsigter ikke får triage.
 

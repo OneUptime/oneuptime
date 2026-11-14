@@ -23,7 +23,7 @@ flowchart TB
     trace --> criteria
 ```
 
-Når en sjekk feiler, sporer sonden også ruten til adressen og legger det den fant ved resultatet som **Network Path at Time of Failure**, så du kan se hvor ruten brøt sammen.
+Når en sjekk feiler, sporer sonden også ruten til adressen og legger det den fant ved resultatet som **Nettverksbane på feiltidspunktet**, så du kan se hvor ruten brøt sammen.
 
 Hvilken du skal bruke:
 
@@ -139,7 +139,7 @@ Gjør vinduet lengre enn overvåkingsintervallet, slik at det rommer flere sjekk
 ## Feilsøking
 
 :::details Adressen er oppe, men monitoren sier frakoblet
-Adressen, eller en brannmur foran den, svarer ikke på ICMP-ekkoforespørsler fra sonden. Tillat ICMP-ekkoforespørsler fra sondene, eller overvåk heller en tjeneste på den adressen med en [port-monitor](/docs/monitor/port-monitor). **Network Path at Time of Failure** på den mislykkede sjekken viser hvor langt ruten kom.
+Adressen, eller en brannmur foran den, svarer ikke på ICMP-ekkoforespørsler fra sonden. Tillat ICMP-ekkoforespørsler fra sondene, eller overvåk heller en tjeneste på den adressen med en [port-monitor](/docs/monitor/port-monitor). **Nettverksbane på feiltidspunktet** på den mislykkede sjekken viser hvor langt ruten kom.
 :::
 
 :::details En IPv6-adresse feiler alltid

@@ -352,6 +352,22 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/EpisodeReferenceWritePostgres.test.ts --forceExit
 
+      # A schedule's Layers page saves its changes all at once (#7575): the
+      # schedule's row locked, the layers read again under the lock, every
+      # change written in one transaction - and a save that waited for
+      # another one's lock refused, since the layers changed under it.
+      - name: Test saving a schedule's layers at once on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_SCHEDULE_LAYERS_SAVE_TESTS: "true"
+          SCHEDULE_LAYERS_SAVE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          SCHEDULE_LAYERS_SAVE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          SCHEDULE_LAYERS_SAVE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/OnCall/ScheduleLayersSavePostgres.test.ts --forceExit
+
       # An episode's members show their incident or alert, and their episode,
       # through joins that run neither one's privacy rules: a member row is
       # listed, counted, read and removed only by someone who may see both.
@@ -527,6 +543,25 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/MonitorProbeClaimPostgres.test.ts --forceExit
+
+      # Checks the migrated MonitorProbe and NetworkDevice tables' indexes and
+      # fillfactor, then clones them (with Project, Probe and Monitor) into an
+      # isolated schema and reads pg_stat_user_tables around each write of a
+      # probe cycle (issue #7921). A probe's result and a reachable poll's
+      # verdict and rate baseline must be HOT updates, which write no index
+      # entry. The claims cannot be, and with lastSeenAt indexed again the
+      # verdict is not either.
+      - name: Test which probe table writes are HOT updates against Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_PROBE_TABLE_HOT_UPDATE_TESTS: "true"
+          PROBE_TABLE_HOT_UPDATE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          PROBE_TABLE_HOT_UPDATE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          PROBE_TABLE_HOT_UPDATE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/ProbeTablesHotUpdatesPostgres.test.ts --forceExit
 
       # Clones the migrated Workflow table (its unique key included) into an
       # isolated schema: the incoming email key's compare-and-set must write
@@ -1714,6 +1749,26 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/ProjectPlanLimitsPostgres.test.ts --forceExit
 
+      # #7630: one person's user overrides may not overlap on one policy, or
+      # when both are global. Clones every migrated table into an isolated
+      # schema and races adds and edits through the real override service:
+      # twelve overlapping adds, held until every one has passed its checks,
+      # save exactly one; an add and an edit, or two edits, that overlap
+      # only with each other cannot both pass (each check is made with its
+      # write under the project's lock on override times); back to back,
+      # other people, other policies and global beside a policy's all save.
+      - name: Test user overrides that may not overlap on migrated Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_USER_OVERRIDE_OVERLAP_TESTS: "true"
+          USER_OVERRIDE_OVERLAP_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          USER_OVERRIDE_OVERLAP_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          USER_OVERRIDE_OVERLAP_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/UserOverrideOverlapPostgres.test.ts --forceExit
+
       # Clones every migrated table into an isolated schema and holds a status
       # page to each contact once, however it is written, through the real
       # subscriber service: twelve creates of one phone number written
@@ -2760,6 +2815,27 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/DataStoreProbeClaimPostgres.test.ts --forceExit
 
+      # Clones the migrated Project, Probe, DataSecuritySetting, DataStore,
+      # VMwareVCenter, OpenStackCloud and OpenStackCloudCheck tables, indexes
+      # included, into an isolated schema and runs the set-aside after the
+      # probes' collection and scan claims (issue #7919): a due row nothing
+      # may claim stops being due once a claim has stepped over it, a
+      # claimable one never is, a row with no due time is made due, a row
+      # another writer holds is skipped, and making a row claimable brings it
+      # back at once - winning a race with a set-aside in flight. EXPLAIN
+      # shows each claim's read served by its (probe, due) index.
+      - name: Test the set-aside of the probes' collection and scan claims on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_PROBE_COLLECTION_SET_ASIDE_TESTS: "true"
+          PROBE_COLLECTION_SET_ASIDE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          PROBE_COLLECTION_SET_ASIDE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          PROBE_COLLECTION_SET_ASIDE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/ProbeCollectionClaimSetAsidePostgres.test.ts --forceExit
+
       # Clones the migrated InstanceReceivingPeriod table into an isolated
       # schema and runs the receiving ledger's SQL (issue #2825): heartbeats
       # extend a stretch on the database's clock, one after more than the gap
@@ -3126,6 +3202,23 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Telemetry/DockerHostReRegisterPostgres.test.ts --forceExit
 
+      # The episode auto-resolve aggregate query (EpisodeAutoResolve) on the
+      # migrated AlertEpisodeMember / Alert / AlertState and incident tables'
+      # structure: one query per page counts each episode's members and the
+      # unresolved ones, as the per-episode reads it replaced counted them -
+      # members that left, deleted records, states that are gone or unset.
+      - name: Test the episode auto-resolve aggregate query on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_EPISODE_AUTO_RESOLVE_TESTS: "true"
+          EPISODE_AUTO_RESOLVE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          EPISODE_AUTO_RESOLVE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          EPISODE_AUTO_RESOLVE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Workers/Utils/EpisodeAutoResolvePostgres.test.ts --forceExit
+
       # An Incoming Request monitor's latest request, kept twice (#6402): the
       # column 1809080466402 adds is a nullable jsonb; a request is written
       # as it came and cut in one statement; changing Keep request content
@@ -3184,6 +3277,26 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Telemetry/ExceptionMergePostgres.test.ts --forceExit
+
+      # A key used only over OTLP gRPC shows as used (#7887), end to end: the
+      # production gRPC server on a loopback port, a real client's OTLP
+      # export, the key resolved from Postgres and its lastUsedAt written by
+      # the throttled stamp the HTTP ingest middleware shares. An accepted
+      # export stamps its own key's row, once per throttle window, leaving
+      # updatedAt alone; a refused key, a blocked or unpaid project, a
+      # budget refusal and a failed enqueue stamp nothing. Clones the
+      # migrated Project and TelemetryIngestionKey into an isolated schema.
+      - name: Test that a key used only over OTLP gRPC is stamped as used on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_GRPC_KEY_LAST_USED_TESTS: "true"
+          GRPC_KEY_LAST_USED_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          GRPC_KEY_LAST_USED_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          GRPC_KEY_LAST_USED_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Telemetry/GrpcServerKeyLastUsedPostgres.test.ts --forceExit
 
       # An exception's activity timeline: a triage written through the
       # service's updates leaves its rows (and one that changes nothing

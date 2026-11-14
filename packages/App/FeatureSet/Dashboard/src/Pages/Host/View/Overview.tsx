@@ -48,6 +48,7 @@ import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import AggregateBy from "Common/Types/BaseDatabase/AggregateBy";
+import AggregationIntervalUtil from "Common/Types/BaseDatabase/AggregationIntervalUtil";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
@@ -113,12 +114,13 @@ import {
 import {
   HOST_CPU_BUSY_PERCENT,
   HOST_LOAD_QUEUING_PERCENT,
+  formatHostBytes,
+  formatHostUptime,
   getHostUptimeSeconds,
   isHostStarting,
 } from "../Utils/HostFacts";
 import { encodeUnitNameForUrl } from "../Utils/SystemdUnits";
 import { getHostCollectorConfigLabel } from "../../../Components/HostCollector/HostCollectorStatus";
-import { formatDurationCompactInLanguage } from "Common/Utils/Slo/SloDuration";
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
 import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import TimeRangeZoomHint from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
@@ -204,21 +206,9 @@ const formatInt: (value: number | null) => string = (
   return formatReaderFigure(Math.round(value), { decimals: 0 });
 };
 
-const formatMemoryBytes: (bytes: number | null | undefined) => string = (
-  bytes: number | null | undefined,
-): string => {
-  if (bytes === null || bytes === undefined || !Number.isFinite(bytes)) {
-    return "—";
-  }
-  const units: Array<string> = ["B", "KiB", "MiB", "GiB", "TiB"];
-  let v: number = bytes;
-  let i: number = 0;
-  while (v >= 1024 && i < units.length - 1) {
-    v /= 1024;
-    i++;
-  }
-  return `${formatReaderFigure(v, { decimals: v < 10 ? 1 : 0 })} ${units[i]}`;
-};
+// Sizes as every host page writes them: "64 GiB", plain bytes whole (HostFacts).
+const formatMemoryBytes: (bytes: number | null | undefined) => string =
+  formatHostBytes;
 
 /*
  * Tile values use a short recent-window mean regardless of how wide
@@ -1145,6 +1135,15 @@ const HostOverview: FunctionComponent<
           windowEnd: endDate,
           now: OneUptimeDate.getCurrentDate(),
           receivingGaps: receivingGapsInWindow,
+          /*
+           * The zone AnalyticsModelAPI.aggregate put on the heartbeat
+           * request - the reader's, for day buckets and longer - so its
+           * days are walked on the calendar the server cut them on.
+           */
+          timezone: AggregationIntervalUtil.getReaderTimezone({
+            startDate: startDate,
+            endDate: endDate,
+          }),
         });
       setReceivingGaps(receivingGapsInWindow);
       setAvailabilitySeries(
@@ -1324,7 +1323,8 @@ const HostOverview: FunctionComponent<
     }
     /*
      * How long it has been up, from when its collector says it started
-     * (system.uptime), in the reader's words: "Up 12d 4h".
+     * (system.uptime), in the reader's words: "Up 12d 4h", "Up 41d" - never
+     * days with seconds (formatHostUptime).
      */
     const uptimeSeconds: number | null = getHostUptimeSeconds({
       row: host,
@@ -1337,10 +1337,7 @@ const HostOverview: FunctionComponent<
           "Up {{duration}}",
           {
             duration: composedValue((sentence: Translator): string => {
-              return formatDurationCompactInLanguage(
-                uptimeSeconds,
-                sentence.language,
-              );
+              return formatHostUptime(uptimeSeconds, sentence.language);
             }),
           },
           { setsValuesApart: true },

@@ -16,7 +16,7 @@ En hændelse er den optegnelse, dit team arbejder ud fra, når noget går i styk
 
 - **Sit eget produkt** — åbn **Hændelser** fra menuen **Produkter** i topbjælken; listen ligger på `/dashboard/{projectId}/incidents`.
 - **Tre forudoprettede tilstande** — **Identificeret**, **Bekræftet** og **Løst** oprettes for hvert nyt projekt. Du kan tilføje dine egne; de tre forudoprettede kan omdøbes og få nye farver, men aldrig slettes.
-- **Tre forudoprettede alvorsgrader** — **Critical Incident**, **Major Incident** og **Minor Incident**. En alvorsgrad er en etiket med en farve og en rækkefølge — den har ingen adfærd i sig selv.
+- **Tre forudoprettede alvorsgrader** — **Kritisk hændelse**, **Større hændelse** og **Mindre hændelse**. En alvorsgrad er en etiket med en farve og en rækkefølge — den har ingen adfærd i sig selv.
 - **Fem veje ind** — guiden **Erklær hændelse**, **Opret fra skabelon**, en kriterieregel på en monitor, `POST /api/incident` eller en [formular](/docs/forms/index), som alle med linket kan udfylde.
 - **Nummereret pr. projekt** — hver hændelse får et hændelsesnummer fra en tæller pr. projekt, vist med projektets præfiks: `INC-42` i et nyt projekt, eller `#42` uden præfiks. Nummeret står før hændelsens titel på dens sider, i browserfanen, i søgningen og i de dialoger, der handler om den, så hændelser med samme titel kan kendes fra hinanden.
 - **To slags noter** — private noter (interne noter) til dit team, offentlige noter til statussidens abonnenter.
@@ -143,11 +143,11 @@ Hvert nyt projekt får også tre alvorsgrader:
 
 | Alvorsgrad            | Rækkefølge | Farve                    | Hvad den betyder                                            |
 | --------------------- | ---------- | ------------------------ | ----------------------------------------------------------- |
-| **Critical Incident** | 1          | Mørkerød (`#b70400`)     | Meget stor påvirkning af kunderne, som kræver øjeblikkelig indsats. |
-| **Major Incident**    | 2          | Rød (`#fd625e`)          | Betydelig påvirkning, som som regel kræver øjeblikkelig indsats. |
-| **Minor Incident**    | 3          | Gul (`#ffbf53`)          | Lille påvirkning, som regel håndteret inden for arbejdstiden. |
+| **Kritisk hændelse** | 1          | Mørkerød (`#b70400`)     | Meget stor påvirkning af kunderne, som kræver øjeblikkelig indsats. |
+| **Større hændelse**    | 2          | Rød (`#fd625e`)          | Betydelig påvirkning, som som regel kræver øjeblikkelig indsats. |
+| **Mindre hændelse**    | 3          | Gul (`#ffbf53`)          | Lille påvirkning, som regel håndteret inden for arbejdstiden. |
 
-Alvorsgrader har `name`, `description`, `color` og `order` og intet andet. Der er ingen flag, og ingen kodesti behandler "Critical Incident" anderledes end nogen anden række. Alvorsgraden er, hvordan mennesker prioriterer, og den kan bruges som matchkriterium, når du skriver vagtregler — men at vælge en alvorsgrad tilkalder ikke i sig selv nogen.
+Alvorsgrader har `name`, `description`, `color` og `order` og intet andet. Der er ingen flag, og ingen kodesti behandler "Kritisk hændelse" anderledes end nogen anden række. Alvorsgraden er, hvordan mennesker prioriterer, og den kan bruges som matchkriterium, når du skriver vagtregler — men at vælge en alvorsgrad tilkalder ikke i sig selv nogen.
 
 Rediger eller tilføj alvorsgrader under **Hændelser → Indstillinger → Hændelsesalvor**. De fulde forudoprettede beskrivelser står i [Hændelsestilstande og alvorsgrader](/docs/incidents/states-and-severities).
 
@@ -162,7 +162,7 @@ Rediger eller tilføj alvorsgrader under **Hændelser → Indstillinger → Hæn
 | **AI**        | **Indsigter**, **Protokoller**, **Indstillinger**: hvad OneUptime AI har lært af dine hændelser, og alt, hvad den har gjort for dem, og hvad den må gøre på egen hånd — med reglerne for, hvilke hændelser den undersøger og retter. Se [AI SRE](/docs/ai/ai-sre). |
 | **Arbejdsområde** | De chatarbejdsområder, projektet har forbundet: **Slack**, **Microsoft Teams** og **Mattermost**, hver med sine notifikationsregler for hændelser. Er ingen af dem forbundet, indeholder det **Forbind et arbejdsområde**, en side, der viser alle tre, og hvordan de forbindes. |
 | **Regler**    | Regelmotorerne: **Grupperingsregler**, **Vagtregler**, **Ejerregler**, **Runbook-regler**, **Privatlivsregler**, **Etiketregler**, **SLA-regler**, **Påmindelsesregler**. |
-| **Indstillinger** | **Hændelsesstatus**, **Hændelsesalvor**, **Hændelsesskabeloner**, **Noteskabeloner**, **Godkendelse af offentlige noter**, **Postmortem-skabeloner**, **Postmortem-statusser**, **Brugerdefinerede felter**, **Hændelsesroller**, **Målinger**, **Tilknyttede advarsler**, **Medlemskab af episoder**, **Nummerering**, **Dataopbevaring**. |
+| **Indstillinger** | **Hændelsesstatus**, **Hændelsesalvor**, **Hændelsesskabeloner**, **Noteskabeloner**, **Godkendelse af offentlige noter**, **Notifikationer til abonnenter**, **Postmortem-skabeloner**, **Postmortem-statusser**, **Brugerdefinerede felter**, **Hændelsesroller**, **Målinger**, **Tilknyttede advarsler**, **Medlemskab af episoder**, **Nummerering**, **Dataopbevaring**. |
 
 **Oversigt** og **Episoder** er åbne; **AI**, **Arbejdsområde**, **Regler**, **Indstillinger** og **Udvikler** er foldet sammen som standard, så menuen åbner på de lister, du bruger hver dag. Klik på et afsnits titel for at folde det ud og finde de sider, resten af denne dokumentation henviser til; et afsnit åbner også af sig selv, når du er på en af dets sider. Konfigurationen af hændelser ligger ikke under projektindstillingerne; den ligger helt her.
 

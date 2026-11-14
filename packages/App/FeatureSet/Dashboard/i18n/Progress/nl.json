@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 51296,
-    "untranslated": 9546
+    "keys": 52236,
+    "untranslated": 9332
   },
   "sameAsEnglish": [
     " is",
@@ -182,6 +182,7 @@
     "Headers (JSON)",
     "Hertz",
     "Histogram",
+    "Hop",
     "Host",
     "Hosts",
     "Hunt",
@@ -347,6 +348,7 @@
     "Product",
     "Project",
     "Project: {{accounts}}",
+    "PromQL",
     "Prompt",
     "Protocol",
     "Provider",
@@ -358,6 +360,8 @@
     "Purity//FA 6.7.3 · 48 volumes · 12 hosts",
     "Push",
     "Query",
+    "Query {{number}}",
+    "RTT",
     "RabbitMQ",
     "Radio",
     "Re-encrypt",
@@ -468,6 +472,7 @@
     "Up + In",
     "Up + Out",
     "Up · In",
+    "Updates",
     "Uplink",
     "Uplink {{uplink}}",
     "Uplinks",
@@ -638,6 +643,7 @@
     "secret",
     "security-alerts",
     "server",
+    "service",
     "services",
     "shards",
     "share",
@@ -654,6 +660,7 @@
     "storefront-web",
     "subnet",
     "subnets",
+    "sum by (job) (rate(http_requests_total[5m]))",
     "svc-backup",
     "syslog",
     "tag",
@@ -788,6 +795,7 @@
     "{{count}}m",
     "{{count}}s",
     "{{delta}} pp",
+    "{{exceptionType}} in {{serviceName}}",
     "{{field}} is {{value}}",
     "{{gigabytes}} GB",
     "{{inQuorum}}/{{count}} mon in quorum",

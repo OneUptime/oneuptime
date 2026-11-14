@@ -182,6 +182,34 @@ describe("Response guidance", () => {
     expect(getResponseStage(false, true, true, true)).toBe("pagedAgain");
   });
 
+  /*
+   * Somebody asked for the reader by hand - a page sent from a chat, a policy
+   * started by hand - about a record somebody else acknowledged: they have a
+   * page to answer, as when paged again, but they never took it, so it is
+   * not "again" (#7596).
+   */
+  test("a reader somebody asked for about an acknowledged record is paged to help - not paged again", () => {
+    expect(getResponseStage(false, true, true, false, true)).toBe(
+      "pagedToHelp",
+    );
+    expect(getResponseStage(false, true, true, false, false)).toBe(
+      "pagedAgain",
+    );
+    // Paged as a responder too, beside an observer's page.
+    expect(getResponseStage(false, true, true, true, true)).toBe("pagedToHelp");
+    // Nothing to answer once it is resolved, nor before it is acknowledged.
+    expect(getResponseStage(true, true, true, false, true)).toBe("resolved");
+    expect(getResponseStage(false, false, true, false, true)).toBe("open");
+    expect(getResponseStageAppearance("pagedToHelp")).toEqual({
+      tone: "warning",
+      icon: "alarm-outline",
+      title: "You're being paged",
+    });
+    expect(getResponseStageAppearance("pagedAgain").title).toBe(
+      "You're being paged again",
+    );
+  });
+
   test("the observer stage says FYI (observer), in the server's words, as information - not a warning", () => {
     expect(getResponseStageAppearance("observer")).toEqual({
       tone: "info",

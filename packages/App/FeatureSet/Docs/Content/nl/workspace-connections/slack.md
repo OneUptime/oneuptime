@@ -93,14 +93,17 @@ Een meldingsregel bepaalt welke gebeurtenissen in Slack worden geplaatst, en waa
 | **Bereikbaarheid** | Eén lijst met regels |
 | **SLOs** | Eén lijst met regels |
 
-Een regel aanmaken gaat in vier stappen:
+Een regel aanmaken gaat in hooguit vijf stappen:
 
 | Stap | Wat je instelt |
 | --- | --- |
 | **Basis** | **Regelnaam** en **Regelbeschrijving**. |
 | **Voorwaarden** | Voor welke gebeurtenissen de regel geldt, bijvoorbeeld op ernst, status, label, monitor of woorden in de titel. Ze worden gecontroleerd wanneer een gebeurtenis wordt aangemaakt en opnieuw bij elke update die OneUptime erover plaatst, dus een regel voor bevestigde incidenten werkt zodra een incident wordt bevestigd. Een nieuwe regel geldt voor elke gebeurtenis, bijvoorbeeld **Alle incidenten**. Om de regel in te perken, kies **Alleen incidenten die aan de voorwaarden voldoen** en voeg de voorwaarden toe. Met twee of meer bepaalt **Overeenkomstvoorwaarde** of ze allemaal moeten kloppen, of één ervan. |
 | **Bestemming** | Waar hij plaatst: **In bestaande kanalen plaatsen** met de kanaalnamen, **Een kanaal aanmaken voor elk incident** (of waarschuwing, episode, evenement, monitor of bereikbaarheidsbeleid) met wie er lid van wordt, of allebei. Onder de stap zegt **Wat deze regel doet** het in zinnen, zoals de kaart van de regel. |
+| **Updates** | Alleen incidenten, waarschuwingen, episodes, gepland onderhoud en bereikbaarheidsbeleid: welke updates de regel na het eerste bericht van het record plaatst. **Elke update** plaatst ze allemaal, en een nieuwe regel begint ermee, behalve die van een bereikbaarheidsbeleid. **Alleen belangrijke updates** plaatst de updates die het meest tellen, die de stap per soort record opsomt: bij een incident het oplossen of heropenen ervan, wijzigingen van de ernst, openbare notities en de postmortem; bij een bereikbaarheidsbeleid wie nu dienst heeft en wanneer niemand dienst heeft, waarmee een nieuwe regel voor bereikbaarheidsbeleid begint. Met **Updates kiezen** vink je ze een voor een aan. Wat je ook kiest, de regel plaatst het eerste bericht van het record, en een videogesprek wanneer er een begint. Zie [Dienstberichten](#dienstberichten). |
 | **Video Call** | Alleen incidenten en waarschuwingen: start voor elk een gesprek. Zie [Videogesprekken](/docs/workspace-connections/video-calls). |
+
+Elke voorwaarde leest als een zin: het veld, hoe het wordt vergeleken en de waarde. Waarden om te kiezen komen uit de eigen lijsten van het project, zoals de statussen, ernstniveaus, labels en monitors. Een regel voor bereikbaarheidsbeleid kiest het beleid onder **Bereikbaarheidsbeleid**, dat een beleid blijft vinden nadat het een andere naam heeft gekregen, terwijl **Naam bereikbaarheidsbeleid** woorden in de naam van een beleid zoekt. Elk soort gebeurtenis met eigenaren heeft een eigenaarvoorwaarde, zoals **Eigenaar van incident**: kies mensen en teams, en de voorwaarde klopt voor de mensen en teams die als eigenaren van de gebeurtenis zijn vastgelegd. Lid zijn van een team dat eigenaar is van de gebeurtenis telt niet. Een eigenaar die later wordt toegevoegd, laat de regel vanaf die update kloppen, en een regel die kanalen aanmaakt, maakt het kanaal dan aan. Een gearchiveerde waarde, zoals een ernstniveau of een bereikbaarheidsbeleid, wordt niet aangeboden voor een nieuwe voorwaarde. Een regel die er al een heeft, houdt die, gemarkeerd als **Gearchiveerd**, en blijft kloppen voor de gebeurtenissen die die waarde hebben. Een persoon, team of beleid dat het project niet meer heeft, blijft in de voorwaarde staan, en de kaart van de regel meldt dat.
 
 Een regel voor SLO's plaatst de wijzigingen in het foutbudgetbeleid van een SLO: wanneer de SLO een niveau binnengaat, herstelt naar een minder ernstig niveau of elk niveau verlaat, en wanneer zijn implementaties worden bevroren of weer toegestaan. Hij plaatst alleen in bestaande kanalen, omdat een SLO geen eigen kanaal krijgt. Zie [Berichten plaatsen in Slack, Microsoft Teams en Mattermost](/docs/slo/error-budget-policy#berichten-plaatsen-in-slack-microsoft-teams-en-mattermost).
 
@@ -112,7 +115,7 @@ Een regel maakt zijn kanaal aan de eerste keer dat een gebeurtenis eraan voldoet
 
 Voor een bereikbaarheidsschema in **Ook uitnodigen** geldt: wie er bij het aanmaken van het kanaal dienst heeft in het schema, zoals de pagina ervan laat zien, wordt lid van het kanaal zonder te worden opgeroepen. Wil je alleen mensen toevoegen aan de kanalen van sommige incidenten, geef dan een tweede regel die voorwaarden en die mensen, met hetzelfde **Voorvoegsel van de kanaalnaam** als de eerste: regels waaraan een incident voldoet wanneer zijn kanaal wordt aangemaakt, delen dat kanaal, en elke regel voegt zijn eigen mensen toe.
 
-Elke latere update van het record — een statuswijziging, een notitie, een nieuwe eigenaar — wordt in zijn kanalen geplaatst, en in de bestaande kanalen die zijn regels noemen zolang hun voorwaarden kloppen. Met **Kanaal archiveren wanneer het incident is opgelost** aan, of de tegenhanger ervan voor waarschuwingen, episodes, evenementen, monitoren en bereikbaarheidsbeleid, archiveert de regel die een kanaal aanmaakte het wanneer het record is opgelost, voltooid of verwijderd, wat zijn voorwaarden dan ook zeggen. Een incident, waarschuwing of episode die al opgelost werd aangemaakt, krijgt geen eigen kanaal; het aanmaakbericht gaat nog wel naar de kanalen die je regels noemen. Zie [Al bevestigd of opgelost gemeld](/docs/incidents/declaring-incidents#al-bevestigd-of-opgelost-gemeld).
+Elke latere update van het record — een statuswijziging, een notitie, een nieuwe eigenaar — wordt in zijn kanalen geplaatst, en in de bestaande kanalen die zijn regels noemen zolang hun voorwaarden kloppen, wanneer een regel die daar plaatst de update kiest in zijn stap **Updates**. Met **Kanaal archiveren wanneer het incident is opgelost** aan, of de tegenhanger ervan voor waarschuwingen, episodes, evenementen, monitoren en bereikbaarheidsbeleid, archiveert de regel die een kanaal aanmaakte het wanneer het record is opgelost, voltooid of verwijderd, wat zijn voorwaarden dan ook zeggen. Een incident, waarschuwing of episode die al opgelost werd aangemaakt, krijgt geen eigen kanaal; het aanmaakbericht gaat nog wel naar de kanalen die je regels noemen. Zie [Al bevestigd of opgelost gemeld](/docs/incidents/declaring-incidents#al-bevestigd-of-opgelost-gemeld).
 
 Een incident, waarschuwing, episode of geplande onderhoudsgebeurtenis met een eigen kanaal heeft **Openen in Slack** in de kop van zijn pagina in OneUptime, naast de statusknoppen. Die opent dat kanaal in een nieuw tabblad, in de Slack-app of in de browser. Een record met twee eigen kanalen toont ze allebei onder de knop. Een record met kanalen in zowel Slack als Microsoft Teams heeft in plaats daarvan één knop **Kanaal openen**, die ze allemaal toont. De bestaande kanalen waarin uw regels posten, worden niet aangeboden.
 
@@ -121,6 +124,29 @@ Een kanaal blijft leesbaar: elke gebeurtenis wordt één keer geplaatst, en de e
 **Projectinstellingen** > **Werkruimte** > **Slack** toont de kanalen die OneUptime kan zien, met **Test verzenden** naast elk kanaal. OneUptime treedt zelf toe tot een openbaar kanaal de eerste keer dat het daar plaatst. Een privékanaal wordt pas getoond, en kan pas berichten ontvangen, nadat de app van OneUptime er in Slack voor is uitgenodigd.
 
 Een meldingsregel kan bij teams horen. **Verantwoordelijke teams**, onder **Meer velden**, beperkt hem tot de teams die u kiest: alleen hun leden en projectbeheerders kunnen hem bewerken of verwijderen, en alle anderen die de regels zien, zien hem alleen-lezen. Zie [Regels die bij teams horen](/docs/permissions/index#regels-die-bij-teams-horen).
+
+### Dienstberichten
+
+Bij elke overdracht horen de kanalen van een bereikbaarheidsbeleid in één regel wie dienst heeft:
+
+> 📞 @ana is now on call for Payments until tomorrow at 5:50 PM, then @bob.
+
+- Payments linkt naar het beleid in OneUptime. Roept het beleid meer dan één schema op, dan noemt de regel ook het schema: Payments (Primary).
+- Iemand wordt bij zijn Slack-naam genoemd zodra hij zijn Slack-account met OneUptime heeft verbonden, en tot dan bij zijn naam in OneUptime. Tijden verschijnen in de tijdzone van elke lezer.
+- Roepen meerdere escalatieregels van het beleid hetzelfde schema op, dan wordt elke overdracht één keer geplaatst, niet één keer per regel.
+
+Een regel plaatst wat hij in zijn stap **Updates** koos, en een nieuwe regel begint met **Alleen belangrijke updates**: wie nu dienst heeft, en wanneer niemand dienst heeft.
+
+| Update | Wat het kanaal hoort |
+| --- | --- |
+| **Wie nu dienst heeft** | De regel hierboven, bij elke overdracht. |
+| **Wie hierna dienst heeft** | Wie bij de volgende overdracht overneemt, en wanneer: aan het eind van die regel, of in een eigen regel voor een notificatieregel die niet plaatst wie nu dienst heeft. |
+| **Niemand heeft dienst** | Een schema waarin niemand meer dienst heeft, zodat waarschuwingen die het bereiken niemand oproepen: "⚠️ Nobody is on call for Payments until tomorrow at 5:50 PM, when @bob takes over." |
+| **Gebruikersoverschrijvingen** | Een overschrijving toegevoegd, gewijzigd of ingetrokken: wie afwezig is, en wie vervangt. |
+| **Wijzigingen in het beleid** | Schema's, personen en teams die aan de escalatieregels zijn toegevoegd of eruit zijn gehaald. |
+| **Eigenaren** | Toegevoegde en verwijderde eigenaren. |
+
+Een kanaal krijgt één bericht per overdracht, ook als twee regels erin plaatsen. Een dienstregel die is opgeslagen voordat regels hun updates kozen, plaatst ze allemaal, zoals voorheen.
 
 ## Wie er in het kanaal van een record zit
 
@@ -174,7 +200,7 @@ Reageer op een bericht in het kanaal van een incident, waarschuwing, episode of 
 
 | Reactie | Opgeslagen als |
 | --- | --- |
-| 📌 Een punaise-emoji, of Slacks eigen **Pin to channel** | Een privénotitie, alleen zichtbaar voor je team |
+| 📌 Een punaise-emoji, of Slacks eigen **Pin to channel** | Een privénotitie, die alleen kan lezen wie het record kan zien |
 | 📢 Een megafoon- of luidspreker-emoji | Een openbare notitie, getoond op de statuspagina. Alleen incidenten en geplande onderhoudsgebeurtenissen. Bij een privé-incident een privénotitie, en de bevestiging zegt waarom. Als openbare notities in het project goedkeuring nodig hebben, wordt ze pas getoond nadat ze is goedgekeurd, en de bevestiging zegt op wie ze wacht: zie [Goedkeuring van openbare notities](/docs/incidents/notes-owners-and-feed#goedkeuring-van-openbare-notities). |
 
 De notitie houdt het bericht zoals Slack het liet zien: de opmaak, links en code, de personen en kanalen die het noemt bij naam, en de bestanden en afbeeldingen als links ernaar. Een openbare notitie laat de bestanden en afbeeldingen weg, omdat die alleen voor je team opengaan.
@@ -281,7 +307,7 @@ Het bericht van een incident heeft vier knoppen, **Acknowledge Incident**, **Res
 | **Change Severity** | Stelt de ernst van het incident in. |
 | **Change Incident State** | Zet het incident in een latere status. |
 | **Assign Role** | Geeft iemand een rol in het incident, zoals **Incident Commander**. Een rol voor één persoon gaat naar die persoon over. |
-| **Page Someone** | Roept mensen, een team, wie in een schema nu dienst heeft, of een bereikbaarheidsbeleid op over het incident, met een optioneel bericht. Mensen worden opgeroepen tot een van hen antwoordt; een beleid roept op tot iemand het incident bevestigt. |
+| **Page Someone** | Roept mensen, een team, wie in een schema nu dienst heeft, of een bereikbaarheidsbeleid op over het incident, met een optioneel bericht. Iedereen die het oproept, ook de mensen van een beleid, wordt opgeroepen tot een van hen antwoordt of het incident is opgelost. |
 | **Edit Custom Fields** | Stelt de aangepaste velden van het incident in, elk ingevuld met wat het incident bevat. Een leeg gelaten veld wordt gewist. |
 
 `/oneuptime incident 42` toont incident 42, met deze knoppen en zijn menu, in een bericht dat alleen jij ziet. Typ het nummer zoals OneUptime het toont: `42`, `#42` of `INC-42`. In het eigen kanaal van een incident toont `/oneuptime incident` zonder meer dat incident.

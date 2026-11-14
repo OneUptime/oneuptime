@@ -976,8 +976,9 @@ describe("what a Teams user without a linked account is told (the real lookup; o
     {
       name: "create maintenance",
       again: "maintenance",
-      purpose: "create a scheduled maintenance event",
-      what: "a scheduled maintenance event",
+      // A maintenance event, as the model has named it since #6817.
+      purpose: "create a maintenance event",
+      what: "a maintenance event",
       run: (turn: FakeTurn, activity: JSONObject): Promise<void> => {
         return MicrosoftTeamsCreateCommands.handleCreateScheduledMaintenanceCommand(
           {

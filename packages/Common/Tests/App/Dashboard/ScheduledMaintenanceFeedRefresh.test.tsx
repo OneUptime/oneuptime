@@ -471,7 +471,7 @@ describe("scheduled maintenance note dialogs", () => {
     });
 
     expect(within(dialog).getByTestId("note-audience")).toHaveTextContent(
-      "Only your team can see this",
+      "Only people who can see this maintenance event can read this",
     );
     expect(within(dialog).queryByTestId("note-notify-checkbox")).toBeNull();
     expect(

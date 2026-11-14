@@ -2135,6 +2135,359 @@
             },
             "additionalProperties": false
         },
+        "twilio": {
+            "type": "object",
+            "properties": {
+                "accountSid": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "authToken": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "usedFor": {
+                    "type": [
+                        "string",
+                        "null"
+                    ],
+                    "enum": [
+                        null,
+                        "",
+                        "calls-and-sms",
+                        "sms-only",
+                        "calls-only"
+                    ]
+                },
+                "primaryPhoneNumber": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "secondaryPhoneNumbers": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "smsPhoneNumbers": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "existingSecret": {
+                    "type": [
+                        "object",
+                        "null"
+                    ],
+                    "properties": {
+                        "name": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        },
+                        "authTokenKey": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "additionalProperties": false
+        },
+        "email": {
+            "type": "object",
+            "properties": {
+                "serverType": {
+                    "type": [
+                        "string",
+                        "null"
+                    ],
+                    "enum": [
+                        null,
+                        "",
+                        "custom-smtp",
+                        "sendgrid",
+                        "amazon-ses",
+                        "mailgun",
+                        "postmark",
+                        "resend"
+                    ]
+                },
+                "fromEmail": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "fromName": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "smtp": {
+                    "type": [
+                        "object",
+                        "null"
+                    ],
+                    "properties": {
+                        "transport": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "enum": [
+                                null,
+                                "",
+                                "smtp",
+                                "microsoft-graph"
+                            ]
+                        },
+                        "host": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        },
+                        "port": {
+                            "type": [
+                                "string",
+                                "integer",
+                                "null"
+                            ]
+                        },
+                        "requireTls": {
+                            "type": [
+                                "boolean",
+                                "string",
+                                "null"
+                            ]
+                        },
+                        "authType": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "enum": [
+                                null,
+                                "",
+                                "username-and-password",
+                                "oauth",
+                                "none"
+                            ]
+                        },
+                        "username": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        },
+                        "password": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        },
+                        "oauth": {
+                            "type": [
+                                "object",
+                                "null"
+                            ],
+                            "properties": {
+                                "providerType": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ],
+                                    "enum": [
+                                        null,
+                                        "",
+                                        "client-credentials",
+                                        "jwt-bearer"
+                                    ]
+                                },
+                                "clientId": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ]
+                                },
+                                "clientSecret": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ]
+                                },
+                                "tokenUrl": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ]
+                                },
+                                "scope": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ]
+                                }
+                            },
+                            "additionalProperties": false
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "sendgrid": {
+                    "type": [
+                        "object",
+                        "null"
+                    ],
+                    "properties": {
+                        "apiKey": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "amazonSes": {
+                    "type": [
+                        "object",
+                        "null"
+                    ],
+                    "properties": {
+                        "authenticationType": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "enum": [
+                                null,
+                                "",
+                                "access-key",
+                                "server-iam-role"
+                            ]
+                        },
+                        "accessKeyId": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        },
+                        "secretAccessKey": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        },
+                        "region": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "mailgun": {
+                    "type": [
+                        "object",
+                        "null"
+                    ],
+                    "properties": {
+                        "apiKey": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        },
+                        "domain": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        },
+                        "region": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "enum": [
+                                null,
+                                "",
+                                "us",
+                                "eu"
+                            ]
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "postmark": {
+                    "type": [
+                        "object",
+                        "null"
+                    ],
+                    "properties": {
+                        "serverToken": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "resend": {
+                    "type": [
+                        "object",
+                        "null"
+                    ],
+                    "properties": {
+                        "apiKey": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "existingSecret": {
+                    "type": [
+                        "object",
+                        "null"
+                    ],
+                    "properties": {
+                        "name": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        },
+                        "key": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "additionalProperties": false
+        },
         "incidents": {
             "type": "object",
             "properties": {
@@ -3657,6 +4010,20 @@
                     "type": "integer"
                 },
                 "databaseMaxOpenConnections": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ],
+                    "minimum": 1
+                },
+                "databaseMaxQueueJobConnections": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ],
+                    "minimum": 1
+                },
+                "probeSchedulingMaxConcurrentRequests": {
                     "type": [
                         "integer",
                         "null"

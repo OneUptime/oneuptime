@@ -300,7 +300,6 @@ function renderLayerCard(): void {
       total={1}
       isExpanded={false}
       actionsDisabled={false}
-      isDeleteButtonLoading={false}
       overrides={[]}
       overridePolicyContextId=""
       overrideUserInfo={{}}
@@ -417,9 +416,7 @@ async function renderAddUserDialog(): Promise<void> {
     });
   });
 
-  render(
-    <AddLayerUserModal layer={makeLayer()} onClose={noop} onUserAdded={noop} />,
-  );
+  render(<AddLayerUserModal onClose={noop} onAdd={noop} />);
 
   await screen.findByText(DANA.name);
 }
@@ -430,7 +427,10 @@ async function renderUsersList(): Promise<void> {
     return { data, count: data.length, skip: 0, limit: data.length };
   });
 
-  render(<LayerUser layer={makeLayer()} onUpdateUsers={noop} />);
+  // The page hands the list its people (Layers): the list reads none itself.
+  render(
+    <LayerUser layer={makeLayer()} users={layerUsers()} onChange={noop} />,
+  );
 
   await screen.findByText(DANA.name);
 }

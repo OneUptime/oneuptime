@@ -168,15 +168,16 @@ const INCIDENT_UNEXPECTED_FAILURE_WITHOUT_LINK: string =
   "❌ Could not create the incident because of an unexpected error. Please try again, or create it in OneUptime.";
 
 const MAINTENANCE_CREATED: string =
-  "✅ Scheduled maintenance created successfully.";
+  "✅ Maintenance event created successfully.";
 const MAINTENANCE_MISSING_FIELDS: string =
   "Unable to create scheduled maintenance: missing required fields (title, description, start date/time, or end date/time).";
 const MAINTENANCE_UNREADABLE_TIME: string =
   "Unable to create scheduled maintenance: the start or end date and time could not be read. Please pick them again.";
-const MAINTENANCE_REFERENCE_UNAVAILABLE: string = `❌ Could not create the scheduled maintenance event: ${UNAVAILABLE_REFERENCE_REASON}`;
-const MAINTENANCE_UNEXPECTED_FAILURE: string = `❌ Could not create the scheduled maintenance event because of an unexpected error. Please try again, or create it in OneUptime: ${DASHBOARD_URL}/${PROJECT_ID.toString()}/scheduled-maintenance-events/create`;
+// A maintenance event, as the model has named it since #6817.
+const MAINTENANCE_REFERENCE_UNAVAILABLE: string = `❌ Could not create the maintenance event: ${UNAVAILABLE_REFERENCE_REASON}`;
+const MAINTENANCE_UNEXPECTED_FAILURE: string = `❌ Could not create the maintenance event because of an unexpected error. Please try again, or create it in OneUptime: ${DASHBOARD_URL}/${PROJECT_ID.toString()}/scheduled-maintenance-events/create`;
 const MAINTENANCE_UNEXPECTED_FAILURE_WITHOUT_LINK: string =
-  "❌ Could not create the scheduled maintenance event because of an unexpected error. Please try again, or create it in OneUptime.";
+  "❌ Could not create the maintenance event because of an unexpected error. Please try again, or create it in OneUptime.";
 
 type ReplyEvent = { kind: "reply"; text: string };
 /*
@@ -1140,7 +1141,7 @@ describe("Microsoft Teams: submitting the Create New Scheduled Maintenance form"
       ? `\n\nMicrosoft Teams did not say which time zone you are in, so these times were read at your current offset, ${data.offsetLabel}. If daylight saving time changes before then, check them in OneUptime.`
       : "";
     const link: string = data.link
-      ? `\n\n[View scheduled maintenance](${data.link.toString()})`
+      ? `\n\n[View maintenance event](${data.link.toString()})`
       : "";
 
     return `${MAINTENANCE_CREATED}\n\n**Starts:** ${data.starts}\n\n**Ends:** ${data.ends}${offsetNote}${link}`;
@@ -1887,7 +1888,7 @@ describe("Microsoft Teams: submitting the Create New Scheduled Maintenance form"
       }).toEqual({
         props: MEMBER_PROPS,
         modelType: "ScheduledMaintenance",
-        action: "create a scheduled maintenance event",
+        action: "create a maintenance event",
         resources: undefined,
       });
       expect(permissionCheck.modelType === ScheduledMaintenance).toBe(true);
@@ -1898,7 +1899,7 @@ describe("Microsoft Teams: submitting the Create New Scheduled Maintenance form"
 
     test("a member without permission is told so, once, and nothing is created", async (): Promise<void> => {
       const refusal: string =
-        "You do not have permission to create a scheduled maintenance event. You need the Create Scheduled Maintenance permission.";
+        "You do not have permission to create a maintenance event. You need the Create Scheduled Maintenance permission.";
       assertCanCreateSpy.mockRejectedValue(new NotAuthorizedException(refusal));
       const turn: FakeTurn = inNewYork();
 
@@ -1949,7 +1950,7 @@ describe("Microsoft Teams: submitting the Create New Scheduled Maintenance form"
         {
           kind: "reply",
           text: expect.stringMatching(
-            /^You do not have permission to create a scheduled maintenance event\./,
+            /^You do not have permission to create a maintenance event\./,
           ),
         },
       ]);
@@ -2061,7 +2062,7 @@ describe("Microsoft Teams: submitting the Create New Scheduled Maintenance form"
           "Scheduled maintenance state not found in project.",
         ),
         reply:
-          "❌ Could not create the scheduled maintenance event: Scheduled maintenance state not found in project.",
+          "❌ Could not create the maintenance event: Scheduled maintenance state not found in project.",
         logged:
           "BadDataException: Scheduled maintenance state not found in project.",
       },
@@ -2069,31 +2070,31 @@ describe("Microsoft Teams: submitting the Create New Scheduled Maintenance form"
         name: "ScheduledMaintenanceService.create refusing with a NotAuthorizedException, with its message",
         where: "create",
         error: new NotAuthorizedException(
-          "You do not have permission to create a scheduled maintenance event.",
+          "You do not have permission to create a maintenance event.",
         ),
         reply:
-          "❌ Could not create the scheduled maintenance event: You do not have permission to create a scheduled maintenance event.",
+          "❌ Could not create the maintenance event: You do not have permission to create a maintenance event.",
         logged:
-          "NotAuthorizedException: You do not have permission to create a scheduled maintenance event.",
+          "NotAuthorizedException: You do not have permission to create a maintenance event.",
       },
       {
         name: "ScheduledMaintenanceService.create refusing a label the member may not name, with the fixed line",
         where: "create",
         error: new UnreadableReferenceException(
-          `This scheduled maintenance event references records that are not in this project: Label "${LABEL_ID}". Please pick values from this project and try again.`,
+          `This maintenance event references records that are not in this project: Label "${LABEL_ID}". Please pick values from this project and try again.`,
         ),
         reply: MAINTENANCE_REFERENCE_UNAVAILABLE,
-        logged: `UnreadableReferenceException: This scheduled maintenance event references records that are not in this project: Label "${LABEL_ID}". Please pick values from this project and try again.`,
+        logged: `UnreadableReferenceException: This maintenance event references records that are not in this project: Label "${LABEL_ID}". Please pick values from this project and try again.`,
       },
       {
         // Deleted after the form was sent; the service checks it on create.
         name: "ScheduledMaintenanceService.create refusing a monitor status the project no longer has, with the fixed line",
         where: "create",
         error: new ProjectScopedReferenceException(
-          `This scheduled maintenance event references records that are not in this project: Monitor Status "${MONITOR_STATUS_ID}". Please pick values from this project and try again.`,
+          `This maintenance event references records that are not in this project: Monitor Status "${MONITOR_STATUS_ID}". Please pick values from this project and try again.`,
         ),
         reply: MAINTENANCE_REFERENCE_UNAVAILABLE,
-        logged: `ProjectScopedReferenceException: This scheduled maintenance event references records that are not in this project: Monitor Status "${MONITOR_STATUS_ID}". Please pick values from this project and try again.`,
+        logged: `ProjectScopedReferenceException: This maintenance event references records that are not in this project: Monitor Status "${MONITOR_STATUS_ID}". Please pick values from this project and try again.`,
       },
       {
         name: "a BadDataException without a message, with the generic line",
@@ -2123,7 +2124,7 @@ describe("Microsoft Teams: submitting the Create New Scheduled Maintenance form"
         expect(createSpy).toHaveBeenCalledTimes(1);
         expect(linkSpy).not.toHaveBeenCalled();
         expectOnlyCreateFailureLogged({
-          summary: `Could not create a scheduled maintenance event from Microsoft Teams: ${row.logged}`,
+          summary: `Could not create a maintenance event from Microsoft Teams: ${row.logged}`,
           error: row.error,
           errorObjectLogged: true,
         });
@@ -2131,7 +2132,7 @@ describe("Microsoft Teams: submitting the Create New Scheduled Maintenance form"
     );
 
     test("a reference the project does not have is answered without naming the record; the log keeps which one it was", async (): Promise<void> => {
-      const validatorMessage: string = `This scheduled maintenance event references records that are not in this project: Monitor "${MONITOR_ID}". Please pick values from this project and try again.`;
+      const validatorMessage: string = `This maintenance event references records that are not in this project: Monitor "${MONITOR_ID}". Please pick values from this project and try again.`;
       createSpy.mockRejectedValue(
         new UnreadableReferenceException(validatorMessage),
       );
@@ -2148,7 +2149,7 @@ describe("Microsoft Teams: submitting the Create New Scheduled Maintenance form"
       }
       expect(createSpy).toHaveBeenCalledTimes(1);
       expect(errorLogSpy.mock.calls[0]![0]).toBe(
-        `Could not create a scheduled maintenance event from Microsoft Teams: UnreadableReferenceException: ${validatorMessage}`,
+        `Could not create a maintenance event from Microsoft Teams: UnreadableReferenceException: ${validatorMessage}`,
       );
     });
 
@@ -2166,7 +2167,7 @@ describe("Microsoft Teams: submitting the Create New Scheduled Maintenance form"
       ]);
       expectOnlyCreateFailureLogged({
         summary:
-          "Could not create a scheduled maintenance event from Microsoft Teams: Error: Connection terminated unexpectedly",
+          "Could not create a maintenance event from Microsoft Teams: Error: Connection terminated unexpectedly",
         error: failure,
         errorObjectLogged: true,
       });
@@ -2202,7 +2203,7 @@ describe("Microsoft Teams: submitting the Create New Scheduled Maintenance form"
       ]);
       expectOnlyCreateFailureLogged({
         summary:
-          "Could not create a scheduled maintenance event from Microsoft Teams: RestError 503 ServiceUnavailable: Teams answered 503 ServiceUnavailable.",
+          "Could not create a maintenance event from Microsoft Teams: RestError 503 ServiceUnavailable: Teams answered 503 ServiceUnavailable.",
         error: failure,
         errorObjectLogged: false,
       });
@@ -2224,7 +2225,7 @@ describe("Microsoft Teams: submitting the Create New Scheduled Maintenance form"
       expect(turn.events).toEqual([
         {
           kind: "reply",
-          text: "❌ Could not create the scheduled maintenance event: Scheduled maintenance state not found.",
+          text: "❌ Could not create the maintenance event: Scheduled maintenance state not found.",
         },
       ]);
     });

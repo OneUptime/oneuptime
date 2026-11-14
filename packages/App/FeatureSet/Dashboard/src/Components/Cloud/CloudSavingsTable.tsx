@@ -15,10 +15,6 @@ import {
   CloudSavingKind,
   getCloudSavingActionText,
 } from "Common/Types/Cloud/CloudCost";
-import {
-  CloudProvider,
-  getCloudProviderLabel,
-} from "Common/Types/Cloud/CloudPlatform";
 import Color from "Common/Types/Color";
 import ObjectID from "Common/Types/ObjectID";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
@@ -32,12 +28,14 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import AppLink from "../AppLink/AppLink";
 import { formatCloudMoney } from "./CloudCostWords";
+import { getCloudProviderOptions } from "./CloudProviderOptions";
 import {
   SAVING_NOT_KNOWN_YET,
   getCloudRightSizingEvidenceLine,
   isCloudSavingAmountKnown,
 } from "./CloudRightSizingText";
 import { readCloudRightSizingEvidence } from "Common/Types/Cloud/CloudRightSizing";
+import { joinWithArrowsOn } from "Common/Types/DirectionArrow";
 
 /*
  * The ways to spend less, as a table: every recommendation your clouds'
@@ -80,24 +78,26 @@ const KIND_OPTIONS: Array<DropdownOption> = Object.values(CloudSavingKind).map(
   },
 );
 
-const PROVIDER_OPTIONS: Array<DropdownOption> = Object.values(
-  CloudProvider,
-).map((provider: CloudProvider): DropdownOption => {
-  return { label: getCloudProviderLabel(provider), value: provider };
-});
+const PROVIDER_OPTIONS: Array<DropdownOption> = getCloudProviderOptions();
 
-// "m5.xlarge → m5.large": what it would change, when the recommender says.
+/*
+ * "m5.xlarge → m5.large": what it would change, when the recommender says,
+ * in a line read in `language`. Each configuration keeps its own reading
+ * and the arrow points the way the page reads (joinWithArrowsOn).
+ */
 export function getSavingChangeText(
   recommendation: CloudCostRecommendation,
+  language: string,
 ): string {
   const from: string = (recommendation.currentConfiguration || "").trim();
   const to: string = (recommendation.recommendedConfiguration || "").trim();
 
-  if (from && to) {
-    return `${from} → ${to}`;
-  }
-
-  return from || to;
+  return joinWithArrowsOn(
+    [from, to].filter((part: string): boolean => {
+      return part.length > 0;
+    }),
+    language,
+  );
 }
 
 export interface ComponentProps {
@@ -196,7 +196,10 @@ const CloudSavingsTable: FunctionComponent<ComponentProps> = (
           isNotCustomizable: true,
           wrapContent: true,
           getElement: (item: CloudCostRecommendation): ReactElement => {
-            const change: string = getSavingChangeText(item);
+            const change: string = getSavingChangeText(
+              item,
+              translator.language,
+            );
             const evidence: string | null = getCloudRightSizingEvidenceLine({
               evidence: readCloudRightSizingEvidence(item.evidence),
               translator,
@@ -216,7 +219,7 @@ const CloudSavingsTable: FunctionComponent<ComponentProps> = (
                     className="mt-0.5 break-words text-xs text-gray-500"
                     data-testid="cloud-saving-change"
                   >
-                    <bdi>{change}</bdi>
+                    {change}
                   </div>
                 ) : (
                   <></>

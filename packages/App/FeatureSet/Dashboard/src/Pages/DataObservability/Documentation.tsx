@@ -202,7 +202,7 @@ A database you connect opens on its **Recommended Alerts**; later, choose them f
 
 Pick severities, on-call policies, owners and labels when you create them. They are ordinary monitors from then on: edit, mute or put them on a status page like any other.
 
-A backfill or a migration should page nobody. Name the database under **Data Observability Databases** on a scheduled maintenance event, or put its database server in one, and its data alerts stay quiet while the event is on.
+A backfill or a migration should page nobody. Name the database under **Data Observability Databases** on a maintenance event, or put its database server in one, and its data alerts stay quiet while the event is on.
 
 ## Owners and labels
 

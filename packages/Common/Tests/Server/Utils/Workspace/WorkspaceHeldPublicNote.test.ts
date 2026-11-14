@@ -320,10 +320,8 @@ describe("WorkspaceHeldPublicNote.getAnswer: the Dashboard's words", () => {
   test.each([
     [WorkspaceEventType.Incident, "the incident"],
     [WorkspaceEventType.IncidentEpisode, "the incident episode"],
-    [
-      WorkspaceEventType.ScheduledMaintenance,
-      "the scheduled maintenance event",
-    ],
+    // A maintenance event, as the model has named it since #6817.
+    [WorkspaceEventType.ScheduledMaintenance, "the maintenance event"],
   ])(
     "a record the member cannot read is named by its kind (%s)",
     (type: WorkspaceEventType, named: string) => {
@@ -457,8 +455,8 @@ describe("WorkspaceHeldPublicNote.getAnswerForAddedNote", () => {
       }),
     ).resolves.toEqual({
       markdown:
-        "⏳ Sent for approval: your public note on the scheduled maintenance event is published on status pages once it is approved.",
-      text: "Sent for approval: your public note on the scheduled maintenance event is published on status pages once it is approved",
+        "⏳ Sent for approval: your public note on the maintenance event is published on status pages once it is approved.",
+      text: "Sent for approval: your public note on the maintenance event is published on status pages once it is approved",
     });
   });
 });

@@ -25,13 +25,17 @@ import {
 } from "../../../Types/Rum/UserFlow";
 import {
   analyzeUserFlow,
+  OTHER_PAGES_KEY,
   OTHER_PAGES_LABEL,
   UserFlowAnalysis,
   UserFlowLink,
   UserFlowNode,
 } from "../../../Utils/Rum/UserFlow";
 import { createTranslator, Translator } from "../../../Types/Translator";
+import { LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME } from "../../../UI/Utils/LineDirection";
 import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
+import { drawLine, ParagraphDirection } from "../../Helpers/BidiLayout";
+import { getPathArrows, PathArrow } from "../../Helpers/PathArrows";
 import UserFlowOverview, {
   USER_FLOW_TILE_HINT_CLASS_NAME,
   USER_FLOW_TILE_LABEL_CLASS_NAME,
@@ -75,6 +79,7 @@ function readLocale(locale: string): Record<string, string> {
 const EN: Record<string, string> = readLocale("en");
 const DE: Record<string, string> = readLocale("de");
 const AR: Record<string, string> = readLocale("ar");
+const FA: Record<string, string> = readLocale("fa");
 
 // The locale's own words for `key`, which must differ from the English.
 function worded(
@@ -228,12 +233,15 @@ function linkBetween(from: UserFlowNode, to: UserFlowNode): UserFlowLink {
   return link;
 }
 
-function renderDetail(selection: UserFlowSelection): void {
+function renderDetail(
+  selection: UserFlowSelection,
+  analysis: UserFlowAnalysis = ANALYSIS,
+): void {
   render(
     <MemoryRouter>
       <UserFlowDetailPanel
         selection={selection}
-        analysis={ANALYSIS}
+        analysis={analysis}
         rumApplicationId={APP_ID}
         timeRange={{ range: TimeRange.PAST_ONE_DAY }}
         onAnchor={(): void => {
@@ -285,6 +293,7 @@ beforeAll(async () => {
     resources: {
       de: { translation: DE },
       ar: { translation: AR },
+      fa: { translation: FA },
       en: { translation: EN },
     },
     interpolation: { escapeValue: false },
@@ -618,6 +627,52 @@ const FOLDED: UserFlowAnalysis = analyzeUserFlow(
   { pagesPerStep: 1 },
 );
 
+// A one-line title as it is drawn: its words, its dir and its arrows.
+interface DrawnTitle {
+  shown: string;
+  dir: string | null;
+  pointsBack: Array<boolean>;
+}
+
+// Laid out in the title's own dir, or the page's where it has none.
+function drawnTitle(
+  title: HTMLElement,
+  pageDirection: ParagraphDirection,
+): DrawnTitle {
+  const dir: string | null = title.getAttribute("dir");
+
+  return {
+    shown: shown(title),
+    dir: dir,
+    pointsBack: getPathArrows(
+      title.textContent || "",
+      (dir as ParagraphDirection | null) ?? pageDirection,
+    ).map((arrow: PathArrow): boolean => {
+      return arrow.pointsBack;
+    }),
+  };
+}
+
+// The transition out of the fold, at the first step, to /cart.
+function linkOutOfTheFold(): UserFlowLink {
+  const fold: UserFlowNode | undefined = FOLDED.graph.nodes.find(
+    (node: UserFlowNode): boolean => {
+      return node.isOther && node.step === 0;
+    },
+  );
+  const link: UserFlowLink | undefined = FOLDED.graph.links.find(
+    (candidate: UserFlowLink): boolean => {
+      return candidate.sourceId === fold?.id;
+    },
+  );
+
+  if (!fold || !link) {
+    throw new Error("No transition out of the fold");
+  }
+
+  return link;
+}
+
 function renderOverview(): void {
   render(
     <UserFlowOverview
@@ -697,6 +752,41 @@ describe("UI review: the user flow map on a page read from the right", () => {
     expect(shown(title)).toMatch(/^\/\S* → \/\S*$/);
     expect(title).toHaveAttribute("dir", "ltr");
   });
+
+  /*
+   * The fold is named in Arabic there, so most of the letters of a band
+   * out of it read from the right. Joined as "صفحات أخرى → /cart" with
+   * nothing set apart, its tooltip was laid out from the right: the arrow
+   * pointed back at the fold, and the page read "cart/". Its name set
+   * apart (joinWithArrowsInDirection), the line reads the map's way.
+   */
+  test("Arabic: a band out of the fold reads from the left too, its arrow on to the page", async () => {
+    await i18next.changeLanguage("ar");
+    renderMap(FOLDED);
+
+    const titles: Array<DrawnTitle> = screen
+      .getAllByTestId("user-flow-link")
+      .map((band: HTMLElement): DrawnTitle => {
+        fireEvent.mouseEnter(band);
+
+        const title: DrawnTitle = drawnTitle(
+          screen
+            .getByTestId("user-flow-tooltip")
+            .querySelector("p") as HTMLElement,
+          "rtl",
+        );
+
+        fireEvent.mouseLeave(band);
+
+        return title;
+      });
+
+    expect(titles).toContainEqual({
+      shown: `${worded(AR, "Other pages")} → /cart`,
+      dir: "ltr",
+      pointsBack: [false],
+    });
+  });
 });
 
 describe("UI review: a page's path reads from the left in the panel and the tables", () => {
@@ -714,6 +804,21 @@ describe("UI review: a page's path reads from the left in the panel and the tabl
 
     expect(shown(title)).toBe("/home → /cart");
     expect(title).toHaveAttribute("dir", "ltr");
+    expect(title.className.split(" ")).toContain("text-end");
+  });
+
+  test("Arabic: a transition out of the fold is named from the left too, its arrow on", async () => {
+    await i18next.changeLanguage("ar");
+
+    renderDetail({ kind: "link", id: linkOutOfTheFold().id }, FOLDED);
+
+    const title: HTMLElement = screen.getByTestId("user-flow-detail-title");
+
+    expect(drawnTitle(title, "rtl")).toEqual({
+      shown: `${worded(AR, "Other pages")} → /cart`,
+      dir: "ltr",
+      pointsBack: [false],
+    });
     expect(title.className.split(" ")).toContain("text-end");
   });
 
@@ -768,6 +873,301 @@ describe("UI review: a page's path reads from the left in the panel and the tabl
         "ltr",
       ]);
     }
+  });
+});
+
+/* ---- #7724: a transition's line, whatever letters its pages are named in ---- */
+
+// Four pages at each of two steps and room for one: the rest of each step folds.
+const FOLDED_TWICE: UserFlowAnalysis = analyzeUserFlow(
+  response([
+    { id: "g1", pages: ["/home", "/cart"] },
+    { id: "g2", pages: ["/home", "/cart"] },
+    { id: "g3", pages: ["/pricing", "/docs"] },
+    { id: "g4", pages: ["/about", "/blog"] },
+    { id: "g5", pages: ["/team", "/careers"] },
+  ]),
+  { pagesPerStep: 1 },
+);
+
+// Three landing pages fold, and their sessions go on to "/", the site's root.
+const INTO_THE_ROOT: UserFlowAnalysis = analyzeUserFlow(
+  response([
+    { id: "h1", pages: ["/home", "/cart"] },
+    { id: "h2", pages: ["/home", "/cart"] },
+    { id: "h3", pages: ["/pricing", "/"] },
+    { id: "h4", pages: ["/about", "/"] },
+    { id: "h5", pages: ["/team", "/"] },
+  ]),
+  { pagesPerStep: 1 },
+);
+
+function linkOf(
+  analysis: UserFlowAnalysis,
+  fromPage: string,
+  toPage: string,
+): UserFlowLink {
+  const link: UserFlowLink | undefined = analysis.graph.links.find(
+    (candidate: UserFlowLink): boolean => {
+      return candidate.fromPage === fromPage && candidate.toPage === toPage;
+    },
+  );
+
+  if (!link) {
+    throw new Error(`No link from ${fromPage} to ${toPage}`);
+  }
+
+  return link;
+}
+
+// A line of a transition as it is drawn: its words, its box, and its arrow.
+interface ArrowLine {
+  shown: string;
+  dir: string | null;
+  // Starting where the page's lines do (LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME).
+  isAlignedAsThePage: boolean;
+  // Each arrow: "→" drawn from the right, or "←" from the left, points back.
+  pointsBack: Array<boolean>;
+}
+
+/*
+ * Laid out in its own dir, or the page's where it has none, with the
+ * tests' copy of the bidi algorithm. Every arrow is read, with or without
+ * a letter after it: "Other pages → /" has none.
+ */
+function drawnArrowLine(
+  line: HTMLElement,
+  pageDirection: ParagraphDirection,
+): ArrowLine {
+  const text: string = line.textContent || "";
+  const dir: string | null = line.getAttribute("dir");
+  const levels: Array<number> = drawLine(
+    text,
+    (dir as ParagraphDirection | null) ?? pageDirection,
+  ).levels;
+  const pointsBack: Array<boolean> = [];
+
+  for (let index: number = 0; index < text.length; index++) {
+    const unit: string = text.charAt(index);
+
+    if (unit === "→" || unit === "←") {
+      pointsBack.push(((levels[index] as number) % 2 === 1) === (unit === "→"));
+    }
+  }
+
+  return {
+    shown: shown(line),
+    dir: dir,
+    isAlignedAsThePage: line.className
+      .split(" ")
+      .includes(LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME),
+    pointsBack: pointsBack,
+  };
+}
+
+// The tooltip's title while the pointer is on the band from one page to another.
+function bandTooltipTitle(fromPage: string, toPage: string): HTMLElement {
+  const band: HTMLElement | undefined = screen
+    .getAllByTestId("user-flow-link")
+    .find((candidate: HTMLElement): boolean => {
+      return (
+        candidate.getAttribute("data-from") === fromPage &&
+        candidate.getAttribute("data-to") === toPage
+      );
+    });
+
+  if (!band) {
+    throw new Error(`No band from ${fromPage} to ${toPage}`);
+  }
+
+  fireEvent.mouseEnter(band);
+
+  return screen
+    .getByTestId("user-flow-tooltip")
+    .querySelector("p") as HTMLElement;
+}
+
+/*
+ * The map runs left to right on every page, so a transition is named its
+ * way: its two pages, each set apart, and the arrow between them. With no
+ * letter of its own, such a line was read by the letters of its pages: one
+ * between two folds, named "صفحات أخرى" on an Arabic page, or from the fold
+ * into "/", was laid out from the right, in the panel's header and in the
+ * band's tooltip, its arrow pointing back at where the sessions came from.
+ * It reads from the left on every page now, starting where the page's
+ * lines do; a page's own name, with no arrow, still reads the way its
+ * letters do.
+ */
+describe("#7724: a transition's line reads the map's way on every page, whatever letters its pages are named in", () => {
+  interface Transition {
+    name: string;
+    analysis: UserFlowAnalysis;
+    from: string;
+    to: string;
+    // The line, given the fold's name in the reader's language.
+    shown: (fold: string) => string;
+  }
+
+  const TRANSITIONS: Array<Transition> = [
+    {
+      name: "between two folds",
+      analysis: FOLDED_TWICE,
+      from: OTHER_PAGES_KEY,
+      to: OTHER_PAGES_KEY,
+      shown: (fold: string): string => {
+        return `${fold} → ${fold}`;
+      },
+    },
+    {
+      name: "from the fold into '/'",
+      analysis: INTO_THE_ROOT,
+      from: OTHER_PAGES_KEY,
+      to: "/",
+      shown: (fold: string): string => {
+        return `${fold} → /`;
+      },
+    },
+  ];
+
+  const READ_FROM_THE_RIGHT: Array<[string, Record<string, string>]> = [
+    ["ar", AR],
+    ["fa", FA],
+  ];
+
+  for (const [language, locale] of READ_FROM_THE_RIGHT) {
+    for (const transition of TRANSITIONS) {
+      test(`${language}: a transition ${transition.name} is named from the left in the panel, its arrow on`, async () => {
+        await i18next.changeLanguage(language);
+
+        renderDetail(
+          {
+            kind: "link",
+            id: linkOf(transition.analysis, transition.from, transition.to).id,
+          },
+          transition.analysis,
+        );
+
+        expect(
+          drawnArrowLine(screen.getByTestId("user-flow-detail-title"), "rtl"),
+        ).toEqual({
+          shown: transition.shown(worded(locale, "Other pages")),
+          dir: "ltr",
+          isAlignedAsThePage: true,
+          pointsBack: [false],
+        });
+      });
+
+      test(`${language}: the band ${transition.name} is named from the left in its tooltip, its arrow on`, async () => {
+        await i18next.changeLanguage(language);
+        renderMap(transition.analysis);
+
+        expect(
+          drawnArrowLine(
+            bandTooltipTitle(transition.from, transition.to),
+            "rtl",
+          ),
+        ).toEqual({
+          shown: transition.shown(worded(locale, "Other pages")),
+          dir: "ltr",
+          isAlignedAsThePage: true,
+          pointsBack: [false],
+        });
+      });
+    }
+  }
+
+  test("German: a transition between two folds reads as the page does, as before", () => {
+    const fold: string = worded(DE, "Other pages");
+
+    renderDetail(
+      {
+        kind: "link",
+        id: linkOf(FOLDED_TWICE, OTHER_PAGES_KEY, OTHER_PAGES_KEY).id,
+      },
+      FOLDED_TWICE,
+    );
+
+    expect(
+      drawnArrowLine(screen.getByTestId("user-flow-detail-title"), "ltr"),
+    ).toEqual({
+      shown: `${fold} → ${fold}`,
+      dir: null,
+      isAlignedAsThePage: false,
+      pointsBack: [false],
+    });
+
+    cleanup();
+    renderMap(FOLDED_TWICE);
+
+    expect(
+      drawnArrowLine(bandTooltipTitle(OTHER_PAGES_KEY, OTHER_PAGES_KEY), "ltr"),
+    ).toEqual({
+      shown: `${fold} → ${fold}`,
+      dir: null,
+      isAlignedAsThePage: false,
+      pointsBack: [false],
+    });
+  });
+
+  test("English: '/home → /cart' is drawn exactly as before, in the panel and in its tooltip", async () => {
+    await i18next.changeLanguage("en");
+
+    const asBefore: ArrowLine = {
+      shown: "/home → /cart",
+      dir: null,
+      isAlignedAsThePage: false,
+      pointsBack: [false],
+    };
+
+    renderDetail({
+      kind: "link",
+      id: linkBetween(nodeAt(0, "/home"), nodeAt(1, "/cart")).id,
+    });
+
+    const title: HTMLElement = screen.getByTestId("user-flow-detail-title");
+
+    expect(title.textContent).toBe("/home → /cart");
+    expect(drawnArrowLine(title, "ltr")).toEqual(asBefore);
+
+    cleanup();
+    renderMap();
+
+    const tooltipTitle: HTMLElement = bandTooltipTitle("/home", "/cart");
+
+    expect(tooltipTitle.textContent).toBe("/home → /cart");
+    expect(drawnArrowLine(tooltipTitle, "ltr")).toEqual(asBefore);
+  });
+
+  test("Arabic: a page's own name, with no arrow, still reads the way its letters do", async () => {
+    await i18next.changeLanguage("ar");
+    renderMap(INTO_THE_ROOT);
+
+    const titles: Array<[string, string | null]> = screen
+      .getAllByTestId("user-flow-node")
+      .map((node: HTMLElement): [string, string | null] => {
+        fireEvent.mouseEnter(node);
+
+        const title: HTMLElement = screen
+          .getByTestId("user-flow-tooltip")
+          .querySelector("p") as HTMLElement;
+        const drawn: [string, string | null] = [
+          shown(title),
+          title.getAttribute("dir"),
+        ];
+
+        fireEvent.mouseLeave(node);
+
+        return drawn;
+      });
+
+    // "/home" from the left; the fold's Arabic name, and "/", the page's way.
+    expect(titles).toEqual(
+      expect.arrayContaining([
+        ["/home", "ltr"],
+        [worded(AR, "Other pages"), null],
+        ["/", null],
+      ]),
+    );
   });
 });
 

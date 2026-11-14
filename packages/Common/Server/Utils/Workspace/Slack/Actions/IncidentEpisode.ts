@@ -38,10 +38,12 @@ import SlackActionAuthorization, {
 } from "./Authorization";
 import WorkspaceActionAuthorization from "../../WorkspaceActionAuthorization";
 import WorkspaceMemberActions, {
+  WorkspaceEventStanding,
   WorkspaceEventStateOption,
   WorkspaceEventStateOptions,
   WorkspaceEventType,
 } from "../../WorkspaceMemberActions";
+import OnCallPersonPageAnswer from "../../../OnCall/OnCallPersonPageAnswer";
 import SlackActionAnswer, { SlackAnswerPlace } from "./Answer";
 import {
   WorkspaceAnswer,
@@ -151,12 +153,27 @@ export default class SlackIncidentEpisodeActions {
 
       const { props, event: episode } = authorized;
 
-      // Somebody got there first: who and when, where the press was.
-      if ((await WorkspaceMemberActions.getStanding(episode)).isAcknowledged) {
+      /*
+       * Somebody got there first: who and when, where the press was. Paged
+       * into it by a policy a person started by hand, the presser answered
+       * that page by pressing (OnCallPersonPageAnswer): it stops, and is
+       * said first.
+       */
+      const standing: WorkspaceEventStanding =
+        await WorkspaceMemberActions.getStanding(episode);
+
+      if (standing.isAcknowledged) {
         await SlackActionAnswer.answerAlready({
           source: slackRequest,
           event: episode,
           press: WorkspaceLatePress.Acknowledge,
+          answeredPageCount: await OnCallPersonPageAnswer.onAcknowledgePressed({
+            kind: "incident episode",
+            recordId: episode.id,
+            projectId: episode.projectId,
+            pressedByUserId: props.userId,
+            isResolved: standing.isResolved,
+          }),
         });
 
         return;

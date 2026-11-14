@@ -61,7 +61,7 @@ Värden som angetts under **Standardvärden för anpassade fält** skrivs till v
 
 ## Synkronisera ändringar till länkade monitorer
 
-Att redigera en mall ändrar bara mallen. För att kopiera en ändring till de länkade monitorerna använder du synkroniseringsknappen på kortet du ändrade. Varje knapp anger hur många monitorer den når, som **Sync Criteria to 3 Linked Monitors**, och är nedtonad så länge inget är länkat. En synkronisering kan inte ångras.
+Att redigera en mall ändrar bara mallen. För att kopiera en ändring till de länkade monitorerna använder du synkroniseringsknappen på kortet du ändrade. Varje knapp anger hur många monitorer den når, som **Synkronisera kriterier till 3 länkade övervakare**, och är nedtonad så länge inget är länkat. En synkronisering kan inte ångras.
 
 | Knapp | Kopierar till varje länkad monitor | Lämnar orört |
 | --- | --- | --- |

@@ -966,6 +966,24 @@ describe("a root that marks its keys", () => {
     ).toBe("keys");
   });
 
+  test("the guided setups' status page records give the locales the name a page starts with, and nothing else (#7247)", () => {
+    const file: string =
+      "packages/Common/Utils/GuidedSetup/StatusPageRecords.ts";
+    const result: SourceScanResult = scanSourceRoots(
+      [{ directory: file, kind: "keys" }],
+      path.join(__dirname, "..", "..", "..", ".."),
+    );
+
+    // The guided setup and Ask AI both name a page with it, in the reader's language.
+    expect(textsOf(result)).toEqual(["{{project}} Status"]);
+    expect(result.hardcoded).toEqual([]);
+    expect(
+      SOURCE_ROOTS.find((root: { directory: string }): boolean => {
+        return root.directory === file;
+      })?.kind,
+    ).toBe("keys");
+  });
+
   test("HostHealth gives the locales its words, each count as a plural, and nothing else", () => {
     const file: string = "packages/Common/Types/Host/HostHealth.ts";
     const result: SourceScanResult = scanSourceRoots(
@@ -1492,7 +1510,7 @@ describe("scanning a source tree", () => {
 });
 
 describe("the real source roots", () => {
-  test("cover the Dashboard, the shared UI, the data models, the vCenter collection errors, the security case and playbook catalogs, the AI and cloud connections' catalogs, the shared monitor helpers, the monitor type cards, a new monitor's default criteria words, a monitor template's sync fields, the cron schedule words and its common schedules, what each Setup health finding says, why an email was not sent when the server has no email set up, the placeholders of a playbook's message, what is wrong with a detection rule exception, what is wrong with a watchlist or one of its values, what is wrong with a hunt or why its run could not be made, the Hunt Library's starters, a security connector's Data to import choices, what each of the traces explorer's span types is, a naming rule's placeholders and what is wrong with its pattern or lookup table, why Add or Delete is locked on the Global User Overrides page, what a dashboard template's chart says while it draws its fallback query, how a change OneUptime AI proposes went before, a cloud change in plain words, a Kubernetes object's status by the cluster's rules, a database's status by its engine's alert lines, what a custom domain's DNS check found and what the server still needs before a custom domain works, what an error nobody explained says to do and where to look, why a RUM application's session recordings are missing, the dashboard SLO widgets' labels and lines, what each managed app platform is, a cloud resource's status by its key metrics and the kinds of saving the clouds recommend, a resource's right-sizing from OneUptime's own readings, what an AI action's approval card says and the kinds of resource it names, how an AI remediation round reads, the curated metrics' names, what a monitor's evaluation says and the checks it names, and the checks a table's columns call for", () => {
+  test("cover the Dashboard, the shared UI, the data models, the vCenter collection errors, the security case and playbook catalogs, the AI and cloud connections' catalogs, the shared monitor helpers, a duration in milliseconds, the monitor type cards, a new monitor's default criteria words, the name a guided setup's status page starts with, a monitor template's sync fields, the cron schedule words and its common schedules, what each Setup health finding says, why an email was not sent when the server has no email set up, the placeholders of a playbook's message, what is wrong with a detection rule exception, what is wrong with a watchlist or one of its values, what is wrong with a hunt or why its run could not be made, the Hunt Library's starters, a security connector's Data to import choices, what each of the traces explorer's span types is, a naming rule's placeholders and what is wrong with its pattern or lookup table, why Add or Delete is locked on the Global User Overrides page, what a user override overlaps and why an edit of one is refused, what a dashboard template's chart says while it draws its fallback query, how a change OneUptime AI proposes went before, a cloud change in plain words, a Kubernetes object's status by the cluster's rules, a database's status by its engine's alert lines, what a custom domain's DNS check found and what the server still needs before a custom domain works, what an error nobody explained says to do and where to look, why a RUM application's session recordings are missing, the dashboard SLO widgets' labels and lines, what each managed app platform is, a cloud resource's status by its key metrics and the kinds of saving the clouds recommend, a resource's right-sizing from OneUptime's own readings, what an AI action's approval card says and the kinds of resource it names, how an AI remediation round reads, the curated metrics' names, what a monitor's evaluation says and the checks it names, and the checks a table's columns call for", () => {
     expect(
       SOURCE_ROOTS.map((root: { directory: string; kind: string }) => {
         return `${root.kind} ${root.directory}`;
@@ -1514,10 +1532,14 @@ describe("the real source roots", () => {
       "ui packages/Common/Types/CloudConnection",
       // The monitor pages' shared helpers: hero, uptime, metric groups.
       "ui packages/Common/Utils/Monitor",
+      // A duration in milliseconds: the views' and the overview hero's "{{value}} ms".
+      "ui packages/Common/Utils/Milliseconds.ts",
       // Create Monitor's type cards: each type's title and what it alerts on.
       "ui packages/Common/Types/Monitor/MonitorType.ts",
       // A new monitor's default criteria: names, descriptions, what they open.
       "keys packages/Common/Types/Monitor/MonitorCriteriaInstance.ts",
+      // The name a guided setup's status page starts with (#7247).
+      "keys packages/Common/Utils/GuidedSetup/StatusPageRecords.ts",
       // A template's sync fields: each one's name, and what it keeps together.
       "keys packages/Common/Types/Monitor/MonitorTemplateSyncField.ts",
       // A cron schedule in words.
@@ -1547,6 +1569,9 @@ describe("the real source roots", () => {
       "keys packages/Common/Utils/NetworkDevice/Naming/NamingLookup.ts",
       // Why Add or Delete is locked on the Global User Overrides page.
       "keys packages/Common/Types/OnCallDutyPolicy/GlobalUserOverrideAccess.ts",
+      // What a user override overlaps, and why an edit of one is refused.
+      "keys packages/Common/Types/OnCallDutyPolicy/UserOverrideOverlap.ts",
+      "keys packages/Common/Types/OnCallDutyPolicy/UserOverrideEdit.ts",
       // Why a template's chart draws its fallback query, and where the fix is.
       "keys packages/Common/Types/Dashboard/DashboardTemplateFallbackHints.ts",
       // How a change OneUptime AI proposes went before, where it ran.
@@ -1595,6 +1620,8 @@ describe("the real source roots", () => {
       // What an AI action's approval card says, and the kinds of resource it names.
       "keys packages/Common/Types/AI/AIActionWords.ts",
       "keys packages/Common/Types/AI/AiAffectedResources.ts",
+      // Why OneUptime AI did not start a run someone asked for, by its code.
+      "keys packages/Common/Types/AI/AiRunRefusal.ts",
       // How an AI remediation round reads on the Remediation step.
       "keys packages/Common/Types/AutoRemediation/RemediationRoundName.ts",
       /*

@@ -93,14 +93,17 @@ En varslingsregel sier hvilke hendelser som publiseres i Slack, og hvor. Hvert p
 | **Vakt** | Én liste med regler |
 | **SLOs** | Én liste med regler |
 
-Å opprette en regel går gjennom fire trinn:
+Å opprette en regel går gjennom opptil fem trinn:
 
 | Trinn | Hva du angir |
 | --- | --- |
 | **Grunnleggende** | **Regelnavn** og **Regelbeskrivelse**. |
 | **Betingelser** | Hvilke hendelser regelen gjelder for, for eksempel etter alvorlighetsgrad, tilstand, etikett, monitor eller ord i tittelen. De kontrolleres når en hendelse opprettes, og på nytt ved hver oppdatering OneUptime publiserer om den, så en regel for bekreftede hendelser virker når en hendelse bekreftes. En ny regel gjelder for hver hendelse, for eksempel **Alle hendelser**. For å snevre den inn velger du **Bare hendelser som oppfyller betingelsene** og legger til betingelsene. Med to eller flere sier **Samsvarsbetingelse** om alle må passe, eller om én er nok. |
 | **Mål** | Hvor den publiserer: **Publiser i eksisterende kanaler** med kanalnavnene, **Opprett en kanal for hver hendelse** (eller varsel, episode, planlagt vedlikehold, monitor eller vaktretningslinje) med hvem som blir med i den, eller begge. Under steget sier **Hva denne regelen gjør** det i setninger, som regelens kort. |
+| **Oppdateringer** | Bare hendelser, varsler, episoder, planlagt vedlikehold og vaktpolicyer: hvilke oppdateringer regelen publiserer etter postens første melding. **Alle oppdateringer** publiserer alle, og en ny regel starter med den, unntatt en vaktpolicys. **Bare viktige oppdateringer** publiserer de som betyr mest, som steget lister for hver type post: for en hendelse løsningen eller gjenåpningen av den, endringer i alvorlighetsgrad, offentlige notater og etteranalysen; for en vaktpolicy hvem som har vakt nå, og når ingen har det, som en ny regel for en vaktpolicy starter med. Med **Velg oppdateringer** krysser du av for dem én etter én. Uansett hva du velger, publiserer regelen postens første melding, og en videosamtale når en starter. Se [Vaktmeldinger](#vaktmeldinger). |
 | **Video Call** | Bare hendelser og varsler: start en samtale for hver. Se [Videosamtaler](/docs/workspace-connections/video-calls). |
+
+Hver betingelse leses som en setning: feltet, hvordan det sammenlignes, og verdien. Verdier å velge kommer fra prosjektets egne lister, som tilstander, alvorlighetsgrader, etiketter og monitorer. En regel for vaktpolicyer velger policyene sine under **Vaktpolicy**, som fortsetter å samsvare med en policy etter at den har fått nytt navn, mens **Navn på vaktretningslinje** ser etter ord i navnet til en policy. Hver type hendelse som har eiere, har en eierbetingelse, som **Eier av hendelse**: velg personer og team, så samsvarer den med personene og teamene som er registrert som eiere av hendelsen. Å være med i et team som eier hendelsen, teller ikke. En eier som legges til senere, får regelen til å samsvare fra den oppdateringen, og en regel som oppretter kanaler, oppretter kanalen da. En arkivert verdi, som en alvorlighetsgrad eller en vaktpolicy, tilbys ikke for en ny betingelse. En regel som allerede har en, beholder den, merket **Arkivert**, og samsvarer fortsatt med hendelsene som har den. En person, et team eller en policy som prosjektet ikke lenger har, blir stående i betingelsen, og regelens kort sier fra om det.
 
 En regel for SLO-er publiserer endringene i feilbudsjettpolicyen til et SLO: når SLO-et går inn i et nivå, kommer seg til et mindre alvorlig nivå eller forlater alle nivåer, og når distribusjonene fryses eller tillates igjen. Den publiserer bare i eksisterende kanaler, siden et SLO ikke får noen egen kanal. Se [Publiser i Slack, Microsoft Teams og Mattermost](/docs/slo/error-budget-policy#publiser-i-slack-microsoft-teams-og-mattermost).
 
@@ -112,7 +115,7 @@ En regel oppretter kanalen sin første gang en hendelse samsvarer med den: når 
 
 For en vaktplan i **Inviter også** blir den som ifølge siden til vaktplanen har vakt i den når kanalen opprettes, med i kanalen uten å bli tilkalt. For å legge til personer bare i kanalene til enkelte hendelser gir du en annen regel disse betingelsene og disse personene, med samme **Prefiks for kanalnavn** som den første: regler som samsvarer med en hendelse når kanalen dens opprettes, deler den kanalen, og hver av dem legger til sine egne personer.
 
-Hver senere oppdatering av posten — en tilstandsendring, et notat, en ny eier — publiseres i kanalene dens, og i de eksisterende kanalene reglene dens nevner så lenge betingelsene deres stemmer. Med **Arkiver kanalen når hendelsen er løst** slått på, eller motstykket for varsler, episoder, planlagt vedlikehold, monitorer og vaktretningslinjer, arkiverer regelen som opprettet en kanal, den når posten er løst, fullført eller slettet, uansett hva betingelsene da sier. En hendelse, et varsel eller en episode som ble opprettet allerede løst, får ingen egen kanal; opprettelsesmeldingen går likevel til kanalene reglene dine nevner. Se [Erklært allerede bekreftet eller løst](/docs/incidents/declaring-incidents#erklært-allerede-bekreftet-eller-løst).
+Hver senere oppdatering av posten — en tilstandsendring, et notat, en ny eier — publiseres i kanalene dens, og i de eksisterende kanalene reglene dens nevner så lenge betingelsene deres stemmer, når en regel som publiserer der, velger den i steget **Oppdateringer**. Med **Arkiver kanalen når hendelsen er løst** slått på, eller motstykket for varsler, episoder, planlagt vedlikehold, monitorer og vaktretningslinjer, arkiverer regelen som opprettet en kanal, den når posten er løst, fullført eller slettet, uansett hva betingelsene da sier. En hendelse, et varsel eller en episode som ble opprettet allerede løst, får ingen egen kanal; opprettelsesmeldingen går likevel til kanalene reglene dine nevner. Se [Erklært allerede bekreftet eller løst](/docs/incidents/declaring-incidents#erklært-allerede-bekreftet-eller-løst).
 
 En hendelse, et varsel, en episode eller en planlagt vedlikeholdshendelse med sin egen kanal har **Åpne i Slack** øverst på siden sin i OneUptime, ved siden av tilstandsknappene. Den åpner kanalen i en ny fane, i Slack-appen eller i nettleseren. En post med to egne kanaler viser begge under knappen. En post med kanaler i både Slack og Microsoft Teams har i stedet én knapp, **Åpne kanal**, som viser alle. De eksisterende kanalene reglene dine publiserer i, tilbys ikke.
 
@@ -121,6 +124,29 @@ En kanal holder seg lesbar: hver begivenhet publiseres én gang, og postens før
 **Prosjektinnstillinger** > **Arbeidsområde** > **Slack** viser kanalene OneUptime kan se, med **Send test** ved siden av hver. OneUptime blir selv med i en offentlig kanal første gang den publiserer der. En privat kanal vises, og kan motta publiseringer, først etter at OneUptime-appen er invitert inn i den i Slack.
 
 En varslingsregel kan tilhøre team. **Ansvarlige team** under **Flere felt** forbeholder den teamene du velger: bare medlemmene deres og prosjektadministratorer kan redigere eller slette den, og alle andre som ser reglene, ser den skrivebeskyttet. Se [Regler som tilhører team](/docs/permissions/index#regler-som-tilhører-team).
+
+### Vaktmeldinger
+
+Ved hvert vaktskifte får kanalene til en vaktpolicy vite hvem som har vakt, i én linje:
+
+> 📞 @ana is now on call for Payments until tomorrow at 5:50 PM, then @bob.
+
+- Payments lenker til policyen i OneUptime. Når policyen tilkaller mer enn én tidsplan, nevner linjen også tidsplanen: Payments (Primary).
+- En person nevnes med Slack-navnet sitt når vedkommende har koblet Slack-kontoen sin til OneUptime, og med navnet sitt i OneUptime frem til da. Tidspunkter vises i hver lesers egen tidssone.
+- Når flere av policyens eskaleringsregler tilkaller den samme tidsplanen, publiseres hvert vaktskifte én gang, ikke én gang per regel.
+
+En regel publiserer det den valgte i steget **Oppdateringer**, og en ny regel starter med **Bare viktige oppdateringer**: hvem som har vakt nå, og når ingen har det.
+
+| Oppdatering | Hva kanalen får vite |
+| --- | --- |
+| **Hvem som har vakt nå** | Linjen over, ved hvert vaktskifte. |
+| **Hvem som har vakt neste gang** | Hvem som tar over ved neste vaktskifte, og når: på slutten av den linjen, eller i en egen linje for en regel som ikke publiserer hvem som har vakt nå. |
+| **Ingen har vakt** | En tidsplan som står uten noen på vakt, slik at varsler som når den, ikke tilkaller noen: "⚠️ Nobody is on call for Payments until tomorrow at 5:50 PM, when @bob takes over." |
+| **Brukeroverstyringer** | En overstyring lagt til, endret eller trukket tilbake: hvem som er borte, og hvem som dekker. |
+| **Endringer i policyen** | Tidsplaner, personer og team som er lagt til i eskaleringsreglene eller tatt ut. |
+| **Eiere** | Eiere lagt til og fjernet. |
+
+En kanal får én melding per vaktskifte, også når to regler publiserer i den. En vaktregel som ble lagret før regler valgte oppdateringene sine, publiserer alle, som før.
 
 ## Hvem som er i kanalen til en post
 
@@ -174,7 +200,7 @@ Reager på en melding i kanalen til en hendelse, et varsel, en episode eller en 
 
 | Reaksjon | Lagret som |
 | --- | --- |
-| 📌 En tegnestift-emoji, eller Slacks egen **Pin to channel** | Et privat notat, som bare teamet ditt ser |
+| 📌 En tegnestift-emoji, eller Slacks egen **Pin to channel** | Et privat notat, som bare de som kan se posten, kan lese |
 | 📢 En megafon- eller høyttaler-emoji | Et offentlig notat, vist på statussiden. Bare hendelser og planlagte vedlikeholdsbegivenheter. På en privat hendelse et privat notat, og bekreftelsen sier hvorfor. Når prosjektets offentlige notater krever godkjenning, vises det først når det er godkjent, og bekreftelsen sier hvem det venter på: se [Godkjenning av offentlige notater](/docs/incidents/notes-owners-and-feed#godkjenning-av-offentlige-notater). |
 
 Notatet beholder meldingen slik Slack viste den: formateringen, lenkene og koden, personene og kanalene den nevner, ved navn, og filene og bildene som lenker til dem. Et offentlig notat utelater filene og bildene, siden de bare åpnes for teamet ditt.
@@ -281,7 +307,7 @@ Meldingen til en hendelse har fire knapper, **Acknowledge Incident**, **Resolve 
 | **Change Severity** | Setter alvorlighetsgraden til hendelsen. |
 | **Change Incident State** | Flytter hendelsen til en senere tilstand. |
 | **Assign Role** | Gir noen en rolle i hendelsen, som **Incident Commander**. En rolle for én person går over til vedkommende. |
-| **Page Someone** | Tilkaller personer, et team, den som har vakt i en vaktplan nå, eller en vaktpolicy om hendelsen, med en valgfri melding. Personer tilkalles til en av dem svarer; en policy tilkaller til noen bekrefter hendelsen. |
+| **Page Someone** | Tilkaller personer, et team, den som har vakt i en vaktplan nå, eller en vaktpolicy om hendelsen, med en valgfri melding. Alle den tilkaller, også personene i en policy, tilkalles til en av dem svarer eller hendelsen er løst. |
 | **Edit Custom Fields** | Setter de egendefinerte feltene til hendelsen, hvert fylt ut med det hendelsen har. Et felt som står tomt, tømmes. |
 
 `/oneuptime incident 42` viser hendelse 42, med disse knappene og menyen, i en melding bare du ser. Skriv nummeret slik OneUptime viser det: `42`, `#42` eller `INC-42`. I den egne kanalen til en hendelse viser `/oneuptime incident` alene den hendelsen.

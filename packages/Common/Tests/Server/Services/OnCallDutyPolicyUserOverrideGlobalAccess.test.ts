@@ -24,6 +24,7 @@ import ObjectID from "../../../Types/ObjectID";
 import {
   GLOBAL_USER_OVERRIDE_ADD_REFUSAL,
   GLOBAL_USER_OVERRIDE_DELETE_REFUSAL,
+  GLOBAL_USER_OVERRIDE_EDIT_REFUSAL,
 } from "../../../Types/OnCallDutyPolicy/GlobalUserOverrideAccess";
 import Permission, { UserPermission } from "../../../Types/Permission";
 import UserType from "../../../Types/UserType";
@@ -34,6 +35,7 @@ import {
   installFakeDb,
 } from "../Utils/OnCall/OnCallResolverTestHarness";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import { useUserOverrideTimesInMemory } from "../TestingUtils/UserOverrideTimesInMemory";
 import { getJestSpyOn } from "../../Spy";
 import {
   afterEach,
@@ -289,6 +291,16 @@ beforeEach(() => {
       },
     } as never);
 
+  // Saved under the project's lock on override times, as overlaps are refused.
+  useUserOverrideTimesInMemory({
+    overrides: (): Array<Record<string, unknown>> => {
+      return db.overrides;
+    },
+    users: (): Array<Record<string, unknown>> => {
+      return db.users;
+    },
+  });
+
   // What a saved override sets off: the policy feed and roster refreshes.
   jest
     .spyOn(OnCallDutyPolicyService, "getOnCallDutyPolicyName")
@@ -425,7 +437,11 @@ describe("adding a global override", () => {
 
   test("Project Member and Project Admin over the whole project add one, as before", async () => {
     await addGlobalOverride(asMember(USER_A, [row(Permission.ProjectMember)]));
-    await addGlobalOverride(asMember(USER_A, [row(Permission.ProjectAdmin)]));
+    // For somebody else: one person's global overrides may not overlap.
+    await addGlobalOverride(asMember(USER_A, [row(Permission.ProjectAdmin)]), {
+      away: SAM,
+      covers: USER_A,
+    });
 
     expect(db.overrides).toHaveLength(2);
   });
@@ -791,5 +807,208 @@ describe("deleting a global override", () => {
         props: { isMasterAdmin: true, userId: new ObjectID(USER_A) },
       }),
     ).resolves.toBeTruthy();
+  });
+});
+
+/*
+ * EDITING ONE TAKES THE SAME GRANT (issue #7631): an override can now be
+ * edited - who covers, when it starts and ends - and a global one is
+ * edited only with the permission to edit overrides over the whole
+ * project, as it is added and deleted. An override on a policy is the
+ * policy's: the engine holds the edit to the caller's reach of it.
+ */
+describe("editing a global override", () => {
+  const GLOBAL_OVERRIDE_ID: string = "0d517000-0000-4000-8000-0000000000e1";
+  const POLICY_OVERRIDE_ID: string = "0d517000-0000-4000-8000-0000000000e2";
+
+  // The rows an edit writes, as its hook reads them.
+  const overrideRow: (data: {
+    id: string;
+    policyId?: string | undefined;
+  }) => OnCallDutyPolicyUserOverride = (data: {
+    id: string;
+    policyId?: string | undefined;
+  }): OnCallDutyPolicyUserOverride => {
+    const override: OnCallDutyPolicyUserOverride = anOverride({
+      away: USER_B,
+      covers: USER_A,
+      policyId: data.policyId,
+    });
+    override._id = data.id;
+    return override;
+  };
+
+  // The edit's hook, ending the override a day later than it does.
+  const runUpdateHook: (data: {
+    rows: Array<OnCallDutyPolicyUserOverride>;
+    props: DatabaseCommonInteractionProps;
+  }) => Promise<unknown> = async (data: {
+    rows: Array<OnCallDutyPolicyUserOverride>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<unknown> => {
+    getJestSpyOn(
+      OnCallDutyPolicyUserOverrideService as unknown as Record<
+        string,
+        () => Promise<unknown>
+      >,
+      "findRowsAndHoldUpdateToThem",
+    ).mockResolvedValue(data.rows as never);
+
+    return await (
+      OnCallDutyPolicyUserOverrideService as unknown as {
+        onBeforeUpdate: (updateBy: unknown) => Promise<unknown>;
+      }
+    ).onBeforeUpdate({
+      query: { _id: data.rows[0]?._id },
+      data: { endsAt: OneUptimeDate.addRemoveDays(NEXT_WEEK, 1) },
+      props: data.props,
+    });
+  };
+
+  // How many overrides the hook hands on for the feed: the ones edited.
+  const editedCount: (onUpdate: unknown) => number = (
+    onUpdate: unknown,
+  ): number => {
+    return (onUpdate as { carryForward: { before: Array<unknown> } })
+      .carryForward.before.length;
+  };
+
+  test("a member limited to Team A's label may not edit one: it reaches Team B's policies too", async () => {
+    const refusal: unknown = await refusalOf(
+      runUpdateHook({
+        rows: [overrideRow({ id: GLOBAL_OVERRIDE_ID })],
+        props: asMember(USER_A, [
+          ON_CALL_MEMBER_ON_TEAM_A_LABEL,
+          READS_EVERY_POLICY,
+        ]),
+      }),
+    );
+
+    expect(refusal).toBeInstanceOf(NotAuthorizedException);
+    expect((refusal as Error).message).toBe(GLOBAL_USER_OVERRIDE_EDIT_REFUSAL);
+  });
+
+  test("a member limited to the policies their team owns may not either", async () => {
+    await expect(
+      runUpdateHook({
+        rows: [overrideRow({ id: GLOBAL_OVERRIDE_ID })],
+        props: asMember(USER_A, [ON_CALL_MEMBER_ON_OWNED, READS_EVERY_POLICY]),
+      }),
+    ).rejects.toThrow(GLOBAL_USER_OVERRIDE_EDIT_REFUSAL);
+  });
+
+  test("the single permission to edit overrides, limited to labels, may not either", async () => {
+    await expect(
+      runUpdateHook({
+        rows: [overrideRow({ id: GLOBAL_OVERRIDE_ID })],
+        props: asMember(USER_A, [
+          row(Permission.EditOnCallDutyPolicyUserOverride, {
+            scope: PermissionScope.Labels,
+            labelIds: [TEAM_A_LABEL],
+          }),
+          READS_EVERY_POLICY,
+        ]),
+      }),
+    ).rejects.toThrow(GLOBAL_USER_OVERRIDE_EDIT_REFUSAL);
+  });
+
+  test("the permission to add overrides over the whole project is not the permission to edit them", async () => {
+    await expect(
+      runUpdateHook({
+        rows: [overrideRow({ id: GLOBAL_OVERRIDE_ID })],
+        props: asMember(USER_A, [
+          row(Permission.CreateOnCallDutyPolicyUserOverride),
+          READS_EVERY_POLICY,
+        ]),
+      }),
+    ).rejects.toThrow(GLOBAL_USER_OVERRIDE_EDIT_REFUSAL);
+  });
+
+  test("an edit that takes a global override with an override on a policy is refused whole", async () => {
+    await expect(
+      runUpdateHook({
+        rows: [
+          overrideRow({ id: POLICY_OVERRIDE_ID, policyId: TEAM_A_POLICY }),
+          overrideRow({ id: GLOBAL_OVERRIDE_ID }),
+        ],
+        props: asMember(USER_A, [ON_CALL_MEMBER_ON_TEAM_A_LABEL]),
+      }),
+    ).rejects.toThrow(GLOBAL_USER_OVERRIDE_EDIT_REFUSAL);
+  });
+
+  test("a member limited to Team A's label still edits an override on a policy: the record rule holds it to the policy", async () => {
+    expect(
+      editedCount(
+        await runUpdateHook({
+          rows: [
+            overrideRow({ id: POLICY_OVERRIDE_ID, policyId: TEAM_A_POLICY }),
+          ],
+          props: asMember(USER_A, [ON_CALL_MEMBER_ON_TEAM_A_LABEL]),
+        }),
+      ),
+    ).toBe(1);
+  });
+
+  test("a member over the whole project edits one", async () => {
+    expect(
+      editedCount(
+        await runUpdateHook({
+          rows: [overrideRow({ id: GLOBAL_OVERRIDE_ID })],
+          props: asMember(USER_A, [ON_CALL_MEMBER]),
+        }),
+      ),
+    ).toBe(1);
+  });
+
+  test("the single permission to edit overrides, over the whole project, edits one", async () => {
+    expect(
+      editedCount(
+        await runUpdateHook({
+          rows: [overrideRow({ id: GLOBAL_OVERRIDE_ID })],
+          props: asMember(USER_A, [
+            row(Permission.EditOnCallDutyPolicyUserOverride),
+            READS_EVERY_POLICY,
+          ]),
+        }),
+      ),
+    ).toBe(1);
+  });
+
+  test("an API key over the whole project edits one; limited to a label it may not", async () => {
+    expect(
+      editedCount(
+        await runUpdateHook({
+          rows: [overrideRow({ id: GLOBAL_OVERRIDE_ID })],
+          props: asApiKey([ON_CALL_MEMBER]),
+        }),
+      ),
+    ).toBe(1);
+
+    await expect(
+      runUpdateHook({
+        rows: [overrideRow({ id: GLOBAL_OVERRIDE_ID })],
+        props: asApiKey([ON_CALL_MEMBER_ON_TEAM_A_LABEL, READS_EVERY_POLICY]),
+      }),
+    ).rejects.toThrow(GLOBAL_USER_OVERRIDE_EDIT_REFUSAL);
+  });
+
+  test("OneUptime itself and a master admin edit one", async () => {
+    expect(
+      editedCount(
+        await runUpdateHook({
+          rows: [overrideRow({ id: GLOBAL_OVERRIDE_ID })],
+          props: { isRoot: true },
+        }),
+      ),
+    ).toBe(1);
+
+    expect(
+      editedCount(
+        await runUpdateHook({
+          rows: [overrideRow({ id: GLOBAL_OVERRIDE_ID })],
+          props: { isMasterAdmin: true, userId: new ObjectID(USER_A) },
+        }),
+      ),
+    ).toBe(1);
   });
 });

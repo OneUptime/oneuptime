@@ -93,14 +93,17 @@ En aviseringsregel anger vilka händelser som publiceras i Slack, och var. Varje
 | **Jour** | En lista med regler |
 | **SLOs** | En lista med regler |
 
-Att skapa en regel går igenom fyra steg:
+Att skapa en regel går igenom upp till fem steg:
 
 | Steg | Vad du anger |
 | --- | --- |
 | **Grundläggande** | **Regelnamn** och **Regelbeskrivning**. |
 | **Villkor** | Vilka händelser regeln gäller, till exempel efter allvarlighetsgrad, tillstånd, etikett, monitor eller ord i titeln. De kontrolleras när en händelse skapas och igen vid varje uppdatering som OneUptime publicerar om den, så en regel för bekräftade incidenter verkar när en incident bekräftas. En ny regel gäller varje händelse, till exempel **Alla incidenter**. För att snäva in den väljer du **Endast incidenter som uppfyller villkoren** och lägger till villkoren. Med två eller fler anger **Matchningsvillkor** om alla måste matcha, eller om det räcker med ett. |
 | **Mål** | Var den publicerar: **Publicera i befintliga kanaler** med kanalnamnen, **Skapa en kanal för varje incident** (eller larm, episod, händelse, monitor eller jourpolicy) med vilka som går med i den, eller båda. Under steget säger **Vad regeln gör** det i meningar, som regelns kort. |
+| **Uppdateringar** | Endast incidenter, larm, episoder, schemalagt underhåll och jourpolicyer: vilka uppdateringar regeln publicerar efter postens första meddelande. **Alla uppdateringar** publicerar alla, och en ny regel börjar med det, utom en jourpolicys. **Bara viktiga uppdateringar** publicerar dem som betyder mest, som steget listar för varje slags post: för en incident att den löses eller öppnas igen, ändringar av allvarlighetsgrad, offentliga anteckningar och efteranalysen; för en jourpolicy vem som har jour nu och när ingen har det, som en ny regel för en jourpolicy börjar med. Med **Välj uppdateringar** bockar du för dem en i taget. Vad du än väljer publicerar regeln postens första meddelande, och ett videosamtal när ett startar. Se [Jourmeddelanden](#jourmeddelanden). |
 | **Video Call** | Endast incidenter och larm: starta ett samtal för var och en. Se [Videosamtal](/docs/workspace-connections/video-calls). |
+
+Varje villkor läses som en mening: fältet, hur det jämförs och värdet. Värden att välja kommer från projektets egna listor, som dess tillstånd, allvarlighetsgrader, etiketter och monitorer. En regel för jourpolicyer väljer sina policyer under **Jourpolicy**, som fortsätter att matcha en policy efter att den har bytt namn, medan **Namn på jourpolicy** matchar ord i en policys namn. Varje sorts händelse som har ägare har ett ägarvillkor, som **Ägare av incident**: välj personer och team, så matchar det de personer och team som är registrerade som händelsens ägare. Att vara med i ett team som äger händelsen räknas inte. En ägare som läggs till senare får regeln att matcha från den uppdateringen, och en regel som skapar kanaler skapar kanalen då. Ett arkiverat värde, som en allvarlighetsgrad eller en jourpolicy, erbjuds inte för ett nytt villkor. En regel som redan har ett behåller det, märkt **Arkiverad**, och matchar fortfarande de händelser som har det. En person, ett team eller en policy som projektet inte längre har stannar kvar i villkoret, och regelns kort säger det.
 
 Ett SLO:s regel publicerar ändringarna i dess felbudgetpolicy: när SLO:et går in i en nivå, återhämtar sig till en mindre allvarlig nivå eller lämnar alla nivåer, och när dess distributioner fryses eller tillåts igen. Den publicerar bara i befintliga kanaler, eftersom ett SLO inte får någon egen kanal. Se [Publicera i Slack, Microsoft Teams och Mattermost](/docs/slo/error-budget-policy#publicera-i-slack-microsoft-teams-och-mattermost).
 
@@ -112,7 +115,7 @@ En regel skapar sin kanal första gången en händelse matchar den: när händel
 
 För ett jourschema i **Bjud också in** går den som har jour i schemat när kanalen skapas med i den, så som schemats sida visar, utan att larmas. För att bara lägga till personer i vissa incidenters kanaler ger du en andra regel de villkoren och de personerna, med samma **Prefix för kanalnamn** som den första: regler som matchar en incident när dess kanal skapas delar på den kanalen, och var och en lägger till sina egna personer.
 
-Varje senare uppdatering av posten — en tillståndsändring, en anteckning, en ny ägare — publiceras i dess kanaler, och i de befintliga kanaler som dess regler anger så länge deras villkor stämmer. Med **Arkivera kanalen när incidenten är löst** påslagen, eller dess motsvarighet för larm, episoder, händelser, monitorer och jourpolicyer, arkiverar regeln som skapade en kanal den när posten är löst, slutförd eller borttagen, vad dess villkor än säger då. En incident, ett larm eller en episod som skapades redan löst får ingen egen kanal; skapandemeddelandet går ändå till de kanaler som dina regler anger. Se [Deklarerad redan bekräftad eller löst](/docs/incidents/declaring-incidents#deklarerad-redan-bekräftad-eller-löst).
+Varje senare uppdatering av posten — en tillståndsändring, en anteckning, en ny ägare — publiceras i dess kanaler, och i de befintliga kanaler som dess regler anger så länge deras villkor stämmer, när en regel som publicerar där väljer den i sitt steg **Uppdateringar**. Med **Arkivera kanalen när incidenten är löst** påslagen, eller dess motsvarighet för larm, episoder, händelser, monitorer och jourpolicyer, arkiverar regeln som skapade en kanal den när posten är löst, slutförd eller borttagen, vad dess villkor än säger då. En incident, ett larm eller en episod som skapades redan löst får ingen egen kanal; skapandemeddelandet går ändå till de kanaler som dina regler anger. Se [Deklarerad redan bekräftad eller löst](/docs/incidents/declaring-incidents#deklarerad-redan-bekräftad-eller-löst).
 
 En incident, ett larm, en episod eller en schemalagd underhållshändelse med en egen kanal har **Öppna i Slack** i sidhuvudet på sin sida i OneUptime, bredvid tillståndsknapparna. Den öppnar kanalen i en ny flik, i Slack-appen eller i webbläsaren. En post med två egna kanaler listar båda under knappen. En post med kanaler i både Slack och Microsoft Teams har i stället en knapp, **Öppna kanal**, som listar alla. De befintliga kanaler som dina regler publicerar i erbjuds inte.
 
@@ -121,6 +124,29 @@ En kanal förblir läsbar: varje händelse publiceras en gång, och postens för
 **Projektinställningar** > **Arbetsyta** > **Slack** visar de kanaler som OneUptime kan se, med **Skicka test** bredvid var och en. OneUptime går själv med i en offentlig kanal första gången den publicerar där. En privat kanal visas, och kan ta emot publiceringar, först när OneUptime-appen har bjudits in till den i Slack.
 
 En aviseringsregel kan tillhöra team. **Ansvariga team** under **Fler fält** förbehåller den de team du väljer: bara deras medlemmar och projektadministratörer kan redigera eller ta bort den, och alla andra som ser reglerna ser den skrivskyddad. Se [Regler som tillhör team](/docs/permissions/index#regler-som-tillhör-team).
+
+### Jourmeddelanden
+
+Vid varje överlämning får en jourpolicys kanaler veta vem som har jour, på en rad:
+
+> 📞 @ana is now on call for Payments until tomorrow at 5:50 PM, then @bob.
+
+- Payments länkar till policyn i OneUptime. När policyn larmar mer än ett schema nämner raden också schemat: Payments (Primary).
+- En person nämns med sitt Slack-namn när hen har kopplat sitt Slack-konto till OneUptime, och med sitt namn i OneUptime fram till dess. Tider visas i varje läsares egen tidszon.
+- När flera av policyns eskaleringsregler larmar samma schema publiceras varje överlämning en gång, inte en gång per regel.
+
+En regel publicerar det den valde i sitt steg **Uppdateringar**, och en ny regel börjar med **Bara viktiga uppdateringar**: vem som har jour nu, och när ingen har det.
+
+| Uppdatering | Vad kanalen får veta |
+| --- | --- |
+| **Vem som har jour nu** | Raden ovan, vid varje överlämning. |
+| **Vem som har jour härnäst** | Vem som tar över vid nästa överlämning, och när: i slutet av den raden, eller på en egen rad för en regel som inte publicerar vem som har jour nu. |
+| **Ingen har jour** | Ett schema som står utan någon som har jour, så att larm som når det inte larmar någon: "⚠️ Nobody is on call for Payments until tomorrow at 5:50 PM, when @bob takes over." |
+| **Användaråsidosättningar** | En åsidosättning som lagts till, ändrats eller dragits tillbaka: vem som är borta, och vem som täcker upp. |
+| **Ändringar i policyn** | Scheman, personer och team som lagts till i dess eskaleringsregler eller tagits bort. |
+| **Ägare** | Ägare som lagts till och tagits bort. |
+
+En kanal får ett meddelande per överlämning, även när två regler publicerar i den. En jourregel som sparades innan regler valde sina uppdateringar publicerar alla, som förut.
 
 ## Vem som är i en posts kanal
 
@@ -174,7 +200,7 @@ Reagera på ett meddelande i kanalen för en incident, ett larm, en episod eller
 
 | Reaktion | Sparas som |
 | --- | --- |
-| 📌 En häftstift-emoji, eller Slacks egen **Pin to channel** | En privat anteckning, som bara ditt team ser |
+| 📌 En häftstift-emoji, eller Slacks egen **Pin to channel** | En privat anteckning, som bara de som kan se posten kan läsa |
 | 📢 En megafon- eller högtalar-emoji | En offentlig anteckning, som visas på statussidan. Endast incidenter och schemalagda underhållshändelser. På en privat incident en privat anteckning, och bekräftelsen säger varför. När projektets offentliga anteckningar kräver godkännande visas den först när den har godkänts, och bekräftelsen säger vem den väntar på: se [Godkännande av offentliga anteckningar](/docs/incidents/notes-owners-and-feed#godkännande-av-offentliga-anteckningar). |
 
 Anteckningen behåller meddelandet så som Slack visade det: formateringen, länkarna och koden, personerna och kanalerna det nämner, med namn, och filerna och bilderna som länkar till dem. En offentlig anteckning utelämnar filerna och bilderna, eftersom de bara öppnas för ditt team.
@@ -281,7 +307,7 @@ En incidents meddelande har fyra knappar, **Acknowledge Incident**, **Resolve In
 | **Change Severity** | Anger incidentens allvarlighetsgrad. |
 | **Change Incident State** | Flyttar incidenten till ett senare tillstånd. |
 | **Assign Role** | Ger någon en roll i incidenten, som **Incident Commander**. En roll för en person går över till den personen. |
-| **Page Someone** | Larmar personer, ett team, den som har jour i ett schema just nu, eller en jourpolicy om incidenten, med ett valfritt meddelande. Personer larmas tills någon av dem svarar; en policy larmar tills någon bekräftar incidenten. |
+| **Page Someone** | Larmar personer, ett team, den som har jour i ett schema just nu, eller en jourpolicy om incidenten, med ett valfritt meddelande. Alla som den larmar, även personerna i en policy, larmas tills någon av dem svarar eller incidenten är löst. |
 | **Edit Custom Fields** | Anger incidentens anpassade fält, vart och ett ifyllt med det incidenten har. Ett fält som lämnas tomt rensas. |
 
 `/oneuptime incident 42` visar incident 42, med de här knapparna och dess meny, i ett meddelande som bara du ser. Skriv numret som OneUptime visar det: `42`, `#42` eller `INC-42`. I en incidents egen kanal visar `/oneuptime incident` ensamt den incidenten.

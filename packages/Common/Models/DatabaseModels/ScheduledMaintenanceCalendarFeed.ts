@@ -114,7 +114,7 @@ const updatePermissions: Array<Permission> = [
   pluralName: "Scheduled Maintenance Calendar Feeds",
   icon: IconProp.Calendar,
   tableDescription:
-    "The team's calendar link that puts every scheduled maintenance event of the project in a calendar app.",
+    "The team's calendar link that puts every maintenance event of the project in a calendar app.",
 })
 @Index(["projectId"], { unique: true })
 export default class ScheduledMaintenanceCalendarFeed extends BaseModel {

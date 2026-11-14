@@ -42,6 +42,13 @@
     "errorOnSignUp": "Voltooi de captcha-uitdaging voordat u zich registreert."
   },
   "login": {
+    "title": "Meld u aan bij uw account",
+    "subtitle": "Gebruik je wachtwoord, de SSO van je organisatie of een passkey.",
+    "sessionEnded": {
+      "lengthReached": "Je bent afgemeld omdat je sessie de tijdslimiet heeft bereikt. Meld je opnieuw aan om verder te gaan waar je gebleven was.",
+      "inactive": "Je bent afgemeld na een periode zonder activiteit. Meld je opnieuw aan om verder te gaan waar je gebleven was."
+    },
+    "submitButton": "Inloggen",
     "passkey": {
       "signIn": "Inloggen met een passkey",
       "inProgress": "Voltooi of annuleer het inloggen met een passkey voordat je je wachtwoord gebruikt.",
@@ -57,13 +64,6 @@
       "insecure": "Passkeys vereisen een beveiligde verbinding (HTTPS). Je kunt je nog steeds aanmelden met je wachtwoord of SSO.",
       "tryAgain": "Passkey opnieuw proberen"
     },
-    "title": "Meld u aan bij uw account",
-    "subtitle": "Gebruik je wachtwoord, de SSO van je organisatie of een passkey.",
-    "sessionEnded": {
-      "lengthReached": "Je bent afgemeld omdat je sessie de tijdslimiet heeft bereikt. Meld je opnieuw aan om verder te gaan waar je gebleven was.",
-      "inactive": "Je bent afgemeld na een periode zonder activiteit. Meld je opnieuw aan om verder te gaan waar je gebleven was."
-    },
-    "submitButton": "Inloggen",
     "forgotPassword": "Wachtwoord vergeten?",
     "signInWithSso": "Inloggen met SSO",
     "signInWithMicrosoft": "Inloggen met Microsoft",
@@ -397,6 +397,9 @@
   "Copy": "Kopiëren",
   "Copied!": "Gekopieerd!",
   "Copy failed": "Kopiëren mislukt",
+  "Hide": "Verbergen",
+  "Click to reveal": "Klik om te tonen",
+  "Click to copy": "Klik om te kopiëren",
   "SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.": "SCIM-provisioning stopt, auditlogging registreert niets meer, de enterpriseconfiguratie wordt alleen-lezen en de enterprise-beheerdashboards worden vergrendeld. Alles werkt weer zodra een licentie is geactiveerd, en de kernmonitoring wordt nooit geraakt.",
   "Without a valid license (after the {{days}}-day trial), SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.": "Zonder geldige licentie (na de proefperiode van {{days}} dagen) stopt SCIM-provisioning, registreert auditlogging niets meer, wordt de enterpriseconfiguratie alleen-lezen en worden de enterprise-beheerdashboards vergrendeld. Alles werkt weer zodra een licentie is geactiveerd, en de kernmonitoring wordt nooit geraakt.",
   "Without a valid license (after the {{days}}-day grace period), SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.": "Zonder geldige licentie (na de respijtperiode van {{days}} dagen) stopt SCIM-provisioning, registreert auditlogging niets meer, wordt de enterpriseconfiguratie alleen-lezen en worden de enterprise-beheerdashboards vergrendeld. Alles werkt weer zodra een licentie is geactiveerd, en de kernmonitoring wordt nooit geraakt.",
@@ -607,7 +610,8 @@
   "Click to choose a file or drag & drop.": "Klik om een bestand te kiezen of sleep het hierheen.",
   "Click to add more or drag & drop.": "Klik om meer toe te voegen of sleep ze hierheen.",
   "PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP, up to {{size}}.": "PDF-, Office- en OpenDocument-bestanden, afbeeldingen, tekst, CSV, JSON, ZIP of PCAP, tot {{size}}.",
-  "Up to 10 files of {{size}} each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.": "Tot 10 bestanden van elk {{size}}: PDF-, Office- en OpenDocument-bestanden, afbeeldingen, tekst, CSV, JSON, ZIP of PCAP.",
+  "Up to {{count}} files of {{size}} each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.": "Tot {{count}} bestanden van elk {{size}}: PDF-, Office- en OpenDocument-bestanden, afbeeldingen, tekst, CSV, JSON, ZIP of PCAP.",
+  "Up to {{count}} files of {{size}} each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP._one": "Eén bestand van maximaal {{size}}: PDF-, Office- en OpenDocument-bestanden, afbeeldingen, tekst, CSV, JSON, ZIP of PCAP.",
   "Chosen files": "Gekozen bestanden",
   "Remove": "Verwijderen",
   "Replace": "Vervangen",
@@ -618,6 +622,7 @@
   "These files are not a type this field takes: {{fileNames}}.": "Deze bestanden hebben een type dat dit veld niet accepteert: {{fileNames}}.",
   "Add one file at a time.": "Voeg één bestand tegelijk toe.",
   "This field holds up to {{count}} files. Remove one to add another.": "Dit veld bevat maximaal {{count}} bestanden. Verwijder er een om een ander toe te voegen.",
+  "This field holds up to {{count}} files. Remove one to add another._one": "Dit veld bevat één bestand. Verwijder het om een ander toe te voegen.",
   "markdownCallouts": {
     "caution": "Let op",
     "danger": "Gevaar",

@@ -345,15 +345,16 @@ test(
 
     // One per operator-controllable ingest location: /telemetry, /otlp,
     // /opamp/, /kubernetes-cost, /security-events, /session-replay,
-    // /pyroscope and /source-maps in the primary ingress, plus /otlp and
-    // /telemetry in each of the two status-page servers (GH#3978).
+    // /pyroscope, /source-maps and /services/collector (Splunk HEC's root
+    // paths) in the primary ingress, plus /otlp and /telemetry in each of the
+    // two status-page servers (GH#3978).
     assert.equal(
       (
         rendered.match(
           /access_log \/var\/log\/nginx\/access\.log main buffer=64k flush=10s if=\$ingest_access_log;/g,
         ) || []
       ).length,
-      12,
+      13,
     );
 
     // The {8,} repetition quantifier in the immutable location's regex must not

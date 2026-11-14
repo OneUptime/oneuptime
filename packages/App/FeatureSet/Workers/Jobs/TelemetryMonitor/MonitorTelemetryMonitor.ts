@@ -194,6 +194,12 @@ import { getStorageArrayMetric } from "Common/Types/Monitor/StorageArrayMetricCa
 import { getDockerSwarmMetricByMetricName } from "Common/Types/Monitor/DockerSwarmMetricCatalog";
 import { JSONObject } from "Common/Types/JSON";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import JobDeadline from "Common/Server/Utils/JobDeadline";
+import {
+  KeysetPagesResult,
+  forEachKeysetPage,
+  forEachWithConcurrency,
+} from "../../Utils/BatchedWork";
 import TelemetryQueueService, {
   TelemetryMonitorEvaluationJobData,
 } from "../../../Telemetry/Services/Queue/TelemetryQueueService";
@@ -226,155 +232,210 @@ type TelemetryMonitorResponse =
   | ExceptionMonitorResponse
   | ProfileMonitorResponse;
 
-export const enqueueDueTelemetryMonitorEvaluationJobs: () => Promise<void> =
-  async (): Promise<void> => {
-    logger.debug("Checking TelemetryMonitor:MonitorTelemetryMonitor", {
-      service: "workers",
-    });
+/*
+ * How many due telemetry monitors one page of the scheduler reads, stamps
+ * with one UPDATE and queues; and how many of a page's evaluation jobs are
+ * queued at once.
+ */
+export const TELEMETRY_SCHEDULE_PAGE_SIZE: number = 500;
+export const TELEMETRY_SCHEDULE_ENQUEUE_CONCURRENCY: number = 25;
 
-    const telemetryMonitors: Array<Monitor> = await MonitorService.findAllBy({
-      query: {
-        ...MonitorService.getEnabledMonitorQuery(),
+// When a telemetry monitor is next due, from the moment it was scheduled.
+export const getTelemetryMonitorNextMonitorAt: (data: {
+  monitor: Monitor;
+  now: Date;
+}) => Date = (data: { monitor: Monitor; now: Date }): Date => {
+  const oneMinuteLater: Date = OneUptimeDate.addRemoveMinutes(data.now, 1);
 
-        monitorType: DatabaseQueryHelper.any(
-          MonitorTypeHelper.getTelemetryMonitorTypes(),
-        ),
-        telemetryMonitorNextMonitorAt:
-          DatabaseQueryHelper.lessThanEqualToOrNull(
-            OneUptimeDate.getCurrentDate(),
-          ),
-        /*
-         * Not a project a master admin blocked: its monitors wait, due, until
-         * it is unblocked (MonitorResource refuses any that slip through).
-         * Nor a sample project (issue #6808), whose monitors are never
-         * checked.
-         */
-        project: {
-          isBlocked: false,
-          isSampleProject: false,
+  /*
+   * Same reading of the column as the probe scheduler uses, so a telemetry
+   * monitor storing a human cadence ("5m") is not quietly pinned to a
+   * 1-minute poll the way probe monitors were.
+   */
+  if (!data.monitor.monitoringInterval) {
+    return oneMinuteLater;
+  }
+
+  return MonitorProbeService.resolveNextPingAt({
+    monitoringInterval: data.monitor.monitoringInterval as string,
+    fallback: oneMinuteLater,
+    onUnreadable: () => {
+      logger.error(
+        `MonitorTelemetryMonitor: monitoringInterval "${data.monitor.monitoringInterval}" cannot be read as a schedule; falling back to a 1-minute cadence.`,
+        {
+          service: "workers",
+          projectId: data.monitor.projectId?.toString(),
         },
-      },
-      props: {
-        isRoot: true,
-      },
-      /*
-       * What scheduling needs, and not the monitor's steps. The sweep used to
-       * read every due monitor's monitorSteps - its whole JSON from Postgres,
-       * and 25 to 35 microseconds to turn into a MonitorSteps each - every
-       * minute, only to leave a monitor without steps unqueued, and the
-       * evaluation job reads the same steps again and skips such a monitor
-       * itself (processTelemetryMonitorEvaluationFromQueue). So every due
-       * monitor is queued, and a monitor without steps (made through the API
-       * without any, as the Dashboard never makes one) costs one job a minute
-       * that ends at its first check.
-       */
-      select: {
-        _id: true,
-        createdAt: true,
-        monitoringInterval: true,
-        monitorType: true,
-        projectId: true,
-      },
-    });
-
-    const updatePromises: Array<Promise<void>> = [];
-
-    for (const telemetryMonitor of telemetryMonitors) {
-      let nextPing: Date = OneUptimeDate.addRemoveMinutes(
-        OneUptimeDate.getCurrentDate(),
-        1,
       );
+    },
+  });
+};
 
-      /*
-       * Same reading of the column as the probe scheduler uses, so a
-       * telemetry monitor storing a human cadence ("5m") is not quietly
-       * pinned to a 1-minute poll the way probe monitors were.
-       */
-      if (telemetryMonitor.monitoringInterval) {
-        nextPing = MonitorProbeService.resolveNextPingAt({
-          monitoringInterval: telemetryMonitor.monitoringInterval as string,
-          fallback: nextPing,
-          onUnreadable: () => {
-            logger.error(
-              `MonitorTelemetryMonitor: monitoringInterval "${telemetryMonitor.monitoringInterval}" cannot be read as a schedule; falling back to a 1-minute cadence.`,
-              {
-                service: "workers",
-                projectId: telemetryMonitor.projectId?.toString(),
-              },
-            );
+/*
+ * Stamps a page of due telemetry monitors as scheduled: when they were last
+ * scheduled (now) and when each is next due. One UPDATE per next-due time -
+ * nearly always one for the whole page, as most monitors check every minute
+ * - where the scheduler used to send one UPDATE per monitor, every minute,
+ * all at once.
+ *
+ * Scheduler bookkeeping, so a single statement with no hooks: the full
+ * update pipeline would cost ~4 statements per monitor and - because
+ * Monitor has @EnableWorkflow + @EnableAuditLog - an on-update workflow
+ * trigger and an audit entry per monitor per minute. updatedAt is refreshed,
+ * as the write it replaces refreshed it.
+ */
+export const stampTelemetryMonitorsScheduled: (data: {
+  lastMonitorAt: Date;
+  monitors: Array<{ id: ObjectID; nextMonitorAt: Date }>;
+}) => Promise<void> = async (data: {
+  lastMonitorAt: Date;
+  monitors: Array<{ id: ObjectID; nextMonitorAt: Date }>;
+}): Promise<void> => {
+  const idsByNextMonitorAt: Map<number, Array<string>> = new Map();
+
+  for (const monitor of data.monitors) {
+    const nextMonitorAtMs: number = monitor.nextMonitorAt.getTime();
+    const ids: Array<string> = idsByNextMonitorAt.get(nextMonitorAtMs) || [];
+    ids.push(monitor.id.toString());
+    idsByNextMonitorAt.set(nextMonitorAtMs, ids);
+  }
+
+  for (const [nextMonitorAtMs, ids] of idsByNextMonitorAt) {
+    await MonitorService.getRepository().manager.query(
+      `UPDATE "Monitor" SET "telemetryMonitorLastMonitorAt" = $1, "telemetryMonitorNextMonitorAt" = $2, "updatedAt" = CURRENT_TIMESTAMP WHERE "_id" = ANY($3::uuid[])`,
+      [data.lastMonitorAt, new Date(nextMonitorAtMs), ids],
+    );
+  }
+};
+
+/*
+ * THE TELEMETRY MONITOR SCHEDULER, every minute: every telemetry monitor
+ * that is due is stamped with when it is next due and has its evaluation
+ * queued (processTelemetryMonitorEvaluationFromQueue).
+ *
+ * A page at a time, in _id order (forEachKeysetPage): each page is read,
+ * stamped with one UPDATE, and its jobs queued a few at a time, before the
+ * next is read. The scheduler used to read every due monitor, then send one
+ * UPDATE per monitor and queue every job, all at the same moment. It stops
+ * between pages at its deadline: the monitors it did not reach are still
+ * due, and the next run starts with them.
+ */
+export const enqueueDueTelemetryMonitorEvaluationJobs: (
+  deadline?: JobDeadline,
+) => Promise<void> = async (
+  deadline: JobDeadline = JobDeadline.none(),
+): Promise<void> => {
+  logger.debug("Checking TelemetryMonitor:MonitorTelemetryMonitor", {
+    service: "workers",
+  });
+
+  const now: Date = OneUptimeDate.getCurrentDate();
+
+  const result: KeysetPagesResult = await forEachKeysetPage<Monitor>({
+    jobName: "TelemetryMonitor:MonitorTelemetryMonitor",
+    pageSize: TELEMETRY_SCHEDULE_PAGE_SIZE,
+    deadline: deadline,
+    getId: (monitor: Monitor): ObjectID | null => {
+      return monitor.id;
+    },
+    readPage: (afterId: ObjectID | null): Promise<Array<Monitor>> => {
+      return MonitorService.findBy({
+        query: {
+          ...MonitorService.getEnabledMonitorQuery(),
+
+          monitorType: DatabaseQueryHelper.any(
+            MonitorTypeHelper.getTelemetryMonitorTypes(),
+          ),
+          telemetryMonitorNextMonitorAt:
+            DatabaseQueryHelper.lessThanEqualToOrNull(now),
+          /*
+           * Not a project a master admin blocked: its monitors wait, due,
+           * until it is unblocked (MonitorResource refuses any that slip
+           * through). Nor a sample project (issue #6808), whose monitors are
+           * never checked.
+           */
+          project: {
+            isBlocked: false,
+            isSampleProject: false,
           },
-        });
-      }
-
-      /*
-       * Scheduler bookkeeping stamp, written for every due telemetry/infra
-       * monitor every minute. The full updateOneById pipeline costs ~4
-       * statements and — because Monitor has @EnableWorkflow +
-       * @EnableAuditLog — fires an on-update workflow HTTP trigger and an
-       * audit entry per monitor per tick. A scheduling timestamp should do
-       * none of that; single-statement UPDATE, same pattern as the heartbeat
-       * writes in MonitorResource.ts.
-       */
-      updatePromises.push(
-        MonitorService.updateColumnsByIdWithoutHooks({
-          id: telemetryMonitor.id!,
-          data: {
-            telemetryMonitorLastMonitorAt: OneUptimeDate.getCurrentDate(),
-            telemetryMonitorNextMonitorAt: nextPing,
+          ...(afterId ? { _id: DatabaseQueryHelper.greaterThan(afterId) } : {}),
+        },
+        props: {
+          isRoot: true,
+        },
+        /*
+         * What scheduling needs, and not the monitor's steps. The sweep used
+         * to read every due monitor's monitorSteps - its whole JSON from
+         * Postgres, and 25 to 35 microseconds to turn into a MonitorSteps
+         * each - every minute, only to leave a monitor without steps
+         * unqueued, and the evaluation job reads the same steps again and
+         * skips such a monitor itself
+         * (processTelemetryMonitorEvaluationFromQueue). So every due monitor
+         * is queued, and a monitor without steps (made through the API
+         * without any, as the Dashboard never makes one) costs one job a
+         * minute that ends at its first check.
+         */
+        select: {
+          _id: true,
+          createdAt: true,
+          monitoringInterval: true,
+          monitorType: true,
+          projectId: true,
+        },
+        sort: {
+          _id: SortOrder.Ascending,
+        },
+        skip: 0,
+        limit: TELEMETRY_SCHEDULE_PAGE_SIZE,
+      });
+    },
+    onPage: async (telemetryMonitors: Array<Monitor>): Promise<void> => {
+      await stampTelemetryMonitorsScheduled({
+        lastMonitorAt: now,
+        monitors: telemetryMonitors.map(
+          (monitor: Monitor): { id: ObjectID; nextMonitorAt: Date } => {
+            return {
+              id: monitor.id!,
+              nextMonitorAt: getTelemetryMonitorNextMonitorAt({
+                monitor: monitor,
+                now: now,
+              }),
+            };
           },
-        }),
-      );
-    }
+        ),
+      });
 
-    await Promise.all(updatePromises);
-
-    logger.debug(`Found ${telemetryMonitors.length} telemetry monitors`, {
-      service: "workers",
-    });
-
-    logger.debug(telemetryMonitors, { service: "workers" });
-
-    const enqueueTasks: Array<{
-      monitor: Monitor;
-      run: () => Promise<void>;
-    }> = [];
-
-    // The evaluation job skips a monitor without steps (see the select above).
-    for (const monitor of telemetryMonitors) {
-      enqueueTasks.push({
-        monitor,
-        run: () => {
+      // The evaluation job skips a monitor without steps (see the select above).
+      await forEachWithConcurrency<Monitor>({
+        items: telemetryMonitors,
+        concurrency: TELEMETRY_SCHEDULE_ENQUEUE_CONCURRENCY,
+        work: (monitor: Monitor): Promise<void> => {
           return TelemetryQueueService.addTelemetryMonitorEvaluationJob({
             monitorId: monitor.id!,
             projectId: monitor.projectId!,
           });
         },
+        onError: (monitor: Monitor, error: unknown): void => {
+          const attrs: LogAttributes = {
+            projectId: monitor.projectId?.toString(),
+          };
+          logger.error(
+            `Error while enqueueing telemetry monitor evaluation: ${monitor.id?.toString()}`,
+            attrs,
+          );
+          logger.error(error, attrs);
+        },
       });
-    }
+    },
+  });
 
-    const settledEnqueues: Array<PromiseSettledResult<void>> =
-      await Promise.allSettled(
-        enqueueTasks.map(
-          (task: { monitor: Monitor; run: () => Promise<void> }) => {
-            return task.run();
-          },
-        ),
-      );
-
-    for (const [index, settledEnqueue] of settledEnqueues.entries()) {
-      if (settledEnqueue.status === "rejected") {
-        const monitor: Monitor | undefined = enqueueTasks[index]?.monitor;
-        const attrs: LogAttributes = {
-          projectId: monitor?.projectId?.toString(),
-        };
-        logger.error(
-          `Error while enqueueing telemetry monitor evaluation: ${monitor?.id?.toString()}`,
-          attrs,
-        );
-        logger.error(settledEnqueue.reason, attrs);
-      }
-    }
-  };
+  logger.debug(
+    `Scheduled ${result.rows} telemetry monitors in ${result.pages} pages${
+      result.stoppedAtDeadline ? ", stopped at the job's deadline" : ""
+    }`,
+    { service: "workers" },
+  );
+};
 
 export const processTelemetryMonitorEvaluationFromQueue: (
   data: TelemetryMonitorEvaluationJobData,

@@ -673,7 +673,7 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Should subscribers be notified?",
     description:
-      "Should subscribers be notified about this note? If left out, this follows the scheduled maintenance event: true when subscribers were notified that the event was created, false when it was created without notifying them.",
+      "Should subscribers be notified about this note? If left out, this follows the maintenance event: true when subscribers were notified that the event was created, false when it was created without notifying them.",
     example: true,
   })
   @Column({
@@ -824,7 +824,7 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
     hideColumnInDocumentation: true,
     title: "Posted With State Change To",
     description:
-      "The state the scheduled maintenance event moved to when this note was posted with that state change. Subscribers are told this state with the note. Empty for a note posted on its own.",
+      "The state the maintenance event moved to when this note was posted with that state change. Subscribers are told this state with the note. Empty for a note posted on its own.",
   })
   @ManyToOne(
     () => {
@@ -862,7 +862,7 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
     required: false,
     title: "Posted With State Change To ID",
     description:
-      "The state the scheduled maintenance event moved to when this note was posted with that state change. Subscribers are told this state with the note. Empty for a note posted on its own.",
+      "The state the maintenance event moved to when this note was posted with that state change. Subscribers are told this state with the note. Empty for a note posted on its own.",
   })
   @Column({
     type: ColumnType.ObjectID,

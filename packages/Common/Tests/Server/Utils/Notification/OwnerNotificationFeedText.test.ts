@@ -17,7 +17,7 @@ const NOUNS: Array<OwnerNotificationRecordNoun> = [
   "alert",
   "incident episode",
   "alert episode",
-  "scheduled maintenance event",
+  "maintenance event",
 ];
 
 describe("what owners were told", () => {

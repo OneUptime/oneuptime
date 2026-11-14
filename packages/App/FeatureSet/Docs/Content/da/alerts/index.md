@@ -33,7 +33,7 @@ Begge registrerer et problem, og begge kan tilkalde den, der har vagt. Forskelle
 | ---------------------------- | ------------------------------------------------------ | ------------------------------------------------- |
 | **Hvad det er**              | Et problem, dit team skal undersøge, før brugerne rammes | Et problem, der rammer dine brugere, som et udfald |
 | **På statussider**           | Aldrig                                                 | Kan vises og giver abonnenter besked              |
-| **Noter**                    | Private noter, kun for dit team                        | Offentlige noter til kunder og private noter      |
+| **Noter**                    | Private noter, kun for dem, der kan se advarslen                        | Offentlige noter til kunder og private noter      |
 | **Starttilstande**           | **Identificeret**, **Bekræftet**, **Løst**                | **Identificeret**, **Bekræftet**, **Løst**           |
 | **Startalvorsgrader**        | **Høj**, **Lav**                                      | Critical Incident, Major Incident, Minor Incident |
 | **Numre i et nyt projekt**   | `ALT-42` og `AE-42` for episoder                       | `INC-42` og `IE-42` for episoder                  |

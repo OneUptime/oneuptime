@@ -85,6 +85,29 @@ goes through the same steps in order, from installing the chart to a test page.
   `app.keda.targetCPUUtilizationPercentage` (with `app.resources.requests.cpu`)
   so the API tier still autoscales once its queue-size trigger is disabled.
 
+- [ ] **Size the Postgres connections.** Every `app`, `worker` and `nginx` pod
+  opens up to `DATABASE_MAX_OPEN_CONNECTIONS` connections (50 by default; set
+  `deployment.databaseMaxOpenConnections`, or `<service>.databaseMaxOpenConnections`
+  for one service). Keep the sum over every replica - at the most each
+  autoscaler allows - below PostgreSQL's `max_connections` (the chart's own
+  PostgreSQL ships 500), or put PgBouncer in front (below). Inside a pod,
+  background work gets bounded shares of that pool, so sign-ins and dashboards
+  always find a connection however busy the jobs and probes are: probe
+  scheduling (the monitors, monitor tests and network devices probes are
+  handed, and their pending counts) runs at most a fifth of the pool at once,
+  half of that for one probe (`app.probeSchedulingMaxConcurrentRequests`), and
+  the queue jobs an `app` pod runs while `worker.enabled` is false hold at most
+  the pool less a fifth kept for requests and less probe scheduling's share
+  (`app.databaseMaxQueueJobConnections`) - 10 and 30 of 50, leaving 10 that
+  only requests use. A probe answered busy claims nothing and asks again at
+  its next tick. If the app logs say probe scheduling is at its limit, or
+  queue jobs fail with "timeout exceeded when trying to connect ...
+  DATABASE_MAX_QUEUE_JOB_CONNECTIONS", the database is slower than the load:
+  on a large install enable the worker deployment above (worker pods serve no
+  requests, so their jobs keep the whole pool), and raise the pool together
+  with `max_connections`. See **How a pod shares its connections** in
+  [Postgres.md](../../../Docs/Postgres.md).
+
 - [ ] **Decide where KEDA comes from before the first install.** `keda.enabled`
   renders the chart's `ScaledObject`s; `keda.install` decides whether the chart
   also installs the operator, and follows `keda.enabled` unless you set it. On a

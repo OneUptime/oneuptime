@@ -129,6 +129,7 @@ import {
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { joinWithArrowsOn } from "Common/Types/DirectionArrow";
 import React, {
   FormEvent,
   Fragment,
@@ -977,7 +978,10 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
           trailing={formatTrafficBytes(row.octets)}
         />
       ),
-      title: `${getTrafficAddressText(source)} → ${getTrafficAddressText(destination)}`,
+      title: joinWithArrowsOn(
+        [getTrafficAddressText(source), getTrafficAddressText(destination)],
+        translator.language,
+      ),
       octets: row.octets,
       isActive: isActive,
       ariaLabel: translator.translateTemplate(

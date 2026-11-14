@@ -474,6 +474,23 @@ export const showsSmtpUsername: ShowsFunction = <TEntity>(
   );
 };
 
+/*
+ * The username must be filled in when OAuth signs in to an SMTP server: it
+ * is the mailbox the XOAUTH2 sign-in is made as, with either grant, and
+ * the mail service refuses every email without it (#7833). With a
+ * password it stays optional, as it was: the instance's server sends
+ * without signing in until both are set.
+ */
+export const requiresSmtpUsername: ShowsFunction = <TEntity>(
+  values: unknown,
+  columns: SmtpConfigFormColumns<TEntity>,
+): boolean => {
+  return (
+    showsSmtpServerFields(values, columns) &&
+    getSmtpAuthType(values, columns) === SMTPAuthenticationType.OAuth
+  );
+};
+
 // The password: signing in to an SMTP server with a username and password.
 export const showsSmtpPassword: ShowsFunction = <TEntity>(
   values: unknown,
@@ -681,7 +698,9 @@ export const getSmtpConfigFormFields: GetSmtpConfigFormFieldsFunction = <
       title: "Username",
       stepId: "server",
       fieldType: FormFieldSchemaType.Text,
-      required: false,
+      required: (values: FormValues<TEntity>): boolean => {
+        return requiresSmtpUsername(values, columns);
+      },
       placeholder: "emailuser@company.com",
       description: SMTP_USERNAME_DESCRIPTION,
       disableSpellCheck: true,
@@ -1501,7 +1520,9 @@ export const getProjectSmtpConfigFormFields: () => Array<
       title: "Username",
       stepId: "server",
       fieldType: FormFieldSchemaType.Text,
-      required: false,
+      required: (values: FormValues<ProjectSmtpConfig>): boolean => {
+        return requiresSmtpUsername(values, columns);
+      },
       placeholder: "emailuser@company.com",
       description: SMTP_USERNAME_DESCRIPTION,
       disableSpellCheck: true,

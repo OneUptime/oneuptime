@@ -69,7 +69,18 @@ flowchart TB
 | **Heure de la première passation** | La première passation à la personne suivante, au début ou après. Les passations suivantes suivent chaque intervalle de rotation. |
 | **Restrictions** | Les heures d'astreinte de la couche : **Aucune restriction**, **Heures spécifiques de la journée** ou **Heures spécifiques de la semaine**, dans le fuseau horaire du planning. En dehors, les couches inférieures prennent le relais. |
 
-Pour changer la couche qui passe en premier, utilisez **Monter la couche (priorité plus haute)** ou **Descendre la couche (priorité plus basse)** dans le menu d'une couche.
+Pour changer la couche qui passe en premier, utilisez les flèches sur la carte d'une couche : **Monter la couche (priorité plus haute)** ou **Descendre la couche (priorité plus basse)**.
+
+Les changements de qui se relaie attendent que vous les enregistriez : vous pouvez en faire plusieurs et les vérifier avant que le tour de quiconque ne change. Faites glisser des personnes dans un nouvel ordre, ajoutez ou retirez des personnes, montez ou descendez une couche ou supprimez-en une, et la page montre chaque changement avant qu'il soit enregistré :
+
+- Une personne ajoutée est marquée **Nouveau**, et une personne glissée à une nouvelle place **Déplacé**. Les personnes retirées sont listées sous **Retirés à l'enregistrement**, chacune avec **Annuler**.
+- Une couche supprimée indique qu'elle sera supprimée à l'enregistrement, avec **Annuler**.
+- Chaque couche et le planning final montrent la rotation telle qu'elle sera. Le planning final est marqué **Inclut des modifications non enregistrées**.
+- Une barre en bas de la page nomme les changements, avec **Enregistrer les modifications** et **Abandonner**.
+
+**Enregistrer les modifications** enregistre tous les changements en une fois. Qui est d'astreinte est alors calculé une seule fois, pour les couches telles qu'enregistrées : une personne qui prend ou quitte l'astreinte, ou qui est la suivante, en est informée une fois, et non une fois par changement. **Abandonner** remet les couches dans leur dernier état enregistré. Quitter la page avant d'enregistrer demande d'abord : **Continuer la modification** reste sur la page, **Annuler les modifications** la quitte sans enregistrer.
+
+Si quelqu'un d'autre a modifié les couches après que vous avez ouvert la page, vos changements ne sont pas enregistrés par-dessus les siens. La barre le signale, et **Recharger les couches** montre les couches telles qu'elles sont maintenant, pour que vous refassiez vos changements. **Ajouter une couche** ajoute sa couche immédiatement, et les réglages d'une couche s'enregistrent avec son propre bouton **Enregistrer la couche**.
 
 Chaque personne garde une seule couleur partout, pour que vous puissiez la suivre d'un coup d'œil : sur chaque couche, dans le planning final et ses remplacements, et sur la **Chronologie des astreintes**.
 

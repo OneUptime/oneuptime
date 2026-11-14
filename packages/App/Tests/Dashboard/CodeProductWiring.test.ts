@@ -1,6 +1,12 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import {
+  RouteAttributes,
+  pageRoutesIn,
+  routeMapPath,
+  routesAt,
+} from "../Helpers/PageRoutes";
 
 /*
  * Tasks and Code Repositories became one product, Code: the repositories
@@ -264,16 +270,24 @@ describe("Code's pages and the old addresses", () => {
   });
 
   test("the old addresses are mounted, and only forward", () => {
-    const app: string = dense(readSource("App.tsx"));
+    const app: Array<RouteAttributes> = pageRoutesIn(
+      path.join(DASHBOARD_SRC, "App.tsx"),
+    );
     const routes: string = readSource("Utils", "RouteMap.ts");
     const paths: string = readSource("Routes", "MovedPagePaths.ts");
 
-    expect(app).toContain(
-      'path={RouteMap[PageMap.MOVED_AI_AGENT_TASKS_ROOT]?.toString()||""}element={<MovedTaskRoutes{...commonPageProps}/>}',
-    );
-    expect(app).toContain(
-      'path={RouteMap[PageMap.MOVED_CODE_REPOSITORY_ROOT]?.toString()||""}element={<MovedRepositoryRoutes{...commonPageProps}/>}',
-    );
+    expect(routesAt(app, routeMapPath("MOVED_AI_AGENT_TASKS_ROOT"))).toEqual([
+      {
+        path: routeMapPath("MOVED_AI_AGENT_TASKS_ROOT"),
+        element: "<MovedTaskRoutes {...commonPageProps} />",
+      },
+    ]);
+    expect(routesAt(app, routeMapPath("MOVED_CODE_REPOSITORY_ROOT"))).toEqual([
+      {
+        path: routeMapPath("MOVED_CODE_REPOSITORY_ROOT"),
+        element: "<MovedRepositoryRoutes {...commonPageProps} />",
+      },
+    ]);
     expect(dense(routes)).toContain(
       "[PageMap.MOVED_AI_AGENT_TASKS_ROOT]:newRoute(`/dashboard/${RouteParams.ProjectID}/${MOVED_CODE_ROOT_PATHS.tasks}/*`,),",
     );

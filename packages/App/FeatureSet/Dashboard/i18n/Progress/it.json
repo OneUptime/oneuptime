@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 51296,
-    "untranslated": 9513
+    "keys": 52236,
+    "untranslated": 9299
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -45,7 +45,6 @@
     "Bare Metal",
     "Blade",
     "Branding",
-    "Breadcrumb",
     "Browser",
     "Browser · OpenTelemetry Web SDK",
     "Brute force detected",
@@ -141,6 +140,7 @@
     "Hertz",
     "Home",
     "Hong Kong (+852)",
+    "Hop",
     "Host",
     "Hypervisor",
     "ICMP (ping)",
@@ -244,6 +244,7 @@
     "Powered by OneUptime",
     "Principal",
     "Privacy",
+    "PromQL",
     "Prompt",
     "Provider",
     "Pull request",
@@ -251,7 +252,9 @@
     "Pull request {{label}}",
     "Push",
     "Query",
+    "Query {{number}}",
     "Quota",
+    "RTT",
     "RabbitMQ",
     "Radio",
     "Re-encrypt",
@@ -450,6 +453,7 @@
     "storage-01 · RegionOne",
     "storefront-web",
     "subnet",
+    "sum by (job) (rate(http_requests_total[5m]))",
     "svc-backup",
     "syslog",
     "tag",
@@ -464,7 +468,6 @@
     "vSphere Client",
     "vertical pod autoscaler",
     "volume",
-    "workflow",
     "writesets",
     "x86",
     "z",
@@ -517,6 +520,7 @@
     "{{count}} volume",
     "{{count}} worker",
     "{{count}} worker down",
+    "{{exceptionType}} in {{serviceName}}",
     "{{gigabytes}} GB",
     "{{in}} in",
     "{{minutes}} min",

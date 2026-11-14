@@ -4,6 +4,16 @@ import { boldSpans, inlineCode } from "./DocsTranslationChecks";
 import FormsCopy from "../../../FeatureSet/Dashboard/src/Components/FormBuilder/FormsCopy";
 import { PublicAddressCopy } from "../../../FeatureSet/Dashboard/src/Components/CustomDomain/PublicAddressCopy";
 import { RECORD_CHANNEL_TEXT } from "../../../FeatureSet/Dashboard/src/Components/Workspace/RecordChannelMembers";
+import {
+  CHOOSE_UPDATES_TITLE,
+  EVERY_UPDATE_TITLE,
+  KEY_UPDATES_TITLE,
+  isUpdatesEventType,
+} from "../../../FeatureSet/Dashboard/src/Components/Workspace/NotificationRuleForm/NotificationRuleUpdatesCopy";
+import NotificationRuleUpdates, {
+  ALWAYS_POSTED_UPDATE_KINDS,
+  NotificationRuleUpdateKind,
+} from "Common/Types/Workspace/NotificationRules/NotificationRuleUpdates";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import { AlertEpisodeFeedEventType } from "Common/Models/DatabaseModels/AlertEpisodeFeed";
 import { AlertFeedEventType } from "Common/Models/DatabaseModels/AlertFeed";
@@ -139,6 +149,8 @@ const SOURCES: Record<string, string> = {
   startVideoCallModal: `${DASHBOARD}/Components/VideoCall/StartVideoCallModal.tsx`,
   questionPalette: `${DASHBOARD}/Components/FormBuilder/Builder/QuestionPalette.tsx`,
   questionCard: `${DASHBOARD}/Components/FormBuilder/Builder/QuestionCard.tsx`,
+  formBuilder: `${DASHBOARD}/Components/FormBuilder/Builder/FormBuilder.tsx`,
+  leaveQuestion: `${DASHBOARD}/Components/UnsavedChanges/LeaveWithoutSavingQuestion.tsx`,
   formSharePage: `${DASHBOARD}/Pages/Forms/View/Share.tsx`,
   formStatusCard: `${DASHBOARD}/Components/FormBuilder/FormStatusCard.tsx`,
   formShareLinkCard: `${DASHBOARD}/Components/FormBuilder/FormShareLinkCard.tsx`,
@@ -604,11 +616,42 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
     }
   });
 
-  it("walks a notification rule's steps as the form does, the Video Call step for incidents and alerts only", () => {
+  it("walks a notification rule's steps as the form does, the Updates step for the rules that choose their updates, the Video Call step for incidents and alerts only", () => {
     const table: string = readSource("ruleTable");
     const steps: Array<string> = formStepTitles(table);
 
-    expect(steps).toEqual(["Basic", "Conditions", "Destination", "Video Call"]);
+    expect(steps).toEqual([
+      "Basic",
+      "Conditions",
+      "Destination",
+      "Updates",
+      "Video Call",
+    ]);
+
+    /*
+     * The Updates step is offered for exactly the rules that choose their
+     * updates (#7581): incidents, alerts, both kinds of episode, scheduled
+     * maintenance and on-call policies (#7549), which the row names.
+     */
+    expect(table).toContain("...(isUpdatesEventType(props.eventType)");
+    expect(
+      sorted(
+        Object.values(NotificationRuleEventType).filter(
+          (eventType: NotificationRuleEventType): boolean => {
+            return isUpdatesEventType(eventType);
+          },
+        ),
+      ),
+    ).toEqual(
+      sorted([
+        NotificationRuleEventType.Incident,
+        NotificationRuleEventType.Alert,
+        NotificationRuleEventType.IncidentEpisode,
+        NotificationRuleEventType.AlertEpisode,
+        NotificationRuleEventType.ScheduledMaintenance,
+        NotificationRuleEventType.OnCallDutyPolicy,
+      ]),
+    );
 
     // The Video Call step is offered for exactly the incident and alert rules.
     const canStart: string = bracketed(
@@ -645,8 +688,93 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
           return `**${step}**`;
         }),
       );
-      expect(rows[3]?.[1]).toMatch(/^Incidents and alerts only: /);
+      expect(rows[4]?.[1]).toMatch(/^Incidents and alerts only: /);
       expect(rows[0]?.[1]).toBe("**Rule Name** and **Rule Description**.");
+
+      // The Updates row: who has the step, and its three choices by name.
+      const updates: string = rows[3]?.[1] || "";
+
+      expect(updates).toMatch(
+        /^Incidents, alerts, episodes, scheduled maintenance and on-call policies only: /,
+      );
+      expect(boldSpans(updates)).toEqual([
+        EVERY_UPDATE_TITLE,
+        KEY_UPDATES_TITLE,
+        CHOOSE_UPDATES_TITLE,
+      ]);
+
+      // An incident's key updates, as the step lists them.
+      expect(
+        NotificationRuleUpdates.getKeyKinds(NotificationRuleEventType.Incident),
+      ).toEqual([
+        NotificationRuleUpdateKind.ResolvedAndReopened,
+        NotificationRuleUpdateKind.SeverityChanges,
+        NotificationRuleUpdateKind.PublicNotes,
+        NotificationRuleUpdateKind.Postmortem,
+      ]);
+      expect(updates).toContain(
+        "for an incident, its resolution or reopening, severity changes, public notes and the postmortem;",
+      );
+
+      /*
+       * An on-call policy's key updates, which a new on-call policy rule
+       * starts with, where every other new rule starts on every update.
+       */
+      expect(
+        NotificationRuleUpdates.getKeyKinds(
+          NotificationRuleEventType.OnCallDutyPolicy,
+        ),
+      ).toEqual([
+        NotificationRuleUpdateKind.OnCallNow,
+        NotificationRuleUpdateKind.NobodyOnCall,
+      ]);
+      expect(
+        NotificationRuleUpdates.getNewRuleUpdatesToPost(
+          NotificationRuleEventType.OnCallDutyPolicy,
+        ),
+      ).toEqual(
+        NotificationRuleUpdates.getKeyKinds(
+          NotificationRuleEventType.OnCallDutyPolicy,
+        ),
+      );
+      expect(
+        NotificationRuleUpdates.getNewRuleUpdatesToPost(
+          NotificationRuleEventType.Incident,
+        ),
+      ).toBeUndefined();
+      expect(updates).toContain(
+        "a new rule starts with it, except an on-call policy's.",
+      );
+      expect(updates).toContain(
+        "for an on-call policy, who is on call now and when nobody is, which a new on-call policy rule starts with.",
+      );
+
+      // What every rule posts, whatever it picks.
+      expect(ALWAYS_POSTED_UPDATE_KINDS).toEqual([
+        NotificationRuleUpdateKind.Created,
+        NotificationRuleUpdateKind.VideoCallStarted,
+      ]);
+      expect(updates).toContain(
+        "Whatever you pick, the rule posts the record's first message, and a video call when one starts.",
+      );
+
+      // A channel gets an update a rule that posts there chose.
+      expect(lineStarting(englishPage(page), "Every later update")).toContain(
+        "when a rule that posts there chooses it in its **Updates** step.",
+      );
+    }
+
+    // Mattermost's rules are Slack's, the updates they post included.
+    expect(
+      lineStarting(englishPage(MATTERMOST), "A notification rule says"),
+    ).toContain(
+      "[Notification rules](/docs/workspace-connections/slack#notification-rules) for conditions, destinations, the updates a rule posts and who joins a channel.",
+    );
+
+    for (const page of CHAT_PAGES) {
+      expect(lineStarting(englishPage(page), "Creating a rule walks")).toBe(
+        "Creating a rule walks up to five steps:",
+      );
       expect(
         sourceSays(readSource("ruleTable"), "Rule Name") &&
           sourceSays(readSource("ruleTable"), "Rule Description"),
@@ -2202,6 +2330,33 @@ describe("Forms, against the builder, the Share page and the public page", () =>
         return `**${issue}**`;
       }),
     );
+  });
+
+  it("says leaving the builder with unsaved changes asks first, in the question it draws (issue #7401)", () => {
+    const builder: string = readSource("formBuilder");
+    const question: string = readSource("leaveQuestion");
+    const page: string = englishPage(BUILDING);
+
+    // Held while the questions differ from the saved ones; the tab too.
+    expect(builder).toContain(
+      "const isDirty: boolean = !areFormFieldsEqual(fields, savedFields);",
+    );
+    expect(builder).toContain("useLeaveGuard(isDirty)");
+    expect(builder).toContain("useUnsavedChanges(isDirty)");
+    expect(builder).toContain("<LeaveWithoutSavingQuestion");
+    // The guard raises the browser's own question: no listener of its own.
+    expect(builder).not.toContain("beforeunload");
+    expect(question).toContain('title={"Leave without saving?"}');
+    expect(question).toContain('submitButtonText={"Discard Changes"}');
+    expect(question).toContain('closeButtonText={"Keep Editing"}');
+
+    expect(page).toContain(
+      `Until you save, the builder says **${FormsCopy.unsavedChanges}** and offers **${FormsCopy.discardChanges}**. Leaving the builder before you save asks first.`,
+    );
+    expect(page).toContain(
+      "A link in the side menu, the breadcrumbs or the top bar, or your browser's back and forward buttons, open **Leave without saving?** with two choices: **Keep Editing** stays in the builder with your changes, and **Discard Changes** goes on to the page you were opening. Closing or reloading the tab asks with your browser's own dialog.",
+    );
+    expect(page).not.toContain("the browser asks before you leave the page");
   });
 
   it("names the builder's and the Templates page's buttons as they draw them, and a card's badge as it composes it", () => {

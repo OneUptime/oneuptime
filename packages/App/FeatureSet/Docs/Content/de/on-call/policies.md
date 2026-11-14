@@ -51,7 +51,7 @@ Eine Richtlinie, die mehrere Regeln hinzufügen, läuft einmal. Ein Schweregrad 
 
 **Grundlegend** ist geöffnet; die anderen Abschnitte starten eingeklappt, bis Sie sie anklicken.
 
-- **Übersicht** zeigt die **Details der Bereitschaftsrichtlinie**, dann **Richtlinie auf einen Blick**: wie viele Stufen und Bearbeiter die Richtlinie hat, wie lange es bis zu ihrer letzten Stufe dauert und wie oft sie sich wiederholt. **Einsatzbereitschaft der Bearbeiter** sagt, ob jede Person, die sie alarmieren kann, jetzt erreichbar ist, und **Bereitschaftsrichtlinien-Feed** listet, was sich geändert hat: hinzugefügte oder entfernte Personen, Teams und Pläne, Überschreibungen und Übergaben.
+- **Übersicht** zeigt die **Details der Bereitschaftsrichtlinie**, dann **Richtlinie auf einen Blick**: wie viele Stufen und Bearbeiter die Richtlinie hat, wie lange es bis zu ihrer letzten Stufe dauert und wie oft sie sich wiederholt. **Einsatzbereitschaft der Bearbeiter** sagt, ob jede Person, die sie alarmieren kann, jetzt erreichbar ist, und **Bereitschaftsrichtlinien-Feed** listet, was sich geändert hat: hinzugefügte oder entfernte Personen, Teams und Pläne, Überschreibungen und Übergaben. Ihre Regeln für Slack, Microsoft Teams und Mattermost posten diese in Ihre Kanäle, eine Übergabe in einer Zeile: siehe [Bereitschaftsnachrichten](/docs/workspace-connections/slack#bereitschaftsnachrichten).
 - **Eigentümer** sind die Personen und Teams, die für die Richtlinie verantwortlich sind. Findet ein Alarm der Richtlinie für jemanden keine Regel oder lässt er sich nicht zustellen, bekommen sie eine E-Mail; eine Richtlinie ohne Eigentümer mailt stattdessen den Eigentümern des Projekts.
 - **Benachrichtigungsprotokolle** listet jede Nachricht, die die Richtlinie gesendet hat, mit einem Tab pro Kanal.
 - **Benutzerüberschreibungen** vertritt Personen nur in dieser Richtlinie. Siehe [Benutzerüberschreibungen](/docs/on-call/user-overrides).
@@ -80,6 +80,17 @@ Eine Bestätigung beendet die Alarmierung einer Richtlinie endgültig, auch wenn
 Die Minuten zählen ab jeder Bestätigung, und eine Richtlinie alarmiert zu einem Vorfall, einer Warnung oder einer Episode höchstens 5-mal erneut. Eine erneute Alarmierung beginnt bei der Stufe, die bei der Bestätigung alarmierte, alarmiert, wer dort jetzt Bereitschaft hat, und geht dann wie der erste Lauf durch die Stufen. Der Vorfall oder die Warnung bleibt bestätigt: Die erneute Alarmierung ist ein eigener Lauf, im Feed und in den Ausführungsprotokollen der Richtlinie, wo sein **Status** „Erneut alarmiert (1 von 5)“ zeigt.
 
 Wer erneut alarmiert wird, bestätigt aus der Nachricht oder mit **Erneut bestätigen** auf der Seite des Vorfalls oder der Warnung, und die Minuten beginnen von vorn; **Eskalieren** gibt die Alarmierung an die nächste Stufe weiter. Sie endet, wenn der Vorfall oder die Warnung behoben oder gelöscht, die Richtlinie archiviert oder gelöscht oder **Nicht erneut alarmieren** gewählt wird. Die Zeile **Nach einer Bestätigung** der Karte sagt, was die Richtlinie tut, und **Weitere Einstellungen** zeigt die Minuten, solange es eingeklappt ist. **Richtlinie auf einen Blick** in der **Übersicht** und die **Eskalationsübersicht** sagen dasselbe in Worten.
+
+## Wenn mehrere Richtlinien alarmieren
+
+Ein Vorfall, eine Warnung oder eine Episode führt jede ihrer Richtlinien für sich aus, gleichzeitig.
+
+- Wer in zwei davon Bereitschaft hat, wird von beiden alarmiert, von jeder einmal: OneUptime fasst die Alarmierungen verschiedener Richtlinien nicht zusammen. Innerhalb einer Richtlinie wird jemand, den eine Stufe zweimal nennt, persönlich und über ein Team oder einen Plan, nur einmal alarmiert.
+- Eine Bestätigung des Vorfalls oder der Warnung beendet innerhalb einer Minute jede Richtlinie, die dafür läuft, egal wo bestätigt wird: aus einer beliebigen Alarmierung dazu, auf der eigenen Seite, in der mobilen App oder in Slack oder Microsoft Teams. Keine nächste Stufe wird alarmiert, und kein Anruf und keine SMS, die noch ausstehen, werden gesendet. Bereits gesendete Benachrichtigungen bleiben gesendet.
+
+Manche Alarmierungen gehen nach der Bestätigung weiter, bis jemand antwortet, den sie alarmiert haben, oder bis behoben ist: eine erneute Alarmierung, eine Alarmierung an Beobachter, eine Alarmierung, die jemand aus Slack oder Microsoft Teams an Personen geschickt hat, und eine von Hand gestartete Richtlinie.
+
+Eine von Hand gestartete Richtlinie ist eine, die mit **Bereitschaftsdienst-Richtlinie ausführen** gestartet wurde oder durch eine Alarmierung aus Slack oder Microsoft Teams, die sie nennt. Sie alarmiert Stufe für Stufe wie jeder Lauf, mit Anrufen und wiederholten Push-Benachrichtigungen, und dass jemand anderes den Vorfall bestätigt, beendet sie nicht: So alarmieren Sie ein weiteres Team zu einem Vorfall, an dem schon jemand arbeitet. Wen sie alarmiert hat, antwortet aus der Nachricht seiner Alarmierung, per Anruf oder SMS oder indem er den Vorfall selbst bestätigt; sobald der Vorfall bestätigt ist, bietet die Seite des Vorfalls **Erneut bestätigen** an. **Eskalieren** gibt sie an die nächste Stufe weiter. Bei einem Vorfall, einer Warnung oder einer Episode, die behoben ist, wird nichts gestartet, und Sie erfahren, warum.
 
 ## Ausführungsprotokolle
 
@@ -119,7 +130,7 @@ Jede Zeile zeigt, was den Lauf ausgelöst hat, wann, seinen **Status** und wer i
 Archivieren stellt eine Richtlinie außer Dienst und behält alles: Öffnen Sie die **Einstellungen** der Richtlinie und klicken Sie auf ihrer Archivkarte auf **Archivieren**, oder wählen Sie Richtlinien in der Liste aus und wählen Sie **Archivieren**.
 
 - Eine archivierte Richtlinie alarmiert niemanden. Vorfälle und Warnungen, die sie verwenden, überspringen sie, und ein Lauf, der noch eskaliert, endet bei seinem nächsten Schritt.
-- Sie verlässt die Liste **Bereitschaftsrichtlinien** und landet unter **Bereitschaft → Erweitert → Archivierte Richtlinien**, wo **Aus Archiv entfernen** sie wieder in Dienst stellt.
+- Sie verlässt die Liste **Bereitschaftsrichtlinien** und landet unter **Bereitschaft → Erweitert → Archivierte Richtlinien**, wo **Aus dem Archiv holen** sie wieder in Dienst stellt.
 
 **Richtlinie löschen**, unter **Erweitert**, löscht die Richtlinie mitsamt ihren Eskalationsregeln und Benutzerüberschreibungen. Das Löschen aus der Liste fragt vorher nach und schlägt vor, stattdessen zu archivieren.
 
@@ -162,6 +173,14 @@ Die Stufe davor hatte niemanden zu alarmieren: keine Empfänger, niemand mit Ber
 
 :::details Ein Vorfall nennt eine Richtlinie, die niemanden alarmiert hat
 Die Richtlinie ist archiviert: Eine archivierte Richtlinie bleibt an den Vorfällen und Warnungen, die sie verwenden, alarmiert niemanden, und ihr Ausführungsprotokoll sagt, dass sie nicht ausgeführt wurde. Holen Sie sie unter **Bereitschaft → Erweitert → Archivierte Richtlinien** aus dem Archiv.
+:::
+
+:::details Jemand wurde zu einem Vorfall zweimal alarmiert
+Die Person hat in zwei der Richtlinien Bereitschaft, die der Vorfall ausführt, und jede Richtlinie alarmiert ihre eigenen Personen. Eine Bestätigung des Vorfalls aus einer der beiden Alarmierungen beendet beide. Damit die Person nur einmal alarmiert wird, nehmen Sie beide Teams oder Pläne in eine Stufe einer Richtlinie auf.
+:::
+
+:::details Eine Richtlinie alarmierte weiter, nachdem der Vorfall bestätigt wurde
+Sie wurde von Hand gestartet, oder es ist eine erneute Alarmierung: Sie geht weiter, bis jemand antwortet, den sie alarmiert hat, oder der Vorfall behoben ist. Siehe [Wenn mehrere Richtlinien alarmieren](#wenn-mehrere-richtlinien-alarmieren).
 :::
 
 ## Nächste Schritte

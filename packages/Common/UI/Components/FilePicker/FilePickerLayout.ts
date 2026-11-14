@@ -1,6 +1,6 @@
 import MimeType from "../../../Types/File/MimeType";
 import { FileSizeOptions, formatFileSize } from "../../../Types/File/FileSize";
-import { Translator } from "../../Utils/TranslateTemplate";
+import { PluralTemplate, Translator } from "../../Utils/TranslateTemplate";
 
 /*
  * What a file picker shows for the files it holds, and the words it asks for
@@ -104,9 +104,56 @@ export const getFilePickerLayout: (data: {
   };
 };
 
+/*
+ * What a picker says it takes, in place of its list of types: a sentence
+ * whose {{size}} is the picker's limit - or, for a picker of several that
+ * names how many files it takes ("Up to {{count}} files of {{size}} each:
+ * ..."), a plural whose {{count}} is the picker's own most files.
+ */
+export type FilePickerHint = string | PluralTemplate;
+
+// Whether a hint names the picker's count of files: a plural, not a sentence.
+export const isFilePickerCountHint: (
+  hint: FilePickerHint | undefined,
+) => hint is PluralTemplate = (
+  hint: FilePickerHint | undefined,
+): hint is PluralTemplate => {
+  return typeof hint === "object" && hint !== null;
+};
+
+/*
+ * A picker of several that holds one file at most - a form question that
+ * takes one file - speaks as a picker of one: it asks for "a file", as its
+ * hint says "One file of up to 10 MB", and shows the file it holds without
+ * a "Chosen files" heading over one file. Never "Upload files" over "One
+ * file of up to 10 MB".
+ */
+export const isPickerOfSeveralForOneFile: (data: {
+  isMultiFilePicker?: boolean | undefined;
+  maxFiles?: number | null | undefined;
+}) => boolean = (data: {
+  isMultiFilePicker?: boolean | undefined;
+  maxFiles?: number | null | undefined;
+}): boolean => {
+  return Boolean(data.isMultiFilePicker) && data.maxFiles === 1;
+};
+
+/*
+ * What a full picker of several says: how many it holds, the noun in the
+ * form the reader's language takes for that count.
+ */
+export const FILE_PICKER_FULL_NOTE: PluralTemplate = {
+  one: "This field holds one file. Remove it to add another.",
+  other: "This field holds up to {{count}} files. Remove one to add another.",
+};
+
 export interface FilePickerPromptData {
   placeholder?: string | undefined;
-  hint?: string | undefined;
+  // In the reader's words already: said as given (Field's, #7682).
+  isPlaceholderTranslated?: boolean | undefined;
+  hint?: FilePickerHint | undefined;
+  // A picker of several: the most files it holds (getFilePickerLayout).
+  maxFiles?: number | null | undefined;
   mimeTypes?: Array<MimeType> | undefined;
   maxFileSizeInBytes?: number | undefined;
   keepFilesInBrowser?: boolean | undefined;
@@ -158,14 +205,73 @@ export const getFilePickerPromptWords: (
       .join(", ");
   };
 
+  /*
+   * Every limit, the everyday 10 MB too, is one value of its sentence:
+   * written in the reader's digits and set apart from the words around it,
+   * so a page read from the right draws "۱۰ MB", never "MB 10" - as a limit
+   * written into the words ("Max 10MB each.") was drawn on Arabic and
+   * Persian pages (issue #7233). Drawn on the page only, so its isolate
+   * marks never reach a record. A hint the picker is given (a custom
+   * field's "... up to {{size}}.") names the same limit: its {{size}} is
+   * this picker's.
+   *
+   * A hint that names how many files the picker takes is said with the
+   * picker's own most files (issue #7421): a public form's question that
+   * takes three says three - never a number written into the words - in
+   * the reader's digits and in the form of the noun the reader's language
+   * takes for that count. A picker with no most files has no count to say,
+   * so it says its types and limit instead.
+   */
+  const getHint: () => string = (): string => {
+    if (isFilePickerCountHint(data.hint)) {
+      if (data.maxFiles) {
+        return translator.translatePlural(
+          data.hint,
+          data.maxFiles,
+          { size: maxFileSize },
+          { setsValuesApart: true },
+        );
+      }
+    } else if (data.hint) {
+      return translator.translateTemplate(
+        data.hint,
+        { size: maxFileSize },
+        { setsValuesApart: true },
+      );
+    }
+
+    return data.mimeTypes && data.mimeTypes.length > 0
+      ? translator.translateTemplate(
+          "Types: {{types}}. Max {{size}} each.",
+          {
+            size: maxFileSize,
+            types: typeNames(),
+          },
+          { setsValuesApart: true },
+        )
+      : translator.translateTemplate(
+          "Max {{size}} each.",
+          { size: maxFileSize },
+          { setsValuesApart: true },
+        );
+  };
+
+  // A picker of several that takes one file asks for one (issue #7421).
+  const asksForOneFile: boolean = isPickerOfSeveralForOneFile(data);
+
   return {
-    label: translator.translateText(
-      data.placeholder
+    label:
+      data.placeholder && data.isPlaceholderTranslated
         ? data.placeholder
-        : data.hasFiles
-          ? "Add more files"
-          : "Upload files",
-    ),
+        : translator.translateText(
+            data.placeholder
+              ? data.placeholder
+              : data.hasFiles
+                ? "Add more files"
+                : asksForOneFile
+                  ? "Upload a file"
+                  : "Upload files",
+          ),
     instruction: translator.translateText(
       data.isDragActive
         ? data.keepFilesInBrowser
@@ -174,39 +280,10 @@ export const getFilePickerPromptWords: (
         : data.hasFiles
           ? "Click to add more or drag & drop."
           : // A picker of one takes one file.
-            data.isMultiFilePicker
+            data.isMultiFilePicker && !asksForOneFile
             ? "Click to choose files or drag & drop."
             : "Click to choose a file or drag & drop.",
     ),
-    /*
-     * Every limit, the everyday 10 MB too, is one value of its sentence:
-     * written in the reader's digits and set apart from the words around
-     * it, so a page read from the right draws "۱۰ MB", never "MB 10" - as
-     * a limit written into the words ("Max 10MB each.") was drawn on Arabic
-     * and Persian pages (issue #7233). Drawn on the page only, so its
-     * isolate marks never reach a record. A hint the picker is given (a
-     * custom field's "... up to {{size}}.") names the same limit: its
-     * {{size}} is this picker's.
-     */
-    hint: data.hint
-      ? translator.translateTemplate(
-          data.hint,
-          { size: maxFileSize },
-          { setsValuesApart: true },
-        )
-      : data.mimeTypes && data.mimeTypes.length > 0
-        ? translator.translateTemplate(
-            "Types: {{types}}. Max {{size}} each.",
-            {
-              size: maxFileSize,
-              types: typeNames(),
-            },
-            { setsValuesApart: true },
-          )
-        : translator.translateTemplate(
-            "Max {{size}} each.",
-            { size: maxFileSize },
-            { setsValuesApart: true },
-          ),
+    hint: getHint(),
   };
 };

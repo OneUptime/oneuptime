@@ -54,7 +54,7 @@ import {
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import readAsWritten from "Common/UI/Components/IsolatedText/ReadAsWritten";
-import { isRightToLeftLanguage } from "Common/Types/ReadingDirection";
+import DirectionArrow from "Common/UI/Components/DirectionArrow/DirectionArrow";
 
 /*
  * A UTC timestamp whose hover text carries the viewer's local time. Every
@@ -102,22 +102,19 @@ export interface ConnectionTimeRangeProps {
 }
 
 /*
- * "start → end", the arrow pointing the way the page reads: on an Arabic or
- * Persian page the start stands on the right, so the arrow points left, as
- * those languages' sentences write a window ("{{start}} ← {{end}}"). Each
- * time keeps to one line, so a narrow column breaks the range at the arrow,
- * never inside a time.
+ * "start → end", the arrow pointing the way the page reads (DirectionArrow):
+ * on an Arabic or Persian page the start stands on the right, so the arrow
+ * points left, as those languages' sentences write a window ("{{start}} ←
+ * {{end}}"). Each time keeps to one line, so a narrow column breaks the
+ * range at the arrow, never inside a time.
  */
 export const ConnectionTimeRange: FunctionComponent<
   ConnectionTimeRangeProps
 > = (props: ConnectionTimeRangeProps): ReactElement => {
-  const translator: Translator = useTranslator();
-  const arrow: string = isRightToLeftLanguage(translator.language) ? "←" : "→";
-
   return (
     <span>
       <span className="whitespace-nowrap">
-        <ConnectionTime value={props.start} /> {arrow}
+        <ConnectionTime value={props.start} /> <DirectionArrow />
       </span>{" "}
       <span className="whitespace-nowrap">
         <ConnectionTime value={props.end} />
