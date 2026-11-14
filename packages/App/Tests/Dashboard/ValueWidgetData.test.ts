@@ -1,7 +1,9 @@
-import { describe, expect, test } from "@jest/globals";
+import { afterEach, describe, expect, test } from "@jest/globals";
 import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
+import OneUptimeDate from "Common/Types/Date";
+import Timezone from "Common/Types/Timezone";
 import {
   aggregateValues,
   collectDataPoints,
@@ -425,5 +427,191 @@ describe("ValueWidgetData.getMetricValueWidgetSparkline", () => {
     // The halves' totals, 8 then 24, as with the readings alone.
     expect(trend?.direction).toBe(ValueWidgetTrendDirection.Up);
     expect(trend?.percent).toBe(200);
+  });
+});
+
+/*
+ * Day and week buckets start at the reader's midnight, in the zone the
+ * request carries (issue #7277), and a day the clocks change on is 23 or 25
+ * hours long there. The empty buckets a sum or a count is drawn through are
+ * the reader's days and weeks, not steps of 24 hours from the first
+ * reading: those left the grid at the first change of the clocks, and the
+ * line went back to its readings alone.
+ */
+describe("ValueWidgetData.getMetricValueWidgetSparkline over days and weeks in the reader's zone", () => {
+  const DAY_MS: number = 24 * 60 * 60 * 1000;
+
+  afterEach(() => {
+    OneUptimeDate.setUserTimezone(null);
+  });
+
+  // The calendar days from `first` to `last`, as "2026-03-08".
+  const daysFrom: (first: string, last: string) => Array<string> = (
+    first: string,
+    last: string,
+  ): Array<string> => {
+    const days: Array<string> = [];
+
+    for (
+      let day: number = Date.parse(`${first}T00:00:00.000Z`);
+      day <= Date.parse(`${last}T00:00:00.000Z`);
+      day += DAY_MS
+    ) {
+      days.push(new Date(day).toISOString().slice(0, 10));
+    }
+
+    return days;
+  };
+
+  // New York's midnight: 05:00 UTC in winter, 04:00 UTC from 8 March 2026.
+  const newYorkMidnight: (day: string) => string = (day: string): string => {
+    return day <= "2026-03-08"
+      ? `${day}T05:00:00.000Z`
+      : `${day}T04:00:00.000Z`;
+  };
+
+  const timesOf: (line: Array<ValueWidgetPoint>) => Array<string> = (
+    line: Array<ValueWidgetPoint>,
+  ): Array<string> => {
+    return line.map((point: ValueWidgetPoint): string => {
+      return point.timestamp.toISOString();
+    });
+  };
+
+  const valuesOf: (line: Array<ValueWidgetPoint>) => Array<number> = (
+    line: Array<ValueWidgetPoint>,
+  ): Array<number> => {
+    return line.map((point: ValueWidgetPoint): number => {
+      return point.value;
+    });
+  };
+
+  // 20 February to 22 March 2026 there: a month, bucketed by the day.
+  const MONTH: { startDate: Date; endDate: Date } = {
+    startDate: new Date("2026-02-20T05:00:00.000Z"),
+    endDate: new Date("2026-03-22T04:00:00.000Z"),
+  };
+
+  test("a month is bucketed by the day, and a quarter by the week", () => {
+    expect(getMetricValueWidgetBucketWidthMs(MONTH)).toBe(DAY_MS);
+    expect(
+      getMetricValueWidgetBucketWidthMs({
+        startDate: new Date("2026-01-01T05:00:00.000Z"),
+        endDate: new Date("2026-04-01T04:00:00.000Z"),
+      }),
+    ).toBe(7 * DAY_MS);
+  });
+
+  test("read in New York, a count's empty days between two readings are each drawn at 0, from each midnight there, across the 23-hour 8 March", () => {
+    OneUptimeDate.setUserTimezone(Timezone.AmericaNew_York);
+
+    for (const type of [AggregationType.Count, AggregationType.Sum]) {
+      const line: Array<ValueWidgetPoint> = getMetricValueWidgetSparkline({
+        // Newest first, as the metrics API answers.
+        results: [
+          {
+            data: [
+              { timestamp: new Date(newYorkMidnight("2026-03-12")), value: 9 },
+              { timestamp: new Date(newYorkMidnight("2026-02-24")), value: 4 },
+            ],
+          },
+        ],
+        aggregationType: type,
+        window: MONTH,
+      });
+      const days: Array<string> = daysFrom("2026-02-24", "2026-03-12");
+
+      expect(days).toHaveLength(17);
+      expect(timesOf(line)).toEqual(days.map(newYorkMidnight));
+      expect(valuesOf(line)).toEqual([
+        4,
+        ...days.slice(2).map((): number => {
+          return 0;
+        }),
+        9,
+      ]);
+    }
+  });
+
+  test("read in New York, a count's empty weeks between two readings are each drawn at 0, from each Monday's midnight there", () => {
+    OneUptimeDate.setUserTimezone(Timezone.AmericaNew_York);
+
+    const line: Array<ValueWidgetPoint> = getMetricValueWidgetSparkline({
+      results: [
+        {
+          data: [
+            { timestamp: new Date(newYorkMidnight("2026-03-16")), value: 5 },
+            { timestamp: new Date(newYorkMidnight("2026-02-02")), value: 3 },
+          ],
+        },
+      ],
+      aggregationType: AggregationType.Count,
+      window: {
+        startDate: new Date("2026-01-01T05:00:00.000Z"),
+        endDate: new Date("2026-04-01T04:00:00.000Z"),
+      },
+    });
+
+    expect(timesOf(line)).toEqual(
+      [
+        "2026-02-02",
+        "2026-02-09",
+        "2026-02-16",
+        "2026-02-23",
+        "2026-03-02",
+        "2026-03-09",
+        "2026-03-16",
+      ].map(newYorkMidnight),
+    );
+    expect(valuesOf(line)).toEqual([3, 0, 0, 0, 0, 0, 5]);
+  });
+
+  test("read in UTC, the same month's readings at midnight UTC fill UTC's days", () => {
+    OneUptimeDate.setUserTimezone(Timezone.UTC);
+
+    const line: Array<ValueWidgetPoint> = getMetricValueWidgetSparkline({
+      results: [
+        {
+          data: [
+            { timestamp: new Date("2026-03-12T00:00:00.000Z"), value: 9 },
+            { timestamp: new Date("2026-02-24T00:00:00.000Z"), value: 4 },
+          ],
+        },
+      ],
+      aggregationType: AggregationType.Count,
+      window: {
+        startDate: new Date("2026-02-20T00:00:00.000Z"),
+        endDate: new Date("2026-03-22T00:00:00.000Z"),
+      },
+    });
+
+    expect(timesOf(line)).toEqual(
+      daysFrom("2026-02-24", "2026-03-12").map((day: string): string => {
+        return `${day}T00:00:00.000Z`;
+      }),
+    );
+    expect(line[0]!.value).toBe(4);
+    expect(line[16]!.value).toBe(9);
+  });
+
+  test("read in New York, an average over the same days keeps its gaps", () => {
+    OneUptimeDate.setUserTimezone(Timezone.AmericaNew_York);
+
+    const results: Array<AggregatedResult> = [
+      {
+        data: [
+          { timestamp: new Date(newYorkMidnight("2026-03-12")), value: 9 },
+          { timestamp: new Date(newYorkMidnight("2026-02-24")), value: 4 },
+        ],
+      },
+    ];
+
+    expect(
+      getMetricValueWidgetSparkline({
+        results: results,
+        aggregationType: AggregationType.Avg,
+        window: MONTH,
+      }),
+    ).toEqual(getMetricValueWidgetSeries(results, AggregationType.Avg));
   });
 });

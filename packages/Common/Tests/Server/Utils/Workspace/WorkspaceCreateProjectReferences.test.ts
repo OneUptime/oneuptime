@@ -489,7 +489,7 @@ describe("Microsoft Teams bot: SubmitNewScheduledMaintenance", (): void => {
       OWN_STATUS_ID,
     );
     expect(sentMessages(turnContext)[0]).toContain(
-      "Scheduled maintenance created successfully",
+      "Maintenance event created successfully",
     );
   });
 

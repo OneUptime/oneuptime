@@ -76,7 +76,7 @@ spec:
             - name: PROMETHEUS_SERVER_ENDPOINT
               value: {{ include "kubernetes-agent.costPrometheusUrl" . | quote }}
             - name: CLUSTER_ID
-              value: {{ .Values.clusterName | quote }}
+              value: {{ include "kubernetes-agent.clusterName" . | quote }}
             - name: API_PORT
               value: "9003"
             - name: LOG_LEVEL

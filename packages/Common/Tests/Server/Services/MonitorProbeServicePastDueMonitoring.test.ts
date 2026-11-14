@@ -311,9 +311,12 @@ describe("MonitorProbeService.claimMonitorProbesForProbing keeps past_due projec
 
     /*
      * The fix must not disturb what the claim is otherwise for: disabled /
-     * deleted monitors and deleted projects stay out, and the order is
-     * unchanged. The candidate read locks nothing (issue #7194); the claim
-     * statement after it locks MonitorProbe rows alone - see below.
+     * deleted monitors and deleted projects stay out, and the rows come
+     * oldest first. The candidate read locks nothing (issue #7194); the claim
+     * statement after it locks MonitorProbe rows alone - see below. The
+     * read is a range of the (probeId, isEnabled, nextPingAt) index in the
+     * index's own order, so it stops at its LIMIT (MonitorProbeClaimSetAside
+     * pins why).
      */
     test("keeps the rest of the claim predicate intact, and the candidate read locks nothing", async () => {
       const { select } = await captureClaim();
@@ -325,24 +328,30 @@ describe("MonitorProbeService.claimMonitorProbesForProbing keeps past_due projec
       expect(sql).toContain('WHERE mp."probeId" = $1');
       expect(sql).toContain('AND mp."isEnabled" = true');
       expect(sql).toContain('AND mp."deletedAt" IS NULL');
-      expect(sql).toContain(
-        'AND (mp."nextPingAt" IS NULL OR mp."nextPingAt" <= $2)',
-      );
+      expect(sql).toContain('AND mp."nextPingAt" <= $2');
       expect(sql).toContain('AND m."disableActiveMonitoring" = false');
       expect(sql).toContain('AND m."deletedAt" IS NULL');
       expect(sql).toContain('AND p."deletedAt" IS NULL');
-      expect(sql).toContain('ORDER BY mp."nextPingAt" ASC NULLS FIRST');
-      expect(sql).toContain("LIMIT $3");
+      expect(sql).toContain('ORDER BY mp."nextPingAt" ASC LIMIT $3');
+      expect(sql).not.toContain("NULLS FIRST");
+      expect(sql).not.toContain('mp."nextPingAt" IS NULL');
       expect(sql).not.toContain("FOR UPDATE");
       expect(sql).not.toContain("FOR NO KEY UPDATE");
     });
   });
 
   describe("after rows are claimed", () => {
-    test("returns nothing and runs no update when nothing is due", async () => {
+    /*
+     * Nothing to claim, so no claim statement - only the set-aside, which
+     * moves due rows nothing may probe (none probeable means every due row
+     * was stepped over) and is an index probe when there are none.
+     */
+    test("returns nothing and runs no claim statement when nothing is due", async () => {
       const { statements, claimed } = await captureClaim([]);
 
-      expect(statements).toHaveLength(1);
+      expect(statements).toHaveLength(2);
+      expect(normalizeSql(statements[1]!.sql)).not.toContain('"lastPingAt"');
+      expect(normalizeSql(statements[1]!.sql)).toContain('"unprobeable"');
       expect(claimed).toEqual([]);
     });
 
@@ -359,7 +368,8 @@ describe("MonitorProbeService.claimMonitorProbesForProbing keeps past_due projec
         { _id: secondId, monitoringInterval: "not a cron" },
       ]);
 
-      expect(statements).toHaveLength(2);
+      // The read, the claim, then the set-aside.
+      expect(statements).toHaveLength(3);
 
       const claim: CapturedStatement = statements[1]!;
 

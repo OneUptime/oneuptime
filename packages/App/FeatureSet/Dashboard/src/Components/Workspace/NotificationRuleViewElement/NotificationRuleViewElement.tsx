@@ -42,6 +42,11 @@ import {
   SlackRuleWorkspaces,
 } from "../NotificationRuleForm/NotificationRuleCopy";
 import VideoCallRuleSummary from "./VideoCallRuleSummary";
+import UpdatesRuleSummary from "./UpdatesRuleSummary";
+import NotificationRuleUpdates, {
+  NotificationRuleUpdatesChoice,
+} from "Common/Types/Workspace/NotificationRules/NotificationRuleUpdates";
+import { isUpdatesEventType } from "../NotificationRuleForm/NotificationRuleUpdatesCopy";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -57,6 +62,9 @@ import IconProp from "Common/Types/Icon/IconProp";
  *                      Incident Commander and other incident roles as they
  *                      are assigned and owners as they are added.
  *                    - Archives the channel when the incident is resolved.
+ *   Updates          Key updates only
+ *                    Resolved and reopened · Severity changes · Public
+ *                    notes · Postmortem
  *   Video Call       Starts a Zoom call with Zoom (Ops)
  *
  * "Which incidents" and "Then" are the rule form's own words: the
@@ -66,7 +74,9 @@ import IconProp from "Common/Types/Icon/IconProp";
  * Each is a row of the rule's card of its own (a column of the rules list),
  * so the rows line up and the list's Customize Columns names every one. A
  * rule without a description, or without a video call, leaves that row off
- * its card instead of drawing a label over nothing.
+ * its card instead of drawing a label over nothing - and so does a rule
+ * that posts every update, as rules always did: the Updates row is for
+ * the rules that leave some out.
  *
  * The card listed every switch the rule holds, Yes or No, a dozen rows a
  * rule. Then When and Then were a card inside a row with no name - the
@@ -275,10 +285,12 @@ export interface NotificationRuleCardData
 export const NOTIFICATION_RULE_CARD_COLUMN_IDS: {
   readonly when: string;
   readonly then: string;
+  readonly updates: string;
   readonly videoCall: string;
 } = {
   when: "when",
   then: "then",
+  updates: "updates",
   videoCall: "videoCall",
 };
 
@@ -369,6 +381,36 @@ export function getNotificationRuleCardColumns(
       },
     },
   ];
+
+  /*
+   * Which updates the rule posts (its Updates step), for the rules that
+   * choose them, on the cards of those that leave some out.
+   */
+  const eventType: NotificationRuleEventType = data.eventType;
+
+  if (isUpdatesEventType(eventType)) {
+    columns.push({
+      field: {
+        notificationRule: true,
+      },
+      id: NOTIFICATION_RULE_CARD_COLUMN_IDS.updates,
+      // The rule form's step of the same name: the card translates it.
+      title: "Updates",
+      type: FieldType.Element,
+      disableSort: true,
+      showInListIf: (item: WorkspaceNotificationRule): boolean => {
+        return (
+          NotificationRuleUpdates.getChoice({
+            rule: ruleOf(item),
+            eventType: eventType,
+          }) !== NotificationRuleUpdatesChoice.EveryUpdate
+        );
+      },
+      getElement: (item: WorkspaceNotificationRule): ReactElement => {
+        return <UpdatesRuleSummary rule={ruleOf(item)} eventType={eventType} />;
+      },
+    });
+  }
 
   if (data.canStartVideoCall) {
     columns.push({

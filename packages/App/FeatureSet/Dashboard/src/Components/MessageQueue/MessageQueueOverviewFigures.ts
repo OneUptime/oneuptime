@@ -9,6 +9,7 @@ import {
   getMessageQueueBrokerMetricTitle,
 } from "./MessageQueueOverviewPresentation";
 import { getMessageQueueSystemLabel } from "../../Pages/MessageQueue/Utils/MessageQueuePresentation";
+import AggregationInterval from "Common/Types/BaseDatabase/AggregationInterval";
 import AggregationIntervalUtil from "Common/Types/BaseDatabase/AggregationIntervalUtil";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import {
@@ -127,10 +128,30 @@ function baseTitleOf(descriptor: MessageQueueMetricDescriptor): string {
     : title.toLowerCase();
 }
 
+/*
+ * How far a day or a week of the reader's calendar can be from 24 hours
+ * or 7 days: an hour where the clocks change, two at Troll station.
+ */
+const CLOCK_CHANGE_TOLERANCE_MS: number = 2 * 60 * 60 * 1000;
+
+/*
+ * The widths a step between two days or two weeks is taken as. Day and
+ * week buckets start at the reader's midnight (AggregateBy.timezone, issue
+ * #7277), so where the clocks change one of them is 23 or 25 hours long,
+ * and a window that holds that day has a step that is not 24 hours.
+ */
+const CALENDAR_INTERVAL_WIDTHS_MS: ReadonlyArray<number> = [
+  AggregationIntervalUtil.getAggregationIntervalMs(AggregationInterval.Day),
+  AggregationIntervalUtil.getAggregationIntervalMs(AggregationInterval.Week),
+];
+
 /**
  * The width of one interval of a chart-ready series: the smallest step
  * between its points, or — for a series of one point — the interval the
- * aggregate API picks for the window.
+ * aggregate API picks for the window. A step that is a day or a week, give
+ * or take a change of the clocks, is taken as a whole day or week: a window
+ * that holds the 23-hour day the clocks go forward on would otherwise count
+ * every day's rate over 23 hours.
  */
 export function getMessageQueueSeriesIntervalMs(
   series: ReadonlyArray<MessageQueueTimePoint>,
@@ -154,6 +175,11 @@ export function getMessageQueueSeriesIntervalMs(
     }
   }
   if (Number.isFinite(step)) {
+    for (const widthMs of CALENDAR_INTERVAL_WIDTHS_MS) {
+      if (Math.abs(step - widthMs) <= CLOCK_CHANGE_TOLERANCE_MS) {
+        return widthMs;
+      }
+    }
     return step;
   }
   return AggregationIntervalUtil.getAggregationIntervalMs(

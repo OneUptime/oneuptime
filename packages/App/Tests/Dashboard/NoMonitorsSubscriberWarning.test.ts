@@ -439,7 +439,7 @@ describe("Declare Incident", () => {
 
   test("the summary step says Yes or No with the preview beside it when something can be sent, then who", () => {
     expect(source).toContain(
-      'getSummaryElement: (item: FormValues<Incident>) => { return ( <> <div className="flex flex-wrap items-center gap-x-3 gap-y-1" data-testid="incident-create-notify-subscribers-line" > <BooleanValue value={isNotifyTicked(item)} dataTestId="incident-create-notify-subscribers-value" /> {isNotifyingSubscribers(item) && hasMonitors(item) ? ( <SubscriberNotificationPreviewButton',
+      'getSummaryElement: (item: FormValues<Incident>) => { return ( <> <div className="flex flex-wrap items-center gap-x-3 gap-y-1 focus:outline-none" data-testid="incident-create-notify-subscribers-line" ref={notifyReviewLineRef} tabIndex={-1} > <BooleanValue value={isNotifyTicked(item)} dataTestId="incident-create-notify-subscribers-value" /> {isNotifyingSubscribers(item) && hasMonitors(item) ? ( <SubscriberNotificationPreviewButton',
     );
     expect(source).toContain("</div> {getAudienceSummary(item)} </> ); },");
     expect(source).toContain(
@@ -452,8 +452,42 @@ describe("Declare Incident", () => {
    * under the monitors and status pages whose subscribers it reaches.
    */
   test("the box under the summary is still the one the maintainer saw", () => {
+    /*
+     * Same box, same question - it now starts as the project says
+     * (Incidents > Settings > Subscriber Notifications, #7606), ticked
+     * unless the project turned that off, and where it starts unticked
+     * its question says so.
+     */
     expect(source).toContain(
-      'title: "Notify Status Page Subscribers", stepId: "resources-affected", description: "Should status page subscribers be notified when this incident is created?", fieldType: FormFieldSchemaType.Checkbox, defaultValue: true,',
+      'title: "Notify Status Page Subscribers", stepId: "resources-affected", description: getNotifyBoxDescription( newIncidentNotifyDefault.isTickedByDefault, ), fieldType: FormFieldSchemaType.Checkbox, defaultValue: newIncidentNotifyDefault.isTickedByDefault,',
+    );
+
+    const copy: string = readDashboardSource(
+      "Components/Incident/NewIncidentNotifyDefaultCopy.ts",
+    );
+
+    expect(copy).toContain(
+      'export const NOTIFY_BOX_DESCRIPTION: string = translationKey( "Should status page subscribers be notified when this incident is created?", );',
+    );
+    expect(copy).toContain(
+      "return isTickedByDefault ? NOTIFY_BOX_DESCRIPTION : NOTIFY_BOX_DESCRIPTION_UNTICKED_BY_DEFAULT;",
+    );
+  });
+
+  /*
+   * Nothing here says "subscribers will not be notified": the summary's No
+   * says it, as every box there does. Where the project starts the box
+   * unticked, a link beside that No ticks it - an answer, not a warning.
+   */
+  test("where the project starts the box unticked, the summary's No has Change to Yes beside it, and nothing more", () => {
+    expect(source).toContain(
+      "{canTickNotifyOnReview(item) ? ( <NotifySubscribersChangeToYes onClick={tickNotifyOnReview} /> ) : ( <></> )} </div> {getAudienceSummary(item)} </> ); },",
+    );
+    expect(source).toContain(
+      'return ( !newIncidentNotifyDefault.isTickedByDefault && !isNotifyTicked(values) && (values as Record<string, unknown>)["isPrivate"] !== true );',
+    );
+    expect(source).not.toContain(
+      "Status page subscribers will not be notified",
     );
   });
 });

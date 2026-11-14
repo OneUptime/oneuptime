@@ -10,6 +10,7 @@ import CountBy from "../Types/Database/CountBy";
 import FindAllBy from "../Types/Database/FindAllBy";
 import CreateBy from "../Types/Database/CreateBy";
 import CreateLimit from "../Types/Database/CreateLimit";
+import UpdateLimit from "../Types/Database/UpdateLimit";
 import DeleteBy from "../Types/Database/DeleteBy";
 import DeleteById from "../Types/Database/DeleteById";
 import DeleteOneBy from "../Types/Database/DeleteOneBy";
@@ -1605,6 +1606,72 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         return await manager
           .getRepository<TBaseModel>(this.modelType.name)
           .save(record);
+      },
+    });
+  }
+
+  /*
+   * A rule an update is held to that the project's other records decide -
+   * a person's user overrides may not overlap - as this update is held to
+   * it, or null when none is (Types/Database/UpdateLimit). Each row's
+   * UPDATE is then decided with it, in one transaction holding the rule's
+   * lock in the row's project (updateWithinUpdateLimit), so two writes
+   * cannot both pass the rule each would break with the other. Asked of
+   * every update that writes a column, one that skips its hooks too,
+   * right before the rows are written, once every check and hook has
+   * passed. A model that writes lists of related records (EntityArray
+   * columns) cannot be held to one: their rows are written by save(), in a
+   * transaction of its own.
+   */
+  protected async getUpdateLimit(
+    _updateBy: UpdateBy<TBaseModel>,
+  ): Promise<UpdateLimit | null> {
+    return null;
+  }
+
+  /*
+   * The UPDATE of a row held to a rule (getUpdateLimit): one transaction
+   * takes the rule's lock in the row's project, asks the rule whether the
+   * row may be written, and writes it. The rule is so asked once every
+   * earlier write held to it in the project has committed
+   * (ProjectLimitLock). A refusal rolls the transaction back: the row is
+   * never written.
+   */
+  private async updateWithinUpdateLimit(data: {
+    updateLimit: UpdateLimit;
+    row: TBaseModel;
+    criteria: any;
+    values: any;
+    returnedColumns: Array<string>;
+  }): Promise<UpdateResult> {
+    const tenantColumn: string | null = this.getModel().getTenantColumn();
+    const projectId: ObjectID | null = tenantColumn
+      ? (data.row.getValue(tenantColumn) as ObjectID | undefined) ?? null
+      : null;
+
+    if (!projectId || !data.row.id) {
+      throw new ServerException(
+        `An update of ${this.model.singularName} is held to a rule in its project, and the row it writes names no project.`,
+      );
+    }
+
+    const rowId: ObjectID = data.row.id;
+
+    return await ProjectLimitLock.run({
+      limitName: data.updateLimit.limitName,
+      projectId: new ObjectID(projectId.toString()),
+      run: async (manager: EntityManager): Promise<UpdateResult> => {
+        await data.updateLimit.check(manager, rowId);
+
+        return data.returnedColumns.length > 0
+          ? await manager
+              .getRepository<TBaseModel>(this.modelType.name)
+              .update(data.criteria, data.values, {
+                returning: data.returnedColumns,
+              })
+          : await manager
+              .getRepository<TBaseModel>(this.modelType.name)
+              .update(data.criteria, data.values);
       },
     });
   }
@@ -9948,6 +10015,20 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       });
 
       /*
+       * A rule the project's other records decide, which each row's UPDATE
+       * is decided with (see the hook) - asked only of an update that
+       * writes rows.
+       */
+      const updateLimit: UpdateLimit | null =
+        items.length > 0 ? await this.getUpdateLimit(beforeUpdateBy) : null;
+
+      if (updateLimit && hasRelationUpdates) {
+        throw new ServerException(
+          `An update of ${this.model.singularName} held to a rule in its project cannot write a list of related records.`,
+        );
+      }
+
+      /*
        * Rows the write actually touched. A row hard-deleted between the find
        * above and the write is reported by update() as zero rows affected;
        * it must not fire success hooks (they re-read the row and would
@@ -10140,17 +10221,28 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
             },
           };
 
-          // The row's write itself: one UPDATE, committed on its own.
-          const updateResult: UpdateResult = await progress.write(
-            false,
-            async (): Promise<UpdateResult> => {
-              return returnedColumns.length > 0
-                ? await this.getRepository().update(criteria, values, {
-                    returning: returnedColumns,
-                  })
-                : await this.getRepository().update(criteria, values);
-            },
-          );
+          /*
+           * The row's write itself: one UPDATE, committed on its own - or,
+           * held to a rule (getUpdateLimit), in the transaction that decides
+           * it, which commits it with its COMMIT (updateWithinUpdateLimit).
+           */
+          const updateResult: UpdateResult = updateLimit
+            ? await progress.write(true, async (): Promise<UpdateResult> => {
+                return await this.updateWithinUpdateLimit({
+                  updateLimit: updateLimit,
+                  row: item,
+                  criteria: criteria,
+                  values: values,
+                  returnedColumns: returnedColumns,
+                });
+              })
+            : await progress.write(false, async (): Promise<UpdateResult> => {
+                return returnedColumns.length > 0
+                  ? await this.getRepository().update(criteria, values, {
+                      returning: returnedColumns,
+                    })
+                  : await this.getRepository().update(criteria, values);
+              });
 
           /*
            * The row was hard-deleted between the find above and this write,

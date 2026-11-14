@@ -143,26 +143,48 @@ export function getDropdownOptionText(
 export { DROPDOWN_MENU_Z_INDEX };
 
 // What react-select hands a filter for each option it considers.
-interface SearchableOption {
+export interface SearchableOption {
   readonly label: string;
   readonly value: string;
   readonly data: DropdownOption;
 }
 
+export type DropdownSearchFilter = (
+  option: SearchableOption,
+  rawInput: string,
+) => boolean;
+
 /*
  * react-select's own filter — case- and accent-insensitive, trimmed — over
  * the label and value as before, and over an option's aliases too, so typing
  * a retired spelling ("Calcutta", "US/Eastern") still finds the option it
- * now lives under. An option without aliases is searched exactly as it was.
+ * now lives under.
+ *
+ * And over the label as the menu shows it, when the reader's language words
+ * it otherwise: a label is an English key, so a German reader who typed
+ * "Anderes" for the option listed as "Anderes Messaging-System..." (or
+ * "stimmt" for an operator) was told there were no options. The English
+ * still finds it too. An option shown as its own label - in English, or a
+ * name someone gave - is searched exactly as it was.
  */
-const filterOption: (option: SearchableOption, rawInput: string) => boolean =
-  createFilter<DropdownOption>({
+export const createDropdownSearchFilter: (
+  getShownLabel: (option: DropdownOption) => string,
+) => DropdownSearchFilter = (
+  getShownLabel: (option: DropdownOption) => string,
+): DropdownSearchFilter => {
+  return createFilter<DropdownOption>({
     stringify: (option: SearchableOption): string => {
-      return [option.label, option.value, ...(option.data.aliases || [])].join(
-        " ",
-      );
+      const shownLabel: string = getShownLabel(option.data);
+
+      return [
+        option.label,
+        option.value,
+        ...(option.data.aliases || []),
+        ...(shownLabel && shownLabel !== option.label ? [shownLabel] : []),
+      ].join(" ");
     },
   });
+};
 
 export interface ComponentProps {
   options: Array<DropdownOption | DropdownOptionGroup>;
@@ -363,6 +385,10 @@ const Dropdown: FunctionComponent<ComponentProps> = (
   ): string => {
     return getDropdownOptionText(option, tx);
   };
+
+  // Typing finds an option by the words the menu shows, and by its English.
+  const filterOption: DropdownSearchFilter =
+    createDropdownSearchFilter(getOptionLabelText);
 
   /*
    * Which way an option's label reads, picked or listed: the page's way

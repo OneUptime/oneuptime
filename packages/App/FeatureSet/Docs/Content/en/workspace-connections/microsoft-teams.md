@@ -91,13 +91,14 @@ A notification rule says which events post to Microsoft Teams, and where. Each p
 | **On-Call** | One list of rules |
 | **SLOs** | One list of rules |
 
-Creating a rule walks four steps:
+Creating a rule walks up to five steps:
 
 | Step | What you set |
 | --- | --- |
 | **Basic** | **Rule Name** and **Rule Description**. |
 | **Conditions** | Which events the rule is for, by severity, state, label, monitor or words in the title, for example. They are checked when an event is created and again with each update OneUptime posts about it, so a rule for acknowledged incidents acts when an incident is acknowledged. A new rule is for every event, such as **All incidents**. To narrow it down, pick **Only incidents that match conditions** and add the conditions. With two or more, **Match Condition** says whether all of them must match, or any one. |
 | **Destination** | Where it posts: an existing channel of a team you pick, the chats you pick, a channel for each incident (or alert, episode, event, monitor or on-call policy) created in a team you pick, or any of these together. Under the step, **What this rule does** says it in sentences, as the rule's card does. |
+| **Updates** | Incidents, alerts, episodes and scheduled maintenance only: which updates the rule posts after the record's first message. **Every update**, which a new rule starts with, posts them all. **Key updates only** posts the ones that matter most, which the step lists for each kind of record: for an incident, its resolution or reopening, severity changes, public notes and the postmortem. **Choose updates** lets you tick them one by one. Whatever you pick, the rule posts the record's first message, and a video call when one starts. |
 | **Video Call** | Incidents and alerts only: start a call for each one. See [Video Calls](/docs/workspace-connections/video-calls). |
 
 Each condition reads as a sentence: the field, how it compares and the value. Values to pick come from the project's own lists, such as its states, severities, labels and monitors. An on-call rule picks its policies under **On-Call Policy**, which keeps matching a policy after it is renamed, while **On-Call Policy Name** matches words in a policy's name. Every kind of event that has owners has an owner condition, such as **Incident Owner**: pick people and teams, and it matches the people and teams recorded as the event's owners. Being in a team that owns the event does not count. An owner added later makes the rule match from that update on, and a rule that creates channels creates the channel then. An archived value, such as a severity or an on-call policy, is not offered for a new condition. A rule that already has one keeps it, marked **Archived**, and still matches the events that have it. A person, team or policy the project no longer has stays in the condition, and the rule's card says so.
@@ -110,7 +111,7 @@ A rule creates its channel the first time an event matches it: when the event is
 
 To bring in whoever is on call, pick their on-call schedules under **Mention who is on call**. When the channel is created, OneUptime posts a message in it, just after the record's first one, that @mentions whoever is on call in those schedules, so Microsoft Teams notifies them. Nobody is paged. OneUptime finds each person in the team by the Microsoft Teams account they connected to OneUptime, or else by their email address. Someone who is not in the team can't open its channels, so they are named in the message instead, with why. In a private channel, only its members can open it, so add the people on call to it in Microsoft Teams.
 
-Every later update of the record — a state change, a note, a new owner — is posted to its channels, and to the existing channels and chats its rules name while their conditions match. OneUptime cannot archive a Microsoft Teams channel, so a rule's channel stays when its record is over; archive or delete it in Microsoft Teams.
+Every later update of the record — a state change, a note, a new owner — is posted to its channels, and to the existing channels and chats its rules name while their conditions match, when a rule that posts there chooses it in its **Updates** step. OneUptime cannot archive a Microsoft Teams channel, so a rule's channel stays when its record is over; archive or delete it in Microsoft Teams.
 
 An incident, alert, episode or scheduled maintenance event with a channel of its own has **Open in Microsoft Teams** in the header of its page in OneUptime, beside its state buttons. It opens that channel in a new tab, in the Microsoft Teams app or in the browser. A record with two channels of its own lists both under the button. A record with channels in both Slack and Microsoft Teams has one **Open channel** button instead, which lists them all. The existing channels and chats your rules post to are not offered.
 
