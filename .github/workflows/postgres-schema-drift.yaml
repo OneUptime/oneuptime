@@ -2499,6 +2499,26 @@ jobs:
           Tests/Server/Infrastructure/Postgres/CappedCountPostgres.test.ts
           --forceExit
 
+      # Checks the migrated Alert and Incident tables carry ("projectId",
+      # "createdAt"), valid, in place of their bare "projectId" index, then
+      # clones them with their labels into an isolated schema: a list's page,
+      # newest first, takes its ids from that index in order with no sort of
+      # the project (first page, a later one, a member's privacy-filtered
+      # one), its rows by primary key, and its capped count stops reading at
+      # the cap (AddAlertAndIncidentListIndexes).
+      - name: Test the Alerts and Incidents lists' indexes on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_ALERT_INCIDENT_LIST_INDEX_TESTS: "true"
+          ALERT_INCIDENT_LIST_INDEX_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          ALERT_INCIDENT_LIST_INDEX_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          ALERT_INCIDENT_LIST_INDEX_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/AddAlertAndIncidentListIndexesPostgres.test.ts
+          --forceExit
+
       # The Network Overview counts the fleet in one scan
       # (NetworkDeviceService.getFleetScan) where it ran four reads: the
       # summary strip's numbers, the health buckets, the vendor breakdown and
