@@ -142,7 +142,7 @@ Uma regra publica o que escolheu na etapa **Atualizações**, e uma regra nova c
 | **Quem está de plantão agora** | A linha acima, a cada passagem de turno. |
 | **Quem está de plantão a seguir** | Quem assume na próxima passagem de turno, e quando: no fim dessa linha, ou em uma linha própria para uma regra que não publica quem está de plantão agora. |
 | **Ninguém de plantão** | Um agendamento que fica sem ninguém de plantão, de modo que os alertas que chegam a ele não acionam ninguém: "⚠️ Nobody is on call for Payments until tomorrow at 5:50 PM, when @bob takes over." |
-| **Substituições de usuário** | Uma substituição adicionada ou desfeita: quem está ausente e quem cobre. |
+| **Substituições de usuário** | Uma substituição adicionada, alterada ou desfeita: quem está ausente e quem cobre. |
 | **Mudanças na política** | Agendamentos, pessoas e equipes adicionados às suas regras de escalonamento ou removidos. |
 | **Proprietários** | Proprietários adicionados e removidos. |
 

@@ -142,7 +142,7 @@ Eine Regel postet, was sie in ihrem Schritt **Aktualisierungen** gewählt hat, u
 | **Wer jetzt Bereitschaft hat** | Die Zeile oben, bei jeder Übergabe. |
 | **Wer als Nächstes Bereitschaft hat** | Wer bei der nächsten Übergabe übernimmt und wann: am Ende dieser Zeile, oder in einer eigenen Zeile für eine Regel, die nicht postet, wer jetzt Bereitschaft hat. |
 | **Niemand in Bereitschaft** | Ein Zeitplan, in dem niemand mehr Bereitschaft hat, sodass Warnungen, die ihn erreichen, niemanden alarmieren: "⚠️ Nobody is on call for Payments until tomorrow at 5:50 PM, when @bob takes over." |
-| **Benutzerüberschreibungen** | Eine hinzugefügte oder zurückgenommene Vertretung: wer abwesend ist und wer vertritt. |
+| **Benutzerüberschreibungen** | Eine hinzugefügte, geänderte oder zurückgenommene Vertretung: wer abwesend ist und wer vertritt. |
 | **Änderungen an der Richtlinie** | Zeitpläne, Personen und Teams, die ihren Eskalationsregeln hinzugefügt oder daraus entfernt wurden. |
 | **Eigentümer** | Hinzugefügte und entfernte Eigentümer. |
 

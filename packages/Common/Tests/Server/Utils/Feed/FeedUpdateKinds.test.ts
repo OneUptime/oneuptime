@@ -335,6 +335,11 @@ describe("what an on-call channel hears of its policy (#7549)", () => {
         OnCallDutyPolicyFeedEventType.UserOverrideAdded,
         NotificationRuleUpdateKind.Overrides,
       ],
+      // An override edited: its cover or its times (#7630, #7631).
+      [
+        OnCallDutyPolicyFeedEventType.UserOverrideChanged,
+        NotificationRuleUpdateKind.Overrides,
+      ],
       [
         OnCallDutyPolicyFeedEventType.UserOverrideRemoved,
         NotificationRuleUpdateKind.Overrides,
@@ -498,13 +503,15 @@ describe("the writers hand the kinds to the message they post", () => {
     ).toContain("alsoWantedUpdateKinds:data.alsoWantedUpdateKinds");
   });
 
-  test("every entry that names an escalation rule gives the channels a short line instead", () => {
-    for (const writer of [
-      "Server/Services/OnCallDutyPolicyEscalationRuleUserService.ts",
-      "Server/Services/OnCallDutyPolicyEscalationRuleTeamService.ts",
-      "Server/Services/OnCallDutyPolicyEscalationRuleScheduleService.ts",
-      "Server/Services/OnCallDutyPolicyUserOverrideService.ts",
-    ]) {
+  test("every entry that names an escalation rule, or an override, gives the channels a short line instead", () => {
+    for (const [writer, written] of [
+      // Added and removed: an entry each, and a line each.
+      ["Server/Services/OnCallDutyPolicyEscalationRuleUserService.ts", 2],
+      ["Server/Services/OnCallDutyPolicyEscalationRuleTeamService.ts", 2],
+      ["Server/Services/OnCallDutyPolicyEscalationRuleScheduleService.ts", 2],
+      // An override added, changed (#7630, #7631) and removed.
+      ["Server/Services/OnCallDutyPolicyUserOverrideService.ts", 3],
+    ] as Array<[string, number]>) {
       const code: string = squeezed(writer);
       const entries: number =
         code.split(
@@ -514,11 +521,26 @@ describe("the writers hand the kinds to the message they post", () => {
         code.match(/chatInfoInMarkdown:[^,]*OnCallChatText\.\w+\(/g) || []
       ).length;
 
-      // Added and removed: an entry each, and a line each.
       expect({ writer, entries, lines }).toEqual({
         writer,
-        entries: 2,
-        lines: 2,
+        entries: written,
+        lines: written,
+      });
+    }
+
+    // The override's three lines, one of each.
+    const overrides: string = squeezed(
+      "Server/Services/OnCallDutyPolicyUserOverrideService.ts",
+    );
+
+    for (const line of [
+      "OnCallChatText.overrideAdded(",
+      "OnCallChatText.overrideChanged(",
+      "OnCallChatText.overrideRemoved(",
+    ]) {
+      expect({ line, times: overrides.split(line).length - 1 }).toEqual({
+        line,
+        times: 1,
       });
     }
   });

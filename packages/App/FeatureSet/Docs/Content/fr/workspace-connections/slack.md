@@ -142,7 +142,7 @@ Une règle publie ce qu'elle a choisi à son étape **Mises à jour**, et une no
 | **Qui est d'astreinte maintenant** | La ligne ci-dessus, à chaque relève. |
 | **Qui est d'astreinte ensuite** | Qui prend le relais à la prochaine relève, et quand : à la fin de cette ligne, ou dans une ligne à part pour une règle qui ne publie pas qui est d'astreinte maintenant. |
 | **Personne d'astreinte** | Un planning qui se retrouve sans personne d'astreinte, si bien que les alertes qui l'atteignent n'appellent personne : « ⚠️ Nobody is on call for Payments until tomorrow at 5:50 PM, when @bob takes over. » |
-| **Remplacements d'utilisateur** | Un remplacement ajouté ou annulé : qui est absent, et qui remplace. |
+| **Remplacements d'utilisateur** | Un remplacement ajouté, modifié ou annulé : qui est absent, et qui remplace. |
 | **Modifications de la politique** | Plannings, personnes et équipes ajoutés à ses règles d'escalade ou retirés. |
 | **Propriétaires** | Propriétaires ajoutés et retirés. |
 

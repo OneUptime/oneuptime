@@ -52061,7 +52061,7 @@
   "Changes to the policy": "Cambios en la política",
   "One line at each hand-off: who is on call, and until when.": "Una línea en cada relevo: quién está de guardia y hasta cuándo.",
   "User overrides": "Sustituciones de usuarios",
-  "Overrides added and taken back: who is away, and who covers.": "Sustituciones añadidas y retiradas: quién está ausente y quién cubre.",
+  "Overrides added, changed and taken back: who is away, and who covers.": "Sustituciones añadidas, modificadas y retiradas: quién está ausente y quién cubre.",
   "Schedules, people and teams added to its escalation rules or taken out.": "Programaciones, personas y equipos añadidos a sus reglas de escalado o quitados.",
   "The rule always posts when an on-call policy is created. Pick the updates it posts after that.": "La regla siempre publica cuando se crea una política de guardia. Elige las actualizaciones que publica después.",
   "When a schedule is left with nobody on call, so alerts that reach it page no one.": "Cuando una programación se queda sin nadie de guardia, de modo que las alertas que le llegan no avisan a nadie.",

@@ -142,7 +142,7 @@ Een regel plaatst wat hij in zijn stap **Updates** koos, en een nieuwe regel beg
 | **Wie nu dienst heeft** | De regel hierboven, bij elke overdracht. |
 | **Wie hierna dienst heeft** | Wie bij de volgende overdracht overneemt, en wanneer: aan het eind van die regel, of in een eigen regel voor een notificatieregel die niet plaatst wie nu dienst heeft. |
 | **Niemand heeft dienst** | Een schema waarin niemand meer dienst heeft, zodat waarschuwingen die het bereiken niemand oproepen: "⚠️ Nobody is on call for Payments until tomorrow at 5:50 PM, when @bob takes over." |
-| **Gebruikersoverschrijvingen** | Een overschrijving toegevoegd of ingetrokken: wie afwezig is, en wie vervangt. |
+| **Gebruikersoverschrijvingen** | Een overschrijving toegevoegd, gewijzigd of ingetrokken: wie afwezig is, en wie vervangt. |
 | **Wijzigingen in het beleid** | Schema's, personen en teams die aan de escalatieregels zijn toegevoegd of eruit zijn gehaald. |
 | **Eigenaren** | Toegevoegde en verwijderde eigenaren. |
 

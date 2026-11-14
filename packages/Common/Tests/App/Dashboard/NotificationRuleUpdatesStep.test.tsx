@@ -702,7 +702,7 @@ describe("an on-call policy rule's step", () => {
       "When a schedule is left with nobody on call, so alerts that reach it page no one.",
     );
     expect(box("User overrides")).toHaveAccessibleDescription(
-      "Overrides added and taken back: who is away, and who covers.",
+      "Overrides added, changed and taken back: who is away, and who covers.",
     );
     expect(box("Changes to the policy")).toHaveAccessibleDescription(
       "Schedules, people and teams added to its escalation rules or taken out.",

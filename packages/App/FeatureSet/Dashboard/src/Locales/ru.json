@@ -52061,7 +52061,7 @@
   "Changes to the policy": "Изменения политики",
   "One line at each hand-off: who is on call, and until when.": "Одна строка при каждой передаче смены: кто дежурит и до какого времени.",
   "User overrides": "Пользовательские переопределения",
-  "Overrides added and taken back: who is away, and who covers.": "Добавленные и отменённые переопределения: кто отсутствует и кто заменяет.",
+  "Overrides added, changed and taken back: who is away, and who covers.": "Добавленные, изменённые и отменённые переопределения: кто отсутствует и кто заменяет.",
   "Schedules, people and teams added to its escalation rules or taken out.": "Расписания, люди и команды, добавленные в её правила эскалации или удалённые из них.",
   "The rule always posts when an on-call policy is created. Pick the updates it posts after that.": "Правило всегда публикует сообщение, когда создаётся политика дежурства. Выберите обновления, которые оно публикует после этого.",
   "When a schedule is left with nobody on call, so alerts that reach it page no one.": "Когда в расписании никто не дежурит, и оповещения, которые до него доходят, никого не вызывают.",

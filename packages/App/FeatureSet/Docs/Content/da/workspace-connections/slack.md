@@ -142,7 +142,7 @@ En regel slår det op, den valgte i sit trin **Opdateringer**, og en ny regel st
 | **Hvem der har vagt nu** | Linjen ovenfor, ved hvert vagtskifte. |
 | **Hvem der har vagt næste gang** | Hvem der overtager ved næste vagtskifte, og hvornår: sidst i den linje, eller i en linje for sig for en regel, der ikke slår op, hvem der har vagt nu. |
 | **Ingen har vagt** | En tidsplan, der står uden nogen på vagt, så advarsler, der når den, ikke tilkalder nogen: "⚠️ Nobody is on call for Payments until tomorrow at 5:50 PM, when @bob takes over." |
-| **Brugertilsidesættelser** | En tilsidesættelse tilføjet eller trukket tilbage: hvem der er fraværende, og hvem der dækker. |
+| **Brugertilsidesættelser** | En tilsidesættelse tilføjet, ændret eller trukket tilbage: hvem der er fraværende, og hvem der dækker. |
 | **Ændringer i politikken** | Tidsplaner, personer og teams, der er tilføjet til dens eskaleringsregler eller fjernet. |
 | **Ejere** | Ejere tilføjet og fjernet. |
 

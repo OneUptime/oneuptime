@@ -142,7 +142,7 @@ En regel publicerar det den valde i sitt steg **Uppdateringar**, och en ny regel
 | **Vem som har jour nu** | Raden ovan, vid varje överlämning. |
 | **Vem som har jour härnäst** | Vem som tar över vid nästa överlämning, och när: i slutet av den raden, eller på en egen rad för en regel som inte publicerar vem som har jour nu. |
 | **Ingen har jour** | Ett schema som står utan någon som har jour, så att larm som når det inte larmar någon: "⚠️ Nobody is on call for Payments until tomorrow at 5:50 PM, when @bob takes over." |
-| **Användaråsidosättningar** | En åsidosättning som lagts till eller dragits tillbaka: vem som är borta, och vem som täcker upp. |
+| **Användaråsidosättningar** | En åsidosättning som lagts till, ändrats eller dragits tillbaka: vem som är borta, och vem som täcker upp. |
 | **Ändringar i policyn** | Scheman, personer och team som lagts till i dess eskaleringsregler eller tagits bort. |
 | **Ägare** | Ägare som lagts till och tagits bort. |
 

@@ -52061,7 +52061,7 @@
   "Changes to the policy": "Ændringer i politikken",
   "One line at each hand-off: who is on call, and until when.": "Én linje ved hvert vagtskifte: hvem der har vagt, og til hvornår.",
   "User overrides": "Brugertilsidesættelser",
-  "Overrides added and taken back: who is away, and who covers.": "Tilsidesættelser tilføjet og trukket tilbage: hvem der er fraværende, og hvem der dækker.",
+  "Overrides added, changed and taken back: who is away, and who covers.": "Tilsidesættelser tilføjet, ændret og trukket tilbage: hvem der er fraværende, og hvem der dækker.",
   "Schedules, people and teams added to its escalation rules or taken out.": "Tidsplaner, personer og teams, der er tilføjet til dens eskaleringsregler eller fjernet.",
   "The rule always posts when an on-call policy is created. Pick the updates it posts after that.": "Reglen poster altid, når en vagtpolitik oprettes. Vælg de opdateringer, den poster derefter.",
   "When a schedule is left with nobody on call, so alerts that reach it page no one.": "Når en tidsplan står uden nogen på vagt, så advarsler, der når den, ikke tilkalder nogen.",

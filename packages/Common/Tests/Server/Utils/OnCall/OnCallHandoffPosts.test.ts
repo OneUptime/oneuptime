@@ -374,6 +374,72 @@ describe("the other on-call lines", () => {
       `❌ Removed an override on [Payments](${POLICY_LINK}): Ana is paged on their turns again.`,
     );
   });
+
+  test("an override changed (#7630, #7631): the override as it is now, said as the add says it", () => {
+    // Somebody covers now: who, for whom, from when to when.
+    expect(
+      OnCallChatText.overrideChanged({
+        policy: POLICY,
+        person: mdText`Ana`,
+        cover: mdText`Carl`,
+        from: HANDOFF_AT,
+        until: NEXT_HANDOFF_AT,
+        moment: at,
+      }).toString(),
+    ).toBe(
+      `✏️ Changed an override on [Payments](${POLICY_LINK}): Carl covers for Ana from 22:50 UTC to 22:50 UTC.`,
+    );
+
+    // Nobody named to cover now: the rotation covers.
+    expect(
+      OnCallChatText.overrideChanged({
+        policy: POLICY,
+        person: mdText`Ana`,
+        cover: undefined,
+        from: HANDOFF_AT,
+        until: NEXT_HANDOFF_AT,
+        moment: at,
+      }).toString(),
+    ).toBe(
+      `✏️ Changed an override on [Payments](${POLICY_LINK}): Ana is away from 22:50 UTC to 22:50 UTC, and their turns go to the next person in the rotation.`,
+    );
+
+    // A cover whose name came back empty reads as no cover, as the add does.
+    expect(
+      OnCallChatText.overrideChanged({
+        policy: POLICY,
+        person: mdText`Ana`,
+        cover: mdText``,
+        from: HANDOFF_AT,
+        until: NEXT_HANDOFF_AT,
+        moment: at,
+      }).toString(),
+    ).toContain("Ana is away from");
+  });
+
+  test("an override's line says each moment where the line goes, start then end", () => {
+    const moments: Array<string> = [];
+    const line: string = OnCallChatText.overrideChanged({
+      policy: POLICY,
+      person: mdText`Ana`,
+      cover: mdText`Carl`,
+      from: HANDOFF_AT,
+      until: NEXT_HANDOFF_AT,
+      moment: (date: Date): MarkdownText => {
+        moments.push(date.toISOString());
+
+        return mdText`<${date.toISOString()}>`;
+      },
+    }).toString();
+
+    expect(moments).toEqual([
+      HANDOFF_AT.toISOString(),
+      NEXT_HANDOFF_AT.toISOString(),
+    ]);
+    expect(line).toBe(
+      `✏️ Changed an override on [Payments](${POLICY_LINK}): Carl covers for Ana from <${HANDOFF_AT.toISOString()}> to <${NEXT_HANDOFF_AT.toISOString()}>.`,
+    );
+  });
 });
 
 describe("what a roster change says", () => {

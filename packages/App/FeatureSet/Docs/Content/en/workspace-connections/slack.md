@@ -142,7 +142,7 @@ A rule posts what it chose in its **Updates** step, and a new rule starts on **K
 | **Who is on call now** | The line above, at each hand-off. |
 | **Who is on call next** | Who takes over at the next hand-off, and when: at the end of that line, or in a line of its own for a rule that does not post who is on call now. |
 | **Nobody on call** | A schedule left with nobody on call, so alerts that reach it page no one: "⚠️ Nobody is on call for Payments until tomorrow at 5:50 PM, when @bob takes over." |
-| **User overrides** | An override added or taken back: who is away, and who covers. |
+| **User overrides** | An override added, changed or taken back: who is away, and who covers. |
 | **Changes to the policy** | Schedules, people and teams added to its escalation rules or taken out. |
 | **Owners** | Owners added and removed. |
 

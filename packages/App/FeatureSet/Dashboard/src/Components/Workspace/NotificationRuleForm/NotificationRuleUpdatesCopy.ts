@@ -436,7 +436,7 @@ export const UPDATES_COPY: Readonly<Record<UpdatesEventType, UpdatesCopy>> = {
       [NotificationRuleUpdateKind.Overrides]: {
         title: translationKey("User overrides"),
         description: translationKey(
-          "Overrides added and taken back: who is away, and who covers.",
+          "Overrides added, changed and taken back: who is away, and who covers.",
         ),
       },
       [NotificationRuleUpdateKind.PolicyChanges]: {

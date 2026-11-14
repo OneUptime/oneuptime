@@ -142,7 +142,7 @@ Una regola pubblica ciò che ha scelto nel suo passaggio **Aggiornamenti**, e un
 | **Chi è reperibile ora** | La riga qui sopra, a ogni cambio turno. |
 | **Chi è reperibile dopo** | Chi subentra al prossimo cambio turno, e quando: alla fine di quella riga, o in una riga a sé per una regola che non pubblica chi è reperibile ora. |
 | **Nessuno reperibile** | Una pianificazione rimasta senza nessuno reperibile, così gli avvisi che la raggiungono non chiamano nessuno: "⚠️ Nobody is on call for Payments until tomorrow at 5:50 PM, when @bob takes over." |
-| **Sostituzioni utente** | Una sostituzione aggiunta o annullata: chi è assente e chi sostituisce. |
+| **Sostituzioni utente** | Una sostituzione aggiunta, modificata o annullata: chi è assente e chi sostituisce. |
 | **Modifiche alla policy** | Pianificazioni, persone e team aggiunti alle sue regole di escalation o rimossi. |
 | **Proprietari** | Proprietari aggiunti e rimossi. |
 

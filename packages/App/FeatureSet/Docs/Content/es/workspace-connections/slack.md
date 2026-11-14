@@ -142,7 +142,7 @@ Una regla publica lo que eligió en su paso **Actualizaciones**, y una regla nue
 | **Quién está de guardia ahora** | La línea de arriba, en cada relevo. |
 | **Quién está de guardia después** | Quién toma el relevo en el próximo cambio de turno, y cuándo: al final de esa línea, o en una línea propia para una regla que no publica quién está de guardia ahora. |
 | **Nadie de guardia** | Una programación que se queda sin nadie de guardia, de modo que las alertas que le llegan no avisan a nadie: "⚠️ Nobody is on call for Payments until tomorrow at 5:50 PM, when @bob takes over." |
-| **Sustituciones de usuarios** | Una sustitución añadida o retirada: quién está ausente y quién cubre. |
+| **Sustituciones de usuarios** | Una sustitución añadida, modificada o retirada: quién está ausente y quién cubre. |
 | **Cambios en la política** | Programaciones, personas y equipos añadidos a sus reglas de escalado o quitados. |
 | **Propietarios** | Propietarios añadidos y quitados. |
 

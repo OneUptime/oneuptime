@@ -28,6 +28,18 @@ import { MarkdownText, mdText } from "../../../Utils/Markdown/FeedMarkdown";
 // How a moment reads where the line goes.
 export type OnCallMomentText = (date: Date) => MarkdownText;
 
+// An override, as a line about it is handed it: added, or changed.
+export interface OnCallOverrideLine {
+  policy: MarkdownText;
+  // Who is covered: whom the rotation names.
+  person: MarkdownText;
+  // Who covers for them; none when their turns pass to the next person.
+  cover?: MarkdownText | undefined;
+  from: Date;
+  until: Date;
+  moment: OnCallMomentText;
+}
+
 export default class OnCallChatText {
   /*
    * The policy, linked to its page: "[Payments](...)", or "[Payments](...)
@@ -139,21 +151,18 @@ export default class OnCallChatText {
    * who is away with nobody named to cover, from when to when. Written to
    * follow the name of whoever added it.
    */
-  public static overrideAdded(data: {
-    policy: MarkdownText;
-    // Who is covered: whom the rotation names.
-    person: MarkdownText;
-    // Who covers for them; none when their turns pass to the next person.
-    cover?: MarkdownText | undefined;
-    from: Date;
-    until: Date;
-    moment: OnCallMomentText;
-  }): MarkdownText {
-    if (data.cover && !data.cover.isEmpty()) {
-      return mdText`🔁 Added an override on ${data.policy}: ${data.cover} covers for ${data.person} from ${data.moment(data.from)} to ${data.moment(data.until)}.`;
-    }
+  public static overrideAdded(data: OnCallOverrideLine): MarkdownText {
+    return mdText`🔁 Added an override on ${data.policy}: ${OnCallChatText.overrideTerms(data)}.`;
+  }
 
-    return mdText`🔁 Added an override on ${data.policy}: ${data.person} is away from ${data.moment(data.from)} to ${data.moment(data.until)}, and their turns go to the next person in the rotation.`;
+  /*
+   * An override edited - who covers, or when it starts or ends - as the
+   * policy's channels hear it: the override as it is now, said as the add
+   * says it. What it was stays in the policy's feed. Written to follow the
+   * name of whoever changed it.
+   */
+  public static overrideChanged(data: OnCallOverrideLine): MarkdownText {
+    return mdText`✏️ Changed an override on ${data.policy}: ${OnCallChatText.overrideTerms(data)}.`;
   }
 
   // An override taken back: the person covered is paged on their turns again.
@@ -162,5 +171,21 @@ export default class OnCallChatText {
     person: MarkdownText;
   }): MarkdownText {
     return mdText`❌ Removed an override on ${data.policy}: ${data.person} is paged on their turns again.`;
+  }
+
+  /*
+   * What an override does, from when to when: "@Bob covers for @Ana from
+   * ... to ...", or, with nobody named to cover, "@Ana is away from ... to
+   * ..., and their turns go to the next person in the rotation".
+   */
+  private static overrideTerms(data: OnCallOverrideLine): MarkdownText {
+    const from: MarkdownText = data.moment(data.from);
+    const until: MarkdownText = data.moment(data.until);
+
+    if (data.cover && !data.cover.isEmpty()) {
+      return mdText`${data.cover} covers for ${data.person} from ${from} to ${until}`;
+    }
+
+    return mdText`${data.person} is away from ${from} to ${until}, and their turns go to the next person in the rotation`;
   }
 }

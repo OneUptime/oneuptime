@@ -142,7 +142,7 @@ En regel publiserer det den valgte i steget **Oppdateringer**, og en ny regel st
 | **Hvem som har vakt nå** | Linjen over, ved hvert vaktskifte. |
 | **Hvem som har vakt neste gang** | Hvem som tar over ved neste vaktskifte, og når: på slutten av den linjen, eller i en egen linje for en regel som ikke publiserer hvem som har vakt nå. |
 | **Ingen har vakt** | En tidsplan som står uten noen på vakt, slik at varsler som når den, ikke tilkaller noen: "⚠️ Nobody is on call for Payments until tomorrow at 5:50 PM, when @bob takes over." |
-| **Brukeroverstyringer** | En overstyring lagt til eller trukket tilbake: hvem som er borte, og hvem som dekker. |
+| **Brukeroverstyringer** | En overstyring lagt til, endret eller trukket tilbake: hvem som er borte, og hvem som dekker. |
 | **Endringer i policyen** | Tidsplaner, personer og team som er lagt til i eskaleringsreglene eller tatt ut. |
 | **Eiere** | Eiere lagt til og fjernet. |
 
