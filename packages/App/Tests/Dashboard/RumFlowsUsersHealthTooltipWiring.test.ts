@@ -376,11 +376,11 @@ describe("the User Flows detail panel carries its own text", () => {
     expect(pairs(squash(DETAIL_PANEL), DETAIL_STAT_PATTERN)).toEqual([
       ['"Sessions"', "detailTransitionSessions"],
       [
-        '{translator.translateTemplate("Share of {{page}}", { page: sourceLabel, })}',
+        '{translator.translateTemplate( "Share of {{page}}", { page: sourceLabel }, { setsValuesApart: true }, )}',
         "detailShareOfSource",
       ],
       [
-        '{translator.translateTemplate("Share of {{page}}", { page: targetLabel, })}',
+        '{translator.translateTemplate( "Share of {{page}}", { page: targetLabel }, { setsValuesApart: true }, )}',
         "detailShareOfTarget",
       ],
       ['"Returning to a seen page"', "detailReturning"],
@@ -825,10 +825,10 @@ describe("User Flows detail panel texts match the map it explains", () => {
     const panel: string = squash(DETAIL_PANEL);
 
     expect(panel).toContain(
-      'label={translator.translateTemplate("Share of {{page}}", { page: sourceLabel, })} tooltip={RUM_USER_FLOW_METRIC_DESCRIPTIONS.detailShareOfSource} value={formatUserFlowShare( source && source.sessions > 0 ? link.sessions / source.sessions : 0, translator, )}',
+      'label={translator.translateTemplate( "Share of {{page}}", { page: sourceLabel }, { setsValuesApart: true }, )} tooltip={RUM_USER_FLOW_METRIC_DESCRIPTIONS.detailShareOfSource} value={formatUserFlowShare( source && source.sessions > 0 ? link.sessions / source.sessions : 0, translator, )}',
     );
     expect(panel).toContain(
-      'label={translator.translateTemplate("Share of {{page}}", { page: targetLabel, })} tooltip={RUM_USER_FLOW_METRIC_DESCRIPTIONS.detailShareOfTarget} value={formatUserFlowShare( target && target.sessions > 0 ? link.sessions / target.sessions : 0, translator, )}',
+      'label={translator.translateTemplate( "Share of {{page}}", { page: targetLabel }, { setsValuesApart: true }, )} tooltip={RUM_USER_FLOW_METRIC_DESCRIPTIONS.detailShareOfTarget} value={formatUserFlowShare( target && target.sessions > 0 ? link.sessions / target.sessions : 0, translator, )}',
     );
     // Source and target are in lived order, whichever way the map runs.
     expect(USER_FLOW_ENGINE).toContain(

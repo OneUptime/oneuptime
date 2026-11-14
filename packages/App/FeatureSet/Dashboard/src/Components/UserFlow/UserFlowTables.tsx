@@ -98,9 +98,16 @@ function PageChip(props: { page: string; onClick: () => void }): ReactElement {
     <button
       type="button"
       className="max-w-[16rem] truncate rounded-md bg-gray-100 px-1.5 py-0.5 font-mono text-xs text-gray-800 hover:bg-indigo-100 hover:text-indigo-800"
-      title={translator.translateTemplate("Show paths from {{page}}", {
-        page: pageText,
-      })}
+      /*
+       * Only drawn: the path is set apart from the words around it
+       * (setsValuesApart), so an Arabic or Persian title names "/cart",
+       * not "cart/", and "/2024", not "2024/".
+       */
+      title={translator.translateTemplate(
+        "Show paths from {{page}}",
+        { page: pageText },
+        { setsValuesApart: true },
+      )}
       /*
        * A path reads from the left on any page: "/home", not "home/", and
        * "/الرئيسية", not "الرئيسية/".

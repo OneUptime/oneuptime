@@ -358,6 +358,11 @@ const UserFlowMap: FunctionComponent<ComponentProps> = (
     link: UserFlowLink,
   ): Array<string> => {
     const source: UserFlowNodeBox | undefined = nodesById.get(link.sourceId);
+    /*
+     * A tooltip's line is only drawn: its page is set apart from its words
+     * (setsValuesApart), so an Arabic or Persian line names "/cart", not
+     * "cart/".
+     */
     const lines: Array<string> = [
       `${sessionsText(link.sessions)}${
         source
@@ -370,6 +375,7 @@ const UserFlowMap: FunctionComponent<ComponentProps> = (
                 ),
                 page: labelOf(source.node),
               },
+              { setsValuesApart: true },
             )}`
           : ""
       }`,
