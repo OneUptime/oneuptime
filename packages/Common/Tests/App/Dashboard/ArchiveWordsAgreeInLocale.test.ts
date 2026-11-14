@@ -782,3 +782,192 @@ describe("the French bulk title for inventory items", () => {
     );
   });
 });
+
+/*
+ * THE FIVE KINDS' OWN WORDS NAME A THING AS ITS LIST DOES (#7386).
+ *
+ * The bulk title counts the kind's own term ("Archive 3 workflows?"), the
+ * banner and the Archived page name it in every sentence, and the side menu
+ * names its list. French, Italian and Danish said "workflow" in all of them
+ * under a list called "Flux de travail", "Flussi di lavoro" and
+ * "Arbejdsgange"; Swedish counted "övervakare" over a "Monitorer" list;
+ * Simplified Chinese called a monitor 监控项 beside its 监视器 list, and
+ * Traditional Chinese 監視器 beside its 監測器 list.
+ */
+interface OwnKind {
+  copy: ResourceArchiveCopy;
+  // The list's name, as the kind's side menu says it.
+  list: string;
+  // The English noun, which some languages keep as a loanword.
+  english: RegExp;
+}
+
+const OWN_KINDS: ReadonlyArray<OwnKind> = [
+  { copy: WORKFLOW_ARCHIVE_COPY, list: "Workflows", english: /workflow/i },
+  { copy: MONITOR_ARCHIVE_COPY, list: "Monitors", english: /monitor/i },
+  {
+    copy: STATUS_PAGE_ARCHIVE_COPY,
+    list: "Status Pages",
+    english: /status ?page/i,
+  },
+  { copy: DASHBOARD_ARCHIVE_COPY, list: "Dashboards", english: /dashboard/i },
+  {
+    copy: ON_CALL_POLICY_ARCHIVE_COPY,
+    list: "On-Call Policies",
+    english: /on-call polic/i,
+  },
+];
+
+// Arabic's article before a word of three letters or more: المراقبات.
+const ARABIC_ARTICLE: RegExp = /^ال(?=.{3})/u;
+
+// A name's words, in lower case, Arabic's article taken off.
+function nameWords(name: string): Array<string> {
+  return name
+    .trim()
+    .toLowerCase()
+    .split(/\s+/)
+    .map((word: string): string => {
+      return word.replace(ARABIC_ARTICLE, "");
+    });
+}
+
+/*
+ * A term names what its list does when the first three letters of its
+ * first word begin a word of the list's name: "arbejdsgang" and
+ * "Arbejdsgange", "سير عمل" and "مهام سير العمل"; never "workflow" and
+ * "Flux de travail".
+ */
+function namesItsList(term: string, list: string): boolean {
+  const lead: string = nameWords(term)[0]!.slice(0, 3);
+
+  return nameWords(list).some((word: string): boolean => {
+    return word.startsWith(lead);
+  });
+}
+
+/*
+ * Names whose term and list still differ: Russian counts статус-страницы
+ * under a "Страницы состояния" list and дашборды under "Панели", Hindi
+ * स्टेटस पेज under "स्थिति पृष्ठ". Which word a reader sees for these
+ * across the Dashboard - its menu, its pages and the docs that quote them -
+ * is a choice for the whole product, made in a follow-up of #7386. Each
+ * entry comes off when its pair agrees.
+ */
+const NAMES_STILL_APART: ReadonlyArray<{ language: string; term: string }> = [
+  { language: "ru", term: "status page" },
+  { language: "ru", term: "status pages" },
+  { language: "ru", term: "dashboard" },
+  { language: "ru", term: "dashboards" },
+  { language: "hi", term: "status page" },
+  { language: "hi", term: "status pages" },
+];
+
+describe.each(DASHBOARD_LANGUAGES)(
+  "the five kinds' archive words in %s",
+  (language: string) => {
+    const words: Record<string, string> = readDashboardLocale(language);
+
+    test("count each thing by the noun its list says", () => {
+      const apart: Array<{ language: string; term: string }> = [];
+
+      for (const kind of OWN_KINDS) {
+        for (const term of [kind.copy.singularName, kind.copy.pluralName]) {
+          expect({ term, worded: words[term] }).toEqual({
+            term,
+            worded: expect.any(String),
+          });
+
+          if (!namesItsList(words[term]!, words[kind.list]!)) {
+            apart.push({ language: language, term: term });
+          }
+        }
+      }
+
+      expect(apart).toEqual(
+        NAMES_STILL_APART.filter(
+          (entry: { language: string; term: string }): boolean => {
+            return entry.language === language;
+          },
+        ),
+      );
+    });
+
+    test("never say the English noun where the list's name does not", () => {
+      const loans: Array<{ key: string; worded: string }> = [];
+
+      for (const kind of OWN_KINDS) {
+        if (kind.english.test(words[kind.list]!)) {
+          continue;
+        }
+
+        for (const key of Object.values(kind.copy)) {
+          if (kind.english.test(words[key] || "")) {
+            loans.push({ key: key, worded: words[key]! });
+          }
+        }
+      }
+
+      expect(loans).toEqual([]);
+    });
+  },
+);
+
+describe("the check of a term against its list, against the words it replaced", () => {
+  test.each([
+    ["workflow", "Flux de travail"],
+    ["workflow", "Flussi di lavoro"],
+    ["workflows", "Arbejdsgange"],
+    ["övervakare", "Monitorer"],
+    ["статус-страницы", "Страницы состояния"],
+  ])("%p does not name %p", (term: string, list: string) => {
+    expect(namesItsList(term, list)).toBe(false);
+  });
+
+  test.each([
+    ["flux de travail", "Flux de travail"],
+    ["arbejdsgang", "Arbejdsgange"],
+    ["monitorer", "Monitorer"],
+    ["سير عمل", "مهام سير العمل"],
+    ["مراقبة", "المراقبات"],
+    ["온콜 정책", "온콜 정책"],
+  ])("%p names %p", (term: string, list: string) => {
+    expect(namesItsList(term, list)).toBe(true);
+  });
+});
+
+describe("the bulk titles count workflows and monitors as their lists do", () => {
+  test.each([
+    ["fr", "workflow", "Archiver 3 flux de travail ?"],
+    ["it", "workflow", "Archiviare 3 flussi di lavoro?"],
+    ["da", "workflow", "Arkiver 3 arbejdsgange?"],
+    ["sv", "monitor", "Arkivera 3 monitorer?"],
+  ])("%s: %s", (language: string, kind: string, title: string) => {
+    expect(bulkTitle(language, BULK_ARCHIVE_TITLE, namesOf(kind), 3)).toBe(
+      title,
+    );
+  });
+});
+
+describe("the Chinese archive sentences call a monitor what the Monitors list does", () => {
+  test.each([
+    ["zh-CN", "监视器", "监控项"],
+    ["zh-TW", "監測器", "監視器"],
+  ])("%s says %s, never %s", (language: string, own: string, other: string) => {
+    const words: Record<string, string> = readDashboardLocale(language);
+
+    expect(words["Monitors"]).toBe(own);
+
+    const astray: Array<{ key: string; worded: string }> = Object.values(
+      MONITOR_ARCHIVE_COPY,
+    )
+      .filter((key: string): boolean => {
+        return !words[key]!.includes(own) || words[key]!.includes(other);
+      })
+      .map((key: string): { key: string; worded: string } => {
+        return { key: key, worded: words[key]! };
+      });
+
+    expect(astray).toEqual([]);
+  });
+});
