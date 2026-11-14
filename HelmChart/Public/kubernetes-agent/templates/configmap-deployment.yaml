@@ -538,7 +538,7 @@ data:
             value: {{ include "kubernetes-agent.clusterName" . | quote }}
             action: insert
           - key: service.name
-            value: "kubernetes-agent-{{ .Values.clusterName }}"
+            value: {{ printf "kubernetes-agent-%s" (include "kubernetes-agent.clusterName" .) | quote }}
             action: insert
           - key: oneuptime.agent.version
             value: {{ .Chart.AppVersion | quote }}

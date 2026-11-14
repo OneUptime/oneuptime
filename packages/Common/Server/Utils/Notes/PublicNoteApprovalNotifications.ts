@@ -84,7 +84,7 @@ export interface PublicNoteApprovalMessageFacts {
   // "Incident INC-42"
   recordLabel: string;
   recordTitle: string;
-  // "incident", "episode", "scheduled maintenance event"
+  // "incident", "episode", "maintenance event"
   recordNoun: string;
   // The record's public notes in the Dashboard, where it is decided.
   notesUrl: string;

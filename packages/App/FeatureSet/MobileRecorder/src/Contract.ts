@@ -391,6 +391,12 @@ export interface SessionReplayIdlePausedPayload {
   idleSinceUnixMs: number;
   /* When capture stopped. */
   pausedAtUnixMs: number;
+  /*
+   * "page" when a web page paused recording itself (the browser recorder's
+   * OneUptimeReplay.pause(), issue #6834). This recorder has no such call
+   * and never sets it: every pause it marks is one nobody used the app for.
+   */
+  reason?: "page";
 }
 
 /*

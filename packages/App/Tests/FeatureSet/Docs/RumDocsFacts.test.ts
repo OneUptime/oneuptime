@@ -846,17 +846,25 @@ describe("Ingestion keys: a Browser key for the web, a Server key for mobile", (
     );
   });
 
-  it("lets a Browser key write only OTLP traces, logs, metrics and session replays", () => {
+  it("lets a Browser key write only OTLP traces, logs, metrics, session replays and Sentry events", () => {
     expect([...BROWSER_ALLOWED_INGEST_SURFACES].sort()).toEqual(
       [
         TelemetryIngestSurface.OtelTraces,
         TelemetryIngestSurface.OtelLogs,
         TelemetryIngestSurface.OtelMetrics,
         TelemetryIngestSurface.SessionReplay,
+        // A browser app's Sentry DSN, which is public by design (#7742).
+        TelemetryIngestSurface.Sentry,
       ].sort(),
     );
     expect(englishPage(BROWSER_SETUP)).toContain(
-      "A Browser key writes OTLP traces, logs and metrics, and session replays; every other ingest route refuses it.",
+      "A Browser key writes OTLP traces, logs and metrics, session replays, and events from a [Sentry browser SDK](/docs/telemetry/compatible-endpoints#sentry-sdks); every other ingest route refuses it.",
+    );
+    // The link opens the section that gives a browser app's DSN a Browser key.
+    expect(
+      section("telemetry/compatible-endpoints", "## Sentry SDKs"),
+    ).toContain(
+      "A browser app's DSN is public, so use a **Browser** ingestion key there, with your site's origins on it.",
     );
   });
 

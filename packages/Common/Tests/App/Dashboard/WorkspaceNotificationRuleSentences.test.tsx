@@ -384,7 +384,7 @@ describe("the sentences that say what a rule does", () => {
     ],
     [
       NotificationRuleEventType.ScheduledMaintenance,
-      "Creates a channel like #sm-42 for each scheduled maintenance event.",
+      "Creates a channel like #sm-42 for each maintenance event.",
       "Invites owners as they are added.",
       "Archives the channel when the event is completed.",
     ],
@@ -826,7 +826,7 @@ describe("the sentences that say what a rule does", () => {
       [NotificationRuleEventType.IncidentEpisode]: "All incident episodes",
       [NotificationRuleEventType.AlertEpisode]: "All alert episodes",
       [NotificationRuleEventType.ScheduledMaintenance]:
-        "All scheduled maintenance events",
+        "All maintenance events",
       [NotificationRuleEventType.Monitor]: "All monitors",
       [NotificationRuleEventType.OnCallDutyPolicy]: "All on-call policies",
       [NotificationRuleEventType.SecurityCase]: "All security cases",

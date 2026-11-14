@@ -236,9 +236,13 @@ export function readableText(text: string): string {
     .join("");
 }
 
-// A separator between two steps of a path: ">", "→", "->" or "›".
-const SEPARATOR_AHEAD: RegExp = /^\s*(?:->|>|→|›)\s*/;
-const SEPARATOR_BEHIND: RegExp = /\s*(?:->|>|→|›)\s*$/;
+/*
+ * A separator between two steps of a path: ">", "→", "->" or "›", and "←",
+ * the arrow a path written in Arabic or Persian points on to its next step
+ * with.
+ */
+const SEPARATOR_AHEAD: RegExp = /^\s*(?:->|>|→|←|›)\s*/;
+const SEPARATOR_BEHIND: RegExp = /\s*(?:->|>|→|←|›)\s*$/;
 /*
  * A value a template puts in: "{value}" where the scan reads a template
  * literal, "{{workspace}}" in a translation.

@@ -47,14 +47,15 @@ export enum OpAmpServerCapability {
 }
 
 /*
- * What OneUptime does: status reports, remote config, and the effective
- * config a supervisor reports (accepted, not kept: a host's version and
- * hash say which config it runs).
+ * What OneUptime does: status reports and remote config. Not the effective
+ * config: a host's version and hash say which config it runs, and the
+ * config a collector reports has its ${env:...} values filled in
+ * (HOST_COLLECTOR_OPAMP_SETTINGS_YAML in OpAmpExchange), so OneUptime drops
+ * it from every message as it reads it (decodeAgentToServer).
  */
 export const ONEUPTIME_OPAMP_SERVER_CAPABILITIES: number =
   OpAmpServerCapability.AcceptsStatus |
-  OpAmpServerCapability.OffersRemoteConfig |
-  OpAmpServerCapability.AcceptsEffectiveConfig;
+  OpAmpServerCapability.OffersRemoteConfig;
 
 export enum OpAmpServerToAgentFlag {
   ReportFullState = 0x00000001,
@@ -150,9 +151,18 @@ export default class OpAmpCodec {
   /*
    * An AgentToServer from the bytes a supervisor posted. Throws when they
    * are not one (protobufjs' own error).
+   *
+   * Without the effective config it may carry: a host installed before
+   * OneUptime turned the collector's report off still sends it, with its
+   * ${env:...} values filled in. Dropped here, it goes no further than this
+   * function - into no state, no log and no error message.
    */
   public static decodeAgentToServer(bytes: Uint8Array): OpAmpAgentToServer {
-    const message: protobuf.Message = AgentToServerType.decode(bytes);
+    const message: protobuf.Message & { effectiveConfig?: unknown } =
+      AgentToServerType.decode(bytes) as protobuf.Message & {
+        effectiveConfig?: unknown;
+      };
+    delete message.effectiveConfig;
     return AgentToServerType.toObject(
       message,
       TO_OBJECT_OPTIONS,
@@ -185,6 +195,10 @@ export default class OpAmpCodec {
         }
       | undefined;
     agentDisconnect?: Record<string, never> | undefined;
+    // What a collector reports it runs, as a supervisor forwards it.
+    effectiveConfig?:
+      | { configMap: { configMap: Record<string, OpAmpAgentConfigFile> } }
+      | undefined;
   }): Uint8Array {
     return AgentToServerType.encode(
       AgentToServerType.fromObject(message),

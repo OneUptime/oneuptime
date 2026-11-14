@@ -344,9 +344,26 @@ describe("Alert page, Affected Resources card: Monitor field translations", () =
       "Fields",
       "FieldLabel.tsx",
     );
+    const entityDropdown: string = readCommon(
+      "UI",
+      "Components",
+      "EntityDropdown",
+      "EntityDropdown.tsx",
+    );
 
-    // FormField translates the placeholder and hands the label to FieldLabel.
-    expect(formField).toContain("translateString( props.field.placeholder, )");
+    /*
+     * FormField hands the placeholder over as written, and the Monitor
+     * field's EntityDropdown looks it up, once: looked up by both, a
+     * translation that is itself an English key was translated again
+     * (#7663). FormField hands the label to FieldLabel.
+     */
+    expect(formField).toContain(
+      "const fieldPlaceholder: string | undefined = props.field.placeholder;",
+    );
+    expect(formField).not.toMatch(/translate\w*\(\s*props\.field\.placeholder/);
+    expect(entityDropdown).toContain(
+      'translator.translateText(props.placeholder || "Select...")',
+    );
     expect(formField).toContain("<FieldLabelElement");
 
     // FieldLabel translates the title and the description.

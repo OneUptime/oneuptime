@@ -257,11 +257,17 @@ describe("the CLI and the API", () => {
     /*
      * No resource fell back to its table's name (CliResources' uniqueName):
      * a new model sharing another's singular name needs a name of its own
-     * in Common's ClientResourceNames, which every client reads.
+     * in Common's ClientResourceNames, which every client reads. A model
+     * renamed on screen keeps its command by the name the API keeps
+     * (apiSingularName), so that name is read here as the CLI reads it.
      */
     const modelsByTable: Map<
       string,
-      { singularName: string; tableName: string }
+      {
+        singularName: string;
+        tableName: string;
+        apiSingularName?: string | null | undefined;
+      }
     > = new Map();
 
     for (const modelType of DatabaseModels) {
@@ -269,6 +275,7 @@ describe("the CLI and the API", () => {
       modelsByTable.set(model.tableName || "", {
         singularName: model.singularName || "",
         tableName: model.tableName || "",
+        apiSingularName: model.apiSingularName,
       });
     }
 
@@ -290,6 +297,7 @@ describe("the CLI and the API", () => {
           modelsByTable.get(resource.tableName) as {
             singularName: string;
             tableName: string;
+            apiSingularName?: string | null | undefined;
           },
         ),
       });

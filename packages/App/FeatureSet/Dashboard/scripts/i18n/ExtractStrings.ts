@@ -315,6 +315,22 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * What a user override overlaps (issue #7630) - the server's refusal and
+   * the dialog's words as soon as the times are picked, the notes on an
+   * overlap the rule allows, and the lists' "Overlaps" mark - and why an
+   * edit of one is refused (issue #7631). The server says them in English;
+   * the dashboard in the reader's language. Only the sentences the files
+   * mark are read.
+   */
+  {
+    directory: "packages/Common/Types/OnCallDutyPolicy/UserOverrideOverlap.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/OnCallDutyPolicy/UserOverrideEdit.ts",
+    kind: "keys",
+  },
+  /*
    * What a dashboard template's chart says while it draws its fallback
    * query - why, and where the fix is. Stored in the dashboard as written
    * and looked up where the chart draws it; only the hints the file marks

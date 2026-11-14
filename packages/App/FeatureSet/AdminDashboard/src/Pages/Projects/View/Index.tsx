@@ -131,6 +131,7 @@ const Projects: FunctionComponent = (): ReactElement => {
                 placeholder: t(
                   "pages.projectView.dataResidencyFieldPlaceholder",
                 ),
+                isPlaceholderTranslated: true,
                 validation: {
                   maxLength: DataResidencyUtil.MAX_LENGTH,
                 },

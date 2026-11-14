@@ -35,6 +35,23 @@ const REPOSITORY_ROOT = path.resolve(NGINX_DIRECTORY, "..", "..");
 const TELEMETRY_DIRECTORY = "packages/App/FeatureSet/Telemetry";
 const TELEMETRY_INDEX = `${TELEMETRY_DIRECTORY}/Index.ts`;
 
+const COMPATIBLE_INGEST_DOCS =
+  "packages/App/FeatureSet/Docs/Content/en/telemetry/compatible-endpoints.md";
+
+// The logs guide's Fluent Bit and Fluentd files (Send your first logs).
+const LOG_SHIPPER_SNIPPETS =
+  "packages/App/FeatureSet/Dashboard/src/Components/Telemetry/LogShipperSnippets.ts";
+
+/*
+ * The Setup Guide's OpenTelemetry SDK snippets, which give an exporter its
+ * signal's URL under <YOUR_ONEUPTIME_URL>, and the guide, which fills that
+ * with its OTLP endpoint (issue #7885).
+ */
+const OTEL_SDK_SNIPPETS =
+  "packages/App/FeatureSet/Dashboard/src/Components/Telemetry/OtelSdkSnippets.ts";
+const TELEMETRY_SETUP_GUIDE =
+  "packages/App/FeatureSet/Dashboard/src/Components/Telemetry/Documentation.tsx";
+
 const HOST_COLLECTOR_INSTALL_SH =
   "packages/App/FeatureSet/Docs/Static/scripts/host-collector/install.sh";
 const HOST_COLLECTOR_INSTALL_PS1 =
@@ -76,6 +93,25 @@ const TELEMETRY_INGEST_ADDRESSES = [
               contains:
                 "HOST_COLLECTOR_EXPORTER_ENDPOINT: string = `${HOST_COLLECTOR_URL_REFERENCE}/otlp`",
             },
+            // An SDK exporter given its signal's URL in code.
+            {
+              file: OTEL_SDK_SNIPPETS,
+              contains: `"<YOUR_ONEUPTIME_URL>/v1/${signal}"`,
+            },
+            // The guide's OTLP endpoint, which <YOUR_ONEUPTIME_URL> is.
+            {
+              file: TELEMETRY_SETUP_GUIDE,
+              contains: "`${httpProtocol}://${HOST}/otlp`",
+            },
+            // Fluent Bit's opentelemetry output, as its Logs_uri.
+            ...(signal === "logs"
+              ? [
+                  {
+                    file: LOG_SHIPPER_SNIPPETS,
+                    contains: 'FLUENT_BIT_LOGS_URI: string = "/otlp/v1/logs"',
+                  },
+                ]
+              : []),
           ],
         },
       ],
@@ -173,6 +209,303 @@ const TELEMETRY_INGEST_ADDRESSES = [
           {
             file: "packages/App/FeatureSet/Docs/Content/en/telemetry/fluentd.md",
             contains: "endpoint https://oneuptime.com/fluentd/logs",
+          },
+          {
+            file: LOG_SHIPPER_SNIPPETS,
+            contains: 'FLUENTD_LOGS_PATH: string = "/fluentd/logs"',
+          },
+        ],
+      },
+    ],
+  },
+
+  /*
+   * The compatible endpoints (#6797): the agents and SDKs a team already
+   * runs - Prometheus, Loki's clients, Splunk HEC clients, the Datadog
+   * Agent, Sentry SDKs - sent to the addresses the endpoints' docs page
+   * (and the Setup Guide, from the same constants) hands out, under
+   * /telemetry. Splunk's Docker logging driver and Fluent Bit post to HEC's
+   * own paths at the root, which the primary server sends to the App
+   * through a /services/collector location; the Datadog Agent posts logs to
+   * /api/v2/logs on the host logs_dd_url names, which /api sends to the App.
+   */
+  {
+    method: "POST",
+    route: "/prometheus/api/v1/write",
+    addresses: [
+      {
+        address: "/telemetry/prometheus/api/v1/write",
+        handedOutBy: [
+          {
+            file: COMPATIBLE_INGEST_DOCS,
+            contains:
+              "url: https://oneuptime.com/telemetry/prometheus/api/v1/write",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    method: "POST",
+    route: "/loki/api/v1/push",
+    addresses: [
+      {
+        address: "/telemetry/loki/api/v1/push",
+        handedOutBy: [
+          {
+            file: COMPATIBLE_INGEST_DOCS,
+            contains: "url: https://oneuptime.com/telemetry/loki/api/v1/push",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    method: "POST",
+    route: "/services/collector",
+    addresses: [
+      {
+        address: "/telemetry/services/collector",
+        handedOutBy: [
+          {
+            file: COMPATIBLE_INGEST_DOCS,
+            contains: "`https://oneuptime.com/telemetry/services/collector`",
+          },
+        ],
+      },
+      {
+        address: "/services/collector",
+        calledBy:
+          "HEC clients given the host alone, which post to the collector's own path",
+      },
+    ],
+  },
+  {
+    method: "POST",
+    route: "/services/collector/event",
+    addresses: [
+      {
+        address: "/telemetry/services/collector/event",
+        handedOutBy: [
+          {
+            file: COMPATIBLE_INGEST_DOCS,
+            contains:
+              "curl https://oneuptime.com/telemetry/services/collector/event",
+          },
+        ],
+      },
+      {
+        address: "/services/collector/event",
+        calledBy:
+          "Fluent Bit's splunk output, which posts here on the host it is given",
+      },
+    ],
+  },
+  {
+    method: "POST",
+    route: "/services/collector/event/1.0",
+    addresses: [
+      {
+        address: "/services/collector/event/1.0",
+        handedOutBy: [
+          {
+            file: COMPATIBLE_INGEST_DOCS,
+            contains: "--log-opt splunk-url=https://oneuptime.com",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    method: "POST",
+    route: "/services/collector/raw",
+    addresses: [
+      {
+        address: "/services/collector/raw",
+        handedOutBy: [
+          {
+            file: COMPATIBLE_INGEST_DOCS,
+            contains: "`/services/collector/raw`",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    method: "GET",
+    route: "/services/collector/health",
+    addresses: [
+      {
+        address: "/services/collector/health",
+        handedOutBy: [
+          {
+            file: COMPATIBLE_INGEST_DOCS,
+            contains: "`GET /services/collector/health`",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    method: "POST",
+    route: "/datadog/api/v2/logs",
+    addresses: [
+      {
+        address: "/telemetry/datadog/api/v2/logs",
+        handedOutBy: [
+          {
+            file: COMPATIBLE_INGEST_DOCS,
+            contains: "dd_url: https://oneuptime.com/telemetry/datadog",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    method: "POST",
+    route: "/datadog/api/v1/series",
+    addresses: [
+      {
+        address: "/telemetry/datadog/api/v1/series",
+        handedOutBy: [
+          {
+            file: COMPATIBLE_INGEST_DOCS,
+            contains: "dd_url: https://oneuptime.com/telemetry/datadog",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    method: "POST",
+    route: "/datadog/api/v2/series",
+    addresses: [
+      {
+        address: "/telemetry/datadog/api/v2/series",
+        handedOutBy: [
+          {
+            file: COMPATIBLE_INGEST_DOCS,
+            contains: "dd_url: https://oneuptime.com/telemetry/datadog",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    method: "POST",
+    route: "/datadog/api/beta/sketches",
+    addresses: [
+      {
+        address: "/telemetry/datadog/api/beta/sketches",
+        handedOutBy: [
+          {
+            file: COMPATIBLE_INGEST_DOCS,
+            contains: "dd_url: https://oneuptime.com/telemetry/datadog",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    method: "POST",
+    route: "/datadog/api/v1/check_run",
+    addresses: [
+      {
+        address: "/telemetry/datadog/api/v1/check_run",
+        handedOutBy: [
+          {
+            file: COMPATIBLE_INGEST_DOCS,
+            contains: "dd_url: https://oneuptime.com/telemetry/datadog",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    method: "GET",
+    route: "/datadog/api/v1/validate",
+    addresses: [
+      {
+        address: "/telemetry/datadog/api/v1/validate",
+        handedOutBy: [
+          {
+            file: COMPATIBLE_INGEST_DOCS,
+            contains: "dd_url: https://oneuptime.com/telemetry/datadog",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    method: "POST",
+    route: "/datadog/intake",
+    addresses: [
+      {
+        address: "/telemetry/datadog/intake",
+        handedOutBy: [
+          {
+            file: COMPATIBLE_INGEST_DOCS,
+            contains: "dd_url: https://oneuptime.com/telemetry/datadog",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    method: "POST",
+    route: "/datadog/api/v1/metadata",
+    addresses: [
+      {
+        address: "/telemetry/datadog/api/v1/metadata",
+        handedOutBy: [
+          {
+            file: COMPATIBLE_INGEST_DOCS,
+            contains: "dd_url: https://oneuptime.com/telemetry/datadog",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    method: "POST",
+    route: "/api/v2/logs",
+    addresses: [
+      {
+        address: "/api/v2/logs",
+        handedOutBy: [
+          {
+            file: COMPATIBLE_INGEST_DOCS,
+            contains: "logs_dd_url: oneuptime.com:443",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    method: "POST",
+    route: "/sentry/api/:sentryProjectId/envelope",
+    addresses: [
+      {
+        address: "/telemetry/sentry/api/:sentryProjectId/envelope",
+        handedOutBy: [
+          {
+            file: COMPATIBLE_INGEST_DOCS,
+            contains: "@oneuptime.com/telemetry/sentry/1",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    method: "POST",
+    route: "/sentry/api/:sentryProjectId/store",
+    addresses: [
+      {
+        address: "/telemetry/sentry/api/:sentryProjectId/store",
+        handedOutBy: [
+          {
+            file: COMPATIBLE_INGEST_DOCS,
+            contains: "@oneuptime.com/telemetry/sentry/1",
           },
         ],
       },

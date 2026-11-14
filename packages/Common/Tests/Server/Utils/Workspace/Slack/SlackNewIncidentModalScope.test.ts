@@ -739,7 +739,8 @@ describe("the New Scheduled Maintenance form is filled in as the member", (): vo
     expect(showModalSpy).not.toHaveBeenCalled();
     expect(reads).toEqual([]);
     expect(channelAnswerTexts()[0]).toContain(
-      "You do not have permission to create a scheduled maintenance event.",
+      // A maintenance event, as the model has named it since #6817.
+      "You do not have permission to create a maintenance event.",
     );
   });
 

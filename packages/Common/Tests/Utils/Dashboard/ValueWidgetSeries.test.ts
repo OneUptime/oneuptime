@@ -19,6 +19,7 @@ import {
   seededRandom,
   shuffled,
 } from "../../Helpers/SeededRandom";
+import Timezone from "../../../Types/Timezone";
 
 /*
  * The Value widget's sparkline and trend arrow, worked out from points in
@@ -1147,5 +1148,277 @@ describe("fillValueWidgetSeriesGaps: a sparse count's empty buckets at 0", () =>
     expect(fromReadings?.percent).toBe(350);
     expect(fromFilled?.percent).toBe(fromReadings?.percent);
     expect(fromFilled?.direction).toBe(ValueWidgetTrendDirection.Up);
+  });
+});
+
+/*
+ * Day and week buckets start at the reader's midnight when the request
+ * carries the reader's zone (AggregateBy.timezone, issue #7277). Across a
+ * change of the zone's clocks one of those days is 23 or 25 hours long, so
+ * the grid the fill walks is the zone's calendar, not a fixed width: on a
+ * fixed one every reading after the change was off the grid, and nothing
+ * was filled. The instants below are the zones' midnights as Python's
+ * zoneinfo has them, not as this code works them out.
+ */
+describe("fillValueWidgetSeriesGaps: days and weeks on the reader's calendar", () => {
+  const DAY: number = 24 * HOUR_MS;
+
+  const readingsAt: (
+    instants: Array<string>,
+    values: Array<number>,
+  ) => Array<ValueWidgetPoint> = (
+    instants: Array<string>,
+    values: Array<number>,
+  ): Array<ValueWidgetPoint> => {
+    return instants.map((instant: string, index: number): ValueWidgetPoint => {
+      return { timestamp: new Date(instant), value: values[index]! };
+    });
+  };
+
+  const instantsOf: (points: Array<ValueWidgetPoint>) => Array<string> = (
+    points: Array<ValueWidgetPoint>,
+  ): Array<string> => {
+    return points.map((point: ValueWidgetPoint): string => {
+      return point.timestamp.toISOString();
+    });
+  };
+
+  const cases: Array<{
+    name: string;
+    timezone: Timezone;
+    widthMs: number;
+    // Every bucket from the first reading's to the last reading's.
+    slots: Array<string>;
+  }> = [
+    {
+      name: "New York, days across the clocks going forward: 8 March is 23 hours long",
+      timezone: Timezone.AmericaNew_York,
+      widthMs: DAY,
+      slots: [
+        "2026-03-06T05:00:00.000Z",
+        "2026-03-07T05:00:00.000Z",
+        "2026-03-08T05:00:00.000Z",
+        "2026-03-09T04:00:00.000Z",
+        "2026-03-10T04:00:00.000Z",
+      ],
+    },
+    {
+      name: "New York, days across the clocks going back: 1 November is 25 hours long",
+      timezone: Timezone.AmericaNew_York,
+      widthMs: DAY,
+      slots: [
+        "2026-10-31T04:00:00.000Z",
+        "2026-11-01T04:00:00.000Z",
+        "2026-11-02T05:00:00.000Z",
+        "2026-11-03T05:00:00.000Z",
+      ],
+    },
+    {
+      name: "New York, weeks from Monday: the week of 2 March is 167 hours long",
+      timezone: Timezone.AmericaNew_York,
+      widthMs: 7 * DAY,
+      slots: [
+        "2026-03-02T05:00:00.000Z",
+        "2026-03-09T04:00:00.000Z",
+        "2026-03-16T04:00:00.000Z",
+        "2026-03-23T04:00:00.000Z",
+      ],
+    },
+    {
+      name: "Santiago, whose clocks skip midnight: 6 September starts at 01:00",
+      timezone: Timezone.AmericaSantiago,
+      widthMs: DAY,
+      slots: [
+        "2026-09-05T04:00:00.000Z",
+        "2026-09-06T04:00:00.000Z",
+        "2026-09-07T03:00:00.000Z",
+        "2026-09-08T03:00:00.000Z",
+      ],
+    },
+    {
+      name: "Lord Howe Island, whose clocks go back half an hour",
+      timezone: Timezone.AustraliaLord_Howe,
+      widthMs: DAY,
+      slots: [
+        "2026-04-03T13:00:00.000Z",
+        "2026-04-04T13:00:00.000Z",
+        "2026-04-05T13:30:00.000Z",
+        "2026-04-06T13:30:00.000Z",
+      ],
+    },
+    {
+      name: "Troll station, whose clocks go forward two hours: 29 March is 22 hours long",
+      timezone: Timezone.AntarcticaTroll,
+      widthMs: DAY,
+      slots: [
+        "2026-03-28T00:00:00.000Z",
+        "2026-03-29T00:00:00.000Z",
+        "2026-03-29T22:00:00.000Z",
+        "2026-03-30T22:00:00.000Z",
+      ],
+    },
+    {
+      name: "Kolkata, whose midnight is 18:30 UTC the day before",
+      timezone: Timezone.AsiaKolkata,
+      widthMs: DAY,
+      slots: [
+        "2026-03-05T18:30:00.000Z",
+        "2026-03-06T18:30:00.000Z",
+        "2026-03-07T18:30:00.000Z",
+      ],
+    },
+  ];
+
+  for (const days of cases) {
+    test(`${days.name}: every empty bucket between the first reading and the last is drawn at 0`, () => {
+      const first: string = days.slots[0]!;
+      const last: string = days.slots[days.slots.length - 1]!;
+      const filled: Array<ValueWidgetPoint> = fillValueWidgetSeriesGaps({
+        series: readingsAt([first, last], [4, 9]),
+        bucketWidthMs: days.widthMs,
+        timezone: days.timezone,
+      });
+
+      expect(instantsOf(filled)).toEqual(days.slots);
+      expect(
+        filled.map((point: ValueWidgetPoint): number => {
+          return point.value;
+        }),
+      ).toEqual([
+        4,
+        ...days.slots.slice(1, -1).map((): number => {
+          return 0;
+        }),
+        9,
+      ]);
+    });
+
+    test(`${days.name}: a reading in every bucket is handed back as it came`, () => {
+      const series: Array<ValueWidgetPoint> = readingsAt(
+        days.slots,
+        days.slots.map((_slot: string, index: number): number => {
+          return index + 1;
+        }),
+      );
+
+      expect(
+        fillValueWidgetSeriesGaps({
+          series: series,
+          bucketWidthMs: days.widthMs,
+          timezone: days.timezone,
+        }),
+      ).toBe(series);
+    });
+  }
+
+  test("without the zone, a New York reader's days across the clocks changing are no fixed width apart, and nothing is filled", () => {
+    const series: Array<ValueWidgetPoint> = readingsAt(
+      ["2026-03-06T05:00:00.000Z", "2026-03-10T04:00:00.000Z"],
+      [4, 9],
+    );
+
+    expect(
+      fillValueWidgetSeriesGaps({ series: series, bucketWidthMs: DAY }),
+    ).toBe(series);
+  });
+
+  test("days on UTC's midnights, with a zone given, are filled on UTC's days as before", () => {
+    const filled: Array<ValueWidgetPoint> = fillValueWidgetSeriesGaps({
+      series: readingsAt(
+        ["2026-03-06T00:00:00.000Z", "2026-03-10T00:00:00.000Z"],
+        [4, 9],
+      ),
+      bucketWidthMs: DAY,
+      timezone: Timezone.AmericaNew_York,
+    });
+
+    expect(instantsOf(filled)).toEqual([
+      "2026-03-06T00:00:00.000Z",
+      "2026-03-07T00:00:00.000Z",
+      "2026-03-08T00:00:00.000Z",
+      "2026-03-09T00:00:00.000Z",
+      "2026-03-10T00:00:00.000Z",
+    ]);
+  });
+
+  test("a reading that is not at one of the zone's midnights leaves the series as it came", () => {
+    const series: Array<ValueWidgetPoint> = readingsAt(
+      [
+        "2026-03-06T05:00:00.000Z",
+        // Noon in New York.
+        "2026-03-08T16:00:00.000Z",
+        "2026-03-10T04:00:00.000Z",
+      ],
+      [4, 5, 9],
+    );
+
+    expect(
+      fillValueWidgetSeriesGaps({
+        series: series,
+        bucketWidthMs: DAY,
+        timezone: Timezone.AmericaNew_York,
+      }),
+    ).toBe(series);
+  });
+
+  test("an hour's width ignores the zone: an hour is the same everywhere", () => {
+    const filled: Array<ValueWidgetPoint> = fillValueWidgetSeriesGaps({
+      series: readingsAt(
+        ["2026-03-08T05:00:00.000Z", "2026-03-08T09:00:00.000Z"],
+        [1, 2],
+      ),
+      bucketWidthMs: HOUR_MS,
+      timezone: Timezone.AmericaNew_York,
+    });
+
+    expect(instantsOf(filled)).toEqual([
+      "2026-03-08T05:00:00.000Z",
+      "2026-03-08T06:00:00.000Z",
+      "2026-03-08T07:00:00.000Z",
+      "2026-03-08T08:00:00.000Z",
+      "2026-03-08T09:00:00.000Z",
+    ]);
+  });
+
+  test("no more buckets than a sparkline draws, counted on the zone's calendar", () => {
+    // 1 January 2020 to 22 June 2025 in New York: 2000 days.
+    const justFits: Array<ValueWidgetPoint> = readingsAt(
+      ["2020-01-01T05:00:00.000Z", "2025-06-22T04:00:00.000Z"],
+      [1, 1],
+    );
+    const filled: Array<ValueWidgetPoint> = fillValueWidgetSeriesGaps({
+      series: justFits,
+      bucketWidthMs: DAY,
+      timezone: Timezone.AmericaNew_York,
+    });
+
+    expect(filled).toHaveLength(VALUE_WIDGET_MAX_FILLED_POINTS);
+    expect(filled[filled.length - 1]!.timestamp.toISOString()).toBe(
+      "2025-06-22T04:00:00.000Z",
+    );
+
+    const newYorkClock: Intl.DateTimeFormat = new Intl.DateTimeFormat("en-GB", {
+      timeZone: "America/New_York",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    });
+
+    for (const point of filled) {
+      expect(newYorkClock.format(point.timestamp)).toBe("00:00");
+    }
+
+    const tooWide: Array<ValueWidgetPoint> = readingsAt(
+      ["2020-01-01T05:00:00.000Z", "2025-06-23T04:00:00.000Z"],
+      [1, 1],
+    );
+
+    expect(
+      fillValueWidgetSeriesGaps({
+        series: tooWide,
+        bucketWidthMs: DAY,
+        timezone: Timezone.AmericaNew_York,
+      }),
+    ).toBe(tooWide);
   });
 });

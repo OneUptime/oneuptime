@@ -719,7 +719,8 @@ export const AI_ACTION_CARD_LINES: {
   nowResolved: string;
   linkedTo: string;
   alreadyLinkedTo: string;
-  privateNoteAdded: string;
+  privateNoteAddedToIncident: string;
+  privateNoteAddedToAlert: string;
   noteAdded: string;
   statusUpdatePostedQuietly: string;
   statusUpdatePostedSubscribersNotified: string;
@@ -750,8 +751,17 @@ export const AI_ACTION_CARD_LINES: {
   linkedTo: translationKey("Linked to {{resources}}"),
   // Nothing was added: everything named was linked already.
   alreadyLinkedTo: translationKey("Already linked to {{resources}}"),
-  // An internal note on an incident or alert: no status page shows it.
-  privateNoteAdded: translationKey("Private note added, for your team only"),
+  /*
+   * An internal note on an incident or alert: no status page shows it,
+   * and only the people who can see the record can read it. Not "for
+   * your team only", which read as one of OneUptime's Teams (#7595).
+   */
+  privateNoteAddedToIncident: translationKey(
+    "Private note added, only for people who can see the incident",
+  ),
+  privateNoteAddedToAlert: translationKey(
+    "Private note added, only for people who can see the alert",
+  ),
   // A note on a security case, on its timeline.
   noteAdded: translationKey("Note added"),
   // A public status update, and whether its subscribers heard of it.
@@ -1622,6 +1632,72 @@ export function isKnownAIActionCardWords(
           );
         })))
   );
+}
+
+/*
+ * A line a card saved before its words changed may hold, by the kind of
+ * record the card is about, and the line that kind's card says now. "Private
+ * note added, for your team only" said a team, which read as one of
+ * OneUptime's Teams (#7595): a private note's card saved with it reads as
+ * its record's line, in the reader's language - not as the English it
+ * stored. Plain English, not a key: no locale file words it any more.
+ */
+const RETIRED_CARD_LINES: ReadonlyMap<
+  string,
+  ReadonlyMap<string, string>
+> = new Map<string, ReadonlyMap<string, string>>([
+  [
+    "Private note added, for your team only",
+    new Map<string, string>([
+      [
+        AI_ACTION_CARD_KINDS.incident,
+        AI_ACTION_CARD_LINES.privateNoteAddedToIncident,
+      ],
+      [
+        AI_ACTION_CARD_KINDS.alert,
+        AI_ACTION_CARD_LINES.privateNoteAddedToAlert,
+      ],
+    ]),
+  ],
+]);
+
+/*
+ * A stored card's words with each retired line (RETIRED_CARD_LINES) as its
+ * kind's card says it now; anything else as stored. For a card read from a
+ * conversation's saved JSON, before isKnownAIActionCardWords.
+ */
+export function withCurrentAIActionCardLines(value: unknown): unknown {
+  if (!isPlainObject(value) || !Array.isArray(value["line"])) {
+    return value;
+  }
+
+  const kind: unknown = value["kind"];
+
+  if (!isAIActionTerm(kind)) {
+    return value;
+  }
+
+  let hasRetiredLine: boolean = false;
+
+  const line: Array<unknown> = value["line"].map((part: unknown): unknown => {
+    const current: string | undefined =
+      isPlainObject(part) &&
+      typeof part["template"] === "string" &&
+      part["values"] === undefined &&
+      part["count"] === undefined
+        ? RETIRED_CARD_LINES.get(part["template"])?.get(kind.term)
+        : undefined;
+
+    if (!current) {
+      return part;
+    }
+
+    hasRetiredLine = true;
+
+    return aiActionSentence(current);
+  });
+
+  return hasRetiredLine ? { ...value, line } : value;
 }
 
 // The translator the server writes its sentences with: English, as written.

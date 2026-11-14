@@ -40,6 +40,13 @@ a language, and the rules the guard test enforces.
   along with the sentence and cased for mid-sentence use in the reader's
   language: "No incidents yet." in English, "Noch keine Vorfälle." in German,
   whose nouns keep their capital. Acronyms and brand names keep their casing.
+  Where the reader's sentence starts with it, it takes a capital there
+  ("Overvågning kan ikke indlæses."), so a locale words such a key for the
+  middle of a sentence: "le collecteur OneUptime", never "Le collecteur".
+  A full stop ends a sentence, except an abbreviation's ("z.B.") and that of
+  a word shortened before a value ("pr. {{signal}}", "kl. {{time}}"). A
+  locale that shortens another word before a value adds it to
+  `SHORTENED_BEFORE_A_VALUE` in `Common/Types/Translator.ts`.
 - **Values built from translated pieces.** Clauses joined into one sentence,
   or names joined with "or", go into a sentence as
   `composedValue((translator) => ...)`, built with the `translator` they are
@@ -353,12 +360,24 @@ Persian path points back at the step before it. So between two steps:
 - `→` between two steps left in Latin letters, which the page draws from the
   left as English does: `**AWS Console → App Runner → Services ← سرویس شما**`.
 
+An arrow at either end of a text leads a link on or back, as its English
+says: a link that leads on ends with `←` (`All metrics →` is
+`همهٔ متریک‌ها ←`), and one that leads back starts with `→` (`← Back` is
+`→ بازگشت`). A text whose English has no such arrow is not held to one.
+
 `PathArrowsInRightToLeftSentences.test.ts` in `packages/Common/Tests/App`
 lays out every Arabic and Persian text of every app's locale files (the
 frontends', the server's, the API Reference's and the docs') with the same
 copy of the bidi algorithm, and fails on an arrow between two steps that
-points back. An arrow at either end of a text leads a link on or back, and
-is left alone.
+points back, and on a link's arrow that does not lead the way its English
+does.
+
+An arrow between two values (`{{start}} → {{end}}`) turns with what fills
+them, so the page sets each value apart (`translateTemplate`'s
+`setsValuesApart`) and the arrow is the sentence's own: `←` in Arabic and
+Persian. `OnCallOverrideArrowsInRightToLeft.test.ts` in
+`packages/Common/Tests/App/Dashboard` holds the on-call calendar's hover
+text to that, whatever names and dates fill it.
 
 ### Persian glossary (fa)
 
@@ -374,6 +393,37 @@ as `fa.json` draws it.
 - **Cooldown**, a wait before something may run again, is `وقفه`:
   `وقفه پیش از بررسی دوباره (دقیقه)` for Re-investigation Cooldown
   (Minutes). It is the only `وقفه` in `fa.json`.
+- **Zone**, a DNS zone or a cloud's, is `زُن`: `زُن DNS` for DNS zone,
+  `زُن دسترس‌پذیری` for Availability zone. Never `ناحیه`, an area of a
+  page, or `منطقه`, a region: a time zone is `منطقه زمانی`, with no `ٔ`,
+  and a settings page's Danger Zone `منطقه خطر`. The Persian docs write a
+  zone `زُن` too, outside code, and a time zone `منطقه زمانی`.
+- **Recordset** is `مجموعه‌رکورد`: `مجموعه‌رکورد DNS` for DNS recordset,
+  in the docs too.
+- **Load balancer** is `متعادل‌کننده بار`, with no `ٔ`, and load balancers
+  `متعادل‌کننده‌های بار`, in the docs too. Never `توزیع‌کننده بار`, a
+  distributor.
+- **Floating IP** is `IP شناور`, and floating IPs `IPهای شناور`.
+- **Pool**, whatever it pools, is `استخر`: a Ceph or an Octavia pool,
+  `استخر ذخیره‌سازی` for a storage pool, `استخر ساب‌نت` for a subnet
+  pool, `استخر آدرس` for an address pool, `استخر اتصال` for a
+  connection pool, `استخر منابع` for a vSphere resource pool, `استخر نخ`
+  for a thread pool, `استخر بافر` for InnoDB's buffer pool. Never `مخزن`,
+  which is a repository, or `پول`, which is money.
+- **Share**, a file share such as Manila's, is `اشتراک فایل`, and shares
+  `اشتراک‌های فایل`. `اشتراک` alone is a subscription, and the Share
+  button is `اشتراک‌گذاری`.
+- **Amphora** stays in Latin letters: it is the name Octavia gives the
+  virtual machine a load balancer runs in, as Arabic and most languages
+  keep it. It is on `i18n/Progress/fa.json`'s same-as-English list for
+  that reason, and so is `amphora`.
+- The Persian docs say these four the same way, outside code. A name a
+  page draws in English stays as written: an alert template's (**Pool
+  Near Full**), a cloud's product name (Application Load Balancer), a
+  console's or an app's menu item (**Share snapshot** in the RDS console,
+  **Share link** in the mobile app), a metric label's name (the pool
+  label, `label مربوط به pool`), a CLI command
+  (`openstack share message list`).
 
 ## What "untranslated" means
 

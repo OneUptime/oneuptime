@@ -1089,7 +1089,7 @@ export default class PageContextUtil {
           {
             icon: IconProp.Document,
             title: "Summarize",
-            question: "Summarize this scheduled maintenance event.",
+            question: "Summarize this maintenance event.",
           },
           {
             icon: IconProp.Activity,

@@ -334,7 +334,7 @@ ${SubscriberMessageText.asMarkdown("We rolled back.")}
         "",
         "You will receive real-time notifications for:",
         "• Incidents and outages ",
-        "• Scheduled maintenance events  ",
+        "• Maintenance events  ",
         "• Service announcements",
         "• Status updates",
         "",

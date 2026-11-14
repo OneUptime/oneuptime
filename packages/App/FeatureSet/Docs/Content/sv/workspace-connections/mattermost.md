@@ -104,7 +104,7 @@ Att lägga till den lägger in den i dina jourregler direkt, så larm når dig i
 
 ## Aviseringsregler
 
-En aviseringsregel anger vilka händelser som publiceras i Mattermost, och var. Varje produkt har sina egna regler, under **Arbetsyta** > **Mattermost** i sin meny: **Incidenter** (med **Incidentepisoder** och fliken **Sammanfattning**), **Larm** (med **Larmepisoder** och **Sammanfattning**), **Schemalagt underhåll**, **Monitorer**, **Jour**, **Säkerhetshändelser** och **SLOs**. De fungerar som Slacks regler: se [Aviseringsregler](/docs/workspace-connections/slack#aviseringsregler) för villkor, mål och vilka som går med i en kanal.
+En aviseringsregel anger vilka händelser som publiceras i Mattermost, och var. Varje produkt har sina egna regler, under **Arbetsyta** > **Mattermost** i sin meny: **Incidenter** (med **Incidentepisoder** och fliken **Sammanfattning**), **Larm** (med **Larmepisoder** och **Sammanfattning**), **Schemalagt underhåll**, **Monitorer**, **Jour**, **Säkerhetshändelser** och **SLOs**. De fungerar som Slacks regler: se [Aviseringsregler](/docs/workspace-connections/slack#aviseringsregler) för villkor, mål, de uppdateringar en regel publicerar och vilka som går med i en kanal.
 
 En kanal som en regel skapar får namn efter sin post: incident INC-42 får `inc-42`. Mattermost tar små bokstäver, siffror, `-` och `_`, upp till 64 tecken, med en bokstav eller en siffra först och sist, och regelformuläret visar namnet medan du skriver. Finns det redan en kanal med det namnet, till exempel en arkiverad kanal, lägger OneUptime till `-2`, `-3` och så vidare. En privat incident, ett privat larm eller en privat episod får en privat kanal.
 

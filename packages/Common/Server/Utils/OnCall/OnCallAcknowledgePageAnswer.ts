@@ -48,10 +48,15 @@ export const ACKNOWLEDGE_PAGE_RUN_SELECT: Select<OnCallDutyPolicyExecutionLog> =
     isObserverPage: true,
     // A page again (OnCallAcknowledgementTimeout).
     pageAgainNumber: true,
-    // A page a person asked for (OnCallPersonPage): all three, as it asks.
+    /*
+     * A page a person asked for (OnCallPersonPage): all three, as it asks.
+     * A policy a person started by hand (OnCallPolicyStartedByHand): those,
+     * and the event type that tells a test page apart.
+     */
     onCallDutyPolicyId: true,
     triggeredByUserId: true,
     triggeredByWorkflowId: true,
+    userNotificationEventType: true,
     acknowledgedAt: true,
     acknowledgedByUserId: true,
     acknowledgedByUser: {

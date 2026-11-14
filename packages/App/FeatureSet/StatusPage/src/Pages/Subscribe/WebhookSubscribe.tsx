@@ -120,6 +120,7 @@ const SubscribePage: FunctionComponent<ComponentProps> = (
       fieldType: FormFieldSchemaType.URL,
       required: true,
       placeholder: t("subscribe.webhook.webhookUrlPlaceholder"),
+      isPlaceholderTranslated: true,
     },
     // On a page that lets subscribers choose: Preferences, folded.
     ...getSubscribePreferenceFields({

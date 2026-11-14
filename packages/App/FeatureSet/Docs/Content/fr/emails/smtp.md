@@ -74,6 +74,8 @@ Voici les paramètres sous **Plus de champs** :
 
 **Microsoft Graph.** Sur le formulaire d'un projet, choisissez `Microsoft Graph` comme **Fournisseur** ; sur le formulaire de l'instance, ouvrez **Plus de champs** et réglez **Transport** sur `Microsoft Graph`. Renseignez ensuite une application Azure qui a l'autorisation d'application **Mail.Send** : son ID client et son secret client, l'URL de jeton `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` et la portée `https://graph.microsoft.com/.default`. Les e-mails partent de la boîte aux lettres de l'**E-mail de l'expéditeur**, qui doit être une boîte aux lettres sous licence de votre locataire.
 
+**Terraform.** Les configurations SMTP d'un projet sont aussi la ressource `oneuptime_smtp_config` du [fournisseur Terraform](/docs/terraform/index). Le mot de passe, le secret client OAuth et les clés des fournisseurs d'e-mail sont sensibles : les plans, les journaux et les sorties ne les affichent jamais. La clé d'API qu'utilise Terraform doit pouvoir les lire : **Propriétaire du projet**, **Administrateur du projet**, ou **Read SMTP Config** dans un rôle personnalisé. Le `smtp_config_id` d'une page de statut prend l'`id` d'une configuration.
+
 > [!NOTE]
 > Sur OneUptime Cloud, le serveur de messagerie d'un projet doit être joignable par Internet : un hôte qui se résout en une adresse privée ou interne est refusé. Sur une installation auto-hébergée, les adresses privées sont autorisées sauf si `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` vaut `true` ; les adresses de bouclage et lien-local sont toujours refusées. Le serveur de messagerie propre à l'instance n'est pas vérifié ainsi.
 

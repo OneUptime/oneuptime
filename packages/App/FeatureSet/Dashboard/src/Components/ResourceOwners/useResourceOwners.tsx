@@ -1379,6 +1379,7 @@ const useResourceOwners: <TResource extends BaseModel>(
                 operator={facetOperators[facet.key] || "is"}
                 supportedOperators={facet.supportedOperators}
                 placeholder={facet.searchPlaceholder}
+                isPlaceholderTranslated={facet.isSearchPlaceholderTranslated}
                 onChange={(
                   nextValues: Array<string>,
                   nextOperator: FilterOperator,
@@ -1431,6 +1432,9 @@ const useResourceOwners: <TResource extends BaseModel>(
               isMultiSelect={facet.isMultiSelect}
               value={value}
               searchPlaceholder={facet.searchPlaceholder}
+              isSearchPlaceholderTranslated={
+                facet.isSearchPlaceholderTranslated
+              }
               operator={facetOperators[facet.key] || "is"}
               onClear={() => {
                 // One update prevents a stale operator callback restoring cleared values.

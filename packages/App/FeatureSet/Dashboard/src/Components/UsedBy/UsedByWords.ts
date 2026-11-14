@@ -209,8 +209,8 @@ export const USED_BY_RELATION_WORDS: Readonly<
   [UsedByRelation.LabelScheduledMaintenance]: {
     title: translationKey("Scheduled maintenance"),
     impact: {
-      one: "{{count}} scheduled maintenance event carries this label.",
-      other: "{{count}} scheduled maintenance events carry this label.",
+      one: "{{count}} maintenance event carries this label.",
+      other: "{{count}} maintenance events carry this label.",
     },
   },
   [UsedByRelation.LabelOnCallPolicies]: {

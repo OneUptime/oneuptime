@@ -31,9 +31,10 @@ const router: ExpressRouter = Express.getRouter();
 
 /*
  * The most an AgentToServer may be. OneUptime's installers do not ask for
- * the collector's component list, and the effective config they do report
- * is the collector's YAML, so a message is a few kilobytes, tens with that
- * config; this leaves room for a long error message. The ingress lets more
+ * the collector's component list, and OneUptime turns off the collector's
+ * report of the config it runs, so a message is a few kilobytes - tens when
+ * a supervisor sends its own merge of the config files, as it does when it
+ * starts; this leaves room for a long error message. The ingress lets more
  * than this through (Nginx/default.conf.template), so the 413 is the App's.
  */
 export const MAX_OPAMP_MESSAGE_BYTES: number = 1024 * 1024;

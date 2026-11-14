@@ -721,19 +721,20 @@ describe("what the guide says matches the product", () => {
     expect(discovery).toContain('"telemetry.sdk.version"');
   });
 
-  test("a Browser key can write exactly traces, logs, metrics and session replays", () => {
+  test("a Browser key can write exactly traces, logs, metrics, session replays and Sentry reports", () => {
     expect(Array.from(BROWSER_ALLOWED_INGEST_SURFACES).sort()).toEqual(
       [
         TelemetryIngestSurface.OtelTraces,
         TelemetryIngestSurface.OtelLogs,
         TelemetryIngestSurface.OtelMetrics,
         TelemetryIngestSurface.SessionReplay,
+        TelemetryIngestSurface.Sentry,
       ].sort(),
     );
     expect(
       topicNamed(guideFor("browser").advanced, "Browser ingestion keys"),
     ).toContain(
-      "it can only write traces, logs, metrics and session replays — not profiles, source maps, syslog, Fluent, Pyroscope or security events;",
+      "it can only write traces, logs, metrics, session replays and Sentry browser SDK reports — not profiles, source maps, syslog, Fluent, Pyroscope or security events;",
     );
   });
 

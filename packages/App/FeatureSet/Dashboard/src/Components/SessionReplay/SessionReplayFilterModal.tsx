@@ -119,6 +119,7 @@ const SessionReplayFilterModal: FunctionComponent<ComponentProps> = (
           placeholder={translator.translateTemplate("Filter by {{field}}", {
             field: translatableTerm(field.title),
           })}
+          isPlaceholderTranslated={true}
           ariaLabel={field.title}
           dataTestId={`session-filter-${field.field}`}
           className="relative rounded-md w-full overflow-visible"

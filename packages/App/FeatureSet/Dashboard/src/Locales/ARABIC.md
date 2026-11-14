@@ -73,6 +73,9 @@ as a dot.
   Arabic; between two steps left in Latin letters, which are drawn from the
   left, it stays `→` (`Services ← خدمتك ← Configuration → Configure service`).
   `›` stays `›`.
+- A link that leads on ends with `←` (`كل المقاييس ←` for `All metrics →`),
+  and one that leads back starts with `→` (`→ رجوع` for `← Back`), as in
+  Persian.
 
 ## Direction
 

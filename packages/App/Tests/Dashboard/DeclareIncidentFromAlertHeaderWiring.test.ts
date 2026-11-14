@@ -882,9 +882,19 @@ describe("the server acknowledging the alerts an incident is declared from", () 
     const carryForwardAt: number = onBeforeCreate.indexOf(
       "constcarryForward:IncidentCreateCarryForward={startingStage:startingStage,alertIdsToLink:validatedAlertIds,acknowledgedAlertStateId:alertsToAcknowledge?.acknowledgedAlertStateId||null,alertIdsToAcknowledge:alertsToAcknowledge?.alertIdsToAcknowledge||[],declaredByAlertIncidentRuleName:this.getDeclaringAlertIncidentRuleName({createBy:createBy,alertIdsToLink:validatedAlertIds,}),};",
     );
+    /*
+     * The incident number is taken by the service's one numbering method
+     * (44cb9e973c4, #7653), which takes the project's incident counter and
+     * nothing else; the hook takes it once.
+     */
     const counterAt: number = onBeforeCreate.indexOf(
-      "awaitProjectService.incrementAndGetIncidentCounter(projectId);",
+      "awaitthis.takeNextIncidentNumber(projectId);",
     );
+
+    expect(denseCommon(INCIDENT_SERVICE)).toContain(
+      "publicasynctakeNextIncidentNumber(projectId:ObjectID,):Promise<{counter:number;prefix:string|undefined}>{returnawaitProjectService.incrementAndGetIncidentCounter(projectId);}",
+    );
+    expect(countOf(onBeforeCreate, "takeNextIncidentNumber(")).toBe(1);
 
     expect(alertIdsAt).toBeGreaterThan(-1);
     expect(acknowledgeAt).toBeGreaterThan(alertIdsAt);

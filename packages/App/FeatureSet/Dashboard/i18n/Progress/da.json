@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 51794,
-    "untranslated": 9440
+    "keys": 52195,
+    "untranslated": 9365
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -260,6 +260,7 @@
     "Powered by OneUptime",
     "Principal",
     "Problem",
+    "PromQL",
     "Prompt",
     "Pull request",
     "Pull request #{{number}}",
@@ -494,6 +495,7 @@
     "storage-01 · RegionOne",
     "storefront-web",
     "subnet",
+    "sum by (job) (rate(http_requests_total[5m]))",
     "svc-backup",
     "syslog",
     "team",

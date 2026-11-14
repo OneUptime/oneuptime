@@ -67,11 +67,13 @@ function buildAlertNoteTitle(
     : aiActionSentence(AI_ACTION_TITLES.addAlertNoteUnnamed);
 }
 /*
- * Private (internal) note tools — the team-only counterpart of
+ * Private (internal) note tools — the internal counterpart of
  * post_incident_status_update. Internal notes live in the dashboard's private
- * note feed: they never render on a status page and never notify status page
+ * note feed: only the people who can see the incident or alert can read
+ * them, they never render on a status page and never notify status page
  * subscribers, so the copilot can file investigation findings without any
- * customer-visible side effect.
+ * customer-visible side effect. Their words never say "team", which
+ * reads as one of OneUptime's Teams (#7595): the model repeats them.
  *
  * The acting user is always ctx.props.userId — never a tool argument.
  *
@@ -108,17 +110,19 @@ function previewOf(note: string): string {
 }
 
 /*
- * The card a note leaves: the record it is on, that the note is private
- * to the team, and its start - in the reader's language
- * (WidgetBuilder.actionCard).
+ * The card a note leaves: the record it is on, who can read the note -
+ * the people who can see the record - and its start, in the reader's
+ * language (WidgetBuilder.actionCard).
  */
 function describeNoteCard(data: {
   kind: string;
+  // "Private note added, only for people who can see the incident".
+  line: string;
   note: string;
 }): AIActionCardWords {
   return {
     kind: aiActionTerm(data.kind),
-    line: [aiActionSentence(AI_ACTION_CARD_LINES.privateNoteAdded)],
+    line: [aiActionSentence(data.line)],
     facts: [aiActionCardFact(AI_ACTION_CARD_FACTS.note, previewOf(data.note))],
   };
 }
@@ -131,7 +135,7 @@ function describeNoteCard(data: {
 export const CreateIncidentNoteTool: ObservabilityTool = {
   name: "create_incident_note",
   description:
-    "Add a PRIVATE internal note to an incident. Internal notes are visible only to team members in the dashboard — they NEVER appear on any status page and notify NO status page subscribers. Use this for investigation findings, working notes and responder handoffs. For a customer-facing update that goes on the status page, use post_incident_status_update instead. Find the incidentId with query_incidents first.",
+    "Add a PRIVATE internal note to an incident. Only the people who can see the incident in OneUptime can read its internal notes — they NEVER appear on any status page and notify NO status page subscribers. Use this for investigation findings, working notes and responder handoffs. For a customer-facing update that goes on the status page, use post_incident_status_update instead. Find the incidentId with query_incidents first.",
   inputSchema: {
     type: "object",
     properties: {
@@ -143,7 +147,7 @@ export const CreateIncidentNoteTool: ObservabilityTool = {
       note: {
         type: "string",
         description:
-          "The internal note text in markdown (required). Visible to team members only.",
+          "The internal note text in markdown (required). Only the people who can see the incident can read it.",
       },
     },
     required: ["incidentId", "note"],
@@ -227,12 +231,12 @@ export const CreateIncidentNoteTool: ObservabilityTool = {
       {
         noteId: noteIdString,
         incidentNumber: incident.incidentNumber,
-        visibility: "internal (team members only)",
+        visibility: "internal (only people who can see the incident)",
       },
     ]);
 
     return {
-      dataForLlm: `Added a private internal note to incident #${incident.incidentNumber} ("${incident.title}"). It is visible to team members only — it does not appear on any status page and no subscribers were notified.\n${serialized.text}`,
+      dataForLlm: `Added a private internal note to incident #${incident.incidentNumber} ("${incident.title}"). Only the people who can see the incident can read it — it does not appear on any status page and no subscribers were notified.\n${serialized.text}`,
       rowCount: 1,
       citationLabel: `Internal note on incident #${incident.incidentNumber}`,
       citationTarget: {
@@ -244,7 +248,11 @@ export const CreateIncidentNoteTool: ObservabilityTool = {
       widget: WidgetBuilder.actionCard({
         title: "Internal note added",
         heading: `${getIncidentNumberText(incident)} · ${incident.title}`,
-        words: describeNoteCard({ kind: AI_ACTION_CARD_KINDS.incident, note }),
+        words: describeNoteCard({
+          kind: AI_ACTION_CARD_KINDS.incident,
+          line: AI_ACTION_CARD_LINES.privateNoteAddedToIncident,
+          note,
+        }),
         link: {
           type: AIChatCitationTargetType.IncidentView,
           params: { incidentId: incidentIdString },
@@ -262,7 +270,7 @@ export const CreateIncidentNoteTool: ObservabilityTool = {
 export const CreateAlertNoteTool: ObservabilityTool = {
   name: "create_alert_note",
   description:
-    "Add a PRIVATE internal note to an alert. Internal notes are visible only to team members in the dashboard — they NEVER appear on any status page and notify NO status page subscribers. Use this for triage findings, working notes and responder handoffs on an alert. Find the alertId with query_alerts first.",
+    "Add a PRIVATE internal note to an alert. Only the people who can see the alert in OneUptime can read its internal notes — they NEVER appear on any status page and notify NO status page subscribers. Use this for triage findings, working notes and responder handoffs on an alert. Find the alertId with query_alerts first.",
   inputSchema: {
     type: "object",
     properties: {
@@ -274,7 +282,7 @@ export const CreateAlertNoteTool: ObservabilityTool = {
       note: {
         type: "string",
         description:
-          "The internal note text in markdown (required). Visible to team members only.",
+          "The internal note text in markdown (required). Only the people who can see the alert can read it.",
       },
     },
     required: ["alertId", "note"],
@@ -355,12 +363,12 @@ export const CreateAlertNoteTool: ObservabilityTool = {
       {
         noteId: noteIdString,
         alertNumber: alert.alertNumber,
-        visibility: "internal (team members only)",
+        visibility: "internal (only people who can see the alert)",
       },
     ]);
 
     return {
-      dataForLlm: `Added a private internal note to alert #${alert.alertNumber} ("${alert.title}"). It is visible to team members only — it does not appear on any status page and no subscribers were notified.\n${serialized.text}`,
+      dataForLlm: `Added a private internal note to alert #${alert.alertNumber} ("${alert.title}"). Only the people who can see the alert can read it — it does not appear on any status page and no subscribers were notified.\n${serialized.text}`,
       rowCount: 1,
       citationLabel: `Internal note on alert #${alert.alertNumber}`,
       citationTarget: {
@@ -372,7 +380,11 @@ export const CreateAlertNoteTool: ObservabilityTool = {
       widget: WidgetBuilder.actionCard({
         title: "Internal note added",
         heading: `${getAlertNumberText(alert)} · ${alert.title}`,
-        words: describeNoteCard({ kind: AI_ACTION_CARD_KINDS.alert, note }),
+        words: describeNoteCard({
+          kind: AI_ACTION_CARD_KINDS.alert,
+          line: AI_ACTION_CARD_LINES.privateNoteAddedToAlert,
+          note,
+        }),
         link: {
           type: AIChatCitationTargetType.AlertView,
           params: { alertId: alertIdString },

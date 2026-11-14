@@ -254,6 +254,17 @@ const USER_COUNTERS: ReadonlyArray<string> = [
   "ee/Server/Marketplace/MarketplaceUsageRun.ts",
 ];
 
+// A Route to one of the Notification service's send endpoints.
+const NOTIFICATION_SEND_ROUTE: RegExp =
+  /new Route\(\s*"\/api\/notification\/[a-z-]+\/(send|make-call)"/;
+// A sender asking whether the project may be notified.
+const GET_REFUSAL_CALL: RegExp = /BlockedProjectNotifications\.getRefusal\(/;
+// A probe's query leaving a blocked project out.
+const BLOCKED_PROJECT_LEFT_OUT: RegExp = /p\."isBlocked" = false/;
+// A count of people that leaves a sample's people out.
+const SAMPLE_PEOPLE_LEFT_OUT: RegExp =
+  /sampleProjectId:\s*QueryHelper\.isNull\(\)/;
+
 describe("SampleProjectReadersGuard", () => {
   test.each(READERS)("$file reads the flag: $keeps", (reader: Reader) => {
     const code: string = stripComments(read(path.join(REPO_ROOT, reader.file)));
@@ -267,9 +278,8 @@ describe("SampleProjectReadersGuard", () => {
     ).filter((file: string): boolean => {
       const code: string = stripComments(read(file));
       return (
-        /new Route\(\s*"\/api\/notification\/[a-z-]+\/(send|make-call)"/.test(
-          code,
-        ) || path.basename(file) === "PushNotificationService.ts"
+        NOTIFICATION_SEND_ROUTE.test(code) ||
+        path.basename(file) === "PushNotificationService.ts"
       );
     });
 
@@ -279,9 +289,7 @@ describe("SampleProjectReadersGuard", () => {
     for (const sender of senders) {
       expect({
         sender: path.relative(REPO_ROOT, sender),
-        refuses: /BlockedProjectNotifications\.getRefusal\(/.test(
-          stripComments(read(sender)),
-        ),
+        refuses: GET_REFUSAL_CALL.test(stripComments(read(sender))),
       }).toEqual({ sender: path.relative(REPO_ROOT, sender), refuses: true });
     }
   });
@@ -311,9 +319,9 @@ describe("SampleProjectReadersGuard", () => {
     for (const file of files) {
       const lines: Array<string> = read(file).split("\n");
 
-      lines.forEach((line: string, index: number) => {
-        if (!/p\."isBlocked" = false/.test(line)) {
-          return;
+      for (let index: number = 0; index < lines.length; index++) {
+        if (!BLOCKED_PROJECT_LEFT_OUT.test(lines[index]!)) {
+          continue;
         }
 
         claims++;
@@ -327,7 +335,7 @@ describe("SampleProjectReadersGuard", () => {
           line: index + 1,
           next: 'AND p."isSampleProject" = false',
         });
-      });
+      }
     }
 
     // MonitorProbeService, network devices, VMware, OpenStack twice, data observability and security.
@@ -392,10 +400,9 @@ describe("SampleProjectReadersGuard", () => {
 
       expect({
         counter: counter,
-        leavesOutSamplePeople:
-          /sampleProjectId:\s*QueryHelper\.isNull\(\)/.test(
-            stripComments(read(file)),
-          ),
+        leavesOutSamplePeople: SAMPLE_PEOPLE_LEFT_OUT.test(
+          stripComments(read(file)),
+        ),
       }).toEqual({ counter: counter, leavesOutSamplePeople: true });
     }
   });

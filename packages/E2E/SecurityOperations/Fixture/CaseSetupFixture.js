@@ -46,6 +46,14 @@
  *         ones besides its two), so the feed offers Load more; Load more's
  *         first read - of a later page - fails as notes-fail-with-reference's
  *         does, with its reference, and the next answers.
+ *   notes-more-pages
+ *         CASE-142 has three pages of notes (58 older ones besides its
+ *         two), so Load more is still offered after its first press; every
+ *         read answers.
+ *   note-post-fail
+ *         the first note posted on a case fails as
+ *         notes-fail-with-reference's read does, with its reference; the
+ *         next is saved.
  */
 import Project from "Common/Models/DatabaseModels/Project";
 import SecurityCase from "Common/Models/DatabaseModels/SecurityCase";
@@ -83,6 +91,8 @@ export const CASE_SETUP_SCENARIOS = [
   "notes-fail-with-reference",
   "notes-fail-twice",
   "notes-more-fail",
+  "notes-more-pages",
+  "note-post-fail",
 ];
 
 /*
@@ -99,16 +109,25 @@ const FAILING_READS = {
   "notes-more-fail": { notesMore: 1 },
 };
 
-// The scenarios whose failed reads answer with a reference.
+// How many of the first notes posted on a case fail, by ?casesetup= scenario.
+const FAILING_NOTE_POSTS = {
+  "note-post-fail": 1,
+};
+
+// The scenarios whose failed reads and posts answer with a reference.
 const FAILS_WITH_REFERENCE = [
   "fail-with-reference",
   "notes-fail-with-reference",
   "notes-fail-twice",
   "notes-more-fail",
+  "note-post-fail",
 ];
 
-// The older notes ?casesetup=notes-more-fail gives CASE-142.
-const OLDER_SPRAY_NOTES = 26;
+// The older notes ?casesetup=notes-more-fail and notes-more-pages give CASE-142.
+const OLDER_SPRAY_NOTES = {
+  "notes-more-fail": 26,
+  "notes-more-pages": 58,
+};
 
 // The reference a ?casesetup=fail-with-reference failure names.
 export const FAILED_READ_REFERENCE = "3f9a2c1b";
@@ -117,6 +136,8 @@ export function createCaseSetupFixture(options) {
   const { insert, table, ID, isEmpty, scenario } = options;
   // The tables whose first read ?casesetup=fail fails, and the reads so far.
   const readsSoFar = new Map();
+  // The notes posted on a case so far.
+  let notePostsSoFar = 0;
 
   function tableName(modelType) {
     return new modelType().tableName;
@@ -169,16 +190,17 @@ export function createCaseSetupFixture(options) {
       };
     }
 
-    if (scenario === "notes-more-fail") {
-      seedOlderSprayNotes();
+    if (OLDER_SPRAY_NOTES[scenario]) {
+      seedOlderSprayNotes(OLDER_SPRAY_NOTES[scenario]);
     }
   }
 
   /*
-   * notes-more-fail: shift-log notes older than CASE-142's two, 10 minutes
-   * apart - more than a page of its feed holds (NOTES_PAGE_SIZE, 25).
+   * notes-more-fail and notes-more-pages: `count` shift-log notes older than
+   * CASE-142's two, 10 minutes apart - more than a page of its feed holds
+   * (NOTES_PAGE_SIZE, 25).
    */
-  function seedOlderSprayNotes() {
+  function seedOlderSprayNotes(count) {
     const sprayNotes = table(SecurityCaseNote).filter((row) => {
       return String(row.securityCaseId) === ID.case(142);
     });
@@ -188,7 +210,7 @@ export function createCaseSetupFixture(options) {
       }),
     );
 
-    for (let n = 1; n <= OLDER_SPRAY_NOTES; n++) {
+    for (let n = 1; n <= count; n++) {
       insert(SecurityCaseNote, {
         ...sprayNotes[0],
         _id: ID.note(100 + n),
@@ -273,11 +295,28 @@ export function createCaseSetupFixture(options) {
   }
 
   /*
-   * The answer of a read that fails: a bare "Server Error", or, with
-   * fail-with-reference and the notes' scenarios, what a server answers for
-   * a failure it could not explain (Common/Server/Utils/UnexplainedServerError).
+   * ?casesetup=note-post-fail: the first note posted on a case fails; the
+   * next is saved.
    */
-  function failedReadAnswer() {
+  function failsNotePost(modelName) {
+    const failingPosts = FAILING_NOTE_POSTS[scenario] || 0;
+
+    if (!failingPosts || modelName !== tableName(SecurityCaseNote)) {
+      return false;
+    }
+
+    notePostsSoFar++;
+
+    return notePostsSoFar <= failingPosts;
+  }
+
+  /*
+   * The answer of a read or a post that fails: a bare "Server Error", or,
+   * with fail-with-reference and the notes' scenarios, what a server
+   * answers for a failure it could not explain
+   * (Common/Server/Utils/UnexplainedServerError).
+   */
+  function failedAnswer() {
     if (!FAILS_WITH_REFERENCE.includes(scenario)) {
       return { message: "Server Error" };
     }
@@ -288,5 +327,12 @@ export function createCaseSetupFixture(options) {
     };
   }
 
-  return { seed, numbering, isCaseSetupTable, failsRead, failedReadAnswer };
+  return {
+    seed,
+    numbering,
+    isCaseSetupTable,
+    failsRead,
+    failsNotePost,
+    failedAnswer,
+  };
 }

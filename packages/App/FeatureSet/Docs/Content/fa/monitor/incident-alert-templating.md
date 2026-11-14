@@ -280,9 +280,9 @@ Alerts for payments:
 | متغیر | چه نگه می‌دارد | نوع |
 | --- | --- | --- |
 | `isOnline` | اینکه آیا بررسی کامل شد. | `boolean` |
-| `domainName` | zone بررسی‌شده. | `string` |
-| `isZoneSigned` | اینکه آیا zone رکوردهای DNSKEY دارد. | `boolean` |
-| `isParentDsPresent` | اینکه آیا zone والد برای آن رکوردهای DS دارد. | `boolean` |
+| `domainName` | زُن بررسی‌شده. | `string` |
+| `isZoneSigned` | اینکه آیا زُن رکوردهای DNSKEY دارد. | `boolean` |
+| `isParentDsPresent` | اینکه آیا زُن والد برای آن رکوردهای DS دارد. | `boolean` |
 | `isChainValid` | اینکه آیا زنجیره اعتماد معتبر است. | `boolean` |
 | `resolverConsensusAd` | اینکه آیا هر resolver پرچم AD را برگرداند. | `boolean` |
 | `isNameserverConsistent` | اینکه آیا هر nameserver معتبر همان سریال SOA را برگرداند. | `boolean` |

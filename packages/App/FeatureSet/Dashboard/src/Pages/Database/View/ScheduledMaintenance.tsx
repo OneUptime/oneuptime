@@ -31,7 +31,7 @@ const DatabaseServerScheduledMaintenance: FunctionComponent<
         query={query}
         createFrom={{ kind: CreateFromRecordKind.DatabaseServer, id: modelId }}
         viewPageRoute={RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS] as Route}
-        noItemsMessage="No scheduled maintenance events for this database."
+        noItemsMessage="No maintenance events for this database."
       />
     </Fragment>
   );
