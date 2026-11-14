@@ -149,6 +149,8 @@ const SOURCES: Record<string, string> = {
   startVideoCallModal: `${DASHBOARD}/Components/VideoCall/StartVideoCallModal.tsx`,
   questionPalette: `${DASHBOARD}/Components/FormBuilder/Builder/QuestionPalette.tsx`,
   questionCard: `${DASHBOARD}/Components/FormBuilder/Builder/QuestionCard.tsx`,
+  formBuilder: `${DASHBOARD}/Components/FormBuilder/Builder/FormBuilder.tsx`,
+  leaveQuestion: `${DASHBOARD}/Components/UnsavedChanges/LeaveWithoutSavingQuestion.tsx`,
   formSharePage: `${DASHBOARD}/Pages/Forms/View/Share.tsx`,
   formStatusCard: `${DASHBOARD}/Components/FormBuilder/FormStatusCard.tsx`,
   formShareLinkCard: `${DASHBOARD}/Components/FormBuilder/FormShareLinkCard.tsx`,
@@ -628,8 +630,8 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
 
     /*
      * The Updates step is offered for exactly the rules that choose their
-     * updates (#7581): incidents, alerts, both kinds of episode and
-     * scheduled maintenance, which the row names.
+     * updates (#7581): incidents, alerts, both kinds of episode, scheduled
+     * maintenance and on-call policies (#7549), which the row names.
      */
     expect(table).toContain("...(isUpdatesEventType(props.eventType)");
     expect(
@@ -647,6 +649,7 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
         NotificationRuleEventType.IncidentEpisode,
         NotificationRuleEventType.AlertEpisode,
         NotificationRuleEventType.ScheduledMaintenance,
+        NotificationRuleEventType.OnCallDutyPolicy,
       ]),
     );
 
@@ -692,7 +695,7 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
       const updates: string = rows[3]?.[1] || "";
 
       expect(updates).toMatch(
-        /^Incidents, alerts, episodes and scheduled maintenance only: /,
+        /^Incidents, alerts, episodes, scheduled maintenance and on-call policies only: /,
       );
       expect(boldSpans(updates)).toEqual([
         EVERY_UPDATE_TITLE,
@@ -710,7 +713,40 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
         NotificationRuleUpdateKind.Postmortem,
       ]);
       expect(updates).toContain(
-        "for an incident, its resolution or reopening, severity changes, public notes and the postmortem.",
+        "for an incident, its resolution or reopening, severity changes, public notes and the postmortem;",
+      );
+
+      /*
+       * An on-call policy's key updates, which a new on-call policy rule
+       * starts with, where every other new rule starts on every update.
+       */
+      expect(
+        NotificationRuleUpdates.getKeyKinds(
+          NotificationRuleEventType.OnCallDutyPolicy,
+        ),
+      ).toEqual([
+        NotificationRuleUpdateKind.OnCallNow,
+        NotificationRuleUpdateKind.NobodyOnCall,
+      ]);
+      expect(
+        NotificationRuleUpdates.getNewRuleUpdatesToPost(
+          NotificationRuleEventType.OnCallDutyPolicy,
+        ),
+      ).toEqual(
+        NotificationRuleUpdates.getKeyKinds(
+          NotificationRuleEventType.OnCallDutyPolicy,
+        ),
+      );
+      expect(
+        NotificationRuleUpdates.getNewRuleUpdatesToPost(
+          NotificationRuleEventType.Incident,
+        ),
+      ).toBeUndefined();
+      expect(updates).toContain(
+        "a new rule starts with it, except an on-call policy's.",
+      );
+      expect(updates).toContain(
+        "for an on-call policy, who is on call now and when nobody is, which a new on-call policy rule starts with.",
       );
 
       // What every rule posts, whatever it picks.
@@ -2294,6 +2330,33 @@ describe("Forms, against the builder, the Share page and the public page", () =>
         return `**${issue}**`;
       }),
     );
+  });
+
+  it("says leaving the builder with unsaved changes asks first, in the question it draws (issue #7401)", () => {
+    const builder: string = readSource("formBuilder");
+    const question: string = readSource("leaveQuestion");
+    const page: string = englishPage(BUILDING);
+
+    // Held while the questions differ from the saved ones; the tab too.
+    expect(builder).toContain(
+      "const isDirty: boolean = !areFormFieldsEqual(fields, savedFields);",
+    );
+    expect(builder).toContain("useLeaveGuard(isDirty)");
+    expect(builder).toContain("useUnsavedChanges(isDirty)");
+    expect(builder).toContain("<LeaveWithoutSavingQuestion");
+    // The guard raises the browser's own question: no listener of its own.
+    expect(builder).not.toContain("beforeunload");
+    expect(question).toContain('title={"Leave without saving?"}');
+    expect(question).toContain('submitButtonText={"Discard Changes"}');
+    expect(question).toContain('closeButtonText={"Keep Editing"}');
+
+    expect(page).toContain(
+      `Until you save, the builder says **${FormsCopy.unsavedChanges}** and offers **${FormsCopy.discardChanges}**. Leaving the builder before you save asks first.`,
+    );
+    expect(page).toContain(
+      "A link in the side menu, the breadcrumbs or the top bar, or your browser's back and forward buttons, open **Leave without saving?** with two choices: **Keep Editing** stays in the builder with your changes, and **Discard Changes** goes on to the page you were opening. Closing or reloading the tab asks with your browser's own dialog.",
+    );
+    expect(page).not.toContain("the browser asks before you leave the page");
   });
 
   it("names the builder's and the Templates page's buttons as they draw them, and a card's badge as it composes it", () => {

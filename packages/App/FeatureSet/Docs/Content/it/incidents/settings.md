@@ -736,7 +736,7 @@ Le regole che la pagina stessa porta con sé vanno interiorizzate:
 - L'insieme delle policy effettivamente eseguite è l'unione delle policy di ogni regola corrispondente più qualsiasi policy collegata all'incidente a mano o da un modello, deduplicata così ogni policy viene eseguita al massimo una volta. Quando due regole corrispondenti attivano la stessa policy, questa chiama appena una delle due lo consente: subito vince sull'orario di lavoro.
 
 > [!NOTE]
-> La gravità è un criterio di corrispondenza qui e da nessun'altra parte. Una gravità dell'incidente non ha alcun campo di reperibilità — scegliere «Critical Incident» non avvisa, da solo, nessuno. Se volete che la gravità guidi gli avvisi, scrivete una regola di reperibilità che corrisponda su di essa.
+> La gravità è un criterio di corrispondenza qui e da nessun'altra parte. Una gravità dell'incidente non ha alcun campo di reperibilità — scegliere «Incidente critico» non avvisa, da solo, nessuno. Se volete che la gravità guidi gli avvisi, scrivete una regola di reperibilità che corrisponda su di essa.
 
 ## Collegare direttamente le policy di reperibilità
 
