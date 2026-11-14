@@ -130,7 +130,7 @@ Jede Zeile zeigt, was den Lauf ausgelöst hat, wann, seinen **Status** und wer i
 Archivieren stellt eine Richtlinie außer Dienst und behält alles: Öffnen Sie die **Einstellungen** der Richtlinie und klicken Sie auf ihrer Archivkarte auf **Archivieren**, oder wählen Sie Richtlinien in der Liste aus und wählen Sie **Archivieren**.
 
 - Eine archivierte Richtlinie alarmiert niemanden. Vorfälle und Warnungen, die sie verwenden, überspringen sie, und ein Lauf, der noch eskaliert, endet bei seinem nächsten Schritt.
-- Sie verlässt die Liste **Bereitschaftsrichtlinien** und landet unter **Bereitschaft → Erweitert → Archivierte Richtlinien**, wo **Aus Archiv entfernen** sie wieder in Dienst stellt.
+- Sie verlässt die Liste **Bereitschaftsrichtlinien** und landet unter **Bereitschaft → Erweitert → Archivierte Richtlinien**, wo **Aus dem Archiv holen** sie wieder in Dienst stellt.
 
 **Richtlinie löschen**, unter **Erweitert**, löscht die Richtlinie mitsamt ihren Eskalationsregeln und Benutzerüberschreibungen. Das Löschen aus der Liste fragt vorher nach und schlägt vor, stattdessen zu archivieren.
 

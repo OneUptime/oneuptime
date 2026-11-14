@@ -90,7 +90,7 @@ I en liste vises etikettene til en post under hverandre; er det flere enn fire, 
 
 ### Arkivere en etikett
 
-For å fase ut en etikett arkiverer du den fra radens meny **⋯** i stedet for å slette den. Alt som har etiketten, beholder den, og du kan fortsatt filtrere på den, men ingen kan legge den til på noe igjen: Hver etikettvelger utelater den, og API-et, Terraform og MCP avviser den. Dialogen viser reglene og tillatelsene som er satt opp til å bruke etiketten, og som fortsetter å bruke den til du endrer dem. Arkiverte etiketter vises for seg, i den sammenslåtte delen **Arkiverte etiketter**, der **Fjern fra arkiv** setter en tilbake. **Slett** viser først alt etiketten ville blitt fjernet fra, og tilbyr **Arkiver i stedet**.
+For å fase ut en etikett arkiverer du den fra radens meny **⋯** i stedet for å slette den. Alt som har etiketten, beholder den, og du kan fortsatt filtrere på den, men ingen kan legge den til på noe igjen: Hver etikettvelger utelater den, og API-et, Terraform og MCP avviser den. Dialogen viser reglene og tillatelsene som er satt opp til å bruke etiketten, og som fortsetter å bruke den til du endrer dem. Arkiverte etiketter vises for seg, i den sammenslåtte delen **Arkiverte etiketter**, der **Fjern fra arkivet** setter en tilbake. **Slett** viser først alt etiketten ville blitt fjernet fra, og tilbyr **Arkiver i stedet**.
 
 ## Varsler
 

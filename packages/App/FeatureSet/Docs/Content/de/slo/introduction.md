@@ -199,7 +199,7 @@ Die Seite **Einstellungen** enthält, wie ein SLO misst, je eine Karte:
 | **Compliance-Zeitraum** | **Typ des Zeitfensters**, **Zeitfenster (Tage)** und **Zeitzone**, mit **Zeitraum bearbeiten**. | Burn-Rate-Regeln behalten ihre Schwellenwerte, wenn sich das Zeitfenster ändert, prüfen Sie sie also danach. |
 | **Berechnung der Ausfallzeit** | **Multi-Monitor-Modus** und **Ausfallzeit-Monitorstatus**, mit **Berechnung der Ausfallzeit bearbeiten**. | Leere Status zählen jeden nicht betriebsbereiten Status, auch später hinzugefügte. |
 | **Auswertung** | Der Schalter **Dieses SLO auswerten**, der sofort speichert, wenn Sie ihn umlegen. | Beim Ausschalten fragt er zuerst, denn das löst auch die offenen Burn-Rate-Warnungen und -Vorfälle des SLO auf. |
-| **SLO archivieren** | **Archivieren** oder **Aus Archiv entfernen**. | Siehe [Ein SLO archivieren](#ein-slo-archivieren). |
+| **SLO archivieren** | **Archivieren** oder **Aus dem Archiv holen**. | Siehe [Ein SLO archivieren](#ein-slo-archivieren). |
 
 Nach einer Änderung an Ziel, Zeitraum oder Berechnung der Ausfallzeit wertet OneUptime das SLO beim nächsten Lauf neu aus.
 
@@ -214,7 +214,7 @@ Ein archiviertes SLO:
 - bekommt seine offenen Burn-Rate-Warnungen und -Vorfälle aufgelöst;
 - behält Einstellungen, Verlauf, Regeln und Eigentümer. Seine Monitor-Regeln halten die Monitorliste aktuell, sodass es mit den richtigen Monitoren weitermacht.
 
-Archivierte SLOs stehen auf der Seite **Archiviert**, unter **Erweitert** im Seitenmenü der SLO-Liste. Wählen Sie sie dort aus und dann **Aus Archiv entfernen**, um sie zurückzuholen: Beim nächsten Lauf werden sie wieder ausgewertet, mit SLI und Budget neu berechnet aus dem Verlauf ihrer Monitore.
+Archivierte SLOs stehen auf der Seite **Archiviert**, unter **Erweitert** im Seitenmenü der SLO-Liste. Wählen Sie sie dort aus und dann **Aus dem Archiv holen**, um sie zurückzuholen: Beim nächsten Lauf werden sie wieder ausgewertet, mit SLI und Budget neu berechnet aus dem Verlauf ihrer Monitore.
 
 Archivieren und das Ausschalten der Auswertung sind getrennte Schalter. Ein SLO, das vor dem Archivieren ausgeschaltet war, bleibt nach dem Zurückholen ausgeschaltet: Schalten Sie es mit **Auswertung einschalten** in seinem Banner wieder ein oder mit **Dieses SLO auswerten** unter **Einstellungen** → **Auswertung**.
 

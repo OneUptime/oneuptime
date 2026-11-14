@@ -29,7 +29,7 @@ flowchart TB
 
 Le tracce dicono a OneUptime che una coda esiste e come le applicazioni la usano, ma non quanto è piena. Questo viene dal broker stesso o dall'API di monitoraggio del suo provider cloud oppure, per [BullMQ](#bullmq), che tiene i suoi job in Redis e non ha un broker da interrogare, da un gauge che l'applicazione segnala.
 
-Puoi anche aggiungere una coda a mano: **Code → Crea: Queue**, con il suo sistema di messaggistica e il nome della destinazione e, per Azure Service Bus ed Event Hubs, il suo namespace. Il modulo li chiede nel primo passaggio, **Sistema di messaggistica**, poi un nome e una descrizione facoltativi, con le etichette sotto **Altri campi** (**Informazioni sulla coda**). Lascia vuoto il namespace solo per una coda che le tue applicazioni raggiungono tramite un emulatore o un nome di dominio personalizzato: i loro span non indicano alcun namespace, e le metriche di Azure Monitor non raggiungono mai una coda del genere (vedi [Limitazioni](#limitazioni)).
+Puoi anche aggiungere una coda a mano: **Code → Crea: Coda**, con il suo sistema di messaggistica e il nome della destinazione e, per Azure Service Bus ed Event Hubs, il suo namespace. Il modulo li chiede nel primo passaggio, **Sistema di messaggistica**, poi un nome e una descrizione facoltativi, con le etichette sotto **Altri campi** (**Informazioni sulla coda**). Lascia vuoto il namespace solo per una coda che le tue applicazioni raggiungono tramite un emulatore o un nome di dominio personalizzato: i loro span non indicano alcun namespace, e le metriche di Azure Monitor non raggiungono mai una coda del genere (vedi [Limitazioni](#limitazioni)).
 
 ## Per iniziare
 
@@ -1057,7 +1057,7 @@ Le installazioni self-hosted possono regolare il rilevamento con queste variabil
 - Il suo nome è uno di quelli che OneUptime ignora (vedi [Cosa viene ignorato](#cosa-viene-ignorato)), oppure solo span SERVER la indicano.
 - Meno di 3 dei suoi span sono arrivati negli ultimi 15 minuti, oppure il progetto ha raggiunto il suo [limite di creazione automatica](#il-budget-di-creazione-automatica).
 
-Quando i suoi span la indicano davvero, creala a mano con lo stesso sistema e la stessa destinazione (**Code → Crea: Queue**): la sua scheda **Tracce** si riempie con gli span già memorizzati.
+Quando i suoi span la indicano davvero, creala a mano con lo stesso sistema e la stessa destinazione (**Code → Crea: Coda**): la sua scheda **Tracce** si riempie con gli span già memorizzati.
 
 ### La salute del broker resta vuota
 

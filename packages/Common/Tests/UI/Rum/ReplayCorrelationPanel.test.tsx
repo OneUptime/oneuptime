@@ -588,6 +588,29 @@ describe("ReplayCorrelationPanel Session tab", () => {
     );
   });
 
+  /*
+   * A count of bytes is whole (issue #7417): a recording of a few hundred
+   * bytes reads "512 B", never "512.0 B"; from a KiB up it keeps its decimal.
+   */
+  it.each([
+    [1, "1 B"],
+    [512, "512 B"],
+    [1023, "1023 B"],
+    [1536, "1.5 KiB"],
+  ])(
+    "a %p-byte recording's payload reads %p",
+    (payloadBytes: number, text: string) => {
+      renderPanel({ details: makeDetails({ payloadBytes }) });
+
+      expect(screen.getByTestId("replay-details-payload")).toHaveTextContent(
+        text,
+      );
+      expect(
+        screen.getByTestId("replay-details-payload").textContent,
+      ).not.toContain(".0 B");
+    },
+  );
+
   it("uses placeholders instead of inventing incomplete environment facts", () => {
     renderPanel({
       details: makeDetails({

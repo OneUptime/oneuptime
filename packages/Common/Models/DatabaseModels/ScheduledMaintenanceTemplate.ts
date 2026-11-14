@@ -605,7 +605,7 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
     modelType: Host,
     title: "Hosts",
     description:
-      "List of hosts to pre-populate on scheduled maintenance events created from this template.",
+      "List of hosts to pre-populate on maintenance events created from this template.",
   })
   @ManyToMany(
     () => {
@@ -660,7 +660,7 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
     modelType: KubernetesCluster,
     title: "Kubernetes Clusters",
     description:
-      "List of Kubernetes clusters to pre-populate on scheduled maintenance events created from this template.",
+      "List of Kubernetes clusters to pre-populate on maintenance events created from this template.",
   })
   @ManyToMany(
     () => {
@@ -715,7 +715,7 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
     modelType: DockerHost,
     title: "Docker Hosts",
     description:
-      "List of Docker hosts to pre-populate on scheduled maintenance events created from this template.",
+      "List of Docker hosts to pre-populate on maintenance events created from this template.",
   })
   @ManyToMany(
     () => {
@@ -770,7 +770,7 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
     modelType: PodmanHost,
     title: "Podman Hosts",
     description:
-      "List of Podman hosts to pre-populate on scheduled maintenance events created from this template.",
+      "List of Podman hosts to pre-populate on maintenance events created from this template.",
   })
   @ManyToMany(
     () => {
@@ -825,7 +825,7 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
     modelType: Service,
     title: "Services",
     description:
-      "List of services to pre-populate on scheduled maintenance events created from this template.",
+      "List of services to pre-populate on maintenance events created from this template.",
   })
   @ManyToMany(
     () => {

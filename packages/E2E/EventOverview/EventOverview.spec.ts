@@ -3488,6 +3488,43 @@ function failureNotice(page: Page): Locator {
   return investigationStep(page).getByTestId("investigation-error");
 }
 
+// The Persian card's Try again, and the start of its AI-off refusal (#7359).
+const PERSIAN_TRY_AGAIN: string = "تلاش دوباره";
+const PERSIAN_AI_OFF_START: string = "OneUptime AI برای این پروژه خاموش است.";
+// Investigate now on the Arabic card, and its daily-limit refusal (#7359).
+const ARABIC_INVESTIGATE_NOW: string = "التحقيق الآن";
+const ARABIC_DAILY_LIMIT_START: string =
+  "بلغ المشروع حده اليومي للذكاء الاصطناعي.";
+
+/*
+ * How a line's first words sit: the line's direction, and whether they
+ * start at its right edge, where a line read from the right starts. They
+ * are its text's first characters.
+ */
+async function firstWordsPlace(
+  line: Locator,
+  firstWords: string,
+): Promise<{ direction: string; startsAtTheRight: boolean }> {
+  return await line.evaluate(
+    (
+      element: Element,
+      words: string,
+    ): { direction: string; startsAtTheRight: boolean } => {
+      const text: Text = element.firstChild as Text;
+      const range: Range = document.createRange();
+      range.setStart(text, 0);
+      range.setEnd(text, words.length);
+      const wordsBox: DOMRect = range.getBoundingClientRect();
+      const lineBox: DOMRect = element.getBoundingClientRect();
+      return {
+        direction: getComputedStyle(element).direction,
+        startsAtTheRight: lineBox.right - wordsBox.right < 2,
+      };
+    },
+    firstWords,
+  );
+}
+
 function tryAgainButton(page: Page): Locator {
   return failureNotice(page).getByRole("button", { name: "Try again" });
 }
@@ -3649,6 +3686,46 @@ test.describe("a run that did not finish (issues #6437, #6438)", () => {
     );
   });
 
+  /*
+   * #7359: a refusal the Dashboard words reads as the page does, even when
+   * it starts with a name in Latin letters. Persian says "OneUptime AI"
+   * first: laid out by that first letter (dir="auto"), the sentence ran
+   * from the left on a page read from the right, its words out of order.
+   */
+  test("a refusal in Persian reads right to left, though it starts with OneUptime AI (?lang=fa&dir=auto)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(
+      page,
+      INCIDENT_PATH,
+      "ai=failed&fail=investigation-try-again&lang=fa&dir=auto",
+    );
+    const button: Locator = failureNotice(page).getByRole("button", {
+      name: PERSIAN_TRY_AGAIN,
+    });
+    await expect(button).toBeEnabled({ timeout: 30000 });
+
+    await button.click();
+
+    const refusal: Locator = failureNotice(page).getByRole("alert");
+    await expect(refusal).toHaveAttribute(
+      "data-testid",
+      "investigation-error-try-again-error",
+    );
+    await expect(refusal).toContainText(PERSIAN_AI_OFF_START);
+    await expect(refusal).not.toContainText("switched off");
+    expect(await firstWordsPlace(refusal, "OneUptime AI")).toEqual({
+      direction: "rtl",
+      startsAtTheRight: true,
+    });
+    await screenshotElement(
+      investigationStep(page),
+      "investigation-try-again-refused-fa",
+    );
+  });
+
   test("?ai=failed-viewer: someone who may not start it again reads why, with no Try again", async ({
     page,
   }: {
@@ -3743,7 +3820,7 @@ const WAITING_ALERT_DESCRIPTION: string =
   "An AI rule makes OneUptime AI wait 10 minutes, so alerts resolved by then are not investigated.";
 // InvestigationRuleWait's refusal when the project's own daily limit is reached.
 const DAILY_LIMIT_REFUSAL: string =
-  "This project has reached its own daily AI limit. It resets at midnight UTC.";
+  "The project reached its daily AI limit. OneUptime AI starts again at midnight UTC. A project owner or someone with Manage Billing can raise or remove the limit in Project Settings → AI → AI Features → More settings.";
 
 function waitingBody(page: Page): Locator {
   return investigationCard(page).getByTestId("investigation-waiting");
@@ -3850,6 +3927,40 @@ test.describe("an investigation rule's wait (issue #5074)", () => {
     await expect(
       stepPillWords(investigationCard(page), "investigation"),
     ).toHaveText("Waiting");
+  });
+
+  // #7359: the refusal in the reader's language, read as the page reads.
+  test("in Arabic, the refusal says why in Arabic, right to left (?lang=ar&dir=auto)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(
+      page,
+      INCIDENT_PATH,
+      "ai=waiting&fail=investigate-now&lang=ar&dir=auto",
+    );
+    const button: Locator = waitingBody(page).getByRole("button", {
+      name: ARABIC_INVESTIGATE_NOW,
+    });
+    await expect(button).toBeEnabled({ timeout: 30000 });
+
+    await button.click();
+
+    const error: Locator = waitingBody(page).getByTestId(
+      "investigate-now-error",
+    );
+    await expect(error).toHaveAttribute("role", "alert");
+    await expect(error).toContainText(ARABIC_DAILY_LIMIT_START);
+    await expect(error).not.toContainText("daily AI limit");
+    expect(
+      await firstWordsPlace(error, ARABIC_DAILY_LIMIT_START.split(" ")[0]!),
+    ).toEqual({ direction: "rtl", startsAtTheRight: true });
+    await expect(button).toBeEnabled();
+    await screenshotElement(
+      investigationStep(page),
+      "investigate-now-refused-ar",
+    );
   });
 
   test("?ai=waiting-viewer: someone who may not change the incident is told who can, and gets no button", async ({
@@ -17058,6 +17169,146 @@ test.describe("an incident call's transcript (?calls=)", () => {
     await expect(card.getByTestId("call-transcript-read")).toBeVisible({
       timeout: 30000,
     });
+  });
+
+  /*
+   * A file extension in a Persian or Arabic sentence of the Add transcript
+   * dialog keeps its dot before its letters (issue #7419): ".vtt", never
+   * "vtt.". Laid out as the locale file holds the sentence, the dot - a
+   * sign with no direction of its own - is drawn after the letters on a
+   * page read from the right; the Dashboard's i18next sets each extension
+   * apart as code (Common/UI/Utils/CodeReadsAsWritten). Measured on the
+   * drawn text itself: the dot's box is left of its letters' box.
+   */
+  interface DrawnExtension {
+    extension: string;
+    dotRight: number;
+    lettersLeft: number;
+  }
+
+  async function drawnExtensions(
+    line: Locator,
+    extensions: ReadonlyArray<string>,
+  ): Promise<Array<DrawnExtension>> {
+    return line.evaluate((element: Element, written: ReadonlyArray<string>) => {
+      const found: Array<DrawnExtension> = [];
+      const walker: TreeWalker = document.createTreeWalker(
+        element,
+        NodeFilter.SHOW_TEXT,
+      );
+
+      for (
+        let node: Node | null = walker.nextNode();
+        node;
+        node = walker.nextNode()
+      ) {
+        const text: string = node.textContent || "";
+
+        for (const extension of written) {
+          const at: number = text.indexOf(extension);
+
+          if (at < 0) {
+            continue;
+          }
+
+          const dot: Range = document.createRange();
+          dot.setStart(node, at);
+          dot.setEnd(node, at + 1);
+          const letters: Range = document.createRange();
+          letters.setStart(node, at + 1);
+          letters.setEnd(node, at + extension.length);
+
+          found.push({
+            extension,
+            dotRight: dot.getBoundingClientRect().right,
+            lettersLeft: letters.getBoundingClientRect().left,
+          });
+        }
+      }
+
+      return found;
+    }, extensions);
+  }
+
+  function expectDotsFirst(drawn: Array<DrawnExtension>): void {
+    for (const extension of drawn) {
+      expect([
+        extension.extension,
+        extension.dotRight <= extension.lettersLeft + 0.5,
+      ]).toEqual([extension.extension, true]);
+    }
+  }
+
+  async function openAddTranscript(
+    page: Page,
+    query: string,
+  ): Promise<Locator> {
+    await open(page, INCIDENT_PATH, query);
+    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+    const add: Locator = callsCard(page).getByTestId("call-transcript-add");
+    await expect(add).toBeVisible({ timeout: 30000 });
+    await add.click();
+    const dialog: Locator = page.getByTestId("add-call-transcript");
+    await expect(dialog).toBeVisible();
+    return dialog;
+  }
+
+  test("on a Persian page, the Add transcript dialog draws .vtt, .srt and .txt with their dots first (?calls=teams&lang=fa&dir=auto)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const dialog: Locator = await openAddTranscript(
+      page,
+      "calls=teams&lang=fa&dir=auto",
+    );
+
+    const dropZone: Locator = dialog
+      .getByTestId("add-call-transcript-choose-file")
+      .locator("span")
+      .last();
+    const hint: Locator = dialog.getByTestId("add-call-transcript-hint");
+
+    const inDropZone: Array<DrawnExtension> = await drawnExtensions(dropZone, [
+      ".vtt",
+      ".srt",
+      ".txt",
+    ]);
+    const inHint: Array<DrawnExtension> = await drawnExtensions(hint, [".vtt"]);
+
+    expect(
+      inDropZone.map((drawn: DrawnExtension): string => {
+        return drawn.extension;
+      }),
+    ).toEqual([".vtt", ".srt", ".txt"]);
+    expect(inHint).toHaveLength(1);
+    expectDotsFirst([...inDropZone, ...inHint]);
+    // The limit, a value of the sentence, in Persian digits.
+    await expect(dropZone).toContainText("۵ MB");
+
+    await screenshotElement(dialog, "add-call-transcript-fa");
+  });
+
+  test("on an Arabic page, Zoom's line draws (.vtt) with its dot first, at 390px (?calls=zoom&lang=ar&dir=auto)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const dialog: Locator = await openAddTranscript(
+      page,
+      "calls=zoom&lang=ar&dir=auto",
+    );
+
+    const inHint: Array<DrawnExtension> = await drawnExtensions(
+      dialog.getByTestId("add-call-transcript-hint"),
+      [".vtt"],
+    );
+
+    expect(inHint).toHaveLength(1);
+    expectDotsFirst(inHint);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await screenshotElement(dialog, "add-call-transcript-ar-390");
   });
 
   test("the suggested root cause: marked Not confirmed, resting on the call's lines in the order they were said", async ({

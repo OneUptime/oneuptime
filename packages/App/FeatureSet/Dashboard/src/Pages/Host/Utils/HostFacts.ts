@@ -214,7 +214,13 @@ export function formatHostUptime(
   });
 }
 
-// Bytes as the host pages write them: 1024-based, 16 GiB.
+/*
+ * Bytes as the host pages write them: 1024-based, "16 GiB", one decimal
+ * under ten from KiB up ("8.0 GiB"). A count of bytes is a whole number,
+ * so plain bytes keep none: "0 B", "512 B", never "0.0 B" (issue #7417).
+ * Every host page - the Overview, the process list and a process's page -
+ * writes its sizes with this one.
+ */
 export function formatHostBytes(bytes: number | null | undefined): string {
   if (bytes === null || bytes === undefined || !Number.isFinite(bytes)) {
     return "—";
@@ -227,7 +233,7 @@ export function formatHostBytes(bytes: number | null | undefined): string {
     index++;
   }
   // The number in the reader's digits, the unit as written: "۱۶ GiB".
-  return `${formatReaderFigure(value, { decimals: value < 10 ? 1 : 0 })} ${
-    units[index]
-  }`;
+  return `${formatReaderFigure(value, {
+    decimals: index > 0 && value < 10 ? 1 : 0,
+  })} ${units[index]}`;
 }

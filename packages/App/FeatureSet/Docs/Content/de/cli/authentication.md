@@ -11,7 +11,7 @@ Jede Anfrage, die die CLI sendet, trägt einen API-Schlüssel Ihres Projekts. Sp
 
 ## Bevor Sie beginnen
 
-Sie brauchen einen API-Schlüssel Ihres Projekts. Legen Sie einen unter **Projekteinstellungen → Erweitert → API-Schlüssel** mit **API-Schlüssel erstellen** an und geben Sie ihm den Zugriff, den Ihre Befehle brauchen: siehe [Einen API-Schlüssel anlegen](/docs/api-reference/api-reference#einen-api-schlüssel-anlegen). Ein Schlüssel tut, was seine Berechtigungen erlauben: Ein Schlüssel, der Datensätze nur lesen darf, kann sie auflisten und lesen, aber nicht ändern.
+Sie brauchen einen API-Schlüssel Ihres Projekts. Legen Sie einen unter **Projekteinstellungen → Erweitert → API-Schlüssel** mit **API-Schlüssel erstellen** an und geben Sie ihm den Zugriff, den Ihre Befehle brauchen: siehe [Einen API-Schlüssel erstellen](/docs/api-reference/api-reference#einen-api-schlüssel-erstellen). Ein Schlüssel tut, was seine Berechtigungen erlauben: Ein Schlüssel, der Datensätze nur lesen darf, kann sie auflisten und lesen, aber nicht ändern.
 
 In OneUptime Cloud funktionieren API-Schlüssel nur, solange das Projekt im Tarif **Growth** oder höher ist. Darunter antwortet jeder Befehl mit `API error (402)` und einer Meldung, die den Tarif nennt, bis das Projekt hochgestuft wird; dann funktioniert derselbe Schlüssel wieder. Siehe [API-Schlüssel und SCIM unterhalb ihres Tarifs](/docs/api-reference/api-reference#api-schlüssel-und-scim-unterhalb-ihres-tarifs).
 

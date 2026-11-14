@@ -74,6 +74,13 @@ Fluentd の構成ファイルは通常 `/etc/fluent/fluentd.conf` です。古�
     chunk_limit_size 900k
   </buffer>
 </match>
+
+# Keep Fluentd's own logs out of OneUptime
+<label @FLUENT_LOG>
+  <match **>
+    @type null
+  </match>
+</label>
 ```
 
 `json_array true` はバッファーのチャンクごとに 1 つの JSON 配列として送り、`flush_interval 10s` は 10 秒ごとにバッファーを送ります。`chunk_limit_size 900k` は各リクエストを、このエンドポイントで OneUptime が受け付ける上限の 1 MB 未満に保ちます。
@@ -123,6 +130,13 @@ Fluentd の構成ファイルは通常 `/etc/fluent/fluentd.conf` です。古�
     chunk_limit_size 900k
   </buffer>
 </match>
+
+# Keep Fluentd's own logs out of OneUptime
+<label @FLUENT_LOG>
+  <match **>
+    @type null
+  </match>
+</label>
 ```
 
 異なるソースを異なるサービスとして送るには、タグごとに `<match>` セクションを 1 つずつ使い、それぞれに独自の `x-oneuptime-service-name` を設定します。

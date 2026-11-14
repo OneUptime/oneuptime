@@ -45,6 +45,13 @@ const MESSAGE_FILES: ReadonlyArray<string> = [
   "Server/Utils/AutoRemediation/RemediationRound.ts",
   "Types/AutoRemediation/RemediationRound.ts",
   "Types/Workflow/Documentation/AIDocumentation.ts",
+  /*
+   * #7359: why Try again or Investigate now did not start, one sentence
+   * per refusal code - InvestigationTryAgain, InvestigationRuleWait and
+   * InsightTriage refuse with these codes, and write no sentence of their
+   * own.
+   */
+  "Types/AI/AiRunRefusal.ts",
 ];
 
 // "AI provider", "AI providers", "AI-provider", in any case.
@@ -122,9 +129,8 @@ describe("the server's AI messages say LLM provider, never AI provider", () => {
   test("the files that word a missing provider name the LLM Providers page", () => {
     for (const file of [
       "Server/Utils/AI/SRE/InvestigationEligibility.ts",
-      "Server/Utils/AI/SRE/InvestigationTryAgain.ts",
-      "Server/Utils/AI/SRE/InvestigationRuleWait.ts",
-      "Server/Utils/AI/SRE/Insights/Triage.ts",
+      // Try again, Investigate now and a triage's Try again (#7359).
+      "Types/AI/AiRunRefusal.ts",
       "Server/Services/ResourceAiAccessService.ts",
       "Server/Services/KubernetesClusterAiAccessService.ts",
       "Server/Services/AIService.ts",

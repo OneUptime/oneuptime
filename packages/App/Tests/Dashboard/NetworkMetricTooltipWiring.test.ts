@@ -107,6 +107,13 @@ const DEVICE_RECORD: string = "NETWORK_DEVICE_METRIC_DESCRIPTIONS";
 const SITE_RECORD: string = "NETWORK_SITE_METRIC_DESCRIPTIONS";
 const INFO_TOOLTIP_IMPORT: string =
   'import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";';
+/*
+ * A title's (i) drawn after its last word, inside the title's own line of
+ * text (issue #7348): never the title's flex sibling, which a wrapping title
+ * pushed to its tile's far edge.
+ */
+const WORDS_WITH_INFO_IMPORT: string =
+  'import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";';
 
 function deviceRef(key: NetworkDeviceMetric): string {
   return `${DEVICE_RECORD}.${key}`;
@@ -138,10 +145,11 @@ describe("the device Overview hero", () => {
   );
 
   test("every tile opens with the shared title, which carries the (i)", () => {
-    expect(code).toContain(INFO_TOOLTIP_IMPORT);
+    expect(code).toContain(WORDS_WITH_INFO_IMPORT);
     expect(code).toContain(
-      "<InfoTooltip label={props.title} text={props.description} />",
+      "<WordsWithInfoTooltip text={translator.translateText(props.title) || props.title} label={props.title} description={props.description} />",
     );
+    expect(code).not.toContain("<InfoTooltip");
     expect(countTag(code, "DeviceHeroTileTitle")).toBe(6);
 
     // No tile kept a bare title div without an (i) slot.
@@ -182,10 +190,11 @@ describe("the site Overview hero", () => {
   const code: string = readCode("Components/NetworkSite/SiteStatusHero.tsx");
 
   test("every tile opens with the shared title, which carries the (i)", () => {
-    expect(code).toContain(INFO_TOOLTIP_IMPORT);
+    expect(code).toContain(WORDS_WITH_INFO_IMPORT);
     expect(code).toContain(
-      "<InfoTooltip label={props.title} text={props.description} />",
+      "<WordsWithInfoTooltip text={translator.translateText(props.title) || props.title} label={props.title} description={props.description} />",
     );
+    expect(code).not.toContain("<InfoTooltip");
     expect(countTag(code, "SiteHeroTileTitle")).toBe(7);
     expect(code).not.toContain(
       '<div className="text-sm font-medium text-gray-500">',
@@ -239,11 +248,23 @@ describe("the latency trend", () => {
     "Components/NetworkDevice/DeviceLatencyTrend.tsx",
   );
 
-  test("the header's (i) explains now / avg / max", () => {
-    expect(code).toContain(INFO_TOOLTIP_IMPORT);
-    expect(code).toContain(
-      `<InfoTooltip label={trendTitle} text={${deviceRef("latencyTrend")}} />`,
+  /*
+   * Both (i)s follow their words (issue #7348): German wraps the title in
+   * the Network Map's drawer on a phone, which pushed a flex sibling (i) to
+   * the far edge of the row.
+   */
+  test("the header's (i) explains now / avg / max, after the title's last word", () => {
+    expect(code).toContain(WORDS_WITH_INFO_IMPORT);
+    expect(code).not.toContain(INFO_TOOLTIP_IMPORT);
+    expect(code).not.toContain("<InfoTooltip");
+
+    const title: string = element(
+      code,
+      '<WordsWithInfoTooltip className="min-w-0',
     );
+    expect(title).toContain("text={trendTitle} label={trendTitle}");
+    expect(title).toContain(`description={${deviceRef("latencyTrend")}}`);
+    expect(title).toContain('dataTestId="network-device-latency-title"');
   });
 
   test("the packet-loss line has its own (i), after the value", () => {
@@ -253,18 +274,19 @@ describe("the latency trend", () => {
       "</p>",
     );
 
-    expect(loss).toContain(
-      `<InfoTooltip label={lossTitle} text={${deviceRef("packetLossPeak")}} />`,
-    );
+    expect(loss).toContain("<WordsWithInfoTooltip");
+    expect(loss).toContain("label={lossTitle}");
+    expect(loss).toContain(`description={${deviceRef("packetLossPeak")}}`);
     expect(loss.indexOf("formatPercent(lossSummary.max)")).toBeLessThan(
-      loss.indexOf("<InfoTooltip"),
+      loss.indexOf("description="),
     );
   });
 
-  test("the (i) never sits inside the Open metrics link", () => {
+  test("the (i) never sits inside the Open metrics link, which is kept whole beside the title", () => {
     const link: string = between(code, "<Link", "</Link>");
 
     expect(link).not.toContain("InfoTooltip");
+    expect(link).toContain("flex-shrink-0 whitespace-nowrap");
   });
 });
 
@@ -487,10 +509,11 @@ describe("the Traffic pages (device, site, network)", () => {
     expect(tiles).toContain(
       "<InfoTooltip label={props.label} text={props.help} />",
     );
-    expect(list).toContain(INFO_TOOLTIP_IMPORT);
+    expect(list).toContain(WORDS_WITH_INFO_IMPORT);
     expect(list).toContain(
-      "<InfoTooltip label={props.title} text={props.help} />",
+      "<WordsWithInfoTooltip text={translator.translateText(props.title) || props.title} label={props.title} description={props.help} />",
     );
+    expect(list).not.toContain("<InfoTooltip");
   });
 
   /*
@@ -519,9 +542,12 @@ describe("the Traffic pages (device, site, network)", () => {
   test("the four tiles, each with its text, and the sampled note with its own", () => {
     expect(countTag(tiles, "TrafficTile")).toBe(4);
     expect(count(tiles, "help={help.")).toBe(4);
+    // The note's (i) after its last word, the note's icon beside its first line.
+    expect(tiles).toContain(WORDS_WITH_INFO_IMPORT);
     expect(tiles).toContain(
-      '<InfoTooltip label="Sampled" text={TILE_HELP.sampled} />',
+      'label="Sampled" description={TILE_HELP.sampled} />',
     );
+    expect(tiles).not.toContain('<InfoTooltip label="Sampled"');
   });
 
   test.each([
@@ -816,10 +842,11 @@ describe("the Network Map", () => {
   );
 
   test("the section title draws the (i) when it is given a description", () => {
-    expect(section).toContain(INFO_TOOLTIP_IMPORT);
+    expect(section).toContain(WORDS_WITH_INFO_IMPORT);
     expect(between(section, "<h3", "</h3>")).toContain(
-      "<InfoTooltip label={props.title} text={props.description} />",
+      "<WordsWithInfoTooltip text={translator.translateText(props.title) || props.title} label={props.title} description={props.description} />",
     );
+    expect(section).not.toContain("<InfoTooltip");
   });
 
   test("the page uses the shared section rather than a local copy", () => {

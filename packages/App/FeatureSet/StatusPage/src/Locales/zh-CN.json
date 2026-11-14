@@ -86,8 +86,8 @@
     "incidentsOnThisDay": "当天报告了 {{total}} 起事件",
     "scheduledMaintenance": "计划维护",
     "dayLabelWithMaintenance": "{{label}}，{{maintenance}}",
-    "oneMaintenanceEvent": "1 次计划维护",
-    "maintenanceEvents": "{{total}} 次计划维护",
+    "oneMaintenanceEvent": "1 个维护事件",
+    "maintenanceEvents": "{{total}} 个维护事件",
     "moreMaintenance": "还有 {{total}} 个"
   },
   "liveStatus": {
