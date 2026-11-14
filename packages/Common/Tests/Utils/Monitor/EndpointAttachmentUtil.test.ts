@@ -1,6 +1,8 @@
 import EndpointAttachmentUtil, {
   CONTROLLER_SIGHTING_CURRENT_FOR_MS,
   ENDPOINT_LAST_SEEN_REFRESH_MS,
+  ENDPOINT_REFRESH_POLLS,
+  ENDPOINT_WALK_WINDOW_MS,
   EndpointAttachment,
   EndpointAttachmentResult,
   EndpointExistingRowSnapshot,
@@ -8,8 +10,10 @@ import EndpointAttachmentUtil, {
   EndpointIpBinding,
   EndpointUpsertContext,
   EndpointUpsertDecision,
+  getEndpointLastSeenRefreshMs,
   normalizeMac,
 } from "../../../Utils/Monitor/EndpointAttachmentUtil";
+import { getEndpointSightingWindowMs } from "../../../Utils/Monitor/NetworkTopologyUtil";
 import FdbEntry from "../../../Types/Monitor/SnmpMonitor/FdbEntry";
 import ArpEntry from "../../../Types/Monitor/SnmpMonitor/ArpEntry";
 
@@ -578,8 +582,8 @@ describe("EndpointAttachmentUtil.decideUpsert", () => {
  * lastSeenAt — and that path runs inline on probe ingest. The rule has
  * to be conservative in both directions: never suppress a write that
  * carries new information, and never let lastSeenAt drift far enough to
- * make a live endpoint look down (NetworkTopologyUtil calls it down at
- * 15 minutes).
+ * make a live endpoint look down (the map calls it down once it is older
+ * than the walk window, an hour).
  */
 describe("EndpointAttachmentUtil.decideUpsert — unchanged sightings", () => {
   const mac: string = "aa:bb:cc:dd:ee:01";
@@ -614,14 +618,34 @@ describe("EndpointAttachmentUtil.decideUpsert — unchanged sightings", () => {
     attachment: { interfaceIndex: 7, portName: "Gi0/7", vlanId: 12 },
   };
 
-  it("keeps the refresh threshold at 5 minutes", () => {
+  it("keeps the refresh threshold at 9 minutes for the default poll interval", () => {
     /*
-     * Stored lastSeenAt lags reality by at most (threshold + poll
-     * interval). 5 minutes keeps that under the 15-minute down window
-     * for any poll interval up to 10 minutes; slower polls always land
-     * past the threshold and fall back to writing every poll.
+     * Just under two five-minute polls: an unchanged endpoint is written
+     * every other poll. It was 5 minutes - the interval itself - and so was
+     * written on every poll. Stored lastSeenAt lags reality by at most
+     * (threshold + poll interval), 14 minutes, well inside the walk window.
      */
-    expect(ENDPOINT_LAST_SEEN_REFRESH_MS).toBe(5 * 60 * 1000);
+    expect(ENDPOINT_LAST_SEEN_REFRESH_MS).toBe(9 * 60 * 1000);
+  });
+
+  it("skips the poll after a write, and writes the one after that", () => {
+    const fiveMinutesAgo: Date = new Date("2026-07-22T11:55:00Z");
+    const nineMinutesAgo: Date = new Date("2026-07-22T11:51:00Z");
+
+    expect(
+      EndpointAttachmentUtil.decideUpsert(
+        { ...stableRow, lastSeenAt: fiveMinutesAgo },
+        stableSighting,
+        context,
+      ).action,
+    ).toBe("none");
+    expect(
+      EndpointAttachmentUtil.decideUpsert(
+        { ...stableRow, lastSeenAt: nineMinutesAgo },
+        stableSighting,
+        context,
+      ).action,
+    ).toBe("update");
   });
 
   it("collapses an unchanged re-sighting to no write at all", () => {
@@ -1080,5 +1104,88 @@ describe("a network controller's report against a walk (#5379)", () => {
     expect(
       EndpointAttachmentUtil.getSightingWindowMs("meraki", 24 * HOUR),
     ).toBe(24 * HOUR);
+  });
+});
+
+/*
+ * The refresh threshold for a walk of a device polled every N minutes
+ * (getEndpointLastSeenRefreshMs). An endpoint the walk finds unchanged is
+ * written again once its lastSeenAt is about two polls old - every other
+ * poll - never sooner than at the default interval, and never so late that
+ * the map, the "Connected to" card or the Discovered Devices list would
+ * read it as gone.
+ */
+describe("getEndpointLastSeenRefreshMs", () => {
+  const MINUTE: number = 60 * 1000;
+
+  test("is 1.8 polls: just under two, for the jitter between polls", () => {
+    expect(ENDPOINT_REFRESH_POLLS).toBe(1.8);
+  });
+
+  test.each([
+    [5, 9],
+    [6, 10.8],
+    [10, 18],
+    [11, 19.8],
+  ])(
+    "a device polled every %d minutes writes an unchanged endpoint every other poll: after %d minutes",
+    (interval: number, minutes: number) => {
+      expect(getEndpointLastSeenRefreshMs(interval)).toBeCloseTo(
+        minutes * MINUTE,
+        6,
+      );
+    },
+  );
+
+  test.each([1, 2, 3, 4.5])(
+    "a device polled every %d minutes waits as long as the default does: 9 minutes",
+    (interval: number) => {
+      expect(getEndpointLastSeenRefreshMs(interval)).toBe(9 * MINUTE);
+    },
+  );
+
+  test.each([undefined, null, 0, -5, Number.NaN, Number.POSITIVE_INFINITY])(
+    "a device with no usable interval (%p) is read at the default: 9 minutes",
+    (interval: number | null | undefined) => {
+      expect(getEndpointLastSeenRefreshMs(interval)).toBe(9 * MINUTE);
+    },
+  );
+
+  test.each([12, 15, 30, 60, 24 * 60])(
+    "a device polled every %d minutes is capped at a third of the walk window: 20 minutes",
+    (interval: number) => {
+      expect(getEndpointLastSeenRefreshMs(interval)).toBe(20 * MINUTE);
+    },
+  );
+
+  test("the walk window is the map's: an hour, the device staleness window at the default interval", () => {
+    expect(ENDPOINT_WALK_WINDOW_MS).toBe(60 * MINUTE);
+    expect(getEndpointSightingWindowMs(undefined)).toBe(
+      ENDPOINT_WALK_WINDOW_MS,
+    );
+  });
+
+  /*
+   * The bound the threshold exists to keep: how far an answering
+   * endpoint's stored lastSeenAt can lag. A threshold over the interval
+   * skips polls, and the lag is threshold + interval, which must stay
+   * inside the walk window; a threshold at or under it writes every poll,
+   * and the lag is the interval, as it was before any threshold.
+   */
+  test("never lets an endpoint the walk still sees read as gone that did not before", () => {
+    for (let interval: number = 1; interval <= 180; interval += 0.5) {
+      const threshold: number = getEndpointLastSeenRefreshMs(interval);
+      const intervalMs: number = interval * MINUTE;
+
+      if (threshold > intervalMs) {
+        expect({ interval, lag: threshold + intervalMs }).toEqual({
+          interval,
+          lag: expect.any(Number),
+        });
+        expect(threshold + intervalMs).toBeLessThanOrEqual(
+          (2 * ENDPOINT_WALK_WINDOW_MS) / 3,
+        );
+      }
+    }
   });
 });

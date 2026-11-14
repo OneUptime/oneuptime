@@ -11,6 +11,7 @@ import EndpointAttachmentUtil, {
   EndpointIpBinding,
   EndpointUpsertContext,
   EndpointUpsertDecision,
+  getEndpointLastSeenRefreshMs,
 } from "../../Utils/Monitor/EndpointAttachmentUtil";
 import OuiLookupUtil from "../Utils/Monitor/OuiLookupUtil";
 import { OnCreate } from "../Types/Database/Hooks";
@@ -216,8 +217,9 @@ export class Service extends ProjectReferencesService<Model> {
    *    option at restaurant-chain scale (thousands of sites x thousands
    *    of L2 endpoints),
    *  - endpoints that have not moved since the last poll produce no
-   *    write at all (see ENDPOINT_LAST_SEEN_REFRESH_MS), so a stable
-   *    switch costs one SELECT and nothing else,
+   *    write at all until their lastSeenAt is about two of the device's
+   *    poll intervals old (getEndpointLastSeenRefreshMs), so a stable
+   *    switch costs one SELECT and, every other poll, its refresh,
    *  - vendor is stamped from the MAC OUI on create only (user-correctable),
    *  - siteId follows the attaching device's site whenever an attachment is
    *    (re)written and the caller knows the site,
@@ -232,6 +234,11 @@ export class Service extends ProjectReferencesService<Model> {
     projectId: ObjectID;
     deviceId: ObjectID;
     deviceSiteId?: ObjectID | undefined;
+    /*
+     * How often the walked device is polled, which is how often it sees its
+     * endpoints again. Absent: the default interval.
+     */
+    devicePollingIntervalInMinutes?: number | null | undefined;
     attachments: Array<EndpointAttachment>;
     ipBindings: Array<EndpointIpBinding>;
     now: Date;
@@ -301,6 +308,9 @@ export class Service extends ProjectReferencesService<Model> {
     const context: EndpointUpsertContext = {
       now: data.now,
       siteId: data.deviceSiteId?.toString(),
+      lastSeenRefreshMs: getEndpointLastSeenRefreshMs(
+        data.devicePollingIntervalInMinutes,
+      ),
     };
 
     const counts: EndpointWriteCounts = await this.writeSightings({

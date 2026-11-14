@@ -258,6 +258,12 @@ export default class NetworkInventoryUtil {
           refreshRequestedAt: true,
           lastPolledAt: true,
           /*
+           * How often the device sees its endpoints again: an endpoint the
+           * walk finds unchanged is written again only after about two of
+           * its polls (getEndpointLastSeenRefreshMs).
+           */
+          pollingIntervalInMinutes: true,
+          /*
            * What the walk's device enrichment below would write, so only
            * what changed is written (withoutUnchangedInventory).
            */
@@ -705,9 +711,15 @@ export default class NetworkInventoryUtil {
          * 101 statements for a 50-port switch, because _updateBy SELECTs
          * before every UPDATE — which is a hard wall once an operator raises
          * DEVICE_POLL_FETCH_LIMIT and the fleet actually polls on its
-         * configured interval. Interfaces that exist in inventory but were
-         * NOT in this walk are still left exactly as they were: nothing here
-         * deletes or ages them out.
+         * configured interval. A known interface is written only when it
+         * changed, a reading moved noticeably, or its fifteen-minute refresh
+         * came due (InterfaceInventoryUtil.needsWrite). Interfaces that
+         * exist in inventory but were NOT in this walk are still left
+         * exactly as they were: nothing here deletes or ages them out.
+         *
+         * Written after the poll's verdict on purpose: the verdict moves the
+         * device's lastSnmpSeenAt, which is how a walk processed later but
+         * received earlier knows to leave the rows this one confirmed.
          */
         const upsertResult: InterfaceWalkUpsertResult =
           await NetworkInterfaceService.upsertWalkedInterfaces({
@@ -786,6 +798,8 @@ export default class NetworkInventoryUtil {
               projectId: data.projectId,
               deviceId: deviceId,
               deviceSiteId: ownedDevice.siteId,
+              devicePollingIntervalInMinutes:
+                ownedDevice.pollingIntervalInMinutes,
               attachments: endpointResult.attachments,
               ipBindings: endpointResult.ipBindings,
               now: receivedAt,

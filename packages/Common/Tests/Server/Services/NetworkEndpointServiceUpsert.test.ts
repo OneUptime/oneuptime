@@ -47,10 +47,14 @@ const ROW_ID: ObjectID = new ObjectID("55555555-5555-4555-8555-555555555555");
 
 const NOW: Date = new Date("2026-07-22T12:00:00Z");
 const EARLIER: Date = new Date("2026-07-01T00:00:00Z");
-// Inside the 5 minute lastSeenAt refresh threshold.
+// Inside the lastSeenAt refresh threshold (9 minutes at the default interval).
 const ONE_MINUTE_AGO: Date = new Date("2026-07-22T11:59:00Z");
-// Past the 5 minute refresh threshold.
+// Past it.
 const TEN_MINUTES_AGO: Date = new Date("2026-07-22T11:50:00Z");
+
+function minutesBefore(minutes: number): Date {
+  return new Date(NOW.getTime() - minutes * 60 * 1000);
+}
 
 // A MAC whose OUI is in the bundled registry slice (Cisco 00:00:0c).
 const CISCO_MAC: string = "00:00:0c:aa:bb:01";
@@ -574,13 +578,18 @@ describe("NetworkEndpointService.upsertDiscoveredEndpoints", () => {
       });
     };
 
-    const stableWalk: (now: Date) => Promise<void> = async (
+    const stableWalk: (
       now: Date,
+      devicePollingIntervalInMinutes?: number | undefined,
+    ) => Promise<void> = async (
+      now: Date,
+      devicePollingIntervalInMinutes?: number | undefined,
     ): Promise<void> => {
       await NetworkEndpointService.upsertDiscoveredEndpoints({
         projectId: PROJECT_ID,
         deviceId: SWITCH_ID,
         deviceSiteId: SITE_ID,
+        devicePollingIntervalInMinutes: devicePollingIntervalInMinutes,
         attachments: [
           {
             macAddress: CISCO_MAC,
@@ -613,6 +622,54 @@ describe("NetworkEndpointService.upsertDiscoveredEndpoints", () => {
 
       expect(updateCalls()).toHaveLength(1);
       expect(updateCalls()[0]![1][9]).toBe(NOW);
+    });
+
+    /*
+     * The refresh used to be five minutes - the default poll interval - so
+     * the very next poll found every endpoint due and rewrote it. It is
+     * just under two polls now: the poll after a write writes nothing.
+     */
+    it("writes nothing on the poll after a write: five minutes on", async () => {
+      const row: NetworkEndpoint = stableRow();
+      row.lastSeenAt = minutesBefore(5);
+      findBySpy.mockResolvedValue([row]);
+
+      await stableWalk(NOW);
+
+      expect(querySpy).not.toHaveBeenCalled();
+    });
+
+    it("refreshes on the poll after that: nine minutes on", async () => {
+      const row: NetworkEndpoint = stableRow();
+      row.lastSeenAt = minutesBefore(9);
+      findBySpy.mockResolvedValue([row]);
+
+      await stableWalk(NOW);
+
+      expect(updateCalls()).toHaveLength(1);
+    });
+
+    it("waits two of the walked device's own polls: 18 minutes at a 10-minute interval", async () => {
+      const row: NetworkEndpoint = stableRow();
+      row.lastSeenAt = minutesBefore(15);
+      findBySpy.mockResolvedValue([row]);
+
+      await stableWalk(NOW, 10);
+      expect(querySpy).not.toHaveBeenCalled();
+
+      row.lastSeenAt = minutesBefore(18);
+      await stableWalk(NOW, 10);
+      expect(updateCalls()).toHaveLength(1);
+    });
+
+    it("a device polled every hour writes every poll, as before", async () => {
+      const row: NetworkEndpoint = stableRow();
+      row.lastSeenAt = minutesBefore(60);
+      findBySpy.mockResolvedValue([row]);
+
+      await stableWalk(NOW, 60);
+
+      expect(updateCalls()).toHaveLength(1);
     });
 
     it("writes when the endpoint moves to a different port", async () => {
