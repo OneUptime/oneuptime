@@ -267,7 +267,7 @@ export function getEntityStateSuggestions(
       {
         icon: IconProp.Document,
         title: "Summarize",
-        question: "Summarize this scheduled maintenance event.",
+        question: "Summarize this maintenance event.",
       },
       {
         icon: IconProp.CheckCircle,
@@ -298,7 +298,7 @@ export function getEntityStateSuggestions(
       {
         icon: IconProp.Document,
         title: "Summarize",
-        question: "Summarize this scheduled maintenance event.",
+        question: "Summarize this maintenance event.",
       },
       {
         icon: IconProp.Activity,

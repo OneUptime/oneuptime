@@ -395,13 +395,14 @@ as `fa.json` draws it.
   (Minutes). It is the only `وقفه` in `fa.json`.
 - **Zone**, a DNS zone or a cloud's, is `زُن`: `زُن DNS` for DNS zone,
   `زُن دسترس‌پذیری` for Availability zone. Never `ناحیه`, an area of a
-  page, or `منطقه`, a region: a time zone is `منطقه زمانی`, and a settings
-  page's Danger Zone `منطقه خطر`. The Persian docs write it `زُن` too,
-  outside code.
+  page, or `منطقه`, a region: a time zone is `منطقه زمانی`, with no `ٔ`,
+  and a settings page's Danger Zone `منطقه خطر`. The Persian docs write a
+  zone `زُن` too, outside code, and a time zone `منطقه زمانی`.
 - **Recordset** is `مجموعه‌رکورد`: `مجموعه‌رکورد DNS` for DNS recordset,
   in the docs too.
 - **Load balancer** is `متعادل‌کننده بار`, with no `ٔ`, and load balancers
-  `متعادل‌کننده‌های بار`.
+  `متعادل‌کننده‌های بار`, in the docs too. Never `توزیع‌کننده بار`, a
+  distributor.
 - **Floating IP** is `IP شناور`, and floating IPs `IPهای شناور`.
 - **Pool**, whatever it pools, is `استخر`: a Ceph or an Octavia pool,
   `استخر ذخیره‌سازی` for a storage pool, `استخر ساب‌نت` for a subnet
