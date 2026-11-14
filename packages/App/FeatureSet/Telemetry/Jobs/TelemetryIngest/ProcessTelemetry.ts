@@ -18,6 +18,10 @@ import {
   processNetworkDeviceWalkFromQueue,
 } from "../ProbeIngest/ProcessProbeIngest";
 import { processServerMonitorFromQueue } from "../ServerMonitorIngest/ProcessServerMonitorIngest";
+import {
+  processNetworkDevicePollFromQueue,
+  processSnmpTrapBatchFromQueue,
+} from "../ProbeIngest/ProcessCoalescedProbeIngest";
 import KubernetesCostIngestService from "../../Services/KubernetesCostIngestService";
 import { processIncomingRequestJobFromQueue } from "../IncomingRequestIngest/ProcessIncomingRequestIngest";
 import { processTelemetryMonitorEvaluationFromQueue } from "../../../Workers/Jobs/TelemetryMonitor/MonitorTelemetryMonitor";
@@ -543,6 +547,14 @@ if (DisableQueueWorkers) {
                   jobData.probeIngest.jobType === "network-device-walk"
                 ) {
                   await processNetworkDeviceWalkFromQueue(jobData.probeIngest);
+                } else if (
+                  jobData.probeIngest.jobType === "network-device-poll"
+                ) {
+                  // A device's newest poll (NetworkDevicePollLatestStore).
+                  await processNetworkDevicePollFromQueue(jobData.probeIngest);
+                } else if (jobData.probeIngest.jobType === "snmp-trap-batch") {
+                  // A sender's waiting traps (SnmpTrapPendingStore).
+                  await processSnmpTrapBatchFromQueue(jobData.probeIngest);
                 } else {
                   await processProbeFromQueue(jobData.probeIngest);
                 }
