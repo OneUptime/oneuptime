@@ -20,6 +20,7 @@ Abre **Incidentes** desde el menú **Productos** de la barra superior y desplieg
 | **Plantillas de incidente**        | Rellenar de antemano un incidente entero: título, descripción, recursos, políticas de guardia, propietarios, etiquetas. |
 | **Plantillas de notas**            | Texto reutilizable para notas públicas y privadas.                                                 |
 | **Aprobación de notas públicas** | Haz que las notas públicas se aprueben antes de publicarse y elige quién las aprueba. |
+| **Notificaciones a suscriptores** | Elegir si **Notificar a suscriptores de la página de estado** empieza marcada cuando alguien declara un incidente. Activado por defecto. |
 | **Plantillas de post mortem**      | Estructuras de post mortem reutilizables.                                                          |
 | **Estados de post mortem** | Los estados por los que pasa un post mortem, de No iniciado a Completado. |
 | **Campos personalizados**          | Definir campos adicionales que aparecen en cada incidente.                                         |
@@ -183,6 +184,14 @@ La mayoría de los proyectos necesitan un solo paso. Añade otro cuando una nota
 - **Nadie aprueba su propia nota, ni dos pasos de una misma nota.** Quien envió una nota para aprobación no puede aprobarla ni rechazarla, y quien aprobó uno de sus pasos no puede aprobar otro.
 
 Solo los propietarios y los administradores del proyecto pueden cambiar estos ajustes, y todos los que leen las notas ven quién las aprueba. **Mantenimiento programado → Ajustes → Aprobación de notas públicas** es la misma página para los eventos de mantenimiento programado, con su propio interruptor y sus propios pasos. Lo que hace una nota mientras espera, y cómo deciden quienes aprueban, se explica en [Aprobación de notas públicas](/docs/incidents/notes-owners-and-feed#aprobación-de-notas-públicas).
+
+## Notificaciones a suscriptores
+
+Cuando alguien declara un incidente, **Notificar a suscriptores de la página de estado** empieza marcada, así que los suscriptores de la página de estado se enteran del incidente salvo que quien lo declara desmarque la casilla. Si tu equipo trabaja en un incidente antes de que nadie de fuera se entere, haz que la casilla empiece desmarcada: ve a **Incidentes → Ajustes → Notificaciones a suscriptores** (`/dashboard/{projectId}/incidents/settings/subscriber-notifications`) y desactiva **Notificar a los suscriptores de la página de estado de forma predeterminada**. Está activado en todos los proyectos hasta que lo desactives, y se guarda en cuanto lo cambias. Solo los Project Owners y los Project Admins pueden cambiarlo; para todos los demás, el interruptor está bloqueado y dice qué permiso necesita.
+
+Mientras está desactivado, la casilla empieza desmarcada en **Declarar nuevo incidente**, tanto si el incidente se declara desde la lista de incidentes como desde una plantilla, una alerta o un monitor, y su descripción dice que está desmarcada de forma predeterminada en este proyecto. Los suscriptores solo se enteran si quien declara la marca. En el resumen, antes de enviar, su **No** tiene al lado **Cambiar a Sí**, que marca la casilla sin volver a **Recursos afectados**. No se ofrece para un incidente privado, que ninguna página de estado muestra. El interruptor solo cambia cómo empieza la casilla: el incidente guarda cómo quedó la casilla, y uno declarado sin notificar sigue en silencio, como explica [Declarar un incidente](/docs/incidents/declaring-incidents).
+
+Un incidente declarado desde Slack o Microsoft Teams, o pidiéndoselo a OneUptime AI, también sigue el interruptor: ahí nada pregunta por los suscriptores, así que mientras el interruptor está desactivado se declara sin notificarles, y puedes avisarles más tarde con una nota pública. Los incidentes creados de cualquier otra forma — por monitores, o con la API, Terraform o flujos de trabajo — conservan su propio `shouldStatusPageSubscribersBeNotifiedOnIncidentCreated`, que notifica a los suscriptores salvo que sea `false`. En la API, el interruptor es el campo `notifyStatusPageSubscribersOfNewIncidentsByDefault` del proyecto.
 
 ## Plantillas de post mortem
 

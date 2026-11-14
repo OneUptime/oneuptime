@@ -1032,3 +1032,66 @@ describe("TimezoneAlias.getLegacyNamesOf", () => {
     ]);
   });
 });
+
+/*
+ * The whole of what an aggregate's timezone may be (issue #7277): a name
+ * exactly as the Timezone list spells it. The server binds it into a
+ * ClickHouse query as a parameter, so nothing else - another spelling, a
+ * zone newer than the list, a value that is not text - is let through.
+ */
+describe("TimezoneAlias.isListedName", () => {
+  test("every name in the Timezone list, as the list spells it, legacy names included", () => {
+    for (const timezone of Object.values(Timezone)) {
+      expect(TimezoneAlias.isListedName(timezone)).toBe(true);
+    }
+
+    expect(TimezoneAlias.isListedName(Timezone.EuropeKiev)).toBe(true);
+    expect(TimezoneAlias.isListedName(Timezone.USPacificNew)).toBe(true);
+  });
+
+  test("another spelling of a listed name is not one", () => {
+    for (const spelling of [
+      "america/new_york",
+      "AMERICA/NEW_YORK",
+      " America/New_York",
+      "America/New_York ",
+      "America/New York",
+      "America/New_York\n",
+      "utc",
+    ]) {
+      expect(TimezoneAlias.isListedName(spelling)).toBe(false);
+    }
+  });
+
+  test("a name no list has, an offset, and what an object holds are not one", () => {
+    for (const value of [
+      "",
+      "Mars/Olympus_Mons",
+      "+05:30",
+      "UTC+1",
+      "toString",
+      "constructor",
+      "__proto__",
+      "hasOwnProperty",
+    ]) {
+      expect(TimezoneAlias.isListedName(value)).toBe(false);
+    }
+  });
+
+  test("a value that is not text is not one", () => {
+    for (const value of [
+      undefined,
+      null,
+      0,
+      330,
+      true,
+      {},
+      { timezone: "UTC" },
+      ["UTC"],
+      new String("UTC"),
+      Symbol("UTC"),
+    ]) {
+      expect(TimezoneAlias.isListedName(value)).toBe(false);
+    }
+  });
+});

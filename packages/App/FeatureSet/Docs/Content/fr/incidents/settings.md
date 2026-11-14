@@ -20,6 +20,7 @@ Ouvrez **Incidents** depuis le menu **Produits** de la barre supérieure, puis d
 | **Modèles d'incident**        | Préremplir tout un incident — titre, description, ressources, politiques d'astreinte, propriétaires, étiquettes. |
 | **Modèles de notes**          | Du texte réutilisable pour les notes publiques et privées.                                         |
 | **Approbation des notes publiques** | Faites approuver les notes publiques avant leur publication et choisissez qui les approuve. |
+| **Notifications aux abonnés** | Choisir si **Notifier les abonnés de la page de statut** démarre cochée lorsque quelqu'un déclare un incident. Activé par défaut. |
 | **Modèles de post-mortem**    | Des structures de post-mortem réutilisables.                                                       |
 | **Statuts de post-mortem** | Les statuts par lesquels passe un post-mortem, de Non démarré à Achevé. |
 | **Champs personnalisés**      | Définir des champs supplémentaires qui apparaissent sur chaque incident.                           |
@@ -183,6 +184,14 @@ La plupart des projets n'ont besoin que d'une étape. Ajoutez-en une autre quand
 - **Personne n'approuve sa propre note, ni deux étapes d'une même note.** Qui a envoyé une note pour approbation ne peut ni l'approuver ni la rejeter, et qui a approuvé l'une de ses étapes ne peut pas en approuver une autre.
 
 Seuls les propriétaires et les administrateurs du projet peuvent modifier ces paramètres, et tous ceux qui lisent les notes voient qui les approuve. **Maintenance planifiée → Paramètres → Approbation des notes publiques** est la même page pour les événements de maintenance planifiée, avec son propre interrupteur et ses propres étapes. Ce que fait une note pendant qu'elle attend, et comment les approbateurs décident, est décrit dans [Approbation des notes publiques](/docs/incidents/notes-owners-and-feed#approbation-des-notes-publiques).
+
+## Notifications aux abonnés
+
+Lorsque quelqu'un déclare un incident, **Notifier les abonnés de la page de statut** démarre cochée, si bien que les abonnés de la page de statut sont informés de l'incident, sauf si la personne qui le déclare décoche la case. Si votre équipe travaille sur un incident avant que quiconque à l'extérieur en entende parler, faites plutôt démarrer la case décochée : allez dans **Incidents → Paramètres → Notifications aux abonnés** (`/dashboard/{projectId}/incidents/settings/subscriber-notifications`) et désactivez **Notifier les abonnés de la page de statut par défaut**. Il est activé dans chaque projet tant que vous ne le désactivez pas, et s'enregistre dès que vous le basculez. Seuls les Project Owners et les Project Admins peuvent le changer ; pour tous les autres, l'interrupteur est verrouillé et indique la permission nécessaire.
+
+Tant qu'il est désactivé, la case démarre décochée sur **Déclarer un nouvel incident**, que l'incident soit déclaré depuis la liste des incidents, un modèle, une alerte ou un moniteur, et sa description indique qu'elle est décochée par défaut dans ce projet. Les abonnés ne sont informés que si la personne qui déclare la coche. Sur le récapitulatif, avant l'envoi, son **Non** est accompagné de **Passer à Oui**, qui coche la case sans revenir à **Ressources affectées**. Ce n'est pas proposé pour un incident privé, qu'aucune page de statut n'affiche. L'interrupteur ne change que l'état de départ de la case : l'incident enregistre l'état dans lequel la case a été laissée, et un incident déclaré sans notification reste discret, comme le décrit [Déclarer un incident](/docs/incidents/declaring-incidents).
+
+Un incident déclaré depuis Slack ou Microsoft Teams, ou en le demandant à OneUptime AI, suit lui aussi l'interrupteur : rien n'y pose de question sur les abonnés, donc tant que l'interrupteur est désactivé, il est déclaré sans les notifier, et vous pouvez les informer plus tard avec une note publique. Les incidents créés autrement — par les moniteurs, ou via l'API, Terraform ou les workflows — gardent leur propre `shouldStatusPageSubscribersBeNotifiedOnIncidentCreated`, qui notifie les abonnés sauf s'il vaut `false`. Via l'API, l'interrupteur est le champ `notifyStatusPageSubscribersOfNewIncidentsByDefault` du projet.
 
 ## Modèles de post-mortem
 

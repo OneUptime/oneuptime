@@ -104,7 +104,7 @@ For å bli tilkalt med direktemelding når du har vakt, legger du til Mattermost
 
 ## Varslingsregler
 
-En varslingsregel sier hvilke hendelser som publiseres i Mattermost, og hvor. Hvert produkt har sine egne regler, under **Arbeidsområde** > **Mattermost** i sin meny: **Hendelser** (med **Hendelsesepisoder** og en fane **Sammendrag**), **Varsler** (med **Varselsepisoder** og **Sammendrag**), **Planlagt vedlikehold**, **Monitorer**, **Vakt**, **Sikkerhetshendelser** og **SLOs**. De fungerer som Slacks: se [Varslingsregler](/docs/workspace-connections/slack#varslingsregler) for betingelser, mål og hvem som blir med i en kanal.
+En varslingsregel sier hvilke hendelser som publiseres i Mattermost, og hvor. Hvert produkt har sine egne regler, under **Arbeidsområde** > **Mattermost** i sin meny: **Hendelser** (med **Hendelsesepisoder** og en fane **Sammendrag**), **Varsler** (med **Varselsepisoder** og **Sammendrag**), **Planlagt vedlikehold**, **Monitorer**, **Vakt**, **Sikkerhetshendelser** og **SLOs**. De fungerer som Slacks: se [Varslingsregler](/docs/workspace-connections/slack#varslingsregler) for betingelser, mål, oppdateringene en regel publiserer, og hvem som blir med i en kanal.
 
 En kanal som en regel oppretter, får navn etter posten sin: hendelse INC-42 får `inc-42`. Mattermost tar små bokstaver, tall, `-` og `_`, opptil 64 tegn, med en bokstav eller et tall først og sist, og regelskjemaet viser navnet mens du skriver. Finnes det allerede en kanal med det navnet, for eksempel en arkivert, legger OneUptime til `-2`, `-3` og så videre. En privat hendelse, et privat varsel eller en privat episode får en privat kanal.
 

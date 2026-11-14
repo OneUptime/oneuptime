@@ -20,6 +20,7 @@ Konfigurasjonen av hendelser ligger under **Hendelser**, ikke under **Prosjektin
 | **Hendelsesmaler**           | Forhåndsutfylle en hel hendelse — tittel, beskrivelse, ressurser, vaktpolicyer, eiere, etiketter. |
 | **Notatmaler**               | Gjenbrukbar tekst for offentlige og private notater.                                         |
 | **Godkjenning av offentlige notater** | La offentlige notater godkjennes før de publiseres, og velg hvem som godkjenner dem. |
+| **Varsler til abonnenter** | Velge om **Varsle statussideabonnenter** starter avkrysset når noen erklærer en hendelse. Slått på som standard. |
 | **Postmortem-maler**         | Gjenbrukbare strukturer for etteranalyser.                                                   |
 | **Statuser for etteranalyse** | Statusene en etteranalyse går gjennom, fra Ikke startet til Fullført. |
 | **Egendefinerte felt**       | Definere ekstra felt som vises på hver hendelse.                                             |
@@ -183,6 +184,14 @@ De fleste prosjekter trenger ett trinn. Legg til ett til når et notat trenger e
 - **Ingen godkjenner sitt eget notat, eller to trinn av ett notat.** Den som sendte et notat til godkjenning, kan verken godkjenne eller avvise det, og den som godkjente ett av trinnene, kan ikke godkjenne et annet.
 
 Bare prosjekteiere og -administratorer kan endre disse innstillingene, og alle som leser notatene, kan se hvem som godkjenner dem. **Planlagt vedlikehold → Innstillinger → Godkjenning av offentlige notater** er den samme siden for planlagte vedlikeholdshendelser, med egen bryter og egne trinn. Hva et notat gjør mens det venter, og hvordan godkjennere tar stilling, står under [Godkjenning av offentlige notater](/docs/incidents/notes-owners-and-feed#godkjenning-av-offentlige-notater).
+
+## Varsler til abonnenter
+
+Når noen erklærer en hendelse, starter **Varsle statussideabonnenter** avkrysset, slik at abonnentene på statussiden hører om hendelsen med mindre den som erklærer den, fjerner avkrysningen. Hvis teamet ditt jobber med en hendelse før noen utenfor hører om den, kan du i stedet la boksen starte uten avkrysning: gå til **Hendelser → Innstillinger → Varsler til abonnenter** (`/dashboard/{projectId}/incidents/settings/subscriber-notifications`) og slå av **Varsle statussideabonnenter som standard**. Den er slått på i alle prosjekter til du slår den av, og lagres så snart du slår den om. Bare Project Owners og Project Admins kan endre den; for alle andre er bryteren låst og sier hvilken tillatelse den krever.
+
+Så lenge den er slått av, starter boksen uten avkrysning på **Erklær ny hendelse**, enten hendelsen erklæres fra hendelseslisten, en mal, et varsel eller en monitor, og beskrivelsen sier at den ikke er avkrysset som standard i dette prosjektet. Abonnentene får bare beskjed hvis den som erklærer, krysser av. På sammendraget, før du sender, står **Endre til Ja** ved siden av **Nei** og krysser av i boksen uten at du går tilbake til **Berørte ressurser**. Det tilbys ikke for en privat hendelse, som ingen statusside viser. Bryteren endrer bare hvordan boksen starter: hendelsen lagrer hvordan boksen ble latt være, og en hendelse som er erklært uten varsling, forblir stille, slik [Opprette en hendelse](/docs/incidents/declaring-incidents) beskriver.
+
+En hendelse som erklæres fra Slack eller Microsoft Teams, eller som du ber OneUptime AI om å erklære, følger også bryteren: der spørres det ikke om abonnenter, så mens bryteren er av, erklæres den uten å varsle dem, og du kan fortelle dem det senere med et offentlig notat. Hendelser som opprettes på andre måter — av monitorer, eller via API-et, Terraform eller arbeidsflyter — beholder sin egen `shouldStatusPageSubscribersBeNotifiedOnIncidentCreated`, som varsler abonnentene med mindre den er `false`. Via API-et er bryteren prosjektets felt `notifyStatusPageSubscribersOfNewIncidentsByDefault`.
 
 ## Maler for etteranalyse
 
