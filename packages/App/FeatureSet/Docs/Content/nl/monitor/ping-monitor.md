@@ -23,7 +23,7 @@ flowchart TB
     trace --> criteria
 ```
 
-Wanneer een controle mislukt, traceert de sonde ook de route naar de host en zoekt zijn naam op, en voegt wat ze vond aan het resultaat toe als **Network Path at Time of Failure**, zodat u ziet waar de route brak.
+Wanneer een controle mislukt, traceert de sonde ook de route naar de host en zoekt zijn naam op, en voegt wat ze vond aan het resultaat toe als **Netwerkpad op het moment van de storing**, zodat u ziet waar de route brak.
 
 > [!NOTE]
 > Sommige hostingproviders blokkeren ICMP op de machines waarop een sonde draait. Een sonde die helemaal geen pings kan versturen, controleert in plaats daarvan TCP-poort `80` op de host, zodat de monitor toch zegt of de host bereikbaar is. Pakketverlies en jitter worden dan niet gemeten.
@@ -136,7 +136,7 @@ Om alleen te waarschuwen wanneer de latentie hoog blijft, zet u **Evalueer deze 
 ## Problemen oplossen
 
 :::details De host draait, maar de monitor meldt offline
-De host, of een firewall ervoor, beantwoordt geen ICMP-echoverzoeken van de sonde. Veel servers en cloudnetwerken laten ping standaard vallen. Sta ICMP-echoverzoeken van de sondes toe, of bewaak in plaats daarvan een dienst op de host met een [poortmonitor](/docs/monitor/port-monitor). **Network Path at Time of Failure**, bij de mislukte controle, toont hoe ver de route kwam.
+De host, of een firewall ervoor, beantwoordt geen ICMP-echoverzoeken van de sonde. Veel servers en cloudnetwerken laten ping standaard vallen. Sta ICMP-echoverzoeken van de sondes toe, of bewaak in plaats daarvan een dienst op de host met een [poortmonitor](/docs/monitor/port-monitor). **Netwerkpad op het moment van de storing**, bij de mislukte controle, toont hoe ver de route kwam.
 :::
 
 :::details De controle mislukt met "This probe could not resolve" voor de host

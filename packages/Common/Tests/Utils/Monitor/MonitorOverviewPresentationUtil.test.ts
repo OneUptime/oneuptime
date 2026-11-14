@@ -1399,7 +1399,7 @@ describe("MonitorOverviewPresentationUtil facts", () => {
       failureCause: "Service Unavailable",
     });
 
-    expect(down.value).toBe("Down · 30000 ms · HTTP 503");
+    expect(down.value).toBe("Down · 30,000 ms · HTTP 503");
     expect(down.secondary).toBe("Service Unavailable");
     expect(down.tone).toBe("danger");
 
@@ -1417,7 +1417,7 @@ describe("MonitorOverviewPresentationUtil facts", () => {
         isOnline: true,
         responseTimeInMs: 4200,
       }).value,
-    ).toBe("Passed · 4200 ms");
+    ).toBe("Passed · 4,200 ms");
     expect(
       latest(MonitorType.CustomJavaScriptCode, { isOnline: false }).value,
     ).toBe("Failed");

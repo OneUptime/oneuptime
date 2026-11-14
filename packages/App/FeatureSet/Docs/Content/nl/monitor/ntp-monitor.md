@@ -29,7 +29,7 @@ Uit de vier tijdstempels berekent de sonde de **klokafwijking**, ((T2 − T1) + 
 > [!NOTE]
 > De afwijking wordt gemeten ten opzichte van de eigen klok van de sonde. De sondes van OneUptime Cloud houden hun klokken gesynchroniseerd. Houd op een [aangepaste sonde](/docs/probe/custom-probe) ook de klok van de host gesynchroniseerd, met chrony of systemd-timesyncd, anders kan een afwijkingswaarschuwing over de sonde gaan in plaats van over de server.
 
-Een server die antwoordt, wordt niet opnieuw gevraagd, ook niet als hij antwoordt zonder betrouwbare tijd. Stilte, een geweigerde poort en een mislukte DNS-lookup worden opnieuw geprobeerd met een nieuw verzoek. Als de server helemaal niet antwoordt, traceert de sonde ook de route ernaartoe en voegt wat hij vond toe als **Network Path at Time of Failure**. Een sonde die zijn eigen netwerkverbinding kwijt is, meldt geen resultaat, dus die kan je server niet als offline markeren.
+Een server die antwoordt, wordt niet opnieuw gevraagd, ook niet als hij antwoordt zonder betrouwbare tijd. Stilte, een geweigerde poort en een mislukte DNS-lookup worden opnieuw geprobeerd met een nieuw verzoek. Als de server helemaal niet antwoordt, traceert de sonde ook de route ernaartoe en voegt wat hij vond toe als **Netwerkpad op het moment van de storing**. Een sonde die zijn eigen netwerkverbinding kwijt is, meldt geen resultaat, dus die kan je server niet als offline markeren.
 
 ## Voordat je begint
 
@@ -133,7 +133,7 @@ Criteria worden van boven naar beneden gecontroleerd, en het eerste dat overeenk
 ## Probleemoplossing
 
 :::details De server draait, maar de monitor zegt dat hij niet antwoordde
-Het verzoek of het antwoord ging onderweg verloren. Een firewall die TCP toestaat maar UDP niet, een ntpd-regel `restrict` of chrony-regel `allow` die het adres van de sonde uitsluit, of een server die alleen op een interne interface luistert, zien er allemaal zo uit. **Network Path at Time of Failure** laat zien hoe ver de route kwam. Laat de sonde door, of controleer de server vanaf een [aangepaste sonde](/docs/probe/custom-probe) binnen het netwerk.
+Het verzoek of het antwoord ging onderweg verloren. Een firewall die TCP toestaat maar UDP niet, een ntpd-regel `restrict` of chrony-regel `allow` die het adres van de sonde uitsluit, of een server die alleen op een interne interface luistert, zien er allemaal zo uit. **Netwerkpad op het moment van de storing** laat zien hoe ver de route kwam. Laat de sonde door, of controleer de server vanaf een [aangepaste sonde](/docs/probe/custom-probe) binnen het netwerk.
 :::
 
 :::details De monitor zegt dat de server het verzoek weigerde
