@@ -168,6 +168,6 @@ flowchart TB
 :::cards
 - [快速開始](/docs/introduction/quickstart): 設定你的第一個監測器、待命策略和狀態頁面。
 - [核心概念](/docs/introduction/core-concepts): 學習其他所有頁面都會用到的術語。
-- [首頁與快捷鍵](/docs/introduction/home): 在儀表板中找到任何頁面、設定或動作。
+- [首頁與快速鍵](/docs/introduction/home): 在儀表板中找到任何頁面、設定或動作。
 - [Docker Compose](/docs/installation/docker-compose): 在你自己的伺服器上執行 OneUptime。
 :::

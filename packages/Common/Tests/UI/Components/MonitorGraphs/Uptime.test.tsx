@@ -741,7 +741,7 @@ describe("MonitorUptimeGraph - scheduled maintenance", () => {
       }),
     ).toEqual(["false", "true", "false"]);
     expect(bars()[1]?.getAttribute("aria-label")).toContain(
-      "1 scheduled maintenance event",
+      "1 maintenance event",
     );
   });
 

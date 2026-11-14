@@ -149,6 +149,8 @@ const SOURCES: Record<string, string> = {
   startVideoCallModal: `${DASHBOARD}/Components/VideoCall/StartVideoCallModal.tsx`,
   questionPalette: `${DASHBOARD}/Components/FormBuilder/Builder/QuestionPalette.tsx`,
   questionCard: `${DASHBOARD}/Components/FormBuilder/Builder/QuestionCard.tsx`,
+  formBuilder: `${DASHBOARD}/Components/FormBuilder/Builder/FormBuilder.tsx`,
+  leaveQuestion: `${DASHBOARD}/Components/UnsavedChanges/LeaveWithoutSavingQuestion.tsx`,
   formSharePage: `${DASHBOARD}/Pages/Forms/View/Share.tsx`,
   formStatusCard: `${DASHBOARD}/Components/FormBuilder/FormStatusCard.tsx`,
   formShareLinkCard: `${DASHBOARD}/Components/FormBuilder/FormShareLinkCard.tsx`,
@@ -2328,6 +2330,33 @@ describe("Forms, against the builder, the Share page and the public page", () =>
         return `**${issue}**`;
       }),
     );
+  });
+
+  it("says leaving the builder with unsaved changes asks first, in the question it draws (issue #7401)", () => {
+    const builder: string = readSource("formBuilder");
+    const question: string = readSource("leaveQuestion");
+    const page: string = englishPage(BUILDING);
+
+    // Held while the questions differ from the saved ones; the tab too.
+    expect(builder).toContain(
+      "const isDirty: boolean = !areFormFieldsEqual(fields, savedFields);",
+    );
+    expect(builder).toContain("useLeaveGuard(isDirty)");
+    expect(builder).toContain("useUnsavedChanges(isDirty)");
+    expect(builder).toContain("<LeaveWithoutSavingQuestion");
+    // The guard raises the browser's own question: no listener of its own.
+    expect(builder).not.toContain("beforeunload");
+    expect(question).toContain('title={"Leave without saving?"}');
+    expect(question).toContain('submitButtonText={"Discard Changes"}');
+    expect(question).toContain('closeButtonText={"Keep Editing"}');
+
+    expect(page).toContain(
+      `Until you save, the builder says **${FormsCopy.unsavedChanges}** and offers **${FormsCopy.discardChanges}**. Leaving the builder before you save asks first.`,
+    );
+    expect(page).toContain(
+      "A link in the side menu, the breadcrumbs or the top bar, or your browser's back and forward buttons, open **Leave without saving?** with two choices: **Keep Editing** stays in the builder with your changes, and **Discard Changes** goes on to the page you were opening. Closing or reloading the tab asks with your browser's own dialog.",
+    );
+    expect(page).not.toContain("the browser asks before you leave the page");
   });
 
   it("names the builder's and the Templates page's buttons as they draw them, and a card's badge as it composes it", () => {

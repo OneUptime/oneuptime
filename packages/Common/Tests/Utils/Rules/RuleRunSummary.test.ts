@@ -331,10 +331,7 @@ describe("RuleRunSummary.describeRunNowCard", () => {
     [RuleRunType.OnCallDutyPolicyOwnerRule, "an on-call policy"],
     [RuleRunType.ServiceLevelObjectiveLabelRule, "an SLO"],
     [RuleRunType.RumApplicationLabelRule, "a RUM application"],
-    [
-      RuleRunType.ScheduledMaintenanceOwnerRule,
-      "a scheduled maintenance event",
-    ],
+    [RuleRunType.ScheduledMaintenanceOwnerRule, "a maintenance event"],
     [RuleRunType.MonitorLabelRule, "a monitor"],
   ])(
     "%s's Run Now card says when %s is created",

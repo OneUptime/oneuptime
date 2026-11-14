@@ -138,7 +138,7 @@ Hver opplasting starter privat, fra dashbordet og fra API-et. Et bilde kan bare 
 
 ## Generer et notat med KI
 
-Redigeringsverktøyet har en knapp **Utkast med KI**, på begge notatsidene og i feedens dialoger **Legg til offentlig notat** og **Legg til privat notat**. Den sender hendelsen til prosjektets KI-leverandør og setter den genererte Markdown-en inn i notatet, der du redigerer den før du publiserer — ingenting publiseres automatisk.
+Redigeringsverktøyet har en knapp **Utkast med KI**, på begge notatsidene og i feedens dialoger **Legg til offentlig notat** og **Legg til privat notat**. Den sender hendelsen til prosjektets [LLM-leverandør](/docs/ai/llm-provider) og setter den genererte Markdown-en inn i notatet, der du redigerer den før du publiserer — ingenting publiseres automatisk.
 
 | Dialog                             | Hva den skriver                                                      | Maler                                                             |
 | ---------------------------------- | -------------------------------------------------------------------- | ----------------------------------------------------------------- |

@@ -268,6 +268,12 @@ export const pickWebsiteMonitorSeeds: (data: {
  * minutes unless the person asked for another of Create Monitor's
  * intervals. The probes are left to the server, which adds the ones a new
  * monitor starts with when the create names none.
+ *
+ * The translator is the person's, both ways in (#7247): the guided setup
+ * hands the Dashboard's, and Ask AI the server's for the language the
+ * person reads the Dashboard in (ServerTranslation's
+ * getRecordWordsTranslator), which words every criteria as the
+ * Dashboard's does.
  */
 export const buildWebsiteMonitor: (data: {
   address: WebsiteAddress;

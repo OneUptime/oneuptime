@@ -689,7 +689,7 @@ describe("templates that ask the questions their own way", () => {
 
     expect(error).toBeInstanceOf(BadDataException);
     expect(error?.message).toBe(
-      'Template 1 ("Night Work"): Starts At cannot be hidden: a scheduled maintenance event cannot be created without it. Template 1 ("Night Work"): Ends At cannot be optional: a scheduled maintenance event cannot be created without it.',
+      'Template 1 ("Night Work"): Starts At cannot be hidden: a maintenance event cannot be created without it. Template 1 ("Night Work"): Ends At cannot be optional: a maintenance event cannot be created without it.',
     );
 
     // Required is what they always are.

@@ -11,6 +11,7 @@ import {
   readSource,
   stripComments,
 } from "./RouteReservationSource";
+import HostAddressUtil from "Common/Utils/HostAddressUtil";
 
 /*
  * Behavioural cover for the SPA fallbacks. Every other test in this area
@@ -49,11 +50,13 @@ const PRIMARY_HOSTS: Set<string> = new Set<string>([
 ]);
 
 function normalizeHostname(host: string): string {
-  return (host.split(":")[0] || "").trim().toLowerCase();
+  return HostAddressUtil.stripPort(host).trim().toLowerCase();
 }
 
 interface BuildOptions {
   isBillingEnabled: boolean;
+  // getPrimaryHosts' set under another HOST than PRIMARY_HOST.
+  primaryHosts?: Set<string>;
 }
 
 interface Reply {
@@ -80,7 +83,7 @@ function buildApp(options: BuildOptions): any {
       return true;
     }
 
-    return PRIMARY_HOSTS.has(host);
+    return (options.primaryHosts || PRIMARY_HOSTS).has(host);
   };
 
   // 1. App-level metrics, registered before the feature sets.
@@ -562,6 +565,44 @@ describe("host classification decides which fallback answers", () => {
   });
 });
 
+/*
+ * An IPv6 HOST is written in brackets, with its port, and so is the host a
+ * browser names; Express's req.hostname keeps the brackets, and the ingress
+ * names its primary server with them (envsubst-on-templates.sh). Cut at its
+ * first ":", "[2001:db8::1]" and "[2001:db8::5]" were both "[2001": another
+ * address passed for the app's own (#7889).
+ */
+describe("host classification under an IPv6 HOST", () => {
+  const IPV6_HOST: string = "[2001:db8::1]:8080";
+
+  // getPrimaryHosts with HOST=[2001:db8::1]:8080.
+  const primaryHosts: Set<string> = new Set<string>([
+    normalizeHostname(IPV6_HOST),
+    "localhost",
+    "ingress",
+  ]);
+
+  test.each([
+    [IPV6_HOST, "primary"],
+    ["[2001:db8::1]", "primary"],
+    ["[2001:DB8::1]:8080", "primary"],
+    ["localhost:8080", "primary"],
+    ["[2001:db8::5]:8080", "custom"],
+    ["[::1]", "custom"],
+    [PRIMARY_HOST, "custom"],
+  ])("%s is treated as a %s host", async (host: string, kind: string) => {
+    const reply: Reply = await request(
+      buildApp({ isBillingEnabled: false, primaryHosts }),
+      host,
+      "/unreserved-path-for-host-detection",
+    );
+
+    expect(reply.body).toContain(
+      kind === "primary" ? "Dashboard SPA" : "Status Page SPA",
+    );
+  });
+});
+
 describe("the replica above still matches the real Frontend/Index.ts", () => {
   const FRONTEND: string = stripComments(
     readSource(APP_DIR, "FeatureSet", "Frontend", "Index.ts"),
@@ -624,7 +665,9 @@ describe("the replica above still matches the real Frontend/Index.ts", () => {
     const start: number = FRONTEND.indexOf("const normalizeHostname");
     const body: string = FRONTEND.slice(start, start + 400);
 
-    expect(body).toContain('host.split(":")');
+    // The rule the replica runs, and the ingress's (#7889).
+    expect(body).toContain("HostAddressUtil.stripPort(host)");
+    expect(body).not.toContain('split(":")');
     expect(body).toContain("toLowerCase()");
   });
 });

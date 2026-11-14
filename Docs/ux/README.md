@@ -266,6 +266,15 @@ work out, starts from a default for everything else, and folds what most people 
   [PlaceholderOptionalMarkGuard](../../packages/Common/Tests/UI/Components/Forms/PlaceholderOptionalMarkGuard.test.ts).
 - **Help says what the field does first, then why it matters,** and is true: "A monitor with no
   probes is never checked", not "Leave this empty to use every probe". Not enforced: use judgement.
+- **A metric's description draws its code as code, never as backticks.** The metric catalogs write
+  what a person types in backticks ("fanned out by the `status` datapoint attribute"), and the
+  VMware, OpenStack and Kubernetes pickers drew them as text, backticks and all. Draw a description
+  through `MetricPickerDescription`: each name is code, read from the left on an Arabic or Persian
+  page too. A catalog whose descriptions are shown as text anywhere (a criteria line, a chart card, a
+  stored metric description) writes its names without backticks. Enforced by
+  [MetricDescriptionCodeGuard](../../packages/Common/Tests/App/Dashboard/MetricDescriptionCodeGuard.test.ts)
+  and
+  [MetricPickerDescriptionCode](../../packages/Common/Tests/App/Dashboard/MetricPickerDescriptionCode.test.tsx).
 
 ### Errors
 

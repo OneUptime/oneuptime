@@ -37,7 +37,7 @@ Para arquivar um workflow, abra-o, vá em **Configurações** e clique em **Arqu
 
 Para trazer um workflow de volta, abra **Fluxos de trabalho → Avançado → Arquivado**, selecione-o e escolha **Desarquivar**, ou abra-o e clique em **Desarquivar** no banner no topo das páginas dele.
 
-Arquivar e a chave **Habilitado** são independentes. Arquivar não mexe na chave, então um workflow que estava ligado volta a rodar assim que é desarquivado, e um que estava desligado continua desligado. A página **Arquivado** mostra qual é qual na coluna **When Unarchived**.
+Arquivar e a chave **Habilitado** são independentes. Arquivar não mexe na chave, então um workflow que estava ligado volta a rodar assim que é desarquivado, e um que estava desligado continua desligado. A página **Arquivado** mostra qual é qual na coluna **Ao desarquivar**.
 
 Um workflow exportado nunca leva o estado de arquivado, então uma cópia importada nunca está arquivada.
 

@@ -1,7 +1,14 @@
 import fs from "fs";
 import path from "path";
-import ts from "typescript";
 import { describe, expect, test } from "@jest/globals";
+import {
+  AI_PROVIDER,
+  describeText,
+  LLM_PROVIDERS_PAGE,
+  sourceFiles,
+  WrittenText,
+  writtenTexts,
+} from "./LlmProviderNameScan";
 
 /*
  * THE DASHBOARD NAMES THE LLM PROVIDERS SETTING BY ITS NAME (#7156).
@@ -34,15 +41,6 @@ const DASHBOARD_SRC: string = path.resolve(
 
 const EN_LOCALE: string = path.join(DASHBOARD_SRC, "Locales/en.json");
 
-// "AI provider", "AI providers", "AI-provider", in any case.
-const AI_PROVIDER: RegExp = /\bAI[ -]providers?\b/i;
-
-// The page, with any of the separators the Dashboard writes.
-const LLM_PROVIDERS_PAGE: RegExp = /\bAI\s*(?:→|->|>|›|&gt;)\s*LLM Providers\b/;
-
-// A call that only logs: nobody looks for a setting in a console line.
-const LOG_CALL: RegExp = /^(?:logger|console)\.\w+$/;
-
 // The files whose words send people to LLM Providers (#7156).
 const PROVIDER_WORD_FILES: ReadonlyArray<string> = [
   "Components/AI/AiRunFailureWords.ts",
@@ -70,87 +68,10 @@ const VENDOR_MEANING_KEYS: ReadonlyArray<string> = [
   "Your AI provider accounts",
 ];
 
-interface WrittenText {
-  file: string;
-  line: number;
-  text: string;
-}
-
-// Every piece of text a file writes - strings, template text, JSX text.
-function writtenTexts(file: string, source: string): Array<WrittenText> {
-  const sourceFile: ts.SourceFile = ts.createSourceFile(
-    file,
-    source,
-    ts.ScriptTarget.Latest,
-    true,
-    file.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
-  );
-  const texts: Array<WrittenText> = [];
-
-  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
-    if (
-      ts.isCallExpression(node) &&
-      LOG_CALL.test(node.expression.getText(sourceFile))
-    ) {
-      return;
-    }
-
-    if (
-      ts.isStringLiteral(node) ||
-      ts.isNoSubstitutionTemplateLiteral(node) ||
-      ts.isTemplateHead(node) ||
-      ts.isTemplateMiddle(node) ||
-      ts.isTemplateTail(node) ||
-      ts.isJsxText(node)
-    ) {
-      const text: string = node.text.trim();
-
-      if (text) {
-        texts.push({
-          file,
-          line:
-            sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile))
-              .line + 1,
-          text,
-        });
-      }
-    }
-
-    ts.forEachChild(node, visit);
-  };
-
-  visit(sourceFile);
-
-  return texts;
-}
-
-function sourceFiles(directory: string): Array<string> {
-  const files: Array<string> = [];
-
-  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
-    const entryPath: string = path.join(directory, entry.name);
-
-    if (entry.isDirectory()) {
-      files.push(...sourceFiles(entryPath));
-    } else if (
-      (entry.name.endsWith(".ts") || entry.name.endsWith(".tsx")) &&
-      !entry.name.endsWith(".d.ts")
-    ) {
-      files.push(entryPath);
-    }
-  }
-
-  return files;
-}
-
 function readEnglishKeys(): Array<string> {
   return Object.keys(
     JSON.parse(fs.readFileSync(EN_LOCALE, "utf8")) as Record<string, string>,
   );
-}
-
-function describeText(found: WrittenText): string {
-  return `${found.file}:${found.line}: ${found.text}`;
 }
 
 describe("the Dashboard says LLM provider for the LLM Providers setting", () => {

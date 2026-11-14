@@ -91,6 +91,14 @@ export interface ComponentProps {
    * moment too long) never presses it. Tab still reaches the button.
    */
   isInitialFocusOnDialog?: boolean | undefined;
+  /*
+   * The id of what the dialog says, when its words are in its body rather
+   * than under its title - a ConfirmModal's one sentence: a screen reader
+   * reads it out with the dialog's name ("Leave without saving?, You have
+   * unsaved changes ..."), not only the name and the focused button. A
+   * description under the title is read out instead.
+   */
+  describedById?: string | undefined;
 }
 
 /*
@@ -411,8 +419,18 @@ const Modal: FunctionComponent<ComponentProps> = (
             typeof element.checkVisibility !== "function" ||
             element.checkVisibility();
 
+          /*
+           * A control in a disabled fieldset carries no disabled attribute
+           * of its own, but it is disabled all the same: the browser neither
+           * focuses it nor tabs to it. A workflow step's settings on a view
+           * are held still that way (WorkflowViewOnlyFieldset), and a
+           * dropdown there - a react-select input, tabindex 0 - was picked
+           * as the field to start on: its focus() did nothing, and the focus
+           * stayed outside the dialog.
+           */
           return (
             !element.hasAttribute("disabled") &&
+            !element.matches(":disabled") &&
             element.getAttribute("aria-hidden") !== "true" &&
             isRendered
           );
@@ -729,7 +747,9 @@ const Modal: FunctionComponent<ComponentProps> = (
             className={`relative flex max-h-[calc(100dvh-1rem)] w-full flex-col rounded-t-2xl border border-gray-200/80 bg-white text-start shadow-2xl ring-1 ring-black/5 transition duration-150 ease-out focus:outline-none motion-reduce:transition-none sm:my-8 sm:max-h-[calc(100dvh-4rem)] sm:rounded-xl ${modalWidthClassName} ${panelTransitionClassName}`}
             data-testid="modal"
             aria-labelledby={titleId}
-            aria-describedby={translatedDescription ? descriptionId : undefined}
+            aria-describedby={
+              translatedDescription ? descriptionId : props.describedById
+            }
             role="dialog"
             aria-modal="true"
             tabIndex={-1}

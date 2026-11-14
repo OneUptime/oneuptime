@@ -8,6 +8,10 @@ import {
   isRecordTokenLimitFailureKind,
   parseAIRunAttemptEnd,
 } from "Common/Types/AI/AIRunAttempt";
+import {
+  AI_RUN_REFUSALS,
+  AiRunRefusalCode,
+} from "Common/Types/AI/AiRunRefusal";
 import OneUptimeDate from "Common/Types/Date";
 import {
   composedValue,
@@ -302,15 +306,24 @@ export function describeAiRunFailure(
 
 /*
  * The server's refusal of Try again or Investigate now, as the reader
- * sees it: in the reader's language when the Dashboard words that very
- * sentence - a record's own daily AI token limit (#7157) says the same
- * sentence in the refusal as on the card, worded in every language - and
- * as the server wrote it otherwise.
+ * sees it, in the reader's language (#7359). The server sends the
+ * refusal's code beside its English message (Types/AI/AiRunRefusal), and
+ * every code's sentence is worded in every language: the code says which.
+ * Without a code - a refusal of who may (403), an older server's, a
+ * remediation round's - the message itself is worded when the Dashboard
+ * words that very sentence, and said as the server wrote it otherwise.
  */
 export function describeAiRunRefusal(
   message: string,
   translator: Translator,
+  refusalCode?: AiRunRefusalCode | null | undefined,
 ): string {
+  if (refusalCode) {
+    const sentence: string = AI_RUN_REFUSALS[refusalCode];
+
+    return translator.translateText(sentence) || message || sentence;
+  }
+
   return translator.translateText(message) || message;
 }
 

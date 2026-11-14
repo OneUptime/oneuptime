@@ -21,6 +21,7 @@ import {
 import logger from "Common/Server/Utils/Logger";
 import Response from "Common/Server/Utils/Response";
 import URL from "Common/Types/API/URL";
+import OneUptimeDate from "Common/Types/Date";
 import Exception from "Common/Types/Exception/Exception";
 import { JSONObject } from "Common/Types/JSON";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
@@ -307,9 +308,15 @@ describePostgres(
       return id;
     }
 
-    // A monitor of the project, assigned to the probe as it was before the upgrade.
+    /*
+     * A monitor of the project, assigned to the probe as it was before the
+     * upgrade: due from its creation, as MonitorProbeService creates every
+     * monitor probe (onBeforeCreate). Only a legacy row has no nextPingAt,
+     * and a claim hands that out one claim later (MonitorProbeClaimPostgres).
+     */
     async function assignMonitorTo(probeId: ObjectID): Promise<ObjectID> {
       const monitorId: ObjectID = ObjectID.generate();
+      const createdAt: Date = OneUptimeDate.getCurrentDate();
       await database.query(
         `INSERT INTO "${schema}"."Monitor" ("_id", "projectId", "name", "slug", "monitorType", "monitorSteps", "monitoringInterval")
         VALUES ($1, $2, 'Public API', $3, 'API', $4::jsonb, '* * * * *')`,
@@ -321,13 +328,14 @@ describePostgres(
         ],
       );
       await database.query(
-        `INSERT INTO "${schema}"."MonitorProbe" ("_id", "projectId", "monitorId", "probeId", "isEnabled")
-        VALUES ($1, $2, $3, $4, true)`,
+        `INSERT INTO "${schema}"."MonitorProbe" ("_id", "projectId", "monitorId", "probeId", "isEnabled", "nextPingAt", "lastPingAt")
+        VALUES ($1, $2, $3, $4, true, $5, $5)`,
         [
           ObjectID.generate().toString(),
           projectId.toString(),
           monitorId.toString(),
           probeId.toString(),
+          createdAt,
         ],
       );
       return monitorId;
