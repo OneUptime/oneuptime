@@ -200,7 +200,7 @@
   "Nothing is wrong. This tests how {{project}} pages you for an incident of severity {{severity}}.": "Ingenting er galt. Dette tester hvordan {{project}} kaller deg opp ved en hendelse med alvorlighetsgrad {{severity}}.",
   "Offline": "Frakoblet",
   "Ongoing": "Pågående",
-  "Operational": "Operativ",
+  "Operational": "I drift",
   "Or copy and paste this link into your browser:": "Eller kopier og lim inn denne lenken i nettleseren:",
   "Per-resource breakdown": "Fordeling etter ressurs",
   "Please click on the link below to manage or unsubscribe from status page notifications.": "Klikk på lenken nedenfor for å administrere varsler fra statussiden eller avslutte abonnementet.",

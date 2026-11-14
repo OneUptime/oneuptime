@@ -200,7 +200,7 @@
   "Nothing is wrong. This tests how {{project}} pages you for an incident of severity {{severity}}.": "Der er ikke noget galt. Dette tester, hvordan {{project}} kalder dig ved en hændelse med alvorsgraden {{severity}}.",
   "Offline": "Offline",
   "Ongoing": "Igangværende",
-  "Operational": "Driftsklar",
+  "Operational": "I drift",
   "Or copy and paste this link into your browser:": "Eller kopiér og indsæt dette link i din browser:",
   "Per-resource breakdown": "Opdeling efter ressource",
   "Please click on the link below to manage or unsubscribe from status page notifications.": "Klik på linket nedenfor for at administrere notifikationer fra statussiden eller afmelde dig.",
