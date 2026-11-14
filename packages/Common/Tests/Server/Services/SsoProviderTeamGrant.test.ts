@@ -251,15 +251,25 @@ const CALLERS: Array<Caller> = [
     ],
     grantable: [ADMIN, MEMBERS, FRONTEND, READERS],
   },
+  // Project Admin does everything but Project Owner's own: every team but Owners.
   {
     name: "a project admin",
     rows: [allow(Permission.ProjectAdmin)],
-    grantable: [ADMIN, READERS],
+    grantable: [ADMIN, MEMBERS, FRONTEND, READERS, RESPONDERS],
   },
   {
     name: "a project admin who is also in Members",
     rows: [allow(Permission.ProjectAdmin), allow(Permission.ProjectMember)],
-    grantable: [ADMIN, MEMBERS, FRONTEND, READERS],
+    grantable: [ADMIN, MEMBERS, FRONTEND, READERS, RESPONDERS],
+  },
+  // Any block holds an admin to what they hold themselves.
+  {
+    name: "a project admin blocked from Frontend's incidents",
+    rows: [
+      allow(Permission.ProjectAdmin),
+      block(Permission.ReadProjectIncident, [FRONTEND_LABEL_ID]),
+    ],
+    grantable: [ADMIN, READERS],
   },
   {
     name: "a custom role that edits SSO and holds Project Member",
@@ -366,7 +376,10 @@ function callerNamed(name: string): Caller {
 }
 
 const OWNER: Caller = callerNamed("a project owner");
-const ADMIN_CALLER: Caller = callerNamed("a project admin");
+// Hands on Admin and Readers, and nothing else: the caller the cases below refuse.
+const ADMIN_CALLER: Caller = callerNamed(
+  "a project admin blocked from Frontend's incidents",
+);
 const ADMIN_IN_MEMBERS: Caller = callerNamed(
   "a project admin who is also in Members",
 );

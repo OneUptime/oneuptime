@@ -475,7 +475,17 @@ describe("removing Mia from Contractors, by whom", () => {
         }),
       ],
     ],
-    ["Project Admin", [held({ permission: Permission.ProjectAdmin })]],
+    [
+      "Project Admin, blocked from reading Production incidents themselves",
+      [
+        held({ permission: Permission.ProjectAdmin }),
+        held({
+          permission: Permission.ReadProjectIncident,
+          isBlock: true,
+          labelIds: [PRODUCTION],
+        }),
+      ],
+    ],
     [
       "Project Owner blocked from Project Owner on another team",
       [
@@ -515,6 +525,8 @@ describe("removing Mia from Contractors, by whom", () => {
         }),
       ],
     ],
+    // Project Admin does everything Incident Member does, so may lift it.
+    ["Project Admin", [held({ permission: Permission.ProjectAdmin })]],
   ] as Array<[string, Array<UserPermission>]>)(
     "%s: removed",
     async (_name: string, rows: Array<UserPermission>) => {
