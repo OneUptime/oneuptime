@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 51818,
-    "untranslated": 9491
+    "keys": 52212,
+    "untranslated": 9413
   },
   "sameAsEnglish": [
     " is",
@@ -359,6 +359,7 @@
     "Purity//FA 6.7.3 · 48 volumes · 12 hosts",
     "Push",
     "Query",
+    "Query {{number}}",
     "RabbitMQ",
     "Radio",
     "Re-encrypt",

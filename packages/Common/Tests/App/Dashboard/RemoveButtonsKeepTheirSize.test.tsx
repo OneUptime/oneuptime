@@ -3,12 +3,15 @@ import { act, cleanup, render, screen, within } from "@testing-library/react";
 import React from "react";
 import {
   afterEach,
+  beforeAll,
   beforeEach,
   describe,
   expect,
   jest,
   test,
 } from "@jest/globals";
+import i18next from "i18next";
+import { initReactI18next } from "react-i18next";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
@@ -77,6 +80,11 @@ import { ObjectType } from "../../../Types/JSON";
 import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
 import ObjectID from "../../../Types/ObjectID";
 import DashboardChartComponentUtil from "../../../Utils/Dashboard/Components/DashboardChartComponent";
+import {
+  DASHBOARD_LANGUAGES,
+  isWordedInDashboardLocale,
+  readDashboardLocale,
+} from "../../Helpers/DashboardLocales";
 
 // The footer's layout: the whole row on a phone, a 12px step from md up.
 const FOOTER_LAYOUT: ReadonlyArray<string> = [
@@ -140,7 +148,26 @@ function expectHeaderRow(header: HTMLElement): HTMLElement {
   return remove;
 }
 
-beforeEach(() => {
+beforeAll(async () => {
+  await i18next.use(initReactI18next).init({
+    lng: "en",
+    fallbackLng: "en",
+    resources: {
+      en: { translation: readDashboardLocale("en") },
+      de: { translation: readDashboardLocale("de") },
+      ru: { translation: readDashboardLocale("ru") },
+      "zh-CN": { translation: readDashboardLocale("zh-CN") },
+    },
+    interpolation: { escapeValue: false },
+    keySeparator: false,
+    nsSeparator: false,
+  });
+});
+
+beforeEach(async () => {
+  await act(async () => {
+    await i18next.changeLanguage("en");
+  });
   getListMock.mockReset();
   getListMock.mockResolvedValue({ data: [], count: 0, skip: 0, limit: 0 });
 });
@@ -402,4 +429,78 @@ describe("a metric widget's added query row's Remove", () => {
       expectHeaderRow(header);
     }
   });
+});
+
+/*
+ * The cards' labels, in the reader's language. "Query 1", "Query 2" on a
+ * chart's query cards and a metric widget's added query rows were English
+ * in fourteen Dashboard languages, beside a translated Remove.
+ */
+describe("the query cards' labels, in every Dashboard language", () => {
+  // The words a card's header draws: its label, and its Remove.
+  const HEADER_WORDS: ReadonlyArray<string> = [
+    "Query {{number}}",
+    "Query",
+    "Remove",
+  ];
+
+  test("each is worded in every Dashboard language", () => {
+    const unworded: Array<string> = [];
+
+    for (const key of HEADER_WORDS) {
+      for (const language of DASHBOARD_LANGUAGES) {
+        if (!isWordedInDashboardLocale(key, language)) {
+          unworded.push(`${language}: ${key}`);
+        }
+      }
+    }
+
+    expect(unworded).toEqual([]);
+  });
+
+  test("a word left in English, and not listed as the language's own, is found", () => {
+    // Negative control: a key no locale has, and English itself.
+    expect(isWordedInDashboardLocale("Query {{number}} of none", "de")).toBe(
+      false,
+    );
+    expect(readDashboardLocale("en")["Query {{number}}"]).toBe(
+      "Query {{number}}",
+    );
+  });
+
+  test.each([
+    ["de", "Abfrage 1", "Abfrage 2", "Entfernen"],
+    ["ru", "Запрос 1", "Запрос 2", "Удалить"],
+    ["zh-CN", "查询 1", "查询 2", "移除"],
+  ])(
+    "%s: the chart's cards read %s and %s, beside %s",
+    async (language: string, first: string, second: string, remove: string) => {
+      await act(async () => {
+        await i18next.changeLanguage(language);
+      });
+
+      await act(async () => {
+        render(
+          <DataSourceQueryEditor
+            component={chartWithQueries(2)}
+            onChange={() => {}}
+          />,
+        );
+      });
+
+      const headers: Array<HTMLElement> = screen.getAllByTestId(
+        DATA_SOURCE_QUERY_CARD_HEADER_TEST_ID,
+      );
+
+      expect(headers[0]!.firstElementChild).toHaveTextContent(first);
+      expect(headers[1]!.firstElementChild).toHaveTextContent(second);
+
+      for (const header of headers) {
+        expect(header.textContent || "").not.toContain("Query");
+        expect(
+          within(header).getByRole("button", { name: remove }),
+        ).toBeInTheDocument();
+      }
+    },
+  );
 });
