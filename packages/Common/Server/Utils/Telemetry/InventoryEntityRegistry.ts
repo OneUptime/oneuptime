@@ -22,6 +22,9 @@ import InventoryItemService from "../../Services/InventoryItemService";
 import Query from "../../Types/Database/Query";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import Select from "../../Types/Database/Select";
+import Sort from "../../Types/Database/Sort";
+import JobDeadline from "../JobDeadline";
+import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import QueryDeepPartialEntity from "../../../Types/Database/PartialEntity";
 import ColumnLength from "../../../Types/Database/ColumnLength";
 import Dictionary from "../../../Types/Dictionary";
@@ -94,6 +97,21 @@ export { toOtelMacAddress };
 /** Registry rows are read and written in pages of this size. */
 export const INVENTORY_SYNC_PAGE_SIZE: number = 1000;
 
+/*
+ * One page of an inventory table, read in `_id` order after a cursor: the
+ * rows to mirror, and where the next page starts.
+ */
+export interface InventorySourcePage {
+  rows: Array<InventoryRowProjection>;
+  /*
+   * The `_id` of the last row read, mirrored or not (a row with no project
+   * is read and not mirrored): the next page reads after it.
+   */
+  lastId?: ObjectID | undefined;
+  // How many rows the page read. A full page means there may be more.
+  readCount: number;
+}
+
 /**
  * The projection of one inventory row, as the registry stores it. Pure data
  * so the mapping can be tested without a database.
@@ -114,10 +132,20 @@ export interface ErasedInventorySource {
   entityType: EntityType;
   /** Model name stored in InventoryItem.resourceType. */
   resourceType: string;
+  /*
+   * The rows after `afterId` (from the first, without one), in `_id` order:
+   * a keyset page, so each page is a range of the primary key however far
+   * into the table it is. Paged by OFFSET in creation order, as it was,
+   * every page scanned and sorted the whole table - nothing indexes
+   * createdAt - to throw away the pages before it: a pass over 100,000
+   * devices sorted ten million rows, spilling each sort to disk. And a row
+   * created during the pass moved every later page by one, so a row on a
+   * page boundary was mirrored twice or not at all.
+   */
   fetchPage(data: {
-    skip: number;
+    afterId?: ObjectID | undefined;
     limit: number;
-  }): Promise<Array<InventoryRowProjection>>;
+  }): Promise<InventorySourcePage>;
   /**
    * The projection of one row, by its id - or null when the row is not
    * mirrored: gone, or archived.
@@ -553,18 +581,27 @@ function defineInventorySource<
     resourceType: spec.resourceType,
 
     fetchPage: async (data: {
-      skip: number;
+      afterId?: ObjectID | undefined;
       limit: number;
-    }): Promise<Array<InventoryRowProjection>> => {
+    }): Promise<InventorySourcePage> => {
       const rows: Array<TModel> = await spec.service.findBy({
-        query: spec.query,
+        query: (data.afterId
+          ? { ...spec.query, _id: QueryHelper.greaterThan(data.afterId) }
+          : spec.query) as Query<TModel>,
         select: select,
-        skip: data.skip,
+        sort: { _id: SortOrder.Ascending } as Sort<TModel>,
+        skip: 0,
         limit: data.limit,
         props: { isRoot: true },
       });
 
-      return await project(rows);
+      const lastRow: TModel | undefined = rows[rows.length - 1];
+
+      return {
+        rows: await project(rows),
+        lastId: lastRow?._id ? new ObjectID(lastRow._id.toString()) : undefined,
+        readCount: rows.length,
+      };
     },
 
     fetchOne: async (id: ObjectID): Promise<InventoryRowProjection | null> => {
@@ -791,6 +828,15 @@ export interface InventorySyncResult {
   archived: number;
 }
 
+// A whole pass: what it wrote, and whether it stopped at its deadline.
+export interface InventorySyncPassResult extends InventorySyncResult {
+  /*
+   * The pass reached its deadline and stopped where it was. The next pass
+   * starts over, and writes only what this one did not.
+   */
+  stoppedAtDeadline: boolean;
+}
+
 /*
  * One page of projections into the registry: a row with no registry row gets
  * one, and one that has drifted (renamed, re-tagged) is rewritten. A row
@@ -887,35 +933,37 @@ async function writeProjections(
 
 /**
  * Forward pass: every live inventory row gets a registry row, and one that
- * has drifted (renamed, re-tagged) is rewritten.
+ * has drifted (renamed, re-tagged) is rewritten. Keyset pages
+ * (ErasedInventorySource.fetchPage), the deadline checked before each.
  */
 async function mirrorRows(
   source: ErasedInventorySource,
+  deadline?: JobDeadline | undefined,
 ): Promise<{ created: number; updated: number }> {
   let created: number = 0;
   let updated: number = 0;
-  let skip: number = 0;
+  let afterId: ObjectID | undefined = undefined;
 
   for (;;) {
-    const rows: Array<InventoryRowProjection> = await source.fetchPage({
-      skip,
+    if (deadline?.hasPassed()) {
+      break;
+    }
+
+    const page: InventorySourcePage = await source.fetchPage({
+      afterId,
       limit: INVENTORY_SYNC_PAGE_SIZE,
     });
 
-    if (rows.length === 0) {
-      break;
-    }
-
     const written: { created: number; updated: number } =
-      await writeProjections(source, rows);
+      await writeProjections(source, page.rows);
     created += written.created;
     updated += written.updated;
 
-    skip += rows.length;
-
-    if (rows.length < INVENTORY_SYNC_PAGE_SIZE) {
+    if (page.readCount < INVENTORY_SYNC_PAGE_SIZE || !page.lastId) {
       break;
     }
+
+    afterId = page.lastId;
   }
 
   return { created, updated };
@@ -1088,23 +1136,34 @@ export const partitionOrphanRows: PartitionOrphanRowsFunction = (data: {
  *
  * The cost of being wrong differs by orders of magnitude between the two, which
  * is why the split is here and not left to an operator's retention policy.
+ *
+ * Keyset pages of the registry rows, in `_id` order, the deadline checked
+ * before each: each page is a range of the index on mirrored rows by type
+ * (AddInventoryItemMirrorKeysetIndex1809164100000), however many entities
+ * telemetry has discovered beside them. Each page's orphans are written
+ * before the next page is read: a keyset page starts after the last row
+ * read, so deleting rows behind it moves nothing ahead of it - which an
+ * OFFSET page did, and why the orphans used to be collected across the
+ * whole pass first.
  */
 async function removeOrphans(
   source: ErasedInventorySource,
+  deadline?: JobDeadline | undefined,
 ): Promise<{ deleted: number; archived: number }> {
-  const deletableIds: Array<ObjectID> = [];
-  const archivableIds: Array<ObjectID> = [];
-  let skip: number = 0;
+  let deleted: number = 0;
+  let archived: number = 0;
+  let afterId: ObjectID | undefined = undefined;
 
-  /*
-   * Collected across a read-only pass and written afterwards. Writing while
-   * paging would shift subsequent offsets and skip rows.
-   */
   for (;;) {
+    if (deadline?.hasPassed()) {
+      break;
+    }
+
     const rows: Array<InventoryItem> = await InventoryItemService.findBy({
       query: {
         entityType: source.entityType,
         source: EntitySource.Inventory,
+        ...(afterId ? { _id: QueryHelper.greaterThan(afterId) } : {}),
       },
       select: {
         _id: true,
@@ -1112,7 +1171,8 @@ async function removeOrphans(
         customFields: true,
         isArchived: true,
       },
-      skip,
+      sort: { _id: SortOrder.Ascending },
+      skip: 0,
       limit: INVENTORY_SYNC_PAGE_SIZE,
       props: { isRoot: true },
     });
@@ -1134,15 +1194,31 @@ async function removeOrphans(
       liveResourceIds: liveIds,
     });
 
-    deletableIds.push(...partition.deletableIds);
-    archivableIds.push(...partition.archivableIds);
+    const written: { deleted: number; archived: number } =
+      await writeOrphans(partition);
+    deleted += written.deleted;
+    archived += written.archived;
 
-    skip += rows.length;
+    const lastId: ObjectID | undefined = rows[rows.length - 1]?._id
+      ? new ObjectID(rows[rows.length - 1]!._id!.toString())
+      : undefined;
 
-    if (rows.length < INVENTORY_SYNC_PAGE_SIZE) {
+    if (rows.length < INVENTORY_SYNC_PAGE_SIZE || !lastId) {
       break;
     }
+
+    afterId = lastId;
   }
+
+  return { deleted, archived };
+}
+
+// One page's orphans: the pure projections deleted, the rest archived.
+async function writeOrphans(
+  partition: OrphanPartition,
+): Promise<{ deleted: number; archived: number }> {
+  const deletableIds: Array<ObjectID> = partition.deletableIds;
+  const archivableIds: Array<ObjectID> = partition.archivableIds;
 
   if (deletableIds.length > 0) {
     await InventoryItemService.hardDeleteBy({
@@ -1182,12 +1258,16 @@ async function removeOrphans(
   return { deleted: deletableIds.length, archived: archivableIds.length };
 }
 
-/** Reconciles one inventory table into the registry. */
+/**
+ * Reconciles one inventory table into the registry. With a deadline, checks
+ * it before every page and stops at the first page after it has passed.
+ */
 export async function syncInventorySource(
   source: ErasedInventorySource,
+  deadline?: JobDeadline | undefined,
 ): Promise<InventorySyncResult> {
-  const { created, updated } = await mirrorRows(source);
-  const { deleted, archived } = await removeOrphans(source);
+  const { created, updated } = await mirrorRows(source, deadline);
+  const { deleted, archived } = await removeOrphans(source, deadline);
   return { created, updated, deleted, archived };
 }
 
@@ -1195,18 +1275,37 @@ export async function syncInventorySource(
  * Reconciles every inventory table. Each source is isolated: a failure in
  * one leaves the others to complete, because a broken cloud integration
  * should not stop network devices being mirrored.
+ *
+ * One pass runs at a time: RunCron's lock on the job (CronLock) keeps a
+ * second run from starting beside it, and the pass checks its deadline - its
+ * time limit, or the moment its run lost that lock - before every page, and
+ * stops at it. Paged by OFFSET, as it was, a pass that outlived its fifteen
+ * minutes went on beside the next one. A pass that stops part way keeps
+ * what it wrote: the next one starts from the first page again, reads past
+ * the rows already mirrored without writing them, and goes further.
  */
-export async function syncAllInventorySources(): Promise<InventorySyncResult> {
-  const total: InventorySyncResult = {
+export async function syncAllInventorySources(
+  deadline: JobDeadline = JobDeadline.none(),
+): Promise<InventorySyncPassResult> {
+  const total: InventorySyncPassResult = {
     created: 0,
     updated: 0,
     deleted: 0,
     archived: 0,
+    stoppedAtDeadline: false,
   };
 
   for (const source of INVENTORY_SOURCES) {
+    if (deadline.hasPassed()) {
+      total.stoppedAtDeadline = true;
+      break;
+    }
+
     try {
-      const result: InventorySyncResult = await syncInventorySource(source);
+      const result: InventorySyncResult = await syncInventorySource(
+        source,
+        deadline,
+      );
       total.created += result.created;
       total.updated += result.updated;
       total.deleted += result.deleted;
@@ -1217,6 +1316,10 @@ export async function syncAllInventorySources(): Promise<InventorySyncResult> {
       );
       logger.error(err as Error);
     }
+  }
+
+  if (deadline.hasPassed()) {
+    total.stoppedAtDeadline = true;
   }
 
   return total;

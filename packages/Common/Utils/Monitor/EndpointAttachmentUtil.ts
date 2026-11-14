@@ -2,6 +2,9 @@ import ArpEntry from "../../Types/Monitor/SnmpMonitor/ArpEntry";
 import CdpNeighbor from "../../Types/Monitor/SnmpMonitor/CdpNeighbor";
 import FdbEntry from "../../Types/Monitor/SnmpMonitor/FdbEntry";
 import LldpNeighbor from "../../Types/Monitor/SnmpMonitor/LldpNeighbor";
+import DeviceReachabilityUtil, {
+  DEFAULT_DEVICE_POLLING_INTERVAL_IN_MINUTES,
+} from "../NetworkDevice/DeviceReachabilityUtil";
 
 /*
  * Pure helpers that turn ONE device's ARP/FDB walk snapshot into endpoint
@@ -120,19 +123,53 @@ export interface EndpointExistingRowSnapshot {
 
 /*
  * How stale a row's lastSeenAt is allowed to get before an otherwise
- * unchanged observation is written purely to refresh it.
+ * unchanged observation is written purely to refresh it, for a walk of a
+ * device polled every `pollingIntervalInMinutes`.
  *
- * Freshness is load-bearing: NetworkTopologyUtil calls an endpoint
- * "down" once lastSeenAt is older than 15 minutes. Suppressing the
- * refresh entirely would mark every stable endpoint down, so the real
- * bound is that stored lastSeenAt may lag reality by at most
- * (refresh threshold + poll interval). At 5 minutes that stays inside
- * the 15-minute window for any poll interval up to 10 minutes, and for
- * slower polls the threshold simply stops suppressing anything (age is
- * always past it) and the behaviour degrades back to write-every-poll —
- * so the optimisation can never make a device look down.
+ * Freshness is load-bearing: the map draws an endpoint "down", the Discovered
+ * Devices list stops counting it, and the "Connected to" card stops matching
+ * a device by its address once lastSeenAt is older than the walk window
+ * (ENDPOINT_WALK_WINDOW_MS, the shared device staleness window at the default
+ * interval - 60 minutes). Suppressing the refresh entirely would mark every
+ * stable endpoint down, so the real bound is that stored lastSeenAt may lag
+ * reality by at most (refresh threshold + poll interval).
+ *
+ * It used to be a flat 5 minutes - the default poll interval itself - so an
+ * unchanged sighting was almost never skipped: the next poll found the row
+ * five minutes old and wrote it again, and every ARP/FDB walk rewrote every
+ * endpoint it saw. Now it is just under two intervals, so an unchanged
+ * endpoint is written every other poll (9 minutes at 5-minute polls, with
+ * room for the jitter between two polls), and never less than that: a
+ * device polled every minute writes it every ninth poll. It is capped at a
+ * third of the walk window, so (threshold + interval) stays well inside it
+ * for every interval the threshold can skip a poll at; a device polled less
+ * often than the cap writes on every poll, as before, so the threshold can
+ * never make an endpoint look gone.
  */
-export const ENDPOINT_LAST_SEEN_REFRESH_MS: number = 5 * 60 * 1000;
+export const ENDPOINT_WALK_WINDOW_MS: number =
+  DeviceReachabilityUtil.getStaleWindowInMinutes(undefined) * 60 * 1000;
+
+export const ENDPOINT_REFRESH_POLLS: number = 1.8;
+
+export function getEndpointLastSeenRefreshMs(
+  pollingIntervalInMinutes?: number | null | undefined,
+): number {
+  const intervalInMinutes: number = Math.max(
+    DeviceReachabilityUtil.getPollingIntervalInMinutes(
+      pollingIntervalInMinutes,
+    ),
+    DEFAULT_DEVICE_POLLING_INTERVAL_IN_MINUTES,
+  );
+
+  return Math.min(
+    ENDPOINT_REFRESH_POLLS * intervalInMinutes * 60 * 1000,
+    ENDPOINT_WALK_WINDOW_MS / 3,
+  );
+}
+
+// The threshold at the default poll interval: 9 minutes.
+export const ENDPOINT_LAST_SEEN_REFRESH_MS: number =
+  getEndpointLastSeenRefreshMs(DEFAULT_DEVICE_POLLING_INTERVAL_IN_MINUTES);
 
 /*
  * How long a sighting a network controller reported stays current. A walk

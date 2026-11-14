@@ -13,6 +13,10 @@ import SnmpInterface from "../../../Types/Monitor/SnmpMonitor/SnmpInterface";
  * two batched statements and nothing else, so every column-level rule the
  * inventory has lives here and is testable without a database.
  *
+ * The stored rows here carry no lastSeenAt, so the plan writes every known
+ * interface: these tests are about what a written row holds. Which known
+ * interfaces a walk writes at all is InterfaceInventoryWritePlan.test.ts.
+ *
  * The rules these tests exist to hold down, and what breaks in the product if
  * a future edit drops one:
  *
@@ -139,6 +143,7 @@ describe("InterfaceInventoryUtil.planWalkUpsert — routing", () => {
     expect(result).toEqual({
       inserts: [],
       updates: [],
+      unchangedInterfaceIndexes: [],
       unmonitoredInterfaceIndexes: [],
     });
   });

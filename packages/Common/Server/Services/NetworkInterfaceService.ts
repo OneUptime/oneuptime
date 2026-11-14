@@ -1,4 +1,5 @@
 import DatabaseService from "./DatabaseService";
+import Select from "../Types/Database/Select";
 import logger from "../Utils/Logger";
 import Model from "../../Models/DatabaseModels/NetworkInterface";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
@@ -39,6 +40,28 @@ const INSERT_COLUMNS: Array<string> = [
   "version",
 ];
 
+/*
+ * What upsertWalkedInterfaces reads of each stored interface: the user-owned
+ * isMonitored, and every column a walk writes, for
+ * InterfaceInventoryUtil.needsWrite to compare with.
+ */
+export const INTERFACE_SNAPSHOT_SELECT: Select<Model> = {
+  interfaceIndex: true,
+  isMonitored: true,
+  name: true,
+  alias: true,
+  macAddress: true,
+  interfaceType: true,
+  isOperationallyUp: true,
+  isAdministrativelyUp: true,
+  speedInMbps: true,
+  inRateMbps: true,
+  outRateMbps: true,
+  utilizationPercent: true,
+  errorsPerSecond: true,
+  lastSeenAt: true,
+};
+
 // What the walk pipeline needs back from a walk's inventory write.
 export interface InterfaceWalkUpsertResult {
   /*
@@ -63,13 +86,15 @@ export class Service extends DatabaseService<Model> {
    * product now targets (80,000 devices on a five-minute interval is 267
    * walks/sec) that is ~26,700 statements/sec of pure round-trip — more
    * database wait per second than there are seconds. The walk now costs one
-   * SELECT plus one statement per 500 new ports and one per 500 known ports:
-   * 3 statements for a switch with a mix, 2 for a stable one.
+   * SELECT plus one statement per 500 new ports and one per 500 ports it
+   * writes again: 3 statements for a switch with a mix, and for a stable
+   * one its read plus a statement for the third of its ports whose refresh
+   * came due.
    *
    * The column-by-column decision is pure and lives in
    * InterfaceInventoryUtil.planWalkUpsert; this method only batches the read
-   * and applies the plan. Two invariants ride on that split and are asserted
-   * there as well as here:
+   * and applies the plan. Three invariants ride on that split and are
+   * asserted there as well as here:
    *
    *  - isMonitored is written on CREATE only. It is the user's per-port mute
    *    toggle; a walk that wrote it would un-mute every muted port on the
@@ -77,14 +102,16 @@ export class Service extends DatabaseService<Model> {
    *  - the create column set is narrower than the update column set (no rate
    *    columns), because a first sighting has no counter delta to derive a
    *    rate from.
-   *
-   * Note what this does NOT do, because the endpoint upsert it is modelled on
-   * does: there is no no-op detection, and there cannot usefully be one.
-   * `lastSeenAt` is stamped from the walk's `now` on every row, so no row is
-   * ever unchanged — a stable switch still rewrites its 50 rows, in one
-   * statement instead of a hundred. Suppressing that would mean letting
-   * `lastSeenAt` go stale on a port that is answering, which is a worse thing
-   * to be wrong about than the WAL it would save.
+   *  - a known interface is written only when something about it changed,
+   *    a reading moved noticeably, or its refresh came due - once every
+   *    INTERFACE_LAST_SEEN_REFRESH_MS, a third of a switch's ports on each
+   *    five-minute poll (InterfaceInventoryUtil.needsWrite). A walk used to
+   *    rewrite every interface it saw: at 3 million interfaces on
+   *    five-minute polls, 10,000 row versions a second for rows that had
+   *    not changed - the WAL, the dead tuples and the vacuum work of a
+   *    network inventory that holds still. A stable switch now writes a
+   *    third as many rows, and those as HOT updates. So the read takes
+   *    every column the walk writes, to compare with.
    *
    * `now` is when OneUptime received the poll (OneUptime issue #7389), and a
    * row is written only where it was last seen before then: an older walk
@@ -93,6 +120,14 @@ export class Service extends DatabaseService<Model> {
    * the interfaces the newer walk did not report. Both statements ask it in
    * their own WHERE, so a walk written at the same moment is judged by the
    * row as that walk left it.
+   *
+   * A row's lastSeenAt alone no longer says which walk is newest, because a
+   * newer walk that found a row unchanged leaves it unwritten. So both
+   * statements also ask the device: a walk whose device records a newer
+   * successful walk ("lastSnmpSeenAt", which the poll's verdict moves before
+   * its interfaces are written, and never backwards) writes no known row.
+   * Without that, the older walk would put its state back over the state
+   * the newer walk saw and confirmed by leaving it alone.
    */
   public async upsertWalkedInterfaces(data: {
     projectId: ObjectID;
@@ -111,18 +146,16 @@ export class Service extends DatabaseService<Model> {
     }
 
     /*
-     * Two columns is the whole read: the walk is authoritative for every
-     * other column, so there is nothing to compare against. isMonitored is
-     * read precisely because it is the column we must NOT write.
+     * isMonitored, precisely because it is the column we must NOT write, and
+     * every column the walk writes, so a row it would leave as it is goes
+     * unwritten. They come from the heap page the device's rows are on
+     * either way.
      */
     const existingRows: Array<Model> = await this.findBy({
       query: {
         networkDeviceId: data.deviceId,
       },
-      select: {
-        interfaceIndex: true,
-        isMonitored: true,
-      },
+      select: INTERFACE_SNAPSHOT_SELECT,
       limit: LIMIT_MAX,
       skip: 0,
       props: {
@@ -137,6 +170,18 @@ export class Service extends DatabaseService<Model> {
           return {
             interfaceIndex: row.interfaceIndex,
             isMonitored: row.isMonitored,
+            name: row.name,
+            alias: row.alias,
+            macAddress: row.macAddress,
+            interfaceType: row.interfaceType,
+            isOperationallyUp: row.isOperationallyUp,
+            isAdministrativelyUp: row.isAdministrativelyUp,
+            speedInMbps: row.speedInMbps,
+            inRateMbps: row.inRateMbps,
+            outRateMbps: row.outRateMbps,
+            utilizationPercent: row.utilizationPercent,
+            errorsPerSecond: row.errorsPerSecond,
+            lastSeenAt: row.lastSeenAt,
           };
         },
       ),
@@ -151,6 +196,7 @@ export class Service extends DatabaseService<Model> {
 
     await this.bulkUpdateInterfaces({
       deviceId: data.deviceId,
+      seenAt: data.now,
       rows: plan.updates,
     });
 
@@ -174,9 +220,10 @@ export class Service extends DatabaseService<Model> {
    * above and this INSERT — a concurrent walk of the same device, or a device
    * with more than LIMIT_MAX interfaces whose stored rows did not all fit in
    * the read. It then applies the update path's semantics so the observation
-   * is not silently dropped, including its rule that a row last seen at or
-   * after this walk is left alone. Two columns are deliberately absent from
-   * it:
+   * is not silently dropped, including its rules that a row last seen at or
+   * after this walk is left alone, and so is every row of a device that
+   * records a newer successful walk. It writes the row whether or not it
+   * changed: it never read it. Two columns are deliberately absent from it:
    *
    *  - "isMonitored", so the race can never resurrect a muted port; and
    *  - the four rate columns, which this statement does not carry at all
@@ -257,8 +304,13 @@ export class Service extends DatabaseService<Model> {
           "lastSeenAt" = EXCLUDED."lastSeenAt",
           "version" = "NetworkInterface"."version" + 1,
           "updatedAt" = now()
-        WHERE "NetworkInterface"."lastSeenAt" IS NULL
-          OR "NetworkInterface"."lastSeenAt" < EXCLUDED."lastSeenAt"
+        WHERE ("NetworkInterface"."lastSeenAt" IS NULL
+            OR "NetworkInterface"."lastSeenAt" < EXCLUDED."lastSeenAt")
+          AND NOT EXISTS (
+            SELECT 1 FROM "NetworkDevice" AS d
+            WHERE d."_id" = EXCLUDED."networkDeviceId"
+              AND d."lastSnmpSeenAt" > EXCLUDED."lastSeenAt"
+          )
       `;
 
       await this.runChunkWithRowFallback({
@@ -328,10 +380,24 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * Interfaces already in inventory. One UPDATE ... FROM (VALUES ...) per
-   * chunk, joined on the same ("networkDeviceId", "interfaceIndex") key the
-   * unique index covers, with "deletedAt" IS NULL so a soft-deleted row is
-   * never resurrected.
+   * Interfaces already in inventory that the plan writes. One UPDATE ...
+   * FROM (VALUES ...) per chunk, joined on the same ("networkDeviceId",
+   * "interfaceIndex") key the unique index covers, with "deletedAt" IS NULL
+   * so a soft-deleted row is never resurrected.
+   *
+   * The walk's time is one parameter ($2), as every row of a walk is seen at
+   * the same `now` (the plan stamps it on each row's lastSeenAt, so it is
+   * the one value all of theirs hold). It is the time the rows are stamped
+   * with, the per-row guard's (a row last seen at or after it is left
+   * alone), and the device guard's (a device that records a newer
+   * successful walk has none of its rows written). The device guard names
+   * no column of the joined rows, so Postgres evaluates it once per
+   * statement, not once per row.
+   *
+   * Nothing it writes is in an index on the table, nor in the unique
+   * index's predicate, so with the room the table's fillfactor keeps on
+   * each page, every one of these updates can be HOT: no index entry, and
+   * the page reclaims the old row version without vacuum.
    *
    * Every placeholder carries an explicit ::type cast. Postgres types a bare
    * VALUES list from its FIRST row, so a chunk whose first interface reports
@@ -351,6 +417,8 @@ export class Service extends DatabaseService<Model> {
    */
   private async bulkUpdateInterfaces(data: {
     deviceId: ObjectID;
+    // The walk's `now`: when OneUptime received the poll.
+    seenAt: Date;
     rows: Array<InterfaceUpdateRow>;
   }): Promise<void> {
     if (data.rows.length === 0) {
@@ -368,12 +436,12 @@ export class Service extends DatabaseService<Model> {
       );
 
       const valueFragments: Array<string> = [];
-      const params: Array<unknown> = [data.deviceId.toString()];
-      let paramIndex: number = 2;
+      const params: Array<unknown> = [data.deviceId.toString(), data.seenAt];
+      let paramIndex: number = 3;
 
       for (const row of chunk) {
         valueFragments.push(
-          `($${paramIndex++}::integer, $${paramIndex++}::character varying, $${paramIndex++}::character varying, $${paramIndex++}::character varying, $${paramIndex++}::integer, $${paramIndex++}::boolean, $${paramIndex++}::boolean, $${paramIndex++}::numeric, $${paramIndex++}::numeric, $${paramIndex++}::numeric, $${paramIndex++}::numeric, $${paramIndex++}::numeric, $${paramIndex++}::timestamptz)`,
+          `($${paramIndex++}::integer, $${paramIndex++}::character varying, $${paramIndex++}::character varying, $${paramIndex++}::character varying, $${paramIndex++}::integer, $${paramIndex++}::boolean, $${paramIndex++}::boolean, $${paramIndex++}::numeric, $${paramIndex++}::numeric, $${paramIndex++}::numeric, $${paramIndex++}::numeric, $${paramIndex++}::numeric)`,
         );
 
         params.push(
@@ -389,7 +457,6 @@ export class Service extends DatabaseService<Model> {
           row.outRateMbps,
           row.utilizationPercent,
           row.errorsPerSecond,
-          row.lastSeenAt,
         );
       }
 
@@ -407,16 +474,20 @@ export class Service extends DatabaseService<Model> {
           "outRateMbps" = v."outRateMbps",
           "utilizationPercent" = v."utilizationPercent",
           "errorsPerSecond" = v."errorsPerSecond",
-          "lastSeenAt" = v."lastSeenAt",
+          "lastSeenAt" = $2::timestamptz,
           "version" = i."version" + 1,
           "updatedAt" = now()
         FROM (VALUES ${valueFragments.join(", ")})
-          AS v("interfaceIndex", "name", "alias", "macAddress", "interfaceType", "isOperationallyUp", "isAdministrativelyUp", "speedInMbps", "inRateMbps", "outRateMbps", "utilizationPercent", "errorsPerSecond", "lastSeenAt")
+          AS v("interfaceIndex", "name", "alias", "macAddress", "interfaceType", "isOperationallyUp", "isAdministrativelyUp", "speedInMbps", "inRateMbps", "outRateMbps", "utilizationPercent", "errorsPerSecond")
         WHERE
           i."networkDeviceId" = $1
           AND i."interfaceIndex" = v."interfaceIndex"
           AND i."deletedAt" IS NULL
-          AND (i."lastSeenAt" IS NULL OR i."lastSeenAt" < v."lastSeenAt")
+          AND (i."lastSeenAt" IS NULL OR i."lastSeenAt" < $2::timestamptz)
+          AND NOT EXISTS (
+            SELECT 1 FROM "NetworkDevice" AS d
+            WHERE d."_id" = $1 AND d."lastSnmpSeenAt" > $2::timestamptz
+          )
       `;
 
       await this.runChunkWithRowFallback({
@@ -427,6 +498,7 @@ export class Service extends DatabaseService<Model> {
         runOne: async (row: InterfaceUpdateRow): Promise<void> => {
           await this.bulkUpdateInterfaces({
             deviceId: data.deviceId,
+            seenAt: data.seenAt,
             rows: [row],
           });
         },

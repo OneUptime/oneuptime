@@ -7,6 +7,9 @@ import {
   describeNetworkDevice,
   ErasedInventorySource,
   INVENTORY_SOURCES,
+  INVENTORY_SYNC_PAGE_SIZE,
+  InventoryRowProjection,
+  InventorySourcePage,
   InventorySyncResult,
   syncInventorySource,
 } from "../../../../Server/Utils/Telemetry/InventoryEntityRegistry";
@@ -589,5 +592,154 @@ describePostgres("inventory mirror reconcile against Postgres", () => {
     expect(item?.descriptiveAttributes?.["host.serial_number"]).toBe(
       "FOC1840X0AB",
     );
+  });
+
+  /*
+   * Keyset pages - each a range of the primary key after the last row read
+   * - on the real tables, past a page boundary.
+   *
+   * More than a page of devices, inserted by one statement so they share
+   * their createdAt (the tie the OFFSET pages' creation-time order had to
+   * break), is read whole and each device once, by the source's own query;
+   * a device created mid-pass ahead of the cursor is read once, one behind
+   * it is left for the next pass.
+   */
+  test("a fleet of more than a page is read in keyset pages, each device once", async () => {
+    const devices: number = INVENTORY_SYNC_PAGE_SIZE + 234;
+
+    await database.query(
+      `INSERT INTO "${schema}"."NetworkDevice"
+         ("_id", "projectId", "name", "slug", "hostname", "isArchived",
+          "version")
+       SELECT gen_random_uuid(), $1, 'access-sw-' || g, 'access-sw-' || g,
+              '10.' || (g / 256) || '.' || (g % 256) || '.1', false, 1
+         FROM generate_series(1, $2::int) AS g`,
+      [PROJECT_ID.toString(), devices],
+    );
+
+    const source: ErasedInventorySource = sourceFor("NetworkDevice");
+    const read: Array<string> = [];
+    const cursors: Array<string | undefined> = [];
+    let afterId: ObjectID | undefined = undefined;
+
+    for (;;) {
+      cursors.push(afterId?.toString());
+      const page: InventorySourcePage = await source.fetchPage({
+        afterId,
+        limit: INVENTORY_SYNC_PAGE_SIZE,
+      });
+
+      read.push(
+        ...page.rows.map((row: InventoryRowProjection): string => {
+          return row.id.toString();
+        }),
+      );
+
+      if (cursors.length === 1) {
+        // Created during the pass: one behind the cursor, one ahead of it.
+        await database.query(
+          `INSERT INTO "${schema}"."NetworkDevice"
+             ("_id", "projectId", "name", "slug", "hostname", "isArchived",
+              "version")
+           VALUES ('00000000-0000-4000-8000-000000000000', $1, 'behind', 'behind', '10.9.9.1', false, 1),
+                  ('ffffffff-ffff-4fff-bfff-ffffffffffff', $1, 'ahead', 'ahead', '10.9.9.2', false, 1)`,
+          [PROJECT_ID.toString()],
+        );
+      }
+
+      if (page.readCount < INVENTORY_SYNC_PAGE_SIZE || !page.lastId) {
+        break;
+      }
+
+      afterId = page.lastId;
+    }
+
+    expect(cursors).toHaveLength(2);
+    expect(read).toHaveLength(devices + 1);
+    expect(new Set(read).size).toBe(devices + 1);
+    expect(read).toContain("ffffffff-ffff-4fff-bfff-ffffffffffff");
+    expect(read).not.toContain("00000000-0000-4000-8000-000000000000");
+
+    // In primary-key order, as Postgres orders a uuid.
+    const inOrder: Array<{ id: string }> = await database.query(
+      `SELECT "_id"::text AS "id" FROM "${schema}"."NetworkDevice"
+        WHERE "_id" <> '00000000-0000-4000-8000-000000000000'
+        ORDER BY "_id"`,
+    );
+    expect(read).toEqual(
+      inOrder.map((row: { id: string }): string => {
+        return row.id;
+      }),
+    );
+  });
+
+  /*
+   * The reverse pass's pages are ranges of the index on mirrored rows by
+   * type: nothing else on the table leads with entityType, so a page would
+   * otherwise walk the primary key through every type's rows.
+   */
+  test("the migrated registry has the reverse pass's index: mirrored rows by type, then key", async () => {
+    const indexes: Array<{ indexdef: string }> = await database.query(
+      `SELECT indexdef FROM pg_indexes
+        WHERE schemaname = 'public' AND tablename = 'InventoryItem'
+          AND indexname = 'IDX_5ba328d0cab9ac05fec674827e'`,
+    );
+
+    expect(indexes).toHaveLength(1);
+    expect(indexes[0]!.indexdef).toContain('("entityType", _id)');
+    expect(indexes[0]!.indexdef).toContain(
+      "WHERE ((source)::text = 'inventory'::text)",
+    );
+  });
+
+  /*
+   * And the reverse pass, past a page boundary: when a fleet goes by a
+   * cascade no hook sees, its registry rows are paged by key and removed a
+   * page at a time - all but the one someone typed a value into, which is
+   * archived.
+   */
+  test("more than a page of orphaned registry rows is removed across pages, and one with a typed value archived", async () => {
+    const orphans: number = INVENTORY_SYNC_PAGE_SIZE + 234;
+
+    await database.query(
+      `INSERT INTO "${schema}"."InventoryItem"
+         ("_id", "projectId", "entityType", "source", "entityKey",
+          "resourceType", "resourceId", "version")
+       SELECT gen_random_uuid(), $1, $2, $3, 'gone-' || g, 'NetworkDevice',
+              gen_random_uuid(), 1
+         FROM generate_series(1, $4::int) AS g`,
+      [
+        PROJECT_ID.toString(),
+        sourceFor("NetworkDevice").entityType,
+        "inventory",
+        orphans,
+      ],
+    );
+    await database.query(
+      `UPDATE "${schema}"."InventoryItem" SET "customFields" = $1::jsonb
+        WHERE "entityKey" = 'gone-7'`,
+      [JSON.stringify({ "Serial Number": "FOC1840X0AB" })],
+    );
+
+    expect(await syncNetwork()).toEqual({
+      created: 0,
+      updated: 0,
+      deleted: orphans - 1,
+      archived: 1,
+    });
+
+    const left: Array<{ entityKey: string; isArchived: boolean }> =
+      await database.query(
+        `SELECT "entityKey", "isArchived" FROM "${schema}"."InventoryItem"`,
+      );
+    expect(left).toEqual([{ entityKey: "gone-7", isArchived: true }]);
+
+    // The next pass leaves the archived one as it is.
+    expect(await syncNetwork()).toEqual({
+      created: 0,
+      updated: 0,
+      deleted: 0,
+      archived: 0,
+    });
   });
 });
