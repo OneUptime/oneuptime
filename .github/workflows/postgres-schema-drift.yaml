@@ -649,6 +649,25 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Utils/Runbook/RunbookApprovalsMovePostgres.test.ts --forceExit
 
+      # Checks the migrated Monitor table's indexes (all valid, none on a
+      # column the busiest writes move), then clones it with Project into an
+      # isolated schema: the device poll's fan-out, the Monitors menu's
+      # counts, the list's first page, a heartbeat sweep's page and the
+      # device delete's foreign key check must each be answerable from their
+      # index, and the telemetry, heartbeat and server writes must be HOT
+      # updates (MatchMonitorIndexesToTheirReads).
+      - name: Test Monitor's indexes and HOT updates against Postgres
+        if: matrix.shard == 3
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_MONITOR_INDEX_TESTS: "true"
+          MONITOR_INDEX_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          MONITOR_INDEX_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          MONITOR_INDEX_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/MonitorIndexesPostgres.test.ts --forceExit
+
       # Clones the migrated RunnerJob and Project tables into an isolated
       # schema and runs the global Runners' claim against them: the oldest
       # global JavaScript step of whichever project, never a step aimed at a
