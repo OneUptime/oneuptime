@@ -37,7 +37,7 @@ flowchart TB
 
 El modelo `IncidentState` tiene `name`, `description`, `color` y `order`, más tres booleanos: `isCreatedState`, `isAcknowledgedState` e `isResolvedState`. Todo lo que el producto hace con los estados se basa en esos booleanos y en `order`, nunca en el nombre del estado. Por eso puedes renombrar **Resuelto** como «Closed» sin que nada se rompa: el indicador viaja con la fila.
 
-El modelo `IncidentSeverity` tiene `name`, `description`, `color` y `order`, y nada más. No hay indicadores. Nada en OneUptime trata por sí solo **Critical Incident** de forma distinta a **Minor Incident**: la gravedad solo importa allí donde apuntas algo a ella, como el criterio de coincidencia **Gravedades de incidente** de una regla de guardia.
+El modelo `IncidentSeverity` tiene `name`, `description`, `color` y `order`, y nada más. No hay indicadores. Nada en OneUptime trata por sí solo **Incidente crítico** de forma distinta a **Incidente menor**: la gravedad solo importa allí donde apuntas algo a ella, como el criterio de coincidencia **Gravedades de incidente** de una regla de guardia.
 
 Algunas reglas rápidas:
 
@@ -138,9 +138,9 @@ Con el proyecto se crean tres gravedades, en este orden, de la más grave a la m
 
 | Gravedad              | `order` | Color     | Descripción inicial                                                                                                                                                                       |
 | --------------------- | ------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Critical Incident** | `1`     | `#b70400` | Issues causing very high impact to customers. Immediate response is required. Examples include a full outage, or a data breach.                                                          |
-| **Major Incident**    | `2`     | `#fd625e` | Issues causing significant impact. Immediate response is usually required. We might have some workarounds that mitigate the impact on customers. Examples include an important sub-system failing. |
-| **Minor Incident**    | `3`     | `#ffbf53` | Issues with low impact, which can usually be handled within working hours. Most customers are unlikely to notice any problems. Examples include a slight drop in application performance. |
+| **Incidente crítico** | `1`     | `#b70400` | Issues causing very high impact to customers. Immediate response is required. Examples include a full outage, or a data breach.                                                          |
+| **Incidente mayor**    | `2`     | `#fd625e` | Issues causing significant impact. Immediate response is usually required. We might have some workarounds that mitigate the impact on customers. Examples include an important sub-system failing. |
+| **Incidente menor**    | `3`     | `#ffbf53` | Issues with low impact, which can usually be handled within working hours. Most customers are unlikely to notice any problems. Examples include a slight drop in application performance. |
 
 La gravedad es obligatoria cuando declaras un incidente, y es obligatoria en cada especificación de incidente de los criterios de un monitor, así que todo incidente —manual o automático— llega con una. Consulta [Declarar un incidente](/docs/incidents/declaring-incidents) para el flujo de declaración y [Plantillas de incidentes y alertas](/docs/monitor/incident-alert-templating) para el camino impulsado por monitores.
 
@@ -155,7 +155,7 @@ Dos diferencias con los estados:
 - **No hay protección contra la eliminación.** Cualquier gravedad se puede eliminar, incluidas las tres iniciales.
 - **No hay indicadores que heredar, ni «Cuenta como».** Una gravedad nueva se comporta exactamente igual que las iniciales: es una etiqueta con un color y un rango.
 
-Donde la gravedad hace algo más que describir: en **Incidentes → Reglas → Reglas de guardia**, el campo **Gravedades de incidente** de una regla es un criterio de coincidencia. Listar ahí **Critical Incident** es como se expresa «avisar al equipo de base de datos por todo lo crítico»: la política de guardia vive en la regla, no en la gravedad.
+Donde la gravedad hace algo más que describir: en **Incidentes → Reglas → Reglas de guardia**, el campo **Gravedades de incidente** de una regla es un criterio de coincidencia. Listar ahí **Incidente crítico** es como se expresa «avisar al equipo de base de datos por todo lo crítico»: la política de guardia vive en la regla, no en la gravedad.
 
 **Cambiar la gravedad de un incidente** —con **Editar** en la tarjeta **Detalles del incidente** del incidente, por la API o Terraform (`incidentSeverityId`), con un flujo de trabajo o con las herramientas de IA— hace las mismas cuatro cosas se envíe como se envíe: el feed del incidente recibe una entrada **Incident updated** que nombra la nueva gravedad, se recalculan los plazos del SLA del incidente, su regla de recordatorio se vuelve a emparejar y las métricas de incidentes cuentan un cambio de gravedad. Guardar la gravedad que el incidente ya tiene no hace nada de eso, así que editar solo el título de un incidente deja sus plazos de SLA, sus recordatorios y su recuento de cambios de gravedad como estaban. La gravedad de una alerta funciona igual para su entrada de feed y sus recordatorios.
 

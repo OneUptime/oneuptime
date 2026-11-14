@@ -435,7 +435,7 @@ describe("the product menu", () => {
     expect(item).toContain("activeRoute:RouteMap[PageMap.FORMS],");
     expect(item).toContain("icon:IconProp.ClipboardDocumentList,");
     expect(item).toContain(
-      'description:t("navbar.items.formsDescription","Formsanyonecanfillinthatcreateincidentsorscheduledmaintenanceevents.",),',
+      'description:t("navbar.items.formsDescription","Formsanyonecanfillinthatcreateincidentsormaintenanceevents.",),',
     );
   });
 

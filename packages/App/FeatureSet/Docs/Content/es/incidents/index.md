@@ -16,7 +16,7 @@ Un incidente es el registro con el que trabaja tu equipo cuando algo falla: qué
 
 - **Un producto propio** — abre **Incidentes** desde el menú **Productos** de la barra superior; la lista está en `/dashboard/{projectId}/incidents`.
 - **Tres estados iniciales** — **Identificado**, **Reconocido** y **Resuelto** se crean en todo proyecto nuevo. Puedes añadir los tuyos; los tres iniciales se pueden renombrar y recolorear, pero nunca eliminar.
-- **Tres gravedades iniciales** — **Critical Incident**, **Major Incident** y **Minor Incident**. Una gravedad es una etiqueta con un color y un orden: no tiene comportamiento propio.
+- **Tres gravedades iniciales** — **Incidente crítico**, **Incidente mayor** y **Incidente menor**. Una gravedad es una etiqueta con un color y un orden: no tiene comportamiento propio.
 - **Cinco vías de entrada** — el asistente **Declarar incidente**, **Crear desde plantilla**, una regla de criterios de un monitor, `POST /api/incident`, o un [formulario](/docs/forms/index) que cualquiera con su enlace puede rellenar.
 - **Numerados por proyecto** — cada incidente recibe un número de incidente de un contador propio del proyecto, que se muestra con el prefijo de tu proyecto: `INC-42` en un proyecto nuevo, o `#42` sin prefijo. El número va antes del título del incidente en sus páginas, en la pestaña del navegador, en la búsqueda y en los diálogos sobre él, así que los incidentes con el mismo título se distinguen.
 - **Dos tipos de notas** — notas privadas (notas internas) para tu equipo y notas públicas para los suscriptores de la página de estado.
@@ -143,11 +143,11 @@ Todo proyecto nuevo recibe además tres gravedades:
 
 | Gravedad              | Orden | Color                | Qué significa                                              |
 | --------------------- | ----- | -------------------- | ---------------------------------------------------------- |
-| **Critical Incident** | 1     | Granate (`#b70400`)  | Impacto muy alto en los clientes, que requiere una respuesta inmediata. |
-| **Major Incident**    | 2     | Rojo (`#fd625e`)     | Impacto importante, que suele requerir una respuesta inmediata. |
-| **Minor Incident**    | 3     | Amarillo (`#ffbf53`) | Impacto bajo, que suele resolverse en horario laboral.     |
+| **Incidente crítico** | 1     | Granate (`#b70400`)  | Impacto muy alto en los clientes, que requiere una respuesta inmediata. |
+| **Incidente mayor**    | 2     | Rojo (`#fd625e`)     | Impacto importante, que suele requerir una respuesta inmediata. |
+| **Incidente menor**    | 3     | Amarillo (`#ffbf53`) | Impacto bajo, que suele resolverse en horario laboral.     |
 
-Las gravedades tienen `name`, `description`, `color` y `order`, y nada más. No hay indicadores, y ninguna ruta de código trata «Critical Incident» de forma distinta a cualquier otra fila. La gravedad es la forma en que las personas priorizan, y está disponible como criterio de coincidencia cuando escribes reglas de guardia, pero elegir una gravedad no avisa, por sí sola, a nadie.
+Las gravedades tienen `name`, `description`, `color` y `order`, y nada más. No hay indicadores, y ninguna ruta de código trata «Incidente crítico» de forma distinta a cualquier otra fila. La gravedad es la forma en que las personas priorizan, y está disponible como criterio de coincidencia cuando escribes reglas de guardia, pero elegir una gravedad no avisa, por sí sola, a nadie.
 
 Edita o añade gravedades en **Incidentes → Ajustes → Gravedad del incidente**. Las descripciones iniciales completas están en [Estados y severidades de incidentes](/docs/incidents/states-and-severities).
 

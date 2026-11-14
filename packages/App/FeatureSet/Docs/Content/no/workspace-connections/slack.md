@@ -100,7 +100,7 @@ En varslingsregel sier hvilke hendelser som publiseres i Slack, og hvor. Hvert p
 | **Grunnleggende** | **Regelnavn** og **Regelbeskrivelse**. |
 | **Betingelser** | Hvilke hendelser regelen gjelder for, for eksempel etter alvorlighetsgrad, tilstand, etikett, monitor eller ord i tittelen. De kontrolleres når en hendelse opprettes, og på nytt ved hver oppdatering OneUptime publiserer om den, så en regel for bekreftede hendelser virker når en hendelse bekreftes. En ny regel gjelder for hver hendelse, for eksempel **Alle hendelser**. For å snevre den inn velger du **Bare hendelser som oppfyller betingelsene** og legger til betingelsene. Med to eller flere sier **Samsvarsbetingelse** om alle må passe, eller om én er nok. |
 | **Mål** | Hvor den publiserer: **Publiser i eksisterende kanaler** med kanalnavnene, **Opprett en kanal for hver hendelse** (eller varsel, episode, planlagt vedlikehold, monitor eller vaktretningslinje) med hvem som blir med i den, eller begge. Under steget sier **Hva denne regelen gjør** det i setninger, som regelens kort. |
-| **Oppdateringer** | Bare hendelser, varsler, episoder og planlagt vedlikehold: hvilke oppdateringer regelen publiserer etter postens første melding. **Alle oppdateringer**, som en ny regel starter med, publiserer alle. **Bare viktige oppdateringer** publiserer de som betyr mest, som steget lister for hver type post: for en hendelse løsningen eller gjenåpningen av den, endringer i alvorlighetsgrad, offentlige notater og etteranalysen. Med **Velg oppdateringer** krysser du av for dem én etter én. Uansett hva du velger, publiserer regelen postens første melding, og en videosamtale når en starter. |
+| **Oppdateringer** | Bare hendelser, varsler, episoder, planlagt vedlikehold og vaktpolicyer: hvilke oppdateringer regelen publiserer etter postens første melding. **Alle oppdateringer** publiserer alle, og en ny regel starter med den, unntatt en vaktpolicys. **Bare viktige oppdateringer** publiserer de som betyr mest, som steget lister for hver type post: for en hendelse løsningen eller gjenåpningen av den, endringer i alvorlighetsgrad, offentlige notater og etteranalysen; for en vaktpolicy hvem som har vakt nå, og når ingen har det, som en ny regel for en vaktpolicy starter med. Med **Velg oppdateringer** krysser du av for dem én etter én. Uansett hva du velger, publiserer regelen postens første melding, og en videosamtale når en starter. Se [Vaktmeldinger](#vaktmeldinger). |
 | **Video Call** | Bare hendelser og varsler: start en samtale for hver. Se [Videosamtaler](/docs/workspace-connections/video-calls). |
 
 Hver betingelse leses som en setning: feltet, hvordan det sammenlignes, og verdien. Verdier å velge kommer fra prosjektets egne lister, som tilstander, alvorlighetsgrader, etiketter og monitorer. En regel for vaktpolicyer velger policyene sine under **Vaktpolicy**, som fortsetter å samsvare med en policy etter at den har fått nytt navn, mens **Navn på vaktretningslinje** ser etter ord i navnet til en policy. Hver type hendelse som har eiere, har en eierbetingelse, som **Eier av hendelse**: velg personer og team, så samsvarer den med personene og teamene som er registrert som eiere av hendelsen. Å være med i et team som eier hendelsen, teller ikke. En eier som legges til senere, får regelen til å samsvare fra den oppdateringen, og en regel som oppretter kanaler, oppretter kanalen da. En arkivert verdi, som en alvorlighetsgrad eller en vaktpolicy, tilbys ikke for en ny betingelse. En regel som allerede har en, beholder den, merket **Arkivert**, og samsvarer fortsatt med hendelsene som har den. En person, et team eller en policy som prosjektet ikke lenger har, blir stående i betingelsen, og regelens kort sier fra om det.
@@ -124,6 +124,29 @@ En kanal holder seg lesbar: hver begivenhet publiseres én gang, og postens før
 **Prosjektinnstillinger** > **Arbeidsområde** > **Slack** viser kanalene OneUptime kan se, med **Send test** ved siden av hver. OneUptime blir selv med i en offentlig kanal første gang den publiserer der. En privat kanal vises, og kan motta publiseringer, først etter at OneUptime-appen er invitert inn i den i Slack.
 
 En varslingsregel kan tilhøre team. **Ansvarlige team** under **Flere felt** forbeholder den teamene du velger: bare medlemmene deres og prosjektadministratorer kan redigere eller slette den, og alle andre som ser reglene, ser den skrivebeskyttet. Se [Regler som tilhører team](/docs/permissions/index#regler-som-tilhører-team).
+
+### Vaktmeldinger
+
+Ved hvert vaktskifte får kanalene til en vaktpolicy vite hvem som har vakt, i én linje:
+
+> 📞 @ana is now on call for Payments until tomorrow at 5:50 PM, then @bob.
+
+- Payments lenker til policyen i OneUptime. Når policyen tilkaller mer enn én tidsplan, nevner linjen også tidsplanen: Payments (Primary).
+- En person nevnes med Slack-navnet sitt når vedkommende har koblet Slack-kontoen sin til OneUptime, og med navnet sitt i OneUptime frem til da. Tidspunkter vises i hver lesers egen tidssone.
+- Når flere av policyens eskaleringsregler tilkaller den samme tidsplanen, publiseres hvert vaktskifte én gang, ikke én gang per regel.
+
+En regel publiserer det den valgte i steget **Oppdateringer**, og en ny regel starter med **Bare viktige oppdateringer**: hvem som har vakt nå, og når ingen har det.
+
+| Oppdatering | Hva kanalen får vite |
+| --- | --- |
+| **Hvem som har vakt nå** | Linjen over, ved hvert vaktskifte. |
+| **Hvem som har vakt neste gang** | Hvem som tar over ved neste vaktskifte, og når: på slutten av den linjen, eller i en egen linje for en regel som ikke publiserer hvem som har vakt nå. |
+| **Ingen har vakt** | En tidsplan som står uten noen på vakt, slik at varsler som når den, ikke tilkaller noen: "⚠️ Nobody is on call for Payments until tomorrow at 5:50 PM, when @bob takes over." |
+| **Brukeroverstyringer** | En overstyring lagt til, endret eller trukket tilbake: hvem som er borte, og hvem som dekker. |
+| **Endringer i policyen** | Tidsplaner, personer og team som er lagt til i eskaleringsreglene eller tatt ut. |
+| **Eiere** | Eiere lagt til og fjernet. |
+
+En kanal får én melding per vaktskifte, også når to regler publiserer i den. En vaktregel som ble lagret før regler valgte oppdateringene sine, publiserer alle, som før.
 
 ## Hvem som er i kanalen til en post
 

@@ -454,7 +454,7 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                   stepId: "event",
                   fieldType: FormFieldSchemaType.Markdown,
                   required: false,
-                  description: "Describe the scheduled maintenance event here.",
+                  description: "Describe the maintenance event here.",
                 },
                 /*
                  * The next full hour, for an hour: change them only when
@@ -633,7 +633,7 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                       return (
                         <p>
                           {translator.translateText(
-                            "No monitors affected by this scheduled maintenance event.",
+                            "No monitors affected by this maintenance event.",
                           )}
                         </p>
                       );
@@ -687,7 +687,7 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                       return (
                         <p>
                           {translator.translateText(
-                            "Status of the monitors will not be changed when this scheduled maintenance event starts.",
+                            "Status of the monitors will not be changed when this maintenance event starts.",
                           )}
                         </p>
                       );
@@ -852,7 +852,7 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                       return (
                         <p>
                           {translator.translateText(
-                            "No other resources affected by this scheduled maintenance event.",
+                            "No other resources affected by this maintenance event.",
                           )}
                         </p>
                       );
@@ -1078,7 +1078,7 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                       return (
                         <p>
                           {translator.translateText(
-                            "No status pages selected for this scheduled maintenance event.",
+                            "No status pages selected for this maintenance event.",
                           )}
                         </p>
                       );

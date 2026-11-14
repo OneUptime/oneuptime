@@ -92,6 +92,7 @@ import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import OnCallDutyPolicySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
 import { WorkspaceChannelNumberPrefixes } from "Common/Utils/Workspace/WorkspaceChannelName";
 import NotificationRuleInvites from "Common/Types/Workspace/NotificationRules/NotificationRuleInvites";
+import NotificationRuleUpdates from "Common/Types/Workspace/NotificationRules/NotificationRuleUpdates";
 import {
   getNotificationRuleDestinationDescription,
   NOTIFICATION_RULE_CONDITIONS_TITLES,
@@ -1016,6 +1017,11 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
          * channel) starts posting to channels the project has, the one
          * destination every such rule needs: its step opens on the channels
          * to name.
+         *
+         * A new on-call policy rule starts on Key updates only - who is on
+         * call now, and when nobody is - not on every handoff, override and
+         * change to the policy (NotificationRuleUpdates
+         * .getNewRuleUpdates, issue #7549).
          */
         createInitialValues={{
           notificationRule: {
@@ -1025,6 +1031,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
             ...(canRuleCreateChannel(props.eventType)
               ? {}
               : { shouldPostToExistingChannel: true }),
+            ...NotificationRuleUpdates.getNewRuleUpdates(props.eventType),
           },
         }}
         isCreateable={true}
@@ -1208,10 +1215,12 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
           /*
            * Which updates the rule posts where it posts (issue #7581), on a
            * step of its own for the rules that choose them - incidents,
-           * alerts, their episodes and scheduled maintenance. It opens on
-           * Every update, as rules always posted; Key updates only is one
-           * click. The same notificationRule column, registered under a key
-           * of its own as the Destination step is.
+           * alerts, their episodes, scheduled maintenance and on-call
+           * policies. It opens on Every update, as rules always posted; Key
+           * updates only is one click. A new on-call policy rule opens on
+           * Key updates only (issue #7549). The same notificationRule
+           * column, registered under a key of its own as the Destination
+           * step is.
            */
           ...(isUpdatesEventType(props.eventType)
             ? [
