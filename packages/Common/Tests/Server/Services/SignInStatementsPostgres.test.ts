@@ -18,10 +18,11 @@
  *     header sends five on every page) asked every project's questions at
  *     once. With this server's minute-long answers run out, each project
  *     cost a read of its row for whether it is blocked and another of the
- *     same row for its sign-in rule: 600 statements for 300 projects, 300
- *     at once - and three more a project with the permission cache lost
- *     too (1,501). Now: one read of every project's row, and with the
- *     permission cache lost, the same two-statement rebuild a sign-in makes.
+ *     same row for its sign-in rule: 590 statements for the 300 projects
+ *     here, 300 at once - and three more a project with the permission
+ *     cache lost too (1,437). Now: one read of every project's row, and
+ *     with the permission cache lost, the same two-statement rebuild a
+ *     sign-in makes.
  *
  * Also pinned: every set a sign-in writes is row for row the set the
  * per-project path (refreshUserTenantAccessPermission, unchanged) builds,
@@ -118,13 +119,17 @@ const MOST_STATEMENTS: Readonly<Record<string, number>> = {
   acrossProjectsWithNothingCached: 5,
 };
 
-// What main issued for the same work, counted the same way.
+/*
+ * What main issued for the same work, counted the same way on the same
+ * rows (ten of the 300 projects are blocked: main read only whether those
+ * were blocked, and two reads of every other row).
+ */
 const MAIN_STATEMENTS: Readonly<Record<string, number>> = {
   signIn1: 4,
   signIn10: 31,
   signIn300: 901,
-  acrossProjectsWithPermissionsCached: 600,
-  acrossProjectsWithNothingCached: 1501,
+  acrossProjectsWithPermissionsCached: 590,
+  acrossProjectsWithNothingCached: 1437,
 };
 
 const BASE_TABLES: Array<string> = ["Project", "Team", "TeamMember"];
