@@ -108,7 +108,7 @@ export const NUMBERED_RECORD_KINDS: ReadonlyArray<NumberedRecordKindInfo> = [
     startsAtColumn: "scheduledMaintenanceNumbersStartAt",
     prefixColumn: "scheduledMaintenanceNumberPrefix",
     title: "Scheduled Maintenance Numbers Start At",
-    recordName: "scheduled maintenance event",
+    recordName: "maintenance event",
   },
   {
     kind: NumberedRecordKind.SecurityCase,

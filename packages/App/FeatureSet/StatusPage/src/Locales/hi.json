@@ -86,8 +86,8 @@
     "incidentsOnThisDay": "इस दिन {{total}} घटनाएँ दर्ज की गईं",
     "scheduledMaintenance": "निर्धारित रखरखाव",
     "dayLabelWithMaintenance": "{{label}}, {{maintenance}}",
-    "oneMaintenanceEvent": "1 निर्धारित रखरखाव",
-    "maintenanceEvents": "{{total}} निर्धारित रखरखाव",
+    "oneMaintenanceEvent": "1 रखरखाव इवेंट",
+    "maintenanceEvents": "{{total}} रखरखाव इवेंट",
     "moreMaintenance": "+{{total}} और"
   },
   "liveStatus": {

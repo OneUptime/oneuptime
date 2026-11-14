@@ -74,7 +74,7 @@ import {
   pluralName: "Scheduled Maintenance Owner Rules",
   icon: IconProp.User,
   tableDescription:
-    "Configure rules for automatically assigning owner users and teams when matching scheduled maintenance events are created",
+    "Configure rules for automatically assigning owner users and teams when matching maintenance events are created",
 })
 export default class ScheduledMaintenanceOwnerRule extends RuleBaseModel {
   @ColumnAccessControl({
@@ -327,7 +327,7 @@ export default class ScheduledMaintenanceOwnerRule extends RuleBaseModel {
     modelType: Monitor,
     title: "Monitors",
     description:
-      "Only trigger for scheduled maintenance events on these monitors. Leave empty to match events on any monitor.",
+      "Only trigger for maintenance events on these monitors. Leave empty to match events on any monitor.",
   })
   @ManyToMany(
     () => {
@@ -473,7 +473,7 @@ export default class ScheduledMaintenanceOwnerRule extends RuleBaseModel {
     type: TableColumnType.LongText,
     title: "Title Pattern",
     description:
-      "Regex (case-insensitive) matched against the scheduled maintenance event title. Leave empty to match any title.",
+      "Regex (case-insensitive) matched against the maintenance event title. Leave empty to match any title.",
   })
   @Column({
     type: ColumnType.LongText,
@@ -509,7 +509,7 @@ export default class ScheduledMaintenanceOwnerRule extends RuleBaseModel {
     type: TableColumnType.LongText,
     title: "Description Pattern",
     description:
-      "Regex (case-insensitive) matched against the scheduled maintenance event description. Leave empty to match any description.",
+      "Regex (case-insensitive) matched against the maintenance event description. Leave empty to match any description.",
   })
   @Column({
     type: ColumnType.LongText,
@@ -620,7 +620,7 @@ export default class ScheduledMaintenanceOwnerRule extends RuleBaseModel {
     modelType: User,
     title: "Owner Users",
     description:
-      "Users to add as owners on the scheduled maintenance event when this rule matches.",
+      "Users to add as owners on the maintenance event when this rule matches.",
   })
   @ManyToMany(
     () => {
@@ -669,7 +669,7 @@ export default class ScheduledMaintenanceOwnerRule extends RuleBaseModel {
     modelType: Team,
     title: "Owner Teams",
     description:
-      "Teams to add as owners on the scheduled maintenance event when this rule matches.",
+      "Teams to add as owners on the maintenance event when this rule matches.",
   })
   @ManyToMany(
     () => {

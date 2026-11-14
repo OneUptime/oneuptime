@@ -927,7 +927,7 @@ describe("MonitorOverviewPresentationUtil hero", () => {
       { text: "Manual", tone: "neutral" },
     ]);
     expect(presentation.explanation).toBe(
-      "Manual monitor: OneUptime runs no checks. The status changes when someone sets it, or when an incident or scheduled maintenance event changes it.",
+      "Manual monitor: OneUptime runs no checks. The status changes when someone sets it, or when an incident or maintenance event changes it.",
     );
     /*
      * Changing the status is in the hero's More actions (⋯) menu beside

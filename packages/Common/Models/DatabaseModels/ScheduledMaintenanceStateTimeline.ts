@@ -80,7 +80,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   icon: IconProp.List,
   singularName: "Scheduled Maintenance State Timeline",
   pluralName: "Scheduled Maintenance State Timelines",
-  tableDescription: "Change state of your scheduled maintenance event.",
+  tableDescription: "Change state of your maintenance event.",
 })
 export default class ScheduledMaintenanceStateTimeline extends BaseModel {
   @ColumnAccessControl({
@@ -402,7 +402,7 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
     type: TableColumnType.Entity,
     modelType: ScheduledMaintenanceState,
     title: "Scheduled Maintenance State",
-    description: "The state the scheduled maintenance event changes to",
+    description: "The state the maintenance event changes to",
     example: "d0e1f2a3-b4c5-6789-01ab-cdef12345678",
   })
   @ManyToOne(
@@ -452,7 +452,7 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
     type: TableColumnType.ObjectID,
     required: true,
     title: "Scheduled Maintenance State ID",
-    description: "ID of the state the scheduled maintenance event changes to",
+    description: "ID of the state the maintenance event changes to",
     example: "d0e1f2a3-b4c5-6789-01ab-cdef12345678",
   })
   @Column({

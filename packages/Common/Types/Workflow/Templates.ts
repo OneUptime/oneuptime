@@ -8361,7 +8361,7 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
     icon: IconProp.Calendar,
     workflowName: "Announce maintenance in Slack",
     workflowDescription:
-      "Posts to Slack whenever a scheduled maintenance event is created.",
+      "Posts to Slack whenever a maintenance event is created.",
     variables: [SLACK_WEBHOOK_URL],
     graph: {
       nodes: [
@@ -8416,7 +8416,7 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
     icon: IconProp.Calendar,
     workflowName: "Announce maintenance in Mattermost",
     workflowDescription:
-      "Posts to Mattermost whenever a scheduled maintenance event is created.",
+      "Posts to Mattermost whenever a maintenance event is created.",
     variables: [MATTERMOST_WEBHOOK_URL],
     graph: {
       nodes: [

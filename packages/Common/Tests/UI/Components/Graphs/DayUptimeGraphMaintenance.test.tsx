@@ -276,10 +276,10 @@ describe("DayUptimeGraph - the day's maintenance, told", () => {
     });
 
     expect(barOn("2026-10-21").getAttribute("aria-label")).toBe(
-      "Oct 21, 2026 (UTC): no data, 1 scheduled maintenance event",
+      "Oct 21, 2026 (UTC): no data, 1 maintenance event",
     );
     expect(barOn("2026-10-22").getAttribute("aria-label")).toBe(
-      "Oct 22, 2026 (UTC): no data, 2 scheduled maintenance events",
+      "Oct 22, 2026 (UTC): no data, 2 maintenance events",
     );
     expect(barOn("2026-10-23").getAttribute("aria-label")).toBe(
       "Oct 23, 2026 (UTC): no data",
@@ -306,7 +306,7 @@ describe("DayUptimeGraph - the day's maintenance, told", () => {
     });
 
     expect(barOn("2026-10-21").getAttribute("aria-label")).toBe(
-      "Oct 21, 2026 (UTC): 100% uptime, 1 incidents, 1 scheduled maintenance event",
+      "Oct 21, 2026 (UTC): 100% uptime, 1 incidents, 1 maintenance event",
     );
   });
 

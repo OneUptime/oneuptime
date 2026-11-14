@@ -87,9 +87,9 @@ describe("MaintenanceCalendar.render: one event, byte for byte", () => {
         "CALSCALE:GREGORIAN",
         "NAME:Acme Production · Maintenance",
         "X-WR-CALNAME:Acme Production · Maintenance",
-        "X-WR-CALDESC:Every scheduled maintenance event in Acme Production. Calendar",
-        "  apps refresh subscribed calendars on their own schedule (Google Calendar ",
-        " every 12 to 24 hours)\\, so a change can take a while to appear.",
+        "X-WR-CALDESC:Every maintenance event in Acme Production. Calendar apps refr",
+        " esh subscribed calendars on their own schedule (Google Calendar every 12 t",
+        " o 24 hours)\\, so a change can take a while to appear.",
         "X-WR-TIMEZONE:UTC",
         "REFRESH-INTERVAL;VALUE=DURATION:PT1H",
         "X-PUBLISHED-TTL:PT1H",
@@ -668,7 +668,7 @@ describe("MaintenanceCalendar.buildDocument: the calendar", () => {
 
     expect(body).not.toContain("BEGIN:VEVENT");
     expect(readCalendarText(body, "X-WR-CALDESC")).toBe(
-      `Every scheduled maintenance event in Acme Production. ${MAINTENANCE_CALENDAR_REFRESH_CAVEAT} This calendar link is turned off.`,
+      `Every maintenance event in Acme Production. ${MAINTENANCE_CALENDAR_REFRESH_CAVEAT} This calendar link is turned off.`,
     );
   });
 
