@@ -68,6 +68,12 @@ const SKILL: string = fs.readFileSync(
 );
 
 const CODE_SPAN: RegExp = /`([^`]+)`/g;
+/*
+ * The name #6817 retired for one record of Scheduled Maintenance, in any
+ * case: a Maintenance Event. Not the command, scheduled-maintenance-event.
+ */
+const SCHEDULED_MAINTENANCE_EVENT: RegExp =
+  /\bscheduled\s+maintenance\s+events?\b/i;
 
 // The commands the skill shows: in its shell and pipeline blocks, and in its text.
 function shownCommands(): Array<ShownCommand> {
@@ -256,8 +262,9 @@ describe("the coding agent plugin's CLI skill", () => {
     expect(namesWith(resources, CliAction.AddNote)).toEqual(
       [...acknowledged, "scheduled-maintenance-event"].sort(),
     );
+    // The command keeps the API's name, so the skill names it beside the record's.
     expect(SKILL).toContain(
-      "Alerts and the episodes of incidents and alerts take the same three, and a scheduled maintenance event takes `start`, `end` and `add-note`.",
+      "Alerts and the episodes of incidents and alerts take the same three, and a maintenance event (`scheduled-maintenance-event`) takes `start`, `end` and `add-note`.",
     );
     expect(SKILL).toContain("Alerts and their episodes have no public notes.");
 
@@ -277,6 +284,10 @@ describe("the coding agent plugin's CLI skill", () => {
         public: hasPublic,
       });
     }
+  });
+
+  it("no longer says scheduled maintenance event: one is a maintenance event (#6817)", () => {
+    expect(SKILL).not.toMatch(SCHEDULED_MAINTENANCE_EVENT);
   });
 
   it("quotes an error asked for JSON as the CLI writes it", async () => {
