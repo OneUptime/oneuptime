@@ -24,6 +24,20 @@ jest.mock("Common/Server/Infrastructure/Semaphore", () => {
   };
 });
 
+// A process connected to Valkey, unless a test says otherwise.
+const mockRedisClient: { value: unknown } = { value: { status: "ready" } };
+
+jest.mock("Common/Server/Infrastructure/Redis", () => {
+  return {
+    __esModule: true,
+    default: {
+      getClient: jest.fn(() => {
+        return mockRedisClient.value;
+      }),
+    },
+  };
+});
+
 jest.mock("Common/Server/Utils/Logger", () => {
   return {
     __esModule: true,
@@ -37,6 +51,7 @@ jest.mock("Common/Server/Utils/Logger", () => {
 });
 
 import Semaphore from "Common/Server/Infrastructure/Semaphore";
+import logger from "Common/Server/Utils/Logger";
 import JobDeadline from "Common/Server/Utils/JobDeadline";
 import CronLock, {
   CRON_LOCK_GRACE_MS,
@@ -74,6 +89,10 @@ async function advance(ms: number): Promise<void> {
 }
 
 beforeEach(() => {
+  mockRedisClient.value = { status: "ready" };
+  (logger.error as unknown as jest.Mock).mockClear();
+  (logger.warn as unknown as jest.Mock).mockClear();
+  (logger.debug as unknown as jest.Mock).mockClear();
   // Node's performance and hrtime are read-only: Jest 28 cannot fake them.
   jest.useFakeTimers({ doNotFake: ["performance", "hrtime"] });
   semaphore.lock.mockReset();
@@ -126,6 +145,26 @@ describe("CronLock.take", () => {
     expect(jest.getTimerCount()).toBe(0);
   });
 
+  test("in a process with no Valkey connection, runs unlocked without trying the lock, and logs nothing", async () => {
+    // A test, a one-off script: Redis.connect() never ran.
+    mockRedisClient.value = null;
+
+    const take: CronLockTake = await CronLock.take({
+      jobName: JOB_NAME,
+      deadline: new JobDeadline(),
+    });
+
+    expect(take.result).toBe(CronLockTakeResult.Unavailable);
+    expect(semaphore.lock).not.toHaveBeenCalled();
+    // Tests read the jobs' own log lines: this path adds none.
+    expect(logger.error).not.toHaveBeenCalled();
+    expect(logger.warn).not.toHaveBeenCalled();
+    expect(logger.debug).not.toHaveBeenCalled();
+    await take.release();
+    expect(semaphore.release).not.toHaveBeenCalled();
+    expect(jest.getTimerCount()).toBe(0);
+  });
+
   test("says Valkey is unavailable on any other error, so the run goes on unlocked", async () => {
     semaphore.lock.mockRejectedValue(
       new Error("Redis client is not connected"),
@@ -137,6 +176,8 @@ describe("CronLock.take", () => {
     });
 
     expect(take.result).toBe(CronLockTakeResult.Unavailable);
+    // A connected Valkey that refused is an error worth reading.
+    expect(logger.error).toHaveBeenCalled();
     await take.release();
     expect(semaphore.release).not.toHaveBeenCalled();
     expect(jest.getTimerCount()).toBe(0);

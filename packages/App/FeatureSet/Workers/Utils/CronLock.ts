@@ -1,3 +1,4 @@
+import Redis from "Common/Server/Infrastructure/Redis";
 import Semaphore, {
   SemaphoreLockTimeoutError,
   SemaphoreMutex,
@@ -34,7 +35,11 @@ import logger from "Common/Server/Utils/Logger";
  * Valkey that cannot be reached when the run starts leaves it without a
  * lock rather than without a run: the queue that delivered the run reached
  * Valkey a moment before, and a missed run of an on-call or a heartbeat job
- * costs more than a rare overlapping one.
+ * costs more than a rare overlapping one. A process that never connected to
+ * Valkey at all (Redis.getClient() is null: a test, a one-off script) runs
+ * its jobs without the lock and says nothing: there is nothing to take a
+ * lock in, and nothing went wrong. Every server connects at startup
+ * (App/Index.ts), so a worker always takes it.
  */
 
 export const CRON_LOCK_NAMESPACE: string = "cron-run";
@@ -75,6 +80,11 @@ export default class CronLock {
     jobName: string;
     deadline: JobDeadline;
   }): Promise<CronLockTake> {
+    // No Valkey connection in this process (see the class comment): no lock.
+    if (!Redis.getClient()) {
+      return { result: CronLockTakeResult.Unavailable, release: noop };
+    }
+
     let mutex: SemaphoreMutex;
 
     try {
