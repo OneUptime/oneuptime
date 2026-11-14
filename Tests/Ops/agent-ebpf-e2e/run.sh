@@ -94,7 +94,11 @@ REL=e2e
 FULL="${REL}-kubernetes-agent"
 HOST_PROFILER_NAME="${CLUSTER}-host-profiler"
 HOST_PROFILER_STARTED=false
-SAME_PID_FILE=/tmp/same-pid.txt # in the apps node (apps/same-pid.pl)
+# In the apps node (apps/same-pid.pl): its script, what it reports, and what
+# perl says on stderr (a script it could not start writes nothing itself).
+SAME_PID_SCRIPT=/tmp/same-pid.pl
+SAME_PID_FILE=/tmp/same-pid.txt
+SAME_PID_ERR=/tmp/same-pid.err
 SAME_PID_STARTED=false
 CREATED=false
 
@@ -205,7 +209,10 @@ node_sh() { # node_sh <node> <shell command>: run on the node, as root
     k3s) sudo sh -c "$2" ;;
   esac
 }
-node_fetch() { # node_fetch <node> <path on node> <local file>
+# node_fetch <node> <path on node> <local file>. Not for a path under /tmp or
+# /run: KinD mounts a tmpfs there, which `docker cp` cannot reach (node_sh's
+# cat can).
+node_fetch() {
   case "${PLATFORM}" in
     kind) docker cp "$1:$2" "$3" ;;
     k3s) sudo cat "$2" >"$3" ;;
@@ -464,16 +471,19 @@ if [ "${PLATFORM}" = kind ] && [ "${PROFILING}" = true ]; then
   # namespace, as every process's is on a real node, so the chart's profiler
   # on that node resolves it and PR-3 checks the export path with the samples
   # of a process it can see. Started before the warmup, so the profiler has
-  # synchronized it before the load; stopped after the flush.
-  node_sh "${APPS_NODE}" "kill \$(sed -n 's/^samePid=//p' ${SAME_PID_FILE} 2>/dev/null) 2>/dev/null; rm -f ${SAME_PID_FILE}" || true
-  docker cp "${HERE}/apps/same-pid.pl" "${APPS_NODE}:/tmp/same-pid.pl" >/dev/null
-  docker exec -d "${APPS_NODE}" perl /tmp/same-pid.pl "$((WARMUP + LOAD_SECONDS + FLUSH + 900))" "${SAME_PID_FILE}"
+  # synchronized it before the load; stopped after the flush. Its files go
+  # through the node's shell, never `docker cp`: KinD mounts a tmpfs on the
+  # node's /tmp, which `docker cp` cannot reach (a copy in exits 0 and the
+  # node sees no file; a copy out finds none).
+  node_sh "${APPS_NODE}" "kill \$(sed -n 's/^samePid=//p' ${SAME_PID_FILE} 2>/dev/null) 2>/dev/null; rm -f ${SAME_PID_FILE} ${SAME_PID_ERR}" || true
+  docker exec -i "${APPS_NODE}" sh -c "cat >${SAME_PID_SCRIPT}" <"${HERE}/apps/same-pid.pl"
+  docker exec -d "${APPS_NODE}" sh -c "exec perl ${SAME_PID_SCRIPT} $((WARMUP + LOAD_SECONDS + FLUSH + 900)) ${SAME_PID_FILE} 2>${SAME_PID_ERR}"
   SAME_PID_STARTED=true
   for i in $(seq 1 30); do
     node_sh "${APPS_NODE}" "test -s ${SAME_PID_FILE}" && break
     sleep 1
   done
-  log "same-PID process: $(node_sh "${APPS_NODE}" "cat ${SAME_PID_FILE}" 2>/dev/null || echo 'none')"
+  log "same-PID process: $(node_sh "${APPS_NODE}" "cat ${SAME_PID_FILE} 2>/dev/null || { echo none; cat ${SAME_PID_ERR}; }" 2>/dev/null | tr '\n' ' ')"
 fi
 if [ "${PLATFORM}" = kind ] && [ "${PROFILING}" = true ] && [ "${HOST_PROFILER}" = true ]; then
   # The root-namespace profiler (see the top of this file): the chart's own
@@ -553,14 +563,15 @@ tail -1 "${OUT}/loadgen.log" | tee -a "${OUT}/run.log" >&2
 log "flush ${FLUSH}s"
 sleep "${FLUSH}"
 if [ "${SAME_PID_STARTED}" = true ]; then
-  node_sh "${APPS_NODE}" "kill \$(sed -n 's/^samePid=//p' ${SAME_PID_FILE}) 2>/dev/null" || true
+  node_sh "${APPS_NODE}" "kill \$(sed -n 's/^samePid=//p' ${SAME_PID_FILE} 2>/dev/null) 2>/dev/null" || true
   # same-pid.pl adds how the process ended once it has seen it go.
   for i in $(seq 1 10); do
     node_sh "${APPS_NODE}" "grep -q '^ended=' ${SAME_PID_FILE}" 2>/dev/null && break
     sleep 1
   done
-  node_fetch "${APPS_NODE}" "${SAME_PID_FILE}" "${OUT}/same-pid.txt" 2>/dev/null ||
-    echo 'error=same-pid.pl wrote nothing' >"${OUT}/same-pid.txt"
+  # Read through the node's shell, as it was written (a tmpfs; see above).
+  node_sh "${APPS_NODE}" "cat ${SAME_PID_FILE}" >"${OUT}/same-pid.txt" 2>/dev/null ||
+    echo "error=same-pid.pl wrote nothing; perl said: $(node_sh "${APPS_NODE}" "head -c 300 ${SAME_PID_ERR}" 2>/dev/null | tr '\n' ' ')" >"${OUT}/same-pid.txt"
 fi
 if [ "${HOST_PROFILER_STARTED}" = true ]; then
   docker stop -t 30 "${HOST_PROFILER_NAME}" >/dev/null 2>&1 || true
