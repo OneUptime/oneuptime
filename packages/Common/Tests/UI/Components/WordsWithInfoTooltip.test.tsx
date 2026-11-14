@@ -11,6 +11,7 @@ import {
   getWordsBeforeInfo,
   INFO_AFTER_WORDS_CLASS_NAME,
   INFO_GLUE_CLASS_NAME,
+  WORDS_KEEP_INFO_ROOM_CLASS_NAME,
   WordsBeforeInfo,
 } from "../../../UI/Components/HyphenatedWords/WordsBeforeInfo";
 import {
@@ -27,13 +28,18 @@ import {
  * between the two lines, as if it belonged to the next tile (German
  * "Hardware-Betriebszeit", Arabic "وقت تشغيل الجهاز المادي" on a network
  * device's hero). Now the (i) is drawn inside the title's own text, right
- * after its last word, glued to it by a word joiner in a box no line breaks
- * inside - so it moves with that word, after it, and on its left in a
- * language read from the right.
+ * after its last word - after it, and on its left in a language read from
+ * the right - and the words keep the (i)'s room free at the end of every
+ * line, so the (i) always fits after the last word and is never drawn alone
+ * at the start of a line.
  *
  * jsdom lays nothing out, so what is pinned is the structure that decides
  * the layout: the (i) is a descendant of the element holding the words,
- * right after the last word, with nothing between them a line may break at.
+ * right after the last word, and the room the words keep is the room the
+ * (i) takes back. (Chromium and Firefox drew German and Arabic tile titles
+ * at 90-140px with no (i) alone or past its tile, and the words hyphenated
+ * where German does; a word joiner gluing the (i) to the word stopped that
+ * hyphenation, so there is none.)
  */
 
 const RULE: LongWordHyphenation = {
@@ -50,48 +56,109 @@ afterEach(() => {
   cleanup();
 });
 
-// The box that glues the (i) to the word before it.
+// The box that holds the (i) after the last word.
 function glueOf(element: HTMLElement): HTMLElement | null {
   return element.querySelector<HTMLElement>(`[${INFO_GLUE_ATTRIBUTE}]`);
 }
 
-/*
- * The glue box holds the (i) alone - no space, nothing else a line could
- * break at - and is the box its stylesheet starts with a word joiner.
- */
+// The (i)'s box holds the (i) alone - no space, nothing else.
 function expectGlued(glue: HTMLElement | null, info: HTMLElement): void {
   expect(glue).not.toBeNull();
-  expect(glue).toHaveClass("info-glue", "whitespace-nowrap");
+  expect(glue).toHaveClass("whitespace-nowrap");
   expect(glue!.childNodes).toHaveLength(1);
   expect(glue!.firstChild).toBe(info);
 }
 
-describe("the glue (WordsBeforeInfo, WordsWithInfoTooltip.css)", () => {
-  test("is a box no line breaks inside, that a word joiner starts", () => {
-    expect(INFO_GLUE_CLASS_NAME.split(" ")).toEqual([
-      "info-glue",
-      "whitespace-nowrap",
-    ]);
+// The words' element keeps the (i)'s room free at the end of every line.
+function expectKeepsInfoRoom(words: HTMLElement): void {
+  for (const name of WORDS_KEEP_INFO_ROOM_CLASS_NAME.split(" ")) {
+    expect(words).toHaveClass(name);
+  }
+}
 
-    const css: string = fs.readFileSync(
-      path.join(TOOLTIP_DIR, "WordsWithInfoTooltip.css"),
+// A Tailwind length class's value in rem ("pe-[1.125rem]", "ms-1").
+function remOf(className: string, prefix: string): number {
+  const arbitrary: RegExpMatchArray | null = className.match(
+    new RegExp(`^${prefix}-\\[(\\d+(?:\\.\\d+)?)rem\\]$`),
+  );
+  if (arbitrary) {
+    return Number(arbitrary[1]);
+  }
+  // Tailwind's spacing scale: 1 is 0.25rem.
+  const scale: RegExpMatchArray | null = className.match(
+    new RegExp(`^${prefix}-(\\d+(?:\\.\\d+)?)$`),
+  );
+  expect(scale).not.toBeNull();
+  return Number(scale![1]) * 0.25;
+}
+
+function classStartingWith(classNames: string, prefix: string): string {
+  const found: string | undefined = classNames
+    .split(" ")
+    .find((name: string): boolean => {
+      return name.startsWith(`${prefix}-`);
+    });
+  expect(found).toBeDefined();
+  return found!;
+}
+
+describe("the (i)'s room (WordsBeforeInfo)", () => {
+  test("the words keep, at the end of every line, the room the (i) takes back: its gap and its icon", () => {
+    // An inline block no wider than its column, padded at its end.
+    expect(WORDS_KEEP_INFO_ROOM_CLASS_NAME.split(" ")).toEqual(
+      expect.arrayContaining(["inline-block", "max-w-full"]),
+    );
+    const room: number = remOf(
+      classStartingWith(WORDS_KEEP_INFO_ROOM_CLASS_NAME, "pe"),
+      "pe",
+    );
+
+    // The (i): a gap after the word, then a margin that gives the room back.
+    const gap: number = remOf(
+      classStartingWith(INFO_AFTER_WORDS_CLASS_NAME, "ms"),
+      "ms",
+    );
+    const takenBack: number = remOf(
+      classStartingWith(INFO_AFTER_WORDS_CLASS_NAME, "-me"),
+      "-me",
+    );
+    expect(INFO_AFTER_WORDS_CLASS_NAME.split(" ")).toContain("align-middle");
+
+    // The (i)'s icon, as InfoTooltip draws it: h-3.5 w-3.5, 0.875rem.
+    const infoTooltip: string = fs.readFileSync(
+      path.join(TOOLTIP_DIR, "InfoTooltip.tsx"),
       "utf8",
     );
-    const rule: RegExpMatchArray | null = css.match(
-      /\.info-glue::before\s*\{([^}]*)\}/,
-    );
-    expect(rule).not.toBeNull();
-    // The CSS escape of U+2060 WORD JOINER, and nothing else.
-    expect(rule![1]!.trim()).toBe(`content: "${String.fromCharCode(92)}2060";`);
+    expect(infoTooltip).toContain('props.iconClassName || "h-3.5 w-3.5"');
+    const icon: number = 0.875;
+
+    expect(takenBack).toBe(room);
+    expect(room).toBe(gap + icon);
   });
 
-  test("the component brings the stylesheet with it", () => {
+  test("a logical room and margin: at the end of the line in either reading direction", () => {
+    const classes: Array<string> = [
+      ...WORDS_KEEP_INFO_ROOM_CLASS_NAME.split(" "),
+      ...INFO_AFTER_WORDS_CLASS_NAME.split(" "),
+    ];
+    for (const name of classes) {
+      expect(name).not.toMatch(/^-?(pr|pl|mr|ml)-/);
+    }
+  });
+
+  test("the (i)'s box breaks no line inside, and nothing is glued to the word: it may still hyphenate", () => {
+    expect(INFO_GLUE_CLASS_NAME.split(" ")).toEqual(["whitespace-nowrap"]);
+
+    // No stylesheet that puts a character before the (i).
+    expect(
+      fs.existsSync(path.join(TOOLTIP_DIR, "WordsWithInfoTooltip.css")),
+    ).toBe(false);
     expect(
       fs.readFileSync(
         path.join(TOOLTIP_DIR, "WordsWithInfoTooltip.tsx"),
         "utf8",
       ),
-    ).toContain('import "./WordsWithInfoTooltip.css";');
+    ).not.toMatch(/import\s+"[^"]*\.css";/);
   });
 });
 
@@ -178,7 +245,7 @@ describe("the words before the (i) (getWordsBeforeInfo)", () => {
 });
 
 describe("WordsWithInfoTooltip, rendered", () => {
-  test("the (i) is inside the element holding the words, right after the last word, glued to it", () => {
+  test("the (i) is inside the element holding the words, right after the last word, in the room they keep for it", () => {
     render(
       <WordsWithInfoTooltip
         text="Hardware uptime"
@@ -195,6 +262,7 @@ describe("WordsWithInfoTooltip, rendered", () => {
 
     expect(title).toContainElement(info);
     expect(title).toHaveClass(WORDS_BREAK_CLASS_NAME);
+    expectKeepsInfoRoom(title);
     expectGlued(glue, info);
     // The words, then the glue: the last thing in the title.
     expect(glue!.parentElement).toBe(title);
@@ -216,8 +284,9 @@ describe("WordsWithInfoTooltip, rendered", () => {
     expect(screen.getByText("Hardware uptime")).toBe(
       screen.getByTestId("title"),
     );
-    // Nothing hidden in it: the joiner is the stylesheet's, not the text's.
+    // Nothing hidden in it: no joiner, no mark, only the words.
     expect(screen.getByTestId("title").textContent).toBe("Hardware uptime");
+    expect(document.body.innerHTML).not.toContain(String.fromCharCode(0x2060));
   });
 
   test("the (i) keeps its own label and focus ring, whatever words it follows", () => {
@@ -298,6 +367,8 @@ describe("WordsWithInfoTooltip, rendered", () => {
     expect(glue!.previousSibling?.textContent).toBe("وقت تشغيل الجهاز المادي");
     // A logical margin: after the word, which is its left in Arabic.
     expect(screen.getByTestId("title-info")).toHaveClass("ms-1");
+    // And the room kept at the end of the line - its left, here.
+    expectKeepsInfoRoom(title);
     expect(title).toHaveAttribute("lang", "ar");
   });
 
@@ -332,6 +403,8 @@ describe("WordsWithInfoTooltip, rendered", () => {
     expect(title.textContent).toBe("Hardware uptime");
     expect(screen.queryByRole("button")).toBeNull();
     expect(glueOf(title)).toBeNull();
+    // No (i), no room kept for one: the words reach the end of the line.
+    expect(title.className).toBe(WORDS_BREAK_CLASS_NAME);
   });
 
   test("the caller's classes and the rule's sit on the element holding the words", () => {
@@ -354,7 +427,8 @@ describe("WordsWithInfoTooltip, rendered", () => {
 
     /*
      * A long last word is drawn in its own box (an inline block, which a
-     * line may break around): the (i) is glued inside that box, after it.
+     * line may break around): the (i) is inside that box, after it, and
+     * the room it takes back is kept by the title around it.
      */
     const longWord: HTMLElement | null =
       title.querySelector<HTMLElement>(".test-long-word");
@@ -363,6 +437,8 @@ describe("WordsWithInfoTooltip, rendered", () => {
     const glue: HTMLElement | null = glueOf(title);
     expect(glue!.parentElement).toBe(longWord);
     expectGlued(glue, screen.getByTestId("title-info"));
+    expectKeepsInfoRoom(title);
+    expect(longWord!.className).toBe(RULE.longWordClassName);
   });
 
   test("a long word that does not end the title keeps its box, and the (i) follows the last word outside it", () => {

@@ -163,7 +163,7 @@ function renderOverview(
 
 /*
  * The element holding a title's words, for its (i): the (i) is drawn in the
- * title's own line of text, glued to its last word (WordsWithInfoTooltip,
+ * title's own line of text, after its last word (WordsWithInfoTooltip,
  * issue #7348), never as the title's sibling in a flex row.
  */
 function wordsHoldingInfo(info: HTMLElement): HTMLElement {
@@ -180,6 +180,18 @@ function wordsHoldingInfo(info: HTMLElement): HTMLElement {
   expect(words.lastChild).toBe(glue);
 
   return words;
+}
+
+/*
+ * The words' element is an inline block (it keeps the (i)'s room at the end
+ * of its lines). Inside a plain block it would sit on a line of the tile's
+ * own, larger font, and a title of two lines would take that font's line
+ * height (24px a line, not the title's 16px). Its box is a flex row, which
+ * makes it a block of its own: the title's lines are its own.
+ */
+function expectWordsOwnTheirLines(words: HTMLElement): void {
+  expect(words).toHaveClass("inline-block");
+  expect(words.parentElement).toHaveClass("flex", "min-w-0");
 }
 
 function tileRoot(title: string): HTMLElement {
@@ -358,6 +370,7 @@ describe("a linked ResourceOverview tile", () => {
       );
       // In the line after the words, at the middle of their letters.
       expect(info).toHaveClass("ms-1", "align-middle");
+      expectWordsOwnTheirLines(words);
     }
   });
 
@@ -517,6 +530,7 @@ describe("ChartCard", () => {
 
     expect(words).toHaveTextContent("p95 duration");
     expect(words).toHaveClass("uppercase");
+    expectWordsOwnTheirLines(words);
   });
 });
 
@@ -577,6 +591,7 @@ describe("Infrastructure GoldenMetricTile", () => {
 
     expect(words).toHaveTextContent("Pods");
     expect(words).toHaveAttribute("data-testid", "golden-metric-tile-title");
+    expectWordsOwnTheirLines(words);
   });
 });
 

@@ -132,6 +132,7 @@ import Route from "../../../Types/API/Route";
 import { Green } from "../../../Types/BrandColors";
 import NetworkDeviceMonitoringMethod from "../../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import ObjectID from "../../../Types/ObjectID";
+import { WORDS_KEEP_INFO_ROOM_CLASS_NAME } from "../../../UI/Components/HyphenatedWords/WordsBeforeInfo";
 import PermissionGate, {
   PermissionGateResult,
 } from "../../../UI/Utils/PermissionGate";
@@ -1231,10 +1232,10 @@ describe("the device Overview status hero", () => {
  * "Hardware-Betriebszeit", Arabic "وقت تشغيل الجهاز المادي" in a tile two
  * to a row - took the row's whole width, and the (i) was drawn at the far
  * edge of the tile, between the two lines. It is now inside the element
- * that holds the title's words, right after the last word, glued to it (a
- * word joiner, in a box no line breaks inside), so it moves with that word.
- * jsdom lays nothing out: what is pinned is that structure, and that the
- * (i) is still named for the title.
+ * that holds the title's words, right after the last word, and the words
+ * keep its room free at the end of every line, so it always fits after
+ * that word. jsdom lays nothing out: what is pinned is that structure, and
+ * that the (i) is still named for the title.
  */
 describe("the device Overview status hero's tile titles", () => {
   const TITLES_WITH_INFO: Array<string> = [
@@ -1258,7 +1259,7 @@ describe("the device Overview status hero's tile titles", () => {
     return title;
   }
 
-  // The box that glues the (i) to the title's last word, if there is one.
+  // The box that holds the (i) after the title's last word, if there is one.
   function glueOf(title: HTMLElement): HTMLElement | null {
     return title.querySelector<HTMLElement>("[data-info-glue]");
   }
@@ -1297,16 +1298,19 @@ describe("the device Overview status hero's tile titles", () => {
       expect(info).toHaveClass("focus-visible:ring-2");
 
       /*
-       * Right after the last word, glued to it: no line can break between
-       * them, so the (i) is never left at the line's far end, or alone at
-       * the start of the next.
+       * Right after the last word, in the room the words keep for it at the
+       * end of every line: the (i) is never left at the line's far end, or
+       * alone at the start of the next.
        */
       const glue: HTMLElement | null = glueOf(title);
       expect(glue).not.toBeNull();
-      expect(glue).toHaveClass("info-glue", "whitespace-nowrap");
+      expect(glue).toHaveClass("whitespace-nowrap");
       expect(glue!.childNodes).toHaveLength(1);
       expect(glue!.firstChild).toBe(info);
       expect(glue!.previousSibling?.textContent).toBe(text);
+      expect(glue!.parentElement).toHaveClass(
+        ...WORDS_KEEP_INFO_ROOM_CLASS_NAME.split(" "),
+      );
 
       // The words stay one text: the title is found by them, as before.
       expect(title).toContainElement(screen.getByText(text));

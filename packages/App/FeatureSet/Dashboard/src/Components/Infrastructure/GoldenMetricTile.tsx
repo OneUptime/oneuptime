@@ -183,7 +183,7 @@ const GoldenMetricTile: FunctionComponent<GoldenMetricTileProps> = (
          * instead of running under the icon, and its (i) follows its last
          * word on whichever line it ends (issue #7348).
          */}
-        <div className="min-w-0">
+        <div className="flex min-w-0">
           <WordsWithInfoTooltip
             className="min-w-0 text-xs font-medium text-gray-500 uppercase tracking-wider"
             dataTestId="golden-metric-tile-title"

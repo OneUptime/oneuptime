@@ -27,7 +27,8 @@ export interface ComponentProps {
  *
  * Its title, hint and count in the reader's language and digits. The (i)
  * follows the title's last word (WordsWithInfoTooltip, issue #7348), and
- * the count follows the (i), on the line the title ends on.
+ * the count follows the (i), on the line the title ends on - after the
+ * title in either reading direction.
  */
 const NetworkMapSection: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -46,7 +47,17 @@ const NetworkMapSection: FunctionComponent<ComponentProps> = (
             label={props.title}
             description={props.description}
           />
-          <span className="ms-1.5 text-xs font-normal tabular-nums text-gray-400">
+          {/*
+           * The count is a box of its own (inline-block): in a right-to-left
+           * page a title that ends in Latin letters ("WAN") would otherwise
+           * take the digits into its own run and draw them between its
+           * words. As a box it keeps the page's direction, so its gap is
+           * on the title's side.
+           */}
+          <span
+            className="ms-1.5 inline-block text-xs font-normal tabular-nums text-gray-400"
+            data-testid="network-map-section-count"
+          >
             {translator.formatNumber(props.count)}
           </span>
         </h3>

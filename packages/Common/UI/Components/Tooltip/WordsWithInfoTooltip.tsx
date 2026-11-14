@@ -4,18 +4,19 @@ import { LongWordHyphenation, WordRun } from "../HyphenatedWords/LongWords";
 import {
   INFO_AFTER_WORDS_CLASS_NAME,
   INFO_GLUE_CLASS_NAME,
+  WORDS_KEEP_INFO_ROOM_CLASS_NAME,
   WordsBeforeInfo,
   getWordsBeforeInfo,
 } from "../HyphenatedWords/WordsBeforeInfo";
-// The word joiner the glue box starts with.
-import "./WordsWithInfoTooltip.css";
 
 /*
  * A title's words with the (i) that explains it after its last word, in the
  * title's own line of text (WordsBeforeInfo): a title that wraps keeps its
  * (i) after the word it ends on - on the left of that word in a language
- * read from the right - and never alone at the start of a line. Never at
- * the far edge of its tile either, as the flex sibling it used to be (issue
+ * read from the right - and never alone at the start of a line: the words
+ * keep the (i)'s room free on every line, so they wrap (or hyphenate) where
+ * they must and the (i) always fits after the last of them. Never at the
+ * far edge of its tile either, as the flex sibling it used to be (issue
  * #7348).
  *
  * The words are one element (a span) that the caller puts in its own - a
@@ -61,7 +62,7 @@ export interface ComponentProps {
   infoClassName?: string | undefined;
 }
 
-// The attribute of the box that glues the (i) to the last word.
+// The attribute of the box that holds the (i) after the last word.
 export const INFO_GLUE_ATTRIBUTE: string = "data-info-glue";
 
 const WordsWithInfoTooltip: FunctionComponent<ComponentProps> = (
@@ -75,9 +76,8 @@ const WordsWithInfoTooltip: FunctionComponent<ComponentProps> = (
   });
 
   /*
-   * The (i), in a box no line breaks inside, which a word joiner starts: no
-   * line breaks before a word joiner either, so the (i) stays with the word
-   * before it.
+   * The (i), in a box of its own after the last word. It adds no width to
+   * the line: it sits in the room the words keep free for it.
    */
   const info: ReactElement | null = description ? (
     <span className={INFO_GLUE_CLASS_NAME} {...{ [INFO_GLUE_ATTRIBUTE]: "" }}>
@@ -96,7 +96,11 @@ const WordsWithInfoTooltip: FunctionComponent<ComponentProps> = (
   const longWordClassName: string = props.rule?.longWordClassName || "";
   const lastIndex: number = words.runs.length - 1;
 
-  const className: string = [props.className, words.className]
+  const className: string = [
+    props.className,
+    words.className,
+    info ? WORDS_KEEP_INFO_ROOM_CLASS_NAME : "",
+  ]
     .filter(Boolean)
     .join(" ");
 

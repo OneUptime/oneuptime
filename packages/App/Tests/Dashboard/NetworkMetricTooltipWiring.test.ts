@@ -248,11 +248,23 @@ describe("the latency trend", () => {
     "Components/NetworkDevice/DeviceLatencyTrend.tsx",
   );
 
-  test("the header's (i) explains now / avg / max", () => {
-    expect(code).toContain(INFO_TOOLTIP_IMPORT);
-    expect(code).toContain(
-      `<InfoTooltip label={trendTitle} text={${deviceRef("latencyTrend")}} />`,
+  /*
+   * Both (i)s follow their words (issue #7348): German wraps the title in
+   * the Network Map's drawer on a phone, which pushed a flex sibling (i) to
+   * the far edge of the row.
+   */
+  test("the header's (i) explains now / avg / max, after the title's last word", () => {
+    expect(code).toContain(WORDS_WITH_INFO_IMPORT);
+    expect(code).not.toContain(INFO_TOOLTIP_IMPORT);
+    expect(code).not.toContain("<InfoTooltip");
+
+    const title: string = element(
+      code,
+      '<WordsWithInfoTooltip className="min-w-0',
     );
+    expect(title).toContain("text={trendTitle} label={trendTitle}");
+    expect(title).toContain(`description={${deviceRef("latencyTrend")}}`);
+    expect(title).toContain('dataTestId="network-device-latency-title"');
   });
 
   test("the packet-loss line has its own (i), after the value", () => {
@@ -262,18 +274,19 @@ describe("the latency trend", () => {
       "</p>",
     );
 
-    expect(loss).toContain(
-      `<InfoTooltip label={lossTitle} text={${deviceRef("packetLossPeak")}} />`,
-    );
+    expect(loss).toContain("<WordsWithInfoTooltip");
+    expect(loss).toContain("label={lossTitle}");
+    expect(loss).toContain(`description={${deviceRef("packetLossPeak")}}`);
     expect(loss.indexOf("formatPercent(lossSummary.max)")).toBeLessThan(
-      loss.indexOf("<InfoTooltip"),
+      loss.indexOf("description="),
     );
   });
 
-  test("the (i) never sits inside the Open metrics link", () => {
+  test("the (i) never sits inside the Open metrics link, which is kept whole beside the title", () => {
     const link: string = between(code, "<Link", "</Link>");
 
     expect(link).not.toContain("InfoTooltip");
+    expect(link).toContain("flex-shrink-0 whitespace-nowrap");
   });
 });
 
