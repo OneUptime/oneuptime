@@ -7,10 +7,13 @@ import { EVERY_THIRTY_SECONDS } from "Common/Utils/CronTime";
 import MonitorService from "Common/Server/Services/MonitorService";
 import logger from "Common/Server/Utils/Logger";
 import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
+import MonitorHeartbeatState, {
+  HeartbeatKind,
+  HeartbeatWrite,
+} from "Common/Server/Utils/Monitor/MonitorHeartbeatState";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import ProjectService from "Common/Server/Services/ProjectService";
 import OneUptimeDate from "Common/Types/Date";
-import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 
 RunCron(
   "IncomingEmailMonitor:CheckOnlineStatus",
@@ -23,24 +26,20 @@ RunCron(
         ),
     );
 
-    const sweepStartedAt: Date = OneUptimeDate.getCurrentDate();
-
     await runMonitorSweep({
       jobName: "IncomingEmailMonitor:CheckOnlineStatus",
+      /*
+       * Every enabled incoming email monitor of an active project, once:
+       * the sweep's ID cursor visits each monitor once. Monitors used to be
+       * stamped as they were visited, and queried by that stamp so none was
+       * visited twice; the stamp is now written only every few minutes
+       * (stampStatusCheckedAt), so it no longer says who was visited.
+       */
       queries: [
         {
           ...MonitorService.getEnabledMonitorQuery(),
           monitorType: MonitorType.IncomingEmail,
           project: { ...ProjectService.getActiveProjectStatusQuery() },
-          incomingEmailMonitorHeartbeatCheckedAt: QueryHelper.isNull(),
-        },
-        {
-          ...MonitorService.getEnabledMonitorQuery(),
-          monitorType: MonitorType.IncomingEmail,
-          project: { ...ProjectService.getActiveProjectStatusQuery() },
-          // Exclude monitors stamped in the never-checked phase above.
-          incomingEmailMonitorHeartbeatCheckedAt:
-            QueryHelper.lessThan(sweepStartedAt),
         },
       ],
       select: {
@@ -49,6 +48,8 @@ RunCron(
         incomingEmailMonitorRequest: true,
         createdAt: true,
         projectId: true,
+        // What its last evaluation found (MonitorHeartbeatState).
+        currentMonitorStatusId: true,
       },
       processMonitor: checkOnlineStatus,
     });
@@ -68,29 +69,7 @@ const checkOnlineStatus: (monitor: Monitor) => Promise<void> = async (
       return;
     }
 
-    logger.debug(
-      `Updating incoming email monitor heartbeat checked at: ${monitor.id?.toString()}`,
-    );
-
-    /*
-     * Heartbeat bookkeeping stamp, written for EVERY incoming-email monitor
-     * every 30 seconds. The full updateOneById pipeline costs ~3 SELECTs +
-     * UPDATE and — because Monitor has @EnableWorkflow + @EnableAuditLog —
-     * fires an on-update workflow HTTP trigger and an audit-log row per
-     * monitor per tick. A scheduler timestamp should do none of that;
-     * single-statement UPDATE, same pattern as the heartbeat writes in
-     * MonitorResource.ts.
-     */
-    await MonitorService.updateColumnsByIdWithoutHooks({
-      id: monitor.id!,
-      data: {
-        incomingEmailMonitorHeartbeatCheckedAt: OneUptimeDate.getCurrentDate(),
-      },
-    });
-
-    logger.debug(
-      `Updated incoming email monitor heartbeat checked at: ${monitor.id?.toString()}`,
-    );
+    await stampStatusCheckedAt(monitor);
 
     const processRequest: boolean = shouldProcessRequest(monitor);
 
@@ -117,6 +96,30 @@ const checkOnlineStatus: (monitor: Monitor) => Promise<void> = async (
       emailBody: monitor.incomingEmailMonitorRequest?.emailBody || "",
     };
 
+    /*
+     * Evaluated only once a heartbeat window can have turned: a monitor
+     * whose latest email was already evaluated - against these criteria, at
+     * this status - and whose shortest "received in N minutes" window has
+     * not passed since would be judged exactly as it was
+     * (MonitorHeartbeatState.canSkipEvaluation). Every sweep after the
+     * window has passed evaluates it, as before, and so does a new email.
+     */
+    if (
+      await MonitorHeartbeatState.canSkipEvaluation({
+        kind: HeartbeatKind.IncomingEmail,
+        monitorId: monitor.id!,
+        receivedAt: incomingEmailRequest.emailReceivedAt,
+        monitorSteps: monitor.monitorSteps,
+        monitorStatusId: monitor.currentMonitorStatusId,
+        now: incomingEmailRequest.checkedAt!,
+      })
+    ) {
+      logger.debug(
+        `Incoming email monitor ${monitor.id?.toString()}: its latest email was evaluated and no heartbeat window has passed since. Skipping.`,
+      );
+      return;
+    }
+
     logger.debug(
       `Processing incoming email monitor: ${monitor.id?.toString()}`,
     );
@@ -130,6 +133,39 @@ const checkOnlineStatus: (monitor: Monitor) => Promise<void> = async (
     );
     logger.error(error);
   }
+};
+
+/*
+ * "Monitor Status Check At", as the Dashboard shows it: written for every
+ * monitor every 30 seconds, it was a Monitor row write per monitor per
+ * sweep (single statement, no hooks). Now at most every few minutes
+ * (MonitorHeartbeatState.CHECK_STAMP_WRITE_EVERY_SECONDS) - an email the
+ * monitor receives also writes it, with the email.
+ */
+const stampStatusCheckedAt: (monitor: Monitor) => Promise<void> = async (
+  monitor: Monitor,
+): Promise<void> => {
+  if (
+    !(await MonitorHeartbeatState.isWriteDue({
+      monitorId: monitor.id!,
+      write: HeartbeatWrite.IncomingEmailCheck,
+    }))
+  ) {
+    return;
+  }
+
+  await MonitorService.updateColumnsByIdWithoutHooks({
+    id: monitor.id!,
+    data: {
+      incomingEmailMonitorHeartbeatCheckedAt: OneUptimeDate.getCurrentDate(),
+    },
+  });
+
+  await MonitorHeartbeatState.markWritten({
+    monitorId: monitor.id!,
+    write: HeartbeatWrite.IncomingEmailCheck,
+    everySeconds: MonitorHeartbeatState.CHECK_STAMP_WRITE_EVERY_SECONDS,
+  });
 };
 
 type ShouldProcessRequestFunction = (monitor: Monitor) => boolean;

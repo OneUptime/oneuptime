@@ -181,11 +181,11 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
     },
   "packages/App/FeatureSet/Workers/Jobs/IncomingEmailMonitor/CheckOnlineStatus.ts":
     {
-      "checkOnlineStatus Monitor": Why.Bookkeeping,
+      "stampStatusCheckedAt Monitor": Why.Bookkeeping,
     },
   "packages/App/FeatureSet/Workers/Jobs/IncomingRequestMonitor/CheckHeartbeat.ts":
     {
-      "checkHeartBeat Monitor": Why.Bookkeeping,
+      "stampStatusCheckedAt Monitor": Why.Bookkeeping,
     },
   "packages/App/FeatureSet/Workers/Jobs/TelemetryMonitor/MonitorTelemetryMonitor.ts":
     {
