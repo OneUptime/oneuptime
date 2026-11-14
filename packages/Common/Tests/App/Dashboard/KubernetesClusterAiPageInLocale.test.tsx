@@ -72,7 +72,12 @@ import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import PermissionUtil from "../../../UI/Utils/Permission";
 import User from "../../../UI/Utils/User";
-import { toSentenceTerm } from "../../../UI/Utils/TranslateTemplate";
+import {
+  TemplateValues,
+  toSentenceTerm,
+  translatableTerm,
+} from "../../../UI/Utils/TranslateTemplate";
+import { dashboardTranslator } from "../../Helpers/DashboardLocales";
 import { goTo, PROJECT_ID } from "./SideMenuHarness";
 import { escapeRegExp } from "../../../Utils/RegExpEscape";
 
@@ -284,6 +289,22 @@ function filledIn(
   }
 
   return sentence;
+}
+
+/*
+ * The locale's sentence for `template` filled as the page fills it: through
+ * the Dashboard's Translator, a term in the locale's word, without a space
+ * a Chinese or Japanese sentence drops beside it (#7864).
+ */
+function translatedIn(
+  code: string,
+  template: string,
+  values: TemplateValues,
+): string {
+  // The locale words the sentence itself: no English fallback passes.
+  wordingIn(code, template);
+
+  return dashboardTranslator(code).translateTemplate(template, values);
 }
 
 /*
@@ -781,15 +802,18 @@ describe("the AI agent page in the reader's language", () => {
       expect(screen.getByTestId("ai-agent-attention-title")).toHaveTextContent(
         wordingIn(code, "OneUptime AI can't investigate this cluster"),
       );
-      // The name, cased mid-sentence: French "l'agent IA Kubernetes".
+      /*
+       * The name, which the locale words itself, cased mid-sentence: French
+       * "l'agent IA Kubernetes".
+       */
+      wordingIn(code, KUBERNETES_AI_AGENT_DISPLAY_NAME);
       expect(
         screen.getByTestId("ai-agent-gap-ai_agent_not_connected"),
       ).toHaveTextContent(
-        filledIn(code, "Install the {{agent}} with the command above.", {
-          agent: toSentenceTerm(
-            wordingIn(code, KUBERNETES_AI_AGENT_DISPLAY_NAME),
-            code,
-          ),
+        translatedIn(code, "Install the {{agent}} with the command above.", {
+          agent: translatableTerm(KUBERNETES_AI_AGENT_DISPLAY_NAME, {
+            inSentence: true,
+          }),
         }),
       );
     },

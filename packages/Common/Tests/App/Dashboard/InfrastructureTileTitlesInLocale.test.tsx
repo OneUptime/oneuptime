@@ -84,6 +84,8 @@ import {
   getTileTitleWordsClassName,
   TILE_TITLE_LONG_WORDS,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/TileTitleWords";
+import { translatableTerm } from "../../../UI/Utils/TranslateTemplate";
+import { dashboardTranslator } from "../../Helpers/DashboardLocales";
 import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 const DASHBOARD: string = path.resolve(
@@ -482,11 +484,15 @@ describe("a golden metric tile", () => {
     (language: string) => {
       renderTile(language, { title: "Capacity Used" });
 
-      const template: string = drawn(language, "About {{label}}");
-      const name: string =
-        template === "About {{label}}"
-          ? "About Capacity Used"
-          : template.replace("{{label}}", drawn(language, "Capacity Used"));
+      /*
+       * As the (i) fills it (InfoTooltip): the title a term of the sentence,
+       * so a Chinese or Japanese sentence keeps no space where the title and
+       * its words meet in their own script, "使用容量について" (#7864).
+       */
+      const name: string = dashboardTranslator(language).translateTemplate(
+        "About {{label}}",
+        { label: translatableTerm("Capacity Used") },
+      );
 
       expect(screen.getByRole("button", { name })).toBeInTheDocument();
     },

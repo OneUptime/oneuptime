@@ -15,6 +15,10 @@ import {
   translationKey,
   Translator,
 } from "../../../UI/Utils/TranslateTemplate";
+import {
+  FIRST_STRONG_ISOLATE,
+  POP_DIRECTIONAL_ISOLATE,
+} from "../../../Types/ReadingDirection";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -1206,6 +1210,324 @@ describe("a word cased for the middle of a sentence, where a sentence starts wit
         { items: MONITORS },
       ),
     ).toBe("Monitors have 2 checks.");
+  });
+});
+
+/*
+ * A term beside Chinese or Japanese words (#7864). The zh-CN, zh-TW and ja
+ * files put a space between their words and a {{placeholder}}: right beside
+ * a name in Latin letters ("请设置 OneUptime 收集器"), wrong beside a term
+ * the language words in its own script ("请设置 设备上的导出器"). One key
+ * takes names of both kinds, so the Translator drops the space where a term
+ * and the words meet in Chinese or Japanese on both sides of it.
+ */
+describe("a term beside Chinese or Japanese words", () => {
+  const SET_UP: string = "Set up the {{agentName}} — it takes a few minutes.";
+  const STOPPED: string = "The {{agentName}} is no longer reporting.";
+  const REVOKES: string = "This revokes the {{agentName}}'s key.";
+  const STOPPED_SINCE: string =
+    "OneUptime last heard from this host {{lastHeard}}. The {{agentName}} is no longer reporting.";
+  const ABOUT: string = "Did you set up the {{agentName}}? {{agentName}}";
+
+  const CHINESE: Dictionary = {
+    [SET_UP]: "请设置 {{agentName}}，只需几分钟。",
+    [STOPPED]: "{{agentName}} 已不再上报数据。",
+    [REVOKES]: "此操作会撤销 {{agentName}} 的密钥。",
+    [STOPPED_SINCE]:
+      "OneUptime 最后一次收到此主机的数据是在 {{lastHeard}}。{{agentName}} 已不再上报数据。",
+    // A space after a full-width question mark: punctuation's spacing.
+    [ABOUT]: "你设置了吗？ {{agentName}}",
+    "OpenTelemetry exporter on your devices": "设备上的导出器",
+    "OneUptime collector": "OneUptime 收集器",
+    "Database AI agent": "数据库 AI 代理",
+  };
+
+  const EXPORTER: ReturnType<typeof translatableTerm> = translatableTerm(
+    "OpenTelemetry exporter on your devices",
+    { inSentence: true },
+  );
+  const COLLECTOR: ReturnType<typeof translatableTerm> = translatableTerm(
+    "OneUptime collector",
+    { inSentence: true },
+  );
+  const OTEL_COLLECTOR: ReturnType<typeof translatableTerm> = translatableTerm(
+    "OpenTelemetry Collector",
+  );
+  const DATABASE_AGENT: ReturnType<typeof translatableTerm> =
+    translatableTerm("Database AI agent");
+
+  const chinese: Translator = createTranslator(lookupFrom(CHINESE), "zh-CN");
+
+  test("zh-CN: no space where a term and the words meet in Chinese", () => {
+    expect(chinese.translateTemplate(SET_UP, { agentName: EXPORTER })).toBe(
+      "请设置设备上的导出器，只需几分钟。",
+    );
+    expect(chinese.translateTemplate(STOPPED, { agentName: COLLECTOR })).toBe(
+      "OneUptime 收集器已不再上报数据。",
+    );
+    // On both sides of it.
+    expect(
+      chinese.translateTemplate(REVOKES, { agentName: DATABASE_AGENT }),
+    ).toBe("此操作会撤销数据库 AI 代理的密钥。");
+  });
+
+  test("zh-CN: the space beside a Latin letter stays, on either side", () => {
+    expect(chinese.translateTemplate(SET_UP, { agentName: COLLECTOR })).toBe(
+      "请设置 OneUptime 收集器，只需几分钟。",
+    );
+    expect(
+      chinese.translateTemplate(STOPPED, { agentName: OTEL_COLLECTOR }),
+    ).toBe("OpenTelemetry Collector 已不再上报数据。");
+    expect(
+      chinese.translateTemplate(REVOKES, { agentName: OTEL_COLLECTOR }),
+    ).toBe("此操作会撤销 OpenTelemetry Collector 的密钥。");
+  });
+
+  test("a plain value keeps the template's spaces: a name someone typed is set apart", () => {
+    expect(
+      chinese.translateTemplate(SET_UP, { agentName: "设备上的导出器" }),
+    ).toBe("请设置 设备上的导出器，只需几分钟。");
+    expect(
+      chinese.translateTemplate(REVOKES, { agentName: "数据库 AI 代理" }),
+    ).toBe("此操作会撤销 数据库 AI 代理 的密钥。");
+    // A date the reader's language writes, and a composed value.
+    expect(
+      chinese.translateTemplate(STOPPED_SINCE, {
+        lastHeard: "几秒前",
+        agentName: composedValue((): string => {
+          return "数据库代理";
+        }),
+      }),
+    ).toBe(
+      "OneUptime 最后一次收到此主机的数据是在 几秒前。数据库代理 已不再上报数据。",
+    );
+  });
+
+  test("a space beside punctuation is the template's own", () => {
+    expect(chinese.translateTemplate(ABOUT, { agentName: EXPORTER })).toBe(
+      "你设置了吗？ 设备上的导出器",
+    );
+
+    // The wave dash: punctuation of Chinese and Japanese, not a letter.
+    const BETWEEN: string = "From {{from}} to {{to}}";
+    const days: Translator = createTranslator(
+      lookupFrom({
+        [BETWEEN]: "{{from}} 〜 {{to}}",
+        Monday: "月曜日",
+        Friday: "金曜日",
+      }),
+      "ja",
+    );
+
+    expect(
+      days.translateTemplate(BETWEEN, {
+        from: translatableTerm("Monday"),
+        to: translatableTerm("Friday"),
+      }),
+    ).toBe("月曜日 〜 金曜日");
+  });
+
+  test("zh-TW and ja the same way: kana, and the prolonged sound mark, are letters", () => {
+    const traditional: Translator = createTranslator(
+      lookupFrom({
+        [SET_UP]: "請設定 {{agentName}}，只需幾分鐘。",
+        [REVOKES]: "這會撤銷 {{agentName}} 的金鑰。",
+        "OpenTelemetry exporter on your devices": "裝置上的匯出器",
+        "Database AI agent": "資料庫 AI 代理程式",
+      }),
+      "zh-TW",
+    );
+    const japanese: Translator = createTranslator(
+      lookupFrom({
+        [SET_UP]:
+          "{{agentName}} をセットアップしてください — 数分で完了します。",
+        [REVOKES]: "{{agentName}} のキーを無効にします。",
+        [STOPPED_SINCE]:
+          "OneUptime がこのホストから最後にデータを受信したのは {{lastHeard}} です。{{agentName}} は報告を停止しています。",
+        "OneUptime collector": "OneUptime コレクター",
+        "Database AI agent": "データベース AI エージェント",
+        "a while ago": "少し前",
+      }),
+      "ja",
+    );
+
+    expect(traditional.translateTemplate(SET_UP, { agentName: EXPORTER })).toBe(
+      "請設定裝置上的匯出器，只需幾分鐘。",
+    );
+    expect(
+      traditional.translateTemplate(REVOKES, { agentName: DATABASE_AGENT }),
+    ).toBe("這會撤銷資料庫 AI 代理程式的金鑰。");
+    expect(japanese.translateTemplate(SET_UP, { agentName: COLLECTOR })).toBe(
+      "OneUptime コレクターをセットアップしてください — 数分で完了します。",
+    );
+    expect(
+      japanese.translateTemplate(REVOKES, { agentName: DATABASE_AGENT }),
+    ).toBe("データベース AI エージェントのキーを無効にします。");
+    expect(
+      japanese.translateTemplate(SET_UP, { agentName: OTEL_COLLECTOR }),
+    ).toBe(
+      "OpenTelemetry Collector をセットアップしてください — 数分で完了します。",
+    );
+    // A term on both sides of a value's spaces: "少し前" is a term too.
+    expect(
+      japanese.translateTemplate(STOPPED_SINCE, {
+        lastHeard: translatableTerm("a while ago"),
+        agentName: COLLECTOR,
+      }),
+    ).toBe(
+      "OneUptime がこのホストから最後にデータを受信したのは少し前です。OneUptime コレクターは報告を停止しています。",
+    );
+  });
+
+  test("ko, en and the other languages keep the template's spaces", () => {
+    // The same words, read as a language that puts spaces between its words.
+    for (const language of ["ko", "en", "de", "fa"]) {
+      expect(
+        createTranslator(lookupFrom(CHINESE), language).translateTemplate(
+          SET_UP,
+          { agentName: EXPORTER },
+        ),
+      ).toBe("请设置 设备上的导出器，只需几分钟。");
+    }
+
+    const korean: Translator = createTranslator(
+      lookupFrom({
+        [SET_UP]: "지금 {{agentName}} 설정을 시작하세요. 몇 분이면 됩니다.",
+        "OpenTelemetry exporter on your devices": "디바이스의 익스포터",
+      }),
+      "ko",
+    );
+
+    expect(korean.translateTemplate(SET_UP, { agentName: EXPORTER })).toBe(
+      "지금 디바이스의 익스포터 설정을 시작하세요. 몇 분이면 됩니다.",
+    );
+    expect(english.translateTemplate(SET_UP, { agentName: EXPORTER })).toBe(
+      "Set up the OpenTelemetry exporter on your devices — it takes a few minutes.",
+    );
+  });
+
+  test("two terms side by side meet the same way; a term and a typed name do not", () => {
+    const ACTION: string = "{{action}} {{itemName}}";
+    const KIND_AND_NAME: string = "{{kind}} {{name}}";
+    const words: Translator = createTranslator(
+      lookupFrom({ Update: "更新", Monitor: "监控器", Host: "主机" }),
+      "zh-CN",
+    );
+
+    // A template with no words of its own takes the reader's words.
+    expect(
+      words.translateTemplate(ACTION, {
+        action: translatableTerm("Update"),
+        itemName: translatableTerm("Monitor"),
+      }),
+    ).toBe("更新监控器");
+    expect(
+      words.translateTemplate(KIND_AND_NAME, {
+        kind: translatableTerm("Host"),
+        name: "数据库一号",
+      }),
+    ).toBe("主机 数据库一号");
+    expect(
+      words.translateTemplate(KIND_AND_NAME, {
+        kind: translatableTerm("Host"),
+        name: "web-1",
+      }),
+    ).toBe("主机 web-1");
+  });
+
+  test("a letter written as a surrogate pair, and the iteration and prolonged sound marks, are letters too", () => {
+    const edges: Translator = createTranslator(
+      lookupFrom({
+        [REVOKES]: "此操作会撤销 {{agentName}} 的密钥。",
+        // A character outside the Basic Multilingual Plane (a surrogate pair).
+        Rare: "𠀀代理𠀀",
+        // The iteration mark "々" and the prolonged sound mark "ー".
+        Marks: "人々ー",
+      }),
+      "zh-CN",
+    );
+
+    expect(
+      edges.translateTemplate(REVOKES, { agentName: translatableTerm("Rare") }),
+    ).toBe("此操作会撤销𠀀代理𠀀的密钥。");
+    expect(
+      edges.translateTemplate(REVOKES, {
+        agentName: translatableTerm("Marks"),
+      }),
+    ).toBe("此操作会撤销人々ー的密钥。");
+  });
+
+  test("a sentence with its values set apart, one drawn in pieces and a count-dependent one meet the same way", () => {
+    expect(
+      chinese.translateTemplate(
+        REVOKES,
+        { agentName: DATABASE_AGENT },
+        { setsValuesApart: true },
+      ),
+    ).toBe("此操作会撤销数据库 AI 代理的密钥。");
+    // A slot is drawn by the caller: its spaces stay.
+    expect(
+      getSentenceParts({
+        translator: chinese,
+        template: STOPPED_SINCE,
+        slots: ["lastHeard"],
+        values: { agentName: COLLECTOR },
+      }),
+    ).toEqual([
+      { kind: "text", text: "OneUptime 最后一次收到此主机的数据是在 " },
+      { kind: "slot", slot: "lastHeard" },
+      { kind: "text", text: "。OneUptime 收集器已不再上报数据。" },
+    ]);
+
+    const LEFT: PluralTemplate = {
+      one: "{{count}} {{itemName}} is left.",
+      other: "{{count}} {{itemsName}} are left.",
+    };
+    const counting: Translator = createTranslator(
+      lookupFrom(
+        { [LEFT.other]: "剩下 {{itemsName}} {{count}} 个。" },
+        {
+          Monitors: "监控器",
+        },
+      ),
+      "zh-CN",
+    );
+
+    expect(
+      counting.translatePlural(LEFT, 3, {
+        itemsName: translatableTerm("Monitors", { inSentence: true }),
+      }),
+    ).toBe("剩下监控器 3 个。");
+  });
+
+  test("a value set apart in a sentence read right to left is set apart as before", () => {
+    const persian: Translator = createTranslator(
+      lookupFrom({
+        [STOPPED]: "{{agentName}} دیگر داده‌ای گزارش نمی‌کند.",
+        "OneUptime collector": "گردآورنده OneUptime",
+      }),
+      "fa",
+    );
+
+    expect(
+      persian.translateTemplate(
+        STOPPED,
+        { agentName: COLLECTOR },
+        { setsValuesApart: true },
+      ),
+    ).toBe(
+      `${FIRST_STRONG_ISOLATE}گردآورنده OneUptime${POP_DIRECTIONAL_ISOLATE} دیگر داده‌ای گزارش نمی‌کند.`,
+    );
+    // A Persian name in a Chinese sentence.
+    expect(
+      chinese.translateTemplate(
+        SET_UP,
+        { agentName: translatableTerm("گردآورنده") },
+        { setsValuesApart: true },
+      ),
+    ).toBe(
+      `请设置 ${FIRST_STRONG_ISOLATE}گردآورنده${POP_DIRECTIONAL_ISOLATE}，只需几分钟。`,
+    );
   });
 });
 

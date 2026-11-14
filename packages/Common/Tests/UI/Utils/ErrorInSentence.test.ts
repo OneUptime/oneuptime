@@ -27,6 +27,7 @@ import {
 import {
   createTranslator,
   DEFAULT_LANGUAGE,
+  translatableTerm,
   Translator,
 } from "../../../Types/Translator";
 import {
@@ -155,17 +156,22 @@ describe("a refusal of the server's with values in it is said in the reader's la
     templateType: "SSL Certificate",
   });
 
-  // The language's sentence, with its own words for the two types.
+  /*
+   * The language's sentence, with its own words for the two types: filled
+   * through the Dashboard's Translator, the types terms as the refusal names
+   * them, so a Japanese sentence keeps no space where a type and its words
+   * meet in their own script, "種類は受信リクエスト、" (#7864).
+   */
   const mismatchIn: (language: string) => string = (
     language: string,
   ): string => {
-    const words: Record<string, string> = readDashboardLocale(language);
-
-    return (words[MONITOR_TYPE_MISMATCH_REFUSAL.template] as string)
-      .split("{{monitorType}}")
-      .join(words["Incoming Request"] as string)
-      .split("{{templateType}}")
-      .join(words["SSL Certificate"] as string);
+    return dashboardTranslator(language).translateTemplate(
+      MONITOR_TYPE_MISMATCH_REFUSAL.template,
+      {
+        monitorType: translatableTerm("Incoming Request"),
+        templateType: translatableTerm("SSL Certificate"),
+      },
+    );
   };
 
   test("in English, as the server wrote it", () => {
