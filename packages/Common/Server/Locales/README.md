@@ -11,8 +11,8 @@ a language of their own:
 - the messages about a subscription: the link to confirm it, the welcome,
   and the link to manage it;
 - the status page's uptime report (`StatusPageService.sendEmailReport`),
-  its figures written in the language too (`Common/Utils/StatusPage/
-  ReportText.ts`);
+  its figures written in the language too
+  (`Common/Utils/StatusPage/ReportText.ts`);
 - a person's on-call pages, in the language on their account
   (`Common/Types/UserLanguage`, read by
   `Common/Server/Utils/Notification/UserLanguage.ts`): email, text message,
@@ -99,8 +99,9 @@ test report.
    template: `{{t "..."}}`, `title=(tt "New Incident: {{title}}" title=incidentTitle)`.
 2. From the repository's root: `npm run i18n:server-sync`. It writes `en.json`
    from the sources and gives every other file the new sentence in English.
-3. Translate it in all 16 files (`de fr es it pt nl da no sv ru ja ko zh-CN
-   zh-TW hi fa`): keep every `{{placeholder}}`, keep what the English ends
+3. Translate it in all 16 files
+   (`de fr es it pt nl da no sv ru ja ko zh-CN zh-TW hi fa`): keep every
+   `{{placeholder}}`, keep what the English ends
    with, use the words the file already uses, and the register the status
    page uses (German `Sie`, Spanish `usted`). A word that really reads the same
    in a language (`Status` in German) goes in `SameAsEnglish.json` under that
