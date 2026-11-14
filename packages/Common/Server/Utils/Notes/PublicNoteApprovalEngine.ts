@@ -120,7 +120,7 @@ export interface PublicNoteApprovalKind<TNote extends BaseModel> {
   service: DatabaseService<TNote>;
   // The note's column naming its record: incidentId, incidentEpisodeId...
   parentIdColumn: string;
-  // "incident", "episode", "scheduled maintenance event"
+  // "incident", "episode", "maintenance event"
   recordNoun: string;
 }
 

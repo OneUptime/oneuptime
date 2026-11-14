@@ -42,6 +42,13 @@
     "errorOnSignUp": "Completa il captcha prima di registrarti."
   },
   "login": {
+    "title": "Accedi al tuo account",
+    "subtitle": "Usa la password, l’SSO della tua organizzazione o una passkey.",
+    "sessionEnded": {
+      "lengthReached": "Sei stato disconnesso perché la tua sessione ha raggiunto il limite di tempo. Accedi di nuovo per riprendere da dove avevi lasciato.",
+      "inactive": "Sei stato disconnesso dopo un periodo di inattività. Accedi di nuovo per riprendere da dove avevi lasciato."
+    },
+    "submitButton": "Accedi",
     "passkey": {
       "signIn": "Accedi con una passkey",
       "inProgress": "Completa o annulla l’accesso con passkey prima di usare la password.",
@@ -57,13 +64,6 @@
       "insecure": "Le passkey richiedono una connessione sicura (HTTPS). Puoi comunque accedere con la password o l’SSO.",
       "tryAgain": "Riprova con la passkey"
     },
-    "title": "Accedi al tuo account",
-    "subtitle": "Usa la password, l’SSO della tua organizzazione o una passkey.",
-    "sessionEnded": {
-      "lengthReached": "Sei stato disconnesso perché la tua sessione ha raggiunto il limite di tempo. Accedi di nuovo per riprendere da dove avevi lasciato.",
-      "inactive": "Sei stato disconnesso dopo un periodo di inattività. Accedi di nuovo per riprendere da dove avevi lasciato."
-    },
-    "submitButton": "Accedi",
     "forgotPassword": "Password dimenticata?",
     "signInWithSso": "Accedi con SSO",
     "signInWithMicrosoft": "Accedi con Microsoft",

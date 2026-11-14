@@ -4,7 +4,13 @@ import IsolatedText from "./IsolatedText";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
-  texts: ReadonlyArray<string>;
+  /*
+   * The values, each set apart as written. An element is drawn as given, in
+   * its place in the list: words of the page's own, such as the reader's
+   * word for a record deleted since, read the page's way, and an isolate
+   * would turn a translated phrase round.
+   */
+  texts: ReadonlyArray<string | ReactElement>;
   className?: string | undefined;
   dataTestId?: string | undefined;
 }
@@ -31,14 +37,16 @@ const IsolatedTextList: FunctionComponent<ComponentProps> = (
 
   return (
     <span className={props.className} data-testid={props.dataTestId}>
-      {props.texts.map((text: string, index: number): ReactElement => {
-        return (
-          <Fragment key={index}>
-            {index > 0 ? separator : <></>}
-            <IsolatedText text={text} />
-          </Fragment>
-        );
-      })}
+      {props.texts.map(
+        (text: string | ReactElement, index: number): ReactElement => {
+          return (
+            <Fragment key={index}>
+              {index > 0 ? separator : <></>}
+              {typeof text === "string" ? <IsolatedText text={text} /> : text}
+            </Fragment>
+          );
+        },
+      )}
     </span>
   );
 };

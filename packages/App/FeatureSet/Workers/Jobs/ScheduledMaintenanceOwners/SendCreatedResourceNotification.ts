@@ -136,14 +136,14 @@ RunCron(
 
         const sms: SMSMessage = {
           message: buildNotificationSms(
-            `New scheduled maintenance event created - ${scheduledMaintenanceIdentifier}.`,
+            `New maintenance event created - ${scheduledMaintenanceIdentifier}.`,
           ),
         };
 
         const callMessage: CallRequestMessage = {
           data: [
             {
-              sayMessage: `This is a message from OneUptime. New scheduled maintenance event created ${scheduledMaintenanceIdentifier}. To view this event, go to OneUptime Dashboard. To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.`,
+              sayMessage: `This is a message from OneUptime. New maintenance event created ${scheduledMaintenanceIdentifier}. To view this event, go to OneUptime Dashboard. To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.`,
             },
           ],
         };
@@ -151,7 +151,7 @@ RunCron(
         const pushMessage: PushNotificationMessage =
           PushNotificationUtil.createGenericNotification({
             title: `Scheduled Maintenance ${scheduledMaintenanceNumberStr} Created`,
-            body: `New scheduled maintenance created: ${scheduledMaintenanceIdentifier}. Click to view details.`,
+            body: `New maintenance event created: ${scheduledMaintenanceIdentifier}. Click to view details.`,
             clickAction: (
               await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
                 scheduledMaintenance.projectId!,
@@ -200,7 +200,7 @@ RunCron(
       }
 
       const scheduledMaintenanceFeedText: string =
-        OwnerNotificationFeedText.created("scheduled maintenance event", {
+        OwnerNotificationFeedText.created("maintenance event", {
           isProjectOwners: !doesResourceHasOwners,
         });
 

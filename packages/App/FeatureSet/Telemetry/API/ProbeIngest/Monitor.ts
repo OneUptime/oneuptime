@@ -9,7 +9,6 @@ import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import MonitorProbeService from "Common/Server/Services/MonitorProbeService";
-import Query from "Common/Server/Types/Database/Query";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import Express, {
   ExpressRequest,
@@ -23,35 +22,11 @@ import logger, {
 import Response from "Common/Server/Utils/Response";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorProbe from "Common/Models/DatabaseModels/MonitorProbe";
-import MonitorService from "Common/Server/Services/MonitorService";
-import ProjectService from "Common/Server/Services/ProjectService";
 import MonitorTest from "Common/Models/DatabaseModels/MonitorTest";
 import MonitorTestService from "Common/Server/Services/MonitorTestService";
 import MonitorSecret from "Common/Models/DatabaseModels/MonitorSecret";
 
 const router: ExpressRouter = Express.getRouter();
-
-type GetMonitorFetchQueryFunction = (probeId: ObjectID) => Query<MonitorProbe>;
-
-const getMonitorFetchQuery: GetMonitorFetchQueryFunction = (
-  probeId: ObjectID,
-): Query<MonitorProbe> => {
-  const monitorFetchQuery: Query<MonitorProbe> = {
-    probeId: probeId,
-    isEnabled: true,
-    nextPingAt: QueryHelper.lessThanEqualToOrNull(
-      OneUptimeDate.getCurrentDate(),
-    ),
-    monitor: {
-      ...MonitorService.getEnabledMonitorQuery(),
-    },
-    project: {
-      ...ProjectService.getActiveProjectStatusQuery(),
-    },
-  };
-
-  return monitorFetchQuery;
-};
 
 /*
  * This API returns the count of monitors pending to be probed for the authenticated probe.
@@ -97,22 +72,24 @@ router.post(
         );
       }
 
-      // Get count of monitors pending to be probed
-      const monitorProbesCount: PositiveNumber =
-        await MonitorProbeService.countBy({
-          query: getMonitorFetchQuery(probeId),
-          props: {
-            isRoot: true,
-          },
+      /*
+       * The monitors waiting for this probe, by the claim's own rule, up to
+       * PENDING_MONITOR_PROBE_COUNT_CAP - far more than autoscaling reads
+       * (MonitorProbeService.countMonitorProbesDueForProbing).
+       */
+      const pendingCount: number =
+        await MonitorProbeService.countMonitorProbesDueForProbing({
+          probeId: probeId,
+          dueAt: OneUptimeDate.getCurrentDate(),
         });
 
       logger.debug(
-        `Pending monitor count for probe ${probeId.toString()}: ${monitorProbesCount.toNumber()}`,
+        `Pending monitor count for probe ${probeId.toString()}: ${pendingCount}`,
         getLogAttributesFromRequest(req as any),
       );
 
       return Response.sendJsonObjectResponse(req, res, {
-        count: monitorProbesCount.toNumber(),
+        count: pendingCount,
       });
     } catch (err) {
       return next(err);

@@ -1,5 +1,6 @@
 import EntityRelationshipType from "Common/Types/Telemetry/EntityRelationshipType";
 import EntityType from "Common/Types/Telemetry/EntityType";
+import { translationKey } from "Common/Types/Translator";
 
 /*
  * Shared presentation metadata for the topology views: raw enum values
@@ -138,25 +139,65 @@ export function metaForEntityType(
   return META_BY_TYPE[entityType as EntityType] || DEFAULT_META;
 }
 
-const RELATIONSHIP_LABELS: Record<EntityRelationshipType, string> = {
-  [EntityRelationshipType.RunsOn]: "runs on",
-  [EntityRelationshipType.MemberOf]: "member of",
-  [EntityRelationshipType.HostedOn]: "hosted on",
-  [EntityRelationshipType.PartOf]: "part of",
-  [EntityRelationshipType.InstanceOf]: "instance of",
-  [EntityRelationshipType.DependsOn]: "depends on",
+/*
+ * A relationship as one sentence naming both ends, read the way the stored
+ * edge points: {{from}} is its source, {{to}} its target, whichever of them
+ * the drawer is about. The drawer used to glue "{{from}} " + t(verb) + "
+ * {{to}}" together: English word order in every language, and only "runs
+ * on" and "depends on" were keys at all, so "member of", "hosted on",
+ * "part of" and "instance of" read in English everywhere (#7326). Each
+ * sentence is a key of its own, which a language words with both ends
+ * where its grammar puts them.
+ */
+export const RELATIONSHIP_SENTENCES: Readonly<
+  Record<EntityRelationshipType, string>
+> = {
+  [EntityRelationshipType.RunsOn]: translationKey("{{from}} runs on {{to}}"),
+  [EntityRelationshipType.MemberOf]: translationKey(
+    "{{from}} is a member of {{to}}",
+  ),
+  [EntityRelationshipType.HostedOn]: translationKey(
+    "{{from}} is hosted on {{to}}",
+  ),
+  [EntityRelationshipType.PartOf]: translationKey("{{from}} is part of {{to}}"),
+  [EntityRelationshipType.InstanceOf]: translationKey(
+    "{{from}} is an instance of {{to}}",
+  ),
+  [EntityRelationshipType.DependsOn]: translationKey(
+    "{{from}} depends on {{to}}",
+  ),
 };
 
-export function labelForRelationship(
+// An edge with no type.
+export const RELATED_TO_RELATIONSHIP_SENTENCE: string = translationKey(
+  "{{from}} is related to {{to}}",
+);
+
+// A type's hyphens, and braces that could be read as a placeholder.
+const RELATIONSHIP_HYPHENS: RegExp = /-/g;
+const RELATIONSHIP_BRACES: RegExp = /[{}]/g;
+
+/**
+ * The sentence for an edge, with {{from}} and {{to}} for its two ends. A type
+ * this Dashboard does not know (a newer server's) reads as its raw words
+ * between the two ends: no key, so English, and never the hyphenated value.
+ */
+export function sentenceForRelationship(
   relationshipType: EntityRelationshipType | string | undefined,
 ): string {
   if (!relationshipType) {
-    return "related to";
+    return RELATED_TO_RELATIONSHIP_SENTENCE;
   }
-  return (
-    RELATIONSHIP_LABELS[relationshipType as EntityRelationshipType] ||
-    String(relationshipType)
-  );
+  const known: string | undefined =
+    RELATIONSHIP_SENTENCES[relationshipType as EntityRelationshipType];
+  if (known) {
+    return known;
+  }
+  const words: string = String(relationshipType)
+    .replace(RELATIONSHIP_HYPHENS, " ")
+    .replace(RELATIONSHIP_BRACES, "")
+    .trim();
+  return words ? `{{from}} ${words} {{to}}` : RELATED_TO_RELATIONSHIP_SENTENCE;
 }
 
 /*

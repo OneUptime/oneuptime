@@ -153,20 +153,31 @@ function applySort(
     return rows;
   }
 
-  const [key, direction] = Object.entries(sort)[0] || [];
+  const keys: Array<[string, unknown]> = Object.entries(sort);
 
-  if (!key) {
+  if (keys.length === 0) {
     return rows;
   }
 
-  const descending: boolean = String(direction)
-    .toLowerCase()
-    .startsWith("desc");
-
+  // Each key in turn, as the database orders: a later key settles a tie.
   return [...rows].sort((a: FakeRow, b: FakeRow) => {
-    const left: number = toComparable(a[key]);
-    const right: number = toComparable(b[key]);
-    return descending ? right - left : left - right;
+    for (const [key, direction] of keys) {
+      const left: number = toComparable(a[key]);
+      const right: number = toComparable(b[key]);
+
+      // A row without the value ties on it.
+      if (isNaN(left) || isNaN(right) || left === right) {
+        continue;
+      }
+
+      const descending: boolean = String(direction)
+        .toLowerCase()
+        .startsWith("desc");
+
+      return descending ? right - left : left - right;
+    }
+
+    return 0;
   });
 }
 
