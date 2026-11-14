@@ -112,12 +112,21 @@ import {
  * polled, and it only changes when a device actually changes state, so it is
  * cheap to keep sorted.
  *
- * `lastSeenAt` rides along as a fourth column for the Overview's "devices
- * needing attention" list, which asks for the unreachable devices LONGEST out
- * of contact. Without it the ordering cannot come from the index and every
- * down device in the project is fetched and top-N sorted to return eight.
+ * Not `lastSeenAt`, though the Overview's "devices needing attention" list
+ * asks for the unreachable devices longest out of contact (OneUptime issue
+ * #7921). Every poll that reaches a device moves its `lastSeenAt`, and an
+ * update that changes a column any index names cannot be HOT: it writes an
+ * entry into every index on this table and leaves a dead one in each for
+ * vacuum to find. With `lastSeenAt` here, every reachable poll's verdict did
+ * that. Without it, the verdict of a device whose state did not change can
+ * be HOT, and the list sorts the project's down devices to return eight. On
+ * 80,000 devices that read 5,700 buffers with 5,700 down and 7,100 with
+ * 22,600 down, where the index read 10: about one pass over the table, as
+ * the fleet tally on the same page already makes. Nor a partial index on
+ * the unreachable devices: a partial index's columns block HOT like any
+ * other's, whichever rows it holds.
  */
-@Index(["projectId", "isArchived", "isReachable", "lastSeenAt"])
+@Index(["projectId", "isArchived", "isReachable"])
 /*
  * Every per-site rollup, the hierarchy drill-down, and the "unassigned
  * devices" count. A device's site almost never changes, so this is close to
@@ -263,7 +272,13 @@ export default class NetworkDevice extends BaseModel {
     ],
     update: [],
   })
-  @Index()
+  /*
+   * No bare @Index() here on purpose: five composites declared on the class
+   * lead with this column, and serve every read by it and the ON DELETE
+   * CASCADE of a project. Another would cost every update this table cannot
+   * make HOT - every poll's claim - one more index write for nothing
+   * (OneUptime issue #7921).
+   */
   @TableColumn({
     type: TableColumnType.ObjectID,
     required: true,

@@ -983,6 +983,7 @@ import { AddAIRunRecording1809125000000 } from "./1809125000000-AddAIRunRecordin
 import { GlobalConfigCredentialsEncryptedColumns1809126000000 } from "./1809126000000-GlobalConfigCredentialsEncryptedColumns";
 import { AddNotifySubscribersOfNewIncidentsByDefault1809150300000 } from "./1809150300000-AddNotifySubscribersOfNewIncidentsByDefault";
 import { DropRedundantMonitorProbeIndexes1809150400000 } from "./1809150400000-DropRedundantMonitorProbeIndexes";
+import { DropNetworkDeviceLastSeenAtAndProjectIdIndexes1809150500000 } from "./1809150500000-DropNetworkDeviceLastSeenAtAndProjectIdIndexes";
 
 export default [
   InitialMigration,
@@ -1970,4 +1971,5 @@ export default [
   GlobalConfigCredentialsEncryptedColumns1809126000000,
   AddNotifySubscribersOfNewIncidentsByDefault1809150300000,
   DropRedundantMonitorProbeIndexes1809150400000,
+  DropNetworkDeviceLastSeenAtAndProjectIdIndexes1809150500000,
 ];
