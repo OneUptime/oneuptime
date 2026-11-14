@@ -23,6 +23,7 @@ import OnCallDutyPolicyEscalationRuleTeamService from "./OnCallDutyPolicyEscalat
 import QueryHelper from "../Types/Database/QueryHelper";
 import OnCallDutyPolicyEscalationRuleSchedule from "../../Models/DatabaseModels/OnCallDutyPolicyEscalationRuleSchedule";
 import OnCallDutyPolicyEscalationRuleScheduleService from "./OnCallDutyPolicyEscalationRuleScheduleService";
+import OnDutyPoliciesCache from "../Utils/OnCall/OnDutyPoliciesCache";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 import DeleteBy from "../Types/Database/DeleteBy";
@@ -100,6 +101,16 @@ export const ON_CALL_POLICY_REPEAT_RULE: ColumnRule = {
     return getOnCallPolicyRepeatRefusal(values);
   },
 };
+
+/*
+ * The escalation rules that page someone in a project, by kind: their own,
+ * their teams' and their schedules' (getOnCallPoliciesWhereUserIsOnCallDuty).
+ */
+export interface OnDutyPolicies {
+  escalationRulesByUser: Array<OnCallDutyPolicyEscalationRuleUser>;
+  escalationRulesByTeam: Array<OnCallDutyPolicyEscalationRuleTeam>;
+  escalationRulesBySchedule: Array<OnCallDutyPolicyEscalationRuleSchedule>;
+}
 
 export class Service extends ProjectReferencesService<OnCallDutyPolicy> {
   public constructor() {
@@ -998,7 +1009,25 @@ ${FeedMarkdown.asMarkdown(onCallPolicy.description || "No description provided."
       );
     }
 
-    return { deleteBy, carryForward: null };
+    // Its project, for the people on duty for it (onDeleteSuccess).
+    return { deleteBy, carryForward: { projectId: policy.projectId } };
+  }
+
+  /*
+   * A policy deleted takes its escalation rules with it, by the database's
+   * own cascade: nobody is on duty for it any more (OnDutyPoliciesCache).
+   */
+  @CaptureSpan()
+  protected override async onDeleteSuccess(
+    onDelete: OnDelete<OnCallDutyPolicy>,
+    _itemIdsBeforeDelete: Array<ObjectID>,
+  ): Promise<OnDelete<OnCallDutyPolicy>> {
+    await OnDutyPoliciesCache.forgetProjects([
+      (onDelete.carryForward as { projectId?: ObjectID } | null)?.projectId,
+      onDelete.deleteBy.props.tenantId,
+    ]);
+
+    return onDelete;
   }
 
   @CaptureSpan()
@@ -1221,120 +1250,64 @@ ${FeedMarkdown.asMarkdown(onCallPolicy.description || "No description provided."
     });
   }
 
+  /*
+   * The escalation rules that page the person in the project: by their own
+   * name, through a team they are in, or through a schedule whose roster
+   * they are on (a rule that pages the next person in a schedule's rotation
+   * does not page its on-call person). The dashboard's header asks it on
+   * every page.
+   *
+   * Kept a minute per person and project, and built again at once when a
+   * change can change it (OnDutyPoliciesCache says which). The three kinds
+   * of rule are read side by side, each after what it needs: the person's
+   * own rules at once, their teams' after their teams, their schedules'
+   * after their schedules - two round trips, where five reads used to run
+   * one after another. A team or schedule list that is empty reads no
+   * rules.
+   *
+   * The answer is shared between requests and must not be changed.
+   */
   public async getOnCallPoliciesWhereUserIsOnCallDuty(data: {
     projectId: ObjectID;
     userId: ObjectID;
-  }): Promise<{
-    escalationRulesByUser: Array<OnCallDutyPolicyEscalationRuleUser>;
-    escalationRulesByTeam: Array<OnCallDutyPolicyEscalationRuleTeam>;
-    escalationRulesBySchedule: Array<OnCallDutyPolicyEscalationRuleSchedule>;
-  }> {
-    // get all schedules where user is on call duty.
-    const onCallSchedules: Array<OnCallDutyPolicySchedule> =
-      await OnCallDutyPolicyScheduleService.getOnCallSchedulesWhereUserIsOnCallDuty(
-        data,
-      );
-
-    const teams: Array<Team> = await TeamService.getTeamsUserIsAPartOf({
-      userId: data.userId,
+  }): Promise<OnDutyPolicies> {
+    return await OnDutyPoliciesCache.getOrBuild<OnDutyPolicies>({
       projectId: data.projectId,
+      userId: data.userId,
+      build: (): Promise<OnDutyPolicies> => {
+        return this.readOnCallPoliciesWhereUserIsOnCallDuty(data);
+      },
     });
+  }
 
-    // get escalationPolicies by user, team and schedule.
-    const escalationRulesByUser: Array<OnCallDutyPolicyEscalationRuleUser> =
-      await OnCallDutyPolicyEscalationRuleUserService.findBy({
-        query: {
-          userId: data.userId!,
-          projectId: data.projectId!,
-        },
-        select: {
-          onCallDutyPolicyEscalationRule: {
-            name: true,
-            _id: true,
-            order: true,
-          },
-          onCallDutyPolicy: {
-            name: true,
-            _id: true,
-          },
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
-
-    // do the same for teams.
-    const escalationRulesByTeam: Array<OnCallDutyPolicyEscalationRuleTeam> =
-      await OnCallDutyPolicyEscalationRuleTeamService.findBy({
-        query: {
-          teamId: QueryHelper.any(
-            teams.map((team: Team) => {
-              return team.id!;
-            }),
-          ),
-          projectId: data.projectId!,
-        },
-        select: {
-          onCallDutyPolicy: {
-            name: true,
-            _id: true,
-          },
-          onCallDutyPolicyEscalationRule: {
-            name: true,
-            _id: true,
-            order: true,
-          },
-          team: {
-            name: true,
-            _id: true,
-          },
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
-
-    /*
-     * Do the same for schedules: the rules that page whoever is on call in
-     * them. A rule that pages the next person in a schedule's rotation does
-     * not page its on-call person, so it is not one they are on call for.
-     */
-    const escalationRulesBySchedule: Array<OnCallDutyPolicyEscalationRuleSchedule> =
-      await OnCallDutyPolicyEscalationRuleScheduleService.findBy({
-        query: {
-          onCallDutyPolicyScheduleId: QueryHelper.any(
-            onCallSchedules.map((schedule: OnCallDutyPolicySchedule) => {
-              return schedule.id!;
-            }),
-          ),
-          projectId: data.projectId!,
-        },
-        select: {
-          onCallDutyPolicy: {
-            name: true,
-            _id: true,
-          },
-          onCallDutyPolicyEscalationRule: {
-            name: true,
-            _id: true,
-            order: true,
-          },
-          onCallDutyPolicySchedule: {
-            name: true,
-            _id: true,
-          },
-          pageNextInRotation: true,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
+  private async readOnCallPoliciesWhereUserIsOnCallDuty(data: {
+    projectId: ObjectID;
+    userId: ObjectID;
+  }): Promise<OnDutyPolicies> {
+    const [escalationRulesByUser, escalationRulesByTeam, escalationRulesBySchedule]: [
+      Array<OnCallDutyPolicyEscalationRuleUser>,
+      Array<OnCallDutyPolicyEscalationRuleTeam>,
+      Array<OnCallDutyPolicyEscalationRuleSchedule>,
+    ] = await Promise.all([
+      this.readEscalationRulesOfUser(data),
+      TeamService.getTeamsUserIsAPartOf({
+        userId: data.userId,
+        projectId: data.projectId,
+      }).then((teams: Array<Team>) => {
+        return this.readEscalationRulesOfTeams({
+          projectId: data.projectId,
+          teams,
+        });
+      }),
+      OnCallDutyPolicyScheduleService.getOnCallSchedulesWhereUserIsOnCallDuty(
+        data,
+      ).then((onCallSchedules: Array<OnCallDutyPolicySchedule>) => {
+        return this.readEscalationRulesOfSchedules({
+          projectId: data.projectId,
+          onCallSchedules,
+        });
+      }),
+    ]);
 
     return {
       escalationRulesByUser: escalationRulesByUser,
@@ -1345,6 +1318,122 @@ ${FeedMarkdown.asMarkdown(onCallPolicy.description || "No description provided."
         },
       ),
     };
+  }
+
+  // The rules that page the person by their own name.
+  private async readEscalationRulesOfUser(data: {
+    projectId: ObjectID;
+    userId: ObjectID;
+  }): Promise<Array<OnCallDutyPolicyEscalationRuleUser>> {
+    return await OnCallDutyPolicyEscalationRuleUserService.findBy({
+      query: {
+        userId: data.userId!,
+        projectId: data.projectId!,
+      },
+      select: {
+        onCallDutyPolicyEscalationRule: {
+          name: true,
+          _id: true,
+          order: true,
+        },
+        onCallDutyPolicy: {
+          name: true,
+          _id: true,
+        },
+      },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+  }
+
+  // The rules that page one of these teams; none read for no team.
+  private async readEscalationRulesOfTeams(data: {
+    projectId: ObjectID;
+    teams: Array<Team>;
+  }): Promise<Array<OnCallDutyPolicyEscalationRuleTeam>> {
+    if (data.teams.length === 0) {
+      return [];
+    }
+
+    return await OnCallDutyPolicyEscalationRuleTeamService.findBy({
+      query: {
+        teamId: QueryHelper.any(
+          data.teams.map((team: Team) => {
+            return team.id!;
+          }),
+        ),
+        projectId: data.projectId!,
+      },
+      select: {
+        onCallDutyPolicy: {
+          name: true,
+          _id: true,
+        },
+        onCallDutyPolicyEscalationRule: {
+          name: true,
+          _id: true,
+          order: true,
+        },
+        team: {
+          name: true,
+          _id: true,
+        },
+      },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+  }
+
+  /*
+   * The rules that page whoever is on call in one of these schedules (and
+   * the ones that page the next person in a rotation, filtered out by the
+   * caller); none read for no schedule.
+   */
+  private async readEscalationRulesOfSchedules(data: {
+    projectId: ObjectID;
+    onCallSchedules: Array<OnCallDutyPolicySchedule>;
+  }): Promise<Array<OnCallDutyPolicyEscalationRuleSchedule>> {
+    if (data.onCallSchedules.length === 0) {
+      return [];
+    }
+
+    return await OnCallDutyPolicyEscalationRuleScheduleService.findBy({
+      query: {
+        onCallDutyPolicyScheduleId: QueryHelper.any(
+          data.onCallSchedules.map((schedule: OnCallDutyPolicySchedule) => {
+            return schedule.id!;
+          }),
+        ),
+        projectId: data.projectId!,
+      },
+      select: {
+        onCallDutyPolicy: {
+          name: true,
+          _id: true,
+        },
+        onCallDutyPolicyEscalationRule: {
+          name: true,
+          _id: true,
+          order: true,
+        },
+        onCallDutyPolicySchedule: {
+          name: true,
+          _id: true,
+        },
+        pageNextInRotation: true,
+      },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
   }
 }
 export default new Service();

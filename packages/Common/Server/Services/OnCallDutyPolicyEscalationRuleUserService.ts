@@ -27,6 +27,7 @@ import logger, { LogAttributes } from "../Utils/Logger";
 import { WhatsAppMessagePayload } from "../../Types/WhatsApp/WhatsAppMessage";
 import { MarkdownText, mdText } from "../../Utils/Markdown/FeedMarkdown";
 import OnCallChatText from "../Utils/OnCall/OnCallChatText";
+import OnDutyPoliciesCache from "../Utils/OnCall/OnDutyPoliciesCache";
 
 export class Service extends OnCallDutyPolicyChildService<Model> {
   public constructor() {
@@ -42,6 +43,9 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
     if (!createdItemId) {
       throw new BadDataException("Created item does not have an ID");
     }
+
+    // Someone else is paged by the rule now: the header says so at once.
+    await OnDutyPoliciesCache.forgetProjects([createdItem.projectId]);
 
     const createdModel: Model | null = await this.findOneById({
       id: createdItemId,
@@ -342,6 +346,13 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
     _itemIdsBeforeDelete: Array<ObjectID>,
   ): Promise<OnDelete<Model>> {
     const deletedItems: Array<Model> = onDelete.carryForward.deletedItems;
+
+    // Nobody the rule paged is on duty for it any more.
+    await OnDutyPoliciesCache.forgetProjects(
+      deletedItems.map((deletedItem: Model) => {
+        return deletedItem.projectId;
+      }),
+    );
 
     for (const deletedItem of deletedItems) {
       const sendEmailToUserId: ObjectID | undefined | null =
