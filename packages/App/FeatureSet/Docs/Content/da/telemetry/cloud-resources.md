@@ -39,7 +39,7 @@ Cloud-ressourcer er ét af flere steder, hvor din cloud dukker op:
 | Virtuelle maskiner med en OpenTelemetry Collector på | **Værter** | Værtens egne metrikker og logs. Se [OpenTelemetry-collector på værten](/docs/telemetry/host-otel-collector) |
 | Køer og topics, som dine applikationer bruger | **Køer** | Spans og de samme cloudmetrikker. Se [Køer](/docs/telemetry/queues) |
 
-En ressource kan vises mere end ét sted. En virtuel maskine med collectoren på er en **Vært**, og dens platformmetrikker (CPU-kreditter, disk og netværk, som hypervisoren ser dem) gør den også til en **Cloud-ressource**. En SQS-kø er en **Queue** og en **Cloud-ressource**. Hver visning viser, hvad dens kilde ved.
+En ressource kan vises mere end ét sted. En virtuel maskine med collectoren på er en **Vært**, og dens platformmetrikker (CPU-kreditter, disk og netværk, som hypervisoren ser dem) gør den også til en **Cloud-ressource**. En SQS-kø er en **Kø** og en **Cloud-ressource**. Hver visning viser, hvad dens kilde ved.
 
 ## Før du begynder
 
