@@ -26,7 +26,7 @@ flowchart TB
 ```
 
 - **Regelns villkor** avgör vilka larm den gäller för. En regel utan villkor gäller för varje nytt larm.
-- **Grupperingsnyckeln** avgör vilka larm som delar en episod: de med samma monitor, samma allvarlighetsgrad, samma titel, eller den kombination som regeln grupperar efter. En regel som inte grupperar efter något lägger varje larm som den matchar i en enda episod.
+- **Grupperingsnyckeln** avgör vilka larm som delar en episod: de med samma monitor, samma allvarlighetsgrad, samma titel, de i tjänster som anropar varandra på tjänstekartan, eller den kombination som regeln grupperar efter. En regel som inte grupperar efter något lägger varje larm som den matchar i en enda episod.
 - **Tidsfönstret** avgör hur länge en episod fortsätter att ta emot larm. När det är påslaget ansluter ett larm bara om det kommer inom fönstret efter episodens senaste larm. När det är avslaget fortsätter matchande larm att ansluta tills episoden är löst.
 - **Vänta på fler larm** avgör när en ny episod öppnas. När det är avslaget, som en ny regel börjar på, öppnar det första matchande larmet en. När det är påslaget väntar ett larm ensamt tills så många matchande larm i dess grupp som du har angett pågår, och då öppnas en enda episod med alla larmen. Se [Öppna en episod bara för flera larm](#öppna-en-episod-bara-för-flera-larm).
 
@@ -41,12 +41,13 @@ Gå till **Larm → Regler → Grupperingsregler**. Avsnittet **Regler** i sidom
 
 ### Börja från en mall
 
-Ett projekt utan grupperingsregler ser fyra färdiga regler i stället för en tom lista; när du har regler öppnar **Skapa från mall** på kortet dem. **Lägg till regel** sparar en med ett enda klick, aktiverad, sist i listen och gällande för varje nytt larm. Redigera den efteråt som vilken annan regel som helst.
+Ett projekt utan grupperingsregler ser fem färdiga regler i stället för en tom lista; när du har regler öppnar **Skapa från mall** på kortet dem. **Lägg till regel** sparar en med ett enda klick, aktiverad, sist i listen och gällande för varje nytt larm. Redigera den efteråt som vilken annan regel som helst.
 
 | Mall                                          | Grupperar                                                                     | Tidsfönster |
 | --------------------------------------------- | ----------------------------------------------------------------------------- | ----------- |
 | **Gruppera larm från samma övervakare**       | En episod per monitor                                                         | 30 minuter  |
 | **Gruppera larm som sker samtidigt**          | En gemensam episod, oavsett monitor                                           | 10 minuter  |
+| **Gruppera larm i anslutna tjänster** | En episod för tjänster som anropar varandra på tjänstekartan | 30 minuter  |
 | **Gruppera larm efter allvarlighetsgrad**     | En episod per allvarlighetsgrad                                               | 30 minuter  |
 | **Gruppera upprepningar av samma larm**       | En episod per larmtitel, utan hänsyn till siffror och skiftläge               | 1 timme     |
 
@@ -55,7 +56,7 @@ Ett projekt utan grupperingsregler ser fyra färdiga regler i stället för en t
 :::steps
 #### Svara på hur det ska grupperas
 
-Klicka på **Skapa anpassad regel** under mallarna, eller på **Skapa grupperingsregel för larm** på kortet när du har regler. I steget **Gruppering** ställer **Gruppera larm efter** en enda fråga: **Övervakning**, **Allt tillsammans**, **Allvarlighetsgrad**, **Titel** eller **Anpassad**. **Namn** följer ditt svar tills du skriver ett eget.
+Klicka på **Skapa anpassad regel** under mallarna, eller på **Skapa grupperingsregel för larm** på kortet när du har regler. I steget **Gruppering** ställer **Gruppera larm efter** en enda fråga: **Övervakning**, **Allt tillsammans**, **Anslutna tjänster**, **Allvarlighetsgrad**, **Titel** eller **Anpassad**. **Namn** följer ditt svar tills du skriver ett eget.
 
 #### Ställ in tidsfönstret
 
@@ -63,7 +64,7 @@ Klicka på **Skapa anpassad regel** under mallarna, eller på **Skapa gruppering
 
 #### Kombinera fält, för Anpassad
 
-**Anpassad** lägger till ett steg **Gruppera efter** med fem reglage: **Gruppera efter övervakning**, **Gruppera efter larmallvarlighetsgrad**, **Gruppera efter larmtitel**, **Gruppera efter larmetiketter** och **Gruppera efter övervakningsetiketter**. Etiketter grupperar efter sin exakta uppsättning.
+**Anpassad** lägger till ett steg **Gruppera efter** med sex reglage: **Gruppera efter övervakning**, **Gruppera efter larmallvarlighetsgrad**, **Gruppera efter larmtitel**, **Gruppera efter larmetiketter**, **Gruppera efter övervakningsetiketter** och **Gruppera efter anslutna tjänster**. Etiketter grupperar efter sin exakta uppsättning.
 
 #### Avgränsa den
 
@@ -90,6 +91,17 @@ Regler kontrolleras uppifrån och ned i listan, och den första matchningen vinn
 - **Det räknas per grupp.** Med **Allt tillsammans** räknas alla matchande larm, så en episod öppnas bara vid ett avbrott som utlöser flera monitorer på en gång. Med **Övervakning** öppnas en monitors episod när den monitorn har flera pågående larm.
 
 Listans kolumn **Gruppering** säger "Öppnar en episod när 3 matchande larm pågår". Via API:et och Terraform heter det `enableMinimumAlertCount` och `minimumAlertCount`.
+
+### Gruppera larm i anslutna tjänster
+
+När en tjänst fallerar börjar tjänsterna som anropar den också att fallera, och var och en utlöser ett larm på sin egen övervakning. **Anslutna tjänster** samlar de larmen i en episod med hjälp av [tjänstekartan](/docs/telemetry/topology) som OneUptime ritar utifrån dina spår.
+
+- Ett larms tjänster är de som är kopplade till det under **Berörda resurser**, och de som är kopplade till dess övervakning.
+- Ett larm går in i en öppen episod för regeln när en av dess tjänster är, anropar eller anropas av en tjänst för ett larm som redan finns i den, så att ett fel som sprider sig håller sig till en episod.
+- Ansluten betyder ett anrop bort: två tjänster som bara anropar samma databas eller externa API är inte anslutna, annars skulle ett beroende som hälften av dina tjänster anropar lägga varje larm i en episod.
+- Ett larm utan tjänst grupperas efter sin övervakning, så som **Övervakning** grupperar.
+
+Ett anrop som inte har setts på 30 dagar försvinner från tjänstekartan, och anslutningen med det. Listans kolumn **Gruppering** säger "Larm i anslutna tjänster delar en episod". Via API:et och Terraform heter det `groupByConnectedServices`.
 
 ## Episodtitlar
 

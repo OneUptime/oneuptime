@@ -21,18 +21,19 @@ import useResizableColumns, {
 import ResizableHeaderCell from "Common/UI/Components/Table/ColumnResize/ResizableHeaderCell";
 import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
 import {
+  getUserFlowPageText,
   UserFlowDirection,
   UserFlowLoop,
   UserFlowPageStats,
   UserFlowPath,
 } from "Common/Utils/Rum/UserFlow";
-import { getLineDirection } from "Common/UI/Utils/LineDirection";
 import AppLink from "../AppLink/AppLink";
 import { buildReplayLinkRoute } from "../SessionReplay/ReplayLinkRoute";
 import {
   formatUserFlowCount,
   formatUserFlowDuration,
   formatUserFlowShare,
+  getUserFlowPathLineDirection,
   pluralizeSessions,
 } from "./UserFlowFormat";
 import { RUM_USER_FLOW_METRIC_DESCRIPTIONS } from "../MetricDescriptions/RumMetricDescriptions";
@@ -91,19 +92,23 @@ function WatchLink(props: {
 
 function PageChip(props: { page: string; onClick: () => void }): ReactElement {
   const translator: Translator = useTranslator();
+  const pageText: string = getUserFlowPageText(props.page);
 
   return (
     <button
       type="button"
       className="max-w-[16rem] truncate rounded-md bg-gray-100 px-1.5 py-0.5 font-mono text-xs text-gray-800 hover:bg-indigo-100 hover:text-indigo-800"
       title={translator.translateTemplate("Show paths from {{page}}", {
-        page: props.page,
+        page: pageText,
       })}
-      /* A path reads from the left on any page: "/home", not "home/". */
-      dir={getLineDirection(props.page, translator.language)}
+      /*
+       * A path reads from the left on any page: "/home", not "home/", and
+       * "/الرئيسية", not "الرئيسية/".
+       */
+      dir={getUserFlowPathLineDirection(props.page, translator.language)}
       onClick={props.onClick}
     >
-      {props.page}
+      {pageText}
     </button>
   );
 }

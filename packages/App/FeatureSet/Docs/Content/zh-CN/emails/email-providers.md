@@ -8,6 +8,7 @@
 - [Mailgun](#mailgun): API 密钥、发信域名及其区域。
 - [Postmark](#postmark): 服务器的 API 令牌。
 - [Resend](#resend): 具有发送权限的 API 密钥。
+- [环境变量](#通过环境变量设置服务器的电子邮件): 通过 Helm values 或 `config.env` 设置自托管服务器的电子邮件。
 - [故障排查](#故障排查): 各提供商的拒绝分别意味着什么。
 :::
 
@@ -17,7 +18,7 @@
 @tab 项目
 在 **项目设置 > 通知 > 通知渠道** 中展开 **更多设置**，在 **自定义 SMTP 配置** 卡片中点击 **创建SMTP 配置**。在 **提供商** 步骤中输入 **名称** 并选择提供商。下一步会询问该提供商的设置，**发件人** 步骤则询问 **发件人邮箱** 和 **发件人名称**。保存后，可使用配置所在行的 **发送测试电子邮件** 检查它是否正常工作。
 @tab 自托管实例
-在 Admin Dashboard 中打开 **设置**，然后打开 **通知 > 电子邮件**。在 **电子邮件服务器设置** 卡片中点击 **编辑服务器**，并将 **邮件服务器类型** 设置为该提供商。提供商的卡片会出现在其下方，例如 **Amazon SES 设置**：点击它的编辑按钮，例如 **编辑 Amazon SES**，然后填写提供商的设置和 **发件人** 步骤。在填写完所需的全部内容之前，该卡片会说明缺少什么，每封邮件都会被拒绝，并指明需要填写的设置。
+在 Admin Dashboard 中打开 **设置**，然后打开 **通知 > 电子邮件**。在 **电子邮件服务器设置** 卡片中点击 **编辑服务器**，并将 **邮件服务器类型** 设置为该提供商。提供商的卡片会出现在其下方，例如 **Amazon SES 设置**：点击它的编辑按钮，例如 **编辑 Amazon SES**，然后填写提供商的设置和 **发件人** 步骤。在填写完所需的全部内容之前，该卡片会说明缺少什么，每封邮件都会被拒绝，并指明需要填写的设置。 通过代码部署的服务器也可以改用环境变量设置它们：请参阅 [通过环境变量设置服务器的电子邮件](#通过环境变量设置服务器的电子邮件)。
 :::
 
 | 提供商 | 需要填写的内容 | OneUptime 发送到的地址 |
@@ -108,6 +109,67 @@ OneUptime 按照 AWS SDK 的方式，依次在以下位置查找服务器的凭�
 ## Resend
 
 在 Resend 中，在 **Domains** 下添加并验证您的域名，然后在 **API Keys** 下创建一个具有发送权限的 API 密钥。在 **Resend** 步骤中将其填入 **API 密钥**，并使用已验证域名下的 **发件人邮箱**。Resend 自己的测试域名只会向您自己的地址发送邮件。
+
+## 通过环境变量设置服务器的电子邮件
+
+通过代码部署的自托管服务器可以一启动就发送电子邮件，无需手动设置：通过环境变量设置它的电子邮件设置，可以来自 Terraform 或任何部署 OneUptime 的工具。一旦设置了 `GLOBAL_EMAIL_SERVER_TYPE`，服务器就按这些变量所描述的方式发送自己的电子邮件。在 Admin Dashboard 的 **设置** 中，**通知 > 电子邮件** 下保存的设置不再使用，该页面以只读方式显示这些设置，每个字段旁注明设置它的变量。如果要改为在 Admin Dashboard 中设置电子邮件，请将 `GLOBAL_EMAIL_SERVER_TYPE` 留空。项目的 SMTP 配置不受影响。
+
+| 变量 | Helm 值 | 内容 |
+| --- | --- | --- |
+| `GLOBAL_EMAIL_SERVER_TYPE` | `email.serverType` | `custom-smtp`、`sendgrid`、`amazon-ses`、`mailgun`、`postmark` 或 `resend`。只有设置了它，OneUptime 才会读取其他变量 |
+| `GLOBAL_EMAIL_FROM_EMAIL` | `email.fromEmail` | 每封电子邮件的发件地址 |
+| `GLOBAL_EMAIL_FROM_NAME` | `email.fromName` | 每封电子邮件的发件人名称。`custom-smtp` 和 `sendgrid` 必填 |
+| `GLOBAL_EMAIL_SMTP_TRANSPORT` | `email.smtp.transport` | `smtp`（为空时也是如此），或 `microsoft-graph`，通过 OAuth 应用经 Microsoft Graph 发送 |
+| `GLOBAL_EMAIL_SMTP_HOST` | `email.smtp.host` | 邮件服务器，例如 `smtp.example.com` |
+| `GLOBAL_EMAIL_SMTP_PORT` | `email.smtp.port` | 它的端口，例如 `587` |
+| `GLOBAL_EMAIL_SMTP_REQUIRE_TLS` | `email.smtp.requireTls` | `true` 表示只通过带有效证书的加密连接发送，或 `false`（为空时也是如此） |
+| `GLOBAL_EMAIL_SMTP_AUTH_TYPE` | `email.smtp.authType` | `username-and-password`（为空时也是如此）、`oauth` 或 `none` |
+| `GLOBAL_EMAIL_SMTP_USERNAME` | `email.smtp.username` | 登录所用的邮箱，`oauth` 也需要。将它和密码都留空，即不登录直接发送 |
+| `GLOBAL_EMAIL_SMTP_PASSWORD` | `email.smtp.password`，或在 `email.existingSecret.name` 中指定的 Secret | 它的密码 |
+| `GLOBAL_EMAIL_SMTP_OAUTH_PROVIDER_TYPE` | `email.smtp.oauth.providerType` | `client-credentials`（为空时也是如此）或 `jwt-bearer` |
+| `GLOBAL_EMAIL_SMTP_OAUTH_CLIENT_ID` | `email.smtp.oauth.clientId` | OAuth 应用的客户端 ID |
+| `GLOBAL_EMAIL_SMTP_OAUTH_CLIENT_SECRET` | `email.smtp.oauth.clientSecret`，或在 `email.existingSecret.name` 中指定的 Secret | 它的客户端密钥；对于 `jwt-bearer`，是 PEM 格式的私钥 |
+| `GLOBAL_EMAIL_SMTP_OAUTH_TOKEN_URL` | `email.smtp.oauth.tokenUrl` | 它的令牌 URL |
+| `GLOBAL_EMAIL_SMTP_OAUTH_SCOPE` | `email.smtp.oauth.scope` | 它的 scope |
+| `GLOBAL_EMAIL_SENDGRID_API_KEY` | `email.sendgrid.apiKey`，或在 `email.existingSecret.name` 中指定的 Secret | SendGrid 的 API 密钥 |
+| `GLOBAL_EMAIL_AMAZON_SES_AUTHENTICATION_TYPE` | `email.amazonSes.authenticationType` | `access-key`（为空时也是如此），或 `server-iam-role`，以服务器的 IAM 角色登录 |
+| `GLOBAL_EMAIL_AMAZON_SES_ACCESS_KEY_ID` | `email.amazonSes.accessKeyId` | 访问密钥 ID |
+| `GLOBAL_EMAIL_AMAZON_SES_SECRET_ACCESS_KEY` | `email.amazonSes.secretAccessKey`，或在 `email.existingSecret.name` 中指定的 Secret | 它的秘密访问密钥 |
+| `GLOBAL_EMAIL_AMAZON_SES_REGION` | `email.amazonSes.region` | 发件人通过验证的区域，例如 `us-east-1` |
+| `GLOBAL_EMAIL_MAILGUN_API_KEY` | `email.mailgun.apiKey`，或在 `email.existingSecret.name` 中指定的 Secret | Mailgun 的 API 密钥 |
+| `GLOBAL_EMAIL_MAILGUN_DOMAIN` | `email.mailgun.domain` | 发信域名，例如 `mg.example.com` |
+| `GLOBAL_EMAIL_MAILGUN_REGION` | `email.mailgun.region` | `us`（为空时也是如此）或 `eu` |
+| `GLOBAL_EMAIL_POSTMARK_SERVER_TOKEN` | `email.postmark.serverToken`，或在 `email.existingSecret.name` 中指定的 Secret | Postmark 的服务器 API 令牌 |
+| `GLOBAL_EMAIL_RESEND_API_KEY` | `email.resend.apiKey`，或在 `email.existingSecret.name` 中指定的 Secret | Resend 的 API 密钥 |
+
+只使用服务器类型会读取的变量：`custom-smtp` 使用以 `GLOBAL_EMAIL_SMTP_` 开头的变量，各提供商使用其自己的变量。服务器日志和 Admin Dashboard 会把设置了的其他变量标为未使用。
+
+使用 Helm 时，在 values 的 `email` 下设置它们。为了不让密码或密钥出现在 Helm 随每个 release 保存的 values 中，请把它放进您自己的 Secret，并在 `email.existingSecret.name` 中指定该 Secret。Chart 从 `email.existingSecret.key` 中指定的键读取它，未指定时从以它命名的键读取：`smtpPassword`、`smtpOAuthClientSecret`、`sendgridApiKey`、`amazonSesSecretAccessKey`、`mailgunApiKey`、`postmarkServerToken` 或 `resendApiKey`。
+
+```bash
+kubectl create secret generic oneuptime-email --namespace oneuptime \
+  --from-literal=smtpPassword=YOUR_SMTP_PASSWORD
+```
+
+```yaml
+email:
+  serverType: custom-smtp
+  fromEmail: alerts@example.com
+  fromName: OneUptime
+  smtp:
+    host: smtp.example.com
+    port: 587
+    requireTls: true
+    username: alerts@example.com
+  existingSecret:
+    name: oneuptime-email
+```
+
+Chart 会拒绝没有 `email.serverType` 的其他 `email` 值、缺少所需密码或密钥的设置、同时在 values 和 Secret 中给出的密码或密钥，以及设置不从中读取任何内容的 Secret。使用 Terraform 时，在 `helm_release` 上设置相同的值，并将密码或密钥作为敏感值。
+
+使用 Docker Compose 时，在 `config.env` 中填写以 `GLOBAL_EMAIL_` 开头的设置项，然后运行 `npm run start` 重新创建容器。
+
+OneUptime 在启动时读取这些变量。如果其中有错误，例如不是数字的端口或缺少密码，在修正之前服务器不会发送任何电子邮件；服务器日志、Admin Dashboard 的电子邮件设置和 `/admin/setup` 上的检查清单会指出是哪个变量。密码和密钥永远不会显示。要更改设置，请修改这些变量并重启 OneUptime：Admin Dashboard 不会更改它们。
 
 ## 故障排查
 

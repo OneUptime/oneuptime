@@ -11,6 +11,7 @@ import {
   act,
   cleanup,
   fireEvent,
+  MatcherFunction,
   render,
   RenderResult,
   screen,
@@ -20,6 +21,20 @@ import {
 import * as React from "react";
 import type { SpyInstance } from "jest-mock";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+
+/*
+ * A row's sentence draws each name in an isolate of its own (so a pod's
+ * hyphens stay where they are in an Arabic sentence), which splits its
+ * words across elements: a row is found by the whole sentence it says.
+ */
+function connectionSentence(sentence: string): MatcherFunction {
+  return (_content: string, element: Element | null): boolean => {
+    return (
+      element?.getAttribute("data-testid") === "entity-connection-sentence" &&
+      element.textContent === sentence
+    );
+  };
+}
 
 /*
  * The topology detail drawer. It opens on what the map already knows (the
@@ -593,8 +608,8 @@ describe("connection sections", () => {
     const items: Array<HTMLElement> = within(
       screen.getByTestId("entity-detail-related"),
     ).getAllByRole("listitem");
-    expect(items[0]).toHaveTextContent("Checkout API member of Zulu");
-    expect(items[1]).toHaveTextContent("Checkout API member of Alpha");
+    expect(items[0]).toHaveTextContent("Checkout API is a member of Zulu");
+    expect(items[1]).toHaveTextContent("Checkout API is a member of Alpha");
   });
 
   test("outbound rows read from the entity, inbound rows towards it, with call metrics", async () => {
@@ -604,10 +619,14 @@ describe("connection sections", () => {
     await waitForConnections();
 
     expect(
-      screen.getByText("Checkout API depends on Orders database"),
+      screen.getByText(
+        connectionSentence("Checkout API depends on Orders database"),
+      ),
     ).toBeInTheDocument();
     expect(
-      screen.getByText("Web frontend depends on Checkout API"),
+      screen.getByText(
+        connectionSentence("Web frontend depends on Checkout API"),
+      ),
     ).toBeInTheDocument();
     expect(screen.getByText(/100\/min/)).toHaveTextContent("2.0% errors");
     expect(screen.getByText(/100\/min/)).toHaveTextContent("avg 30ms");
@@ -625,7 +644,9 @@ describe("connection sections", () => {
     await waitForConnections();
 
     expect(
-      screen.getByText("Checkout API depends on Undiscovered resource"),
+      screen.getByText(
+        connectionSentence("Checkout API depends on Undiscovered resource"),
+      ),
     ).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: /View details for Undiscovered/ }),
@@ -705,7 +726,7 @@ describe("connection sections", () => {
 
     expect(
       screen.getByRole("button", { name: "View details for Unnamed resource" }),
-    ).toHaveTextContent("Checkout API member of Unnamed resource");
+    ).toHaveTextContent("Checkout API is a member of Unnamed resource");
   });
 
   test("a self-loop appears once, as an outbound row", async () => {
@@ -726,7 +747,9 @@ describe("connection sections", () => {
       ),
     ).toHaveLength(1);
     expect(
-      screen.getByText("Checkout API depends on Checkout API"),
+      screen.getByText(
+        connectionSentence("Checkout API depends on Checkout API"),
+      ),
     ).toBeInTheDocument();
     expect(
       screen.queryByTestId("entity-detail-called-by"),
@@ -839,7 +862,7 @@ describe("Show more", () => {
     fireEvent.click(screen.getByRole("button", { name: "Show more: Runs on" }));
 
     const row: HTMLElement = await screen.findByText(
-      "Checkout API runs on Undiscovered resource",
+      connectionSentence("Checkout API runs on Undiscovered resource"),
     );
     await waitFor(() => {
       expect(document.activeElement).toBe(row.closest("li"));
@@ -1561,7 +1584,9 @@ describe("switching entities and ranges", () => {
     };
 
     const view: RenderResult = render(page(CHECKOUT));
-    await screen.findByText("Checkout API depends on Orders database");
+    await screen.findByText(
+      connectionSentence("Checkout API depends on Orders database"),
+    );
 
     view.rerender(
       page({
@@ -1584,7 +1609,9 @@ describe("switching entities and ranges", () => {
     }
 
     expect(
-      screen.queryByText("Checkout API depends on Orders database"),
+      screen.queryByText(
+        connectionSentence("Checkout API depends on Orders database"),
+      ),
     ).not.toBeInTheDocument();
     expect(screen.queryByText(/Orders database/)).not.toBeInTheDocument();
     expect(screen.getByRole("status")).toBeInTheDocument();
@@ -1597,7 +1624,9 @@ describe("switching entities and ranges", () => {
     });
 
     expect(
-      screen.getByText("Web frontend depends on Checkout API"),
+      screen.getByText(
+        connectionSentence("Web frontend depends on Checkout API"),
+      ),
     ).toBeInTheDocument();
   });
 
@@ -1624,17 +1653,23 @@ describe("switching entities and ranges", () => {
       />,
     );
     expect(firstSignal?.aborted).toBe(true);
-    await screen.findByText("Web frontend depends on Checkout API");
+    await screen.findByText(
+      connectionSentence("Web frontend depends on Checkout API"),
+    );
 
     await act(async () => {
       checkout.resolve(checkoutResponse());
     });
 
     expect(
-      screen.queryByText("Checkout API depends on Orders database"),
+      screen.queryByText(
+        connectionSentence("Checkout API depends on Orders database"),
+      ),
     ).not.toBeInTheDocument();
     expect(
-      screen.getByText("Web frontend depends on Checkout API"),
+      screen.getByText(
+        connectionSentence("Web frontend depends on Checkout API"),
+      ),
     ).toBeInTheDocument();
   });
 
@@ -1647,7 +1682,9 @@ describe("switching entities and ranges", () => {
     });
 
     const view: RenderResult = renderPanel();
-    await screen.findByText("Checkout API depends on Orders database");
+    await screen.findByText(
+      connectionSentence("Checkout API depends on Orders database"),
+    );
 
     view.rerender(
       <EntityDetailPanel
@@ -1661,7 +1698,9 @@ describe("switching entities and ranges", () => {
     );
 
     expect(
-      screen.queryByText("Checkout API depends on Orders database"),
+      screen.queryByText(
+        connectionSentence("Checkout API depends on Orders database"),
+      ),
     ).not.toBeInTheDocument();
     expect(screen.getByRole("status")).toBeInTheDocument();
 
@@ -1679,7 +1718,7 @@ describe("switching entities and ranges", () => {
       );
     });
     expect(
-      screen.getByText("cron depends on Checkout API"),
+      screen.getByText(connectionSentence("cron depends on Checkout API")),
     ).toBeInTheDocument();
   });
 
@@ -1976,7 +2015,9 @@ describe("where rows lead", () => {
     await waitForConnections();
 
     expect(
-      screen.getByText("Checkout API depends on Orders database"),
+      screen.getByText(
+        connectionSentence("Checkout API depends on Orders database"),
+      ),
     ).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: /View details for/ }),

@@ -20,6 +20,10 @@ import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePrior
 import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
+import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
+import Team from "Common/Models/DatabaseModels/Team";
+import FilterCondition from "Common/Types/Filter/FilterCondition";
+import { RULE_CRITERIA_LIST_CLASS_NAME } from "Common/UI/Components/RuleCriteria/RuleCriteriaRowLayout";
 import HorizontalRule from "Common/UI/Components/HorizontalRule/HorizontalRule";
 import ObjectID from "Common/Types/ObjectID";
 import { isFilterConditionNeeded } from "Common/Types/Filter/FilterConditionUtil";
@@ -45,7 +49,16 @@ export interface ComponentProps {
   securityCaseStatuses?: Array<SecurityCaseStatus> | undefined;
   // An SLO rule's: the project's SLOs, to pick the ones it is for.
   serviceLevelObjectives?: Array<ServiceLevelObjective> | undefined;
+  // An on-call rule's: the project's policies, to pick the ones it is for.
+  onCallDutyPolicies?: Array<OnCallDutyPolicy> | undefined;
+  // The project's teams: which picks of an owners condition are teams.
+  teams?: Array<Team> | undefined;
   monitorStatus: Array<MonitorStatus>;
+  /*
+   * How the rule combines its conditions, the form's Match Condition: the
+   * conditions after the first read "And" for All, "Or" for Any.
+   */
+  filterCondition?: FilterCondition | undefined;
   /*
    * When the conditions are checked, in English: drawn over them while
    * "Only ... that match conditions" is picked, and left out while the rule
@@ -184,38 +197,45 @@ const NotificationRuleConditions: FunctionComponent<ComponentProps> = (
         matchingDescription={props.conditionsDescription}
         dataTestId="notification-rule-applies-to"
       >
-        <div data-testid="notification-rule-conditions">
-          {rows.map((row: ConditionRow) => {
-            return (
-              <NotificationRuleConditionElement
-                {...props}
-                key={row.key}
-                initialValue={row.condition}
-                onDelete={() => {
-                  setRows((current: Array<ConditionRow>) => {
-                    return current.filter((item: ConditionRow): boolean => {
-                      return item.key !== row.key;
+        <div
+          className="space-y-4 rounded-lg border border-gray-200 bg-white p-4"
+          data-testid="notification-rule-conditions"
+        >
+          <ol className={RULE_CRITERIA_LIST_CLASS_NAME}>
+            {rows.map((row: ConditionRow, index: number) => {
+              return (
+                <NotificationRuleConditionElement
+                  {...props}
+                  key={row.key}
+                  index={index}
+                  filterCondition={props.filterCondition}
+                  initialValue={row.condition}
+                  onDelete={() => {
+                    setRows((current: Array<ConditionRow>) => {
+                      return current.filter((item: ConditionRow): boolean => {
+                        return item.key !== row.key;
+                      });
                     });
-                  });
-                }}
-                onChange={(value: NotificationRuleCondition) => {
-                  setRows((current: Array<ConditionRow>) => {
-                    return current.map((item: ConditionRow): ConditionRow => {
-                      return item.key === row.key
-                        ? { key: item.key, condition: value }
-                        : item;
+                  }}
+                  onChange={(value: NotificationRuleCondition) => {
+                    setRows((current: Array<ConditionRow>) => {
+                      return current.map((item: ConditionRow): ConditionRow => {
+                        return item.key === row.key
+                          ? { key: item.key, condition: value }
+                          : item;
+                      });
                     });
-                  });
-                }}
-              />
-            );
-          })}
+                  }}
+                />
+              );
+            })}
+          </ol>
           {/*
            * From md up a Button sits 12px in (md:ml-3, for a dialog's
            * footer), taken back here so it lines up with the conditions.
            * Below md it has no such margin and is as wide as they are.
            */}
-          <div className="mt-3 md:-ml-3">
+          <div className="md:-ml-3">
             <Button
               title="Add Condition"
               buttonSize={ButtonSize.Small}

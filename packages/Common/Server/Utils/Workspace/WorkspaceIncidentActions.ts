@@ -1179,8 +1179,11 @@ export default class WorkspaceIncidentActions {
    * Pages people, a team, whoever is on call in a schedule, or an on-call
    * policy about the incident, as the member - the page OneUptime's other
    * pages are (OnCallPageService): each person through their own on-call
-   * rules, until somebody acknowledges the incident. Its progress shows in
-   * the incident's own channels, as one message kept up to date.
+   * rules, until somebody it paged answers it or the incident is resolved -
+   * somebody else acknowledging the incident does not stop it, a policy's
+   * run included (OnCallPersonPage, OnCallPolicyStartedByHand). Its
+   * progress shows in the incident's own channels, as one message kept up
+   * to date.
    */
   @CaptureSpan()
   public static async page(data: {

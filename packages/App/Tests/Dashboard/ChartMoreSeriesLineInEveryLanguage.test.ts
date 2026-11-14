@@ -14,6 +14,7 @@ import {
   PluralTemplate,
   Translator,
 } from "Common/Types/Translator";
+import { MORE_SERIES_TEMPLATE as METRIC_CHART_MORE_SERIES } from "../../FeatureSet/Dashboard/src/Components/Metrics/SeriesCounts";
 
 /*
  * A CHART'S "+N MORE SERIES" LINE, AND WHY A DRIFT MONITOR'S CHART CAN SHOW
@@ -37,6 +38,11 @@ import {
  * whose "one" form, or whose general form behind "few" and "many", is
  * English fails here with the count it fails for. The Admin Dashboard draws
  * the same charts from its own locale files, and reads the line the same.
+ *
+ * The line is the metric chart's shorter "+{{count}} more series" with what
+ * the chart shows after it, and reads that way in every language (#7664):
+ * Japanese dropped the "+" from the longer line ("ほか 3 個の系列 — ...")
+ * while its shorter one kept it ("+ ほか 3 系列").
  */
 
 const REPOSITORY_ROOT: string = path.resolve(__dirname, "../../../..");
@@ -182,6 +188,26 @@ describe.each([...DASHBOARD_LANGUAGES])(
       }
     });
 
+    test("begins the line with the metric chart's shorter one, for every count", () => {
+      const translator: Translator = translatorFor(DASHBOARD_LOCALES, code);
+
+      const apart: Array<{ count: number; shorter: string; line: string }> = [];
+
+      for (const count of COUNTS) {
+        const shorter: string = translator.translatePlural(
+          METRIC_CHART_MORE_SERIES,
+          count,
+        );
+        const line: string = translator.translatePlural(MORE_SERIES, count);
+
+        if (!line.startsWith(shorter) || line === shorter) {
+          apart.push({ count, shorter, line });
+        }
+      }
+
+      expect({ code, apart }).toEqual({ code, apart: [] });
+    });
+
     test("words the drift monitor's note its own way, not in English", () => {
       const worded: unknown = readLocale(DASHBOARD_LOCALES, code)[DRIFT_NOTE];
 
@@ -206,6 +232,19 @@ describe.each([...ADMIN_DASHBOARD_LANGUAGES])(
         code,
         readInEnglish: countsReadInEnglish(translator),
       }).toEqual({ code, readInEnglish: [] });
+    });
+
+    test("words the line as the Dashboard does, in each form", () => {
+      const admin: Locale = readLocale(ADMIN_LOCALES, code);
+      const dashboard: Locale = readLocale(DASHBOARD_LOCALES, code);
+
+      for (const key of [MORE_SERIES.other, `${MORE_SERIES.other}_one`]) {
+        expect({ code, key, worded: admin[key] }).toEqual({
+          code,
+          key,
+          worded: dashboard[key],
+        });
+      }
     });
   },
 );

@@ -535,13 +535,24 @@
         "pillNoAccessKey": "غير مفعّل. يُرجى إضافة مفتاح الوصول.",
         "pillNoRegion": "غير مفعّل. يُرجى إضافة المنطقة.",
         "pillNoDomain": "غير مفعّل. يُرجى إضافة النطاق.",
-        "pillNoServerToken": "غير مفعّل. يُرجى إضافة رمز API للخادم."
+        "pillNoServerToken": "غير مفعّل. يُرجى إضافة رمز API للخادم.",
+        "environmentCardDescription": "مضبوطة بمتغيرات البيئة: email في قيم مخطط Helm، أو إعدادات GLOBAL_EMAIL_ في config.env. لتغيير هذه الإعدادات، غيّرها هناك وأعد تشغيل OneUptime.",
+        "environmentProblemsTitle": "لا يرسل هذا الخادم أي بريد إلكتروني حتى يتم إصلاح متغيرات البيئة هذه:",
+        "environmentUnusedTitle": "بعض متغيرات بيئة البريد الإلكتروني غير مستخدمة:",
+        "environmentIgnoredTitle": "متغيرات البيئة هذه مضبوطة، لكن إعدادات البريد الإلكتروني المختارة لا تقرؤها، لذا فهي لا تغيّر شيئًا:",
+        "environmentValueSet": "مضبوط",
+        "environmentValueNotSet": "غير مضبوط"
       },
       "callSms": {
         "cardTitle": "إعداد Twilio",
         "cardDescription": "حساب Twilio الذي يرسل OneUptime عبره الرسائل النصية والمكالمات، ما لم يستخدم المشروع إعداد Twilio خاصًا به.",
         "editButton": "تعديل إعداد Twilio",
-        "smsSameAsCalls": "الأرقام نفسها المستخدمة للمكالمات"
+        "smsSameAsCalls": "الأرقام نفسها المستخدمة للمكالمات",
+        "environmentCardDescription": "مضبوط بمتغيرات البيئة: twilio في قيم مخطط Helm، أو إعدادات GLOBAL_TWILIO_ في config.env. لتغيير هذا الحساب، غيّرها هناك وأعد تشغيل OneUptime.",
+        "environmentProblemsTitle": "لا يرسل هذا الحساب رسائل SMS ولا يجري مكالمات حتى يتم إصلاح متغيرات البيئة هذه:",
+        "environmentUnusedTitle": "بعض متغيرات بيئة Twilio غير مستخدمة:",
+        "authTokenSet": "مضبوط",
+        "authTokenNotSet": "غير مضبوط"
       },
       "whatsapp": {
         "metaCardTitle": "إعدادات Meta WhatsApp",
@@ -2682,7 +2693,7 @@
   "does not contain": "لا يحتوي على",
   "starts with": "يبدأ بـ",
   "ends with": "ينتهي بـ",
-  "matches": "من النتائج المطابقة",
+  "matches": "يطابق",
   "does not match": "لا يطابق",
   "greater than": "أكبر من",
   "greater than or equal": "أكبر من أو يساوي",
@@ -2848,8 +2859,8 @@
   "Only incident episodes that match conditions": "حلقات الحوادث التي تطابق الشروط فقط",
   "All alert episodes": "كل حلقات التنبيهات",
   "Only alert episodes that match conditions": "حلقات التنبيهات التي تطابق الشروط فقط",
-  "All scheduled maintenance events": "كل أحداث الصيانة المجدولة",
-  "Only scheduled maintenance events that match conditions": "أحداث الصيانة المجدولة التي تطابق الشروط فقط",
+  "All maintenance events": "كل أحداث الصيانة",
+  "Only maintenance events that match conditions": "أحداث الصيانة التي تطابق الشروط فقط",
   "All monitors": "كل المراقبات",
   "Only monitors that match conditions": "المراقبات التي تطابق الشروط فقط",
   "All status pages": "كل صفحات الحالة",
@@ -2989,5 +3000,9 @@
   "You need one of these permissions: {{permissions}}.": "تحتاج إلى أحد هذه الأذونات: {{permissions}}.",
   "You need this role: {{role}}.": "تحتاج إلى هذا الدور: {{role}}.",
   "You need one of these roles: {{roles}}.": "تحتاج إلى أحد هذه الأدوار: {{roles}}.",
-  "You do not have permission to {{action}} this {{itemName}}.": "ليس لديك إذن بـ {{action}} هذا العنصر ({{itemName}})."
+  "You do not have permission to {{action}} this {{itemName}}.": "ليس لديك إذن بـ {{action}} هذا العنصر ({{itemName}}).",
+  "This monitor does not exist in this project, or you do not have access to it.": "هذه المراقبة غير موجودة في هذا المشروع، أو ليس لديك صلاحية الوصول إليها.",
+  "This monitor and this template are in different projects.": "هذه المراقبة وهذا القالب في مشروعين مختلفين.",
+  "This monitor is not linked to this template.": "هذه المراقبة غير مرتبطة بهذا القالب.",
+  "This monitor's type is {{monitorType}}, and this template's type is {{templateType}}. Only monitors of the template's type can be linked to it.": "نوع هذه المراقبة {{monitorType}}، ونوع هذا القالب {{templateType}}. لا يمكن ربط القالب إلا بالمراقبات من نوعه."
 }

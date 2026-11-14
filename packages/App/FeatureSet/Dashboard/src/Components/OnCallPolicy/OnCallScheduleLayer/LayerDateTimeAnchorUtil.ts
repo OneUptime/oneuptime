@@ -11,7 +11,8 @@ import Typeof from "Common/Types/Typeof";
  * zone. Kept React-free so the anchoring contract is unit-testable on its own.
  *
  * The viewer's zone here is the CURRENT timezone: the User Settings zone, else
- * the browser's. The Input converts with OneUptimeDate.toDateTimeLocalString /
+ * the browser's. The Input converts with
+ * OneUptimeDate.toDateTimeLocalMinuteString (to the minute) /
  * fromDateTimeLocalString, which read and write that zone, so these use the
  * current-timezone wall-clock helpers. The browser-local twins that the
  * schedule preview grid uses would put the value off by the gap between the

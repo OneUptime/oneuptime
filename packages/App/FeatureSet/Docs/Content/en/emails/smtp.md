@@ -74,6 +74,8 @@ These are the settings under **More fields**:
 
 **Microsoft Graph.** On a project's form, pick `Microsoft Graph` as the **Provider**; on the instance's form, open **More fields** and set **Transport** to `Microsoft Graph`. Then fill in an Azure app that has the **Mail.Send** application permission: its client ID and client secret, the token URL `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` and the scope `https://graph.microsoft.com/.default`. Mail is sent from the **From Email** mailbox, which must be a licensed mailbox in your tenant.
 
+**Terraform.** A project's SMTP configs are also the `oneuptime_smtp_config` resource of the [Terraform provider](/docs/terraform/index). The password, the OAuth client secret and the email providers' keys are sensitive, so plans, logs and outputs never print them. The API key Terraform uses must be able to read them: **Project Owner**, **Project Admin**, or **Read SMTP Config** in a custom role. A status page's `smtp_config_id` takes a config's `id`.
+
 > [!NOTE]
 > On OneUptime Cloud, a project's mail server must be reachable over the internet: a host that resolves to a private or internal address is refused. On a self-hosted installation, private addresses are allowed unless `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` is `true`; loopback and link-local addresses are always refused. The instance's own mail server is not checked this way.
 

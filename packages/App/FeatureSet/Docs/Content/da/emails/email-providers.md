@@ -8,6 +8,7 @@ Send OneUptimes e-mail gennem en e-mailudbyders HTTPS-API i stedet for en SMTP-s
 - [Mailgun](#mailgun): En API-nøgle, afsenderdomænet og dets region.
 - [Postmark](#postmark): Serverens API-token.
 - [Resend](#resend): En API-nøgle med adgang til at sende.
+- [Miljøvariabler](#angiv-serverens-e-mail-med-miljøvariabler): Angiv en selvhostet servers e-mail fra Helm-values eller `config.env`.
 - [Fejlfinding](#fejlfinding): Hvad hver udbyders afvisning betyder.
 :::
 
@@ -17,7 +18,7 @@ Send OneUptimes e-mail gennem en e-mailudbyders HTTPS-API i stedet for en SMTP-s
 @tab Projekt
 Åbn **Yderligere indstillinger** under **Projektindstillinger > Notifikationer > Notifikationskanaler**, og klik på **Opret SMTP-konfiguration** i kortet **Brugerdefinerede SMTP-konfigurationer**. I trinnet **Udbyder** angiver du et **Navn** og vælger udbyderen. Det næste trin beder om udbyderens indstillinger, og trinnet **Afsender** om **E-mail fra** og **Fra-navn**. Når konfigurationen er gemt, tjekker **Send test-e-mail** i dens række, at den virker.
 @tab Selvhostet instans
-Åbn **Indstillinger** i Admin Dashboard og derefter **Notifikationer > E-mails**. Klik i kortet **E-mail-serverindstillinger** på **Rediger server**, og vælg udbyderen som **E-mailservertype**. Udbyderens kort vises nedenunder, for eksempel **Amazon SES-indstillinger**: klik på dets redigeringsknap, for eksempel **Rediger Amazon SES**, og udfyld udbyderens indstillinger og trinnet **Afsender**. Indtil kortet har alt, hvad det skal bruge, siger det, hvad der mangler, og hver e-mail afvises med den indstilling, der skal udfyldes.
+Åbn **Indstillinger** i Admin Dashboard og derefter **Notifikationer > E-mails**. Klik i kortet **E-mail-serverindstillinger** på **Rediger server**, og vælg udbyderen som **E-mailservertype**. Udbyderens kort vises nedenunder, for eksempel **Amazon SES-indstillinger**: klik på dets redigeringsknap, for eksempel **Rediger Amazon SES**, og udfyld udbyderens indstillinger og trinnet **Afsender**. Indtil kortet har alt, hvad det skal bruge, siger det, hvad der mangler, og hver e-mail afvises med den indstilling, der skal udfyldes. En server, der udrulles fra kode, kan i stedet angive dem med miljøvariabler: se [Angiv serverens e-mail med miljøvariabler](#angiv-serverens-e-mail-med-miljøvariabler).
 :::
 
 | Udbyder | Hvad du skal angive | Hvor OneUptime sender til |
@@ -108,6 +109,67 @@ I Postmark åbner du den server, der sender, derefter dens fane **API Tokens**, 
 ## Resend
 
 I Resend tilføjer og verificerer du dit domæne under **Domains** og opretter derefter en API-nøgle med adgang til at sende under **API Keys**. Angiv den som **API-nøgle** i trinnet **Resend** sammen med en **E-mail fra** på dit verificerede domæne. Resends eget testdomæne sender kun til din egen adresse.
+
+## Angiv serverens e-mail med miljøvariabler
+
+En selvhostet server, der udrulles fra kode, kan starte med at sende e-mails, uden noget at sætte op i hånden: angiv dens e-mailindstillinger med miljøvariabler, fra Terraform eller det, der ellers udruller OneUptime. Når `GLOBAL_EMAIL_SERVER_TYPE` er angivet, sender serveren sine egne e-mails, som variablerne beskriver. Indstillingerne, der er gemt i Admin Dashboard under **Indstillinger** og derefter **Notifikationer > E-mails**, bruges ikke, og den side viser disse skrivebeskyttet, hvert felt med den variabel, der angiver det. Lad `GLOBAL_EMAIL_SERVER_TYPE` være tom for i stedet at sætte e-mail op i Admin Dashboard. Projekternes SMTP-konfigurationer berøres ikke.
+
+| Variabel | Helm-værdi | Hvad den indeholder |
+| --- | --- | --- |
+| `GLOBAL_EMAIL_SERVER_TYPE` | `email.serverType` | `custom-smtp`, `sendgrid`, `amazon-ses`, `mailgun`, `postmark` eller `resend`. Først når den er angivet, læser OneUptime de andre variabler |
+| `GLOBAL_EMAIL_FROM_EMAIL` | `email.fromEmail` | Adressen, som hver e-mail kommer fra |
+| `GLOBAL_EMAIL_FROM_NAME` | `email.fromName` | Navnet, som hver e-mail kommer fra. Påkrævet for `custom-smtp` og `sendgrid` |
+| `GLOBAL_EMAIL_SMTP_TRANSPORT` | `email.smtp.transport` | `smtp` (også når den er tom), eller `microsoft-graph` for at sende gennem Microsoft Graph med OAuth-appen |
+| `GLOBAL_EMAIL_SMTP_HOST` | `email.smtp.host` | Mailserveren, for eksempel `smtp.example.com` |
+| `GLOBAL_EMAIL_SMTP_PORT` | `email.smtp.port` | Dens port, for eksempel `587` |
+| `GLOBAL_EMAIL_SMTP_REQUIRE_TLS` | `email.smtp.requireTls` | `true` for kun at sende over en krypteret forbindelse med et gyldigt certifikat, eller `false` (også når den er tom) |
+| `GLOBAL_EMAIL_SMTP_AUTH_TYPE` | `email.smtp.authType` | `username-and-password` (også når den er tom), `oauth` eller `none` |
+| `GLOBAL_EMAIL_SMTP_USERNAME` | `email.smtp.username` | Postkassen, der logges ind som, også for `oauth`. Lad den og adgangskoden være tomme for at sende uden at logge ind |
+| `GLOBAL_EMAIL_SMTP_PASSWORD` | `email.smtp.password` eller en Secret, der er navngivet i `email.existingSecret.name` | Dens adgangskode |
+| `GLOBAL_EMAIL_SMTP_OAUTH_PROVIDER_TYPE` | `email.smtp.oauth.providerType` | `client-credentials` (også når den er tom) eller `jwt-bearer` |
+| `GLOBAL_EMAIL_SMTP_OAUTH_CLIENT_ID` | `email.smtp.oauth.clientId` | OAuth-appens klient-id |
+| `GLOBAL_EMAIL_SMTP_OAUTH_CLIENT_SECRET` | `email.smtp.oauth.clientSecret` eller en Secret, der er navngivet i `email.existingSecret.name` | Dens klienthemmelighed; for `jwt-bearer` dens private nøgle i PEM-format |
+| `GLOBAL_EMAIL_SMTP_OAUTH_TOKEN_URL` | `email.smtp.oauth.tokenUrl` | Dens token-URL |
+| `GLOBAL_EMAIL_SMTP_OAUTH_SCOPE` | `email.smtp.oauth.scope` | Dens scope |
+| `GLOBAL_EMAIL_SENDGRID_API_KEY` | `email.sendgrid.apiKey` eller en Secret, der er navngivet i `email.existingSecret.name` | SendGrids API-nøgle |
+| `GLOBAL_EMAIL_AMAZON_SES_AUTHENTICATION_TYPE` | `email.amazonSes.authenticationType` | `access-key` (også når den er tom), eller `server-iam-role` for at logge ind med serverens IAM-rolle |
+| `GLOBAL_EMAIL_AMAZON_SES_ACCESS_KEY_ID` | `email.amazonSes.accessKeyId` | Adgangsnøglens id |
+| `GLOBAL_EMAIL_AMAZON_SES_SECRET_ACCESS_KEY` | `email.amazonSes.secretAccessKey` eller en Secret, der er navngivet i `email.existingSecret.name` | Dens hemmelige adgangsnøgle |
+| `GLOBAL_EMAIL_AMAZON_SES_REGION` | `email.amazonSes.region` | Regionen, som din afsender er verificeret i, for eksempel `us-east-1` |
+| `GLOBAL_EMAIL_MAILGUN_API_KEY` | `email.mailgun.apiKey` eller en Secret, der er navngivet i `email.existingSecret.name` | Mailguns API-nøgle |
+| `GLOBAL_EMAIL_MAILGUN_DOMAIN` | `email.mailgun.domain` | Afsenderdomænet, for eksempel `mg.example.com` |
+| `GLOBAL_EMAIL_MAILGUN_REGION` | `email.mailgun.region` | `us` (også når den er tom) eller `eu` |
+| `GLOBAL_EMAIL_POSTMARK_SERVER_TOKEN` | `email.postmark.serverToken` eller en Secret, der er navngivet i `email.existingSecret.name` | Postmarks server-API-token |
+| `GLOBAL_EMAIL_RESEND_API_KEY` | `email.resend.apiKey` eller en Secret, der er navngivet i `email.existingSecret.name` | Resends API-nøgle |
+
+Kun de variabler, servertypen læser, bruges: `GLOBAL_EMAIL_SMTP_`-variablerne for `custom-smtp` og en udbyders egne for den udbyder. Serverens log og Admin Dashboard nævner enhver anden, der er angivet, som ubrugt.
+
+Med Helm angiver du dem under `email` i dine values. For at holde adgangskoden eller nøglen ude af de values, Helm gemmer med hver release, lægger du den i en Secret, du selv administrerer, og angiver den Secret i `email.existingSecret.name`. Chartet læser den fra den nøgle, der er angivet i `email.existingSecret.key`, ellers fra den nøgle, der er opkaldt efter den: `smtpPassword`, `smtpOAuthClientSecret`, `sendgridApiKey`, `amazonSesSecretAccessKey`, `mailgunApiKey`, `postmarkServerToken` eller `resendApiKey`.
+
+```bash
+kubectl create secret generic oneuptime-email --namespace oneuptime \
+  --from-literal=smtpPassword=YOUR_SMTP_PASSWORD
+```
+
+```yaml
+email:
+  serverType: custom-smtp
+  fromEmail: alerts@example.com
+  fromName: OneUptime
+  smtp:
+    host: smtp.example.com
+    port: 587
+    requireTls: true
+    username: alerts@example.com
+  existingSecret:
+    name: oneuptime-email
+```
+
+Chartet afviser andre `email`-værdier uden `email.serverType`, indstillinger uden den adgangskode eller nøgle, de læser, en adgangskode eller nøgle, der er angivet både i values og i en Secret, og en Secret, som indstillingerne ikke læser noget fra. Med Terraform angiver du de samme værdier på en `helm_release`, med adgangskoden eller nøglen som en følsom værdi.
+
+Med Docker Compose angiver du `GLOBAL_EMAIL_`-indstillingerne i `config.env` og kører derefter `npm run start` for at genskabe containerne.
+
+OneUptime læser variablerne, når den starter. Hvis en af dem er forkert, for eksempel en port, der ikke er et tal, eller en manglende adgangskode, sender serveren ingen e-mails, før det er rettet; serverens log, e-mailindstillingerne i Admin Dashboard og tjeklisten på `/admin/setup` nævner variablen. Adgangskoder og nøgler vises aldrig. For at ændre indstillingerne ændrer du variablerne og genstarter OneUptime: Admin Dashboard ændrer dem ikke.
 
 ## Fejlfinding
 

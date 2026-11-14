@@ -33,6 +33,14 @@ stop
 
 nohup.out*
 
+# The docs' screenshots (#6823) are drawn from a checkout, never in the E2E
+# image (.github/workflows/docs-screens.yml). Their renderer imports App's
+# docs and their fixtures bundle the Dashboard, and the image has no App, so
+# its `npm run compile` could not build them. Compile E2E (compile.yml) still
+# type-checks them in the checkout.
+packages/E2E/DocsScreens
+packages/E2E/playwright.docs-screens.config.ts
+
 # Large directories not needed for Docker builds
 packages/E2E/playwright-report
 packages/E2E/test-results

@@ -534,7 +534,7 @@ describe("cross-project reference guard on write", () => {
 
       expect(captured).toEqual([
         {
-          subject: "scheduled maintenance event",
+          subject: "maintenance event",
           modelName: "Monitor Status",
           id: MONITOR_STATUS_ID.toString(),
           service: "MonitorStatusService",
@@ -584,13 +584,13 @@ describe("cross-project reference guard on write", () => {
 
       expect(captured).toEqual([
         {
-          subject: "scheduled maintenance event",
+          subject: "maintenance event",
           modelName: "Scheduled Maintenance State",
           id: STATE_ID.toString(),
           service: "ScheduledMaintenanceStateService",
         },
         {
-          subject: "scheduled maintenance event",
+          subject: "maintenance event",
           modelName: "Monitor Status",
           id: MONITOR_STATUS_ID.toString(),
           service: "MonitorStatusService",

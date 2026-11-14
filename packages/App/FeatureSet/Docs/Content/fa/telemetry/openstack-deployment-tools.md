@@ -580,7 +580,7 @@ bash install.sh
 
 | بدون این می‌ماند | چون | چه هزینه‌ای دارد |
 | --- | --- | --- |
-| همه چیز مربوط به Cinder | از کاتالوگ `volumev3` را می‌خواهد، و جایی که Cinder به‌عنوان `block-storage` ثبت می‌شود چنین چیزی نمی‌یابد | **حجم‌ها** و **Storage pools** خالی می‌مانند، و **سرویس‌ها** هیچ Block Storage API، `cinder-volume` یا `cinder-scheduler` ندارد. **Block Storage API Down**، **Block Storage Service Down**، **Storage Pool Warning**، **Storage Pool Critical**، **Volumes in Error** و **Volume Stuck** ساکت می‌مانند |
+| همه چیز مربوط به Cinder | از کاتالوگ `volumev3` را می‌خواهد، و جایی که Cinder به‌عنوان `block-storage` ثبت می‌شود چنین چیزی نمی‌یابد | **حجم‌ها** و **استخرهای ذخیره‌سازی** خالی می‌مانند، و **سرویس‌ها** هیچ Block Storage API، `cinder-volume` یا `cinder-scheduler` ندارد. **Block Storage API Down**، **Block Storage Service Down**، **Storage Pool Warning**، **Storage Pool Critical**، **Volumes in Error** و **Volume Stuck** ساکت می‌مانند |
 | اینکه یک هایپروایزر چند اینستنس دارد، و aggregateهایش | فهرست هایپروایزرهای Nova در جدیدترین microversion، که Kolla-Ansible می‌خواهد، شکست می‌خورد | آن دو مورد در **هایپروایزرها**، و آنچه یک میزبان ازدست‌رفته می‌گوید با خود می‌برد. vCPUها، حافظه و دیسک آن همچنان هستند: از Placement می‌آیند |
 | دامنه‌ها | چنین سری‌ای ندارد | **دامنه‌ها** خالی می‌ماند |
 | وضعیت، قابلیت دید و تاریخ ساخت یک ایمیج | چنین labelهایی ندارد | آن ستون‌ها در **ایمیج‌ها**. **Image Stuck** ساکت می‌ماند، پس ایمیجی که در مسیر `active` شدن گیر کرده بی‌خبر می‌ماند |

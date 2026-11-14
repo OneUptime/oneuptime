@@ -85,10 +85,6 @@ const READS_EVERY_VALUE: Record<string, string> = {
     "reads statuses by id, to show the ones monitors are in",
   "Components/StatusPage/HistoryChartBarColorPreview.tsx":
     "previews the colour of every status a status page's history can show",
-  "Components/Workspace/WorkspaceNotificationRulesTable.tsx":
-    "a chat notification rule matches records, and records - an automation's among them - can still have an archived value",
-  "Components/Workspace/WorkspaceSummaryTable.tsx":
-    "a chat summary filters records, which keep archived values",
   "Pages/Alerts/EpisodeView/Alerts.tsx":
     "shows the states of an episode's alerts",
   "Pages/Alerts/EpisodeView/Index.tsx":

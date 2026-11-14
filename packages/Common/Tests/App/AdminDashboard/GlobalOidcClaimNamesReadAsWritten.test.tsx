@@ -89,6 +89,7 @@ import { getOidcProviderFormFields } from "../../../UI/Components/Sso/OidcProvid
 import { getSsoProviderFormSteps } from "../../../UI/Components/Sso/SsoProviderFormFields";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import { readDashboardLocale } from "../../Helpers/DashboardLocales";
+import escapeRegExp from "../../../Utils/RegExpEscape";
 
 const LANGUAGES: Array<string> = ["de", "fa"];
 
@@ -127,10 +128,6 @@ function sharedWord(text: string): string {
     keySeparator: false,
     nsSeparator: false,
   });
-}
-
-function escaped(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 async function settle(): Promise<void> {
@@ -194,7 +191,7 @@ async function openSignIn(): Promise<HTMLElement> {
   await settle();
 
   const moreFields: HTMLElement = within(view.container).getByRole("button", {
-    name: new RegExp(escaped(sharedWord("More fields"))),
+    name: new RegExp(escapeRegExp(sharedWord("More fields"))),
   });
 
   if (moreFields.getAttribute("aria-expanded") !== "true") {
@@ -264,7 +261,7 @@ describe.each(LANGUAGES)(
         expect(title).not.toBe(field.title);
 
         const input: HTMLInputElement = within(form).getByRole("textbox", {
-          name: new RegExp(`^${escaped(title)}`),
+          name: new RegExp(`^${escapeRegExp(title)}`),
         }) as HTMLInputElement;
 
         expect({

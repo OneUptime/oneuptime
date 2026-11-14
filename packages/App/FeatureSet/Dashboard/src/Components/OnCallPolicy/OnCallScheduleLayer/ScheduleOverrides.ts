@@ -6,7 +6,8 @@ import IsNull from "Common/Types/BaseDatabase/IsNull";
 import LessThanOrEqual from "Common/Types/BaseDatabase/LessThanOrEqual";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import { UserOverrideRecord } from "Common/Types/OnCallDutyPolicy/UserOverrideUtil";
+import { UserOverrideTimes } from "Common/Types/OnCallDutyPolicy/UserOverrideOverlap";
+import OneUptimeDate from "Common/Types/Date";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import OnCallDutyPolicyEscalationRuleSchedule from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRuleSchedule";
@@ -45,9 +46,11 @@ export interface ScheduleOverrideResolution {
   /*
    * Ready to hand straight to UserOverrideUtil.applyOverridesToEvents, already
    * narrowed to overrides that target a user who actually appears in this
-   * schedule.
+   * schedule. Each carries its id and when it was added: the active
+   * overrides card edits one by its id, and marks two saved before overlaps
+   * were refused (UserOverrideOverlap.getOverlapNotes).
    */
-  records: Array<UserOverrideRecord>;
+  records: Array<UserOverrideTimes>;
   /*
    * The policy whose scoped overrides apply, or "" when policy-agnostic. Pass
    * it as `currentOnCallDutyPolicyId` — applyOverridesToEvents drops every
@@ -152,6 +155,8 @@ async function fetchOverrides(params: {
       limit: LIMIT_PER_PROJECT,
       skip: 0,
       select: {
+        _id: true,
+        createdAt: true,
         startsAt: true,
         endsAt: true,
         overrideUserId: true,
@@ -170,8 +175,15 @@ async function fetchOverrides(params: {
           email: true,
         },
       },
+      /*
+       * Of two saved before overlaps were refused, the one used is the one
+       * that starts first, then the one added first - the order the server
+       * reads them in (OnCallDutyPolicyScheduleService), which
+       * applyOverridesToEvents follows.
+       */
       sort: {
         startsAt: SortOrder.Ascending,
+        createdAt: SortOrder.Ascending,
       },
     });
 
@@ -207,6 +219,42 @@ const PENDING_RESOLUTION: ScheduleOverrideResolution = {
   policyContextState: PolicyContextState.Resolving,
 };
 
+/*
+ * An override changed from a part of the page that does not hold the
+ * schedule's refresh key - Edit on the active overrides card: every
+ * schedule on the page reads its overrides again
+ * (notifyScheduleUserOverridesChanged).
+ */
+let scheduleOverridesChangeCount: number = 0;
+const scheduleOverridesListeners: Set<() => void> = new Set<() => void>();
+
+export function notifyScheduleUserOverridesChanged(): void {
+  scheduleOverridesChangeCount++;
+
+  for (const listener of Array.from(scheduleOverridesListeners)) {
+    listener();
+  }
+}
+
+// How many times the overrides were changed so (notifyScheduleUserOverridesChanged).
+function useScheduleOverridesChangeCount(): number {
+  const [count, setCount] = useState<number>(scheduleOverridesChangeCount);
+
+  useEffect(() => {
+    const listener: () => void = (): void => {
+      setCount(scheduleOverridesChangeCount);
+    };
+
+    scheduleOverridesListeners.add(listener);
+
+    return () => {
+      scheduleOverridesListeners.delete(listener);
+    };
+  }, []);
+
+  return count;
+}
+
 export interface UseScheduleUserOverridesParams {
   /*
    * The schedule being displayed. Without it there is nothing to resolve a
@@ -238,6 +286,8 @@ export function useScheduleUserOverrides(
 ): ScheduleOverrideResolution {
   const [resolution, setResolution] =
     useState<ScheduleOverrideResolution>(PENDING_RESOLUTION);
+
+  const changeCount: number = useScheduleOverridesChangeCount();
 
   const scheduleIdString: string =
     params.onCallDutyPolicyScheduleId?.toString() || "";
@@ -353,8 +403,12 @@ export function useScheduleUserOverrides(
 
       setResolution({
         records: overrides.map(
-          (override: OnCallDutyPolicyUserOverride): UserOverrideRecord => {
+          (override: OnCallDutyPolicyUserOverride): UserOverrideTimes => {
             return {
+              id: override._id?.toString() || null,
+              createdAt: override.createdAt
+                ? OneUptimeDate.fromString(override.createdAt)
+                : null,
               overrideUserId: override.overrideUserId?.toString() || "",
               // None for a skip: the next person in the rotation covers.
               routeAlertsToUserId:
@@ -392,6 +446,7 @@ export function useScheduleUserOverrides(
     windowStartMs,
     windowEndMs,
     params.refreshKey || 0,
+    changeCount,
   ]);
 
   return resolution;

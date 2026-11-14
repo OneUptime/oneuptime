@@ -23,11 +23,12 @@ flowchart TB
     chart --> dash["Um widget de painel"]
 ```
 
-O explorador tem cinco abas:
+O explorador tem seis abas:
 
 | Aba | Para que serve |
 | --- | --- |
 | **Visualizador** | A lista de métricas, cada uma com um pequeno gráfico e o último valor. Abre na última hora. |
+| **PromQL** | Consulte suas métricas com PromQL, a linguagem de consulta do Prometheus, e conecte o Grafana a elas. Veja [Consultar métricas com PromQL](/docs/telemetry/promql). |
 | **Insights** | Quais serviços informam métricas, e quantas. |
 | **IA** | Os problemas que o OneUptime encontra nas suas métricas (valores demais, buckets de histograma que não se ajustam, métricas ausentes), e o que o OneUptime AI fez a respeito. Veja [Melhorar as métricas e adicionar as que faltam com IA](#melhorar-as-métricas-e-adicionar-as-que-faltam-com-ia). |
 | **Guia de configuração** | Como enviar métricas com OpenTelemetry, usando uma das suas chaves de ingestão. |

@@ -29,10 +29,13 @@ import {
   recordSendFailure,
 } from "../../../../Server/Utils/OnCall/OnCallSendFailure";
 import {
+  MAX_SETTLED_BEFORE_THE_CHECK_PER_STATEMENT,
   MAX_STUCK_NOTIFICATIONS_PER_RUN,
   NotificationsSettledBeforeTheCheckSummary,
+  runStuckNotificationCheck,
   settleNotificationsStuckBeforeTheCheck,
   settleStuckNotifications,
+  StuckNotificationCheckRunSummary,
   StuckNotificationCheckSummary,
 } from "../../../../Server/Utils/OnCall/OnCallStuckNotifications";
 import HTTPErrorResponse from "../../../../Types/API/HTTPErrorResponse";
@@ -89,7 +92,16 @@ import { PostgresQueryRunner } from "typeorm/driver/postgres/PostgresQueryRunner
  *     longer ago than the day it reads - are settled once by the statement
  *     the data migration runs, page by page, served by the same partial
  *     index; the newer, the deleted and the ones that moved on are left
- *     (issue #7085).
+ *     (issue #7085);
+ *   - one run of the check (runStuckNotificationCheck, what the worker job
+ *     runs every five minutes) settles a notification still Sending from
+ *     before its day - left while the workers were down - as well as one
+ *     from the last minutes, and leaves the rest; with none that old, its
+ *     statement for them reads one page of the partial index and writes
+ *     nothing, on a table of tens of thousands of notifications, with the
+ *     planner left to choose; and run at the same time as the upgrade's data
+ *     migration, which settles the same ones, each is settled once
+ *     (issue #7290).
  */
 const describePostgres: typeof describe.skip =
   process.env["RUN_POSTGRES_ONCALL_STUCK_NOTIFICATIONS_TESTS"] === "true"
@@ -1216,5 +1228,438 @@ describePostgres(
         expect(plan).toContain(indexes[0]!.indexname);
       });
     });
+
+    describe("one run of the check, as the worker job runs it (issue #7290)", () => {
+      async function runTheCheck(): Promise<StuckNotificationCheckRunSummary> {
+        return await runStuckNotificationCheck({ now: now });
+      }
+
+      // The statements that settle the older ones, as sent, while `work` runs.
+      async function oldSettlingStatementsOf(
+        work: () => Promise<unknown>,
+      ): Promise<Array<{ sql: string; parameters: Array<unknown> }>> {
+        const sent: Array<{ sql: string; parameters: Array<unknown> }> = [];
+        const realQuery: PostgresQueryRunner["query"] =
+          PostgresQueryRunner.prototype.query;
+        PostgresQueryRunner.prototype.query = function (
+          this: PostgresQueryRunner,
+          ...args: Parameters<PostgresQueryRunner["query"]>
+        ): ReturnType<PostgresQueryRunner["query"]> {
+          if (SETTLES_THE_OLD.test(args[0])) {
+            sent.push({ sql: args[0], parameters: args[1] || [] });
+          }
+
+          return realQuery.apply(this, args);
+        };
+
+        try {
+          await work();
+        } finally {
+          PostgresQueryRunner.prototype.query = realQuery;
+        }
+
+        return sent;
+      }
+
+      async function updatedAtOf(ids: Array<ObjectID>): Promise<Array<Date>> {
+        const rows: Array<{ updatedAt: Date }> = await database.query(
+          `SELECT "updatedAt" FROM "${schema}"."UserOnCallLogTimeline" WHERE "_id" = ANY($1) ORDER BY "_id"`,
+          [
+            ids.map((id: ObjectID) => {
+              return id.toString();
+            }),
+          ],
+        );
+
+        return rows.map((row: { updatedAt: Date }) => {
+          return new Date(row.updatedAt);
+        });
+      }
+
+      test("settles a notification still Sending from 25 hours ago - the workers were down a day - as well as one from 20 minutes ago, and nothing else", async () => {
+        const leftByTheWorkers: ObjectID = await seed({
+          status: UserNotificationStatus.Sending,
+          age: 25 * HOUR,
+        });
+        const stuckJustNow: ObjectID = await seed({
+          status: UserNotificationStatus.Sending,
+          age: 20 * MINUTE,
+        });
+        const stillGoingOut: ObjectID = await seed({
+          status: UserNotificationStatus.Sending,
+          age: 5 * MINUTE,
+        });
+
+        const leftAlone: Array<{ id: ObjectID; was: StoredRow }> = [];
+
+        for (const age of [25 * HOUR, 20 * MINUTE]) {
+          for (const [status, statusMessage] of [
+            [UserNotificationStatus.Sent, "SMS sent."],
+            [UserNotificationStatus.Acknowledged, "Acknowledged by SMS."],
+          ] as const) {
+            leftAlone.push({
+              id: await seed({ status, age, statusMessage }),
+              was: { status, statusMessage, version: 1 },
+            });
+          }
+
+          leftAlone.push({
+            id: await seed({
+              status: UserNotificationStatus.Sending,
+              age,
+              isDeleted: true,
+            }),
+            was: {
+              status: UserNotificationStatus.Sending,
+              statusMessage: "Sending SMS.",
+              version: 1,
+            },
+          });
+        }
+
+        expect(await runTheCheck()).toEqual({
+          withinTheLookBack: { found: 1, settled: 1, movedOn: 0, failed: 0 },
+          beforeTheLookBack: { found: 1, settled: 1, statements: 1 },
+        });
+
+        for (const id of [leftByTheWorkers, stuckJustNow]) {
+          expect(await rowOf(id)).toEqual({
+            status: UserNotificationStatus.Error,
+            statusMessage: STUCK_NOTIFICATION_STATUS_MESSAGE,
+            version: 2,
+          });
+        }
+
+        expect(await rowOf(stillGoingOut)).toEqual({
+          status: UserNotificationStatus.Sending,
+          statusMessage: "Sending SMS.",
+          version: 1,
+        });
+
+        for (const notification of leftAlone) {
+          expect(await rowOf(notification.id)).toEqual(notification.was);
+        }
+
+        // Settled once: the next run, five minutes on, finds nothing more.
+        now = new Date(now.getTime() + 5 * MINUTE);
+
+        expect(await runTheCheck()).toEqual({
+          withinTheLookBack: { found: 0, settled: 0, movedOn: 0, failed: 0 },
+          beforeTheLookBack: { found: 0, settled: 0, statements: 1 },
+        });
+      });
+
+      test("the two parts meet where the day starts: one written just inside it is the check's, one just outside it the statement's", async () => {
+        const justInside: ObjectID = await seed({
+          status: UserNotificationStatus.Sending,
+          age: DAY - 1000,
+        });
+        const justOutside: ObjectID = await seed({
+          status: UserNotificationStatus.Sending,
+          age: DAY + 1000,
+        });
+
+        expect(await runTheCheck()).toEqual({
+          withinTheLookBack: { found: 1, settled: 1, movedOn: 0, failed: 0 },
+          beforeTheLookBack: { found: 1, settled: 1, statements: 1 },
+        });
+
+        for (const id of [justInside, justOutside]) {
+          expect((await rowOf(id)).status).toBe(UserNotificationStatus.Error);
+        }
+      });
+
+      test("with nothing written before the day, its statement runs once, finds none and writes nothing there", async () => {
+        const old: Array<ObjectID> = [
+          await seed({
+            status: UserNotificationStatus.Sent,
+            age: 25 * HOUR,
+            statusMessage: "SMS sent.",
+          }),
+          await seed({
+            status: UserNotificationStatus.Acknowledged,
+            age: 3 * DAY,
+            statusMessage: "Acknowledged by SMS.",
+          }),
+          await seed({
+            status: UserNotificationStatus.Sending,
+            age: 25 * HOUR,
+            isDeleted: true,
+          }),
+        ];
+        const stuckJustNow: ObjectID = await seed({
+          status: UserNotificationStatus.Sending,
+          age: 20 * MINUTE,
+        });
+
+        const updatedAtBefore: Array<Date> = await updatedAtOf(old);
+
+        let summary: StuckNotificationCheckRunSummary | null = null;
+        const sent: Array<{ sql: string; parameters: Array<unknown> }> =
+          await oldSettlingStatementsOf(async () => {
+            summary = await runTheCheck();
+          });
+
+        expect(sent).toHaveLength(1);
+        expect(summary).toEqual({
+          withinTheLookBack: { found: 1, settled: 1, movedOn: 0, failed: 0 },
+          beforeTheLookBack: { found: 0, settled: 0, statements: 1 },
+        });
+        expect((await rowOf(stuckJustNow)).version).toBe(2);
+
+        for (const id of old) {
+          expect((await rowOf(id)).version).toBe(1);
+        }
+
+        expect(await updatedAtOf(old)).toEqual(updatedAtBefore);
+      });
+
+      test(
+        "with none to settle, its statement reads one page of the partial index, not the table: cheap enough for every run",
+        async () => {
+          // A table of tens of thousands, every one answered, over 40 days.
+          await database.query(
+            `INSERT INTO "${schema}"."UserOnCallLogTimeline"
+         ("_id", "userId", "projectId", "userNotificationLogId", "onCallDutyPolicyId",
+          "onCallDutyPolicyExecutionLogId", "onCallDutyPolicyExecutionLogTimelineId",
+          "userNotificationEventType", "onCallDutyPolicyEscalationRuleId",
+          "statusMessage", "status", "version", "createdAt", "updatedAt")
+         SELECT gen_random_uuid(), $1, $2, gen_random_uuid(), gen_random_uuid(),
+                gen_random_uuid(), gen_random_uuid(), 'Incident Created', gen_random_uuid(),
+                'SMS sent.', CASE WHEN n % 3 = 0 THEN 'Acknowledged' ELSE 'Sent' END, 1,
+                $3::timestamptz - make_interval(secs => n * 60), $3::timestamptz - make_interval(secs => n * 60)
+         FROM generate_series(1, 60000) AS n`,
+            [userId.toString(), projectId.toString(), now],
+          );
+
+          // And a few still going out.
+          for (const age of [MINUTE, 2 * MINUTE, 3 * MINUTE]) {
+            await seed({ status: UserNotificationStatus.Sending, age: age });
+          }
+
+          /*
+           * Vacuumed as autovacuum keeps a live table: the earlier tests'
+           * notifications, settled and deleted, leave index entries behind
+           * until a vacuum, and a scan past them would read their pages. So
+           * what is measured is the statement on a table at rest, whichever
+           * tests ran before.
+           */
+          await database.query(
+            `VACUUM ANALYZE "${schema}"."UserOnCallLogTimeline"`,
+          );
+
+          const pages: Array<{ pages: string | number }> = await database.query(
+            `SELECT pg_relation_size('"${schema}"."UserOnCallLogTimeline"') / current_setting('block_size')::int AS "pages"`,
+          );
+
+          // The table itself is hundreds of pages: a scan of it would show.
+          expect(Number(pages[0]!.pages)).toBeGreaterThan(200);
+
+          const indexes: Array<{ indexname: string }> = await database.query(
+            `SELECT "indexname" FROM pg_indexes
+         WHERE "schemaname" = $1 AND "tablename" = 'UserOnCallLogTimeline' AND "indexdef" LIKE '%''Sending''%'`,
+            [schema],
+          );
+
+          expect(indexes).toHaveLength(1);
+
+          const sent: Array<{ sql: string; parameters: Array<unknown> }> =
+            await oldSettlingStatementsOf(async () => {
+              await expect(runTheCheck()).resolves.toMatchObject({
+                beforeTheLookBack: { found: 0, settled: 0, statements: 1 },
+              });
+            });
+
+          expect(sent).toHaveLength(1);
+
+          /*
+           * The statement as the run sent it, run again with its plan read:
+           * the planner chooses, nothing is forced. Rolled back, though it
+           * writes nothing.
+           */
+          const runner: ReturnType<DataSource["createQueryRunner"]> =
+            database.createQueryRunner();
+          let plan: Array<{ "QUERY PLAN": Array<ExplainedStatement> }> = [];
+
+          await runner.connect();
+          await runner.startTransaction();
+
+          try {
+            plan = await runner.query(
+              `EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) ${sent[0]!.sql}`,
+              sent[0]!.parameters,
+            );
+          } finally {
+            await runner.rollbackTransaction();
+            await runner.release();
+          }
+
+          const explained: ExplainedStatement = plan[0]!["QUERY PLAN"][0]!;
+          const nodes: Array<ExplainedNode> = nodesOf(explained.Plan);
+
+          // The page is read from the partial index of the Sending ones.
+          expect(
+            nodes.some((node: ExplainedNode) => {
+              return node["Index Name"] === indexes[0]!.indexname;
+            }),
+          ).toBe(true);
+
+          // No node that ran read the table itself.
+          expect(
+            nodes
+              .filter((node: ExplainedNode) => {
+                return (
+                  (node["Actual Loops"] || 0) > 0 &&
+                  (node["Node Type"] === "Seq Scan" ||
+                    node["Node Type"] === "Bitmap Heap Scan")
+                );
+              })
+              .map((node: ExplainedNode) => {
+                return node["Node Type"];
+              }),
+          ).toEqual([]);
+
+          /*
+           * No scan that ran read a notification - not even the three still
+           * going out. The planner drives the write from the page or from
+           * the partial index, run to run as its statistics fall; from the
+           * index, the write's cut-off keeps it off the ones still going
+           * out (an unbounded write read all three here, on about one run
+           * in three).
+           */
+          expect(
+            nodes
+              .filter((node: ExplainedNode) => {
+                return (
+                  SCAN_NODE_TYPES.includes(node["Node Type"]) &&
+                  (node["Actual Rows"] || 0) > 0
+                );
+              })
+              .map((node: ExplainedNode) => {
+                return `${node["Node Type"]}: ${node["Actual Rows"]}`;
+              }),
+          ).toEqual([]);
+
+          /*
+           * A page or two of the index, of the table's hundreds: one lookup
+           * for the page, and one more for the write when the planner drives
+           * it from the index.
+           */
+          const read: number =
+            (explained.Plan["Shared Hit Blocks"] || 0) +
+            (explained.Plan["Shared Read Blocks"] || 0);
+
+          expect(read).toBeLessThanOrEqual(4);
+        },
+        120 * 1000,
+      );
+
+      /*
+       * As a server is upgraded, its data migration settles the older ones
+       * (SettleOnCallNotificationsStuckBeforeUpgrade) while the worker job's
+       * run of the check may be settling the same ones. Each statement
+       * writes over Sending only, and Postgres reads a notification again
+       * once the other statement's write lands: none is written twice, and
+       * the one that keeps going settles the rest. Last in this block: the
+       * thousands it settles and deletes leave index entries behind.
+       */
+      test(
+        "run at the same time as the upgrade's data migration, which settles the same ones: each is settled once, and none is left",
+        async () => {
+          const count: number =
+            3 * MAX_SETTLED_BEFORE_THE_CHECK_PER_STATEMENT + 500;
+
+          // A second apart, the newest 25 hours ago.
+          await database.query(
+            `INSERT INTO "${schema}"."UserOnCallLogTimeline"
+         ("_id", "userId", "projectId", "userNotificationLogId", "onCallDutyPolicyId",
+          "onCallDutyPolicyExecutionLogId", "onCallDutyPolicyExecutionLogTimelineId",
+          "userNotificationEventType", "onCallDutyPolicyEscalationRuleId",
+          "statusMessage", "status", "version", "createdAt", "updatedAt")
+         SELECT gen_random_uuid(), $1, $2, gen_random_uuid(), gen_random_uuid(),
+                gen_random_uuid(), gen_random_uuid(), 'Incident Created', gen_random_uuid(),
+                'Sending SMS.', 'Sending', 1,
+                $3::timestamptz - make_interval(secs => n), $3::timestamptz - make_interval(secs => n)
+         FROM generate_series(0, $4::int - 1) AS n`,
+            [
+              userId.toString(),
+              projectId.toString(),
+              new Date(now.getTime() - 25 * HOUR),
+              count,
+            ],
+          );
+
+          const [run, migration]: [
+            StuckNotificationCheckRunSummary,
+            NotificationsSettledBeforeTheCheckSummary,
+          ] = await Promise.all([
+            runTheCheck(),
+            settleNotificationsStuckBeforeTheCheck({ now: now }),
+          ]);
+
+          // Between them, every one: none twice, none left.
+          expect(run.beforeTheLookBack.settled + migration.settled).toBe(count);
+
+          const rows: Array<StoredRow & { count: string }> =
+            await database.query(
+              `SELECT "status", "statusMessage", "version", COUNT(*) AS "count"
+             FROM "${schema}"."UserOnCallLogTimeline"
+             GROUP BY "status", "statusMessage", "version"`,
+            );
+
+          expect(rows).toEqual([
+            {
+              status: UserNotificationStatus.Error,
+              statusMessage: STUCK_NOTIFICATION_STATUS_MESSAGE,
+              version: 2,
+              count: String(count),
+            },
+          ]);
+
+          // The next run finds none.
+          now = new Date(now.getTime() + 5 * MINUTE);
+
+          expect((await runTheCheck()).beforeTheLookBack).toEqual({
+            found: 0,
+            settled: 0,
+            statements: 1,
+          });
+        },
+        120 * 1000,
+      );
+    });
   },
 );
+
+// What EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) says of a node of a plan.
+interface ExplainedNode {
+  "Node Type": string;
+  "Index Name"?: string;
+  "Actual Loops"?: number;
+  "Actual Rows"?: number;
+  "Shared Hit Blocks"?: number;
+  "Shared Read Blocks"?: number;
+  Plans?: Array<ExplainedNode>;
+}
+
+interface ExplainedStatement {
+  Plan: ExplainedNode;
+}
+
+// The plan nodes that read a table, directly or through an index.
+const SCAN_NODE_TYPES: ReadonlyArray<string> = [
+  "Seq Scan",
+  "Index Scan",
+  "Index Only Scan",
+  "Bitmap Heap Scan",
+  "Bitmap Index Scan",
+];
+
+// A plan's nodes, its sub-plans' and CTEs' included.
+function nodesOf(node: ExplainedNode): Array<ExplainedNode> {
+  return [node].concat(
+    ...(node.Plans || []).map((child: ExplainedNode) => {
+      return nodesOf(child);
+    }),
+  );
+}

@@ -1,6 +1,7 @@
 import { beforeAll, describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import nodePath from "path";
+import { pageRoutesIn, routeMapPath, routesAt } from "../Helpers/PageRoutes";
 
 /*
  * The Admin Dashboard's User > Projects page is reached through five
@@ -226,9 +227,14 @@ describe("User > Projects page registration", () => {
   });
 
   test("App.tsx registers a route that renders it", () => {
-    expect(appSource).toMatch(
-      /RouteMap\[PageMap\.USER_PROJECTS\][\s\S]{0,120}element=\{<UserProjects \/>\}/,
-    );
+    expect(
+      routesAt(
+        pageRoutesIn(nodePath.join(ADMIN_DASHBOARD_SRC, "App.tsx")),
+        routeMapPath("USER_PROJECTS"),
+      ),
+    ).toEqual([
+      { path: routeMapPath("USER_PROJECTS"), element: "<UserProjects />" },
+    ]);
   });
 
   test("the user's side menu links to it", () => {

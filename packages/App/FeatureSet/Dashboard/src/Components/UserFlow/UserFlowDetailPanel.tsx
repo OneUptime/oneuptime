@@ -10,6 +10,7 @@ import Button, {
 import Icon from "Common/UI/Components/Icon/Icon";
 import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";
 import {
+  getUserFlowPageText,
   OTHER_PAGES_KEY,
   UserFlowAnalysis,
   UserFlowDirection,
@@ -27,6 +28,8 @@ import { buildSessionsForPageSearch } from "./UserFlowUrlState";
 import {
   formatUserFlowCount,
   formatUserFlowShare,
+  getUserFlowPathDirection,
+  getUserFlowPathLineDirection,
   pluralizeSessions,
 } from "./UserFlowFormat";
 import { UserFlowSelection } from "./UserFlowMap";
@@ -37,11 +40,13 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { joinWithArrowsInDirection } from "Common/Types/DirectionArrow";
 import {
   getLineDirection,
+  getOneWayLineDirection,
   LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME,
 } from "Common/UI/Utils/LineDirection";
-import { ReadingDirection } from "Common/Types/ReadingDirection";
+import { LEFT_TO_RIGHT, ReadingDirection } from "Common/Types/ReadingDirection";
 
 /*
  * What the map says about the page or transition that was clicked, and the
@@ -176,6 +181,7 @@ function NeighbourList(props: {
           {props.items.map((item: UserFlowPageCount): ReactElement => {
             const share: number =
               props.total > 0 ? item.sessions / props.total : 0;
+            const pageText: string = getUserFlowPageText(item.page);
 
             return (
               <li key={item.page}>
@@ -184,7 +190,7 @@ function NeighbourList(props: {
                   className="group relative flex w-full items-center justify-between gap-3 overflow-hidden rounded-md px-2 py-1 text-start text-sm hover:bg-indigo-50"
                   title={translator.translateTemplate(
                     "Show paths from {{page}}",
-                    { page: item.page },
+                    { page: pageText },
                   )}
                   onClick={(): void => {
                     props.onPick(item.page);
@@ -195,12 +201,19 @@ function NeighbourList(props: {
                     style={{ width: `${Math.min(100, share * 100)}%` }}
                     aria-hidden="true"
                   />
-                  {/* A path reads from the left on any page: "/home". */}
+                  {/*
+                   * One page's path reads from the left on any page,
+                   * "/home", not "home/", and "/الرئيسية" too, as it does
+                   * in a transition's line.
+                   */}
                   <span
                     className="relative truncate font-mono text-xs text-gray-800 group-hover:text-indigo-700"
-                    dir={getLineDirection(item.page, translator.language)}
+                    dir={getUserFlowPathLineDirection(
+                      item.page,
+                      translator.language,
+                    )}
                   >
-                    {item.page}
+                    {pageText}
                   </span>
                   <span className="relative shrink-0 text-xs text-gray-500">
                     {formatUserFlowCount(item.sessions, translator)}
@@ -246,19 +259,31 @@ const UserFlowDetailPanel: FunctionComponent<ComponentProps> = (
     return search ? new Route(`${sessionListRoute.toString()}${search}`) : null;
   };
 
-  const header: (title: string, subtitle: string) => ReactElement = (
+  const header: (
     title: string,
     subtitle: string,
+    // The way a line read one way on every page reads: a transition, a path.
+    lineDirection?: ReadingDirection | undefined,
+  ) => ReactElement = (
+    title: string,
+    subtitle: string,
+    lineDirection?: ReadingDirection | undefined,
   ): ReactElement => {
     /*
-     * A page's path, or two joined by an arrow: read from the left on a
-     * page read from the right too ("/cart → /home", not "home → /cart/"),
-     * and still starting where the page's lines do.
+     * A page's path reads from the left on every page
+     * (getUserFlowPathDirection): "/cart", not "cart/", and "/الرئيسية",
+     * not "الرئيسية/", on a page read from the right, as each page in a
+     * transition's line reads. A transition's line, its two pages and the
+     * arrow between them, reads the map's way on every page
+     * (getOneWayLineDirection): by its letters, one between two folds named
+     * in Arabic or Persian, or into "/", was laid out from the right, its
+     * arrow pointing back. One value with no direction of its own - the
+     * fold's count of pages, the root "/" - reads the way its letters do
+     * (getLineDirection). Each still starts where the page's lines do.
      */
-    const titleDirection: ReadingDirection | undefined = getLineDirection(
-      title,
-      translator.language,
-    );
+    const titleDirection: ReadingDirection | undefined = lineDirection
+      ? getOneWayLineDirection(lineDirection, translator.language)
+      : getLineDirection(title, translator.language);
 
     return (
       <div className="mb-4 flex items-start justify-between gap-4">
@@ -305,10 +330,10 @@ const UserFlowDetailPanel: FunctionComponent<ComponentProps> = (
     // "Other pages" is the map's own name for a fold; a path is its own.
     const sourceLabel: string = source?.isOther
       ? translator.translateText(source.label) || source.label
-      : source?.label || link.fromPage;
+      : source?.label || getUserFlowPageText(link.fromPage);
     const targetLabel: string = target?.isOther
       ? translator.translateText(target.label) || target.label
-      : target?.label || link.toPage;
+      : target?.label || getUserFlowPageText(link.toPage);
 
     return (
       <div
@@ -316,9 +341,16 @@ const UserFlowDetailPanel: FunctionComponent<ComponentProps> = (
         data-testid="user-flow-detail"
         data-kind="link"
       >
+        {/*
+         * The map is drawn from the left on every page, so a transition is
+         * named the map's way, its arrow pointing right: "/home → /cart" on
+         * an Arabic page too (joinWithArrowsInDirection), whatever letters
+         * its pages are named in.
+         */}
         {header(
-          `${sourceLabel} → ${targetLabel}`,
+          joinWithArrowsInDirection([sourceLabel, targetLabel], LEFT_TO_RIGHT),
           translator.translateText("Transition") || "Transition",
+          LEFT_TO_RIGHT,
         )}
         <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
           <Stat
@@ -492,11 +524,12 @@ const UserFlowDetailPanel: FunctionComponent<ComponentProps> = (
                       other: "{{count}} pages after {{page}}",
                     },
                 node.step,
-                { page: graph.anchorPage },
+                { page: getUserFlowPageText(graph.anchorPage) },
               )
             : translator.translateTemplate("Page {{number}} of the journey", {
                 number: translator.formatNumber(node.step + 1),
               }),
+        getUserFlowPathDirection(node.page),
       )}
 
       <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">

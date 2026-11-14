@@ -8,6 +8,7 @@ OneUptime의 메일을 SMTP 서버 대신 이메일 공급자의 HTTPS API로 �
 - [Mailgun](#mailgun): API 키, 보내는 도메인과 그 리전.
 - [Postmark](#postmark): 서버의 API 토큰.
 - [Resend](#resend): 보내기 권한이 있는 API 키.
+- [환경 변수](#환경-변수로-서버의-이메일-설정하기): Helm values나 `config.env`로 자체 호스팅 서버의 이메일을 설정합니다.
 - [문제 해결](#문제-해결): 각 공급자의 거부가 뜻하는 것.
 :::
 
@@ -17,7 +18,7 @@ OneUptime의 메일을 SMTP 서버 대신 이메일 공급자의 HTTPS API로 �
 @tab 프로젝트
 **프로젝트 설정 > 알림 > 알림 채널** 에서 **추가 설정** 을 열고, **사용자 지정 SMTP 구성** 카드에서 **SMTP 구성 만들기** 를 클릭합니다. **공급자** 단계에서 **이름** 을 입력하고 공급자를 고릅니다. 다음 단계에서는 그 공급자의 설정을, **보낸 사람** 단계에서는 **보낸 사람 이메일** 과 **보낸 사람 이름** 을 묻습니다. 저장한 뒤에는 구성 행의 **테스트 이메일 보내기** 로 작동 여부를 확인할 수 있습니다.
 @tab 자체 호스팅 인스턴스
-Admin Dashboard에서 **설정** 을 열고 **알림 > 이메일** 을 엽니다. **이메일 서버 설정** 카드에서 **서버 편집** 을 클릭하고 **이메일 서버 유형** 으로 공급자를 고릅니다. 그 아래에 **Amazon SES 설정** 같은 공급자의 카드가 나타납니다. **Amazon SES 편집** 같은 편집 버튼을 클릭하고 공급자의 설정과 **보낸 사람** 단계를 채웁니다. 필요한 것이 모두 채워질 때까지 카드에는 빠진 것이 표시되고, 메일은 모두 채워야 할 설정을 알려 주는 메시지와 함께 거부됩니다.
+Admin Dashboard에서 **설정** 을 열고 **알림 > 이메일** 을 엽니다. **이메일 서버 설정** 카드에서 **서버 편집** 을 클릭하고 **이메일 서버 유형** 으로 공급자를 고릅니다. 그 아래에 **Amazon SES 설정** 같은 공급자의 카드가 나타납니다. **Amazon SES 편집** 같은 편집 버튼을 클릭하고 공급자의 설정과 **보낸 사람** 단계를 채웁니다. 필요한 것이 모두 채워질 때까지 카드에는 빠진 것이 표시되고, 메일은 모두 채워야 할 설정을 알려 주는 메시지와 함께 거부됩니다. 코드로 배포하는 서버는 대신 환경 변수로 이를 설정할 수 있습니다. [환경 변수로 서버의 이메일 설정하기](#환경-변수로-서버의-이메일-설정하기)를 참고하세요.
 :::
 
 | 공급자 | 필요한 정보 | OneUptime이 보내는 곳 |
@@ -108,6 +109,67 @@ Postmark에서 메일을 보내는 서버를 열고 **API Tokens** 탭에서 서
 ## Resend
 
 Resend의 **Domains** 에서 도메인을 추가하고 인증한 다음, **API Keys** 에서 보내기 권한이 있는 API 키를 만듭니다. 이 키를 **Resend** 단계의 **API 키** 로 입력하고, **보낸 사람 이메일** 에는 인증된 도메인의 주소를 입력합니다. Resend 자체의 테스트 도메인은 자신의 주소로만 보냅니다.
+
+## 환경 변수로 서버의 이메일 설정하기
+
+코드로 배포하는 자체 호스팅 서버는 손으로 설정할 것 없이 시작할 때부터 이메일을 보낼 수 있습니다. Terraform이나 OneUptime을 배포하는 도구에서 환경 변수로 이메일 설정을 지정하세요. `GLOBAL_EMAIL_SERVER_TYPE`이 설정되면 서버는 자신의 이메일을 변수가 설명하는 대로 보냅니다. Admin Dashboard의 **설정** 에서 **알림 > 이메일** 에 저장된 설정은 사용되지 않으며, 그 페이지는 이 설정을 읽기 전용으로, 각 필드를 설정하는 변수와 함께 보여 줍니다. 대신 Admin Dashboard에서 이메일을 설정하려면 `GLOBAL_EMAIL_SERVER_TYPE`을 비워 두세요. 프로젝트의 SMTP 구성에는 영향이 없습니다.
+
+| 변수 | Helm 값 | 담는 내용 |
+| --- | --- | --- |
+| `GLOBAL_EMAIL_SERVER_TYPE` | `email.serverType` | `custom-smtp`, `sendgrid`, `amazon-ses`, `mailgun`, `postmark` 또는 `resend`. 이것이 설정되어야 OneUptime이 다른 변수를 읽습니다 |
+| `GLOBAL_EMAIL_FROM_EMAIL` | `email.fromEmail` | 모든 이메일을 보내는 주소 |
+| `GLOBAL_EMAIL_FROM_NAME` | `email.fromName` | 모든 이메일을 보내는 이름. `custom-smtp`와 `sendgrid`에는 필수 |
+| `GLOBAL_EMAIL_SMTP_TRANSPORT` | `email.smtp.transport` | `smtp`(비어 있을 때도 동일) 또는 OAuth 앱으로 Microsoft Graph를 통해 보내는 `microsoft-graph` |
+| `GLOBAL_EMAIL_SMTP_HOST` | `email.smtp.host` | 메일 서버. 예: `smtp.example.com` |
+| `GLOBAL_EMAIL_SMTP_PORT` | `email.smtp.port` | 그 포트. 예: `587` |
+| `GLOBAL_EMAIL_SMTP_REQUIRE_TLS` | `email.smtp.requireTls` | 유효한 인증서가 있는 암호화된 연결로만 보내는 `true`, 또는 `false`(비어 있을 때도 동일) |
+| `GLOBAL_EMAIL_SMTP_AUTH_TYPE` | `email.smtp.authType` | `username-and-password`(비어 있을 때도 동일), `oauth` 또는 `none` |
+| `GLOBAL_EMAIL_SMTP_USERNAME` | `email.smtp.username` | 로그인할 메일함. `oauth`에도 쓰입니다. 비밀번호와 함께 비워 두면 로그인하지 않고 보냅니다 |
+| `GLOBAL_EMAIL_SMTP_PASSWORD` | `email.smtp.password` 또는 `email.existingSecret.name`에 지정한 Secret | 그 비밀번호 |
+| `GLOBAL_EMAIL_SMTP_OAUTH_PROVIDER_TYPE` | `email.smtp.oauth.providerType` | `client-credentials`(비어 있을 때도 동일) 또는 `jwt-bearer` |
+| `GLOBAL_EMAIL_SMTP_OAUTH_CLIENT_ID` | `email.smtp.oauth.clientId` | OAuth 앱의 클라이언트 ID |
+| `GLOBAL_EMAIL_SMTP_OAUTH_CLIENT_SECRET` | `email.smtp.oauth.clientSecret` 또는 `email.existingSecret.name`에 지정한 Secret | 그 클라이언트 시크릿. `jwt-bearer`에서는 PEM 형식의 개인 키 |
+| `GLOBAL_EMAIL_SMTP_OAUTH_TOKEN_URL` | `email.smtp.oauth.tokenUrl` | 그 토큰 URL |
+| `GLOBAL_EMAIL_SMTP_OAUTH_SCOPE` | `email.smtp.oauth.scope` | 그 scope |
+| `GLOBAL_EMAIL_SENDGRID_API_KEY` | `email.sendgrid.apiKey` 또는 `email.existingSecret.name`에 지정한 Secret | SendGrid의 API 키 |
+| `GLOBAL_EMAIL_AMAZON_SES_AUTHENTICATION_TYPE` | `email.amazonSes.authenticationType` | `access-key`(비어 있을 때도 동일) 또는 서버의 IAM 역할로 로그인하는 `server-iam-role` |
+| `GLOBAL_EMAIL_AMAZON_SES_ACCESS_KEY_ID` | `email.amazonSes.accessKeyId` | 액세스 키 ID |
+| `GLOBAL_EMAIL_AMAZON_SES_SECRET_ACCESS_KEY` | `email.amazonSes.secretAccessKey` 또는 `email.existingSecret.name`에 지정한 Secret | 그 비밀 액세스 키 |
+| `GLOBAL_EMAIL_AMAZON_SES_REGION` | `email.amazonSes.region` | 보낸 사람을 확인한 리전. 예: `us-east-1` |
+| `GLOBAL_EMAIL_MAILGUN_API_KEY` | `email.mailgun.apiKey` 또는 `email.existingSecret.name`에 지정한 Secret | Mailgun의 API 키 |
+| `GLOBAL_EMAIL_MAILGUN_DOMAIN` | `email.mailgun.domain` | 보내는 도메인. 예: `mg.example.com` |
+| `GLOBAL_EMAIL_MAILGUN_REGION` | `email.mailgun.region` | `us`(비어 있을 때도 동일) 또는 `eu` |
+| `GLOBAL_EMAIL_POSTMARK_SERVER_TOKEN` | `email.postmark.serverToken` 또는 `email.existingSecret.name`에 지정한 Secret | Postmark의 서버 API 토큰 |
+| `GLOBAL_EMAIL_RESEND_API_KEY` | `email.resend.apiKey` 또는 `email.existingSecret.name`에 지정한 Secret | Resend의 API 키 |
+
+서버 유형이 읽는 변수만 사용됩니다. `custom-smtp`에는 `GLOBAL_EMAIL_SMTP_` 변수, 각 공급자에는 그 공급자 자신의 변수입니다. 설정된 다른 변수는 서버 로그와 Admin Dashboard에 사용되지 않는 변수로 표시됩니다.
+
+Helm에서는 values의 `email` 아래에 설정합니다. Helm이 릴리스마다 저장하는 values에 비밀번호나 키가 남지 않도록, 직접 관리하는 Secret에 넣고 그 Secret을 `email.existingSecret.name`에 지정하세요. 차트는 `email.existingSecret.key`에 지정한 키에서 읽고, 지정하지 않으면 각각의 이름으로 된 키에서 읽습니다. 그 키는 `smtpPassword`, `smtpOAuthClientSecret`, `sendgridApiKey`, `amazonSesSecretAccessKey`, `mailgunApiKey`, `postmarkServerToken`, `resendApiKey`입니다.
+
+```bash
+kubectl create secret generic oneuptime-email --namespace oneuptime \
+  --from-literal=smtpPassword=YOUR_SMTP_PASSWORD
+```
+
+```yaml
+email:
+  serverType: custom-smtp
+  fromEmail: alerts@example.com
+  fromName: OneUptime
+  smtp:
+    host: smtp.example.com
+    port: 587
+    requireTls: true
+    username: alerts@example.com
+  existingSecret:
+    name: oneuptime-email
+```
+
+차트는 `email.serverType` 없는 다른 `email` 값, 읽는 비밀번호나 키가 없는 설정, values와 Secret 양쪽에 지정된 비밀번호나 키, 설정이 아무것도 읽지 않는 Secret을 거부합니다. Terraform에서는 같은 값을 `helm_release`에 설정하고, 비밀번호나 키는 민감한 값으로 전달하세요.
+
+Docker Compose에서는 `config.env`에서 `GLOBAL_EMAIL_` 설정을 지정한 다음, `npm run start`를 실행해 컨테이너를 다시 만드세요.
+
+OneUptime은 시작할 때 변수를 읽습니다. 숫자가 아닌 포트나 누락된 비밀번호처럼 하나라도 잘못되면, 고칠 때까지 서버는 이메일을 보내지 않습니다. 서버 로그, Admin Dashboard의 이메일 설정, `/admin/setup`의 체크리스트가 해당 변수를 알려 줍니다. 비밀번호와 키는 절대 표시되지 않습니다. 설정을 바꾸려면 변수를 바꾸고 OneUptime을 다시 시작하세요. Admin Dashboard에서는 바꿀 수 없습니다.
 
 ## 문제 해결
 

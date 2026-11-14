@@ -4,6 +4,7 @@ import { JSONObject } from "Common/Types/JSON";
 import { PublicNoteApprovalState } from "Common/Types/StatusPage/PublicNoteApproval";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
+import ErrorMessageText from "Common/UI/Components/ErrorMessage/ErrorMessageText";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
@@ -67,6 +68,12 @@ const NoteApprovalPanel: FunctionComponent<ComponentProps> = (
   >(null);
   const [isBusy, setIsBusy] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
+  /*
+   * What the press that failed was doing, as an English key looked up where
+   * it is drawn - "Couldn't approve the note." - said first when the error
+   * is one nobody explained.
+   */
+  const [whatFailed, setWhatFailed] = useState<string>("");
 
   const actions: PublicNoteApprovalActions = getApprovalActions({
     state: props.state,
@@ -85,8 +92,12 @@ const NoteApprovalPanel: FunctionComponent<ComponentProps> = (
     props.state === PublicNoteApprovalState.EditWaitingForApproval ||
     props.state === PublicNoteApprovalState.EditRejected;
 
-  const run: (action: () => Promise<void>) => Promise<void> = async (
+  const run: (
     action: () => Promise<void>,
+    failed: string,
+  ) => Promise<void> = async (
+    action: () => Promise<void>,
+    failed: string,
   ): Promise<void> => {
     setError("");
     setIsBusy(true);
@@ -95,6 +106,7 @@ const NoteApprovalPanel: FunctionComponent<ComponentProps> = (
       await action();
       setDialog(null);
     } catch (err) {
+      setWhatFailed(failed);
       setError(API.getFriendlyMessage(err));
     }
 
@@ -294,7 +306,7 @@ const NoteApprovalPanel: FunctionComponent<ComponentProps> = (
                 data-testid="note-approval-resubmit"
                 disabled={isBusy}
                 onClick={() => {
-                  void run(props.onResubmit);
+                  void run(props.onResubmit, actions.resubmitFailed);
                 }}
                 className={`${buttonClassName} border border-gray-300 bg-white text-gray-700 ${getHandDrawnButtonStateClassName(
                   { isBusy: isBusy, hoverClassName: "hover:bg-gray-50" },
@@ -330,7 +342,17 @@ const NoteApprovalPanel: FunctionComponent<ComponentProps> = (
             className="mt-2 text-xs text-red-700"
             data-testid="note-approval-error"
           >
-            {error}
+            {/*
+             * In the reader's language and read the way it is written; an
+             * error nobody explained says what failed, why and what to do
+             * next, with the reference to give when the server failed
+             * (ErrorMessageText). It was the message as
+             * API.getFriendlyMessage words it: English on every page.
+             */}
+            <ErrorMessageText
+              message={error}
+              whatFailed={whatFailed ? tx(whatFailed) : undefined}
+            />
           </p>
         )}
       </div>
@@ -352,11 +374,12 @@ const NoteApprovalPanel: FunctionComponent<ComponentProps> = (
           )}
           isLoading={isBusy}
           error={error || undefined}
+          errorWhatFailed={tx(PublicNoteApprovalCopy.approveFailed)}
           onClose={() => {
             setDialog(null);
           }}
           onSubmit={() => {
-            void run(props.onApprove);
+            void run(props.onApprove, PublicNoteApprovalCopy.approveFailed);
           }}
         />
       )}
@@ -370,6 +393,7 @@ const NoteApprovalPanel: FunctionComponent<ComponentProps> = (
           modalWidth={ModalWidth.Medium}
           isSubmitting={isBusy}
           error={error || undefined}
+          errorWhatFailed={tx(PublicNoteApprovalCopy.rejectFailed)}
           onClose={() => {
             setDialog(null);
           }}
@@ -394,7 +418,7 @@ const NoteApprovalPanel: FunctionComponent<ComponentProps> = (
 
             void run(() => {
               return props.onReject(reason);
-            });
+            }, PublicNoteApprovalCopy.rejectFailed);
           }}
         />
       )}
@@ -406,11 +430,15 @@ const NoteApprovalPanel: FunctionComponent<ComponentProps> = (
           submitButtonText={tx(PublicNoteApprovalCopy.withdrawEdit)}
           isLoading={isBusy}
           error={error || undefined}
+          errorWhatFailed={tx(PublicNoteApprovalCopy.withdrawEditFailed)}
           onClose={() => {
             setDialog(null);
           }}
           onSubmit={() => {
-            void run(props.onWithdrawEdit);
+            void run(
+              props.onWithdrawEdit,
+              PublicNoteApprovalCopy.withdrawEditFailed,
+            );
           }}
         />
       )}

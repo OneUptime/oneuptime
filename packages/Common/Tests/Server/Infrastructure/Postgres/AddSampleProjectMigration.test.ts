@@ -6,9 +6,12 @@ import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaM
 import Project from "../../../../Models/DatabaseModels/Project";
 import User from "../../../../Models/DatabaseModels/User";
 import { getTableColumn } from "../../../../Types/Database/TableColumn";
-import { MigrationInterface, QueryRunner } from "typeorm";
+import {
+  DefaultNamingStrategy,
+  MigrationInterface,
+  QueryRunner,
+} from "typeorm";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
-import { DefaultNamingStrategy } from "typeorm";
 
 /*
  * The migrations behind a sample project (issue #6808):

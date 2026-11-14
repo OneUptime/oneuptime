@@ -3161,7 +3161,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
         new ScheduledMaintenanceState();
       endedScheduledMaintenanceState.name = "Ended";
       endedScheduledMaintenanceState.description =
-        "Scheduled maintenance events switch to this state when they end.";
+        "Maintenance events switch to this state when they end.";
       endedScheduledMaintenanceState.color = new Color("#4A4A4A");
       endedScheduledMaintenanceState.isEndedState = true;
       endedScheduledMaintenanceState.projectId = projectId;

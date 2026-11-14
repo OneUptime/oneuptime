@@ -150,6 +150,7 @@ import FeedMarkdown, {
   MarkdownText,
 } from "../../Utils/Markdown/FeedMarkdown";
 import FeedWorkspaceNotificationUtil from "../Utils/Feed/FeedWorkspaceNotification";
+import { NotificationRuleUpdateKind } from "../../Types/Workspace/NotificationRules/NotificationRuleUpdates";
 import StateChangeLogScreenshots from "../../Utils/Monitor/StateChangeLogScreenshots";
 
 /*
@@ -2361,6 +2362,11 @@ ${FeedMarkdown.asMarkdown(alert.remediationNotes || "No remediation notes provid
 
       for (const alertId of updatedItemIds) {
         let shouldAddAlertFeed: boolean = false;
+        /*
+         * Which updates the entry is, for the rules that choose theirs
+         * (NotificationRuleUpdates): a severity change, and any other edit.
+         */
+        const updateKinds: Array<NotificationRuleUpdateKind> = [];
 
         /*
          * An alert the read before the write did not see has no entry, and
@@ -2481,6 +2487,7 @@ ${FeedMarkdown.asMarkdown(alert.remediationNotes || "No remediation notes provid
         if (!fieldsMarkdown.isEmpty()) {
           feedInfoInMarkdown += fieldsMarkdown.toString();
           shouldAddAlertFeed = true;
+          updateKinds.push(NotificationRuleUpdateKind.Edits);
         }
 
         if (isSeverityChanged && writtenAlertSeverityId) {
@@ -2503,6 +2510,7 @@ ${alertSeverity.name}
 `;
 
             shouldAddAlertFeed = true;
+            updateKinds.push(NotificationRuleUpdateKind.SeverityChanges);
           }
         }
 
@@ -2514,6 +2522,7 @@ ${alertSeverity.name}
           });
 
           shouldAddAlertFeed = true;
+          updateKinds.push(NotificationRuleUpdateKind.Edits);
         }
 
         /*
@@ -2578,6 +2587,7 @@ ${alertSeverity.name}
               sendWorkspaceNotification: true,
               // Who changed it - the title, the labels - as the feed names them.
               leadWithAuthor: true,
+              updateKinds: Array.from(new Set(updateKinds)),
             },
           });
         }

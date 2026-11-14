@@ -42,6 +42,7 @@ import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import logger, { LogAttributes } from "../Utils/Logger";
 import IncidentFeedService from "./IncidentFeedService";
 import WorkspaceStateChangePosting from "../Utils/Workspace/WorkspaceStateChangePosting";
+import NotificationRuleUpdates from "../../Types/Workspace/NotificationRules/NotificationRuleUpdates";
 import AIIncidentPostmortemRunner from "../Utils/AI/SRE/IncidentPostmortemRunner";
 import InvestigationGrader from "../Utils/AI/SRE/InvestigationGrader";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
@@ -762,6 +763,16 @@ ${FeedMarkdown.asMarkdown(createdItem.rootCause)}`.toString()
           },
         ),
         leadWithAuthor: true,
+        /*
+         * Resolving it, or reopening it, is an update of its own for the
+         * rules that choose their updates: a quiet channel hears of it.
+         */
+        updateKinds: [
+          NotificationRuleUpdates.getStateChangeKind({
+            isResolved: isResolved,
+            wasResolved: previousStateWasResolved,
+          }),
+        ],
       },
     });
 

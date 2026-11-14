@@ -2,6 +2,7 @@ import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import { MessageQueueTopologyResponse } from "Common/Types/MessageQueue/MessageQueueTopology";
 import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
+import DirectionArrow from "Common/UI/Components/DirectionArrow/DirectionArrow";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Input from "Common/UI/Components/Input/Input";
 import Link from "Common/UI/Components/Link/Link";
@@ -701,7 +702,8 @@ const MessageQueueTopologyExplorer: FunctionComponent<ComponentProps> = (
                             focusOn(row.node.key);
                           }}
                         >
-                          {t("Show its flow")} <span aria-hidden={true}>→</span>
+                          {t("Show its flow")}{" "}
+                          <DirectionArrow isDecorative={true} />
                         </button>
                       </td>
                     </tr>
@@ -1076,7 +1078,7 @@ const MessageQueueTopologyExplorer: FunctionComponent<ComponentProps> = (
                   isSearchOrFilter={true}
                   dataTestId="message-queue-topology-search"
                   ariaLabel={t("Search queues and services")}
-                  placeholder={t("Search queues and services")}
+                  placeholder="Search queues and services"
                   value={searchText}
                   onChange={(value: string) => {
                     setSearchText(value);

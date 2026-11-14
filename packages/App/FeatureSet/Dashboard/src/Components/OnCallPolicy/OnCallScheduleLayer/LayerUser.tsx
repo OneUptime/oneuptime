@@ -1,32 +1,27 @@
 import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import AddLayerUserModal from "./AddLayerUserModal";
+import {
+  createAddedLayerUser,
+  getLayerUserRowKey,
+  isAddedLayerUser,
+  moveInList,
+} from "./LayersDraft";
 import { formatShiftInstant } from "./LayerSummary";
 import { LayerUserAway, getLayerUserAway } from "./LayerUserAway";
 import { getUserAvatarStyle, getUserInitials } from "./LayerUserColors";
 import OneUptimeDate from "Common/Types/Date";
 import { UserOverrideRecord } from "Common/Types/OnCallDutyPolicy/UserOverrideUtil";
 import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import IconProp from "Common/Types/Icon/IconProp";
 import Button, {
   ButtonSize,
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import Icon from "Common/UI/Components/Icon/Icon";
-import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import API from "Common/UI/Utils/API/API";
-import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import OnCallDutyPolicyScheduleLayer from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayer";
 import OnCallDutyPolicyScheduleLayerUser from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayerUser";
 import User from "Common/Models/DatabaseModels/User";
-import React, {
-  FunctionComponent,
-  ReactElement,
-  useEffect,
-  useId,
-  useState,
-} from "react";
+import React, { FunctionComponent, ReactElement, useId, useState } from "react";
 import {
   DragDropContext,
   Draggable,
@@ -43,10 +38,45 @@ import {
   ProjectMembershipStatus,
 } from "../../../Utils/ProjectMembershipLoader";
 import ObjectID from "Common/Types/ObjectID";
+import { ProjectUserResult } from "../../../Utils/ProjectUser";
 
+/*
+ * The people who take turns in a layer, on the Layers page: dragged into
+ * another turn order, added, taken out. None of it is saved here - each
+ * change goes to the page (onChange), which shows it in its previews and
+ * saves every change at once with Save (Layers, issue #7575). Someone added
+ * is marked New until then, and someone taken out is listed under the
+ * layer's people, to be put back with Undo.
+ */
 export interface ComponentProps {
   layer: OnCallDutyPolicyScheduleLayer;
-  onUpdateUsers: (layerUsers: Array<OnCallDutyPolicyScheduleLayerUser>) => void;
+  /*
+   * The people in turn order, as the page has them now: saved, and added
+   * (a row with no id yet).
+   */
+  users: Array<OnCallDutyPolicyScheduleLayerUser>;
+  // The people as they are to be: a new turn order, someone added or taken out.
+  onChange: (layerUsers: Array<OnCallDutyPolicyScheduleLayerUser>) => void;
+  // People saved in the layer whom the page has taken out, until Save.
+  removedUsers?: Array<OnCallDutyPolicyScheduleLayerUser> | undefined;
+  /*
+   * The rows of people the page has put in another place in the turn
+   * order, by id, lower-cased (LayersDraft.getMovedLayerUserIds): marked
+   * Moved until Save.
+   */
+  movedUserIds?: Set<string> | undefined;
+  /*
+   * Whether the rows say what the page changed: New, Moved, and the people
+   * Removed when you save. Left out, they do. Not once a save is done but
+   * the page could not read it back (Layers): those changes are saved.
+   */
+  marksUnsavedChanges?: boolean | undefined;
+  // Undo on one of them: they go back where they were.
+  onRestore?:
+    | ((layerUser: OnCallDutyPolicyScheduleLayerUser) => void)
+    | undefined;
+  // While the page saves, the people stay as they are.
+  isDisabled?: boolean | undefined;
   /*
    * The user overrides that apply to this schedule (./ScheduleOverrides): a
    * person away now, or soon, says so on their row.
@@ -186,111 +216,34 @@ const LayerUser: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
-  const [users, setUsers] = useState<Array<OnCallDutyPolicyScheduleLayerUser>>(
-    [],
-  );
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string>("");
-  const [deletingUserIds, setDeletingUserIds] = useState<Set<string>>(
-    new Set<string>(),
-  );
-  const [isReordering, setIsReordering] = useState<boolean>(false);
+  const users: Array<OnCallDutyPolicyScheduleLayerUser> = props.users;
+  const marksChanges: boolean = props.marksUnsavedChanges !== false;
+  const removedUsers: Array<OnCallDutyPolicyScheduleLayerUser> = marksChanges
+    ? props.removedUsers || []
+    : [];
   const [showAddUserModal, setShowAddUserModal] = useState<boolean>(false);
 
   // Every row's locked "Skip until..." is described by the one reason.
   const skipLockedReasonId: string = useId();
   const skipLockedReason: string | null = props.skipLockedReason || null;
 
-  useEffect(() => {
-    fetchUsers().catch((err: Error) => {
-      setError(API.getFriendlyMessage(err));
-    });
-  }, []);
+  const isBusy: boolean = Boolean(props.isDisabled);
 
-  type FetchUsersFunction = (silent?: boolean) => Promise<void>;
-
-  const fetchUsers: FetchUsersFunction = async (
-    silent: boolean = false,
-  ): Promise<void> => {
-    if (!silent) {
-      setIsLoading(true);
-    }
-
-    try {
-      const result: ListResult<OnCallDutyPolicyScheduleLayerUser> =
-        await ModelAPI.getList<OnCallDutyPolicyScheduleLayerUser>({
-          modelType: OnCallDutyPolicyScheduleLayerUser,
-          query: {
-            onCallDutyPolicyScheduleId: props.layer.onCallDutyPolicyScheduleId,
-            projectId: props.layer.projectId,
-            onCallDutyPolicyScheduleLayerId: props.layer.id!,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          select: {
-            _id: true,
-            order: true,
-            user: {
-              name: true,
-              email: true,
-              _id: true,
-              profilePictureId: true,
-            },
-          },
-          sort: {
-            order: SortOrder.Ascending,
-          },
-        });
-
-      setUsers(result.data);
-      props.onUpdateUsers(result.data);
-    } catch (err) {
-      setError(API.getFriendlyMessage(err));
-    }
-
-    if (!silent) {
-      setIsLoading(false);
-    }
+  // A person taken out of the layer on the page: Undo puts them back.
+  const removeUser: (layerUser: OnCallDutyPolicyScheduleLayerUser) => void = (
+    layerUser: OnCallDutyPolicyScheduleLayerUser,
+  ): void => {
+    props.onChange(
+      users.filter((candidate: OnCallDutyPolicyScheduleLayerUser): boolean => {
+        return candidate !== layerUser;
+      }),
+    );
   };
 
-  const deleteUser: (
-    layerUser: OnCallDutyPolicyScheduleLayerUser,
-  ) => Promise<void> = async (
-    layerUser: OnCallDutyPolicyScheduleLayerUser,
-  ): Promise<void> => {
-    if (!layerUser.id) {
-      return;
-    }
-
-    const rowId: string = layerUser.id.toString();
-    setDeletingUserIds((prev: Set<string>) => {
-      const next: Set<string> = new Set<string>(prev);
-      next.add(rowId);
-      return next;
-    });
-
-    try {
-      await ModelAPI.deleteItem<OnCallDutyPolicyScheduleLayerUser>({
-        modelType: OnCallDutyPolicyScheduleLayerUser,
-        id: layerUser.id,
-      });
-      await fetchUsers(true);
-    } catch (err) {
-      setError(API.getFriendlyMessage(err));
-    }
-
-    setDeletingUserIds((prev: Set<string>) => {
-      const next: Set<string> = new Set<string>(prev);
-      next.delete(rowId);
-      return next;
-    });
-  };
-
-  const isBusy: boolean = isReordering || deletingUserIds.size > 0;
-
-  const onDragEnd: (result: DropResult) => void = async (
+  // A drop: the new turn order, on the page until Save.
+  const onDragEnd: (result: DropResult) => void = (
     result: DropResult,
-  ): Promise<void> => {
+  ): void => {
     if (!result.destination) {
       return;
     }
@@ -302,52 +255,31 @@ const LayerUser: FunctionComponent<ComponentProps> = (
       return;
     }
 
-    const moved: OnCallDutyPolicyScheduleLayerUser | undefined =
-      users[fromIndex];
-    const destination: OnCallDutyPolicyScheduleLayerUser | undefined =
-      users[toIndex];
+    props.onChange(moveInList(users, fromIndex, toIndex));
+  };
 
-    if (!moved?.id || destination?.order === undefined) {
-      return;
-    }
-
-    /*
-     * Optimistically reorder so the drop feels instant; the refetch below
-     * reconciles with the server's authoritative ordering.
-     */
-    const optimistic: Array<OnCallDutyPolicyScheduleLayerUser> = [...users];
-    const [removed] = optimistic.splice(fromIndex, 1);
-    optimistic.splice(toIndex, 0, removed!);
-    setUsers(optimistic);
-    props.onUpdateUsers(optimistic);
-
-    setIsReordering(true);
-    setError("");
-
-    try {
-      /*
-       * Set the dragged user's order to the order of whoever currently sits at
-       * the drop position. The server re-sequences the rest around it.
-       */
-      await ModelAPI.updateById({
-        modelType: OnCallDutyPolicyScheduleLayerUser,
-        id: moved.id,
-        data: { order: destination.order },
-      });
-    } catch (err) {
-      setError(API.getFriendlyMessage(err));
-    }
-
-    await fetchUsers(true);
-    setIsReordering(false);
+  // Someone picked in Add user: at the end of the rotation, New until Save.
+  const addUser: (person: ProjectUserResult) => void = (
+    person: ProjectUserResult,
+  ): void => {
+    setShowAddUserModal(false);
+    props.onChange([
+      ...users,
+      createAddedLayerUser({
+        layer: props.layer,
+        userId: person.userId,
+        name: person.name,
+        email: person.email,
+      }),
+    ]);
   };
 
   /*
    * "Skip until..." on a person's row. Locked (skipLockedReason), it stays
    * a button - reached with Tab, named as before - that opens nothing: it
    * says why on hover, focus or a press, and a screen reader hears the
-   * reason as its description. While a reorder or a removal is in flight
-   * it is disabled for that moment, as before.
+   * reason as its description. While the page saves it is disabled for
+   * that moment.
    */
   const getSkipButton: (
     userId: ObjectID,
@@ -419,8 +351,15 @@ const LayerUser: FunctionComponent<ComponentProps> = (
     const userId: string = user?.id?.toString() || `unknown-${index}`;
     const name: string = user?.name?.toString() || "";
     const email: string = user?.email?.toString() || "";
-    const rowId: string = layerUser.id?.toString() || `${userId}-${index}`;
-    const isDeleting: boolean = deletingUserIds.has(rowId);
+    // Someone added on the page: no row of theirs is saved yet.
+    const isAdded: boolean = isAddedLayerUser(layerUser);
+    const isMarkedNew: boolean = isAdded && marksChanges;
+    const isMoved: boolean =
+      !isAdded &&
+      marksChanges &&
+      Boolean(
+        props.movedUserIds?.has(layerUser.id?.toString().toLowerCase() || ""),
+      );
     const displayName: string =
       name || email || translator.translateTemplate("Unknown user");
 
@@ -436,7 +375,14 @@ const LayerUser: FunctionComponent<ComponentProps> = (
       <div
         ref={dragProvided.innerRef}
         {...dragProvided.draggableProps}
-        className="flex items-center gap-3 bg-white px-3 py-2.5 transition-colors hover:bg-gray-50"
+        data-testid={isMarkedNew ? "layer-user-added-row" : "layer-user-row"}
+        className={`flex items-center gap-3 px-3 py-2.5 transition-colors ${
+          isMarkedNew
+            ? "bg-emerald-50/40 hover:bg-emerald-50/70"
+            : isMoved
+              ? "bg-indigo-50/40 hover:bg-indigo-50/70"
+              : "bg-white hover:bg-gray-50"
+        }`}
       >
         {canReorder ? (
           <span
@@ -462,6 +408,42 @@ const LayerUser: FunctionComponent<ComponentProps> = (
             <span className="min-w-0 truncate text-sm font-medium text-gray-900">
               {displayName}
             </span>
+            {isMarkedNew && (
+              /*
+               * Someone added on the page: in the previews already, in the
+               * rotation once the page is saved.
+               */
+              <Tooltip
+                text={translator.translateText(
+                  "Not saved yet. They join the rotation when you save.",
+                )}
+              >
+                <span
+                  data-testid="layer-user-new"
+                  className="inline-flex flex-shrink-0 items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium leading-4 text-emerald-700 ring-1 ring-inset ring-emerald-200"
+                >
+                  {translator.translateText("New")}
+                </span>
+              </Tooltip>
+            )}
+            {isMoved && (
+              /*
+               * Someone the page has put in another place in the turn
+               * order: their turns change once the page is saved.
+               */
+              <Tooltip
+                text={translator.translateText(
+                  "Not saved yet. They take this place in the rotation when you save.",
+                )}
+              >
+                <span
+                  data-testid="layer-user-moved"
+                  className="inline-flex flex-shrink-0 items-center rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-medium leading-4 text-indigo-700 ring-1 ring-inset ring-indigo-200"
+                >
+                  {translator.translateText("Moved")}
+                </span>
+              </Tooltip>
+            )}
             {away && (
               <LayerUserAwayBadge
                 away={away}
@@ -477,27 +459,30 @@ const LayerUser: FunctionComponent<ComponentProps> = (
           <LayerUserDetailLine userId={user?.id} name={name} email={email} />
         </div>
 
-        {props.onSkipUser && user?.id && getSkipButton(user.id, displayName)}
+        {/*
+         * Time away is for someone in the rotation: someone added on the
+         * page is offered it once they are saved.
+         */}
+        {props.onSkipUser &&
+          user?.id &&
+          !isAdded &&
+          getSkipButton(user.id, displayName)}
 
         <button
           type="button"
           aria-label={translator.translateText("Remove user from layer")}
           disabled={isBusy}
           onClick={() => {
-            deleteUser(layerUser);
+            removeUser(layerUser);
           }}
           className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md text-gray-400 transition-colors ${getHandDrawnButtonStateClassName(
             {
               isLocked: isBusy,
-              isBusy: isDeleting,
               hoverClassName: "hover:bg-red-50 hover:text-red-600",
             },
           )}`}
         >
-          <Icon
-            icon={isDeleting ? IconProp.Spinner : IconProp.Trash}
-            className="h-4 w-4"
-          />
+          <Icon icon={IconProp.Trash} className="h-4 w-4" />
         </button>
       </div>
     );
@@ -521,32 +506,6 @@ const LayerUser: FunctionComponent<ComponentProps> = (
   };
 
   const getContent: () => ReactElement = (): ReactElement => {
-    if (isLoading) {
-      return (
-        <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
-          <div className="divide-y divide-gray-100" aria-hidden="true">
-            {["w-1/3", "w-2/5", "w-1/4"].map((width: string, i: number) => {
-              return (
-                <div key={i} className="flex items-center gap-3 px-3 py-2.5">
-                  <span className="h-8 w-8 flex-shrink-0 rounded-full bg-gray-100 motion-safe:animate-pulse" />
-                  <div className="min-w-0 flex-1 space-y-1.5">
-                    <div
-                      className={`h-3 rounded bg-gray-100 motion-safe:animate-pulse ${width}`}
-                    />
-                    <div className="h-2.5 w-1/2 rounded bg-gray-100 motion-safe:animate-pulse" />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      );
-    }
-
-    if (error) {
-      return <ErrorMessage message={error} />;
-    }
-
     if (users.length === 0) {
       return (
         <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50/50 px-4 py-6 text-center">
@@ -583,9 +542,7 @@ const LayerUser: FunctionComponent<ComponentProps> = (
                       layerUser: OnCallDutyPolicyScheduleLayerUser,
                       i: number,
                     ) => {
-                      const rowId: string =
-                        layerUser.id?.toString() ||
-                        `${layerUser.user?.id?.toString()}-${i}`;
+                      const rowId: string = getLayerUserRowKey(layerUser, i);
                       return (
                         <Draggable
                           key={rowId}
@@ -615,9 +572,85 @@ const LayerUser: FunctionComponent<ComponentProps> = (
     );
   };
 
+  /*
+   * The people saved in the layer that the page has taken out: still in the
+   * rotation until Save, and put back with Undo, where they were.
+   */
+  const getRemovedUsers: () => ReactElement | null =
+    (): ReactElement | null => {
+      if (removedUsers.length === 0) {
+        return null;
+      }
+
+      return (
+        <div
+          data-testid="layer-users-removed"
+          className="mt-2 rounded-lg border border-dashed border-gray-200 bg-gray-50/60 px-3 py-2"
+        >
+          <p className="text-xs font-medium text-gray-500">
+            {translator.translateText("Removed when you save")}
+          </p>
+          <ul className="mt-1 divide-y divide-gray-100">
+            {removedUsers.map(
+              (layerUser: OnCallDutyPolicyScheduleLayerUser, i: number) => {
+                const user: User | undefined = layerUser.user;
+                const userId: string = user?.id?.toString() || `unknown-${i}`;
+                const name: string = user?.name?.toString() || "";
+                const email: string = user?.email?.toString() || "";
+                const displayName: string =
+                  name || email || translator.translateTemplate("Unknown user");
+
+                return (
+                  <li
+                    key={getLayerUserRowKey(layerUser, i)}
+                    data-testid="layer-user-removed-row"
+                    className="flex items-center gap-2.5 py-1.5"
+                  >
+                    <span
+                      aria-hidden="true"
+                      className="inline-flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-semibold opacity-60"
+                      style={getUserAvatarStyle(userId)}
+                    >
+                      {getUserInitials(name, email)}
+                    </span>
+                    <span className="min-w-0 flex-1 truncate text-sm text-gray-500 line-through decoration-gray-400">
+                      {displayName}
+                    </span>
+                    {props.onRestore && (
+                      <button
+                        type="button"
+                        aria-label={translator.translateTemplate(
+                          "Undo removing {{name}}",
+                          { name: displayName },
+                        )}
+                        disabled={isBusy}
+                        onClick={() => {
+                          props.onRestore?.(layerUser);
+                        }}
+                        className={`flex-shrink-0 rounded-md px-2 py-1 text-xs font-medium text-indigo-600 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${getHandDrawnButtonStateClassName(
+                          {
+                            isLocked: isBusy,
+                            hoverClassName:
+                              "hover:bg-indigo-50 hover:text-indigo-700",
+                          },
+                        )}`}
+                      >
+                        {translator.translateText("Undo")}
+                      </button>
+                    )}
+                  </li>
+                );
+              },
+            )}
+          </ul>
+        </div>
+      );
+    };
+
   return (
     <div>
       {getContent()}
+      {getRemovedUsers()}
       {getAddUserButton()}
 
       {skipLockedReason && (
@@ -628,16 +661,10 @@ const LayerUser: FunctionComponent<ComponentProps> = (
 
       {showAddUserModal && (
         <AddLayerUserModal
-          layer={props.layer}
           onClose={() => {
             setShowAddUserModal(false);
           }}
-          onUserAdded={() => {
-            setShowAddUserModal(false);
-            fetchUsers(true).catch((err: Error) => {
-              setError(API.getFriendlyMessage(err));
-            });
-          }}
+          onAdd={addUser}
         />
       )}
     </div>

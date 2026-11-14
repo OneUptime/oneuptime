@@ -44,6 +44,32 @@ enum TelemetryIngestSurface {
    */
   SyncWebhooks = "sync-webhooks",
   SecurityEvents = "security-events",
+  /*
+   * The compatible endpoints (Types/Telemetry/CompatibleIngest): other
+   * tools' protocols, turned into OTLP. Prometheus remote write
+   * (POST /prometheus/api/v1/write): a Prometheus server's or an agent's
+   * metrics. Server keys only.
+   */
+  PrometheusRemoteWrite = "prometheus-remote-write",
+  // Loki's push API (POST /loki/api/v1/push): log shippers. Server keys only.
+  Loki = "loki",
+  /*
+   * Splunk's HTTP Event Collector (POST /services/collector/...): log
+   * shippers and Splunk forwarders, logs and metric events. Server keys
+   * only.
+   */
+  SplunkHec = "splunk-hec",
+  /*
+   * The Datadog Agent's and Datadog HTTP API's intake (/datadog/api/...):
+   * logs and metrics from hosts. Server keys only.
+   */
+  Datadog = "datadog",
+  /*
+   * Sentry SDKs' envelopes and events (/sentry/api/<n>/envelope/): errors,
+   * transactions and logs. A browser key may write here - see the
+   * allowlist below.
+   */
+  Sentry = "sentry",
   Grpc = "grpc",
   Mqtt = "mqtt",
   /*
@@ -110,13 +136,22 @@ export const IDENTITY_REGISTRATION_SURFACES: ReadonlySet<TelemetryIngestSurface>
  * "browser keys cannot reach a new endpoint" rather than "a key scraped off a
  * public page can reach it".
  *
- * The four members are exactly what a real browser agent emits: OTLP traces,
- * logs and metrics from the web SDKs, plus session replay chunks. Everything
- * else is a server-side or infrastructure pipe that no page has any business
- * calling - profiles, syslog, Fluent, Pyroscope, Kubernetes cost, gRPC, MQTT -
- * or is a build-time artifact upload (source maps) that belongs in CI with a
- * server key, not in the browser bundle, which would otherwise be able to
- * overwrite the maps used to de-obfuscate everyone else's stack traces.
+ * The members are exactly what a real browser agent emits: OTLP traces,
+ * logs and metrics from the web SDKs, session replay chunks, and Sentry's
+ * browser SDK's envelopes. Everything else is a server-side or
+ * infrastructure pipe that no page has any business calling - profiles,
+ * syslog, Fluent, Pyroscope, Kubernetes cost, gRPC, MQTT, remote write,
+ * Loki, HEC, Datadog - or is a build-time artifact upload (source maps)
+ * that belongs in CI with a server key, not in the browser bundle, which
+ * would otherwise be able to overwrite the maps used to de-obfuscate
+ * everyone else's stack traces.
+ *
+ * Sentry is here because a Sentry DSN is published by design: @sentry/browser
+ * and @sentry/react are given one in page JavaScript, exactly as the web
+ * OTLP SDKs are given a browser key. Refusing browser keys there would push
+ * teams to paste a SERVER key into their bundle instead. What an envelope
+ * can write is what a browser OTLP exporter can - errors and transactions as
+ * traces, and logs - with the key's origin allowlist and rate limit.
  */
 export const BROWSER_ALLOWED_INGEST_SURFACES: ReadonlySet<TelemetryIngestSurface> =
   new Set<TelemetryIngestSurface>([
@@ -124,6 +159,7 @@ export const BROWSER_ALLOWED_INGEST_SURFACES: ReadonlySet<TelemetryIngestSurface
     TelemetryIngestSurface.OtelLogs,
     TelemetryIngestSurface.OtelMetrics,
     TelemetryIngestSurface.SessionReplay,
+    TelemetryIngestSurface.Sentry,
   ]);
 
 /*
@@ -148,6 +184,11 @@ const INGEST_SURFACE_READABLE_NAMES: Record<TelemetryIngestSurface, string> = {
   [TelemetryIngestSurface.DbtArtifacts]: "dbt artifacts upload",
   [TelemetryIngestSurface.SyncWebhooks]: "Fivetran and Airbyte sync webhooks",
   [TelemetryIngestSurface.SecurityEvents]: "security event ingest",
+  [TelemetryIngestSurface.PrometheusRemoteWrite]: "Prometheus remote write",
+  [TelemetryIngestSurface.Loki]: "Loki push",
+  [TelemetryIngestSurface.SplunkHec]: "Splunk HTTP Event Collector",
+  [TelemetryIngestSurface.Datadog]: "Datadog intake",
+  [TelemetryIngestSurface.Sentry]: "Sentry ingest",
   [TelemetryIngestSurface.Grpc]: "gRPC ingest",
   [TelemetryIngestSurface.Mqtt]: "MQTT ingest",
   [TelemetryIngestSurface.KubernetesAgentRunner]:

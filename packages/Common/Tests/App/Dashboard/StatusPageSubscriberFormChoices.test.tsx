@@ -375,7 +375,7 @@ describe("a subscriber's Status, on its Edit form", () => {
     expect(SubscriberFormCopy.addDialogTitle).toBe("Add New Subscriber");
     expect(SubscriberFormCopy.welcomeTitle).toBe("Send a welcome message");
     expect(SubscriberFormCopy.internalNoteDescription).toBe(
-      "Only your team sees it.",
+      "The subscriber never sees it.",
     );
   });
 });
@@ -658,7 +658,7 @@ describe("the fields the subscriber lists' forms share", () => {
 
     expect(note.field).toEqual({ internalNote: true });
     expect(note.title).toBe("Internal Note");
-    expect(note.description).toBe("Only your team sees it.");
+    expect(note.description).toBe("The subscriber never sees it.");
     expect(note.fieldType).toBe(FormFieldSchemaType.LongText);
     expect(note.collapsibleSection).toBe(moreFields);
     expect(note.stepId).toBe(SUBSCRIBER_INFO_STEP_ID);

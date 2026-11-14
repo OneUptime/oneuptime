@@ -26,7 +26,7 @@ flowchart TB
 ```
 
 - **Le condizioni della regola** decidono a quali avvisi si applica. Una regola senza condizioni si applica a ogni nuovo avviso.
-- **La chiave di raggruppamento** decide quali avvisi condividono un episodio: quelli con lo stesso monitor, la stessa gravità, lo stesso titolo, o qualunque combinazione la regola usi per raggruppare. Una regola che non raggruppa per nulla mette in un solo episodio ogni avviso a cui corrisponde.
+- **La chiave di raggruppamento** decide quali avvisi condividono un episodio: quelli con lo stesso monitor, la stessa gravità, lo stesso titolo, quelli dei servizi che si chiamano a vicenda nella mappa dei servizi, o qualunque combinazione la regola usi per raggruppare. Una regola che non raggruppa per nulla mette in un solo episodio ogni avviso a cui corrisponde.
 - **La finestra temporale** decide per quanto tempo un episodio continua ad accettare avvisi. Se è attiva, un avviso entra solo se arriva entro la finestra dall'ultimo avviso dell'episodio. Se è disattivata, gli avvisi corrispondenti continuano a entrare finché l'episodio non è risolto.
 - **Attendi altri avvisi** decide quando si apre un nuovo episodio. Se è disattivato, come quando parte una nuova regola, il primo avviso corrispondente ne apre uno. Se è attivo, un avviso attende da solo finché non sono in corso tanti avvisi corrispondenti del suo gruppo quanti ne avete impostati, e poi si apre un solo episodio con tutti questi avvisi. Vedere [Aprire un episodio solo per più avvisi](#aprire-un-episodio-solo-per-più-avvisi).
 
@@ -41,12 +41,13 @@ Andate in **Avvisi → Regole → Regole di raggruppamento**. La sezione **Regol
 
 ### Partire da un modello
 
-Un progetto senza regole di raggruppamento vede quattro regole pronte invece di un elenco vuoto; quando avete già delle regole, **Crea da modello** sulla scheda le apre. **Aggiungi regola** ne salva una con un solo clic, abilitata, in fondo all'elenco e valida per ogni nuovo avviso. Modificatela poi come qualsiasi altra regola.
+Un progetto senza regole di raggruppamento vede cinque regole pronte invece di un elenco vuoto; quando avete già delle regole, **Crea da modello** sulla scheda le apre. **Aggiungi regola** ne salva una con un solo clic, abilitata, in fondo all'elenco e valida per ogni nuovo avviso. Modificatela poi come qualsiasi altra regola.
 
 | Modello                                             | Raggruppa                                                                 | Finestra temporale |
 | --------------------------------------------------- | ------------------------------------------------------------------------- | ------------------ |
 | **Raggruppa gli avvisi dello stesso monitor**       | Un episodio per monitor                                                   | 30 minuti          |
 | **Raggruppa gli avvisi che avvengono insieme**      | Un episodio condiviso, qualunque sia il monitor                           | 10 minuti          |
+| **Raggruppa gli avvisi dei servizi collegati** | Un episodio per i servizi che si chiamano a vicenda nella mappa dei servizi | 30 minuti          |
 | **Raggruppa gli avvisi per gravità**                | Un episodio per gravità                                                   | 30 minuti          |
 | **Raggruppa le ripetizioni dello stesso avviso**    | Un episodio per titolo dell'avviso, ignorando numeri e maiuscole          | 1 ora              |
 
@@ -55,7 +56,7 @@ Un progetto senza regole di raggruppamento vede quattro regole pronte invece di 
 :::steps
 #### Rispondere a come raggruppare
 
-Fate clic su **Crea regola personalizzata** sotto i modelli, o su **Crea regola di raggruppamento degli avvisi** sulla scheda quando avete già delle regole. Nel passaggio **Raggruppamento**, **Raggruppa gli avvisi per** pone una sola domanda: **Monitor**, **Tutto insieme**, **Gravità**, **Titolo** o **Personalizzato**. Il **Nome** segue la vostra risposta finché non ne scrivete uno vostro.
+Fate clic su **Crea regola personalizzata** sotto i modelli, o su **Crea regola di raggruppamento degli avvisi** sulla scheda quando avete già delle regole. Nel passaggio **Raggruppamento**, **Raggruppa gli avvisi per** pone una sola domanda: **Monitor**, **Tutto insieme**, **Servizi collegati**, **Gravità**, **Titolo** o **Personalizzato**. Il **Nome** segue la vostra risposta finché non ne scrivete uno vostro.
 
 #### Impostare la finestra temporale
 
@@ -63,7 +64,7 @@ Fate clic su **Crea regola personalizzata** sotto i modelli, o su **Crea regola 
 
 #### Combinare i campi, per Personalizzato
 
-**Personalizzato** aggiunge un passaggio **Raggruppa per** con cinque interruttori: **Raggruppa per monitor**, **Raggruppa per gravità avviso**, **Raggruppa per titolo avviso**, **Raggruppa per etichette avviso** e **Raggruppa per etichette monitor**. Le etichette raggruppano in base al loro insieme esatto.
+**Personalizzato** aggiunge un passaggio **Raggruppa per** con sei interruttori: **Raggruppa per monitor**, **Raggruppa per gravità avviso**, **Raggruppa per titolo avviso**, **Raggruppa per etichette avviso**, **Raggruppa per etichette monitor** e **Raggruppa per servizi collegati**. Le etichette raggruppano in base al loro insieme esatto.
 
 #### Restringere il campo
 
@@ -90,6 +91,17 @@ Le regole vengono controllate dall'alto verso il basso dell'elenco, e vince la p
 - **Il conteggio è per gruppo.** Con **Tutto insieme** contano tutti gli avvisi corrispondenti, quindi un episodio si apre solo per un guasto che fa scattare più monitor contemporaneamente. Con **Monitor**, l'episodio di un monitor si apre quando quel monitor ha più avvisi in corso.
 
 La colonna **Raggruppamento** dell'elenco dice «Apre un episodio quando 3 avvisi corrispondenti sono in corso». Tramite l'API e Terraform sono `enableMinimumAlertCount` e `minimumAlertCount`.
+
+### Raggruppare gli avvisi dei servizi collegati
+
+Quando un servizio si guasta, anche i servizi che lo chiamano iniziano a fallire, e ognuno genera un avviso sul proprio monitor. **Servizi collegati** riunisce questi avvisi in un unico episodio, usando la [mappa dei servizi](/docs/telemetry/topology) che OneUptime disegna dalle vostre tracce.
+
+- I servizi di un avviso sono quelli collegati a esso in **Risorse interessate** e quelli collegati al suo monitor.
+- Un avviso si unisce a un episodio aperto della regola quando uno dei suoi servizi è, chiama o è chiamato da un servizio di un avviso già presente, così un guasto che si propaga resta in un solo episodio.
+- Collegato significa a una chiamata di distanza: due servizi che chiamano solo lo stesso database o la stessa API esterna non sono collegati, altrimenti una dipendenza chiamata da metà dei vostri servizi metterebbe ogni avviso in un unico episodio.
+- Un avviso senza servizio viene raggruppato per il suo monitor, come fa **Monitor**.
+
+Una chiamata non vista da 30 giorni esce dalla mappa dei servizi, e con essa il collegamento. La colonna **Raggruppamento** dell'elenco dice «Gli avvisi dei servizi collegati condividono un unico episodio». Tramite l'API e Terraform è `groupByConnectedServices`.
 
 ## Titoli degli episodi
 

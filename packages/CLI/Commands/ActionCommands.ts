@@ -301,12 +301,18 @@ function registerAddNoteCommand(
   resource: ResourceInfo,
   target: CliNoteTarget,
 ): void {
+  /*
+   * Who reads the note: an internal one only the people who can see the
+   * record - a note is read through its record - and a public one its
+   * status pages. Never "your team", which reads as one of OneUptime's
+   * Teams (#7595).
+   */
   const command: Command = resourceCmd
     .command(`${CliAction.AddNote} <id>`)
     .description(
       target.publicNoteModelType
-        ? `Add a note to the ${resource.singularName}: internal, for your team, or --public, on its status pages`
-        : `Add an internal note to the ${resource.singularName}, for your team`,
+        ? `Add a note to the ${resource.singularName}: internal, for the people who can see it, or --public, on its status pages`
+        : `Add an internal note to the ${resource.singularName}, for the people who can see it`,
     )
     .requiredOption("--note <markdown>", "Required. The note, in Markdown");
 
@@ -376,7 +382,7 @@ function registerAddNoteCommand(
           printSuccess(
             isPublic
               ? `Posted the note on the status pages that show ${resource.singularName} ${id}.`
-              : `Added the note to ${resource.singularName} ${id}. Only your team sees it.`,
+              : `Added the note to ${resource.singularName} ${id}. Only the people who can see the ${resource.singularName} can read it.`,
           );
         } catch (error) {
           handleError(error, {

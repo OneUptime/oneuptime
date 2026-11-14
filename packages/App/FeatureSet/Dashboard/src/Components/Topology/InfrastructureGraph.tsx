@@ -22,6 +22,7 @@ import "reactflow/dist/style.css";
 import IconProp from "Common/Types/Icon/IconProp";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { joinWithArrowsOn } from "Common/Types/DirectionArrow";
 import {
   fillTemplate,
   translationKey,
@@ -706,12 +707,14 @@ export function trafficMetricLabel(
 /*
  * What a line stands for, in words: its busiest service calls and their
  * traffic. "checkout → payments, checkout → cart: 12/min · 0.4% errors ·
- * 45ms avg".
+ * 45ms avg". Each call's arrow points the way a line read in `language`
+ * reads (joinWithArrowsOn).
  */
 export function describeTrafficLink(
   model: InfrastructureTopologyModel,
   link: InfrastructureTrafficLink,
   metricsWindowSeconds: number,
+  language?: string | undefined,
 ): string {
   const name: (key: string) => string = (key: string): string => {
     return model.serviceByKey.get(key)?.displayName || key;
@@ -719,7 +722,7 @@ export function describeTrafficLink(
   const calls: string = link.serviceCalls
     .slice(0, 3)
     .map((call: { from: string; to: string }): string => {
-      return `${name(call.from)} → ${name(call.to)}`;
+      return joinWithArrowsOn([name(call.from), name(call.to)], language);
     })
     .join(", ");
   const more: string =
@@ -875,6 +878,8 @@ export function trafficEdges(data: {
   label: TrafficLabel;
   hoveredId?: string | null | undefined;
   metricsWindowSeconds: number;
+  // The reader's language, which way each line's description reads.
+  language?: string | undefined;
   /* Lines that skip a layer, and where their cards are (see the layout). */
   routes?: Map<string, Array<LayoutPoint>> | undefined;
   cardTops?: Map<string, number> | undefined;
@@ -927,6 +932,7 @@ export function trafficEdges(data: {
           data.model,
           link,
           data.metricsWindowSeconds,
+          data.language,
         ),
         markerEnd: { type: MarkerType.ArrowClosed, color },
         style: {
@@ -951,7 +957,7 @@ const DEFAULT_METRICS_WINDOW_SECONDS: number = 15 * 60;
 const InfrastructureGraph: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const { translateString } = useTranslateValue();
+  const { translateString, language } = useTranslateValue();
   const t: (value: string) => string = (value: string): string => {
     return translateString(value) || value;
   };
@@ -992,6 +998,7 @@ const InfrastructureGraph: FunctionComponent<ComponentProps> = (
         label: trafficLabel,
         hoveredId: hoveredEdgeId,
         metricsWindowSeconds,
+        language,
         routes: layout.routes,
         lanes: layout.lanes,
         cardTops: new Map<string, number>(
@@ -1001,7 +1008,14 @@ const InfrastructureGraph: FunctionComponent<ComponentProps> = (
         ),
       }),
     ];
-  }, [layout, props.model, trafficLabel, hoveredEdgeId, metricsWindowSeconds]);
+  }, [
+    layout,
+    props.model,
+    trafficLabel,
+    hoveredEdgeId,
+    metricsWindowSeconds,
+    language,
+  ]);
 
   const flowNodes: Array<Node> = useMemo(() => {
     const slots: Array<Node> = [];
@@ -1252,6 +1266,7 @@ const InfrastructureGraph: FunctionComponent<ComponentProps> = (
               props.model,
               hoveredLink,
               metricsWindowSeconds,
+              language,
             )}
           </div>
         )}
