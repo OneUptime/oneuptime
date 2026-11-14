@@ -271,7 +271,7 @@ export const FormsCopy: {
   productTitle: "Forms",
 
   listDescription:
-    "Forms anyone with the link can fill in, without a OneUptime account. Each submission creates an incident or a scheduled maintenance event.",
+    "Forms anyone with the link can fill in, without a OneUptime account. Each submission creates an incident or a maintenance event.",
   listEmpty:
     "No forms yet. Create one, choose its questions, then share its link with the people who should use it.",
   nameDescription:
@@ -349,7 +349,7 @@ export const FormsCopy: {
   required: "Required",
   requiredDescription: "The form cannot be submitted without an answer.",
   requiredLocked:
-    "Always required: a scheduled maintenance event cannot be created without it.",
+    "Always required: a maintenance event cannot be created without it.",
   requiredHidden: "A hidden question is never required: nobody is asked it.",
   hiddenDescription:
     "Not shown on the form unless the template a submission starts from asks it. Otherwise only that template can answer it.",
@@ -444,7 +444,7 @@ export const FormsCopy: {
   mappingIncidentDescription:
     "Where each field of the new incident comes from: an answer or a setting of this form. The incident template fills the rest.",
   mappingScheduledMaintenanceDescription:
-    "Each field of the new scheduled maintenance event, and where its value comes from: an answer, or a setting of this form.",
+    "Each field of the new maintenance event, and where its value comes from: an answer, or a setting of this form.",
   editOnSubmitSettings: "Edit Settings",
   mappingFieldColumn: "Field",
   mappingSourceColumn: "Comes From",

@@ -1376,7 +1376,7 @@ describe("what moves an event", () => {
     );
 
     expect(stateKinds).toContain(
-      '"Select the state to change scheduled maintenance events to. Events already at or past the selected state will be skipped.",',
+      '"Select the state to change maintenance events to. Events already at or past the selected state will be skipped.",',
     );
     expect(stateKinds).toContain(
       '"Post a public note about this state change to the status page. The same note is added to every event you selected.",',
@@ -3655,7 +3655,7 @@ describe("the Settings section's pages", () => {
       '"Public or Private Note Templates for Maintenance Events",',
     );
     expect(NOTE_TEMPLATES_PAGE).toContain(
-      "Pick one when writing a public or private note on a scheduled maintenance event, or when changing its state, and edit it before posting.",
+      "Pick one when writing a public or private note on a maintenance event, or when changing its state, and edit it before posting.",
     );
     expect(
       `Create ${new ScheduledMaintenanceNoteTemplate().singularName}`,
