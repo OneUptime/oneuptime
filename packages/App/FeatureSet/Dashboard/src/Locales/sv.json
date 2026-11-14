@@ -52314,5 +52314,7 @@
   "You do not have permission to change this alert, so you cannot start its investigation.": "Du har inte behörighet att ändra det här larmet, så du kan inte starta dess utredning.",
   "You do not have permission to change this incident, so you cannot start its investigation again.": "Du har inte behörighet att ändra den här incidenten, så du kan inte starta dess utredning igen.",
   "You do not have permission to change this incident, so you cannot start its investigation.": "Du har inte behörighet att ändra den här incidenten, så du kan inte starta dess utredning.",
-  "This project's AI credits are used up. A project owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.": "Det här projektets AI-krediter är slut. En projektägare eller någon med Manage Billing kan lägga till AI-krediter under Projektinställningar → AI → AI-krediter."
+  "This project's AI credits are used up. A project owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.": "Det här projektets AI-krediter är slut. En projektägare eller någon med Manage Billing kan lägga till AI-krediter under Projektinställningar → AI → AI-krediter.",
+  "{{count}} CPU cores": "{{count}} CPU-kärnor",
+  "{{count}} CPU cores_one": "{{count}} CPU-kärna"
 }

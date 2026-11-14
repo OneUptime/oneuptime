@@ -115,12 +115,12 @@ import {
   HOST_CPU_BUSY_PERCENT,
   HOST_LOAD_QUEUING_PERCENT,
   formatHostBytes,
+  formatHostUptime,
   getHostUptimeSeconds,
   isHostStarting,
 } from "../Utils/HostFacts";
 import { encodeUnitNameForUrl } from "../Utils/SystemdUnits";
 import { getHostCollectorConfigLabel } from "../../../Components/HostCollector/HostCollectorStatus";
-import { formatDurationCompactInLanguage } from "Common/Utils/Slo/SloDuration";
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
 import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import TimeRangeZoomHint from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
@@ -1323,7 +1323,8 @@ const HostOverview: FunctionComponent<
     }
     /*
      * How long it has been up, from when its collector says it started
-     * (system.uptime), in the reader's words: "Up 12d 4h".
+     * (system.uptime), in the reader's words: "Up 12d 4h", "Up 41d" - never
+     * days with seconds (formatHostUptime).
      */
     const uptimeSeconds: number | null = getHostUptimeSeconds({
       row: host,
@@ -1336,10 +1337,7 @@ const HostOverview: FunctionComponent<
           "Up {{duration}}",
           {
             duration: composedValue((sentence: Translator): string => {
-              return formatDurationCompactInLanguage(
-                uptimeSeconds,
-                sentence.language,
-              );
+              return formatHostUptime(uptimeSeconds, sentence.language);
             }),
           },
           { setsValuesApart: true },

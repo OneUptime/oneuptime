@@ -166,6 +166,27 @@ const clickhouseDateTimeMemoTexts: Array<string> = new Array<string>(
  */
 export type CalendarUnit = "hour" | "day" | "week" | "month" | "year";
 
+// How secondsToFormattedFriendlyTimeString writes a duration.
+export interface FriendlyTimeOptions {
+  /*
+   * At most this many units, the largest first: 2 keeps "29 days 23 hours"
+   * of "29 days 23 hours 52 mins 12 secs". Cut before the duration is
+   * written, so every language keeps each number with its unit - "29 日23
+   * 時間" in Japanese, which writes no space between a unit and the next
+   * number and so cannot be cut by its words. Left out, every unit that is
+   * not zero.
+   */
+  maxUnits?: number | undefined;
+  /*
+   * A duration of nothing reads "0 secs" ("0 秒", "0 Sek.") instead of
+   * nothing at all: right where a blank would read as "unknown".
+   */
+  writesZero?: boolean | undefined;
+}
+
+// What a duration of nothing reads in English, with writesZero.
+export const ZERO_FRIENDLY_TIME_TEXT: string = "0 secs";
+
 export default class OneUptimeDate {
   // get date time from unix timestamp
 
@@ -2093,10 +2114,36 @@ export default class OneUptimeDate {
   /*
    * "1 year 2 months 3 days 4 hours 5 mins 6 secs", each unit that is not
    * zero, counted on the calendar from the epoch - and in the reader's
-   * language when a frontend set one ("1 J. 2 Mon. 3 Tg.").
+   * language when a frontend set one ("1 J. 2 Mon. 3 Tg."). `options` keeps
+   * only the largest units, and writes a duration of nothing.
    */
-  public static secondsToFormattedFriendlyTimeString(seconds: number): string {
-    const parts: Array<DurationTextPart> = this.getFriendlyTimeParts(seconds);
+  public static secondsToFormattedFriendlyTimeString(
+    seconds: number,
+    options?: FriendlyTimeOptions | undefined,
+  ): string {
+    const maxUnits: number | undefined = options?.maxUnits;
+    const allParts: Array<DurationTextPart> =
+      this.getFriendlyTimeParts(seconds);
+    const parts: Array<DurationTextPart> =
+      maxUnits !== undefined && maxUnits >= 1
+        ? allParts.slice(0, Math.floor(maxUnits))
+        : allParts;
+
+    if (parts.length === 0 && options?.writesZero) {
+      return writeInDateDisplayLanguage(
+        (): string => {
+          return ZERO_FRIENDLY_TIME_TEXT;
+        },
+        (_language: string, locale: string): string | null => {
+          return this.formatLocalizedDuration(
+            [{ count: 0, unit: "second" }],
+            locale,
+            "short",
+            "narrow",
+          );
+        },
+      );
+    }
 
     return writeInDateDisplayLanguage(
       (): string => {

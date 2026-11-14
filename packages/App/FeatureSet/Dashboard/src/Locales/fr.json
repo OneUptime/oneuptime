@@ -52314,5 +52314,7 @@
   "You do not have permission to change this alert, so you cannot start its investigation.": "Vous n'avez pas l'autorisation de modifier cette alerte : vous ne pouvez donc pas lancer son investigation.",
   "You do not have permission to change this incident, so you cannot start its investigation again.": "Vous n'avez pas l'autorisation de modifier cet incident : vous ne pouvez donc pas relancer son investigation.",
   "You do not have permission to change this incident, so you cannot start its investigation.": "Vous n'avez pas l'autorisation de modifier cet incident : vous ne pouvez donc pas lancer son investigation.",
-  "This project's AI credits are used up. A project owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.": "Les crédits IA de ce projet sont épuisés. Un propriétaire du projet ou une personne disposant de Manage Billing peut ajouter des crédits IA dans Paramètres du projet → IA → Crédits IA."
+  "This project's AI credits are used up. A project owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.": "Les crédits IA de ce projet sont épuisés. Un propriétaire du projet ou une personne disposant de Manage Billing peut ajouter des crédits IA dans Paramètres du projet → IA → Crédits IA.",
+  "{{count}} CPU cores": "{{count}} cœurs CPU",
+  "{{count}} CPU cores_one": "{{count}} cœur CPU"
 }

@@ -52314,5 +52314,7 @@
   "You do not have permission to change this alert, so you cannot start its investigation.": "您沒有變更此警示的權限，因此無法開始它的調查。",
   "You do not have permission to change this incident, so you cannot start its investigation again.": "您沒有變更此事件的權限，因此無法重新開始它的調查。",
   "You do not have permission to change this incident, so you cannot start its investigation.": "您沒有變更此事件的權限，因此無法開始它的調查。",
-  "This project's AI credits are used up. A project owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.": "此專案的 AI 點數已用完。專案擁有者或具有 Manage Billing 權限的人可以在「專案設定 → 人工智慧 → AI 點數」中新增 AI 點數。"
+  "This project's AI credits are used up. A project owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.": "此專案的 AI 點數已用完。專案擁有者或具有 Manage Billing 權限的人可以在「專案設定 → 人工智慧 → AI 點數」中新增 AI 點數。",
+  "{{count}} CPU cores": "{{count}} 個 CPU 核心",
+  "{{count}} CPU cores_one": "{{count}} 個 CPU 核心"
 }

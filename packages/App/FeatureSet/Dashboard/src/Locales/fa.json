@@ -52314,5 +52314,7 @@
   "You do not have permission to change this alert, so you cannot start its investigation.": "مجوز تغییر این هشدار را ندارید، پس نمی‌توانید بررسی آن را شروع کنید.",
   "You do not have permission to change this incident, so you cannot start its investigation again.": "مجوز تغییر این حادثه را ندارید، پس نمی‌توانید بررسی آن را دوباره شروع کنید.",
   "You do not have permission to change this incident, so you cannot start its investigation.": "مجوز تغییر این حادثه را ندارید، پس نمی‌توانید بررسی آن را شروع کنید.",
-  "This project's AI credits are used up. A project owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.": "اعتبار هوش مصنوعی این پروژه تمام شده است. مالک پروژه یا کسی که Manage Billing دارد می‌تواند در تنظیمات پروژه ← هوش مصنوعی ← اعتبار هوش مصنوعی اعتبار اضافه کند."
+  "This project's AI credits are used up. A project owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.": "اعتبار هوش مصنوعی این پروژه تمام شده است. مالک پروژه یا کسی که Manage Billing دارد می‌تواند در تنظیمات پروژه ← هوش مصنوعی ← اعتبار هوش مصنوعی اعتبار اضافه کند.",
+  "{{count}} CPU cores": "{{count}} هستهٔ پردازنده",
+  "{{count}} CPU cores_one": "{{count}} هستهٔ پردازنده"
 }
