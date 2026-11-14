@@ -156,7 +156,9 @@ function readCount(): number {
 async function onDuty(
   projectId: ObjectID = PROJECT,
   userId: ObjectID = PERSON,
-): ReturnType<typeof OnCallDutyPolicyService.getOnCallPoliciesWhereUserIsOnCallDuty> {
+): ReturnType<
+  typeof OnCallDutyPolicyService.getOnCallPoliciesWhereUserIsOnCallDuty
+> {
   return await OnCallDutyPolicyService.getOnCallPoliciesWhereUserIsOnCallDuty({
     projectId,
     userId,
@@ -180,9 +182,11 @@ beforeEach(() => {
     });
   jest
     .spyOn(GlobalCache, "setString")
-    .mockImplementation(async (namespace: string, key: string, value: string) => {
-      redis.set(`${namespace}-${key}`, value);
-    });
+    .mockImplementation(
+      async (namespace: string, key: string, value: string) => {
+        redis.set(`${namespace}-${key}`, value);
+      },
+    );
 
   schedulesRead = jest
     .spyOn(
@@ -452,9 +456,18 @@ describe("a change in the project is seen at once", () => {
  */
 describe("the writes that change who is on duty for what", () => {
   type Hooks = {
-    onCreateSuccess: (onCreate: unknown, createdItem: unknown) => Promise<unknown>;
-    onDeleteSuccess: (onDelete: unknown, itemIds: Array<ObjectID>) => Promise<unknown>;
-    onUpdateSuccess: (onUpdate: unknown, itemIds: Array<ObjectID>) => Promise<unknown>;
+    onCreateSuccess: (
+      onCreate: unknown,
+      createdItem: unknown,
+    ) => Promise<unknown>;
+    onDeleteSuccess: (
+      onDelete: unknown,
+      itemIds: Array<ObjectID>,
+    ) => Promise<unknown>;
+    onUpdateSuccess: (
+      onUpdate: unknown,
+      itemIds: Array<ObjectID>,
+    ) => Promise<unknown>;
   };
 
   let forgotten: Array<string>;

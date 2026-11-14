@@ -1284,7 +1284,11 @@ ${FeedMarkdown.asMarkdown(onCallPolicy.description || "No description provided."
     projectId: ObjectID;
     userId: ObjectID;
   }): Promise<OnDutyPolicies> {
-    const [escalationRulesByUser, escalationRulesByTeam, escalationRulesBySchedule]: [
+    const [
+      escalationRulesByUser,
+      escalationRulesByTeam,
+      escalationRulesBySchedule,
+    ]: [
       Array<OnCallDutyPolicyEscalationRuleUser>,
       Array<OnCallDutyPolicyEscalationRuleTeam>,
       Array<OnCallDutyPolicyEscalationRuleSchedule>,
