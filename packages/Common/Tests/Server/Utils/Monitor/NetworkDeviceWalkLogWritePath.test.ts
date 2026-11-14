@@ -4,6 +4,7 @@ import NetworkDeviceMetricUtil from "../../../../Server/Utils/Monitor/NetworkDev
 import NetworkInventoryUtil from "../../../../Server/Utils/Monitor/NetworkInventoryUtil";
 import SnmpInterfaceRateUtil from "../../../../Server/Utils/Monitor/SnmpInterfaceRateUtil";
 import MonitorService from "../../../../Server/Services/MonitorService";
+import MonitorNetworkDeviceService from "../../../../Server/Services/MonitorNetworkDeviceService";
 import NetworkDeviceService from "../../../../Server/Services/NetworkDeviceService";
 import NetworkEndpointService from "../../../../Server/Services/NetworkEndpointService";
 import NetworkInterfaceService from "../../../../Server/Services/NetworkInterfaceService";
@@ -128,7 +129,11 @@ function mockWalkPipeline(
   hookedUpdateSpy = jest
     .spyOn(NetworkDeviceService, "updateOneById")
     .mockResolvedValue(1);
-  monitorFindSpy = jest.spyOn(MonitorService, "findBy").mockResolvedValue([]);
+  // The fan-out's lookup: the device's rows in MonitorNetworkDevice.
+  monitorFindSpy = jest
+    .spyOn(MonitorNetworkDeviceService, "findBy")
+    .mockResolvedValue([]);
+  jest.spyOn(MonitorService, "findBy").mockResolvedValue([]);
   inventorySpy = jest
     .spyOn(NetworkInventoryUtil, "updateFromWalk")
     .mockResolvedValue(undefined);

@@ -2836,6 +2836,26 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/ProbeCollectionClaimSetAsidePostgres.test.ts --forceExit
 
+      # Clones the migrated Project, MonitorStatus, Monitor and NetworkDevice
+      # tables into an isolated schema and runs AddMonitorNetworkDevice and
+      # BackfillMonitorNetworkDevice there: the table a device's poll and its
+      # traps find their monitors through, and the triggers on "Monitor" that
+      # keep it. The backfill writes the existing monitors' rows; every write
+      # to a monitor's steps, type, project or deletion keeps them right; a
+      # status or heartbeat write never runs the trigger; bad steps still
+      # save; the poll's lookup reads the device index; down() undoes it all.
+      - name: Test the network device monitor links on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_MONITOR_NETWORK_DEVICE_TESTS: "true"
+          MONITOR_NETWORK_DEVICE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          MONITOR_NETWORK_DEVICE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          MONITOR_NETWORK_DEVICE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/MonitorNetworkDevicePostgres.test.ts --forceExit
+
       # Clones the migrated InstanceReceivingPeriod table into an isolated
       # schema and runs the receiving ledger's SQL (issue #2825): heartbeats
       # extend a stretch on the database's clock, one after more than the gap

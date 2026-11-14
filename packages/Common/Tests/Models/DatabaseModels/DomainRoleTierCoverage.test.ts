@@ -125,6 +125,13 @@ const NOT_READABLE_BY_THEIR_DOMAIN_ROLES: Array<string> = [
    */
   "MonitorSecret",
   /*
+   * Which network devices each Network Device monitor's steps name, kept by
+   * Postgres from the steps for the poll and trap fan-out to look monitors
+   * up by device. Nobody reads it but the server, as root: the monitors'
+   * readers read the same thing in the steps themselves.
+   */
+  "MonitorNetworkDevice",
+  /*
    * Runbook variables hold the secrets runbook steps sign in with (runbook
    * secrets became variables). A Runbook Admin reads them, to name them in
    * the steps it writes; Runbook Members and Viewers do not.
