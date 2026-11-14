@@ -2539,7 +2539,7 @@
   "AI features in this project use this provider.": "Las funciones de IA de este proyecto usan este proveedor.",
   "Set as Default": "Establecer como predeterminado",
   "Archived": "Archivado",
-  "Breadcrumb": "Breadcrumb",
+  "Breadcrumb": "Ruta de navegación",
   "This changes all {{count}} selected {{itemsName}}, including those on other pages.": "Esto cambia los {{count}} elementos seleccionados ({{itemsName}}), incluidos los de otras páginas.",
   "This changes all {{count}} selected {{itemsName}}, including those on other pages._one": "Esto cambia {{count}} elemento seleccionado ({{itemName}}), incluidos los de otras páginas.",
   "Enable {{count}} {{itemsName}}": "Activar {{count}} elementos ({{itemsName}})",

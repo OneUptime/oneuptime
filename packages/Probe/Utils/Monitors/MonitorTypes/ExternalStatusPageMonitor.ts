@@ -40,6 +40,7 @@ import ExternalStatusPageScope, {
   ExternalStatusPageScopeResult,
 } from "Common/Utils/Monitor/ExternalStatusPageScope";
 import ExternalStatusPageComponentNames from "Common/Utils/Monitor/ExternalStatusPageComponentNames";
+import { writeProbeTimeoutFailureCause } from "Common/Utils/Monitor/ProbeFailureReading";
 
 /*
  * A OneUptime page's component's description when the page does not show
@@ -588,10 +589,9 @@ export default class ExternalStatusPageMonitorUtil {
           componentStatuses: [],
           activeIncidentCount: 0,
           responseTimeInMs: responseTimeInMs,
-          failureCause:
-            "Request was tried " +
-            options.currentRetryCount +
-            " times and it timed out.",
+          failureCause: writeProbeTimeoutFailureCause(
+            options.currentRetryCount,
+          ),
           probeAttempts: options.attempts,
           totalAttempts: options.attempts.length,
         };

@@ -2539,7 +2539,10 @@ describe("NetworkInventoryUtil.updateFromWalk — only what changed is written",
   });
 
   test("a field the device never had is written", async () => {
-    mockServices([], { ...STORED, sysContact: undefined });
+    // The stored device, with no sysContact at all.
+    const neverHadContact: Partial<NetworkDevice> = { ...STORED };
+    delete neverHadContact.sysContact;
+    mockServices([], neverHadContact);
 
     await runWalk(sameWalk());
 

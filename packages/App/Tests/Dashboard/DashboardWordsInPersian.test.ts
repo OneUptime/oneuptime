@@ -703,7 +703,8 @@ describe("the titles every resource repeats, worded alike", () => {
     ["Deleted At", "زمان حذف"],
     ["Executed At", "زمان اجرا"],
     ["Last Active At", "زمان آخرین فعالیت"],
-    ["Enterprise License Expires At", "تاریخ انقضای مجوز سازمانی"],
+    // A license is پروانه, never مجوز (#7340).
+    ["Enterprise License Expires At", "تاریخ انقضای پروانهٔ سازمانی"],
     ["Schedule First Event At", "زمان اولین رویداد زمان‌بندی‌شده"],
     // The titles that were Persian before #7089 read the same way.
     ["Created At", "تاریخ ساخت"],

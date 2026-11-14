@@ -30,6 +30,7 @@ import { ClientRequest, IncomingMessage } from "http";
 import { Socket } from "net";
 import https, { RequestOptions } from "https";
 import tls, { TLSSocket } from "tls";
+import { writeProbeTimeoutFailureCause } from "Common/Utils/Monitor/ProbeFailureReading";
 
 export interface SslResponse extends SslMonitorResponse {
   isOnline: boolean;
@@ -286,10 +287,9 @@ export default class SSLMonitor {
           isOnline: false,
           isTimeout: true,
           isValidCertificate: false,
-          failureCause:
-            "Request was tried " +
-            pingOptions.currentRetryCount +
-            " times and it timed out.",
+          failureCause: writeProbeTimeoutFailureCause(
+            pingOptions.currentRetryCount,
+          ),
           probeAttempts: pingOptions.attempts,
           totalAttempts: pingOptions.attempts.length,
         };
