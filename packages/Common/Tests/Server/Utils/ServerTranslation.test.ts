@@ -4,6 +4,7 @@ import {
   forgetRememberedDateTexts,
   getDateDisplayLanguage,
 } from "../../../Types/DateLanguage";
+import { describeOnCallAcknowledgementTimeout } from "../../../Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout";
 import { READER_LANGUAGE_CODES } from "../../../Types/ReaderLanguage";
 import {
   FIRST_STRONG_ISOLATE,
@@ -95,6 +96,45 @@ describe("getServerTranslator", () => {
   test("is built once per language", () => {
     expect(getServerTranslator("ja")).toBe(getServerTranslator("ja"));
     expect(getServerTranslator("ja-JP")).toBe(getServerTranslator("ja"));
+  });
+
+  /*
+   * French words "{{count}} minute" as English does, and counts 0 as one: its
+   * one form is French's own, by SameAsEnglish.json, so 0 reads "0 minute" -
+   * not English's "0 minutes", as an English one form left in a locale reads
+   * (#7788). An acknowledgement timeout is written that way.
+   */
+  test("a one form a language words as English does is its own: French says 0 minute", () => {
+    const MINUTES: { one: string; other: string } = {
+      one: "{{count}} minute",
+      other: "{{count}} minutes",
+    };
+
+    expect(SERVER_LOCALES["fr"]?.["{{count}} minutes_one"]).toBe(MINUTES.one);
+    expect(getServerTranslator("fr").translatePlural(MINUTES, 0)).toBe(
+      "0 minute",
+    );
+    expect(getServerTranslator("fr").translatePlural(MINUTES, 1)).toBe(
+      "1 minute",
+    );
+    expect(getServerTranslator("fr").translatePlural(MINUTES, 30)).toBe(
+      "30 minutes",
+    );
+    expect(
+      describeOnCallAcknowledgementTimeout(0, getServerTranslator("fr")),
+    ).toBe("0 minute");
+    expect(getRecordWordsTranslator("fr")?.translatePlural(MINUTES, 0)).toBe(
+      "0 minute",
+    );
+  });
+
+  // German words its own "{{count}} Minute", and lists nothing of it.
+  test("the mark of a one form is answered only where the language lists it", () => {
+    const MARK: string = "{{count}} minutes_one_sameAsEnglish";
+
+    expect(getServerTranslator("fr").hasTranslation(MARK)).toBe(true);
+    expect(getServerTranslator("de").hasTranslation(MARK)).toBe(false);
+    expect(getServerTranslator("en").hasTranslation(MARK)).toBe(false);
   });
 });
 

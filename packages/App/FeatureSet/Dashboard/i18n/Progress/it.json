@@ -505,6 +505,7 @@
     "{{count}} pod",
     "{{count}} pool",
     "{{count}} query",
+    "{{count}} replica",
     "{{count}} repository",
     "{{count}} router",
     "{{count}} s",

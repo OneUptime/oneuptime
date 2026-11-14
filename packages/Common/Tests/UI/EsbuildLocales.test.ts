@@ -7,10 +7,12 @@ import {
   createRuntimeLocalesPlugin,
   getPluralOneFormKeys,
   getRuntimeLocale,
+  getSameAsEnglishMarks,
   isLocaleTree,
   RUNTIME_LOCALES_PLUGIN_NAME,
   RuntimeLocalesPluginOptions,
   RuntimeLocaleTree,
+  SAME_AS_ENGLISH_MARK,
   usesPluralOneForm,
   withoutFallbackEntries,
   withoutIdentityEntries,
@@ -19,6 +21,8 @@ import {
   DEFAULT_DASHBOARD_LANGUAGE,
   SUPPORTED_DASHBOARD_LANGUAGE_CODES,
 } from "../../Types/Dashboard/DashboardLanguage";
+import { SAME_AS_ENGLISH_MARK as LOOKUP_SAME_AS_ENGLISH_MARK } from "../../Types/Translator";
+import { readDashboardSameAsEnglish } from "../Helpers/DashboardLocales";
 
 /*
  * What the Dashboard bundles of its locale files (UI/esbuild-locales.js).
@@ -31,7 +35,9 @@ import {
  * lookup renders the same English without them (Tests/App/Dashboard/
  * DashboardRuntimeLocales proves that against i18next). A plural's English
  * "_one" form ships with the languages that read one form, not with en.json:
- * the code hands English readers that sentence itself.
+ * the code hands English readers that sentence itself. One a language words
+ * as English does on purpose, by its same-as-English lists, ships with a
+ * mark the lookup reads as the language's own wording.
  *
  * The transforms run here in-process. The plugin runs in a node SUBPROCESS,
  * the way the build loads it: esbuild refuses to load under Common's jsdom
@@ -586,6 +592,120 @@ describe("getRuntimeLocale", () => {
   });
 });
 
+/*
+ * A "_one" form a language words exactly as English does, on purpose -
+ * French "{{count}} signal" beside its "{{count}} signaux" - reads like an
+ * English placeholder, and the lookup reads a placeholder as English: French
+ * at 0, which it counts as one, read "0 signals" (#7788). The language's
+ * same-as-English list says the form is its own, so the form ships with a
+ * mark the lookup reads: its key plus SAME_AS_ENGLISH_MARK, holding the same
+ * text (Types/Translator's isEnglishPlaceholder).
+ */
+describe("the mark of a _one form a language words as English does", () => {
+  const english: RuntimeLocaleTree = frozen({
+    "{{count}} signals": "{{count}} signals",
+    "{{count}} signals_one": "{{count}} signal",
+    "{{count}} rows": "{{count}} rows",
+    "{{count}} rows_one": "{{count}} row",
+    "{{count}} hosts": "{{count}} hosts",
+    "{{count}} hosts_one": "{{count}} host",
+    Status: "Status",
+  });
+  const french: RuntimeLocaleTree = frozen({
+    "{{count}} signals": "{{count}} signaux",
+    "{{count}} signals_one": "{{count}} signal",
+    "{{count}} rows": "{{count}} lignes",
+    "{{count}} rows_one": "{{count}} row",
+    "{{count}} hosts": "{{count}} hôtes",
+    "{{count}} hosts_one": "{{count}} hôte",
+    Status: "Status",
+  });
+  /*
+   * French's list: the one form it keeps as English's, a one form's English
+   * it has translated after all, and a text that is no one form.
+   */
+  const frenchList: Array<string> = frozen([
+    "{{count}} signal",
+    "{{count}} host",
+    "Status",
+  ]);
+
+  test("is the suffix the lookup reads", () => {
+    expect(SAME_AS_ENGLISH_MARK).toBe("_sameAsEnglish");
+    expect(SAME_AS_ENGLISH_MARK).toBe(LOOKUP_SAME_AS_ENGLISH_MARK);
+  });
+
+  test("marks each _one form that reads as the fallback's and is on the list, and nothing else", () => {
+    expect(
+      getSameAsEnglishMarks({
+        language: "fr",
+        locale: french,
+        fallback: english,
+        sameAsEnglish: frenchList,
+      }),
+    ).toEqual({ "{{count}} signals_one_sameAsEnglish": "{{count}} signal" });
+  });
+
+  test("marks nothing without a list, or for a language that reads no one form", () => {
+    for (const sameAsEnglish of [undefined, []]) {
+      expect(
+        getSameAsEnglishMarks({
+          language: "fr",
+          locale: french,
+          fallback: english,
+          sameAsEnglish: sameAsEnglish,
+        }),
+      ).toEqual({});
+    }
+
+    // Japanese reads its general form at every count.
+    expect(
+      getSameAsEnglishMarks({
+        language: "ja",
+        locale: french,
+        fallback: english,
+        sameAsEnglish: frenchList,
+      }),
+    ).toEqual({});
+  });
+
+  test("ships the mark right after its form, and a form off the list unmarked", () => {
+    const shipped: RuntimeLocaleTree = getRuntimeLocale({
+      language: "fr",
+      fallbackLanguage: "en",
+      locale: french,
+      fallback: english,
+      sameAsEnglish: frenchList,
+    });
+
+    expect(Object.keys(shipped)).toEqual([
+      "{{count}} signals",
+      "{{count}} signals_one",
+      "{{count}} signals_one_sameAsEnglish",
+      "{{count}} rows",
+      "{{count}} rows_one",
+      "{{count}} hosts",
+      "{{count}} hosts_one",
+    ]);
+    expect(shipped["{{count}} signals_one_sameAsEnglish"]).toBe(
+      "{{count}} signal",
+    );
+    // "{{count}} row" is English left in the locale: no mark.
+    expect(shipped["{{count}} rows_one"]).toBe("{{count}} row");
+  });
+
+  test("the fallback language ships none", () => {
+    expect(
+      getRuntimeLocale({
+        language: "en",
+        fallbackLanguage: "en",
+        locale: english,
+        sameAsEnglish: frenchList,
+      }),
+    ).toEqual({});
+  });
+});
+
 describe("createRuntimeLocalesPlugin", () => {
   test("is an esbuild plugin named for what it does", () => {
     const plugin: { name: string; setup: unknown } = createRuntimeLocalesPlugin(
@@ -615,6 +735,38 @@ describe("createRuntimeLocalesPlugin", () => {
     [
       { localesDirectory: DASHBOARD_LOCALES, fallbackLanguage: "" },
       '"fallbackLanguage" is required',
+    ],
+    [
+      {
+        localesDirectory: DASHBOARD_LOCALES,
+        fallbackLanguage: "en",
+        sameAsEnglishFile: "i18n/SameAsEnglish.json",
+      },
+      '"sameAsEnglishFile" must be absolute (got "i18n/SameAsEnglish.json")',
+    ],
+    [
+      {
+        localesDirectory: DASHBOARD_LOCALES,
+        fallbackLanguage: "en",
+        sameAsEnglishFile: " ",
+      },
+      '"sameAsEnglishFile" must be a path when given',
+    ],
+    [
+      {
+        localesDirectory: DASHBOARD_LOCALES,
+        fallbackLanguage: "en",
+        progressDirectory: "i18n/Progress",
+      },
+      '"progressDirectory" must be absolute (got "i18n/Progress")',
+    ],
+    [
+      {
+        localesDirectory: DASHBOARD_LOCALES,
+        fallbackLanguage: "en",
+        progressDirectory: 3,
+      },
+      '"progressDirectory" must be a path when given',
     ],
   ])("refuses the options %j", (options: unknown, message: string) => {
     expect(() => {
@@ -724,6 +876,49 @@ function makeFixture(): Fixture {
   };
 }
 
+// The same-as-English lists a build reads, as the plugin's options name them.
+interface FixtureLists {
+  sameAsEnglishFile?: string;
+  progressDirectory?: string;
+}
+
+/*
+ * Lists laid out like the Dashboard's i18n directory: one every language
+ * shares, and a progress file for each language given.
+ */
+function writeLists(
+  fixture: Fixture,
+  lists: {
+    global?: Array<string>;
+    progress?: Record<string, Array<string>>;
+  },
+): FixtureLists {
+  const written: FixtureLists = {};
+
+  if (lists.global) {
+    written.sameAsEnglishFile = path.join(
+      fixture.root,
+      "i18n",
+      "SameAsEnglish.json",
+    );
+    writeJson(written.sameAsEnglishFile, lists.global);
+  }
+
+  if (lists.progress) {
+    written.progressDirectory = path.join(fixture.root, "i18n", "Progress");
+    fs.mkdirSync(written.progressDirectory, { recursive: true });
+
+    for (const [code, sameAsEnglish] of Object.entries(lists.progress)) {
+      writeJson(path.join(written.progressDirectory, `${code}.json`), {
+        baseline: { keys: 1, untranslated: 0 },
+        sameAsEnglish: sameAsEnglish,
+      });
+    }
+  }
+
+  return written;
+}
+
 interface OutputShape {
   file: string;
   // The outputs it imports statically.
@@ -780,6 +975,7 @@ const SUMMARIZE_OUTPUTS: string = `
 function buildFixture(
   fixture: Fixture,
   env: Record<string, string | null> = { NODE_ENV: "production" },
+  lists: FixtureLists = {},
 ): FixtureBuild {
   const script: string = `
     const fs = require("fs");
@@ -800,10 +996,10 @@ function buildFixture(
         entryPoint: ${JSON.stringify(fixture.entry)},
         outdir: outdir,
         additionalPlugins: [
-          createRuntimeLocalesPlugin({
+          createRuntimeLocalesPlugin(Object.assign({
             localesDirectory: ${JSON.stringify(fixture.localesDirectory)},
             fallbackLanguage: "en",
-          }),
+          }, ${JSON.stringify(lists)})),
         ],
       });
       config.metafile = true;
@@ -1079,6 +1275,141 @@ describe("bundling a fixture for real", () => {
     },
     BUILD_TIMEOUT_MS,
   );
+
+  /*
+   * German's "{{count}} monitor" here is English left in the file unless a
+   * list says German words it so: then it ships with its mark, and the
+   * lookup reads it as German's own (#7788).
+   */
+  test(
+    "a _one form on its language's list ships with its mark, in that language's chunk only",
+    () => {
+      const fixture: Fixture = makeFixture();
+      const lists: FixtureLists = writeLists(fixture, {
+        global: ["Loading..."],
+        progress: {
+          de: ["{{count}} monitor"],
+          ja: ["{{count}} monitor"],
+        },
+      });
+      const result: FixtureBuild = buildFixture(
+        fixture,
+        { NODE_ENV: "production" },
+        lists,
+      );
+
+      expect([result.ok, result.error]).toEqual([true, ""]);
+      expect(result.lazy["de"]).toEqual({
+        ...(production.lazy["de"] as RuntimeLocaleTree),
+        "{{count}} monitors_one_sameAsEnglish": "{{count}} monitor",
+      });
+      // Japanese reads no one form.
+      expect(result.lazy["ja"]).toEqual(production.lazy["ja"]);
+      expect(result.english).toEqual(production.english);
+
+      const entryText: string = entryClosure(result.outputs, "Index.js")
+        .map((output: OutputSummary): string => {
+          return output.text;
+        })
+        .join("\n");
+
+      expect(entryText).not.toContain(SAME_AS_ENGLISH_MARK);
+    },
+    BUILD_TIMEOUT_MS,
+  );
+
+  // German has no progress file of its own here: the shared list is its list.
+  test(
+    "the list every language shares marks a form too",
+    () => {
+      const fixture: Fixture = makeFixture();
+      const result: FixtureBuild = buildFixture(
+        fixture,
+        { NODE_ENV: "production" },
+        writeLists(fixture, {
+          global: ["{{count}} monitor"],
+          progress: { ja: [] },
+        }),
+      );
+
+      expect([result.ok, result.error]).toEqual([true, ""]);
+      expect(result.lazy["de"]).toEqual({
+        ...(production.lazy["de"] as RuntimeLocaleTree),
+        "{{count}} monitors_one_sameAsEnglish": "{{count}} monitor",
+      });
+      expect(result.lazy["ja"]).toEqual(production.lazy["ja"]);
+    },
+    BUILD_TIMEOUT_MS,
+  );
+
+  /*
+   * Without its lists every form a language words as English does would
+   * ship unmarked, and read as English: a list the build names must be
+   * there, and readable.
+   */
+  test(
+    "a list that is not there fails the build",
+    () => {
+      const fixture: Fixture = makeFixture();
+      const result: FixtureBuild = buildFixture(
+        fixture,
+        { NODE_ENV: "production" },
+        {
+          sameAsEnglishFile: path.join(fixture.root, "i18n", "Missing.json"),
+        },
+      );
+
+      expect(result.ok).toBe(false);
+      expect(result.error).toContain("ENOENT");
+    },
+    BUILD_TIMEOUT_MS,
+  );
+
+  test(
+    "a list that is not a JSON array, or a progress file that is not JSON, fails the build and names the file",
+    () => {
+      const notAnArray: Fixture = makeFixture();
+      const lists: FixtureLists = writeLists(notAnArray, { global: [] });
+
+      writeJson(lists.sameAsEnglishFile as string, {
+        de: ["{{count}} monitor"],
+      });
+
+      const notAnArrayResult: FixtureBuild = buildFixture(
+        notAnArray,
+        { NODE_ENV: "production" },
+        lists,
+      );
+
+      expect(notAnArrayResult.ok).toBe(false);
+      expect(notAnArrayResult.error).toContain(
+        `${lists.sameAsEnglishFile} must hold a JSON array of strings`,
+      );
+
+      const notJson: Fixture = makeFixture();
+      const progress: FixtureLists = writeLists(notJson, {
+        progress: { de: [] },
+      });
+      const germanProgress: string = path.join(
+        progress.progressDirectory as string,
+        "de.json",
+      );
+
+      writeFile(germanProgress, "{ nope\n");
+
+      const notJsonResult: FixtureBuild = buildFixture(
+        notJson,
+        { NODE_ENV: "production" },
+        progress,
+      );
+
+      expect(notJsonResult.ok).toBe(false);
+      expect(notJsonResult.error).toContain(
+        `${germanProgress} is not valid JSON`,
+      );
+    },
+    BUILD_TIMEOUT_MS,
+  );
 });
 
 describe("rebuilding in watch mode", () => {
@@ -1090,16 +1421,13 @@ describe("rebuilding in watch mode", () => {
 
   /*
    * One esbuild context rebuilt three times: as is, unchanged, and after
-   * en.json's menu title changed - the German placeholder then no longer
-   * reads the same as the English, so it must ship.
+   * `change` rewrote a file.
    */
-  function rebuild(fixture: Fixture): Rebuilds {
-    const englishPath: string = path.join(fixture.localesDirectory, "en.json");
-    const changedEnglish: RuntimeLocaleTree = {
-      ...FIXTURE_ENGLISH,
-      menu: { title: "English Menu Title" },
-    };
-
+  function rebuild(
+    fixture: Fixture,
+    change: { file: string; value: unknown },
+    lists: FixtureLists = {},
+  ): Rebuilds {
     const script: string = `
       const fs = require("fs");
       const path = require("path");
@@ -1123,10 +1451,10 @@ describe("rebuilding in watch mode", () => {
           entryPoint: ${JSON.stringify(fixture.entry)},
           outdir: ${JSON.stringify(fixture.outdir)},
           additionalPlugins: [
-            createRuntimeLocalesPlugin({
+            createRuntimeLocalesPlugin(Object.assign({
               localesDirectory: ${JSON.stringify(fixture.localesDirectory)},
               fallbackLanguage: "en",
-            }),
+            }, ${JSON.stringify(lists)})),
           ],
         });
         config.metafile = true;
@@ -1139,8 +1467,8 @@ describe("rebuilding in watch mode", () => {
           germanChunks.push(germanChunk(await context.rebuild()));
           germanChunks.push(germanChunk(await context.rebuild()));
           fs.writeFileSync(
-            ${JSON.stringify(englishPath)},
-            ${JSON.stringify(JSON.stringify(changedEnglish, null, 2))},
+            ${JSON.stringify(change.file)},
+            ${JSON.stringify(JSON.stringify(change.value, null, 2))},
           );
           germanChunks.push(germanChunk(await context.rebuild()));
         } catch (error) {
@@ -1161,10 +1489,18 @@ describe("rebuilding in watch mode", () => {
     }) as Rebuilds;
   }
 
+  /*
+   * en.json's menu title changes: the German placeholder then no longer
+   * reads the same as the English, so it must ship.
+   */
   test(
     "an unchanged rebuild ships the same, and a changed fallback re-ships the locales",
     () => {
-      const result: Rebuilds = rebuild(makeFixture());
+      const fixture: Fixture = makeFixture();
+      const result: Rebuilds = rebuild(fixture, {
+        file: path.join(fixture.localesDirectory, "en.json"),
+        value: { ...FIXTURE_ENGLISH, menu: { title: "English Menu Title" } },
+      });
 
       expect([result.ok, result.error]).toEqual([true, ""]);
       expect(result.germanChunks).toHaveLength(3);
@@ -1178,6 +1514,45 @@ describe("rebuilding in watch mode", () => {
       expect(first).not.toContain("Shared Menu Sentinel");
       expect(unchanged).toBe(first);
       expect(afterChange).toContain("Shared Menu Sentinel");
+      expect(afterChange).toContain("Speichern");
+    },
+    BUILD_TIMEOUT_MS,
+  );
+
+  // German's list comes to name its "{{count}} monitor": it ships its mark.
+  test(
+    "a changed list re-ships the locale it marks",
+    () => {
+      const fixture: Fixture = makeFixture();
+      const lists: FixtureLists = writeLists(fixture, {
+        global: ["Loading..."],
+        progress: { de: [] },
+      });
+      const result: Rebuilds = rebuild(
+        fixture,
+        {
+          file: path.join(lists.progressDirectory as string, "de.json"),
+          value: {
+            baseline: { keys: 1, untranslated: 0 },
+            sameAsEnglish: ["{{count}} monitor"],
+          },
+        },
+        lists,
+      );
+
+      expect([result.ok, result.error]).toEqual([true, ""]);
+
+      const [first, unchanged, afterChange] = result.germanChunks as [
+        string,
+        string,
+        string,
+      ];
+
+      expect(first).not.toContain(SAME_AS_ENGLISH_MARK);
+      expect(unchanged).toBe(first);
+      expect(afterChange).toContain(
+        `{{count}} monitors_one${SAME_AS_ENGLISH_MARK}`,
+      );
       expect(afterChange).toContain("Speichern");
     },
     BUILD_TIMEOUT_MS,
@@ -1373,6 +1748,8 @@ describe("the Dashboard's own build", () => {
         fallbackLanguage: DEFAULT_DASHBOARD_LANGUAGE,
         locale: locale,
         fallback: english,
+        // The lists i18n/SameAsEnglish.json and i18n/Progress/<code>.json hold.
+        sameAsEnglish: readDashboardSameAsEnglish(code),
       });
 
       expect(treeDifferences(shipped, expected)).toEqual([]);
@@ -1395,6 +1772,40 @@ describe("the Dashboard's own build", () => {
       expect([code, misshipped]).toEqual([code, []]);
     },
   );
+
+  /*
+   * #7788's forms: French "{{count}} signal", Portuguese "{{count}}
+   * monitor", Russian "{{count}} CPU" - each its language's own, on its
+   * list - ship with their marks. A form worded apart from English since
+   * (French "{{count}} flux") needs none, and English ships none.
+   */
+  test("the _one forms a language words as English does ship with their marks", () => {
+    const markOf: (key: string) => string = (key: string): string => {
+      return `${key}_one${SAME_AS_ENGLISH_MARK}`;
+    };
+
+    expect(runtime["fr"]?.[markOf("{{count}} signals")]).toBe(
+      "{{count}} signal",
+    );
+    expect(runtime["pt"]?.[markOf("{{count}} monitors")]).toBe(
+      "{{count}} monitor",
+    );
+    expect(runtime["ru"]?.[markOf("{{count}} CPUs")]).toBe("{{count}} CPU");
+    expect(runtime["fr"]?.["{{count}} flows_one"]).toBe("{{count}} flux");
+    expect(runtime["fr"]?.[markOf("{{count}} flows")]).toBeUndefined();
+
+    const marked: (code: string) => Array<string> = (
+      code: string,
+    ): Array<string> => {
+      return Object.keys(runtime[code] || {}).filter((key: string): boolean => {
+        return key.endsWith(SAME_AS_ENGLISH_MARK);
+      });
+    };
+
+    expect(marked("fr").length).toBeGreaterThan(10);
+    expect(marked(DEFAULT_DASHBOARD_LANGUAGE)).toEqual([]);
+    expect(marked("ja")).toEqual([]);
+  });
 
   test("en.json's share of the entry bundle stays within its budget", () => {
     const englishBytes: number = entryClosure(

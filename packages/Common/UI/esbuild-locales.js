@@ -39,6 +39,16 @@
  *              no longer carries them; one without (Japanese, Korean,
  *              Chinese) never reads them.
  *
+ * A "_one" form the language words exactly as English does on purpose -
+ * French "{{count}} signal" beside its "{{count}} signaux" - reads like an
+ * English placeholder, which the lookup reads as English: at 0, which French
+ * counts as one, "0 signals". The language's same-as-English list (the
+ * Dashboard's i18n/Progress/<code>.json, and i18n/SameAsEnglish.json for
+ * every language) says it is not one, so such a form ships with a mark: its
+ * key plus SAME_AS_ENGLISH_MARK, holding the same text, which the lookup
+ * reads as the language's own wording (SAME_AS_ENGLISH_MARK in
+ * Common/Types/Translator.ts). The page never reads the lists themselves.
+ *
  * CommonJS, like esbuild-config.js: the frontends' esbuild.config.js files
  * are plain node scripts. Types for TypeScript callers are in
  * esbuild-locales.d.ts.
@@ -51,6 +61,13 @@ const path = require("path");
 const RUNTIME_LOCALES_PLUGIN_NAME = "runtime-locales";
 
 const PLURAL_ONE_SUFFIX = "_one";
+
+/*
+ * The suffix of a "_one" form's mark: the language words that form as
+ * English does on purpose. Common/Types/Translator.ts reads it under the
+ * same name.
+ */
+const SAME_AS_ENGLISH_MARK = "_sameAsEnglish";
 
 /**
  * A JSON object of translations (and not an array or null).
@@ -164,16 +181,64 @@ function usesPluralOneForm(language) {
 }
 
 /**
+ * The marks of the "_one" forms a language words exactly as the fallback
+ * does on purpose: each one that reads as the fallback's form for its key,
+ * and whose text the language's same-as-English list names, under its key
+ * plus SAME_AS_ENGLISH_MARK, holding that same text. In the locale's order;
+ * none for a language without a "one" form, which never reads them.
+ * @param {Object} options
+ * @param {string} options.language - The locale's code, e.g. "fr"
+ * @param {Object} options.locale - The parsed locale file
+ * @param {Object} options.fallback - The parsed fallback locale file
+ * @param {Array<string>} [options.sameAsEnglish] - The fallback's texts the language holds as they are, on purpose
+ * @returns {Object} A new object of marks; neither input is changed
+ */
+function getSameAsEnglishMarks(options) {
+  const { language, locale, fallback, sameAsEnglish } = options || {};
+  const marks = {};
+
+  if (
+    !Array.isArray(sameAsEnglish) ||
+    sameAsEnglish.length === 0 ||
+    !isLocaleTree(locale) ||
+    !isLocaleTree(fallback) ||
+    !usesPluralOneForm(language)
+  ) {
+    return marks;
+  }
+
+  const kept = new Set(sameAsEnglish);
+  const isOneForm = new Set(getPluralOneFormKeys(fallback));
+
+  for (const key of Object.keys(locale)) {
+    const value = locale[key];
+
+    if (
+      isOneForm.has(key) &&
+      typeof value === "string" &&
+      value === fallback[key] &&
+      kept.has(value)
+    ) {
+      marks[`${key}${SAME_AS_ENGLISH_MARK}`] = value;
+    }
+  }
+
+  return marks;
+}
+
+/**
  * The copy of one locale that is bundled.
  * @param {Object} options
  * @param {string} options.language - The locale's code, e.g. "de"
  * @param {string} options.fallbackLanguage - The language i18next falls back to, e.g. "en"
  * @param {Object} options.locale - The parsed locale file
  * @param {Object} [options.fallback] - The parsed fallback locale file; required unless language is the fallback
+ * @param {Array<string>} [options.sameAsEnglish] - The fallback's texts the language holds as they are, on purpose (its same-as-English list)
  * @returns {Object}
  */
 function getRuntimeLocale(options) {
-  const { language, fallbackLanguage, locale, fallback } = options || {};
+  const { language, fallbackLanguage, locale, fallback, sameAsEnglish } =
+    options || {};
 
   if (!isLocaleTree(locale)) {
     throw new Error(
@@ -212,15 +277,29 @@ function getRuntimeLocale(options) {
    * The fallback ships without its "_one" forms, so this language ships every
    * one it reads: its translation, or the fallback's sentence where it has
    * none - what the lookup would have fallen back to from the full files. In
-   * the locale's order, then any the locale lacks in the fallback's.
+   * the locale's order, then any the locale lacks in the fallback's. A form
+   * the language words as the fallback does on purpose ships with its mark
+   * right after it.
    */
   const oneForms = getPluralOneFormKeys(fallback);
   const isOneForm = new Set(oneForms);
+  const marks = getSameAsEnglishMarks({
+    language: language,
+    locale: locale,
+    fallback: fallback,
+    sameAsEnglish: sameAsEnglish,
+  });
   const result = {};
 
   for (const key of Object.keys(locale)) {
     if (isOneForm.has(key) && typeof locale[key] === "string") {
       result[key] = locale[key];
+
+      const mark = `${key}${SAME_AS_ENGLISH_MARK}`;
+
+      if (hasOwn(marks, mark)) {
+        result[mark] = marks[mark];
+      }
     } else if (hasOwn(shipped, key)) {
       result[key] = shipped[key];
     }
@@ -235,16 +314,18 @@ function getRuntimeLocale(options) {
   return result;
 }
 
-function parseLocaleText(text, filePath) {
-  let parsed;
-
+function parseJsonText(text, filePath) {
   try {
-    parsed = JSON.parse(text);
+    return JSON.parse(text);
   } catch (error) {
     throw new Error(
       `${filePath} is not valid JSON (${error.message}). A merge conflict left in it?`,
     );
   }
+}
+
+function parseLocaleText(text, filePath) {
+  const parsed = parseJsonText(text, filePath);
 
   if (!isLocaleTree(parsed)) {
     throw new Error(`${filePath} must hold a JSON object of translations.`);
@@ -257,10 +338,63 @@ function digestOf(text) {
   return crypto.createHash("sha1").update(text).digest("base64");
 }
 
+/*
+ * A same-as-English list as the translation tooling writes it: a JSON array
+ * of the fallback's texts (the Dashboard's i18n/SameAsEnglish.json).
+ */
+function parseSameAsEnglishList(text, filePath) {
+  const parsed = parseJsonText(text, filePath);
+
+  if (!Array.isArray(parsed)) {
+    throw new Error(`${filePath} must hold a JSON array of strings.`);
+  }
+
+  return parsed.map(String);
+}
+
+/*
+ * A language's progress file as the translation tooling writes it: a JSON
+ * object whose "sameAsEnglish" array lists the fallback's texts the language
+ * holds as they are (the Dashboard's i18n/Progress/<code>.json).
+ */
+function parseProgressList(text, filePath) {
+  const parsed = parseJsonText(text, filePath);
+
+  if (!isLocaleTree(parsed)) {
+    throw new Error(`${filePath} must hold a JSON object.`);
+  }
+
+  return Array.isArray(parsed.sameAsEnglish)
+    ? parsed.sameAsEnglish.map(String)
+    : [];
+}
+
 function assertNonEmptyString(value, name) {
   if (typeof value !== "string" || value.trim() === "") {
     throw new Error(`createRuntimeLocalesPlugin: "${name}" is required.`);
   }
+}
+
+function assertAbsolutePath(value, name) {
+  if (!path.isAbsolute(value)) {
+    throw new Error(
+      `createRuntimeLocalesPlugin: "${name}" must be absolute (got "${value}").`,
+    );
+  }
+}
+
+function assertOptionalAbsolutePath(value, name) {
+  if (value === undefined) {
+    return;
+  }
+
+  if (typeof value !== "string" || value.trim() === "") {
+    throw new Error(
+      `createRuntimeLocalesPlugin: "${name}" must be a path when given.`,
+    );
+  }
+
+  assertAbsolutePath(value, name);
 }
 
 /**
@@ -271,19 +405,23 @@ function assertNonEmptyString(value, name) {
  * @param {Object} options
  * @param {string} options.localesDirectory - Absolute path of the directory holding <code>.json
  * @param {string} options.fallbackLanguage - The statically bundled language i18next falls back to, e.g. "en"
+ * @param {string} [options.sameAsEnglishFile] - Absolute path of the JSON array of the fallback's texts every language holds as they are
+ * @param {string} [options.progressDirectory] - Absolute path of the directory holding each language's <code>.json progress file, whose "sameAsEnglish" array lists the texts that language holds as they are
  * @returns {{ name: string, setup: Function }}
  */
 function createRuntimeLocalesPlugin(options) {
-  const { localesDirectory, fallbackLanguage } = options || {};
+  const {
+    localesDirectory,
+    fallbackLanguage,
+    sameAsEnglishFile,
+    progressDirectory,
+  } = options || {};
 
   assertNonEmptyString(localesDirectory, "localesDirectory");
   assertNonEmptyString(fallbackLanguage, "fallbackLanguage");
-
-  if (!path.isAbsolute(localesDirectory)) {
-    throw new Error(
-      `createRuntimeLocalesPlugin: "localesDirectory" must be absolute (got "${localesDirectory}").`,
-    );
-  }
+  assertAbsolutePath(localesDirectory, "localesDirectory");
+  assertOptionalAbsolutePath(sameAsEnglishFile, "sameAsEnglishFile");
+  assertOptionalAbsolutePath(progressDirectory, "progressDirectory");
 
   /*
    * In watch mode esbuild calls onLoad again on every rebuild, and parsing
@@ -292,6 +430,7 @@ function createRuntimeLocalesPlugin(options) {
    */
   const results = new Map();
   const parsedFallback = { digest: undefined, tree: undefined };
+  const parsedSameAsEnglish = { digest: undefined, list: [] };
 
   return {
     name: RUNTIME_LOCALES_PLUGIN_NAME,
@@ -299,6 +438,19 @@ function createRuntimeLocalesPlugin(options) {
       // A missing directory fails the build here rather than shipping it all.
       const directory = fs.realpathSync(localesDirectory);
       const fallbackPath = path.join(directory, `${fallbackLanguage}.json`);
+      /*
+       * Named lists must be there: without them every form a language words
+       * as English does on purpose would ship unmarked, and read as English.
+       * A language need not have a progress file.
+       */
+      const sameAsEnglishPath =
+        sameAsEnglishFile === undefined
+          ? undefined
+          : fs.realpathSync(sameAsEnglishFile);
+      const progressPath =
+        progressDirectory === undefined
+          ? undefined
+          : fs.realpathSync(progressDirectory);
 
       build.onLoad({ filter: /\.json$/, namespace: "file" }, (args) => {
         if (fs.realpathSync(path.dirname(args.path)) !== directory) {
@@ -312,7 +464,32 @@ function createRuntimeLocalesPlugin(options) {
           ? ""
           : fs.readFileSync(fallbackPath, "utf8");
         const fallbackDigest = isFallback ? "" : digestOf(fallbackText);
-        const inputs = `${digestOf(text)} ${fallbackDigest}`;
+        /*
+         * The lists only mark this language's "_one" forms, so the fallback
+         * reads none.
+         */
+        const readsSameAsEnglish =
+          !isFallback && sameAsEnglishPath !== undefined;
+        const sameAsEnglishText = readsSameAsEnglish
+          ? fs.readFileSync(sameAsEnglishPath, "utf8")
+          : "";
+        const sameAsEnglishDigest = digestOf(sameAsEnglishText);
+        const languageProgressPath =
+          isFallback || progressPath === undefined
+            ? undefined
+            : path.join(progressPath, `${language}.json`);
+        const readsProgress =
+          languageProgressPath !== undefined &&
+          fs.existsSync(languageProgressPath);
+        const progressText = readsProgress
+          ? fs.readFileSync(languageProgressPath, "utf8")
+          : "";
+        const inputs = [
+          digestOf(text),
+          fallbackDigest,
+          readsSameAsEnglish ? sameAsEnglishDigest : "",
+          readsProgress ? digestOf(progressText) : "",
+        ].join(" ");
         const cached = results.get(args.path);
 
         if (cached && cached.inputs === inputs) {
@@ -324,6 +501,42 @@ function createRuntimeLocalesPlugin(options) {
           parsedFallback.digest = fallbackDigest;
         }
 
+        if (
+          readsSameAsEnglish &&
+          parsedSameAsEnglish.digest !== sameAsEnglishDigest
+        ) {
+          parsedSameAsEnglish.list = parseSameAsEnglishList(
+            sameAsEnglishText,
+            sameAsEnglishPath,
+          );
+          parsedSameAsEnglish.digest = sameAsEnglishDigest;
+        }
+
+        const sameAsEnglish = [
+          ...(readsSameAsEnglish ? parsedSameAsEnglish.list : []),
+          ...(readsProgress
+            ? parseProgressList(progressText, languageProgressPath)
+            : []),
+        ];
+
+        /*
+         * A change to the fallback, or to a list this locale was marked
+         * from, changes what this locale ships.
+         */
+        const watchFiles = [];
+
+        if (!isFallback) {
+          watchFiles.push(fallbackPath);
+        }
+
+        if (readsSameAsEnglish) {
+          watchFiles.push(sameAsEnglishPath);
+        }
+
+        if (readsProgress) {
+          watchFiles.push(languageProgressPath);
+        }
+
         const result = {
           contents: JSON.stringify(
             getRuntimeLocale({
@@ -331,11 +544,11 @@ function createRuntimeLocalesPlugin(options) {
               fallbackLanguage: fallbackLanguage,
               locale: parseLocaleText(text, args.path),
               fallback: isFallback ? undefined : parsedFallback.tree,
+              sameAsEnglish: sameAsEnglish,
             }),
           ),
           loader: "json",
-          // A change to the fallback changes what this locale ships.
-          watchFiles: isFallback ? [] : [fallbackPath],
+          watchFiles: watchFiles,
         };
 
         results.set(args.path, { inputs: inputs, result: result });
@@ -353,6 +566,8 @@ module.exports = {
   withoutFallbackEntries,
   getPluralOneFormKeys,
   usesPluralOneForm,
+  SAME_AS_ENGLISH_MARK,
+  getSameAsEnglishMarks,
   getRuntimeLocale,
   createRuntimeLocalesPlugin,
 };
