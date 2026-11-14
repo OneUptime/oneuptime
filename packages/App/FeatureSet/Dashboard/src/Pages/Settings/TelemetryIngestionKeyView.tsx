@@ -216,7 +216,7 @@ const TelemetryIngestionKeyView: FunctionComponent<PageComponentProps> = (
                       <Pill color={Yellow} text="Browser" />
                       <p className="text-sm text-gray-500 mt-1.5 leading-relaxed">
                         {translator.translateText(
-                          "Safe to publish in a page. Accepted only from the allowed origins below, and only for trace, log, metric and session replay ingest.",
+                          "Safe to publish in a page. Accepted only from the allowed origins below, and only for traces, logs, metrics, session replays and Sentry events.",
                         )}
                       </p>
                     </div>

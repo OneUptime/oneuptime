@@ -359,7 +359,7 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
       return (
         <div className="text-xs text-gray-500 mt-2 leading-relaxed">
           {translator.translateTemplate(
-            "Browser key — intended for client distribution. Web origins may send trace, log, metric and session replay ingest; app:// identities authorize React Native replay only. Accepted identities: {{identities}}. Native app identities are self-asserted, not platform attestation.",
+            "Browser key — intended for client distribution. Web origins may send traces, logs, metrics, session replays and Sentry events; app:// identities authorize React Native replay only. Accepted identities: {{identities}}. Native app identities are self-asserted, not platform attestation.",
             { identities: key.allowedOrigins.join(", ") },
             { setsValuesApart: true },
           )}

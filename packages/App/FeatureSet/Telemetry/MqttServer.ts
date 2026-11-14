@@ -249,8 +249,9 @@ async function resolveAuthContext(
    * replayed into MQTT ingest by the same script that scraped it, from any
    * origin, with no Origin check to fail (a WebSocket handshake's Origin is
    * not something this broker inspects). No OneUptime browser SDK publishes
-   * MQTT; browser keys exist for OTLP and session replay. So a Browser key
-   * presented at CONNECT has no honest explanation, and is refused.
+   * MQTT; browser keys exist for OTLP, session replay and Sentry's browser
+   * SDKs. So a Browser key presented at CONNECT has no honest explanation,
+   * and is refused.
    */
   const refusal: TelemetryIngestionKeyRefusal | null =
     TelemetryIngestionKeyGuard.getRefusal({

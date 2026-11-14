@@ -15470,7 +15470,6 @@
   "SSO User": "مستخدم SSO",
   "STIX/TAXII 2.1 feed subscriptions. Indicators are polled on an interval, enrich incoming events with threat.* attributes, and matches open deduplicated alerts — the same machinery as Sigma detection rules.": "اشتراكات موجزات STIX/TAXII 2.1. تُستطلع المؤشرات على فترات، وتُثري الأحداث الواردة بسمات threat.*، وتفتح المطابقات تنبيهات دون تكرار — وهي الآلية نفسها التي تستخدمها قواعد كشف Sigma.",
   "STIX/TAXII 2.1 threat-intelligence feeds. Indicators are polled on an interval and matched against incoming security events.": "موجزات استخبارات التهديدات STIX/TAXII 2.1. تُستطلع المؤشرات على فترات وتُطابَق مع الأحداث الأمنية الواردة.",
-  "Safe to publish in a page. Accepted only from the allowed origins below, and only for trace, log, metric and session replay ingest.": "آمن للنشر في صفحة. لا يُقبل إلا من المصادر المسموح بها أدناه، ولاستيعاب التتبعات والسجلات والمقاييس وإعادة تشغيل الجلسات فقط.",
   "Safety cap so a high-cardinality field cannot open unbounded incidents. Defaults to 100.": "حد أمان حتى لا يفتح حقل كثير القيم عددًا غير محدود من الحوادث. الافتراضي 100.",
   "Safety: read-only tools are annotated so MCP clients can auto-approve them, while destructive tools (like deletes) require explicit confirmation. A client connected by sign-in can also be limited to read-only access when it is authorized.": "الأمان: الأدوات للقراءة فقط موسومة بحيث يمكن لعملاء MCP الموافقة عليها تلقائيًا، بينما تتطلب الأدوات المدمّرة (مثل الحذف) تأكيدًا صريحًا. ويمكن أيضًا قصر العميل المتصل عبر تسجيل الدخول على الوصول للقراءة فقط عند تفويضه.",
   "Saint Barthélemy": "سان بارتيلمي",
@@ -46774,7 +46773,6 @@
   "Couldn't load logs": "تعذّر تحميل السجلات",
   "Show the past day": "عرض اليوم الماضي",
   "This browser key has no allowed origins, so every request made with it is refused. Add your web origins or exact app:// mobile identities in Project Settings > Telemetry & APM > Ingestion Keys before using this snippet.": "ليس لمفتاح المتصفح هذا أي أصول مسموح بها، لذا يُرفض كل طلب يُرسل به. أضف أصول الويب لديك أو هويات app:// الدقيقة لتطبيقات الجوال في إعدادات المشروع > القياس عن بُعد وAPM > مفاتيح الاستيعاب قبل استخدام هذا المقتطف.",
-  "Browser key — intended for client distribution. Web origins may send trace, log, metric and session replay ingest; app:// identities authorize React Native replay only. Accepted identities: {{identities}}. Native app identities are self-asserted, not platform attestation.": "مفتاح متصفح — مخصص للتوزيع على العملاء. يمكن لأصول الويب إرسال التتبعات والسجلات والمقاييس وإعادة تشغيل الجلسات للاستيعاب؛ ولا تأذن هويات app:// إلا بإعادة التشغيل في React Native. الهويات المقبولة: {{identities}}. هويات التطبيقات الأصلية يعلنها التطبيق بنفسه، وليست شهادة من المنصة.",
   "RUM logs key": "مفتاح سجلات RUM",
   "{{arrived}} of {{count}} metrics arrived in the selected range.": "وصل {{arrived}} من أصل {{count}} من المقاييس في النطاق المحدد.",
   "{{arrived}} of {{count}} metrics arrived in the selected range._one": "وصل {{arrived}} من أصل {{count}} مقياس في النطاق المحدد.",
@@ -52244,5 +52242,7 @@
   "Saved as \"{{value}}\".": "يُحفظ باسم «{{value}}».",
   "The Azure namespace: the first part of <namespace>.servicebus.windows.net. Leave empty only for the emulator or a custom domain.": "الجزء الأول من <namespace>.servicebus.windows.net، أي مساحة الاسم في Azure. اتركه فارغًا فقط للمحاكي أو لنطاق مخصص.",
   "The queue, topic or subscription name your applications and broker use. A URL, ARN or resource path is reduced to its name.": "اسم قائمة الانتظار أو الموضوع أو الاشتراك الذي تستخدمه تطبيقاتك والوسيط. يُختصر عنوان URL أو ARN أو مسار المورد إلى اسمه.",
-  "This email was sent without a subject.": "أُرسل هذا البريد الإلكتروني بدون موضوع."
+  "This email was sent without a subject.": "أُرسل هذا البريد الإلكتروني بدون موضوع.",
+  "Browser key — intended for client distribution. Web origins may send traces, logs, metrics, session replays and Sentry events; app:// identities authorize React Native replay only. Accepted identities: {{identities}}. Native app identities are self-asserted, not platform attestation.": "مفتاح متصفح — مخصص للتوزيع على العملاء. يمكن لأصول الويب إرسال التتبعات والسجلات والمقاييس وإعادة تشغيل الجلسات وأحداث Sentry؛ ولا تأذن هويات app:// إلا بإعادة التشغيل في React Native. الهويات المقبولة: {{identities}}. هويات التطبيقات الأصلية يعلنها التطبيق بنفسه، وليست شهادة من المنصة.",
+  "Safe to publish in a page. Accepted only from the allowed origins below, and only for traces, logs, metrics, session replays and Sentry events.": "آمن للنشر في صفحة. لا يُقبل إلا من المصادر المسموح بها أدناه، وللتتبعات والسجلات والمقاييس وإعادة تشغيل الجلسات وأحداث Sentry فقط."
 }

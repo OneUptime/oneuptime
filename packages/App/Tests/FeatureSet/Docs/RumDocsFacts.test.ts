@@ -944,8 +944,9 @@ describe("Ingestion keys: a Browser key for the web, a Server key for mobile", (
     expect(routes).toContain('router.get(\n  "/otlp/v1/validate",');
     expect(routes).toContain("valid: true,");
     expect(routes).toContain("{ statusCode: new StatusCode(401) }");
+    // What a Browser key is accepted for, Sentry's browser SDKs included (#7872).
     expect(routes).toContain(
-      "It is accepted only from a browser, only from one of its allowed origins",
+      "It is accepted only from a browser, only from one of its allowed origins, and only for OTLP traces, logs and metrics, session replays, and events from a Sentry browser SDK.",
     );
 
     const check: string = [
