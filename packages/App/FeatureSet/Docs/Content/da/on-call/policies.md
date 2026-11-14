@@ -6,7 +6,7 @@ En vagtpolitik afgør, hvem der tilkaldes om en hændelse eller advarsel, og hve
 - [Opret en politik](#opret-en-politik): Et navn, og hvem der tilkaldes først.
 - [Hvad der kører en politik](#hvad-der-kører-en-politik): Regler, skabeloner, overvågninger, chat og dig selv.
 - [Udførelseslogs](#udførelseslogs): Hver kørsel, regel for regel, og hvorfor den stoppede.
-- [Arkivér eller slet en politik](#arkivér-eller-slet-en-politik): Tag en politik ud af drift.
+- [Arkiver eller slet en politik](#arkiver-eller-slet-en-politik): Tag en politik ud af drift.
 :::
 
 ## Opret en politik
@@ -125,12 +125,12 @@ Du finder udførelseslogs tre steder:
 
 Hver række viser, hvad der startede kørslen, hvornår, dens **Status** og hvem der kvitterede. **Vis tidslinje** åbner dens **Tidslinje for udførelsen**: hver eskaleringsregel, hvem den tilkaldte, via hvilken vagtplan, og hvordan hvert tilkald endte. **Notificeret via** viser, hvordan hvert tilkald nåede frem til personen: telefonopkald, SMS, e-mail, push-notifikation og så videre. En vagtplan, hvor ingen har vagt, viser **Ingen havde vagt** i stedet for en person. Et niveau, der ikke tilkaldte nogen, siger hvorfor, med **Gik videre med det samme** nedenunder: politikken ventede ikke på det. I OneUptime Cloud kræver udførelseslogs abonnementet **Growth**.
 
-## Arkivér eller slet en politik
+## Arkiver eller slet en politik
 
 Arkivering tager en politik ud af drift og beholder alt: åbn politikkens **Indstillinger**, og klik på **Arkiver** på dens arkiveringskort, eller vælg politikker i listen, og vælg **Arkiver**.
 
 - En arkiveret politik tilkalder ingen. Hændelser og advarsler, der bruger den, springer den over, og en kørsel, der stadig eskalerer, stopper ved sit næste skridt.
-- Den forlader listen **Vagtpolitikker** og flytter til **Vagt → Avanceret → Arkiverede politikker**, hvor **Fjern fra arkiv** sætter den i drift igen.
+- Den forlader listen **Vagtpolitikker** og flytter til **Vagt → Avanceret → Arkiverede politikker**, hvor **Fjern fra arkivet** sætter den i drift igen.
 
 **Slet politik**, under **Avanceret**, sletter politikken med dens eskaleringsregler og brugertilsidesættelser. Sletning fra listen spørger først og foreslår at arkivere i stedet.
 

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52224,
-    "untranslated": 9403
+    "keys": 52232,
+    "untranslated": 9358
   },
   "sameAsEnglish": [
     " is",
@@ -641,6 +641,7 @@
     "secret",
     "security-alerts",
     "server",
+    "service",
     "services",
     "shards",
     "share",

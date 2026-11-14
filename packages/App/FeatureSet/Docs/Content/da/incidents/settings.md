@@ -535,9 +535,9 @@ Tilføj de andre roller, dit team bruger, som Responder, Communications Lead ell
 
 Roller er kun definitioner. Du tildeler folk til dem pr. hændelse — erklæringsguiden spørger på sit trin **Vagt og roller** med et felt **Tildel hændelsesroller**, og hver hændelse har en side **Roller** i sin sidemenu. En monitors kriterier og en grupperingsregel for hændelser kan vælge folk til dem på forhånd. Hver af de formularer spørger med de samme kort, ét pr. rolle: en rolle med mærket **Primær** er Hændelsesleder eller en anden primær rolle, og en rolle til én person fjerner sin vælger, når den har en. På en hændelses kort **Roller** tilbyder en rolle til flere personer **Add More**.
 
-### Arkivér en rolle
+### Arkiver en rolle
 
-Arkivér en rolle, som dit team ikke længere bruger, fra rækkens menu **⋯** i stedet for at slette den. De, der har den på en hændelse, beholder den, men ingen kan få den igen: Rollevælgerne udelader den eller viser den kun med de personer, der har den, og API'et afviser den. Den primære rolle og enhver rolle, der ikke kan slettes, kan ikke arkiveres. Arkiverede roller vises for sig, i den sammenfoldede sektion **Arkiverede hændelsesroller**, hvor **Fjern fra arkiv** sætter en tilbage.
+Arkiver en rolle, som dit team ikke længere bruger, fra rækkens menu **⋯** i stedet for at slette den. De, der har den på en hændelse, beholder den, men ingen kan få den igen: Rollevælgerne udelader den eller viser den kun med de personer, der har den, og API'et afviser den. Den primære rolle og enhver rolle, der ikke kan slettes, kan ikke arkiveres. Arkiverede roller vises for sig, i den sammenfoldede sektion **Arkiverede hændelsesroller**, hvor **Fjern fra arkivet** sætter en tilbage.
 
 ## Nummerpræfikser
 

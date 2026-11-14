@@ -85,12 +85,12 @@ Archiveer een dashboard dat je niet meer gebruikt maar wel wilt bewaren. Een gea
 ```mermaid title="Archiveren bewaart alles; verwijderen haalt het weg"
 flowchart TB
     A["In de lijst Dashboards,<br/>de openbare link werkt"] -->|"Archiveren"| R["Gearchiveerd: niet<br/>in de lijst, openbare<br/>link uit"]
-    R -->|"Uit archief<br/>halen"| A
+    R -->|"Uit het archief<br/>halen"| A
     A -->|"Verwijderen"| X["Weg, samen met de<br/>aangepaste domeinen"]
     R -->|"Verwijderen"| X
 ```
 
-Om één dashboard te archiveren, open je het, ga je naar de pagina **Instellingen** ervan en klik je op **Archiveren**. Om er meerdere te archiveren, selecteer je ze in de lijst **Dashboards** en kies je **Archiveren**. Om er een terug te halen, open je **Dashboards → Geavanceerd → Gearchiveerd**, selecteer je het en kies je **Uit archief halen**, of open je het en klik je op **Uit archief halen** in de banner bovenaan de pagina's ervan.
+Om één dashboard te archiveren, open je het, ga je naar de pagina **Instellingen** ervan en klik je op **Archiveren**. Om er meerdere te archiveren, selecteer je ze in de lijst **Dashboards** en kies je **Archiveren**. Om er een terug te halen, open je **Dashboards → Geavanceerd → Gearchiveerd**, selecteer je het en kies je **Uit het archief halen**, of open je het en klik je op **Uit het archief halen** in de banner bovenaan de pagina's ervan.
 
 Archiveren is het omkeerbare alternatief voor verwijderen: kies het eerst als je twijfelt.
 
