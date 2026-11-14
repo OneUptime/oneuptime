@@ -12,7 +12,7 @@ The maintenance calendar shows your scheduled maintenance by date: on a page of 
 
 ```mermaid title="One list of events, three calendars"
 flowchart TB
-    events["Scheduled<br/>maintenance events"] --> view["The calendar view<br/>in the dashboard"]
+    events["Maintenance events"] --> view["The calendar view<br/>in the dashboard"]
     events --> team["The team's link<br/>every event"]
     events --> page["A status page's link<br/>what the page shows"]
     team --> apps["Calendar apps"]

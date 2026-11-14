@@ -884,7 +884,7 @@ working mail server.
   only on an incident that person or one of their teams owns. Roles and API
   keys whose permissions reach the whole project work as before; give one
   restricted to labels one of those labels on each record it creates. The
-  owners picked when creating a monitor, an incident, an alert, a scheduled
+  owners picked when creating a monitor, an incident, an alert, a
   maintenance event, a status page or a template, and the first escalation
   rule picked when creating an on-call policy, are added for their creator
   even when the creator's own read does not reach the new record. A pick
@@ -913,7 +913,7 @@ working mail server.
   creator whose permission to create reaches only what they own is made the
   owner right after the save, before anything else happens to the record,
   and when that fails the record is removed again and the create is refused
-  with a `500`. The owners of monitors, incidents, alerts, scheduled
+  with a `500`. The owners of monitors, incidents, alerts,
   maintenance events and their templates are now read through the record
   they own, as a status page's and a service's are. Roles and API keys whose
   permissions reach the whole project work as before; give a custom role or
