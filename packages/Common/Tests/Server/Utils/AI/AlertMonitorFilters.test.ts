@@ -482,12 +482,16 @@ describe("query_monitors — problemsOnly filter", () => {
      * Archived monitors are never listed: they are not monitored. Nor, for
      * what is down now, are monitors whose monitoring is turned off: nothing
      * checks them, so their status is stale - the Not Operational list's
-     * rule (NotOperationalMonitorQuery, issue #6400).
+     * rule (NotOperationalMonitorQuery, issue #6400), its status asked in
+     * the run's project (issue #8096).
      */
     expect(callArgs["query"]).toEqual({
       isArchived: false,
       disableActiveMonitoring: false,
-      currentMonitorStatus: { isOperationalState: false },
+      currentMonitorStatus: {
+        isOperationalState: false,
+        projectId: ctx.projectId,
+      },
     });
     expect(callArgs["props"]).toBe(ctx.props);
 

@@ -7,6 +7,7 @@ import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../../../Types/Date";
 import { JSONObject } from "../../../../Types/JSON";
 import MonitorType from "../../../../Types/Monitor/MonitorType";
+import NotOperationalMonitorQuery from "../../../../Utils/Monitor/NotOperationalMonitorQuery";
 import ObjectID from "../../../../Types/ObjectID";
 import {
   afterAll,
@@ -33,7 +34,8 @@ import { DataSource, Logger as TypeOrmLogger } from "typeorm";
  *     SetMonitorFillfactor);
  *   - the reads those indexes are for, as the services build them - a
  *     device delete's count of its automatic monitors and its foreign key
- *     check, the Monitors menu's three counts, the list's first page and a
+ *     check, the Monitors menu's counts (Not Operational asked in its
+ *     project, through currentMonitorStatusId), the list's first page and a
  *     heartbeat sweep's page - each can be answered from its index;
  *   - the busiest writes - the telemetry sweep's stamp, the heartbeats, a
  *     request, an email, a server report - are HOT updates, which write no
@@ -42,8 +44,8 @@ import { DataSource, Logger as TypeOrmLogger } from "typeorm";
  *
  * Opt in with RUN_POSTGRES_MONITOR_INDEX_TESTS=true against a Postgres
  * migrated to the current head - the Postgres Schema Drift workflow's
- * database right after its drift check. The Project and Monitor tables'
- * STRUCTURE (indexes included) is cloned into a unique schema that is
+ * database right after its drift check. The Project, MonitorStatus and
+ * Monitor tables' STRUCTURE (indexes included) is cloned into a unique schema that is
  * dropped afterwards; the public tables are only read. One connection, so a
  * statement's counts are flushed before they are read
  * (pg_stat_force_next_flush). Credentials from DATABASE_USERNAME /
@@ -56,7 +58,7 @@ const describePostgres: typeof describe.skip =
     ? describe
     : describe.skip;
 
-const TABLES: Array<string> = ["Project", "Monitor"];
+const TABLES: Array<string> = ["Project", "MonitorStatus", "Monitor"];
 
 const NOW: Date = new Date("2026-11-14T10:00:00.000Z");
 
@@ -424,42 +426,148 @@ describePostgres("Monitor's indexes, on Postgres", () => {
 
     /*
      * Two projects of 2,000 monitors each, with every kind the indexes tell
-     * apart, then ANALYZE: plans as a real table's would be.
+     * apart, among 300 smaller ones, then ANALYZE: plans as a shared table's
+     * would be. As in one, every project has statuses of its own, and a
+     * project's monitors lie among other projects' rather than side by
+     * side. Both decide whether Postgres starts a Not Operational count
+     * from the project's statuses or from its monitors (issue #8096): with
+     * two projects, inserted one after the other, it read the monitors.
      */
     beforeAll(async () => {
       await database.query(
-        `TRUNCATE "${schema}"."Monitor", "${schema}"."Project"`,
+        `TRUNCATE "${schema}"."Monitor", "${schema}"."MonitorStatus", "${schema}"."Project"`,
       );
-      for (const projectId of [PROJECT_ID, OTHER_PROJECT_ID]) {
-        await database.query(
-          `INSERT INTO "${schema}"."Project" ("_id", "name", "isBlocked", "isSampleProject")
-           VALUES ($1, 'Monitor indexes', false, false)`,
-          [projectId.toString()],
-        );
-        await database.query(
-          `INSERT INTO "${schema}"."Monitor"
-             ("_id", "projectId", "name", "slug", "monitorType", "createdAt", "updatedAt", "version",
-              "autoProvisionedNetworkDeviceId", "isArchived", "disableActiveMonitoring",
-              "disableActiveMonitoringBecauseOfManualIncident",
-              "disableActiveMonitoringBecauseOfScheduledMaintenanceEvent",
-              "isAllProbesDisconnectedFromThisMonitor", "isNoProbeEnabledOnThisMonitor",
-              "isOwnerNotifiedOfResourceCreation")
-           SELECT gen_random_uuid(), $1::uuid, 'Monitor ' || g, $1::text || '-' || g,
-                  CASE WHEN g <= 1000 THEN '${MonitorType.NetworkDevice}'
-                       WHEN g <= 1100 THEN '${MonitorType.NetworkDevice}'
-                       WHEN g <= 1200 THEN '${MonitorType.IncomingRequest}'
-                       ELSE '${MonitorType.Website}' END,
-                  $2::timestamptz - g * INTERVAL '1 minute', $2, 1,
-                  CASE WHEN g <= 1000
-                       THEN ('d0110000-0001-4000-8000-' || lpad(to_hex(g), 12, '0'))::uuid
-                       ELSE NULL END,
-                  g % 50 = 0, g % 40 = 0, false, false, g % 30 = 0, g % 45 = 0, true
-             FROM generate_series(1, 2000) AS g`,
-          [projectId.toString(), NOW],
-        );
-      }
+
+      /*
+       * Every project, and the g its monitors are made from. A smaller
+       * project's are g 1201 to 1207: seven websites, none archived or
+       * flagged, one of them degraded.
+       */
+      const projects: string = `
+        SELECT id, 1 AS first_g, 2000 AS last_g FROM unnest($1::uuid[]) AS id
+        UNION ALL
+        SELECT ('a0110000-0002-4000-8000-' || lpad(to_hex(n), 12, '0'))::uuid, 1201, 1207
+          FROM generate_series(1, 300) AS n`;
+      const projectIds: Array<string> = [
+        PROJECT_ID.toString(),
+        OTHER_PROJECT_ID.toString(),
+      ];
+
+      await database.query(
+        `INSERT INTO "${schema}"."Project" ("_id", "name", "isBlocked", "isSampleProject")
+         SELECT p.id, 'Monitor indexes', false, false FROM (${projects}) AS p`,
+        [projectIds],
+      );
+      // Each project's own statuses: one operational, two not.
+      await database.query(
+        `INSERT INTO "${schema}"."MonitorStatus"
+           ("_id", "projectId", "name", "slug", "color", "priority", "isOperationalState")
+         SELECT gen_random_uuid(), p.id, s.name, p.id::text || '-' || s.name, '#000000', s.priority, s.operational
+           FROM (${projects}) AS p
+          CROSS JOIN (VALUES ('Operational', 1, true), ('Degraded', 2, false), ('Offline', 3, false))
+                AS s(name, priority, operational)`,
+        [projectIds],
+      );
+      // In g order - the order they were created in - so projects interleave.
+      await database.query(
+        `INSERT INTO "${schema}"."Monitor"
+           ("_id", "projectId", "name", "slug", "monitorType", "createdAt", "updatedAt", "version",
+            "autoProvisionedNetworkDeviceId", "isArchived", "disableActiveMonitoring",
+            "disableActiveMonitoringBecauseOfManualIncident",
+            "disableActiveMonitoringBecauseOfScheduledMaintenanceEvent",
+            "isAllProbesDisconnectedFromThisMonitor", "isNoProbeEnabledOnThisMonitor",
+            "isOwnerNotifiedOfResourceCreation", "currentMonitorStatusId")
+         SELECT gen_random_uuid(), p.id, 'Monitor ' || g, p.id::text || '-' || g,
+                CASE WHEN g <= 1000 THEN '${MonitorType.NetworkDevice}'
+                     WHEN g <= 1100 THEN '${MonitorType.NetworkDevice}'
+                     WHEN g <= 1200 THEN '${MonitorType.IncomingRequest}'
+                     ELSE '${MonitorType.Website}' END,
+                $2::timestamptz - g * INTERVAL '1 minute', $2, 1,
+                CASE WHEN g <= 1000
+                     THEN ('d0110000-0001-4000-8000-' || lpad(to_hex(g), 12, '0'))::uuid
+                     ELSE NULL END,
+                g % 50 = 0, g % 40 = 0, false, false, g % 30 = 0, g % 45 = 0, true,
+                s."_id"
+           FROM (${projects}) AS p
+          CROSS JOIN LATERAL generate_series(p.first_g, p.last_g) AS g
+           JOIN "${schema}"."MonitorStatus" s
+             ON s."projectId" = p.id
+            AND s."name" = CASE WHEN g % 20 = 0 THEN 'Offline'
+                                WHEN g % 20 = 1 THEN 'Degraded'
+                                ELSE 'Operational' END
+          ORDER BY g, p.id`,
+        [projectIds, NOW],
+      );
       await database.query(`ANALYZE "${schema}"."Monitor"`);
+      await database.query(`ANALYZE "${schema}"."MonitorStatus"`);
       await database.query(`ANALYZE "${schema}"."Project"`);
+    });
+
+    /*
+     * The Monitors menu's Not Operational count, asked in its project
+     * (NotOperationalMonitorQuery, issue #8096): Postgres starts from the
+     * project's statuses that are not operational and reads only the
+     * monitors holding one, through the index on currentMonitorStatusId -
+     * not every monitor of the project.
+     */
+    test("the Monitors menu's Not Operational count reads only the monitors holding the project's statuses that are not operational", async () => {
+      const statements: Array<Captured> = await statementsOf(() => {
+        return MonitorService.countBy({
+          query: {
+            projectId: PROJECT_ID,
+            ...NotOperationalMonitorQuery.getQuery(PROJECT_ID),
+          },
+          props: { isRoot: true },
+        });
+      });
+
+      expect(statements).toHaveLength(1);
+      expect(statements[0]!.sql).toContain(
+        `"Monitor__Monitor_currentMonitorStatus"."projectId" = `,
+      );
+
+      const indexes: Array<string> = await indexesPlannedFor(statements[0]!);
+
+      expect(indexes).toContain(
+        await cloneIndex("currentMonitorStatusId", null),
+      );
+      expect(indexes).not.toContain(
+        await cloneIndex("projectId,isArchived,createdAt", null),
+      );
+    });
+
+    test("and counts what it should: the project's checked monitors in a status that is not operational", async () => {
+      const counted: number = (
+        await MonitorService.countBy({
+          query: {
+            projectId: PROJECT_ID,
+            ...NotOperationalMonitorQuery.getQuery(PROJECT_ID),
+          },
+          props: { isRoot: true },
+        })
+      ).toNumber();
+      const expected: Array<{ count: number }> = await database.query(
+        `SELECT count(*)::int AS count
+           FROM "${schema}"."Monitor" m
+           JOIN "${schema}"."MonitorStatus" s ON s."_id" = m."currentMonitorStatusId"
+          WHERE m."projectId" = $1 AND NOT m."isArchived" AND NOT m."disableActiveMonitoring"
+            AND m."deletedAt" IS NULL AND NOT s."isOperationalState"`,
+        [PROJECT_ID.toString()],
+      );
+
+      expect(expected[0]!.count).toBeGreaterThan(0);
+      expect(counted).toBe(expected[0]!.count);
+      expect(
+        (
+          await MonitorService.countBy({
+            query: {
+              projectId: PROJECT_ID,
+              ...NotOperationalMonitorQuery.getQuery(),
+            },
+            props: { isRoot: true },
+          })
+        ).toNumber(),
+      ).toBe(counted);
     });
 
     /*
