@@ -368,7 +368,6 @@ export function host(): PublicNoteApprovalHost<IncidentPublicNote> {
     modelType: IncidentPublicNote,
     service: fakeService() as never,
     parentIdColumn: "incidentId",
-    recordNoun: "incident",
     getRecord: async () => {
       return world.record ? { ...world.record } : null;
     },

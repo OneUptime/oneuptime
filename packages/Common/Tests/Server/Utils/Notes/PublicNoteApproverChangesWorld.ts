@@ -575,12 +575,6 @@ export function host(kind: PublicNoteKind): PublicNoteApprovalHost<BaseModel> {
       modelType: MODEL_TYPES[kind],
       service: fakeService(kind) as never,
       parentIdColumn: PARENT_COLUMNS[kind],
-      recordNoun:
-        kind === PublicNoteKind.ScheduledMaintenance
-          ? "maintenance event"
-          : kind === PublicNoteKind.IncidentEpisode
-            ? "episode"
-            : "incident",
       getRecord: async (data: { parentId: ObjectID }) => {
         const note: WorldNote | undefined = world.notes.find(
           (candidate: WorldNote): boolean => {

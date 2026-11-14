@@ -81,11 +81,13 @@ import PublicNoteApprovalRequests, {
 // The record and the note a message is about.
 export interface PublicNoteApprovalMessageFacts {
   projectId: ObjectID;
-  // "Incident INC-42"
+  /*
+   * "Incident INC-42": the record's kind and number, as its note service
+   * names it. Every message names the record by this alone - "a public note
+   * on Incident INC-42" - as a kind before it would name the kind twice.
+   */
   recordLabel: string;
   recordTitle: string;
-  // "incident", "episode", "maintenance event"
-  recordNoun: string;
   // The record's public notes in the Dashboard, where it is decided.
   notesUrl: string;
   note: string;
@@ -143,7 +145,7 @@ export function buildApprovalRequestedMessage(data: {
     templateType: EmailTemplateType.PublicNoteApprovalRequested,
     emailVars: {
       emailTitle: `Approval needed: public note on ${facts.recordLabel}`,
-      leadSentence: `${what} on ${facts.recordNoun} ${facts.recordLabel} is waiting for your approval. It is not on status pages and no subscriber is told about it until it is approved.`,
+      leadSentence: `${what} on ${facts.recordLabel} is waiting for your approval. It is not on status pages and no subscriber is told about it until it is approved.`,
       recordTitle: facts.recordTitle,
       recordLabel: facts.recordLabel,
       sentBy: data.sentBy,
@@ -157,7 +159,7 @@ export function buildApprovalRequestedMessage(data: {
     smsText: buildNotificationSms(
       `Approval needed: ${what.toLowerCase()} on ${facts.recordLabel} (${facts.recordTitle}) waits for you.`,
     ),
-    callText: `This is a message from OneUptime. ${what} on ${facts.recordNoun} ${facts.recordLabel}, ${facts.recordTitle}, is waiting for your approval. To approve or reject it, go to the OneUptime Dashboard. To change these calls go to User Settings in the OneUptime Dashboard. Good bye.`,
+    callText: `This is a message from OneUptime. ${what} on ${facts.recordLabel}, ${facts.recordTitle}, is waiting for your approval. To approve or reject it, go to the OneUptime Dashboard. To change these calls go to User Settings in the OneUptime Dashboard. Good bye.`,
     pushTitle: `Approval needed: ${facts.recordLabel}`,
     pushBody: `${what} on ${facts.recordLabel} (${facts.recordTitle}) is waiting for your approval.`,
     pushType: "public-note-approval-requested",
@@ -179,9 +181,9 @@ export function buildApprovalDecidedMessage(data: {
 
   const lead: string = data.isApproved
     ? facts.isEdit
-      ? `${what} on ${facts.recordNoun} ${facts.recordLabel} was approved by ${data.decidedBy}. Status pages now show the edited note.`
-      : `${what} on ${facts.recordNoun} ${facts.recordLabel} was approved by ${data.decidedBy} and is now published on status pages.`
-    : `${what} on ${facts.recordNoun} ${facts.recordLabel} was rejected by ${data.decidedBy}. It is not published. Change it and send it again from the Dashboard.`;
+      ? `${what} on ${facts.recordLabel} was approved by ${data.decidedBy}. Status pages now show the edited note.`
+      : `${what} on ${facts.recordLabel} was approved by ${data.decidedBy} and is now published on status pages.`
+    : `${what} on ${facts.recordLabel} was rejected by ${data.decidedBy}. It is not published. Change it and send it again from the Dashboard.`;
 
   return {
     eventType:
@@ -211,8 +213,8 @@ export function buildApprovalDecidedMessage(data: {
         : `${what} on ${facts.recordLabel} was rejected by ${data.decidedBy}.${data.reason ? ` Reason: ${data.reason}` : ""}`,
     ),
     callText: data.isApproved
-      ? `This is a message from OneUptime. ${what} on ${facts.recordNoun} ${facts.recordLabel} was approved and is published. Good bye.`
-      : `This is a message from OneUptime. ${what} on ${facts.recordNoun} ${facts.recordLabel} was rejected. To see why, go to the OneUptime Dashboard. Good bye.`,
+      ? `This is a message from OneUptime. ${what} on ${facts.recordLabel} was approved and is published. Good bye.`
+      : `This is a message from OneUptime. ${what} on ${facts.recordLabel} was rejected. To see why, go to the OneUptime Dashboard. Good bye.`,
     pushTitle: data.isApproved
       ? `Public note approved: ${facts.recordLabel}`
       : `Public note rejected: ${facts.recordLabel}`,
