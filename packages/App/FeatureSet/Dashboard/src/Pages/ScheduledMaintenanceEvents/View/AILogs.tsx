@@ -11,7 +11,12 @@ const ScheduledMaintenanceAILogs: FunctionComponent<
 
   return (
     <LlmLogsTable
-      singularName="scheduled maintenance event"
+      singularName="maintenance event"
+      /*
+       * The key its saved columns are kept under, from before the record
+       * was called a maintenance event (#6817).
+       */
+      tableKey="scheduled-maintenance-event-llm-logs-table"
       query={{ scheduledMaintenanceId: modelId }}
     />
   );

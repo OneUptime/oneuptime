@@ -3539,7 +3539,7 @@ describe("event notes: sending a note's notification again", () => {
         <EventNotes<ScheduledMaintenancePublicNote>
           modelType={ScheduledMaintenancePublicNote}
           visibility="public"
-          eventNoun="scheduled maintenance event"
+          eventNoun="maintenance event"
           parentIdField="scheduledMaintenanceId"
           parentId={EVENT_ID}
           currentProject={buildProject()}

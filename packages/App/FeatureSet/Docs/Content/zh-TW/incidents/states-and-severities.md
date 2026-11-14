@@ -37,7 +37,7 @@ flowchart TB
 
 `IncidentState` 模型有 `name`、`description`、`color` 和 `order`，外加三個布林值：`isCreatedState`、`isAcknowledgedState` 和 `isResolvedState`。產品對狀態所做的一切都以這些布林值和 `order` 為依據——從不以狀態的名稱為依據。這就是為什麼你可以把 **已解決** 改名為「Closed」而不會出任何問題：旗標會跟著那一列走。
 
-`IncidentSeverity` 模型只有 `name`、`description`、`color` 和 `order`。沒有旗標。OneUptime 中沒有任何東西會單憑嚴重性就把 **Critical Incident** 與 **Minor Incident** 區別對待——嚴重性只在你讓某樣東西指向它時才起作用，例如待命規則上的 **事件嚴重性** 比對條件。
+`IncidentSeverity` 模型只有 `name`、`description`、`color` 和 `order`。沒有旗標。OneUptime 中沒有任何東西會單憑嚴重性就把 **嚴重事件** 與 **輕微事件** 區別對待——嚴重性只在你讓某樣東西指向它時才起作用，例如待命規則上的 **事件嚴重性** 比對條件。
 
 幾條簡單規則：
 
@@ -138,9 +138,9 @@ flowchart TB
 
 | 嚴重性                | `order` | 顏色      | 預設描述                                                                                                                                                                                  |
 | --------------------- | ------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Critical Incident** | `1`     | `#b70400` | Issues causing very high impact to customers. Immediate response is required. Examples include a full outage, or a data breach.                                                          |
-| **Major Incident**    | `2`     | `#fd625e` | Issues causing significant impact. Immediate response is usually required. We might have some workarounds that mitigate the impact on customers. Examples include an important sub-system failing. |
-| **Minor Incident**    | `3`     | `#ffbf53` | Issues with low impact, which can usually be handled within working hours. Most customers are unlikely to notice any problems. Examples include a slight drop in application performance. |
+| **嚴重事件** | `1`     | `#b70400` | Issues causing very high impact to customers. Immediate response is required. Examples include a full outage, or a data breach.                                                          |
+| **重大事件**    | `2`     | `#fd625e` | Issues causing significant impact. Immediate response is usually required. We might have some workarounds that mitigate the impact on customers. Examples include an important sub-system failing. |
+| **輕微事件**    | `3`     | `#ffbf53` | Issues with low impact, which can usually be handled within working hours. Most customers are unlikely to notice any problems. Examples include a slight drop in application performance. |
 
 宣告事件時嚴重性是必填的，監測器條件中的每個事件規格也都必須填寫它，所以每個事件——無論手動還是自動——都帶著嚴重性而來。宣告流程請參閱 [宣告事件](/docs/incidents/declaring-incidents)，由監測器驅動的路徑請參閱 [事件與警示範本](/docs/monitor/incident-alert-templating)。
 
@@ -155,7 +155,7 @@ flowchart TB
 - **沒有刪除保護。** 任何嚴重性都可以刪除，包括三個預設的嚴重性。
 - **沒有可繼承的旗標，也沒有「視為」。** 新的嚴重性與預設的完全一樣——它是一個帶有顏色和等級的標籤。
 
-嚴重性不只是用來描述的地方：在 **事件 → 規則 → 待命規則** 中，規則的 **事件嚴重性** 欄位是一個比對條件。在那裡列出 **Critical Incident**，就是表達「任何嚴重事件都呼叫資料庫團隊」的方式——待命策略存在於規則上，而不是嚴重性上。
+嚴重性不只是用來描述的地方：在 **事件 → 規則 → 待命規則** 中，規則的 **事件嚴重性** 欄位是一個比對條件。在那裡列出 **嚴重事件**，就是表達「任何嚴重事件都呼叫資料庫團隊」的方式——待命策略存在於規則上，而不是嚴重性上。
 
 **變更事件的嚴重性**——在事件 **事件詳細資訊** 卡片的 **編輯** 中、透過 API 或 Terraform（`incidentSeverityId`）、透過工作流程或透過 AI 工具——無論以哪種方式傳送，都會做同樣的四件事：事件動態會新增一則寫明新嚴重性的 **Incident updated** 項目，事件的 SLA 截止時間會重新計算，它的提醒規則會重新比對，事件指標會計入一次嚴重性變更。儲存事件已有的嚴重性則不會做其中任何一件事，所以只編輯事件的標題，其 SLA 截止時間、提醒和嚴重性變更計數都維持不變。警示的嚴重性在其動態項目和提醒方面也是同樣的運作方式。
 
