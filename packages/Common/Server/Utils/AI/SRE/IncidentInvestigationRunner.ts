@@ -1057,7 +1057,7 @@ export default class AIIncidentInvestigationRunner {
               /*
                * The incident's second analysis: its notification says why
                * it was written - "🧠 AI — Automated Root Cause Analysis:
-               * Checked again after alert #12 opened on Host web-1, ..." -
+               * Checked again after alert #12 opened on host web-1, ..." -
                * where the heading alone would read like the first one again.
                */
               ...(reportLead

@@ -6328,18 +6328,20 @@ if (hasReport) {
  * incident or alert is linked to, recorded in its activity as the server
  * does (LinkedInfrastructureContext.buildActivityNote): the resources, by
  * kind (LinkedAffectedResourceType) and name, and how many open or recent
- * alerts were on them. `message` is the server's English; the card words it
+ * alerts were on them. `message` is the server's English, each kind's noun
+ * as the middle of its sentence says it (describeActivityResource: "host
+ * checkout-api-7f9c", "Docker host checkout-api-7f9c"); the card words it
  * from the data, in the reader's language.
  */
 const LINKED_KIND_NOUNS = {
-  Host: "Host",
+  Host: "host",
   DockerHost: "Docker host",
   KubernetesCluster: "Kubernetes cluster",
-  DatabaseServer: "Database",
-  CloudResource: "Cloud resource",
+  DatabaseServer: "database",
+  CloudResource: "cloud resource",
   // An App Platforms environment, as buildActivityNote records it.
-  CloudEnvironment: "Cloud environment",
-  Service: "Service",
+  CloudEnvironment: "cloud environment",
+  Service: "service",
 };
 
 const INCIDENT_LINKED_RESOURCES = [
@@ -6441,7 +6443,7 @@ const FOLLOW_UP_ALERT_NUMBER = 318;
 const FOLLOW_UP_ALERT_TITLE = "High CPU on checkout-api-7f9c";
 const followUpWindow = { start: at("17:49", 5), end: at("18:04", 5) };
 
-const FOLLOW_UP_LEAD = `**Checked again** after alert #${FOLLOW_UP_ALERT_NUMBER} opened on Host checkout-api-7f9c, 3 minutes after this incident was declared: ${FOLLOW_UP_ALERT_TITLE}.`;
+const FOLLOW_UP_LEAD = `**Checked again** after alert #${FOLLOW_UP_ALERT_NUMBER} opened on host checkout-api-7f9c, 3 minutes after this incident was declared: ${FOLLOW_UP_ALERT_TITLE}.`;
 
 const FOLLOW_UP_CITATIONS = [
   {
@@ -6642,7 +6644,7 @@ if (linkedMode === "followup") {
     ],
     contextNotes: [
       {
-        message: `Checking again: alert #${FOLLOW_UP_ALERT_NUMBER} opened on Host "checkout-api-7f9c" after the first analysis`,
+        message: `Checking again: alert #${FOLLOW_UP_ALERT_NUMBER} opened on host checkout-api-7f9c after the first analysis`,
         severity: "Info",
         followUpCheck: {
           alertNumber: FOLLOW_UP_ALERT_NUMBER,

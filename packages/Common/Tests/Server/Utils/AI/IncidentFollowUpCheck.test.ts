@@ -29,7 +29,10 @@ import IncidentFollowUpCheck, {
   MAX_INCIDENTS_PER_ALERT,
 } from "../../../../Server/Utils/AI/SRE/IncidentFollowUpCheck";
 import AIInvestigationQueue from "../../../../Server/Utils/AI/SRE/InvestigationQueue";
-import { describeLinkedResource } from "../../../../Server/Utils/AI/SRE/LinkedInfrastructureContext";
+import {
+  LinkedInfrastructureResource,
+  describeLinkedResource,
+} from "../../../../Server/Utils/AI/SRE/LinkedInfrastructureContext";
 import logger from "../../../../Server/Utils/Logger";
 import { AIRunEventResultSummary } from "../../../../Types/AI/AIChatTypes";
 import AIRunStatus from "../../../../Types/AI/AIRunStatus";
@@ -671,7 +674,7 @@ describe("what the follow-up run is told, and says", () => {
      * inside it.
      */
     expect(markdown).toContain(
-      "**Checked again** after alert #12 opened on Host web-1, 2 minutes after this incident was declared: \\[Host\\] High CPU Utilization (>80%) - web-1.",
+      "**Checked again** after alert #12 opened on host web-1, 2 minutes after this incident was declared: \\[Host\\] High CPU Utilization (>80%) - web-1.",
     );
     expect(markdown.indexOf("Checked again")).toBeLessThan(
       markdown.indexOf("**Summary**"),
@@ -698,7 +701,7 @@ describe("what the follow-up run is told, and says", () => {
       IncidentFollowUpCheck.buildActivityNote(await context());
 
     expect(note.message).toBe(
-      'Checking again: alert #12 opened on Host "web-1" after the first analysis',
+      "Checking again: alert #12 opened on host web-1 after the first analysis",
     );
     expect(note.followUpCheck).toEqual({
       alertNumber: 12,
@@ -707,6 +710,72 @@ describe("what the follow-up run is told, and says", () => {
       resourceName: "web-1",
       minutesAfterIncident: 2,
     });
+  });
+});
+
+/*
+ * The report's lead and the run's activity line are read by people - in the
+ * feed, the internal note, Slack and Teams, and by an API reader of the
+ * run's events - so they name the resource the alert opened on as a
+ * sentence names it, as the AI Investigation card does since #7940: "opened
+ * on host web-1", not the label's "Host" in the middle of the sentence, nor
+ * the context's quoted 'Host "web-1"' (#7952). The context the model reads
+ * keeps that label.
+ */
+describe("the resource the alert opened on, in the lines people read", () => {
+  function followUpOn(
+    resources: Array<LinkedInfrastructureResource>,
+  ): FollowUpCheckContext {
+    return {
+      incidentCreatedAt: DECLARED_AT,
+      alertId: ALERT_ID.toString(),
+      alertNumber: 12,
+      alertTitle: "High CPU on web-2",
+      alertOpenedAt: at(2),
+      resources,
+    };
+  }
+
+  test("a Docker host keeps Docker's capital, and only it; the model's context keeps the label", () => {
+    const followUp: FollowUpCheckContext = followUpOn([
+      {
+        type: LinkedAffectedResourceType.DockerHost,
+        id: HOST_A,
+        name: "web-2",
+      },
+    ]);
+
+    expect(IncidentFollowUpCheck.buildReportLead(followUp).toString()).toBe(
+      "**Checked again** after alert #12 opened on Docker host web-2, 2 minutes after this incident was declared: High CPU on web-2.",
+    );
+    expect(IncidentFollowUpCheck.buildActivityNote(followUp).message).toBe(
+      "Checking again: alert #12 opened on Docker host web-2 after the first analysis",
+    );
+    expect(
+      IncidentFollowUpCheck.buildContextSection(
+        followUpOn([
+          { type: LinkedAffectedResourceType.Host, id: HOST_A, name: "web-1" },
+        ]),
+      ),
+    ).toContain('"High CPU on web-2" opened on Host "web-1" at');
+  });
+
+  test("a resource without a name is its kind; without a resource, the activity names the incident's infrastructure", () => {
+    const nameless: FollowUpCheckContext = followUpOn([
+      { type: LinkedAffectedResourceType.Host, id: HOST_A, name: "" },
+    ]);
+
+    expect(IncidentFollowUpCheck.buildReportLead(nameless).toString()).toBe(
+      "**Checked again** after alert #12 opened on host, 2 minutes after this incident was declared: High CPU on web-2.",
+    );
+    expect(IncidentFollowUpCheck.buildActivityNote(nameless).message).toBe(
+      "Checking again: alert #12 opened on host after the first analysis",
+    );
+    expect(
+      IncidentFollowUpCheck.buildActivityNote(followUpOn([])).message,
+    ).toBe(
+      "Checking again: alert #12 opened on this incident's infrastructure after the first analysis",
+    );
   });
 });
 

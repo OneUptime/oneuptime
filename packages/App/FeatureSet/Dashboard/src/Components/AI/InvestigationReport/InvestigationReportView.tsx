@@ -269,7 +269,7 @@ const InvestigationReportView: FunctionComponent<ComponentProps> = (
 
   /*
    * A follow-up check's report says first why it was written: "Checked
-   * again after alert #12 opened on Host web-1, ...". It is the runner's
+   * again after alert #12 opened on host web-1, ...". It is the runner's
    * line, not the model's, and it frames everything under it, so it leads
    * the report as a quiet line with a mark rather than sitting between the
    * Summary and the root cause, where the report's own text has it.

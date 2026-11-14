@@ -19,11 +19,14 @@ import LinkedAffectedResources, {
   LinkedAffectedResourceType,
 } from "../../../../Server/Utils/AffectedResources/LinkedAffectedResources";
 import LinkedInfrastructureContext, {
+  CLOUD_ENVIRONMENT_ACTIVITY_KIND,
+  LINKED_INFRASTRUCTURE_KINDS,
   LinkedInfrastructure,
   MAX_LINKED_RESOURCES,
   MAX_RELATED_ALERTS,
   RELATED_ALERTS_LOOKBACK_MINUTES,
   RelatedAlert,
+  describeActivityResource,
   describeAlertNumber,
   describeOpenedAfterDeclared,
   describeRelativeTime,
@@ -693,7 +696,7 @@ describe("what people see in the run's activity", () => {
       lookbackMinutes: 30,
     });
     expect(note!.message).toBe(
-      "Read 2 open or recent alerts on Host web-1 and Docker host web-1",
+      "Read 2 open or recent alerts on host web-1 and Docker host web-1",
     );
     expect(note!.severity).toBe("Info");
   });
@@ -708,18 +711,18 @@ describe("what people see in the run's activity", () => {
     };
 
     expect(LinkedInfrastructureContext.describeActivity(base)).toBe(
-      "No open or recent alerts on Host web-1",
+      "No open or recent alerts on host web-1",
     );
     expect(
       LinkedInfrastructureContext.describeActivity({ ...base, alertCount: 1 }),
-    ).toBe("Read 1 open or recent alert on Host web-1");
+    ).toBe("Read 1 open or recent alert on host web-1");
     expect(
       LinkedInfrastructureContext.describeActivity({
         ...base,
         alertCount: 10,
         hasMoreAlerts: true,
       }),
-    ).toBe("Read the 10 newest open or recent alerts on Host web-1");
+    ).toBe("Read the 10 newest open or recent alerts on host web-1");
     expect(
       LinkedInfrastructureContext.describeActivity({
         ...base,
@@ -732,7 +735,7 @@ describe("what people see in the run's activity", () => {
         ],
       }),
     ).toBe(
-      "No open or recent alerts on Host a, Host b, Kubernetes cluster prod and 2 more",
+      "No open or recent alerts on host a, host b, Kubernetes cluster prod and 2 more",
     );
     expect(
       LinkedInfrastructureContext.describeActivity({
@@ -744,8 +747,65 @@ describe("what people see in the run's activity", () => {
         ],
       }),
     ).toBe(
-      "No open or recent alerts on Host a, Docker host b and Kubernetes cluster c",
+      "No open or recent alerts on host a, Docker host b and Kubernetes cluster c",
     );
+  });
+
+  /*
+   * A kind is named in the middle of the line as a sentence names it, as
+   * the AI Investigation card words it since #7940: "on host web-1 and
+   * Docker host web-2". The line used to put the label's capital there,
+   * "on Host web-1", while the card said "host web-1" (#7952). A name of a
+   * product or vendor keeps its capital: Docker, Kubernetes, IoT, VMware.
+   */
+  test("each kind reads as the middle of a sentence says it, never as a label", () => {
+    expect(
+      LinkedInfrastructureContext.describeActivity({
+        resources: [
+          { kind: "Host", name: "web-1" },
+          { kind: "DockerHost", name: "web-2" },
+        ],
+        alertCount: 2,
+        openAlertCount: 1,
+        hasMoreAlerts: false,
+        lookbackMinutes: 30,
+      }),
+    ).toBe("Read 2 open or recent alerts on host web-1 and Docker host web-2");
+
+    expect(
+      LINKED_INFRASTRUCTURE_KINDS.map(
+        (kind: { type: LinkedAffectedResourceType }): string => {
+          return describeActivityResource({ kind: kind.type, name: "x" });
+        },
+      ),
+    ).toEqual([
+      "host x",
+      "network device x",
+      "Docker host x",
+      "Podman host x",
+      "Kubernetes cluster x",
+      "Docker Swarm cluster x",
+      "Proxmox cluster x",
+      "OpenStack cloud x",
+      "VMware vCenter x",
+      "Ceph cluster x",
+      "storage array x",
+      "IoT fleet x",
+      "database x",
+      "cloud resource x",
+      "service x",
+    ]);
+    expect(
+      describeActivityResource({
+        kind: CLOUD_ENVIRONMENT_ACTIVITY_KIND,
+        name: "checkout",
+      }),
+    ).toBe("cloud environment checkout");
+    // A kind this build does not know, and a resource without a name.
+    expect(describeActivityResource({ kind: "Spaceship", name: "x" })).toBe(
+      "resource x",
+    );
+    expect(describeActivityResource({ kind: "Host", name: "" })).toBe("host");
   });
 });
 

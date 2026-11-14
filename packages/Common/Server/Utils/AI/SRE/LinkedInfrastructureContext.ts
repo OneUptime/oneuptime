@@ -8,6 +8,7 @@ import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../../../Types/Date";
 import logger from "../../Logger";
 import ObjectID from "../../../../Types/ObjectID";
+import { DEFAULT_LANGUAGE, toSentenceTerm } from "../../../../Types/Translator";
 import PromptText from "../../../../Utils/AI/PromptText";
 import AlertService from "../../../Services/AlertService";
 import AlertStateService from "../../../Services/AlertStateService";
@@ -331,7 +332,32 @@ export function describeActivityResourceKind(kind: string): string {
     : describeLinkedResourceKind(kind as LinkedAffectedResourceType);
 }
 
-// 'Host "web-1"' - how a linked resource is named in the context.
+/*
+ * "host web-1", "Docker host web-2": a resource a run's activity recorded,
+ * named in the middle of an English sentence for people (#7952). Its kind's
+ * noun is cased by the AI Investigation card's rule (ChatActivityFeed's
+ * describeLinkedResource: toSentenceTerm, which keeps "Docker",
+ * "Kubernetes" and "IoT"), not written as the label "Host"; a resource
+ * without a name is its noun alone. The run's activity lines and the
+ * follow-up check's report lead name a resource this way.
+ */
+export function describeActivityResource(resource: {
+  kind: string;
+  name: string;
+}): string {
+  const noun: string = toSentenceTerm(
+    describeActivityResourceKind(resource.kind),
+    DEFAULT_LANGUAGE,
+  );
+
+  return resource.name ? `${noun} ${resource.name}` : noun;
+}
+
+/*
+ * 'Host "web-1"' - how a linked resource is named in the context, for the
+ * model: the noun as a label, the name a quoted field. A sentence for
+ * people says describeActivityResource's "host web-1".
+ */
 export function describeLinkedResource(
   resource: LinkedInfrastructureResource,
 ): string {
@@ -1243,9 +1269,11 @@ export default class LinkedInfrastructureContext {
 
   /*
    * The activity line in English, worded as the AI Investigation card draws
-   * it (ChatActivityFeed.describeLinkedInfrastructure): the card words it
-   * from the data in the reader's language; this is what an API reader of
-   * the run's events gets.
+   * it (ChatActivityFeed.describeLinkedInfrastructure), each kind cased for
+   * the middle of the sentence as the card cases it: "on host web-1 and
+   * Docker host web-2" (describeActivityResource). The card words it from
+   * the data in the reader's language; this is what an API reader of the
+   * run's events gets.
    */
   public static describeActivity(
     activity: LinkedInfrastructureActivity,
@@ -1253,9 +1281,7 @@ export default class LinkedInfrastructureContext {
     const names: Array<string> = activity.resources
       .slice(0, 3)
       .map((resource: { kind: string; name: string }): string => {
-        const noun: string = describeActivityResourceKind(resource.kind);
-
-        return resource.name ? `${noun} ${resource.name}` : noun;
+        return describeActivityResource(resource);
       });
     const more: number = activity.resources.length - names.length;
     // "a", "a and b", "a, b and c", "a, b, c and 2 more".

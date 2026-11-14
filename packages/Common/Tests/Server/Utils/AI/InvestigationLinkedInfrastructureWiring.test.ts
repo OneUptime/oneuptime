@@ -209,7 +209,7 @@ describe("the runners wire the linked infrastructure and the follow-up check", (
     );
     expect(request.contextNotes).toEqual([
       expect.objectContaining({
-        message: "Read 1 open or recent alert on Host web-1",
+        message: "Read 1 open or recent alert on host web-1",
         linkedInfrastructure: expect.objectContaining({ alertCount: 1 }),
       }),
     ]);
@@ -414,7 +414,7 @@ describe("the runners wire the linked infrastructure and the follow-up check", (
     ).workspaceNotification;
 
     expect(followUpNotification.notificationText).toBe(
-      "🧠 AI — Automated Root Cause Analysis: Checked again after alert #12 opened on Host web-1, 2 minutes after this incident was declared: [Host] High CPU Utilization (>80%) - web-1.",
+      "🧠 AI — Automated Root Cause Analysis: Checked again after alert #12 opened on host web-1, 2 minutes after this incident was declared: [Host] High CPU Utilization (>80%) - web-1.",
     );
     expect(followUpNotification.notificationText).toBe(
       WorkspaceNotificationText.fromMarkdown(followUpMarkdown, {
