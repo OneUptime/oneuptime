@@ -180,6 +180,13 @@ import {
 } from "./LiveRows";
 import useLiveRows from "./UseLiveRows";
 import {
+  EMPTY_LIST_COUNT,
+  ListCountState,
+  getListCountUpTo,
+  getListHasMore,
+  getNextListCount,
+} from "./ListCount";
+import {
   getRelationSelectFromColumns,
   getSelectFromColumns,
 } from "./SelectFromColumns";
@@ -333,6 +340,8 @@ export interface BaseTableCallbacks<
     sort: Sort<TBaseModel>;
     select: Select<TBaseModel>;
     requestOptions?: RequestOptions | undefined;
+    // How far the count goes (ListCount.ts); unset, it is exact.
+    countUpTo?: number | undefined;
   }) => Promise<ListResult<TBaseModel>>;
   toJSONArray: (data: Array<TBaseModel>) => Array<JSONObject>;
   updateById: (data: { id: ObjectID; data: JSONObject }) => Promise<void>;
@@ -1646,6 +1655,14 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
    * pagination falls back to the count-based UI.
    */
   const [hasMore, setHasMore] = useState<boolean | undefined>(undefined);
+  /*
+   * The count stopped at its cap: totalItemsCount is the cap, read
+   * "10,000+", and the list pages by previous and next (ListCount.ts). The
+   * ref is what a read asks with, including a live read's closure.
+   */
+  const [isCountCapped, setIsCountCapped] = useState<boolean>(false);
+  const listCountRef: MutableRefObject<ListCountState> =
+    React.useRef<ListCountState>(EMPTY_LIST_COUNT);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   /*
@@ -2999,6 +3016,12 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         },
         sort: getFetchSort(),
         requestOptions: props.fetchRequestOptions,
+        // Counted no further than "10,000+" (ListCount.ts).
+        countUpTo: getListCountUpTo({
+          isManuallyOrdered: isManuallyOrdered,
+          isLiveRead: isBackground,
+          previous: listCountRef.current,
+        }),
       });
 
       if (
@@ -3041,8 +3064,18 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         setError("");
       }
 
-      setTotalItemsCount(listResult.count);
-      setHasMore(listResult.hasMore);
+      const listCount: ListCountState = getNextListCount({
+        previous: listCountRef.current,
+        result: listResult,
+        isLiveRead: isBackground,
+      });
+
+      listCountRef.current = listCount;
+      setTotalItemsCount(listCount.total);
+      setIsCountCapped(listCount.isCapped);
+      setHasMore(
+        getListHasMore({ count: listCount, hasMore: listResult.hasMore }),
+      );
       setData(listResult.data);
 
       /*
@@ -3084,7 +3117,11 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
        * but never invoked, which broke per-row owner enrichment.
        */
       if (props.onFetchSuccess) {
-        props.onFetchSuccess(listResult.data, listResult.count);
+        /*
+         * The count the list shows: a live read of a capped list counts
+         * only to its page's end, and keeps the cap it showed (ListCount).
+         */
+        props.onFetchSuccess(listResult.data, listCount.total);
       }
     } catch (err) {
       if (isBackground) {
@@ -4991,6 +5028,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         dragDisabledReason={dragDisabledReason}
         totalItemsCount={totalItemsCount}
         hasMore={hasMore}
+        isCountCapped={isCountCapped}
         data={data}
         id={props.id}
         columns={tableColumns}
@@ -5070,6 +5108,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         isLoading={getTableLoadingState()}
         totalItemsCount={totalItemsCount}
         hasMore={hasMore}
+        isCountCapped={isCountCapped}
         data={data}
         id={props.id}
         fields={fields}
@@ -5526,7 +5565,30 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                 )}
               </span>
             )}
-            {showMatchPill && hasMore !== undefined && data.length > 0 && (
+            {showMatchPill && isCountCapped && (
+              <span
+                className="flex-none whitespace-nowrap rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700"
+                title={translator.translatePlural(
+                  SEARCH_RESULT_COUNT,
+                  totalItemsCount,
+                  {
+                    count: `${translator.formatNumber(totalItemsCount)}+`,
+                  },
+                )}
+              >
+                {translator.translatePlural(
+                  SEARCH_MATCH_COUNT,
+                  totalItemsCount,
+                  {
+                    count: `${translator.formatNumber(totalItemsCount)}+`,
+                  },
+                )}
+              </span>
+            )}
+            {showMatchPill &&
+              hasMore !== undefined &&
+              !isCountCapped &&
+              data.length > 0 && (
               <span
                 className="flex-none whitespace-nowrap rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700"
                 title={translator.translatePlural(

@@ -8,6 +8,7 @@ import { EntityMetadata } from "typeorm/metadata/EntityMetadata";
 import { RelationMetadata } from "typeorm/metadata/RelationMetadata";
 import { JoinAttribute } from "typeorm/query-builder/JoinAttribute";
 import { FindOptionsUtils } from "typeorm/find-options/FindOptionsUtils";
+import { DriverUtils } from "typeorm/driver/DriverUtils";
 import TypeOrmPatchVersion from "./TypeOrmPatchVersion";
 
 /*
@@ -36,15 +37,48 @@ import TypeOrmPatchVersion from "./TypeOrmPatchVersion";
  *    findOneById with relations selected. At most one record matches, so the
  *    query that returns all its joined rows is the page.
  *
+ * A read that joins a to-many relation only to SELECT it - a list's Labels
+ * or Monitors column - keeps two queries, but not TypeORM's first one.
+ * TypeORM finds the page's ids by wrapping the whole read, every join in
+ * it, in SELECT DISTINCT ... ORDER BY ... LIMIT: Postgres builds every
+ * matching record times its labels times its monitors (the Alerts list
+ * selects a dozen such relations) before it can keep ten. A join made only
+ * to select a relation decides neither which records match nor their
+ * order: a LEFT JOIN keeps every record, and the order is the record's own
+ * columns. So the page's ids come from the table itself instead, with only
+ * the joins its filter and order need (to-one joins, one row per record),
+ * paged by LIMIT and OFFSET in index order; then the rows of those ids
+ * come from TypeORM's own second query, exactly as TypeORM writes it
+ * (readIdPage, restrictToIds). A read that filters or orders through a
+ * to-many relation keeps TypeORM's two queries: there the join does decide.
+ *
  * Every other read keeps TypeORM's two queries. PagedFindSql.test.ts holds
  * the plans to the SQL they make, PagedFindPostgres.test.ts holds the pages
  * to TypeORM's own on a real Postgres.
  */
 export default class PagedFind {
   /*
+   * The find options the id page knows how to read. A read that sets any
+   * other (a lock, a cache, a hand-written join, a relation load strategy)
+   * keeps TypeORM's two queries.
+   */
+  private static readonly ID_PAGE_OPTIONS: ReadonlySet<string> =
+    new Set<string>([
+      "where",
+      "order",
+      "withDeleted",
+      "skip",
+      "take",
+      "select",
+      "relations",
+      "loadEagerRelations",
+    ]);
+
+  /*
    * What repository.find(options) returns, through the query builder
    * repository.find builds (EntityManager.find), with the page taken in one
-   * query when that gives the same page.
+   * query when that gives the same page, and from the table itself when
+   * only a selected relation joins to many.
    */
   public static async find<TEntity extends ObjectLiteral>(
     repository: Repository<TEntity>,
@@ -62,7 +96,226 @@ export default class PagedFind {
       return await (repository as Repository<TEntity>).find(options);
     }
 
-    return await PagedFind.createQueryBuilder(repository, options).getMany();
+    const queryBuilder: SelectQueryBuilder<TEntity> =
+      PagedFind.createQueryBuilder(repository, options);
+
+    const idPageBuilder: SelectQueryBuilder<TEntity> | null =
+      PagedFind.createIdPageQueryBuilder(repository, options, queryBuilder);
+
+    if (!idPageBuilder) {
+      return await queryBuilder.getMany();
+    }
+
+    const ids: Array<unknown> = await PagedFind.readIdPage(idPageBuilder);
+
+    // No record on the page: no second query, as TypeORM does.
+    if (ids.length === 0) {
+      return [];
+    }
+
+    PagedFind.restrictToIds(queryBuilder, ids);
+
+    return await queryBuilder.getMany();
+  }
+
+  /*
+   * Whether a builder still takes its page in TypeORM's two queries (the
+   * condition executeEntitiesAndRawResults pages by): skip or take set on
+   * a read that joins.
+   */
+  public static isTypeOrmTwoQueryPage<TEntity extends ObjectLiteral>(
+    queryBuilder: SelectQueryBuilder<TEntity>,
+  ): boolean {
+    const expressionMap: SelectQueryBuilder<TEntity>["expressionMap"] =
+      queryBuilder?.expressionMap;
+
+    if (!expressionMap) {
+      return false;
+    }
+
+    return (
+      Boolean(expressionMap.skip || expressionMap.take) &&
+      expressionMap.joinAttributes.length > 0
+    );
+  }
+
+  /*
+   * The query that reads the ids of a page from the table itself, for a
+   * read TypeORM would page in two queries because a relation it SELECTS
+   * joins to many: the same filter, order, page and deleted rows, the
+   * primary key alone selected, and no relation joined but those the filter
+   * and order name. Null when that query would not give the same page:
+   *
+   *  - the read is not TypeORM's two-query page (PagedFind takes it in one,
+   *    or it is not paged);
+   *  - the filter or the order goes through a to-many relation, so the ids
+   *    query would join to many itself;
+   *  - the read sets an option this does not read (ID_PAGE_OPTIONS), or
+   *    its table has a primary key of several columns.
+   *
+   * The page is ordered by the primary key last, as TypeORM's own ids query
+   * is, so the order has no ties for the two plans to break differently.
+   */
+  public static createIdPageQueryBuilder<TEntity extends ObjectLiteral>(
+    repository: Repository<TEntity>,
+    options: FindManyOptions<TEntity>,
+    queryBuilder?: SelectQueryBuilder<TEntity> | undefined,
+  ): SelectQueryBuilder<TEntity> | null {
+    const fullBuilder: SelectQueryBuilder<TEntity> =
+      queryBuilder || PagedFind.createQueryBuilder(repository, options);
+
+    if (!PagedFind.isTypeOrmTwoQueryPage(fullBuilder)) {
+      return null;
+    }
+
+    // Set by hand on the builder; this only rewrites what find options set.
+    if (
+      fullBuilder.expressionMap.limit !== undefined ||
+      fullBuilder.expressionMap.offset !== undefined
+    ) {
+      return null;
+    }
+
+    const optionNames: Array<string> = Object.keys(options || {}).filter(
+      (name: string): boolean => {
+        return (options as Record<string, unknown>)[name] !== undefined;
+      },
+    );
+
+    if (
+      !optionNames.every((name: string): boolean => {
+        return PagedFind.ID_PAGE_OPTIONS.has(name);
+      })
+    ) {
+      return null;
+    }
+
+    const metadata: EntityMetadata = repository.metadata;
+
+    if (metadata.primaryColumns.length !== 1) {
+      return null;
+    }
+
+    const primaryColumn: EntityMetadata["primaryColumns"][number] =
+      metadata.primaryColumns[0]!;
+
+    if (primaryColumn.embeddedMetadata) {
+      return null;
+    }
+
+    const idOptions: FindManyOptions<TEntity> = {
+      where: options.where,
+      order: options.order,
+      withDeleted: options.withDeleted,
+      skip: options.skip,
+      take: options.take,
+      select: {
+        [primaryColumn.propertyName]: true,
+      } as FindManyOptions<TEntity>["select"],
+      // Joined to select only: they decide neither the records nor their order.
+      loadEagerRelations: false,
+    };
+
+    const idBuilder: SelectQueryBuilder<TEntity> =
+      PagedFind.createQueryBuilder(repository, idOptions);
+
+    /*
+     * Its joins, if any, are the ones its filter and order name. Each must
+     * keep one row per record - then its page, by LIMIT and OFFSET in its
+     * own SQL (takePageInOneQueryWherePossible), is a page of records.
+     */
+    if (
+      !idBuilder.expressionMap.joinAttributes.every(
+        (join: JoinAttribute): boolean => {
+          return PagedFind.isOneRowPerRecordJoin(join);
+        },
+      )
+    ) {
+      return null;
+    }
+
+    // The primary key last, as TypeORM's own ids query orders.
+    const primaryKeyOrder: string = `${idBuilder.expressionMap.mainAlias!.name}.${primaryColumn.propertyPath}`;
+
+    if (!(primaryKeyOrder in idBuilder.expressionMap.orderBys)) {
+      idBuilder.addOrderBy(primaryKeyOrder, "ASC");
+    }
+
+    return idBuilder;
+  }
+
+  /*
+   * The ids of the page, in its order, as the id page's query returns them
+   * (raw: no entity is built for an id).
+   */
+  public static async readIdPage<TEntity extends ObjectLiteral>(
+    idPageBuilder: SelectQueryBuilder<TEntity>,
+  ): Promise<Array<unknown>> {
+    const metadata: EntityMetadata =
+      idPageBuilder.expressionMap.mainAlias!.metadata;
+
+    const idAlias: string = DriverUtils.buildAlias(
+      idPageBuilder.connection.driver,
+      undefined,
+      idPageBuilder.expressionMap.mainAlias!.name,
+      metadata.primaryColumns[0]!.databaseName,
+    );
+
+    const rows: Array<Record<string, unknown>> =
+      await idPageBuilder.getRawMany();
+
+    const ids: Array<unknown> = [];
+    const seen: Set<unknown> = new Set<unknown>();
+
+    for (const row of rows) {
+      const id: unknown = row[idAlias];
+
+      if (id === undefined || id === null || seen.has(id)) {
+        continue;
+      }
+
+      seen.add(id);
+      ids.push(id);
+    }
+
+    return ids;
+  }
+
+  /*
+   * Turns the read into TypeORM's own second query of its two-query page:
+   * the same read, unpaged, kept to the page's ids by the condition and the
+   * parameter TypeORM itself appends (executeEntitiesAndRawResults), so its
+   * SQL is TypeORM's to the character.
+   */
+  public static restrictToIds<TEntity extends ObjectLiteral>(
+    queryBuilder: SelectQueryBuilder<TEntity>,
+    ids: Array<unknown>,
+  ): void {
+    const mainAliasName: string = queryBuilder.expressionMap.mainAlias!.name;
+    const metadata: EntityMetadata =
+      queryBuilder.expressionMap.mainAlias!.metadata;
+    const primaryColumn: EntityMetadata["primaryColumns"][number] =
+      metadata.primaryColumns[0]!;
+
+    queryBuilder.skip(undefined);
+    queryBuilder.take(undefined);
+
+    const areAllNumbers: boolean = ids.every((id: unknown): boolean => {
+      return typeof id === "number";
+    });
+
+    /*
+     * What TypeORM's mergeExpressionMap({ extraAppendedAndWhereCondition })
+     * sets (a protected method): createWhereExpression appends it to the
+     * read's conditions.
+     */
+    if (areAllNumbers) {
+      queryBuilder.expressionMap.extraAppendedAndWhereCondition = `${mainAliasName}.${primaryColumn.propertyPath} IN (${ids.join(", ")})`;
+      return;
+    }
+
+    queryBuilder.expressionMap.extraAppendedAndWhereCondition = `${mainAliasName}.${primaryColumn.propertyPath} IN (:...orm_distinct_ids)`;
+    queryBuilder.setParameters({ orm_distinct_ids: ids });
   }
 
   public static createQueryBuilder<TEntity extends ObjectLiteral>(

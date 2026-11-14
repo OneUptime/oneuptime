@@ -993,6 +993,7 @@ import { AddInventoryItemMirrorKeysetIndex1809164100000 } from "./1809164100000-
 import { MatchMonitorIndexesToTheirReads1809165000000 } from "./1809165000000-MatchMonitorIndexesToTheirReads";
 import { AddOnCallExecutionLogListIndexes1809165100000 } from "./1809165100000-AddOnCallExecutionLogListIndexes";
 import { AddTeamMemberUserProjectIndex1809168000000 } from "./1809168000000-AddTeamMemberUserProjectIndex";
+import { AddAlertAndIncidentListIndexes1809169000000 } from "./1809169000000-AddAlertAndIncidentListIndexes";
 
 export default [
   InitialMigration,
@@ -1990,4 +1991,5 @@ export default [
   MatchMonitorIndexesToTheirReads1809165000000,
   AddOnCallExecutionLogListIndexes1809165100000,
   AddTeamMemberUserProjectIndex1809168000000,
+  AddAlertAndIncidentListIndexes1809169000000,
 ];
