@@ -1835,7 +1835,7 @@ export function getApiTasks(data: {
     });
 }
 
-// "an incident", "a scheduled maintenance event": for step titles.
+// "an incident", "a maintenance event": for step titles.
 export function getCreateTitle(data: {
   modelType: DatabaseBaseModelType;
   singularName: string;

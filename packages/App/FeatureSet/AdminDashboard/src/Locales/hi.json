@@ -2671,7 +2671,7 @@
   "Deleting a monitor also deletes its status history and takes it off status pages, monitor groups and SLOs. Its incidents and alerts stay.": "मॉनिटर हटाने से उसका स्थिति इतिहास भी हट जाता है और वह स्थिति पृष्ठों, मॉनिटर समूहों और SLO से हट जाता है। उसकी घटनाएँ और अलर्ट बने रहते हैं।",
   "Deleting an incident also deletes its notes and state timeline, and takes it off status pages. Linked alerts stay.": "घटना हटाने से उसके नोट और स्थिति टाइमलाइन भी हट जाते हैं, और वह स्थिति पृष्ठों से हट जाती है। जुड़े हुए अलर्ट बने रहते हैं।",
   "Deleting an alert also deletes its notes and state timeline. Linked incidents stay.": "अलर्ट हटाने से उसके नोट और स्थिति टाइमलाइन भी हट जाते हैं। जुड़ी हुई घटनाएँ बनी रहती हैं।",
-  "Deleting a scheduled maintenance event also deletes its notes and state timeline, and takes it off status pages.": "अनुसूचित रखरखाव इवेंट हटाने से उसके नोट और स्थिति टाइमलाइन भी हट जाते हैं, और वह स्थिति पृष्ठों से हट जाता है।",
+  "Deleting a maintenance event also deletes its notes and state timeline, and takes it off status pages.": "रखरखाव इवेंट हटाने से उसके नोट और स्थिति टाइमलाइन भी हट जाते हैं, और वह स्थिति पृष्ठों से हट जाता है।",
   "Deleting an incident episode also deletes its notes and state timeline. Its incidents stay.": "घटना एपिसोड हटाने से उसके नोट और स्थिति टाइमलाइन भी हट जाते हैं। उसकी घटनाएँ बनी रहती हैं।",
   "Deleting an alert episode also deletes its notes and state timeline. Its alerts stay.": "अलर्ट एपिसोड हटाने से उसके नोट और स्थिति टाइमलाइन भी हट जाते हैं। उसके अलर्ट बने रहते हैं।",
   "Deleting a monitor group takes it off status pages. Its monitors stay.": "मॉनिटर समूह हटाने से वह स्थिति पृष्ठों से हट जाता है। उसके मॉनिटर बने रहते हैं।",

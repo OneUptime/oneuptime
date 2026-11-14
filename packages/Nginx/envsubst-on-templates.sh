@@ -183,9 +183,19 @@ auto_envsubst() {
 # requests people sent to HOST: they fell to the status-page default_server,
 # which does not route /identity, and signing up or in answered
 # "Page not found - /identity/signup".
-# Everything up to the first ":", the rule run.sh's PRIMARY_DOMAIN and the
-# app's own host check use.
-export HOST_WITHOUT_PORT="${HOST%%:*}"
+#
+# The port follows the one ":" of a name or an IPv4 address. An IPv6 address
+# with a port is written in brackets ("[2001:db8::1]:8080"), and nginx keeps
+# them when it reads such a Host: the server is named "[2001:db8::1]". Cut at
+# its first ":" it was named "[2001", which no request names (#7889). An IPv6
+# address without brackets has no port: all its colons are its own. The rule
+# of run.sh's PRIMARY_DOMAIN, and of the app's (HostAddressUtil.stripPort in
+# Common).
+case "${HOST}" in
+  \[*\]*) export HOST_WITHOUT_PORT="${HOST%%]*}]" ;;
+  *:*:*) export HOST_WITHOUT_PORT="${HOST}" ;;
+  *) export HOST_WITHOUT_PORT="${HOST%:*}" ;;
+esac
 
 # Upstream connection pooling (keepalive). When enabled, proxy_pass targets the
 # named upstream{} pools (kept in the template above); the pool pins the backend

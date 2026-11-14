@@ -25,7 +25,7 @@ flowchart TB
 
 - **Eintreffende Metriken.** Senden Sie sie mit [OpenTelemetry](/docs/telemetry/open-telemetry) oder von einem Agenten wie dem [Host-OpenTelemetry-Collector](/docs/telemetry/host-otel-collector).
 - **Eine Rolle, die Metriken lesen darf.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member oder Telemetry Viewer, oder eine eigene Rolle mit der Berechtigung Read Metrics. Eine Rolle, die auf einige Dienste beschränkt ist, liest nur deren Metriken.
-- **Für Grafana oder ein Skript: ein API-Schlüssel des Projekts** mit einer dieser Rollen oder der Berechtigung Read Metrics. Siehe [Einen API-Schlüssel anlegen](/docs/api-reference/api-reference#einen-api-schlüssel-anlegen). In OneUptime Cloud brauchen API-Schlüssel den Tarif **Growth**.
+- **Für Grafana oder ein Skript: ein API-Schlüssel des Projekts** mit einer dieser Rollen oder der Berechtigung Read Metrics. Siehe [Einen API-Schlüssel erstellen](/docs/api-reference/api-reference#einen-api-schlüssel-erstellen). In OneUptime Cloud brauchen API-Schlüssel den Tarif **Growth**.
 
 ## Eine Abfrage schreiben
 
@@ -79,7 +79,7 @@ OneUptime speichert Metriken im Stil von OpenTelemetry. PromQL liest sie mit den
 ## Grafana verbinden
 
 :::steps
-### Einen API-Schlüssel anlegen
+### Einen API-Schlüssel erstellen
 
 Öffnen Sie in OneUptime **Projekteinstellungen → Erweitert → API-Schlüssel** und klicken Sie auf **API-Schlüssel erstellen**. Geben Sie dem Schlüssel eine Rolle, die Telemetrie lesen darf, oder die Berechtigung Read Metrics.
 

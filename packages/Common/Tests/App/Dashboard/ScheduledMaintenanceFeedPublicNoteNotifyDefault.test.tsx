@@ -225,7 +225,7 @@ describe("Scheduled Maintenance Feed public note: event created without notifyin
       PublicNoteSubscriberNotificationDefault.quietScheduledMaintenanceDescription,
     );
     expect(notifyDescription(dialog)).toBe(
-      "Unticked by default because status page subscribers were not notified when this scheduled maintenance event was created.",
+      "Unticked by default because status page subscribers were not notified when this maintenance event was created.",
     );
   });
 
