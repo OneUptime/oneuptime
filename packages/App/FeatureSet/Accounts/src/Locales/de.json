@@ -610,7 +610,8 @@
   "Click to choose a file or drag & drop.": "Klicken Sie, um eine Datei auszuwählen, oder ziehen Sie sie hierher.",
   "Click to add more or drag & drop.": "Klicken Sie, um weitere hinzuzufügen, oder ziehen Sie sie hierher.",
   "PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP, up to {{size}}.": "PDF-, Office- und OpenDocument-Dateien, Bilder, Text, CSV, JSON, ZIP oder PCAP, bis zu {{size}}.",
-  "Up to 10 files of {{size}} each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.": "Bis zu 10 Dateien mit je {{size}}: PDF-, Office- und OpenDocument-Dateien, Bilder, Text, CSV, JSON, ZIP oder PCAP.",
+  "Up to {{count}} files of {{size}} each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.": "Bis zu {{count}} Dateien mit je {{size}}: PDF-, Office- und OpenDocument-Dateien, Bilder, Text, CSV, JSON, ZIP oder PCAP.",
+  "Up to {{count}} files of {{size}} each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP._one": "Eine Datei mit bis zu {{size}}: PDF-, Office- und OpenDocument-Dateien, Bilder, Text, CSV, JSON, ZIP oder PCAP.",
   "Chosen files": "Ausgewählte Dateien",
   "Remove": "Entfernen",
   "Replace": "Ersetzen",
@@ -621,6 +622,7 @@
   "These files are not a type this field takes: {{fileNames}}.": "Diese Dateien haben einen Typ, den dieses Feld nicht akzeptiert: {{fileNames}}.",
   "Add one file at a time.": "Fügen Sie jeweils nur eine Datei hinzu.",
   "This field holds up to {{count}} files. Remove one to add another.": "Dieses Feld fasst bis zu {{count}} Dateien. Entfernen Sie eine, um eine weitere hinzuzufügen.",
+  "This field holds up to {{count}} files. Remove one to add another._one": "Dieses Feld fasst eine Datei. Entfernen Sie sie, um eine andere hinzuzufügen.",
   "markdownCallouts": {
     "caution": "Vorsicht",
     "danger": "Gefahr",
