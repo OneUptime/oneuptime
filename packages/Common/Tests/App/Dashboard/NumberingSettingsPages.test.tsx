@@ -168,7 +168,7 @@ const PAGES: Array<PageUnderTest> = [
     productCrumb: "Scheduled Maintenance",
     rows: [["Events", "SM-", "SM-42"]],
     description:
-      "The short text in front of scheduled maintenance event numbers, like SM- in SM-42.",
+      "The short text in front of maintenance event numbers, like SM- in SM-42.",
     editDescription:
       "Only new events use the new prefix. Existing ones keep their numbers.",
   },

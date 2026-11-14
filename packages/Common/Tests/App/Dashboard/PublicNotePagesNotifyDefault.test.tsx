@@ -200,7 +200,7 @@ const PAGES: Array<PublicNotePageCase> = [
       PublicNoteSubscriberNotificationDefault.quietScheduledMaintenanceDescription,
     noteModel: ScheduledMaintenancePublicNote,
     parentIdField: "scheduledMaintenanceId",
-    eventNoun: "scheduled maintenance event",
+    eventNoun: "maintenance event",
     attachmentApiPath: "/scheduled-maintenance-public-note/attachment",
     hasAudienceSummary: false,
     canBePrivate: false,

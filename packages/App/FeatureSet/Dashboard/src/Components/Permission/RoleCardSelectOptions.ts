@@ -139,10 +139,10 @@ export const ROLE_CARD_SUMMARIES: Partial<Record<Permission, string>> = {
   ),
 
   [Permission.ScheduledMaintenanceAdmin]: translationKey(
-    "Scheduled maintenance events, with their states.",
+    "Maintenance events, with their states.",
   ),
   [Permission.ScheduledMaintenanceMember]: translationKey(
-    "Create, change and delete scheduled maintenance events.",
+    "Create, change and delete maintenance events.",
   ),
   [Permission.ScheduledMaintenanceViewer]: translationKey(
     "Read scheduled maintenance. Change nothing.",
