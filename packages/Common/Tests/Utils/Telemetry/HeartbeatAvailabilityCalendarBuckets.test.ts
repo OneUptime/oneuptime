@@ -98,6 +98,12 @@ function xs(points: Array<HeartbeatAvailabilityPoint>): Array<string> {
   });
 }
 
+// The last point's x (Common targets ES2017, which has no Array.prototype.at).
+function lastX(points: Array<HeartbeatAvailabilityPoint>): string | undefined {
+  const all: Array<string> = xs(points);
+  return all[all.length - 1];
+}
+
 function isoStrings(instants: Array<Date>): Array<string> {
   return instants.map((instant: Date) => {
     return instant.toISOString();
@@ -257,7 +263,7 @@ describe("Heartbeat availability walks day, week, month and year buckets on the 
       });
 
       expect(downXs(result)).toEqual([]);
-      expect(xs(result.points).at(-1)).toBe("2026-11-12T00:00:00.000Z");
+      expect(lastX(result.points)).toBe("2026-11-12T00:00:00.000Z");
       expect(result.uptimePercent).toBe(100);
     });
 
@@ -278,7 +284,7 @@ describe("Heartbeat availability walks day, week, month and year buckets on the 
       });
 
       expect(downXs(result)).toEqual([]);
-      expect(xs(result.points).at(-1)).toBe("2026-10-23T23:00:00.000Z");
+      expect(lastX(result.points)).toBe("2026-10-23T23:00:00.000Z");
       expect(result.uptimePercent).toBe(100);
     });
 
