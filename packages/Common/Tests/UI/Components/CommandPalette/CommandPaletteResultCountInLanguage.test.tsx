@@ -1,5 +1,11 @@
 import "@testing-library/jest-dom";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import { afterEach, beforeAll, describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import { createInstance, i18n } from "i18next";

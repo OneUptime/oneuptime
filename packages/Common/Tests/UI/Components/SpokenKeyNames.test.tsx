@@ -6,6 +6,7 @@ import { createInstance, i18n } from "i18next";
 import path from "path";
 import React, { ReactElement } from "react";
 import { I18nextProvider } from "react-i18next";
+import ts from "typescript";
 import KeyboardShortcut from "../../../UI/Components/KeyboardShortcut/KeyboardShortcut";
 import KeyboardKey, {
   ENGLISH_SPOKEN_KEY_NAMES,
@@ -50,9 +51,9 @@ const KEY_PATHS: Record<keyof SpokenKeyNames, string> = {
   windows: "windows",
 };
 
-const FIELDS: Array<keyof SpokenKeyNames> = Object.keys(
-  KEY_PATHS,
-) as Array<keyof SpokenKeyNames>;
+const FIELDS: Array<keyof SpokenKeyNames> = Object.keys(KEY_PATHS) as Array<
+  keyof SpokenKeyNames
+>;
 
 // Every key's word marked with its own field: "<shift>".
 const MARKED: SpokenKeyNames = FIELDS.reduce(
@@ -344,9 +345,9 @@ describe("a shortcut drawn in German", () => {
         },
       ),
     ).toEqual(["Ctrl", "Shift", "↑"]);
-    expect(
-      screen.getByText("Strg + Umschalt + Pfeil nach oben"),
-    ).toHaveClass("sr-only");
+    expect(screen.getByText("Strg + Umschalt + Pfeil nach oben")).toHaveClass(
+      "sr-only",
+    );
     expect(screen.queryByText(/Control/)).toBeNull();
   });
 
@@ -402,5 +403,142 @@ describe("a shortcut drawn in German", () => {
     );
 
     expect(screen.getByTitle("Search · Control + K")).toBeInTheDocument();
+  });
+});
+
+/*
+ * Every place that says a shortcut in words hands the helpers the reader's
+ * names: a call that leaves them out says the keys in English on every
+ * page, as both callers did before #7484.
+ */
+const SAYING_METHODS: ReadonlyArray<string> = [
+  "getShortcutLabel",
+  "getSpokenKey",
+];
+
+// Where the helpers say a key on their own behalf, with names handed in.
+const HELPERS_FILE: string = path.join(
+  "Common",
+  "UI",
+  "Components",
+  "KeyboardShortcut",
+  "KeyboardKey.ts",
+);
+
+const PACKAGES_DIR: string = path.resolve(__dirname, "../../../..");
+
+const SCANNED_FOLDERS: ReadonlyArray<string> = [
+  path.join(PACKAGES_DIR, "Common", "UI"),
+  path.join(PACKAGES_DIR, "App", "FeatureSet"),
+];
+
+const SOURCE_FILE_NAME: RegExp = /\.tsx?$/u;
+
+// Each call of a saying method that hands no names, as "file:line".
+function callsWithoutNames(fileName: string, text: string): Array<string> {
+  const source: ts.SourceFile = ts.createSourceFile(
+    fileName,
+    text,
+    ts.ScriptTarget.Latest,
+    true,
+    fileName.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
+  );
+  const found: Array<string> = [];
+
+  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+    if (
+      ts.isCallExpression(node) &&
+      ts.isPropertyAccessExpression(node.expression) &&
+      SAYING_METHODS.includes(node.expression.name.text) &&
+      node.arguments.length < 3
+    ) {
+      const line: number =
+        source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1;
+      found.push(`${fileName}:${line}`);
+    }
+    ts.forEachChild(node, visit);
+  };
+
+  visit(source);
+
+  return found;
+}
+
+function sourceFiles(folder: string): Array<string> {
+  const files: Array<string> = [];
+
+  for (const entry of fs.readdirSync(folder, { withFileTypes: true })) {
+    const full: string = path.join(folder, entry.name);
+
+    if (entry.isDirectory()) {
+      if (entry.name !== "node_modules" && entry.name !== "build") {
+        files.push(...sourceFiles(full));
+      }
+    } else if (
+      SOURCE_FILE_NAME.test(entry.name) &&
+      !entry.name.endsWith(".d.ts")
+    ) {
+      files.push(full);
+    }
+  }
+
+  return files;
+}
+
+describe("every place a shortcut is said in words", () => {
+  test("hands the reader's names (useSpokenKeyNames)", () => {
+    const callers: Array<string> = [];
+    const unnamed: Array<string> = [];
+
+    for (const folder of SCANNED_FOLDERS) {
+      for (const file of sourceFiles(folder)) {
+        const relative: string = path.relative(PACKAGES_DIR, file);
+        const text: string = fs.readFileSync(file, "utf8");
+
+        if (
+          relative === HELPERS_FILE ||
+          !SAYING_METHODS.some((method: string): boolean => {
+            return text.includes(method);
+          })
+        ) {
+          continue;
+        }
+
+        callers.push(relative);
+        unnamed.push(...callsWithoutNames(relative, text));
+      }
+    }
+
+    // The keycaps' screen-reader label and a header button's tooltip.
+    expect(callers.sort()).toEqual([
+      path.join(
+        "Common",
+        "UI",
+        "Components",
+        "Header",
+        "HeaderIconDropdownButton.tsx",
+      ),
+      path.join(
+        "Common",
+        "UI",
+        "Components",
+        "KeyboardShortcut",
+        "KeyboardShortcut.tsx",
+      ),
+    ]);
+    expect(unnamed).toEqual([]);
+  });
+
+  test("negative control: a call that hands no names is found", () => {
+    expect(
+      callsWithoutNames(
+        "Example.tsx",
+        [
+          "const a = KeyboardKeyUtil.getShortcutLabel(keys, isApple);",
+          "const b = KeyboardKeyUtil.getShortcutLabel(keys, isApple, names);",
+          "const c = KeyboardKeyUtil.getSpokenKey(key);",
+        ].join("\n"),
+      ),
+    ).toEqual(["Example.tsx:1", "Example.tsx:3"]);
   });
 });

@@ -107,9 +107,7 @@ const ProjectPicker: FunctionComponent<ComponentProps> = (
    * box): the first row until a key or the pointer moves it, and the first
    * again whenever the search changes what is listed.
    */
-  const [activeRowId, setActiveRowId] = useState<string | undefined>(
-    undefined,
-  );
+  const [activeRowId, setActiveRowId] = useState<string | undefined>(undefined);
 
   // The list was opened from the keyboard: the search box takes the focus.
   const [openedFromKeyboard, setOpenedFromKeyboard] = useState<boolean>(false);

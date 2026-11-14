@@ -114,7 +114,9 @@ describe("Traditional Chinese says 快速鍵, as its Dashboard does", () => {
 
   it("negative control: the check finds the Simplified word where a line says it", () => {
     expect(
-      linesSaying("# 首頁與快速鍵\n\n## 鍵盤快捷鍵\n\n按 `?` 即可檢視這些快捷鍵。"),
+      linesSaying(
+        "# 首頁與快速鍵\n\n## 鍵盤快捷鍵\n\n按 `?` 即可檢視這些快捷鍵。",
+      ),
     ).toEqual([3, 5]);
     expect(linesSaying("# 首頁與快速鍵")).toEqual([]);
   });
@@ -125,6 +127,12 @@ describe("Traditional Chinese says 快速鍵, as its Dashboard does", () => {
  * English page's sections, in its order.
  */
 const LOGS_PAGE: string = "telemetry/logs-explorer";
+
+// The dialog ? opens in the Logs viewer, whose title the section quotes.
+const LOGS_SHORTCUTS_DIALOG: string = path.resolve(
+  __dirname,
+  "../../../../Common/UI/Components/LogsViewer/components/KeyboardShortcutsHelp.tsx",
+);
 
 function sectionTitles(language: string): Array<string> {
   return scanMarkdown(readPage(language, LOGS_PAGE))
@@ -144,6 +152,12 @@ describe("the Logs explorer page's Keyboard shortcuts section, titled as the Log
     expect(at).toBeGreaterThan(0);
     expect(dashboardLocale("en")["Keyboard shortcuts"]).toBe(
       "Keyboard shortcuts",
+    );
+  });
+
+  it("is what the Logs viewer's own dialog is titled", () => {
+    expect(fs.readFileSync(LOGS_SHORTCUTS_DIALOG, "utf8")).toContain(
+      'translator.translateText("Keyboard shortcuts")',
     );
   });
 

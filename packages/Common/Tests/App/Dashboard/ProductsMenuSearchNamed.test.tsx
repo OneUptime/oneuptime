@@ -168,7 +168,10 @@ async function instanceFor(
 }
 
 // The products menu opened from the Dashboard's nav bar, in a language.
-async function openProductsMenu(instance: i18n, locale: LocaleTree): Promise<HTMLElement> {
+async function openProductsMenu(
+  instance: i18n,
+  locale: LocaleTree,
+): Promise<HTMLElement> {
   await act(async () => {
     render(
       <MemoryRouter initialEntries={[`/dashboard/${PROJECT_ID}/home`]}>

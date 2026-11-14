@@ -258,7 +258,9 @@ function englishInDialog(dialog: HTMLElement, language: string): Array<string> {
 function spokenShortcuts(element: HTMLElement): Array<string> {
   const groups: Array<HTMLElement> = [];
 
-  for (const keycap of Array.from(element.querySelectorAll<HTMLElement>("kbd"))) {
+  for (const keycap of Array.from(
+    element.querySelectorAll<HTMLElement>("kbd"),
+  )) {
     const group: HTMLElement | null = keycap.parentElement;
 
     if (group && !groups.includes(group)) {

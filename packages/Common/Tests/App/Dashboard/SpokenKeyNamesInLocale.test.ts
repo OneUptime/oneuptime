@@ -100,7 +100,18 @@ const PRINTED_AS_ENGLISH: Record<
       "keyboards print Tab, and the help says Tab (Swedish's says Tabb, French's Tab)",
   },
   command: {
-    languages: ["pt", "nl", "ru", "ja", "ko", "zh-CN", "zh-TW", "hi", "fa", "ar"],
+    languages: [
+      "pt",
+      "nl",
+      "ru",
+      "ja",
+      "ko",
+      "zh-CN",
+      "zh-TW",
+      "hi",
+      "fa",
+      "ar",
+    ],
     reason:
       "Apple's help in these languages calls the ⌘ key Command (German's Befehlstaste, French's Commande, the Nordic Kommando)",
   },
@@ -122,7 +133,18 @@ const PRINTED_AS_ENGLISH: Record<
       "Apple's help in these languages calls the ⌥ key Option (German's Wahltaste, Spanish's Opción, Swedish's Alternativ)",
   },
   shift: {
-    languages: ["pt", "nl", "ru", "ja", "ko", "zh-CN", "zh-TW", "hi", "fa", "ar"],
+    languages: [
+      "pt",
+      "nl",
+      "ru",
+      "ja",
+      "ko",
+      "zh-CN",
+      "zh-TW",
+      "hi",
+      "fa",
+      "ar",
+    ],
     reason:
       "these languages' keyboards print Shift (German's print Umschalt, French's Maj, the Nordic Skift)",
   },
@@ -145,7 +167,19 @@ const PRINTED_AS_ENGLISH: Record<
       "these languages' keyboards print Enter (German's help says Eingabetaste, Spanish keyboards print Intro, Italian Invio)",
   },
   backspace: {
-    languages: ["it", "pt", "nl", "ru", "ja", "ko", "zh-CN", "zh-TW", "hi", "fa", "ar"],
+    languages: [
+      "it",
+      "pt",
+      "nl",
+      "ru",
+      "ja",
+      "ko",
+      "zh-CN",
+      "zh-TW",
+      "hi",
+      "fa",
+      "ar",
+    ],
     reason:
       "these languages' help calls the key Backspace (German's Rücktaste, French's Retour arrière)",
   },
@@ -293,62 +327,70 @@ describe("the check itself (negative control)", () => {
   });
 });
 
-describe.each([...DASHBOARD_LANGUAGES])("the key names in %s", (language: string) => {
-  const dashboard: LocaleTree = readLocale("Dashboard", language);
+describe.each([...DASHBOARD_LANGUAGES])(
+  "the key names in %s",
+  (language: string) => {
+    const dashboard: LocaleTree = readLocale("Dashboard", language);
 
-  test("every key is named in the language, or as its keyboards print it", () => {
-    expect(Object.keys(keyboardKeysOf(dashboard)).sort()).toEqual(ENTRIES);
-    expect(
-      englishKeyNames(dashboard, DASHBOARD_ENGLISH, language, PRINTED_AS_ENGLISH),
-    ).toEqual([]);
-  });
+    test("every key is named in the language, or as its keyboards print it", () => {
+      expect(Object.keys(keyboardKeysOf(dashboard)).sort()).toEqual(ENTRIES);
+      expect(
+        englishKeyNames(
+          dashboard,
+          DASHBOARD_ENGLISH,
+          language,
+          PRINTED_AS_ENGLISH,
+        ),
+      ).toEqual([]);
+    });
 
-  test("every listed name is still the English one: the list hides nothing stale", () => {
-    const words: LocaleTree = keyboardKeysOf(dashboard);
-    const english: LocaleTree = keyboardKeysOf(DASHBOARD_ENGLISH);
+    test("every listed name is still the English one: the list hides nothing stale", () => {
+      const words: LocaleTree = keyboardKeysOf(dashboard);
+      const english: LocaleTree = keyboardKeysOf(DASHBOARD_ENGLISH);
 
-    for (const [entry, listed] of Object.entries(PRINTED_AS_ENGLISH)) {
-      if (listed.languages.includes(language)) {
-        expect({ entry: entry, word: words[entry] }).toEqual({
+      for (const [entry, listed] of Object.entries(PRINTED_AS_ENGLISH)) {
+        if (listed.languages.includes(language)) {
+          expect({ entry: entry, word: words[entry] }).toEqual({
+            entry: entry,
+            word: english[entry],
+          });
+        }
+      }
+    });
+
+    test("a name is one line of words: no direction mark, no keycap glyph, no shortcut joiner", () => {
+      for (const [entry, word] of Object.entries(keyboardKeysOf(dashboard))) {
+        expect({
           entry: entry,
-          word: english[entry],
+          mark: DIRECTION_MARKS.test(word as string),
+          glyph: KEYCAP_GLYPHS.test(word as string),
+          lines: (word as string).split("\n").length,
+          joiner: (word as string).includes(" + "),
+        }).toEqual({
+          entry: entry,
+          mark: false,
+          glyph: false,
+          lines: 1,
+          joiner: false,
         });
       }
-    }
-  });
+    });
 
-  test("a name is one line of words: no direction mark, no keycap glyph, no shortcut joiner", () => {
-    for (const [entry, word] of Object.entries(keyboardKeysOf(dashboard))) {
-      expect({
-        entry: entry,
-        mark: DIRECTION_MARKS.test(word as string),
-        glyph: KEYCAP_GLYPHS.test(word as string),
-        lines: (word as string).split("\n").length,
-        joiner: (word as string).includes(" + "),
-      }).toEqual({
-        entry: entry,
-        mark: false,
-        glyph: false,
-        lines: 1,
-        joiner: false,
-      });
-    }
-  });
+    test("the four arrows have four different names, and the two Apple modifiers two", () => {
+      const words: LocaleTree = keyboardKeysOf(dashboard);
+      const arrows: Set<string | LocaleTree | undefined> = new Set([
+        words["arrowUp"],
+        words["arrowDown"],
+        words["arrowLeft"],
+        words["arrowRight"],
+      ]);
 
-  test("the four arrows have four different names, and the two Apple modifiers two", () => {
-    const words: LocaleTree = keyboardKeysOf(dashboard);
-    const arrows: Set<string | LocaleTree | undefined> = new Set([
-      words["arrowUp"],
-      words["arrowDown"],
-      words["arrowLeft"],
-      words["arrowRight"],
-    ]);
-
-    expect(arrows.size).toBe(4);
-    expect(words["command"]).not.toBe(words["option"]);
-    expect(words["control"]).not.toBe(words["command"]);
-  });
-});
+      expect(arrows.size).toBe(4);
+      expect(words["command"]).not.toBe(words["option"]);
+      expect(words["control"]).not.toBe(words["command"]);
+    });
+  },
+);
 
 describe.each([...ADMIN_DASHBOARD_LANGUAGES])(
   "the Admin Dashboard's key names in %s",

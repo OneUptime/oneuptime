@@ -58,8 +58,14 @@ export const useSpokenKeyNames: () => SpokenKeyNames = (): SpokenKeyNames => {
     tab: orEnglish(t("keyboardKeys.tab", "Tab"), "Tab"),
     space: orEnglish(t("keyboardKeys.space", "Space"), "Space"),
     arrowUp: orEnglish(t("keyboardKeys.arrowUp", "Up arrow"), "Up arrow"),
-    arrowDown: orEnglish(t("keyboardKeys.arrowDown", "Down arrow"), "Down arrow"),
-    arrowLeft: orEnglish(t("keyboardKeys.arrowLeft", "Left arrow"), "Left arrow"),
+    arrowDown: orEnglish(
+      t("keyboardKeys.arrowDown", "Down arrow"),
+      "Down arrow",
+    ),
+    arrowLeft: orEnglish(
+      t("keyboardKeys.arrowLeft", "Left arrow"),
+      "Left arrow",
+    ),
     arrowRight: orEnglish(
       t("keyboardKeys.arrowRight", "Right arrow"),
       "Right arrow",

@@ -215,11 +215,7 @@ describe("the list a screen reader meets", () => {
     );
 
     openWithPointer(pickerButton("Acme Production"));
-    const first: Array<string> = [
-      ...optionIds(),
-      listbox().id,
-      searchBox().id,
-    ];
+    const first: Array<string> = [...optionIds(), listbox().id, searchBox().id];
     openWithPointer(pickerButton("Acme Production"));
     expect(screen.queryByRole("listbox")).toBeNull();
 
@@ -312,8 +308,10 @@ describe("the list from the keyboard", () => {
       within(listbox())
         .getAllByRole("option")
         .forEach((option: HTMLElement, at: number) => {
-          expect({ row: at, selected: option.getAttribute("aria-selected") })
-            .toEqual({ row: at, selected: at === index ? "true" : "false" });
+          expect({
+            row: at,
+            selected: option.getAttribute("aria-selected"),
+          }).toEqual({ row: at, selected: at === index ? "true" : "false" });
         });
     };
 

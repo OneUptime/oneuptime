@@ -150,9 +150,7 @@ function chartsOnScreen(): Array<ChartWords> {
     .getAllByTestId("control-plane-chart")
     .map((chart: HTMLElement): ChartWords => {
       const part: (name: string) => string = (name: string): string => {
-        return (
-          chart.querySelector(`[data-part="${name}"]`)?.textContent || ""
-        );
+        return chart.querySelector(`[data-part="${name}"]`)?.textContent || "";
       };
 
       return {
@@ -210,9 +208,7 @@ beforeEach(() => {
   jest
     .spyOn(Navigation, "getLastParamAsObjectID")
     .mockReturnValue(new ObjectID("b7000000-0000-4000-8000-0000000000d1"));
-  jest
-    .spyOn(ModelAPI, "getItem")
-    .mockResolvedValue(cluster as never);
+  jest.spyOn(ModelAPI, "getItem").mockResolvedValue(cluster as never);
 });
 
 afterEach(() => {
@@ -314,9 +310,7 @@ describe("the page's chart words", () => {
 
 describe("the page, drawn", () => {
   test("in English: every chart as the page wrote it", async () => {
-    const charts: Array<ChartWords> = await everyChart(
-      await instanceFor("en"),
-    );
+    const charts: Array<ChartWords> = await everyChart(await instanceFor("en"));
 
     expect(charts.length).toBeGreaterThan(30);
     expect(
@@ -375,9 +369,11 @@ describe("the page, drawn", () => {
       });
 
       // The words the issue found English: etcd's Total Keys and its Keys legend.
-      const totalKeys: ChartWords = charts.find((chart: ChartWords): boolean => {
-        return chart.metric === "etcd_debugging_mvcc_keys_total";
-      })!;
+      const totalKeys: ChartWords = charts.find(
+        (chart: ChartWords): boolean => {
+          return chart.metric === "etcd_debugging_mvcc_keys_total";
+        },
+      )!;
       expect(totalKeys.title).not.toBe("Total Keys");
       expect(totalKeys.legend).not.toBe("Keys");
     },
