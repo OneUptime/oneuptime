@@ -313,6 +313,35 @@ worker:
   databaseMaxOpenConnections: 10 # worker fans out widest — keep its pool small
 ```
 
+### How a pod shares its connections
+
+A pod's pool is first come, first served, and an `app` pod running the queue
+workers (the default, `worker.enabled: false`) used to let up to
+`TELEMETRY_CONCURRENCY` + `WORKER_CONCURRENCY` jobs (200) and every probe
+worker's scheduling requests fill it: when the database slowed down, a sign-in
+queued behind them until `DATABASE_CONNECTION_TIMEOUT_MS` ran out. Background
+work now gets bounded shares of the pool, and requests always have the rest:
+
+| Work | Bound in each pod | Default (pool of 50) | Setting |
+| --- | --- | --- | --- |
+| Probe scheduling: `/monitor/list`, `/monitor-test/list`, `/probe/network-device/list`, the pending counts | Requests running at once (about one connection each); at most half of them for one probe | 10 (a fifth of the pool) | `PROBE_SCHEDULING_MAX_CONCURRENT_REQUESTS` (`app.probeSchedulingMaxConcurrentRequests`) |
+| Queue jobs, in a pod that also serves requests | Connections held at once | 30 (the pool less a fifth kept for requests and less probe scheduling's share) | `DATABASE_MAX_QUEUE_JOB_CONNECTIONS` (`app.databaseMaxQueueJobConnections`) |
+| Requests | Always at least what the others leave | 10, plus whatever the others are not using | - |
+
+Probe scheduling past its bound waits up to 5 seconds without a connection,
+then is answered busy: a probe that declares `retryWhenBusy` gets a 429, an
+older probe an empty batch, and both ask again at their next tick (nothing was
+claimed, so it stays due). A pending count the server cannot make in time is
+the last count made for that probe in the last 15 minutes, never 0, so KEDA
+does not scale probes down for a busy server. A queue job past its bound waits
+without a connection, and fails after `DATABASE_CONNECTION_TIMEOUT_MS` as a
+checkout from a full pool does, to be retried.
+
+Worker pods (`worker.enabled: true`) set `RECEIVES_INGRESS_TRAFFIC=false`:
+they serve no requests and no probes, so their jobs keep the whole pool. That
+split is the answer for a large install; the shares are what keep a single
+`app` deployment usable when its database is slow.
+
 **Troubleshooting — "unsupported startup parameter".** If the app logs
 `Postgres Database Connection Failed` / `error: unsupported startup parameter:
 statement_timeout` and PgBouncer logs `closing because: unsupported startup
