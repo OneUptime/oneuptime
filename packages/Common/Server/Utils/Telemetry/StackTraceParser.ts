@@ -4,6 +4,7 @@ import {
   readPhpFrame,
   readPythonFrame,
   readRubyFrame,
+  readRubyFrameWithMessage,
   readV8EvalFrame,
   readV8FrameWithParens,
   readV8FrameWithParensNoColumn,
@@ -109,6 +110,13 @@ const LIBRARY_PATTERNS: Array<RegExp> = [
   /^\[native code\]$/,
   /^\[wasm code\]$/,
 ];
+
+/*
+ * What Ruby's own output of an exception writes before every frame after
+ * the first: "\tfrom app/controllers/orders_controller.rb:10:in 'create'"
+ * (the tab is trimmed with the rest of the line's white space).
+ */
+const RUBY_FROM_PREFIX: RegExp = /^from\s+/;
 
 /*
  * ---------------------------------------------------------------------------
@@ -528,12 +536,29 @@ export default class StackTraceParser {
   /**
    * Parse Ruby stack traces.
    * Format: `file:line:in 'method'` or `file:line:in \`method'`
+   *
+   * Ruby's own output of an exception (Exception#full_message, which the
+   * OpenTelemetry Ruby SDK records as exception.stacktrace) writes the
+   * message after the frame that raised it, and "from " before every frame
+   * after that one:
+   *
+   *   app/models/order.rb:42:in 'pay': card declined (PaymentError)
+   *       from app/controllers/orders_controller.rb:10:in 'create'
+   *
+   * The message is left out and "from " taken off, so the raising frame is
+   * kept and every frame's file is the file itself, which is what in-app
+   * detection, source links and grouping read. The message form is tried
+   * first: a method ends at the first "': ", while a message can end in a
+   * quote of its own.
    */
   private static parseRuby(lines: string[]): StackFrame[] {
     const frames: StackFrame[] = [];
 
     for (const line of lines) {
-      const match: FrameLineMatch | null = readRubyFrame(line);
+      const frameLine: string = line.replace(RUBY_FROM_PREFIX, "");
+      const match: FrameLineMatch | null =
+        readRubyFrameWithMessage(frameLine) || readRubyFrame(frameLine);
+
       if (match) {
         frames.push({
           functionName: match[3]!,
