@@ -1,7 +1,7 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
-import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";
 import LineChartElement from "Common/UI/Components/Charts/Line/LineChart";
 import ChartCurve from "Common/UI/Components/Charts/Types/ChartCurve";
 import XAxisType from "Common/UI/Components/Charts/Types/XAxis/XAxisType";
@@ -25,11 +25,7 @@ import {
 import { getDrawnLanguage } from "Common/UI/Components/SideMenu/SideMenuEntryState";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
-import {
-  getTileTitleWordsClassName,
-  TILE_TITLE_LONG_WORDS,
-} from "./TileTitleWords";
-import HyphenatedWords from "Common/UI/Components/HyphenatedWords/HyphenatedWords";
+import { TILE_TITLE_LONG_WORDS } from "./TileTitleWords";
 
 export type ChartCardColor =
   | "blue"
@@ -165,20 +161,19 @@ const ChartCard: FunctionComponent<ChartCardProps> = (
 
   const header: ReactElement = (
     <div className="flex items-center justify-between gap-2 mb-3">
-      <div className="flex min-w-0 items-center gap-1">
-        <span
-          className={`min-w-0 text-xs font-medium text-gray-500 uppercase tracking-wider ${getTileTitleWordsClassName(
-            { text: title, lang: titleLanguage },
-          )}`}
+      {/*
+       * The (i) after the title's last word, on whichever line it ends
+       * (issue #7348).
+       */}
+      <div className="flex min-w-0">
+        <WordsWithInfoTooltip
+          className="min-w-0 text-xs font-medium text-gray-500 uppercase tracking-wider"
+          text={title}
           lang={titleLanguage}
-        >
-          <HyphenatedWords
-            text={title}
-            lang={titleLanguage}
-            rule={TILE_TITLE_LONG_WORDS}
-          />
-        </span>
-        <InfoTooltip label={props.title} text={props.description} />
+          rule={TILE_TITLE_LONG_WORDS}
+          label={props.title}
+          description={props.description}
+        />
       </div>
       <div className="flex shrink-0 items-center gap-2">
         {isZoomHintShown ? <TimeRangeZoomHint revealOnHover={true} /> : <></>}

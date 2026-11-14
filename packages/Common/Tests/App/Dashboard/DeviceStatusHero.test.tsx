@@ -1,6 +1,8 @@
 import "@testing-library/jest-dom";
 import {
+  afterAll,
   afterEach,
+  beforeAll,
   beforeEach,
   describe,
   expect,
@@ -15,7 +17,11 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
+import fs from "fs";
+import i18next from "i18next";
+import path from "path";
 import * as React from "react";
+import { initReactI18next } from "react-i18next";
 import { MemoryRouter } from "react-router-dom";
 
 /*
@@ -126,6 +132,7 @@ import Route from "../../../Types/API/Route";
 import { Green } from "../../../Types/BrandColors";
 import NetworkDeviceMonitoringMethod from "../../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import ObjectID from "../../../Types/ObjectID";
+import { WORDS_KEEP_INFO_ROOM_CLASS_NAME } from "../../../UI/Components/HyphenatedWords/WordsBeforeInfo";
 import PermissionGate, {
   PermissionGateResult,
 } from "../../../UI/Utils/PermissionGate";
@@ -1215,5 +1222,195 @@ describe("the device Overview status hero", () => {
         isOfflineState: true,
       },
     });
+  });
+});
+
+/*
+ * A hero tile's (i) follows its title's last word (issue #7348).
+ *
+ * It used to be the title's flex sibling: a title that wraps - German
+ * "Hardware-Betriebszeit", Arabic "وقت تشغيل الجهاز المادي" in a tile two
+ * to a row - took the row's whole width, and the (i) was drawn at the far
+ * edge of the tile, between the two lines. It is now inside the element
+ * that holds the title's words, right after the last word, and the words
+ * keep its room free at the end of every line, so it always fits after
+ * that word. jsdom lays nothing out: what is pinned is that structure, and
+ * that the (i) is still named for the title.
+ */
+describe("the device Overview status hero's tile titles", () => {
+  const TITLES_WITH_INFO: Array<string> = [
+    "Reachability",
+    "Monitor Status",
+    "Interfaces",
+    "Hardware Uptime",
+  ];
+
+  function tileTitle(text: string): HTMLElement {
+    const title: HTMLElement | undefined = screen
+      .getAllByTestId("device-hero-tile-title")
+      .find((candidate: HTMLElement): boolean => {
+        return (candidate.textContent || "").trim() === text;
+      });
+
+    if (!title) {
+      throw new Error(`No tile title reading "${text}" was rendered.`);
+    }
+
+    return title;
+  }
+
+  // The box that holds the (i) after the title's last word, if there is one.
+  function glueOf(title: HTMLElement): HTMLElement | null {
+    return title.querySelector<HTMLElement>("[data-info-glue]");
+  }
+
+  beforeEach(() => {
+    deviceRow = null;
+    isReadFailing = false;
+    readHeldUntil = null;
+    getItemRequests = [];
+    updateByIdRequests = [];
+    columnGate = { isAllowed: true };
+    getJestSpyOn(PermissionGate, "checkColumnUpdate").mockImplementation(
+      (): PermissionGateResult => {
+        return columnGate;
+      },
+    );
+  });
+
+  afterEach(() => {
+    cleanup();
+    jest.restoreAllMocks();
+  });
+
+  test.each(TITLES_WITH_INFO)(
+    "%s: the (i) is a descendant of the element holding the title's words, still named for the title",
+    async (text: string) => {
+      await renderHero(boundReportingMonitorBackedDevice());
+
+      const title: HTMLElement = tileTitle(text);
+      const info: HTMLElement = screen.getByRole("button", {
+        name: `About ${text}`,
+      });
+
+      expect(title).toContainElement(info);
+      // Its focus ring is the (i)'s own, as before.
+      expect(info).toHaveClass("focus-visible:ring-2");
+
+      /*
+       * Right after the last word, in the room the words keep for it at the
+       * end of every line: the (i) is never left at the line's far end, or
+       * alone at the start of the next.
+       */
+      const glue: HTMLElement | null = glueOf(title);
+      expect(glue).not.toBeNull();
+      expect(glue).toHaveClass("whitespace-nowrap");
+      expect(glue!.childNodes).toHaveLength(1);
+      expect(glue!.firstChild).toBe(info);
+      expect(glue!.previousSibling?.textContent).toBe(text);
+      expect(glue!.parentElement).toHaveClass(
+        ...WORDS_KEEP_INFO_ROOM_CLASS_NAME.split(" "),
+      );
+
+      // The words stay one text: the title is found by them, as before.
+      expect(title).toContainElement(screen.getByText(text));
+    },
+  );
+
+  test("a title that only names something has no (i), and no glue", async () => {
+    await renderHero(boundReportingMonitorBackedDevice());
+
+    for (const text of ["Site", "Polled By"]) {
+      const title: HTMLElement = tileTitle(text);
+      expect(title.querySelector("button")).toBeNull();
+      expect(glueOf(title)).toBeNull();
+    }
+  });
+
+  test("no (i) is a sibling of a title any more: each is inside the title it explains", async () => {
+    await renderHero(boundReportingMonitorBackedDevice());
+
+    const titles: Array<HTMLElement> = screen.getAllByTestId(
+      "device-hero-tile-title",
+    );
+    const infos: Array<HTMLElement> = screen
+      .getAllByRole("button")
+      .filter((button: HTMLElement): boolean => {
+        return (button.getAttribute("aria-label") || "").startsWith("About ");
+      });
+
+    expect(infos).toHaveLength(TITLES_WITH_INFO.length);
+
+    for (const info of infos) {
+      expect(
+        titles.some((title: HTMLElement): boolean => {
+          return title.contains(info);
+        }),
+      ).toBe(true);
+    }
+  });
+
+  describe("in the reader's language", () => {
+    const LOCALES_DIR: string = path.resolve(
+      __dirname,
+      "../../../../App/FeatureSet/Dashboard/src/Locales",
+    );
+
+    function readLocale(locale: string): Record<string, string> {
+      return JSON.parse(
+        fs.readFileSync(path.join(LOCALES_DIR, `${locale}.json`), "utf8"),
+      ) as Record<string, string>;
+    }
+
+    const EN: Record<string, string> = readLocale("en");
+    const DE: Record<string, string> = readLocale("de");
+    const AR: Record<string, string> = readLocale("ar");
+
+    beforeAll(async () => {
+      await i18next.use(initReactI18next).init({
+        lng: "en",
+        fallbackLng: "en",
+        resources: {
+          de: { translation: DE },
+          ar: { translation: AR },
+          en: { translation: EN },
+        },
+        interpolation: { escapeValue: false },
+      });
+    });
+
+    afterAll(async () => {
+      await i18next.changeLanguage("en");
+    });
+
+    test.each([
+      ["de", DE],
+      ["ar", AR],
+    ])(
+      "%s: the wrapping Hardware Uptime title has the (i) glued after its last word, named in the locale's words",
+      async (language: string, locale: Record<string, string>) => {
+        await i18next.changeLanguage(language);
+        await renderHero(boundReportingMonitorBackedDevice());
+
+        const translated: string = locale["Hardware Uptime"] as string;
+        expect(translated).not.toBe("Hardware Uptime");
+
+        const title: HTMLElement = tileTitle(translated);
+        const glue: HTMLElement | null = glueOf(title);
+        expect(glue).not.toBeNull();
+        expect(glue!.previousSibling?.textContent).toBe(translated);
+
+        const info: HTMLElement = screen.getByRole("button", {
+          name: (locale["About {{label}}"] as string).replace(
+            "{{label}}",
+            translated,
+          ),
+        });
+        expect(title).toContainElement(info);
+        expect(glue!.firstChild).toBe(info);
+        // A logical margin: after the word, which is its left in Arabic.
+        expect(info).toHaveClass("ms-1");
+      },
+    );
   });
 });

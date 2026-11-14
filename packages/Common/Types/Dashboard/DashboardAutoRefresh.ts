@@ -1,4 +1,8 @@
-import { AutoRefreshInterval } from "./DashboardViewConfig";
+import {
+  AutoRefreshInterval,
+  getAutoRefreshIntervalInMs,
+} from "./DashboardViewConfig";
+import { formatDurationCompactInLanguage } from "../../Utils/Slo/SloDuration";
 import {
   DashboardSetting,
   resolveDashboardSetting,
@@ -39,6 +43,31 @@ export const DASHBOARD_AUTO_REFRESH_FIELD: string = "refreshInterval";
 // What a dashboard that names no auto-refresh opens with: off.
 export const DASHBOARD_AUTO_REFRESH_FALLBACK: AutoRefreshInterval =
   AutoRefreshInterval.OFF;
+
+/*
+ * An interval as the auto-refresh pickers name it, in `language`: "30s" and
+ * "1m" in English - getAutoRefreshIntervalLabel's short forms, word for word
+ * - and the language's own short duration elsewhere: "30 Sek." in German,
+ * "۳۰ ثانیه" in Persian, "30 秒" in Japanese. It goes into a sentence
+ * ("Every {{interval}}") in that sentence's language: a Persian picker read
+ * "هر 30s", English digits and letters beside Persian ones everywhere else
+ * on the page.
+ *
+ * Off is no duration: null, and the picker says Off in its own words.
+ * Without a language, the page's (the date display language).
+ */
+export function formatAutoRefreshInterval(
+  interval: AutoRefreshInterval,
+  language?: string | undefined,
+): string | null {
+  const intervalMs: number | null = getAutoRefreshIntervalInMs(interval);
+
+  if (intervalMs === null) {
+    return null;
+  }
+
+  return formatDurationCompactInLanguage(intervalMs / 1000, language);
+}
 
 // The intervals, in the order the auto-refresh menu offers them.
 export const DASHBOARD_AUTO_REFRESH_INTERVALS: ReadonlyArray<AutoRefreshInterval> =

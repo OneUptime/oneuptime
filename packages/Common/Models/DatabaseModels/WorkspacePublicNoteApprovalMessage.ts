@@ -250,8 +250,7 @@ export default class WorkspacePublicNoteApprovalMessage extends BaseModel {
     type: TableColumnType.Entity,
     modelType: ScheduledMaintenancePublicNote,
     title: "Scheduled Maintenance Public Note",
-    description:
-      "The scheduled maintenance event's public note the message asks about.",
+    description: "The maintenance event's public note the message asks about.",
   })
   @ManyToOne(
     () => {
@@ -279,7 +278,7 @@ export default class WorkspacePublicNoteApprovalMessage extends BaseModel {
     required: false,
     title: "Scheduled Maintenance Public Note ID",
     description:
-      "ID of the scheduled maintenance event's public note the message asks about.",
+      "ID of the maintenance event's public note the message asks about.",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -299,7 +298,7 @@ export default class WorkspacePublicNoteApprovalMessage extends BaseModel {
     required: true,
     title: "Record ID",
     description:
-      "ID of the incident, episode or scheduled maintenance event the note is on.",
+      "ID of the incident, episode or maintenance event the note is on.",
   })
   @Column({
     type: ColumnType.ObjectID,

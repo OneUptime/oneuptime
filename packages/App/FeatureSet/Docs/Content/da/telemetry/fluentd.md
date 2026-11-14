@@ -74,6 +74,13 @@ Tilføj en `<match>`-sektion, der sender poster til OneUptime. Erstat `YOUR_SERV
     chunk_limit_size 900k
   </buffer>
 </match>
+
+# Keep Fluentd's own logs out of OneUptime
+<label @FLUENT_LOG>
+  <match **>
+    @type null
+  </match>
+</label>
 ```
 
 `json_array true` sender hver chunk i bufferen som ét JSON-array, og `flush_interval 10s` sender bufferen hvert 10. sekund. `chunk_limit_size 900k` holder hver request under 1 MB, det højeste OneUptime tager imod på dette endpoint.
@@ -123,6 +130,13 @@ Denne konfiguration modtager poster over Fluentds forward-protokol på port `242
     chunk_limit_size 900k
   </buffer>
 </match>
+
+# Keep Fluentd's own logs out of OneUptime
+<label @FLUENT_LOG>
+  <match **>
+    @type null
+  </match>
+</label>
 ```
 
 Vil du sende forskellige kilder som forskellige tjenester, så brug én `<match>`-sektion pr. tag, hver med sit eget `x-oneuptime-service-name`.

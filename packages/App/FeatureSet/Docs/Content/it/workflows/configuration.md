@@ -37,7 +37,7 @@ Per archiviare un workflow, aprilo, vai in **Impostazioni** e fai clic su **Arch
 
 Per recuperare un workflow, apri **Flussi di lavoro → Avanzato → Archiviato**, selezionalo e scegli **Annulla archiviazione**, oppure aprilo e fai clic su **Annulla archiviazione** nel banner in cima alle sue pagine.
 
-L'archiviazione e l'interruttore **Abilitato** sono indipendenti. Archiviare non tocca l'interruttore, quindi un workflow che era acceso torna a essere eseguito appena viene ripristinato, e uno che era spento resta spento. La pagina **Archiviato** mostra qual è quale nella colonna **When Unarchived**.
+L'archiviazione e l'interruttore **Abilitato** sono indipendenti. Archiviare non tocca l'interruttore, quindi un workflow che era acceso torna a essere eseguito appena viene ripristinato, e uno che era spento resta spento. La pagina **Archiviato** mostra qual è quale nella colonna **Annullata l'archiviazione**.
 
 Un workflow esportato non porta mai con sé lo stato di archiviazione, quindi una copia importata non è mai archiviata.
 

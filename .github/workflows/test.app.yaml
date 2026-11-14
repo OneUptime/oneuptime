@@ -46,8 +46,15 @@ jobs:
       # takes a minute and a half, so three bring each shard to about ten
       # minutes for much the same runner time in all. When a shard passes
       # about 20 minutes, add one here rather than raise the cap.
+      #
+      # Four since 2026-11-14. Shard 3 of 3 had taken 26 and 24 minutes on the
+      # 14.0.109 and 14.0.110 release branches (jest's own time 1,291 s on
+      # 14.0.110, 897 files), and on 14.0.111 it reached the cap after 861 of
+      # its files: the same 846 files as before took a third longer on that
+      # runner, no one of them the cause, while the other two shards took 17
+      # and 23 minutes.
       matrix:
-        shard: [1, 2, 3]
+        shard: [1, 2, 3, 4]
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
       BILLING_PRIVATE_KEY: ${{secrets.TEST_BILLING_PRIVATE_KEY}}

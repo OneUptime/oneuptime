@@ -1621,6 +1621,8 @@ describe("the real source roots", () => {
       // What an AI action's approval card says, and the kinds of resource it names.
       "keys packages/Common/Types/AI/AIActionWords.ts",
       "keys packages/Common/Types/AI/AiAffectedResources.ts",
+      // Why OneUptime AI did not start a run someone asked for, by its code.
+      "keys packages/Common/Types/AI/AiRunRefusal.ts",
       // How an AI remediation round reads on the Remediation step.
       "keys packages/Common/Types/AutoRemediation/RemediationRoundName.ts",
       /*

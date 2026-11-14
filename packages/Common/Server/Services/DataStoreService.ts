@@ -39,6 +39,11 @@ import {
   getDataStoreKindInfo,
 } from "../../Types/DataSecurity/DataStoreKind";
 import { mdText, MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import {
+  getMakeDueNowParameters,
+  getMakeDueNowStatement,
+} from "../Utils/Probe/ClaimSetAside";
 
 /*
  * Data stores: most are discovered and written by OneUptime alone
@@ -69,6 +74,15 @@ interface DeletedStores {
 // The engines a worker can sample, by the scheme of their connection strings.
 const SCANNABLE_CONNECTION_STRING: RegExp =
   /^(postgres|postgresql|mysql|mariadb|mssql|sqlserver):\/\//i;
+
+// The two names a store's scan probe is written by (RelationIdUtil).
+const SCAN_PROBE_KEYS: Array<string> = ["scanProbeId", "scanProbe"];
+
+// When a probe next collects a store's tables, and next scans its content.
+export const PROBE_STORE_DUE_COLUMNS: ReadonlyArray<string> = [
+  "nextTableHealthCollectionAt",
+  "nextContentScanAt",
+];
 
 // What a person may set about a store that changes what its checks say.
 const PEOPLE_SET_COLUMNS_THAT_DECIDE_CHECKS: ReadonlyArray<string> = [
@@ -231,9 +245,140 @@ export class Service extends ProjectReferencesService<Model> {
       });
 
       await queueDataSecurityEvaluation(createdItem.projectId);
+
+      /*
+       * A store a probe scans is due for both at once: the probe's claims
+       * read only rows with a due time (Utils/Probe/ClaimSetAside), and a
+       * new store with none would wait for a set-aside to give it one. Its
+       * own try: the store is saved already.
+       */
+      if (
+        RelationIdUtil.readConsistent(
+          createdItem as unknown as Record<string, unknown>,
+          SCAN_PROBE_KEYS,
+          "Scan From Probe",
+        )
+      ) {
+        try {
+          await this.makeDueNow({
+            dataStoreIds: [createdItem.id],
+            dueColumns: [...PROBE_STORE_DUE_COLUMNS],
+          });
+        } catch (error) {
+          logger.error(
+            `DataStoreService.onCreateSuccess: could not make a new probe store due: ${error}`,
+          );
+        }
+      }
     }
 
     return createdItem;
+  }
+
+  /*
+   * Which of a probe store's collections an update may make claimable again,
+   * as the due columns to make due now: the probe claims set a store aside
+   * for up to a quarter of an hour at a time while nothing may collect or
+   * scan it (Utils/Probe/ClaimSetAside), and turning it back on must not
+   * wait for that. Table health watched again, content scanning turned back
+   * on, the store unarchived, or given a probe or the variable its probe
+   * reads. A project served again is picked up when its stores next come
+   * due.
+   */
+  public static getDueColumnsMadeClaimable(data: unknown): Array<string> {
+    if (!data || typeof data !== "object") {
+      return [];
+    }
+
+    const written: Record<string, unknown> = data as Record<string, unknown>;
+    const dataKeys: Array<string> = Object.keys(written);
+
+    const isEitherMadeClaimable: boolean =
+      written["isArchived"] === false ||
+      (dataKeys.includes("probeConnectionVariable") &&
+        Boolean(written["probeConnectionVariable"])) ||
+      (RelationIdUtil.isWritten(dataKeys, SCAN_PROBE_KEYS) &&
+        RelationIdUtil.readConsistent(
+          written,
+          SCAN_PROBE_KEYS,
+          "Scan From Probe",
+        ) !== null);
+
+    return PROBE_STORE_DUE_COLUMNS.filter((column: string): boolean => {
+      return (
+        isEitherMadeClaimable ||
+        (column === "nextTableHealthCollectionAt" &&
+          written["isTableHealthEnabled"] === true) ||
+        (column === "nextContentScanAt" &&
+          written["isContentScanEnabled"] === true)
+      );
+    });
+  }
+
+  /*
+   * Makes these probe stores due now in the columns named, unless they are
+   * due already (Utils/Probe/ClaimSetAside, getMakeDueNowStatement): LEAST
+   * keeps an earlier due time and every store named is matched, so one a
+   * claim is setting aside at this moment is waited for and moved back. A
+   * store no probe scans is left as it is: its schedule is the workers'.
+   */
+  @CaptureSpan()
+  public async makeDueNow(data: {
+    dataStoreIds: Array<ObjectID>;
+    dueColumns: Array<string>;
+  }): Promise<void> {
+    await this.makeProbeStoresDueNow({
+      ids: data.dataStoreIds,
+      idColumn: "_id",
+      dueColumns: data.dueColumns,
+    });
+  }
+
+  /*
+   * The same for every probe store of these projects: for a project that
+   * turns content scanning back on (DataSecuritySettingService).
+   */
+  @CaptureSpan()
+  public async makeDueNowForProjects(data: {
+    projectIds: Array<ObjectID>;
+    dueColumns: Array<string>;
+  }): Promise<void> {
+    await this.makeProbeStoresDueNow({
+      ids: data.projectIds,
+      idColumn: "projectId",
+      dueColumns: data.dueColumns,
+    });
+  }
+
+  private async makeProbeStoresDueNow(data: {
+    ids: Array<ObjectID>;
+    idColumn: "_id" | "projectId";
+    dueColumns: Array<string>;
+  }): Promise<void> {
+    const dueColumns: Array<string> = data.dueColumns.filter(
+      (column: string): boolean => {
+        return PROBE_STORE_DUE_COLUMNS.includes(column);
+      },
+    );
+
+    const parameters: Array<unknown> | null = getMakeDueNowParameters({
+      ids: data.ids,
+      currentDate: OneUptimeDate.getCurrentDate(),
+    });
+
+    if (!parameters || dueColumns.length === 0) {
+      return;
+    }
+
+    await this.getRepository().manager.query(
+      getMakeDueNowStatement({
+        table: "DataStore",
+        dueColumns: dueColumns,
+        idColumn: data.idColumn,
+        where: `"scanProbeId" IS NOT NULL`,
+      }),
+      parameters,
+    );
   }
 
   @CaptureSpan()
@@ -437,6 +582,28 @@ export class Service extends ProjectReferencesService<Model> {
     onUpdate: OnUpdate<Model>,
     updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
+    /*
+     * A write that may make a probe store collectable or scannable again
+     * makes it due now (getDueColumnsMadeClaimable). Its own try: the store
+     * is saved already.
+     */
+    const dueColumns: Array<string> = Service.getDueColumnsMadeClaimable(
+      onUpdate.updateBy.data,
+    );
+
+    if (updatedItemIds.length > 0 && dueColumns.length > 0) {
+      try {
+        await this.makeDueNow({
+          dataStoreIds: updatedItemIds,
+          dueColumns: dueColumns,
+        });
+      } catch (error) {
+        logger.error(
+          `DataStoreService.onUpdateSuccess: could not make probe stores due after a write that can make them claimable; their probe picks them up within a quarter of an hour: ${error}`,
+        );
+      }
+    }
+
     const projectIds: Array<ObjectID> =
       (onUpdate.carryForward as Array<ObjectID> | undefined) || [];
     const seen: Set<string> = new Set();

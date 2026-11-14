@@ -74,6 +74,13 @@ Fluentd رکوردها را به‌صورت دسته‌های JSON می‌فرس
     chunk_limit_size 900k
   </buffer>
 </match>
+
+# Keep Fluentd's own logs out of OneUptime
+<label @FLUENT_LOG>
+  <match **>
+    @type null
+  </match>
+</label>
 ```
 
 `json_array true` هر تکهٔ بافر را به‌صورت یک آرایهٔ JSON می‌فرستد، و `flush_interval 10s` هر ۱۰ ثانیه بافر را می‌فرستد. `chunk_limit_size 900k` هر درخواست را زیر ۱ مگابایت نگه می‌دارد، یعنی بیشترین اندازه‌ای که OneUptime در این نقطهٔ پایانی می‌پذیرد.
@@ -123,6 +130,13 @@ Fluentd رکوردها را به‌صورت دسته‌های JSON می‌فرس
     chunk_limit_size 900k
   </buffer>
 </match>
+
+# Keep Fluentd's own logs out of OneUptime
+<label @FLUENT_LOG>
+  <match **>
+    @type null
+  </match>
+</label>
 ```
 
 برای فرستادن منبع‌های گوناگون به‌عنوان سرویس‌های گوناگون، برای هر تگ یک بخش `<match>` به کار ببرید که هرکدام `x-oneuptime-service-name` خودش را داشته باشد.

@@ -137,7 +137,7 @@ Een langere bewaring van telemetrie bewaart opnamen niet langer. De tellingen, s
 **Archiveren** verbergt een applicatie in **Alle applicaties** terwijl ze telemetrie blijft verzamelen. Archiveer een applicatie die je niet meer volgt maar waarvan je de geschiedenis wilt bewaren.
 
 - Klik op **Archiveren** op de pagina **Instellingen** van de applicatie, of selecteer meerdere applicaties in de lijst en archiveer ze samen.
-- Gearchiveerde applicaties staan onder **Real User Monitoring → Geavanceerd → Gearchiveerd**. **Geavanceerd** is in het zijmenu eerst ingeklapt: klik erop om **Gearchiveerd** te tonen. Gebruik daar **Uit archief halen** op één applicatie, of op meerdere tegelijk.
+- Gearchiveerde applicaties staan onder **Real User Monitoring → Geavanceerd → Gearchiveerd**. **Geavanceerd** is in het zijmenu eerst ingeklapt: klik erop om **Gearchiveerd** te tonen. Gebruik daar **Uit het archief halen** op één applicatie, of op meerdere tegelijk.
 
 **Applicatie verwijderen**, in de sectie **Geavanceerd** van het zijmenu van de applicatie, verwijdert de applicatie definitief. Als de app nog telemetrie verstuurt, maakt de volgende batch de applicatie opnieuw aan, zonder haar instellingen, dus stop eerst de instrumentatie.
 

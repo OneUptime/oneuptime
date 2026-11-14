@@ -388,7 +388,7 @@ const UserFlowJourneys: FunctionComponent<ComponentProps> = (
             }}
           >
             {translator.translateTemplate("Show more ({{left}} left)", {
-              left: formatUserFlowCount(total - shown),
+              left: formatUserFlowCount(total - shown, translator),
             })}
           </button>
         </div>

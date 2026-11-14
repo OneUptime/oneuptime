@@ -610,7 +610,8 @@
   "Click to choose a file or drag & drop.": "Klik for at vælge en fil, eller træk og slip.",
   "Click to add more or drag & drop.": "Klik for at tilføje flere, eller træk og slip.",
   "PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP, up to {{size}}.": "PDF-, Office- og OpenDocument-filer, billeder, tekst, CSV, JSON, ZIP eller PCAP, op til {{size}}.",
-  "Up to 10 files of {{size}} each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.": "Op til 10 filer på hver {{size}}: PDF-, Office- og OpenDocument-filer, billeder, tekst, CSV, JSON, ZIP eller PCAP.",
+  "Up to {{count}} files of {{size}} each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.": "Op til {{count}} filer på hver {{size}}: PDF-, Office- og OpenDocument-filer, billeder, tekst, CSV, JSON, ZIP eller PCAP.",
+  "Up to {{count}} files of {{size}} each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP._one": "Én fil på op til {{size}}: PDF-, Office- og OpenDocument-filer, billeder, tekst, CSV, JSON, ZIP eller PCAP.",
   "Chosen files": "Valgte filer",
   "Remove": "Fjern",
   "Replace": "Erstat",
@@ -621,6 +622,7 @@
   "These files are not a type this field takes: {{fileNames}}.": "Disse filer har en type, som dette felt ikke accepterer: {{fileNames}}.",
   "Add one file at a time.": "Tilføj én fil ad gangen.",
   "This field holds up to {{count}} files. Remove one to add another.": "Dette felt kan indeholde op til {{count}} filer. Fjern en for at tilføje en anden.",
+  "This field holds up to {{count}} files. Remove one to add another._one": "Dette felt kan indeholde én fil. Fjern den for at tilføje en anden.",
   "markdownCallouts": {
     "caution": "Forsigtig",
     "danger": "Fare",

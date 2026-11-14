@@ -309,7 +309,7 @@ OneUptime kon de vergadering niet in de agenda van de organisator ervan plaatsen
 :::
 
 :::details OneUptime AI kon een transcriptie niet lezen
-De kaart zegt waarom: AI staat uit voor het project, het project heeft een daglimiet voor AI bereikt, of de AI-aanbieder weigerde. Zodra dat is opgelost, leest **Opnieuw proberen** op de kaart haar opnieuw.
+De kaart zegt waarom: AI staat uit voor het project, het project heeft een daglimiet voor AI bereikt, of de [LLM-provider](/docs/ai/llm-provider) van het project weigerde. Zodra dat is opgelost, leest **Opnieuw proberen** op de kaart haar opnieuw.
 :::
 
 ## Volgende stappen

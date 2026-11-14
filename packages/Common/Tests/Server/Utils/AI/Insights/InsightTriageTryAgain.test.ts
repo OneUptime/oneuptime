@@ -1,7 +1,13 @@
 import InsightTriage, {
   INSIGHT_TRIAGE_NOT_ENQUEUED_MESSAGES,
+  INSIGHT_TRIAGE_NOT_ENQUEUED_REFUSALS,
   InsightTriageNotEnqueuedReason,
 } from "../../../../../Server/Utils/AI/SRE/Insights/Triage";
+import AiRunRefusalException from "../../../../../Types/Exception/AiRunRefusalException";
+import {
+  AI_RUN_REFUSALS,
+  AiRunRefusalCode,
+} from "../../../../../Types/AI/AiRunRefusal";
 import AIInvestigationQueue from "../../../../../Server/Utils/AI/SRE/InvestigationQueue";
 import ProjectService from "../../../../../Server/Services/ProjectService";
 import LlmProviderService from "../../../../../Server/Services/LlmProviderService";
@@ -245,8 +251,48 @@ describe("InsightTriage.tryAgain", () => {
       await expect(failure).rejects.toThrow(
         INSIGHT_TRIAGE_NOT_ENQUEUED_MESSAGES[reason],
       );
+      // Its code beside it, for the Dashboard to word (#7359).
+      await expect(failure).rejects.toBeInstanceOf(AiRunRefusalException);
+      await expect(failure).rejects.toMatchObject({
+        details: {
+          refusalCode: INSIGHT_TRIAGE_NOT_ENQUEUED_REFUSALS[reason],
+        },
+      });
     },
   );
+
+  test("each reason is a refusal code, whose sentence is the reason's message (#7359)", () => {
+    expect(INSIGHT_TRIAGE_NOT_ENQUEUED_REFUSALS).toEqual({
+      [InsightTriageNotEnqueuedReason.NotFound]:
+        AiRunRefusalCode.InsightNotFound,
+      [InsightTriageNotEnqueuedReason.AiOff]: AiRunRefusalCode.AiOff,
+      [InsightTriageNotEnqueuedReason.SwitchOff]: AiRunRefusalCode.InsightsOff,
+      [InsightTriageNotEnqueuedReason.NoProvider]:
+        AiRunRefusalCode.NoProviderToTriage,
+      [InsightTriageNotEnqueuedReason.AlreadyRunning]:
+        AiRunRefusalCode.InsightTriageRunning,
+      [InsightTriageNotEnqueuedReason.NotQueued]:
+        AiRunRefusalCode.TriageNotQueued,
+      [InsightTriageNotEnqueuedReason.Failed]:
+        AiRunRefusalCode.TriageNotStarted,
+    });
+
+    for (const reason of Object.values(InsightTriageNotEnqueuedReason)) {
+      expect(INSIGHT_TRIAGE_NOT_ENQUEUED_MESSAGES[reason]).toBe(
+        AI_RUN_REFUSALS[INSIGHT_TRIAGE_NOT_ENQUEUED_REFUSALS[reason]],
+      );
+    }
+  });
+
+  test("a triage that finished is refused with its own code", async () => {
+    insightWithTriage(lastRunId);
+    lastRunIs(AIRunStatus.Completed);
+
+    await expect(InsightTriage.tryAgain({ insightId })).rejects.toMatchObject({
+      message: "Only a triage that did not finish can be tried again.",
+      details: { refusalCode: AiRunRefusalCode.TriageFinished },
+    });
+  });
 
   test("every refusal has words, and the ones a setting fixes name where", () => {
     for (const reason of Object.values(InsightTriageNotEnqueuedReason)) {

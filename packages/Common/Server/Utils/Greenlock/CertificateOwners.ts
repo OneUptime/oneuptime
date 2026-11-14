@@ -2,6 +2,7 @@ import { Host } from "../../EnvironmentConfig";
 import DashboardDomainService from "../../Services/DashboardDomainService";
 import FormDomainService from "../../Services/FormDomainService";
 import StatusPageDomainService from "../../Services/StatusPageDomainService";
+import HostAddressUtil from "../../../Utils/HostAddressUtil";
 
 export type OwnedDomainsLookup = (
   domains: Array<string>,
@@ -33,9 +34,15 @@ export default class CertificateOwners {
    */
   public static readonly FORM_DOMAINS_OWNER_NAME: string = "form domains";
 
-  // The installation's own HOST, without a port, as CoreSSL orders it.
+  /*
+   * The installation's own HOST, without its port, in lower case: the name
+   * CoreSSL orders its certificate for and writes it to disk under, as
+   * run.sh's PRIMARY_DOMAIN names it in the ingress. A bracketed IPv6
+   * address keeps its brackets (HostAddressUtil.stripPort): cut at its first
+   * ":", "[2001:db8::1]:8443" was "[2001" (#7889).
+   */
   public static getPrimaryHostname(host: string = Host): string {
-    return (host.trim().toLowerCase().split(":")[0] || "").trim();
+    return HostAddressUtil.stripPort(host.trim().toLowerCase()).trim();
   }
 
   public static getAll(): Array<CertificateOwner> {

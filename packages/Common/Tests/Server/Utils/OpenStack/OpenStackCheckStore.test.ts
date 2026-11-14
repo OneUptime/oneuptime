@@ -364,7 +364,9 @@ describe("the claim's one statement", () => {
       limit: 3,
     });
 
-    expect(service.statements).toHaveLength(1);
+    // The claim, then the set-aside of what it stepped over (ClaimSetAside).
+    expect(service.statements).toHaveLength(2);
+    expect(service.statements[1]!.sql).toContain('"unclaimable" AS (');
     const statement: { sql: string; parameters: Array<unknown> } =
       service.statements[0]!;
     const sql: string = statement.sql.replace(/\s+/g, " ");
@@ -372,20 +374,19 @@ describe("the claim's one statement", () => {
     expect(sql).toContain("FOR NO KEY UPDATE OF ck SKIP LOCKED");
     expect(sql).not.toMatch(/FOR UPDATE/);
     expect(sql).toContain('ck."isApiCheckEnabled" = true');
-    expect(sql).toContain(
-      '(ck."nextApiCheckAt" IS NULL OR ck."nextApiCheckAt" <= $2)',
-    );
+    // Each branch a range of an index, oldest first: no IS NULL OR, no NULLS FIRST.
+    expect(sql).toContain('ck."nextApiCheckAt" <= $2');
+    expect(sql).not.toMatch(/"nextApiCheckAt" IS NULL OR/);
     expect(sql).toContain('NOT (ck."_id" = ANY($5::uuid[]))');
-    expect(sql).toContain(
-      'ORDER BY ck."nextApiCheckAt" ASC NULLS FIRST LIMIT $3',
-    );
+    expect(sql).toContain('ORDER BY ck."nextApiCheckAt" ASC LIMIT $3');
+    expect(sql).not.toContain("NULLS FIRST");
     // getSafeApiInterval's rule: a whole minute or more, else the default.
     expect(sql).toContain(
       'UPDATE "OpenStackCloudCheck" AS ck SET "nextApiCheckAt" = $2::timestamptz + ( CASE WHEN ck."apiCheckIntervalInMinutes" >= 1 THEN ck."apiCheckIntervalInMinutes" ELSE $7::int END ) * INTERVAL \'1 minute\'',
     );
     // Only what the statement wrote is answered, the longest overdue first.
     expect(sql).toContain(
-      'INNER JOIN "claimed" ON "claimed"."_id" = "due"."_id" ORDER BY "due"."dueAt" ASC NULLS FIRST',
+      'INNER JOIN "claimed" ON "claimed"."_id" = "due"."_id" ORDER BY "due"."dueAt" ASC',
     );
 
     expect(statement.parameters[0]).toBe(PROBE_ID.toString());
@@ -411,7 +412,8 @@ describe("the claim's one statement", () => {
       limit: 2,
     });
 
-    expect(service.statements).toHaveLength(1);
+    // The claim, then the set-aside of what it stepped over (ClaimSetAside).
+    expect(service.statements).toHaveLength(2);
     const statement: { sql: string; parameters: Array<unknown> } =
       service.statements[0]!;
     const sql: string = statement.sql.replace(/\s+/g, " ");
@@ -421,9 +423,8 @@ describe("the claim's one statement", () => {
     expect(sql).toContain(
       '(ck."isLifecycleCheckEnabled" = true OR ck."isSweepPending" = true)',
     );
-    expect(sql).toContain(
-      '(ck."nextLifecycleCheckAt" IS NULL OR ck."nextLifecycleCheckAt" <= $2)',
-    );
+    expect(sql).toContain('ck."nextLifecycleCheckAt" <= $2');
+    expect(sql).not.toMatch(/"nextLifecycleCheckAt" IS NULL OR/);
     expect(sql).toContain(
       'UPDATE "OpenStackCloudCheck" AS ck SET "nextLifecycleCheckAt" = $2::timestamptz + ( CASE WHEN ck."lifecycleCheckIntervalInMinutes" >= 1 THEN ck."lifecycleCheckIntervalInMinutes" ELSE $7::int END ) * INTERVAL \'1 minute\'',
     );
@@ -446,7 +447,8 @@ describe("the claim's one statement", () => {
         limit: 4,
       }),
     ).toEqual([]);
-    expect(service.statements).toHaveLength(1);
+    // The claim, and the set-aside of what it stepped over.
+    expect(service.statements).toHaveLength(2);
     expect(read).not.toHaveBeenCalled();
   });
 });

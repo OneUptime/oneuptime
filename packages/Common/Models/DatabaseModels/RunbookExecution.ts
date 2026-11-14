@@ -510,7 +510,7 @@ export default class RunbookExecution extends BaseModel {
     modelType: ScheduledMaintenance,
     title: "Scheduled Maintenance",
     description:
-      "Scheduled maintenance event that this runbook execution is associated with (if any).",
+      "Maintenance event that this runbook execution is associated with (if any).",
   })
   @ManyToOne(
     () => {
@@ -552,7 +552,7 @@ export default class RunbookExecution extends BaseModel {
     type: TableColumnType.ObjectID,
     title: "Scheduled Maintenance ID",
     description:
-      "ID of the scheduled maintenance event that triggered this runbook execution.",
+      "ID of the maintenance event that triggered this runbook execution.",
   })
   @Column({
     type: ColumnType.ObjectID,
