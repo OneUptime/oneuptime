@@ -1345,8 +1345,12 @@ describe("telemetryFormat", () => {
   test.each([
     [null, "—"],
     [Number.NaN, "—"],
-    [0, "0.0 B"],
+    // A count of bytes is whole (issue #7417): never "0.0 B" or "5.0 B".
+    [0, "0 B"],
+    [5, "5 B"],
+    [9, "9 B"],
     [512, "512 B"],
+    [1023, "1023 B"],
     [1024, "1.0 KiB"],
     [1536, "1.5 KiB"],
     [10 * 1024, "10 KiB"],

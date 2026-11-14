@@ -101,6 +101,8 @@ export interface ComponentProps {
   moreMenuCategoriesOpenByDefault?: Array<string> | undefined;
   moreMenuTitle?: string; // Title for the more menu (default: "Products")
   moreMenuSearchPlaceholder?: string; // Placeholder for the menu search box
+  // The menu search box's accessible name, without the placeholder's "…".
+  moreMenuSearchLabel?: string | undefined;
   // The placeholder is in the reader's words already: drawn as given (#7682).
   isMoreMenuSearchPlaceholderTranslated?: boolean | undefined;
   moreMenuNoResultsText?: string; // Empty-state text when search matches nothing
@@ -758,6 +760,7 @@ const Navbar: FunctionComponent<ComponentProps> = (
             footer={props.moreMenuFooter}
             isFooterTranslated={props.isMoreMenuFooterTranslated}
             searchPlaceholder={props.moreMenuSearchPlaceholder}
+            searchLabel={props.moreMenuSearchLabel}
             isSearchPlaceholderTranslated={
               props.isMoreMenuSearchPlaceholderTranslated
             }

@@ -24,11 +24,8 @@ import {
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import AppLink from "../AppLink/AppLink";
 import EditInSettingsLink from "./EditInSettingsLink";
-import {
-  getTileTitleWordsClassName,
-  TILE_TITLE_LONG_WORDS,
-} from "./TileTitleWords";
-import HyphenatedWords from "Common/UI/Components/HyphenatedWords/HyphenatedWords";
+import { TILE_TITLE_LONG_WORDS } from "./TileTitleWords";
+import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";
 import ResourceHeroDescription from "./ResourceHeroDescription";
 import ResourceLabelsCard from "./ResourceLabelsCard";
 import {
@@ -492,23 +489,19 @@ const GoldenMetricTile: FunctionComponent<ResourceOverviewTile> = (
         <></>
       )}
       <div className="flex items-center justify-between mb-3">
-        <div className="flex min-w-0 items-center gap-1">
-          <span
-            className={`min-w-0 text-xs font-medium text-gray-500 uppercase tracking-wider ${getTileTitleWordsClassName(
-              { text: title, lang: titleLanguage },
-            )}`}
+        {/*
+         * The (i) after the title's last word, on whichever line it ends
+         * (issue #7348), lifted above the link laid over a linked tile.
+         */}
+        <div className="flex min-w-0">
+          <WordsWithInfoTooltip
+            className="min-w-0 text-xs font-medium text-gray-500 uppercase tracking-wider"
+            text={title}
             lang={titleLanguage}
-          >
-            <HyphenatedWords
-              text={title}
-              lang={titleLanguage}
-              rule={TILE_TITLE_LONG_WORDS}
-            />
-          </span>
-          <InfoTooltip
+            rule={TILE_TITLE_LONG_WORDS}
             label={props.title}
-            text={props.description}
-            className="relative z-10"
+            description={props.description}
+            infoClassName="relative z-10"
           />
         </div>
         <div

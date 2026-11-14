@@ -18,7 +18,7 @@ import ServerSendingStatusUtil, {
  *   - required:    email, HTTPS, who can sign up;
  *   - recommended: SMS and calls, a probe that reports, backups, update
  *                  checks;
- *   - optional:    browser push, an AI provider, single sign-on.
+ *   - optional:    browser push, an LLM provider, single sign-on.
  *
  * Whether each is done is worked out from the server's real state on every
  * read (Server/Utils/ServerSetup/ServerSetupChecklist reads the facts and
@@ -214,7 +214,7 @@ export const SERVER_SETUP_CHECKS: ReadonlyArray<ServerSetupCheckDefinition> = [
   {
     id: ServerSetupCheckId.AiProvider,
     tier: ServerSetupCheckTier.Optional,
-    title: translationKey("AI provider"),
+    title: translationKey("LLM provider"),
     adminPath: SERVER_SETUP_ADMIN_PATHS.llmProviders,
     choice: null,
     tests: [],
@@ -329,7 +329,7 @@ export const SERVER_SETUP_STATUS_WORDS: Readonly<
   },
   [ServerSetupCheckId.AiProvider]: {
     [ServerSetupStatus.NotSetUp]: translationKey(
-      "Not set up: add an AI provider so projects can use OneUptime AI.",
+      "Not set up: add an LLM provider so projects can use OneUptime AI.",
     ),
     [ServerSetupStatus.Done]: translationKey(
       "Set up: projects can use OneUptime AI.",

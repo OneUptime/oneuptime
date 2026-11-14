@@ -175,7 +175,50 @@ export interface ComponentProps {
     | "false"
     | undefined;
   ariaControls?: string | undefined;
+  /*
+   * Below md the filled and the red, green and yellow outlined buttons take
+   * the whole width of their row, in larger words, and step 12px in from md
+   * up: a form's or a dialog's footer, where the buttons stack on a phone.
+   * A button that sits in a row beside a label - a card header's Remove -
+   * passes false, and keeps its own size at every width
+   * (keepButtonOwnSizeAtEveryWidth).
+   */
+  isFullWidthOnPhone?: boolean | undefined;
 }
+
+/*
+ * The footer's layout taken off a button's classes: the whole row's width
+ * below md and the 12px step in from md up, and the larger words below md.
+ * What is left is the button as md and up draws it, at every width. On a
+ * 390px phone the Data Source widgets' query card's Remove ran from the
+ * "Query" label to the card's edge, touching the label, and looked like the
+ * card's main action (issue #7331).
+ */
+const FOOTER_LAYOUT_CLASS_NAMES: ReadonlySet<string> = new Set<string>([
+  "w-full",
+  "md:w-auto",
+  "md:ml-3",
+  "md:mt-0",
+  "text-base",
+  "md:text-sm",
+]);
+
+export const keepButtonOwnSizeAtEveryWidth: (className: string) => string = (
+  className: string,
+): string => {
+  const kept: Array<string> = className
+    .split(" ")
+    .filter((name: string): boolean => {
+      return name.length > 0 && !FOOTER_LAYOUT_CLASS_NAMES.has(name);
+    });
+  const hadLargerWordsOnPhone: boolean = className
+    .split(" ")
+    .some((name: string): boolean => {
+      return name === "text-base" || name === "md:text-sm";
+    });
+
+  return (hadLargerWordsOnPhone ? [...kept, "text-sm"] : kept).join(" ");
+};
 
 const Button: FunctionComponent<ComponentProps> = ({
   title,
@@ -198,6 +241,7 @@ const Button: FunctionComponent<ComponentProps> = ({
   ariaExpanded,
   ariaHaspopup,
   ariaControls,
+  isFullWidthOnPhone = true,
 }: ComponentProps): ReactElement => {
   const { translateString } = useTranslateValue();
   const translatedTitle: string | undefined = translateString(title);
@@ -450,6 +494,11 @@ const Button: FunctionComponent<ComponentProps> = ({
     buttonStyleCssClass = `inline-flex w-full justify-center rounded-md border border-yellow-700 bg-white text-base font-medium text-yellow-700 shadow-sm ${
       isInert ? "" : "hover:bg-yellow-50"
     }   focus:outline-none focus-visible:ring-2 focus-visible:ring-yellow-500 focus-visible:ring-offset-2 md:mt-0 md:ml-3 md:w-auto md:text-sm`;
+  }
+
+  // In a row beside a label: its own size, at every width.
+  if (!isFullWidthOnPhone) {
+    buttonStyleCssClass = keepButtonOwnSizeAtEveryWidth(buttonStyleCssClass);
   }
 
   // Locked: faded as a whole, whatever the style. Busy is not locked.

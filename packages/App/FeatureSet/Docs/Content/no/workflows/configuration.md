@@ -35,9 +35,9 @@ Arkiver en arbeidsflyt du ikke lenger trenger, men vil beholde. En arkivert arbe
 
 For å arkivere én arbeidsflyt åpner du den, går til **Innstillinger** og klikker på **Arkiver**. For å arkivere flere merker du dem i listen **Arbeidsflyter** og velger **Arkiver**.
 
-For å hente en arbeidsflyt tilbake åpner du **Arbeidsflyter → Avansert → Arkivert**, merker den og velger **Fjern fra arkiv**, eller du åpner den og klikker på **Fjern fra arkiv** i banneret øverst på sidene dens.
+For å hente en arbeidsflyt tilbake åpner du **Arbeidsflyter → Avansert → Arkivert**, merker den og velger **Fjern fra arkivet**, eller du åpner den og klikker på **Fjern fra arkivet** i banneret øverst på sidene dens.
 
-Arkivering og bryteren **Aktivert** er to forskjellige ting. Arkivering rører ikke bryteren, så en arbeidsflyt som var på, kjører igjen så snart den fjernes fra arkivet, og en som var av, forblir av. Siden **Arkivert** viser i kolonnen **When Unarchived** hvilken som er hvilken.
+Arkivering og bryteren **Aktivert** er to forskjellige ting. Arkivering rører ikke bryteren, så en arbeidsflyt som var på, kjører igjen så snart den fjernes fra arkivet, og en som var av, forblir av. Siden **Arkivert** viser i kolonnen **Når den fjernes fra arkivet** hvilken som er hvilken.
 
 En eksportert arbeidsflyt tar aldri med seg den arkiverte tilstanden, så en importert kopi er aldri arkivert.
 

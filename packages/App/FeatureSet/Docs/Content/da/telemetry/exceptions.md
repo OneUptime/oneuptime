@@ -1,6 +1,6 @@
 # Undtagelser
 
-Undtagelsessporing samler de fejl, din kode kaster, og grupperer hver forekomst af den samme fejl i én undtagelse med dens stack trace, dens udvikling og de forespørgsler, den opstod i. Gennemgå dem som en opgaveliste: ret, løs eller arkivér støjen, og lad AI åbne en pull request for dem, den kan rette.
+Undtagelsessporing samler de fejl, din kode kaster, og grupperer hver forekomst af den samme fejl i én undtagelse med dens stack trace, dens udvikling og de forespørgsler, den opstod i. Gennemgå dem som en opgaveliste: ret, løs eller arkiver støjen, og lad AI åbne en pull request for dem, den kan rette.
 
 :::cards
 - [Hvor undtagelser kommer fra](#hvor-undtagelser-kommer-fra): Spans og protokoller, som dine tjenester allerede sender.
@@ -83,12 +83,12 @@ Sidens sidemenu samler det, du gør med en undtagelse:
 | **Kontekst** | Den seneste forekomsts attributter, dens sessionsoptagelse, når der er en, og de trin, der førte til den. |
 | **Protokoller** | De protokoller, der blev skrevet omkring den seneste forekomst. |
 | **Ret med AI** | Én AI-opgave, der retter undtagelsen med en pull request, og de andre foldet sammen under den. |
-| **Indstillinger** | Løs eller arkivér undtagelsen. Den ligger under **Administrer**, som er foldet sammen fra start. |
+| **Indstillinger** | Løs eller arkiver undtagelsen. Den ligger under **Administrer**, som er foldet sammen fra start. |
 | **Auditlogs** | Hvem der løste, arkiverede, tildelte eller flettede undtagelsen, og hvornår. Den ligger også under **Administrer**. |
 
 **Hvor det skete** viser den første frame fra din egen kode, det sted, hvor fejlen mest sandsynligt blev rejst: dens oprindelige fil og linje, når en source map har opløst den, koden omkring den, når map'en indeholder koden, og op til tre frames fra din kode, der kaldte den. Uden en frame i din egen kode viser kortet den inderste frame i stack trace. **Vis hele stack tracen** åbner alle frames på **Stack trace**. Når den seneste forekomst ikke registrerede strukturerede frames, viser kortet de første linjer af stack trace, som de er (de sidste linjer af en Python-traceback, hvor fejlen står), og en undtagelse uden stack trace har intet kort.
 
-## Løs, genåbn og arkivér
+## Løs, genåbn og arkiver
 
 Knapperne øverst på undtagelsens side og ⋯ ved siden af dem, dens side **Indstillinger** og menuen ⋯ på dens række i listen ændrer dens status:
 
@@ -98,11 +98,11 @@ Knapperne øverst på undtagelsens side og ⋯ ved siden af dem, dens side **Ind
 | **Løs i næste udgivelse** | Rettelsen kommer med din næste udgivelse. | Den forlader listen **Uløst**. Forekomster fra den udgivelse, den sidst blev set i, genåbner den ikke, men en fra enhver anden udgivelse gør. |
 | **Genåbn** | Rettelsen virkede ikke. | Den er uløst igen. |
 | **Arkiver** | Det er støj, du ikke vil rette. | Den forlader listen. Nye forekomster tælles, men sender ikke længere notifikationer. |
-| **Fjern fra arkiv** | Du vil høre om den igen. | Den er tilbage i den liste, den hører til i. |
+| **Fjern fra arkivet** | Du vil høre om den igen. | Den er tilbage i den liste, den hører til i. |
 
 **Løs i næste udgivelse** findes i ⋯ øverst på undtagelsens side, i rækkens menu ⋯, under **Massehandlinger** og på **Indstillinger**, så længe undtagelsens forekomster angiver deres udgivelse: ressourceattributten `service.version`.
 
-**Indstillinger** viser, hvem der sidst løste eller arkiverede undtagelsen, og hvornår. Dens knapper hedder **Marker som løst** eller **Marker som uafklaret** og **Arkiver** eller **Fjern fra arkiv**.
+**Indstillinger** viser, hvem der sidst løste eller arkiverede undtagelsen, og hvornår. Dens knapper hedder **Marker som løst** eller **Marker som uafklaret** og **Arkiver** eller **Fjern fra arkivet**.
 
 For at ændre flere på én gang markerer du deres rækker i listen, eller feltet over rækkerne for alle undtagelser på siden, og bruger de samme handlinger under **Massehandlinger**. Når alle undtagelser på siden er markeret, tilbyder linjen over rækkerne at vælge alle undtagelser, der matcher listens søgning og filtre, på alle sider, op til 10.000 ad gangen; en handling spørger så, før den ændrer dem. Resultatet viser, hvilke undtagelser der blev ændret, hvilke der blev ladt være, og hvorfor.
 
@@ -124,7 +124,7 @@ Hver undtagelse har en fejlklasse, der siger, hvis problem det er. OneUptime AI 
 | `user-error` | Resultatet af ugyldigt input fra en bruger. | Nej |
 | `expected-denial` | En kontrol, der gør sit arbejde, såsom et afvist login. | Nej |
 
-Med **Arkivér forventede undtagelser** slået til i indstillingerne for AI-indsigter arkiveres de undtagelser, som gennemgangen finder at være forventede afvisninger, for dig.
+Med **Arkiver forventede undtagelser** slået til i indstillingerne for AI-indsigter arkiveres de undtagelser, som gennemgangen finder at være forventede afvisninger, for dig.
 
 ## Forklar den med AI
 
@@ -177,7 +177,7 @@ Hvert 15. minut gennemgår OneUptime dine undtagelser for nye, for dem, der plud
 | **Stigning i undtagelser** | En undtagelse, der er sket 10 eller flere gange i den seneste time, med 5 eller flere gange sin timerate i de 24 timer før. | Retter undtagelsen eller håndterer den bedre. |
 | **Manglende stack trace** | De undtagelser, en tjeneste registrerede det seneste døgn, har intet stack trace og er tilsammen sket 20 eller flere gange. | Får tjenesten til at registrere et stack trace med hver undtagelse. |
 
-En ny eller stigende undtagelses pull request er undtagelsens egen AI-opgave, den som dens side **Ret med AI** starter, og den venter på, at OneUptime AI undersøger fundet. Finder den koden skyldig (`code-fault`), retter pull requesten den, som **Ret koden** gør. Finder den en forventet fejl (`user-error` eller `expected-denial`), håndterer pull requesten fejlen bedre, som **Håndtér fejlen bedre** gør. Enhver anden konklusion åbner ingen pull request af sig selv. Med **Arkivér forventede undtagelser** slået til arkiveres en forventet afvisning i stedet og får ingen pull request.
+En ny eller stigende undtagelses pull request er undtagelsens egen AI-opgave, den som dens side **Ret med AI** starter, og den venter på, at OneUptime AI undersøger fundet. Finder den koden skyldig (`code-fault`), retter pull requesten den, som **Ret koden** gør. Finder den en forventet fejl (`user-error` eller `expected-denial`), håndterer pull requesten fejlen bedre, som **Håndtér fejlen bedre** gør. Enhver anden konklusion åbner ingen pull request af sig selv. Med **Arkiver forventede undtagelser** slået til arkiveres en forventet afvisning i stedet og får ingen pull request.
 
 OneUptime AI åbner kun selv en for en undtagelse, der er rejst i din egen kode: en, hvis stack trace har en ramme fra din kode og ikke kun rammer fra biblioteker eller kørselsmiljøet. En pull request, som nogen lukkede uden at flette den, sætter de automatiske på pause for den undtagelse. Alle kan stadig bede om enhver af dem med **Ret med AI** på fundet.
 
@@ -222,7 +222,7 @@ Fingeraftrykket omfatter beskeden og stack trace. Når de er forskellige, for ek
 :::
 
 :::details En løst undtagelse bliver ved med at komme tilbage
-En ny forekomst genåbner med vilje en løst undtagelse: fejlen sker stadig. Kontrollér, at rettelsen nåede den release, der rapporterer den, eller arkivér undtagelsen, hvis du ikke længere vil høre om den. Hvis gamle pods fra udgivelsen bliver ved med at rapportere den under en udrulning, så brug **Løs i næste udgivelse** i stedet.
+En ny forekomst genåbner med vilje en løst undtagelse: fejlen sker stadig. Kontrollér, at rettelsen nåede den release, der rapporterer den, eller arkiver undtagelsen, hvis du ikke længere vil høre om den. Hvis gamle pods fra udgivelsen bliver ved med at rapportere den under en udrulning, så brug **Løs i næste udgivelse** i stedet.
 :::
 
 ## Næste skridt

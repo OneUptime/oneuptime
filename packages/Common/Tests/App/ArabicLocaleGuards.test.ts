@@ -163,7 +163,10 @@ const FUNCTION_WITH_BRACKETS: RegExp = /[A-Za-z_][\w.]*\(\)/g;
  * protocol name with a status code, kept in Latin letters as HTTPS is. The
  * shared time picker's HH and mm, and a time's {{time}} (UTC), are the
  * Admin Dashboard's copies of the Dashboard's words, which its own Arabic
- * list keeps as written (i18n/Progress/ar.json, #7567).
+ * list keeps as written (i18n/Progress/ar.json, #7567). So are the names of
+ * the keys a shortcut is said with (keyboardKeys: Command, Shift, Tab ...),
+ * which Arabic keyboards and Arabic Windows and macOS help print in Latin
+ * letters (#7484).
  */
 const SAME_AS_ENGLISH: Record<string, Array<string>> = {
   Accounts: ["OneUptime"],
@@ -190,18 +193,23 @@ const SAME_AS_ENGLISH: Record<string, Array<string>> = {
   ],
   AdminDashboard: [
     "8012345678:ABCdefGHIjklMNOpqrsTUVwxyz-0987654321",
+    "Alt",
     "Amazon S3",
     "Azure Blob Storage",
     "Azure China",
     "Backblaze B2",
+    "Backspace",
     "Ceph",
     "ClickHouse",
     "Cloudflare R2",
+    "Command",
     "Company, Inc.",
+    "Delete",
     "Docker",
     "Docker Swarm",
     "EAAG...",
     "EU (Frankfurt)",
+    "Enter",
     "Google Cloud Storage",
     "HH",
     "HTTP {{status}}",
@@ -213,15 +221,19 @@ const SAME_AS_ENGLISH: Record<string, Array<string>> = {
     "MinIO",
     "OneUptimeAlertsBot",
     "OpenStack",
+    "Option",
     "Podman",
     "PostgreSQL",
     "Proxmox",
+    "Shift",
     "Syslog",
+    "Tab",
     "Telegram",
     "VMware",
     "Valkey",
     "Wasabi",
     "WhatsApp",
+    "Windows",
     "gpt-4o, claude-3-opus, llama-3.3-70b-versatile",
     "mm",
     "test@example.com",

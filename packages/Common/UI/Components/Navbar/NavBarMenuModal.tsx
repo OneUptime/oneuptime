@@ -126,6 +126,15 @@ export interface ComponentProps {
    */
   isFooterTranslated?: boolean | undefined;
   searchPlaceholder?: string | undefined;
+  /*
+   * The search box's accessible name: what the box is ("Search products"),
+   * without the placeholder's trailing "…", which is a prompt to type and
+   * which a screen reader reads out as "dot dot dot" or not at all. Without
+   * one the box is named by its placeholder (the Admin Dashboard's "Search
+   * admin…"), and without that "Search products" (#7486). Handed over in
+   * English: the box looks it up once.
+   */
+  searchLabel?: string | undefined;
   // In the reader's words already: said as given (#7682).
   isSearchPlaceholderTranslated?: boolean | undefined;
   noResultsText?: string | undefined;
@@ -1007,7 +1016,11 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
                 aria-activedescendant={
                   activeEntry ? entryElementId(activeEntry) : undefined
                 }
-                aria-label={searchWords(translationKey("Search products"))}
+                aria-label={
+                  props.searchLabel
+                    ? tx(props.searchLabel)
+                    : searchWords(translationKey("Search products"))
+                }
                 autoComplete="off"
                 autoCorrect="off"
                 autoCapitalize="off"
