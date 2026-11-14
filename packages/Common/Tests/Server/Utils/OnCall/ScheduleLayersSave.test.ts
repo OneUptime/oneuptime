@@ -1,7 +1,9 @@
 import OnCallDutyPolicyScheduleLayer from "../../../../Models/DatabaseModels/OnCallDutyPolicyScheduleLayer";
 import OnCallDutyPolicyScheduleLayerUser from "../../../../Models/DatabaseModels/OnCallDutyPolicyScheduleLayerUser";
+import WorkspaceProjectAuthToken from "../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import Semaphore from "../../../../Server/Infrastructure/Semaphore";
 import AuditLogService from "../../../../Server/Services/AuditLogService";
+import OnCallDutyPolicyEscalationRuleScheduleService from "../../../../Server/Services/OnCallDutyPolicyEscalationRuleScheduleService";
 import OnCallDutyPolicyFeedService from "../../../../Server/Services/OnCallDutyPolicyFeedService";
 import OnCallDutyPolicyScheduleLayerService from "../../../../Server/Services/OnCallDutyPolicyScheduleLayerService";
 import OnCallDutyPolicyScheduleLayerUserService from "../../../../Server/Services/OnCallDutyPolicyScheduleLayerUserService";
@@ -10,12 +12,14 @@ import OnCallDutyPolicyService from "../../../../Server/Services/OnCallDutyPolic
 import OnCallDutyPolicyTimeLogService from "../../../../Server/Services/OnCallDutyPolicyTimeLogService";
 import UserNotificationSettingService from "../../../../Server/Services/UserNotificationSettingService";
 import UserService from "../../../../Server/Services/UserService";
+import WorkspaceProjectAuthTokenService from "../../../../Server/Services/WorkspaceProjectAuthTokenService";
 import ModelPermission from "../../../../Server/Types/Database/Permissions/Index";
 import QueryHelper from "../../../../Server/Types/Database/QueryHelper";
 import logger from "../../../../Server/Utils/Logger";
 import { OnCallShiftChangeReason } from "../../../../Server/Utils/OnCall/OnCallShiftChangeListeners";
 import ScheduleLayersSave from "../../../../Server/Utils/OnCall/ScheduleLayersSave";
 import WorkspaceUserGroupSync from "../../../../Server/Utils/Workspace/UserGroups/WorkspaceUserGroupSync";
+import WorkspaceUtil from "../../../../Server/Utils/Workspace/Workspace";
 import URL from "../../../../Types/API/URL";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import OneUptimeDate from "../../../../Types/Date";
@@ -32,6 +36,7 @@ import ScheduleLayersSaveUtil, {
   ScheduleLayersState,
 } from "../../../../Types/OnCallDutyPolicy/ScheduleLayersSave";
 import UserType from "../../../../Types/UserType";
+import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
 import FeedMarkdown from "../../../../Utils/Markdown/FeedMarkdown";
 import { at } from "../../../Types/OnCallDutyPolicy/CalendarFeedTestFixtures";
 import { stubProjectDirectory } from "../../TestingUtils/ProjectDirectory";
@@ -138,6 +143,8 @@ let beforeTheLock: (() => void) | null;
 let insertedCount: number;
 let told: Array<Told>;
 let feed: Array<string>;
+// The lines a hand-off sends the policy's chat channels (OnCallHandoffPosts).
+let chat: Array<string>;
 let refreshes: number;
 let propagated: Array<{
   scheduleIds: Array<string>;
@@ -428,6 +435,7 @@ beforeEach(() => {
   insertedCount = 0;
   told = [];
   feed = [];
+  chat = [];
   refreshes = 0;
   propagated = [];
   audit = [];
@@ -577,10 +585,18 @@ beforeEach(() => {
       Object.assign(row || {}, data.data);
     }) as never);
 
-  // What a hand-off tells people, and posts to the policy's feed - and from there to Slack and Microsoft Teams.
+  /*
+   * What a hand-off tells people: an entry in the policy's feed, and a line
+   * in each of its Slack channels that wants one (OnCallHandoffPosts, issue
+   * #7549). The policy pages this schedule alone, so its lines do not name
+   * the schedule.
+   */
   jest
     .spyOn(OnCallDutyPolicyService, "getOnCallDutyPolicyLinkInDashboard")
     .mockResolvedValue(URL.fromString("https://oneuptime.example/policy"));
+  jest
+    .spyOn(OnCallDutyPolicyEscalationRuleScheduleService, "findOneBy")
+    .mockResolvedValue(null);
   jest.spyOn(UserService, "getTimezoneForUser").mockResolvedValue(null);
   jest
     .spyOn(UserService, "getUserMarkdownString")
@@ -589,12 +605,28 @@ beforeEach(() => {
     }) as never);
   jest
     .spyOn(OnCallDutyPolicyFeedService, "createOnCallDutyPolicyFeedItem")
-    .mockImplementation((async (data: {
-      feedInfoInMarkdown: string;
-      workspaceNotification?: { sendWorkspaceNotification?: boolean };
-    }) => {
-      expect(data.workspaceNotification?.sendWorkspaceNotification).toBe(true);
+    .mockImplementation((async (data: { feedInfoInMarkdown: string }) => {
       feed.push(data.feedInfoInMarkdown);
+    }) as never);
+  jest
+    .spyOn(WorkspaceProjectAuthTokenService, "getProjectAuths")
+    .mockImplementation((async () => {
+      const slack: WorkspaceProjectAuthToken = new WorkspaceProjectAuthToken();
+      slack.workspaceType = WorkspaceType.Slack;
+      slack.authToken = "xoxb-test";
+      return [slack];
+    }) as never);
+  jest
+    .spyOn(WorkspaceUtil, "getUserStringForWorkspace")
+    .mockImplementation((async (data: { userId: ObjectID }) => {
+      return `@${NAMES[lower(data.userId)] || ""}`;
+    }) as never);
+  jest
+    .spyOn(OnCallDutyPolicyFeedService, "sendWorkspaceNotification")
+    .mockImplementation((async (data: {
+      markdownByWorkspaceType?: Partial<Record<WorkspaceType, string>>;
+    }) => {
+      chat.push(data.markdownByWorkspaceType?.[WorkspaceType.Slack] || "");
     }) as never);
   jest
     .spyOn(OnCallDutyPolicyTimeLogService, "startTimeLogForUser")
@@ -682,6 +714,7 @@ async function rosterAsItIs(): Promise<void> {
   );
   told = [];
   feed = [];
+  chat = [];
   refreshes = 0;
 }
 
@@ -734,17 +767,34 @@ describe("one save, one round of messages", () => {
       "Sam Lee: on call",
       "Kim Ito: next",
     ]);
-    expect(feed.length).toBe(3);
-    expect(feed[0]).toContain("Alex Kim");
-    expect(feed[0]).toContain("is no longer on call");
-    expect(feed[1]).toContain("Sam Lee");
-    expect(feed[2]).toContain("Kim Ito");
-    expect(feed[2]).toContain("is next on call");
-    expect(
-      feed.some((entry: string) => {
-        return entry.includes("Kim Ito") && entry.includes("is now on call");
-      }),
-    ).toBe(false);
+
+    /*
+     * The policy's feed: one entry for the hand-off (issue #7549) - Sam on
+     * call, Kim after - not one for each of the three people.
+     */
+    expect(feed).toHaveLength(1);
+    expect(feed[0]).toMatch(
+      /^📞 \*\*Sam Lee\*\* is now on call for \[Payments\]\(https:\/\/oneuptime\.example\/policy\) until .+, then \*\*Kim Ito\*\*\.$/,
+    );
+
+    /*
+     * Its channels: a line for each way a channel can want the hand-off -
+     * who is on call with who is next, who is on call alone, who is next
+     * alone - of which each channel gets one (OnCallHandoffPosts).
+     */
+    expect(chat).toHaveLength(3);
+    expect(chat[0]).toMatch(
+      /^📞 @Sam Lee is now on call for \[Payments\]\(https:\/\/oneuptime\.example\/policy\) until .+, then @Kim Ito\.$/,
+    );
+    expect(chat[1]).toMatch(/^📞 @Sam Lee is now on call for .+ until .+\.$/);
+    expect(chat[1]).not.toContain("Kim Ito");
+    expect(chat[2]).toMatch(/^➡️ @Kim Ito is next on call for .+, from .+\.$/);
+
+    // Nobody hears of the step between: Kim on call after the first drag.
+    for (const entry of [...feed, ...chat]) {
+      expect(entry).not.toMatch(/Kim Ito\W* is now on call/);
+      expect(entry).not.toContain("Alex Kim");
+    }
   });
 
   test("a layer moved to the top: one hand-off, to the person at the top of it", async () => {
@@ -765,6 +815,12 @@ describe("one save, one round of messages", () => {
     ).toEqual(["Ria Das: on call"]);
     expect(toldAs()).toContain("Alex Kim: no longer on call");
     expect(result.movedLayers).toBe(2);
+
+    // The policy's feed: one entry for the one hand-off (issue #7549).
+    expect(feed).toHaveLength(1);
+    expect(feed[0]).toMatch(
+      /^📞 \*\*Ria Das\*\* is now on call for \[Payments\]/,
+    );
   });
 
   test("someone added at the end changes nobody's turn now: worked out once, and nobody is told anything", async () => {

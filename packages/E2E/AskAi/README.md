@@ -50,7 +50,8 @@ An in-page server answers what the panel asks and records what it sends on
   and no longer all in hand, never "read only part of"); `?thread=monitors` on "Which monitors
   are down right now?", answered with two monitors read by id, one Offline and one whose
   monitoring is off, each on a read's plain card with its status a dot in its own colour, and
-  the monitors table, a monitor named by its URL beside one-word statuses ("Operational").
+  the monitors table, a monitor named by its URL beside one-word statuses ("Operational"), built
+  as query_monitors builds it (MonitorsTableWords), with its words.
 - A question sent starts a run whose steps are written one per poll, then the answer; a
   question about an alert ends on an approval card, and one asking to fail ends on an error.
   `?run=hold` holds the run where it is until `window.__askAiFixture.addSteps(n)` and
@@ -131,6 +132,9 @@ fails on any uncaught page error:
   a dot in its own colour before the line that names it (red for Offline, gray for monitoring
   off), in light and dark, and at the line's right on a Persian phone; the monitors table keeping
   "Operational" whole on a 360 pixel phone while a monitor's URL wraps inside the table, after
-  its slashes and before its host's dots, at every width.
+  its slashes and before its host's dots, at every width; and, in German and Persian at 1280,
+  390 and 360 pixels, light and dark, the table's title, the line under it, each type and
+  Disabled in the reader's words - the count the reader's way - as the cards above it say them,
+  its title and line whole, wrapped where they must be, and clear of Open.
 
 Screenshots of each state land in `output/playwright/ask-ai-ui/`.
