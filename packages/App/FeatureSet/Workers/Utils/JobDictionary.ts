@@ -2,8 +2,16 @@ import OneUptimeDate from "Common/Types/Date";
 import Dictionary from "Common/Types/Dictionary";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { QueueJob } from "Common/Server/Infrastructure/Queue";
+import JobDeadline from "Common/Server/Utils/JobDeadline";
 
-export type WorkerJobFunction = (job?: QueueJob) => Promise<void>;
+/*
+ * A Worker queue job: the queued job, and its deadline - when its time
+ * limit runs out (JobDeadline). A job that loops stops at its deadline.
+ */
+export type WorkerJobFunction = (
+  job?: QueueJob,
+  deadline?: JobDeadline,
+) => Promise<void>;
 
 export default class JobDictionary {
   private static dictionary: Dictionary<WorkerJobFunction> = {};
