@@ -13,7 +13,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  *
  * A walk's refresh of an endpoint it sees unchanged writes lastSeenAt,
  * updatedAt and the values the row already holds - and, about once a day,
- * coarseLastSeenAt. Since SwapNetworkEndpointLastSeenIndexes1809169100000
+ * coarseLastSeenAt. Since SwapNetworkEndpointLastSeenIndexes1809173100000
  * lastSeenAt is in no index, so every other refresh can be HOT, when its
  * page has room. At the default fillfactor of 100 a page has none: a walk
  * inserts a device's endpoints together, packed full. A walk refreshes an
@@ -37,10 +37,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * moves its row to a page that keeps the room free, so the table settles
  * into it as walks write it.
  */
-export class SetNetworkEndpointFillfactor1809169200000
+export class SetNetworkEndpointFillfactor1809173200000
   implements MigrationInterface
 {
-  public name: string = "SetNetworkEndpointFillfactor1809169200000";
+  public name: string = "SetNetworkEndpointFillfactor1809173200000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

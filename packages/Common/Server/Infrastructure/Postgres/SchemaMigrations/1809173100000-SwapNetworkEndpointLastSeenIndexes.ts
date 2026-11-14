@@ -23,10 +23,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * new index is built before the old ones go, so the age-out always has one.
  * Safe to run again after a stop part way.
  */
-export class SwapNetworkEndpointLastSeenIndexes1809169100000
+export class SwapNetworkEndpointLastSeenIndexes1809173100000
   implements MigrationInterface
 {
-  public name: string = "SwapNetworkEndpointLastSeenIndexes1809169100000";
+  public name: string = "SwapNetworkEndpointLastSeenIndexes1809173100000";
 
   // CREATE / DROP INDEX CONCURRENTLY run outside a transaction.
   public transaction: boolean = false;

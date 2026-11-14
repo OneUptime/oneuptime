@@ -2,9 +2,9 @@ import NetworkEndpoint from "../../../../Models/DatabaseModels/NetworkEndpoint";
 import OnlineDdl, {
   OnlineIndex,
 } from "../../../../Server/Infrastructure/Postgres/OnlineDdl";
-import { AddNetworkEndpointCoarseLastSeenAt1809169000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809169000000-AddNetworkEndpointCoarseLastSeenAt";
-import { SwapNetworkEndpointLastSeenIndexes1809169100000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809169100000-SwapNetworkEndpointLastSeenIndexes";
-import { SetNetworkEndpointFillfactor1809169200000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809169200000-SetNetworkEndpointFillfactor";
+import { AddNetworkEndpointCoarseLastSeenAt1809173000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809173000000-AddNetworkEndpointCoarseLastSeenAt";
+import { SwapNetworkEndpointLastSeenIndexes1809173100000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809173100000-SwapNetworkEndpointLastSeenIndexes";
+import { SetNetworkEndpointFillfactor1809173200000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809173200000-SetNetworkEndpointFillfactor";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import {
   TableColumnMetadata,
@@ -84,11 +84,11 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe("AddNetworkEndpointCoarseLastSeenAt1809169000000", () => {
+describe("AddNetworkEndpointCoarseLastSeenAt1809173000000", () => {
   test("adds the column as the generator wrote it: a nullable timestamptz, no default, so nothing is rewritten", async () => {
     expect(
       await statementsOf((runner: QueryRunner) => {
-        return new AddNetworkEndpointCoarseLastSeenAt1809169000000().up(runner);
+        return new AddNetworkEndpointCoarseLastSeenAt1809173000000().up(runner);
       }),
     ).toEqual([
       `ALTER TABLE "NetworkEndpoint" ADD "coarseLastSeenAt" TIMESTAMP WITH TIME ZONE`,
@@ -98,7 +98,7 @@ describe("AddNetworkEndpointCoarseLastSeenAt1809169000000", () => {
   test("down() drops it", async () => {
     expect(
       await statementsOf((runner: QueryRunner) => {
-        return new AddNetworkEndpointCoarseLastSeenAt1809169000000().down(
+        return new AddNetworkEndpointCoarseLastSeenAt1809173000000().down(
           runner,
         );
       }),
@@ -108,7 +108,7 @@ describe("AddNetworkEndpointCoarseLastSeenAt1809169000000", () => {
   test("runs in a transaction: adding a nullable column is instant", () => {
     expect(
       (
-        new AddNetworkEndpointCoarseLastSeenAt1809169000000() as {
+        new AddNetworkEndpointCoarseLastSeenAt1809173000000() as {
           transaction?: boolean;
         }
       ).transaction,
@@ -116,17 +116,17 @@ describe("AddNetworkEndpointCoarseLastSeenAt1809169000000", () => {
   });
 });
 
-describe("SwapNetworkEndpointLastSeenIndexes1809169100000", () => {
+describe("SwapNetworkEndpointLastSeenIndexes1809173100000", () => {
   test("runs outside a transaction, so every build and drop is online", () => {
     expect(
-      new SwapNetworkEndpointLastSeenIndexes1809169100000().transaction,
+      new SwapNetworkEndpointLastSeenIndexes1809173100000().transaction,
     ).toBe(false);
   });
 
   test("builds the coarse index first, then drops both of lastSeenAt's - through OnlineDdl only", async () => {
     expect(
       await statementsOf((runner: QueryRunner) => {
-        return new SwapNetworkEndpointLastSeenIndexes1809169100000().up(runner);
+        return new SwapNetworkEndpointLastSeenIndexes1809173100000().up(runner);
       }, false),
     ).toEqual([
       `online: CREATE INDEX "${NEW_INDEX}" ON "NetworkEndpoint" ("projectId", "coarseLastSeenAt") WHERE ${LIVE}`,
@@ -151,7 +151,7 @@ describe("SwapNetworkEndpointLastSeenIndexes1809169100000", () => {
   test("down() puts lastSeenAt's indexes back, as the generator wrote them, before the coarse one goes", async () => {
     expect(
       await statementsOf((runner: QueryRunner) => {
-        return new SwapNetworkEndpointLastSeenIndexes1809169100000().down(
+        return new SwapNetworkEndpointLastSeenIndexes1809173100000().down(
           runner,
         );
       }),
@@ -181,14 +181,14 @@ describe("SwapNetworkEndpointLastSeenIndexes1809169100000", () => {
   });
 });
 
-describe("SetNetworkEndpointFillfactor1809169200000", () => {
+describe("SetNetworkEndpointFillfactor1809173200000", () => {
   const STORAGE_PARAMETER_ONLY: RegExp =
     /^ALTER TABLE "NetworkEndpoint" (SET \(fillfactor = \d+\)|RESET \(fillfactor\))$/;
 
   test("keeps a fifth of every page free - and does nothing else", async () => {
     expect(
       await statementsOf((runner: QueryRunner) => {
-        return new SetNetworkEndpointFillfactor1809169200000().up(runner);
+        return new SetNetworkEndpointFillfactor1809173200000().up(runner);
       }),
     ).toEqual([`ALTER TABLE "NetworkEndpoint" SET (fillfactor = 80)`]);
   });
@@ -196,14 +196,14 @@ describe("SetNetworkEndpointFillfactor1809169200000", () => {
   test("down() gives the table the default back", async () => {
     expect(
       await statementsOf((runner: QueryRunner) => {
-        return new SetNetworkEndpointFillfactor1809169200000().down(runner);
+        return new SetNetworkEndpointFillfactor1809173200000().down(runner);
       }),
     ).toEqual([`ALTER TABLE "NetworkEndpoint" RESET (fillfactor)`]);
   });
 
   test("every statement only sets a storage parameter: SHARE UPDATE EXCLUSIVE, no rewrite", async () => {
-    const migration: SetNetworkEndpointFillfactor1809169200000 =
-      new SetNetworkEndpointFillfactor1809169200000();
+    const migration: SetNetworkEndpointFillfactor1809173200000 =
+      new SetNetworkEndpointFillfactor1809173200000();
     const statements: Array<string> = [
       ...(await statementsOf((runner: QueryRunner) => {
         return migration.up(runner);
@@ -226,9 +226,9 @@ describe("the three, registered", () => {
   test("each once, in order, after the migrations before them, and named for its class", () => {
     const names: Array<string> = registeredNames();
     const order: Array<string> = [
-      "AddNetworkEndpointCoarseLastSeenAt1809169000000",
-      "SwapNetworkEndpointLastSeenIndexes1809169100000",
-      "SetNetworkEndpointFillfactor1809169200000",
+      "AddNetworkEndpointCoarseLastSeenAt1809173000000",
+      "SwapNetworkEndpointLastSeenIndexes1809173100000",
+      "SetNetworkEndpointFillfactor1809173200000",
     ];
 
     for (const name of order) {
@@ -247,13 +247,13 @@ describe("the three, registered", () => {
       names.indexOf("SetNetworkInterfaceFillfactor1809164000000"),
     );
 
-    expect(new AddNetworkEndpointCoarseLastSeenAt1809169000000().name).toBe(
+    expect(new AddNetworkEndpointCoarseLastSeenAt1809173000000().name).toBe(
       order[0],
     );
-    expect(new SwapNetworkEndpointLastSeenIndexes1809169100000().name).toBe(
+    expect(new SwapNetworkEndpointLastSeenIndexes1809173100000().name).toBe(
       order[1],
     );
-    expect(new SetNetworkEndpointFillfactor1809169200000().name).toBe(order[2]);
+    expect(new SetNetworkEndpointFillfactor1809173200000().name).toBe(order[2]);
   });
 });
 

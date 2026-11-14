@@ -168,7 +168,7 @@ describe("AddNetworkEndpointLastSeenIndex1809080463891", () => {
   /*
    * The entity no longer declares it: since #8092 the age-out reads
    * ("projectId", "coarseLastSeenAt") of live rows, and
-   * SwapNetworkEndpointLastSeenIndexes1809169100000 drops this one
+   * SwapNetworkEndpointLastSeenIndexes1809173100000 drops this one
    * (NetworkEndpointHotRefreshMigrations pins that). Its name is still the
    * one TypeORM gave the entity's index, which is the name that drop needs.
    */
