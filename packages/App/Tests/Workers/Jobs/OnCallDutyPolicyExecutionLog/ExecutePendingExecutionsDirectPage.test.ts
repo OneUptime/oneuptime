@@ -40,6 +40,17 @@ jest.mock("../../../../FeatureSet/Workers/Utils/Cron", () => {
   };
 });
 
+/*
+ * Where each run's record stands, answered one record at a time by the
+ * per-record reads this suite mocks, as the worker read them before it read
+ * a page's records together (Fixtures/OnCallRecordStatesPerRecord).
+ */
+jest.mock("Common/Server/Utils/OnCall/OnCallRecordStates", () => {
+  return jest
+    .requireActual("../Fixtures/OnCallRecordStatesPerRecord")
+    .onCallRecordStatesReadPerRecord();
+});
+
 jest.mock("Common/Server/Utils/Logger", () => {
   return {
     __esModule: true,
@@ -56,7 +67,7 @@ jest.mock("Common/Server/Services/OnCallDutyPolicyExecutionLogService", () => {
   return {
     __esModule: true,
     default: {
-      findAllBy: jest.fn(),
+      findBy: jest.fn(),
       updateOneById: jest.fn(),
       claimEscalationAdvance: jest.fn(),
       endDirectPageIfItsPagesAreOver: jest.fn(),
@@ -133,7 +144,7 @@ const JOB_NAME: string =
   "OnCallDutyPolicyExecutionLog:ExecutePendingExecutions";
 
 interface ExecutionLogServiceMock {
-  findAllBy: jest.Mock;
+  findBy: jest.Mock;
   updateOneById: jest.Mock;
   claimEscalationAdvance: jest.Mock;
   endDirectPageIfItsPagesAreOver: jest.Mock;
@@ -219,7 +230,7 @@ describe("a direct page that nobody has answered", () => {
     "about an %s: it is handed to the service that ends it, with when its paging started",
     async (about: "incident" | "alert") => {
       const log: OnCallDutyPolicyExecutionLog = directPage(about);
-      executionLogService.findAllBy.mockResolvedValue([log]);
+      executionLogService.findBy.mockResolvedValue([log]);
 
       await tick();
 
@@ -236,7 +247,7 @@ describe("a direct page that nobody has answered", () => {
   );
 
   test("no escalation rule is looked for, claimed or started: it has no policy to match one on", async () => {
-    executionLogService.findAllBy.mockResolvedValue([directPage("incident")]);
+    executionLogService.findBy.mockResolvedValue([directPage("incident")]);
 
     await tick();
 
@@ -247,7 +258,7 @@ describe("a direct page that nobody has answered", () => {
   });
 
   test("the job itself writes nothing to the run: whether it is over is the service's to say", async () => {
-    executionLogService.findAllBy.mockResolvedValue([directPage("incident")]);
+    executionLogService.findBy.mockResolvedValue([directPage("incident")]);
 
     await tick();
 
@@ -258,7 +269,7 @@ describe("a direct page that nobody has answered", () => {
     const log: OnCallDutyPolicyExecutionLog = directPage("incident");
     delete (log as { lastEscalationRuleExecutedAt?: Date })
       .lastEscalationRuleExecutedAt;
-    executionLogService.findAllBy.mockResolvedValue([log]);
+    executionLogService.findBy.mockResolvedValue([log]);
 
     await tick();
 
@@ -271,12 +282,12 @@ describe("a direct page that nobody has answered", () => {
   });
 
   test("the run is read with its policy id, which is what tells a direct page apart", async () => {
-    executionLogService.findAllBy.mockResolvedValue([]);
+    executionLogService.findBy.mockResolvedValue([]);
 
     await tick();
 
     const select: Record<string, unknown> = (
-      executionLogService.findAllBy.mock.calls[0]![0] as {
+      executionLogService.findBy.mock.calls[0]![0] as {
         select: Record<string, unknown>;
       }
     ).select;
@@ -290,7 +301,7 @@ describe("a direct page that nobody has answered", () => {
     const failing: OnCallDutyPolicyExecutionLog = directPage("incident");
     const other: OnCallDutyPolicyExecutionLog = directPage("alert");
 
-    executionLogService.findAllBy.mockResolvedValue([failing, other]);
+    executionLogService.findBy.mockResolvedValue([failing, other]);
     executionLogService.endDirectPageIfItsPagesAreOver.mockImplementation(
       async (data: { executionLogId: ObjectID }): Promise<boolean> => {
         if (data.executionLogId.toString() === failing.id!.toString()) {
@@ -312,7 +323,7 @@ describe("a direct page that nobody has answered", () => {
 describe("a direct page whose record somebody is on", () => {
   test("an acknowledged incident ends it, in the words a policy's run is given", async () => {
     const log: OnCallDutyPolicyExecutionLog = directPage("incident");
-    executionLogService.findAllBy.mockResolvedValue([log]);
+    executionLogService.findBy.mockResolvedValue([log]);
     incidentService.isIncidentAcknowledged.mockResolvedValue(true);
 
     await tick();
@@ -337,7 +348,7 @@ describe("a direct page whose record somebody is on", () => {
 
   test("an acknowledged alert ends it", async () => {
     const log: OnCallDutyPolicyExecutionLog = directPage("alert");
-    executionLogService.findAllBy.mockResolvedValue([log]);
+    executionLogService.findBy.mockResolvedValue([log]);
     alertService.isAlertAcknowledged.mockResolvedValue(true);
 
     await tick();
@@ -362,7 +373,7 @@ describe("a direct page whose record somebody is on", () => {
 describe("a policy's run on the same tick is still a policy's", () => {
   test("it is never handed to the direct page's ending", async () => {
     const run: OnCallDutyPolicyExecutionLog = policyRun();
-    executionLogService.findAllBy.mockResolvedValue([run]);
+    executionLogService.findBy.mockResolvedValue([run]);
 
     await tick();
 
@@ -377,7 +388,7 @@ describe("a policy's run on the same tick is still a policy's", () => {
       new OnCallDutyPolicyEscalationRule();
     nextRule.id = ObjectID.generate();
 
-    executionLogService.findAllBy.mockResolvedValue([run]);
+    executionLogService.findBy.mockResolvedValue([run]);
     ruleService.findOneBy.mockResolvedValue(nextRule);
 
     await tick();
@@ -404,7 +415,7 @@ describe("a policy's run on the same tick is still a policy's", () => {
     const page: OnCallDutyPolicyExecutionLog = directPage("alert");
     const run: OnCallDutyPolicyExecutionLog = policyRun();
 
-    executionLogService.findAllBy.mockResolvedValue([page, run]);
+    executionLogService.findBy.mockResolvedValue([page, run]);
 
     await tick();
 

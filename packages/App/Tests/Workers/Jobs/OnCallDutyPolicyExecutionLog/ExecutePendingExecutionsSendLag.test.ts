@@ -51,6 +51,17 @@ jest.mock("../../../../FeatureSet/Workers/Utils/Cron", () => {
   };
 });
 
+/*
+ * Where each run's record stands, answered one record at a time by the
+ * per-record reads this suite mocks, as the worker read them before it read
+ * a page's records together (Fixtures/OnCallRecordStatesPerRecord).
+ */
+jest.mock("Common/Server/Utils/OnCall/OnCallRecordStates", () => {
+  return jest
+    .requireActual("../Fixtures/OnCallRecordStatesPerRecord")
+    .onCallRecordStatesReadPerRecord();
+});
+
 jest.mock("Common/Server/Utils/Logger", () => {
   return {
     __esModule: true,
@@ -67,7 +78,7 @@ jest.mock("Common/Server/Services/OnCallDutyPolicyExecutionLogService", () => {
   return {
     __esModule: true,
     default: {
-      findAllBy: jest.fn(),
+      findBy: jest.fn(),
       findOneById: jest.fn(),
       updateOneById: jest.fn(),
       claimEscalationAdvance: jest.fn(),
@@ -141,12 +152,12 @@ const JOB_NAME: string =
   "OnCallDutyPolicyExecutionLog:ExecutePendingExecutions";
 
 const executionLogService: {
-  findAllBy: jest.Mock;
+  findBy: jest.Mock;
   findOneById: jest.Mock;
   updateOneById: jest.Mock;
   claimEscalationAdvance: jest.Mock;
 } = OnCallDutyPolicyExecutionLogService as unknown as {
-  findAllBy: jest.Mock;
+  findBy: jest.Mock;
   findOneById: jest.Mock;
   updateOneById: jest.Mock;
   claimEscalationAdvance: jest.Mock;
@@ -246,7 +257,7 @@ async function tickAt(
   run: OnCallDutyPolicyExecutionLog,
 ): Promise<void> {
   now = moment;
-  executionLogService.findAllBy.mockResolvedValue([run]);
+  executionLogService.findBy.mockResolvedValue([run]);
 
   const handler: CronHandler | undefined = mockCapturedJobs[JOB_NAME];
 
